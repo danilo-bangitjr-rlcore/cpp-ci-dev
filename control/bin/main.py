@@ -1,0 +1,75 @@
+import os, sys
+sys.path.insert(0, '..')
+
+import argparse
+import src.environment.factory as env_factory
+import src.agent.factory as agent_factory
+import src.utils.utils as utils
+import src.utils.run_funcs as run_funcs
+
+os.chdir("..")
+print("Change dir to", os.getcwd())
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="run_file")
+    parser.add_argument('--version', default=0, type=int)
+    parser.add_argument('--seed', default=42, type=int)
+    parser.add_argument('--param', default=0, type=int)
+    parser.add_argument('--device', default='cpu', type=str)
+    parser.add_argument('--exp_name', default='temp', type=str)
+    parser.add_argument('--exp_info', default='', type=str)
+    parser.add_argument('--timeout', default=1, type=int)
+    parser.add_argument('--max_steps', default=20000, type=int)
+    parser.add_argument('--log_interval', default=1, type=int)
+    parser.add_argument('--log_test', default=0, type=int)
+    parser.add_argument('--stats_queue_size', default=1, type=int)
+    parser.add_argument('--evaluation_criteria', default='return', type=str)
+    parser.add_argument('--render', default=0, type=int)
+
+    parser.add_argument('--env_name', default='ThreeTank', type=str)
+    parser.add_argument('--env_info', default=0.01, type=float)
+    parser.add_argument('--gamma', default=0.99, type=float)
+    parser.add_argument('--discrete_control', default=0, type=int)
+
+    parser.add_argument('--agent_name', default='SimpleAC', type=str)
+    parser.add_argument('--actor', default='Beta', type=str)
+    parser.add_argument('--critic', default='FC', type=str)
+    parser.add_argument('--optimizer', default='RMSprop', type=str)
+    parser.add_argument('--state_normalizer', default='Identity', type=str)
+    parser.add_argument('--reward_normalizer', default='Identity', type=str)
+    parser.add_argument('--exploration', default=0.1, type=float)
+    parser.add_argument('--action_scale', default=1., type=float)
+    parser.add_argument('--action_bias', default=0., type=float)
+    parser.add_argument('--load_path', default="", type=str)
+    parser.add_argument('--load_checkpoint', default=1, type=int)
+    parser.add_argument('--buffer_size', default=1, type=int)
+    parser.add_argument('--batch_size', default=1, type=int)
+    parser.add_argument('--use_target_network', default=1, type=int)
+    parser.add_argument('--polyak', default=0, type=float) # 0 is hard sync
+    parser.add_argument('--hidden_units', default=[256, 256], type=int, nargs='+')
+    parser.add_argument('--lr_actor', default=0.0001, type=float)
+    parser.add_argument('--lr_critic', default=0.001, type=float)
+    parser.add_argument('--lr_v', default=0.001, type=float)
+    parser.add_argument('--lr_constrain', default=0.000001, type=float)
+
+    parser.add_argument('--tau', default=0.000001, type=float)
+    parser.add_argument('--rho', default=0.1, type=float)
+    parser.add_argument('--n', default=30, type=int)
+
+    cfg = parser.parse_args()
+
+    cfg.exp_path = './out/output/test_v{}/{}/{}{}/{}/param_{}/seed_{}/'.format(cfg.version, cfg.env_name, cfg.exp_name, cfg.exp_info, cfg.agent_name, cfg.param, cfg.seed)  # savelocation for logs
+    cfg.parameters_path = os.path.join(cfg.exp_path, "parameters")
+    cfg.vis_path = os.path.join(cfg.exp_path, "visualizations")
+    utils.ensure_dir(cfg.exp_path)
+    utils.ensure_dir(cfg.parameters_path)
+    utils.ensure_dir(cfg.vis_path)
+    utils.write_json(cfg.exp_path, cfg)
+    
+    cfg.logger = utils.logger_setup(cfg)
+    utils.set_seed(cfg.seed)
+    cfg.train_env = env_factory.init_environment(cfg.env_name, cfg)
+    cfg.eval_env = env_factory.init_environment(cfg.env_name, cfg)
+    agent = agent_factory.init_agent(cfg.agent_name, cfg)
+    
+    run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, 0)
