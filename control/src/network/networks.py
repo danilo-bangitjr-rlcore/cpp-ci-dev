@@ -1,5 +1,5 @@
 import torch
-import src.network.torch_utils as torch_utils
+import src.network.torch_utils as internal_factory
 import torch.nn as nn
 import torch.distributions as distrib
 import numpy as np
@@ -11,24 +11,24 @@ EPSILON = 1e-6
 
 
 class FC(nn.Module):
-    def __init__(self, device, input_dim, arch, output_dim, head_activation=lambda x:x, init='xavier'):
+    def __init__(self, device, input_dim, arch, output_dim, activation="ReLU", head_activation="None", init='xavier'):
         super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
-        layer_init = torch_utils.init_fn_factory(init)
-        
+        layer_init = internal_factory.init_layer(init)
+        activation_cls = internal_factory.init_activation(activation)
         d = input_dim
         modules = []
         for hidden_size in arch:
             fc = layer_init(nn.Linear(d, hidden_size))
             modules.append(fc)
-            modules.append(nn.ReLU())
+            modules.append(activation_cls())
             d = hidden_size
         last_fc = layer_init(nn.Linear(d, output_dim))
         modules.append(last_fc)
 
         self.network = nn.Sequential(*modules)
-        self.head_act = head_activation
+        self.head_act = internal_factory.init_activation(head_activation)()
         self.to(device)
 
     def forward(self, input_tensor):
@@ -39,10 +39,10 @@ class FC(nn.Module):
 
 class SquashedGaussianPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
-                 action_scale=1, action_bias=0, init='xavier'):#, action_clip=[-0.999, 0.999]):
+                 action_scale=1, action_bias=0, init='xavier', activation="ReLU"):#, action_clip=[-0.999, 0.999]):
         super(SquashedGaussianPolicy, self).__init__()
-        layer_init = torch_utils.init_fn_factory(init)
-        self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], head_activation=nn.functional.relu, init=init)
+        layer_init = internal_factory.init_layer(init)
+        self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation, init=init)
         self.mean_head = layer_init(nn.Linear(arch[-1], action_dim))
         self.logstd_head = layer_init(nn.Linear(arch[-1], action_dim))
 
@@ -85,10 +85,10 @@ class SquashedGaussianPolicy(nn.Module):
 
 class BetaPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
-                 action_scale=1, action_bias=0, init='xavier'):
+                 action_scale=1, action_bias=0, init='xavier', activation="ReLU"):
         super(BetaPolicy, self).__init__()
-        layer_init = torch_utils.init_fn_factory(init)
-        self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], head_activation=nn.functional.relu, init=init)
+        layer_init = internal_factory.init_layer(init)
+        self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation, init=init)
         self.alpha_head = layer_init(nn.Linear(arch[-1], action_dim))
         self.beta_head = layer_init(nn.Linear(arch[-1], action_dim))
 
@@ -126,10 +126,10 @@ class BetaPolicy(nn.Module):
 
 
 class Softmax(nn.Module):
-    def __init__(self, device, observation_dim, arch, num_actions, init='xavier'):
+    def __init__(self, device, observation_dim, arch, num_actions, init='xavier', activation="ReLU"):
         super(Softmax, self).__init__()
         self.num_actions = num_actions
-        self.base_network = FC(device, observation_dim, arch, num_actions, init=init)
+        self.base_network = FC(device, observation_dim, arch, num_actions, init=init, activation=activation)
         self.to(device)
         
     def forward(self, state):
