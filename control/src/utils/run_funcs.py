@@ -28,4 +28,4 @@ def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_si
     agent.save()
     agent.savevis()
 
-    agent.save_info(eval_pth + "/info_logs.npy")
+    agent.save_info(eval_pth + "/info_logs.pkl")
