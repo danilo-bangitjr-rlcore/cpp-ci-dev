@@ -4,19 +4,19 @@ from src.network.networks import BetaPolicy, SquashedGaussianPolicy, Softmax
 from src.network.networks import FC
 
 
-def init_policy_network(name, device, state_dim, hidden_units, action_dim, action_scale, action_bias, activation):
+def init_policy_network(name, device, state_dim, hidden_units, action_dim, action_scale, action_bias, activation, layer_init):
     if name == "Beta":
-        return BetaPolicy(device, state_dim, hidden_units, action_dim, action_scale=action_scale, action_bias=action_bias, activation=activation)
+        return BetaPolicy(device, state_dim, hidden_units, action_dim, action_scale=action_scale, action_bias=action_bias, activation=activation, init=layer_init)
     elif name == "SGaussian":
-        return SquashedGaussianPolicy(device, state_dim, hidden_units, action_dim, action_scale=action_scale, action_bias=action_bias, activation=activation)
+        return SquashedGaussianPolicy(device, state_dim, hidden_units, action_dim, action_scale=action_scale, action_bias=action_bias, activation=activation, init=layer_init)
     elif name == "Softmax":
-        return Softmax(device, state_dim, hidden_units, action_dim, activation=activation)
+        return Softmax(device, state_dim, hidden_units, action_dim, activation=activation, init=layer_init)
     else:
         raise NotImplementedError
     
-def init_critic_network(name, device, input_dim, hidden_units, output_dim, activation):
+def init_critic_network(name, device, input_dim, hidden_units, output_dim, activation, layer_init):
     if name == "FC":
-        return FC(device, input_dim, hidden_units, output_dim, activation=activation, head_activation="None")
+        return FC(device, input_dim, hidden_units, output_dim, activation=activation, head_activation="None", init=layer_init)
     else:
         raise NotImplementedError
 

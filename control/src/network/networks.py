@@ -11,7 +11,7 @@ EPSILON = 1e-6
 
 
 class FC(nn.Module):
-    def __init__(self, device, input_dim, arch, output_dim, activation="ReLU", head_activation="None", init='xavier'):
+    def __init__(self, device, input_dim, arch, output_dim, activation="ReLU", head_activation="None", init='Xavier'):
         super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -39,7 +39,7 @@ class FC(nn.Module):
 
 class SquashedGaussianPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
-                 action_scale=1, action_bias=0, init='xavier', activation="ReLU"):#, action_clip=[-0.999, 0.999]):
+                 action_scale=1, action_bias=0, init='Xavier', activation="ReLU"):#, action_clip=[-0.999, 0.999]):
         super(SquashedGaussianPolicy, self).__init__()
         layer_init = internal_factory.init_layer(init)
         self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation, init=init)
@@ -85,7 +85,7 @@ class SquashedGaussianPolicy(nn.Module):
 
 class BetaPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
-                 action_scale=1, action_bias=0, init='xavier', activation="ReLU"):
+                 action_scale=1, action_bias=0, init='Xavier', activation="ReLU"):
         super(BetaPolicy, self).__init__()
         layer_init = internal_factory.init_layer(init)
         self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation, init=init)
@@ -104,7 +104,7 @@ class BetaPolicy(nn.Module):
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)
         out = dist.rsample()
-        logp = dist.log_prob(torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS))
+        logp = dist.log_prob(torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS)) - np.log(self.action_scale)
 
         action = out * self.action_scale + self.action_bias
         # action = torch.clamp(action, min=self.action_clip[0], max=self.action_clip[1])
@@ -121,12 +121,12 @@ class BetaPolicy(nn.Module):
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)
 
-        logp = dist.log_prob(torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS))
+        logp = dist.log_prob(torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS)) - np.log(self.action_scale)
         return logp, dist
 
 
 class Softmax(nn.Module):
-    def __init__(self, device, observation_dim, arch, num_actions, init='xavier', activation="ReLU"):
+    def __init__(self, device, observation_dim, arch, num_actions, init='Xavier', activation="ReLU"):
         super(Softmax, self).__init__()
         self.num_actions = num_actions
         self.base_network = FC(device, observation_dim, arch, num_actions, init=init, activation=activation)

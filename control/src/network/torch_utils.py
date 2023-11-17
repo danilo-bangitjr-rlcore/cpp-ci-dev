@@ -18,6 +18,12 @@ class NoneActivation(nn.Module):
         return x
 
 
+def layer_init_normal(layer, bias=True):
+    nn.init.normal_(layer.weight)
+    if bias:
+        nn.init.constant_(layer.bias.data, 0)
+    return layer
+
 def layer_init_zero(layer, bias=True):
     nn.init.constant_(layer.weight, 0)
     if bias:
@@ -65,12 +71,14 @@ def init_activation(name):
         raise NotImplementedError
 
 def init_layer(init):
-    if init == 'xavier':
+    if init == 'Xavier':
         layer_init = layer_init_xavier
-    elif init == 'const':
+    elif init == 'Const':
         layer_init = layer_init_constant
-    elif init == 'zero':
+    elif init == 'Zero':
         layer_init = layer_init_zero
+    elif init == 'Normal':
+        layer_init = layer_init_normal
     else:
         raise NotImplementedError
     return layer_init

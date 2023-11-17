@@ -28,12 +28,15 @@ if __name__ == "__main__":
 
     parser.add_argument('--env_name', default='ThreeTank', type=str)
     parser.add_argument('--env_info', default=0.01, type=float)
+    parser.add_argument('--env_action_scaler', default=10., type=float)
     parser.add_argument('--gamma', default=0.99, type=float)
     parser.add_argument('--discrete_control', default=0, type=int)
 
     parser.add_argument('--agent_name', default='SimpleAC', type=str)
     parser.add_argument('--actor', default='Beta', type=str)
     parser.add_argument('--critic', default='FC', type=str)
+    parser.add_argument('--layer_init', default='Xavier', type=str)
+    parser.add_argument('--activation', default='ReLU6', type=str)
     parser.add_argument('--optimizer', default='RMSprop', type=str)
     parser.add_argument('--state_normalizer', default='Identity', type=str)
     parser.add_argument('--reward_normalizer', default='Identity', type=str)
@@ -44,6 +47,7 @@ if __name__ == "__main__":
     parser.add_argument('--load_checkpoint', default=1, type=int)
     parser.add_argument('--buffer_size', default=1, type=int)
     parser.add_argument('--batch_size', default=1, type=int)
+    parser.add_argument('--update_freq', default=1, type=int)
     parser.add_argument('--use_target_network', default=1, type=int)
     parser.add_argument('--polyak', default=0, type=float) # 0 is hard sync
     parser.add_argument('--hidden_actor', default=[256, 256], type=int, nargs='+')
@@ -51,7 +55,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr_actor', default=0.0001, type=float)
     parser.add_argument('--lr_critic', default=0.001, type=float)
     parser.add_argument('--lr_v', default=0.001, type=float)
-    parser.add_argument('--lr_constrain', default=0.000001, type=float)
+    parser.add_argument('--lr_constrain', default=1e-06, type=float)
 
     parser.add_argument('--tau', default=0.000001, type=float)
     parser.add_argument('--rho', default=0.1, type=float)
