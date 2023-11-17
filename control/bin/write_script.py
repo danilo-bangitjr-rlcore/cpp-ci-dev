@@ -1,0 +1,121 @@
+import numpy as np
+import itertools
+
+def base_cmd(**kwargs):
+    cmd = "python main.py "
+    for k in kwargs:
+        cmd += " {} {} ".format(k, kwargs[k])
+    cmd += "\n"
+    return cmd
+
+def write_cmd(cmds, prev_file=0, line_per_file=1):
+    save_in_folder = "../out/scripts/tasks_{}.sh"
+    count = 0
+    file = open(save_in_folder.format(int(prev_file)), 'w')
+    for cmd in cmds:
+        file.write(cmd)
+        count += 1
+        if count % line_per_file == 0:
+            file.close()
+            prev_file += 1
+            file = open(save_in_folder.format(str(prev_file)), 'w')
+    if not file.closed:
+        file.close()
+    print("last script:", save_in_folder.format(str(prev_file)))
+
+def merge_independent(settings, shared_settings):
+    for agent in settings:
+        settings[agent].update(shared_settings)
+    return settings
+    
+def combinations(settings, target_agents, num_runs=10, pid_base=0, prev_file=0, line_per_file=1):
+    cmds = []
+    kwargs = {}
+    for agent in target_agents:
+        sweep_params = settings[agent]
+        keys, values = zip(*sweep_params.items())
+        param_combinations = [dict(zip(keys, v)) for v in itertools.product(*values)]
+        for pid, param_comb in enumerate(param_combinations):
+            kwargs["--param"] = pid + pid_base
+            kwargs["--agent_name"] = agent
+            for (k, v) in param_comb.items():
+                kwargs[k] = v
+            if "--lr_actor" not in param_comb:
+                kwargs["--lr_actor"] = param_comb["--lr_critic"] * 0.1
+            for run in list(range(num_runs)):
+                kwargs["--seed"] = run
+                if "--load_dir" in param_comb:
+                    kwargs["--load_dir"] = kwargs["--load_dir"].format(run)
+    
+                cmds.append(base_cmd(**kwargs))
+    write_cmd(cmds, prev_file=prev_file, line_per_file=line_per_file)
+
+def constant_pid():
+    settings = {
+        "SAC": {
+            "--tau": [-1],
+        },
+        "GAC": {
+            "--tau": [1e-3],
+            "--rho": [0.1],
+        },
+        "SimpleAC": {
+            "--tau": [1e-3],
+        },
+    }
+    shared_settings = {
+        "--exp_name": ["learning_rate"],
+        "--max_steps": [5000],
+        "--render": [0],
+        "--lr_actor": [0.001], #[0.01, 0.001, 0.0001],
+        "--lr_critic": [0.001],#[0.01, 0.001, 0.0001],
+        "--buffer_size": [10],
+        "--batch_size": [5],
+        "--action_scale": [1],
+        "--action_bias": [0],
+    }
+    target_agents = ["SimpleAC", "SAC", "GAC"]
+
+    shared_settings["--env_name"] = ["ThreeTank", "TTAction/ConstPID"]
+    shared_settings["--exp_info"] = ["/without_replay/action_0_1/"]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=3)
+
+    shared_settings["--env_name"] = ["ThreeTank", "TTAction/ConstPID"]
+    shared_settings["--exp_info"] = ["/without_replay/action_0_4/"]
+    shared_settings["--action_scale"] = [4]
+    shared_settings["--action_bias"] = [0]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=2, line_per_file=3)
+
+    shared_settings["--env_name"] = ["TTChangeAction/ConstPID"]
+    shared_settings["--exp_info"] = ["/without_replay/action_-0.1_0.1/"]
+    shared_settings["--action_scale"] = [0.2]
+    shared_settings["--action_bias"] = [-0.1]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=4, line_per_file=3)
+    
+    shared_settings["--env_name"] = ["TTChangeAction/DiscreteConstPID"]
+    shared_settings["--env_info"] = [0.1]
+    shared_settings["--exp_info"] = ["/without_replay/change_0.1"]
+    shared_settings["--actor"] = ["Softmax"]
+    shared_settings["--discrete_control"] = [1]
+    shared_settings.pop('--action_scale', None)
+    shared_settings.pop('action_bias', None)
+    settings["GAC"]["--n"] = [3]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=5, line_per_file=3)
+
+    shared_settings["--env_name"] = ["TTChangeAction/DiscreteConstPID"]
+    shared_settings["--env_info"] = [0.01]
+    shared_settings["--exp_info"] = ["/without_replay/change_0.01"]
+    shared_settings["--actor"] = ["Softmax"]
+    shared_settings["--discrete_control"] = [1]
+    shared_settings.pop('--action_scale', None)
+    shared_settings.pop('action_bias', None)
+    settings["GAC"]["--n"] = [3]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=8, line_per_file=3)
+
+if __name__ == '__main__':
+    constant_pid()
