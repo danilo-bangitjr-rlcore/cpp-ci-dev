@@ -50,6 +50,16 @@ def best_offline(pths, title):
     fig.tight_layout()
     plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
 
+def best_offline_per_run(pth, title):
+    setting, returns, constraints = load_param(pth)
+    fig, axs = plt.subplots(1, len(returns), figsize=(2*len(returns), 3))
+    learning_curve_per_run(axs, returns)
+    # axs[0].set_ylim(-10, 2)
+    axs[0].legend()
+    axs[0].set_ylabel("Performance")
+    fig.tight_layout()
+    plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
+
 
 
 if __name__ == '__main__':
@@ -61,6 +71,11 @@ if __name__ == '__main__':
     """
     ThreeTanks
     """
+    pths = {
+        "SimpleAC":[DATAROOT + "output/test_v0/ThreeTank/reproduce/worker_1/SimpleAC/param_0/", "C0", 3]
+    }
+    best_offline_per_run(pths["SimpleAC"][0], "reproduce")
+
     pths = {
         "SAC": [DATAROOT + "output/test_v0/ThreeTank/learning_rate/without_replay/action_0_1/SAC/param_6/", "C0", 3],
         "SimpleAC": [DATAROOT + "output/test_v0/ThreeTank/learning_rate/without_replay/action_0_1/SimpleAC/param_10/", "limegreen", 2],

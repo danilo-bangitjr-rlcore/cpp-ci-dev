@@ -8,8 +8,8 @@ class ThreeTankEnvBase(object):
     def __init__(self, isoffline, seed=None):
         self.W1 = 0.025
         self.W2 = 0.025
-        self.W3 = 6000
-        self.W4 = 6000
+        self.W3 = 1000#6000
+        self.W4 = 1000#6000
         if seed is not None:
             self.rng = np.random.RandomState(seed)
             

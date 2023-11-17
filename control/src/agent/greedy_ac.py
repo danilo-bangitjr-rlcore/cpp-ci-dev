@@ -12,7 +12,7 @@ class GreedyAC(BaseAC):
         self.num_samples = self.cfg.n
 
         # use the same network as in actor
-        self.sampler = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_units, self.action_dim, cfg.action_scale, cfg.action_bias)
+        self.sampler = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim, cfg.action_scale, cfg.action_bias)
         self.sampler_optim = init_optimizer(cfg.optimizer, list(self.sampler.parameters()), cfg.lr_actor)
 
         self.gac_a_dim = self.action_dim

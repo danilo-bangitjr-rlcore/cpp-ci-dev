@@ -14,6 +14,10 @@ def learning_curve(ax, data, label="", color=None, zorder=None):
         p = ax.plot(idx, avg, label=label, color=color, zorder=zorder)
     ax.fill_between(idx, avg - ste * 1.96, avg + ste * 1.96, alpha=0.3, linewidth=0., color=color)
 
+def learning_curve_per_run(axs, data):
+    for i, run in enumerate(data):
+        p = axs[i].plot(run)
+
 
 def sensitivity_curve(ax, data):
     params = list(data.keys())

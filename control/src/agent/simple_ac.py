@@ -9,7 +9,7 @@ class SimpleAC(BaseAC):
     def __init__(self, cfg):
         super(SimpleAC, self).__init__(cfg=cfg)
         self.tau = self.cfg.tau
-        self.v_baseline = FC(self.device, self.state_dim, cfg.hidden_units, 1)
+        self.v_baseline = FC(self.device, self.state_dim, cfg.hidden_critic, 1)
         self.v_optimizer = torch.optim.RMSprop(list(self.v_baseline.parameters()), cfg.lr_v)
 
     def inner_update(self):
