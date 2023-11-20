@@ -15,8 +15,8 @@ class ThreeTankEnvBase(object):
         if seed is not None:
             self.rng = np.random.RandomState(seed)
             
-        setpoint = self.rng.choice([3, 4])
-        # setpoint = self.rng.choice([3])
+        # setpoint = self.rng.choice([3, 4])
+        setpoint = self.rng.choice([3])
         self.setpoint = setpoint  # the list of set points for tank 1
 
         self.Lambda = 0
