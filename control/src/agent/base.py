@@ -15,14 +15,6 @@ class BaseAC(Evaluation):
         super(BaseAC, self).__init__(cfg)
         self.rng = np.random.RandomState(cfg.seed)
 
-        """
-            parser.add_argument('--policy', default='Beta', type=str)
-            parser.add_argument('--critic', default='FC', type=str)
-            parser.add_argument('--optimizer', default='RMSProp', type=str)
-            parser.add_argument('--state_normalizer', default='identity', type=str)
-            parser.add_argument('--reward_normalizer', default='identity', type=str)
-        """
-
         # Continuous control initialization
         self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim, cfg.action_scale, cfg.action_bias, cfg.activation, cfg.layer_init)
 
@@ -41,9 +33,6 @@ class BaseAC(Evaluation):
 
         self.actor_optimizer = init_optimizer(cfg.optimizer, list(self.actor.parameters()), cfg.lr_actor)
         self.critic_optimizer = init_optimizer(cfg.optimizer, list(self.critic.parameters()), cfg.lr_critic)
-
-        # self.constrain_weight = 0
-        # self.lr_constrain = cfg.lr_constrain
         
         self.buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
         self.batch_size = cfg.batch_size
@@ -124,6 +113,7 @@ class BaseAC(Evaluation):
         
         if self.cfg.render:
             self.render(np.array(info['interval_log']))
+
         self.info_log.append(info)
         
         self.update()
@@ -272,7 +262,6 @@ class BaseAC(Evaluation):
             for p, p_targ in zip(self.critic.parameters(), self.critic_target.parameters()):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
-
 
 class BaseValue(BaseAC):
     def __init__(self, cfg):
