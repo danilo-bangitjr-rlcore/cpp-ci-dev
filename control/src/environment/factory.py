@@ -6,17 +6,17 @@ from src.environment.smpl.envs.reactorenv import ReactorEnvGym
 
 def init_environment(name, cfg):
     if name == "ThreeTank":
-        return ThreeTankEnv(cfg.seed, cfg.lr_constrain)
+        return ThreeTankEnv(cfg.seed, cfg.lr_constrain, env_action_scaler=cfg.env_action_scaler)
     elif name == "TTChangeAction/ConstPID":
-        return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=True)
+        return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=True, env_action_scaler=cfg.env_action_scaler)
     elif name == "TTChangeAction/ChangePID":
-        return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=False)
+        return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=False, env_action_scaler=cfg.env_action_scaler)
     elif name == "TTChangeAction/DiscreteConstPID":
-        return TTChangeActionDiscrete(cfg.env_info, cfg.seed, cfg.lr_constrain, constant_pid=True)
+        return TTChangeActionDiscrete(cfg.env_info, cfg.seed, cfg.lr_constrain, constant_pid=True, env_action_scaler=cfg.env_action_scaler)
     elif name == "TTAction/ConstPID":
-        return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=True)
+        return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=True, env_action_scaler=cfg.env_action_scaler)
     elif name == "TTAction/ChangePID":
-        return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=False)
+        return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=False, env_action_scaler=cfg.env_action_scaler)
     elif name == "AtropineEnv":
         return AtropineEnvGym()
     elif name == "BeerEnv":
