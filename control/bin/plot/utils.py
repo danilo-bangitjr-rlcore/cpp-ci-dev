@@ -1,5 +1,6 @@
 import os
 import json
+import pickle
 import numpy as np
 
 
@@ -57,20 +58,32 @@ def param_sweep(ax, data):
     print("")
 
 
-def load_param(pth, xlim=[]):
+def load_param(pth, xlim=[], pick_seed=None):
     returns = []
     constraints = []
     runs = os.listdir(pth)
+    if pick_seed is None:
+        pick_seed = runs
     for r in runs:
+        if r not in pick_seed:
+            continue
         p = os.path.join(pth, r)
         ret = np.load(p + "/train_logs.npy")
-        # ret = np.load(p + "/ep_returns.npy")
-        # cons = np.load(p + "/ep_constraints.npy")
+        if os.path.isfile(p + "/ep_constraints.npy"):
+            cons = np.load(p + "/ep_constraints.npy")
+        else:
+            cons = []
+            with open(p+"/info_logs.pkl", "rb") as f:
+                info = pickle.load(f)
+            for step in info:
+                cons.append(step["constrain"])
+            cons = np.array(cons)
+            
         if xlim != []:
             ret = ret[xlim[0]: xlim[1]]
-            # cons = cons[xlim[0]: xlim[1]]
+            cons = cons[xlim[0]: xlim[1]]
         returns.append(ret)
-        # constraints.append(cons)
+        constraints.append(cons)
     with open(os.path.join(pth, runs[0]) + "/config.json", "r") as f:
         params = json.load(f)
     return params, np.array(returns), np.array(constraints)
