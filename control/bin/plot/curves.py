@@ -52,7 +52,9 @@ def best_offline(pths, title):
 
 def best_offline_per_run(pth, title):
     setting, returns, constraints = load_param(pth)
-    fig, axs = plt.subplots(1, len(returns), figsize=(2*len(returns), 3))
+    fig, axs = plt.subplots(1, len(returns), figsize=(3*len(returns), 3))
+    if len(returns) == 1:
+        axs = [axs]
     learning_curve_per_run(axs, returns)
     # axs[0].set_ylim(-10, 2)
     axs[0].legend()
@@ -61,9 +63,39 @@ def best_offline_per_run(pth, title):
     plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
 
 
+def reproduce_demo(pths, title):
+    def recover_paper_data(returns):
+        # denormalization
+        returns = returns * 8 - 8
+        # smooth
+        smoothed = np.zeros(returns.shape)
+        smoothed[:, :5] = returns[:, :5]
+        for step in range(5, returns.shape[1]):
+            smoothed[:, step] = returns[:, step]
+            smoothed[:, step] = smoothed[:, step - 4: step + 1].mean()
+        return smoothed
+    # fig, axs = plt.subplots(1, 2, figsize=(8, 3))
+    fig, axs = plt.subplots(1, 1, figsize=(4, 3))
+    axs = [axs]
+    for label, [pth, c, z] in pths.items():
+        setting, returns, constraints = load_param(pth)#, pick_seed=["seed_0", "seed_42"])
+        returns = recover_paper_data(returns)
+        learning_curve(axs[0], returns, label=label, color=c, zorder=z)
+        # constraints = recover_paper_data(constraints)
+        # learning_curve(axs[1], constraints, label=label, color=c, zorder=z)
+    axs[0].set_ylim(-50, 2)
+    axs[0].legend()
+    # axs[1].legend()
+    axs[0].set_ylabel("Performance")
+    # axs[1].set_ylabel("Constraint")
+    # axs[1].set_xlabel("Episodes")
+    fig.tight_layout()
+    plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
+
 
 if __name__ == '__main__':
-    pth_base = DATAROOT + "output/test_v0/TTChangeAction/ConstPID/learning_rate/without_replay/action_-0.1_0.1/{}/"
+    # pth_base = DATAROOT + "output/test_v0/TTChangeAction/ConstPID/learning_rate/without_replay/action_-0.1_0.1/{}/"
+    pth_base = DATAROOT + "output/test_v0/ThreeTank/demo/without_replay/env_scale_10/{}/"
     # sweep_offline(pth_base, "SAC")
     # sweep_offline(pth_base, "SimpleAC")
     # sweep_offline(pth_base, "GAC")
@@ -72,23 +104,32 @@ if __name__ == '__main__':
     ThreeTanks
     """
     pths = {
-        "SimpleAC":[DATAROOT + "output/test_v0/ThreeTank/reproduce/worker_1/SimpleAC/param_0/", "C0", 3]
+        "Baseline":[DATAROOT + "baseline/reproduce_new_reward_no_smooth/param_0/", "C0", 2],
+        "New":[DATAROOT + "output/test_v0/ThreeTank/demo/without_replay/env_scale_10/GAC/param_1/", "C1", 3]
     }
-    best_offline_per_run(pths["SimpleAC"][0], "reproduce")
+    # best_offline_per_run(pths["New"][0], "temp")
+    reproduce_demo(pths, "demo_compare")
+
+    pths = {
+        "Baseline":[DATAROOT + "baseline/reproduce_new_reward_no_smooth/param_0/", "C0", 2],
+        # "New":[DATAROOT + "output/test_v0/ThreeTank/demo/without_replay/env_scale_10/GAC/param_1/", "C1", 3]
+    }
+    # best_offline_per_run(pths["New"][0], "temp")
+    reproduce_demo(pths, "reproduce")
 
     pths = {
         "SAC": [DATAROOT + "output/test_v0/ThreeTank/learning_rate/without_replay/action_0_1/SAC/param_6/", "C0", 3],
         "SimpleAC": [DATAROOT + "output/test_v0/ThreeTank/learning_rate/without_replay/action_0_1/SimpleAC/param_10/", "limegreen", 2],
         "GAC": [DATAROOT + "output/test_v0/ThreeTank/learning_rate/without_replay/action_0_1/GAC/param_8", "C1", 1],
     }
-    best_offline(pths, "best_ThreeTanks_no_replay_a01")
+    # best_offline(pths, "best_ThreeTanks_no_replay_a01")
 
     pths = {
         "SAC": [DATAROOT + "output/test_v0/ThreeTank/learning_rate/without_replay/action_0_4/SAC/param_8/", "C0", 3],
         "SimpleAC": [DATAROOT + "output/test_v0/ThreeTank/learning_rate/without_replay/action_0_4/SimpleAC/param_10/", "limegreen", 2],
         "GAC": [DATAROOT + "output/test_v0/ThreeTank/learning_rate/without_replay/action_0_4/GAC/param_8", "C1", 1],
     }
-    best_offline(pths, "best_ThreeTanks_no_replay_a04")
+    # best_offline(pths, "best_ThreeTanks_no_replay_a04")
 
     """
     ThreeTanks Direct Action, constant PID
@@ -98,14 +139,14 @@ if __name__ == '__main__':
         "SimpleAC": [DATAROOT + "output/test_v0/TTAction/ConstPID/learning_rate/without_replay/action_0_1/SimpleAC/param_11/", "limegreen", 1],
         "GAC": [DATAROOT + "output/test_v0/TTAction/ConstPID/learning_rate/without_replay/action_0_1/GAC/param_15", "C1", 3],
     }
-    best_offline(pths, "best_ThreeTanks_no_replay_const_pid_a01")
+    # best_offline(pths, "best_ThreeTanks_no_replay_const_pid_a01")
 
     pths = {
         "SAC": [DATAROOT + "output/test_v0/TTAction/ConstPID/learning_rate/without_replay/action_0_4/SAC/param_1/", "C0", 3],
         "SimpleAC": [DATAROOT + "output/test_v0/TTAction/ConstPID/learning_rate/without_replay/action_0_4/SimpleAC/param_11/", "limegreen", 2],
         "GAC": [DATAROOT + "output/test_v0/TTAction/ConstPID/learning_rate/without_replay/action_0_4/GAC/param_11", "C1", 1],
     }
-    best_offline(pths, "best_ThreeTanks_no_replay_const_pid_a04")
+    # best_offline(pths, "best_ThreeTanks_no_replay_const_pid_a04")
 
     """
     ThreeTanks Change Action, constant PID
@@ -115,7 +156,7 @@ if __name__ == '__main__':
         "SimpleAC": [DATAROOT + "output/test_v0/TTChangeAction/ConstPID/learning_rate/without_replay/action_-0.1_0.1/SimpleAC/param_3/", "limegreen", 2],
         "GAC": [DATAROOT + "output/test_v0/TTChangeAction/ConstPID/learning_rate/without_replay/action_-0.1_0.1/GAC/param_0", "C1", 1],
     }
-    best_offline(pths, "best_changeAction_no_replay_const_pid_c01")
+    # best_offline(pths, "best_changeAction_no_replay_const_pid_c01")
 
     """
     ThreeTanks Change Action, constant PID, Binning action
@@ -125,4 +166,4 @@ if __name__ == '__main__':
         "SimpleAC": [DATAROOT + "output/test_v0/TTChangeAction/DiscreteConstPID/learning_rate/without_replay/change_0.1/SimpleAC/param_3/", "limegreen", 2],
         "GAC": [DATAROOT + "output/test_v0/TTChangeAction/DiscreteConstPID/learning_rate/without_replay/change_0.1/GAC/param_4", "C1", 1],
     }
-    best_offline(pths, "best_changeActionDiscrete_no_replay_const_pid_c01")
+    # best_offline(pths, "best_changeActionDiscrete_no_replay_const_pid_c01")

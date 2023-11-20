@@ -1,12 +1,14 @@
 import numpy as np
 import itertools
 
+
 def base_cmd(**kwargs):
     cmd = "python main.py "
     for k in kwargs:
         cmd += " {} {} ".format(k, kwargs[k])
     cmd += "\n"
     return cmd
+
 
 def write_cmd(cmds, prev_file=0, line_per_file=1):
     save_in_folder = "../out/scripts/tasks_{}.sh"
@@ -23,11 +25,13 @@ def write_cmd(cmds, prev_file=0, line_per_file=1):
         file.close()
     print("last script:", save_in_folder.format(str(prev_file)))
 
+
 def merge_independent(settings, shared_settings):
     for agent in settings:
         settings[agent].update(shared_settings)
     return settings
-    
+
+
 def combinations(settings, target_agents, num_runs=10, pid_base=0, prev_file=0, line_per_file=1):
     cmds = []
     kwargs = {}
@@ -46,9 +50,69 @@ def combinations(settings, target_agents, num_runs=10, pid_base=0, prev_file=0, 
                 kwargs["--seed"] = run
                 if "--load_dir" in param_comb:
                     kwargs["--load_dir"] = kwargs["--load_dir"].format(run)
-    
+                
                 cmds.append(base_cmd(**kwargs))
     write_cmd(cmds, prev_file=prev_file, line_per_file=line_per_file)
+
+
+def reproduce():
+    settings = {
+        "SimpleAC": {
+            "--tau": [1e-3],
+        },
+    }
+    shared_settings = {
+        "--exp_name": ["reproduce"],
+        "--env_name": ["ThreeTank"],
+        "--exp_info": ["/worker_1/"],
+        "--env_action_scaler": [5],
+        "--action_scale": [1],
+        "--action_bias": [1],
+        "--max_steps": [8000],
+        "--render": [0],
+        "--lr_actor": [0.0001],
+        "--lr_critic": [0.001],
+        "--lr_constrain": [0.03],
+        "--buffer_size": [10],
+        "--batch_size": [10],
+        "--actor": ["SGaussian"],
+        "--hidden_actor": ["200"],
+        "--hidden_critic": ["100"],
+        "--activation": ["ReLU6"],
+        "--layer_init": ["Normal"],
+        "--update_freq": [10],
+    }
+    target_agents = ["SimpleAC"]
+    
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=10, prev_file=0, line_per_file=1)
+
+
+def demo():
+    settings = {
+        "GAC": {
+            "--tau": [1e-3],
+            "--rho": [0.1],
+        },
+    }
+    shared_settings = {
+        "--exp_name": ["demo"],
+        "--max_steps": [7000],
+        "--render": [0],
+        "--lr_actor": [0.001, 0.0001],
+        "--lr_critic": [0.001, 0.0001],
+        "--buffer_size": [1],
+        "--batch_size": [1],
+        "--env_action_scaler": [10],
+        "--action_scale": [1],
+        "--action_bias": [0],
+    }
+    target_agents = ["GAC"]
+    shared_settings["--env_name"] = ["ThreeTank"]
+    shared_settings["--exp_info"] = ["/without_replay/env_scale_10/"]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=5, prev_file=0, line_per_file=1)
+
 
 def constant_pid():
     settings = {
@@ -67,27 +131,32 @@ def constant_pid():
         "--exp_name": ["learning_rate"],
         "--max_steps": [5000],
         "--render": [0],
-        "--lr_actor": [0.001], #[0.01, 0.001, 0.0001],
-        "--lr_critic": [0.001],#[0.01, 0.001, 0.0001],
-        "--buffer_size": [10],
-        "--batch_size": [5],
+        "--lr_actor": [0.01],  # [0.01, 0.001, 0.0001],
+        "--lr_critic": [0.01],  # [0.01, 0.001, 0.0001],
+        "--buffer_size": [1],
+        "--batch_size": [1],
+        "--env_action_scaler": [10],
         "--action_scale": [1],
         "--action_bias": [0],
+        
+        "--hidden_actor": ["200"],
+        "--hidden_critic": ["100"],
+        "--activation": ["ReLU"],
     }
     target_agents = ["SimpleAC", "SAC", "GAC"]
-
+    
     shared_settings["--env_name"] = ["ThreeTank", "TTAction/ConstPID"]
     shared_settings["--exp_info"] = ["/without_replay/action_0_1/"]
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=3)
-
+    
     shared_settings["--env_name"] = ["ThreeTank", "TTAction/ConstPID"]
     shared_settings["--exp_info"] = ["/without_replay/action_0_4/"]
     shared_settings["--action_scale"] = [4]
     shared_settings["--action_bias"] = [0]
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=2, line_per_file=3)
-
+    
     shared_settings["--env_name"] = ["TTChangeAction/ConstPID"]
     shared_settings["--exp_info"] = ["/without_replay/action_-0.1_0.1/"]
     shared_settings["--action_scale"] = [0.2]
@@ -105,7 +174,7 @@ def constant_pid():
     settings["GAC"]["--n"] = [3]
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=5, line_per_file=3)
-
+    
     shared_settings["--env_name"] = ["TTChangeAction/DiscreteConstPID"]
     shared_settings["--env_info"] = [0.01]
     shared_settings["--exp_info"] = ["/without_replay/change_0.01"]
@@ -117,5 +186,82 @@ def constant_pid():
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=8, line_per_file=3)
 
+
+def test_runs():
+    settings = {
+        "SAC": {
+            "--tau": [-1],
+        },
+        "GAC": {
+            "--tau": [1e-3],
+            "--rho": [0.1],
+        },
+        "SimpleAC": {
+            "--tau": [1e-3],
+        },
+    }
+    shared_settings = {
+        "--exp_name": ["temp"],
+        "--max_steps": [2],
+        "--render": [2],
+        "--lr_actor": [0.001],  # [0.01, 0.001, 0.0001],
+        "--lr_critic": [0.001],  # [0.01, 0.001, 0.0001],
+        "--buffer_size": [10],
+        "--batch_size": [5],
+        "--env_action_scaler": [10],
+        "--action_scale": [1],
+        "--action_bias": [0],
+        
+        "--hidden_actor": ["200"],
+        "--hidden_critic": ["100"],
+        "--activation": ["ReLU"],
+    }
+    target_agents = ["SimpleAC", "SAC", "GAC"]
+    
+    shared_settings["--env_name"] = ["ThreeTank", "TTAction/ConstPID"]
+    shared_settings["--exp_info"] = ["/without_replay/action_0_1/"]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+    
+    shared_settings["--env_name"] = ["ThreeTank", "TTAction/ConstPID"]
+    shared_settings["--exp_info"] = ["/without_replay/action_0_4/"]
+    shared_settings["--action_scale"] = [4]
+    shared_settings["--action_bias"] = [0]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=6, line_per_file=1)
+    
+    shared_settings["--env_name"] = ["TTChangeAction/ConstPID"]
+    shared_settings["--exp_info"] = ["/without_replay/action_-0.1_0.1/"]
+    shared_settings["--action_scale"] = [0.2]
+    shared_settings["--action_bias"] = [-0.1]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=12, line_per_file=1)
+    
+    shared_settings["--env_name"] = ["TTChangeAction/DiscreteConstPID"]
+    shared_settings["--env_info"] = [0.1]
+    shared_settings["--exp_info"] = ["/without_replay/change_0.1"]
+    shared_settings["--actor"] = ["Softmax"]
+    shared_settings["--discrete_control"] = [1]
+    shared_settings.pop('--action_scale', None)
+    shared_settings.pop('action_bias', None)
+    settings["GAC"]["--n"] = [3]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=15, line_per_file=1)
+    
+    shared_settings["--env_name"] = ["TTChangeAction/DiscreteConstPID"]
+    shared_settings["--env_info"] = [0.01]
+    shared_settings["--exp_info"] = ["/without_replay/change_0.01"]
+    shared_settings["--actor"] = ["Softmax"]
+    shared_settings["--discrete_control"] = [1]
+    shared_settings.pop('--action_scale', None)
+    shared_settings.pop('action_bias', None)
+    settings["GAC"]["--n"] = [3]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=18, line_per_file=1)
+
+
 if __name__ == '__main__':
-    constant_pid()
+    # reproduce()
+    test_runs()
+    # demo()
+    # constant_pid()
