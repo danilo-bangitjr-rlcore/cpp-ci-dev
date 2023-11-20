@@ -4,6 +4,7 @@ import imageio
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+from gymnasium.spaces.utils import flatten_space
 
 import src.network.torch_utils as torch_utils
 
@@ -15,8 +16,7 @@ class Evaluation:
         self.observation, info = self.env.reset(seed=cfg.seed)
         self.eval_env.reset(seed=cfg.seed)
         
-        sd = self.env.space_dim
-        self.state_dim, self.action_dim = sd['state_dim'], sd['action_dim']
+        self.state_dim = np.prod(flatten_space(self.env.observation_space).shape)
         self.gamma = cfg.gamma
         self.seed = cfg.seed
         
