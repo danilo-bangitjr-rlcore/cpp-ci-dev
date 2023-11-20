@@ -1,6 +1,7 @@
 import copy
 import os
 import imageio
+import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -26,7 +27,7 @@ class Evaluation:
         self.ep_step = 0
         self.total_steps = 0
         self.num_episodes = 0
-        self.update_freq = 1
+        self.update_freq = cfg.update_freq
         self.stats_queue_size = cfg.stats_queue_size
         self.train_stats_counter = 0
         self.test_stats_counter = 0
@@ -35,6 +36,7 @@ class Evaluation:
         self.evaluation_criteria = cfg.evaluation_criteria
         self.device = cfg.device
         
+        self.info_log = []
         if cfg.render == 1: # show the plot while running
             plt.ion()
             self.eval_fig = plt.figure()
@@ -200,4 +202,6 @@ class Evaluation:
     def save_render_online(self, vis_dir):
         return
         
-        
+    def save_info(self, filename):
+        with open(filename, 'wb') as f:
+            pickle.dump(self.info_log, f)

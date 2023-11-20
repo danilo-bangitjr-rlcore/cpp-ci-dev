@@ -24,18 +24,19 @@ class BaseAC(Evaluation):
         """
 
         # Continuous control initialization
-        self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_units, self.action_dim, cfg.action_scale, cfg.action_bias)
+        self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim, cfg.action_scale, cfg.action_bias, cfg.activation, cfg.layer_init)
 
         if cfg.discrete_control:
-            self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_units, self.action_dim)
-            self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_units, self.action_dim)
+            self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim, cfg.activation, cfg.layer_init)
+            self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim, cfg.activation, cfg.layer_init)
             self.get_q_value = self.get_q_value_discrete
             self.get_q_value_target = self.get_q_value_target_discrete
         else:
-            self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_units, 1)
-            self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_units, 1)
+            self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1, cfg.activation, cfg.layer_init)
+            self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1, cfg.activation, cfg.layer_init)
             self.get_q_value = self.get_q_value_continuous
             self.get_q_value_target = self.get_q_value_target_continuous
+            
         self.critic_target.load_state_dict(self.critic.state_dict())
 
         self.actor_optimizer = init_optimizer(cfg.optimizer, list(self.actor.parameters()), cfg.lr_actor)
@@ -123,7 +124,8 @@ class BaseAC(Evaluation):
         
         if self.cfg.render:
             self.render(np.array(info['interval_log']))
-    
+        self.info_log.append(info)
+        
         self.update()
         
         if reset:

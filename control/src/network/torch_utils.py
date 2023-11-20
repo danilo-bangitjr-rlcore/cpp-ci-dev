@@ -10,6 +10,19 @@ class Float(torch.nn.Module):
     def forward(self):
         return self.constant
 
+class NoneActivation(nn.Module):
+    def __init__(self):
+        super().__init__()
+    
+    def forward(self, x):
+        return x
+
+
+def layer_init_normal(layer, bias=True):
+    nn.init.normal_(layer.weight)
+    if bias:
+        nn.init.constant_(layer.bias.data, 0)
+    return layer
 
 def layer_init_zero(layer, bias=True):
     nn.init.constant_(layer.weight, 0)
@@ -36,17 +49,6 @@ def layer_init_uniform(layer, low=-0.003, high=0.003, bias=0):
         nn.init.constant_(layer.bias.data, bias)
     return layer
 
-def init_fn_factory(init):
-    if init == 'xavier':
-        layer_init = layer_init_xavier
-    elif init == 'const':
-        layer_init = layer_init_constant
-    elif init == 'zero':
-        layer_init = layer_init_zero
-    else:
-        raise NotImplementedError
-    return layer_init
-
 def tensor(x, device):
     if isinstance(x, torch.Tensor):
         return x
@@ -55,3 +57,29 @@ def tensor(x, device):
 
 def to_np(t):
     return t.cpu().detach().numpy()
+
+def init_activation(name):
+    if name == "ReLU":
+        return torch.nn.ReLU
+    elif name == "Softplus":
+        return torch.nn.Softplus
+    elif name == "ReLU6":
+        return torch.nn.ReLU6
+    elif name == "None":
+        return NoneActivation
+    else:
+        raise NotImplementedError
+
+def init_layer(init):
+    if init == 'Xavier':
+        layer_init = layer_init_xavier
+    elif init == 'Const':
+        layer_init = layer_init_constant
+    elif init == 'Zero':
+        layer_init = layer_init_zero
+    elif init == 'Normal':
+        layer_init = layer_init_normal
+    else:
+        raise NotImplementedError
+    return layer_init
+

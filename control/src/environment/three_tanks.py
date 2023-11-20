@@ -8,13 +8,13 @@ class ThreeTankEnvBase(object):
     def __init__(self, isoffline, seed=None):
         self.W1 = 0.025
         self.W2 = 0.025
-        self.W3 = 6000
-        self.W4 = 6000
+        self.W3 = 1000#6000
+        self.W4 = 1000#6000
         if seed is not None:
             self.rng = np.random.RandomState(seed)
             
-        # setpoint = self.rng.choice([3, 4])
-        setpoint = self.rng.choice([3])
+        setpoint = self.rng.choice([3, 4])
+        # setpoint = self.rng.choice([3])
         self.setpoint = setpoint  # the list of set points for tank 1
 
         self.Lambda = 0
@@ -275,9 +275,9 @@ class ThreeTankEnvBase(object):
 
 
 class ThreeTankEnv(ThreeTankEnvBase):
-    def __init__(self, seed=None, lr_constrain=0):
+    def __init__(self, seed=None, lr_constrain=0, env_action_scaler=None):
         super(ThreeTankEnv, self).__init__(True, seed=seed)
-        self.action_multiplier = np.array([5, 5])
+        self.action_multiplier = np.array([5, 5]) if env_action_scaler is None else np.array([env_action_scaler, env_action_scaler])
         self.constrain_alpha = 5
         self.ep_constrain = 0
         self.lr_constrain = lr_constrain
@@ -289,7 +289,7 @@ class ThreeTankEnv(ThreeTankEnvBase):
             sp, _ = self.inner_step(self.pid_controller())
         self.ep_constrain += self.constrain_contribution
 
-        # The normalization step from main.py
+        # The normalization step from https://github.com/oguzhan-dogru/RL_PID_Tuning/blob/main/main.py
         r = self.get_reward() / 20
         r = (r + 8) / 8
         done = True
@@ -324,8 +324,8 @@ class ThreeTankEnv(ThreeTankEnvBase):
 
 
 class TTChangeAction(ThreeTankEnv):
-    def __init__(self, seed=None, lr_constrain=0, constant_pid=True):
-        super(TTChangeAction, self).__init__(seed, lr_constrain)
+    def __init__(self, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None):
+        super(TTChangeAction, self).__init__(seed, lr_constrain, env_action_scaler=env_action_scaler)
         self.prev_pid = np.zeros(2)
         self.prev_a = np.zeros(2)
         if constant_pid:
@@ -393,8 +393,8 @@ class TTChangeAction(ThreeTankEnv):
         return {'state_dim': 4, 'action_dim': 2}
 
 class TTChangeActionDiscrete(TTChangeAction):
-    def __init__(self, delta_step, seed=None, lr_constrain=0, constant_pid=True):
-        super(TTChangeActionDiscrete, self).__init__(seed, lr_constrain, constant_pid)
+    def __init__(self, delta_step, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None):
+        super(TTChangeActionDiscrete, self).__init__(seed, lr_constrain, constant_pid, env_action_scaler=env_action_scaler)
         self.action_list = [
             -1 * np.ones(2) * delta_step,
             np.zeros(2),
@@ -429,8 +429,8 @@ class TTChangeActionDiscrete(TTChangeAction):
 
 
 class TTAction(TTChangeAction):
-    def __init__(self, seed=None, lr_constrain=0, constant_pid=True):
-        super(TTAction, self).__init__(seed, lr_constrain, constant_pid)
+    def __init__(self, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None):
+        super(TTAction, self).__init__(seed, lr_constrain, constant_pid, env_action_scaler=env_action_scaler)
 
     def preprocess_action(self, a):
         norm_pid = a
