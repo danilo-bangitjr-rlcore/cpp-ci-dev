@@ -58,6 +58,9 @@ if __name__ == "__main__":
 
     cfg = parser.parse_args()
 
+    print("Got Command Line Args")
+    print(cfg)
+
     cfg.exp_path = './out/output/test_v{}/{}/{}{}/{}/param_{}/seed_{}/'.format(cfg.version, cfg.env_name, cfg.exp_name, cfg.exp_info, cfg.agent_name, cfg.param, cfg.seed)  # savelocation for logs
     cfg.parameters_path = os.path.join(cfg.exp_path, "parameters")
     cfg.vis_path = os.path.join(cfg.exp_path, "visualizations")
@@ -67,9 +70,12 @@ if __name__ == "__main__":
     utils.write_json(cfg.exp_path, cfg)
     
     cfg.logger = utils.logger_setup(cfg)
+    print("Created Logger")
     utils.set_seed(cfg.seed)
     cfg.train_env = env_factory.init_environment(cfg.env_name, cfg)
     cfg.eval_env = env_factory.init_environment(cfg.env_name, cfg)
+    print("Created Environments")
     agent = agent_factory.init_agent(cfg.agent_name, cfg)
+    print("Created Agent")
     
     run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, 0)

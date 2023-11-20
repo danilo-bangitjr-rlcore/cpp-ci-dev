@@ -62,6 +62,7 @@ class Evaluation:
         total_actions = []
         total_returns = []
         for ep in range(total_ep):
+            print("Eval Episode: " + str(ep))
             ep_return, steps, traj = self.eval_episode(log_traj=log_traj)
             total_steps += steps
             total_states += traj[0]
@@ -90,12 +91,24 @@ class Evaluation:
     def eval_episode(self, log_traj=False):
         ep_traj = []
         state, _ = self.eval_env.reset()
+        print("Initial State:")
+        print(state)
         total_rewards = 0
         ep_steps = 0
         while True:
+            print("State:")
+            print(state)
             action = self.eval_step(state.reshape((1, -1)))[0]
+            print("Eval Action:")
+            print(action)
             last_state = state
             state, reward, done, _, _ = self.eval_env.step(action)
+            print("Next State:")
+            print(state)
+            print("Reward:")
+            print(reward)
+            print("Done:")
+            print(done)
             if log_traj:
                 ep_traj.append([last_state, action, reward])
             total_rewards += reward
@@ -103,6 +116,7 @@ class Evaluation:
             if done or ep_steps == self.timeout:
                 break
         
+        print("Compute Returns")
         states = []
         actions = []
         returns = []
@@ -111,6 +125,9 @@ class Evaluation:
             for i in range(len(ep_traj) - 1, -1, -1):
                 s, a, r = ep_traj[i]
                 ret = r + self.gamma * ret
+                print("State:")
+                print(s)
+                print("Return: " + str(ret))
                 returns.insert(0, ret)
                 actions.insert(0, a)
                 states.insert(0, s)

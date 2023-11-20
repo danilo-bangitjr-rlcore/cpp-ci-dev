@@ -15,11 +15,14 @@ class GreedyAC(BaseAC):
         self.sampler = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_units, self.action_dim, cfg.action_scale, cfg.action_bias)
         self.sampler_optim = init_optimizer(cfg.optimizer, list(self.sampler.parameters()), cfg.lr_actor)
 
+        print("Created Proposal Policy")
+
         self.gac_a_dim = self.action_dim
 
     def inner_update(self):
         data = self.get_data()
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], data['obs2'], 1 - data['done']
+        print("Sampled Batch From Buffer")
         
         # critic update
         next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)

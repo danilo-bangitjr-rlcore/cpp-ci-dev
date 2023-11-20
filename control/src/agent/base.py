@@ -25,6 +25,7 @@ class BaseAC(Evaluation):
 
         # Continuous control initialization
         self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_units, self.action_dim, cfg.action_scale, cfg.action_bias)
+        print("Created Actor")
 
         if cfg.discrete_control:
             self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_units, self.action_dim)
@@ -36,10 +37,13 @@ class BaseAC(Evaluation):
             self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_units, 1)
             self.get_q_value = self.get_q_value_continuous
             self.get_q_value_target = self.get_q_value_target_continuous
+        print("Created Critic")
         self.critic_target.load_state_dict(self.critic.state_dict())
+        print("Created Critic Target")
 
         self.actor_optimizer = init_optimizer(cfg.optimizer, list(self.actor.parameters()), cfg.lr_actor)
         self.critic_optimizer = init_optimizer(cfg.optimizer, list(self.critic.parameters()), cfg.lr_critic)
+        print("Created Optimizers")
 
         # self.constrain_weight = 0
         # self.lr_constrain = cfg.lr_constrain
@@ -57,6 +61,7 @@ class BaseAC(Evaluation):
         self.discrete_control = cfg.discrete_control
 
     def fill_buffer(self, online_data_size):
+        print("Collect initial experience for replay buffer")
         track_states = []
         track_actions = []
         track_rewards = []
@@ -65,19 +70,35 @@ class BaseAC(Evaluation):
         track_return = []
         track_step = []
         state, info = self.env.reset()
+        print("Initial State:")
+        print(state)
         ep_steps = 0
         ep_return = 0
         done = False
         for _ in range(online_data_size):
+            print("Episode Step: " + str(ep_steps))
+            print("State:")
+            print(state)
             if done:
+                print("Episode Terminated")
                 state = self.env.reset()
+                print("New Episode")
+                print("Initial State:")
+                print(state)
                 track_return.append(ep_return)
                 track_step.append(ep_steps)
                 ep_steps = 0
                 ep_return = 0
             action = self.eval_step(state.reshape((1, -1)))[0]
+            print("Action:")
+            print(action)
             last_state = state
             state, reward, done, truncate, _ = self.env.step(action)
+            print("Next State:")
+            print(state)
+            print("Reward: " + str(reward))
+            print("Done:")
+            print(done)
             self.buffer.feed([last_state, action, reward, state, int(done), int(truncate)])
             track_states.append(last_state)
             track_actions.append(action)
@@ -116,14 +137,19 @@ class BaseAC(Evaluation):
     def step(self):
         action, _, _ = self.get_policy(torch_utils.tensor(self.observation.reshape((1, -1)), self.device), with_grad=False)
         action = torch_utils.to_np(action)[0]
+        print("Action:")
+        print(action)
         next_observation, reward, terminated, trunc, info = self.env.step(action)
+        print("Next Observation:")
+        print(next_observation)
+        print("Reward: " + str(reward))
         assert trunc == False
         reset, truncate = self.update_stats(reward, terminated)
         self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
         
         if self.cfg.render:
             self.render(np.array(info['interval_log']))
-    
+
         self.update()
         
         if reset:
@@ -206,6 +232,7 @@ class BaseAC(Evaluation):
 
     def update(self):
         if self.total_steps % self.update_freq == 0:
+            print("Update Networks")
             for _ in range(self.update_freq):
                 self.inner_update()
 
@@ -266,10 +293,14 @@ class BaseAC(Evaluation):
                 self.buffer = pkl.load(f)
 
     def sync_target(self):
+        print("Update Target Network")
         with torch.no_grad():
             for p, p_targ in zip(self.critic.parameters(), self.critic_target.parameters()):
+                print("Critic param value: ", p)
+                print("Critic Target param value: ", p_targ)
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
+                print("New Critic Target Value: ", p_targ)
 
 
 class BaseValue(BaseAC):

@@ -1,8 +1,10 @@
 import numpy as np
 import sympy as sym
 from scipy import signal
+from gymnasium import spaces, Env
 
-
+# Observation = setpoint
+# Action = [kp1, ti1]
 class ThreeTankEnvBase(object):
     
     def __init__(self, isoffline, seed=None):
@@ -24,6 +26,12 @@ class ThreeTankEnvBase(object):
         self.C4 = 0  # MV penalty # bug
         self.breach = 0
         self.constrain_contribution = 0  # constrain to be multiplied by lambda
+
+        # Make Three Tank Env an OpenAI Gym Env
+        self.max_actions = np.array([20, 20], dtype=np.float32)
+        self.min_actions = np.array([0, 0], dtype=np.float32)
+        self.action_dim = len(self.max_actions)
+        self.action_space = spaces.Box(low=self.min_actions, high=self.max_actions, shape=(self.action_dim,))
 
         self.KP_MAX, self.TAU_MAX, self.MV_MAX, self.CV_MAX = 20, 20, 0.6, self.setpoint * 1.1
         self.KP_MIN, self.TAU_MIN, self.MV_MIN, self.CV_MIN = 0, 0, 0, 0
@@ -273,7 +281,8 @@ class ThreeTankEnvBase(object):
         self.flowrate_buffer = []
         return reward
 
-
+# Observation: setpoint -> 1
+# Action: [kp1, ti1] -> 2
 class ThreeTankEnv(ThreeTankEnvBase):
     def __init__(self, seed=None, lr_constrain=0):
         super(ThreeTankEnv, self).__init__(True, seed=seed)
@@ -313,16 +322,13 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.setpoint = setpoint_backup
         self.reset_reward(), self.reinit_the_system()
         return s, {}
-    
-    @property
-    def space_dim(self):
-        return {'state_dim': 1, 'action_dim': 2}
 
     @property
     def visualization_range(self):
         return [-1, 15]
 
-
+# Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
+# Action: [delta_kp1, delta_ti1] -> continuous version -> 2
 class TTChangeAction(ThreeTankEnv):
     def __init__(self, seed=None, lr_constrain=0, constant_pid=True):
         super(TTChangeAction, self).__init__(seed, lr_constrain)
@@ -392,6 +398,8 @@ class TTChangeAction(ThreeTankEnv):
     def space_dim(self):
         return {'state_dim': 4, 'action_dim': 2}
 
+# Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
+# Action: cross product of [delta_kp1, delta_ti1] -> discrete version (three choices per dimension) -> 1
 class TTChangeActionDiscrete(TTChangeAction):
     def __init__(self, delta_step, seed=None, lr_constrain=0, constant_pid=True):
         super(TTChangeActionDiscrete, self).__init__(seed, lr_constrain, constant_pid)
@@ -427,7 +435,8 @@ class TTChangeActionDiscrete(TTChangeAction):
     def space_dim(self):
         return {'state_dim': 4, 'action_dim': 3}
 
-
+# Observation: [0, 0, prev_kp1, prev_ti1] -> 4
+# Action: [kp1, ti1] -> continuous version
 class TTAction(TTChangeAction):
     def __init__(self, seed=None, lr_constrain=0, constant_pid=True):
         super(TTAction, self).__init__(seed, lr_constrain, constant_pid)
