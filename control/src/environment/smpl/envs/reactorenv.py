@@ -373,7 +373,7 @@ class ReactorEnvGym(smplEnvBase):
         self.step_count += 1
         info = {}
         info.update(done_info)
-        return observation, reward, done, info
+        return observation, reward, done_info["terminal"], done_info["timeout"], info
         # /---- standard ----
 
     def evenly_spread_initial_states(self, val_per_state, dump_location=None):
@@ -455,7 +455,7 @@ class ReactorEnvGym(smplEnvBase):
                     if normalize:
                         a, _, _ = denormalize_spaces(a, self.max_actions, self.min_actions)
                     algo_actions.append(a)
-                    o, r, done, _ = self.step(a)
+                    o, r, done, _, _ = self.step(a)
                     algo_observes.append(o)
                     algo_rewards.append(r)
                 observations_list[n_algo].append(algo_observes)
@@ -692,8 +692,7 @@ class ReactorEnvGym(smplEnvBase):
                 dataset['terminals'].append(done)
                 dataset["timeouts"].append(timeout)
 
-                o, r, done, info = self.step(a)
-                timeout = info['timeout']
+                o, r, done, timeout, info = self.step(a)
         dataset["observations"] = np.array(dataset["observations"])
         dataset["actions"] = np.array(dataset["actions"])
         dataset["rewards"] = np.array(dataset["rewards"])

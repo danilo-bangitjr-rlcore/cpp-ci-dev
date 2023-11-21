@@ -494,7 +494,7 @@ class AtropineEnvGym(smplEnvBase):
             "reward_on_efactor_diff": reward_on_efactor_diff
         }
         info.update(done_info)
-        return observation, reward, done, info
+        return observation, reward, done_info["terminal"], done_info["timeout"], info
 
     def step(self, action, normalize=None):
         try:
@@ -511,7 +511,7 @@ class AtropineEnvGym(smplEnvBase):
                 "reward_on_absolute_efactor": reward,
                 "reward_on_efactor_diff": reward
             }
-            return observation, reward, done, info
+            return observation, reward, done_info["terminal"], done_info["timeout"], info
 
     def plot(self, show=False, efactor_fig_name=None, input_fig_name=None):
         target_efactor = [self.yss + self.yr] * self.num_sim
@@ -610,7 +610,7 @@ class AtropineEnvGym(smplEnvBase):
                     if normalize:
                         a, _, _ = denormalize_spaces(a, self.max_actions, self.min_actions)
                     algo_actions.append(a)
-                    o, r, done, _ = self.step(a)
+                    o, r, done, _, _ = self.step(a)
                     algo_observes.append(o)
                     algo_rewards.append(r)
                 observations_list[n_algo].append(algo_observes)
