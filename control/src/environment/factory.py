@@ -1,3 +1,6 @@
+import gymnasium as gym
+import gym_electric_motor as gem
+from gymnasium.wrappers import FlattenObservation
 from src.environment.three_tanks import ThreeTankEnv, TTChangeAction, TTAction, TTChangeActionDiscrete
 from src.environment.smpl.envs.atropineenv import AtropineEnvGym
 from src.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
@@ -23,6 +26,16 @@ def init_environment(name, cfg):
         return BeerFMTEnvGym()
     elif name == "ReactorEnv":
         return ReactorEnvGym()
+    elif name == "Cont-CC-PermExDc-v0":
+        return FlattenObservation(gem.make("Cont-CC-PermExDc-v0"))
+    elif name == "Cont-CC-PMSM-v0":
+        return FlattenObservation(gem.make("Cont-CC-PMSM-v0"))
+    elif name == "Cont-CC-DFIM-v0":
+        return FlattenObservation(gem.make("Cont-CC-DFIM-v0"))
+    elif name == "Cont-CC-SCIM-v0":
+        return FlattenObservation(gem.make("Cont-CC-SCIM-v0"))
+    elif name == "Cont-CC-EESM-v0":
+        return FlattenObservation(gem.make("Cont-CC-EESM-v0"))
     else:
         raise NotImplementedError
 

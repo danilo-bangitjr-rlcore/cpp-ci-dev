@@ -202,11 +202,11 @@ def smpl_exp():
         }
     }
     shared_settings = {
-        "--env_name": ["ReactorEnv"],
-        "--exp_name": ["reactor_env"],
+        "--env_name": ["BeerEnv"],
+        "--exp_name": ["beer_env"],
         "--exp_info": ["/test"],
-        "--max_steps": [10000],
-        "--timeout": [1000],
+        "--max_steps": [1000],
+        "--timeout": [100],
         "--gamma": [0.99],
         "--log_interval": [1],
         "--stats_queue_size": [1],
@@ -216,7 +216,45 @@ def smpl_exp():
         "--critic": ["FC"],
         "--optimizer": ["RMSprop"],
         "--polyak": [0.1], # Unsure about this
-        "--hidden_units": ["64 64"],
+        "--hidden_actor": ["64 64"],
+        "--hidden_critic": ["64 64"],
+        "--lr_actor": [0.0001], #[0.01, 0.001, 0.0001],
+        "--lr_critic": [0.001],#[0.01, 0.001, 0.0001],
+        "--buffer_size": [1000],
+        "--batch_size": [32],
+        "--action_scale": [1],
+        "--action_bias": [0],
+    }
+    target_agents = ["GAC"]
+
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=2)
+
+def gem_exp():
+    settings = {
+        "GAC": {
+            "--tau": [1e-3],
+            "--rho": [0.1],
+            "--n": [30],
+        }
+    }
+    shared_settings = {
+        "--env_name": ["Cont-CC-PermExDc-v0"],
+        "--exp_name": ["gem_test"],
+        "--exp_info": ["/test"],
+        "--max_steps": [1000],
+        "--timeout": [100],
+        "--gamma": [0.99],
+        "--log_interval": [1],
+        "--stats_queue_size": [1],
+        "--state_normalizer": ["Identity"],
+        "--reward_normalizer": ["Identity"],
+        "--actor": ["Beta"],
+        "--critic": ["FC"],
+        "--optimizer": ["RMSprop"],
+        "--polyak": [0.1], # Unsure about this
+        "--hidden_actor": ["64 64"],
+        "--hidden_critic": ["64 64"],
         "--lr_actor": [0.0001], #[0.01, 0.001, 0.0001],
         "--lr_critic": [0.001],#[0.01, 0.001, 0.0001],
         "--buffer_size": [1000],
@@ -304,7 +342,8 @@ def test_runs():
 
 if __name__ == '__main__':
     # reproduce()
-    test_runs()
+    # test_runs()
     # demo()
     # constant_pid()
     # smpl_exp()
+    gem_exp()

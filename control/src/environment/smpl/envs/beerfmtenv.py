@@ -259,4 +259,4 @@ class BeerFMTEnvGym(smplEnvBase):
         self.step_count += 1
         info = {"res_forplot": np.array(self.res_forplot)}
         info.update(done_info)
-        return observation, reward, done, info
+        return observation, reward, done_info["terminal"], done_info["timeout"], info
