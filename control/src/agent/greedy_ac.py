@@ -77,8 +77,7 @@ class GreedyAC(BaseAC):
         with torch.no_grad():
             sampler_entropy *= sampler_entropy
         sampler_entropy = sampler_entropy.reshape(self.batch_size, self.num_samples, 1)
-        sampler_entropy = -sampler_entropy[:, 0, :]
-        sampler_entropy = -1 * sampler_entropy
+        sampler_entropy = -sampler_entropy.mean(axis=1)
 
         stacked_s_batch = state_batch.repeat_interleave(samples, dim=0)
         logp, _ = self.sampler.log_prob(stacked_s_batch, best_actions)
