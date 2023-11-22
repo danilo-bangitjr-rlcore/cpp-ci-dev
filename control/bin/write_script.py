@@ -153,39 +153,39 @@ def constant_pid():
     # settings = merge_independent(settings, shared_settings)
     # combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=3)
     
-    shared_settings["--env_name"] = ["TTAction/ConstPID"]
-    shared_settings["--exp_info"] = ["/without_replay/env_scale_10/"]
-    settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=9, line_per_file=3)
+    # shared_settings["--env_name"] = ["TTAction/ConstPID"]
+    # shared_settings["--exp_info"] = ["/without_replay/env_scale_10/"]
+    # settings = merge_independent(settings, shared_settings)
+    # combinations(settings, target_agents, num_runs=1, prev_file=9, line_per_file=3)
     
-    # shared_settings["--env_name"] = ["TTChangeAction/ConstPID"]
-    # shared_settings["--exp_info"] = ["/without_replay/action_-0.1_0.1/"]
-    # shared_settings["--action_scale"] = [0.2]
-    # shared_settings["--action_bias"] = [-0.1]
-    # settings = merge_independent(settings, shared_settings)
-    # combinations(settings, target_agents, num_runs=1, prev_file=4, line_per_file=3)
-    #
-    # shared_settings["--env_name"] = ["TTChangeAction/DiscreteConstPID"]
-    # shared_settings["--env_info"] = [0.1]
-    # shared_settings["--exp_info"] = ["/without_replay/change_0.1"]
-    # shared_settings["--actor"] = ["Softmax"]
-    # shared_settings["--discrete_control"] = [1]
-    # shared_settings.pop('--action_scale', None)
-    # shared_settings.pop('action_bias', None)
-    # settings["GAC"]["--n"] = [3]
-    # settings = merge_independent(settings, shared_settings)
-    # combinations(settings, target_agents, num_runs=1, prev_file=5, line_per_file=3)
-    #
-    # shared_settings["--env_name"] = ["TTChangeAction/DiscreteConstPID"]
-    # shared_settings["--env_info"] = [0.01]
-    # shared_settings["--exp_info"] = ["/without_replay/change_0.01"]
-    # shared_settings["--actor"] = ["Softmax"]
-    # shared_settings["--discrete_control"] = [1]
-    # shared_settings.pop('--action_scale', None)
-    # shared_settings.pop('action_bias', None)
-    # settings["GAC"]["--n"] = [3]
-    # settings = merge_independent(settings, shared_settings)
-    # combinations(settings, target_agents, num_runs=1, prev_file=8, line_per_file=3)
+    shared_settings["--env_name"] = ["TTChangeAction/ConstPID"]
+    shared_settings["--exp_info"] = ["/without_replay/env_scale_10/action_-1_1/"]
+    shared_settings["--action_scale"] = [2.]
+    shared_settings["--action_bias"] = [-1.]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=18, line_per_file=3)
+
+    shared_settings["--env_name"] = ["TTChangeAction/DiscreteConstPID"]
+    shared_settings["--env_info"] = [0.1]
+    shared_settings["--exp_info"] = ["/without_replay/change_0.1"]
+    shared_settings["--actor"] = ["Softmax"]
+    shared_settings["--discrete_control"] = [1]
+    shared_settings.pop('--action_scale', None)
+    shared_settings.pop('action_bias', None)
+    settings["GAC"]["--n"] = [9]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=27, line_per_file=3)
+
+    shared_settings["--env_name"] = ["TTChangeAction/DiscreteConstPID"]
+    shared_settings["--env_info"] = [0.01]
+    shared_settings["--exp_info"] = ["/without_replay/change_0.01"]
+    shared_settings["--actor"] = ["Softmax"]
+    shared_settings["--discrete_control"] = [1]
+    shared_settings.pop('--action_scale', None)
+    shared_settings.pop('action_bias', None)
+    settings["GAC"]["--n"] = [9]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=36, line_per_file=3)
 
 def smpl_exp():
     settings = {
@@ -338,6 +338,6 @@ if __name__ == '__main__':
     # reproduce()
     # test_runs()
     # demo()
-    constant_pid() # 52919
+    constant_pid() # 26502
     # smpl_exp()
     # gem_exp()
