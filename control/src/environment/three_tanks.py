@@ -373,8 +373,6 @@ class TTChangeAction(ThreeTankEnv):
         else:
             info = {'constrain': ep_c,
                     'interval_log': []}
-        # print(sp)
-        # input()
         return sp, r, done, False, info
 
     def reset(self, seed=None):
@@ -449,10 +447,6 @@ class TTAction(TTChangeAction):
     def preprocess_action(self, a):
         norm_pid = a
         return norm_pid
-
-    def observation(self, prev_a, pid):
-        obs = np.concatenate([prev_a, pid], axis=0)
-        return obs
 
     def step(self, a):
         sp, r, done, trunc, info = super(TTAction, self).step(a)
