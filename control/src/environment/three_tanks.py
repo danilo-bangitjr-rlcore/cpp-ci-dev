@@ -15,8 +15,8 @@ class ThreeTankEnvBase(object):
         if seed is not None:
             self.rng = np.random.RandomState(seed)
             
-        setpoint = self.rng.choice([3, 4])
-        # setpoint = self.rng.choice([3])
+        # setpoint = self.rng.choice([3, 4])
+        setpoint = self.rng.choice([3])
         self.setpoint = setpoint  # the list of set points for tank 1
 
         self.Lambda = 0
@@ -290,6 +290,9 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.constrain_alpha = 5
         self.ep_constrain = 0
         self.lr_constrain = lr_constrain
+        self.observation_space = spaces.Box(low=np.array([3]), high=np.array([4]), shape=(1,), dtype=np.float32)
+        self.action_space = spaces.Box(low=self.min_actions, high=self.max_actions, shape=(2,), dtype=np.float32)
+        self.visualization_range = [-1, 15]
         
     def step(self, a):
         pid = self.action_multiplier * a
@@ -323,13 +326,6 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.reset_reward(), self.reinit_the_system()
         return s, {}
 
-    @property
-    def space_dim(self):
-        return {'state_dim': 1, 'action_dim': 2}
-
-    @property
-    def visualization_range(self):
-        return [-1, 15]
 
 # Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
 # Action: [delta_kp1, delta_ti1] -> continuous version -> 2
@@ -344,6 +340,7 @@ class TTChangeAction(ThreeTankEnv):
             self.internal_timeout = 10
         self.internal_iterations = 1000//self.internal_timeout
         self.internal_count = 0
+        self.observation_space = spaces.Box(low=np.array([-np.inf]*4), high=np.array([np.inf]*4), shape=(4,), dtype=np.float32)
 
     def preprocess_action(self, a):
         norm_pid = a + self.prev_pid
@@ -376,8 +373,6 @@ class TTChangeAction(ThreeTankEnv):
         else:
             info = {'constrain': ep_c,
                     'interval_log': []}
-        # print(sp)
-        # input()
         return sp, r, done, False, info
 
     def reset(self, seed=None):
@@ -398,9 +393,6 @@ class TTChangeAction(ThreeTankEnv):
         obs = np.concatenate([prev_a, pid], axis=0)
         return obs
 
-    @property
-    def space_dim(self):
-        return {'state_dim': 4, 'action_dim': 2}
 
 # Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
 # Action: cross product of [delta_kp1, delta_ti1] -> discrete version (three choices per dimension) -> 1
@@ -408,11 +400,20 @@ class TTChangeActionDiscrete(TTChangeAction):
     def __init__(self, delta_step, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None):
         super(TTChangeActionDiscrete, self).__init__(seed, lr_constrain, constant_pid, env_action_scaler=env_action_scaler)
         self.action_list = [
-            -1 * np.ones(2) * delta_step,
-            np.zeros(2),
-            np.ones(2) * delta_step
+            np.array([0, 0]),
+            np.array([0, -delta_step]),
+            np.array([0, delta_step]),
+
+            np.array([-delta_step, 0]),
+            np.array([-delta_step, -delta_step]),
+            np.array([-delta_step, delta_step]),
+
+            np.array([delta_step, 0]),
+            np.array([delta_step, -delta_step]),
+            np.array([delta_step, delta_step]),
         ]
         self.prev_a = [1]
+        self.action_space = spaces.Discrete(9, start=0)
 
     def preprocess_action(self, a):
         a = a[0]
@@ -435,23 +436,17 @@ class TTChangeActionDiscrete(TTChangeAction):
         s = self.observation(self.prev_a, self.prev_pid)
         return s, info
 
-    @property
-    def space_dim(self):
-        return {'state_dim': 4, 'action_dim': 3}
 
 # Observation: [0, 0, prev_kp1, prev_ti1] -> 4
 # Action: [kp1, ti1] -> continuous version
 class TTAction(TTChangeAction):
     def __init__(self, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None):
         super(TTAction, self).__init__(seed, lr_constrain, constant_pid, env_action_scaler=env_action_scaler)
+        self.observation_space = spaces.Box(low=np.array([0, 0, -np.inf, -np.inf]), high=np.array([0, 0, np.inf, np.inf]), shape=(4,), dtype=np.float32)
 
     def preprocess_action(self, a):
         norm_pid = a
         return norm_pid
-
-    def observation(self, prev_a, pid):
-        obs = np.concatenate([prev_a, pid], axis=0)
-        return obs
 
     def step(self, a):
         sp, r, done, trunc, info = super(TTAction, self).step(a)
