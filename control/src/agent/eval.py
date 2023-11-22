@@ -115,6 +115,7 @@ class Evaluation:
             for i in range(len(ep_traj) - 1, -1, -1):
                 s, a, r = ep_traj[i]
                 ret = r + self.gamma * ret
+
                 returns.insert(0, ret)
                 actions.insert(0, a)
                 states.insert(0, s)
