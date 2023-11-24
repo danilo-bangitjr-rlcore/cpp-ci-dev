@@ -14,7 +14,7 @@ echo "OMP thread:" $ompt
 chmod +x ../out/scripts/tasks_*.sh
 export OMP_NUM_THREADS=$ompt
 
-if [[ $start -eq $end ]]; then
+if [[ $start -ge $end ]]; then
     ../out/scripts/tasks_$start.sh
 else
     parallel -j $paral  ::: $(seq $start $end)
