@@ -3,23 +3,6 @@ from utils import *
 
 DATAROOT = "../../out/"
 
-def learning_rates_offline():
-    fix_param = [
-        {"lr_constraint": 0.0001},
-        {"lr_constraint": 0.00001},
-        {"lr_constraint": 0.000001},
-        {"lr_constraint": 0.0000001},
-    ]
-    root = DATAROOT + "output/learning_rate/without_replay/"
-    fig, axs = plt.subplots(2, len(fix_param), figsize=(3 * len(fix_param), 4))
-    for pi, fp in enumerate(fix_param):
-        load_exp(axs[:, pi], sensitivity_curve, root, fp, "lr_critic")
-        axs[0, pi].set_title(' '.join('{}={}'.format(key, value) for key, value in fp.items()))
-    axs[0, 0].set_ylabel("Performance")
-    axs[1, 0].set_ylabel("Constraint")
-    fig.tight_layout()
-    plt.savefig(DATAROOT + "img/learning_rate_sensitivity.png", dpi=300, bbox_inches='tight')
-
 
 def sweep_offline(pth_base, agent="GAC"):
     print(agent)
@@ -27,10 +10,11 @@ def sweep_offline(pth_base, agent="GAC"):
     fig, axs = plt.subplots(1, 1, figsize=(5, 4))
     load_exp([axs], param_sweep, root, {}, None)
     plt.legend()
+    axs.set_ylim(-50, 2)
     axs.set_ylabel("Performance")
     axs.set_xlabel("Episodes")
     fig.tight_layout()
-    plt.savefig(DATAROOT + "img/param_sweep_{}.png".format(agent), dpi=300, bbox_inches='tight')
+    plt.savefig(DATAROOT + "img/sweep_{}.png".format(agent), dpi=300, bbox_inches='tight')
 
 
 def best_offline(pths, title, ylim):
@@ -91,53 +75,3 @@ def reproduce_demo(pths, title, ylim):
     fig.tight_layout()
     plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
 
-
-if __name__ == '__main__':
-    pth_base = DATAROOT + "output/test_v0/TTChangeAction/DiscreteConstPID/learning_rate/without_replay/env_scale_1/change_0.01/{}/"
-    # sweep_offline(pth_base, "SAC")
-    # sweep_offline(pth_base, "SimpleAC")
-    # sweep_offline(pth_base, "GAC")
-
-    """
-    ThreeTanks
-    """
-    pths = {
-        "Baseline":[DATAROOT + "baseline/reproduce_new_reward_no_smooth/param_0/", "C0", 2],
-    }
-    reproduce_demo(pths, "reproduce", ylim=[-1200, 2])
-    pths = {
-        "Baseline":[DATAROOT + "baseline/reproduce_new_reward_no_smooth/param_0/", "C0", 2],
-        "New":[DATAROOT + "output/test_v0/ThreeTank/demo/without_replay/env_scale_10/GAC/param_1/", "C1", 3]
-    }
-    reproduce_demo(pths, "demo_compare", ylim=[-1200, 2])
-    reproduce_demo(pths, "demo_compare_zoomin", ylim=[-50, 2])
-
-    """
-    ThreeTanks Direct Action, constant PID
-    """
-    SHAREPATH = "output/test_v0/TTAction/ConstPID/learning_rate/without_replay/env_scale_10/"
-    pths = {
-        "SAC": [DATAROOT + SHAREPATH + "SAC/param_1/", "C0", 5],
-        "SimpleAC": [DATAROOT + SHAREPATH + "SimpleAC/param_0/", "limegreen", 3],
-        "GAC": [DATAROOT + SHAREPATH + "GAC/param_2", "C1", 1],
-    }
-    # best_offline(pths, "best_TTAction_replay0_e10", ylim=[-2, 2])
-
-    """
-    ThreeTanks Change Action, constant PID
-    """
-    SHAREPATH = "output/test_v0/TTChangeAction/ConstPID/learning_rate/without_replay/env_scale_1/action_-0.1_0.1/"
-    pths = {
-        "SAC": [DATAROOT + SHAREPATH + "SAC/param_6/", "C0", 5],
-        "SimpleAC": [DATAROOT + SHAREPATH + "SimpleAC/param_6/", "limegreen", 3],
-        "GAC": [DATAROOT + SHAREPATH + "GAC/param_1", "C1", 1],
-    }
-    # best_offline(pths, "best_changeAction_replay0_const_pid_e1_a0.1", ylim=[-50, 2])
-
-    SHAREPATH = "output/test_v0/TTChangeAction/DiscreteConstPID/learning_rate/without_replay/env_scale_1/change_0.01/"
-    pths = {
-        "SAC": [DATAROOT + SHAREPATH + "SAC/param_3/", "C0", 5],
-        "SimpleAC": [DATAROOT + SHAREPATH + "SimpleAC/param_3/", "limegreen", 3],
-        "GAC": [DATAROOT + SHAREPATH + "GAC/param_3", "C1", 1],
-    }
-    # best_offline(pths, "best_changeAction_replay0_const_pid_e1", ylim=[-10, 2])
