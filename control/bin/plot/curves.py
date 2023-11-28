@@ -75,3 +75,31 @@ def reproduce_demo(pths, title, ylim):
     fig.tight_layout()
     plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
 
+def visualize_training_info(target_file, target_key, threshold=None):
+    with open(target_file+"/info_logs.pkl", "rb") as f:
+        info = pickle.load(f)
+    ret = np.load(target_file+"/train_logs.npy")
+
+    reformat = {}
+    for k in target_key:
+        ary = log2ary(info, k)
+        if len(ary.shape) > 2 and ary.shape[2] == 1:
+            ary = ary.squeeze(2)
+        if len(ary.shape) > 1 and ary.shape[1] == 1:
+            ary = ary.squeeze(1)
+        reformat[k] = ary
+
+    fig, axs = plt.subplots(len(target_key)+1, 1, figsize=(4, 3*len(target_key)))
+    axs[0].plot(ret)
+    for i, k in enumerate(target_key):
+        axs[i + 1].plot(reformat[k])
+        axs[i + 1].set_title(k)
+
+    if threshold is not None:
+        highlight = np.where(ret <= threshold)[0]
+        for ax in axs:
+            for x in highlight:
+                ax.axvline(x, linestyle='--', color='grey', linewidth=0.5, zorder=-1)
+
+    fig.tight_layout()
+    plt.show()

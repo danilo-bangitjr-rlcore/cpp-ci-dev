@@ -9,7 +9,6 @@ def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_si
     agent.fill_buffer(online_data_size)
     while True:
         if log_interval and not agent.total_steps % log_interval:
-            # train_mean, train_median, train_min_, train_max_, test_mean, test_median, test_min_, test_max_ = agent.log_file(elapsed_time=log_interval / (time.time() - t0), test=True)
             train_mean, train_median, train_min_, train_max_, test_mean, test_median, test_min_, test_max_ = agent.log_file(elapsed_time=log_interval / (time.time() - t0), test=log_interval>1 and log_test)
             train_logs.append(train_mean)
             evaluations.append(test_mean)
