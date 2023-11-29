@@ -106,16 +106,21 @@ class BaseAC(Evaluation):
         return reset, truncate
 
     def step(self):
-        action, _, _ = self.get_policy(torch_utils.tensor(self.observation.reshape((1, -1)), self.device), with_grad=False)
+        action, _, pi_info = self.get_policy(torch_utils.tensor(self.observation.reshape((1, -1)), self.device), with_grad=False, debug=self.cfg.debug)
         action = torch_utils.to_np(action)[0]
-        next_observation, reward, terminated, trunc, info = self.env.step(action)
+        next_observation, reward, terminated, trunc, env_info = self.env.step(action)
         reset, truncate = self.update_stats(reward, terminated, trunc)
         self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
         
         if self.cfg.render:
-            self.render(np.array(info['interval_log']))
-
-        self.info_log.append(info)
+            self.render(np.array(env_info['interval_log']))
+        else:
+            env_info.pop('interval_log')
+        i_log = {
+            "agent_info": pi_info,
+            "env_info": env_info
+        }
+        self.info_log.append(i_log)
         
         self.update()
         
@@ -128,13 +133,13 @@ class BaseAC(Evaluation):
         return
 
     # actor-critic
-    def get_policy(self, observation, with_grad):
+    def get_policy(self, observation, with_grad, debug=False):
         if with_grad:
-            action, logp, dist = self.actor(observation)
+            action, logp, info = self.actor(observation, debug)
         else:
             with torch.no_grad():
-                action, logp, dist = self.actor(observation)
-        return action, logp.unsqueeze(-1), dist
+                action, logp, info = self.actor(observation, debug)
+        return action, logp.unsqueeze(-1), info
 
     # Continuous control
     def get_q_value_continuous(self, observation, action, with_grad):
@@ -270,7 +275,7 @@ class BaseValue(BaseAC):
         assert self.discrete_control
         self.exploration = cfg.exploration
 
-    def get_policy(self, observation, with_grad):
+    def get_policy(self, observation, with_grad, debug=False):
         if eval or self.rng.random() >= self.exploration:
             qs, _ = self.critic(observation)
             a = torch.argmax(qs, dim=1, keepdim=True)

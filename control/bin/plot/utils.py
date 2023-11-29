@@ -76,7 +76,7 @@ def load_param(pth, xlim=[], pick_seed=None):
             with open(p+"/info_logs.pkl", "rb") as f:
                 info = pickle.load(f)
             for step in info:
-                cons.append(step["constrain"])
+                cons.append(step["env_info/constrain"])
             cons = np.array(cons)
             
         if xlim != []:
@@ -114,3 +114,18 @@ def load_exp(axs, plot_fn, root, fix_params={}, sweep_param=None):
     plot_fn(axs[0], perf_ret)
     if len(axs) > 1:
         plot_fn(axs[1], perf_cons)
+
+
+def log2num(step_i, k_pth):
+    if len(k_pth) == 1:
+        return step_i[k_pth[0]]
+    else:
+        return log2num(step_i[k_pth[0]], k_pth[1:])
+
+def log2ary(info, k):
+    k_pth = k.split("/")
+    ary = []
+    for step_i in info:
+        elem = log2num(step_i, k_pth)
+        ary.append(elem)
+    return np.array(ary)

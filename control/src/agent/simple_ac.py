@@ -15,12 +15,11 @@ class SimpleAC(BaseAC):
     def inner_update(self):
         batch = self.get_data()
         
-        log_prob, dist = self.actor.log_prob(batch['obs'], batch['act'])
+        log_prob, _ = self.actor.log_prob(batch['obs'], batch['act'])
         
         v = self.get_v_value(batch['obs'], with_grad=True)
         vp = self.get_v_value(batch['obs2'], with_grad=False)
         targ = batch['reward'] + self.gamma * (1.0 - batch['done']) * vp
-        # ent = dist.entropy().unsqueeze(-1)
         ent = -log_prob
         loss_actor = -(self.tau * ent + log_prob * (targ - v.detach())).mean()
         loss_critic = nn.functional.mse_loss(v, targ)

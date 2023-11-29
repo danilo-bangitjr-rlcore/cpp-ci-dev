@@ -2,6 +2,7 @@ import numpy as np
 import sympy as sym
 from scipy import signal
 from gymnasium import spaces, Env
+import copy
 
 # Observation = setpoint
 # Action = [kp1, ti1]
@@ -241,6 +242,16 @@ class ThreeTankEnvBase(object):
         elif self.flowrate_T1 < self.MV_MIN:
             self.C4 = abs(self.flowrate_T1 - self.MV_MIN)
         self.constrain_contribution = np.float64(abs(self.W1 * self.C1 + self.W2 * self.C2 + self.W3 * self.C3 + self.W4 * self.C4))
+        self.constrain_info = {
+            "C1": self.C1,
+            "C2": self.C2,
+            "C3": np.asarray(self.C3).squeeze(),
+            "C4": np.asarray(self.C4).squeeze(),
+            "kp1": self.kp1,
+            "tau": self.ti1,
+            "height": self.height_T1.squeeze(),
+            "flowrate": self.flowrate_T1.squeeze(),
+        }
 
         self.height_T1_record.append(self.height_T1.item())
         self.flowrate_T1_record.append(self.flowrate_T1.item())
@@ -289,31 +300,43 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.action_multiplier = np.array([5, 5]) if env_action_scaler is None else np.array([env_action_scaler, env_action_scaler])
         self.constrain_alpha = 5
         self.ep_constrain = 0
+        self.ep_constrain_info = {}
         self.lr_constrain = lr_constrain
         self.observation_space = spaces.Box(low=np.array([3]), high=np.array([4]), shape=(1,), dtype=np.float32)
         self.action_space = spaces.Box(low=self.min_actions, high=self.max_actions, shape=(2,), dtype=np.float32)
         self.visualization_range = [-1, 15]
-        
+
+    def sum_constrain_info(self):
+        for k,v in self.constrain_info.items():
+            if k in self.ep_constrain_info:
+                self.ep_constrain_info[k].append(v)
+            else:
+                self.ep_constrain_info[k] = [v]
+        return
+
     def step(self, a):
         pid = self.action_multiplier * a
         self.update_pid(pid)
         for _ in range(1000):
             sp, _ = self.inner_step(self.pid_controller())
         self.ep_constrain += self.constrain_contribution
-
+        self.sum_constrain_info()
         # The normalization step from https://github.com/oguzhan-dogru/RL_PID_Tuning/blob/main/main.py
         r = self.get_reward() / 20
         r = (r + 8) / 8
         done = True
 
         ep_c = self.ep_constrain
+        ep_c_info = self.ep_constrain_info
         if done:
             Loss_c = (self.ep_constrain - self.constrain_alpha)
             self.ep_constrain = 0
+            self.ep_constrain_info = {}
             self.Lambda = max(0., self.Lambda + self.lr_constrain * Loss_c)
-
         return sp, r, done, False, {'constrain': ep_c,
-                                    'interval_log': self.height_T1_record}
+                                    'lambda': self.Lambda,
+                                    'interval_log': self.height_T1_record,
+                                    'constrain_detail': ep_c_info}
     
     def reset(self, seed=None):
         s = super(ThreeTankEnv, self).reset(seed)
@@ -354,6 +377,7 @@ class TTChangeAction(ThreeTankEnv):
         for _ in range(self.internal_iterations):
             sp, _ = self.inner_step(self.pid_controller())
         self.ep_constrain += self.constrain_contribution
+        self.sum_constrain_info()
         r = self.get_reward() / 20
         r = (r + 8) / 8 # The normalization step from main.py
         
@@ -362,17 +386,26 @@ class TTChangeAction(ThreeTankEnv):
         self.prev_pid = norm_pid
         done = True
         ep_c = self.ep_constrain
+        ep_c_info = self.ep_constrain_info
         self.internal_count += 1
         if self.internal_count >= self.internal_timeout:
             self.internal_count = 0
             Loss_c = (self.ep_constrain - self.constrain_alpha)
             self.ep_constrain = 0
+            self.ep_constrain_info = {}
             self.Lambda = max(0., self.Lambda + self.lr_constrain * Loss_c)
+
             info = {'constrain': ep_c,
-                    'interval_log': self.height_T1_record}
+                    'lambda': self.Lambda,
+                    'interval_log': self.height_T1_record,
+                    'constrain_detail': ep_c_info}
+
         else:
             info = {'constrain': ep_c,
-                    'interval_log': []}
+                    'lambda': self.Lambda,
+                    'interval_log': [],
+                    'constrain_detail': ep_c_info}
+
         return sp, r, done, False, info
 
     def reset(self, seed=None):

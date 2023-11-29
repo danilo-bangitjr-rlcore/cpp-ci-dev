@@ -197,7 +197,7 @@ class Evaluation:
 
             # writer.append_data(imageio.v3.imread(im))
         writer.close()
-        
+
     def save_render_offline(self, vis_dir):
         self.save_frames_as_mp4(self.eval_line, os.path.join(vis_dir, "render"))
         
