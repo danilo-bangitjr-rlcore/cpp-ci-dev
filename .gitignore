@@ -161,3 +161,6 @@ cython_debug/
 
 # Output
 control/out/
+
+# Mac Stuff
+.DS_Store

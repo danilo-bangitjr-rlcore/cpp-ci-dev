@@ -114,6 +114,11 @@ class smplEnvBase(Env):
         """
         # TODO: check for how long?
         observation = self.np_dtype(observation)
+        #print("Check If Observation Is Beyond Box:")
+        #print("Observation Space:")
+        #print(self.observation_space)
+        #print("Observation:")
+        #print(observation)
         return (not self.observation_space.contains(observation)) or np.any(
             np.isnan(observation)) or np.any(np.isinf(observation))
         # return np.any(observation > self.max_observations) or np.any(observation < self.min_observations) or np.any(
@@ -129,6 +134,11 @@ class smplEnvBase(Env):
             [bool]: action is beyond the box or not.
         """
         action = self.np_dtype(action)
+        #print("Check If Action Is Beyond Box:")
+        #print("Action Space:")
+        #print(self.action_space)
+        #print("Action:")
+        #print(action)
         return (not self.action_space.contains(action)) or np.any(
             np.isnan(action)) or np.any(np.isinf(action))
         # return np.any(action > self.max_actions) or np.any(action < self.min_actions) or np.any(
