@@ -64,7 +64,7 @@ class BaseAC(Evaluation):
             action = self.eval_step(self.observation.reshape((1, -1)))[0]
             last_state = self.observation
             self.observation, reward, done, truncate, _ = self.env.step(action)
-            reset, truncate = self.update_stats(reward, done)
+            reset, truncate = self.update_stats(reward, done, truncate)
             self.buffer.feed([last_state, action, reward, self.observation, int(done), int(truncate)])
             track_states.append(last_state)
             track_actions.append(action)
@@ -85,12 +85,12 @@ class BaseAC(Evaluation):
         self.logger.info('Averaged return of filled data is {:.4f}'.format(avg))
         return np.array(track_states), np.array(track_actions), np.array(track_rewards), np.array(track_next_states), np.array(track_done), track_return, track_step
 
-    def update_stats(self, reward, done):
+    def update_stats(self, reward, done, trunc):
         self.ep_reward += reward
         self.total_steps += 1
         self.ep_step += 1
         reset = False
-        truncate = self.ep_step == self.timeout
+        truncate = trunc or (self.ep_step == self.timeout)
         if done or truncate:
             self.ep_returns.append(self.ep_reward)
             self.num_episodes += 1
@@ -109,8 +109,7 @@ class BaseAC(Evaluation):
         action, _, _ = self.get_policy(torch_utils.tensor(self.observation.reshape((1, -1)), self.device), with_grad=False)
         action = torch_utils.to_np(action)[0]
         next_observation, reward, terminated, trunc, info = self.env.step(action)
-        assert trunc == False
-        reset, truncate = self.update_stats(reward, terminated)
+        reset, truncate = self.update_stats(reward, terminated, trunc)
         self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
         
         if self.cfg.render:

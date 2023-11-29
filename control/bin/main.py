@@ -46,6 +46,7 @@ if __name__ == "__main__":
     parser.add_argument('--load_path', default="", type=str)
     parser.add_argument('--load_checkpoint', default=1, type=int)
     parser.add_argument('--buffer_size', default=1, type=int)
+    parser.add_argument('--buffer_prefill', default=0, type=int)
     parser.add_argument('--batch_size', default=1, type=int)
     parser.add_argument('--update_freq', default=1, type=int)
     parser.add_argument('--use_target_network', default=1, type=int)
@@ -77,4 +78,4 @@ if __name__ == "__main__":
     cfg.eval_env = env_factory.init_environment(cfg.env_name, cfg)
     agent = agent_factory.init_agent(cfg.agent_name, cfg)
     
-    run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, 0)
+    run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, cfg.buffer_prefill)

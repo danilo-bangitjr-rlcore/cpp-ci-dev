@@ -25,9 +25,9 @@ np.seterr(all='warn')
 
 
 # macros the defined by the reactor
-MAX_OBSERVATIONS = [1.0, 100.0, 1.0]  # cA, T, h
+MAX_OBSERVATIONS = [1.0, 100.0, 1.0]  # cA (concentration of reactant A), T (reaction mixture temperature), h (height of the reaction mixture in the tank)
 MIN_OBSERVATIONS = [1e-08, 1e-08, 1e-08]
-MAX_ACTIONS = [35.0, 0.2]  # Tc, qout
+MAX_ACTIONS = [35.0, 0.2]  # Tc (coolant temperature), qout (volumetric flow rate of the contents out of the reactor)
 MIN_ACTIONS = [15.0, 0.05]
 STEADY_OBSERVATIONS = [0.8778252, 51.34660837, 0.659]
 STEADY_ACTIONS = [26.85, 0.1]
@@ -193,7 +193,16 @@ class ReactorModel:
         Tc = u[0]  # Tc
         q = u[1]  # q_out
 
-        rate = self.k0 * c * np.exp(-self.E_divided_by_R / (T + 273.15))  # kmol/m^3/min
+        rate_exp = -self.E_divided_by_R / (T + 273.15)
+
+        if rate_exp > 700.0:
+            print("Exponent Above Threshold")
+            return [None] * 3
+
+        try:
+            rate = self.k0 * c * np.exp(rate_exp)  # kmol/m^3/min
+        except:
+            print("Failing Rate Exp:", rate_exp)
 
         dxdt = [
             self.q_in * (self.cAf - c) / (np.pi * self.r ** 2 * h + 1e-8) - rate,  # kmol/m^3/min
@@ -256,6 +265,11 @@ class ReactorEnvGym(smplEnvBase):
         self.min_observations = np.array(self.min_observations, dtype=self.np_dtype)
         self.max_actions = np.array(self.max_actions, dtype=self.np_dtype)
         self.min_actions = np.array(self.min_actions, dtype=self.np_dtype)
+
+        # Always using the unnormalized observation and action space because reward_function_standard() and evaluate_observation() expect unnormalized observations/actions
+        self.observation_space = spaces.Box(low=self.min_observations, high=self.max_observations, shape=(self.observation_dim,))
+        self.action_space = spaces.Box(low=self.min_actions, high=self.max_actions, shape=(self.action_dim,))
+        """
         if self.normalize:
             self.observation_space = spaces.Box(low=-1, high=1, shape=(self.observation_dim,))
             self.action_space = spaces.Box(low=-1, high=1, shape=(self.action_dim,))
@@ -263,6 +277,7 @@ class ReactorEnvGym(smplEnvBase):
             self.observation_space = spaces.Box(low=self.min_observations, high=self.max_observations,
                                                 shape=(self.observation_dim,))
             self.action_space = spaces.Box(low=self.min_actions, high=self.max_actions, shape=(self.action_dim,))
+        """
         # /---- standard ----
 
         self.steady_observations = np.array(STEADY_OBSERVATIONS, dtype=self.np_dtype)  # cA, T, h
@@ -340,10 +355,8 @@ class ReactorEnvGym(smplEnvBase):
         # ---- to capture numpy warnings ---- 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("error")
-            try:
-                observation = self.reactor.step(self.previous_observation, action)
-            except Exception as e:
-                print("Got Exception/Warning: ", e)
+            observation = self.reactor.step(self.previous_observation, action)
+            if np.isnan(observation).any():
                 observation = self.previous_observation
                 reward = self.error_reward
                 done = True
@@ -357,6 +370,7 @@ class ReactorEnvGym(smplEnvBase):
         # compute done
         if not done:
             done, done_info = self.done_calculator(observation, self.step_count, reward, done=done, done_info=done_info)
+        
         self.previous_observation = observation
 
         self.total_reward += reward

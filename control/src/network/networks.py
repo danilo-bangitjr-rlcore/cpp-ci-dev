@@ -104,10 +104,12 @@ class BetaPolicy(nn.Module):
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)
         out = dist.rsample()
+
         logp = dist.log_prob(torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS)) - np.log(self.action_scale)
 
         action = out * self.action_scale + self.action_bias
         # action = torch.clamp(action, min=self.action_clip[0], max=self.action_clip[1])
+
         return action, logp, dist
         
     def log_prob(self, observation, action):
