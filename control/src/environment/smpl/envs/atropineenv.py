@@ -249,6 +249,12 @@ class AtropineEnvGym(smplEnvBase):
             if self.relaxed_max_min_actions:
                 self.max_actions = np.array([2.0e-05, 1.3e-02, 2.0e-03, 4.0e-04], dtype=np.float32)  # from dataset
                 self.min_actions = np.array([-0.00016, -0.0015, -0.00022, -0.00301], dtype=np.float32)  # from dataset
+        
+        # Always using the unnormalized observation and action space because reward_function_standard() and evaluate_observation() expect unnormalized observations/actions
+        self.observation_space = spaces.Box(low=self.min_observations, high=self.max_observations, shape=(self.observation_dim,))
+        self.action_space = spaces.Box(low=self.min_actions, high=self.max_actions, shape=(self.action_dim,))
+
+        """
         if self.normalize:
             self.observation_space = spaces.Box(low=-1, high=1, shape=(self.observation_dim,))
             self.action_space = spaces.Box(low=-1, high=1, shape=(self.action_dim,))
@@ -256,6 +262,7 @@ class AtropineEnvGym(smplEnvBase):
             self.observation_space = spaces.Box(low=self.min_observations, high=self.max_observations,
                                                 shape=(self.observation_dim,))
             self.action_space = spaces.Box(low=self.min_actions, high=self.max_actions, shape=(self.action_dim,))
+        """
         self.plant = Plant(ND1, ND2, ND3, V1, V2, V3, V4, dt)
         self.yss = self.plant.calculate_Efactor(DM(self.z0))  # steady state output, e-factor
 

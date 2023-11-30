@@ -5,9 +5,10 @@ from pathlib import Path
 
 
 def base_cmd(**kwargs):
-    cmd = "python3 main.py "
+    cmd = "nohup python3 main.py "
     for k in kwargs:
         cmd += " {} {} ".format(k, kwargs[k])
+    cmd += "> {}_{}.txt ".format(kwargs["--env_name"], kwargs["--param"])
     cmd += "\n"
     return cmd
 
@@ -91,18 +92,18 @@ def demo():
 def smpl_exp():
     settings = {
         "GAC": {
-            "--tau": [1e-3],
+            "--tau": [1e-1],
             "--rho": [0.1],
             "--n": [30],
         }
     }
     shared_settings = {
-        "--env_name": ["BeerEnv"],
-        "--exp_name": ["beer_env"],
+        "--env_name": ["AtropineEnv"],
+        "--exp_name": ["atropine_env_test"],
         "--exp_info": ["/test"],
-        "--max_steps": [1000],
-        "--timeout": [100],
-        "--gamma": [0.99],
+        "--max_steps": [100000],
+        "--timeout": [60],
+        "--gamma": [0.9],
         "--log_interval": [1],
         "--stats_queue_size": [1],
         "--state_normalizer": ["Identity"],
@@ -110,57 +111,59 @@ def smpl_exp():
         "--actor": ["Beta"],
         "--critic": ["FC"],
         "--optimizer": ["RMSprop"],
-        "--polyak": [0.1], # Unsure about this
-        "--hidden_actor": ["64 64"],
-        "--hidden_critic": ["64 64"],
+        "--polyak": [0.995], # Unsure about this
+        "--hidden_actor": ["128 128"],
+        "--hidden_critic": ["128 128"],
         "--lr_actor": [0.0001], #[0.01, 0.001, 0.0001],
-        "--lr_critic": [0.001],#[0.01, 0.001, 0.0001],
-        "--buffer_size": [1000],
-        "--batch_size": [32],
-        "--action_scale": [1],
-        "--action_bias": [0],
+        "--lr_critic": [0.0001],#[0.01, 0.001, 0.0001],
+        "--buffer_size": [10000],
+        "--buffer_prefill": [1000],
+        "--batch_size": [64],
+        "--action_scale": [2], # ReactorEnv Action Space: Box(-1.0, 1.0, (2,), float32)
+        "--action_bias": [-1],
     }
     target_agents = ["GAC"]
 
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=2)
+    combinations(settings, target_agents, num_runs=1, prev_file=2, line_per_file=2)
 
 def gem_exp():
     settings = {
         "GAC": {
-            "--tau": [1e-3],
+            "--tau": [1e-1],
             "--rho": [0.1],
             "--n": [30],
         }
     }
     shared_settings = {
-        "--env_name": ["Cont-CC-PermExDc-v0"],
+        "--env_name": ["Cont-CC-PMSM-v0"],
         "--exp_name": ["gem_test"],
         "--exp_info": ["/test"],
-        "--max_steps": [1000],
-        "--timeout": [100],
-        "--gamma": [0.99],
+        "--max_steps": [200000],
+        "--timeout": [200],
+        "--gamma": [0.9],
         "--log_interval": [1],
-        "--stats_queue_size": [1],
+        "--stats_queue_size": [10],
         "--state_normalizer": ["Identity"],
         "--reward_normalizer": ["Identity"],
         "--actor": ["Beta"],
         "--critic": ["FC"],
         "--optimizer": ["RMSprop"],
-        "--polyak": [0.1], # Unsure about this
-        "--hidden_actor": ["64 64"],
-        "--hidden_critic": ["64 64"],
+        "--polyak": [0.995], # Unsure about this
+        "--hidden_actor": ["128 128"],
+        "--hidden_critic": ["128 128"],
         "--lr_actor": [0.0001], #[0.01, 0.001, 0.0001],
-        "--lr_critic": [0.001],#[0.01, 0.001, 0.0001],
-        "--buffer_size": [1000],
-        "--batch_size": [32],
-        "--action_scale": [1],
-        "--action_bias": [0],
+        "--lr_critic": [0.0001],#[0.01, 0.001, 0.0001],
+        "--buffer_size": [10000],
+        "--buffer_prefill": [1000],
+        "--batch_size": [128],
+        "--action_scale": [2],
+        "--action_bias": [-1],
     }
     target_agents = ["GAC"]
 
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=2)
+    combinations(settings, target_agents, num_runs=1, prev_file=3, line_per_file=2)
 
 def test_runs():
     settings = {
@@ -236,7 +239,8 @@ def test_runs():
 
 
 if __name__ == '__main__':
-    test_runs()
+    # test_runs()
     # demo()
+    # constant_pid() # 52919
     # smpl_exp()
-    # gem_exp()
+    gem_exp()

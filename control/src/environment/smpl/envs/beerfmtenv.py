@@ -110,6 +110,12 @@ class BeerFMTEnvGym(smplEnvBase):
         self.min_observations = np.array(self.min_observations, dtype=self.np_dtype)
         self.max_actions = np.array(self.max_actions, dtype=self.np_dtype)
         self.min_actions = np.array(self.min_actions, dtype=self.np_dtype)
+        
+        # Always using the unnormalized observation and action space because reward_function_standard() and evaluate_observation() expect unnormalized observations/actions
+        self.observation_space = spaces.Box(low=self.min_observations, high=self.max_observations, shape=(self.observation_dim,))
+        self.action_space = spaces.Box(low=self.min_actions, high=self.max_actions, shape=(self.action_dim,))
+        
+        """
         if self.normalize:
             self.observation_space = spaces.Box(low=-1, high=1, shape=(self.observation_dim,))
             self.action_space = spaces.Box(low=-1, high=1, shape=(self.action_dim,))
@@ -117,6 +123,7 @@ class BeerFMTEnvGym(smplEnvBase):
             self.observation_space = spaces.Box(low=self.min_observations, high=self.max_observations,
                                                 shape=(self.observation_dim,))
             self.action_space = spaces.Box(low=self.min_actions, high=self.max_actions, shape=(self.action_dim,))
+        """
 
         self.res_forplot = []  # for plotting purposes
 
@@ -244,7 +251,6 @@ class BeerFMTEnvGym(smplEnvBase):
             done, done_info = self.done_calculator(observation, self.step_count, reward, update_prev_biomass=True,
                                                    done=done, done_info=done_info)
         self.previous_observation = observation
-
         self.total_reward += reward
         if self.dense_reward:
             reward = reward  # conventional

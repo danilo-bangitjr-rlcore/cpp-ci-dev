@@ -56,41 +56,41 @@ class BaseAC(Evaluation):
         track_done = []
         track_return = []
         track_step = []
-        state, info = self.env.reset()
+        self.observation, info = self.env.reset()
         ep_steps = 0
         ep_return = 0
         done = False
         for _ in range(online_data_size):
-            if done:
-                state = self.env.reset()
+            action = self.eval_step(self.observation.reshape((1, -1)))[0]
+            last_state = self.observation
+            self.observation, reward, done, truncate, _ = self.env.step(action)
+            reset, truncate = self.update_stats(reward, done, truncate)
+            self.buffer.feed([last_state, action, reward, self.observation, int(done), int(truncate)])
+            track_states.append(last_state)
+            track_actions.append(action)
+            track_rewards.append(reward)
+            track_next_states.append(self.observation)
+            track_done.append(done)
+            ep_return += reward
+            ep_steps += 1
+            if reset:
+                self.observation, info = self.env.reset()
                 track_return.append(ep_return)
                 track_step.append(ep_steps)
                 ep_steps = 0
                 ep_return = 0
-            action = self.eval_step(state.reshape((1, -1)))[0]
-            last_state = state
-            state, reward, done, truncate, _ = self.env.step(action)
-            self.buffer.feed([last_state, action, reward, state, int(done), int(truncate)])
-            track_states.append(last_state)
-            track_actions.append(action)
-            track_rewards.append(reward)
-            track_next_states.append(state)
-            track_done.append(done)
-            ep_return += reward
-            ep_steps += 1
-            if done or ep_steps == self.timeout:
-                done = True
+                done = False
         self.logger.info('Fill {} transitions to buffer. Length of buffer is {}'.format(online_data_size, self.buffer.size))
         avg = np.array(track_return).mean() if len(track_return) > 0 else np.nan
         self.logger.info('Averaged return of filled data is {:.4f}'.format(avg))
         return np.array(track_states), np.array(track_actions), np.array(track_rewards), np.array(track_next_states), np.array(track_done), track_return, track_step
 
-    def update_stats(self, reward, done):
+    def update_stats(self, reward, done, trunc):
         self.ep_reward += reward
         self.total_steps += 1
         self.ep_step += 1
         reset = False
-        truncate = self.ep_step == self.timeout
+        truncate = trunc or (self.ep_step == self.timeout)
         if done or truncate:
             self.ep_returns.append(self.ep_reward)
             self.num_episodes += 1
@@ -109,8 +109,7 @@ class BaseAC(Evaluation):
         action, _, pi_info = self.get_policy(torch_utils.tensor(self.observation.reshape((1, -1)), self.device), with_grad=False, debug=self.cfg.debug)
         action = torch_utils.to_np(action)[0]
         next_observation, reward, terminated, trunc, env_info = self.env.step(action)
-        assert trunc == False
-        reset, truncate = self.update_stats(reward, terminated)
+        reset, truncate = self.update_stats(reward, terminated, trunc)
         self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
         
         if self.cfg.render:

@@ -24,7 +24,7 @@ class GreedyAC(BaseAC):
         data = self.get_data()
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
                                                                                 data['obs2'], 1 - data['done']
-        
+
         # critic update
         next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
         next_q, _ = self.get_q_value_target(next_state_batch, next_action)
