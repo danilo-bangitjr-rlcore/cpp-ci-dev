@@ -8,7 +8,11 @@ def base_cmd(**kwargs):
     cmd = "nohup python3 main.py "
     for k in kwargs:
         cmd += " {} {} ".format(k, kwargs[k])
-    cmd += "> {}_{}.txt ".format(kwargs["--env_name"], kwargs["--param"])
+    if "/" in kwargs["--env_name"]:
+        env_name = "_".join(kwargs["--env_name"].split("/"))
+    else:
+        env_name = kwargs["--env_name"]
+    cmd += "> 'log/{}_{}.txt' ".format(env_name, kwargs["--param"])
     cmd += "\n"
     return cmd
 
