@@ -168,3 +168,4 @@ control/out/
 # Experiment files
 *write_script_subfile_*
 *curves_subfile_*
+control/bin/*.txt
