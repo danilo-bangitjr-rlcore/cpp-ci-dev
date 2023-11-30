@@ -75,7 +75,7 @@ def reproduce_demo(pths, title, ylim):
     fig.tight_layout()
     plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
 
-def visualize_training_info(target_file, target_key, title='vis_training', threshold=None, xlim=None):
+def visualize_training_info(target_file, target_key, title='vis_training', threshold=None, xlim=None, ylim=None):
     with open(target_file+"/info_logs.pkl", "rb") as f:
         info = pickle.load(f)
     ret = np.load(target_file+"/train_logs.npy")
@@ -97,7 +97,7 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
         axs[i + 1].set_title(k)
 
     if threshold is not None:
-        highlight = np.where(ret <= threshold)[0]
+        highlight = np.where(ret < threshold)[0]
         for ax in axs:
             for x in highlight:
                 ax.axvline(x, linestyle='--', color='grey', linewidth=1, zorder=-1)
@@ -107,6 +107,9 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
         range_ = "_{}-{}".format(xlim[0], xlim[1])
         for ax in axs:
             ax.set_xlim(xlim)
+
+    if ylim is not None:
+        axs[0].set_ylim(ylim)
 
     fig.tight_layout()
     plt.savefig(DATAROOT + "img/{}{}.png".format(title, range_), dpi=300, bbox_inches='tight')
