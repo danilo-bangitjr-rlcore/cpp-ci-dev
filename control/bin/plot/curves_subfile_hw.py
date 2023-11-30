@@ -85,18 +85,24 @@ def test():
     target_key = [
         "agent_info/param1",
         "agent_info/param2",
-        # "env_info/constrain_detail/kp1",
-        # "env_info/constrain_detail/tau",
+        "env_info/constrain_detail/kp1",
+        "env_info/constrain_detail/tau",
         "env_info/constrain_detail/height",
         "env_info/constrain_detail/flowrate",
-        # "env_info/constrain_detail/C1",
-        # "env_info/constrain_detail/C2",
+        "env_info/constrain_detail/C1",
+        "env_info/constrain_detail/C2",
         "env_info/constrain_detail/C3",
         "env_info/constrain_detail/C4",
         # "env_info/constrain",
         "env_info/lambda",
     ]
-    visualize_training_info(file, target_key, threshold=-10)
+    visualize_training_info(file, target_key, title="vis_TTChangeAction_GAC", threshold=-1, xlim=None)
+    visualize_training_info(file, target_key, title="vis_TTChangeAction_GAC", threshold=-1, xlim=[2950, 3050])
+    visualize_training_info(file, target_key, title="vis_TTChangeAction_GAC", threshold=-1, xlim=[3600, 3700])
+    visualize_training_info(file, target_key, title="vis_TTChangeAction_GAC", threshold=-1, xlim=[1850, 1950])
+    visualize_training_info(file, target_key, title="vis_TTChangeAction_GAC", threshold=-1, xlim=[1000, 1500])
+    visualize_training_info(file, target_key, title="vis_TTChangeAction_GAC", threshold=-1, xlim=[500, 1000])
+    visualize_training_info(file, target_key, title="vis_TTChangeAction_GAC", threshold=-1, xlim=[0, 500])
 
 
 if __name__ == '__main__':

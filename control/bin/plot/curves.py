@@ -75,7 +75,7 @@ def reproduce_demo(pths, title, ylim):
     fig.tight_layout()
     plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
 
-def visualize_training_info(target_file, target_key, threshold=None):
+def visualize_training_info(target_file, target_key, title='vis_training', threshold=None, xlim=None):
     with open(target_file+"/info_logs.pkl", "rb") as f:
         info = pickle.load(f)
     ret = np.load(target_file+"/train_logs.npy")
@@ -89,8 +89,9 @@ def visualize_training_info(target_file, target_key, threshold=None):
             ary = ary.squeeze(1)
         reformat[k] = ary
 
-    fig, axs = plt.subplots(len(target_key)+1, 1, figsize=(4, 3*len(target_key)))
+    fig, axs = plt.subplots(len(target_key)+1, 1, figsize=(12, 3*len(target_key)))
     axs[0].plot(ret)
+    axs[0].set_title("Reward")
     for i, k in enumerate(target_key):
         axs[i + 1].plot(reformat[k])
         axs[i + 1].set_title(k)
@@ -99,7 +100,13 @@ def visualize_training_info(target_file, target_key, threshold=None):
         highlight = np.where(ret <= threshold)[0]
         for ax in axs:
             for x in highlight:
-                ax.axvline(x, linestyle='--', color='grey', linewidth=0.5, zorder=-1)
+                ax.axvline(x, linestyle='--', color='grey', linewidth=1, zorder=-1)
+
+    range_ = ""
+    if xlim is not None:
+        range_ = "_{}-{}".format(xlim[0], xlim[1])
+        for ax in axs:
+            ax.set_xlim(xlim)
 
     fig.tight_layout()
-    plt.show()
+    plt.savefig(DATAROOT + "img/{}{}.png".format(title, range_), dpi=300, bbox_inches='tight')

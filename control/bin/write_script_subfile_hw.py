@@ -70,39 +70,6 @@ def constant_pid_target0_replay100(settings, shared_settings, target_agents):
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=27, line_per_file=1)
 
-def constant_pid_target995_replay0(settings, shared_settings, target_agents):
-    """
-    Without replay
-    With target network, update percentage is 0.005
-    """
-    shared_settings["--env_name"] = ["TTAction/ConstPID"]
-    shared_settings["--exp_info"] = ["/target0.995/replay0/env_scale_10/"]
-    shared_settings["--polyak"] = [0.995]
-    settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
-
-    shared_settings["--env_name"] = ["TTChangeAction/ConstPID"]
-    shared_settings["--exp_info"] = ["/target0.995/replay0/env_scale_1/action_-0.1_0.1/"]
-    shared_settings["--polyak"] = [0.995]
-    shared_settings["--env_action_scaler"] = [1.]
-    shared_settings["--action_scale"] = [0.2]
-    shared_settings["--action_bias"] = [-0.1]
-    settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=27, line_per_file=1)
-
-    shared_settings["--env_name"] = ["TTChangeAction/DiscreteConstPID"]
-    shared_settings["--env_info"] = [0.01]
-    shared_settings["--exp_info"] = ["/target0.995/replay0/env_scale_1/change_0.01"]
-    shared_settings["--polyak"] = [0.995]
-    shared_settings["--env_action_scaler"] = [1.]
-    shared_settings["--actor"] = ["Softmax"]
-    shared_settings["--discrete_control"] = [1]
-    shared_settings.pop('--action_scale', None)
-    shared_settings.pop('action_bias', None)
-    settings["GAC"]["--n"] = [30]
-    settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=54, line_per_file=1)
-
 def debug(settings, shared_settings, target_agents):
     shared_settings["--debug"] = [1]
     shared_settings["--env_name"] = ["TTChangeAction/ConstPID"]
@@ -111,13 +78,12 @@ def debug(settings, shared_settings, target_agents):
     shared_settings["--env_action_scaler"] = [1.]
     shared_settings["--action_scale"] = [0.2]
     shared_settings["--action_bias"] = [-0.1]
-    shared_settings["--lr_actor"] = [0.0001]
-    shared_settings["--lr_critic"] = [0.01]
+    shared_settings["--lr_actor"] = [0.01]
+    shared_settings["--lr_critic"] = [0.001]
     shared_settings["--max_steps"] = [5000]
     target_agents = ["GAC"]
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
-
 
 if __name__=='__main__':
     settings = {
