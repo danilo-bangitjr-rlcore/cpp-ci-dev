@@ -12,7 +12,7 @@ def base_cmd(**kwargs):
         env_name = "_".join(kwargs["--env_name"].split("/"))
     else:
         env_name = kwargs["--env_name"]
-    cmd += "> 'log/{}_{}.txt' ".format(env_name, kwargs["--param"])
+    cmd += "> '{}_{}.txt' ".format(env_name, kwargs["--param"])
     cmd += "\n"
     return cmd
 
