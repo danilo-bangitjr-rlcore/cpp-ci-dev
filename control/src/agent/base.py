@@ -115,14 +115,17 @@ class BaseAC(Evaluation):
         if self.cfg.render:
             self.render(np.array(env_info['interval_log']))
         else:
-            env_info.pop('interval_log')
+            try:
+                env_info.pop('interval_log')
+            except:
+                pass
         i_log = {
             "agent_info": pi_info,
             "env_info": env_info
         }
         self.info_log.append(i_log)
         
-        self.update()
+        self.update(trunc)
         
         if reset:
             next_observation, info = self.env.reset()
@@ -202,12 +205,12 @@ class BaseAC(Evaluation):
         }
         return data
 
-    def update(self):
+    def update(self, trunc=False):
         if self.total_steps % self.update_freq == 0:
             for _ in range(self.update_freq):
-                self.inner_update()
+                self.inner_update(trunc)
 
-    def inner_update(self):
+    def inner_update(self, trunc=False):
         raise NotImplementedError
     
     def save(self):
