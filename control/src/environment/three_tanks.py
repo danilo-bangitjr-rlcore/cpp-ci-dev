@@ -88,6 +88,9 @@ class ThreeTankEnvBase(object):
         self.flowrate_T1 = (self.C - self.A) / self.B
         self.state_normalizer = 10.  # 10
 
+        # Define this parameter for keeping the action penalty in clipping action setting
+        self.extra_action_penalty = 0
+
     # resets the environment to initial values
 
     def reinit_the_system(self):
@@ -286,7 +289,9 @@ class ThreeTankEnvBase(object):
         #                     self.breach[1] / EXPLORE_TI]  # Normalized based on the max values
         # reward = -self.W1 * abs(next_reward_comp[0]) - self.W2 * abs(next_reward_comp[1]) \
         #          - self.W3 * abs(next_reward_comp[2]) - self.W4 * abs(next_reward_comp[3])
-        reward = - mse.item() * 100 - self.Lambda * self.constrain_contribution
+
+        # add self.extra_action_penalty for the clipping action setting
+        reward = - mse.item() * 100 - self.Lambda * (self.constrain_contribution + self.extra_action_penalty)
         self.error_sum = 0
         self.no_of_error = 0
         self.flowrate_buffer = []
@@ -417,12 +422,23 @@ class TTChangeAction(ThreeTankEnv):
         return s, info
     
     def pid_clip(self, pid):
+        C1, C2 = 0, 0
+        if pid[0] > self.KP_MAX:
+            C1 = abs(pid[0] - self.KP_MAX)
+        elif pid[0] < self.KP_MIN:
+            C1 = abs(pid[0] - self.KP_MIN)
+        if pid[1] > self.TAU_MAX:
+            C2 = abs(pid[1] - self.TAU_MAX)
+        elif pid[1] < self.TAU_MIN:
+            C2 = abs(pid[1] - self.TAU_MIN)
+        extra_action_constrain = np.float64(abs(self.W1 * C1 + self.W2 * C2))
+
         pid[0] = np.clip(pid[0], self.KP_MIN, self.KP_MAX)
         pid[1] = np.clip(pid[1], self.TAU_MIN, self.TAU_MAX)
-        return pid
+        return pid, extra_action_constrain
     
     def observation(self, prev_a, pid):
-        pid = self.pid_clip(pid)
+        pid, _ = self.pid_clip(pid)
         obs = np.concatenate([prev_a, pid], axis=0)
         return obs
 
@@ -455,7 +471,7 @@ class TTChangeActionDiscrete(TTChangeAction):
 
     def observation(self, prev_a, pid):
         prev_a = prev_a[0]
-        pid = self.pid_clip(pid)
+        pid, _ = self.pid_clip(pid)
         obs = np.concatenate([self.action_list[prev_a], pid], axis=0)
         return obs
 
@@ -496,7 +512,7 @@ class  TTChangeActionClip(TTChangeAction):
     def preprocess_action(self, a):
         norm_pid = a + self.prev_pid
         pid = self.action_multiplier * norm_pid
-        pid = self.pid_clip(pid)
+        pid, self.extra_action_penalty = self.pid_clip(pid)
         return pid, norm_pid
 
 
@@ -509,6 +525,6 @@ class TTChangeActionDiscreteClip(TTChangeActionDiscrete):
         a = a[0]
         norm_pid = self.action_list[a] + self.prev_pid
         pid = self.action_multiplier * norm_pid
-        pid = self.pid_clip(pid)
+        pid, self.extra_action_penalty = self.pid_clip(pid)
         return pid, norm_pid
 
