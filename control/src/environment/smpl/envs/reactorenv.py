@@ -31,7 +31,7 @@ MAX_ACTIONS = [35.0, 0.2]  # Tc (coolant temperature), qout (volumetric flow rat
 MIN_ACTIONS = [15.0, 0.05]
 STEADY_OBSERVATIONS = [0.8778252, 51.34660837, 0.659]
 STEADY_ACTIONS = [26.85, 0.1]
-ERROR_REWARD = -1000.0
+ERROR_REWARD = -10000.0
 
 
 class ReactorPID:
@@ -195,23 +195,18 @@ class ReactorModel:
 
         rate_exp = -self.E_divided_by_R / (T + 273.15)
 
-        if rate_exp > 700.0:
-            print("Exponent Above Threshold")
-            return [None] * 3
-
         try:
             rate = self.k0 * c * np.exp(rate_exp)  # kmol/m^3/min
+            dxdt = [
+                self.q_in * (self.cAf - c) / (np.pi * self.r ** 2 * h + 1e-8) - rate,  # kmol/m^3/min
+                self.q_in * (self.Tf - T) / (np.pi * self.r ** 2 * h + 1e-8)
+                - self.dH / (self.rho * self.Cp) * rate
+                + 2 * self.U / (self.r * self.rho * self.Cp) * (Tc - T),  # degree C/min
+                (self.q_in - q) / (np.pi * self.r ** 2)  # m/min
+                ]
+            return dxdt
         except:
-            print("Failing Rate Exp:", rate_exp)
-
-        dxdt = [
-            self.q_in * (self.cAf - c) / (np.pi * self.r ** 2 * h + 1e-8) - rate,  # kmol/m^3/min
-            self.q_in * (self.Tf - T) / (np.pi * self.r ** 2 * h + 1e-8)
-            - self.dH / (self.rho * self.Cp) * rate
-            + 2 * self.U / (self.r * self.rho * self.Cp) * (Tc - T),  # degree C/min
-            (self.q_in - q) / (np.pi * self.r ** 2)  # m/min
-        ]
-        return dxdt
+            return [np.NAN] * 3
 
     # integrates one sampling time or time step and returns the next state
     def step(self, x, u):
@@ -290,7 +285,7 @@ class ReactorEnvGym(smplEnvBase):
         if reward is not None:
             return reward
         elif self.observation_beyond_box(current_observation) or self.action_beyond_box(action):
-            return self.error_reward
+            return self.error_reward * (self.max_steps - self.step_count)
         # /---- standard ----
         current_observation_evaluated = self.evaluate_observation(current_observation)
         assert isinstance(current_observation_evaluated, float)
@@ -301,7 +296,7 @@ class ReactorEnvGym(smplEnvBase):
         else:
             reward = current_observation_evaluated
         # ---- standard ----
-        reward = max(self.error_reward, reward)  # reward cannot be smaller than the error_reward
+        reward = max(self.error_reward * (self.max_steps - self.step_count), reward)  # reward cannot be smaller than the error_reward
         if self.debug_mode:
             print("reward:", reward)
         return reward
@@ -358,7 +353,7 @@ class ReactorEnvGym(smplEnvBase):
             observation = self.reactor.step(self.previous_observation, action)
             if np.isnan(observation).any():
                 observation = self.previous_observation
-                reward = self.error_reward
+                reward = self.error_reward * (self.max_steps - self.step_count)
                 done = True
                 done_info["terminal"] = True
         # /---- to capture numpy warnings ---- 

@@ -39,6 +39,7 @@ def sensitivity_curve(ax, data):
 
 def param_sweep(ax, data):
     params = list(data.keys())
+    print(params)
     params.sort()
     compare_auc = []
     compare_2nd_half = []
@@ -52,7 +53,7 @@ def param_sweep(ax, data):
     best_auc_idx = np.array(compare_auc).argmax()
     print("Sweeping AUC:", params[best_auc_idx], compare_auc[best_auc_idx])
     best_2ndhalf_idx = np.array(compare_2nd_half).argmax()
-    print("Sweeping the 2nd half:", params[best_2ndhalf_idx], compare_final[best_2ndhalf_idx])
+    print("Sweeping the 2nd half:", params[best_2ndhalf_idx], compare_2nd_half[best_2ndhalf_idx])
     best_final_idx = np.array(compare_final).argmax()
     print("Sweeping Final:", params[best_final_idx], compare_final[best_final_idx])
     print("")
@@ -76,7 +77,10 @@ def load_param(pth, xlim=[], pick_seed=None):
             with open(p+"/info_logs.pkl", "rb") as f:
                 info = pickle.load(f)
             for step in info:
-                cons.append(step["env_info/constrain"])
+                try:
+                    cons.append(step["env_info/constrain"])
+                except:
+                    pass
             cons = np.array(cons)
             
         if xlim != []:

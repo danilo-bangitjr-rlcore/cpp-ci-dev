@@ -12,7 +12,7 @@ class SimpleAC(BaseAC):
         self.v_baseline = FC(self.device, self.state_dim, cfg.hidden_critic, 1)
         self.v_optimizer = torch.optim.RMSprop(list(self.v_baseline.parameters()), cfg.lr_v)
 
-    def inner_update(self):
+    def inner_update(self, trunc=False):
         batch = self.get_data()
         
         log_prob, _ = self.actor.log_prob(batch['obs'], batch['act'])
