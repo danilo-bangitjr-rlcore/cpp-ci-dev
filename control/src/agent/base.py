@@ -106,8 +106,8 @@ class BaseAC(Evaluation):
         return reset, truncate
 
     def step(self):
-        action, _, pi_info = self.get_policy(torch_utils.tensor(self.observation.reshape((1, -1)), self.device), with_grad=False, debug=self.cfg.debug)
-        action = torch_utils.to_np(action)[0]
+        action_tensor, _, pi_info = self.get_policy(torch_utils.tensor(self.observation.reshape((1, -1)), self.device), with_grad=False, debug=self.cfg.debug)
+        action = torch_utils.to_np(action_tensor)[0]
         next_observation, reward, terminated, trunc, env_info = self.env.step(action)
         reset, truncate = self.update_stats(reward, terminated, trunc)
         self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
@@ -116,8 +116,10 @@ class BaseAC(Evaluation):
             self.render(np.array(env_info['interval_log']))
         else:
             env_info.pop('interval_log')
+        q_min, _ = self.get_q_value(torch_utils.tensor(self.observation.reshape((1, -1)), self.device), action_tensor, with_grad=False)
         i_log = {
-            "agent_info": pi_info,
+            "actor_info": pi_info,
+            "critic_info": {'Q': q_min},
             "env_info": env_info
         }
         self.info_log.append(i_log)

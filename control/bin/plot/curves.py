@@ -96,11 +96,13 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
         axs[i + 1].plot(reformat[k])
         axs[i + 1].set_title(k)
 
+    highlight = []
     if threshold is not None:
         highlight = np.where(ret < threshold)[0]
         for ax in axs:
             for x in highlight:
-                ax.axvline(x, linestyle='--', color='grey', linewidth=1, zorder=-1)
+                ax.axvline(x, linestyle='-', color='lightgrey', linewidth=1, zorder=-1)
+        print("Timesteps where reward is lower than threshold, after 2500: \n", highlight[np.where(highlight>2500)])
 
     range_ = ""
     if xlim is not None:
@@ -113,3 +115,4 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
 
     fig.tight_layout()
     plt.savefig(DATAROOT + "img/{}{}.png".format(title, range_), dpi=300, bbox_inches='tight')
+    return highlight
