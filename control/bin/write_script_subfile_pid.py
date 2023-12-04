@@ -2,6 +2,31 @@ import copy
 
 from write_script import combinations, merge_independent
 
+def demo():
+    settings = {
+        "GAC": {
+            "--tau": [1e-3],
+            "--rho": [0.1],
+        },
+    }
+    shared_settings = {
+        "--exp_name": ["demo"],
+        "--max_steps": [7000],
+        "--render": [0],
+        "--lr_actor": [0.001, 0.0001],
+        "--lr_critic": [0.001, 0.0001],
+        "--buffer_size": [1],
+        "--batch_size": [1],
+        "--env_action_scaler": [10],
+        "--action_scale": [1],
+        "--action_bias": [0],
+    }
+    target_agents = ["GAC"]
+    shared_settings["--env_name"] = ["ThreeTank"]
+    shared_settings["--exp_info"] = ["/target0/replay0/env_scale_10/"]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=5, prev_file=0, line_per_file=1)
+
 
 def constant_pid_target0_replay0(settings, shared_settings, target_agents):
     """
@@ -154,6 +179,7 @@ if __name__=='__main__':
     }
     target_agents = ["SimpleAC", "SAC", "GAC"]
 
+    # demo()
     # constant_pid_target0_replay0(settings, shared_settings, target_agents)
     # constant_pid_target0_replay100(settings, shared_settings, target_agents)
     visualize(settings, shared_settings)
