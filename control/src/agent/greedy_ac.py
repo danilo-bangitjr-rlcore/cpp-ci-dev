@@ -20,7 +20,7 @@ class GreedyAC(BaseAC):
 
         self.top_action = int(self.rho * self.num_samples)
 
-    def inner_update(self):
+    def inner_update(self, trunc=False):
         data = self.get_data()
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
                                                                                 data['obs2'], 1 - data['done']

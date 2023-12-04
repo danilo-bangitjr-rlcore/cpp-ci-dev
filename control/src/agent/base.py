@@ -115,7 +115,7 @@ class BaseAC(Evaluation):
         if self.cfg.render:
             self.render(np.array(env_info['interval_log']))
         else:
-            env_info.pop('interval_log')
+            env_info.pop('interval_log', None)
         q_min, _ = self.get_q_value(torch_utils.tensor(self.observation.reshape((1, -1)), self.device), action_tensor, with_grad=False)
         i_log = {
             "actor_info": pi_info,
@@ -124,7 +124,7 @@ class BaseAC(Evaluation):
         }
         self.info_log.append(i_log)
         
-        self.update()
+        self.update(trunc)
         
         if reset:
             next_observation, info = self.env.reset()
@@ -204,12 +204,12 @@ class BaseAC(Evaluation):
         }
         return data
 
-    def update(self):
+    def update(self, trunc=False):
         if self.total_steps % self.update_freq == 0:
             for _ in range(self.update_freq):
-                self.inner_update()
+                self.inner_update(trunc)
 
-    def inner_update(self):
+    def inner_update(self, trunc=False):
         raise NotImplementedError
     
     def save(self):

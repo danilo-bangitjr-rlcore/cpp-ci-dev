@@ -39,6 +39,7 @@ def sensitivity_curve(ax, data):
 
 def param_sweep(ax, data):
     params = list(data.keys())
+    print(params)
     params.sort()
     compare_auc = []
     compare_2nd_half = []
@@ -52,7 +53,7 @@ def param_sweep(ax, data):
     best_auc_idx = np.array(compare_auc).argmax()
     print("Sweeping AUC:", params[best_auc_idx], compare_auc[best_auc_idx])
     best_2ndhalf_idx = np.array(compare_2nd_half).argmax()
-    print("Sweeping the 2nd half:", params[best_2ndhalf_idx], compare_final[best_2ndhalf_idx])
+    print("Sweeping the 2nd half:", params[best_2ndhalf_idx], compare_2nd_half[best_2ndhalf_idx])
     best_final_idx = np.array(compare_final).argmax()
     print("Sweeping Final:", params[best_final_idx], compare_final[best_final_idx])
     print("")
@@ -73,25 +74,25 @@ def load_param(pth, xlim=[], pick_seed=None):
             ret = ret[xlim[0]: xlim[1]]
         returns.append(ret)
 
-        with_const = False
         if os.path.isfile(p + "/ep_constraints.npy"):
             cons = np.load(p + "/ep_constraints.npy")
-            with_const = True
         else:
             cons = []
             with open(p+"/info_logs.pkl", "rb") as f:
                 info = pickle.load(f)
-            if "env_info/constrain" in info[0]:
-                with_const = True
-            if with_const:
-                for step in info:
-                    cons.append(step["env_info/constrain"])
-                cons = np.array(cons)
 
-        if with_const:
-            if xlim != []:
-                cons = cons[xlim[0]: xlim[1]]
-            constraints.append(cons)
+            for step in info:
+                try:
+                    cons.append(step["env_info/constrain"])
+                except:
+                    pass
+            cons = np.array(cons)
+            
+        if xlim != []:
+            ret = ret[xlim[0]: xlim[1]]
+            cons = cons[xlim[0]: xlim[1]]
+        returns.append(ret)
+        constraints.append(cons)
 
     with open(os.path.join(pth, runs[0]) + "/config.json", "r") as f:
         params = json.load(f)
