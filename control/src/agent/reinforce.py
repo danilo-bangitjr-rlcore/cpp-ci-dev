@@ -54,9 +54,6 @@ class Reinforce(BaseAC):
             v_boot = self.get_v_value(torch_utils.tensor(self.state_normalizer(self.ep_states[ep_t]).reshape((1, -1)), self.device), with_grad=False)
             G = v_boot
 
-        gammas = np.asarray([[self.gamma ** t] for t in range(ep_t)])
-        gammas = torch_utils.tensor(gammas, self.device)
-
         ep_t -= 1
 
         returns = []
@@ -80,7 +77,7 @@ class Reinforce(BaseAC):
         log_prob, _ = self.actor.log_prob(self.ep_states, self.ep_actions)
         log_prob = log_prob.view(-1,1)
 
-        actor_loss = torch.mean(-log_prob * (returns - v_base.detach()) * gammas)
+        actor_loss = torch.mean(-log_prob * (returns - v_base.detach()))
         print("Actor Loss:", actor_loss)
 
         self.v_optimizer.zero_grad()
