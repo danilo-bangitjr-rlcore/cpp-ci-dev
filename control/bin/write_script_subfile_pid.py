@@ -1,3 +1,5 @@
+import copy
+
 from write_script import combinations, merge_independent
 
 
@@ -70,20 +72,58 @@ def constant_pid_target0_replay100(settings, shared_settings, target_agents):
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=27, line_per_file=1)
 
-def debug(settings, shared_settings, target_agents):
+def visualize(settings, shared_settings):
+
+    def change_action_continuous_replay0(settings, shared_settings, target_agents):
+        shared_settings["--env_name"] = ["TTChangeAction/ConstPID"]
+        shared_settings["--env_action_scaler"] = [1.]
+        shared_settings["--action_scale"] = [0.2]
+        shared_settings["--action_bias"] = [-0.1]
+        shared_settings["--lr_actor"] = [0.01]
+        shared_settings["--lr_critic"] = [0.001]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+
+    def change_action_discrete_replay0(settings, shared_settings, target_agents):
+        shared_settings["--env_name"] = ["TTChangeAction/DiscreteConstPID"]
+        shared_settings["--env_info"] = [0.01]
+        shared_settings["--env_action_scaler"] = [1.]
+        shared_settings["--actor"] = ["Softmax"]
+        shared_settings["--discrete_control"] = [1]
+        shared_settings.pop('--action_scale', None)
+        shared_settings.pop('action_bias', None)
+        settings["GAC"]["--n"] = [30]
+        shared_settings["--lr_actor"] = [0.001]
+        shared_settings["--lr_critic"] = [0.01]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+
+    def direct_action_replay0(settings, shared_settings, target_agents):
+        shared_settings["--env_name"] = ["TTAction/ConstPID"]
+        shared_settings["--exp_info"] = ["/replay0/"]
+        shared_settings["--lr_actor"] = [0.01]
+        shared_settings["--lr_critic"] = [0.0001]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+
+    def direct_action_replay100(settings, shared_settings, target_agents):
+        shared_settings["--env_name"] = ["TTAction/ConstPID"]
+        shared_settings["--exp_info"] = ["/replay100/"]
+        shared_settings["--lr_actor"] = [0.01]
+        shared_settings["--lr_critic"] = [0.0001]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+
     shared_settings["--debug"] = [1]
-    shared_settings["--env_name"] = ["TTChangeAction/ConstPID"]
-    shared_settings["--exp_name"] = ["/temp/"]
+    shared_settings["--exp_name"] = ["/visualize/"]
     shared_settings["--exp_info"] = ["/"]
-    shared_settings["--env_action_scaler"] = [1.]
-    shared_settings["--action_scale"] = [0.2]
-    shared_settings["--action_bias"] = [-0.1]
-    shared_settings["--lr_actor"] = [0.01]
-    shared_settings["--lr_critic"] = [0.001]
-    shared_settings["--max_steps"] = [5000]
     target_agents = ["GAC"]
-    settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+
+    change_action_continuous_replay0(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    change_action_discrete_replay0(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    direct_action_replay0(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    direct_action_replay100(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+
 
 if __name__=='__main__':
     settings = {
@@ -93,6 +133,7 @@ if __name__=='__main__':
         "GAC": {
             "--tau": [1e-3],
             "--rho": [0.1],
+            "--n": [30],
         },
         "SimpleAC": {
             "--tau": [1e-3],
@@ -113,4 +154,6 @@ if __name__=='__main__':
     }
     target_agents = ["SimpleAC", "SAC", "GAC"]
 
-    debug(settings, shared_settings, target_agents)
+    # constant_pid_target0_replay0(settings, shared_settings, target_agents)
+    # constant_pid_target0_replay100(settings, shared_settings, target_agents)
+    visualize(settings, shared_settings)
