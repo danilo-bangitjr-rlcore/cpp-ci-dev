@@ -95,15 +95,31 @@ def smpl_exp():
             "--tau": [1e-1],
             "--rho": [0.1],
             "--n": [30],
+            "--buffer_size": [10000],
+            "--buffer_prefill": [1000],
+            "--batch_size": [64],
+            "--polyak": [0.995],
+        },
+        "SAC": {
+            "--tau": [1e-3],
+            "--buffer_size": [10000],
+            "--buffer_prefill": [1000],
+            "--batch_size": [64],
+            "--polyak": [0.995],
+        },
+        "Reinforce": {
+            "--buffer_size": [0],
+            "--buffer_prefill": [0],
+            "--batch_size": [1],
         }
     }
     shared_settings = {
-        "--env_name": ["AtropineEnv"],
-        "--exp_name": ["atropine_env_test"],
-        "--exp_info": ["/test"],
+        "--env_name": ["ReactorEnv"],
+        "--exp_name": ["With_LR_Param"],
+        "--exp_info": ["/GAC_Sweep"],
         "--max_steps": [100000],
-        "--timeout": [60],
-        "--gamma": [0.9],
+        "--timeout": [100],
+        "--gamma": [0.9, 0.99, 0.999],
         "--log_interval": [1],
         "--stats_queue_size": [1],
         "--state_normalizer": ["Identity"],
@@ -111,21 +127,18 @@ def smpl_exp():
         "--actor": ["Beta"],
         "--critic": ["FC"],
         "--optimizer": ["RMSprop"],
-        "--polyak": [0.995], # Unsure about this
         "--hidden_actor": ["128 128"],
         "--hidden_critic": ["128 128"],
-        "--lr_actor": [0.0001], #[0.01, 0.001, 0.0001],
-        "--lr_critic": [0.0001],#[0.01, 0.001, 0.0001],
-        "--buffer_size": [10000],
-        "--buffer_prefill": [1000],
-        "--batch_size": [64],
-        "--action_scale": [2], # ReactorEnv Action Space: Box(-1.0, 1.0, (2,), float32)
+        "--lr_actor": [1e-3, 1e-4, 1e-5],
+        "--lr_critic": [1e-3, 1e-4, 1e-5],
+        "--action_scale": [2],
         "--action_bias": [-1],
+        "--debug": [1],
     }
     target_agents = ["GAC"]
 
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=2, line_per_file=2)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=2)
 
 def gem_exp():
     settings = {
@@ -133,6 +146,15 @@ def gem_exp():
             "--tau": [1e-1],
             "--rho": [0.1],
             "--n": [30],
+            "--buffer_size": [10000],
+            "--buffer_prefill": [1000],
+            "--batch_size": [128],
+            "--polyak": [0.995],
+        },
+        "Reinforce": {
+            "--buffer_size": [0],
+            "--buffer_prefill": [0],
+            "--batch_size": [1],
         }
     }
     shared_settings = {
@@ -149,18 +171,14 @@ def gem_exp():
         "--actor": ["Beta"],
         "--critic": ["FC"],
         "--optimizer": ["RMSprop"],
-        "--polyak": [0.995], # Unsure about this
         "--hidden_actor": ["128 128"],
         "--hidden_critic": ["128 128"],
-        "--lr_actor": [0.0001], #[0.01, 0.001, 0.0001],
-        "--lr_critic": [0.0001],#[0.01, 0.001, 0.0001],
-        "--buffer_size": [10000],
-        "--buffer_prefill": [1000],
-        "--batch_size": [128],
+        "--lr_actor": [0.0001],
+        "--lr_critic": [0.0001],
         "--action_scale": [2],
         "--action_bias": [-1],
     }
-    target_agents = ["GAC"]
+    target_agents = ["Reinforce"]
 
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=3, line_per_file=2)
@@ -242,5 +260,5 @@ if __name__ == '__main__':
     # test_runs()
     # demo()
     # constant_pid() # 52919
-    # smpl_exp()
-    gem_exp()
+    smpl_exp()
+    # gem_exp()
