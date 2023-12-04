@@ -27,6 +27,8 @@ _all_ = [
     "timeout-decorator==0.5.0",
     "nltk==3.8.1",
     "path==16.7.1",
+    "gym-electric-motor==2.0.0",
+    "chardet==5.2.0"
     ]
 
 windows = []

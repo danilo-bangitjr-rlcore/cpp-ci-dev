@@ -96,7 +96,7 @@ def demo():
 def smpl_exp():
     settings = {
         "GAC": {
-            "--tau": [1e-1],
+            "--tau": [1e-1, 1e-3],
             "--rho": [0.1],
             "--n": [30],
             "--buffer_size": [10000],
@@ -119,8 +119,8 @@ def smpl_exp():
     }
     shared_settings = {
         "--env_name": ["ReactorEnv"],
-        "--exp_name": ["With_LR_Param"],
-        "--exp_info": ["/GAC_Sweep"],
+        "--exp_name": ["With_LR_Param_Baseline"],
+        "--exp_info": ["/Param_Sweep"],
         "--max_steps": [100000],
         "--timeout": [100],
         "--gamma": [0.9, 0.99, 0.999],
@@ -142,7 +142,7 @@ def smpl_exp():
     target_agents = ["GAC"]
 
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=2)
+    combinations(settings, target_agents, num_runs=5, prev_file=0, line_per_file=2000)
 
 def gem_exp():
     settings = {
