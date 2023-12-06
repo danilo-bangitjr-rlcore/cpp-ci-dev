@@ -88,6 +88,9 @@ class ThreeTankEnvBase(object):
         self.flowrate_T1 = (self.C - self.A) / self.B
         self.state_normalizer = 10.  # 10
 
+        # Define this parameter for keeping the action penalty in clipping action setting
+        self.extra_action_penalty = 0
+
     # resets the environment to initial values
 
     def reinit_the_system(self):
@@ -286,7 +289,9 @@ class ThreeTankEnvBase(object):
         #                     self.breach[1] / EXPLORE_TI]  # Normalized based on the max values
         # reward = -self.W1 * abs(next_reward_comp[0]) - self.W2 * abs(next_reward_comp[1]) \
         #          - self.W3 * abs(next_reward_comp[2]) - self.W4 * abs(next_reward_comp[3])
-        reward = - mse.item() * 100 - self.Lambda * self.constrain_contribution
+
+        # add self.extra_action_penalty for the clipping action setting
+        reward = - mse.item() * 100 - self.Lambda * (self.constrain_contribution + self.extra_action_penalty)
         self.error_sum = 0
         self.no_of_error = 0
         self.flowrate_buffer = []
@@ -305,6 +310,7 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.observation_space = spaces.Box(low=np.array([3]), high=np.array([4]), shape=(1,), dtype=np.float32)
         self.action_space = spaces.Box(low=self.min_actions, high=self.max_actions, shape=(2,), dtype=np.float32)
         self.visualization_range = [-1, 15]
+
 
     def sum_constrain_info(self):
         for k,v in self.constrain_info.items():
@@ -349,6 +355,9 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.reset_reward(), self.reinit_the_system()
         return s, {}
 
+    def get_action_samples(self):
+        return
+
 
 # Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
 # Action: [delta_kp1, delta_ti1] -> continuous version -> 2
@@ -367,12 +376,12 @@ class TTChangeAction(ThreeTankEnv):
 
     def preprocess_action(self, a):
         norm_pid = a + self.prev_pid
-        return norm_pid
+        pid = self.action_multiplier * norm_pid
+        return pid, norm_pid
     
     def step(self, a):
         # a: change of pid
-        norm_pid = self.preprocess_action(a)
-        pid = self.action_multiplier * norm_pid
+        pid, norm_pid = self.preprocess_action(a)
         self.update_pid(pid)
         for _ in range(self.internal_iterations):
             sp, _ = self.inner_step(self.pid_controller())
@@ -417,15 +426,25 @@ class TTChangeAction(ThreeTankEnv):
         return s, info
     
     def pid_clip(self, pid):
+        C1, C2 = 0, 0
+        if pid[0] > self.KP_MAX:
+            C1 = abs(pid[0] - self.KP_MAX)
+        elif pid[0] < self.KP_MIN:
+            C1 = abs(pid[0] - self.KP_MIN)
+        if pid[1] > self.TAU_MAX:
+            C2 = abs(pid[1] - self.TAU_MAX)
+        elif pid[1] < self.TAU_MIN:
+            C2 = abs(pid[1] - self.TAU_MIN)
+        extra_action_constrain = np.float64(abs(self.W1 * C1 + self.W2 * C2))
+
         pid[0] = np.clip(pid[0], self.KP_MIN, self.KP_MAX)
         pid[1] = np.clip(pid[1], self.TAU_MIN, self.TAU_MAX)
-        return pid
+        return pid, extra_action_constrain
     
     def observation(self, prev_a, pid):
-        pid = self.pid_clip(pid)
+        pid, _ = self.pid_clip(pid)
         obs = np.concatenate([prev_a, pid], axis=0)
         return obs
-
 
 # Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
 # Action: cross product of [delta_kp1, delta_ti1] -> discrete version (three choices per dimension) -> 1
@@ -451,11 +470,12 @@ class TTChangeActionDiscrete(TTChangeAction):
     def preprocess_action(self, a):
         a = a[0]
         norm_pid = self.action_list[a] + self.prev_pid
-        return norm_pid
+        pid = self.action_multiplier * norm_pid
+        return pid, norm_pid
 
     def observation(self, prev_a, pid):
         prev_a = prev_a[0]
-        pid = self.pid_clip(pid)
+        pid, _ = self.pid_clip(pid)
         obs = np.concatenate([self.action_list[prev_a], pid], axis=0)
         return obs
 
@@ -475,15 +495,51 @@ class TTChangeActionDiscrete(TTChangeAction):
 class TTAction(TTChangeAction):
     def __init__(self, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None):
         super(TTAction, self).__init__(seed, lr_constrain, constant_pid, env_action_scaler=env_action_scaler)
-        self.observation_space = spaces.Box(low=np.array([0, 0, -np.inf, -np.inf]), high=np.array([0, 0, np.inf, np.inf]), shape=(4,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=np.array([0, 0, -np.inf, -np.inf]),
+                                            high=np.array([0, 0, np.inf, np.inf]), shape=(4,), dtype=np.float32)
 
     def preprocess_action(self, a):
         norm_pid = a
-        return norm_pid
+        pid = self.action_multiplier * norm_pid
+        return pid, norm_pid
 
     def step(self, a):
         sp, r, done, trunc, info = super(TTAction, self).step(a)
         sp[:2] = 0
         return sp, r, done, trunc, info
 
+class NonContexTT(TTAction):
+    def __init__(self, seed=None, lr_constrain=0, env_action_scaler=None):
+        super(NonContexTT, self).__init__(seed, lr_constrain, constant_pid=True, env_action_scaler=env_action_scaler)
+        self.observation_space = spaces.Box(low=np.array([0]),
+                                            high=np.array([0]), shape=(1,), dtype=np.float32)
+
+    def step(self, a):
+        sp, r, done, trunc, info = super(TTAction, self).step(a)
+        sp = np.array([0])
+        return sp, r, done, trunc, info
+
+class  TTChangeActionClip(TTChangeAction):
+    def __init__(self, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None):
+        super(TTChangeActionClip, self).__init__(seed, lr_constrain, constant_pid=constant_pid,
+                                                 env_action_scaler=env_action_scaler)
+
+    def preprocess_action(self, a):
+        norm_pid = a + self.prev_pid
+        pid = self.action_multiplier * norm_pid
+        pid, self.extra_action_penalty = self.pid_clip(pid)
+        return pid, norm_pid
+
+
+class TTChangeActionDiscreteClip(TTChangeActionDiscrete):
+    def __init__(self, delta_step, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None):
+        super(TTChangeActionDiscreteClip, self).__init__(delta_step, seed=seed, lr_constrain=lr_constrain,
+                                                         constant_pid=constant_pid, env_action_scaler=env_action_scaler)
+
+    def preprocess_action(self, a):
+        a = a[0]
+        norm_pid = self.action_list[a] + self.prev_pid
+        pid = self.action_multiplier * norm_pid
+        pid, self.extra_action_penalty = self.pid_clip(pid)
+        return pid, norm_pid
 

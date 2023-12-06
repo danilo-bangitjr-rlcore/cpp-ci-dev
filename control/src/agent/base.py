@@ -18,16 +18,22 @@ class BaseAC(Evaluation):
         # Continuous control initialization
         if cfg.discrete_control:
             self.action_dim = self.env.action_space.n
-            self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim, cfg.action_scale, cfg.action_bias, cfg.activation, cfg.layer_init)
-            self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim, cfg.activation, cfg.layer_init)
-            self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim, cfg.activation, cfg.layer_init)
+            self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
+                                             cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init)
+            self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
+                                              cfg.activation, cfg.layer_init)
+            self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
+                                                     cfg.activation, cfg.layer_init)
             self.get_q_value = self.get_q_value_discrete
             self.get_q_value_target = self.get_q_value_target_discrete
         else:
             self.action_dim = np.prod(self.env.action_space.shape)
-            self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim, cfg.action_scale, cfg.action_bias, cfg.activation, cfg.layer_init)
-            self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1, cfg.activation, cfg.layer_init)
-            self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1, cfg.activation, cfg.layer_init)
+            self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
+                                             cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init)
+            self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
+                                              cfg.activation, cfg.layer_init)
+            self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
+                                                     cfg.activation, cfg.layer_init)
             self.get_q_value = self.get_q_value_continuous
             self.get_q_value_target = self.get_q_value_target_continuous
             
@@ -106,27 +112,25 @@ class BaseAC(Evaluation):
         return reset, truncate
 
     def step(self):
-        action, _, pi_info = self.get_policy(torch_utils.tensor(self.observation.reshape((1, -1)), self.device), with_grad=False, debug=self.cfg.debug)
-        action = torch_utils.to_np(action)[0]
+        observation_tensor = torch_utils.tensor(self.observation.reshape((1, -1)), self.device)
+        action_tensor, _, pi_info = self.get_policy(observation_tensor,
+                                                    with_grad=False, debug=self.cfg.debug)
+        action = torch_utils.to_np(action_tensor)[0]
         next_observation, reward, terminated, trunc, env_info = self.env.step(action)
         reset, truncate = self.update_stats(reward, terminated, trunc)
         self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
-        
-        if self.cfg.render:
-            self.render(np.array(env_info['interval_log']))
-        else:
-            try:
-                env_info.pop('interval_log')
-            except:
-                pass
-        i_log = {
-            "agent_info": pi_info,
-            "env_info": env_info
-        }
+
+        i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
         self.info_log.append(i_log)
-        
+
+        if self.cfg.render:
+            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'])
+        else:
+            env_info.pop('interval_log', None)
+            i_log['critic_info'].pop('Q-function', None)
+
         self.update(trunc)
-        
+
         if reset:
             next_observation, info = self.env.reset()
         self.observation = next_observation
@@ -271,6 +275,23 @@ class BaseAC(Evaluation):
             for p, p_targ in zip(self.critic.parameters(), self.critic_target.parameters()):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
+
+    def agent_debug_info(self, observation_tensor, action_tensor, pi_info, env_info):
+        if self.cfg.debug:
+            q_current, _ = self.get_q_value(observation_tensor, action_tensor, with_grad=False)
+            action_cover_space = self.env.get_action_samples()
+            i_log = {
+                "actor_info": pi_info,
+                "critic_info": {'Q': q_current},
+                "env_info": env_info
+            }
+        else:
+            i_log = {
+                "actor_info": pi_info,
+                "critic_info": {},
+                "env_info": env_info
+            }
+        return i_log
 
 class BaseValue(BaseAC):
     def __init__(self, cfg):

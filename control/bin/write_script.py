@@ -8,7 +8,11 @@ def base_cmd(**kwargs):
     cmd = "nohup python3 main.py "
     for k in kwargs:
         cmd += " {} {} ".format(k, kwargs[k])
-    cmd += "> {}_{}.txt ".format(kwargs["--env_name"], kwargs["--param"])
+    if "/" in kwargs["--env_name"]:
+        env_name = "_".join(kwargs["--env_name"].split("/"))
+    else:
+        env_name = kwargs["--env_name"]
+    cmd += "> '{}_{}.txt' ".format(env_name, kwargs["--param"])
     cmd += "\n"
     return cmd
 
@@ -60,33 +64,6 @@ def combinations(settings, target_agents, num_runs=10, comb_num_base=0, prev_fil
                 
                 cmds.append(base_cmd(**kwargs))
     write_cmd(cmds, prev_file=prev_file, line_per_file=line_per_file)
-
-
-def demo():
-    settings = {
-        "GAC": {
-            "--tau": [1e-3],
-            "--rho": [0.1],
-        },
-    }
-    shared_settings = {
-        "--exp_name": ["demo"],
-        "--max_steps": [7000],
-        "--render": [0],
-        "--lr_actor": [0.001, 0.0001],
-        "--lr_critic": [0.001, 0.0001],
-        "--buffer_size": [1],
-        "--batch_size": [1],
-        "--env_action_scaler": [10],
-        "--action_scale": [1],
-        "--action_bias": [0],
-    }
-    target_agents = ["GAC"]
-    shared_settings["--env_name"] = ["ThreeTank"]
-    shared_settings["--exp_info"] = ["/target0/replay0/env_scale_10/"]
-    settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=5, prev_file=0, line_per_file=1)
-
 
 
 def smpl_exp():
@@ -257,8 +234,8 @@ def test_runs():
 
 
 if __name__ == '__main__':
-    # test_runs()
+    test_runs()
     # demo()
     # constant_pid() # 52919
-    smpl_exp()
+    # smpl_exp()
     # gem_exp()

@@ -70,12 +70,17 @@ def load_param(pth, xlim=[], pick_seed=None):
             continue
         p = os.path.join(pth, r)
         ret = np.load(p + "/train_logs.npy")
+        if xlim != []:
+            ret = ret[xlim[0]: xlim[1]]
+        returns.append(ret)
+
         if os.path.isfile(p + "/ep_constraints.npy"):
             cons = np.load(p + "/ep_constraints.npy")
         else:
             cons = []
             with open(p+"/info_logs.pkl", "rb") as f:
                 info = pickle.load(f)
+
             for step in info:
                 try:
                     cons.append(step["env_info/constrain"])
@@ -88,6 +93,7 @@ def load_param(pth, xlim=[], pick_seed=None):
             cons = cons[xlim[0]: xlim[1]]
         returns.append(ret)
         constraints.append(cons)
+
     with open(os.path.join(pth, runs[0]) + "/config.json", "r") as f:
         params = json.load(f)
     return params, np.array(returns), np.array(constraints)

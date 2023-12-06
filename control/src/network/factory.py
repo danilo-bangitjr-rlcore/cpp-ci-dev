@@ -4,13 +4,16 @@ from src.network.networks import BetaPolicy, SquashedGaussianPolicy, Softmax
 from src.network.networks import FC
 
 
-def init_policy_network(name, device, state_dim, hidden_units, action_dim, action_scale, action_bias, activation, layer_init):
+def init_policy_network(name, device, state_dim, hidden_units, action_dim, action_scale, action_bias, activation, head_activation, layer_init):
     if name == "Beta":
-        return BetaPolicy(device, state_dim, hidden_units, action_dim, action_scale=action_scale, action_bias=action_bias, activation=activation, init=layer_init)
+        return BetaPolicy(device, state_dim, hidden_units, action_dim, action_scale=action_scale,
+                          action_bias=action_bias, activation=activation, head_activation=head_activation, init=layer_init)
     elif name == "SGaussian":
-        return SquashedGaussianPolicy(device, state_dim, hidden_units, action_dim, action_scale=action_scale, action_bias=action_bias, activation=activation, init=layer_init)
+        return SquashedGaussianPolicy(device, state_dim, hidden_units, action_dim, action_scale=action_scale,
+                                      action_bias=action_bias, activation=activation, init=layer_init)
     elif name == "Softmax":
-        return Softmax(device, state_dim, hidden_units, action_dim, activation=activation, init=layer_init)
+        return Softmax(device, state_dim, hidden_units, action_dim,
+                       activation=activation, init=layer_init)
     else:
         raise NotImplementedError
     
