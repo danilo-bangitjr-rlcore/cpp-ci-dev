@@ -270,6 +270,7 @@ if __name__=='__main__':
     shared_settings = {
         "--exp_name": ["learning_rate"],
         "--max_steps": [5000],
+        "--debug": [1],
         "--render": [0],
         "--lr_actor": [0.01, 0.001, 0.0001],
         "--lr_critic": [0.01, 0.001, 0.0001],

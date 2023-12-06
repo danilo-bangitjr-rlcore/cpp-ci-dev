@@ -356,7 +356,15 @@ class ThreeTankEnv(ThreeTankEnvBase):
         return s, {}
 
     def get_action_samples(self):
-        return
+        max_a = self.action_space.high / self.action_multiplier # re-scale to the range of agent action
+        min_a = self.action_space.low / self.action_multiplier # re-scale to the range of agent action
+        n = 10
+        xs = np.linspace(min_a[0], max_a[0], n)
+        ys = np.linspace(min_a[1], max_a[1], n)
+        xaxis, yaxis = np.meshgrid(xs, ys)
+        shape = xaxis.shape
+        xaxis, yaxis = xaxis.reshape((-1, 1)), yaxis.reshape((-1, 1))
+        return np.array(np.concatenate([xaxis, yaxis], axis=1)), shape
 
 
 # Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
@@ -446,6 +454,17 @@ class TTChangeAction(ThreeTankEnv):
         obs = np.concatenate([prev_a, pid], axis=0)
         return obs
 
+    def get_action_samples(self):
+        max_a = 0.1 # This is the change action range. Note the agent's scaler should be 0.2 and bias should be -0.1
+        min_a = -0.1 # This is the change action range. Note the agent's scaler should be 0.2 and bias should be -0.1
+        n = 10
+        xs = np.linspace(min_a[0], max_a[0], n)
+        ys = np.linspace(min_a[1], max_a[1], n)
+        xaxis, yaxis = np.meshgrid(xs, ys)
+        shape = xaxis.shape
+        xaxis, yaxis = xaxis.reshape((-1, 1)), yaxis.reshape((-1, 1))
+        return np.array(np.concatenate([xaxis, yaxis], axis=1)), shape
+
 # Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
 # Action: cross product of [delta_kp1, delta_ti1] -> discrete version (three choices per dimension) -> 1
 class TTChangeActionDiscrete(TTChangeAction):
@@ -488,6 +507,10 @@ class TTChangeActionDiscrete(TTChangeAction):
             info = {}
         s = self.observation(self.prev_a, self.prev_pid)
         return s, info
+
+    def get_action_samples(self):
+        return np.arange(9), np.asarray(9)
+
 
 
 # Observation: [0, 0, prev_kp1, prev_ti1] -> 4
