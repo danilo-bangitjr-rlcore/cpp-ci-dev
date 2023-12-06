@@ -12,7 +12,7 @@ print("Change dir to", os.getcwd())
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="run_file")
-    parser.add_argument('--debug', default=1, type=int)
+    parser.add_argument('--debug', default=0, type=int)
     parser.add_argument('--version', default=0, type=int)
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--param', default=0, type=int)
