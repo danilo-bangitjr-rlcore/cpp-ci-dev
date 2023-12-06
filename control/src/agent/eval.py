@@ -41,8 +41,10 @@ class Evaluation:
         if cfg.render == 1: # show the plot while running
             plt.ion()
             self.eval_fig = plt.figure()
-            self.eval_ax = self.eval_fig.add_subplot(111)
-            self.eval_line = None
+            self.eval_ax1 = self.eval_fig.add_subplot(121)
+            self.eval_ax2 = self.eval_fig.add_subplot(122)
+            self.eval_line1 = None
+            self.eval_line2 = None
             self.render = self.render_online
             self.save_render = self.save_render_online
         elif cfg.render == 2:
@@ -135,21 +137,21 @@ class Evaluation:
     def log_file(self, elapsed_time=-1, test=True):
         train_mean, train_median, train_min_, train_max_ = self.log_return(self.ep_returns_queue_train[: min(self.train_stats_counter, self.stats_queue_size)],
                                                                            "TRAIN", elapsed_time)
-        try:
-            normalized = np.array([self.env.env.unwrapped.get_normalized_score(ret_) for ret_ in self.ep_returns_queue_train])
-            train_mean, train_median, train_min_, train_max_ = self.log_return(normalized, "TRAIN Normalized", elapsed_time)
-        except:
-            pass
+        # try:
+        #     normalized = np.array([self.env.env.unwrapped.get_normalized_score(ret_) for ret_ in self.ep_returns_queue_train])
+        #     train_mean, train_median, train_min_, train_max_ = self.log_return(normalized, "TRAIN Normalized", elapsed_time)
+        # except:
+        #     pass
         
         if test:
             self.populate_states, self.populate_actions, self.populate_sampled_returns = self.populate_returns(log_traj=True)
             self.populate_latest = True
             test_mean, test_median, test_min_, test_max_ = self.log_return(self.ep_returns_queue_test, "TEST", elapsed_time)
-            try:
-                normalized = np.array([self.eval_env.env.unwrapped.get_normalized_score(ret_) for ret_ in self.ep_returns_queue_test])
-                test_mean, test_median, test_min_, test_max_ = self.log_return(normalized, "TEST Normalized", elapsed_time)
-            except:
-                pass
+            # try:
+            #     normalized = np.array([self.eval_env.env.unwrapped.get_normalized_score(ret_) for ret_ in self.ep_returns_queue_test])
+            #     test_mean, test_median, test_min_, test_max_ = self.log_return(normalized, "TEST Normalized", elapsed_time)
+            # except:
+            #     pass
         else:
             test_mean, test_median, test_min_, test_max_ = [np.nan] * 4
         return train_mean, train_median, train_min_, train_max_, test_mean, test_median, test_min_, test_max_
@@ -157,11 +159,13 @@ class Evaluation:
     def render_online(self, ary):
         if len(ary)==0:
             return
-        if self.eval_line is None:
-            self.eval_line, = self.eval_ax.plot(ary, 'r-')
+        if self.eval_line1 is None:
+            self.eval_line1, = self.eval_ax1.plot(ary, 'r-')
+            self.eval_line2 = self.eval_ax2.imshow(ary)
             plt.show()
         else:
-            self.eval_line.set_ydata(ary)
+            self.eval_line1.set_ydata(ary)
+            self.eval_line2.set_array(ary)
             self.eval_fig.canvas.draw()
             self.eval_fig.canvas.flush_events()
 
@@ -175,19 +179,22 @@ class Evaluation:
     #                     frames,  # array of input frames
     #                     duration=50)
 
-    def save_frames_as_mp4(self, ary, filename):
+    def save_frames_as_mp4(self, ary1, ary2, filename, text=None):
         plt.ioff()
         eval_fig = plt.figure()
-        eval_ax = eval_fig.add_subplot(111)
+        eval_ax1 = eval_fig.add_subplot(121)
+        eval_ax2 = eval_fig.add_subplot(122)
 
         writer = imageio.get_writer(filename+".mp4", fps=20)
-        eval_line, = eval_ax.plot(ary[0])
-        eval_ax.set_title(0)
-        eval_ax.set_ylim(self.env.visualization_range)
+        eval_line1, = eval_ax1.plot(ary1[0])
+        eval_line2 = eval_ax2.imshow(ary2[0])
+        eval_ax1.set_title(0)
+        eval_ax1.set_ylim(self.env.visualization_range)
 
-        for idx,curve in enumerate(ary[1:]):
-            eval_line.set_ydata(curve)
-            eval_ax.title.set_text(idx + 1)
+        for idx, [curve, heatmap] in enumerate(zip(ary1[1:], ary2[1:])):
+            eval_line1.set_ydata(curve)
+            eval_line2.set_array(heatmap)
+            eval_ax1.title.set_text(idx + 1)
             eval_fig.canvas.draw()
             eval_fig.canvas.flush_events()
             

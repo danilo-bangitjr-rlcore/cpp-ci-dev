@@ -234,8 +234,8 @@ def test_runs():
 
 
 if __name__ == '__main__':
-    # test_runs()
+    test_runs()
     # demo()
     # constant_pid() # 52919
-    smpl_exp()
+    # smpl_exp()
     # gem_exp()

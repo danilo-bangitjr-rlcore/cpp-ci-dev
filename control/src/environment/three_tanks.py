@@ -311,6 +311,7 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.action_space = spaces.Box(low=self.min_actions, high=self.max_actions, shape=(2,), dtype=np.float32)
         self.visualization_range = [-1, 15]
 
+
     def sum_constrain_info(self):
         for k,v in self.constrain_info.items():
             if k in self.ep_constrain_info:
@@ -353,6 +354,9 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.setpoint = setpoint_backup
         self.reset_reward(), self.reinit_the_system()
         return s, {}
+
+    def get_action_samples(self):
+        return
 
 
 # Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
@@ -502,6 +506,17 @@ class TTAction(TTChangeAction):
     def step(self, a):
         sp, r, done, trunc, info = super(TTAction, self).step(a)
         sp[:2] = 0
+        return sp, r, done, trunc, info
+
+class NonContexTT(TTAction):
+    def __init__(self, seed=None, lr_constrain=0, env_action_scaler=None):
+        super(NonContexTT, self).__init__(seed, lr_constrain, constant_pid=True, env_action_scaler=env_action_scaler)
+        self.observation_space = spaces.Box(low=np.array([0]),
+                                            high=np.array([0]), shape=(1,), dtype=np.float32)
+
+    def step(self, a):
+        sp, r, done, trunc, info = super(TTAction, self).step(a)
+        sp = np.array([0])
         return sp, r, done, trunc, info
 
 class  TTChangeActionClip(TTChangeAction):

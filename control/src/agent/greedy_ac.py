@@ -13,7 +13,7 @@ class GreedyAC(BaseAC):
 
         # use the same network as in actor
         self.sampler = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                           cfg.action_scale, cfg.action_bias, cfg.activation, cfg.layer_init)
+                                           cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init)
         self.sampler_optim = init_optimizer(cfg.optimizer, list(self.sampler.parameters()), cfg.lr_actor)
 
         self.gac_a_dim = self.action_dim
@@ -93,6 +93,12 @@ class GreedyAC(BaseAC):
     
         path = os.path.join(parameters_dir, "sampler_opt")
         torch.save(self.sampler_optim.state_dict(), path)
+
+    def agent_debug_info(self, observation_tensor, action_tensor, pi_info, env_info):
+        i_log = super(GreedyAC, self).agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
+        _, _, prop_pi_info = self.sampler(observation_tensor, self.cfg.debug)
+        i_log["proposal_info"] = prop_pi_info
+        return i_log
 
 
 class GreedyACDiscrete(GreedyAC):

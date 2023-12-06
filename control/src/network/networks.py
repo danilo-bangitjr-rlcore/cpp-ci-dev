@@ -73,7 +73,7 @@ class SquashedGaussianPolicy(nn.Module):
                 "param2": std.squeeze().detach().numpy(),
             }
         else:
-            info = normal
+            info = None
         return action, logp, info
 
     def log_prob(self, observation, action, debug=False):
@@ -97,7 +97,7 @@ class SquashedGaussianPolicy(nn.Module):
                 "param2": std.squeeze().detach().numpy()
             }
         else:
-            info = normal
+            info = None
         return logp, info
 
 
@@ -136,7 +136,7 @@ class BetaPolicy(nn.Module):
                 "param2": beta.squeeze().detach().numpy()
             }
         else:
-            info = dist
+            info = None
         return action, logp, info
         
     def log_prob(self, observation, action, debug=False):
@@ -159,7 +159,7 @@ class BetaPolicy(nn.Module):
                 "param2": beta.squeeze().detach().numpy()
             }
         else:
-            info = dist
+            info = None
         return logp, info
 
 
@@ -187,7 +187,7 @@ class Softmax(nn.Module):
                 "param1": x.squeeze().detach().numpy(),
             }
         else:
-            info = dist
+            info = None
         return actions.reshape((-1, 1)), log_prob, info
 
     def log_prob(self, states, actions, debug=False):
@@ -206,5 +206,5 @@ class Softmax(nn.Module):
                 "param1": probs.squeeze().detach().numpy(),
             }
         else:
-            info = dist
+            info = None
         return log_prob, info
