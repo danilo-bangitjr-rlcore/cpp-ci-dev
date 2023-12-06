@@ -288,7 +288,7 @@ class BaseAC(Evaluation):
         else:
             i_log = {
                 "actor_info": pi_info,
-                "critic_info": None,
+                "critic_info": {},
                 "env_info": env_info
             }
         return i_log
