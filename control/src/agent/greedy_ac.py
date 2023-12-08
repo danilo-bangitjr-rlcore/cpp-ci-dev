@@ -5,11 +5,12 @@ from src.network.factory import init_policy_network, init_optimizer
 
 
 class GreedyAC(BaseAC):
-    def __init__(self, cfg):
+    def __init__(self, cfg, average_entropy=True):
         super(GreedyAC, self).__init__(cfg)
         self.tau = self.cfg.tau
         self.rho = self.cfg.rho # percentage of action used for update
         self.num_samples = self.cfg.n
+        self.average_entropy = average_entropy
 
         # use the same network as in actor
         self.sampler = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
@@ -17,7 +18,6 @@ class GreedyAC(BaseAC):
         self.sampler_optim = init_optimizer(cfg.optimizer, list(self.sampler.parameters()), cfg.lr_actor)
 
         self.gac_a_dim = self.action_dim
-
         self.top_action = int(self.rho * self.num_samples)
 
     def inner_update(self, trunc=False):
@@ -74,7 +74,11 @@ class GreedyAC(BaseAC):
         with torch.no_grad():
             sampler_entropy *= sampler_entropy
         sampler_entropy = sampler_entropy.reshape(self.batch_size, self.num_samples, 1)
-        sampler_entropy = -sampler_entropy.mean(axis=1)
+
+        if self.average_entropy:
+            sampler_entropy = -sampler_entropy.mean(axis=1)
+        else:
+            sampler_entropy = -sampler_entropy[:, 0, :]
 
         stacked_s_batch = state_batch.repeat_interleave(self.top_action, dim=0)
         logp, _ = self.sampler.log_prob(stacked_s_batch, best_actions)
@@ -102,7 +106,7 @@ class GreedyAC(BaseAC):
 
 
 class GreedyACDiscrete(GreedyAC):
-    def __init__(self, cfg):
-        super(GreedyACDiscrete, self).__init__(cfg)
+    def __init__(self, cfg, average_entropy=True):
+        super(GreedyACDiscrete, self).__init__(cfg, average_entropy)
         self.gac_a_dim = 1
         self.top_action = 1

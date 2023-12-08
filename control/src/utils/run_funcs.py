@@ -13,10 +13,9 @@ def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_si
             train_logs.append(train_mean)
             evaluations.append(test_mean)
             
-            np.save(eval_pth + "/train_logs.npy", np.array(train_logs))
-            np.save(eval_pth + "/evaluations.npy", np.array(evaluations))
-            agent.save()
-            
+            # np.save(eval_pth + "/train_logs.npy", np.array(train_logs))
+            # np.save(eval_pth + "/evaluations.npy", np.array(evaluations))
+            # agent.save()
             t0 = time.time()
         
         if max_steps and agent.total_steps >= max_steps:
