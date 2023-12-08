@@ -14,6 +14,11 @@ def init_agent(name, cfg):
             return GreedyACDiscrete(cfg)
         else:
             return GreedyAC(cfg)
+    elif name == "GAC-OE":
+        if cfg.discrete_control:
+            return GreedyACDiscrete(cfg, average_entropy=False)
+        else:
+            return GreedyAC(cfg, average_entropy=False)
     elif name == "Reinforce":
         return Reinforce(cfg)
     else:
