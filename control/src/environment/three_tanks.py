@@ -356,7 +356,7 @@ class ThreeTankEnv(ThreeTankEnvBase):
         return s, {}
 
     def get_action_samples(self):
-        max_a = self.action_space.high / self.action_multiplier # re-scale to the range of agent action
+        max_a = self.action_space.high/2 / self.action_multiplier # re-scale to the range of agent action
         min_a = self.action_space.low / self.action_multiplier # re-scale to the range of agent action
         n = 10
         xs = np.linspace(min_a[0], max_a[0], n)
@@ -370,7 +370,8 @@ class ThreeTankEnv(ThreeTankEnvBase):
 # Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
 # Action: [delta_kp1, delta_ti1] -> continuous version -> 2
 class TTChangeAction(ThreeTankEnv):
-    def __init__(self, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None):
+    def __init__(self, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None,
+                 agent_action_min=-np.inf, agent_action_max=np.inf):
         super(TTChangeAction, self).__init__(seed, lr_constrain, env_action_scaler=env_action_scaler)
         self.prev_pid = np.zeros(2)
         self.prev_a = np.zeros(2)
@@ -380,7 +381,10 @@ class TTChangeAction(ThreeTankEnv):
             self.internal_timeout = 10
         self.internal_iterations = 1000//self.internal_timeout
         self.internal_count = 0
-        self.observation_space = spaces.Box(low=np.array([-np.inf]*4), high=np.array([np.inf]*4), shape=(4,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=np.array([-np.inf]*4),
+                                            high=np.array([np.inf]*4), shape=(4,), dtype=np.float32)
+        self.agent_action_min = agent_action_min # without considering environment scaler
+        self.agent_action_max = agent_action_max # without considering environment scaler
 
     def preprocess_action(self, a):
         norm_pid = a + self.prev_pid
@@ -455,11 +459,11 @@ class TTChangeAction(ThreeTankEnv):
         return obs
 
     def get_action_samples(self):
-        max_a = 0.1 # This is the change action range. Note the agent's scaler should be 0.2 and bias should be -0.1
-        min_a = -0.1 # This is the change action range. Note the agent's scaler should be 0.2 and bias should be -0.1
+        min_a = self.agent_action_min
+        max_a = self.agent_action_max
         n = 10
-        xs = np.linspace(min_a[0], max_a[0], n)
-        ys = np.linspace(min_a[1], max_a[1], n)
+        xs = np.linspace(min_a, max_a, n)
+        ys = np.linspace(min_a, max_a, n)
         xaxis, yaxis = np.meshgrid(xs, ys)
         shape = xaxis.shape
         xaxis, yaxis = xaxis.reshape((-1, 1)), yaxis.reshape((-1, 1))
@@ -531,21 +535,40 @@ class TTAction(TTChangeAction):
         sp[:2] = 0
         return sp, r, done, trunc, info
 
-class NonContexTT(TTAction):
+    def get_action_samples(self):
+        max_a = self.action_space.high/2 / self.action_multiplier # re-scale to the range of agent action
+        min_a = self.action_space.low / self.action_multiplier # re-scale to the range of agent action
+        n = 10
+        xs = np.linspace(min_a[0], max_a[0], n)
+        ys = np.linspace(min_a[1], max_a[1], n)
+        xaxis, yaxis = np.meshgrid(xs, ys)
+        shape = xaxis.shape
+        xaxis, yaxis = xaxis.reshape((-1, 1)), yaxis.reshape((-1, 1))
+        return np.array(np.concatenate([xaxis, yaxis], axis=1)), shape
+
+
+class NonContexTT(ThreeTankEnv):
     def __init__(self, seed=None, lr_constrain=0, env_action_scaler=None):
-        super(NonContexTT, self).__init__(seed, lr_constrain, constant_pid=True, env_action_scaler=env_action_scaler)
+        # super(NonContexTT, self).__init__(seed, lr_constrain, constant_pid=True, env_action_scaler=env_action_scaler)
+        super(NonContexTT, self).__init__(seed, lr_constrain, env_action_scaler=env_action_scaler)
         self.observation_space = spaces.Box(low=np.array([0]),
                                             high=np.array([0]), shape=(1,), dtype=np.float32)
 
+    def reset(self, seed=None):
+        _, info = super(NonContexTT, self).reset(seed=seed)
+        return np.array([0]), info
+
     def step(self, a):
-        sp, r, done, trunc, info = super(TTAction, self).step(a)
+        sp, r, done, trunc, info = super(NonContexTT, self).step(a)
         sp = np.array([0])
         return sp, r, done, trunc, info
 
-class  TTChangeActionClip(TTChangeAction):
-    def __init__(self, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None):
+class TTChangeActionClip(TTChangeAction):
+    def __init__(self, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None,
+                 agent_action_min=-np.inf, agent_action_max=np.inf):
         super(TTChangeActionClip, self).__init__(seed, lr_constrain, constant_pid=constant_pid,
-                                                 env_action_scaler=env_action_scaler)
+                                                 env_action_scaler=env_action_scaler,
+                                                 agent_action_min=agent_action_min, agent_action_max=agent_action_max)
 
     def preprocess_action(self, a):
         norm_pid = a + self.prev_pid
