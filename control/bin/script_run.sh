@@ -17,5 +17,5 @@ export OMP_NUM_THREADS=$ompt
 if [[ $start -ge $end ]]; then
     ../out/scripts/tasks_$start.sh
 else
-    parallel -j $paral ../out/scripts/tasks_{}.sh ::: $(seq $start $end)
+    parallel --joblog log -j $paral ../out/scripts/tasks_{}.sh ::: $(seq $start $end)
 fi

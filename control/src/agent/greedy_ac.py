@@ -88,6 +88,7 @@ class GreedyAC(BaseAC):
         self.sampler_optim.zero_grad()
         sampler_loss.backward()
         self.sampler_optim.step()
+        return data
 
     def save(self):
         super(GreedyAC, self).save()

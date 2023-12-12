@@ -23,6 +23,12 @@ def init_critic_network(name, device, input_dim, hidden_units, output_dim, activ
     else:
         raise NotImplementedError
 
+def init_custom_network(name, device, input_dim, hidden_units, output_dim, activation, layer_init):
+    if name == "FC":
+        return FC(device, input_dim, hidden_units, output_dim, activation=activation, head_activation="None", init=layer_init)
+    else:
+        raise NotImplementedError
+
 def init_optimizer(name, param, lr):
     if name == "RMSprop":
         return torch.optim.RMSprop(param, lr)

@@ -287,6 +287,8 @@ class BaseAC(Evaluation):
             q_cover_space = torch_utils.to_np(q_cover_space)
             q_cover_space = q_cover_space.reshape(heatmap_shape)
             coord = np.array([action_cover_space[:, d].reshape(heatmap_shape) for d in range(action_cover_space.shape[1])])
+            if heatmap_shape[1] == 1:
+                coord = np.concatenate((coord, np.zeros(coord.shape)), axis=0)
             i_log = {
                 "actor_info": pi_info,
                 "critic_info": {'Q': q_current,

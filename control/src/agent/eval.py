@@ -164,6 +164,7 @@ class Evaluation:
         if self.eval_line1 is None:
             self.eval_line1, = self.eval_ax1.plot(ary1, 'r-')
             self.eval_line2 = self.eval_ax2.imshow(ary2)
+            plt.colorbar(self.eval_line2, ax=self.eval_ax2)
             self.eval_ax2.set_xticks(np.arange(ary2_coord.shape[2]),
                                      labels=["{:.2f}".format(x) for x in ary2_coord[0, 0, :]], rotation=90)
             self.eval_ax2.set_xlabel("dim 0")
@@ -176,8 +177,6 @@ class Evaluation:
             self.eval_line1.set_ydata(ary1)
             self.eval_line2.set_array(ary2)
             self.eval_line2.set_clim(vmin=ary2.min(), vmax=ary2.max())
-            # self.eval_line2 = self.eval_ax2.imshow(ary2)
-            # plt.colorbar(ax=self.eval_ax2)
 
             self.eval_fig.canvas.draw()
             self.eval_fig.canvas.flush_events()
@@ -205,6 +204,7 @@ class Evaluation:
         eval_ax1.set_title(0)
         eval_ax1.set_ylim(self.env.visualization_range)
         eval_line2 = eval_ax2.imshow(ary2[0], vmin=np.array(ary2).min(), vmax=np.array(ary2).max())
+        plt.colorbar(eval_line2, ax=eval_ax2)
         assert self.ary2_coord.shape[0] == 2 # only works for 2 dimension space
         eval_ax2.set_xticks(np.arange(self.ary2_coord.shape[2]), labels=["{:.2f}".format(x) for x in self.ary2_coord[0, 0, :]], rotation=90)
         eval_ax2.set_xlabel("dim 0")
@@ -214,6 +214,7 @@ class Evaluation:
         for idx, [curve, heatmap] in enumerate(zip(ary1[1:], ary2[1:])):
             eval_line1.set_ydata(curve)
             eval_line2.set_array(heatmap)
+            eval_line2.set_clim(vmin=heatmap.min(), vmax=heatmap.max())
             eval_ax1.title.set_text(idx + 1)
             eval_fig.canvas.draw()
             eval_fig.canvas.flush_events()

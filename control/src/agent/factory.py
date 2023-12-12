@@ -2,6 +2,7 @@ from src.agent.simple_ac import SimpleAC
 from src.agent.sac import SAC
 from src.agent.greedy_ac import GreedyAC, GreedyACDiscrete
 from src.agent.reinforce import Reinforce
+from src.agent.greedy_ac_wm import GACwHardMemory
 
 
 def init_agent(name, cfg):
@@ -21,5 +22,10 @@ def init_agent(name, cfg):
             return GreedyAC(cfg, average_entropy=False)
     elif name == "Reinforce":
         return Reinforce(cfg)
+    elif name == "GACMH":
+        if cfg.discrete_control:
+            raise NotImplementedError
+        else:
+            return GACwHardMemory(cfg, average_entropy=True)
     else:
         raise NotImplementedError

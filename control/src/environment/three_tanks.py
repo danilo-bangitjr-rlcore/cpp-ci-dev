@@ -513,7 +513,9 @@ class TTChangeActionDiscrete(TTChangeAction):
         return s, info
 
     def get_action_samples(self):
-        return np.arange(9), np.asarray(9)
+        samples = np.arange(9).reshape(-1, 1)
+        shape = samples.shape
+        return samples, shape
 
 
 
