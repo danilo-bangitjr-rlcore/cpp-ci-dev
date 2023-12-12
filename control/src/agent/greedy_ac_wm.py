@@ -17,6 +17,7 @@ class GACwHardMemory(GreedyAC):
         self.known_best_reward = -np.inf
         self.optimal_reward = 1
         self.relax = 0.02
+        self.start_safty_check = 1000
 
     def inner_update(self, trunc=False):
         data = super(GACwHardMemory, self).inner_update(trunc=trunc)
@@ -45,15 +46,17 @@ class GACwHardMemory(GreedyAC):
         next_observation, reward, terminated, trunc, env_info = self.env.step(action)
         reset, truncate = self.update_stats(reward, terminated, trunc)
 
-        """Update the reward of the known optimal action"""
+        """When using the known optimal action, update the corresponding reward"""
         if not safe:
             self.known_best_reward = reward
         """Update known optimal action and reward"""
         if self.known_best_action is None or reward > self.known_best_reward:
             self.known_best_action = action_tensor
             self.known_best_reward = reward
-        """Substitute the reward for update"""
-        reward = reward if pessimistic_reward is None else pessimistic_reward
+        """When using the known optimal action, use the pessimistic reward for save and use for update"""
+        if not safe:
+            print(pessimistic_reward)
+            reward = pessimistic_reward
 
         self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
 
@@ -77,10 +80,12 @@ class GACwHardMemory(GreedyAC):
         return
 
     def safty_check(self, obs, act):
+        if self.total_steps < self.start_safty_check:
+            return True, 1.0
         x = torch.concat((obs, act), dim=1)
         with torch.no_grad():
-            pred_r = torch_utils.to_np(self.reward_model(x))
-        safe = pred_r < (self.optimal_reward - self.relax)
+            pred_r = torch_utils.to_np(self.reward_model(x).squeeze(-1))[0]
+        safe = pred_r >= (self.optimal_reward - self.relax)
         return safe, pred_r
 
 class GACwMemory(GreedyAC):
