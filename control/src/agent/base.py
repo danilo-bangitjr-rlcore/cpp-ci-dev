@@ -279,10 +279,20 @@ class BaseAC(Evaluation):
     def agent_debug_info(self, observation_tensor, action_tensor, pi_info, env_info):
         if self.cfg.debug:
             q_current, _ = self.get_q_value(observation_tensor, action_tensor, with_grad=False)
-            action_cover_space = self.env.get_action_samples()
+            q_current = torch_utils.to_np(q_current)
+            action_cover_space, heatmap_shape = self.env.get_action_samples()
+            stacked_o = observation_tensor.repeat_interleave(len(action_cover_space), dim=0)
+            action_cover_space_tensor = torch_utils.tensor(action_cover_space, self.device)
+            q_cover_space, _ = self.get_q_value(stacked_o, action_cover_space_tensor, with_grad=False)
+            q_cover_space = torch_utils.to_np(q_cover_space)
+            q_cover_space = q_cover_space.reshape(heatmap_shape)
+            coord = np.array([action_cover_space[:, d].reshape(heatmap_shape) for d in range(action_cover_space.shape[1])])
+            if heatmap_shape[1] == 1:
+                coord = np.concatenate((coord, np.zeros(coord.shape)), axis=0)
             i_log = {
                 "actor_info": pi_info,
-                "critic_info": {'Q': q_current},
+                "critic_info": {'Q': q_current,
+                                'Q-function': [q_cover_space, coord]},
                 "env_info": env_info
             }
         else:

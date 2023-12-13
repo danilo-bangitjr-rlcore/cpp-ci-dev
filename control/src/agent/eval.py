@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from gymnasium.spaces.utils import flatdim
 import src.network.torch_utils as torch_utils
-
+from matplotlib.ticker import StrMethodFormatter
 
 class Evaluation:
     def __init__(self, cfg):
@@ -40,7 +40,7 @@ class Evaluation:
         self.info_log = []
         if cfg.render == 1: # show the plot while running
             plt.ion()
-            self.eval_fig = plt.figure()
+            self.eval_fig = plt.figure(figsize=(8, 4))
             self.eval_ax1 = self.eval_fig.add_subplot(121)
             self.eval_ax2 = self.eval_fig.add_subplot(122)
             self.eval_line1 = None
@@ -48,7 +48,8 @@ class Evaluation:
             self.render = self.render_online
             self.save_render = self.save_render_online
         elif cfg.render == 2:
-            self.eval_line = []
+            self.eval_line1 = []
+            self.eval_line2 = []
             self.render = self.render_offline
             self.save_render = self.save_render_offline
 
@@ -156,24 +157,37 @@ class Evaluation:
             test_mean, test_median, test_min_, test_max_ = [np.nan] * 4
         return train_mean, train_median, train_min_, train_max_, test_mean, test_median, test_min_, test_max_
     
-    def render_online(self, ary):
-        if len(ary)==0:
+    def render_online(self, ary1, ary2_info):
+        ary2, ary2_coord = ary2_info
+        if len(ary1)==0:
             return
         if self.eval_line1 is None:
-            self.eval_line1, = self.eval_ax1.plot(ary, 'r-')
-            self.eval_line2 = self.eval_ax2.imshow(ary)
+            self.eval_line1, = self.eval_ax1.plot(ary1, 'r-')
+            self.eval_line2 = self.eval_ax2.imshow(ary2)
+            plt.colorbar(self.eval_line2, ax=self.eval_ax2)
+            self.eval_ax2.set_xticks(np.arange(ary2_coord.shape[2]),
+                                     labels=["{:.2f}".format(x) for x in ary2_coord[0, 0, :]], rotation=90)
+            self.eval_ax2.set_xlabel("dim 0")
+            self.eval_ax2.set_yticks(np.arange(ary2_coord.shape[1]),
+                                     labels=["{:.2f}".format(x) for x in ary2_coord[1, :, 0]])
+            self.eval_ax2.set_ylabel("dim 1")
+            self.eval_fig.tight_layout()
             plt.show()
         else:
-            self.eval_line1.set_ydata(ary)
-            self.eval_line2.set_array(ary)
+            self.eval_line1.set_ydata(ary1)
+            self.eval_line2.set_array(ary2)
+            self.eval_line2.set_clim(vmin=ary2.min(), vmax=ary2.max())
+
             self.eval_fig.canvas.draw()
             self.eval_fig.canvas.flush_events()
 
-    def render_offline(self, ary):
-        if len(ary)==0:
+    def render_offline(self, ary1, ary2_info):
+        if len(ary1)==0:
             return
-        self.eval_line.append(ary)
-    
+        self.eval_line1.append(ary1)
+        self.eval_line2.append(ary2_info[0])
+        self.ary2_coord = ary2_info[1]
+
     # def save_frames_as_gif(self, frames, filename):
     #     imageio.mimsave(filename+".gif",  # output gif
     #                     frames,  # array of input frames
@@ -181,19 +195,26 @@ class Evaluation:
 
     def save_frames_as_mp4(self, ary1, ary2, filename, text=None):
         plt.ioff()
-        eval_fig = plt.figure()
+        eval_fig = plt.figure(figsize=(8, 4))
         eval_ax1 = eval_fig.add_subplot(121)
         eval_ax2 = eval_fig.add_subplot(122)
 
         writer = imageio.get_writer(filename+".mp4", fps=20)
         eval_line1, = eval_ax1.plot(ary1[0])
-        eval_line2 = eval_ax2.imshow(ary2[0])
         eval_ax1.set_title(0)
         eval_ax1.set_ylim(self.env.visualization_range)
-
+        eval_line2 = eval_ax2.imshow(ary2[0], vmin=np.array(ary2).min(), vmax=np.array(ary2).max())
+        plt.colorbar(eval_line2, ax=eval_ax2)
+        assert self.ary2_coord.shape[0] == 2 # only works for 2 dimension space
+        eval_ax2.set_xticks(np.arange(self.ary2_coord.shape[2]), labels=["{:.2f}".format(x) for x in self.ary2_coord[0, 0, :]], rotation=90)
+        eval_ax2.set_xlabel("dim 0")
+        eval_ax2.set_yticks(np.arange(self.ary2_coord.shape[1]), labels=["{:.2f}".format(x) for x in self.ary2_coord[1, :, 0]])
+        eval_ax2.set_ylabel("dim 1")
+        eval_fig.tight_layout()
         for idx, [curve, heatmap] in enumerate(zip(ary1[1:], ary2[1:])):
             eval_line1.set_ydata(curve)
             eval_line2.set_array(heatmap)
+            eval_line2.set_clim(vmin=heatmap.min(), vmax=heatmap.max())
             eval_ax1.title.set_text(idx + 1)
             eval_fig.canvas.draw()
             eval_fig.canvas.flush_events()
@@ -206,8 +227,8 @@ class Evaluation:
         writer.close()
 
     def save_render_offline(self, vis_dir):
-        self.save_frames_as_mp4(self.eval_line, os.path.join(vis_dir, "render"))
-        
+        self.save_frames_as_mp4(self.eval_line1, self.eval_line2, os.path.join(vis_dir, "render"))
+
     def save_render_online(self, vis_dir):
         return
         

@@ -24,6 +24,7 @@ def write_cmd(cmds, prev_file=0, line_per_file=1):
     cmd_file.parent.mkdir(exist_ok=True, parents=True)
 
     count = 0
+    print("First script:", cmd_file)
     file = open(cmd_file, 'w')
     for cmd in cmds:
         file.write(cmd)
@@ -35,7 +36,7 @@ def write_cmd(cmds, prev_file=0, line_per_file=1):
             file = open(cmd_file, 'w')
     if not file.closed:
         file.close()
-    print("last script:", cmd_file_path.format(str(prev_file)))
+    print("Last script:", cmd_file_path.format(str(prev_file)), "\n")
 
 
 def merge_independent(settings, shared_settings):
