@@ -532,6 +532,11 @@ class TTAction(TTChangeAction):
         pid = self.action_multiplier * norm_pid
         return pid, norm_pid
 
+    def reset(self, seed=None):
+        s, info = super(TTAction, self).reset()
+        s[:2] = 0
+        return s, info
+
     def step(self, a):
         sp, r, done, trunc, info = super(TTAction, self).step(a)
         sp[:2] = 0
