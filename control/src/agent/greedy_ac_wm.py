@@ -2,15 +2,124 @@ import numpy as np
 import torch
 import os
 from src.agent.greedy_ac import GreedyAC
-from src.network.factory import init_custom_network, init_optimizer
+from src.network.factory import init_policy_network, init_custom_network, init_optimizer
 import src.network.torch_utils as torch_utils
+from src.component.buffer import Buffer
+from src.component.normalizer import init_normalizer
+
+
+class GACPredictSuccess(GreedyAC):
+    def __init__(self, cfg, average_entropy=True):
+        super(GACPredictSuccess, self).__init__(cfg, average_entropy=average_entropy)
+        if cfg.discrete_control:
+            self.gac_a_dim = 1
+            self.top_action = 1
+            self.predict_action_encoder = init_normalizer("OneHot", self.action_dim)
+        else:
+            self.predict_action_encoder = init_normalizer("Identity", None)
+
+        self.predict_model = init_custom_network("Softmax", cfg.device, self.state_dim+self.action_dim, cfg.hidden_critic, 2,
+                                                 cfg.activation, "None", cfg.layer_init)
+        self.predict_model_optim = init_optimizer(cfg.optimizer, list(self.predict_model.parameters()), cfg.lr_critic)
+
+        self.safe_action_model = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
+                                                     cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init)
+        self.safe_action_model_optim = init_optimizer(cfg.optimizer, list(self.safe_action_model.parameters()), cfg.lr_actor)
+
+        self.safe_action_buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
+
+        self.optimal_reward = 1
+        self.relax = 0.005
+        self.start_safty_check = 1000
+
+    def inner_update(self, trunc=False):
+        data = super(GACPredictSuccess, self).inner_update(trunc=trunc)
+        if self.total_steps == self.start_safty_check:
+            for _ in range(self.start_safty_check):
+                self.checking_models_update(data)
+        elif self.total_steps > self.start_safty_check:
+            self.checking_models_update(data)
+        #
+        # self.checking_models_update(data)
+
+    def checking_models_update(self, data):
+        state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
+                                                                                data['obs2'], 1 - data['done']
+        """ Update success prediction model """
+        x = torch.concat((state_batch, self.predict_action_encoder(action_batch)), dim=1)
+        _, logp, _ = self.predict_model(x)
+        r_loss = -logp.mean()
+        self.predict_model_optim.zero_grad()
+        r_loss.backward()
+        self.predict_model_optim.step()
+
+        """ Update action model """
+        samples = self.safe_action_buffer.sample()
+        if samples is not None:
+            states, actions = samples
+            states = torch_utils.tensor(self.state_normalizer(states), self.device)
+            actions = torch_utils.tensor(actions, self.device)
+            logp, _ = self.safe_action_model.log_prob(states, actions)
+            a_loss = -logp.mean()
+            self.safe_action_model_optim.zero_grad()
+            a_loss.backward()
+            self.safe_action_model_optim.step()
+
+    def step(self):
+        observation_tensor = torch_utils.tensor(self.observation.reshape((1, -1)), self.device)
+        action_tensor, _, pi_info = self.get_policy(observation_tensor,
+                                                    with_grad=False, debug=self.cfg.debug)
+
+        """predict the success for the given policy"""
+        safe, _, info = self.safty_check(observation_tensor, action_tensor)
+        if not safe:
+            with torch.no_grad():
+                action_tensor, _, _ = self.safe_action_model(observation_tensor)
+
+        action = torch_utils.to_np(action_tensor)[0]
+        next_observation, reward, terminated, trunc, env_info = self.env.step(action)
+        reset, truncate = self.update_stats(reward, terminated, trunc)
+
+        """When using the known optimal action, do not add data to buffer"""
+        self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
+        if reward >= self.optimal_reward-self.relax:
+            self.safe_action_buffer.feed([self.observation, action])
+
+        i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
+        self.info_log.append(i_log)
+
+        if self.cfg.render:
+            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'])
+        else:
+            env_info.pop('interval_log', None)
+            i_log['critic_info'].pop('Q-function', None)
+
+        self.update(trunc)
+
+        if reset:
+            next_observation, info = self.env.reset()
+        self.observation = next_observation
+
+        if self.use_target_network and self.total_steps % self.target_network_update_freq == 0:
+            self.sync_target()
+        return
+
+    def safty_check(self, obs, act):
+        x = torch.concat((obs, self.predict_action_encoder(act)), dim=1)
+        with torch.no_grad():
+            safe, logp, info = self.predict_model(x)
+        if self.total_steps < self.start_safty_check:
+            return 1.0, 1.0, info
+        safe = torch_utils.to_np(safe.squeeze(-1))[0]
+        logp = torch_utils.to_np(logp)[0]
+        return safe, logp, info
 
 
 class GACwHardMemory(GreedyAC):
     def __init__(self, cfg, average_entropy=True):
         super(GACwHardMemory, self).__init__(cfg, average_entropy=average_entropy)
         self.reward_model = init_custom_network(cfg.critic, cfg.device, self.state_dim+self.action_dim, cfg.hidden_critic, 1,
-                                               cfg.activation, cfg.layer_init)
+                                               cfg.activation, "None", cfg.layer_init)
         self.reward_model_optim = init_optimizer(cfg.optimizer, list(self.reward_model.parameters()), cfg.lr_critic)
 
         self.known_best_action = None
@@ -88,11 +197,12 @@ class GACwHardMemory(GreedyAC):
         safe = pred_r >= (self.optimal_reward - self.relax)
         return safe, pred_r
 
+
 class GACwMemory(GreedyAC):
     def __init__(self, cfg, average_entropy=True):
         super(GACwMemory, self).__init__(cfg)
         self.reward_model = init_custom_network(cfg.critic, cfg.device, self.state_dim+self.action_dim, cfg.hidden_critic, 1,
-                                               cfg.activation, cfg.layer_init)
+                                               cfg.activation, "None", cfg.layer_init)
         self.reward_model_optim = init_optimizer(cfg.optimizer, list(self.reward_model.parameters()), cfg.lr_critic)
         # self.current_best_action = None
 
