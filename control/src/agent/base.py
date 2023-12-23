@@ -19,21 +19,21 @@ class BaseAC(Evaluation):
         if cfg.discrete_control:
             self.action_dim = self.env.action_space.n
             self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                             cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init)
+                                             cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init, cfg.layer_norm)
             self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
-                                              cfg.activation, cfg.layer_init)
+                                              cfg.activation, cfg.layer_init, cfg.layer_norm)
             self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
-                                                     cfg.activation, cfg.layer_init)
+                                                     cfg.activation, cfg.layer_init, cfg.layer_norm)
             self.get_q_value = self.get_q_value_discrete
             self.get_q_value_target = self.get_q_value_target_discrete
         else:
             self.action_dim = np.prod(self.env.action_space.shape)
             self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                             cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init)
+                                             cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init, cfg.layer_norm)
             self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
-                                              cfg.activation, cfg.layer_init)
+                                              cfg.activation, cfg.layer_init, cfg.layer_norm)
             self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
-                                                     cfg.activation, cfg.layer_init)
+                                                     cfg.activation, cfg.layer_init, cfg.layer_norm)
             self.get_q_value = self.get_q_value_continuous
             self.get_q_value_target = self.get_q_value_target_continuous
             

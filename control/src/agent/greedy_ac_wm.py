@@ -19,11 +19,11 @@ class GACPredictSuccess(GreedyAC):
             self.predict_action_encoder = init_normalizer("Identity", None)
 
         self.predict_model = init_custom_network("Softmax", cfg.device, self.state_dim+self.action_dim, cfg.hidden_critic, 2,
-                                                 cfg.activation, "None", cfg.layer_init)
+                                                 cfg.activation, "None", cfg.layer_init, cfg.layer_norm)
         self.predict_model_optim = init_optimizer(cfg.optimizer, list(self.predict_model.parameters()), cfg.lr_critic)
 
         self.safe_action_model = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                                     cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init)
+                                                     cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init, cfg.layer_norm)
         self.safe_action_model_optim = init_optimizer(cfg.optimizer, list(self.safe_action_model.parameters()), cfg.lr_actor)
 
         self.safe_action_buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
@@ -39,6 +39,11 @@ class GACPredictSuccess(GreedyAC):
                 self.checking_models_update(data)
         elif self.total_steps > self.start_safty_check:
             self.checking_models_update(data)
+
+        # if self.total_steps>0 and self.total_steps % self.start_safty_check == 0:
+        #     for _ in range(self.start_safty_check):
+        #         self.checking_models_update(data)
+
         #
         # self.checking_models_update(data)
 
@@ -47,7 +52,8 @@ class GACPredictSuccess(GreedyAC):
                                                                                 data['obs2'], 1 - data['done']
         """ Update success prediction model """
         x = torch.concat((state_batch, self.predict_action_encoder(action_batch)), dim=1)
-        _, logp, _ = self.predict_model(x)
+        g = (reward_batch >= self.optimal_reward - self.relax).long()
+        logp, _ = self.predict_model.log_prob(x, g)
         r_loss = -logp.mean()
         self.predict_model_optim.zero_grad()
         r_loss.backward()
@@ -82,8 +88,10 @@ class GACPredictSuccess(GreedyAC):
 
         """When using the known optimal action, do not add data to buffer"""
         self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
-        if reward >= self.optimal_reward-self.relax:
+        if safe and reward >= self.optimal_reward-self.relax:
             self.safe_action_buffer.feed([self.observation, action])
+            print(self.safe_action_buffer.size)
+        print("safe", safe, ", reward", reward)
 
         i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
         self.info_log.append(i_log)
@@ -119,13 +127,13 @@ class GACwHardMemory(GreedyAC):
     def __init__(self, cfg, average_entropy=True):
         super(GACwHardMemory, self).__init__(cfg, average_entropy=average_entropy)
         self.reward_model = init_custom_network(cfg.critic, cfg.device, self.state_dim+self.action_dim, cfg.hidden_critic, 1,
-                                               cfg.activation, "None", cfg.layer_init)
+                                               cfg.activation, "None", cfg.layer_init, cfg.layer_norm)
         self.reward_model_optim = init_optimizer(cfg.optimizer, list(self.reward_model.parameters()), cfg.lr_critic)
 
         self.known_best_action = None
         self.known_best_reward = -np.inf
         self.optimal_reward = 1
-        self.relax = 0.02
+        self.relax = 0.005
         self.start_safty_check = 1000
 
     def inner_update(self, trunc=False):
@@ -202,7 +210,7 @@ class GACwMemory(GreedyAC):
     def __init__(self, cfg, average_entropy=True):
         super(GACwMemory, self).__init__(cfg)
         self.reward_model = init_custom_network(cfg.critic, cfg.device, self.state_dim+self.action_dim, cfg.hidden_critic, 1,
-                                               cfg.activation, "None", cfg.layer_init)
+                                               cfg.activation, "None", cfg.layer_init, cfg.layer_norm)
         self.reward_model_optim = init_optimizer(cfg.optimizer, list(self.reward_model.parameters()), cfg.lr_critic)
         # self.current_best_action = None
 
