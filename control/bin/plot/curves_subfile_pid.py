@@ -98,9 +98,64 @@ def stable_gac_test():
             #     + "GACIn/param_12/", "C2", 3],
         }
         best_offline(pths, "test_changeActionDisc", ylim=[-2, 2])
+
+        """
+        Reward staying
+        """
+        SHAREPATH = "output/test_v0/TTChangeAction/DiscreteRwdStay/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/change_0.01/"
+        pths = {
+            "GAC": [DATAROOT + SHAREPATH + "GAC/param_16", "C0", 5],
+        }
+        best_offline(pths, "test_changeActionRwdStay", ylim=[-2, 2])
+
+        """
+        Batch normalization
+        """
+        SHAREPATH = "output/test_v0/NonContexTT/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_10/"
+        pths = {
+            "GAC": [DATAROOT + SHAREPATH + "GAC/param_28", "C0", 5],
+        }
+        best_offline(pths, "test_noncontex_batchNorm", ylim=[-2, 2])
+        SHAREPATH = "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_10/"
+        pths = {
+            "GAC": [DATAROOT + SHAREPATH + "GAC/param_43", "C0", 5],
+        }
+        best_offline(pths, "test_directAction_batchNorm", ylim=[-2, 2])
+        SHAREPATH = "output/test_v0/TTChangeAction/ConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
+        pths = {
+            "GAC": [DATAROOT + SHAREPATH + "GAC/param_37", "C0", 5],
+        }
+        best_offline(pths, "test_changeActionCont_batchNorm", ylim=[-2, 2])
+        SHAREPATH = "output/test_v0/TTChangeAction/DiscreteConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_1/change_0.01/"
+        pths = {
+            "GAC": [DATAROOT + SHAREPATH + "GAC/param_26", "C0", 5],
+        }
+        best_offline(pths, "test_changeActionDisc_batchNorm", ylim=[-2, 2])
         return
 
-    v0()
+    def v1():
+        pths = {
+            "GAC": [DATAROOT + "output/test_v0/NonContexTT/parameter_study/target0/replay5000_batch8/env_scale_10/"
+                    + "GAC/param_2", "C0", 5],
+            # "GACPS-old": [DATAROOT + "output/test_v0/NonContexTT/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10/"
+            #               + "GACPS/param_46/", "C2", 5],
+            "GACPS": [DATAROOT + "output/test_v0/NonContexTT/stable_gac_test/v1/target0/replay5000_batch8/env_scale_10/"
+                      + "GACPS/param_82", "C1", 5],
+        }
+        best_offline(pths, "testv1_noncontex", ylim=[-2, 2])
+
+        pths = {
+            "GAC": [DATAROOT + "output/test_v0/TTAction/ConstPID/parameter_study/target0/replay5000_batch8/env_scale_10/"
+                    + "GAC/param_21", "C0", 5],
+            # "GACPS-old": [DATAROOT + "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10/"
+            #               + "GACPS/param_13/", "C2", 5],
+            "GACPS": [DATAROOT + "output/test_v0/TTAction/ConstPID/stable_gac_test/v1/target0/replay5000_batch8/env_scale_10/"
+                      + "GACPS/param_10", "C1", 5],
+        }
+        best_offline(pths, "testv1_directAction", ylim=[-2, 2])
+
+    # v0()
+    v1()
 
 def gac_parameter_study():
     def noncontext():
@@ -476,6 +531,18 @@ def visualize_gac():
         file = DATAROOT + "output/test_v0/TTChangeAction/DiscreteConstPID/visualize/replay5000/GAC/param_0/seed_0"
         visualize_training_info(file, target_key, title="vis_ChangeActionDisc_GAC_replay5000", threshold=0.99, xlim=None, ylim=[-2, 2])
 
+    def change_action_rwd_stay_replay5000(target_key):
+        target_key.remove("actor_info/param2")
+        target_key.remove("proposal_info/param2")
+        file = DATAROOT + "output/test_v0/TTChangeAction/DiscreteRwdStay/visualize/replay5000/GAC/param_0/seed_0"
+        visualize_training_info(file, target_key, title="vis_ChangeActionDisc_GAC_replay5000", threshold=0.99, xlim=None, ylim=[-2, 2])
+
+    def change_action_rwd_stay_long(target_key):
+        target_key.remove("actor_info/param2")
+        target_key.remove("proposal_info/param2")
+        file = DATAROOT + "output/test_v0/TTChangeAction/DiscreteRwdStay/visualize/replay50000/GAC/param_0/seed_0"
+        visualize_training_info(file, target_key, title="vis_ChangeActionDisc_GAC_long", threshold=0.99, xlim=None, ylim=[-2, 2])
+
     # noncontext_replay0(copy.deepcopy(target_key))
     # noncontext_replay50(copy.deepcopy(target_key))
     # noncontext_replay100(copy.deepcopy(target_key))
@@ -484,11 +551,36 @@ def visualize_gac():
     # direct_action_replay50(copy.deepcopy(target_key))
     # direct_action_replay100(copy.deepcopy(target_key))
     # direct_action_replay5000(copy.deepcopy(target_key))
-    direct_action_replay50_batch16(copy.deepcopy(target_key))
+    # direct_action_replay50_batch16(copy.deepcopy(target_key))
     # change_action_replay0(copy.deepcopy(target_key))
     # change_action_replay50(copy.deepcopy(target_key))
     # change_action_replay100(copy.deepcopy(target_key))
     # change_action_replay5000(copy.deepcopy(target_key))
+    # change_action_rwd_stay_replay5000(copy.deepcopy(target_key))
+    # change_action_rwd_stay_long(copy.deepcopy(target_key))
+
+def visualize_temp():
+    target_key = [
+        "actor_info/param1",
+        "proposal_info/param1",
+        "actor_info/param2",
+        "proposal_info/param2",
+        "critic_info/Q",
+        "env_info/constrain_detail/kp1",
+        "env_info/constrain_detail/tau",
+        "env_info/constrain_detail/height",
+        "env_info/constrain_detail/flowrate",
+        "env_info/constrain_detail/C1",
+        "env_info/constrain_detail/C2",
+        "env_info/constrain_detail/C3",
+        "env_info/constrain_detail/C4",
+        # "env_info/constrain",
+        "env_info/lambda",
+    ]
+
+    file = DATAROOT + "output/test_v0/TTAction/ConstPID/temp/GACPS/param_0/seed_0"
+    visualize_training_info(file, target_key, title="vis_temp", threshold=0.99, xlim=None, ylim=[-2, 2])
+
 
 if __name__ == '__main__':
     # agent_list = ['SAC', 'SimpleAC', 'GAC']
@@ -542,11 +634,22 @@ if __name__ == '__main__':
     # SHAREPATH = "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0/replay50_batch8/env_scale_10/"
 
     # agent_list = ['GACPS', 'GACIn']
-    agent_list = ['GACPS']
     # SHAREPATH = "output/test_v0/NonContexTT/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10/"
     # SHAREPATH = "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10/"
-    SHAREPATH = "output/test_v0/TTChangeAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
+    # SHAREPATH = "output/test_v0/TTChangeAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
     # SHAREPATH = "output/test_v0/TTChangeAction/DiscreteConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/change_0.01/"
+
+    # agent_list = ['GAC']
+    # SHAREPATH = "output/test_v0/TTChangeAction/DiscreteRwdStay/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/change_0.01/"
+
+    # SHAREPATH = "output/test_v0/NonContexTT/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_10/"
+    # SHAREPATH = "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_10/"
+    # SHAREPATH = "output/test_v0/TTChangeAction/ConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
+    # SHAREPATH = "output/test_v0/TTChangeAction/DiscreteConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_1/change_0.01/"
+
+    agent_list = ['GACPS']
+    # SHAREPATH = "output/test_v0/NonContexTT/stable_gac_test/v1/target0/replay5000_batch8/env_scale_10/"
+    SHAREPATH = "output/test_v0/TTAction/ConstPID/stable_gac_test/v1/target0/replay5000_batch8/env_scale_10/"
 
     # sweep_parameter(DATAROOT + SHAREPATH, agent_list)
 
@@ -558,3 +661,5 @@ if __name__ == '__main__':
 
     # visualize_general()
     # visualize_gac()
+
+    # visualize_temp()

@@ -29,6 +29,11 @@ def demo():
 
 def stable_gac_test(settings, shared_settings, target_agents):
     settings = {
+        "GAC": {
+            "--tau": [1e-3],
+            "--rho": [0.1],
+            "--n": [30],
+        },
         "GACMH": {
             "--tau": [1e-3],
             "--rho": [0.1],
@@ -61,6 +66,72 @@ def stable_gac_test(settings, shared_settings, target_agents):
         "--lr_critic": [0.01, 0.001, 0.0001],
     }
 
+    def reward_stay(settings, shared_settings):
+        target_agents = ["GAC"]
+        shared_settings["--env_name"] = ["TTChangeAction/DiscreteRwdStay"]
+        shared_settings["--env_info"] = [0.01]
+        shared_settings["--env_action_scaler"] = [1.]
+        shared_settings["--actor"] = ["Softmax"]
+        shared_settings["--discrete_control"] = [1]
+        shared_settings.pop('--action_scale', None)
+        shared_settings.pop('action_bias', None)
+
+        shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_1/change_0.01/"]
+        shared_settings["--buffer_size"] = [5000]
+        shared_settings["--batch_size"] = [8]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+
+    def batch_normalization(settings, shared_settings):
+        target_agents = ["GAC"]
+        shared_settings["--layer_norm"] = [1]
+
+        # 1
+        shared_settings["--env_name"] = ["NonContexTT"]
+
+        shared_settings["--exp_info"] = ["/target0_batchNorm/replay5000_batch8/env_scale_10/"]
+        shared_settings["--buffer_size"] = [5000]
+        shared_settings["--batch_size"] = [8]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+
+        # 2
+        shared_settings["--env_name"] = ["TTAction/ConstPID"]
+
+        shared_settings["--exp_info"] = ["/target0_batchNorm/replay5000_batch8/env_scale_10/"]
+        shared_settings["--buffer_size"] = [5000]
+        shared_settings["--batch_size"] = [8]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=54, line_per_file=1)
+
+        # 3
+        shared_settings["--env_name"] = ["TTChangeAction/ConstPID"]
+        shared_settings["--env_action_scaler"] = [1.]
+        shared_settings["--action_scale"] = [0.2]
+        shared_settings["--action_bias"] = [-0.1]
+
+        shared_settings["--exp_info"] = ["/target0_batchNorm/replay5000_batch8/env_scale_1/action_-0.1_0.1/"]
+        shared_settings["--buffer_size"] = [5000]
+        shared_settings["--batch_size"] = [8]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=108, line_per_file=1)
+
+        # 4
+        shared_settings["--env_name"] = ["TTChangeAction/DiscreteConstPID"]
+        shared_settings["--env_info"] = [0.01]
+        shared_settings["--env_action_scaler"] = [1.]
+        shared_settings["--actor"] = ["Softmax"]
+        shared_settings["--discrete_control"] = [1]
+        shared_settings.pop('--action_scale', None)
+        shared_settings.pop('action_bias', None)
+
+        shared_settings["--exp_info"] = ["/target0_batchNorm/replay5000_batch8/env_scale_1/change_0.01/"]
+        shared_settings["--buffer_size"] = [5000]
+        shared_settings["--batch_size"] = [8]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=162, line_per_file=1)
+
+
     def gac_with_memory(settings, shared_settings):
         target_agents = ["GACMH"]
 
@@ -87,37 +158,39 @@ def stable_gac_test(settings, shared_settings, target_agents):
 
     def gac_predict_success(settings, shared_settings):
         target_agents = ["GACPS"]
+        shared_settings["--rho"] = [0.1, 0.2, 0.5, 1]
+        shared_settings["--exp_name"] = ["stable_gac_test/v1/"]
 
-        # # 1
-        # shared_settings["--env_name"] = ["NonContexTT"]
-        #
-        # shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
-        # shared_settings["--buffer_size"] = [5000]
-        # shared_settings["--batch_size"] = [8]
-        # settings = merge_independent(settings, shared_settings)
-        # combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+        # 1
+        shared_settings["--env_name"] = ["NonContexTT"]
 
-        # # 2
-        # shared_settings["--env_name"] = ["TTAction/ConstPID"]
-        #
-        # shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
-        # shared_settings["--buffer_size"] = [5000]
-        # shared_settings["--batch_size"] = [8]
-        # settings = merge_independent(settings, shared_settings)
-        # combinations(settings, target_agents, num_runs=1, prev_file=9, line_per_file=6)
+        shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
+        shared_settings["--buffer_size"] = [5000]
+        shared_settings["--batch_size"] = [8]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
 
-        # 3
-        shared_settings["--env_name"] = ["TTChangeAction/ConstPID"]
-        shared_settings["--env_action_scaler"] = [1.]
-        shared_settings["--action_scale"] = [0.2]
-        shared_settings["--action_bias"] = [-0.1]
+        # 2
+        shared_settings["--env_name"] = ["TTAction/ConstPID"]
 
-        shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_1/action_-0.1_0.1/"]
+        shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
         shared_settings["--buffer_size"] = [5000]
         shared_settings["--batch_size"] = [8]
         settings = merge_independent(settings, shared_settings)
         combinations(settings, target_agents, num_runs=1, prev_file=108, line_per_file=1)
 
+        # # 3
+        # shared_settings["--env_name"] = ["TTChangeAction/ConstPID"]
+        # shared_settings["--env_action_scaler"] = [1.]
+        # shared_settings["--action_scale"] = [0.2]
+        # shared_settings["--action_bias"] = [-0.1]
+        #
+        # shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_1/action_-0.1_0.1/"]
+        # shared_settings["--buffer_size"] = [5000]
+        # shared_settings["--batch_size"] = [8]
+        # settings = merge_independent(settings, shared_settings)
+        # combinations(settings, target_agents, num_runs=1, prev_file=108, line_per_file=1)
+        #
         # # 4
         # shared_settings["--env_name"] = ["TTChangeAction/DiscreteConstPID"]
         # shared_settings["--env_info"] = [0.01]
@@ -181,6 +254,8 @@ def stable_gac_test(settings, shared_settings, target_agents):
         # settings = merge_independent(settings, shared_settings)
         # combinations(settings, target_agents, num_runs=1, prev_file=378, line_per_file=1)
 
+    # reward_stay(copy.deepcopy(settings), copy.deepcopy(shared_settings))
+    # batch_normalization(copy.deepcopy(settings), copy.deepcopy(shared_settings))
     # gac_with_memory(copy.deepcopy(settings), copy.deepcopy(shared_settings))
     gac_predict_success(copy.deepcopy(settings), copy.deepcopy(shared_settings))
     # gac_inac(copy.deepcopy(settings), copy.deepcopy(shared_settings))
@@ -791,6 +866,71 @@ def visualize_gac(settings, shared_settings):
         settings = merge_independent(settings, shared_settings)
         combinations(settings, target_agents, num_runs=1, prev_file=4, line_per_file=1)
 
+    def change_action_rwd_stay_replay5000(settings, shared_settings, target_agents):
+        shared_settings["--env_name"] = ["TTChangeAction/DiscreteRwdStay"]
+        shared_settings["--env_info"] = [0.01]
+        shared_settings["--exp_info"] = ["/replay5000/"]
+        shared_settings["--env_action_scaler"] = [1.]
+        shared_settings["--actor"] = ["Softmax"]
+        shared_settings["--discrete_control"] = [1]
+        shared_settings.pop('--action_scale', None)
+        shared_settings.pop('action_bias', None)
+        shared_settings["--buffer_size"] = [5000]
+        shared_settings["--batch_size"] = [8]
+        shared_settings["--tau"] = [0.01]
+        shared_settings["--rho"] = [0.2]
+        shared_settings["--lr_actor"] = [0.0001]
+        shared_settings["--lr_critic"] = [0.001]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+
+    def change_action_rwd_stay_long(settings, shared_settings, target_agents):
+        shared_settings["--env_name"] = ["TTChangeAction/DiscreteRwdStay"]
+        shared_settings["--env_info"] = [0.01]
+        shared_settings["--max_steps"] = [50000]
+        shared_settings["--exp_info"] = ["/replay50000/"]
+        shared_settings["--env_action_scaler"] = [1.]
+        shared_settings["--actor"] = ["Softmax"]
+        shared_settings["--discrete_control"] = [1]
+        shared_settings.pop('--action_scale', None)
+        shared_settings.pop('action_bias', None)
+        shared_settings["--buffer_size"] = [50000]
+        shared_settings["--batch_size"] = [8]
+        shared_settings["--tau"] = [0.01]
+        shared_settings["--rho"] = [0.2]
+        shared_settings["--lr_actor"] = [0.0001]
+        shared_settings["--lr_critic"] = [0.001]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+
+    def predict_goodness(settings, shared_settings, target_agents):
+        target_agents = ["GACPS"]
+        # 1
+        shared_settings["--env_name"] = ["NonContexTT"]
+
+        shared_settings["--exp_info"] = ["/replay5000/"]
+        shared_settings["--buffer_size"] = [5000]
+        shared_settings["--batch_size"] = [8]
+        shared_settings["--tau"] = [0.0001]
+        shared_settings["--rho"] = [0.2]
+        shared_settings["--lr_actor"] = [0.01]
+        shared_settings["--lr_critic"] = [0.001]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+
+        # 2
+        shared_settings["--env_name"] = ["TTAction/ConstPID"]
+
+        shared_settings["--exp_info"] = ["/replay5000/"]
+        shared_settings["--buffer_size"] = [5000]
+        shared_settings["--batch_size"] = [8]
+        shared_settings["--tau"] = [0.01]
+        shared_settings["--rho"] = [0.2]
+        shared_settings["--lr_actor"] = [0.01]
+        shared_settings["--lr_critic"] = [0.001]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=1, line_per_file=1)
+
     shared_settings["--debug"] = [1]
     shared_settings["--render"] = [2]
     shared_settings["--exp_name"] = ["/visualize/"]
@@ -805,7 +945,7 @@ def visualize_gac(settings, shared_settings):
     # direct_action_replay50(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # direct_action_replay100(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # direct_action_replay5000(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
-    direct_action_replay50_batch16(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # direct_action_replay50_batch16(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # change_action_continuous_replay0(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # change_action_continuous_replay50(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # change_action_continuous_replay100(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
@@ -814,6 +954,9 @@ def visualize_gac(settings, shared_settings):
     # change_action_discrete_replay50(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # change_action_discrete_replay100(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # change_action_discrete_replay5000(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # change_action_rwd_stay_replay5000(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # change_action_rwd_stay_long(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    predict_goodness(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
 
 def temp():
     settings = {
@@ -840,13 +983,14 @@ def temp():
     }
     target_agents = ["GACPS"]
 
-    shared_settings["--env_name"] = ["TTAction/ConstPID"]
+    # shared_settings["--env_name"] = ["TTAction/ConstPID"]
+    shared_settings["--env_name"] = ["NonContexTT"]
 
     shared_settings["--exp_info"] = ["/"]
     shared_settings["--buffer_size"] = [5000]
     shared_settings["--batch_size"] = [8]
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+    combinations(settings, target_agents, num_runs=1, prev_file=1000, line_per_file=1)
 
 
 if __name__=='__main__':
@@ -860,6 +1004,11 @@ if __name__=='__main__':
             "--n": [30],
         },
         "GAC-OE": {
+            "--tau": [1e-3],
+            "--rho": [0.1],
+            "--n": [30],
+        },
+        "GACPS": {
             "--tau": [1e-3],
             "--rho": [0.1],
             "--n": [30],
@@ -893,6 +1042,7 @@ if __name__=='__main__':
     # # constant_pid_target0_replay0_clip_action(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # constant_pid_target0_replay0_clip_distribution_param(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # visualize_general(copy.deepcopy(settings), copy.deepcopy(shared_settings))
-    visualize_gac(copy.deepcopy(settings), copy.deepcopy(shared_settings))
+    # visualize_gac(copy.deepcopy(settings), copy.deepcopy(shared_settings))
+    visualize_true_reward(copy.deepcopy(settings), copy.deepcopy(shared_settings))
 
     # temp()
