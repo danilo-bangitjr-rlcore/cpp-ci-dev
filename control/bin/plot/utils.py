@@ -2,6 +2,7 @@ import os
 import json
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def learning_curve(ax, data, label="", color=None, zorder=None):
@@ -37,19 +38,34 @@ def sensitivity_curve(ax, data):
     ax.set_xticks(np.arange(len(params)), labels=params)
 
 
-def param_sweep(ax, data):
+def param_sweep(ax, data, root):
     params = list(data.keys())
-    print(params)
     params.sort()
     compare_auc = []
     compare_2nd_half = []
     compare_final = []
     for p in params:
         ax.plot(data[p].mean(axis=0), label=p)
+        fig, p_ax = plt.subplots(figsize=(15, 10))
+        p_ax.plot(data[p].mean(axis=0), label=p)
+        p_ax.set_xlabel("Time Step")
+        p_ax.set_ylabel("Return")
+        p_ax.set_yscale('symlog', linthresh=0.1)
+        fig.savefig(root + "/" + p + ".png")
+        plt.close(fig)
         compare_auc.append(data[p].mean(axis=0).sum())
         compare_2nd_half.append(data[p][:, len(data[p])//2:].mean().sum())
         compare_final.append(data[p][:, -100:].mean().sum())
     
+    sort_compare_auc = np.argsort(compare_auc)
+    print("Best Performing Indices:")
+    print(sort_compare_auc)
+    print("AUCs:")
+    print(compare_auc)
+    print("2nd Half AUCs:")
+    print(compare_2nd_half)
+    print("Final 100 AUCs:")
+    print(compare_final)
     best_auc_idx = np.array(compare_auc).argmax()
     print("Sweeping AUC:", params[best_auc_idx], compare_auc[best_auc_idx])
     best_2ndhalf_idx = np.array(compare_2nd_half).argmax()
@@ -63,36 +79,33 @@ def load_param(pth, xlim=[], pick_seed=None):
     returns = []
     constraints = []
     runs = os.listdir(pth)
+    runs = [run for run in runs if run != ".DS_Store"]
     if pick_seed is None:
         pick_seed = runs
     for r in runs:
         if r not in pick_seed:
             continue
         p = os.path.join(pth, r)
-        ret = np.load(p + "/train_logs.npy")
-        if xlim != []:
-            ret = ret[xlim[0]: xlim[1]]
-        returns.append(ret)
-
-        if os.path.isfile(p + "/ep_constraints.npy"):
-            cons = np.load(p + "/ep_constraints.npy")
-        else:
-            cons = []
-            with open(p+"/info_logs.pkl", "rb") as f:
-                info = pickle.load(f)
-
-            for step in info:
-                try:
-                    cons.append(step["env_info/constrain"])
-                except:
-                    pass
-            cons = np.array(cons)
-            
-        if xlim != []:
-            ret = ret[xlim[0]: xlim[1]]
-            cons = cons[xlim[0]: xlim[1]]
-        returns.append(ret)
-        constraints.append(cons)
+        if os.path.isdir(p):
+            ret = np.load(p + "/train_logs.npy")
+            if os.path.isfile(p + "/ep_constraints.npy"):
+                cons = np.load(p + "/ep_constraints.npy")
+            else:
+                cons = []
+                with open(p+"/info_logs.pkl", "rb") as f:
+                    info = pickle.load(f)
+                for step in info:
+                    try:
+                        cons.append(step["env_info/constrain"])
+                    except:
+                        pass
+                cons = np.array(cons)
+                
+            if xlim != []:
+                ret = ret[xlim[0]: xlim[1]]
+                cons = cons[xlim[0]: xlim[1]]
+            returns.append(ret)
+            constraints.append(cons)
 
     with open(os.path.join(pth, runs[0]) + "/config.json", "r") as f:
         params = json.load(f)
@@ -101,27 +114,29 @@ def load_param(pth, xlim=[], pick_seed=None):
 
 def load_exp(axs, plot_fn, root, fix_params={}, sweep_param=None):
     params = os.listdir(root)
+    params = [param for param in params if param != ".DS_Store"]
     perf_ret = {}
     perf_cons = {}
     for p in params:
         pth = os.path.join(root, p)
-        setting, returns, constraints = load_param(pth)
-        if sweep_param:
-            add = True
-            for tp, tv in fix_params.items():
-                if setting[tp] != tv:
-                    add = False
-            if add:
-                assert setting[sweep_param] not in perf_ret
-                perf_ret[setting[sweep_param]] = returns
-                perf_cons[setting[sweep_param]] = constraints
-        else:
-            if not np.isnan(returns.mean()):
-                perf_ret[p] = returns
-                perf_cons[p] = constraints
-        # print(p, perf_ret[p].shape, perf_ret[p].mean(), perf_ret[p])
+        if os.path.isdir(pth):
+            setting, returns, constraints = load_param(pth)
+            if sweep_param:
+                add = True
+                for tp, tv in fix_params.items():
+                    if setting[tp] != tv:
+                        add = False
+                if add:
+                    assert setting[sweep_param] not in perf_ret
+                    perf_ret[setting[sweep_param]] = returns
+                    perf_cons[setting[sweep_param]] = constraints
+            else:
+                if not np.isnan(returns.mean()):
+                    perf_ret[p] = returns
+                    perf_cons[p] = constraints
+            # print(p, perf_ret[p].shape, perf_ret[p].mean(), perf_ret[p])
 
-    plot_fn(axs[0], perf_ret)
+    plot_fn(axs[0], perf_ret, root)
     if len(axs) > 1:
         plot_fn(axs[1], perf_cons)
 
