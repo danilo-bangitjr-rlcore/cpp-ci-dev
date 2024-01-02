@@ -3,20 +3,30 @@ from curves import visualize_training_info
 
 
 def sweep_parameter():
-    pth_base = DATAROOT + "output/test_v0/ReactorEnv/With_LR_Param/GAC_Sweep/{}/"
-    sweep_offline(pth_base, "GAC")
+    pth_base = DATAROOT + "output/test_v0/ReactorEnv/With_LR_Param_Baseline/Param_Sweep/{}/"
+    # pth_base = DATAROOT + "output/test_v0/Cont-CC-PermExDc-v0/With_LR_Param_Baseline/Episodic/Param_Sweep/{}/"
+    #sweep_offline(pth_base, "GAC")
+    #sweep_offline(pth_base, "SAC")
+    sweep_offline(pth_base, "Reinforce")
 
-def constant_pid_target0_replay0():
+def compare_algorithms():
     """
-    ThreeTanks Direct Action, constant PID
-    """
-    SHAREPATH = "output/test_v0/TTAction/ConstPID/learning_rate/target0/replay0/env_scale_10/"
+    Reactor Environment. Compare GAC, SAC, and REINFORCE
+    SHAREPATH = "output/test_v0/ReactorEnv/With_LR_Param_Baseline/Param_Sweep/"
     pths = {
-        "SAC": [DATAROOT + SHAREPATH + "SAC/param_1/", "C0", 5],
-        "SimpleAC": [DATAROOT + SHAREPATH + "SimpleAC/param_0/", "limegreen", 3],
-        "GAC": [DATAROOT + SHAREPATH + "GAC/param_2", "C1", 1],
+        "SAC": [DATAROOT + SHAREPATH + "SAC/param_20/", "C0", 5],
+        "Reinforce": [DATAROOT + SHAREPATH + "Reinforce/param_14/", "limegreen", 3],
+        "GAC": [DATAROOT + SHAREPATH + "GAC/param_91", "C1", 1],
     }
-    # best_offline(pths, "best_TTAction_replay0_e10", ylim=[-2, 2])
+    best_offline(pths, "ReactorEnv_Baseline", ylim=[-1500, 0])
+    """
+    SHAREPATH = "output/test_v0/Cont-CC-PermExDc-v0/With_LR_Param_Baseline/Episodic/Param_Sweep/"
+    pths = {
+        "SAC": [DATAROOT + SHAREPATH + "SAC/param_37/", "C0", 5],
+        "Reinforce": [DATAROOT + SHAREPATH + "Reinforce/param_0/", "limegreen", 3],
+        "GAC": [DATAROOT + SHAREPATH + "GAC/param_114", "C1", 1],
+    }
+    best_offline(pths, "Cont-CC-PermExDc-v0_Baseline", ylim=[-50, 0])
 
 def test():
     file = DATAROOT + "output/test_v0/TTChangeAction/ConstPID/temp/GAC/param_0/seed_0"
@@ -39,5 +49,6 @@ def test():
 
 if __name__ == '__main__':
     sweep_parameter()
+    # compare_algorithms()
 
 

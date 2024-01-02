@@ -12,7 +12,7 @@ def base_cmd(**kwargs):
         env_name = "_".join(kwargs["--env_name"].split("/"))
     else:
         env_name = kwargs["--env_name"]
-    cmd += "> '{}_{}.txt' ".format(env_name, kwargs["--param"])
+    cmd += "> {}_{}_{}.txt ".format(kwargs["--env_name"], kwargs["--param"], kwargs["--seed"])
     cmd += "\n"
     return cmd
 
@@ -70,25 +70,31 @@ def combinations(settings, target_agents, num_runs=10, comb_num_base=0, prev_fil
 def smpl_exp():
     settings = {
         "GAC": {
-            "--tau": [1e-1, 1e-3],
-            "--rho": [0.1],
+            "--tau": [1e0, 1e-1, 1e-2, 1e-3],
+            "--rho": [0.05, 0.1, 0.25],
             "--n": [30],
-            "--buffer_size": [10000],
+            "--buffer_size": [1000, 10000],
             "--buffer_prefill": [1000],
-            "--batch_size": [64],
-            "--polyak": [0.995],
+            "--batch_size": [64, 256],
+            "--polyak": [0.9, 0.995],
+            "--lr_actor": [1e-3, 1e-4, 1e-5, 1e-6],
+            "--lr_critic": [1e-2, 1e-3, 1e-4, 1e-5],
         },
         "SAC": {
-            "--tau": [1e-3],
-            "--buffer_size": [10000],
+            "--tau": [1e-1, 1e-2, 1e-3, 1e-4],
+            "--buffer_size": [1000, 10000],
             "--buffer_prefill": [1000],
-            "--batch_size": [64],
-            "--polyak": [0.995],
+            "--batch_size": [64, 256],
+            "--polyak": [0.9, 0.995],
+            "--lr_actor": [1e-4],
+            "--lr_critic": [1e-3],
         },
         "Reinforce": {
             "--buffer_size": [0],
             "--buffer_prefill": [0],
             "--batch_size": [1],
+            "--lr_actor": [1e-2, 1e-3, 1e-4],
+            "--lr_v": [1e-1, 1e-2, 1e-3]
         }
     }
     shared_settings = {
@@ -97,69 +103,135 @@ def smpl_exp():
         "--exp_info": ["/Param_Sweep"],
         "--max_steps": [100000],
         "--timeout": [100],
-        "--gamma": [0.9, 0.99, 0.999],
-        "--log_interval": [1],
+        "--gamma": [0.9, 0.99],
+        "--log_interval": [10],
         "--stats_queue_size": [1],
         "--state_normalizer": ["Identity"],
         "--reward_normalizer": ["Identity"],
         "--actor": ["Beta"],
         "--critic": ["FC"],
         "--optimizer": ["RMSprop"],
-        "--hidden_actor": ["128 128"],
-        "--hidden_critic": ["128 128"],
-        "--lr_actor": [1e-3, 1e-4, 1e-5],
-        "--lr_critic": [1e-3, 1e-4, 1e-5],
+        "--hidden_actor": ["256 256"],
+        "--hidden_critic": ["256 256"],
         "--action_scale": [2],
         "--action_bias": [-1],
         "--debug": [1],
     }
-    target_agents = ["GAC"]
+    target_agents = ["Reinforce"]
 
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=5, prev_file=0, line_per_file=2000)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, comb_num_base=0, line_per_file=3)
 
-def gem_exp():
+def gem_episodic_exp():
     settings = {
         "GAC": {
-            "--tau": [1e-1],
-            "--rho": [0.1],
+            "--tau": [1e-1, 1e-2, 1e-3, 1e-4],
+            "--rho": [0.1, 0.25],
             "--n": [30],
-            "--buffer_size": [10000],
+            "--buffer_size": [1000, 10000],
             "--buffer_prefill": [1000],
-            "--batch_size": [128],
-            "--polyak": [0.995],
+            "--batch_size": [64, 256],
+            "--polyak": [0.9, 0.995],
+            "--lr_actor": [1e-2],
+            "--lr_critic": [1e-3],
+        },
+        "SAC": {
+            "--tau": [1e-1, 1e-2, 1e-3, 1e-4],
+            "--buffer_size": [1000, 10000],
+            "--buffer_prefill": [1000],
+            "--batch_size": [64, 256],
+            "--polyak": [0.9, 0.995],
+            "--lr_actor": [1e-2],
+            "--lr_critic": [1e-4],
         },
         "Reinforce": {
             "--buffer_size": [0],
             "--buffer_prefill": [0],
             "--batch_size": [1],
+            "--lr_actor": [1e-2],
+            "--lr_v": [1e-2],
         }
     }
     shared_settings = {
-        "--env_name": ["Cont-CC-PMSM-v0"],
-        "--exp_name": ["gem_test"],
-        "--exp_info": ["/test"],
-        "--max_steps": [200000],
+        "--env_name": ["Cont-CC-PermExDc-v0"],
+        "--evaluation_criteria": ["return"],
+        "--exp_name": ["With_LR_Param_Baseline"],
+        "--exp_info": ["/Episodic/Param_Sweep"],
+        "--max_steps": [50000],
         "--timeout": [200],
-        "--gamma": [0.9],
-        "--log_interval": [1],
-        "--stats_queue_size": [10],
+        "--gamma": [0.9, 0.99],
+        "--log_interval": [10],
+        "--stats_queue_size": [1],
         "--state_normalizer": ["Identity"],
         "--reward_normalizer": ["Identity"],
         "--actor": ["Beta"],
         "--critic": ["FC"],
         "--optimizer": ["RMSprop"],
-        "--hidden_actor": ["128 128"],
-        "--hidden_critic": ["128 128"],
-        "--lr_actor": [0.0001],
-        "--lr_critic": [0.0001],
+        "--hidden_actor": ["256 256"],
+        "--hidden_critic": ["256 256"],
         "--action_scale": [2],
         "--action_bias": [-1],
     }
-    target_agents = ["Reinforce"]
+    target_agents = ["GAC", "SAC"]
 
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=3, line_per_file=2)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=2000)
+
+def gem_continuing_exp():
+    settings = {
+        "GAC": {
+            "--tau": [1e-2],
+            "--rho": [0.1],
+            "--n": [30],
+            "--buffer_size": [1000],
+            "--buffer_prefill": [1000],
+            "--batch_size": [64],
+            "--polyak": [0.995],
+            "--lr_actor": [1e-2, 1e-3, 1e-4, 1e-5],
+            "--lr_critic": [1e-2, 1e-3, 1e-4, 1e-5],
+        },
+        "SAC": {
+            "--tau": [1e-2],
+            "--buffer_size": [1000],
+            "--buffer_prefill": [1000],
+            "--batch_size": [64],
+            "--polyak": [0.995],
+            "--lr_actor": [1e-2, 1e-3, 1e-4, 1e-5],
+            "--lr_critic": [1e-2, 1e-3, 1e-4, 1e-5],
+        },
+        "Reinforce": {
+            "--buffer_size": [0],
+            "--buffer_prefill": [0],
+            "--batch_size": [1],
+            "--lr_actor": [1e-2, 1e-3, 1e-4, 1e-5],
+            "--lr_v": [1e-2, 1e-3, 1e-4, 1e-5]
+        }
+    }
+    shared_settings = {
+        "--env_name": ["Cont-CC-PermExDc-v0"],
+        "--evaluation_criteria": ["avg_reward"],
+        "--reward_window": [1000],
+        "--exp_name": ["With_LR_Param_Baseline"],
+        "--exp_info": ["/Continuing/Param_Sweep"],
+        "--max_steps": [50000],
+        "--timeout": [100000],
+        "--gamma": [0.9, 0.99, 0.999],
+        "--log_interval": [10],
+        "--stats_queue_size": [1],
+        "--state_normalizer": ["Identity"],
+        "--reward_normalizer": ["Identity"],
+        "--actor": ["Beta"],
+        "--critic": ["FC"],
+        "--optimizer": ["RMSprop"],
+        "--hidden_actor": ["256 256"],
+        "--hidden_critic": ["256 256"],
+        "--action_scale": [2],
+        "--action_bias": [-1],
+    }
+    target_agents = ["GAC", "SAC", "Reinforce"]
+
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=2000)
 
 def test_runs():
     settings = {
@@ -235,8 +307,8 @@ def test_runs():
 
 
 if __name__ == '__main__':
-    test_runs()
+    # test_runs()
     # demo()
     # constant_pid() # 52919
-    # smpl_exp()
-    # gem_exp()
+    smpl_exp()
+    # gem_episodic_exp()

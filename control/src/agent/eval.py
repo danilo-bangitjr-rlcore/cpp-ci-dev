@@ -36,6 +36,7 @@ class Evaluation:
         self.ep_returns_queue_test = np.zeros(self.stats_queue_size)
         self.evaluation_criteria = cfg.evaluation_criteria
         self.device = cfg.device
+        self.log_interval = cfg.log_interval
         
         self.info_log = []
         if cfg.render == 1: # show the plot while running
@@ -128,11 +129,13 @@ class Evaluation:
         total_episodes = len(self.ep_returns)
         mean, median, min_, max_ = np.mean(rewards), np.median(rewards), np.min(rewards), np.max(rewards)
         
-        log_str = '%s LOG: steps %d, episodes %3d, ' \
-                  'returns %.2f/%.2f/%.2f/%.2f/%d (mean/median/min/max/num), %.2f steps/s'
-        
-        self.logger.info(log_str % (name, self.total_steps, total_episodes, mean, median,
+        if self.log_interval and not self.total_steps % self.log_interval:
+            log_str = '%s LOG: steps %d, episodes %3d, ' \
+                      'returns %.2f/%.2f/%.2f/%.2f/%d (mean/median/min/max/num), %.2f steps/s'
+            
+            self.logger.info(log_str % (name, self.total_steps, total_episodes, mean, median,
                                     min_, max_, len(rewards), elapsed_time))
+        
         return mean, median, min_, max_
     
     def log_file(self, elapsed_time=-1, test=True):
