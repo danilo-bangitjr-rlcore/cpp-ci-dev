@@ -22,7 +22,7 @@ class GAC_InAC(GreedyAC):
             self.predict_action_encoder = init_normalizer("Identity", None)
 
         self.predict_model = init_custom_network("Softmax", cfg.device, self.state_dim+self.action_dim, cfg.hidden_critic, 2,
-                                                 cfg.activation, "None", cfg.layer_init)
+                                                 cfg.activation, "None", cfg.layer_init, cfg.layer_norm)
         self.predict_model_optim = init_optimizer(cfg.optimizer, list(self.predict_model.parameters()), cfg.lr_critic)
 
         inac_cfg = copy.deepcopy(cfg)
