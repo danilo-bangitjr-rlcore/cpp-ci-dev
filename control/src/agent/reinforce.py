@@ -54,13 +54,13 @@ class Reinforce(BaseAC):
             v_boot = self.get_v_value(torch_utils.tensor(self.state_normalizer(self.ep_states[ep_t]).reshape((1, -1)), self.device), with_grad=False)
             G = v_boot
 
-        ep_t -= 1
+        returns = np.zeros(ep_t)
 
-        returns = []
+        ep_t -= 1
 
         for t in range(ep_t, -1, -1):
             G = self.ep_rewards[t] + self.gamma * G
-            returns.insert(0, [G])
+            returns[t] = G
 
         returns = torch_utils.tensor(returns, self.device)
 
@@ -71,22 +71,25 @@ class Reinforce(BaseAC):
 
         v_base = self.get_v_value(self.ep_states, with_grad=True)
 
-        v_base_loss = nn.functional.mse_loss(v_base, returns)
-        print("Baseline Loss:", v_base_loss)
+        with torch.no_grad():
+            delta = returns - v_base
 
+        # Update Actor
         log_prob, _ = self.actor.log_prob(self.ep_states, self.ep_actions)
         log_prob = log_prob.view(-1,1)
 
-        actor_loss = torch.mean(-log_prob * (returns - v_base.detach()))
-        print("Actor Loss:", actor_loss)
-
-        self.v_optimizer.zero_grad()
-        v_base_loss.backward()
-        self.v_optimizer.step()
+        actor_loss = torch.mean(-log_prob * delta)
 
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
+
+        # Update Baseline
+        v_base_loss = nn.functional.mse_loss(v_base, returns)
+        
+        self.v_optimizer.zero_grad()
+        v_base_loss.backward()
+        self.v_optimizer.step()
 
     def save(self):
         parameters_dir = self.parameters_dir

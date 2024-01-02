@@ -36,13 +36,10 @@ class GreedyAC(BaseAC):
         self.critic_optimizer.step()
 
         # actor update
-        sample_actions = []
-        for _ in range(self.num_samples):
-            with torch.no_grad():
-                a, _, _ = self.sampler(state_batch)
-                sample_actions.append(a)
-        sample_actions = torch.cat(sample_actions, dim=1).reshape((-1, self.gac_a_dim))
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
+
+        with torch.no_grad():
+            sample_actions, _, _ = self.sampler(repeated_states)
 
         # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
         q_values, _ = self.get_q_value(repeated_states, sample_actions, with_grad=False)
@@ -65,18 +62,15 @@ class GreedyAC(BaseAC):
         self.actor_optimizer.step()
 
         # sampler entropy update
-        stacked_s_batch = state_batch.repeat_interleave(self.num_samples, dim=0)
-        stacked_s_batch = stacked_s_batch.reshape(-1, self.state_dim)
         # sample_actions = sample_actions.reshape(-1, self.action_dim)
         sample_actions = sample_actions.reshape(-1, self.gac_a_dim)
 
-        sampler_entropy, _ = self.sampler.log_prob(stacked_s_batch, sample_actions)
+        sampler_entropy, _ = self.sampler.log_prob(repeated_states, sample_actions)
         with torch.no_grad():
             sampler_entropy *= sampler_entropy
         sampler_entropy = sampler_entropy.reshape(self.batch_size, self.num_samples, 1)
         sampler_entropy = -sampler_entropy.mean(axis=1)
 
-        stacked_s_batch = state_batch.repeat_interleave(self.top_action, dim=0)
         logp, _ = self.sampler.log_prob(stacked_s_batch, best_actions)
         sampler_loss = logp.reshape(self.batch_size, self.top_action, 1)
         sampler_loss = -1 * (sampler_loss.mean(axis=1) + self.tau * sampler_entropy).mean()

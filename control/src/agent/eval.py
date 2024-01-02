@@ -36,6 +36,7 @@ class Evaluation:
         self.ep_returns_queue_test = np.zeros(self.stats_queue_size)
         self.evaluation_criteria = cfg.evaluation_criteria
         self.device = cfg.device
+        self.log_interval = cfg.log_interval
         
         self.info_log = []
         if cfg.render == 1: # show the plot while running
@@ -125,21 +126,25 @@ class Evaluation:
         total_episodes = len(self.ep_returns)
         mean, median, min_, max_ = np.mean(rewards), np.median(rewards), np.min(rewards), np.max(rewards)
         
-        log_str = '%s LOG: steps %d, episodes %3d, ' \
-                  'returns %.2f/%.2f/%.2f/%.2f/%d (mean/median/min/max/num), %.2f steps/s'
-        
-        self.logger.info(log_str % (name, self.total_steps, total_episodes, mean, median,
+        if self.log_interval and not self.total_steps % self.log_interval:
+            log_str = '%s LOG: steps %d, episodes %3d, ' \
+                      'returns %.2f/%.2f/%.2f/%.2f/%d (mean/median/min/max/num), %.2f steps/s'
+            
+            self.logger.info(log_str % (name, self.total_steps, total_episodes, mean, median,
                                     min_, max_, len(rewards), elapsed_time))
+        
         return mean, median, min_, max_
     
     def log_file(self, elapsed_time=-1, test=True):
         train_mean, train_median, train_min_, train_max_ = self.log_return(self.ep_returns_queue_train[: min(self.train_stats_counter, self.stats_queue_size)],
                                                                            "TRAIN", elapsed_time)
+        """
         try:
             normalized = np.array([self.env.env.unwrapped.get_normalized_score(ret_) for ret_ in self.ep_returns_queue_train])
             train_mean, train_median, train_min_, train_max_ = self.log_return(normalized, "TRAIN Normalized", elapsed_time)
         except:
             pass
+        """
         
         if test:
             self.populate_states, self.populate_actions, self.populate_sampled_returns = self.populate_returns(log_traj=True)

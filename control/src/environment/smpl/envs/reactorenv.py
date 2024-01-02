@@ -31,7 +31,7 @@ MAX_ACTIONS = [35.0, 0.2]  # Tc (coolant temperature), qout (volumetric flow rat
 MIN_ACTIONS = [15.0, 0.05]
 STEADY_OBSERVATIONS = [0.8778252, 51.34660837, 0.659]
 STEADY_ACTIONS = [26.85, 0.1]
-ERROR_REWARD = -10000.0
+ERROR_REWARD = -1000.0
 
 
 class ReactorPID:
@@ -206,13 +206,21 @@ class ReactorModel:
                 ]
             return dxdt
         except:
+            print("ODE Failing state:", x)
+            print("ODE Failing action:", u)
+            print("ODE Failing rate_exp:", rate_exp)
             return [np.NAN] * 3
 
     # integrates one sampling time or time step and returns the next state
     def step(self, x, u):
         # return self.simulator.sim(x,u)
-        sol = solve_ivp(lambda t, x, u: self.ode(x, u), [0, self.sampling_time], x, args=(u,), method='LSODA')
-        return sol.y[:, -1]
+        try:
+            sol = solve_ivp(lambda t, x, u: self.ode(x, u), [0, self.sampling_time], x, args=(u,), method='LSODA')
+            return sol.y[:, -1]
+        except:
+            print("solve_ivp Failing state:", x)
+            print("solve_ivp Failing action:", u)
+            return [np.NAN] * 3
 
 
 class ReactorEnvGym(smplEnvBase):
@@ -276,6 +284,7 @@ class ReactorEnvGym(smplEnvBase):
         # /---- standard ----
 
         self.steady_observations = np.array(STEADY_OBSERVATIONS, dtype=self.np_dtype)  # cA, T, h
+        self.norm_steady_observations, _, _ = normalize_spaces(self.steady_observations, self.max_observations, self.min_observations)
         self.steady_actions = np.array(STEADY_ACTIONS, dtype=self.np_dtype)  # Tc, qout
         self.initial_state_deviation_ratio = initial_state_deviation_ratio
 
@@ -285,9 +294,15 @@ class ReactorEnvGym(smplEnvBase):
         if reward is not None:
             return reward
         elif self.observation_beyond_box(current_observation) or self.action_beyond_box(action):
-            return self.error_reward * (self.max_steps - self.step_count)
+            print("Beyond Box Error Reward")
+            # return self.error_reward * (self.max_steps - self.step_count)
+            return self.error_reward
         # /---- standard ----
-        current_observation_evaluated = self.evaluate_observation(current_observation)
+        if self.normalize:
+            norm_observation, _, _ = normalize_spaces(current_observation, self.max_observations, self.min_observations)
+            current_observation_evaluated = self.evaluate_observation(norm_observation)
+        else:
+            current_observation_evaluated = self.evaluate_observation(current_observation)
         assert isinstance(current_observation_evaluated, float)
         if self.compute_diffs_on_reward:
             previous_observation_evaluated = self.evaluate_observation(previous_observation)
@@ -296,7 +311,8 @@ class ReactorEnvGym(smplEnvBase):
         else:
             reward = current_observation_evaluated
         # ---- standard ----
-        reward = max(self.error_reward * (self.max_steps - self.step_count), reward)  # reward cannot be smaller than the error_reward
+        # reward = max(self.error_reward * (self.max_steps - self.step_count), reward)  # reward cannot be smaller than the error_reward
+        reward = max(self.error_reward, reward)  # reward cannot be smaller than the error_reward
         if self.debug_mode:
             print("reward:", reward)
         return reward
@@ -345,6 +361,7 @@ class ReactorEnvGym(smplEnvBase):
         normalize = self.normalize if normalize is None else normalize
         if normalize:
             action, _, _ = denormalize_spaces(action, self.max_actions, self.min_actions)
+            action = action.clip(self.min_actions, self.max_actions)
         # /---- standard ----
 
         # ---- to capture numpy warnings ---- 
@@ -353,7 +370,9 @@ class ReactorEnvGym(smplEnvBase):
             observation = self.reactor.step(self.previous_observation, action)
             if np.isnan(observation).any():
                 observation = self.previous_observation
-                reward = self.error_reward * (self.max_steps - self.step_count)
+                # reward = self.error_reward * (self.max_steps - self.step_count)
+                reward = self.error_reward
+                print("NAN Error Reward")
                 done = True
                 done_info["terminal"] = True
         # /---- to capture numpy warnings ---- 
@@ -656,10 +675,14 @@ class ReactorEnvGym(smplEnvBase):
         """
         observation: numpy array of shape (self.observation_dim)
         returns: observation evaluation (reward in a sense)
-        """
-
+        
         return float(- (np.mean((observation - self.steady_observations) ** 2 / np.maximum(
             (self.init_observation - self.steady_observations) ** 2, 1e-8))))
+        """
+        if self.normalize:
+            return -float(np.sum(np.absolute(observation - self.norm_steady_observations)))
+        else:
+            return -float(np.sum(np.absolute(observation - self.steady_observations)))
 
     def generate_dataset_with_algorithm(self, algorithm, normalize=None, num_episodes=1, error_reward=-1000.0,
                                         initial_states=None, format='d4rl'):

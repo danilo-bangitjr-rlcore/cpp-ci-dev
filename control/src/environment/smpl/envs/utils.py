@@ -208,6 +208,7 @@ class smplEnvBase(Env):
             done_info["terminal"] = True
             done = True
         # check for valid reward
+        # if reward == self.error_reward * (self.max_steps - self.step_count):
         if reward == self.error_reward:
             done_info["terminal"] = True
             done = True
