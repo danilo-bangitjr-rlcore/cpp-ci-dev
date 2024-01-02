@@ -73,7 +73,7 @@ class SquashedGaussianPolicy(nn.Module):
                 "param2": std.squeeze().detach().numpy(),
             }
         else:
-            info = normal
+            info = None
         return action, logp, info
 
     def log_prob(self, observation, action, debug=False):
@@ -97,18 +97,19 @@ class SquashedGaussianPolicy(nn.Module):
                 "param2": std.squeeze().detach().numpy()
             }
         else:
-            info = normal
+            info = None
         return logp, info
 
 
 class BetaPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
-                 action_scale=1, action_bias=0, init='Xavier', activation="ReLU"):
+                 action_scale=1, action_bias=0, init='Xavier', activation="ReLU", head_activation="Softplus"):
         super(BetaPolicy, self).__init__()
         layer_init = internal_factory.init_layer(init)
         self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation, init=init)
         self.alpha_head = layer_init(nn.Linear(arch[-1], action_dim))
         self.beta_head = layer_init(nn.Linear(arch[-1], action_dim))
+        self.head_activation_fn = internal_factory.init_activation_function(head_activation)
 
         self.action_scale = torch.tensor(action_scale)
         self.action_bias = torch.tensor(action_bias)
@@ -116,8 +117,8 @@ class BetaPolicy(nn.Module):
 
     def forward(self, observation, debug=False):
         base = self.base_network(observation)
-        alpha = nn.functional.softplus(self.alpha_head(base)) + EPSILON
-        beta = nn.functional.softplus(self.beta_head(base)) + EPSILON
+        alpha = self.head_activation_fn(self.alpha_head(base)) + EPSILON
+        beta = self.head_activation_fn(self.beta_head(base)) + EPSILON
         
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)
@@ -135,7 +136,7 @@ class BetaPolicy(nn.Module):
                 "param2": beta.squeeze().detach().numpy()
             }
         else:
-            info = dist
+            info = None
         return action, logp, info
         
     def log_prob(self, observation, action, debug=False):
@@ -143,8 +144,8 @@ class BetaPolicy(nn.Module):
         out = torch.clamp(out, 0, 1)
     
         base = self.base_network(observation)
-        alpha = nn.functional.softplus(self.alpha_head(base)) + EPSILON
-        beta = nn.functional.softplus(self.beta_head(base)) + EPSILON
+        alpha = self.head_activation_fn(self.alpha_head(base)) + EPSILON
+        beta = self.head_activation_fn(self.beta_head(base)) + EPSILON
     
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)
@@ -158,7 +159,7 @@ class BetaPolicy(nn.Module):
                 "param2": beta.squeeze().detach().numpy()
             }
         else:
-            info = dist
+            info = None
         return logp, info
 
 
@@ -186,7 +187,7 @@ class Softmax(nn.Module):
                 "param1": x.squeeze().detach().numpy(),
             }
         else:
-            info = dist
+            info = None
         return actions.reshape((-1, 1)), log_prob, info
 
     def log_prob(self, states, actions, debug=False):
@@ -205,5 +206,5 @@ class Softmax(nn.Module):
                 "param1": probs.squeeze().detach().numpy(),
             }
         else:
-            info = dist
+            info = None
         return log_prob, info

@@ -106,6 +106,7 @@ def load_param(pth, xlim=[], pick_seed=None):
                 cons = cons[xlim[0]: xlim[1]]
             returns.append(ret)
             constraints.append(cons)
+
     with open(os.path.join(pth, runs[0]) + "/config.json", "r") as f:
         params = json.load(f)
     return params, np.array(returns), np.array(constraints)

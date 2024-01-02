@@ -8,6 +8,10 @@ def base_cmd(**kwargs):
     cmd = "nohup python3 main.py "
     for k in kwargs:
         cmd += " {} {} ".format(k, kwargs[k])
+    if "/" in kwargs["--env_name"]:
+        env_name = "_".join(kwargs["--env_name"].split("/"))
+    else:
+        env_name = kwargs["--env_name"]
     cmd += "> {}_{}_{}.txt ".format(kwargs["--env_name"], kwargs["--param"], kwargs["--seed"])
     cmd += "\n"
     return cmd
@@ -20,6 +24,7 @@ def write_cmd(cmds, prev_file=0, line_per_file=1):
     cmd_file.parent.mkdir(exist_ok=True, parents=True)
 
     count = 0
+    print("First script:", cmd_file)
     file = open(cmd_file, 'w')
     for cmd in cmds:
         file.write(cmd)
@@ -31,7 +36,7 @@ def write_cmd(cmds, prev_file=0, line_per_file=1):
             file = open(cmd_file, 'w')
     if not file.closed:
         file.close()
-    print("last script:", cmd_file_path.format(str(prev_file)))
+    print("Last script:", cmd_file_path.format(str(prev_file)), "\n")
 
 
 def merge_independent(settings, shared_settings):
@@ -60,33 +65,6 @@ def combinations(settings, target_agents, num_runs=10, comb_num_base=0, prev_fil
                 
                 cmds.append(base_cmd(**kwargs))
     write_cmd(cmds, prev_file=prev_file, line_per_file=line_per_file)
-
-
-def demo():
-    settings = {
-        "GAC": {
-            "--tau": [1e-3],
-            "--rho": [0.1],
-        },
-    }
-    shared_settings = {
-        "--exp_name": ["demo"],
-        "--max_steps": [7000],
-        "--render": [0],
-        "--lr_actor": [0.001, 0.0001],
-        "--lr_critic": [0.001, 0.0001],
-        "--buffer_size": [1],
-        "--batch_size": [1],
-        "--env_action_scaler": [10],
-        "--action_scale": [1],
-        "--action_bias": [0],
-    }
-    target_agents = ["GAC"]
-    shared_settings["--env_name"] = ["ThreeTank"]
-    shared_settings["--exp_info"] = ["/target0/replay0/env_scale_10/"]
-    settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=5, prev_file=0, line_per_file=1)
-
 
 
 def smpl_exp():

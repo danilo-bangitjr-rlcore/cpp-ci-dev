@@ -70,6 +70,18 @@ def init_activation(name):
     else:
         raise NotImplementedError
 
+def init_activation_function(name):
+    if name == "ReLU":
+        return torch.nn.functional.relu
+    elif name == "Softplus":
+        return torch.nn.functional.softplus
+    elif name == "ReLU6":
+        return torch.nn.functional.relu6
+    elif name == "None":
+        return NoneActivation
+    else:
+        raise NotImplementedError
+
 def init_layer(init):
     if init == 'Xavier':
         layer_init = layer_init_xavier

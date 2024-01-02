@@ -1,7 +1,9 @@
 import gymnasium as gym
 import gym_electric_motor as gem
 from gymnasium.wrappers import FlattenObservation
-from src.environment.three_tanks import ThreeTankEnv, TTChangeAction, TTAction, TTChangeActionDiscrete
+from src.environment.three_tanks import ThreeTankEnv, NonContexTT
+from src.environment.three_tanks import TTChangeAction, TTAction, TTChangeActionDiscrete
+from src.environment.three_tanks import TTChangeActionClip, TTChangeActionDiscreteClip
 from src.environment.smpl.envs.atropineenv import AtropineEnvGym
 from src.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
 from src.environment.smpl.envs.reactorenv import ReactorEnvGym
@@ -11,15 +13,30 @@ def init_environment(name, cfg):
     if name == "ThreeTank":
         return ThreeTankEnv(cfg.seed, cfg.lr_constrain, env_action_scaler=cfg.env_action_scaler)
     elif name == "TTChangeAction/ConstPID":
-        return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=True, env_action_scaler=cfg.env_action_scaler)
+        return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=True, env_action_scaler=cfg.env_action_scaler,
+                              agent_action_min=0*cfg.action_scale+cfg.action_bias,
+                              agent_action_max=1*cfg.action_scale+cfg.action_bias)
     elif name == "TTChangeAction/ChangePID":
-        return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=False, env_action_scaler=cfg.env_action_scaler)
+        return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=False, env_action_scaler=cfg.env_action_scaler,
+                              agent_action_min=0*cfg.action_scale+cfg.action_bias,
+                              agent_action_max=1*cfg.action_scale+cfg.action_bias)
     elif name == "TTChangeAction/DiscreteConstPID":
-        return TTChangeActionDiscrete(cfg.env_info, cfg.seed, cfg.lr_constrain, constant_pid=True, env_action_scaler=cfg.env_action_scaler)
+        return TTChangeActionDiscrete(cfg.env_info, cfg.seed, cfg.lr_constrain, constant_pid=True,
+                                      env_action_scaler=cfg.env_action_scaler)
+    elif name == "TTChangeAction/ClipConstPID":
+        return TTChangeActionClip(cfg.seed, cfg.lr_constrain, constant_pid=True,
+                                  env_action_scaler=cfg.env_action_scaler,
+                                  agent_action_min=0*cfg.action_scale+cfg.action_bias,
+                                  agent_action_max=1*cfg.action_scale+cfg.action_bias)
+    elif name == "TTChangeAction/ClipDiscreteConstPID":
+        return TTChangeActionDiscreteClip(cfg.env_info, cfg.seed, cfg.lr_constrain, constant_pid=True,
+                                          env_action_scaler=cfg.env_action_scaler)
     elif name == "TTAction/ConstPID":
         return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=True, env_action_scaler=cfg.env_action_scaler)
     elif name == "TTAction/ChangePID":
         return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=False, env_action_scaler=cfg.env_action_scaler)
+    elif name == "NonContexTT":
+        return NonContexTT(cfg.seed, cfg.lr_constrain, env_action_scaler=cfg.env_action_scaler)
     elif name == "AtropineEnv":
         return AtropineEnvGym()
     elif name == "BeerEnv":
