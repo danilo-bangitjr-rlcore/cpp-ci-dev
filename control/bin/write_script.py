@@ -233,6 +233,44 @@ def gem_continuing_exp():
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=2000)
 
+def etc_pid():
+    settings = {
+        "ETC": {
+            "--actions_per_dim": [32],
+            "--min_trials": [1],
+            "--render": [0],
+            "--lr_actor": [1e-3],
+            "--buffer_size": [1],
+            "--batch_size": [1],
+        },
+        "GAC": {
+            "--tau": [1e-2],
+            "--rho": [0.1],
+            "--n": [30],
+            "--buffer_size": [50],
+            "--batch_size": [8],
+            "--polyak": [0.0, 0.995],
+            "--lr_actor": [1e-2],
+            "--lr_critic": [1e-4],
+            "--render": [2],
+        },
+    }
+    shared_settings = {
+        "--env_name": ["NonContexTT"],
+        "--exp_name": ["Noncontext_PID_Baseline_Debug"],
+        "--exp_info": ["/"],
+        "--evaluation_criteria": ["return"],
+        "--debug": [1],
+        "--max_steps": [5000],
+        "--env_action_scaler": [10],
+        "--action_scale": [1],
+        "--action_bias": [0],
+    }
+    target_agents = ["GAC"]
+
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=10)
+
 def test_runs():
     settings = {
         "SAC": {
@@ -310,5 +348,6 @@ if __name__ == '__main__':
     # test_runs()
     # demo()
     # constant_pid() # 52919
-    smpl_exp()
+    # smpl_exp()
     # gem_episodic_exp()
+    etc_pid()

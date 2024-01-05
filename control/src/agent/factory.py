@@ -3,6 +3,7 @@ from src.agent.sac import SAC
 from src.agent.greedy_ac import GreedyAC, GreedyACDiscrete
 from src.agent.reinforce import Reinforce
 from src.agent.greedy_ac_wm import GACwHardMemory
+from src.agent.explore_then_commit import ExploreThenCommit
 
 
 def init_agent(name, cfg):
@@ -27,5 +28,7 @@ def init_agent(name, cfg):
             raise NotImplementedError
         else:
             return GACwHardMemory(cfg, average_entropy=True)
+    elif name == "ETC":
+        return ExploreThenCommit(cfg)
     else:
         raise NotImplementedError

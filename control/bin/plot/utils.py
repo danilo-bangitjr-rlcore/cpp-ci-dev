@@ -92,13 +92,14 @@ def load_param(pth, xlim=[], pick_seed=None):
                 cons = np.load(p + "/ep_constraints.npy")
             else:
                 cons = []
-                with open(p+"/info_logs.pkl", "rb") as f:
-                    info = pickle.load(f)
-                for step in info:
-                    try:
-                        cons.append(step["env_info/constrain"])
-                    except:
-                        pass
+                if os.path.isfile(p + "/info_logs.pkl"):
+                    with open(p+"/info_logs.pkl", "rb") as f:
+                        info = pickle.load(f)
+                    for step in info:
+                        try:
+                            cons.append(step["env_info/constrain"])
+                        except:
+                            pass
                 cons = np.array(cons)
                 
             if xlim != []:

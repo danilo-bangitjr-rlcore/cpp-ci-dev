@@ -355,10 +355,9 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.reset_reward(), self.reinit_the_system()
         return s, {}
 
-    def get_action_samples(self):
+    def get_action_samples(self, n=10):
         max_a = self.action_space.high/2 / self.action_multiplier # re-scale to the range of agent action
         min_a = self.action_space.low / self.action_multiplier # re-scale to the range of agent action
-        n = 10
         xs = np.linspace(min_a[0], max_a[0], n)
         ys = np.linspace(min_a[1], max_a[1], n)
         xaxis, yaxis = np.meshgrid(xs, ys)
@@ -458,10 +457,9 @@ class TTChangeAction(ThreeTankEnv):
         obs = np.concatenate([prev_a, pid], axis=0)
         return obs
 
-    def get_action_samples(self):
+    def get_action_samples(self, n=10):
         min_a = self.agent_action_min
         max_a = self.agent_action_max
-        n = 10
         xs = np.linspace(min_a, max_a, n)
         ys = np.linspace(min_a, max_a, n)
         xaxis, yaxis = np.meshgrid(xs, ys)
@@ -542,10 +540,9 @@ class TTAction(TTChangeAction):
         sp[:2] = 0
         return sp, r, done, trunc, info
 
-    def get_action_samples(self):
+    def get_action_samples(self, n=10):
         max_a = self.action_space.high/2 / self.action_multiplier # re-scale to the range of agent action
         min_a = self.action_space.low / self.action_multiplier # re-scale to the range of agent action
-        n = 10
         xs = np.linspace(min_a[0], max_a[0], n)
         ys = np.linspace(min_a[1], max_a[1], n)
         xaxis, yaxis = np.meshgrid(xs, ys)
