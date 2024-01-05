@@ -66,6 +66,10 @@ if __name__ == "__main__":
     parser.add_argument('--rho', default=0.1, type=float)
     parser.add_argument('--n', default=30, type=int)
 
+    # Explore Then Commit
+    parser.add_argument('--actions_per_dim', default=50, type=int)
+    parser.add_argument('--min_trials', default=1, type=int)
+
     cfg = parser.parse_args()
 
     if cfg.load_from_json == '':
