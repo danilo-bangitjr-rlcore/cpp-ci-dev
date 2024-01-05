@@ -23,6 +23,9 @@ def init_environment(name, cfg):
     elif name == "TTChangeAction/DiscreteConstPID":
         return TTChangeActionDiscrete(cfg.env_info, cfg.seed, cfg.lr_constrain, constant_pid=True,
                                       env_action_scaler=cfg.env_action_scaler)
+    elif name == "TTChangeAction/DiscreteRwdStay":
+        return TTChangeActionDiscrete(cfg.env_info, cfg.seed, cfg.lr_constrain, constant_pid=True,
+                                      env_action_scaler=cfg.env_action_scaler, )
     elif name == "TTChangeAction/ClipConstPID":
         return TTChangeActionClip(cfg.seed, cfg.lr_constrain, constant_pid=True,
                                   env_action_scaler=cfg.env_action_scaler,

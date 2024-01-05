@@ -2,7 +2,8 @@ from src.agent.simple_ac import SimpleAC
 from src.agent.sac import SAC
 from src.agent.greedy_ac import GreedyAC, GreedyACDiscrete
 from src.agent.reinforce import Reinforce
-from src.agent.greedy_ac_wm import GACwHardMemory
+from src.agent.greedy_ac_wm import GACPredictSuccess, GACwHardMemory
+from src.agent.gac_inac import GAC_InAC
 
 
 def init_agent(name, cfg):
@@ -27,5 +28,9 @@ def init_agent(name, cfg):
             raise NotImplementedError
         else:
             return GACwHardMemory(cfg, average_entropy=True)
+    elif name == "GACPS":
+        return GACPredictSuccess(cfg, average_entropy=True)
+    elif name == "GACIn":
+        return GAC_InAC(cfg, average_entropy=True)
     else:
         raise NotImplementedError

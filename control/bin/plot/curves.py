@@ -10,11 +10,38 @@ def sweep_offline(pth_base, agent="GAC"):
     fig, axs = plt.subplots(1, 1, figsize=(5, 4))
     load_exp([axs], param_sweep, root, {}, None)
     plt.legend()
-    axs.set_ylim(-50, 2)
     axs.set_ylabel("Performance")
     axs.set_xlabel("Episodes")
     fig.tight_layout()
     plt.savefig(DATAROOT + "img/sweep_{}.png".format(agent), dpi=300, bbox_inches='tight')
+
+def sensitivity_plot(pth_base, agent, fix_params_choices, sweep_param, title):
+    root = pth_base.format(agent)
+    fig, axs = plt.subplots(1, len(fix_params_choices), figsize=(5*len(fix_params_choices), 4))
+    for i, fix_params in enumerate(fix_params_choices):
+        load_exp([axs[i]], sensitivity_curve, root, fix_params, sweep_param)
+    plt.legend()
+    fig.tight_layout()
+    plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
+
+def sensitivity_plot_2d(pth_base, agent, fix_params_choices, sweep_param1, sweep_param2, title):
+    font = {'size': 7}
+    plt.rc('font', **font)
+    root = pth_base.format(agent)
+    fig, axs = plt.subplots(1, len(fix_params_choices), figsize=(5*len(fix_params_choices), 4))
+    axs = [axs] if len(fix_params_choices) == 1 else axs
+    imgs = []
+    for i, fix_params in enumerate(fix_params_choices):
+        im = load_exp([axs[i]], sensitivity_heatmap, root, fix_params, [sweep_param1, sweep_param2])
+        imgs.append(im)
+        axs[i].set_title(fix_params)
+        axs[i].set_title(fix_params)
+    img_update_vim_vmax(imgs, vmx=[-10000, 6000])
+
+    fig.subplots_adjust(right=0.95)
+    cbar_ax = fig.add_axes([0.95, 0.1, 0.05, 0.8])
+    fig.colorbar(imgs[-1], cax=cbar_ax)
+    plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
 
 
 def best_offline(pths, title, ylim):
