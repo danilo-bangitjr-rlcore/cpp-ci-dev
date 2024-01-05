@@ -36,6 +36,7 @@ if __name__ == "__main__":
     parser.add_argument('--agent_name', default='SimpleAC', type=str)
     parser.add_argument('--actor', default='Beta', type=str)
     parser.add_argument('--critic', default='FC', type=str)
+    parser.add_argument('--layer_norm', default=0, type=int)
     parser.add_argument('--layer_init', default='Xavier', type=str)
     parser.add_argument('--activation', default='ReLU6', type=str)
     parser.add_argument('--head_activation', default='Softplus', type=str)

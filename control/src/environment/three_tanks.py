@@ -470,7 +470,8 @@ class TTChangeAction(ThreeTankEnv):
 # Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
 # Action: cross product of [delta_kp1, delta_ti1] -> discrete version (three choices per dimension) -> 1
 class TTChangeActionDiscrete(TTChangeAction):
-    def __init__(self, delta_step, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None):
+    def __init__(self, delta_step, seed=None, lr_constrain=0, constant_pid=True, env_action_scaler=None,
+                 reward_stay=False):
         super(TTChangeActionDiscrete, self).__init__(seed, lr_constrain, constant_pid, env_action_scaler=env_action_scaler)
         self.action_list = [
             np.array([0, 0]),
@@ -487,6 +488,17 @@ class TTChangeActionDiscrete(TTChangeAction):
         ]
         self.prev_a = [1]
         self.action_space = spaces.Discrete(9, start=0)
+        self.reward_stay = reward_stay
+
+    def step(self, a):
+        sp, r, done, trunc, info = super(TTChangeActionDiscrete, self).step(a)
+        # if self.reward_stay and round(r, 2) == 1.:
+        #     if a == 0: # stay
+        #         r += 0.2
+        if self.reward_stay and round(r, 5) == 1.:
+            if a == 0: # stay
+                r += 0.5
+        return sp, r, done, trunc, info
 
     def preprocess_action(self, a):
         a = a[0]
@@ -510,7 +522,7 @@ class TTChangeActionDiscrete(TTChangeAction):
         s = self.observation(self.prev_a, self.prev_pid)
         return s, info
 
-    def get_action_samples(self):
+    def get_action_samples(self, n=None):
         samples = np.arange(9).reshape(-1, 1)
         shape = samples.shape
         return samples, shape

@@ -11,7 +11,8 @@ EPSILON = 1e-6
 
 
 class FC(nn.Module):
-    def __init__(self, device, input_dim, arch, output_dim, activation="ReLU", head_activation="None", init='Xavier'):
+    def __init__(self, device, input_dim, arch, output_dim, activation="ReLU", head_activation="None", init='Xavier',
+                 layer_norm=False):
         super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -22,6 +23,8 @@ class FC(nn.Module):
         for hidden_size in arch:
             fc = layer_init(nn.Linear(d, hidden_size))
             modules.append(fc)
+            if layer_norm:
+                modules.append(nn.LayerNorm(hidden_size))
             modules.append(activation_cls())
             d = hidden_size
         last_fc = layer_init(nn.Linear(d, output_dim))
@@ -39,10 +42,11 @@ class FC(nn.Module):
 
 class SquashedGaussianPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
-                 action_scale=1, action_bias=0, init='Xavier', activation="ReLU"):#, action_clip=[-0.999, 0.999]):
+                 action_scale=1, action_bias=0, init='Xavier', activation="ReLU", layer_norm=False):#, action_clip=[-0.999, 0.999]):
         super(SquashedGaussianPolicy, self).__init__()
         layer_init = internal_factory.init_layer(init)
-        self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation, init=init)
+        self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation, 
+                               init=init, layer_norm=layer_norm)
         self.mean_head = layer_init(nn.Linear(arch[-1], action_dim))
         self.logstd_head = layer_init(nn.Linear(arch[-1], action_dim))
 
@@ -103,10 +107,11 @@ class SquashedGaussianPolicy(nn.Module):
 
 class BetaPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
-                 action_scale=1, action_bias=0, init='Xavier', activation="ReLU", head_activation="Softplus"):
+                 action_scale=1, action_bias=0, init='Xavier', activation="ReLU", head_activation="Softplus", layer_norm=False):
         super(BetaPolicy, self).__init__()
         layer_init = internal_factory.init_layer(init)
-        self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation, init=init)
+        self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation, 
+                               init=init, layer_norm=layer_norm)
         self.alpha_head = layer_init(nn.Linear(arch[-1], action_dim))
         self.beta_head = layer_init(nn.Linear(arch[-1], action_dim))
         self.head_activation_fn = internal_factory.init_activation_function(head_activation)
@@ -164,10 +169,10 @@ class BetaPolicy(nn.Module):
 
 
 class Softmax(nn.Module):
-    def __init__(self, device, observation_dim, arch, num_actions, init='Xavier', activation="ReLU"):
+    def __init__(self, device, observation_dim, arch, num_actions, init='Xavier', activation="ReLU", layer_norm=False):
         super(Softmax, self).__init__()
         self.num_actions = num_actions
-        self.base_network = FC(device, observation_dim, arch, num_actions, init=init, activation=activation)
+        self.base_network = FC(device, observation_dim, arch, num_actions, init=init, activation=activation, layer_norm=layer_norm)
         self.to(device)
         
     def forward(self, state, debug=False):

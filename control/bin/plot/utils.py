@@ -15,28 +15,57 @@ def learning_curve(ax, data, label="", color=None, zorder=None):
     else:
         p = ax.plot(idx, avg, label=label, color=color, zorder=zorder)
     ax.fill_between(idx, avg - ste * 1.96, avg + ste * 1.96, alpha=0.3, linewidth=0., color=color)
+    return p
 
 def learning_curve_per_run(axs, data):
     for i, run in enumerate(data):
         p = axs[i].plot(run)
 
-
-def sensitivity_curve(ax, data):
+#
+def sensitivity_curve(ax, data, root):
     params = list(data.keys())
     params.sort()
     sc = []
     stes = []
     for p in params:
-        sc.append(data[p][:, -1].mean())
-        stes.append(data[p][:, -1].std() / np.sqrt(len(data[p])) * 1.96)
+        sc.append(data[p].sum(axis=1).mean())
+        stes.append(data[p].sum(axis=1).std() / np.sqrt(len(data[p])) * 1.96)
     # ax.plot(sc)
     x = np.arange(len(params))
-    ax.errorbar(x, sc, yerr=stes)
+    im = ax.errorbar(x, sc, yerr=stes)
     print("Final performance", sc)
     print("STE", stes)
     print()
     ax.set_xticks(np.arange(len(params)), labels=params)
+    return im
 
+def sensitivity_heatmap(ax, data, root):
+    keys = np.array(list(data.keys()))
+
+    params1 = list(set(keys[:, 0]))
+    params2 = list(set(keys[:, 1]))
+    params1.sort()
+    params2.sort()
+    sc = np.zeros((len(params1), len(params2)))
+    for i1, p1 in enumerate(params1):
+        for i2, p2 in enumerate(params2):
+           sc[i1, i2] = data[(p1, p2)].sum(axis=1).mean()
+    im = ax.imshow(sc)
+    ax.set_yticks(np.arange(len(params1)), labels=params1)
+    ax.set_xticks(np.arange(len(params2)), labels=params2)
+    return im
+
+def img_update_vim_vmax(ims, vmx=None):
+    if vmx is None:
+        data = []
+        for im in ims:
+            data.append(im.get_array())
+        data = np.array(data)
+        vmax, vmin = data.max(), data.min()
+    else:
+        vmin, vmax = vmx
+    for im in ims:
+        im.set_clim(vmin=vmin, vmax=vmax)
 
 def param_sweep(ax, data, root):
     params = list(data.keys())
@@ -128,18 +157,23 @@ def load_exp(axs, plot_fn, root, fix_params={}, sweep_param=None):
                     if setting[tp] != tv:
                         add = False
                 if add:
-                    assert setting[sweep_param] not in perf_ret
-                    perf_ret[setting[sweep_param]] = returns
-                    perf_cons[setting[sweep_param]] = constraints
+                    if type(sweep_param) == str:
+                        assert setting[sweep_param] not in perf_ret
+                        perf_ret[setting[sweep_param]] = returns
+                        perf_cons[setting[sweep_param]] = constraints
+                    elif type(sweep_param) == list and len(sweep_param) == 2:
+                        perf_ret[(setting[sweep_param[0]], setting[sweep_param[1]])] = returns
+                        perf_cons[(setting[sweep_param[0]], setting[sweep_param[1]])] = constraints
             else:
                 if not np.isnan(returns.mean()):
                     perf_ret[p] = returns
                     perf_cons[p] = constraints
             # print(p, perf_ret[p].shape, perf_ret[p].mean(), perf_ret[p])
 
-    plot_fn(axs[0], perf_ret, root)
+    im = plot_fn(axs[0], perf_ret, root)
     if len(axs) > 1:
         plot_fn(axs[1], perf_cons)
+    return im
 
 
 def log2num(step_i, k_pth):
