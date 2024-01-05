@@ -1,12 +1,24 @@
 import copy
+import itertools
 
 from curves import DATAROOT, sweep_offline, reproduce_demo, best_offline
-from curves import visualize_training_info
+from curves import visualize_training_info, sensitivity_plot, sensitivity_plot_2d
 
 
 def sweep_parameter(pth_base, agent_list=['GAC']):
     for agent in agent_list:
         sweep_offline(pth_base+"/{}/".format(agent), agent)
+
+
+def draw_sensitivity(pth_base, agent, fix_params_list, sweep_param, title):
+    keys, values = zip(*fix_params_list.items())
+    fix_params_choices = [dict(zip(keys, v)) for v in itertools.product(*values)]
+    sensitivity_plot(pth_base+"/{}/".format(agent), agent, fix_params_choices, sweep_param, title)
+
+def draw_sensitivity_2d(pth_base, agent, fix_params_list, sweep_param1, sweep_param2, title):
+    keys, values = zip(*fix_params_list.items())
+    fix_params_choices = [dict(zip(keys, v)) for v in itertools.product(*values)]
+    sensitivity_plot_2d(pth_base+"/{}/".format(agent), agent, fix_params_choices, sweep_param1, sweep_param2, title)
 
 def demo():
     """
@@ -51,86 +63,98 @@ def stable_gac_test():
         # }
         # best_offline(pths, "test_directAction", ylim=[-2, 2])
 
-        SHAREPATH = "output/test_v0/NonContexTT/parameter_study/target0/replay5000_batch8/env_scale_10/"
+        SHAREPATH = "output/test_v0/NonContexTT/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10_action_0.01_0.99/"
         pths = {
-            "GAC": [DATAROOT + SHAREPATH + "GAC/param_2", "C0", 5],
-            "GACPS": [
-                DATAROOT + "output/test_v0/NonContexTT/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10/"
-                + "GACPS/param_46/", "C1", 5],
-            # "GACIn": [
-            #     DATAROOT + "output/test_v0/NonContexTT/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10/"
-            #     + "GACIn/param_28/", "C2", 3],
+            "GAC": [DATAROOT + SHAREPATH + "GAC/param_1", "C0", 5],
         }
-        best_offline(pths, "test_noncontex", ylim=[-2, 2])
+        best_offline(pths, "test_noncontex_clipaction", ylim=[-2, 2])
 
-        SHAREPATH = "output/test_v0/TTAction/ConstPID/parameter_study/target0/replay5000_batch8/env_scale_10/"
+        SHAREPATH = "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10_action_0.01_0.99/"
         pths = {
-            "GAC": [DATAROOT + SHAREPATH + "GAC/param_21", "C0", 5],
-            "GACPS": [
-                DATAROOT + "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10/"
-                + "GACPS/param_13/", "C1", 5],
-            # "GACIn": [
-            #     DATAROOT + "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10/"
-            #     + "GACIn/param_0/", "C2", 3],
+            "GAC": [DATAROOT + SHAREPATH + "GAC/param_18", "C0", 5],
         }
-        best_offline(pths, "test_directAction", ylim=[-2, 2])
+        best_offline(pths, "test_directAction_clipaction", ylim=[-2, 2])
 
-        SHAREPATH = "output/test_v0/TTChangeAction/ConstPID/parameter_study/target0/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
-        pths = {
-            "GAC": [DATAROOT + SHAREPATH + "GAC/param_10", "C0", 5],
-            "GACPS": [
-                DATAROOT + "output/test_v0/TTChangeAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
-                + "GACPS/param_18/", "C1", 5],
-            # "GACIn": [
-            #     DATAROOT + "output/test_v0/TTChangeAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
-            #     + "GACIn/param_37/", "C2", 3],
-        }
-        best_offline(pths, "test_changeActionCont", ylim=[-2, 2])
-
-        SHAREPATH = "output/test_v0/TTChangeAction/DiscreteConstPID/parameter_study/target0/replay5000_batch8/env_scale_1/change_0.01/"
-        pths = {
-            "GAC": [DATAROOT + SHAREPATH + "GAC/param_16", "C0", 5],
-            "GACPS": [
-                DATAROOT + "output/test_v0/TTChangeAction/DiscreteConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/change_0.01/"
-                + "GACPS/param_17/", "C1", 5],
-            # "GACIn": [
-            #     DATAROOT + "output/test_v0/TTChangeAction/DiscreteConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/change_0.01/"
-            #     + "GACIn/param_12/", "C2", 3],
-        }
-        best_offline(pths, "test_changeActionDisc", ylim=[-2, 2])
-
-        """
-        Reward staying
-        """
-        SHAREPATH = "output/test_v0/TTChangeAction/DiscreteRwdStay/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/change_0.01/"
-        pths = {
-            "GAC": [DATAROOT + SHAREPATH + "GAC/param_16", "C0", 5],
-        }
-        best_offline(pths, "test_changeActionRwdStay", ylim=[-2, 2])
-
-        """
-        Batch normalization
-        """
-        SHAREPATH = "output/test_v0/NonContexTT/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_10/"
-        pths = {
-            "GAC": [DATAROOT + SHAREPATH + "GAC/param_28", "C0", 5],
-        }
-        best_offline(pths, "test_noncontex_batchNorm", ylim=[-2, 2])
-        SHAREPATH = "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_10/"
-        pths = {
-            "GAC": [DATAROOT + SHAREPATH + "GAC/param_43", "C0", 5],
-        }
-        best_offline(pths, "test_directAction_batchNorm", ylim=[-2, 2])
-        SHAREPATH = "output/test_v0/TTChangeAction/ConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
-        pths = {
-            "GAC": [DATAROOT + SHAREPATH + "GAC/param_37", "C0", 5],
-        }
-        best_offline(pths, "test_changeActionCont_batchNorm", ylim=[-2, 2])
-        SHAREPATH = "output/test_v0/TTChangeAction/DiscreteConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_1/change_0.01/"
-        pths = {
-            "GAC": [DATAROOT + SHAREPATH + "GAC/param_26", "C0", 5],
-        }
-        best_offline(pths, "test_changeActionDisc_batchNorm", ylim=[-2, 2])
+        # SHAREPATH = "output/test_v0/NonContexTT/parameter_study/target0/replay5000_batch8/env_scale_10/"
+        # pths = {
+        #     "GAC": [DATAROOT + SHAREPATH + "GAC/param_2", "C0", 5],
+        #     "GACPS": [
+        #         DATAROOT + "output/test_v0/NonContexTT/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10/"
+        #         + "GACPS/param_46/", "C1", 5],
+        #     # "GACIn": [
+        #     #     DATAROOT + "output/test_v0/NonContexTT/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10/"
+        #     #     + "GACIn/param_28/", "C2", 3],
+        # }
+        # best_offline(pths, "test_noncontex", ylim=[-2, 2])
+        #
+        # SHAREPATH = "output/test_v0/TTAction/ConstPID/parameter_study/target0/replay5000_batch8/env_scale_10/"
+        # pths = {
+        #     "GAC": [DATAROOT + SHAREPATH + "GAC/param_21", "C0", 5],
+        #     "GACPS": [
+        #         DATAROOT + "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10/"
+        #         + "GACPS/param_13/", "C1", 5],
+        #     # "GACIn": [
+        #     #     DATAROOT + "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10/"
+        #     #     + "GACIn/param_0/", "C2", 3],
+        # }
+        # best_offline(pths, "test_directAction", ylim=[-2, 2])
+        #
+        # SHAREPATH = "output/test_v0/TTChangeAction/ConstPID/parameter_study/target0/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
+        # pths = {
+        #     "GAC": [DATAROOT + SHAREPATH + "GAC/param_10", "C0", 5],
+        #     "GACPS": [
+        #         DATAROOT + "output/test_v0/TTChangeAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
+        #         + "GACPS/param_18/", "C1", 5],
+        #     # "GACIn": [
+        #     #     DATAROOT + "output/test_v0/TTChangeAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
+        #     #     + "GACIn/param_37/", "C2", 3],
+        # }
+        # best_offline(pths, "test_changeActionCont", ylim=[-2, 2])
+        #
+        # SHAREPATH = "output/test_v0/TTChangeAction/DiscreteConstPID/parameter_study/target0/replay5000_batch8/env_scale_1/change_0.01/"
+        # pths = {
+        #     "GAC": [DATAROOT + SHAREPATH + "GAC/param_16", "C0", 5],
+        #     "GACPS": [
+        #         DATAROOT + "output/test_v0/TTChangeAction/DiscreteConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/change_0.01/"
+        #         + "GACPS/param_17/", "C1", 5],
+        #     # "GACIn": [
+        #     #     DATAROOT + "output/test_v0/TTChangeAction/DiscreteConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/change_0.01/"
+        #     #     + "GACIn/param_12/", "C2", 3],
+        # }
+        # best_offline(pths, "test_changeActionDisc", ylim=[-2, 2])
+        #
+        # """
+        # Reward staying
+        # """
+        # SHAREPATH = "output/test_v0/TTChangeAction/DiscreteRwdStay/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/change_0.01/"
+        # pths = {
+        #     "GAC": [DATAROOT + SHAREPATH + "GAC/param_16", "C0", 5],
+        # }
+        # best_offline(pths, "test_changeActionRwdStay", ylim=[-2, 2])
+        #
+        # """
+        # Batch normalization
+        # """
+        # SHAREPATH = "output/test_v0/NonContexTT/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_10/"
+        # pths = {
+        #     "GAC": [DATAROOT + SHAREPATH + "GAC/param_28", "C0", 5],
+        # }
+        # best_offline(pths, "test_noncontex_batchNorm", ylim=[-2, 2])
+        # SHAREPATH = "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_10/"
+        # pths = {
+        #     "GAC": [DATAROOT + SHAREPATH + "GAC/param_43", "C0", 5],
+        # }
+        # best_offline(pths, "test_directAction_batchNorm", ylim=[-2, 2])
+        # SHAREPATH = "output/test_v0/TTChangeAction/ConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
+        # pths = {
+        #     "GAC": [DATAROOT + SHAREPATH + "GAC/param_37", "C0", 5],
+        # }
+        # best_offline(pths, "test_changeActionCont_batchNorm", ylim=[-2, 2])
+        # SHAREPATH = "output/test_v0/TTChangeAction/DiscreteConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_1/change_0.01/"
+        # pths = {
+        #     "GAC": [DATAROOT + SHAREPATH + "GAC/param_26", "C0", 5],
+        # }
+        # best_offline(pths, "test_changeActionDisc_batchNorm", ylim=[-2, 2])
         return
 
     def v1():
@@ -154,9 +178,32 @@ def stable_gac_test():
         }
         best_offline(pths, "testv1_directAction", ylim=[-2, 2])
 
-    # v0()
-    v1()
+    v0()
+    # v1()
 
+def gac_learning_rate():
+    def noncontext():
+        SHAREPATH = "output/test_v0/NonContexTT/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
+        pths = {
+            "GAC": [DATAROOT + SHAREPATH + "GAC/param_11/", "C0", 5],
+            "GAC-less-lr": [
+                DATAROOT + "output/test_v0/NonContexTT/parameter_study/target0/replay5000_batch8/env_scale_10/"
+                + "GAC/param_2/", "C1", 3],
+        }
+        best_offline(pths, "lr_noncontex", ylim=[-2, 2])
+
+    def direct_action():
+        SHAREPATH = "output/test_v0/TTAction/ConstPID/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
+        pths = {
+            "GAC": [DATAROOT + SHAREPATH + "GAC/param_10/", "C0", 5],
+            "GAC-less-lr": [
+                DATAROOT + "output/test_v0/TTAction/ConstPID/parameter_study/target0/replay50_batch8/env_scale_10/"
+                + "GAC/param_9/", "C1", 3],
+        }
+        best_offline(pths, "lr_direct_action", ylim=[-2, 2])
+
+    noncontext()
+    direct_action()
 def gac_parameter_study():
     def noncontext():
         pths = {
@@ -598,6 +645,9 @@ if __name__ == '__main__':
     # SHAREPATH = "output/test_v0/TTChangeAction/ConstPID/learning_rate/target0/replay100_batch32/env_scale_1/action_-0.1_0.1/"
     # SHAREPATH = "output/test_v0/TTChangeAction/DiscreteConstPID/learning_rate/target0/replay100_batch32/env_scale_1/change_0.01/"
 
+    # SHAREPATH = "output/test_v0/NonContexTT/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
+    SHAREPATH = "output/test_v0/TTAction/ConstPID/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
+
     # SHAREPATH = "output/test_v0/TTChangeAction/ClipConstPID/learning_rate/target0/replay0/env_scale_1/action_-0.1_0.1/"
     # SHAREPATH = "output/test_v0/TTChangeAction/ClipDiscreteConstPID/learning_rate/target0/replay0/env_scale_1/change_0.01/"
 
@@ -639,7 +689,9 @@ if __name__ == '__main__':
     # SHAREPATH = "output/test_v0/TTChangeAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
     # SHAREPATH = "output/test_v0/TTChangeAction/DiscreteConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/change_0.01/"
 
-    # agent_list = ['GAC']
+    agent_list = ['GAC']
+    # SHAREPATH = "output/test_v0/NonContexTT/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10_action_0.01_0.99/"
+    # SHAREPATH = "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10_action_0.01_0.99/"
     # SHAREPATH = "output/test_v0/TTChangeAction/DiscreteRwdStay/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/change_0.01/"
 
     # SHAREPATH = "output/test_v0/NonContexTT/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_10/"
@@ -647,14 +699,47 @@ if __name__ == '__main__':
     # SHAREPATH = "output/test_v0/TTChangeAction/ConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
     # SHAREPATH = "output/test_v0/TTChangeAction/DiscreteConstPID/stable_gac_test/v0/target0_batchNorm/replay5000_batch8/env_scale_1/change_0.01/"
 
-    agent_list = ['GACPS']
+    # agent_list = ['GACPS']
     # SHAREPATH = "output/test_v0/NonContexTT/stable_gac_test/v1/target0/replay5000_batch8/env_scale_10/"
-    SHAREPATH = "output/test_v0/TTAction/ConstPID/stable_gac_test/v1/target0/replay5000_batch8/env_scale_10/"
+    # SHAREPATH = "output/test_v0/TTAction/ConstPID/stable_gac_test/v1/target0/replay5000_batch8/env_scale_10/"
 
     # sweep_parameter(DATAROOT + SHAREPATH, agent_list)
 
+    SHAREPATH = "output/test_v0/NonContexTT/parameter_study/target0/replay50_batch8/env_scale_10/"
+    fixed_params_list = {
+        "rho": [0.1, 0.2],
+        "lr_actor": [0.01, 0.001, 0.0001],
+        "lr_critic": [0.01, 0.001, 0.0001],
+    }
+    sweep_param = "tau" # 0.001
+    # draw_sensitivity(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, sweep_param, "sensitivity_tau")
+    fixed_params_list = {
+        "tau": [0.01, 0.001, 0.0001],
+        "lr_actor": [0.01, 0.001, 0.0001],
+        "lr_critic": [0.01, 0.001, 0.0001],
+    }
+    sweep_param = "rho" # 0.1 is better
+    # draw_sensitivity(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, sweep_param, "sensitivity_rho")
+
+    fixed_params_list = {
+        "lr_actor": [0.01, 0.001, 0.0001],
+        "lr_critic": [0.01, 0.001, 0.0001],
+    }
+    # draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "rho", "tau", "sensitivity_rho_tau") # y: rho, x: tau
+
+    fixed_params_list = {
+        "rho": [0.1],
+        "tau": [0.001],
+    }
+    SHAREPATH = "output/test_v0/NonContexTT/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
+    draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_noncontex")
+    SHAREPATH = "output/test_v0/TTAction/ConstPID/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
+    draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_directaction")
+
+
     # demo()
-    stable_gac_test()
+    # stable_gac_test()
+    # gac_learning_rate()
     # gac_parameter_study()
     # constant_pid_target0_replay0()
     # constant_pid_target0_replay100()

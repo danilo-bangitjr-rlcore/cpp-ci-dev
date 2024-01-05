@@ -12,7 +12,7 @@ def base_cmd(**kwargs):
         env_name = "_".join(kwargs["--env_name"].split("/"))
     else:
         env_name = kwargs["--env_name"]
-    cmd += "> {}_{}_{}.txt ".format(kwargs["--env_name"], kwargs["--param"], kwargs["--seed"])
+    cmd += "> {}_{}_{}.txt ".format("_".join(kwargs["--env_name"].split("/")), kwargs["--param"], kwargs["--seed"])
     cmd += "\n"
     return cmd
 
