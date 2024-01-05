@@ -447,6 +447,40 @@ def gac_sweep(settings, shared_settings, target_agents):
     # settings = merge_independent(settings, shared_settings)
     # combinations(settings, target_agents, num_runs=1, prev_file=378, line_per_file=1)
 
+def gac_proposal_wo_entropy(settings, shared_settings, target_agents):
+    settings = {
+        "GAC": {
+        },
+    }
+    shared_settings = {
+        "--exp_name": ["GAC_proposal_wo_entropy"],
+        "--max_steps": [5000],
+        "--render": [0],
+        "--env_action_scaler": [10],
+        "--action_scale": [1],
+        "--action_bias": [0],
+
+        "--tau": [0],
+        "--rho": [0.1],
+        "--lr_actor": [0.5, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001],
+        "--lr_critic": [0.01, 0.003, 0.001, 0.0003, 0.0001, 3e-5, 1e-5],
+    }
+    target_agents = ["GAC"]
+
+    shared_settings["--env_name"] = ["NonContexTT"]
+    shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
+    shared_settings["--buffer_size"] = [5000]
+    shared_settings["--batch_size"] = [8]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
+
+    shared_settings["--env_name"] = ["TTAction/ConstPID"]
+    shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
+    shared_settings["--buffer_size"] = [5000]
+    shared_settings["--batch_size"] = [8]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=18, line_per_file=1, comb_num_base=0)
+
 def larger_range_learning_rate_sweep(settings, shared_settings, target_agents):
     settings = {
         "GAC": {
@@ -462,8 +496,8 @@ def larger_range_learning_rate_sweep(settings, shared_settings, target_agents):
 
         "--tau": [1e-3],
         "--rho": [0.1],
-        "--lr_actor": [0.03, 0.01, 0.003, 0.001, 0.0003, 0.0001, 0.3, 0.1],
-        "--lr_critic": [0.03, 0.01, 0.003, 0.001, 0.0003, 0.0001],
+        "--lr_actor": [0.03, 0.01, 0.003, 0.001, 0.0003, 0.0001, 0.1, 0.3, 0.5, 1.0],
+        "--lr_critic": [0.03, 0.01, 0.003, 0.001, 0.0003, 0.0001, 3e-5, 1e-5],
     }
     target_agents = ["GAC"]
 
@@ -472,14 +506,14 @@ def larger_range_learning_rate_sweep(settings, shared_settings, target_agents):
     shared_settings["--buffer_size"] = [5000]
     shared_settings["--batch_size"] = [8]
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=36)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=64)
 
     shared_settings["--env_name"] = ["TTAction/ConstPID"]
     shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
     shared_settings["--buffer_size"] = [5000]
     shared_settings["--batch_size"] = [8]
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=12, line_per_file=1, comb_num_base=36)
+    combinations(settings, target_agents, num_runs=1, prev_file=18, line_per_file=1, comb_num_base=64)
 
 def constant_pid_target0_replay0(settings, shared_settings, target_agents):
     """
@@ -1096,7 +1130,8 @@ if __name__=='__main__':
     # demo()
     # stable_gac_test(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # gac_sweep(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
-    larger_range_learning_rate_sweep(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    gac_proposal_wo_entropy(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # larger_range_learning_rate_sweep(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # constant_pid_target0_replay0(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # constant_pid_target0_replay100(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # # constant_pid_target0_replay0_clip_action(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))

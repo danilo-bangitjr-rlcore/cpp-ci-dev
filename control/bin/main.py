@@ -12,6 +12,7 @@ print("Change dir to", os.getcwd())
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="run_file")
+    parser.add_argument('--load_from_json', default='', type=str)
     parser.add_argument('--debug', default=0, type=int)
     parser.add_argument('--version', default=0, type=int)
     parser.add_argument('--seed', default=42, type=int)
@@ -67,14 +68,19 @@ if __name__ == "__main__":
 
     cfg = parser.parse_args()
 
-    cfg.exp_path = './out/output/test_v{}/{}/{}{}/{}/param_{}/seed_{}/'.format(cfg.version, cfg.env_name, cfg.exp_name, cfg.exp_info, cfg.agent_name, cfg.param, cfg.seed)  # savelocation for logs
-    cfg.parameters_path = os.path.join(cfg.exp_path, "parameters")
-    cfg.vis_path = os.path.join(cfg.exp_path, "visualizations")
-    utils.ensure_dir(cfg.exp_path)
-    utils.ensure_dir(cfg.parameters_path)
-    utils.ensure_dir(cfg.vis_path)
-    utils.write_json(cfg.exp_path, cfg)
-    
+    if cfg.load_from_json == '':
+        cfg.exp_path = './out/output/test_v{}/{}/{}{}/{}/param_{}/seed_{}/'.format(cfg.version, cfg.env_name, cfg.exp_name, cfg.exp_info, cfg.agent_name, cfg.param, cfg.seed)  # savelocation for logs
+        cfg.parameters_path = os.path.join(cfg.exp_path, "parameters")
+        cfg.vis_path = os.path.join(cfg.exp_path, "visualizations")
+        utils.ensure_dir(cfg.exp_path)
+        utils.ensure_dir(cfg.parameters_path)
+        utils.ensure_dir(cfg.vis_path)
+        utils.write_json(cfg.exp_path, cfg)
+    else:
+        jf = cfg.load_from_json
+        assert os.path.isfile(jf), print("JSON FILE DOES NOT EXIST")
+
+
     cfg.logger = utils.logger_setup(cfg)
     utils.set_seed(cfg.seed)
     cfg.train_env = env_factory.init_environment(cfg.env_name, cfg)
