@@ -9,6 +9,7 @@ class GreedyAC(BaseAC):
         super(GreedyAC, self).__init__(cfg)
         self.tau = self.cfg.tau
         self.rho = self.cfg.rho # percentage of action used for update
+        self.rho_proposal = self.cfg.theta # percentage of action used for update proposal
         self.num_samples = self.cfg.n
         self.average_entropy = average_entropy
 
@@ -19,6 +20,7 @@ class GreedyAC(BaseAC):
 
         self.gac_a_dim = self.action_dim
         self.top_action = int(self.rho * self.num_samples)
+        self.top_action_proposal = int(self.rho_proposal * self.num_samples)
 
     def inner_update(self, trunc=False):
         data = self.get_data()
@@ -80,14 +82,14 @@ class GreedyAC(BaseAC):
             sampler_loss = logp.reshape(self.batch_size, self.top_action, 1)
             sampler_loss = -1 * (sampler_loss.mean(axis=1) + self.tau * sampler_entropy).mean()
         else:
-            best_ind_proposal = sorted_q[:, :self.top_action*2]
+            best_ind_proposal = sorted_q[:, :self.top_action_proposal]
             best_ind_proposal = best_ind_proposal.repeat_interleave(self.gac_a_dim, -1)
             best_actions_proposal = torch.gather(sample_actions, 1, best_ind_proposal)
-            stacked_s_batch_proposal = state_batch.repeat_interleave(self.top_action*2, dim=0)
+            stacked_s_batch_proposal = state_batch.repeat_interleave(self.top_action_proposal, dim=0)
             best_actions_proposal = torch.reshape(best_actions_proposal, (-1, self.gac_a_dim))
 
             logp, _ = self.sampler.log_prob(stacked_s_batch_proposal, best_actions_proposal)
-            sampler_loss = logp.reshape(self.batch_size, self.top_action*2, 1)
+            sampler_loss = logp.reshape(self.batch_size, self.top_action_proposal, 1)
             sampler_loss = -1 * (sampler_loss.mean(axis=1)).mean()
 
 
