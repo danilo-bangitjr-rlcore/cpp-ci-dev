@@ -9,6 +9,7 @@ class GreedyAC(BaseAC):
         super(GreedyAC, self).__init__(cfg)
         self.tau = self.cfg.tau
         self.rho = self.cfg.rho # percentage of action used for update
+        self.rho_proposal = self.cfg.theta # percentage of action used for update proposal
         self.num_samples = self.cfg.n
         self.average_entropy = average_entropy
 
@@ -19,6 +20,7 @@ class GreedyAC(BaseAC):
 
         self.gac_a_dim = self.action_dim
         self.top_action = int(self.rho * self.num_samples)
+        self.top_action_proposal = int(self.rho_proposal * self.num_samples)
 
     def inner_update(self, trunc=False):
         data = self.get_data()
@@ -61,23 +63,35 @@ class GreedyAC(BaseAC):
         pi_loss.backward()
         self.actor_optimizer.step()
 
-        # sampler entropy update
-        # sample_actions = sample_actions.reshape(-1, self.action_dim)
-        sample_actions = sample_actions.reshape(-1, self.gac_a_dim)
+        # proposal policy update
+        if self.tau != 0:
+            # sample_actions = sample_actions.reshape(-1, self.action_dim)
+            sample_actions = sample_actions.reshape(-1, self.gac_a_dim)
 
-        sampler_entropy, _ = self.sampler.log_prob(repeated_states, sample_actions)
-        with torch.no_grad():
-            sampler_entropy *= sampler_entropy
-        sampler_entropy = sampler_entropy.reshape(self.batch_size, self.num_samples, 1)
+            sampler_entropy, _ = self.sampler.log_prob(repeated_states, sample_actions)
+            with torch.no_grad():
+                sampler_entropy *= sampler_entropy
+            sampler_entropy = sampler_entropy.reshape(self.batch_size, self.num_samples, 1)
 
-        if self.average_entropy:
-            sampler_entropy = -sampler_entropy.mean(axis=1)
+            if self.average_entropy:
+                sampler_entropy = -sampler_entropy.mean(axis=1)
+            else:
+                sampler_entropy = -sampler_entropy[:, 0, :]
+
+            logp, _ = self.sampler.log_prob(stacked_s_batch, best_actions)
+            sampler_loss = logp.reshape(self.batch_size, self.top_action, 1)
+            sampler_loss = -1 * (sampler_loss.mean(axis=1) + self.tau * sampler_entropy).mean()
         else:
-            sampler_entropy = -sampler_entropy[:, 0, :]
+            best_ind_proposal = sorted_q[:, :self.top_action_proposal]
+            best_ind_proposal = best_ind_proposal.repeat_interleave(self.gac_a_dim, -1)
+            best_actions_proposal = torch.gather(sample_actions, 1, best_ind_proposal)
+            stacked_s_batch_proposal = state_batch.repeat_interleave(self.top_action_proposal, dim=0)
+            best_actions_proposal = torch.reshape(best_actions_proposal, (-1, self.gac_a_dim))
 
-        logp, _ = self.sampler.log_prob(stacked_s_batch, best_actions)
-        sampler_loss = logp.reshape(self.batch_size, self.top_action, 1)
-        sampler_loss = -1 * (sampler_loss.mean(axis=1) + self.tau * sampler_entropy).mean()
+            logp, _ = self.sampler.log_prob(stacked_s_batch_proposal, best_actions_proposal)
+            sampler_loss = logp.reshape(self.batch_size, self.top_action_proposal, 1)
+            sampler_loss = -1 * (sampler_loss.mean(axis=1)).mean()
+
 
         self.sampler_optim.zero_grad()
         sampler_loss.backward()
