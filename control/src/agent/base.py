@@ -54,6 +54,13 @@ class BaseAC(Evaluation):
         self.cfg = cfg
         self.discrete_control = cfg.discrete_control
 
+        # Visit count heatmap
+        if self.cfg.debug:
+            action_cover_space, heatmap_shape = self.env.get_action_samples()
+            self.visit_counts = [[0 for i in range(heatmap_shape[1])] for j in range(heatmap_shape[0])]
+            self.x_action_increment = 1.0 / heatmap_shape[1]
+            self.y_action_increment = 1.0 / heatmap_shape[0]
+
     def fill_buffer(self, online_data_size):
         track_states = []
         track_actions = []
@@ -124,7 +131,7 @@ class BaseAC(Evaluation):
         self.info_log.append(i_log)
 
         if self.cfg.render:
-            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'])
+            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"])
         else:
             env_info.pop('interval_log', None)
             i_log['critic_info'].pop('Q-function', None)
@@ -278,6 +285,12 @@ class BaseAC(Evaluation):
 
     def agent_debug_info(self, observation_tensor, action_tensor, pi_info, env_info):
         if self.cfg.debug:
+            # Update Action Visit Counts
+            action = torch_utils.to_np(action_tensor)[0]
+            x_action_ind = int(action[0] / self.x_action_increment)
+            y_action_ind = int(action[1] / self.y_action_increment)
+            self.visit_counts[y_action_ind][x_action_ind] += 1
+            # Update Q heatmap
             q_current, _ = self.get_q_value(observation_tensor, action_tensor, with_grad=False)
             q_current = torch_utils.to_np(q_current)
             action_cover_space, heatmap_shape = self.env.get_action_samples()
@@ -293,7 +306,9 @@ class BaseAC(Evaluation):
                 "actor_info": pi_info,
                 "critic_info": {'Q': q_current,
                                 'Q-function': [q_cover_space, coord]},
-                "env_info": env_info
+                "env_info": env_info,
+                "action_visits": {'sum': np.array(self.visit_counts),
+                                  'curr_action': (x_action_ind, y_action_ind)}
             }
         else:
             i_log = {

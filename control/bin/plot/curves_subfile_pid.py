@@ -181,11 +181,33 @@ def stable_gac_test():
     v0()
     # v1()
 
+def gac_proposal_wo_entropy():
+    def noncontext():
+        SHAREPATH = "output/test_v0/NonContexTT/GAC_proposal_wo_entropy/target0/replay5000_batch8/env_scale_10/"
+        pths = {
+            "GAC wo entropy": [DATAROOT + SHAREPATH + "GAC/param_5/", "C0", 5],
+            "GAC w/ entropy": [DATAROOT + "output/test_v0/NonContexTT/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/" +
+                               "GAC/param_79/", "C1", 3],
+        }
+        best_offline(pths, "wo_entropy_noncontex", ylim=[-2, 2])
+
+    def direct_action():
+        SHAREPATH = "output/test_v0/TTAction/ConstPID/GAC_proposal_wo_entropy/target0/replay5000_batch8/env_scale_10/"
+        pths = {
+            "GAC wo entropy": [DATAROOT + SHAREPATH + "GAC/param_36/", "C0", 5],
+            "GAC w/ entropy": [DATAROOT + "output/test_v0/TTAction/ConstPID/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/" +
+                               "GAC/param_10/", "C1", 7],
+        }
+        best_offline(pths, "wo_entropy_direct_action", ylim=[-2, 2])
+
+    noncontext()
+    direct_action()
+
 def gac_learning_rate():
     def noncontext():
         SHAREPATH = "output/test_v0/NonContexTT/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
         pths = {
-            "GAC": [DATAROOT + SHAREPATH + "GAC/param_11/", "C0", 5],
+            "GAC": [DATAROOT + SHAREPATH + "GAC/param_79/", "C0", 5],
             "GAC-less-lr": [
                 DATAROOT + "output/test_v0/NonContexTT/parameter_study/target0/replay5000_batch8/env_scale_10/"
                 + "GAC/param_2/", "C1", 3],
@@ -590,6 +612,21 @@ def visualize_gac():
         file = DATAROOT + "output/test_v0/TTChangeAction/DiscreteRwdStay/visualize/replay50000/GAC/param_0/seed_0"
         visualize_training_info(file, target_key, title="vis_ChangeActionDisc_GAC_long", threshold=0.99, xlim=None, ylim=[-2, 2])
 
+    def noncontext_larger_lr_replay5000(target_key):
+        file = DATAROOT + "output/test_v0/NonContexTT/visualize/replay5000_large_lr/GAC/param_0/seed_0"
+        visualize_training_info(file, target_key, title="vis_noncontext_GAC_replay5000_large_lr", threshold=0.99, xlim=None, ylim=[-2, 2])
+    def direct_action_larger_lr_replay5000(target_key):
+        file = DATAROOT + "output/test_v0/TTAction/ConstPID/visualize/replay5000_large_lr/GAC/param_0/seed_0"
+        visualize_training_info(file, target_key, title="vis_DirectAction_GAC_replay5000_large_lr", threshold=0.99, xlim=None, ylim=[-2, 2])
+
+    def noncontext_proposal_wo_entropy(target_key):
+        file = DATAROOT + "output/test_v0/NonContexTT/visualize/replay5000_wo_entropy/GAC/param_0/seed_0"
+        visualize_training_info(file, target_key, title="vis_noncontext_GAC_replay5000_wo_entropy", threshold=0.99, xlim=None, ylim=[-2, 2])
+    def direct_action_proposal_wo_entropy(target_key):
+        file = DATAROOT + "output/test_v0/TTAction/ConstPID/visualize/replay5000_wo_entropy/GAC/param_0/seed_0"
+        visualize_training_info(file, target_key, title="vis_DirectAction_GAC_replay5000_wo_entropy", threshold=0.99, xlim=None, ylim=[-2, 2])
+
+
     # noncontext_replay0(copy.deepcopy(target_key))
     # noncontext_replay50(copy.deepcopy(target_key))
     # noncontext_replay100(copy.deepcopy(target_key))
@@ -605,6 +642,11 @@ def visualize_gac():
     # change_action_replay5000(copy.deepcopy(target_key))
     # change_action_rwd_stay_replay5000(copy.deepcopy(target_key))
     # change_action_rwd_stay_long(copy.deepcopy(target_key))
+    noncontext_larger_lr_replay5000(copy.deepcopy(target_key))
+    direct_action_larger_lr_replay5000(copy.deepcopy(target_key))
+    noncontext_proposal_wo_entropy(copy.deepcopy(target_key))
+    direct_action_proposal_wo_entropy(copy.deepcopy(target_key))
+
 
 def visualize_temp():
     target_key = [
@@ -646,7 +688,10 @@ if __name__ == '__main__':
     # SHAREPATH = "output/test_v0/TTChangeAction/DiscreteConstPID/learning_rate/target0/replay100_batch32/env_scale_1/change_0.01/"
 
     # SHAREPATH = "output/test_v0/NonContexTT/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
-    SHAREPATH = "output/test_v0/TTAction/ConstPID/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
+    # SHAREPATH = "output/test_v0/TTAction/ConstPID/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
+
+    # SHAREPATH = "output/test_v0/NonContexTT/GAC_proposal_wo_entropy/target0/replay5000_batch8/env_scale_10/"
+    # SHAREPATH = "output/test_v0/TTAction/ConstPID/GAC_proposal_wo_entropy/target0/replay5000_batch8/env_scale_10/"
 
     # SHAREPATH = "output/test_v0/TTChangeAction/ClipConstPID/learning_rate/target0/replay0/env_scale_1/action_-0.1_0.1/"
     # SHAREPATH = "output/test_v0/TTChangeAction/ClipDiscreteConstPID/learning_rate/target0/replay0/env_scale_1/change_0.01/"
@@ -689,7 +734,7 @@ if __name__ == '__main__':
     # SHAREPATH = "output/test_v0/TTChangeAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/action_-0.1_0.1/"
     # SHAREPATH = "output/test_v0/TTChangeAction/DiscreteConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/change_0.01/"
 
-    agent_list = ['GAC']
+    # agent_list = ['GAC']
     # SHAREPATH = "output/test_v0/NonContexTT/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10_action_0.01_0.99/"
     # SHAREPATH = "output/test_v0/TTAction/ConstPID/stable_gac_test/v0/target0/replay5000_batch8/env_scale_10_action_0.01_0.99/"
     # SHAREPATH = "output/test_v0/TTChangeAction/DiscreteRwdStay/stable_gac_test/v0/target0/replay5000_batch8/env_scale_1/change_0.01/"
@@ -732,19 +777,20 @@ if __name__ == '__main__':
         "tau": [0.001],
     }
     SHAREPATH = "output/test_v0/NonContexTT/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
-    draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_noncontex")
+    # draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_noncontex")
     SHAREPATH = "output/test_v0/TTAction/ConstPID/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
-    draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_directaction")
+    # draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_directaction")
 
 
     # demo()
     # stable_gac_test()
+    # gac_proposal_wo_entropy()
     # gac_learning_rate()
     # gac_parameter_study()
     # constant_pid_target0_replay0()
     # constant_pid_target0_replay100()
 
     # visualize_general()
-    # visualize_gac()
+    visualize_gac()
 
     # visualize_temp()
