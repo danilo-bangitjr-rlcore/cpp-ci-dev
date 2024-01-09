@@ -45,12 +45,12 @@ def buffer_prefill(settings, shared_settings, target_agents):
     shared_settings = {
         "--exp_name": ["buffer_prefill"],
         "--max_steps": [5000],
-        "--render": [0],
+        "--render": [2],
         "--env_action_scaler": [10],
         "--action_scale": [1],
         "--action_bias": [0],
         "--optimizer" : ['RMSprop'],
-        "--tau": [1e-3],
+        "--tau": [1e-1, 1e-3],
         "--rho": [0.1],
         "--lr_actor": [1, 0.5, 0.25, 0.1,],
         "--lr_critic": [0.01, 0.001, 0.0001, 0.00001, 0.000001]
