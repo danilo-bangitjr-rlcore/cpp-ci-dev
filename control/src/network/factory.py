@@ -37,6 +37,8 @@ def init_custom_network(name, device, input_dim, hidden_units, output_dim, activ
 def init_optimizer(name, param, lr):
     if name == "RMSprop":
         return torch.optim.RMSprop(param, lr)
+    elif name == 'Adam':
+        return torch.optim.Adam(param, lr)
     else:
         raise NotImplementedError
 
