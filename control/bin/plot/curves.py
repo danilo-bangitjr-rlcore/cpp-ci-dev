@@ -1,3 +1,4 @@
+import json
 import matplotlib.pyplot as plt
 from utils import *
 
@@ -180,5 +181,12 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
     #     axs[0].set_ylim(ylim)
 
     # fig.tight_layout()
-    plt.savefig(DATAROOT + "img/{}{}.png".format(title, range_), dpi=300, bbox_inches='tight')
+    config_f = open(target_file + "/config.json")
+    config = json.load(config_f)
+
+    plt.savefig(target_file + "/{}{}_replay_{}_tau_{}_rho_{}_actor_lr_{}_critic_lr_{}.png".format(title, range_, config["buffer_size"], config["tau"], config["rho"], config["lr_actor"], config["lr_critic"]), dpi=300, bbox_inches='tight')
+    plt.savefig(DATAROOT + "img/{}{}_replay_{}_tau_{}_rho_{}_actor_lr_{}_critic_lr_{}.png".format(title, range_, config["buffer_size"], config["tau"], config["rho"], config["lr_actor"], config["lr_critic"]), dpi=300, bbox_inches='tight')
+    plt.close()
+    # fig.close()
     return highlight
+
