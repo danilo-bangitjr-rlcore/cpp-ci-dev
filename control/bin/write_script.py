@@ -244,16 +244,6 @@ def etc_pid():
             "--batch_size": [1],
         },
         "GAC": {
-<<<<<<< Updated upstream
-            "--tau": [1e-1],
-            "--rho": [0.25],
-            "--n": [30],
-            "--buffer_size": [100],
-            "--batch_size": [32],
-            "--polyak": [0.0],
-            "--lr_actor": [1e0],
-            "--lr_critic": [1e-5],
-=======
             "--tau": [1e0, 1e-1, 1e-2, 1e-3],
             "--rho": [0.1, 0.25],
             "--n": [30],
@@ -262,17 +252,12 @@ def etc_pid():
             "--polyak": [0.0, 0.995],
             "--lr_actor": [1e-1, 1e-2, 1e-3, 1e-4],
             "--lr_critic": [1e-6],
->>>>>>> Stashed changes
             "--render": [2],
         },
     }
     shared_settings = {
         "--env_name": ["NonContexTT"],
-<<<<<<< Updated upstream
         "--exp_name": ["Noncontext_PID_Visit_Heatmap"],
-=======
-        "--exp_name": ["Noncontext_PID_Baseline"],
->>>>>>> Stashed changes
         "--exp_info": ["/"],
         "--evaluation_criteria": ["return"],
         "--debug": [1],
