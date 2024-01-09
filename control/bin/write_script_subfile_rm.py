@@ -92,6 +92,40 @@ def buffer_prefill(settings, shared_settings, target_agents):
     combinations(settings, target_agents, num_runs=1, prev_file=1, line_per_file=10000, comb_num_base=193)
 
 
+def etc_critic(settings, shared_settings, target_agents):
+    """
+    Sweeps over learning rates for adam and RMSprop
+    
+    Ran on Jan 9, 2023
+    """
+    settings = {
+        "ETC": {
+        },
+    }
+    shared_settings = {
+        "--exp_name": ["etc_critic"],
+        "--max_steps": [5000],
+        "--render": [0],
+        "--env_action_scaler": [10],
+        "--action_scale": [1],
+        "--action_bias": [0],
+        "--optimizer" : ['RMSprop', 'Adam'],
+        "--tau": [1e-3],
+        "--rho": [0.1],
+        "--lr_critic": [0.01, 0.001, 0.0001, 0.00001]
+    }
+    target_agents = ["ETC"]
+
+    shared_settings["--env_name"] = ["NonContexTT"]
+    shared_settings["--exp_info"] = ["etc_critic"]
+    shared_settings["--buffer_size"] = [5000]
+    shared_settings["--batch_size"] = [8, 32]
+    shared_settings["--buffer_prefill"] = [100, 1000]
+    
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1000, comb_num_base=36)
+    
+    
 if __name__=='__main__':
     settings = {
         "SAC": {
@@ -131,4 +165,5 @@ if __name__=='__main__':
     target_agents = ["SimpleAC", "SAC", "GAC"]
 
     # learning_rate_sweep_adam_RMSprop(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
-    buffer_prefill(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # buffer_prefill(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    etc_critic(settings, shared_settings, target_agents)
