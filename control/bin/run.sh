@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16000M
-#SBATCH --array=1-162%20
+#SBATCH --array=1-193%20
 #SBATCH --exclusive=user
 #SBATCH --output=out/adam_rmsprop-%j.out
 

@@ -5,6 +5,8 @@ from write_script import combinations, merge_independent
 def learning_rate_sweep_adam_RMSprop(settings, shared_settings, target_agents):
     """
     Sweeps over learning rates for adam and RMSprop
+    
+    Ran on Jan 9, 2023
     """
     settings = {
         "GAC": {
@@ -36,12 +38,32 @@ def learning_rate_sweep_adam_RMSprop(settings, shared_settings, target_agents):
     
 def buffer_prefill(settings, shared_settings, target_agents):
     """
-    Sweeps over learning rates for adam and RMSprop
+    Compares prefilling the buffer to now prefilling
+    
+    Ran on Jan 9, 2023
     """
     settings = {
         "GAC": {
         },
     }
+    
+    # uncomment these, to generate two runfiles, then merge them manually
+    
+
+    # shared_settings = {
+    #     "--exp_name": ["buffer_prefill"],
+    #     "--max_steps": [5000],
+    #     "--render": [2],
+    #     "--env_action_scaler": [10],
+    #     "--action_scale": [1],
+    #     "--action_bias": [0],
+    #     "--optimizer" : ['RMSprop'],
+    #     "--tau": [2, 1, 1e-1],
+    #     "--rho": [0.2],
+    #     "--lr_actor": [1, 0.5, 0.25, 0.1,],
+    #     "--lr_critic": [0.01, 0.001, 0.0001, 0.00001]
+    # }
+    
     shared_settings = {
         "--exp_name": ["buffer_prefill"],
         "--max_steps": [5000],
@@ -50,29 +72,24 @@ def buffer_prefill(settings, shared_settings, target_agents):
         "--action_scale": [1],
         "--action_bias": [0],
         "--optimizer" : ['RMSprop'],
-        "--tau": [2, 1, 1e-1],
-        "--rho": [0.2, 0.1],
+        "--tau": [0],
+        "--rho": [0.2],
+        "--theta": [0.2, 0.4, 0.8],
         "--lr_actor": [1, 0.5, 0.25, 0.1,],
         "--lr_critic": [0.01, 0.001, 0.0001, 0.00001]
     }
     
     
     target_agents = ["GAC"]
-
     shared_settings["--env_name"] = ["NonContexTT"]
-    shared_settings["--exp_info"] = ["/target0/replay5000/env_scale_10/"]
+    shared_settings["--exp_info"] = ["buffer_prefill"]
     shared_settings["--buffer_size"] = [5000]
     shared_settings["--batch_size"] = [8, 32]
     shared_settings["--buffer_prefill"] = [100, 1000]
     settings = merge_independent(settings, shared_settings)
-    
-    
-    
-    combinations(settings, target_agents, num_runs=1, prev_file=1, line_per_file=10000, comb_num_base=385)
 
-
-
-
+    # combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=10000, comb_num_base=0)
+    combinations(settings, target_agents, num_runs=1, prev_file=1, line_per_file=10000, comb_num_base=193)
 
 
 if __name__=='__main__':
