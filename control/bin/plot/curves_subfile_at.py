@@ -1,3 +1,4 @@
+import os
 from curves import DATAROOT, sweep_offline, reproduce_demo, best_offline
 from curves import visualize_training_info
 
@@ -33,32 +34,47 @@ def compare_algorithms():
     """
     SHAREPATH = "output/test_v0/NonContexTT/Noncontext_PID_Baseline/"
     pths = {
-        "ETC": [DATAROOT + SHAREPATH + "ETC/param_0/", "limegreen", 3],
-        "GAC": [DATAROOT + SHAREPATH + "GAC/param_28", "C1", 1],
+        "ETC": [DATAROOT + SHAREPATH + "ETC/param_0/", "limegreen", 1],
+        "GAC": [DATAROOT + SHAREPATH + "GAC/param_324", "C1", 3],
     }
     best_offline(pths, "PID_Baseline", ylim=[-10, 2])
 
-def test():
-    file = DATAROOT + "output/test_v0/TTChangeAction/ConstPID/temp/GAC/param_0/seed_0"
+def summary_plots():
+    SHAREPATH = "output/test_v0/NonContexTT/Noncontext_PID_Baseline/GAC"
     target_key = [
-        "agent_info/param1",
-        "agent_info/param2",
-        # "env_info/constrain_detail/kp1",
-        # "env_info/constrain_detail/tau",
+        "actor_info/param1",
+        "proposal_info/param1",
+        "actor_info/param2",
+        "proposal_info/param2",
+        "critic_info/Q",
+        "env_info/constrain_detail/kp1",
+        "env_info/constrain_detail/tau",
         "env_info/constrain_detail/height",
         "env_info/constrain_detail/flowrate",
-        # "env_info/constrain_detail/C1",
-        # "env_info/constrain_detail/C2",
+        "env_info/constrain_detail/C1",
+        "env_info/constrain_detail/C2",
         "env_info/constrain_detail/C3",
         "env_info/constrain_detail/C4",
         # "env_info/constrain",
         "env_info/lambda",
     ]
-    visualize_training_info(file, target_key, threshold=-10)
+    pth = DATAROOT + SHAREPATH
+    runs = os.listdir(pth)
+    runs = [run for run in runs if run != ".DS_Store"]
+    for run in runs:
+        run_pth = os.path.join(pth, run)
+        if os.path.isdir(run_pth):
+            seeds = os.listdir(run_pth)
+            seeds = [seed for seed in seeds if seed != ".DS_Store"]
+            for seed in seeds:
+                seed_pth = os.path.join(run_pth, seed)
+                print(seed_pth)
+                visualize_training_info(seed_pth, target_key, title="vis_noncontext_GAC", threshold=0.99, xlim=None, ylim=[-2, 2])
 
 
 if __name__ == '__main__':
     # sweep_parameter()
     compare_algorithms()
+    # summary_plots()
 
 
