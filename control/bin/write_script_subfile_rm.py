@@ -34,8 +34,7 @@ def learning_rate_sweep_adam_RMSprop(settings, shared_settings, target_agents):
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1000, comb_num_base=36)
     
-    
-    
+       
 def buffer_prefill(settings, shared_settings, target_agents):
     """
     Compares prefilling the buffer to now prefilling
@@ -105,25 +104,26 @@ def etc_critic(settings, shared_settings, target_agents):
     shared_settings = {
         "--exp_name": ["etc_critic"],
         "--max_steps": [5000],
-        "--render": [0],
+        "--render": [2],
         "--env_action_scaler": [10],
         "--action_scale": [1],
         "--action_bias": [0],
-        "--optimizer" : ['RMSprop', 'Adam'],
+        "--optimizer" : ['RMSprop'],
         "--tau": [1e-3],
         "--rho": [0.1],
-        "--lr_critic": [0.01, 0.001, 0.0001, 0.00001]
+        "--lr_critic": [0.01, 0.001, 0.0001, 0.00001],
+        "--debug" : [1]
     }
     target_agents = ["ETC"]
 
     shared_settings["--env_name"] = ["NonContexTT"]
-    shared_settings["--exp_info"] = ["etc_critic"]
+    shared_settings["--exp_info"] = ["etc_critic/"]
     shared_settings["--buffer_size"] = [5000]
-    shared_settings["--batch_size"] = [8, 32]
-    shared_settings["--buffer_prefill"] = [100, 1000]
+    shared_settings["--batch_size"] = [8, 32, 64]
+    shared_settings["--etc_buffer_prefill"] = [100, 1000, 2500]
     
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1000, comb_num_base=36)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1000, comb_num_base=0)
     
     
 if __name__=='__main__':
