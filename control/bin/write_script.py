@@ -244,20 +244,21 @@ def etc_pid():
             "--batch_size": [1],
         },
         "GAC": {
-            "--tau": [1e-2],
-            "--rho": [0.1],
+            "--tau": [0],
+            "--rho": [0.1, 0.2, 0.3],
+            "--prop_rho_mult": [1.0, 2.0, 3.0],
             "--n": [30],
-            "--buffer_size": [50],
-            "--batch_size": [8],
-            "--polyak": [0.0, 0.995],
-            "--lr_actor": [1e-2],
-            "--lr_critic": [1e-4],
+            "--buffer_size": [100],
+            "--batch_size": [32],
+            "--polyak": [0.0],
+            "--lr_actor": [1e1, 1e0, 1e-1, 1e-2],
+            "--lr_critic": [1e-3, 1e-4, 1e-5, 1e-6],
             "--render": [2],
         },
     }
     shared_settings = {
         "--env_name": ["NonContexTT"],
-        "--exp_name": ["Noncontext_PID_Baseline_Debug"],
+        "--exp_name": ["Noncontext_PID_Action_Visits"],
         "--exp_info": ["/"],
         "--evaluation_criteria": ["return"],
         "--debug": [1],
@@ -269,7 +270,7 @@ def etc_pid():
     target_agents = ["GAC"]
 
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=10)
+    combinations(settings, target_agents, num_runs=1, prev_file=8, line_per_file=18, comb_num_base=144)
 
 def test_runs():
     settings = {

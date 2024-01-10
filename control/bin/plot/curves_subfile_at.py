@@ -5,11 +5,11 @@ from curves import visualize_training_info
 def sweep_parameter():
     # pth_base = DATAROOT + "output/test_v0/ReactorEnv/With_LR_Param_Baseline/Param_Sweep/{}/"
     # pth_base = DATAROOT + "output/test_v0/Cont-CC-PermExDc-v0/With_LR_Param_Baseline/Episodic/Param_Sweep/{}/"
-    pth_base = DATAROOT + "output/test_v0/NonContexTT/Noncontext_PID_Baseline/{}/"
+    pth_base = DATAROOT + "output/test_v0/NonContexTT/Noncontext_PID_Action_Visits/{}/"
     #sweep_offline(pth_base, "GAC")
     #sweep_offline(pth_base, "SAC")
     #sweep_offline(pth_base, "Reinforce")
-    sweep_offline(pth_base, "ETC")
+    # sweep_offline(pth_base, "ETC")
     sweep_offline(pth_base, "GAC")
 
 def compare_algorithms():
@@ -31,10 +31,10 @@ def compare_algorithms():
     }
     best_offline(pths, "Cont-CC-PermExDc-v0_Baseline", ylim=[-50, 0])
     """
-    SHAREPATH = "output/test_v0/NonContexTT/Noncontext_PID_Baseline/"
+    SHAREPATH = "output/test_v0/NonContexTT/Noncontext_PID_Action_Visits/"
     pths = {
-        "ETC": [DATAROOT + SHAREPATH + "ETC/param_0/", "limegreen", 3],
-        "GAC": [DATAROOT + SHAREPATH + "GAC/param_28", "C1", 1],
+        "GAC w/ Entropy": [DATAROOT + SHAREPATH + "GAC/param_0/", "limegreen", 3],
+        "GAC w/o Entropy": [DATAROOT + SHAREPATH + "GAC/param_28", "C1", 1],
     }
     best_offline(pths, "PID_Baseline", ylim=[-10, 2])
 
@@ -58,7 +58,7 @@ def test():
 
 
 if __name__ == '__main__':
-    # sweep_parameter()
-    compare_algorithms()
+    sweep_parameter()
+    # compare_algorithms()
 
 
