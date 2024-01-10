@@ -279,7 +279,7 @@ def stable_gac_test(settings, shared_settings, target_agents):
         # settings = merge_independent(settings, shared_settings)
         # combinations(settings, target_agents, num_runs=1, prev_file=378, line_per_file=1)
 
-    clip_action(copy.deepcopy(settings), copy.deepcopy(shared_settings))
+    # clip_action(copy.deepcopy(settings), copy.deepcopy(shared_settings))
     # reward_stay(copy.deepcopy(settings), copy.deepcopy(shared_settings))
     # batch_normalization(copy.deepcopy(settings), copy.deepcopy(shared_settings))
     # gac_with_memory(copy.deepcopy(settings), copy.deepcopy(shared_settings))
@@ -462,7 +462,101 @@ def gac_proposal_wo_entropy(settings, shared_settings, target_agents):
 
         "--tau": [0],
         "--rho": [0.1],
-        "--lr_actor": [0.5, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001],
+        "--lr_actor": [1.0, 0.5, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001],
+        "--lr_critic": [0.01, 0.003, 0.001, 0.0003, 0.0001, 3e-5, 1e-5],
+    }
+    target_agents = ["GAC"]
+
+    shared_settings["--env_name"] = ["NonContexTT"]
+    shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
+    shared_settings["--buffer_size"] = [5000]
+    shared_settings["--batch_size"] = [8]
+    # shared_settings["--lr_actor"] = [1.0, 0.5, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]
+    shared_settings["--lr_actor"] = [1.0]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=49)
+
+    shared_settings["--env_name"] = ["TTAction/ConstPID"]
+    shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
+    shared_settings["--buffer_size"] = [5000]
+    shared_settings["--batch_size"] = [8]
+    # shared_settings["--lr_actor"] = [0.5, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001]
+    shared_settings["--lr_actor"] = [0.0003, 0.0001]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=7, line_per_file=1, comb_num_base=49)
+
+def gac_shift_beta_parameter(settings, shared_settings, target_agents):
+    settings = {
+        "GAC": {
+        },
+    }
+    shared_settings = {
+        "--exp_name": ["GAC_shift_beta_parameter"],
+        "--max_steps": [5000],
+        "--render": [0],
+        "--env_action_scaler": [10],
+        "--beta_parameter_bias": [1.],
+        "--action_scale": [1],
+        "--action_bias": [0],
+
+        "--tau": [1e-3],
+        "--rho": [0.1],
+        "--lr_actor": [1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001],
+        "--lr_critic": [0.01, 0.003, 0.001, 0.0003, 0.0001, 3e-5, 1e-5],
+    }
+    target_agents = ["GAC"]
+
+    # """
+    # buffer 5000, batch 8
+    # """
+    # shared_settings["--env_name"] = ["NonContexTT"]
+    # shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
+    # shared_settings["--buffer_size"] = [5000]
+    # shared_settings["--batch_size"] = [8]
+    # settings = merge_independent(settings, shared_settings)
+    # combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
+    #
+    # shared_settings["--env_name"] = ["TTAction/ConstPID"]
+    # shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
+    # shared_settings["--buffer_size"] = [5000]
+    # shared_settings["--batch_size"] = [8]
+    # settings = merge_independent(settings, shared_settings)
+    # combinations(settings, target_agents, num_runs=1, prev_file=49, line_per_file=1, comb_num_base=0)
+
+    """
+    buffer 100, batch 32
+    """
+    shared_settings["--env_name"] = ["NonContexTT"]
+    shared_settings["--exp_info"] = ["/target0/replay100_batch32/env_scale_10/"]
+    shared_settings["--buffer_size"] = [100]
+    shared_settings["--batch_size"] = [32]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
+
+    shared_settings["--env_name"] = ["TTAction/ConstPID"]
+    shared_settings["--exp_info"] = ["/target0/replay100_batch32/env_scale_10/"]
+    shared_settings["--buffer_size"] = [100]
+    shared_settings["--batch_size"] = [32]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=49, line_per_file=1, comb_num_base=0)
+
+def noncontextual_nonzero_obs(settings, shared_settings, target_agents):
+    settings = {
+        "GAC": {
+        },
+    }
+    shared_settings = {
+        "--exp_name": ["noncontextual_nonzero_obs"],
+        "--max_steps": [5000],
+        "--render": [0],
+        "--env_action_scaler": [10],
+        "--env_info": [1.],
+        "--action_scale": [1],
+        "--action_bias": [0],
+
+        "--tau": [1e-3],
+        "--rho": [0.1],
+        "--lr_actor": [1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001],
         "--lr_critic": [0.01, 0.003, 0.001, 0.0003, 0.0001, 3e-5, 1e-5],
     }
     target_agents = ["GAC"]
@@ -472,14 +566,7 @@ def gac_proposal_wo_entropy(settings, shared_settings, target_agents):
     shared_settings["--buffer_size"] = [5000]
     shared_settings["--batch_size"] = [8]
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
-
-    shared_settings["--env_name"] = ["TTAction/ConstPID"]
-    shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
-    shared_settings["--buffer_size"] = [5000]
-    shared_settings["--batch_size"] = [8]
-    settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=49, line_per_file=1, comb_num_base=0)
+    combinations(settings, target_agents, num_runs=1, prev_file=98, line_per_file=1, comb_num_base=0)
 
 def larger_range_learning_rate_sweep(settings, shared_settings, target_agents):
     settings = {
@@ -1074,6 +1161,79 @@ def visualize_gac(settings, shared_settings):
         settings = merge_independent(settings, shared_settings)
         combinations(settings, target_agents, num_runs=1, prev_file=3, line_per_file=1)
 
+    def gac_shift_beta_parameter(settings, shared_settings, target_agents):
+        # """
+        # Buffer 5000, batch 8
+        # """
+        # shared_settings["--env_name"] = ["NonContexTT"]
+        # shared_settings["--exp_info"] = ["/replay5000_shift_beta/"]
+        # shared_settings["--env_action_scaler"] = [10.]
+        # shared_settings["--beta_parameter_bias"] = [1.]
+        # shared_settings["--buffer_size"] = [5000]
+        # shared_settings["--batch_size"] = [8]
+        # shared_settings["--lr_actor"] = [0.1]
+        # shared_settings["--lr_critic"] = [0.0003]
+        # shared_settings["--tau"] = [0.001]
+        # shared_settings["--rho"] = [0.1]
+        # settings = merge_independent(settings, shared_settings)
+        # combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+        #
+        # shared_settings["--env_name"] = ["TTAction/ConstPID"]
+        # shared_settings["--exp_info"] = ["/replay5000_shift_beta/"]
+        # shared_settings["--env_action_scaler"] = [10.]
+        # shared_settings["--beta_parameter_bias"] = [1.]
+        # shared_settings["--buffer_size"] = [5000]
+        # shared_settings["--batch_size"] = [8]
+        # shared_settings["--lr_actor"] = [0.001]
+        # shared_settings["--lr_critic"] = [0.003]
+        # shared_settings["--tau"] = [0.001]
+        # shared_settings["--rho"] = [0.1]
+        # settings = merge_independent(settings, shared_settings)
+        # combinations(settings, target_agents, num_runs=1, prev_file=1, line_per_file=1)
+
+        """
+        Buffer 100, batch 32
+        """
+        shared_settings["--env_name"] = ["NonContexTT"]
+        shared_settings["--exp_info"] = ["/replay100_shift_beta/"]
+        shared_settings["--env_action_scaler"] = [10.]
+        shared_settings["--beta_parameter_bias"] = [1.]
+        shared_settings["--buffer_size"] = [100]
+        shared_settings["--batch_size"] = [32]
+        shared_settings["--lr_actor"] = [0.3]
+        shared_settings["--lr_critic"] = [0.0001]
+        shared_settings["--tau"] = [0.001]
+        shared_settings["--rho"] = [0.1]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1)
+
+        shared_settings["--env_name"] = ["TTAction/ConstPID"]
+        shared_settings["--exp_info"] = ["/replay100_shift_beta/"]
+        shared_settings["--env_action_scaler"] = [10.]
+        shared_settings["--beta_parameter_bias"] = [1.]
+        shared_settings["--buffer_size"] = [100]
+        shared_settings["--batch_size"] = [32]
+        shared_settings["--lr_actor"] = [0.003]
+        shared_settings["--lr_critic"] = [0.001]
+        shared_settings["--tau"] = [0.001]
+        shared_settings["--rho"] = [0.1]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=1, line_per_file=1)
+
+    def noncontextual_nonzero_obs(settings, shared_settings, target_agents):
+        shared_settings["--env_name"] = ["NonContexTT"]
+        shared_settings["--exp_info"] = ["/replay5000_nonzero_obs/"]
+        shared_settings["--env_action_scaler"] = [10.]
+        shared_settings["--env_info"] = [1.]
+        shared_settings["--buffer_size"] = [5000]
+        shared_settings["--batch_size"] = [8]
+        shared_settings["--lr_actor"] = [0.001]
+        shared_settings["--lr_critic"] = [3e-5]
+        shared_settings["--tau"] = [0.001]
+        shared_settings["--rho"] = [0.1]
+        settings = merge_independent(settings, shared_settings)
+        combinations(settings, target_agents, num_runs=1, prev_file=2, line_per_file=1)
+
 
     shared_settings["--debug"] = [1]
     shared_settings["--render"] = [2]
@@ -1105,8 +1265,10 @@ def visualize_gac(settings, shared_settings):
     # change_action_rwd_stay_long(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # predict_goodness(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # predict_goodness(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
-    gac_large_lr(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
-    gac_proposal_wo_entropy(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # gac_large_lr(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # gac_proposal_wo_entropy(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    gac_shift_beta_parameter(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # noncontextual_nonzero_obs(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
 
 def temp():
     settings = {
@@ -1188,6 +1350,8 @@ if __name__=='__main__':
     # stable_gac_test(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # gac_sweep(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # gac_proposal_wo_entropy(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # gac_shift_beta_parameter(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # noncontextual_nonzero_obs(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # larger_range_learning_rate_sweep(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # constant_pid_target0_replay0(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # constant_pid_target0_replay100(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
