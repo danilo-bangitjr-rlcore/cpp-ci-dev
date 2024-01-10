@@ -167,3 +167,8 @@ control/out/
 
 # Experiment files
 control/bin/*.txt
+run.sh
+
+# saved results 
+saved_experiments/
+

@@ -52,6 +52,7 @@ if __name__ == "__main__":
     parser.add_argument('--buffer_size', default=1, type=int)
     parser.add_argument('--buffer_prefill', default=0, type=int)
     parser.add_argument('--etc_buffer_prefill', default=0, type=int) # buffer prefill for etc 
+    parser.add_argument('--etc_learning_start', default=0, type=int) # buffer prefill for etc 
     parser.add_argument('--batch_size', default=1, type=int)
     parser.add_argument('--update_freq', default=1, type=int)
     parser.add_argument('--use_target_network', default=1, type=int)
