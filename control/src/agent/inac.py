@@ -10,7 +10,8 @@ class InAC(BaseAC):
     def __init__(self, cfg):
         super(InAC, self).__init__(cfg)
         self.beh_pi = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                          cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init, cfg.layer_norm)
+                                          cfg.beta_parameter_bias, cfg.action_scale, cfg.action_bias, cfg.activation,
+                                          cfg.head_activation, cfg.layer_init, cfg.layer_norm)
         self.beh_pi_optimizer = init_optimizer(cfg.optimizer, list(self.beh_pi.parameters()), cfg.lr_actor)
 
         self.value_net = init_custom_network("FC", cfg.device, self.state_dim, cfg.hidden_critic, 1,

@@ -39,7 +39,7 @@ def init_environment(name, cfg):
     elif name == "TTAction/ChangePID":
         return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=False, env_action_scaler=cfg.env_action_scaler)
     elif name == "NonContexTT":
-        return NonContexTT(cfg.seed, cfg.lr_constrain, env_action_scaler=cfg.env_action_scaler)
+        return NonContexTT(cfg.seed, cfg.lr_constrain, env_action_scaler=cfg.env_action_scaler, obs=cfg.env_info)
     elif name == "AtropineEnv":
         return AtropineEnvGym()
     elif name == "BeerEnv":

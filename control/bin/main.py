@@ -29,7 +29,7 @@ if __name__ == "__main__":
     parser.add_argument('--render', default=0, type=int)
 
     parser.add_argument('--env_name', default='ThreeTank', type=str)
-    parser.add_argument('--env_info', default=0.01, type=float)
+    parser.add_argument('--env_info', default=0, type=float)
     parser.add_argument('--env_action_scaler', default=10., type=float)
     parser.add_argument('--gamma', default=0.99, type=float)
     parser.add_argument('--discrete_control', default=0, type=int)
@@ -45,6 +45,7 @@ if __name__ == "__main__":
     parser.add_argument('--state_normalizer', default='Identity', type=str)
     parser.add_argument('--reward_normalizer', default='Identity', type=str)
     parser.add_argument('--exploration', default=0.1, type=float)
+    parser.add_argument('--beta_parameter_bias', default=0., type=float)
     parser.add_argument('--action_scale', default=1., type=float)
     parser.add_argument('--action_bias', default=0., type=float)
     parser.add_argument('--load_path', default="", type=str)

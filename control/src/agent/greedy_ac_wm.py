@@ -23,7 +23,8 @@ class GACPredictSuccess(GreedyAC):
         self.predict_model_optim = init_optimizer(cfg.optimizer, list(self.predict_model.parameters()), cfg.lr_critic)
 
         self.safe_action_model = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                                     cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init, cfg.layer_norm)
+                                                     cfg.beta_parameter_bias, cfg.action_scale, cfg.action_bias, cfg.activation,
+                                                     cfg.head_activation, cfg.layer_init, cfg.layer_norm)
         self.safe_action_model_optim = init_optimizer(cfg.optimizer, list(self.safe_action_model.parameters()), cfg.lr_actor)
 
         self.safe_action_buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
