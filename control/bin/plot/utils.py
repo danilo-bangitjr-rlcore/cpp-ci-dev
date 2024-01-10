@@ -50,6 +50,7 @@ def sensitivity_heatmap(ax, data, root):
     for i1, p1 in enumerate(params1):
         for i2, p2 in enumerate(params2):
            sc[i1, i2] = data[(p1, p2)].sum(axis=1).mean()
+           
     im = ax.imshow(sc)
     ax.set_yticks(np.arange(len(params1)), labels=params1)
     ax.set_xticks(np.arange(len(params2)), labels=params2)
@@ -169,7 +170,7 @@ def load_exp(axs, plot_fn, root, fix_params={}, sweep_param=None):
                     perf_ret[p] = returns
                     perf_cons[p] = constraints
             # print(p, perf_ret[p].shape, perf_ret[p].mean(), perf_ret[p])
-
+    
     im = plot_fn(axs[0], perf_ret, root)
     if len(axs) > 1:
         plot_fn(axs[1], perf_cons)

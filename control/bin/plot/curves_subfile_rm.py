@@ -1,9 +1,26 @@
 import itertools
+import os
 
 from curves import DATAROOT, sweep_offline, reproduce_demo, best_offline, sensitivity_plot_2d
 from curves import visualize_training_info
 
 
+def draw_sensitivity_2d_buffer():
+    fixed_params_list = {
+        "tau": [2, 1 ,1e-1],
+        # "tau": [0.0],
+        # "theta":[0.2, 0.4, 0.8],
+        "batch_size": [8, 32],
+        "buffer_prefill": [100, 1000]
+    }
+    
+    pth_base = DATAROOT + "output/test_v0/NonContexTT/09-01-2024-buffer_prefill"
+    keys, values = zip(*fixed_params_list.items())
+    fix_params_choices = [dict(zip(keys, v)) for v in itertools.product(*values)]
+   
+    sensitivity_plot_2d(pth_base+"/{}/".format('GAC'), 'GAC', fix_params_choices, 'lr_actor', 'lr_critic', 'Sensitivity')
+    
+    
 def draw_sensitivity_2d():
     fixed_params_list = {
         "optimizer": ['Adam', 'RMSprop']
@@ -43,27 +60,51 @@ def compare_algorithms():
     best_offline(pths, "PID_Baseline", ylim=[-10, 2])
 
 def test():
-    file = DATAROOT + "output/test_v0/TTChangeAction/ConstPID/temp/GAC/param_0/seed_0"
+    # file = DATAROOT + "output/test_v0/NonContexTT/09-01-2024-buffer_prefill/GAC"
     target_key = [
-        "agent_info/param1",
-        "agent_info/param2",
-        # "env_info/constrain_detail/kp1",
-        # "env_info/constrain_detail/tau",
+        "actor_info/param1",
+        "proposal_info/param1",
+        "actor_info/param2",
+        "proposal_info/param2",
+        "critic_info/Q",
+        "env_info/constrain_detail/kp1",
+        "env_info/constrain_detail/tau",
         "env_info/constrain_detail/height",
         "env_info/constrain_detail/flowrate",
-        # "env_info/constrain_detail/C1",
-        # "env_info/constrain_detail/C2",
+        "env_info/constrain_detail/C1",
+        "env_info/constrain_detail/C2",
         "env_info/constrain_detail/C3",
         "env_info/constrain_detail/C4",
         # "env_info/constrain",
         "env_info/lambda",
     ]
-    visualize_training_info(file, target_key, threshold=-10)
+    
+    
+    pth = DATAROOT + "output/test_v0/NonContexTT/09-01-2024-buffer_prefill/GAC"
+    runs = os.listdir(pth)
+    runs = [run for run in runs if run != ".DS_Store"]
+    for run in runs:
+        run_pth = os.path.join(pth, run)
+        # visualize_training_info(run_pth, target_key, title="vis_noncontext_GAC", threshold=0.99, xlim=None, ylim=[-2, 2])
+               
+               
+    
+        if os.path.isdir(run_pth):
+            seeds = os.listdir(run_pth)
+            seeds = [seed for seed in seeds if seed != ".DS_Store"]
+            for seed in seeds:
+                seed_pth = os.path.join(run_pth, seed)
+                print(seed_pth)
+                visualize_training_info(seed_pth, target_key, title="vis_noncontext_GAC", threshold=0.99, xlim=None, ylim=[-2, 2])
+
+
 
 
 if __name__ == '__main__':
-    draw_sensitivity_2d()
+    test()
+    # draw_sensitivity_2d()
     # sweep_parameter()
     # compare_algorithms()
+    # draw_sensitivity_2d_buffer()
 
 

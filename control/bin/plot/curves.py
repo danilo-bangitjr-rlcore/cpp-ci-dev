@@ -107,9 +107,10 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
     with open(target_file+"/info_logs.pkl", "rb") as f:
         info = pickle.load(f)
     ret = np.load(target_file+"/train_logs.npy")
-
+    
     reformat = {}
     for k in target_key:
+        print(k)
         ary = log2ary(info, k)
         if len(ary.shape) > 2 and ary.shape[2] == 1:
             ary = ary.squeeze(2)
