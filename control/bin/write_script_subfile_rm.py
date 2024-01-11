@@ -106,10 +106,10 @@ def etc_critic_prefill(settings, shared_settings, target_agents):
         "--env_action_scaler": [10],
         "--action_scale": [1],
         "--action_bias": [0],
-        "--optimizer" : ['RMSprop'],
+        "--optimizer" : ['RMSprop', 'SGD'],
         "--tau": [1e-3],
         "--rho": [0.1],
-        "--lr_critic": [0.001, 0.0001, 0.00001],
+        "--lr_critic": [10**i for i in range(-2, -6, -1)],
         "--etc_learning_start": [2500],
         "--debug" : [1]
     }
@@ -121,10 +121,10 @@ def etc_critic_prefill(settings, shared_settings, target_agents):
     shared_settings["--batch_size"] = [8, 64]
     shared_settings["--etc_buffer_prefill"] = [2500]
     
+    
     settings = merge_independent(settings, shared_settings)
+    print(settings)
     combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1000, comb_num_base=0)
-    
-    
     
 def etc_critic_online(settings, shared_settings, target_agents):
     """
@@ -143,10 +143,10 @@ def etc_critic_online(settings, shared_settings, target_agents):
         "--env_action_scaler": [10],
         "--action_scale": [1],
         "--action_bias": [0],
-        "--optimizer" : ['RMSprop'],
+        "--optimizer" : ['RMSprop', 'SGD'],
         "--tau": [1e-3],
         "--rho": [0.1],
-        "--lr_critic": [0.001, 0.0001, 0.00001],
+        "--lr_critic": [10**i for i in range(-2, -6, -1)],
         "--etc_learning_start": [0],
         "--debug" : [1]
     }
@@ -159,7 +159,7 @@ def etc_critic_online(settings, shared_settings, target_agents):
     shared_settings["--etc_buffer_prefill"] = [5000]
     
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=1, line_per_file=1000, comb_num_base=6)
+    combinations(settings, target_agents, num_runs=1, prev_file=1, line_per_file=1000, comb_num_base=16)
     
     
 def GAC_classic_control_and_PID(settings, shared_settings, target_agents):
@@ -234,7 +234,7 @@ if __name__=='__main__':
         "--action_bias": [0],
         "--polyak": [0],
     }
-    target_agents = ["SimpleAC", "SAC", "GAC"]
+    target_agents = ["SimpleAC", "SAC", "GAC", "ETC"]
 
     # learning_rate_sweep_adam_RMSprop(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # buffer_prefill(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))

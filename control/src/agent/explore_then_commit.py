@@ -51,13 +51,6 @@ class ExploreThenCommit(BaseAC):
     def step(self):
         action = self.choose_action()
         next_observation, reward, terminated, trunc, env_info = self.env.step(action)
-        
-        i_log = {
-            "agent_info": None,
-            "env_info": env_info
-        }
-        self.info_log.append(i_log)
-
         self.update_action_values(reward)
 
         reset, truncate = self.update_stats(reward, terminated, trunc)

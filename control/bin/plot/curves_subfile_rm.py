@@ -1,8 +1,12 @@
 import itertools
 import os
 
+
 from curves import DATAROOT, sweep_offline, reproduce_demo, best_offline, sensitivity_plot_2d
 from curves import visualize_training_info
+
+
+
 
 
 def draw_sensitivity_2d_buffer():
@@ -20,8 +24,7 @@ def draw_sensitivity_2d_buffer():
    
     sensitivity_plot_2d(pth_base+"/{}/".format('GAC'), 'GAC', fix_params_choices, 'lr_actor', 'lr_critic', 'Sensitivity')
     
-    
-def draw_sensitivity_2d():
+def draw_sensitivity_2d_adam_RMSprop():
     fixed_params_list = {
         "optimizer": ['Adam', 'RMSprop']
     }
@@ -58,6 +61,7 @@ def compare_algorithms():
         "GAC": [DATAROOT + SHAREPATH + "GAC/param_28", "C1", 1],
     }
     best_offline(pths, "PID_Baseline", ylim=[-10, 2])
+
 
 def test():
     # file = DATAROOT + "output/test_v0/NonContexTT/09-01-2024-buffer_prefill/GAC"
