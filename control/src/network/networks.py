@@ -51,11 +51,11 @@ class SquashedGaussianPolicy(nn.Module):
         self.logstd_head = layer_init(nn.Linear(arch[-1], action_dim))
 
         # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions. 
-        if type(action_scale) == float:
-            action_scale = np.ones(action_dim)*action_scale
+        # if type(action_scale) == float:
+        #     action_scale = np.ones(action_dim)*action_scale
             
-        if type(action_bias) == float:
-            action_bias = np.ones(action_dim)*action_bias
+        # if type(action_bias) == float:
+        #     action_bias = np.ones(action_dim)*action_bias
             
         # self.action_clip = [c * action_scale + action_bias for c in action_clip]
         self.to(device)
@@ -122,11 +122,11 @@ class BetaPolicy(nn.Module):
         self.head_activation_fn = internal_factory.init_activation_function(head_activation)
 
         # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions. 
-        if type(action_scale) == float:
-            action_scale = np.ones(action_dim)*action_scale
+        # if type(action_scale) == float:
+        #     action_scale = np.ones(action_dim)*action_scale
             
-        if type(action_bias) == float:
-            action_bias = np.ones(action_dim)*action_bias
+        # if type(action_bias) == float:
+        #     action_bias = np.ones(action_dim)*action_bias
             
         
         # auto scales 
