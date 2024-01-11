@@ -26,7 +26,7 @@ class BaseAC(Evaluation):
                                                      cfg.activation, cfg.layer_init, cfg.layer_norm)
             self.get_q_value = self.get_q_value_discrete
             self.get_q_value_target = self.get_q_value_target_discrete
-        else:
+        else:        
             self.action_dim = np.prod(self.env.action_space.shape)
             self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
                                              cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init, cfg.layer_norm)

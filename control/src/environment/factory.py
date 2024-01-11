@@ -59,9 +59,9 @@ def init_environment(name, cfg):
     elif name == "Acrobot-v0":
         return gym.make("Acrobot-v0")
     elif name == "MountainCar-v0":
-        gym.make("MountainCar-v0")
+        return gym.make("MountainCar-v0")
     elif name == "Pendulum-v1":
-        gym.make("Pendulum-v1")
+        return gym.make("Pendulum-v1")
     else:
         raise NotImplementedError
 
