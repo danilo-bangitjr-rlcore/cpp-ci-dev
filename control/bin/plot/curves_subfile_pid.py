@@ -836,7 +836,7 @@ if __name__ == '__main__':
         "tau": [0],
     }
     SHAREPATH = "output/test_v0/NonContexTT/GAC_proposal_wo_entropy/target0/replay5000_batch8/env_scale_10/"
-    # draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_noncontex_wo_entropy")
+    draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_noncontex_wo_entropy")
     SHAREPATH = "output/test_v0/TTAction/ConstPID/GAC_proposal_wo_entropy/target0/replay5000_batch8/env_scale_10/"
     # draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_directaction_wo_entropy")
 
@@ -845,7 +845,7 @@ if __name__ == '__main__':
     # gac_proposal_wo_entropy()
     # gac_learning_rate()
     # gac_parameter_study()
-    gac_shift_beta_parameter()
+    # gac_shift_beta_parameter()
     # noncontextual_nonzero_obs()
     # constant_pid_target0_replay0()
     # constant_pid_target0_replay100()

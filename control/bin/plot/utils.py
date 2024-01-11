@@ -50,6 +50,7 @@ def sensitivity_heatmap(ax, data, root):
     for i1, p1 in enumerate(params1):
         for i2, p2 in enumerate(params2):
            sc[i1, i2] = data[(p1, p2)].sum(axis=1).mean()
+    print("Heatmap range:", sc.min(), sc.max())
     im = ax.imshow(sc)
     ax.set_yticks(np.arange(len(params1)), labels=params1)
     ax.set_xticks(np.arange(len(params2)), labels=params2)

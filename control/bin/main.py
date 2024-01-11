@@ -1,6 +1,9 @@
+import subprocess
 import os, sys
 sys.path.insert(0, '..')
-
+import datetime
+import json
+from types import SimpleNamespace
 import argparse
 import src.environment.factory as env_factory
 import src.agent.factory as agent_factory
@@ -29,7 +32,7 @@ if __name__ == "__main__":
     parser.add_argument('--render', default=0, type=int)
 
     parser.add_argument('--env_name', default='ThreeTank', type=str)
-    parser.add_argument('--env_info', default=0, type=float)
+    parser.add_argument('--env_info', default=[0], type=float, nargs='+')
     parser.add_argument('--env_action_scaler', default=10., type=float)
     parser.add_argument('--gamma', default=0.99, type=float)
     parser.add_argument('--discrete_control', default=0, type=int)
@@ -74,17 +77,29 @@ if __name__ == "__main__":
 
     cfg = parser.parse_args()
 
+    sha = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+    cfg.githash = sha
+
     if cfg.load_from_json == '':
         cfg.exp_path = './out/output/test_v{}/{}/{}{}/{}/param_{}/seed_{}/'.format(cfg.version, cfg.env_name, cfg.exp_name, cfg.exp_info, cfg.agent_name, cfg.param, cfg.seed)  # savelocation for logs
-        cfg.parameters_path = os.path.join(cfg.exp_path, "parameters")
-        cfg.vis_path = os.path.join(cfg.exp_path, "visualizations")
-        utils.ensure_dir(cfg.exp_path)
-        utils.ensure_dir(cfg.parameters_path)
-        utils.ensure_dir(cfg.vis_path)
-        utils.write_json(cfg.exp_path, cfg)
     else:
         jf = cfg.load_from_json
         assert os.path.isfile(jf), print("JSON FILE DOES NOT EXIST")
+        with open(jf, 'r') as f:
+            jcfg = json.load(f, object_hook=lambda x: SimpleNamespace(**x))
+        for k in cfg.__dict__.keys():
+            if getattr(jcfg, k, None) is None:
+                print("Adding missing key: {}={}".format(k, getattr(cfg, k)))
+                setattr(jcfg, k, getattr(cfg, k))
+        cfg = jcfg
+        ts = datetime.datetime.now().timestamp()
+        cfg.exp_path = cfg.exp_path[:-1] + "_{}".format(ts)
+    cfg.parameters_path = os.path.join(cfg.exp_path, "parameters")
+    cfg.vis_path = os.path.join(cfg.exp_path, "visualizations")
+    utils.ensure_dir(cfg.exp_path)
+    utils.ensure_dir(cfg.parameters_path)
+    utils.ensure_dir(cfg.vis_path)
+    utils.write_json(cfg.exp_path, cfg)
 
 
     cfg.logger = utils.logger_setup(cfg)

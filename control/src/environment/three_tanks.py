@@ -564,20 +564,19 @@ class TTAction(TTChangeAction):
 
 
 class NonContexTT(ThreeTankEnv):
-    def __init__(self, seed=None, lr_constrain=0, env_action_scaler=None, obs=0.):
-        # super(NonContexTT, self).__init__(seed, lr_constrain, constant_pid=True, env_action_scaler=env_action_scaler)
+    def __init__(self, seed=None, lr_constrain=0, env_action_scaler=None, obs=[0.]):
         super(NonContexTT, self).__init__(seed, lr_constrain, env_action_scaler=env_action_scaler)
-        self.observation_space = spaces.Box(low=np.array([obs]),
-                                            high=np.array([obs]), shape=(1,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=np.array(obs),
+                                            high=np.array(obs), shape=(len(obs),), dtype=np.float32)
         self.obs = obs
 
     def reset(self, seed=None):
         _, info = super(NonContexTT, self).reset(seed=seed)
-        return np.array([self.obs]), info
+        return np.array(self.obs), info
 
     def step(self, a):
         sp, r, done, trunc, info = super(NonContexTT, self).step(a)
-        sp = np.array([self.obs])
+        sp = np.array(self.obs)
         return sp, r, done, trunc, info
 
 class TTChangeActionClip(TTChangeAction):

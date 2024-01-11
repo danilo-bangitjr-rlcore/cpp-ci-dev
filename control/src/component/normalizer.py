@@ -14,6 +14,7 @@ class Identity(BaseNormalizer):
     def __init__(self):
         super(Identity, self).__init__()
         
+
 class OneHot(BaseNormalizer):
     def __init__(self, total_count):
         super(OneHot, self).__init__()
