@@ -49,6 +49,9 @@ class SquashedGaussianPolicy(nn.Module):
                                init=init, layer_norm=layer_norm)
         self.mean_head = layer_init(nn.Linear(arch[-1], action_dim))
         self.logstd_head = layer_init(nn.Linear(arch[-1], action_dim))
+        
+        self.action_scale = torch.tensor(action_scale)
+        self.action_bias = torch.tensor(action_bias)
 
         # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions. 
         # if type(action_scale) == float:
