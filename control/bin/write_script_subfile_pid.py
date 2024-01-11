@@ -553,9 +553,10 @@ def directly_learn_beta_parameter(settings, shared_settings, target_agents):
         "--action_scale": [1],
         "--action_bias": [0],
 
-        "--env_info": ["1.0, 1.0"],
-        "--hidden_actor": [""],
-        "--hidden_critic": [""],
+        "--env_info": [1.],
+        "--head_activation": ["ReLU"],
+        "--hidden_actor": [0],
+        "--hidden_critic": [0],
 
         "--tau": [1e-3],
         "--rho": [0.1],
