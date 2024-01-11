@@ -1,19 +1,29 @@
 import itertools
 import os
+import matplotlib.pyplot as plt
 
 
 from curves import DATAROOT, sweep_offline, reproduce_demo, best_offline, sensitivity_plot_2d
-from curves import visualize_training_info
+from curves import visualize_training_info, draw_q_functions
 
 
+def draw_q_plots():
+    fixed_params_list = {
+        "lr_critic": [10**i for i in range(-2, -6, -1)],
+        "batch_size": [8, 64],
+        "optimizer": ['RMSprop'],
+        "etc_learning_start" : [0]  
+    }
+    pth_base = DATAROOT + "output/test_v0/NonContexTT/etc_criticetc_critic/{}"
+    agent = 'ETC'
 
+    draw_q_functions(pth_base, fixed_params_list, agent, itr=-1, num_rows=4)
+    plt.savefig('q.png', bbox_inches='tight')
 
 
 def draw_sensitivity_2d_buffer():
     fixed_params_list = {
         "tau": [2, 1 ,1e-1],
-        # "tau": [0.0],
-        # "theta":[0.2, 0.4, 0.8],
         "batch_size": [8, 32],
         "buffer_prefill": [100, 1000]
     }
@@ -105,10 +115,11 @@ def test():
 
 
 if __name__ == '__main__':
-    test()
+    # test()
     # draw_sensitivity_2d()
     # sweep_parameter()
     # compare_algorithms()
     # draw_sensitivity_2d_buffer()
+    draw_q_plots()
 
 

@@ -105,6 +105,35 @@ def param_sweep(ax, data, root):
     print("")
 
 
+def load_logs(pth, pick_seed=None):
+    """
+    Loads logs for a single path and returns a list, one element for each seed
+    """
+    runs = os.listdir(pth)
+    runs = [run for run in runs if run != ".DS_Store"]
+    if pick_seed is None:
+        pick_seed = runs
+    
+    param_list = []
+    log_list = []
+    
+    for r in runs:
+        if r not in pick_seed:
+            continue
+        p = os.path.join(pth, r)
+        if os.path.isdir(p):
+            with open(os.path.join(p, "info_logs.pkl"), "rb") as f:
+                log = pickle.load(f)
+            
+            with open(os.path.join(p, "config.json"), "r") as f:
+                params = json.load(f)
+            
+            log_list.append(log)
+            param_list.append(params)
+            
+    return param_list, log_list
+
+
 def load_param(pth, xlim=[], pick_seed=None):
     returns = []
     constraints = []
