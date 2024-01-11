@@ -540,6 +540,48 @@ def gac_shift_beta_parameter(settings, shared_settings, target_agents):
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=49, line_per_file=1, comb_num_base=0)
 
+def directly_learn_beta_parameter(settings, shared_settings, target_agents):
+    settings = {
+        "GAC": {
+        },
+    }
+    shared_settings = {
+        "--exp_name": ["directly_learn_beta_parameter"],
+        "--max_steps": [5000],
+        "--render": [0],
+        "--env_action_scaler": [10],
+        "--action_scale": [1],
+        "--action_bias": [0],
+
+        "--env_info": ["1.0, 1.0"],
+        "--hidden_actor": [""],
+        "--hidden_critic": [""],
+
+        "--tau": [1e-3],
+        "--rho": [0.1],
+        "--lr_actor": [0.5, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001],
+        "--lr_critic": [0.01, 0.003, 0.001, 0.0003, 0.0001, 3e-5, 1e-5],
+    }
+    target_agents = ["GAC"]
+
+    """
+    buffer 5000, batch 8
+    """
+    shared_settings["--env_name"] = ["NonContexTT"]
+    shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
+    shared_settings["--buffer_size"] = [5000]
+    shared_settings["--batch_size"] = [8]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
+
+    shared_settings["--env_name"] = ["TTAction/ConstPID"]
+    shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
+    shared_settings["--buffer_size"] = [5000]
+    shared_settings["--batch_size"] = [8]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=49, line_per_file=1, comb_num_base=0)
+
+
 def noncontextual_nonzero_obs(settings, shared_settings, target_agents):
     settings = {
         "GAC": {
@@ -1351,6 +1393,7 @@ if __name__=='__main__':
     # gac_sweep(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # gac_proposal_wo_entropy(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # gac_shift_beta_parameter(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    directly_learn_beta_parameter(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # noncontextual_nonzero_obs(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # larger_range_learning_rate_sweep(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # constant_pid_target0_replay0(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
@@ -1359,6 +1402,6 @@ if __name__=='__main__':
     # constant_pid_target0_replay0_clip_distribution_param(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
 
     # visualize_general(copy.deepcopy(settings), copy.deepcopy(shared_settings))
-    visualize_gac(copy.deepcopy(settings), copy.deepcopy(shared_settings))
+    # visualize_gac(copy.deepcopy(settings), copy.deepcopy(shared_settings))
 
     # temp()
