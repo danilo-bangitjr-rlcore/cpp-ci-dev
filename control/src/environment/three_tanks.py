@@ -564,8 +564,9 @@ class TTAction(TTChangeAction):
 
 
 class NonContexTT(ThreeTankEnv):
-    def __init__(self, seed=None, lr_constrain=0, env_action_scaler=None, obs=[0.]):
+    def __init__(self, seed=None, lr_constrain=0, env_action_scaler=None, obs=0.):
         super(NonContexTT, self).__init__(seed, lr_constrain, env_action_scaler=env_action_scaler)
+        obs = [obs]
         self.observation_space = spaces.Box(low=np.array(obs),
                                             high=np.array(obs), shape=(len(obs),), dtype=np.float32)
         self.obs = obs

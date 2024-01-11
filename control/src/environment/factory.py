@@ -21,10 +21,10 @@ def init_environment(name, cfg):
                               agent_action_min=0*cfg.action_scale+cfg.action_bias,
                               agent_action_max=1*cfg.action_scale+cfg.action_bias)
     elif name == "TTChangeAction/DiscreteConstPID":
-        return TTChangeActionDiscrete(cfg.env_info[0], cfg.seed, cfg.lr_constrain, constant_pid=True,
+        return TTChangeActionDiscrete(cfg.env_info, cfg.seed, cfg.lr_constrain, constant_pid=True,
                                       env_action_scaler=cfg.env_action_scaler)
     elif name == "TTChangeAction/DiscreteRwdStay":
-        return TTChangeActionDiscrete(cfg.env_info[0], cfg.seed, cfg.lr_constrain, constant_pid=True,
+        return TTChangeActionDiscrete(cfg.env_info, cfg.seed, cfg.lr_constrain, constant_pid=True,
                                       env_action_scaler=cfg.env_action_scaler, )
     elif name == "TTChangeAction/ClipConstPID":
         return TTChangeActionClip(cfg.seed, cfg.lr_constrain, constant_pid=True,
@@ -32,7 +32,7 @@ def init_environment(name, cfg):
                                   agent_action_min=0*cfg.action_scale+cfg.action_bias,
                                   agent_action_max=1*cfg.action_scale+cfg.action_bias)
     elif name == "TTChangeAction/ClipDiscreteConstPID":
-        return TTChangeActionDiscreteClip(cfg.env_info[0], cfg.seed, cfg.lr_constrain, constant_pid=True,
+        return TTChangeActionDiscreteClip(cfg.env_info, cfg.seed, cfg.lr_constrain, constant_pid=True,
                                           env_action_scaler=cfg.env_action_scaler)
     elif name == "TTAction/ConstPID":
         return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=True, env_action_scaler=cfg.env_action_scaler)
