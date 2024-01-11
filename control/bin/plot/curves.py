@@ -112,7 +112,6 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
     
     reformat = {}
     for k in target_key:
-        print(k)
         ary = log2ary(info, k)
         if len(ary.shape) > 2 and ary.shape[2] == 1:
             ary = ary.squeeze(2)
