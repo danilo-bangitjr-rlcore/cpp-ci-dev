@@ -548,17 +548,17 @@ def directly_learn_beta_parameter(settings, shared_settings, target_agents):
     shared_settings = {
         "--exp_name": ["directly_learn_beta_parameter"],
         "--max_steps": [5000],
-        "--render": [0],
+        "--debug": [1],
+        "--render": [2],
         "--env_action_scaler": [10],
         "--action_scale": [1],
         "--action_bias": [0],
 
         "--env_info": [1.],
         "--head_activation": ["ReLU"],
+        "--layer_init_actor": ["Const/10/0"],
         "--hidden_actor": [0],
-        "--hidden_critic": [0],
 
-        "--tau": [1e-3],
         "--rho": [0.1],
         "--lr_actor": [0.5, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001],
         "--lr_critic": [0.01, 0.003, 0.001, 0.0003, 0.0001, 3e-5, 1e-5],
@@ -569,19 +569,11 @@ def directly_learn_beta_parameter(settings, shared_settings, target_agents):
     buffer 5000, batch 8
     """
     shared_settings["--env_name"] = ["NonContexTT"]
-    shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
-    shared_settings["--buffer_size"] = [5000]
-    shared_settings["--batch_size"] = [8]
+    shared_settings["--exp_info"] = ["/target0/replay1_batch1/env_scale_10/"]
+    shared_settings["--buffer_size"] = [1]
+    shared_settings["--batch_size"] = [1]
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
-
-    shared_settings["--env_name"] = ["TTAction/ConstPID"]
-    shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
-    shared_settings["--buffer_size"] = [5000]
-    shared_settings["--batch_size"] = [8]
-    settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=49, line_per_file=1, comb_num_base=0)
-
 
 def noncontextual_nonzero_obs(settings, shared_settings, target_agents):
     settings = {
