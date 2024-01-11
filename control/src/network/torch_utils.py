@@ -20,32 +20,32 @@ class NoneActivation(nn.Module):
 
 def layer_init_normal(layer, bias=True):
     nn.init.normal_(layer.weight)
-    if bias:
+    if int(bias):
         nn.init.constant_(layer.bias.data, 0)
     return layer
 
 def layer_init_zero(layer, bias=True):
     nn.init.constant_(layer.weight, 0)
-    if bias:
+    if int(bias):
         nn.init.constant_(layer.bias.data, 0)
     return layer
 
 def layer_init_constant(layer, const, bias=True):
-    nn.init.constant_(layer.weight, const)
-    if bias:
-        nn.init.constant_(layer.bias.data, const)
+    nn.init.constant_(layer.weight, float(const))
+    if int(bias):
+        nn.init.constant_(layer.bias.data, float(const))
     return layer
 
 
 def layer_init_xavier(layer, bias=True):
     nn.init.xavier_uniform_(layer.weight)
-    if bias:
+    if int(bias):
         nn.init.constant_(layer.bias.data, 0)
     return layer
 
 def layer_init_uniform(layer, low=-0.003, high=0.003, bias=0):
     nn.init.uniform_(layer.weight, low, high)
-    if not (type(bias)==bool and bias==False):
+    if int(bias):
         nn.init.constant_(layer.bias.data, bias)
     return layer
 

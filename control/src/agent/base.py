@@ -38,7 +38,7 @@ class BaseAC(Evaluation):
                                                      cfg.activation, cfg.layer_init, cfg.layer_norm)
             self.get_q_value = self.get_q_value_continuous
             self.get_q_value_target = self.get_q_value_target_continuous
-            
+
         self.critic_target.load_state_dict(self.critic.state_dict())
 
         self.actor_optimizer = init_optimizer(cfg.optimizer, list(self.actor.parameters()), cfg.lr_actor)
