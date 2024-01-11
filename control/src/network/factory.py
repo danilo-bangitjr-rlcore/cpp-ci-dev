@@ -39,6 +39,8 @@ def init_optimizer(name, param, lr):
         return torch.optim.RMSprop(param, lr)
     elif name == 'Adam':
         return torch.optim.Adam(param, lr)
+    elif name == "SGD":
+        return torch.optim.SGD(param, lr)
     else:
         raise NotImplementedError
 
