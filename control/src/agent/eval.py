@@ -43,16 +43,19 @@ class Evaluation:
         self.info_log = []
         if cfg.render == 1: # show the plot while running
             plt.ion()
-            self.eval_fig = plt.figure(figsize=(8, 4))
-            self.eval_ax1 = self.eval_fig.add_subplot(121)
-            self.eval_ax2 = self.eval_fig.add_subplot(122)
+            self.eval_fig = plt.figure(figsize=(12, 4))
+            self.eval_ax1 = self.eval_fig.add_subplot(131)
+            self.eval_ax2 = self.eval_fig.add_subplot(132)
+            self.eval_ax3 = self.eval_fig.add_subplot(133)
             self.eval_line1 = None
             self.eval_line2 = None
+            self.eval_line3 = None
             self.render = self.render_online
             self.save_render = self.save_render_online
         elif cfg.render == 2:
             self.eval_line1 = []
             self.eval_line2 = []
+            self.eval_line3 = []
             self.render = self.render_offline
             self.save_render = self.save_render_offline
 
@@ -162,7 +165,7 @@ class Evaluation:
             test_mean, test_median, test_min_, test_max_ = [np.nan] * 4
         return train_mean, train_median, train_min_, train_max_, test_mean, test_median, test_min_, test_max_
     
-    def render_online(self, ary1, ary2_info):
+    def render_online(self, ary1, ary2_info, ary3):
         ary2, ary2_coord = ary2_info
         if len(ary1)==0:
             return
@@ -176,51 +179,85 @@ class Evaluation:
             self.eval_ax2.set_yticks(np.arange(ary2_coord.shape[1]),
                                      labels=["{:.2f}".format(x) for x in ary2_coord[1, :, 0]])
             self.eval_ax2.set_ylabel("dim 1")
+
+            self.eval_line3 = self.eval_ax3.imshow(ary3['sum'])
+            plt.colorbar(self.eval_line3, ax=self.eval_ax3)
+            ary3_shape = len(ary3['sum'])
+            ary3_labels = np.linspace(0.0, 1.0, ary3_shape + 1)
+            self.eval_ax3.set_xticks(np.arange(ary3_shape + 1) - 0.5, labels=["{:.2f}".format(x) for x in ary3_labels], rotation=90)
+            self.eval_ax3.set_xlabel("dim 0")
+            self.eval_ax3.set_yticks(np.arange(ary3_shape + 1) - 0.5, labels=["{:.2f}".format(x) for x in ary3_labels])
+            self.eval_ax3.set_ylabel("dim 1")
+
+            dot = self.eval_ax3.scatter(ary3['curr_action'][0], ary3['curr_action'][1], color = 'red')
+
             self.eval_fig.tight_layout()
             plt.show()
+            dot.remove()
         else:
             self.eval_line1.set_ydata(ary1)
             self.eval_line2.set_array(ary2)
             self.eval_line2.set_clim(vmin=ary2.min(), vmax=ary2.max())
+            self.eval_line3.set_array(ary3['sum'])
+            self.eval_line3.set_clim(vmin=ary3['sum'].min(), vmax=ary3['sum'].max())
+            dot = self.eval_ax3.scatter(ary3['curr_action'][0], ary3['curr_action'][1], color = 'red')
 
             self.eval_fig.canvas.draw()
             self.eval_fig.canvas.flush_events()
+            dot.remove()
 
-    def render_offline(self, ary1, ary2_info):
+    def render_offline(self, ary1, ary2_info, ary3):
         if len(ary1)==0:
             return
         self.eval_line1.append(ary1)
         self.eval_line2.append(ary2_info[0])
         self.ary2_coord = ary2_info[1]
+        self.eval_line3.append(ary3)
+        # self.ary3_coord = ary3_info[1]
 
     # def save_frames_as_gif(self, frames, filename):
     #     imageio.mimsave(filename+".gif",  # output gif
     #                     frames,  # array of input frames
     #                     duration=50)
 
-    def save_frames_as_mp4(self, ary1, ary2, filename, text=None):
+    def save_frames_as_mp4(self, ary1, ary2, ary3, filename, text=None, clip_l=-2, clip_u=1):
         plt.ioff()
-        eval_fig = plt.figure(figsize=(8, 4))
-        eval_ax1 = eval_fig.add_subplot(121)
-        eval_ax2 = eval_fig.add_subplot(122)
-
+        eval_fig = plt.figure(figsize=(12, 4))
+        eval_ax1 = eval_fig.add_subplot(131)
+        eval_ax2 = eval_fig.add_subplot(132)
+        eval_ax3 = eval_fig.add_subplot(133)
+    
         writer = imageio.get_writer(filename+".mp4", fps=20)
         eval_line1, = eval_ax1.plot(ary1[0])
         eval_ax1.set_title(0)
         eval_ax1.set_ylim(self.env.visualization_range)
-        eval_line2 = eval_ax2.imshow(ary2[0], vmin=np.array(ary2).min(), vmax=np.array(ary2).max())
+        
+        eval_line2 = eval_ax2.imshow(ary2[0])
         plt.colorbar(eval_line2, ax=eval_ax2)
         assert self.ary2_coord.shape[0] == 2 # only works for 2 dimension space
         eval_ax2.set_xticks(np.arange(self.ary2_coord.shape[2]), labels=["{:.2f}".format(x) for x in self.ary2_coord[0, 0, :]], rotation=90)
         eval_ax2.set_xlabel("dim 0")
         eval_ax2.set_yticks(np.arange(self.ary2_coord.shape[1]), labels=["{:.2f}".format(x) for x in self.ary2_coord[1, :, 0]])
         eval_ax2.set_ylabel("dim 1")
+
+        eval_line3 = eval_ax3.imshow(ary3[0]['sum'], vmin=np.array(ary3[0]['sum']).min(), vmax=np.array(ary3[0]['sum']).max())
+        plt.colorbar(eval_line3, ax=eval_ax3)
+        ary3_shape = len(ary3[0]['sum'])
+        ary3_labels = np.linspace(0.0, 1.0, ary3_shape + 1)
+        eval_ax3.set_xticks(np.arange(ary3_shape + 1) - 0.5, labels=["{:.2f}".format(x) for x in ary3_labels], rotation=90)
+        eval_ax3.set_xlabel("dim 0")
+        eval_ax3.set_yticks(np.arange(ary3_shape + 1) - 0.5, labels=["{:.2f}".format(x) for x in ary3_labels])
+        eval_ax3.set_ylabel("dim 1")
+
         eval_fig.tight_layout()
-        for idx, [curve, heatmap] in enumerate(zip(ary1[1:], ary2[1:])):
+        for idx, [curve, q_heatmap, visit_heatmap] in enumerate(zip(ary1[0:], ary2[0:], ary3[0:])):
             eval_line1.set_ydata(curve)
-            eval_line2.set_array(heatmap)
-            eval_line2.set_clim(vmin=heatmap.min(), vmax=heatmap.max())
-            eval_ax1.title.set_text(idx + 1)
+            eval_line2.set_array(q_heatmap)
+            eval_line2.set_clim(vmin=clip_l, vmax=clip_u)
+            eval_line3.set_array(visit_heatmap['sum'])
+            eval_line3.set_clim(vmin=visit_heatmap['sum'].min(), vmax=visit_heatmap['sum'].max())
+            dot = eval_ax3.scatter(visit_heatmap['curr_action'][0], visit_heatmap['curr_action'][1], color = 'red')
+            eval_ax1.title.set_text(idx)
             eval_fig.canvas.draw()
             eval_fig.canvas.flush_events()
             
@@ -228,11 +265,13 @@ class Evaluation:
             data = data.reshape(eval_fig.canvas.get_width_height()[::-1] + (3,))
             writer.append_data(data)
 
+            dot.remove()
+
             # writer.append_data(imageio.v3.imread(im))
         writer.close()
 
     def save_render_offline(self, vis_dir):
-        self.save_frames_as_mp4(self.eval_line1, self.eval_line2, os.path.join(vis_dir, "render"))
+        self.save_frames_as_mp4(self.eval_line1, self.eval_line2, self.eval_line3, os.path.join(vis_dir, "render"))
 
     def save_render_online(self, vis_dir):
         return

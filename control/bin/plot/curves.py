@@ -1,4 +1,7 @@
+import json
 import matplotlib.pyplot as plt
+import itertools
+from textwrap import wrap
 from utils import *
 
 DATAROOT = "../../out/"
@@ -106,7 +109,7 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
     with open(target_file+"/info_logs.pkl", "rb") as f:
         info = pickle.load(f)
     ret = np.load(target_file+"/train_logs.npy")
-
+    
     reformat = {}
     for k in target_key:
         ary = log2ary(info, k)
@@ -180,5 +183,59 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
     #     axs[0].set_ylim(ylim)
 
     # fig.tight_layout()
-    plt.savefig(DATAROOT + "img/{}{}.png".format(title, range_), dpi=300, bbox_inches='tight')
+    config_f = open(target_file + "/config.json")
+    config = json.load(config_f)
+
+    plt.savefig(target_file + "/{}{}_replay_{}_tau_{}_rho_{}_actor_lr_{}_critic_lr_{}.png".format(title, range_, config["buffer_size"], config["tau"], config["rho"], config["lr_actor"], config["lr_critic"]), dpi=300, bbox_inches='tight')
+    plt.savefig(DATAROOT + "img/{}{}_replay_{}_tau_{}_rho_{}_actor_lr_{}_critic_lr_{}.png".format(title, range_, config["buffer_size"], config["tau"], config["rho"], config["lr_actor"], config["lr_critic"]), dpi=300, bbox_inches='tight')
+    plt.close()
+    # fig.close()
     return highlight
+
+def draw_q_functions(pth_base, fixed_params_list, agent, itr=-1, num_rows=1):
+    keys, values = zip(*fixed_params_list.items())
+    fix_params_choices = [dict(zip(keys, v)) for v in itertools.product(*values)]
+    
+    font = {'size': 7}
+    plt.rc('font', **font)
+    root = pth_base.format(agent)
+    
+    num_cols = len(fix_params_choices)//num_rows
+
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(5*num_cols, 4*num_rows))
+    axs = [axs] if len(fix_params_choices) == 1 else axs    
+
+    params = os.listdir(root)
+    params = [param for param in params if param != ".DS_Store"]
+    ims = []
+    for p in params:
+        param_list, log_list = load_logs(root +'/' + p)
+        setting = param_list[0] # all seeds have same params
+        
+        for fixed_params_index, fix_params_choice in enumerate(fix_params_choices):
+            add = True
+            for tp, tv in fix_params_choice.items():
+                if setting[tp] != tv:
+                    add = False        
+            if add == True:
+                break
+    
+        if add == True:
+            for log in log_list:
+                q = log[itr]['critic_info']['Q-function'][0]
+                row = fixed_params_index//num_cols
+                col = fixed_params_index%num_cols
+                if num_rows != 1:
+                    im = axs[row, col].imshow(q,  vmin=-1, vmax=2)
+                    axs[row, col].set_title("\n".join(wrap(str(fix_params_choice), 60)))
+                else:
+                    im = axs[col].imshow(q)
+                    axs[col].set_title(fix_params_choice, 60)
+                    
+                ims.append(im)
+                    
+    fig.subplots_adjust(right=0.95)
+    cbar_ax = fig.add_axes([0.95, 0.7, 0.05, 0.2])
+    fig.colorbar(ims[-1], cax=cbar_ax)
+    
+    return axs

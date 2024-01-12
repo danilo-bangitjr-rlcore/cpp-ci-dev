@@ -5,14 +5,14 @@ from pathlib import Path
 
 
 def base_cmd(**kwargs):
-    cmd = "nohup python3 main.py "
+    cmd = "python3 main.py "
     for k in kwargs:
         cmd += " {} {} ".format(k, kwargs[k])
     if "/" in kwargs["--env_name"]:
         env_name = "_".join(kwargs["--env_name"].split("/"))
     else:
         env_name = kwargs["--env_name"]
-    cmd += "> {}_{}_{}.txt ".format("_".join(kwargs["--env_name"].split("/")), kwargs["--param"], kwargs["--seed"])
+    # cmd += "> {}_{}_{}.txt ".format("_".join(kwargs["--env_name"].split("/")), kwargs["--param"], kwargs["--seed"])
     cmd += "\n"
     return cmd
 
@@ -244,6 +244,7 @@ def etc_pid():
             "--batch_size": [1],
         },
         "GAC": {
+<<<<<<< HEAD
             "--tau": [0],
             "--rho": [0.1, 0.2, 0.3],
             "--prop_rho_mult": [1.0, 2.0, 3.0],
@@ -253,16 +254,30 @@ def etc_pid():
             "--polyak": [0.0],
             "--lr_actor": [1e1, 1e0, 1e-1, 1e-2],
             "--lr_critic": [1e-3, 1e-4, 1e-5, 1e-6],
+=======
+            "--tau": [1e0, 1e-1, 1e-2, 1e-3],
+            "--rho": [0.1, 0.25],
+            "--n": [30],
+            "--buffer_size": [100],
+            "--batch_size": [32],
+            "--polyak": [0.0, 0.995],
+            "--lr_actor": [1e-1, 1e-2, 1e-3, 1e-4],
+            "--lr_critic": [1e-6],
+>>>>>>> f097922ff9bbeb2efd18d19a48495c64c64e62ee
             "--render": [2],
         },
     }
     shared_settings = {
         "--env_name": ["NonContexTT"],
+<<<<<<< HEAD
         "--exp_name": ["Noncontext_PID_Action_Visits"],
+=======
+        "--exp_name": ["Noncontext_PID_Visit_Heatmap"],
+>>>>>>> f097922ff9bbeb2efd18d19a48495c64c64e62ee
         "--exp_info": ["/"],
         "--evaluation_criteria": ["return"],
         "--debug": [1],
-        "--max_steps": [5000],
+        "--max_steps": [10],
         "--env_action_scaler": [10],
         "--action_scale": [1],
         "--action_bias": [0],
@@ -270,7 +285,11 @@ def etc_pid():
     target_agents = ["GAC"]
 
     settings = merge_independent(settings, shared_settings)
+<<<<<<< HEAD
     combinations(settings, target_agents, num_runs=1, prev_file=8, line_per_file=18, comb_num_base=144)
+=======
+    combinations(settings, target_agents, num_runs=1, prev_file=10, line_per_file=16, comb_num_base=416)
+>>>>>>> f097922ff9bbeb2efd18d19a48495c64c64e62ee
 
 def test_runs():
     settings = {

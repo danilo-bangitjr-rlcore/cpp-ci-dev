@@ -26,7 +26,7 @@ class BaseAC(Evaluation):
                                                      cfg.activation, cfg.layer_init, cfg.layer_norm)
             self.get_q_value = self.get_q_value_discrete
             self.get_q_value_target = self.get_q_value_target_discrete
-        else:
+        else:        
             self.action_dim = np.prod(self.env.action_space.shape)
             self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
                                              cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init, cfg.layer_norm)
@@ -53,6 +53,13 @@ class BaseAC(Evaluation):
         self.target_network_update_freq = 1
         self.cfg = cfg
         self.discrete_control = cfg.discrete_control
+
+        # Visit count heatmap
+        if self.cfg.debug:
+            action_cover_space, heatmap_shape = self.env.get_action_samples()
+            self.visit_counts = [[0 for i in range(heatmap_shape[1])] for j in range(heatmap_shape[0])]
+            self.x_action_increment = 1.0 / heatmap_shape[1]
+            self.y_action_increment = 1.0 / heatmap_shape[0]
 
     def fill_buffer(self, online_data_size):
         track_states = []
@@ -124,7 +131,7 @@ class BaseAC(Evaluation):
         self.info_log.append(i_log)
 
         if self.cfg.render:
-            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'])
+            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"])
         else:
             env_info.pop('interval_log', None)
             i_log['critic_info'].pop('Q-function', None)
@@ -278,9 +285,24 @@ class BaseAC(Evaluation):
 
     def agent_debug_info(self, observation_tensor, action_tensor, pi_info, env_info):
         if self.cfg.debug:
+            # Update Action Visit Counts
+            action = torch_utils.to_np(action_tensor)[0]
+            x_action_ind = int(action[0] / self.x_action_increment)
+            y_action_ind = int(action[1] / self.y_action_increment)
+
+            # edge cases where action = 1 in x or y
+            if x_action_ind >= (1/self.x_action_increment):
+                x_action_ind -= 1
+                
+            if y_action_ind >= (1/self.y_action_increment):
+                y_action_ind -= 1
+                
+            self.visit_counts[y_action_ind][x_action_ind] += 1
+        
+            # Update Q heatmap
             q_current, _ = self.get_q_value(observation_tensor, action_tensor, with_grad=False)
             q_current = torch_utils.to_np(q_current)
-            action_cover_space, heatmap_shape = self.env.get_action_samples()
+            action_cover_space, heatmap_shape = self.env.get_action_samples(n=50)
             stacked_o = observation_tensor.repeat_interleave(len(action_cover_space), dim=0)
             action_cover_space_tensor = torch_utils.tensor(action_cover_space, self.device)
             q_cover_space, _ = self.get_q_value(stacked_o, action_cover_space_tensor, with_grad=False)
@@ -293,7 +315,9 @@ class BaseAC(Evaluation):
                 "actor_info": pi_info,
                 "critic_info": {'Q': q_current,
                                 'Q-function': [q_cover_space, coord]},
-                "env_info": env_info
+                "env_info": env_info,
+                "action_visits": {'sum': np.array(self.visit_counts),
+                                  'curr_action': (x_action_ind, y_action_ind)}
             }
         else:
             i_log = {
