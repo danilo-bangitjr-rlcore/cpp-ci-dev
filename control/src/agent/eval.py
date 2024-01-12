@@ -220,18 +220,19 @@ class Evaluation:
     #                     frames,  # array of input frames
     #                     duration=50)
 
-    def save_frames_as_mp4(self, ary1, ary2, ary3, filename, text=None):
+    def save_frames_as_mp4(self, ary1, ary2, ary3, filename, text=None, clip_l=-2, clip_u=1):
         plt.ioff()
         eval_fig = plt.figure(figsize=(12, 4))
         eval_ax1 = eval_fig.add_subplot(131)
         eval_ax2 = eval_fig.add_subplot(132)
         eval_ax3 = eval_fig.add_subplot(133)
-
+    
         writer = imageio.get_writer(filename+".mp4", fps=20)
         eval_line1, = eval_ax1.plot(ary1[0])
         eval_ax1.set_title(0)
         eval_ax1.set_ylim(self.env.visualization_range)
-        eval_line2 = eval_ax2.imshow(ary2[0], vmin=np.array(ary2).min(), vmax=np.array(ary2).max())
+        
+        eval_line2 = eval_ax2.imshow(ary2[0])
         plt.colorbar(eval_line2, ax=eval_ax2)
         assert self.ary2_coord.shape[0] == 2 # only works for 2 dimension space
         eval_ax2.set_xticks(np.arange(self.ary2_coord.shape[2]), labels=["{:.2f}".format(x) for x in self.ary2_coord[0, 0, :]], rotation=90)
@@ -252,7 +253,7 @@ class Evaluation:
         for idx, [curve, q_heatmap, visit_heatmap] in enumerate(zip(ary1[0:], ary2[0:], ary3[0:])):
             eval_line1.set_ydata(curve)
             eval_line2.set_array(q_heatmap)
-            eval_line2.set_clim(vmin=q_heatmap.min(), vmax=q_heatmap.max())
+            eval_line2.set_clim(vmin=clip_l, vmax=clip_u)
             eval_line3.set_array(visit_heatmap['sum'])
             eval_line3.set_clim(vmin=visit_heatmap['sum'].min(), vmax=visit_heatmap['sum'].max())
             dot = eval_ax3.scatter(visit_heatmap['curr_action'][0], visit_heatmap['curr_action'][1], color = 'red')

@@ -43,7 +43,7 @@ class FC(nn.Module):
 
 class SquashedGaussianPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
-                 action_scale=1, action_bias=0, init='Xavier', activation="ReLU", layer_norm=False):#, action_clip=[-0.999, 0.999]):
+                 action_scale=1., action_bias=0., init='Xavier', activation="ReLU", layer_norm=False):#, action_clip=[-0.999, 0.999]):
         super(SquashedGaussianPolicy, self).__init__()
         init_args = init.split("/")
         layer_init = internal_factory.init_layer(init_args[0])
@@ -57,6 +57,14 @@ class SquashedGaussianPolicy(nn.Module):
 
         self.action_scale = torch.tensor(action_scale)
         self.action_bias = torch.tensor(action_bias)
+
+        # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions. 
+        # if type(action_scale) == float:
+        #     action_scale = np.ones(action_dim)*action_scale
+            
+        # if type(action_bias) == float:
+        #     action_bias = np.ones(action_dim)*action_bias
+            
         # self.action_clip = [c * action_scale + action_bias for c in action_clip]
         self.to(device)
 
@@ -112,7 +120,7 @@ class SquashedGaussianPolicy(nn.Module):
 
 class BetaPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
-                 beta_param_bias=0, action_scale=1, action_bias=0, init='Xavier', activation="ReLU", head_activation="Softplus", layer_norm=False):
+                 beta_param_bias=0, action_scale=1., action_bias=0., init='Xavier', activation="ReLU", head_activation="Softplus", layer_norm=False):
         super(BetaPolicy, self).__init__()
         init_args = init.split("/")
         layer_init = internal_factory.init_layer(init_args[0])
@@ -131,8 +139,23 @@ class BetaPolicy(nn.Module):
             self.alpha_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
             self.beta_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
         self.head_activation_fn = internal_factory.init_activation_function(head_activation)
-
         self.beta_param_bias = torch.tensor(beta_param_bias)
+        # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions.
+        # if type(action_scale) == float:
+        #     action_scale = np.ones(action_dim)*action_scale
+            
+        # if type(action_bias) == float:
+        #     action_bias = np.ones(action_dim)*action_bias
+            
+        
+        # auto scales 
+        # if cfg.auto_scale_actions == True:
+        #     action_low = cfg.train_env.action_space.low
+        #     action_high = cfg.train_env.action_space.high
+        #     action_range = action_high - action_low
+        #     cfg.action_scale = action_range
+        #     cfg.action_bias = action_low
+            
         self.action_scale = torch.tensor(action_scale)
         self.action_bias = torch.tensor(action_bias)
         self.to(device)

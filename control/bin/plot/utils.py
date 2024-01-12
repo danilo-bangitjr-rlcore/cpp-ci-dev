@@ -41,7 +41,6 @@ def sensitivity_curve(ax, data, root):
 
 def sensitivity_heatmap(ax, data, root):
     keys = np.array(list(data.keys()))
-
     params1 = list(set(keys[:, 0]))
     params2 = list(set(keys[:, 1]))
     params1.sort()
@@ -50,7 +49,6 @@ def sensitivity_heatmap(ax, data, root):
     for i1, p1 in enumerate(params1):
         for i2, p2 in enumerate(params2):
            sc[i1, i2] = data[(p1, p2)].sum(axis=1).mean()
-    print("Heatmap range:", sc.min(), sc.max())
     im = ax.imshow(sc)
     ax.set_yticks(np.arange(len(params1)), labels=params1)
     ax.set_xticks(np.arange(len(params2)), labels=params2)
@@ -103,6 +101,35 @@ def param_sweep(ax, data, root):
     best_final_idx = np.array(compare_final).argmax()
     print("Sweeping Final:", params[best_final_idx], compare_final[best_final_idx])
     print("")
+
+
+def load_logs(pth, pick_seed=None):
+    """
+    Loads logs for a single path and returns a list, one element for each seed
+    """
+    runs = os.listdir(pth)
+    runs = [run for run in runs if run != ".DS_Store"]
+    if pick_seed is None:
+        pick_seed = runs
+    
+    param_list = []
+    log_list = []
+    
+    for r in runs:
+        if r not in pick_seed:
+            continue
+        p = os.path.join(pth, r)
+        if os.path.isdir(p):
+            with open(os.path.join(p, "info_logs.pkl"), "rb") as f:
+                log = pickle.load(f)
+            
+            with open(os.path.join(p, "config.json"), "r") as f:
+                params = json.load(f)
+            
+            log_list.append(log)
+            param_list.append(params)
+            
+    return param_list, log_list
 
 
 def load_param(pth, xlim=[], pick_seed=None):
@@ -170,7 +197,7 @@ def load_exp(axs, plot_fn, root, fix_params={}, sweep_param=None):
                     perf_ret[p] = returns
                     perf_cons[p] = constraints
             # print(p, perf_ret[p].shape, perf_ret[p].mean(), perf_ret[p])
-
+    
     im = plot_fn(axs[0], perf_ret, root)
     if len(axs) > 1:
         plot_fn(axs[1], perf_cons)

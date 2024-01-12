@@ -56,6 +56,12 @@ def init_environment(name, cfg):
         return FlattenObservation(gem.make("Cont-CC-SCIM-v0"))
     elif name == "Cont-CC-EESM-v0":
         return FlattenObservation(gem.make("Cont-CC-EESM-v0"))
+    elif name == "Acrobot-v0":
+        return gym.make("Acrobot-v0")
+    elif name == "MountainCar-v0":
+        return gym.make("MountainCar-v0")
+    elif name == "Pendulum-v1":
+        return gym.make("Pendulum-v1")
     else:
         raise NotImplementedError
 
