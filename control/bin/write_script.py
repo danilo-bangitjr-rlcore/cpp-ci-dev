@@ -5,14 +5,14 @@ from pathlib import Path
 
 
 def base_cmd(**kwargs):
-    cmd = "nohup python3 main.py "
+    cmd = "python3 main.py "
     for k in kwargs:
         cmd += " {} {} ".format(k, kwargs[k])
     if "/" in kwargs["--env_name"]:
         env_name = "_".join(kwargs["--env_name"].split("/"))
     else:
         env_name = kwargs["--env_name"]
-    cmd += "> {}_{}_{}.txt ".format("_".join(kwargs["--env_name"].split("/")), kwargs["--param"], kwargs["--seed"])
+    # cmd += "> {}_{}_{}.txt ".format("_".join(kwargs["--env_name"].split("/")), kwargs["--param"], kwargs["--seed"])
     cmd += "\n"
     return cmd
 
@@ -246,14 +246,14 @@ def etc_pid():
         "GAC": {
             "--tau": [0],
             "--rho": [0.4],
-            "--prop_rho_mult": [1.5, 2.0],
+            "--prop_rho_mult": [2.0],
             "--n": [30],
-            "--buffer_size": [100, 500],
-            "--buffer_prefill": [32, 100],
+            "--buffer_size": [100],
+            "--buffer_prefill": [32],
             "--batch_size": [32],
             "--polyak": [0.0],
-            "--lr_actor": [1e0, 1e-1],
-            "--lr_critic": [1e-4, 1e-5],
+            "--lr_actor": [1e0],
+            "--lr_critic": [1e-5],
             "--render": [2],
         },
     }

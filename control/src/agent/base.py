@@ -26,7 +26,7 @@ class BaseAC(Evaluation):
                                                      cfg.activation, cfg.layer_init, cfg.layer_norm)
             self.get_q_value = self.get_q_value_discrete
             self.get_q_value_target = self.get_q_value_target_discrete
-        else:
+        else:        
             self.action_dim = np.prod(self.env.action_space.shape)
             self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
                                              cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init, cfg.layer_norm)
@@ -306,10 +306,11 @@ class BaseAC(Evaluation):
             if y_action_ind == 1.0 / self.y_action_increment:
                 y_action_ind -= 1
             self.visit_counts[y_action_ind][x_action_ind] += 1
+        
             # Update Q heatmap
             q_current, _ = self.get_q_value(observation_tensor, action_tensor, with_grad=False)
             q_current = torch_utils.to_np(q_current)
-            action_cover_space, heatmap_shape = self.env.get_action_samples()
+            action_cover_space, heatmap_shape = self.env.get_action_samples(n=50)
             stacked_o = observation_tensor.repeat_interleave(len(action_cover_space), dim=0)
             action_cover_space_tensor = torch_utils.tensor(action_cover_space, self.device)
             q_cover_space, _ = self.get_q_value(stacked_o, action_cover_space_tensor, with_grad=False)

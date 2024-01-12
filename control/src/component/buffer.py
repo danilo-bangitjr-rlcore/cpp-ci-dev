@@ -14,6 +14,7 @@ class Buffer:
             self.data.append(experience)
         else:
             self.data[self.pos] = experience
+        # resets to start of buffer
         self.pos = (self.pos + 1) % self.memory
         
     def sample(self):
