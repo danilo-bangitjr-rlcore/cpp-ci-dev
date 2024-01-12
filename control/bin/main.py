@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--tau', default=0.000001, type=float)
     parser.add_argument('--rho', default=0.1, type=float)
-    parser.add_argument('--theta', default=0.2, type=float)
+    parser.add_argument('--prop_rho_mult', default=2.0, type=float)
     parser.add_argument('--n', default=30, type=int)
 
     # Explore Then Commit

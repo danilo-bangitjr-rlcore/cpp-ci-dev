@@ -122,8 +122,8 @@ class BetaPolicy(nn.Module):
 
     def forward(self, observation, debug=False):
         base = self.base_network(observation)
-        alpha = self.head_activation_fn(self.alpha_head(base)) + EPSILON
-        beta = self.head_activation_fn(self.beta_head(base)) + EPSILON
+        alpha = self.head_activation_fn(self.alpha_head(base)) + 1.0
+        beta = self.head_activation_fn(self.beta_head(base)) + 1.0
         
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)

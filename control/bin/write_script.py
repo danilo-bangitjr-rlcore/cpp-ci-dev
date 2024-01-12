@@ -244,39 +244,26 @@ def etc_pid():
             "--batch_size": [1],
         },
         "GAC": {
-<<<<<<< Updated upstream
-            "--tau": [1e-1],
-            "--rho": [0.25],
+            "--tau": [0],
+            "--rho": [0.4],
+            "--prop_rho_mult": [1.5, 2.0],
             "--n": [30],
-            "--buffer_size": [100],
+            "--buffer_size": [100, 500],
+            "--buffer_prefill": [32, 100],
             "--batch_size": [32],
             "--polyak": [0.0],
-            "--lr_actor": [1e0],
-            "--lr_critic": [1e-5],
-=======
-            "--tau": [1e0, 1e-1, 1e-2, 1e-3],
-            "--rho": [0.1, 0.25],
-            "--n": [30],
-            "--buffer_size": [100],
-            "--batch_size": [32],
-            "--polyak": [0.0, 0.995],
-            "--lr_actor": [1e-1, 1e-2, 1e-3, 1e-4],
-            "--lr_critic": [1e-6],
->>>>>>> Stashed changes
+            "--lr_actor": [1e0, 1e-1],
+            "--lr_critic": [1e-4, 1e-5],
             "--render": [2],
         },
     }
     shared_settings = {
         "--env_name": ["NonContexTT"],
-<<<<<<< Updated upstream
-        "--exp_name": ["Noncontext_PID_Visit_Heatmap"],
-=======
-        "--exp_name": ["Noncontext_PID_Baseline"],
->>>>>>> Stashed changes
+        "--exp_name": ["Noncontext_PID_Alpha_Beta_Above_One_Buffer_Prefill"],
         "--exp_info": ["/"],
         "--evaluation_criteria": ["return"],
         "--debug": [1],
-        "--max_steps": [10],
+        "--max_steps": [5000],
         "--env_action_scaler": [10],
         "--action_scale": [1],
         "--action_bias": [0],
@@ -284,7 +271,7 @@ def etc_pid():
     target_agents = ["GAC"]
 
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=10, line_per_file=16, comb_num_base=416)
+    combinations(settings, target_agents, num_runs=1, prev_file=8, line_per_file=40, comb_num_base=240)
 
 def test_runs():
     settings = {

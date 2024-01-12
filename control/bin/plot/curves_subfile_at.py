@@ -6,11 +6,11 @@ from curves import visualize_training_info
 def sweep_parameter():
     # pth_base = DATAROOT + "output/test_v0/ReactorEnv/With_LR_Param_Baseline/Param_Sweep/{}/"
     # pth_base = DATAROOT + "output/test_v0/Cont-CC-PermExDc-v0/With_LR_Param_Baseline/Episodic/Param_Sweep/{}/"
-    pth_base = DATAROOT + "output/test_v0/NonContexTT/Noncontext_PID_Baseline/{}/"
+    pth_base = DATAROOT + "output/test_v0/NonContexTT/Noncontext_PID_Alpha_Beta_Above_One_Buffer_Prefill/{}/"
     #sweep_offline(pth_base, "GAC")
     #sweep_offline(pth_base, "SAC")
     #sweep_offline(pth_base, "Reinforce")
-    sweep_offline(pth_base, "ETC")
+    #sweep_offline(pth_base, "ETC")
     sweep_offline(pth_base, "GAC")
 
 def compare_algorithms():
@@ -32,15 +32,15 @@ def compare_algorithms():
     }
     best_offline(pths, "Cont-CC-PermExDc-v0_Baseline", ylim=[-50, 0])
     """
-    SHAREPATH = "output/test_v0/NonContexTT/Noncontext_PID_Baseline/"
+    SHAREPATH = "output/test_v0/NonContexTT/Noncontext_PID_Alpha_Beta_Above_One_Buffer_Prefill/"
     pths = {
-        "ETC": [DATAROOT + SHAREPATH + "ETC/param_0/", "limegreen", 1],
-        "GAC": [DATAROOT + SHAREPATH + "GAC/param_324", "C1", 3],
+        "GAC w/ Entropy Beta Shift Buffer Prefill": [DATAROOT + SHAREPATH + "GAC/param_113/", "limegreen", 1],
+        "GAC w/o Entropy Beta Shift Buffer Prefill": [DATAROOT + SHAREPATH + "GAC/param_257", "C1", 3],
     }
-    best_offline(pths, "PID_Baseline", ylim=[-10, 2])
+    best_offline(pths, "PID_GAC_Beta_Shift_Buffer_Prefill", ylim=[-10, 2])
 
 def summary_plots():
-    SHAREPATH = "output/test_v0/NonContexTT/Noncontext_PID_Baseline/GAC"
+    SHAREPATH = "output/test_v0/NonContexTT/Noncontext_PID_Alpha_Beta_Above_One_Buffer_Prefill/GAC"
     target_key = [
         "actor_info/param1",
         "proposal_info/param1",
@@ -69,12 +69,17 @@ def summary_plots():
             for seed in seeds:
                 seed_pth = os.path.join(run_pth, seed)
                 print(seed_pth)
-                visualize_training_info(seed_pth, target_key, title="vis_noncontext_GAC", threshold=0.99, xlim=None, ylim=[-2, 2])
+                visualize_training_info(seed_pth, target_key, title="vis_noncontext_GAC_beta_shift_buffer_prefill_", threshold=0.99, xlim=None, ylim=[-2, 2])
+    """
+    run_pth = os.path.join(pth, "param_3")
+    seed_pth = os.path.join(run_pth, "seed_0")
+    visualize_training_info(seed_pth, target_key, title="vis_noncontext_GAC_alpha_beta_greater_than_one", threshold=0.99, xlim=None, ylim=[-2, 2])
+    """
 
 
 if __name__ == '__main__':
-    # sweep_parameter()
+    #sweep_parameter()
     compare_algorithms()
-    # summary_plots()
+    #summary_plots()
 
 
