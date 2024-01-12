@@ -128,8 +128,8 @@ class BetaPolicy(nn.Module):
             """
             layer_init = internal_factory.init_layer("Const")
             self.base_network = lambda x:x
-            self.alpha_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), 1, 0)
-            self.beta_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), 1, 0)
+            self.alpha_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
+            self.beta_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
         self.head_activation_fn = internal_factory.init_activation_function(head_activation)
 
         self.beta_param_bias = torch.tensor(beta_param_bias)
