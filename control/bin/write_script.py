@@ -244,36 +244,22 @@ def etc_pid():
             "--batch_size": [1],
         },
         "GAC": {
-<<<<<<< HEAD
             "--tau": [0],
-            "--rho": [0.1, 0.2, 0.3],
-            "--prop_rho_mult": [1.0, 2.0, 3.0],
+            "--rho": [0.4],
+            "--prop_rho_mult": [2.0],
             "--n": [30],
             "--buffer_size": [100],
+            "--buffer_prefill": [32],
             "--batch_size": [32],
             "--polyak": [0.0],
-            "--lr_actor": [1e1, 1e0, 1e-1, 1e-2],
-            "--lr_critic": [1e-3, 1e-4, 1e-5, 1e-6],
-=======
-            "--tau": [1e0, 1e-1, 1e-2, 1e-3],
-            "--rho": [0.1, 0.25],
-            "--n": [30],
-            "--buffer_size": [100],
-            "--batch_size": [32],
-            "--polyak": [0.0, 0.995],
-            "--lr_actor": [1e-1, 1e-2, 1e-3, 1e-4],
-            "--lr_critic": [1e-6],
->>>>>>> f097922ff9bbeb2efd18d19a48495c64c64e62ee
+            "--lr_actor": [1e0],
+            "--lr_critic": [1e-5],
             "--render": [2],
         },
     }
     shared_settings = {
         "--env_name": ["NonContexTT"],
-<<<<<<< HEAD
         "--exp_name": ["Noncontext_PID_Action_Visits"],
-=======
-        "--exp_name": ["Noncontext_PID_Visit_Heatmap"],
->>>>>>> f097922ff9bbeb2efd18d19a48495c64c64e62ee
         "--exp_info": ["/"],
         "--evaluation_criteria": ["return"],
         "--debug": [1],
@@ -285,11 +271,7 @@ def etc_pid():
     target_agents = ["GAC"]
 
     settings = merge_independent(settings, shared_settings)
-<<<<<<< HEAD
     combinations(settings, target_agents, num_runs=1, prev_file=8, line_per_file=18, comb_num_base=144)
-=======
-    combinations(settings, target_agents, num_runs=1, prev_file=10, line_per_file=16, comb_num_base=416)
->>>>>>> f097922ff9bbeb2efd18d19a48495c64c64e62ee
 
 def test_runs():
     settings = {

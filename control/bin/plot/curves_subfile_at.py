@@ -34,13 +34,8 @@ def compare_algorithms():
     """
     SHAREPATH = "output/test_v0/NonContexTT/Noncontext_PID_Action_Visits/"
     pths = {
-<<<<<<< HEAD
         "GAC w/ Entropy": [DATAROOT + SHAREPATH + "GAC/param_0/", "limegreen", 3],
         "GAC w/o Entropy": [DATAROOT + SHAREPATH + "GAC/param_28", "C1", 1],
-=======
-        "ETC": [DATAROOT + SHAREPATH + "ETC/param_0/", "limegreen", 1],
-        "GAC": [DATAROOT + SHAREPATH + "GAC/param_324", "C1", 3],
->>>>>>> f097922ff9bbeb2efd18d19a48495c64c64e62ee
     }
     best_offline(pths, "PID_Baseline", ylim=[-10, 2])
 
@@ -78,13 +73,8 @@ def summary_plots():
 
 
 if __name__ == '__main__':
-<<<<<<< HEAD
-    sweep_parameter()
-    # compare_algorithms()
-=======
     # sweep_parameter()
     compare_algorithms()
     # summary_plots()
->>>>>>> f097922ff9bbeb2efd18d19a48495c64c64e62ee
 
 
