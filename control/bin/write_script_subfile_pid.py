@@ -559,6 +559,7 @@ def directly_learn_beta_parameter(settings, shared_settings, target_agents):
         "--layer_init_actor": ["Const/10/0"],
         "--hidden_actor": [0],
 
+        "--tau": [1e-06, 1e-03],
         "--rho": [0.1],
         "--lr_actor": [0.5, 0.3, 0.1, 0.03, 0.01, 0.003, 0.001],
         "--lr_critic": [0.01, 0.003, 0.001, 0.0003, 0.0001, 3e-5, 1e-5],
@@ -566,14 +567,14 @@ def directly_learn_beta_parameter(settings, shared_settings, target_agents):
     target_agents = ["GAC"]
 
     """
-    buffer 5000, batch 8
+    buffer 1, batch 1
     """
     shared_settings["--env_name"] = ["NonContexTT"]
     shared_settings["--exp_info"] = ["/target0/replay1_batch1/env_scale_10/"]
     shared_settings["--buffer_size"] = [1]
     shared_settings["--batch_size"] = [1]
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=49)
 
 def noncontextual_nonzero_obs(settings, shared_settings, target_agents):
     settings = {
