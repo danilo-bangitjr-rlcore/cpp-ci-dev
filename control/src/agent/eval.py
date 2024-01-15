@@ -109,6 +109,7 @@ class Evaluation:
             action = self.eval_step(state.reshape((1, -1)))[0]
             last_state = state
             state, reward, done, _, _ = self.eval_env.step(action)
+           
             if log_traj:
                 ep_traj.append([last_state, action, reward])
             total_rewards += reward

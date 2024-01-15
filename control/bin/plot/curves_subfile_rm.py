@@ -12,9 +12,9 @@ def draw_q_plots():
         "lr_critic": [10**i for i in range(-2, -6, -1)],
         "batch_size": [8, 64],
         "optimizer": ['RMSprop'],
-        "etc_learning_start" : [0]  
+        "etc_learning_start" : [2500]  
     }
-    pth_base = DATAROOT + "output/test_v0/NonContexTT/etc_criticetc_critic/{}"
+    pth_base = DATAROOT + "output/test_v0/NonContexTT/etc_critic_longeretc_critic_longer/{}"
     agent = 'ETC'
 
     draw_q_functions(pth_base, fixed_params_list, agent, itr=-1, num_rows=4)
