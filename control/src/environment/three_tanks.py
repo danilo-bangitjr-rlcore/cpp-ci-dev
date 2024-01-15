@@ -15,10 +15,9 @@ class ThreeTankEnvBase(object):
         self.W4 = 1000#6000
         if seed is not None:
             self.rng = np.random.RandomState(seed)
-            
-        # setpoint = self.rng.choice([3, 4])
-        setpoint = self.rng.choice(random_sp)
-        self.setpoint = setpoint  # the list of set points for tank 1
+
+        self.random_sp = random_sp
+        self.setpoint = self.rng.choice(random_sp)  # the list of set points for tank 1
 
         self.Lambda = 0
         self.C1 = 0  # Kp penalty # bug
@@ -64,9 +63,9 @@ class ThreeTankEnvBase(object):
         # self.sinfunction2 = 15 * np.sin(omega * timespan) + 6  # SP varying tau
         self.sinfunction = 8 * np.sin(omega * timespan) + 2   # SP varying gain
         self.sinfunction2 = 11 * np.sin(omega * timespan) + 6  # SP varying tau
-        self.processgain = self.sinfunction[int(setpoint)]
+        self.processgain = self.sinfunction[int(self.setpoint)]
         x = sym.Symbol('x')
-        self.processtau = self.sinfunction2[int(setpoint)]
+        self.processtau = self.sinfunction2[int(self.setpoint)]
         type2 = sym.Poly((self.processtau * x + 1))
         type2_c = list(type2.coeffs())
         type2_c = np.array(type2_c, dtype=float)
@@ -86,7 +85,7 @@ class ThreeTankEnvBase(object):
         self.height_T1 = np.asarray([[self.setpoint - 1.]])  # water level of tank 1 in cm
         self.xprime = np.asarray([[self.setpoint - 1.]])
         self.flowrate_T1 = (self.C - self.A) / self.B
-        self.state_normalizer = 10.  # 10
+        self.state_normalizer = 1. #10.
 
         # Define this parameter for keeping the action penalty in clipping action setting
         self.extra_action_penalty = 0
@@ -126,9 +125,11 @@ class ThreeTankEnvBase(object):
         self.flowrate_buffer = []
 
     def reset(self, seed=None):
-        if seed is not None:
+        if seed is not None: # Overwriting old seed
             self.rng = np.random.RandomState(seed)
-    
+
+        self.setpoint = self.rng.choice(self.random_sp)  # the list of set points for tank 1
+
         # This method resets the model and define the initial values of each property
         # self.height_T1 = np.asarray([[0.]])  # Values calculated to be stable at 35% flowrate (below first valve)
         self.height_T1 = np.asarray([[self.setpoint - 1.]]) / self.C  # water level of tank 1 in cm
@@ -307,10 +308,9 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.ep_constrain = 0
         self.ep_constrain_info = {}
         self.lr_constrain = lr_constrain
-        self.observation_space = spaces.Discrete(len(random_sp), start=np.array(random_sp).min())
+        self.observation_space = spaces.Discrete(len(random_sp), start=int(np.array(random_sp).min()))
         self.action_space = spaces.Box(low=self.min_actions, high=self.max_actions, shape=(2,), dtype=np.float32)
-        self.visualization_range = [-1, 15]
-
+        self.visualization_range = [-1, max(15, np.array(random_sp).max()+1)]
 
     def sum_constrain_info(self):
         for k,v in self.constrain_info.items():

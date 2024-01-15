@@ -22,9 +22,9 @@ class OneHot(BaseNormalizer):
         self.start = start_from
 
     def __call__(self, x):
-        assert len(x.shape) == 2
+        assert len(x.shape) == 2 and x.shape[1]==1 # shape = batch_size * 1
         oneh = torch.zeros((x.shape[0], self.total_count))
-        oneh[np.arange(x.shape[0]), (x - self.start).int()] = 1
+        oneh[np.arange(x.shape[0]), (x - self.start).astype(int).squeeze()] = 1
         return oneh
 
 

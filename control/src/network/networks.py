@@ -134,7 +134,7 @@ class BetaPolicy(nn.Module):
             A special case of learning alpha and beta directly. 
             Initialize the weight using constant 1 
             """
-            layer_init = internal_factory.init_layer("Const")
+            layer_init = internal_factory.init_layer(init_args[0])
             self.base_network = lambda x:x
             self.alpha_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
             self.beta_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
