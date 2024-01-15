@@ -105,7 +105,7 @@ class Evaluation:
         total_rewards = 0
         ep_steps = 0
         while True:
-            action = np.array(self.eval_step(state.reshape((1, -1)))[0])
+            action = self.eval_step(state.reshape((1, -1)))[0]
             last_state = state
             state, reward, done, _, _ = self.eval_env.step(action)
            

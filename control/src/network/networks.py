@@ -106,9 +106,6 @@ class SquashedGaussianPolicy(nn.Module):
         logp = normal.log_prob(out)
         logp -= torch.log(self.action_scale * (1 - tanhout.pow(2)) + EPSILON).sum(axis=-1).reshape(logp.shape)
         
-        # what is the alternative?
-        logp = normal.log_prob(out)
-        
         if debug:
             info = {
                 # "distribution": normal,

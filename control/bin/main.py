@@ -89,16 +89,10 @@ if __name__ == "__main__":
         jf = cfg.load_from_json
         assert os.path.isfile(jf), print("JSON FILE DOES NOT EXIST")
 
-    cfg.hidden_actor = [64, 64]
-    cfg.hidden_critic = [64, 64]
-
     cfg.logger = utils.logger_setup(cfg)
     utils.set_seed(cfg.seed)
     cfg.train_env = env_factory.init_environment(cfg.env_name, cfg)
     cfg.eval_env = env_factory.init_environment(cfg.env_name, cfg)
-    
-    
- 
     
     if not cfg.discrete_control:
         
