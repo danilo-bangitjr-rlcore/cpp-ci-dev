@@ -134,11 +134,13 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
             axes.append(axs)
             axs.plot(reformat[k])
             axs.set_title(k)
+            print(k, reformat[k][-10:].mean(), reformat[k][-10:].std())
         else:
             for d in range(dim):
                 axes.append(axs[d])
                 axs[d].plot(reformat[k][:, d])
                 axs[d].set_title(k+"/dimension-{}".format(d))
+                print(k, d, reformat[k][:, d][-10:].mean(), reformat[k][:, d][-10:].std())
 
     highlight = []
     if threshold is not None:

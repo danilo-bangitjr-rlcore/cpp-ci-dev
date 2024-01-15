@@ -1,6 +1,9 @@
+import subprocess
 import os, sys
 sys.path.insert(0, '..')
-
+import datetime
+import json
+from types import SimpleNamespace
 import argparse
 import src.environment.factory as env_factory
 import src.agent.factory as agent_factory
@@ -29,7 +32,7 @@ if __name__ == "__main__":
     parser.add_argument('--render', default=0, type=int)
 
     parser.add_argument('--env_name', default='ThreeTank', type=str)
-    parser.add_argument('--env_info', default=0.01, type=float)
+    parser.add_argument('--env_info', default=[0., 3.], type=float, nargs='+') # go to the corresponding environment to check the specific setting
     parser.add_argument('--env_action_scaler', default=10., type=float)
     parser.add_argument('--gamma', default=0.99, type=float)
     parser.add_argument('--discrete_control', default=0, type=int)
@@ -38,13 +41,15 @@ if __name__ == "__main__":
     parser.add_argument('--actor', default='Beta', type=str)
     parser.add_argument('--critic', default='FC', type=str)
     parser.add_argument('--layer_norm', default=0, type=int)
-    parser.add_argument('--layer_init', default='Xavier', type=str)
+    parser.add_argument('--layer_init_actor', default='Xavier', type=str)
+    parser.add_argument('--layer_init_critic', default='Xavier', type=str)
     parser.add_argument('--activation', default='ReLU6', type=str)
     parser.add_argument('--head_activation', default='Softplus', type=str)
     parser.add_argument('--optimizer', default='RMSprop', type=str)
     parser.add_argument('--state_normalizer', default='Identity', type=str)
     parser.add_argument('--reward_normalizer', default='Identity', type=str)
     parser.add_argument('--exploration', default=0.1, type=float)
+    parser.add_argument('--beta_parameter_bias', default=0., type=float)
     parser.add_argument('--action_scale', default=1., type=float)
     parser.add_argument('--action_bias', default=0., type=float)
     parser.add_argument('--load_path', default="", type=str)
@@ -75,17 +80,29 @@ if __name__ == "__main__":
 
     cfg = parser.parse_args()
 
+    sha = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+    cfg.githash = sha
+
     if cfg.load_from_json == '':
         cfg.exp_path = './out/output/test_v{}/{}/{}{}/{}/param_{}/seed_{}/'.format(cfg.version, cfg.env_name, cfg.exp_name, cfg.exp_info, cfg.agent_name, cfg.param, cfg.seed)  # savelocation for logs
-        cfg.parameters_path = os.path.join(cfg.exp_path, "parameters")
-        cfg.vis_path = os.path.join(cfg.exp_path, "visualizations")
-        utils.ensure_dir(cfg.exp_path)
-        utils.ensure_dir(cfg.parameters_path)
-        utils.ensure_dir(cfg.vis_path)
-        utils.write_json(cfg.exp_path, cfg)
     else:
         jf = cfg.load_from_json
         assert os.path.isfile(jf), print("JSON FILE DOES NOT EXIST")
+        with open(jf, 'r') as f:
+            jcfg = json.load(f, object_hook=lambda x: SimpleNamespace(**x))
+        for k in cfg.__dict__.keys():
+            if getattr(jcfg, k, None) is None:
+                print("Adding missing key: {}={}".format(k, getattr(cfg, k)))
+                setattr(jcfg, k, getattr(cfg, k))
+        cfg = jcfg
+        ts = datetime.datetime.now().timestamp()
+        cfg.exp_path = cfg.exp_path[:-1] + "_{}".format(ts)
+    cfg.parameters_path = os.path.join(cfg.exp_path, "parameters")
+    cfg.vis_path = os.path.join(cfg.exp_path, "visualizations")
+    utils.ensure_dir(cfg.exp_path)
+    utils.ensure_dir(cfg.parameters_path)
+    utils.ensure_dir(cfg.vis_path)
+    utils.write_json(cfg.exp_path, cfg)
 
 
     cfg.logger = utils.logger_setup(cfg)

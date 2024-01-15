@@ -17,12 +17,12 @@ class GAC_InAC(GreedyAC):
         if cfg.discrete_control:
             self.gac_a_dim = 1
             self.top_action = 1
-            self.predict_action_encoder = init_normalizer("OneHot", self.action_dim)
+            self.predict_action_encoder = init_normalizer("OneHot", self.env.action_space)
         else:
             self.predict_action_encoder = init_normalizer("Identity", None)
 
         self.predict_model = init_custom_network("Softmax", cfg.device, self.state_dim+self.action_dim, cfg.hidden_critic, 2,
-                                                 cfg.activation, "None", cfg.layer_init, cfg.layer_norm)
+                                                 cfg.activation, "None", cfg.layer_init_critic, cfg.layer_norm)
         self.predict_model_optim = init_optimizer(cfg.optimizer, list(self.predict_model.parameters()), cfg.lr_critic)
 
         inac_cfg = copy.deepcopy(cfg)

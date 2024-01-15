@@ -7,7 +7,11 @@ from pathlib import Path
 def base_cmd(**kwargs):
     cmd = "python3 main.py "
     for k in kwargs:
-        cmd += " {} {} ".format(k, kwargs[k])
+        if type(kwargs[k]) == list:
+            value = " ".join([str(i) for i in kwargs[k]])
+        else:
+            value = kwargs[k]
+        cmd += " {} {} ".format(k, value)
     if "/" in kwargs["--env_name"]:
         env_name = "_".join(kwargs["--env_name"].split("/"))
     else:

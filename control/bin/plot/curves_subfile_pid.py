@@ -291,6 +291,38 @@ def gac_parameter_study():
     direct_action()
     # change_action()
     # change_action_discrete()
+
+def gac_shift_beta_parameter():
+    pths = {
+        "GAC buffer 5000": [DATAROOT + "output/test_v0/NonContexTT/GAC_shift_beta_parameter/target0/replay5000_batch8/env_scale_10/" + "GAC/param_17", "C0", 3],
+        "GAC buffer 100": [DATAROOT + "output/test_v0/NonContexTT/GAC_shift_beta_parameter/target0/replay100_batch32/env_scale_10/" + "GAC/param_11", "C1", 5],
+        "GAC wo shift": [DATAROOT + "output/test_v0/NonContexTT/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/" + "GAC/param_79", "C2", 4],
+    }
+    best_offline(pths, "shift1_noncontex", ylim=[-2, 2])
+
+    pths = {
+        "GAC buffer 5000": [DATAROOT + "output/test_v0/TTAction/ConstPID/GAC_shift_beta_parameter/target0/replay5000_batch8/env_scale_10/" + "GAC/param_43", "C0", 3],
+        "GAC buffer 100": [DATAROOT + "output/test_v0/TTAction/ConstPID/GAC_shift_beta_parameter/target0/replay100_batch32/env_scale_10/" + "GAC/param_37", "C1", 5],
+        "GAC wo shift": [DATAROOT + "output/test_v0/TTAction/ConstPID/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/" + "GAC/param_10", "C2", 7],
+    }
+    best_offline(pths, "shift1_directaction", ylim=[-2, 2])
+
+
+def noncontextual_nonzero_obs():
+    SHAREPATH = "output/test_v0/NonContexTT/noncontextual_nonzero_obs/target0/replay5000_batch8/env_scale_10/"
+    pths = {
+        "GAC": [DATAROOT + SHAREPATH + "GAC/param_47", "C1", 5],
+    }
+    best_offline(pths, "nonzero_noncontex", ylim=[-2, 2])
+
+def directly_learn_beta_parameter():
+    SHAREPATH = "output/test_v0/NonContexTT/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10/"
+    pths = {
+        # "GAC": [DATAROOT + SHAREPATH + "GAC/param_6", "C0", 5],
+        "GAC": [DATAROOT + SHAREPATH + "GAC/param_55", "C0", 5],
+    }
+    best_offline(pths, "directly_learn_beta", ylim=[-2, 2])
+
 def constant_pid_target0_replay0():
     def threetank():
         """
@@ -626,6 +658,27 @@ def visualize_gac():
         file = DATAROOT + "output/test_v0/TTAction/ConstPID/visualize/replay5000_wo_entropy/GAC/param_0/seed_0"
         visualize_training_info(file, target_key, title="vis_DirectAction_GAC_replay5000_wo_entropy", threshold=0.99, xlim=None, ylim=[-2, 2])
 
+    def gac_shift_beta_parameter(target_key):
+        file = DATAROOT + "output/test_v0/NonContexTT/visualize/replay5000_shift_beta/GAC/param_0/seed_0"
+        visualize_training_info(file, target_key, title="vis_noncontext_GAC_shift_beta", threshold=0.99, xlim=None, ylim=[-2, 2])
+
+        file = DATAROOT + "output/test_v0/TTAction/ConstPID/visualize/replay5000_shift_beta/GAC/param_0/seed_0"
+        visualize_training_info(file, target_key, title="vis_directaction_GAC_shift_beta", threshold=0.99, xlim=None, ylim=[-2, 2])
+
+        file = DATAROOT + "output/test_v0/NonContexTT/visualize/replay100_shift_beta/GAC/param_0/seed_0"
+        visualize_training_info(file, target_key, title="vis_noncontext_GAC_shift_beta_buffer100", threshold=0.99, xlim=None, ylim=[-2, 2])
+
+        file = DATAROOT + "output/test_v0/TTAction/ConstPID/visualize/replay100_shift_beta/GAC/param_0/seed_0"
+        visualize_training_info(file, target_key, title="vis_directaction_GAC_shift_beta_buffer100", threshold=0.99, xlim=None, ylim=[-2, 2])
+
+    def noncontextual_nonzero_obs(target_key):
+        file = DATAROOT + "output/test_v0/NonContexTT/visualize/replay5000_nonzero_obs/GAC/param_0/seed_0"
+        visualize_training_info(file, target_key, title="vis_noncontext_GAC_nonzero_obs", threshold=0.99, xlim=None, ylim=[-2, 2])
+
+    def directly_learn_beta_parameter(target_key):
+        file = DATAROOT + "output/test_v0/NonContexTT/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10/GAC/param_55/seed_0"
+        visualize_training_info(file, target_key, title="vis_noncontext_GAC_direct_beta", threshold=0.995, xlim=None, ylim=[-2, 2])
+
 
     # noncontext_replay0(copy.deepcopy(target_key))
     # noncontext_replay50(copy.deepcopy(target_key))
@@ -642,10 +695,13 @@ def visualize_gac():
     # change_action_replay5000(copy.deepcopy(target_key))
     # change_action_rwd_stay_replay5000(copy.deepcopy(target_key))
     # change_action_rwd_stay_long(copy.deepcopy(target_key))
-    noncontext_larger_lr_replay5000(copy.deepcopy(target_key))
-    direct_action_larger_lr_replay5000(copy.deepcopy(target_key))
-    noncontext_proposal_wo_entropy(copy.deepcopy(target_key))
-    direct_action_proposal_wo_entropy(copy.deepcopy(target_key))
+    # noncontext_larger_lr_replay5000(copy.deepcopy(target_key))
+    # direct_action_larger_lr_replay5000(copy.deepcopy(target_key))
+    # noncontext_proposal_wo_entropy(copy.deepcopy(target_key))
+    # direct_action_proposal_wo_entropy(copy.deepcopy(target_key))
+    # gac_shift_beta_parameter(copy.deepcopy(target_key))
+    # noncontextual_nonzero_obs(copy.deepcopy(target_key))
+    directly_learn_beta_parameter(copy.deepcopy(target_key))
 
 
 def visualize_temp():
@@ -689,6 +745,15 @@ if __name__ == '__main__':
 
     # SHAREPATH = "output/test_v0/NonContexTT/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
     # SHAREPATH = "output/test_v0/TTAction/ConstPID/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
+
+    # SHAREPATH = "output/test_v0/NonContexTT/GAC_shift_beta_parameter/target0/replay5000_batch8/env_scale_10/"
+    # SHAREPATH = "output/test_v0/TTAction/ConstPID/GAC_shift_beta_parameter/target0/replay5000_batch8/env_scale_10/"
+    # SHAREPATH = "output/test_v0/NonContexTT/GAC_shift_beta_parameter/target0/replay100_batch32/env_scale_10/"
+    # SHAREPATH = "output/test_v0/TTAction/ConstPID/GAC_shift_beta_parameter/target0/replay100_batch32/env_scale_10/"
+
+    SHAREPATH = "output/test_v0/NonContexTT/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10/"
+
+    # SHAREPATH = "output/test_v0/NonContexTT/noncontextual_nonzero_obs/target0/replay5000_batch8/env_scale_10/"
 
     # SHAREPATH = "output/test_v0/NonContexTT/GAC_proposal_wo_entropy/target0/replay5000_batch8/env_scale_10/"
     # SHAREPATH = "output/test_v0/TTAction/ConstPID/GAC_proposal_wo_entropy/target0/replay5000_batch8/env_scale_10/"
@@ -781,16 +846,35 @@ if __name__ == '__main__':
     SHAREPATH = "output/test_v0/TTAction/ConstPID/learning_rate_larger_range/target0/replay5000_batch8/env_scale_10/"
     # draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_directaction")
 
+    fixed_params_list = {
+        "rho": [0.1],
+        "tau": [0],
+    }
+    SHAREPATH = "output/test_v0/NonContexTT/GAC_proposal_wo_entropy/target0/replay5000_batch8/env_scale_10/"
+    # draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_noncontex_wo_entropy")
+    SHAREPATH = "output/test_v0/TTAction/ConstPID/GAC_proposal_wo_entropy/target0/replay5000_batch8/env_scale_10/"
+    # draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_directaction_wo_entropy")
+
+    fixed_params_list = {
+        "rho": [0.1],
+        "tau": [1e-3],
+    }
+    SHAREPATH = "output/test_v0/NonContexTT/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10/"
+    draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_noncontex_direct_beta")
+
 
     # demo()
     # stable_gac_test()
     # gac_proposal_wo_entropy()
     # gac_learning_rate()
     # gac_parameter_study()
+    # gac_shift_beta_parameter()
+    # noncontextual_nonzero_obs()
+    # directly_learn_beta_parameter()
     # constant_pid_target0_replay0()
     # constant_pid_target0_replay100()
 
     # visualize_general()
-    visualize_gac()
+    # visualize_gac()
 
     # visualize_temp()
