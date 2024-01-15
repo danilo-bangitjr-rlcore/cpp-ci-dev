@@ -19,24 +19,26 @@ class BaseAC(Evaluation):
         if cfg.discrete_control:
             self.action_dim = self.env.action_space.n
             self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                             cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init, cfg.layer_norm)
+                                             cfg.beta_parameter_bias, cfg.action_scale, cfg.action_bias, cfg.activation,
+                                             cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
-                                              cfg.activation, cfg.layer_init, cfg.layer_norm)
+                                              cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
             self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
-                                                     cfg.activation, cfg.layer_init, cfg.layer_norm)
+                                                     cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
             self.get_q_value = self.get_q_value_discrete
             self.get_q_value_target = self.get_q_value_target_discrete
         else:        
             self.action_dim = np.prod(self.env.action_space.shape)
             self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                             cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init, cfg.layer_norm)
+                                             cfg.beta_parameter_bias, cfg.action_scale, cfg.action_bias, cfg.activation,
+                                             cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
-                                              cfg.activation, cfg.layer_init, cfg.layer_norm)
+                                              cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
             self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
-                                                     cfg.activation, cfg.layer_init, cfg.layer_norm)
+                                                     cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
             self.get_q_value = self.get_q_value_continuous
             self.get_q_value_target = self.get_q_value_target_continuous
-            
+
         self.critic_target.load_state_dict(self.critic.state_dict())
 
         self.actor_optimizer = init_optimizer(cfg.optimizer, list(self.actor.parameters()), cfg.lr_actor)
@@ -44,8 +46,8 @@ class BaseAC(Evaluation):
         
         self.buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
         self.batch_size = cfg.batch_size
-        self.state_normalizer = init_normalizer(cfg.state_normalizer, {})
-        self.reward_normalizer = init_normalizer(cfg.reward_normalizer, {})
+        self.state_normalizer = init_normalizer(cfg.state_normalizer, self.env.observation_space)
+        self.reward_normalizer = init_normalizer(cfg.reward_normalizer, None)
         self.gamma = cfg.gamma
         self.parameters_dir = cfg.parameters_path
         self.polyak = cfg.polyak
@@ -74,11 +76,23 @@ class BaseAC(Evaluation):
         ep_return = 0
         done = False
         for _ in range(online_data_size):
-            action = self.eval_step(self.observation.reshape((1, -1)))[0]
+            observation_tensor = torch_utils.tensor(self.observation.reshape((1, -1)), self.device)
+            action_tensor, _, pi_info = self.get_policy(observation_tensor, with_grad=False, debug=self.cfg.debug)
+            action = torch_utils.to_np(action_tensor)[0]
             last_state = self.observation
-            self.observation, reward, done, truncate, _ = self.env.step(action)
+            self.observation, reward, done, truncate, env_info = self.env.step(action)
             reset, truncate = self.update_stats(reward, done, truncate)
             self.buffer.feed([last_state, action, reward, self.observation, int(done), int(truncate)])
+
+            i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
+            self.info_log.append(i_log)
+
+            if self.cfg.render:
+                self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"])
+            else:
+                env_info.pop('interval_log', None)
+                i_log['critic_info'].pop('Q-function', None)
+
             track_states.append(last_state)
             track_actions.append(action)
             track_rewards.append(reward)
@@ -119,7 +133,7 @@ class BaseAC(Evaluation):
         return reset, truncate
 
     def step(self):
-        observation_tensor = torch_utils.tensor(self.observation.reshape((1, -1)), self.device)
+        observation_tensor = torch_utils.tensor(self.state_normalizer(self.observation.reshape((1, -1))), self.device)
         action_tensor, _, pi_info = self.get_policy(observation_tensor,
                                                     with_grad=False, debug=self.cfg.debug)
         action = torch_utils.to_np(action_tensor)[0]
@@ -290,14 +304,10 @@ class BaseAC(Evaluation):
             action = torch_utils.to_np(action_tensor)[0]
             x_action_ind = int(action[0] / self.x_action_increment)
             y_action_ind = int(action[1] / self.y_action_increment)
-
-            # edge cases where action = 1 in x or y
-            if x_action_ind >= (1/self.x_action_increment):
+            if x_action_ind == 1.0 / self.x_action_increment:
                 x_action_ind -= 1
-                
-            if y_action_ind >= (1/self.y_action_increment):
+            if y_action_ind == 1.0 / self.y_action_increment:
                 y_action_ind -= 1
-                
             self.visit_counts[y_action_ind][x_action_ind] += 1
         
             # Update Q heatmap

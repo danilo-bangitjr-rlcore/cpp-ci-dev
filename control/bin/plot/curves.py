@@ -134,11 +134,13 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
             axes.append(axs)
             axs.plot(reformat[k])
             axs.set_title(k)
+            print(k, reformat[k][-10:].mean(), reformat[k][-10:].std())
         else:
             for d in range(dim):
                 axes.append(axs[d])
                 axs[d].plot(reformat[k][:, d])
                 axs[d].set_title(k+"/dimension-{}".format(d))
+                print(k, d, reformat[k][:, d][-10:].mean(), reformat[k][:, d][-10:].std())
 
     highlight = []
     if threshold is not None:
@@ -186,8 +188,8 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
     config_f = open(target_file + "/config.json")
     config = json.load(config_f)
 
-    plt.savefig(target_file + "/{}{}_replay_{}_tau_{}_rho_{}_actor_lr_{}_critic_lr_{}.png".format(title, range_, config["buffer_size"], config["tau"], config["rho"], config["lr_actor"], config["lr_critic"]), dpi=300, bbox_inches='tight')
-    plt.savefig(DATAROOT + "img/{}{}_replay_{}_tau_{}_rho_{}_actor_lr_{}_critic_lr_{}.png".format(title, range_, config["buffer_size"], config["tau"], config["rho"], config["lr_actor"], config["lr_critic"]), dpi=300, bbox_inches='tight')
+    plt.savefig(target_file + "/{}{}_replay_{}_tau_{}_rho_{}_prop_rho_mult_{}_actor_lr_{}_critic_lr_{}.png".format(title, range_, config["buffer_size"], config["tau"], config["rho"], config["prop_rho_mult"], config["lr_actor"], config["lr_critic"]), dpi=300, bbox_inches='tight')
+    plt.savefig(DATAROOT + "img/{}{}_replay_{}_tau_{}_rho_{}_prop_rho_mult_{}_actor_lr_{}_critic_lr_{}.png".format(title, range_, config["buffer_size"], config["tau"], config["rho"], config["prop_rho_mult"], config["lr_actor"], config["lr_critic"]), dpi=300, bbox_inches='tight')
     plt.close()
     # fig.close()
     return highlight

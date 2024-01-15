@@ -16,18 +16,19 @@ class FC(nn.Module):
         super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
-        layer_init = internal_factory.init_layer(init)
+        init_args = init.split("/")
+        layer_init = internal_factory.init_layer(init_args[0])
         activation_cls = internal_factory.init_activation(activation)
         d = input_dim
         modules = []
         for hidden_size in arch:
-            fc = layer_init(nn.Linear(d, hidden_size))
+            fc = layer_init(nn.Linear(d, hidden_size), *init_args[1:])
             modules.append(fc)
             if layer_norm:
                 modules.append(nn.LayerNorm(hidden_size))
             modules.append(activation_cls())
             d = hidden_size
-        last_fc = layer_init(nn.Linear(d, output_dim))
+        last_fc = layer_init(nn.Linear(d, output_dim), *init_args[1:])
         modules.append(last_fc)
 
         self.network = nn.Sequential(*modules)
@@ -44,12 +45,18 @@ class SquashedGaussianPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
                  action_scale=1., action_bias=0., init='Xavier', activation="ReLU", layer_norm=False):#, action_clip=[-0.999, 0.999]):
         super(SquashedGaussianPolicy, self).__init__()
-        layer_init = internal_factory.init_layer(init)
-        self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation, 
-                               init=init, layer_norm=layer_norm)
-        self.mean_head = layer_init(nn.Linear(arch[-1], action_dim))
-        self.logstd_head = layer_init(nn.Linear(arch[-1], action_dim))
-        
+
+        init_args = init.split("/")
+        layer_init = internal_factory.init_layer(init_args[0])
+        if len(arch) > 0:
+            self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation,
+                                   init=init, layer_norm=layer_norm)
+            self.mean_head = layer_init(nn.Linear(arch[-1], action_dim), *init_args[1:])
+            self.logstd_head = layer_init(nn.Linear(arch[-1], action_dim), *init_args[1:])
+        else:
+            raise NotImplementedError
+
+
         # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions. 
         if type(action_scale) == float:
             action_scale = np.ones(action_dim)*action_scale
@@ -119,17 +126,29 @@ class SquashedGaussianPolicy(nn.Module):
 
 class BetaPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
-                 action_scale=1., action_bias=0., init='Xavier', activation="ReLU", head_activation="Softplus", layer_norm=False):
+                 beta_param_bias=0, action_scale=1., action_bias=0., init='Xavier', activation="ReLU", head_activation="Softplus", layer_norm=False):
         super(BetaPolicy, self).__init__()
-        self.action_dim = action_dim
-        layer_init = internal_factory.init_layer(init)
-        self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation, 
-                               init=init, layer_norm=layer_norm)
-        self.alpha_head = layer_init(nn.Linear(arch[-1], action_dim))
-        self.beta_head = layer_init(nn.Linear(arch[-1], action_dim))
-        self.head_activation_fn = internal_factory.init_activation_function(head_activation)
 
-        # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions. 
+        self.action_dim = action_dim
+
+        init_args = init.split("/")
+        layer_init = internal_factory.init_layer(init_args[0])
+        if len(arch) > 0:
+            self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation,
+                                   init=init, layer_norm=layer_norm)
+            self.alpha_head = layer_init(nn.Linear(arch[-1], action_dim), *init_args[1:])
+            self.beta_head = layer_init(nn.Linear(arch[-1], action_dim), *init_args[1:])
+        else:
+            """ 
+            A special case of learning alpha and beta directly. 
+            Initialize the weight using constant 1 
+            """
+            layer_init = internal_factory.init_layer(init_args[0])
+            self.base_network = lambda x:x
+            self.alpha_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
+            self.beta_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
+        self.head_activation_fn = internal_factory.init_activation_function(head_activation)
+        self.beta_param_bias = torch.tensor(beta_param_bias)
         if type(action_scale) == float:
             action_scale = np.ones(action_dim)*action_scale
             
@@ -144,7 +163,9 @@ class BetaPolicy(nn.Module):
         base = self.base_network(observation)
         alpha = self.head_activation_fn(self.alpha_head(base)) + EPSILON
         beta = self.head_activation_fn(self.beta_head(base)) + EPSILON
- 
+
+        alpha += self.beta_param_bias
+        beta += self.beta_param_bias
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)
         out = dist.rsample() # samples of alpha and beta 
@@ -170,7 +191,9 @@ class BetaPolicy(nn.Module):
         base = self.base_network(observation)
         alpha = self.head_activation_fn(self.alpha_head(base)) + EPSILON
         beta = self.head_activation_fn(self.beta_head(base)) + EPSILON
-    
+        alpha += self.beta_param_bias
+        beta += self.beta_param_bias
+
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)
 

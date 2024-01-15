@@ -9,13 +9,14 @@ class GreedyAC(BaseAC):
         super(GreedyAC, self).__init__(cfg)
         self.tau = self.cfg.tau
         self.rho = self.cfg.rho # percentage of action used for update
-        self.rho_proposal = self.cfg.theta # percentage of action used for update proposal
+        self.rho_proposal = self.rho * self.cfg.prop_rho_mult # percentage of action used for update proposal
         self.num_samples = self.cfg.n
         self.average_entropy = average_entropy
 
         # use the same network as in actor
         self.sampler = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                           cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init, cfg.layer_norm)
+                                           cfg.beta_parameter_bias, cfg.action_scale, cfg.action_bias, cfg.activation,
+                                           cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
         self.sampler_optim = init_optimizer(cfg.optimizer, list(self.sampler.parameters()), cfg.lr_actor)
 
         self.gac_a_dim = self.action_dim

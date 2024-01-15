@@ -45,6 +45,7 @@ class Evaluation:
             plt.ion()
             self.eval_fig = plt.figure(figsize=(12, 4))
             self.eval_ax1 = self.eval_fig.add_subplot(131)
+            self.eval_ax1.set_ylim(self.env.visualization_range)
             self.eval_ax2 = self.eval_fig.add_subplot(132)
             self.eval_ax3 = self.eval_fig.add_subplot(133)
             self.eval_line1 = None

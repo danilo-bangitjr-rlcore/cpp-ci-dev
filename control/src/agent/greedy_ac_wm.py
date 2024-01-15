@@ -14,16 +14,17 @@ class GACPredictSuccess(GreedyAC):
         if cfg.discrete_control:
             self.gac_a_dim = 1
             self.top_action = 1
-            self.predict_action_encoder = init_normalizer("OneHot", self.action_dim)
+            self.predict_action_encoder = init_normalizer("OneHot", self.env.action_space)
         else:
             self.predict_action_encoder = init_normalizer("Identity", None)
 
         self.predict_model = init_custom_network("Softmax", cfg.device, self.state_dim+self.action_dim, cfg.hidden_critic, 2,
-                                                 cfg.activation, "None", cfg.layer_init, cfg.layer_norm)
+                                                 cfg.activation, "None", cfg.layer_init_critic, cfg.layer_norm)
         self.predict_model_optim = init_optimizer(cfg.optimizer, list(self.predict_model.parameters()), cfg.lr_critic)
 
         self.safe_action_model = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                                     cfg.action_scale, cfg.action_bias, cfg.activation, cfg.head_activation, cfg.layer_init, cfg.layer_norm)
+                                                     cfg.beta_parameter_bias, cfg.action_scale, cfg.action_bias, cfg.activation,
+                                                     cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
         self.safe_action_model_optim = init_optimizer(cfg.optimizer, list(self.safe_action_model.parameters()), cfg.lr_actor)
 
         self.safe_action_buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
@@ -127,7 +128,7 @@ class GACwHardMemory(GreedyAC):
     def __init__(self, cfg, average_entropy=True):
         super(GACwHardMemory, self).__init__(cfg, average_entropy=average_entropy)
         self.reward_model = init_custom_network(cfg.critic, cfg.device, self.state_dim+self.action_dim, cfg.hidden_critic, 1,
-                                               cfg.activation, "None", cfg.layer_init, cfg.layer_norm)
+                                               cfg.activation, "None", cfg.layer_init_critic, cfg.layer_norm)
         self.reward_model_optim = init_optimizer(cfg.optimizer, list(self.reward_model.parameters()), cfg.lr_critic)
 
         self.known_best_action = None
@@ -210,7 +211,7 @@ class GACwMemory(GreedyAC):
     def __init__(self, cfg, average_entropy=True):
         super(GACwMemory, self).__init__(cfg)
         self.reward_model = init_custom_network(cfg.critic, cfg.device, self.state_dim+self.action_dim, cfg.hidden_critic, 1,
-                                               cfg.activation, "None", cfg.layer_init, cfg.layer_norm)
+                                               cfg.activation, "None", cfg.layer_init_critic, cfg.layer_norm)
         self.reward_model_optim = init_optimizer(cfg.optimizer, list(self.reward_model.parameters()), cfg.lr_critic)
         # self.current_best_action = None
 
