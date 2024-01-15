@@ -11,35 +11,38 @@ from src.environment.smpl.envs.reactorenv import ReactorEnvGym
 
 def init_environment(name, cfg):
     if name == "ThreeTank":
-        return ThreeTankEnv(cfg.seed, cfg.lr_constrain, env_action_scaler=cfg.env_action_scaler)
+        return ThreeTankEnv(cfg.seed, cfg.lr_constrain, env_action_scaler=cfg.env_action_scaler, random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/ConstPID":
         return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=True, env_action_scaler=cfg.env_action_scaler,
                               agent_action_min=0*cfg.action_scale+cfg.action_bias,
-                              agent_action_max=1*cfg.action_scale+cfg.action_bias)
+                              agent_action_max=1*cfg.action_scale+cfg.action_bias,
+                              random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/ChangePID":
         return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=False, env_action_scaler=cfg.env_action_scaler,
                               agent_action_min=0*cfg.action_scale+cfg.action_bias,
-                              agent_action_max=1*cfg.action_scale+cfg.action_bias)
+                              agent_action_max=1*cfg.action_scale+cfg.action_bias,
+                              random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/DiscreteConstPID":
-        return TTChangeActionDiscrete(cfg.env_info, cfg.seed, cfg.lr_constrain, constant_pid=True,
-                                      env_action_scaler=cfg.env_action_scaler)
+        return TTChangeActionDiscrete(cfg.env_info[0], cfg.seed, cfg.lr_constrain, constant_pid=True,
+                                      env_action_scaler=cfg.env_action_scaler, random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/DiscreteRwdStay":
-        return TTChangeActionDiscrete(cfg.env_info, cfg.seed, cfg.lr_constrain, constant_pid=True,
-                                      env_action_scaler=cfg.env_action_scaler, )
+        return TTChangeActionDiscrete(cfg.env_info[0], cfg.seed, cfg.lr_constrain, constant_pid=True,
+                                      env_action_scaler=cfg.env_action_scaler, random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/ClipConstPID":
         return TTChangeActionClip(cfg.seed, cfg.lr_constrain, constant_pid=True,
                                   env_action_scaler=cfg.env_action_scaler,
                                   agent_action_min=0*cfg.action_scale+cfg.action_bias,
-                                  agent_action_max=1*cfg.action_scale+cfg.action_bias)
+                                  agent_action_max=1*cfg.action_scale+cfg.action_bias,
+                                  random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/ClipDiscreteConstPID":
-        return TTChangeActionDiscreteClip(cfg.env_info, cfg.seed, cfg.lr_constrain, constant_pid=True,
-                                          env_action_scaler=cfg.env_action_scaler)
+        return TTChangeActionDiscreteClip(cfg.env_info[0], cfg.seed, cfg.lr_constrain, constant_pid=True,
+                                          env_action_scaler=cfg.env_action_scaler, random_sp=cfg.env_info[1:])
     elif name == "TTAction/ConstPID":
-        return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=True, env_action_scaler=cfg.env_action_scaler)
+        return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=True, env_action_scaler=cfg.env_action_scaler, random_sp=cfg.env_info[1:])
     elif name == "TTAction/ChangePID":
-        return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=False, env_action_scaler=cfg.env_action_scaler)
+        return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=False, env_action_scaler=cfg.env_action_scaler, random_sp=cfg.env_info[1:])
     elif name == "NonContexTT":
-        return NonContexTT(cfg.seed, cfg.lr_constrain, env_action_scaler=cfg.env_action_scaler, obs=cfg.env_info)
+        return NonContexTT(cfg.seed, cfg.lr_constrain, env_action_scaler=cfg.env_action_scaler, obs=cfg.env_info[0])
     elif name == "AtropineEnv":
         return AtropineEnvGym()
     elif name == "BeerEnv":

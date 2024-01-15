@@ -46,8 +46,8 @@ class BaseAC(Evaluation):
         
         self.buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
         self.batch_size = cfg.batch_size
-        self.state_normalizer = init_normalizer(cfg.state_normalizer, {})
-        self.reward_normalizer = init_normalizer(cfg.reward_normalizer, {})
+        self.state_normalizer = init_normalizer(cfg.state_normalizer, self.env.observation_space)
+        self.reward_normalizer = init_normalizer(cfg.reward_normalizer, None)
         self.gamma = cfg.gamma
         self.parameters_dir = cfg.parameters_path
         self.polyak = cfg.polyak

@@ -17,7 +17,7 @@ class GAC_InAC(GreedyAC):
         if cfg.discrete_control:
             self.gac_a_dim = 1
             self.top_action = 1
-            self.predict_action_encoder = init_normalizer("OneHot", self.action_dim)
+            self.predict_action_encoder = init_normalizer("OneHot", self.env.action_space)
         else:
             self.predict_action_encoder = init_normalizer("Identity", None)
 
