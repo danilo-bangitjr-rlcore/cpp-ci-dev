@@ -318,7 +318,8 @@ def noncontextual_nonzero_obs():
 def directly_learn_beta_parameter():
     SHAREPATH = "output/test_v0/NonContexTT/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10/"
     pths = {
-        "GAC": [DATAROOT + SHAREPATH + "GAC/param_6", "C0", 5],
+        # "GAC": [DATAROOT + SHAREPATH + "GAC/param_6", "C0", 5],
+        "GAC": [DATAROOT + SHAREPATH + "GAC/param_55", "C0", 5],
     }
     best_offline(pths, "directly_learn_beta", ylim=[-2, 2])
 
@@ -675,7 +676,7 @@ def visualize_gac():
         visualize_training_info(file, target_key, title="vis_noncontext_GAC_nonzero_obs", threshold=0.99, xlim=None, ylim=[-2, 2])
 
     def directly_learn_beta_parameter(target_key):
-        file = DATAROOT + "output/test_v0/NonContexTT/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10/GAC/param_6/seed_0"
+        file = DATAROOT + "output/test_v0/NonContexTT/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10/GAC/param_55/seed_0"
         visualize_training_info(file, target_key, title="vis_noncontext_GAC_direct_beta", threshold=0.995, xlim=None, ylim=[-2, 2])
 
 
@@ -812,7 +813,7 @@ if __name__ == '__main__':
     # SHAREPATH = "output/test_v0/NonContexTT/stable_gac_test/v1/target0/replay5000_batch8/env_scale_10/"
     # SHAREPATH = "output/test_v0/TTAction/ConstPID/stable_gac_test/v1/target0/replay5000_batch8/env_scale_10/"
 
-    sweep_parameter(DATAROOT + SHAREPATH, agent_list)
+    # sweep_parameter(DATAROOT + SHAREPATH, agent_list)
 
     SHAREPATH = "output/test_v0/NonContexTT/parameter_study/target0/replay50_batch8/env_scale_10/"
     fixed_params_list = {
@@ -853,6 +854,14 @@ if __name__ == '__main__':
     # draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_noncontex_wo_entropy")
     SHAREPATH = "output/test_v0/TTAction/ConstPID/GAC_proposal_wo_entropy/target0/replay5000_batch8/env_scale_10/"
     # draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_directaction_wo_entropy")
+
+    fixed_params_list = {
+        "rho": [0.1],
+        "tau": [1e-3],
+    }
+    SHAREPATH = "output/test_v0/NonContexTT/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10/"
+    draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_noncontex_direct_beta")
+
 
     # demo()
     # stable_gac_test()
