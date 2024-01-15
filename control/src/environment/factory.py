@@ -7,6 +7,8 @@ from src.environment.three_tanks import TTChangeActionClip, TTChangeActionDiscre
 from src.environment.smpl.envs.atropineenv import AtropineEnvGym
 from src.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
 from src.environment.smpl.envs.reactorenv import ReactorEnvGym
+from src.environment.gym_wrapper import DiscreteControlWrapper
+from src.environment.PendulumEnv import PendulumEnv
 
 
 def init_environment(name, cfg):
@@ -56,12 +58,86 @@ def init_environment(name, cfg):
         return FlattenObservation(gem.make("Cont-CC-SCIM-v0"))
     elif name == "Cont-CC-EESM-v0":
         return FlattenObservation(gem.make("Cont-CC-EESM-v0"))
-    elif name == "Acrobot-v0":
-        return gym.make("Acrobot-v0")
-    elif name == "MountainCar-v0":
-        return gym.make("MountainCar-v0")
+    elif name == "Acrobot-v1":
+        return DiscreteControlWrapper("Acrobot-v1")
+    elif name == "MountainCarContinuous-v0":
+        return  gym.make("MountainCarContinuous-v0")
     elif name == "Pendulum-v1":
-        return gym.make("Pendulum-v1")
+        return PendulumEnv()
+    elif name == "HalfCheetah-v4":
+        return gym.make("HalfCheetah-v4")
     else:
         raise NotImplementedError
 
+def configure_action_scaler_and_bias(cfg):
+    if cfg.auto_calibrate_beta_support:
+        # auto scales based on gym env.action_space attributes
+        if cfg.actor == 'Beta':
+            action_low = cfg.train_env.action_space.low
+            action_high = cfg.train_env.action_space.high
+            action_range = action_high - action_low
+            cfg.action_scale = action_range
+            cfg.action_bias = action_low 
+        elif cfg.actor == 'SGaussian':
+            action_low = cfg.train_env.action_space.low
+            action_high = cfg.train_env.action_space.high
+            action_range = action_high - action_low
+            cfg.action_scale = action_range / 2 # since SGaussian defined on [-1, 1]
+            cfg.action_bias = action_low + cfg.action_scale 
+    else: 
+        # if we are not automatically calibrating the scale and bias based on the environment. 
+        # We can set values here based on domain knowlegde
+        name = cfg.env_name
+        if name == "ThreeTank":
+            if cfg.actor == 'Beta':
+                cfg.action_scale = 10
+                cfg.action_bias = 0
+            elif cfg.actor == 'SGaussian':
+                cfg.action_scale = 5
+                cfg.action_bias = 1
+        elif name == "TTChangeAction/ConstPID":
+           raise NotImplementedError
+        elif name == "TTChangeAction/ChangePID":
+            raise NotImplementedError
+        elif name == "TTChangeAction/DiscreteConstPID":
+            raise NotImplementedError
+        elif name == "TTChangeAction/DiscreteRwdStay":
+           raise NotImplementedError
+        elif name == "TTChangeAction/ClipConstPID":
+           raise NotImplementedError
+        elif name == "TTChangeAction/ClipDiscreteConstPID":
+            raise NotImplementedError
+        elif name == "TTAction/ConstPID":
+           raise NotImplementedError
+        elif name == "TTAction/ChangePID":
+           raise NotImplementedError
+        elif name == "NonContexTT":
+            if cfg.actor == 'Beta':
+                cfg.action_scale = 10
+                cfg.action_bias = 0
+            elif cfg.actor == 'SGaussian':
+                cfg.action_scale = 5
+                cfg.action_bias = 1
+        elif name == "AtropineEnv":
+            raise NotImplementedError
+        elif name == "BeerEnv":
+            raise NotImplementedError
+        elif name == "ReactorEnv":
+            raise NotImplementedError
+        elif name == "Cont-CC-PermExDc-v0":
+            raise NotImplementedError
+        elif name == "Cont-CC-PMSM-v0":
+            raise NotImplementedError
+        elif name == "Cont-CC-DFIM-v0":
+            raise NotImplementedError
+        elif name == "Cont-CC-SCIM-v0":
+            raise NotImplementedError
+        elif name == "Acrobot-v1":
+            raise NotImplementedError
+        elif name == "MountainCar-v0":
+            raise NotImplementedError
+        elif name == "Pendulum-v1":
+            raise NotImplementedError
+        else:
+            raise NotImplementedError
+    

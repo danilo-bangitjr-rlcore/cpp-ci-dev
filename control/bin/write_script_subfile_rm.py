@@ -101,9 +101,9 @@ def etc_critic_prefill(settings, shared_settings, target_agents):
     }
     shared_settings = {
         "--exp_name": ["etc_critic"],
-        "--max_steps": [5000],
+        "--max_steps": [100000],
         "--render": [2],
-        "--optimizer" : ['RMSprop', 'SGD'],
+        "--optimizer" : ['RMSprop'],
         "--lr_critic": [10**i for i in range(-2, -6, -1)],
         "--etc_learning_start": [2500],
         "--debug" : [1]
@@ -113,13 +113,13 @@ def etc_critic_prefill(settings, shared_settings, target_agents):
     shared_settings["--env_name"] = ["NonContexTT"]
     shared_settings["--exp_info"] = ["etc_critic/"]
     shared_settings["--buffer_size"] = [5000]
-    shared_settings["--batch_size"] = [8, 64]
+    shared_settings["--batch_size"] = [8, 64, 128]
     shared_settings["--etc_buffer_prefill"] = [2500]
     
     
     settings = merge_independent(settings, shared_settings)
     print(settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=4, comb_num_base=0)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1000, comb_num_base=0)
     
 def etc_critic_online(settings, shared_settings, target_agents):
     """
@@ -133,9 +133,9 @@ def etc_critic_online(settings, shared_settings, target_agents):
     }
     shared_settings = {
         "--exp_name": ["etc_critic"],
-        "--max_steps": [5000],
+        "--max_steps": [20000],
         "--render": [2],
-        "--optimizer" : ['RMSprop', 'SGD'],
+        "--optimizer" : ['RMSprop'],
         "--lr_critic": [10**i for i in range(-2, -6, -1)],
         "--etc_learning_start": [0],
         "--debug" : [1]
@@ -144,21 +144,18 @@ def etc_critic_online(settings, shared_settings, target_agents):
 
     shared_settings["--env_name"] = ["NonContexTT"]
     shared_settings["--exp_info"] = ["etc_critic/"]
-    shared_settings["--buffer_size"] = [5000]
-    shared_settings["--batch_size"] = [8, 64]
-    shared_settings["--etc_buffer_prefill"] = [5000]
+    shared_settings["--buffer_size"] = [1000]
+    shared_settings["--batch_size"] = [8, 64, 128]
+    shared_settings["--etc_buffer_prefill"] = [0000]
     
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=4, line_per_file=4, comb_num_base=16)
+    combinations(settings, target_agents, num_runs=1, prev_file=4, line_per_file=1000, comb_num_base=16)
     
     
-def GAC_classic_control_and_PID(settings, shared_settings, target_agents):
+def GAC_Pendulum(settings, shared_settings, target_agents):
     """
     Runs the same experiment from the original GAC paper with our agent
     https://arxiv.org/pdf/1810.09103.pdf
-    
-    
-    Ran on Jan 10, 2023
     """
     settings = {
         "GAC": {
@@ -166,26 +163,61 @@ def GAC_classic_control_and_PID(settings, shared_settings, target_agents):
     }
     shared_settings = {
         "--exp_name": ["GAC_classic_control_and_PID"],
-        "--max_steps": [1000],
+        "--max_steps": [20000],
         "--render": [0],
-        "--env_action_scaler": [10],
-        "--action_scale": [1],
-        "--action_bias": [0],
-        "--optimizer" : ["RMS_prop", "SGD"],
-        "--tau": [10**(-i) for i in range(-3, 2)],
+        "--auto_calibrate_beta_support" : [1],
+        "--optimizer" : ["Adam"],
+        "--tau": [10],
         "--rho": [0.1],
-        "--lr_actor": [10**(-i) for i in range(-5, 0)],
-        "--lr_critic": [10**(-i) for i in range(-5, 0)]    
+        "--lr_actor": [1e-1*1e-2],
+        "--timeout" : [200],
+        "--discrete_control": [0],
+        "--actor": ['Beta'],
+        "--lr_critic": [1e-2 ]    
     }
     
-    target_agents = ["GAC"]
-
-    shared_settings["--env_name"] = ["NonContexTT"]
-    shared_settings["--exp_info"] = ["/target0/replay5000_batch8/env_scale_10/"]
+    target_agents = ["GAC"] 
+    shared_settings["--env_name"] = ["Pendulum-v1"]
+    shared_settings["--exp_info"] = ["GAC_classic_control/"]
     shared_settings["--buffer_size"] = [100000]
     shared_settings["--batch_size"] = [32]
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1000, comb_num_base=36)
+    combinations(settings, target_agents, num_runs=10, prev_file=0, line_per_file=1000, comb_num_base=0)
+    
+    
+# def GAC_MountainCar(settings, shared_settings, target_agents):
+#     """
+#     Runs the same experiment from the original GAC paper with our agent
+#     https://arxiv.org/pdf/1810.09103.pdf
+#     """
+#     settings = {
+#         "GAC": {
+#         },
+#     }
+#     shared_settings = {
+#         "--exp_name": ["GAC_classic_control_and_PID"],
+#         "--max_steps": [20000],
+#         "--render": [0],
+#         "--auto_calibrate_beta_support" : [1],
+#         "--optimizer" : ["Adam"],
+#         "--tau": [10],
+#         "--rho": [0.1],
+#         "--lr_actor": [1*1e-3],
+#         # "--hidden_critic": [[64, 64]],
+#         # "--hidden_actor": [[64, 64]],
+#         "--timeout" : [200],
+#         "--discrete_control": [0],
+#         "--actor": ['Beta'],
+#         "--lr_critic": [1e-3 ]    
+#     }
+    
+#     target_agents = ["GAC"] 
+#     shared_settings["--env_name"] = ["MountainCarContinuous-v0"]
+#     shared_settings["--exp_info"] = ["GAC_classic_control/"]
+#     shared_settings["--buffer_size"] = [100000]
+#     shared_settings["--batch_size"] = [32]
+#     settings = merge_independent(settings, shared_settings)
+#     combinations(settings, target_agents, num_runs=10, prev_file=0, line_per_file=1000, comb_num_base=0)
     
     
 if __name__=='__main__':
@@ -229,5 +261,6 @@ if __name__=='__main__':
     # learning_rate_sweep_adam_RMSprop(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # buffer_prefill(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # etc_critic(settings, shared_settings, target_agents)
-    etc_critic_prefill(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
-    etc_critic_online(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # etc_critic_prefill(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # etc_critic_online(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    GAC_Pendulum(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))

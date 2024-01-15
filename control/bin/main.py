@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--env_name', default='ThreeTank', type=str)
     parser.add_argument('--env_info', default=0.01, type=float)
-    parser.add_argument('--env_action_scaler', default=10., type=float)
+    parser.add_argument('--env_action_scaler', default=1., type=float)
     parser.add_argument('--gamma', default=0.99, type=float)
     parser.add_argument('--discrete_control', default=0, type=int)
 
@@ -47,6 +47,8 @@ if __name__ == "__main__":
     parser.add_argument('--exploration', default=0.1, type=float)
     parser.add_argument('--action_scale', default=1., type=float)
     parser.add_argument('--action_bias', default=0., type=float)
+    parser.add_argument('--auto_calibrate_beta_support', default=0, type=int)
+    
     parser.add_argument('--load_path', default="", type=str)
     parser.add_argument('--load_checkpoint', default=1, type=int)
     parser.add_argument('--buffer_size', default=1, type=int)
@@ -87,11 +89,21 @@ if __name__ == "__main__":
         jf = cfg.load_from_json
         assert os.path.isfile(jf), print("JSON FILE DOES NOT EXIST")
 
+    cfg.hidden_actor = [64, 64]
+    cfg.hidden_critic = [64, 64]
 
     cfg.logger = utils.logger_setup(cfg)
     utils.set_seed(cfg.seed)
     cfg.train_env = env_factory.init_environment(cfg.env_name, cfg)
     cfg.eval_env = env_factory.init_environment(cfg.env_name, cfg)
-    agent = agent_factory.init_agent(cfg.agent_name, cfg)
     
+    
+ 
+    
+    if not cfg.discrete_control:
+        
+        env_factory.configure_action_scaler_and_bias(cfg)
+        
+        
+    agent = agent_factory.init_agent(cfg.agent_name, cfg)
     run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, cfg.buffer_prefill)

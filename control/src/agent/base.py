@@ -58,8 +58,8 @@ class BaseAC(Evaluation):
         if self.cfg.debug:
             action_cover_space, heatmap_shape = self.env.get_action_samples()
             self.visit_counts = [[0 for i in range(heatmap_shape[1])] for j in range(heatmap_shape[0])]
-            self.x_action_increment = 1.0 / heatmap_shape[1]
-            self.y_action_increment = 1.0 / heatmap_shape[0]
+            self.x_action_increment = 10 / heatmap_shape[1]
+            self.y_action_increment = 10 / heatmap_shape[0]
 
     def fill_buffer(self, online_data_size):
         track_states = []
@@ -123,7 +123,7 @@ class BaseAC(Evaluation):
         action_tensor, _, pi_info = self.get_policy(observation_tensor,
                                                     with_grad=False, debug=self.cfg.debug)
         action = torch_utils.to_np(action_tensor)[0]
-        next_observation, reward, terminated, trunc, env_info = self.env.step(action)
+        next_observation, reward, terminated, trunc, env_info = self.env.step(action)      
         reset, truncate = self.update_stats(reward, terminated, trunc)
         self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
 
@@ -148,6 +148,7 @@ class BaseAC(Evaluation):
 
     # actor-critic
     def get_policy(self, observation, with_grad, debug=False):
+        
         if with_grad:
             action, logp, info = self.actor(observation, debug)
         else:
