@@ -575,17 +575,14 @@ def directly_learn_beta_parameter(settings, shared_settings, target_agents):
     # settings = merge_independent(settings, shared_settings)
     # combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=49)
 
-    """
-    Contextual buffer 100, batch 32
-    """
     shared_settings["--env_name"] = ["ThreeTank"]
-    shared_settings["--env_info"] = [[1]+list(range(5))]
+    shared_settings["--env_info"] = [[1]+list(range(2, 5))]
     shared_settings["--state_normalizer"] = ["OneHot"]
-    shared_settings["--exp_info"] = ["/target0/replay100_batch32/env_scale_10/"]
-    shared_settings["--buffer_size"] = [100]
-    shared_settings["--batch_size"] = [32]
+    shared_settings["--exp_info"] = ["/target0/replay1_batch1/env_env_scale_10_setpoint_2-4/"]
+    shared_settings["--buffer_size"] = [1]
+    shared_settings["--batch_size"] = [1]
     shared_settings["--tau"] = [1e-03]
-    shared_settings["--rho"] = [0.1, 0.8]
+    shared_settings["--rho"] = [0.1]
     shared_settings["--lr_actor"] = [3.0, 1.0, 0.3, 0.1, 0.03, 0.01, 0.003]
     shared_settings["--lr_critic"] = [0.001, 0.0003, 0.0001, 3e-5, 1e-5, 3e-6, 1e-6]
 
