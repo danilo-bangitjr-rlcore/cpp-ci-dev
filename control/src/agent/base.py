@@ -121,7 +121,7 @@ class BaseAC(Evaluation):
         return reset, truncate
 
     def step(self):
-        observation_tensor = torch_utils.tensor(self.observation.reshape((1, -1)), self.device)
+        observation_tensor = torch_utils.tensor(self.state_normalizer(self.observation.reshape((1, -1))), self.device)
         action_tensor, _, pi_info = self.get_policy(observation_tensor,
                                                     with_grad=False, debug=self.cfg.debug)
         action = torch_utils.to_np(action_tensor)[0]
