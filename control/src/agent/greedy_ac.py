@@ -9,7 +9,7 @@ class GreedyAC(BaseAC):
         super(GreedyAC, self).__init__(cfg)
         self.tau = self.cfg.tau
         self.rho = self.cfg.rho # percentage of action used for update
-        self.rho_proposal = self.cfg.theta # percentage of action used for update proposal
+        self.rho_proposal = self.rho * self.cfg.prop_rho_mult # percentage of action used for update proposal
         self.num_samples = self.cfg.n
         self.average_entropy = average_entropy
 
