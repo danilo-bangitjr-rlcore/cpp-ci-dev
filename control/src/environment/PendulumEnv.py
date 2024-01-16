@@ -2,9 +2,9 @@
 # https://github.com/openai/gym/tree/master
 
 # Import modules
-import gymnasium as gym
-from gymnasium import spaces
-from gymnasium.utils import seeding
+import gym
+from gym import spaces
+from gym.utils import seeding
 import numpy as np
 from os import path
 
@@ -142,7 +142,7 @@ class PendulumEnv(gym.Env):
             The state observation, the reward, the done flag (always False),
             and some info about the step
         """
-        th, thdot = self.state[0]  # th := theta
+        th, thdot = self.state  # th := theta
 
         g = self.g
         m = self.m
@@ -163,18 +163,17 @@ class PendulumEnv(gym.Env):
         newth = angle_normalize(th + newthdot * dt)
         newthdot = np.clip(newthdot, -self.max_speed, self.max_speed)
 
-        self.state = np.array([[newth, newthdot]])
+        self.state = np.array([newth, newthdot])
         reward = np.cos(newth)
 
         if self.trig_features:
-            print('here')
             # States are encoded as [cos(θ), sin(θ), ω]
-            return self._get_obs(), reward, False, False, {}
+            return self._get_obs(), reward, False, {}
 
         # States are encoded as [θ, ω]
-        return self.state, reward, False, False, {}
+        return self.state, reward, False, {}
 
-    def reset(self, seed=0):
+    def reset(self):
         """
         Resets the environment to its starting state
 
@@ -183,7 +182,7 @@ class PendulumEnv(gym.Env):
         array_like of float
             The starting state feature representation
         """
-        state = np.array([[np.pi, 0.]])
+        state = np.array([np.pi, 0.])
         self.state = angle_normalize(state)
         # self.state = start
         self.last_u = None
@@ -193,7 +192,7 @@ class PendulumEnv(gym.Env):
             return self._get_obs()
 
         # States are encoded as [θ, ω]
-        return self.state, None
+        return self.state
 
     def _get_obs(self):
         """
@@ -204,8 +203,8 @@ class PendulumEnv(gym.Env):
         array_like of float
             The state feature vector
         """
-        theta, thetadot = self.state[0]
-        return np.array([[np.cos(theta), np.sin(theta), thetadot]])
+        theta, thetadot = self.state
+        return np.array([np.cos(theta), np.sin(theta), thetadot])
 
     def render(self, mode='human'):
         """
