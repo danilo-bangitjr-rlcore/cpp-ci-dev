@@ -316,12 +316,18 @@ def noncontextual_nonzero_obs():
     best_offline(pths, "nonzero_noncontex", ylim=[-2, 2])
 
 def directly_learn_beta_parameter():
-    SHAREPATH = "output/test_v0/NonContexTT/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10/"
+    # SHAREPATH = "output/test_v0/NonContexTT/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10/"
+    # pths = {
+    #     # "GAC": [DATAROOT + SHAREPATH + "GAC/param_6", "C0", 5],
+    #     "GAC": [DATAROOT + SHAREPATH + "GAC/param_55", "C0", 5],
+    # }
+    # best_offline(pths, "directly_learn_beta", ylim=[-2, 2])
+
+    SHAREPATH = "output/test_v0/ThreeTank/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10_setpoint_2-4/"
     pths = {
-        # "GAC": [DATAROOT + SHAREPATH + "GAC/param_6", "C0", 5],
-        "GAC": [DATAROOT + SHAREPATH + "GAC/param_55", "C0", 5],
+        "GAC": [DATAROOT + SHAREPATH + "GAC/param_36", "C0", 5],
     }
-    best_offline(pths, "directly_learn_beta", ylim=[-2, 2])
+    best_offline(pths, "directly_learn_beta_setpoint2-4", ylim=[-2, 2])
 
 def constant_pid_target0_replay0():
     def threetank():
@@ -751,7 +757,8 @@ if __name__ == '__main__':
     # SHAREPATH = "output/test_v0/NonContexTT/GAC_shift_beta_parameter/target0/replay100_batch32/env_scale_10/"
     # SHAREPATH = "output/test_v0/TTAction/ConstPID/GAC_shift_beta_parameter/target0/replay100_batch32/env_scale_10/"
 
-    SHAREPATH = "output/test_v0/NonContexTT/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10/"
+    # SHAREPATH = "output/test_v0/NonContexTT/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10/"
+    SHAREPATH = "output/test_v0/ThreeTank/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10_setpoint_2-4/"
 
     # SHAREPATH = "output/test_v0/NonContexTT/noncontextual_nonzero_obs/target0/replay5000_batch8/env_scale_10/"
 
@@ -860,7 +867,14 @@ if __name__ == '__main__':
         "tau": [1e-3],
     }
     SHAREPATH = "output/test_v0/NonContexTT/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10/"
-    draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_noncontex_direct_beta")
+    # draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_noncontex_direct_beta")
+
+    fixed_params_list = {
+        "rho": [0.1],
+        "tau": [1e-3],
+    }
+    SHAREPATH = "output/test_v0/ThreeTank/directly_learn_beta_parameter/target0/replay1_batch1/env_scale_10_setpoint_2-4/"
+    draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_setpoint2-4")
 
 
     # demo()
