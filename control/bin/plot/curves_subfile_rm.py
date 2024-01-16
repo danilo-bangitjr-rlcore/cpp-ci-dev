@@ -14,7 +14,7 @@ def draw_q_plots():
         "optimizer": ['RMSprop'],
         "etc_learning_start" : [2500]  
     }
-    pth_base = DATAROOT + "output/test_v0/NonContexTT/etc_critic_longeretc_critic_longer/{}"
+    pth_base = DATAROOT + "output/test_v0/NonContexTT/11-01-2024-etc_critic/{}"
     agent = 'ETC'
 
     draw_q_functions(pth_base, fixed_params_list, agent, itr=-1, num_rows=4)
@@ -112,7 +112,24 @@ def test():
                 visualize_training_info(seed_pth, target_key, title="vis_noncontext_GAC", threshold=0.99, xlim=None, ylim=[-2, 2])
 
 
-
+def change_action_discrete_replay0():
+        target_key = [
+        "actor_info/param1",
+        "actor_info/param2",
+        "critic_info/Q",
+        "env_info/constrain_detail/kp1",
+        "env_info/constrain_detail/tau",
+        "env_info/constrain_detail/height",
+        "env_info/constrain_detail/flowrate",
+        "env_info/constrain_detail/C1",
+        "env_info/constrain_detail/C2",
+        "env_info/constrain_detail/C3",
+        "env_info/constrain_detail/C4",
+        # "env_info/constrain",
+        "env_info/lambda",
+    ]
+        file = DATAROOT + "output/test_v0/NonContexTT/11-01-2024-etc_critic/ETC/param_15/seed_0"
+        visualize_training_info(file, target_key, title="test", threshold=0.99, xlim=None, ylim=[-2, 2])
 
 if __name__ == '__main__':
     # test()
@@ -120,6 +137,7 @@ if __name__ == '__main__':
     # sweep_parameter()
     # compare_algorithms()
     # draw_sensitivity_2d_buffer()
-    draw_q_plots()
+    # draw_q_plots()
+    change_action_discrete_replay0()
 
 

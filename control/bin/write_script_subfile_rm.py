@@ -261,6 +261,6 @@ if __name__=='__main__':
     # learning_rate_sweep_adam_RMSprop(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # buffer_prefill(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # etc_critic(settings, shared_settings, target_agents)
-    # etc_critic_prefill(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    etc_critic_prefill(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # etc_critic_online(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
-    GAC_Pendulum(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # GAC_Pendulum(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
