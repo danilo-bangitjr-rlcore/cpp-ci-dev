@@ -100,7 +100,7 @@ def etc_critic_prefill(settings, shared_settings, target_agents):
         },
     }
     shared_settings = {
-        "--exp_name": ["etc_critic"],
+        "--exp_name": ["etc_critic/"],
         "--max_steps": [100000],
         "--render": [2],
         "--optimizer" : ['RMSprop'],
@@ -111,14 +111,11 @@ def etc_critic_prefill(settings, shared_settings, target_agents):
     target_agents = ["ETC"]
 
     shared_settings["--env_name"] = ["NonContexTT"]
-    shared_settings["--exp_info"] = ["etc_critic/"]
+    shared_settings["--exp_info"] = ["etc_critic"]
     shared_settings["--buffer_size"] = [5000]
-    shared_settings["--batch_size"] = [8, 64, 128]
+    shared_settings["--batch_size"] = [64]
     shared_settings["--etc_buffer_prefill"] = [2500]
-    
-    
     settings = merge_independent(settings, shared_settings)
-    print(settings)
     combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1000, comb_num_base=0)
     
 def etc_critic_online(settings, shared_settings, target_agents):

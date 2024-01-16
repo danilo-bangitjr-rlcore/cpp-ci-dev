@@ -199,7 +199,7 @@ class Evaluation:
         else:
             self.eval_line1.set_ydata(ary1)
             self.eval_line2.set_array(ary2)
-            self.eval_line2.set_clim(vmin=ary2.min(), vmax=ary2.max())
+            self.eval_line2.set_clim()#vmin=ary2.min(), vmax=ary2.max())
             self.eval_line3.set_array(ary3['sum'])
             self.eval_line3.set_clim(vmin=ary3['sum'].min(), vmax=ary3['sum'].max())
             dot = self.eval_ax3.scatter(ary3['curr_action'][0], ary3['curr_action'][1], color = 'red')

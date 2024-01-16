@@ -21,8 +21,7 @@ class ExploreThenCommit(BaseAC):
         self.critic_update = 'on_policy'
         self.etc_buffer_prefill = cfg.etc_buffer_prefill
         self.learning_start = cfg.etc_learning_start
-       
-
+    
 
     def choose_action(self):
         if self.num_episodes < self.exploration_trials:
@@ -52,7 +51,6 @@ class ExploreThenCommit(BaseAC):
         action = self.choose_action()
         next_observation, reward, terminated, trunc, env_info = self.env.step(action)
         self.update_action_values(reward)
-
         reset, truncate = self.update_stats(reward, terminated, trunc)
         
         if reset:
@@ -82,10 +80,16 @@ class ExploreThenCommit(BaseAC):
             next_action = torch_utils.tensor(next_action, self.device)
             
             next_q, _ = self.get_q_value_target(next_state_batch, next_action)
-            target = reward_batch  + mask_batch * self.gamma * next_q
-            
+            target = reward_batch + mask_batch * self.gamma * next_q
+           
             q_value, _ = self.get_q_value(state_batch, action_batch, with_grad=True)
+
+            
+            
             q_loss = torch.nn.functional.mse_loss(target, q_value)
+            
+            # print(q_loss)
+            
             self.critic_optimizer.zero_grad()
             q_loss.backward()
             self.critic_optimizer.step()
