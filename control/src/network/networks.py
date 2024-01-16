@@ -22,13 +22,13 @@ class FC(nn.Module):
         d = input_dim
         modules = []
         for hidden_size in arch:
-            fc = layer_init(nn.Linear(d, hidden_size), *init_args[1:])
+            fc = layer_init(nn.Linear(d, hidden_size, bias=bool(init_args[-1])), *init_args[1:])
             modules.append(fc)
             if layer_norm:
                 modules.append(nn.LayerNorm(hidden_size))
             modules.append(activation_cls())
             d = hidden_size
-        last_fc = layer_init(nn.Linear(d, output_dim), *init_args[1:])
+        last_fc = layer_init(nn.Linear(d, output_dim, bias=bool(init_args[-1])), *init_args[1:])
         modules.append(last_fc)
 
         self.network = nn.Sequential(*modules)
@@ -51,8 +51,8 @@ class SquashedGaussianPolicy(nn.Module):
         if len(arch) > 0:
             self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation,
                                    init=init, layer_norm=layer_norm)
-            self.mean_head = layer_init(nn.Linear(arch[-1], action_dim), *init_args[1:])
-            self.logstd_head = layer_init(nn.Linear(arch[-1], action_dim), *init_args[1:])
+            self.mean_head = layer_init(nn.Linear(arch[-1], action_dim, bias=bool(init_args[-1])), *init_args[1:])
+            self.logstd_head = layer_init(nn.Linear(arch[-1], action_dim, bias=bool(init_args[-1])), *init_args[1:])
         else:
             raise NotImplementedError
 
@@ -136,8 +136,8 @@ class BetaPolicy(nn.Module):
         if len(arch) > 0:
             self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation,
                                    init=init, layer_norm=layer_norm)
-            self.alpha_head = layer_init(nn.Linear(arch[-1], action_dim), *init_args[1:])
-            self.beta_head = layer_init(nn.Linear(arch[-1], action_dim), *init_args[1:])
+            self.alpha_head = layer_init(nn.Linear(arch[-1], action_dim, bias=bool(init_args[-1])), *init_args[1:])
+            self.beta_head = layer_init(nn.Linear(arch[-1], action_dim, bias=bool(init_args[-1])), *init_args[1:])
         else:
             """ 
             A special case of learning alpha and beta directly. 

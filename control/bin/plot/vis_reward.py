@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument('--seed', default=42, type=int)
 
     parser.add_argument('--env_name', default='NonContexTT', type=str)
-    parser.add_argument('--env_info', default=0.01, type=float)
+    parser.add_argument('--env_info', default=[0., 3.], type=float, nargs='+') # go to the corresponding environment to check the specific setting
     parser.add_argument('--env_action_scaler', default=10., type=float)
     parser.add_argument('--gamma', default=0.99, type=float)
     parser.add_argument('--discrete_control', default=0, type=int)
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     utils.set_seed(cfg.seed)
     train_env = env_factory.init_environment(cfg.env_name, cfg)
 
-    title = "out/img/{}_reward".format(cfg.env_name)
+    title = "out/img/{}_{}_reward".format(cfg.env_name, "-".join([str(i) for i in cfg.env_info]))
     if cfg.clip_min != cfg.clip_max:
         clip = [cfg.clip_min, cfg.clip_max]
     else:
