@@ -42,23 +42,25 @@ def visualize_temp():
     file = DATAROOT + "output/test_v0/TTAction/ConstPID/temp/GACPS/param_0/seed_0"
     visualize_training_info(file, target_key, title="vis_temp", threshold=0.99, xlim=None, ylim=[-2, 2])
 
-
-if __name__ == '__main__':
-    agent_list = ['GAC']
-
+def c20240116():
     SHAREPATH = "../out/output/test_v1/NonContexTT/small_network/setpoint_3/obs_raw/action_raw/replay1_batch1/beta_shift_0/"
-    # sweep_parameter(DATAROOT + SHAREPATH, agent_list)
-
+    # sweep_parameter(DATAROOT + SHAREPATH, ['GAC'])
     fixed_params_list = {
         "rho": [0.1],
         "tau": [1e-3],
     }
     # draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_setpoint2-4")
-
     pths = {
         "GAC": [DATAROOT + SHAREPATH + "GAC/param_19", "C0", 5],
     }
-    best_offline(pths, "directly_learn_beta_setpoint3", ylim=[-2, 2])
+    # best_offline(pths, "directly_learn_beta_setpoint3", ylim=[-2, 2])
 
-    # visualize_gac()
+    SHAREPATH = "../out/output/test_v1/NonContexTT/small_network/setpoint_3/obs_raw/action_scale/replay1_batch1/beta_shift_0/"
+    sweep_parameter(DATAROOT + SHAREPATH, ['GAC'])
+    pths = {
+        "GAC": [DATAROOT + SHAREPATH + "GAC/param_19", "C0", 5],
+    }
+    best_offline(pths, "directly_learn_beta_scale_action_setpoint3", ylim=[-2, 2])
 
+if __name__ == '__main__':
+    c20240116()
