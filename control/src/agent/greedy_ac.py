@@ -29,7 +29,7 @@ class GreedyAC(BaseAC):
                                                                                 data['obs2'], 1 - data['done']
 
         # critic update    
-        
+
         next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
         next_q, _ = self.get_q_value_target(next_state_batch, self.action_normalizer(next_action))
         target = reward_batch + mask_batch * self.gamma * next_q

@@ -38,7 +38,6 @@ def write_json(log_dir, cfg):
     write_down = copy.deepcopy(cfg.__dict__)
     write_down.pop("train_env")
     write_down.pop("eval_env")
-    print(type(write_down))
     with open('{}/config.json'.format(log_dir), 'w') as f:
         pretty_json = json.dumps(write_down, indent=4)
         f.write(pretty_json)

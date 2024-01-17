@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--env_name', default='NonContexTT', type=str)
     parser.add_argument('--env_info', default=[0., 3.], type=float, nargs='+') # go to the corresponding environment to check the specific setting
-    parser.add_argument('--env_action_scaler', default=10., type=float)
+    parser.add_argument('--env_action_scaler', default=1., type=float)
     parser.add_argument('--gamma', default=0.99, type=float)
     parser.add_argument('--discrete_control', default=0, type=int)
     parser.add_argument('--lr_constrain', default=1e-06, type=float)

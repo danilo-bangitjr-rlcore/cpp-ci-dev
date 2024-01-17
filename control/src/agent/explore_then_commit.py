@@ -81,10 +81,10 @@ class ExploreThenCommit(BaseAC):
             next_action = np.ones((self.batch_size, next_action.shape[0])) * next_action 
             next_action = torch_utils.tensor(next_action, self.device)
             
-            next_q, _ = self.get_q_value_target(next_state_batch, next_action)
+            next_q, _ = self.get_q_value_target(next_state_batch, self.action_normalizer(next_action))
             target = reward_batch  + mask_batch * self.gamma * next_q
             
-            q_value, _ = self.get_q_value(state_batch, action_batch, with_grad=True)
+            q_value, _ = self.get_q_value(state_batch, self.action_normalizer(action_batch), with_grad=True)
             q_loss = torch.nn.functional.mse_loss(target, q_value)
             self.critic_optimizer.zero_grad()
             q_loss.backward()
