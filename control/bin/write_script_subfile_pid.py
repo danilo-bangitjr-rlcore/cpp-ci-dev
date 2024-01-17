@@ -19,10 +19,16 @@ def c20240116_0(settings, shared_settings, target_agents):
     shared_settings["--hidden_actor"] = [[0]]
     shared_settings["--layer_init_actor"] = ["Const/10/0"]
     shared_settings["--exp_name"] = ["small_network"]
-    shared_settings["--exp_info"] = ["/setpoint_3/obs_raw/replay1_batch1/beta_shift_0/"]
+    shared_settings["--exp_info"] = ["/setpoint_3/obs_raw/action_raw/replay1_batch1/beta_shift_0/"]
 
     shared_settings["--lr_actor"] = [1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.0001]
     shared_settings["--lr_critic"] = [0.03, 0.001, 0.0003, 0.0001, 3e-5, 1e-5]
+
+    # settings = merge_independent(settings, shared_settings)
+    # combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
+
+    shared_settings["--action_normalizer"] = ["Scale"]
+    shared_settings["--exp_info"] = ["/setpoint_3/obs_raw/action_scale/replay1_batch1/beta_shift_0/"]
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
 

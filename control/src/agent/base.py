@@ -48,6 +48,7 @@ class BaseAC(Evaluation):
         self.batch_size = cfg.batch_size
         self.state_normalizer = init_normalizer(cfg.state_normalizer, self.env.observation_space)
         self.reward_normalizer = init_normalizer(cfg.reward_normalizer, None)
+        self.action_normalizer = init_normalizer(cfg.action_normalizer, cfg.action_scale)
         self.gamma = cfg.gamma
         self.parameters_dir = cfg.parameters_path
         self.polyak = cfg.polyak
@@ -311,12 +312,12 @@ class BaseAC(Evaluation):
             self.visit_counts[y_action_ind][x_action_ind] += 1
         
             # Update Q heatmap
-            q_current, _ = self.get_q_value(observation_tensor, action_tensor, with_grad=False)
+            q_current, _ = self.get_q_value(observation_tensor, self.action_normalizer(action_tensor), with_grad=False)
             q_current = torch_utils.to_np(q_current)
             action_cover_space, heatmap_shape = self.env.get_action_samples(n=50)
             stacked_o = observation_tensor.repeat_interleave(len(action_cover_space), dim=0)
             action_cover_space_tensor = torch_utils.tensor(action_cover_space, self.device)
-            q_cover_space, _ = self.get_q_value(stacked_o, action_cover_space_tensor, with_grad=False)
+            q_cover_space, _ = self.get_q_value(stacked_o, self.action_normalizer(action_cover_space_tensor), with_grad=False)
             q_cover_space = torch_utils.to_np(q_cover_space)
             q_cover_space = q_cover_space.reshape(heatmap_shape)
             coord = np.array([action_cover_space[:, d].reshape(heatmap_shape) for d in range(action_cover_space.shape[1])])

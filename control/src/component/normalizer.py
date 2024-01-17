@@ -27,11 +27,21 @@ class OneHot(BaseNormalizer):
         oneh[np.arange(x.shape[0]), (x - self.start).astype(int).squeeze()] = 1
         return oneh
 
+class Scale(BaseNormalizer):
+    def __init__(self, range_):
+        super(Scale, self).__init__()
+        self.range_ = range_
+
+    def __call__(self, x):
+        return x / self.range_
+
 
 def init_normalizer(name, info):
     if name == "Identity":
         return Identity()
     elif name == "OneHot":
         return OneHot(total_count=info.n, start_from=info.start)
+    elif name == "Scale":
+        return Scale(info)
     else:
         raise NotImplementedError

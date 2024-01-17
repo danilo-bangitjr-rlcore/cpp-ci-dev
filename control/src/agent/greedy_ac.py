@@ -31,9 +31,9 @@ class GreedyAC(BaseAC):
         # critic update    
         
         next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
-        next_q, _ = self.get_q_value_target(next_state_batch, next_action)
+        next_q, _ = self.get_q_value_target(next_state_batch, self.action_normalizer(next_action))
         target = reward_batch + mask_batch * self.gamma * next_q
-        q_value, _ = self.get_q_value(state_batch, action_batch, with_grad=True)
+        q_value, _ = self.get_q_value(state_batch, self.action_normalizer(action_batch), with_grad=True)
         q_loss = torch.nn.functional.mse_loss(target, q_value)
         self.critic_optimizer.zero_grad()
         q_loss.backward()
@@ -46,7 +46,7 @@ class GreedyAC(BaseAC):
             sample_actions, _, _ = self.sampler(repeated_states)
 
         # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
-        q_values, _ = self.get_q_value(repeated_states, sample_actions, with_grad=False)
+        q_values, _ = self.get_q_value(repeated_states, self.action_normalizer(sample_actions), with_grad=False)
         q_values = q_values.reshape(self.batch_size, self.num_samples, 1)
         sorted_q = torch.argsort(q_values, dim=1, descending=True)
         best_ind = sorted_q[:, :self.top_action]

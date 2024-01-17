@@ -49,7 +49,7 @@ class InAC(BaseAC):
         states = data['obs']
         v_phi = self.value_net(states).squeeze(-1)
         actions, log_probs, _ = self.get_policy(states, with_grad=False)
-        min_Q, _ = self.get_q_value_target(states, actions)
+        min_Q, _ = self.get_q_value_target(states, self.action_normalizer(actions))
         target = min_Q - self.tau * log_probs
         value_loss = (0.5 * (v_phi - target) ** 2).mean()
         return value_loss, v_phi.detach().numpy(), log_probs.detach().numpy()
@@ -57,9 +57,9 @@ class InAC(BaseAC):
     def compute_loss_q(self, data):
         states, actions, rewards, next_states, dones = (data['obs'], data['act'], data['reward'],
                                                         data['obs2'], data['done'])
-        minq, _ = self.get_q_value(states, actions, with_grad=True)
+        minq, _ = self.get_q_value(states, self.action_normalizer(actions), with_grad=True)
         a2, logp_a2, _ = self.get_policy(next_states, with_grad=False)  # self.ac.pi(op)
-        q_pi_targ, _ = self.get_q_value_target(next_states, a2)
+        q_pi_targ, _ = self.get_q_value_target(next_states, self.action_normalizer(a2))
         q_pi_targ -= self.tau * logp_a2
         target = rewards + self.gamma * (1-dones) * q_pi_targ
         loss = torch.nn.functional.mse_loss(minq, target)
@@ -70,7 +70,7 @@ class InAC(BaseAC):
         states, actions = data['obs'], data['act']
 
         log_probs, _ = self.actor.log_prob(states, actions)
-        min_Q, _ = self.get_q_value(states, actions, with_grad=False)
+        min_Q, _ = self.get_q_value(states, self.action_normalizer(actions), with_grad=False)
         with torch.no_grad():
             value = self.get_state_value(states)
             beh_log_prob, _ = self.beh_pi.log_prob(states, actions)
