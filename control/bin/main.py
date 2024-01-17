@@ -106,17 +106,15 @@ if __name__ == "__main__":
     utils.ensure_dir(cfg.exp_path)
     utils.ensure_dir(cfg.parameters_path)
     utils.ensure_dir(cfg.vis_path)
-    utils.write_json(cfg.exp_path, cfg)
 
-    cfg.logger = utils.logger_setup(cfg)
     utils.set_seed(cfg.seed)
     cfg.train_env = env_factory.init_environment(cfg.env_name, cfg)
     cfg.eval_env = env_factory.init_environment(cfg.env_name, cfg)
     
     if not cfg.discrete_control:
-        
         env_factory.configure_action_scaler_and_bias(cfg)
-        
-        
+
+    utils.write_json(cfg.exp_path, cfg) # write json after finishing all parameter changing.
+    cfg.logger = utils.logger_setup(cfg)
     agent = agent_factory.init_agent(cfg.agent_name, cfg)
     run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, cfg.buffer_prefill)

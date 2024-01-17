@@ -122,7 +122,7 @@ def configure_action_scaler_and_bias(cfg):
            raise NotImplementedError
         elif name == "NonContexTT":
             if cfg.actor == 'Beta':
-                cfg.action_scale = 10
+                cfg.action_scale = 10.
                 cfg.action_bias = 0
             elif cfg.actor == 'SGaussian':
                 cfg.action_scale = 5
