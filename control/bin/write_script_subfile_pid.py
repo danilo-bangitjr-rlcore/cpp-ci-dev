@@ -28,13 +28,23 @@ def c20240116_0(settings, shared_settings, target_agents):
     # settings = merge_independent(settings, shared_settings)
     # combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
 
+    # shared_settings["--action_normalizer"] = ["Scale"]
+    # shared_settings["--activation"] = ["ReLU6"]
+    # shared_settings["--exp_info"] = ["/setpoint_3/obs_raw/action_scale/replay1_batch1/beta_shift_0/activation_relu6"]
+    # settings = merge_independent(settings, shared_settings)
+    # combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
+
     shared_settings["--action_normalizer"] = ["Scale"]
-    shared_settings["--activation"] = ["ReLU6"]
-    shared_settings["--exp_info"] = ["/setpoint_3/obs_raw/action_scale/replay1_batch1/beta_shift_0/activation_relu6"]
+    shared_settings["--activation"] = ["ReLU"]
+    shared_settings["--exp_info"] = ["/setpoint_3/obs_raw/action_scale/replay1_batch1/beta_shift_0/activation_relu"]
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
 
-def c20240117(settings, shared_settings, target_agents):
+def c20240117_0(settings, shared_settings, target_agents):
+    """
+    Recreate directly-learn-beta-parameter result (commit before merging on the main thread)
+    Remove environment scaler, use beta distribution scaler=10
+    """
     """
     A good command line
     python3 main.py
@@ -67,37 +77,66 @@ def c20240117(settings, shared_settings, target_agents):
     """
     shared_settings["--env_name"] = ["NonContexTT"]
     shared_settings["--env_info"] = [[1., 3.]]
+    shared_settings["--debug"] = [1]
+    shared_settings["--render"] = [2]
     shared_settings["--buffer_size"] = [1]
     shared_settings["--batch_size"] = [1]
     shared_settings["--beta_parameter_bias"] = [0.]
     shared_settings["--tau"] = [1e-3]
     shared_settings["--hidden_actor"] = [[0]]
     shared_settings["--layer_init_actor"] = ["Const/10/0"]
-    shared_settings["--exp_name"] = ["recreating_results"]
+    shared_settings["--exp_name"] = ["recreating_results_vis"]
     shared_settings["--lr_actor"] = [0.5]
     shared_settings["--lr_critic"] = [1e-5]
     shared_settings["--action_normalizer"] = ["Scale"]
     shared_settings["--optimizer"] = ["RMSprop"]
     shared_settings["--activation"] = ["ReLU6"]
 
-    shared_settings["--exp_info"] = ["/totally_changed_envActionScaler1_betaScaler10_withActionNormalizer/"]
+    shared_settings["--exp_info"] = ["/directly_learn_beta/totally_changed_envActionScaler1_betaScaler10_withActionNormalizer/"]
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
 
     shared_settings["--activation"] = ["ReLU"]
-    shared_settings["--exp_info"] = ["/totally_changed_envActionScaler1_betaScaler10_withActionNormalizer/change_to_ReLU"]
+    shared_settings["--exp_info"] = ["/directly_learn_beta/totally_changed_envActionScaler1_betaScaler10_withActionNormalizer/change_to_ReLU"]
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=1, line_per_file=1, comb_num_base=0)
 
     shared_settings["--optimizer"] = ["Adam"]
-    shared_settings["--exp_info"] = ["/totally_changed_envActionScaler1_betaScaler10_withActionNormalizer/change_to_ReLU"]
+    shared_settings["--exp_info"] = ["/directly_learn_beta/totally_changed_envActionScaler1_betaScaler10_withActionNormalizer/change_to_ReLU/change_to_Adam"] # fails in this setting
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=2, line_per_file=1, comb_num_base=0)
 
+    shared_settings["--optimizer"] = ["RMSprop"]
     shared_settings["--action_normalizer"] = ["Identity"]
-    shared_settings["--exp_info"] = ["/totally_changed_envActionScaler1_betaScaler10_withActionNormalizer/change_to_ReLU/remove_action_normalizer"]
+    shared_settings["--exp_info"] = ["/directly_learn_beta/totally_changed_envActionScaler1_betaScaler10_withActionNormalizer/change_to_ReLU/remove_action_normalizer"]
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=3, line_per_file=1, comb_num_base=0)
+
+def c20240117_1(settings, shared_settings, target_agents):
+    """
+    Recreate nonlinear beta learning result
+    Remove environment scaler, use beta distribution scaler=10
+    """
+    shared_settings["--env_name"] = ["NonContexTT"]
+    shared_settings["--env_info"] = [[1., 3.]]
+    # shared_settings["--debug"] = [1]
+    # shared_settings["--render"] = [2]
+    shared_settings["--buffer_size"] = [1]
+    shared_settings["--batch_size"] = [1]
+    shared_settings["--beta_parameter_bias"] = [0.]
+    shared_settings["--tau"] = [1e-3]
+    shared_settings["--hidden_actor"] = [[0]]
+    shared_settings["--layer_init_actor"] = ["Const/10/0"]
+    shared_settings["--exp_name"] = ["recreating_results_vis"]
+    shared_settings["--lr_actor"] = [0.5]
+    shared_settings["--lr_critic"] = [1e-5]
+    shared_settings["--action_normalizer"] = ["Scale"]
+    shared_settings["--optimizer"] = ["RMSprop"]
+    shared_settings["--activation"] = ["ReLU6"]
+
+    shared_settings["--exp_info"] = ["/nonlinear_beta/"]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
 
 
 
