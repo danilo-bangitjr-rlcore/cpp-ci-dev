@@ -17,10 +17,15 @@ class ExploreThenCommit(BaseAC):
         self.counts = np.zeros(self.num_actions)
         self.reward_sum = np.zeros(self.num_actions)
         self.best_value = -np.inf
+        self.worst_value = np.inf
         self.best_action = None
+        self.worst_action = None
         self.critic_update = 'on_policy'
         self.etc_buffer_prefill = cfg.etc_buffer_prefill
         self.learning_start = cfg.etc_learning_start
+        self.min_reward = cfg.etc_reward_clip[0]
+        self.max_reward = cfg.etc_reward_clip[1]
+        self.etc_reward_normalization =  cfg.etc_reward_normalization
     
 
     def choose_action(self):
@@ -46,13 +51,15 @@ class ExploreThenCommit(BaseAC):
             if curr_value > self.best_value:
                 self.best_value = curr_value
                 self.best_action = self.actions[action_num]
+            if curr_value < self.worst_value:
+                self.worst_value = curr_value
+                self.worst_action = self.actions[action_num]
 
     def step(self):
         action = self.choose_action()
         next_observation, reward, terminated, trunc, env_info = self.env.step(action)
         self.update_action_values(reward)
         reset, truncate = self.update_stats(reward, terminated, trunc)
-        
         if reset:
             next_observation, info = self.env.reset()
             
@@ -64,6 +71,11 @@ class ExploreThenCommit(BaseAC):
             data = self.get_data()
             state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
                                                                                     data['obs2'], 1 - data['done']
+            
+            if self.etc_reward_normalization == 'clip':
+                reward_batch =  torch.clip(reward_batch, min=self.min_reward, max=self.max_reward)
+            elif self.etc_reward_normalization == 'max-min':
+                  reward_batch =  (reward_batch-self.worst_value)/(self.best_value-self.worst_value)
 
             # select which action to use for critic update. 
             # NOTE: this doesn't matter for bandits, but could be a future consideration if we want to use ETC
@@ -81,18 +93,13 @@ class ExploreThenCommit(BaseAC):
             
             next_q, _ = self.get_q_value_target(next_state_batch, next_action)
             target = reward_batch + mask_batch * self.gamma * next_q
-           
+            
             q_value, _ = self.get_q_value(state_batch, action_batch, with_grad=True)
-
-            
-            
-            q_loss = torch.nn.functional.mse_loss(target, q_value)
-            
-            # print(q_loss)
-            
+            q_loss = torch.nn.functional.mse_loss(target, q_value)            
             self.critic_optimizer.zero_grad()
             q_loss.backward()
             self.critic_optimizer.step()
+ 
             
         # debug logs
         action = torch_utils.tensor([action], self.device)

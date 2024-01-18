@@ -5,6 +5,7 @@ import datetime
 import json
 from types import SimpleNamespace
 import argparse
+import numpy as np
 import src.environment.factory as env_factory
 import src.agent.factory as agent_factory
 import src.utils.utils as utils
@@ -59,8 +60,11 @@ if __name__ == "__main__":
     parser.add_argument('--load_checkpoint', default=1, type=int)
     parser.add_argument('--buffer_size', default=1, type=int)
     parser.add_argument('--buffer_prefill', default=0, type=int)
-    parser.add_argument('--etc_buffer_prefill', default=0, type=int) # buffer prefill for etc 
-    parser.add_argument('--etc_learning_start', default=0, type=int) # buffer prefill for etc 
+    parser.add_argument('--etc_buffer_prefill', default=0, type=int) 
+    parser.add_argument('--etc_learning_start', default=0, type=int) 
+    parser.add_argument('--etc_reward_clip', default=[-np.inf, np.inf], type=float,  nargs='+')  
+    parser.add_argument('--etc_reward_normalization', default='None', type=str)
+    
     parser.add_argument('--batch_size', default=1, type=int)
     parser.add_argument('--update_freq', default=1, type=int)
     parser.add_argument('--use_target_network', default=1, type=int)
