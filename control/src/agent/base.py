@@ -77,11 +77,11 @@ class BaseAC(Evaluation):
         for _ in range(online_data_size):
             observation_tensor = torch_utils.tensor(self.observation.reshape((1, -1)), self.device)
             action_tensor, _, pi_info = self.get_policy(observation_tensor, with_grad=False, debug=self.cfg.debug)
-            action = torch_utils.to_np(action_tensor)[0]
+            action = torch_utils.to_np(action_tensor) # move the zero index to env_step.
             last_state = self.observation
             self.observation, reward, done, truncate, env_info = self.env_step(action)
             reset, truncate = self.update_stats(reward, done, truncate)
-            self.buffer.feed([last_state, action, reward, self.observation, int(done), int(truncate)])
+            self.buffer.feed([last_state, action[0], reward, self.observation, int(done), int(truncate)])
 
             i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
             self.info_log.append(i_log)
@@ -93,7 +93,7 @@ class BaseAC(Evaluation):
                 i_log['critic_info'].pop('Q-function', None)
 
             track_states.append(last_state)
-            track_actions.append(action)
+            track_actions.append(action[0])
             track_rewards.append(reward)
             track_next_states.append(self.observation)
             track_done.append(done)

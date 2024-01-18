@@ -118,21 +118,24 @@ def c20240117_1(settings, shared_settings, target_agents):
     Remove environment scaler, use beta distribution scaler=10
     """
     shared_settings["--env_name"] = ["NonContexTT"]
+    shared_settings["--env_action_scaler"] = [1]
     shared_settings["--env_info"] = [[1., 3.]]
     # shared_settings["--debug"] = [1]
     # shared_settings["--render"] = [2]
-    shared_settings["--buffer_size"] = [1]
-    shared_settings["--batch_size"] = [1]
-    shared_settings["--beta_parameter_bias"] = [0.]
-    shared_settings["--tau"] = [1e-3]
-    shared_settings["--hidden_actor"] = [[0]]
-    shared_settings["--layer_init_actor"] = ["Const/10/0"]
+    shared_settings["--buffer_size"] = [100]
+    shared_settings["--batch_size"] = [32]
+    shared_settings["--buffer_prefill"] = [32]
+    shared_settings["--beta_parameter_bias"] = [1.]
+    shared_settings["--tau"] = [0]
+    shared_settings["--rho"] = [0.4]
+    shared_settings["--prop_rho_mult"] = [2.0]
     shared_settings["--exp_name"] = ["recreating_results_vis"]
-    shared_settings["--lr_actor"] = [0.5]
+    shared_settings["--lr_actor"] = [1]
     shared_settings["--lr_critic"] = [1e-5]
     shared_settings["--action_normalizer"] = ["Scale"]
     shared_settings["--optimizer"] = ["RMSprop"]
     shared_settings["--activation"] = ["ReLU6"]
+    shared_settings["--head_activation"] = ["Softplus"]
 
     shared_settings["--exp_info"] = ["/nonlinear_beta/"]
     settings = merge_independent(settings, shared_settings)
@@ -176,10 +179,9 @@ if __name__=='__main__':
         "--env_action_scaler": [1.],
 
         "--head_activation": ["ReLU"],
-        "--hidden_actor": [0],
         "--optimizer": ["Adam"],
         "--action_normalizer": ["Scale"],
     }
     target_agents = ["GAC"]
 
-    c20240117(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    c20240117_1(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
