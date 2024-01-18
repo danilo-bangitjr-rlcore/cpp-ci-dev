@@ -9,6 +9,8 @@ class BaseNormalizer:
     def __call__(self, x):
         return x
 
+    def denormalize(self, x):
+        return x
 
 class Identity(BaseNormalizer):
     def __init__(self):
@@ -27,14 +29,18 @@ class OneHot(BaseNormalizer):
         oneh[np.arange(x.shape[0]), (x - self.start).astype(int).squeeze()] = 1
         return oneh
 
+
 class Scale(BaseNormalizer):
-    def __init__(self, range_):
+    def __init__(self, scaler, bias):
         super(Scale, self).__init__()
-        self.range_ = range_
+        self.scaler = scaler
+        self.bias = bias
 
     def __call__(self, x):
-        return x / self.range_
+        return (x - self.bias) / self.scaler
 
+    def denormalize(self, x):
+        return x * self.scaler + self.bias
 
 def init_normalizer(name, info):
     if name == "Identity":
@@ -42,6 +48,6 @@ def init_normalizer(name, info):
     elif name == "OneHot":
         return OneHot(total_count=info.n, start_from=info.start)
     elif name == "Scale":
-        return Scale(info)
+        return Scale(scaler=info.scaler, bias=info.bias)
     else:
         raise NotImplementedError

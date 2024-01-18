@@ -23,7 +23,7 @@ class GACPredictSuccess(GreedyAC):
         self.predict_model_optim = init_optimizer(cfg.optimizer, list(self.predict_model.parameters()), cfg.lr_critic)
 
         self.safe_action_model = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                                     cfg.beta_parameter_bias, cfg.action_scale, cfg.action_bias, cfg.activation,
+                                                     cfg.beta_parameter_bias, cfg.activation,
                                                      cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
         self.safe_action_model_optim = init_optimizer(cfg.optimizer, list(self.safe_action_model.parameters()), cfg.lr_actor)
 
@@ -64,7 +64,7 @@ class GACPredictSuccess(GreedyAC):
         samples = self.safe_action_buffer.sample()
         if samples is not None:
             states, actions = samples
-            states = torch_utils.tensor(self.state_normalizer(states), self.device)
+            states = torch_utils.tensor(states, self.device)
             actions = torch_utils.tensor(actions, self.device)
             logp, _ = self.safe_action_model.log_prob(states, actions)
             a_loss = -logp.mean()
@@ -84,7 +84,7 @@ class GACPredictSuccess(GreedyAC):
                 action_tensor, _, _ = self.safe_action_model(observation_tensor)
 
         action = torch_utils.to_np(action_tensor)[0]
-        next_observation, reward, terminated, trunc, env_info = self.env.step(action)
+        next_observation, reward, terminated, trunc, env_info = self.env_step(action)
         reset, truncate = self.update_stats(reward, terminated, trunc)
 
         """When using the known optimal action, do not add data to buffer"""
@@ -106,7 +106,7 @@ class GACPredictSuccess(GreedyAC):
         self.update(trunc)
 
         if reset:
-            next_observation, info = self.env.reset()
+            next_observation, info = self.env_reset()
         self.observation = next_observation
 
         if self.use_target_network and self.total_steps % self.target_network_update_freq == 0:
@@ -161,7 +161,7 @@ class GACwHardMemory(GreedyAC):
             action_tensor = self.known_best_action
 
         action = torch_utils.to_np(action_tensor)[0]
-        next_observation, reward, terminated, trunc, env_info = self.env.step(action)
+        next_observation, reward, terminated, trunc, env_info = self.env_step(action)
         reset, truncate = self.update_stats(reward, terminated, trunc)
 
         """When using the known optimal action, update the corresponding reward"""
@@ -190,7 +190,7 @@ class GACwHardMemory(GreedyAC):
         self.update(trunc)
 
         if reset:
-            next_observation, info = self.env.reset()
+            next_observation, info = self.env_reset()
         self.observation = next_observation
 
         if self.use_target_network and self.total_steps % self.target_network_update_freq == 0:
@@ -230,9 +230,9 @@ class GACwMemory(GreedyAC):
 
         # critic update
         next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
-        next_q, _ = self.get_q_value_target(next_state_batch, self.action_normalizer(next_action))
+        next_q, _ = self.get_q_value_target(next_state_batch, next_action)
         target = reward_batch + mask_batch * self.gamma * next_q
-        q_value, _ = self.get_q_value(state_batch, self.action_normalizer(action_batch), with_grad=True)
+        q_value, _ = self.get_q_value(state_batch, action_batch, with_grad=True)
 
         # """Add penalty of reward prediction""" # Maybe it's not what we need, only need to learn a good threshold
         # with torch.no_grad():
@@ -255,7 +255,7 @@ class GACwMemory(GreedyAC):
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
 
         # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
-        q_values, _ = self.get_q_value(repeated_states, self.action_normalizer(sample_actions), with_grad=False)
+        q_values, _ = self.get_q_value(repeated_states, sample_actions, with_grad=False)
         q_values = q_values.reshape(self.batch_size, self.num_samples, 1)
         sorted_q = torch.argsort(q_values, dim=1, descending=True)
         best_ind = sorted_q[:, :self.top_action]

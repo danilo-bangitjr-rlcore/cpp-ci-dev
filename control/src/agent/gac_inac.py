@@ -60,7 +60,7 @@ class GAC_InAC(GreedyAC):
             action_tensor, _, _ = self.safe_action_model.get_policy(observation_tensor, with_grad=False)
 
         action = torch_utils.to_np(action_tensor)[0]
-        next_observation, reward, terminated, trunc, env_info = self.env.step(action)
+        next_observation, reward, terminated, trunc, env_info = self.env_step(action)
         reset, truncate = self.update_stats(reward, terminated, trunc)
 
         """When using the known optimal action, do not add data to buffer"""
@@ -80,7 +80,7 @@ class GAC_InAC(GreedyAC):
         self.update(trunc)
 
         if reset:
-            next_observation, info = self.env.reset()
+            next_observation, info = self.env_reset()
         self.observation = next_observation
 
         if self.use_target_network and self.total_steps % self.target_network_update_freq == 0:

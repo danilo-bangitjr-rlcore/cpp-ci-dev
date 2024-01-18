@@ -42,8 +42,7 @@ class FC(nn.Module):
 
 
 class SquashedGaussianPolicy(nn.Module):
-    def __init__(self, device, observation_dim, arch, action_dim,
-                 action_scale=1., action_bias=0., init='Xavier', activation="ReLU", layer_norm=False):#, action_clip=[-0.999, 0.999]):
+    def __init__(self, device, observation_dim, arch, action_dim, init='Xavier', activation="ReLU", layer_norm=False):
         super(SquashedGaussianPolicy, self).__init__()
 
         init_args = init.split("/")
@@ -56,20 +55,18 @@ class SquashedGaussianPolicy(nn.Module):
         else:
             raise NotImplementedError
 
-
-        # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions. 
-        if type(action_scale) == float:
-            action_scale = np.ones(action_dim)*action_scale
-        else:
-            raise NotImplementedError 
+        #
+        # # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions.
+        # if type(action_scale) == float:
+        #     action_scale = np.ones(action_dim)*action_scale
+        # else:
+        #     raise NotImplementedError
+        #
+        # if type(action_bias) == float:
+        #     action_bias = np.ones(action_dim)*action_bias
+        # else:
+        #     raise NotImplementedError
             
-        if type(action_bias) == float:
-            action_bias = np.ones(action_dim)*action_bias
-        else:
-            raise NotImplementedError
-            
-        self.action_scale = torch.tensor(action_scale, dtype=torch.float32)
-        self.action_bias = torch.tensor(action_bias, dtype=torch.float32)
         # self.action_clip = [c * action_scale + action_bias for c in action_clip]
         self.to(device)
 
@@ -83,11 +80,11 @@ class SquashedGaussianPolicy(nn.Module):
         normal = distrib.Independent(normal, 1)
         out = normal.rsample()
         tanhout = torch.tanh(out)
-        action = tanhout * self.action_scale + self.action_bias
+        action = tanhout
      
         # action = torch.clamp(action, min=self.action_clip[0], max=self.action_clip[1])
         logp = normal.log_prob(out)
-        logp -= torch.log(self.action_scale * (1 - tanhout.pow(2)) + EPSILON).sum(axis=-1).reshape(logp.shape)
+        logp -= torch.log((1 - tanhout.pow(2)) + EPSILON).sum(axis=-1).reshape(logp.shape)
 
         if debug:
             info = {
@@ -108,10 +105,10 @@ class SquashedGaussianPolicy(nn.Module):
         normal = distrib.Normal(mean, std)
         normal = distrib.Independent(normal, 1)
         
-        tanhout = (action - self.action_bias) / self.action_scale
+        tanhout = action
         out = torch.atanh(torch.clamp(tanhout, -1.0 + EPSILON, 1.0 - EPSILON))
         logp = normal.log_prob(out)
-        logp -= torch.log(self.action_scale * (1 - tanhout.pow(2)) + EPSILON).sum(axis=-1).reshape(logp.shape)
+        logp -= torch.log((1 - tanhout.pow(2)) + EPSILON).sum(axis=-1).reshape(logp.shape)
         
         if debug:
             info = {
@@ -126,7 +123,7 @@ class SquashedGaussianPolicy(nn.Module):
 
 class BetaPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
-                 beta_param_bias=0, action_scale=1., action_bias=0., init='Xavier', activation="ReLU", head_activation="Softplus", layer_norm=False):
+                 beta_param_bias=0, init='Xavier', activation="ReLU", head_activation="Softplus", layer_norm=False):
         super(BetaPolicy, self).__init__()
 
         self.action_dim = action_dim
@@ -149,14 +146,12 @@ class BetaPolicy(nn.Module):
             self.beta_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
         self.head_activation_fn = internal_factory.init_activation_function(head_activation)
         self.beta_param_bias = torch.tensor(beta_param_bias)
-        if type(action_scale) == float:
-            action_scale = np.ones(action_dim)*action_scale
-
-        if type(action_bias) == float:
-            action_bias = np.ones(action_dim)*action_bias
+        # if type(action_scale) == float:
+        #     action_scale = np.ones(action_dim)*action_scale
+        #
+        # if type(action_bias) == float:
+        #     action_bias = np.ones(action_dim)*action_bias
  
-        self.action_scale = torch.tensor(action_scale, dtype=torch.float32)
-        self.action_bias = torch.tensor(action_bias, dtype=torch.float32)
         self.to(device)
 
     def forward(self, observation, debug=False):
@@ -171,7 +166,7 @@ class BetaPolicy(nn.Module):
         out = dist.rsample() # samples of alpha and beta 
         
         logp = dist.log_prob(torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS))
-        action = out * self.action_scale + self.action_bias
+        action = out
         # action = torch.clamp(action, min=self.action_clip[0], max=self.action_clip[1])
         if debug:
             info = {
@@ -185,7 +180,7 @@ class BetaPolicy(nn.Module):
         return action, logp, info
         
     def log_prob(self, observation, action, debug=False):
-        out = (action - self.action_bias) / self.action_scale
+        out = action
         out = torch.clamp(out, 0, 1)
     
         base = self.base_network(observation)
@@ -212,7 +207,7 @@ class BetaPolicy(nn.Module):
 
 class BetaInvParam(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
-                 action_scale=1., action_bias=0., init='Xavier', activation="ReLU", head_activation="Softplus", layer_norm=False):
+                 init='Xavier', activation="ReLU", head_activation="Softplus", layer_norm=False):
         super(BetaInvParam, self).__init__()
 
         self.action_dim = action_dim
@@ -235,14 +230,12 @@ class BetaInvParam(nn.Module):
             self.inv_beta_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
         self.head_activation_fn = internal_factory.init_activation_function(head_activation)
         # self.beta_param_bias = torch.tensor(beta_param_bias) # shouldn't need this
-        if type(action_scale) == float:
-            action_scale = np.ones(action_dim)*action_scale
+        # if type(action_scale) == float:
+        #     action_scale = np.ones(action_dim)*action_scale
+        #
+        # if type(action_bias) == float:
+        #     action_bias = np.ones(action_dim)*action_bias
 
-        if type(action_bias) == float:
-            action_bias = np.ones(action_dim)*action_bias
-
-        self.action_scale = torch.tensor(action_scale, dtype=torch.float32)
-        self.action_bias = torch.tensor(action_bias, dtype=torch.float32)
         self.to(device)
 
     def forward(self, observation, debug=False):
@@ -257,7 +250,7 @@ class BetaInvParam(nn.Module):
         out = dist.rsample() # samples of alpha and beta
 
         logp = dist.log_prob(torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS))
-        action = out * self.action_scale + self.action_bias
+        action = out
         if debug:
             info = {
                 # "distribution": dist,
@@ -270,7 +263,7 @@ class BetaInvParam(nn.Module):
         return action, logp, info
 
     def log_prob(self, observation, action, debug=False):
-        out = (action - self.action_bias) / self.action_scale
+        out = action
         out = torch.clamp(out, 0, 1)
 
         base = self.base_network(observation)
