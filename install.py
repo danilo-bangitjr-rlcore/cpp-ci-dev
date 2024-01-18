@@ -48,7 +48,10 @@ darwin = [
 
 def install(packages):
     for package in packages:
-        pip.main(['install', package])
+        if "torch" in package:
+            pip.main(['install', package, "-f", "https://download.pytorch.org/whl/torch_stable.html"])
+        else:
+            pip.main(['install', package])
 
 if __name__ == '__main__':
 
