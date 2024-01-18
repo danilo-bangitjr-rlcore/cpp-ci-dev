@@ -55,18 +55,6 @@ class SquashedGaussianPolicy(nn.Module):
         else:
             raise NotImplementedError
 
-        #
-        # # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions.
-        # if type(action_scale) == float:
-        #     action_scale = np.ones(action_dim)*action_scale
-        # else:
-        #     raise NotImplementedError
-        #
-        # if type(action_bias) == float:
-        #     action_bias = np.ones(action_dim)*action_bias
-        # else:
-        #     raise NotImplementedError
-            
         # self.action_clip = [c * action_scale + action_bias for c in action_clip]
         self.to(device)
 
@@ -146,12 +134,6 @@ class BetaPolicy(nn.Module):
             self.beta_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
         self.head_activation_fn = internal_factory.init_activation_function(head_activation)
         self.beta_param_bias = torch.tensor(beta_param_bias)
-        # if type(action_scale) == float:
-        #     action_scale = np.ones(action_dim)*action_scale
-        #
-        # if type(action_bias) == float:
-        #     action_bias = np.ones(action_dim)*action_bias
- 
         self.to(device)
 
     def forward(self, observation, debug=False):
@@ -230,12 +212,6 @@ class BetaInvParam(nn.Module):
             self.inv_beta_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
         self.head_activation_fn = internal_factory.init_activation_function(head_activation)
         # self.beta_param_bias = torch.tensor(beta_param_bias) # shouldn't need this
-        # if type(action_scale) == float:
-        #     action_scale = np.ones(action_dim)*action_scale
-        #
-        # if type(action_bias) == float:
-        #     action_bias = np.ones(action_dim)*action_bias
-
         self.to(device)
 
     def forward(self, observation, debug=False):

@@ -6,17 +6,14 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from gymnasium.spaces.utils import flatdim
+# from gymnasium.spaces.utils import flatdim
 import src.network.torch_utils as torch_utils
 from src.agent.interaction import InteractionLayer
 from matplotlib.ticker import StrMethodFormatter
 
 class Evaluation(InteractionLayer):
     def __init__(self, cfg):
-        super(InteractionLayer).__init__(cfg)
-
-        self.state_dim = flatdim(self.env.observation_space)
-        self.action_dim = flatdim(self.env.action_space)
+        super(Evaluation, self).__init__(cfg)
 
         self.gamma = cfg.gamma
         self.seed = cfg.seed
@@ -100,13 +97,13 @@ class Evaluation(InteractionLayer):
     
     def eval_episode(self, log_traj=False):
         ep_traj = []
-        state, _ = self.eval_reset()
+        state, _ = self.evalenv_reset()
         total_rewards = 0
         ep_steps = 0
         while True:
-            action = self.eval_step(state.reshape((1, -1)))[0]
+            action = self.eval_step(state.reshape((1, -1)))
             last_state = state
-            state, reward, done, _, _ = self.eval_step(action)
+            state, reward, done, _, _ = self.evalenv_step(action)
            
             if log_traj:
                 ep_traj.append([last_state, action, reward])
