@@ -6,19 +6,14 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from gymnasium.spaces.utils import flatdim
+# from gymnasium.spaces.utils import flatdim
 import src.network.torch_utils as torch_utils
+from src.agent.interaction import InteractionLayer
 from matplotlib.ticker import StrMethodFormatter
 
-class Evaluation:
+class Evaluation(InteractionLayer):
     def __init__(self, cfg):
-        self.env = cfg.train_env
-        self.eval_env = cfg.eval_env
-        self.observation, info = self.env.reset(seed=cfg.seed)
-        self.eval_env.reset(seed=cfg.seed)
-
-        self.state_dim = flatdim(self.env.observation_space)
-        self.action_dim = flatdim(self.env.action_space)
+        super(Evaluation, self).__init__(cfg)
 
         self.gamma = cfg.gamma
         self.seed = cfg.seed
@@ -93,7 +88,7 @@ class Evaluation:
         return [total_states, total_actions, total_returns]
     
     def eval_step(self, state):
-        a, _, _ = self.get_policy(torch_utils.tensor(self.state_normalizer(state), self.device), False)
+        a, _, _ = self.get_policy(torch_utils.tensor(state, self.device), False)
         a = torch_utils.to_np(a)
         return a
     
@@ -102,13 +97,13 @@ class Evaluation:
     
     def eval_episode(self, log_traj=False):
         ep_traj = []
-        state, _ = self.eval_env.reset()
+        state, _ = self.evalenv_reset()
         total_rewards = 0
         ep_steps = 0
         while True:
-            action = self.eval_step(state.reshape((1, -1)))[0]
+            action = self.eval_step(state.reshape((1, -1)))
             last_state = state
-            state, reward, done, _, _ = self.eval_env.step(action)
+            state, reward, done, _, _ = self.evalenv_step(action)
            
             if log_traj:
                 ep_traj.append([last_state, action, reward])

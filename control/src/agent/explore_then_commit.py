@@ -11,7 +11,7 @@ import src.network.torch_utils as torch_utils
 class ExploreThenCommit(BaseAC):
     def __init__(self, cfg):
         super(ExploreThenCommit, self).__init__(cfg=cfg)
-        self.actions, self.shape = self.env.get_action_samples(n=cfg.actions_per_dim)
+        self.actions, self.shape = self.get_action_samples(n=cfg.actions_per_dim)
         self.num_actions = np.prod(self.shape)
         self.exploration_trials = self.num_actions * cfg.min_trials
         self.counts = np.zeros(self.num_actions)
@@ -50,13 +50,13 @@ class ExploreThenCommit(BaseAC):
 
     def step(self):
         action = self.choose_action()
-        next_observation, reward, terminated, trunc, env_info = self.env.step(action)
+        next_observation, reward, terminated, trunc, env_info = self.env_step(action)
         self.update_action_values(reward)
 
         reset, truncate = self.update_stats(reward, terminated, trunc)
         
         if reset:
-            next_observation, info = self.env.reset()
+            next_observation, info = self.env_reset()
             
         # fill the buffer, only if exploration period is still going on
         if self.num_episodes <= self.etc_buffer_prefill: # only add new transitions while less that 
@@ -82,7 +82,7 @@ class ExploreThenCommit(BaseAC):
             next_action = torch_utils.tensor(next_action, self.device)
             
             next_q, _ = self.get_q_value_target(next_state_batch, next_action)
-            target = reward_batch  + mask_batch * self.gamma * next_q
+            target = reward_batch + mask_batch * self.gamma * next_q
             
             q_value, _ = self.get_q_value(state_batch, action_batch, with_grad=True)
             q_loss = torch.nn.functional.mse_loss(target, q_value)

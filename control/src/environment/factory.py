@@ -100,9 +100,15 @@ def configure_action_scaler_and_bias(cfg):
                 cfg.action_bias = 0
             elif cfg.actor == 'SGaussian':
                 cfg.action_scale = 5
-                cfg.action_bias = 1
+                cfg.action_bias = 5
+            else:
+                raise NotImplementedError
         elif name == "TTChangeAction/ConstPID":
-           raise NotImplementedError
+            if cfg.actor == 'Beta':
+                cfg.action_scale = 0.2
+                cfg.action_bias = -0.1
+            else:
+                raise NotImplementedError
         elif name == "TTChangeAction/ChangePID":
             raise NotImplementedError
         elif name == "TTChangeAction/DiscreteConstPID":
@@ -119,11 +125,11 @@ def configure_action_scaler_and_bias(cfg):
            raise NotImplementedError
         elif name == "NonContexTT":
             if cfg.actor == 'Beta':
-                cfg.action_scale = 10
+                cfg.action_scale = 10.
                 cfg.action_bias = 0
             elif cfg.actor == 'SGaussian':
                 cfg.action_scale = 5
-                cfg.action_bias = 1
+                cfg.action_bias = 5
         elif name == "AtropineEnv":
             raise NotImplementedError
         elif name == "BeerEnv":

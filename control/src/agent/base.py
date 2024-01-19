@@ -5,9 +5,10 @@ import pickle as pkl
 
 from src.agent.eval import Evaluation
 from src.network.factory import init_policy_network, init_critic_network, init_optimizer
-from src.component.normalizer import init_normalizer
+# from src.component.normalizer import init_normalizer
 from src.component.buffer import Buffer
 import src.network.torch_utils as torch_utils
+
 
 
 class BaseAC(Evaluation):
@@ -17,9 +18,9 @@ class BaseAC(Evaluation):
 
         # Continuous control initialization
         if cfg.discrete_control:
-            self.action_dim = self.env.action_space.n
+            # self.action_dim = self.env.action_space.n
             self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                             cfg.beta_parameter_bias, cfg.action_scale, cfg.action_bias, cfg.activation,
+                                             cfg.beta_parameter_bias, cfg.activation,
                                              cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
                                               cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
@@ -28,9 +29,9 @@ class BaseAC(Evaluation):
             self.get_q_value = self.get_q_value_discrete
             self.get_q_value_target = self.get_q_value_target_discrete
         else:        
-            self.action_dim = np.prod(self.env.action_space.shape)
+            # self.action_dim = np.prod(self.env.action_space.shape)
             self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                             cfg.beta_parameter_bias, cfg.action_scale, cfg.action_bias, cfg.activation,
+                                             cfg.beta_parameter_bias, cfg.activation,
                                              cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
                                               cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
@@ -46,8 +47,6 @@ class BaseAC(Evaluation):
         
         self.buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
         self.batch_size = cfg.batch_size
-        self.state_normalizer = init_normalizer(cfg.state_normalizer, self.env.observation_space)
-        self.reward_normalizer = init_normalizer(cfg.reward_normalizer, None)
         self.gamma = cfg.gamma
         self.parameters_dir = cfg.parameters_path
         self.polyak = cfg.polyak
@@ -58,7 +57,7 @@ class BaseAC(Evaluation):
 
         # Visit count heatmap
         if self.cfg.debug:
-            action_cover_space, heatmap_shape = self.env.get_action_samples()
+            action_cover_space, heatmap_shape = self.get_action_samples()
             self.visit_counts = [[0 for i in range(heatmap_shape[1])] for j in range(heatmap_shape[0])]
             self.x_action_increment = 10 / heatmap_shape[1]
             self.y_action_increment = 10 / heatmap_shape[0]
@@ -71,18 +70,18 @@ class BaseAC(Evaluation):
         track_done = []
         track_return = []
         track_step = []
-        self.observation, info = self.env.reset()
+        self.observation, info = self.env_reset()
         ep_steps = 0
         ep_return = 0
         done = False
         for _ in range(online_data_size):
             observation_tensor = torch_utils.tensor(self.observation.reshape((1, -1)), self.device)
             action_tensor, _, pi_info = self.get_policy(observation_tensor, with_grad=False, debug=self.cfg.debug)
-            action = torch_utils.to_np(action_tensor)[0]
+            action = torch_utils.to_np(action_tensor) # move the zero index to env_step.
             last_state = self.observation
-            self.observation, reward, done, truncate, env_info = self.env.step(action)
+            self.observation, reward, done, truncate, env_info = self.env_step(action)
             reset, truncate = self.update_stats(reward, done, truncate)
-            self.buffer.feed([last_state, action, reward, self.observation, int(done), int(truncate)])
+            self.buffer.feed([last_state, action[0], reward, self.observation, int(done), int(truncate)])
 
             i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
             self.info_log.append(i_log)
@@ -94,14 +93,14 @@ class BaseAC(Evaluation):
                 i_log['critic_info'].pop('Q-function', None)
 
             track_states.append(last_state)
-            track_actions.append(action)
+            track_actions.append(action[0])
             track_rewards.append(reward)
             track_next_states.append(self.observation)
             track_done.append(done)
             ep_return += reward
             ep_steps += 1
             if reset:
-                self.observation, info = self.env.reset()
+                self.observation, info = self.env_reset()
                 track_return.append(ep_return)
                 track_step.append(ep_steps)
                 ep_steps = 0
@@ -133,13 +132,13 @@ class BaseAC(Evaluation):
         return reset, truncate
 
     def step(self):
-        observation_tensor = torch_utils.tensor(self.state_normalizer(self.observation.reshape((1, -1))), self.device)
+        observation_tensor = torch_utils.tensor(self.observation.reshape((1, -1)), self.device)
         action_tensor, _, pi_info = self.get_policy(observation_tensor,
                                                     with_grad=False, debug=self.cfg.debug)
-        action = torch_utils.to_np(action_tensor)[0]
-        next_observation, reward, terminated, trunc, env_info = self.env.step(action)      
+        action = torch_utils.to_np(action_tensor) # move the zero index to env_step.
+        next_observation, reward, terminated, trunc, env_info = self.env_step(action)
         reset, truncate = self.update_stats(reward, terminated, trunc)
-        self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
+        self.buffer.feed([self.observation, action[0], reward, next_observation, int(terminated), int(truncate)])
 
         i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
         self.info_log.append(i_log)
@@ -153,7 +152,7 @@ class BaseAC(Evaluation):
         self.update(trunc)
 
         if reset:
-            next_observation, info = self.env.reset()
+            next_observation, info = self.env_reset()
         self.observation = next_observation
 
         if self.use_target_network and self.total_steps % self.target_network_update_freq == 0:
@@ -215,10 +214,10 @@ class BaseAC(Evaluation):
 
     def get_data(self):
         states, actions, rewards, next_states, terminals, truncations = self.buffer.sample()
-        in_ = torch_utils.tensor(self.state_normalizer(states), self.device)
+        in_ = torch_utils.tensor(states, self.device)
         actions = torch_utils.tensor(actions, self.device)
-        r = torch_utils.tensor(self.reward_normalizer(rewards), self.device)
-        ns = torch_utils.tensor(self.state_normalizer(next_states), self.device)
+        r = torch_utils.tensor(rewards, self.device)
+        ns = torch_utils.tensor(next_states, self.device)
         d = torch_utils.tensor(terminals, self.device)
         t = torch_utils.tensor(truncations, self.device)
         data = {
@@ -313,7 +312,7 @@ class BaseAC(Evaluation):
             # Update Q heatmap
             q_current, _ = self.get_q_value(observation_tensor, action_tensor, with_grad=False)
             q_current = torch_utils.to_np(q_current)
-            action_cover_space, heatmap_shape = self.env.get_action_samples(n=50)
+            action_cover_space, heatmap_shape = self.get_action_samples(n=50)
             stacked_o = observation_tensor.repeat_interleave(len(action_cover_space), dim=0)
             action_cover_space_tensor = torch_utils.tensor(action_cover_space, self.device)
             q_cover_space, _ = self.get_q_value(stacked_o, action_cover_space_tensor, with_grad=False)
