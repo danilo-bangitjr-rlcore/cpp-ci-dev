@@ -24,16 +24,7 @@ def init_agent(name, cfg):
             return GreedyAC(cfg, average_entropy=False)
     elif name == "Reinforce":
         return Reinforce(cfg)
-    elif name == "GACMH":
-        if cfg.discrete_control:
-            raise NotImplementedError
-        else:
-            return GACwHardMemory(cfg, average_entropy=True)
     elif name == "ETC":
         return ExploreThenCommit(cfg)
-    elif name == "GACPS":
-        return GACPredictSuccess(cfg, average_entropy=True)
-    elif name == "GACIn":
-        return GAC_InAC(cfg, average_entropy=True)
     else:
         raise NotImplementedError
