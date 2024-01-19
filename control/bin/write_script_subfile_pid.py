@@ -138,7 +138,7 @@ def c20240118(settings, shared_settings, target_agents):
     shared_settings["--lr_actor"] = [2.0, 1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.0001]
     shared_settings["--lr_critic"] = [0.03, 0.001, 0.0003, 0.0001, 3e-5, 1e-5, 3e-6]
 
-    shared_settings["--exp_info"] = ["/nonlinear_beta/"]
+    shared_settings["--exp_info"] = ["/sweep_obs1/"]
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
 
@@ -149,7 +149,7 @@ def c20240119(settings, shared_settings, target_agents):
     """
     shared_settings["--env_name"] = ["NonContexTT"]
     shared_settings["--env_action_scaler"] = [1]
-    shared_settings["--env_info"] = [[1., 3.]]
+    shared_settings["--env_info"] = [[0., 3.]]
     # shared_settings["--debug"] = [1]
     # shared_settings["--render"] = [2]
     shared_settings["--buffer_size"] = [100]
@@ -165,13 +165,28 @@ def c20240119(settings, shared_settings, target_agents):
     shared_settings["--activation"] = ["ReLU6"]
     shared_settings["--head_activation"] = ["Softplus"]
 
-    shared_settings["--lr_actor"] = [1.0]
-    shared_settings["--lr_critic"] = [1e-5]
+    # shared_settings["--lr_actor"] = [1.0]
+    # shared_settings["--lr_critic"] = [1e-5]
+    # shared_settings["--exp_info"] = ["/recrete_nonlinear_test/"]
+    # settings = merge_independent(settings, shared_settings)
+    # combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
 
-    shared_settings["--exp_info"] = ["/recrete_nonlinear_test/"]
+    shared_settings["--rho"] = [0.1]
+    shared_settings["--prop_rho_mult"] = [4.0, 8.0]
+    shared_settings["--lr_actor"] = [1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.0001, 0.00003, 0.00001]
+    shared_settings["--lr_critic"] = [0.03, 0.001, 0.0003, 0.0001, 3e-5, 1e-5]
+    shared_settings["--exp_info"] = ["/sweep_obs0/"]
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1, comb_num_base=0)
 
+    shared_settings["--rho"] = [0.4]
+    shared_settings["--prop_rho_mult"] = [2.0]
+    shared_settings["--env_info"] = [[1., 3.]]
+    shared_settings["--lr_actor"] = [0.00003, 0.00001]
+    shared_settings["--lr_critic"] = [0.03, 0.001, 0.0003, 0.0001, 3e-5, 1e-5, 3e-6]
+    shared_settings["--exp_info"] = ["/sweep_obs1/"]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=108, line_per_file=1, comb_num_base=56)
 
 
 # def c20240116_1(settings, shared_settings, target_agents):

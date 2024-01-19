@@ -66,8 +66,18 @@ def c20240117_0():
     visualize_training_info(file, target_key, title="vis_recreate_relu_woAScale", threshold=0.995, xlim=None, ylim=[-2, 2])
 
 def c20240118():
-    SHAREPATH = "output/test_v1/NonContexTT/recreating_results_vis/nonlinear_beta/"
-    sweep_parameter(DATAROOT + SHAREPATH, ['GAC'])
+    SHAREPATH = "output/test_v1/NonContexTT/recreating_results_vis/nonlinear_beta/sweep/"
+    # sweep_parameter(DATAROOT + SHAREPATH, ['GAC'])
+    pths = {"GAC": [DATAROOT + SHAREPATH + "GAC/param_52", "C0", 5],}
+    # best_offline(pths, "recreate_nonlinear_obs1", ylim=[-2, 2])
+    fixed_params_list = {
+        "tau": [0],
+    }
+    draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_recreate_obs1")
+
+    SHAREPATH = "output/test_v1/NonContexTT/recreating_results_vis/nonlinear_beta/recrete_nonlinear_test/"
+    pths = {"GAC": [DATAROOT + SHAREPATH + "GAC/param_0", "C0", 5],}
+    # best_offline(pths, "recreate_nonlinear", ylim=[-2, 2])
 
 if __name__ == '__main__':
     target_key = [
