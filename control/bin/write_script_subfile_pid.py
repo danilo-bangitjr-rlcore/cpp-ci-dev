@@ -112,7 +112,7 @@ def c20240117_0(settings, shared_settings, target_agents):
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=3, line_per_file=1, comb_num_base=0)
 
-def c20240117_1(settings, shared_settings, target_agents):
+def c20240118(settings, shared_settings, target_agents):
     """
     Recreate nonlinear beta learning result
     Remove environment scaler, use beta distribution scaler=10
@@ -130,12 +130,13 @@ def c20240117_1(settings, shared_settings, target_agents):
     shared_settings["--rho"] = [0.4]
     shared_settings["--prop_rho_mult"] = [2.0]
     shared_settings["--exp_name"] = ["recreating_results_vis"]
-    shared_settings["--lr_actor"] = [1]
-    shared_settings["--lr_critic"] = [1e-5]
     shared_settings["--action_normalizer"] = ["Scale"]
     shared_settings["--optimizer"] = ["RMSprop"]
     shared_settings["--activation"] = ["ReLU6"]
     shared_settings["--head_activation"] = ["Softplus"]
+
+    shared_settings["--lr_actor"] = [2.0, 1.0, 0.3, 0.1, 0.03, 0.01, 0.003, 0.0001]
+    shared_settings["--lr_critic"] = [0.03, 0.001, 0.0003, 0.0001, 3e-5, 1e-5, 3e-6]
 
     shared_settings["--exp_info"] = ["/nonlinear_beta/"]
     settings = merge_independent(settings, shared_settings)
@@ -184,4 +185,4 @@ if __name__=='__main__':
     }
     target_agents = ["GAC"]
 
-    c20240117_1(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    c20240118(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))

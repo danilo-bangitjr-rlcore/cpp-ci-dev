@@ -40,7 +40,7 @@ def c20240116():
     }
     best_offline(pths, "directly_learn_beta_scale_action_setpoint3", ylim=[-2, 2])
 
-def c20240117():
+def c20240117_0():
     # SHAREPATH = "output/test_v1/NonContexTT/recreating_results_vis/totally_changed_envActionScaler1_betaScaler10_withActionNormalizer/"
     # pths = {"GAC": [DATAROOT + SHAREPATH + "GAC/param_0", "C0", 5],}
     # best_offline(pths, "recreate", ylim=[-2, 2])
@@ -65,6 +65,10 @@ def c20240117():
     file = DATAROOT + SHAREPATH + "/GAC/param_0/seed_0"
     visualize_training_info(file, target_key, title="vis_recreate_relu_woAScale", threshold=0.995, xlim=None, ylim=[-2, 2])
 
+def c20240118():
+    SHAREPATH = "output/test_v1/NonContexTT/recreating_results_vis/nonlinear_beta/"
+    sweep_parameter(DATAROOT + SHAREPATH, ['GAC'])
+
 if __name__ == '__main__':
     target_key = [
         "actor_info/param1",
@@ -84,4 +88,4 @@ if __name__ == '__main__':
         "env_info/lambda",
     ]
 
-    c20240117()
+    c20240118()
