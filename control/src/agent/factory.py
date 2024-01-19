@@ -2,9 +2,7 @@ from src.agent.simple_ac import SimpleAC
 from src.agent.sac import SAC
 from src.agent.greedy_ac import GreedyAC, GreedyACDiscrete
 from src.agent.reinforce import Reinforce
-from src.agent.greedy_ac_wm import GACPredictSuccess, GACwHardMemory
 from src.agent.explore_then_commit import ExploreThenCommit
-from src.agent.gac_inac import GAC_InAC
 
 
 def init_agent(name, cfg):
