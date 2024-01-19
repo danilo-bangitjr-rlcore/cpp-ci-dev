@@ -60,13 +60,9 @@ class SquashedGaussianPolicy(nn.Module):
         # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions. 
         if type(action_scale) == float:
             action_scale = np.ones(action_dim)*action_scale
-        else:
-            raise NotImplementedError 
             
         if type(action_bias) == float:
             action_bias = np.ones(action_dim)*action_bias
-        else:
-            raise NotImplementedError
             
         self.action_scale = torch.tensor(action_scale, dtype=torch.float32)
         self.action_bias = torch.tensor(action_bias, dtype=torch.float32)

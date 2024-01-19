@@ -66,7 +66,10 @@ def init_environment(name, cfg):
     elif name == "MountainCarContinuous-v0":
         return  gym.make("MountainCarContinuous-v0")
     elif name == "Pendulum-v1":
-        return PendulumEnv()
+        if cfg.discrete_control:
+            return PendulumEnv(render_mode="human", continuous_action=False) 
+        else:
+            return PendulumEnv(render_mode="human")
     elif name == "HalfCheetah-v4":
         return gym.make("HalfCheetah-v4")
     else:
