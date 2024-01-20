@@ -82,14 +82,14 @@ def configure_action_scaler_and_bias(cfg):
             action_low = cfg.train_env.action_space.low
             action_high = cfg.train_env.action_space.high
             action_range = action_high - action_low
-            cfg.action_scale = action_range
-            cfg.action_bias = action_low 
+            cfg.action_scale = float(action_range[0])
+            cfg.action_bias = float(action_low[0]) 
         elif cfg.actor == 'SGaussian':
             action_low = cfg.train_env.action_space.low
             action_high = cfg.train_env.action_space.high
             action_range = action_high - action_low
-            cfg.action_scale = action_range / 2 # since SGaussian defined on [-1, 1]
-            cfg.action_bias = action_low + cfg.action_scale 
+            cfg.action_scale = float(action_range[0]) / 2 # since SGaussian defined on [-1, 1]
+            cfg.action_bias = float(action_low[0]) + cfg.action_scale 
     else: 
         # if we are not automatically calibrating the scale and bias based on the environment. 
         # We can set values here based on domain knowlegde
