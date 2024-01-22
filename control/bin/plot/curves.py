@@ -47,14 +47,17 @@ def sensitivity_plot_2d(pth_base, agent, fix_params_choices, sweep_param1, sweep
     plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
 
 
-def best_offline(pths, title, ylim):
+def best_offline(pths, title, ylim=None, xlim=None):
     fig, axs = plt.subplots(1, 1, figsize=(4, 3))
     # axins = zoomed_inset_axes(axs, 6, loc=1)
     axs = [axs]
     for label, [pth, c, z] in pths.items():
         setting, returns, constraints = load_param(pth)
         learning_curve(axs[0], returns, label=label, color=c, zorder=z)
-    axs[0].set_ylim(ylim)
+    if ylim is not None:
+        axs[0].set_ylim(ylim)
+    if xlim is not None:
+        axs[0].set_xlim(xlim)
     axs[0].legend()
     # axs[1].legend()
     axs[0].set_ylabel("Performance")
@@ -76,7 +79,7 @@ def best_offline_per_run(pth, title):
     plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
 
 
-def reproduce_demo(pths, title, ylim):
+def reproduce_demo(pths, title, ylim=None, xlim=None):
     def recover_paper_data(returns):
         # denormalization
         returns = returns * 8 - 8
@@ -96,7 +99,10 @@ def reproduce_demo(pths, title, ylim):
         learning_curve(axs[0], returns, label=label, color=c, zorder=z)
         # constraints = recover_paper_data(constraints)
         # learning_curve(axs[1], constraints, label=label, color=c, zorder=z)
-    axs[0].set_ylim(ylim)
+    if ylim is not None:
+        axs[0].set_ylim(ylim)
+    if xlim is not None:
+        axs[0].set_xlim(xlim)
     axs[0].legend()
     # axs[1].legend()
     axs[0].set_ylabel("Performance")
