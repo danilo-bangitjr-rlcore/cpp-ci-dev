@@ -55,6 +55,7 @@ class SquashedGaussianPolicy(nn.Module):
         else:
             raise NotImplementedError
 
+
         # self.action_clip = [c * action_scale + action_bias for c in action_clip]
         self.to(device)
 
