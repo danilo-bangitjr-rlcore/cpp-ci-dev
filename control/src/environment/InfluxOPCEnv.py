@@ -14,6 +14,7 @@ from math import floor
 class DBClientWrapper():
     def __init__(self, bucket, org, token, url, date_fn):
         self.bucket = bucket
+        self.org = org
         self.client = influxdb_client.InfluxDBClient(url=url, token=token, org=org)
         self.write_client = self.client.write_api(write_options=SYNCHRONOUS)
         self.query_api = self.client.query_api()
@@ -31,7 +32,7 @@ class DBClientWrapper():
                 point = self._parse_row(datum, date_col, col_names)
                 record.append(point)
         
-        self.write_client.write("reseau2", "rl-core", record)
+        self.write_client.write(self.bucket, self.org, record)
         
         
     def _parse_row(self, row, date_col, col_names):
@@ -89,8 +90,6 @@ class DBClientWrapper():
         query_str = ' '.join(query_str_list)
         return self.query_api.query_data_frame(query_str)
     
-        
-        
         
 class InfluxOPCEnv(gym.Env):
     def __init__(self, db_client, opc_connection, runtime, control_tags, decision_freq=10*60, date_col=None, col_names=None, offline_data_folder=None,):
@@ -158,7 +157,7 @@ class InfluxOPCEnv(gym.Env):
     
     def _get_observation(self):
         """
-        Gets state, defined as all obvservations within the last self.decision_freq seconds from _now
+        Gets state, defined as all obvservations within the last self.decision_freq seconds from self._now
         
         returns: 
             self.state (np.array) : the state
