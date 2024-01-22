@@ -311,3 +311,28 @@ class Softmax(nn.Module):
         else:
             info = None
         return log_prob, info
+
+
+class RndLinearUncertainty(nn.Module):
+    def __init__(self, device, input_dim, hidden_units, output_dim, activation, init, layer_norm):
+        super(RndLinearUncertainty, self).__init__()
+        init_args = init.split("/")
+        layer_init = internal_factory.init_layer(init_args[0])
+        self.random_network = FC(device, input_dim, hidden_units[:-1], hidden_units[-1], activation=activation,
+                                 head_activation=activation,
+                                 init=init, layer_norm=layer_norm)
+        self.linear_head = layer_init(nn.Linear(hidden_units[-1], output_dim, bias=bool(init_args[-1])), *init_args[1:])
+        self.to(device)
+
+    def forward(self, in_, debug=False):
+        with torch.no_grad():
+            base = self.random_network(in_)
+        out = self.linear_head(base)
+        if debug:
+            info = {
+                "param0": base.squeeze().detach().numpy(),
+                "param1": out.squeeze().detach().numpy(),
+            }
+        else:
+            info = None
+        return out, info

@@ -1,6 +1,6 @@
 import torch
 from src.network.torch_utils import *
-from src.network.networks import BetaPolicy, BetaInvParam, SquashedGaussianPolicy, Softmax
+from src.network.networks import BetaPolicy, BetaInvParam, SquashedGaussianPolicy, Softmax, RndLinearUncertainty
 from src.network.networks import FC
 
 
@@ -36,6 +36,8 @@ def init_custom_network(name, device, input_dim, hidden_units, output_dim, activ
                   activation=activation, head_activation=head_activation, init=layer_init, layer_norm=layer_norm)
     elif name == "Softmax":
         return Softmax(device, input_dim, hidden_units, output_dim, activation=activation, init=layer_init, layer_norm=layer_norm)
+    elif name == "RndLinearUncertainty":
+        return RndLinearUncertainty(device, input_dim, hidden_units, output_dim, activation=activation, init=layer_init, layer_norm=layer_norm)
     else:
         raise NotImplementedError
 

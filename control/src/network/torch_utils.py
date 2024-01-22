@@ -18,6 +18,11 @@ class NoneActivation(nn.Module):
         return x
 
 
+def clone_model_0to1(net0, net1):
+    with torch.no_grad():
+        net1.load_state_dict(net0.state_dict())
+    return net1
+
 def layer_init_normal(layer, bias=True):
     nn.init.normal_(layer.weight)
     if int(bias):
