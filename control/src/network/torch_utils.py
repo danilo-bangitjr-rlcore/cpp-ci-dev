@@ -23,6 +23,17 @@ def clone_model_0to1(net0, net1):
         net1.load_state_dict(net0.state_dict())
     return net1
 
+def clone_gradient(model):
+    grad_rec = {}
+    for idx, param in enumerate(model.parameters()):
+        grad_rec[idx] = param.grad
+    return grad_rec
+
+def move_gradient_to_network(model, grad_rec, weight):
+    for idx, param in enumerate(model.parameters()):
+        param.grad = grad_rec[idx] * weight
+    return model
+
 def layer_init_normal(layer, bias=True):
     nn.init.normal_(layer.weight)
     if int(bias):
