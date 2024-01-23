@@ -178,11 +178,7 @@ class InfluxOPCEnv(gym.Env):
         """
         
    
-        if self.offline:    
-            self._now = self.db_client.start_time + self.decision_freq
-        else:
-            self._now = self._now()
-    
+        self._update_now()
         self.state = self._get_observation()
         self.start_time = self._now
         return self.state    
