@@ -118,10 +118,8 @@ class LineSearchAgent(GreedyAC):
         b, _ = torch.max(torch.concat([torch.abs(pred0 - true0), torch.abs(pred1 - true1)], dim=1), dim=1)
         return b.detach()
 
-    def eval_error_critic(self, state_batch, action_batch, reward_batch, next_state_batch, mask_batch):
+    def eval_error_critic(self, state_batch, action_batch, reward_batch, mask_batch, next_q):
         q, _ = self.get_q_value(state_batch, action_batch, with_grad=False)
-        next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
-        next_q, _ = self.get_q_value_target(next_state_batch, next_action)
         target = reward_batch + mask_batch * self.gamma * next_q
         error = nn.functional.mse_loss(q.detach(), target.detach())
         return error
@@ -192,14 +190,16 @@ class LineSearchAgent(GreedyAC):
             state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
                 data['obs2'], 1 - data['done']
             _, _, _, _, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
-            # pi_loss = (-logp + self.explore_bonus_eval(stacked_s_batch, best_actions)).mean()
+            pi_loss = (-logp + self.explore_bonus_eval(stacked_s_batch, best_actions)).mean()
             # do not change lr_weight here
             self.actor_optimizer.zero_grad()
             pi_loss.backward()
             self.actor_optimizer.step()
 
     def backtrack_critic(self, state_batch, action_batch, reward_batch, next_state_batch, mask_batch):
-        before_error = self.eval_error_critic(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
+        next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
+        next_q, _ = self.get_q_value_target(next_state_batch, next_action)
+        before_error = self.eval_error_critic(state_batch, action_batch, reward_batch, mask_batch, next_q)
         q_loss, next_action = self.critic_loss(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
         q_loss_weighted = q_loss * self.critic_lr_weight # The weight is supposed to always be 1.
         self.critic_optimizer.zero_grad()
@@ -212,7 +212,7 @@ class LineSearchAgent(GreedyAC):
                 self.critic_optimizer.zero_grad()
                 move_gradient_to_network(self.critic, grad_rec_critic, self.critic_lr_weight)
             self.critic_optimizer.step()
-            after_error = self.eval_error_critic(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
+            after_error = self.eval_error_critic(state_batch, action_batch, reward_batch, mask_batch, next_q)
 
             if after_error > before_error and bi < self.max_backtracking-1:
                 self.critic_lr_weight *= 0.5
