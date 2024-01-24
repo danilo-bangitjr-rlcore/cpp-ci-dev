@@ -176,8 +176,6 @@ class InfluxOPCEnv(gym.Env):
         array_like of float
             The starting state feature representation
         """
-        
-   
         self._update_now()
         self.state = self._get_observation()
         self.start_time = self._now

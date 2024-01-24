@@ -163,7 +163,7 @@ class BaseAC(Evaluation):
         return
     
     
-    def async_step(self):
+    def decoupled_step(self):
         """
         Similar to step, but allows the agent to continue to update itself before the state is returned
         """
@@ -175,7 +175,7 @@ class BaseAC(Evaluation):
         
         # update for some time, then get state
         start = time.time()
-        self.async_update(trunc)
+        self.decoupled_inner_update(trunc)
         time.sleep(start+self.decision_freq-time.time()) # if update does not take all alotted time, wait. 
         next_observation, reward, terminated, trunc, env_info = self.env.get_observation(action)  
         reset, truncate = self.update_stats(reward, terminated, trunc)
@@ -276,7 +276,7 @@ class BaseAC(Evaluation):
             for _ in range(self.update_freq):
                 self.inner_update(trunc)
                 
-    def async_update(self, trunc=False):
+    def decoupled_inner_update(self, trunc=False):
         if self.total_steps % self.update_freq == 0:
             for _ in range(self.update_freq):
                 self.async_inner_update(trunc)
