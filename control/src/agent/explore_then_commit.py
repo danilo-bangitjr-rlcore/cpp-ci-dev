@@ -11,7 +11,7 @@ import src.network.torch_utils as torch_utils
 class ExploreThenCommit(BaseAC):
     def __init__(self, cfg):
         super(ExploreThenCommit, self).__init__(cfg=cfg)
-        self.actions, self.shape = self.env.get_action_samples(n=cfg.actions_per_dim)
+        self.actions, self.shape = self.get_action_samples(n=cfg.actions_per_dim)
         self.num_actions = np.prod(self.shape)
         self.exploration_trials = self.num_actions * cfg.min_trials
         self.counts = np.zeros(self.num_actions)
@@ -30,14 +30,14 @@ class ExploreThenCommit(BaseAC):
 
     def choose_action(self):
         if self.num_episodes < self.exploration_trials:
-            return self.actions[self.num_episodes % self.num_actions]
+            return np.expand_dims(self.actions[self.num_episodes % self.num_actions], axis=0)
         else:
             return self.best_action
         
     def choose_next_action(self):
         selection_time = self.num_episodes + 1 # the time to select actions
         if selection_time < self.exploration_trials:
-            return self.actions[selection_time % self.num_actions]
+            return np.expand_dims(self.actions[selection_time % self.num_actions], axis=0)
         else:
             return self.best_action
         
@@ -50,20 +50,22 @@ class ExploreThenCommit(BaseAC):
             curr_value = self.reward_sum[action_num] / self.counts[action_num]
             if curr_value > self.best_value:
                 self.best_value = curr_value
-                self.best_action = self.actions[action_num]
+
+                self.best_action = np.expand_dims(self.actions[action_num], axis=0)
             if curr_value < self.worst_value:
                 self.worst_value = curr_value
-                self.worst_action = self.actions[action_num]
+                self.worst_action = np.expand_dims(self.actions[action_num], axis=0)
 
     def step(self):
         action = self.choose_action()
-        next_observation, reward, terminated, trunc, env_info = self.env.step(action)
+        next_observation, reward, terminated, trunc, env_info = self.env_step(action)
         self.update_action_values(reward)
         reset, truncate = self.update_stats(reward, terminated, trunc)
         if reset:
-            next_observation, info = self.env.reset()
+            next_observation, info = self.env_reset()
             
         # fill the buffer, only if exploration period is still going on
+        action = action[0] # change the shape back for later computation
         if self.num_episodes <= self.etc_buffer_prefill: # only add new transitions while less that 
             self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
         
@@ -81,16 +83,15 @@ class ExploreThenCommit(BaseAC):
             # NOTE: this doesn't matter for bandits, but could be a future consideration if we want to use ETC
             # in MDPs
             if self.critic_update == 'on_policy': # chooses the next action according to ETC
-                next_action = self.choose_next_action()
+                next_action = self.choose_next_action()[0] # change the shape back
             elif self.critic_update == 'greedy': # chooses the current "best action". Sort of Q-learning
-                next_action = self.best_action
+                next_action = self.best_action[0] # change the shape back
             elif self.critic_update == 'repeat': # chooses same action again
                 next_action = action
             
             # expand to appropriate number of dimensions then cast to tensor
             next_action = np.ones((self.batch_size, next_action.shape[0])) * next_action 
             next_action = torch_utils.tensor(next_action, self.device)
-            
             next_q, _ = self.get_q_value_target(next_state_batch, next_action)
             target = reward_batch + mask_batch * self.gamma * next_q
             

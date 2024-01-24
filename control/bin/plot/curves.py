@@ -39,7 +39,7 @@ def sensitivity_plot_2d(pth_base, agent, fix_params_choices, sweep_param1, sweep
         imgs.append(im)
         axs[i].set_title(fix_params)
         axs[i].set_title(fix_params)
-    img_update_vim_vmax(imgs, vmx=[-10000, 6000])
+    img_update_vim_vmax(imgs, vmx=[-10000, 5000])
 
     fig.subplots_adjust(right=0.95)
     cbar_ax = fig.add_axes([0.95, 0.1, 0.05, 0.8])

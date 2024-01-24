@@ -1,3 +1,4 @@
+import copy
 import os, sys
 import json
 import logging
@@ -34,8 +35,11 @@ def ensure_dir(pth):
     return
 
 def write_json(log_dir, cfg):
+    write_down = copy.deepcopy(cfg.__dict__)
+    write_down.pop("train_env")
+    write_down.pop("eval_env")
     with open('{}/config.json'.format(log_dir), 'w') as f:
-        pretty_json = json.dumps(cfg.__dict__, indent=4)
+        pretty_json = json.dumps(write_down, indent=4)
         f.write(pretty_json)
 
 def logger_setup(cfg):

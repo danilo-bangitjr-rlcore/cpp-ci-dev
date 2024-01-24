@@ -165,6 +165,8 @@ control/out/
 # Mac Stuff
 .DS_Store
 
+# Debug files
+.vscode/
 # Experiment files
 control/bin/*.txt
 run.sh

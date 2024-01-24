@@ -9,6 +9,11 @@ class BaseNormalizer:
     def __call__(self, x):
         return x
 
+    def denormalize(self, x):
+        return x
+
+    def get_new_dim(self, d):
+        return d
 
 class Identity(BaseNormalizer):
     def __init__(self):
@@ -27,11 +32,38 @@ class OneHot(BaseNormalizer):
         oneh[np.arange(x.shape[0]), (x - self.start).astype(int).squeeze()] = 1
         return oneh
 
+    def get_new_dim(self, d):
+        return self.total_count
+
+
+class Scale(BaseNormalizer):
+    def __init__(self, scaler, bias):
+        super(Scale, self).__init__()
+        # # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions.
+        # if type(action_scale) == float:
+        #     action_scale = np.ones(action_dim)*action_scale
+        # else:
+        #     raise NotImplementedError
+        #
+        # if type(action_bias) == float:
+        #     action_bias = np.ones(action_dim)*action_bias
+        # else:
+        #     raise NotImplementedError
+        self.scaler = scaler
+        self.bias = bias
+
+    def __call__(self, x):
+        return (x - self.bias) / self.scaler
+
+    def denormalize(self, x):
+        return x * self.scaler + self.bias
 
 def init_normalizer(name, info):
     if name == "Identity":
         return Identity()
     elif name == "OneHot":
         return OneHot(total_count=info.n, start_from=info.start)
+    elif name == "Scale":
+        return Scale(scaler=info.scaler, bias=info.bias)
     else:
         raise NotImplementedError

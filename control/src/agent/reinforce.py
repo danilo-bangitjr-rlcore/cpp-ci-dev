@@ -19,9 +19,9 @@ class Reinforce(BaseAC):
 
     def step(self):
         action, _, pi_info = self.get_policy(torch_utils.tensor(self.observation.reshape((1, -1)), self.device), with_grad=False, debug=self.cfg.debug)
-        action = torch_utils.to_np(action)[0]
-        next_observation, reward, terminated, trunc, env_info = self.env.step(action)
-        
+        action = torch_utils.to_np(action)
+        next_observation, reward, terminated, trunc, env_info = self.env_step(action)
+        action = action[0]
         i_log = {
             "agent_info": pi_info,
             "env_info": env_info
@@ -36,7 +36,7 @@ class Reinforce(BaseAC):
         
         if reset:
             self.update(truncate)
-            next_observation, info = self.env.reset()
+            next_observation, info = self.env_reset()
             self.ep_states = [next_observation]
             self.ep_actions = []
             self.ep_rewards = []
@@ -51,7 +51,7 @@ class Reinforce(BaseAC):
 
         # If the episode is truncated, returns bootstrap the final state
         if trunc:
-            v_boot = self.get_v_value(torch_utils.tensor(self.state_normalizer(self.ep_states[ep_t]).reshape((1, -1)), self.device), with_grad=False)
+            v_boot = self.get_v_value(torch_utils.tensor(self.ep_states[ep_t].reshape((1, -1)), self.device), with_grad=False)
             G = v_boot
 
         returns = np.zeros(ep_t)
@@ -65,7 +65,7 @@ class Reinforce(BaseAC):
         returns = torch_utils.tensor(returns, self.device)
 
         self.ep_states = np.asarray(self.ep_states[:-1])
-        self.ep_states = torch_utils.tensor(self.state_normalizer(self.ep_states), self.device)
+        self.ep_states = torch_utils.tensor(self.ep_states, self.device)
         self.ep_actions = np.asarray(self.ep_actions)
         self.ep_actions = torch_utils.tensor(self.ep_actions, self.device)
 

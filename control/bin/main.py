@@ -43,12 +43,13 @@ if __name__ == "__main__":
     parser.add_argument('--actor', default='Beta', type=str)
     parser.add_argument('--critic', default='FC', type=str)
     parser.add_argument('--layer_norm', default=0, type=int)
-    parser.add_argument('--layer_init_actor', default='Xavier', type=str)
-    parser.add_argument('--layer_init_critic', default='Xavier', type=str)
-    parser.add_argument('--activation', default='ReLU6', type=str)
+    parser.add_argument('--layer_init_actor', default='Xavier/1', type=str)
+    parser.add_argument('--layer_init_critic', default='Xavier/1', type=str)
+    parser.add_argument('--activation', default='ReLU', type=str)
     parser.add_argument('--head_activation', default='Softplus', type=str)
     parser.add_argument('--optimizer', default='RMSprop', type=str)
     parser.add_argument('--state_normalizer', default='Identity', type=str)
+    parser.add_argument('--action_normalizer', default='Identity', type=str)
     parser.add_argument('--reward_normalizer', default='Identity', type=str)
     parser.add_argument('--exploration', default=0.1, type=float)
     parser.add_argument('--beta_parameter_bias', default=0., type=float)
@@ -109,17 +110,15 @@ if __name__ == "__main__":
     utils.ensure_dir(cfg.exp_path)
     utils.ensure_dir(cfg.parameters_path)
     utils.ensure_dir(cfg.vis_path)
-    utils.write_json(cfg.exp_path, cfg)
 
-    cfg.logger = utils.logger_setup(cfg)
     utils.set_seed(cfg.seed)
     cfg.train_env = env_factory.init_environment(cfg.env_name, cfg)
     cfg.eval_env = env_factory.init_environment(cfg.env_name, cfg)
     
     if not cfg.discrete_control:
-        
         env_factory.configure_action_scaler_and_bias(cfg)
-        
-        
+
+    utils.write_json(cfg.exp_path, cfg) # write json after finishing all parameter changing.
+    cfg.logger = utils.logger_setup(cfg)
     agent = agent_factory.init_agent(cfg.agent_name, cfg)
     run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, cfg.buffer_prefill)
