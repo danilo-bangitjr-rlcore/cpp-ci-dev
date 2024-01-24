@@ -173,4 +173,4 @@ run.sh
 
 # saved results 
 saved_experiments/
-
+reseau/*

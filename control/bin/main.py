@@ -56,6 +56,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_scale', default=1., type=float)
     parser.add_argument('--action_bias', default=0., type=float)
     parser.add_argument('--auto_calibrate_beta_support', default=0, type=int)
+    parser.add_argument('--decision_freq', default=0, type=int)
     
     parser.add_argument('--load_path', default="", type=str)
     parser.add_argument('--load_checkpoint', default=1, type=int)
