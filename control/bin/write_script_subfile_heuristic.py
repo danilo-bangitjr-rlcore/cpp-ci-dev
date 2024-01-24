@@ -15,14 +15,15 @@ def c20240122(settings, shared_settings, target_agents):
     shared_settings["--env_info"] = [[1., 3.]]
     shared_settings["--buffer_size"] = [5000]
     shared_settings["--batch_size"] = [256]
-    shared_settings["--beta_parameter_bias"] = [1.]
     shared_settings["--hidden_actor"] = [[256, 256]]
     shared_settings["--layer_init_actor"] = ["Const/10/0"]
     shared_settings["--exp_name"] = ["heuristic_lr_exp"]
     shared_settings["--action_normalizer"] = ["Scale"]
+    shared_settings["--reward_normalizer"] = ["Clip/-1/1"]
     shared_settings["--activation"] = ["ReLU"]
     shared_settings["--lr_actor"] = [0.1]
     shared_settings["--lr_critic"] = [1.]
+    shared_settings["--etc_buffer_prefill"] = [5000]
     shared_settings["--exp_info"] = ["/setpoint_3/obs_raw/action_scale/replay5000_batch256/beta_shift_1/activation_relu"]
 
     settings = merge_independent(settings, shared_settings)
@@ -42,6 +43,9 @@ if __name__=='__main__':
         "--render": [0],
         "--polyak": [0],
         "--env_action_scaler": [1.],
+        "--action_scale": [10.],
+        "--action_bias": [0.],
+        "--beta_parameter_bias": [1.],
 
         "--head_activation": ["ReLU"],
         "--optimizer": ["Adam"],
