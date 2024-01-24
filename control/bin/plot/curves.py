@@ -39,7 +39,7 @@ def sensitivity_plot_2d(pth_base, agent, fix_params_choices, sweep_param1, sweep
         imgs.append(im)
         axs[i].set_title(fix_params)
         axs[i].set_title(fix_params)
-    img_update_vim_vmax(imgs, vmx=[-10000, 6000])
+    img_update_vim_vmax(imgs, vmx=[-10000, 5000])
 
     fig.subplots_adjust(right=0.95)
     cbar_ax = fig.add_axes([0.95, 0.1, 0.05, 0.8])
@@ -134,7 +134,8 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
             axes.append(axs)
             axs.plot(reformat[k])
             axs.set_title(k)
-            print(k, reformat[k][-10:].mean(), reformat[k][-10:].std())
+            print(k, reformat[k][-10:].mean(), reformat[k][-10:].std(),  reformat[k][-10:].max())
+           
         else:
             for d in range(dim):
                 axes.append(axs[d])
@@ -204,7 +205,7 @@ def draw_q_functions(pth_base, fixed_params_list, agent, itr=-1, num_rows=1):
     
     num_cols = len(fix_params_choices)//num_rows
 
-    fig, axs = plt.subplots(num_rows, num_cols, figsize=(5*num_cols, 4*num_rows))
+    fig, axs = plt.subplots(num_rows, num_cols, figsize=(5*num_cols, 6*num_rows))
     axs = [axs] if len(fix_params_choices) == 1 else axs    
 
     params = os.listdir(root)
@@ -213,7 +214,6 @@ def draw_q_functions(pth_base, fixed_params_list, agent, itr=-1, num_rows=1):
     for p in params:
         param_list, log_list = load_logs(root +'/' + p)
         setting = param_list[0] # all seeds have same params
-        
         for fixed_params_index, fix_params_choice in enumerate(fix_params_choices):
             add = True
             for tp, tv in fix_params_choice.items():
@@ -221,6 +221,7 @@ def draw_q_functions(pth_base, fixed_params_list, agent, itr=-1, num_rows=1):
                     add = False        
             if add == True:
                 break
+        
     
         if add == True:
             for log in log_list:
@@ -228,11 +229,11 @@ def draw_q_functions(pth_base, fixed_params_list, agent, itr=-1, num_rows=1):
                 row = fixed_params_index//num_cols
                 col = fixed_params_index%num_cols
                 if num_rows != 1:
-                    im = axs[row, col].imshow(q,  vmin=-1, vmax=2)
+                    im = axs[row, col].imshow(q,  vmin=-2, vmax=1)
                     axs[row, col].set_title("\n".join(wrap(str(fix_params_choice), 60)))
                 else:
-                    im = axs[col].imshow(q)
-                    axs[col].set_title(fix_params_choice, 60)
+                    im = axs[col].imshow(q,  vmin=-2, vmax=1)
+                    axs[col].set_title("\n".join(wrap(str(fix_params_choice), 60)))
                     
                 ims.append(im)
                     
