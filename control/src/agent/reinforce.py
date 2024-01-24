@@ -19,9 +19,9 @@ class Reinforce(BaseAC):
 
     def step(self):
         action, _, pi_info = self.get_policy(torch_utils.tensor(self.observation.reshape((1, -1)), self.device), with_grad=False, debug=self.cfg.debug)
-        action = torch_utils.to_np(action)[0]
+        action = torch_utils.to_np(action)
         next_observation, reward, terminated, trunc, env_info = self.env_step(action)
-        
+        action = action[0]
         i_log = {
             "agent_info": pi_info,
             "env_info": env_info
