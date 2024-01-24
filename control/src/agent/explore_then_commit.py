@@ -61,7 +61,7 @@ class ExploreThenCommit(BaseAC):
         # fill the buffer, only if exploration period is still going on
         action = action[0] # change the shape back for later computation
         if self.num_episodes <= self.etc_buffer_prefill: # only add new transitions while less that 
-            self.buffer.feed([self.observation, action[0], reward, next_observation, int(terminated), int(truncate)])
+            self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
         
         if self.num_episodes >= self.learning_start: # when learning starts
             data = self.get_data()
