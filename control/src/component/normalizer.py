@@ -21,8 +21,9 @@ class Identity(BaseNormalizer):
         
 
 class OneHot(BaseNormalizer):
-    def __init__(self, total_count, start_from):
+    def __init__(self, args):
         super(OneHot, self).__init__()
+        total_count, start_from = args
         self.total_count = total_count
         self.start = start_from
 
@@ -37,7 +38,7 @@ class OneHot(BaseNormalizer):
 
 
 class Scale(BaseNormalizer):
-    def __init__(self, scaler, bias):
+    def __init__(self, args):
         super(Scale, self).__init__()
         # # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions.
         # if type(action_scale) == float:
@@ -49,6 +50,7 @@ class Scale(BaseNormalizer):
         #     action_bias = np.ones(action_dim)*action_bias
         # else:
         #     raise NotImplementedError
+        scaler, bias = args
         self.scaler = scaler
         self.bias = bias
 
@@ -58,12 +60,37 @@ class Scale(BaseNormalizer):
     def denormalize(self, x):
         return x * self.scaler + self.bias
 
-def init_normalizer(name, info):
+class Clip(BaseNormalizer):
+    def __init__(self, args):
+        super(Clip, self).__init__()
+        # # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions.
+        # if type(action_scale) == float:
+        #     action_scale = np.ones(action_dim)*action_scale
+        # else:
+        #     raise NotImplementedError
+        #
+        # if type(action_bias) == float:
+        #     action_bias = np.ones(action_dim)*action_bias
+        # else:
+        #     raise NotImplementedError
+        min_, max_ = args
+        self.min_ = min_
+        self.max_ = max_
+
+    def __call__(self, x):
+        return np.clip(x, self.min_, self.max_)
+
+    def denormalize(self, x):
+        raise NotImplementedError
+
+def init_normalizer(name, *args):
     if name == "Identity":
         return Identity()
     elif name == "OneHot":
-        return OneHot(total_count=info.n, start_from=info.start)
+        return OneHot(*args)
     elif name == "Scale":
-        return Scale(scaler=info.scaler, bias=info.bias)
+        return Scale(*args)
+    elif name == "Clip":
+        return Clip(*args)
     else:
         raise NotImplementedError

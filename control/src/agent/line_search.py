@@ -1,3 +1,7 @@
+import os
+import pickle as pkl
+
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
@@ -67,20 +71,39 @@ class LineSearchAgent(GreedyAC):
         self.random_prefill()
 
     def random_prefill(self):
-        '''using etc's parameter here'''
-        random_policy = init_policy_network("Beta", self.cfg.device, self.state_dim, [], self.action_dim,
-                                            0, self.cfg.activation, self.cfg.head_activation, "Const/1/0", False)
-        reset = True
-        for _ in range(self.cfg.etc_buffer_prefill):
-            if reset:
-                observation, info = self.env_reset()
-            with torch.no_grad():
+        pth = self.cfg.parameters_path + "/prefill_{}.pkl".format(self.cfg.etc_buffer_prefill)
+        if not os.path.isfile(pth):
+            '''using etc's parameter here'''
+            random_policy = init_policy_network("Beta", self.cfg.device, self.state_dim, [], self.action_dim,
+                                                0, self.cfg.activation, self.cfg.head_activation, "Const/1/0", False)
+            reset = True
+            for t in range(self.cfg.etc_buffer_prefill):
+                if t % 1000 == 0:
+                    print("Prefill t={}".format(t))
+                if reset:
+                    observation, info = self.env_reset()
                 observation_tensor = torch_utils.tensor(observation.reshape((1, -1)), self.device)
-                action, _, _ = random_policy(observation_tensor, False)
-                action = torch_utils.to_np(action)
-            next_observation, reward, terminated, trunc, env_info = self.env_step(action)
-            self.buffer.feed([observation, action[0], reward, next_observation, int(terminated), 0])
-            observation = next_observation
+                with torch.no_grad():
+                    action, _, _ = random_policy(observation_tensor, False)
+                    action = torch_utils.to_np(action)
+                next_observation, reward, terminated, trunc, env_info = self.env_step(action)
+                reset = terminated or trunc
+                self.buffer.feed([observation, action[0], reward, next_observation, int(terminated), int(trunc)])
+                observation = next_observation
+            with open(pth, "wb") as f:
+                pkl.dump(self.buffer, f)
+        else:
+            print("Load prefilled data")
+            with open(pth, "rb") as f:
+                self.buffer = pkl.load(f)
+
+        # # For debugging
+        # plt.figure()
+        # data = self.buffer.get_all_data()
+        # act = np.array([i[1] for i in data])
+        # rwd = np.array([i[2] for i in data])
+        # plt.scatter(act[:, 0], act[:, 1], c=rwd, s=2)
+        # plt.show()
 
     def explore_bonus_update(self, state, action, reward, next_state, next_action, mask):
         in_ = torch.concat((state, action), dim=1)
@@ -207,8 +230,8 @@ class LineSearchAgent(GreedyAC):
         grad_rec_critic = clone_gradient(self.critic)
 
         for bi in range(self.max_backtracking):
-            print("critic", bi)
             if bi > 0: # The first step does not need moving gradient
+                print("backtrack critic", bi)
                 self.critic_optimizer.zero_grad()
                 move_gradient_to_network(self.critic, grad_rec_critic, self.critic_lr_weight)
             self.critic_optimizer.step()
