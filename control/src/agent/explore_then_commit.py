@@ -33,7 +33,7 @@ class ExploreThenCommit(BaseAC):
     def choose_next_action(self):
         selection_time = self.num_episodes + 1 # the time to select actions
         if selection_time < self.exploration_trials:
-            return self.actions[selection_time % self.num_actions]
+            return np.expand_dims(self.actions[selection_time % self.num_actions], axis=0)
         else:
             return self.best_action
         
@@ -59,6 +59,7 @@ class ExploreThenCommit(BaseAC):
             next_observation, info = self.env_reset()
             
         # fill the buffer, only if exploration period is still going on
+        action = action[0] # change the shape back for later computation
         if self.num_episodes <= self.etc_buffer_prefill: # only add new transitions while less that 
             self.buffer.feed([self.observation, action[0], reward, next_observation, int(terminated), int(truncate)])
         
@@ -71,16 +72,15 @@ class ExploreThenCommit(BaseAC):
             # NOTE: this doesn't matter for bandits, but could be a future consideration if we want to use ETC
             # in MDPs
             if self.critic_update == 'on_policy': # chooses the next action according to ETC
-                next_action = self.choose_next_action()
+                next_action = self.choose_next_action()[0] # change the shape back
             elif self.critic_update == 'greedy': # chooses the current "best action". Sort of Q-learning
-                next_action = self.best_action
+                next_action = self.best_action[0] # change the shape back
             elif self.critic_update == 'repeat': # chooses same action again
                 next_action = action
             
             # expand to appropriate number of dimensions then cast to tensor
             next_action = np.ones((self.batch_size, next_action.shape[0])) * next_action 
             next_action = torch_utils.tensor(next_action, self.device)
-            
             next_q, _ = self.get_q_value_target(next_state_batch, next_action)
             target = reward_batch + mask_batch * self.gamma * next_q
             
