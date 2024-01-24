@@ -1,9 +1,10 @@
 import numpy as np
 import torch
+import torch.nn as nn
 from src.agent.greedy_ac import GreedyAC, GreedyACDiscrete
 from src.network.factory import init_policy_network, init_critic_network, init_optimizer, init_custom_network
+import src.network.torch_utils as torch_utils
 from src.network.torch_utils import clone_model_0to1, clone_gradient, move_gradient_to_network
-import torch.nn as nn
 
 
 class LineSearchAgent(GreedyAC):
@@ -62,6 +63,24 @@ class LineSearchAgent(GreedyAC):
         self.increasing_rate = 1.1 # Not sure if this is going to be used
         assert self.cfg.batch_size >= 256
         assert self.max_backtracking > 0
+
+        self.random_prefill()
+
+    def random_prefill(self):
+        '''using etc's parameter here'''
+        random_policy = init_policy_network("Beta", self.cfg.device, self.state_dim, [], self.action_dim,
+                                            0, self.cfg.activation, self.cfg.head_activation, "Const/1/0", False)
+        reset = True
+        for _ in range(self.cfg.etc_buffer_prefill):
+            if reset:
+                observation, info = self.env_reset()
+            with torch.no_grad():
+                observation_tensor = torch_utils.tensor(observation.reshape((1, -1)), self.device)
+                action, _, _ = random_policy(observation_tensor, False)
+                action = torch_utils.to_np(action)
+            next_observation, reward, terminated, trunc, env_info = self.env_step(action)
+            self.buffer.feed([observation, action[0], reward, next_observation, int(terminated), 0])
+            observation = next_observation
 
     def explore_bonus_update(self, state, action, reward, next_state, next_action, mask):
         in_ = torch.concat((state, action), dim=1)
@@ -144,6 +163,7 @@ class LineSearchAgent(GreedyAC):
 
         clone_model_0to1(self.critic, self.critic_target)
         self.critic_optimizer = init_optimizer(self.cfg.optimizer, list(self.critic.parameters()), self.cfg.lr_critic)
+        print("Critic reset, learning rate", self.cfg.lr_critic)
         self.critic_lr_weight = 1
         self.critic_lr_weight_copy = 1
 
@@ -163,6 +183,7 @@ class LineSearchAgent(GreedyAC):
                                          self.action_dim, self.cfg.beta_parameter_bias, self.cfg.activation,
                                          self.cfg.head_activation, self.cfg.layer_init_actor, self.cfg.layer_norm)
         self.actor_optimizer = init_optimizer(self.cfg.optimizer, list(self.actor.parameters()), self.cfg.lr_actor)
+        print("Actor reset, learning rate", self.cfg.lr_actor)
         self.actor_lr_weight = 1
         self.actor_lr_weight_copy = 1
 
@@ -171,7 +192,7 @@ class LineSearchAgent(GreedyAC):
             state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
                 data['obs2'], 1 - data['done']
             _, _, _, _, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
-            pi_loss = (-logp + self.explore_bonus_eval(stacked_s_batch, best_actions)).mean()
+            # pi_loss = (-logp + self.explore_bonus_eval(stacked_s_batch, best_actions)).mean()
             # do not change lr_weight here
             self.actor_optimizer.zero_grad()
             pi_loss.backward()
@@ -197,6 +218,7 @@ class LineSearchAgent(GreedyAC):
                 self.critic_lr_weight *= 0.5
                 self.undo_update_critic()
             elif after_error > before_error and bi == self.max_backtracking-1:
+                print("====", after_error, before_error, self.critic_lr_weight, self.cfg.lr_critic)
                 self.reset_critic()
             else:
                 break
@@ -242,8 +264,15 @@ class LineSearchAgent(GreedyAC):
         self.explore_bonus_update(state_batch, action_batch, reward_batch, next_state_batch, next_action, mask_batch)
 
         # actor update
-        self.parameter_backup_actor()
-        repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions = self.backtrack_actor(state_batch)
+        # self.parameter_backup_actor()
+        # repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions = self.backtrack_actor(state_batch)
+
+        #GAC's actor update
+        pi_loss, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, _ = self.actor_loss(state_batch)
+        self.actor_optimizer.zero_grad()
+        pi_loss.backward()
+        self.actor_optimizer.step()
+
 
         # sampler update
         sampler_loss = self.proposal_loss(sample_actions, repeated_states,

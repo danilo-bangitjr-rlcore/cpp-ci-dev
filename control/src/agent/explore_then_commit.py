@@ -26,7 +26,7 @@ class ExploreThenCommit(BaseAC):
 
     def choose_action(self):
         if self.num_episodes < self.exploration_trials:
-            return self.actions[self.num_episodes % self.num_actions]
+            return np.expand_dims(self.actions[self.num_episodes % self.num_actions], axis=0)
         else:
             return self.best_action
         
@@ -46,7 +46,7 @@ class ExploreThenCommit(BaseAC):
             curr_value = self.reward_sum[action_num] / self.counts[action_num]
             if curr_value > self.best_value:
                 self.best_value = curr_value
-                self.best_action = self.actions[action_num]
+                self.best_action = np.expand_dims(self.actions[action_num], axis=0)
 
     def step(self):
         action = self.choose_action()
