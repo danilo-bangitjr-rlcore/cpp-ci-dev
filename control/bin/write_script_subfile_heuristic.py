@@ -22,7 +22,7 @@ def c20240122(settings, shared_settings, target_agents):
     shared_settings["--action_normalizer"] = ["Scale"]
     shared_settings["--activation"] = ["ReLU"]
     shared_settings["--lr_actor"] = [0.1]
-    shared_settings["--lr_critic"] = [0.03]
+    shared_settings["--lr_critic"] = [1.]
     shared_settings["--exp_info"] = ["/setpoint_3/obs_raw/action_scale/replay5000_batch256/beta_shift_1/activation_relu"]
 
     settings = merge_independent(settings, shared_settings)
