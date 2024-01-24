@@ -8,17 +8,40 @@ from curves import visualize_training_info, draw_q_functions
 
 
 def draw_q_plots():
+    # fixed_params_list = {
+    #     "lr_critic": [1e-3],
+    #     "optimizer": ['RMSprop'],
+    #     "etc_learning_start" : [2500] ,
+    #     "etc_reward_clip" : [[-100, 1], [-10, 1], [-2, 1]],
+    #     "batch_size" : [8, 64, 256, 2500],
+    #      "etc_reward_normalization" : ['clip']
+         
+        
+    # }
+    # pth_base = DATAROOT + "output/test_v0/NonContexTT/etc_critic_batch_sweep/etc_critic/{}"
+    # agent = 'ETC'
+
+    # draw_q_functions(pth_base, fixed_params_list, agent, itr=4999, num_rows=3)
+    # plt.savefig('q.png', bbox_inches='tight')
+    
     fixed_params_list = {
-        "lr_critic": [10**i for i in range(-2, -6, -1)],
-        "batch_size": [8, 64],
+        "lr_critic": [1e-3],
         "optimizer": ['RMSprop'],
-        "etc_learning_start" : [2500]  
+        "etc_learning_start" : [2500] ,
+        # "etc_reward_clip" : [[-100, 1], [-10, 1], [-2, 1]],
+        "lr_critic" : [10**i for i in range(-2, -6, -1)],
+        "batch_size" : [64],
+         "etc_reward_normalization" : ['max-min']
+         
+        
     }
-    pth_base = DATAROOT + "output/test_v0/NonContexTT/etc_critic_longeretc_critic_longer/{}"
+    pth_base = DATAROOT + "output/test_v0/NonContexTT/16-01-2024-etc_critic_clip/etc_critic/{}"
     agent = 'ETC'
 
-    draw_q_functions(pth_base, fixed_params_list, agent, itr=-1, num_rows=4)
-    plt.savefig('q.png', bbox_inches='tight')
+    draw_q_functions(pth_base, fixed_params_list, agent, itr=-1, num_rows=1)
+    plt.savefig('qmaxmin.png', bbox_inches='tight')
+    
+    
 
 
 def draw_sensitivity_2d_buffer():
@@ -101,18 +124,33 @@ def test():
         run_pth = os.path.join(pth, run)
         # visualize_training_info(run_pth, target_key, title="vis_noncontext_GAC", threshold=0.99, xlim=None, ylim=[-2, 2])
                
-               
-    
+            
         if os.path.isdir(run_pth):
             seeds = os.listdir(run_pth)
             seeds = [seed for seed in seeds if seed != ".DS_Store"]
             for seed in seeds:
                 seed_pth = os.path.join(run_pth, seed)
-                print(seed_pth)
                 visualize_training_info(seed_pth, target_key, title="vis_noncontext_GAC", threshold=0.99, xlim=None, ylim=[-2, 2])
 
 
-
+def change_action_discrete_replay0():
+        target_key = [
+        "actor_info/param1",
+        "actor_info/param2",
+        "critic_info/Q",
+        "env_info/constrain_detail/kp1",
+        "env_info/constrain_detail/tau",
+        "env_info/constrain_detail/height",
+        "env_info/constrain_detail/flowrate",
+        "env_info/constrain_detail/C1",
+        "env_info/constrain_detail/C2",
+        "env_info/constrain_detail/C3",
+        "env_info/constrain_detail/C4",
+        # "env_info/constrain",
+        "env_info/lambda",
+    ]
+        file = DATAROOT + "output/test_v0/NonContexTT/11-01-2024-etc_critic/ETC/param_15/seed_0"
+        visualize_training_info(file, target_key, title="test", threshold=0.99, xlim=None, ylim=[-2, 2])
 
 if __name__ == '__main__':
     # test()
@@ -121,5 +159,6 @@ if __name__ == '__main__':
     # compare_algorithms()
     # draw_sensitivity_2d_buffer()
     draw_q_plots()
+    # change_action_discrete_replay0()
 
 

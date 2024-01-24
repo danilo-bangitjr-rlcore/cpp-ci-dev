@@ -100,26 +100,73 @@ def etc_critic_prefill(settings, shared_settings, target_agents):
         },
     }
     shared_settings = {
-        "--exp_name": ["etc_critic"],
-        "--max_steps": [100000],
+        "--exp_name": ["etc_critic/"],
+        "--max_steps": [5000],
         "--render": [2],
         "--optimizer" : ['RMSprop'],
         "--lr_critic": [10**i for i in range(-2, -6, -1)],
         "--etc_learning_start": [2500],
-        "--debug" : [1]
+        "--etc_reward_clip" : [[-100, 1], [-10, 1], [-2, 1]],
+        "--debug" : [1],
+        "--etc_reward_normalization" : ['clip']
     }
     target_agents = ["ETC"]
 
     shared_settings["--env_name"] = ["NonContexTT"]
-    shared_settings["--exp_info"] = ["etc_critic/"]
+    shared_settings["--exp_info"] = ["etc_critic"]
     shared_settings["--buffer_size"] = [5000]
-    shared_settings["--batch_size"] = [8, 64, 128]
+    shared_settings["--batch_size"] = [64]
     shared_settings["--etc_buffer_prefill"] = [2500]
-    
-    
     settings = merge_independent(settings, shared_settings)
-    print(settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=1000, comb_num_base=0)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=4, comb_num_base=0)
+    settings = {
+        "ETC": {
+        },
+    }
+    
+    del shared_settings["--etc_reward_clip"]
+    shared_settings["--debug"] = [1],
+    shared_settings["--etc_reward_normalization"] = ['max-min']
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=3, line_per_file=4, comb_num_base=20)
+    
+
+def etc_critic_batch_sweep(settings, shared_settings, target_agents):
+    """
+    Prefill the buffer, then start learning
+    
+    Ran on Jan 10, 2023
+    """
+    settings = {
+        "ETC": {
+        },
+    }
+    shared_settings = {
+        "--exp_name": ["etc_critic_batch_sweep/"],
+        "--max_steps": [5000],
+        "--render": [2],
+        "--optimizer" : ['RMSprop'],
+        "--lr_critic": [1e-3],
+        "--etc_learning_start": [2500],
+        "--etc_reward_clip" : [[-100, 1], [-10, 1], [-2, 1]],
+        "--debug" : [1],
+        "--etc_reward_normalization" : ['clip']
+    }
+    target_agents = ["ETC"]
+
+    shared_settings["--env_name"] = ["NonContexTT"]
+    shared_settings["--exp_info"] = ["etc_critic"]
+    shared_settings["--buffer_size"] = [5000]
+    shared_settings["--batch_size"] = [8, 64, 256, 2500]
+    shared_settings["--etc_buffer_prefill"] = [2500]
+    settings = merge_independent(settings, shared_settings)
+    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=4, comb_num_base=0)
+    settings = {
+        "ETC": {
+        },
+    }
+
+    
     
 def etc_critic_online(settings, shared_settings, target_agents):
     """
@@ -133,7 +180,7 @@ def etc_critic_online(settings, shared_settings, target_agents):
     }
     shared_settings = {
         "--exp_name": ["etc_critic"],
-        "--max_steps": [20000],
+        "--max_steps": [5000],
         "--render": [2],
         "--optimizer" : ['RMSprop'],
         "--lr_critic": [10**i for i in range(-2, -6, -1)],
@@ -263,4 +310,5 @@ if __name__=='__main__':
     # etc_critic(settings, shared_settings, target_agents)
     # etc_critic_prefill(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
     # etc_critic_online(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
-    GAC_Pendulum(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    # GAC_Pendulum(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    etc_critic_batch_sweep(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
