@@ -2,11 +2,16 @@
 # https://github.com/openai/gym/tree/master
 
 # Import modules
-import gym
-from gym import spaces
-from gym.utils import seeding
-import numpy as np
 from os import path
+from typing import Optional
+
+import numpy as np
+
+import gymnasium as gym
+from gymnasium import spaces
+from gymnasium.envs.classic_control import utils
+from gymnasium.error import DependencyNotInstalled
+
 
 
 class PendulumEnv(gym.Env):
@@ -47,12 +52,11 @@ class PendulumEnv(gym.Env):
     Note that this is a continuing task.
     """
     metadata = {
-        'render.modes': ['human', 'rgb_array'],
-        'video.frames_per_second': 30
+        "render_modes": ["human", "rgb_array"],
+        "render_fps": 30,
     }
 
-    def __init__(self, continuous_action=True, g=10.0, trig_features=False,
-            seed=None):
+    def __init__(self, render_mode: Optional[str] = None, g=10.0, continuous_action=True, trig_features=False):
         """
         Constructor
 
@@ -77,6 +81,13 @@ class PendulumEnv(gym.Env):
         self.length = 1.
         self.viewer = None
         self.continuous_action = continuous_action
+
+        self.render_mode = render_mode
+
+        self.screen_dim = 500
+        self.screen = None
+        self.clock = None
+        self.isopen = True
 
         # Set the actions
         if self.continuous_action:
@@ -108,24 +119,6 @@ class PendulumEnv(gym.Env):
                 dtype=np.float32
             )
 
-        self.seed(seed)
-
-    def seed(self, seed=None):
-        """
-        Sets the random seed for the environment
-
-        Parameters
-        ----------
-        seed : int, optional
-            The random seed for the environment, by default None
-
-        Returns
-        -------
-        list
-            The random seed
-        """
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
 
     def step(self, u):
         """
@@ -152,12 +145,16 @@ class PendulumEnv(gym.Env):
         if self.continuous_action:
             u = np.clip(u, -self.max_torque, self.max_torque)[0]
         else:
+            u = u[0]
             assert self.action_space.contains(u), \
                 f"{action!r} ({type(action)}) invalid"
             u = (u - 1) * self.max_torque  # [-max_torque, 0, max_torque]
 
         self.last_u = u  # for rendering
 
+        # NOTE: Difference from gymnasium - 3 at the beginning of the below expression is 
+        # negated. This is corrected by the addition of pi in the argument of the sine term.
+        # This quirk was present in Neumann's GAC repo; keeping it as is.
         newthdot = thdot + (-3 * g / (2 * length) * np.sin(th + np.pi) + 3. /
                             (m * length ** 2) * u) * dt
         newth = angle_normalize(th + newthdot * dt)
@@ -168,12 +165,12 @@ class PendulumEnv(gym.Env):
 
         if self.trig_features:
             # States are encoded as [cos(θ), sin(θ), ω]
-            return self._get_obs(), reward, False, {}
+            return self._get_obs(), reward, False, False, {}
 
         # States are encoded as [θ, ω]
-        return self.state, reward, False, {}
+        return self.state, reward, False, False, {}
 
-    def reset(self):
+    def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         """
         Resets the environment to its starting state
 
@@ -182,17 +179,19 @@ class PendulumEnv(gym.Env):
         array_like of float
             The starting state feature representation
         """
+        super().reset(seed=seed)
+        # Note, gymnasium version of pendulum randomly samples the initial state.
+        # This version (adapted from GAC paper) uses a fixed initial state.
         state = np.array([np.pi, 0.])
         self.state = angle_normalize(state)
-        # self.state = start
         self.last_u = None
 
         if self.trig_features:
             # States are encoded as [cos(θ), sin(θ), ω]
-            return self._get_obs()
+            return self._get_obs(), {}
 
         # States are encoded as [θ, ω]
-        return self.state
+        return self.state, {}
 
     def _get_obs(self):
         """
@@ -204,53 +203,118 @@ class PendulumEnv(gym.Env):
             The state feature vector
         """
         theta, thetadot = self.state
-        return np.array([np.cos(theta), np.sin(theta), thetadot])
+        return np.array([np.cos(theta), np.sin(theta), thetadot], dtype=np.float32)
 
-    def render(self, mode='human'):
+    def render(self):
         """
-        Renders the current time frame
-
-        Parameters
-        ----------
-        mode : str, optional
-            Which mode to render in, by default 'human'
-
-        Returns
-        -------
-        array_like
-            The image of the current time step
+        Fully copied from gymnasium version of pendulum.
         """
-        if self.viewer is None:
-            from gym.envs.classic_control import rendering
-            self.viewer = rendering.Viewer(500, 500)
-            self.viewer.set_bounds(-2.2, 2.2, -2.2, 2.2)
-            rod = rendering.make_capsule(1, .2)
-            rod.set_color(.8, .3, .3)
-            self.pole_transform = rendering.Transform()
-            rod.add_attr(self.pole_transform)
-            self.viewer.add_geom(rod)
-            axle = rendering.make_circle(.05)
-            axle.set_color(0, 0, 0)
-            self.viewer.add_geom(axle)
-            fname = path.join(path.dirname(__file__), "assets/clockwise.png")
-            self.img = rendering.Image(fname, 1., 1.)
-            self.imgtrans = rendering.Transform()
-            self.img.add_attr(self.imgtrans)
+        if self.render_mode is None:
+            assert self.spec is not None
+            gym.logger.warn(
+                "You are calling render method without specifying any render mode. "
+                "You can specify the render_mode at initialization, "
+                f'e.g. gym.make("{self.spec.id}", render_mode="rgb_array")'
+            )
+            return
 
-        self.viewer.add_onetime(self.img)
-        self.pole_transform.set_rotation(self.state[0] + np.pi / 2)
-        if self.last_u:
-            self.imgtrans.scale = (-self.last_u / 2, np.abs(self.last_u) / 2)
+        try:
+            import pygame
+            from pygame import gfxdraw
+        except ImportError as e:
+            raise DependencyNotInstalled(
+                "pygame is not installed, run `pip install gymnasium[classic-control]`"
+            ) from e
 
-        return self.viewer.render(return_rgb_array=mode == 'rgb_array')
+        if self.screen is None:
+            pygame.init()
+            if self.render_mode == "human":
+                pygame.display.init()
+                self.screen = pygame.display.set_mode(
+                    (self.screen_dim, self.screen_dim)
+                )
+            else:  # mode in "rgb_array"
+                self.screen = pygame.Surface((self.screen_dim, self.screen_dim))
+        if self.clock is None:
+            self.clock = pygame.time.Clock()
+
+        self.surf = pygame.Surface((self.screen_dim, self.screen_dim))
+        self.surf.fill((255, 255, 255))
+
+        bound = 2.2
+        scale = self.screen_dim / (bound * 2)
+        offset = self.screen_dim // 2
+
+        rod_length = 1 * scale
+        rod_width = 0.2 * scale
+        l, r, t, b = 0, rod_length, rod_width / 2, -rod_width / 2
+        coords = [(l, b), (l, t), (r, t), (r, b)]
+        transformed_coords = []
+        for c in coords:
+            c = pygame.math.Vector2(c).rotate_rad(self.state[0] + np.pi / 2)
+            c = (c[0] + offset, c[1] + offset)
+            transformed_coords.append(c)
+        gfxdraw.aapolygon(self.surf, transformed_coords, (204, 77, 77))
+        gfxdraw.filled_polygon(self.surf, transformed_coords, (204, 77, 77))
+
+        gfxdraw.aacircle(self.surf, offset, offset, int(rod_width / 2), (204, 77, 77))
+        gfxdraw.filled_circle(
+            self.surf, offset, offset, int(rod_width / 2), (204, 77, 77)
+        )
+
+        rod_end = (rod_length, 0)
+        rod_end = pygame.math.Vector2(rod_end).rotate_rad(self.state[0] + np.pi / 2)
+        rod_end = (int(rod_end[0] + offset), int(rod_end[1] + offset))
+        gfxdraw.aacircle(
+            self.surf, rod_end[0], rod_end[1], int(rod_width / 2), (204, 77, 77)
+        )
+        gfxdraw.filled_circle(
+            self.surf, rod_end[0], rod_end[1], int(rod_width / 2), (204, 77, 77)
+        )
+
+        fname = path.join(path.dirname(gym.envs.classic_control.pendulum.__file__), "assets/clockwise.png")
+        img = pygame.image.load(fname)
+        if self.last_u is not None:
+            scale_img = pygame.transform.smoothscale(
+                img,
+                (scale * np.abs(self.last_u) / 2, scale * np.abs(self.last_u) / 2),
+            )
+            is_flip = bool(self.last_u > 0)
+            scale_img = pygame.transform.flip(scale_img, is_flip, True)
+            self.surf.blit(
+                scale_img,
+                (
+                    offset - scale_img.get_rect().centerx,
+                    offset - scale_img.get_rect().centery,
+                ),
+            )
+
+        # drawing axle
+        gfxdraw.aacircle(self.surf, offset, offset, int(0.05 * scale), (0, 0, 0))
+        gfxdraw.filled_circle(self.surf, offset, offset, int(0.05 * scale), (0, 0, 0))
+
+        self.surf = pygame.transform.flip(self.surf, False, True)
+        self.screen.blit(self.surf, (0, 0))
+        if self.render_mode == "human":
+            pygame.event.pump()
+            self.clock.tick(self.metadata["render_fps"])
+            pygame.display.flip()
+
+        else:  # mode == "rgb_array":
+            return np.transpose(
+                np.array(pygame.surfarray.pixels3d(self.screen)), axes=(1, 0, 2)
+            )
 
     def close(self):
         """
-        Closes the viewer
+        Fully copied from gymnasium version of pendulum.
         """
-        if self.viewer:
-            self.viewer.close()
-            self.viewer = None
+        if self.screen is not None:
+            import pygame
+
+            pygame.display.quit()
+            pygame.quit()
+            self.isopen = False
 
 
 def angle_normalize(x):
@@ -268,4 +332,4 @@ def angle_normalize(x):
         The normalized angle
     """
     # return x % (2 * np.pi)
-    return (((x+np.pi) % (2*np.pi)) - np.pi)
+    return ((x+np.pi) % (2*np.pi)) - np.pi
