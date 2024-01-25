@@ -26,11 +26,12 @@ class DBClientWrapper():
         self.col_names = col_names
         record = []
         for pth in os.listdir(root):
-            full_pth = os.path.join(root, pth)
-            dataset = DictReader(open(full_pth, 'r'))
-            for datum in dataset:
-                point = self._parse_row(datum, date_col, col_names)
-                record.append(point)
+            if ".DS_Store" not in pth:
+                full_pth = os.path.join(root, pth)
+                dataset = DictReader(open(full_pth, 'r'))
+                for datum in dataset:
+                    point = self._parse_row(datum, date_col, col_names)
+                    record.append(point)
         
         self.write_client.write(self.bucket, self.org, record)
         
@@ -96,6 +97,8 @@ class InfluxOPCEnv(gym.Env):
         self.db_client = db_client
         
         if offline_data_folder is not None: # we will import data from a CSV
+            assert date_col is not None
+            assert col_names is not None
             self.db_client.import_csv(offline_data_folder, date_col, col_names)
             self.offline = True
         else:
@@ -126,12 +129,12 @@ class InfluxOPCEnv(gym.Env):
 
     
     def _get_reward(self, s, a):
-        raise NotImplementedError
+        return 1
     
     
-    def get_observation(a, self):
+    def get_observation(self, a):
         """
-        Takes a single synchronous environmental step. This waits for the environemnt 
+        Takes a single synchronous environmental step. 
         """
     
         self._update_now()
@@ -148,13 +151,44 @@ class InfluxOPCEnv(gym.Env):
         return self.state, reward, done, False, {}
         
         
+    def get_observations_since_time(self, a, start_time):
+        """
+        Takes a single synchronous environmental step. Returns all observations since a certain start time. 
+        """
+    
+        self._update_now()
+        self.state = self._get_observation_since_time(start_time)
+        
+        if self.state.size == 0 and self.offline:
+            done = True
+        elif self._now>=self.start_time+self.runtime:
+            done = True
+        else:
+            done = False
+            
+        reward = self._get_reward(self.state, a)
+        return self.state, reward, done, False, {}
+        
+        
     def _update_now(self):
         if self.offline:
+            
             self._now += self.decision_freq
         else:
             self._now = floor(dt.datetime.timestamp(dt.datetime.now()))
-        
     
+    def _get_observation_since_time(self, start_time):
+        """
+        Gets state, defined as all obvservations within start_time to self._now
+        
+        returns: 
+            self.state ...............(np.array) : the state
+        """
+        df = self.db_client.query(start_time, self._now)  
+        state = df.to_numpy()[:, 1:] # ignore first column
+        return state 
+    
+
     def _get_observation(self):
         """
         Gets state, defined as all obvservations within the last self.decision_freq seconds from self._now
@@ -176,9 +210,10 @@ class InfluxOPCEnv(gym.Env):
         array_like of float
             The starting state feature representation
         """
+        self.start_time = self.db_client.start_time
+        self._now = self.start_time
         self._update_now()
         self.state = self._get_observation()
-        self.start_time = self._now
         return self.state    
     
     
