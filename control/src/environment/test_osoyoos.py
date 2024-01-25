@@ -2,11 +2,11 @@
 from opc_connection import OpcConnection
 from InfluxOPCEnv import InfluxOPCEnv, DBClientWrapper
 from ReseauEnv import date_to_timestamp_reseau
-import asyncio
 
 import json
 
-async def main():
+# async def main():
+def main():
     
     db_settings_pth = "/home/rlcore/root/control/src/environment/reseau/db_settings_osoyoos.json"
     db_settings = json.load(open(db_settings_pth, "r"))
@@ -50,8 +50,8 @@ async def main():
     print("Success getting obs!")
 
     # %%
-    await env.take_action(50)
+    # await env.take_action(50)
 
-
-asyncio.run(main())
+main()
+# asyncio.run(main())
 print("Success taking action!")
