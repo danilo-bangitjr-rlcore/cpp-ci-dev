@@ -93,8 +93,10 @@ class DBClientWrapper():
     
         
 class InfluxOPCEnv(gym.Env):
-    def __init__(self, db_client, opc_connection, runtime, control_tags, decision_freq=10*60, date_col=None, col_names=None, offline_data_folder=None,):
+    def __init__(self, db_client, opc_connection, runtime, control_tags,  date_col, col_names, decision_freq=10*60, offline_data_folder=None,):
         self.db_client = db_client
+        self.date_col = date_col,
+        self.col_names = col_names
         
         if offline_data_folder is not None: # we will import data from a CSV
             assert date_col is not None
@@ -184,7 +186,7 @@ class InfluxOPCEnv(gym.Env):
         returns: 
             self.state ...............(np.array) : the state
         """
-        df = self.db_client.query(start_time, self._now)  
+        df = self.db_client.query(start_time, self._now, self.col_names)  
         state = df.to_numpy()[:, 1:] # ignore first column
         return state 
     
@@ -196,7 +198,7 @@ class InfluxOPCEnv(gym.Env):
         returns: 
             self.state (np.array) : the state
         """
-        df = self.db_client.query(self._now-self.decision_freq, self._now)  
+        df = self.db_client.query(self._now-self.decision_freq, self._now, self.col_names)  
         state = df.to_numpy()[:, 1:] # ignore first column
         return state 
 
