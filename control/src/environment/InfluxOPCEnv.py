@@ -7,6 +7,7 @@ import numpy as np
 import os
 import time
 import gymnasium as gym
+import pandas as pd
 
 from csv import DictReader
 from math import floor
@@ -85,13 +86,15 @@ class DBClientWrapper():
         query_str_list = [
             'from(bucket:"{}") '.format(self.bucket),
             '|> range(start: {}, stop: {}) '.format(start_time, end_time),
-            '|> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value") ',
-            '|> keep(columns: {})'.format(col_names_str)
+            '|> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value") '
             ]
         query_str = ' '.join(query_str_list)
-        return self.query_api.query_data_frame(query_str)
-    
-        
+        df_list = self.query_api.query_data_frame(query_str)
+        df = pd.concat(df_list, axis=1)
+        df = df[col_names]
+        print(df.columns)
+        return df
+   
 class InfluxOPCEnv(gym.Env):
     def __init__(self, db_client, opc_connection, runtime, control_tags,  date_col, col_names, decision_freq=10*60, offline_data_folder=None,):
         self.db_client = db_client
@@ -109,6 +112,7 @@ class InfluxOPCEnv(gym.Env):
         self.decision_freq = decision_freq
         self.runtime = runtime
         self.opc_connection = opc_connection
+       
         self.control_tags = control_tags
         
     async def take_action(self, a):
@@ -187,7 +191,7 @@ class InfluxOPCEnv(gym.Env):
             self.state ...............(np.array) : the state
         """
         df = self.db_client.query(start_time, self._now, self.col_names)  
-        state = df.to_numpy()[:, 1:] # ignore first column
+        state = df.to_numpy()
         return state 
     
 
@@ -199,7 +203,7 @@ class InfluxOPCEnv(gym.Env):
             self.state (np.array) : the state
         """
         df = self.db_client.query(self._now-self.decision_freq, self._now, self.col_names)  
-        state = df.to_numpy()[:, 1:] # ignore first column
+        state = df.to_numpy() 
         return state 
 
 
