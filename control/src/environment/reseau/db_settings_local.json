@@ -2,5 +2,5 @@
     "bucket" :  "reseau" ,  
     "org" :  "rl-core" ,
     "token": "o9J8dxw1j4J8Wf5202vh4yH2ybm1ro4vVNN0u6DQCmPE6_PJH2IVmXN9NEL6DgrYKFvKSOZfIvymkKOwcuEA9g==" ,
-    "url" : "http://localhost:8086"
+    "url" : "https://localhost:8086"
 }   

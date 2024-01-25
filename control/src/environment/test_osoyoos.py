@@ -10,6 +10,7 @@ def main():
     
     db_settings_pth = "/home/rlcore/root/control/src/environment/reseau/db_settings_osoyoos.json"
     db_settings = json.load(open(db_settings_pth, "r"))
+    
     opc_settings_pth = "/home/rlcore/root/control/src/environment/reseau/opc_settings_osoyoos.json"
     opc_settings = json.load(open(opc_settings_pth, "r"))
 
