@@ -83,6 +83,7 @@ class Clip(BaseNormalizer):
     def denormalize(self, x):
         raise NotImplementedError
 
+
 def init_normalizer(name, *args):
     if name == "Identity":
         return Identity()
@@ -92,5 +93,7 @@ def init_normalizer(name, *args):
         return Scale(*args)
     elif name == "Clip":
         return Clip(*args)
+    elif name == "ThreeTanks":
+        return Clip([-1, 1])
     else:
         raise NotImplementedError

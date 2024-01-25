@@ -124,6 +124,8 @@ def configure_action_scaler_and_bias(cfg):
         elif name == "TTAction/ChangePID":
            raise NotImplementedError
         elif name == "NonContexTT":
+            cfg.state_normalizer = "Identity"
+            cfg.reward_normalizer = "ThreeTanks"
             if cfg.actor == 'Beta':
                 cfg.action_scale = 10.
                 cfg.action_bias = 0

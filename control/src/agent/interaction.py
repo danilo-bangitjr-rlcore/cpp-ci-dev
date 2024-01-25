@@ -11,8 +11,9 @@ class InteractionLayer:
         self.eval_env.reset(seed=cfg.seed)
 
         self.state_normalizer = init_normalizer(cfg.state_normalizer, self.env.observation_space)
-        reward_normalizer = cfg.reward_normalizer.split("/")
-        self.reward_normalizer = init_normalizer(reward_normalizer[0], [float(i) for i in reward_normalizer[1:]])
+        # reward_normalizer = cfg.reward_normalizer.split("/")
+        # self.reward_normalizer = init_normalizer(reward_normalizer[0], [float(i) for i in reward_normalizer[1:]])
+        self.reward_normalizer = init_normalizer(cfg.reward_normalizer, None)
         self.action_normalizer = init_normalizer(cfg.action_normalizer, [cfg.action_scale, cfg.action_bias])
 
         self.state_dim = self.state_normalizer.get_new_dim(flatdim(self.env.observation_space))
