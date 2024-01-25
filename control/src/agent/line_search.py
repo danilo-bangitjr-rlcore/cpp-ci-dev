@@ -68,17 +68,12 @@ class LineSearchAgent(GreedyAC):
         self.max_backtracking = 10
         self.reducing_rate = 0.5
         self.increasing_rate = 1.1 # Not sure if this is going to be used
+        self.critic_lr_lower_bound = 1e-07
+        self.actor_lr_lower_bound = 1e-04
+
         assert self.cfg.batch_size >= 256
         assert self.max_backtracking > 0
-        self.lr_lower_bound = 1e-07
-
         self.random_prefill()
-
-        # for debugging with SAC update
-        self.target_entropy = -np.prod(self.action_dim).item()
-        self.log_alpha = torch_utils.Float(self.device, 0.0)
-        self.alpha = self.log_alpha().exp().detach()
-        self.alpha_optimizer = torch.optim.Adam(self.log_alpha.parameters(), lr=self.cfg.lr_actor)
 
 
     def random_prefill(self):
@@ -158,8 +153,12 @@ class LineSearchAgent(GreedyAC):
         error = nn.functional.mse_loss(q.detach(), target.detach())
         return error
 
-    def eval_error_actor(self, state_batch):
-        _, logp, _ = self.get_policy(state_batch, with_grad=False)
+    # def eval_error_actor(self, state_batch):
+    #     _, logp, _ = self.get_policy(state_batch, with_grad=False)
+    #     return -torch.exp(logp.mean()).detach()
+    def eval_error_actor(self, state_batch, action_batch, network):
+        with torch.no_grad():
+            logp, _ = network.log_prob(state_batch, action_batch)
         return -torch.exp(logp.mean()).detach()
 
     def parameter_backup_critic(self):
@@ -181,7 +180,7 @@ class LineSearchAgent(GreedyAC):
         clone_model_0to1(self.actor_opt_copy, self.actor_optimizer)
 
     def reset_critic(self):
-        self.cfg.lr_critic = max(self.cfg.lr_critic*0.5, self.lr_lower_bound)
+        self.cfg.lr_critic = max(self.cfg.lr_critic*0.5, self.critic_lr_lower_bound)
         if self.cfg.discrete_control:
             self.critic = init_critic_network(self.cfg.critic, self.cfg.device, self.state_dim, self.cfg.hidden_critic, self.action_dim,
                                               self.cfg.activation, self.cfg.layer_init_critic, self.cfg.layer_norm)
@@ -210,7 +209,7 @@ class LineSearchAgent(GreedyAC):
             self.critic_optimizer.step()
 
     def reset_actor(self):
-        self.cfg.lr_actor = max(self.cfg.lr_actor * 0.5, self.lr_lower_bound)
+        self.cfg.lr_actor = max(self.cfg.lr_actor * 0.5, self.actor_lr_lower_bound)
         self.actor = init_policy_network(self.cfg.actor, self.cfg.device, self.state_dim, self.cfg.hidden_actor,
                                          self.action_dim, self.cfg.beta_parameter_bias, self.cfg.activation,
                                          self.cfg.head_activation, self.cfg.layer_init_actor, self.cfg.layer_norm)
@@ -228,7 +227,8 @@ class LineSearchAgent(GreedyAC):
             state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
                 data['obs2'], 1 - data['done']
             _, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
-            pi_loss = (-logp + self.explore_bonus_eval(stacked_s_batch, best_actions)).mean()
+            # pi_loss = (-logp + self.explore_bonus_eval(stacked_s_batch, best_actions)).mean()
+            pi_loss = -logp.mean()
             # do not change lr_weight here
             self.actor_optimizer.zero_grad()
             pi_loss.backward()
@@ -236,6 +236,7 @@ class LineSearchAgent(GreedyAC):
 
             sampler_loss = self.proposal_loss(sample_actions, repeated_states,
                                               stacked_s_batch, best_actions, sorted_q, state_batch)
+            # sampler_loss += self.explore_bonus_eval(stacked_s_batch, best_actions).mean()
             self.sampler_optim.zero_grad()
             sampler_loss.backward()
             self.sampler_optim.step()
@@ -270,127 +271,45 @@ class LineSearchAgent(GreedyAC):
         return next_action
 
     def backtrack_actor(self, state_batch):
-        before_error = self.eval_error_actor(state_batch)
         _, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
-        pi_loss = (-logp + self.explore_bonus_eval(stacked_s_batch, best_actions)).mean()
-        # pi_loss = -logp.mean()
+        before_error = self.eval_error_actor(stacked_s_batch, best_actions, self.actor_copy)
+        # pi_loss = (-logp + self.explore_bonus_eval(stacked_s_batch, best_actions)).mean()
+        pi_loss = -logp.mean()
         pi_loss_weighted = pi_loss * self.actor_lr_weight
         self.actor_optimizer.zero_grad()
         pi_loss_weighted.backward()
-
         grad_rec_actor = clone_gradient(self.actor)
+
         for bi in range(self.max_backtracking):
             if bi > 0:
                 self.actor_optimizer.zero_grad()
                 move_gradient_to_network(self.actor, grad_rec_actor, self.actor_lr_weight)
             self.actor_optimizer.step()
-            after_error = self.eval_error_actor(state_batch)
+            after_error = self.eval_error_actor(stacked_s_batch, best_actions, self.actor)
 
-            if after_error >= before_error and bi < self.max_backtracking-1:
+            if after_error > before_error and bi < self.max_backtracking-1:
                 self.actor_lr_weight *= 0.5
                 self.undo_update_actor()
-            elif after_error >= before_error and bi == self.max_backtracking-1:
-                print("Actor reset, learning rate", after_error, before_error, self.cfg.lr_actor)
+            elif after_error > before_error and bi == self.max_backtracking-1:
+                print("Reset Actor, learning rate", after_error, before_error, self.cfg.lr_actor)
                 self.reset_actor()
             else:
                 break
 
         sampler_loss = self.proposal_loss(sample_actions, repeated_states,
                                           stacked_s_batch, best_actions, sorted_q, state_batch)
+        # sampler_loss += self.explore_bonus_eval(stacked_s_batch, best_actions).mean()
         self.sampler_optim.zero_grad()
         (self.actor_lr_weight * sampler_loss).backward()
         self.sampler_optim.step()
 
         self.actor_lr_weight = self.actor_lr_weight_copy
 
-        return repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions
-
-    # """ Debugging with SAC actor =============================================================================="""
-    #
-    # def sac_reset_actor(self):
-    #     self.cfg.lr_actor = max(self.cfg.lr_actor * 0.5, self.lr_lower_bound)
-    #     self.actor = init_policy_network(self.cfg.actor, self.cfg.device, self.state_dim, self.cfg.hidden_actor,
-    #                                      self.action_dim, self.cfg.beta_parameter_bias, self.cfg.activation,
-    #                                      self.cfg.head_activation, self.cfg.layer_init_actor, self.cfg.layer_norm)
-    #     self.actor_optimizer = init_optimizer(self.cfg.optimizer, list(self.actor.parameters()), self.cfg.lr_actor)
-    #     print("Actor reset, learning rate", self.cfg.lr_actor)
-    #     self.actor_lr_weight = 1
-    #     self.actor_lr_weight_copy = 1
-    #
-    #     self.log_alpha = torch_utils.Float(self.device, 0.0)
-    #     self.alpha = self.log_alpha().exp().detach()
-    #     self.alpha_optimizer = torch.optim.Adam(self.log_alpha.parameters(), lr=self.cfg.lr_actor)
-    #
-    #     for _ in range(self.reset_iteration(self.actor_lr_start, self.cfg.lr_actor)):
-    #         data = self.get_data()
-    #         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
-    #             data['obs2'], 1 - data['done']
-    #         _, log_pi, _ = self.get_policy(state_batch, with_grad=False)
-    #         alpha_loss = -(self.log_alpha() * (log_pi + self.target_entropy).detach()).mean()
-    #         self.alpha_optimizer.zero_grad()
-    #         alpha_loss.backward()
-    #         self.alpha_optimizer.step()
-    #         self.alpha = self.log_alpha().exp().detach()
-    #
-    #         pi, log_pi, _ = self.get_policy(state_batch, with_grad=True)  # self.ac.pi(state_batch)
-    #         min_qf_pi, _ = self.get_q_value(state_batch, pi, with_grad=True)
-    #         pi_loss = ((self.alpha * log_pi) - min_qf_pi).mean()  # Jπ = 𝔼st∼D,εt∼N[α * logπ(f(εt;st)|st) − Q(st,f(εt;st))]
-    #         # do not change lr_weight here
-    #         self.actor_optimizer.zero_grad()
-    #         pi_loss.backward()
-    #         self.actor_optimizer.step()
-    #
-    # # def eval_error_actor(self, state_batch):
-    # #     a, logp, _ = self.get_policy(state_batch, with_grad=False)
-    # #     qest, _ = self.get_q_value(state_batch, a, with_grad=False)
-    # #     return -qest.mean()
-    #
-    # def sac_backtrack_actor(self, state_batch):
-    #     before_error = self.eval_error_actor(state_batch)
-    #
-    #     # SAC's actor update
-    #     # _, log_pi, _ = self.get_policy(state_batch, with_grad=False)
-    #     # alpha_loss = -(self.log_alpha() * (log_pi + self.target_entropy).detach()).mean()
-    #     # self.alpha_optimizer.zero_grad()
-    #     # alpha_loss.backward()
-    #     # self.alpha_optimizer.step()
-    #     # self.alpha = self.log_alpha().exp().detach()
-    #     # print("temperature", self.alpha)
-    #     self.log_alpha = torch_utils.Float(self.device, np.log(self.cfg.tau))
-    #     self.alpha = self.log_alpha().exp().detach()
-    #
-    #     pi, log_pi, _ = self.get_policy(state_batch, with_grad=True)  # self.ac.pi(state_batch)
-    #     min_qf_pi, _ = self.get_q_value(state_batch, pi, with_grad=True)
-    #     pi_loss = ((self.alpha * log_pi) - min_qf_pi).mean()  # Jπ = 𝔼st∼D,εt∼N[α * logπ(f(εt;st)|st) − Q(st,f(εt;st))]
-    #
-    #     pi_loss_weighted = pi_loss * self.actor_lr_weight
-    #     self.actor_optimizer.zero_grad()
-    #     pi_loss_weighted.backward()
-    #     grad_rec_actor = clone_gradient(self.actor)
-    #
-    #     for bi in range(self.max_backtracking):
-    #         if bi > 0:
-    #             print("backtrack actor", bi)
-    #             self.actor_optimizer.zero_grad()
-    #             move_gradient_to_network(self.actor, grad_rec_actor, self.actor_lr_weight)
-    #         self.actor_optimizer.step()
-    #         after_error = self.eval_error_actor(state_batch)
-    #         print("actor error", before_error, after_error)
-    #
-    #         if after_error >= before_error and bi < self.max_backtracking-1:
-    #             self.actor_lr_weight *= 0.5
-    #             self.undo_update_actor()
-    #         elif after_error >= before_error and bi == self.max_backtracking-1:
-    #             self.sac_reset_actor()
-    #         else:
-    #             break
-    #     self.actor_lr_weight = self.actor_lr_weight_copy
-    #     # return repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions
-    # """=============================================================================="""
+        return
 
     def reset_iteration(self, lr_start, lr_current):
         count = (int(np.ceil(self.buffer.size / self.cfg.batch_size)) *
-                 (int(np.log2(lr_start / lr_current))))
+                 (int(np.log2(lr_start / lr_current)))) * 5
         return count
 
 
@@ -408,6 +327,4 @@ class LineSearchAgent(GreedyAC):
         # actor update
         self.parameter_backup_actor()
         self.backtrack_actor(state_batch)
-
-        # self.sac_backtrack_actor(state_batch)
 
