@@ -2,5 +2,5 @@
     "bucket" :  "osoyoos",  
     "org" :  "rlcore" ,
     "token": "W2X5i8q6EQVfOzPAJpgWKG-OIDNUmF2UjfnuatsZQ1Ktt56T0eZWZQHZHqFMS0R1TxgRWcJbpKVAJ_IEtDKakg==" ,
-    "url" : "http://localhost:8086"
+    "url" : "https://localhost:8086"
 }   
