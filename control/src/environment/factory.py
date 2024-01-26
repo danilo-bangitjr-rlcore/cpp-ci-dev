@@ -10,10 +10,11 @@ from src.environment.smpl.envs.reactorenv import ReactorEnvGym
 from src.environment.gym_wrapper import DiscreteControlWrapper
 from src.environment.PendulumEnv import PendulumEnv
 from src.environment.ReseauEnv import ReseauEnv
+from src.environment.InfluxOPCEnv import DBClientWrapper
+from src.environment.opc_connection import OpcConnection
 
 import json
-from InfluxOPCEnv import DBClientWrapper
-from opc_connection import OpcConnection
+
 
 def init_environment(name, cfg):
     if name == "ThreeTank":

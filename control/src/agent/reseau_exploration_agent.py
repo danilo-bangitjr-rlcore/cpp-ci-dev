@@ -68,6 +68,8 @@ class ReseauExplorationAgent:
 		
 		# Schedule next ORP delay iteration
 		if self.orp_delay_iter_num % len(self.orp_delay_start_times) == 0:
+			s = str(date.today() + timedelta(days=1)) + " " + self.orp_delay_start_times[0]
+			print(s)
 			# Schedule next morning
 			orp_delay_start_time = time.strptime(str(date.today() + timedelta(days=1)) + " " + self.orp_delay_start_times[0], '%Y-%m-%d %H:%M:%S')
 			orp_delay_start_time = time.mktime(orp_delay_start_time)
@@ -77,6 +79,7 @@ class ReseauExplorationAgent:
 			orp_delay_start_time = time.strptime(str(date.today()) + " " + self.orp_delay_start_times[1], '%Y-%m-%d %H:%M:%S')
 			orp_delay_start_time = time.mktime(orp_delay_start_time)
 			scheduler.enterabs(orp_delay_start_time, 1, self.orp_delay_agent, argument=[scheduler])
+
 
 	def fpm_exploration_agent(self, scheduler):
 		print("Run Varying FPM Experiment Iteration")

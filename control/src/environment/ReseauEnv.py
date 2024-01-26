@@ -1,6 +1,6 @@
 import datetime as dt
 import time
-from InfluxOPCEnv import InfluxOPCEnv
+from src.environment.InfluxOPCEnv import InfluxOPCEnv
 
 def date_to_timestamp_reseau(date):
     """
