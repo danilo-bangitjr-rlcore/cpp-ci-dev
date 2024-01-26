@@ -124,18 +124,20 @@ class InfluxOPCEnv(gym.Env):
         # remember these are simulated nodes for these
         # write examples so we don't change real
         # values on the PLC
-        nodes = asyncio.run(self.opc_connection.get_nodes(self.control_tags))
+        task = asyncio.create_task(self.opc_connection.get_nodes(self.control_tags))
+        asyncio.run(task)
+        nodes = task.result()
 
         # get the variant types
         # this is necessary to properly specify the
         # data types for the actual write operation
-        variant_types = asyncio.run(self.opc_connection.read_variant_types(nodes))
+        # variant_types = asyncio.run(self.opc_connection.read_variant_types(nodes))
         
-        # write the values
-        # you need to provide 3 lists: the nodes, the variant types
-        # of the nodes, and the values. Of course, these should all be the same
-        # length
-        asyncio.run(self.opc_connection.write_values(nodes, variant_types, a))
+        # # write the values
+        # # you need to provide 3 lists: the nodes, the variant types
+        # # of the nodes, and the values. Of course, these should all be the same
+        # # length
+        # asyncio.run(self.opc_connection.write_values(nodes, variant_types, a))
 
     
     def _get_reward(self, s, a):
