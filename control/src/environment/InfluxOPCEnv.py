@@ -11,6 +11,7 @@ import pandas as pd
 
 from csv import DictReader
 from math import floor
+import asyncio
 
 class DBClientWrapper():
     def __init__(self, bucket, org, token, url, date_fn=None):
@@ -98,7 +99,8 @@ class DBClientWrapper():
         return df
    
 class InfluxOPCEnv(gym.Env):
-    def __init__(self, db_client, opc_connection, runtime, control_tags,  date_col, col_names, decision_freq=10*60, offline_data_folder=None,):
+    def __init__(self, db_client, opc_connection, control_tags, date_col, col_names, runtime=None, decision_freq=10*60, offline_data_folder=None):
+        # for continuing s
         self.db_client = db_client
         self.date_col = date_col,
         self.col_names = col_names
@@ -117,28 +119,40 @@ class InfluxOPCEnv(gym.Env):
        
         self.control_tags = control_tags
         
-    async def take_action(self, a):
+    def take_action(self, a):
         # get the list of nodes
         # remember these are simulated nodes for these
         # write examples so we don't change real
         # values on the PLC
-        nodes = await self.opc_connection.get_nodes(self.control_tags)
+        nodes = asyncio.run(self.opc_connection.get_nodes(self.control_tags))
 
         # get the variant types
         # this is necessary to properly specify the
         # data types for the actual write operation
-        variant_types = await self.opc_connection.read_variant_types(nodes)
+        variant_types = asyncio.run(self.opc_connection.read_variant_types(nodes))
         
         # write the values
         # you need to provide 3 lists: the nodes, the variant types
         # of the nodes, and the values. Of course, these should all be the same
         # length
-        await self.opc_connection.write_values(nodes, variant_types, a)
+        asyncio.run(self.opc_connection.write_values(nodes, variant_types, a))
 
     
     def _get_reward(self, s, a):
         raise NotImplementedError
     
+    def _check_done(self):
+        if self.state.size == 0 and self.offline:
+            done = True
+        elif self.runtime is not None: # not a continuing task
+            if self._now>=self.start_time+self.runtime:
+                done = True
+            else: 
+                done = False
+        else:
+            done = False
+        return done
+            
     
     def get_observation(self, a):
         """
@@ -147,14 +161,7 @@ class InfluxOPCEnv(gym.Env):
     
         self._update_now()
         self.state = self._get_observation() 
-        
-        if self.state.size == 0 and self.offline:
-            done = True
-        elif self._now>=self.start_time+self.runtime:
-            done = True
-        else:
-            done = False
-            
+        done = self._check_done()
         reward = self._get_reward(self.state, a)
         return self.state, reward, done, False, {}
         
@@ -166,14 +173,7 @@ class InfluxOPCEnv(gym.Env):
     
         self._update_now()
         self.state = self._get_observation_since_time(start_time)
-        
-        if self.state.size == 0 and self.offline:
-            done = True
-        elif self._now>=self.start_time+self.runtime:
-            done = True
-        else:
-            done = False
-            
+        done = self._check_done()    
         reward = self._get_reward(self.state, a)
         return self.state, reward, done, False, {}
         
@@ -216,9 +216,6 @@ class InfluxOPCEnv(gym.Env):
         array_like of float
             The starting state feature representation
         """
-        # TODO: add fpm reset
-        
-        
         self.start_time = self.db_client.start_time
         self._now = self.start_time
         self._update_now()
@@ -226,5 +223,5 @@ class InfluxOPCEnv(gym.Env):
         return self.state    
     
     
-    async def close(self):
-        await self.opc_connection.disconnect()
+    def close(self):
+        asyncio.run(self.opc_connection.disconnect())

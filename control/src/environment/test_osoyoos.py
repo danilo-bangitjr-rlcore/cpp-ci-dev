@@ -1,4 +1,4 @@
-# %%
+
 from opc_connection import OpcConnection
 from InfluxOPCEnv import InfluxOPCEnv, DBClientWrapper
 from ReseauEnv import date_to_timestamp_reseau
@@ -7,8 +7,7 @@ from ReseauEnv import ReseauEnv
 import json
 import asyncio
 
-async def main():
-# def main():
+def main():
     db_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\db_settings_osoyoos.json"
     db_settings = json.load(open(db_settings_pth, "r"))
     
@@ -20,9 +19,12 @@ async def main():
     
     opc_connection = OpcConnection(opc_settings["IP"], opc_settings["port"])
     
-    await opc_connection.connect()
+    asyncio.run(opc_connection.connect())
     
-    FPM_control_tag = "osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"
+    control_tags = ["osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"]
+    control_tag_default = [15]
+    runtime = None
+    
     date_col = "Date "
     col_names = [
         "ait101_pv",
@@ -40,20 +42,13 @@ async def main():
         ]
 
 
-    env = ReseauEnv(db_client, opc_connection, 10, [FPM_control_tag], date_col, col_names, decision_freq=600)
-
-    # # %%
+    env = ReseauEnv(db_client, opc_connection,  control_tags, control_tag_default, date_col, col_names, runtime, decision_freq=600)
     s_0 = env.reset()
 
     state, reward, done, _, _ = env.get_observation(0)
     print(state)
-    print(state.shape)
-    print(state)
     print("Success getting obs!")
-
-    # %%
-    # await env.take_action([15])
-
-# main()
-asyncio.run(main())
-print("Success taking action!")
+    env.take_action([15])
+    print("Success taking action!")
+    
+main()

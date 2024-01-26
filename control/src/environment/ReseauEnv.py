@@ -1,4 +1,5 @@
 import datetime as dt
+import time
 from InfluxOPCEnv import InfluxOPCEnv
 
 def date_to_timestamp_reseau(date):
@@ -28,5 +29,14 @@ def date_to_timestamp_reseau(date):
 
 
 class ReseauEnv(InfluxOPCEnv):
+    def __init__(self, db_client, opc_connection, control_tags, control_tag_default, date_col, col_names, runtime, decision_freq=10 * 60, offline_data_folder=None):
+        super().__init__(db_client, opc_connection, control_tags, date_col, col_names, runtime, decision_freq, offline_data_folder)
+        self.control_tags_default = control_tag_default
+        
     def _get_reward(self, s, a):
         return  1
+    
+    def reset(self):
+        self.take_action(self.control_tags_default)
+        time.sleep(0.1)
+        return super().reset()
