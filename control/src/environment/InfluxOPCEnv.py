@@ -90,9 +90,12 @@ class DBClientWrapper():
             ]
         query_str = ' '.join(query_str_list)
         df_list = self.query_api.query_data_frame(query_str)
-        df = pd.concat(df_list, axis=1)
+        
+        if type(df_list) == list:
+            df = pd.concat(df_list, axis=1)
+        else:
+            df = df_list
         df = df[col_names]
-        print(df.columns)
         return df
    
 class InfluxOPCEnv(gym.Env):

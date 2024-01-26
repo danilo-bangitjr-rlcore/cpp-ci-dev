@@ -22,7 +22,7 @@ async def main():
 
     # %%
     opc_connection = OpcConnection(opc_settings["IP"], opc_settings["port"])
-    await opc_connection.connect()
+    # await opc_connection.connect()
     # %%
     FPM_control_tag = "osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"
     date_col = "Date "
@@ -54,7 +54,7 @@ async def main():
     print("Success getting obs!")
 
     # %%
-    await env.take_action([15])
+    # await env.take_action([15])
 
 # main()
 asyncio.run(main())

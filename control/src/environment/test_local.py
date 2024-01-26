@@ -21,6 +21,7 @@ async def main():
 
     # %%
     opc_connection = OpcConnection(opc_settings["IP"], opc_settings["port"])
+    await opc_connection.connect()
 
     # %%
     FPM_control_tag = "osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"
@@ -52,7 +53,8 @@ async def main():
 
     # %%
     env.reset()
-    state, reward, done, _, _ = env.get_observations_since_time(0, 0)
+    state, reward, done, _, _ = env.get_observation(0)
+    print(state)
     print("Success getting obs!")
 
     # %%
