@@ -278,10 +278,11 @@ class BaseAC(Evaluation):
     def decoupled_inner_update(self, trunc=False):
         if self.total_steps % self.update_freq == 0:
             for _ in range(self.update_freq):
-                self.async_inner_update(trunc)
+                self.decoupled_inner_update(trunc)
 
-    def async_inner_update(self, trunc=False):
-        raise NotImplementedError
+    def decoupled_inner_update(self, trunc=False):
+        pass
+        # raise NotImplementedError
 
     def inner_update(self, trunc=False):
         raise NotImplementedError

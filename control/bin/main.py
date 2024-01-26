@@ -86,6 +86,8 @@ if __name__ == "__main__":
     # Explore Then Commit
     parser.add_argument('--actions_per_dim', default=50, type=int)
     parser.add_argument('--min_trials', default=1, type=int)
+    
+    parser.add_argument('--decouple_steps',  default=0, type=int)
 
     cfg = parser.parse_args()
 
@@ -122,4 +124,10 @@ if __name__ == "__main__":
     utils.write_json(cfg.exp_path, cfg) # write json after finishing all parameter changing.
     cfg.logger = utils.logger_setup(cfg)
     agent = agent_factory.init_agent(cfg.agent_name, cfg)
-    run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, cfg.buffer_prefill)
+    
+    if cfg.decouple_steps:
+        agent_step = agent.decoupled_step # decouples take action from get observation
+    else:
+        agent_step = agent.step
+         
+    run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, cfg.buffer_prefill, agent_step)

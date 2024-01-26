@@ -228,7 +228,7 @@ class InfluxOPCEnv(gym.Env):
         self._now = self.start_time
         self._update_now()
         self.state = self._get_observation()
-        return self.state    
+        return self.state, {}
     
     
     def close(self):

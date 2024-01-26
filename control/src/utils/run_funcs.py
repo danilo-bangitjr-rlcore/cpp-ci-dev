@@ -6,7 +6,7 @@ import numpy as np
 import pickle as pkl
 
 
-def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_size):
+def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_size, agent_step):
     start_time = time.time()
     train_logs = []
     evaluations = []
@@ -23,7 +23,7 @@ def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_si
         if max_steps and agent.total_steps >= max_steps:
             break
         
-        agent.step()
+        agent_step()
     
     np.save(eval_pth + "/train_logs.npy", np.array(train_logs))
     np.save(eval_pth + "/evaluations.npy", np.array(evaluations))
@@ -33,8 +33,8 @@ def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_si
 
     end_time = time.time()
     print("Total Time:", str(end_time - start_time))
-
-
+    
+    
 def vis_reward(env, title, clip=None):
     if os.path.isfile(title+".pkl"):
         with open(title + ".pkl", 'rb') as f:

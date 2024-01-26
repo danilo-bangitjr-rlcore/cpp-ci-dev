@@ -190,6 +190,10 @@ def configure_action_scaler_and_bias(cfg):
             raise NotImplementedError
         elif name == "Pendulum-v1":
             raise NotImplementedError
+        elif name == "Reseau":
+            if cfg.actor == 'Beta':
+                cfg.action_scale = 200.0
+                cfg.action_bias = 0.0
         else:
             raise NotImplementedError
     
