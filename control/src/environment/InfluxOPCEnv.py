@@ -12,6 +12,7 @@ import pandas as pd
 from csv import DictReader
 from math import floor
 import asyncio
+import time
 
 class DBClientWrapper():
     def __init__(self, bucket, org, token, url, date_fn=None):
@@ -119,25 +120,30 @@ class InfluxOPCEnv(gym.Env):
        
         self.control_tags = control_tags
         
-    def take_action(self, a):
-        # get the list of nodes
-        # remember these are simulated nodes for these
-        # write examples so we don't change real
-        # values on the PLC
-        task = asyncio.create_task(self.opc_connection.get_nodes(self.control_tags))
-        asyncio.run(task)
-        nodes = task.result()
 
+    async def _take_action(self, a):
+        await self.opc_connection.connect()
+        nodes = await self.opc_connection.get_nodes(self.control_tags)
+       
         # get the variant types
         # this is necessary to properly specify the
         # data types for the actual write operation
-        # variant_types = asyncio.run(self.opc_connection.read_variant_types(nodes))
+        # time.sleep(0.1)
+        variant_types = await self.opc_connection.read_variant_types(nodes)
         
         # # write the values
         # # you need to provide 3 lists: the nodes, the variant types
         # # of the nodes, and the values. Of course, these should all be the same
         # # length
-        # asyncio.run(self.opc_connection.write_values(nodes, variant_types, a))
+        await self.opc_connection.write_values(nodes, variant_types, a)
+
+    def take_action(self, a):
+        # get the list of nodes
+        # remember these are simulated nodes for these
+        # write examples so we don't change real
+        # values on the PLC
+        asyncio.run(self._take_action(a))
+      
 
     
     def _get_reward(self, s, a):

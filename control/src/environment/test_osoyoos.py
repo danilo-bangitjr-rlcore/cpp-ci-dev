@@ -6,7 +6,7 @@ from ReseauEnv import ReseauEnv
 
 import json
 import asyncio
-
+import time
 def main():
     db_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\db_settings_osoyoos.json"
     db_settings = json.load(open(db_settings_pth, "r"))
@@ -18,13 +18,10 @@ def main():
                         db_settings["token"], db_settings["url"])
     
     opc_connection = OpcConnection(opc_settings["IP"], opc_settings["port"])
-    
-    asyncio.run(opc_connection.connect())
-    
+
     control_tags = ["osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"]
     control_tag_default = [15]
     runtime = None
-    
     date_col = "Date "
     col_names = [
         "ait101_pv",
@@ -48,7 +45,12 @@ def main():
     state, reward, done, _, _ = env.get_observation(0)
     print(state)
     print("Success getting obs!")
+    s = time.time()
     env.take_action([15])
+    print(time.time()-s)
+    s = time.time()
+    env.take_action([15])
+    print(time.time()-s)
     print("Success taking action!")
     
 main()
