@@ -28,7 +28,9 @@ _all_ = [
     "nltk==3.8.1",
     "path==16.7.1",
     "gym-electric-motor==2.0.0",
-    "chardet==5.2.0"
+    "chardet==5.2.0",
+    "influxdb-client==1.39.0",
+    "asyncua==1.0.6"
     ]
 
 windows = []

@@ -13,7 +13,7 @@ from csv import DictReader
 from math import floor
 
 class DBClientWrapper():
-    def __init__(self, bucket, org, token, url, date_fn):
+    def __init__(self, bucket, org, token, url, date_fn=None):
         self.bucket = bucket
         self.org = org
         self.client = influxdb_client.InfluxDBClient(url=url, token=token, org=org)
@@ -82,7 +82,6 @@ class DBClientWrapper():
         if include_time:
             col_names = ["_time"] + col_names
         
-        col_names_str = str(col_names).replace("\'", "\"")
         query_str_list = [
             'from(bucket:"{}") '.format(self.bucket),
             '|> range(start: {}, stop: {}) '.format(start_time, end_time),
@@ -138,7 +137,7 @@ class InfluxOPCEnv(gym.Env):
 
     
     def _get_reward(self, s, a):
-        return 1
+        raise NotImplementedError
     
     
     def get_observation(self, a):
@@ -181,10 +180,10 @@ class InfluxOPCEnv(gym.Env):
         
     def _update_now(self):
         if self.offline:
-            
             self._now += self.decision_freq
         else:
             self._now = floor(dt.datetime.timestamp(dt.datetime.now()))
+    
     
     def _get_observation_since_time(self, start_time):
         """
@@ -193,8 +192,7 @@ class InfluxOPCEnv(gym.Env):
         returns: 
             self.state ...............(np.array) : the state
         """
-        df = self.db_client.query(start_time, self._now, self.col_names)  
-        state = df.to_numpy()
+        state = self.db_client.query(start_time, self._now, self.col_names)  
         return state 
     
 
@@ -205,8 +203,7 @@ class InfluxOPCEnv(gym.Env):
         returns: 
             self.state (np.array) : the state
         """
-        df = self.db_client.query(self._now-self.decision_freq, self._now, self.col_names)  
-        state = df.to_numpy() 
+        state = self.db_client.query(self._now-self.decision_freq, self._now, self.col_names)  
         return state 
 
 

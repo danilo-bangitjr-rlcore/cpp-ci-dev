@@ -1,4 +1,5 @@
 import datetime as dt
+from InfluxOPCEnv import InfluxOPCEnv
 
 def date_to_timestamp_reseau(date):
     """
@@ -26,3 +27,6 @@ def date_to_timestamp_reseau(date):
     return dt.datetime.timestamp(time)
 
 
+class ReseauEnv(InfluxOPCEnv):
+    def _get_reward(self, s, a):
+        return  1
