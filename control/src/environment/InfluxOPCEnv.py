@@ -123,6 +123,10 @@ class InfluxOPCEnv(gym.Env):
 
     async def _take_action(self, a):
         await self.opc_connection.connect()
+        # get the list of nodes
+        # remember these are simulated nodes for these
+        # write examples so we don't change real
+        # values on the PLC
         nodes = await self.opc_connection.get_nodes(self.control_tags)
        
         # get the variant types
@@ -137,15 +141,11 @@ class InfluxOPCEnv(gym.Env):
         # # length
         await self.opc_connection.write_values(nodes, variant_types, a)
 
+
     def take_action(self, a):
-        # get the list of nodes
-        # remember these are simulated nodes for these
-        # write examples so we don't change real
-        # values on the PLC
         asyncio.run(self._take_action(a))
       
 
-    
     def _get_reward(self, s, a):
         raise NotImplementedError
     

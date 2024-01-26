@@ -37,6 +37,6 @@ class ReseauEnv(InfluxOPCEnv):
         return  1
     
     def reset(self):
-        # self.take_action(self.control_tags_default)
+        self.take_action(self.control_tags_default)
         time.sleep(0.1)
         return super().reset()
