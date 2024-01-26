@@ -86,7 +86,11 @@ def init_environment(name, cfg):
             
             db_client = DBClientWrapper(db_settings["bucket"], db_settings["org"], 
                                 db_settings["token"], db_settings["url"])
+            
             opc_connection = OpcConnection(opc_settings["IP"], opc_settings["port"])
+            
+            raise NotImplementedError 
+            # await opc_connection.connect()
             
             FPM_control_tag = "osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"
             date_col = "Date "
