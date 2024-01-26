@@ -135,7 +135,9 @@ def configure_action_scaler_and_bias(cfg):
         elif name == "BeerEnv":
             raise NotImplementedError
         elif name == "ReactorEnv":
-            raise NotImplementedError
+            if cfg.actor == 'Beta':
+                cfg.action_scale = 2.0
+                cfg.action_bias = -1.0
         elif name == "Cont-CC-PermExDc-v0":
             raise NotImplementedError
         elif name == "Cont-CC-PMSM-v0":
