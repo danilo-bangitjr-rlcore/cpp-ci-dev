@@ -216,6 +216,9 @@ class InfluxOPCEnv(gym.Env):
         array_like of float
             The starting state feature representation
         """
+        # TODO: add fpm reset
+        
+        
         self.start_time = self.db_client.start_time
         self._now = self.start_time
         self._update_now()
