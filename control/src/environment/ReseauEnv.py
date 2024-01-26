@@ -34,7 +34,7 @@ class ReseauEnv(InfluxOPCEnv):
         self.control_tags_default = control_tag_default
         
     def _get_reward(self, s, a):
-        return  1
+        return  0
     
     def reset(self):
         self.take_action(self.control_tags_default)
