@@ -34,9 +34,8 @@ class ReseauExplorationAgent:
 		print("ORP Threshold =", self.orp_threshold)
 
 	def reset_env(self):
-		# await env.take_action([15]) for async
-		self.env.take_action([self.reset_fpm])
 		print("Resetting Environment For " + str(self.reset_duration) + " Seconds")
+		self.env.reset()
 		time.sleep(self.reset_duration)
 
 	def orp_delay_agent(self, scheduler):

@@ -90,7 +90,7 @@ def init_environment(name, cfg):
         opc_connection = OpcConnection(opc_settings["IP"], opc_settings["port"])
 
         control_tags = ["osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"]
-        control_tag_default = [15]
+        control_tag_default = [cfg.reset_fpm]
         runtime = None
         date_col = "Date "
         col_names = [
