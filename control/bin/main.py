@@ -82,6 +82,8 @@ if __name__ == "__main__":
     parser.add_argument('--rho', default=0.1, type=float)
     parser.add_argument('--prop_rho_mult', default=2.0, type=float)
     parser.add_argument('--n', default=30, type=int)
+    
+    
 
     # Explore Then Commit
     parser.add_argument('--actions_per_dim', default=50, type=int)
@@ -92,6 +94,8 @@ if __name__ == "__main__":
     parser.add_argument('--reset_fpm', default=50, type=int) # Should it be 15?
     parser.add_argument('--decision_freq', default=10, type=int) # frequency (s) for the agent to make decision
     parser.add_argument('--observation_window', default=10, type=int) # window (s) for getting observations
+    parser.add_argument('--state_constructor', default='Reseau', type=str)
+
 
     cfg = parser.parse_args()
 

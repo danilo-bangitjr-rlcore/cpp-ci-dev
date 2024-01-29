@@ -54,6 +54,8 @@ class Evaluation(InteractionLayer):
             self.eval_line3 = []
             self.render = self.render_offline
             self.save_render = self.save_render_offline
+            
+        
 
     def add_train_log(self, ep_return):
         self.ep_returns_queue_train[self.train_stats_counter % self.stats_queue_size] = ep_return
@@ -126,6 +128,7 @@ class Evaluation(InteractionLayer):
                 actions.insert(0, a)
                 states.insert(0, s)
         return total_rewards, ep_steps, [states, actions, returns]
+    
     
     def log_return(self, log_ary, name, elapsed_time):
         rewards = log_ary

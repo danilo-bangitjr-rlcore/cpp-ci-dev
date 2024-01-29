@@ -39,16 +39,6 @@ class OneHot(BaseNormalizer):
 class Scale(BaseNormalizer):
     def __init__(self, scaler, bias):
         super(Scale, self).__init__()
-        # # if arguments passed as float, use a constant action_scale and action_bias for all action dimensions.
-        # if type(action_scale) == float:
-        #     action_scale = np.ones(action_dim)*action_scale
-        # else:
-        #     raise NotImplementedError
-        #
-        # if type(action_bias) == float:
-        #     action_bias = np.ones(action_dim)*action_bias
-        # else:
-        #     raise NotImplementedError
         self.scaler = scaler
         self.bias = bias
 

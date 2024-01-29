@@ -11,11 +11,9 @@ def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_si
     train_logs = []
     evaluations = []
     t0 = time.time()
-    time.sleep(.1)
     # agent.populate_returns(initialize=True, log_traj=True)
     # agent.fill_buffer(online_data_size)
     while True:
-       
         if agent.get_ep_returns_queue_train().shape[0] != 0: # only log when returns have been recorded
             train_mean, train_median, train_min_, train_max_, test_mean, test_median, test_min_, test_max_ = agent.log_file(elapsed_time=log_interval / (time.time() - t0), test=log_interval>1 and log_test)
             train_logs.append(train_mean)
