@@ -25,19 +25,19 @@ class LineSearchAgent(GreedyAC):
             self.gac_a_dim = 1
             self.top_action = 1
             self.actor_copy = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                                  cfg.beta_parameter_bias, cfg.activation,
+                                                  cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                                   cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic_copy = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
                                                    cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
         else:
             self.actor_copy = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                                  cfg.beta_parameter_bias, cfg.activation,
+                                                  cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                                   cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic_copy = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
                                                    cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
 
         self.sampler_copy = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                           cfg.beta_parameter_bias, cfg.activation,
+                                           cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                            cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
         self.lr_sampler = cfg.lr_actor
 
@@ -96,7 +96,7 @@ class LineSearchAgent(GreedyAC):
         if not os.path.isfile(pth):
             '''using etc's parameter here'''
             random_policy = init_policy_network("Beta", self.cfg.device, self.state_dim, [], self.action_dim,
-                                                0, self.cfg.activation, self.cfg.head_activation, "Const/1/0", False)
+                                                0, 1e8, self.cfg.activation, self.cfg.head_activation, "Const/1/0", False)
             reset = True
             for t in range(self.cfg.etc_buffer_prefill):
                 if t % 1000 == 0:
@@ -248,7 +248,7 @@ class LineSearchAgent(GreedyAC):
     def reset_actor(self):
         self.cfg.lr_actor = max(self.cfg.lr_actor * 0.5, self.actor_lr_lower_bound)
         self.actor = init_policy_network(self.cfg.actor, self.cfg.device, self.state_dim, self.cfg.hidden_actor,
-                                         self.action_dim, self.cfg.beta_parameter_bias, self.cfg.activation,
+                                         self.action_dim, self.cfg.beta_parameter_bias, self.cfg.beta_parameter_bound, self.cfg.activation,
                                          self.cfg.head_activation, self.cfg.layer_init_actor, self.cfg.layer_norm)
         self.actor_optimizer = init_optimizer(self.cfg.optimizer, list(self.actor.parameters()), self.cfg.lr_actor)
 
@@ -272,7 +272,7 @@ class LineSearchAgent(GreedyAC):
         self.lr_sampler = max(self.lr_sampler * 0.5, self.actor_lr_lower_bound)
         self.sampler = init_policy_network(self.cfg.actor, self.cfg.device, self.state_dim, self.cfg.hidden_actor,
                                            self.action_dim,
-                                           self.cfg.beta_parameter_bias, self.cfg.activation,
+                                           self.cfg.beta_parameter_bias, self.cfg.beta_parameter_bound, self.cfg.activation,
                                            self.cfg.head_activation, self.cfg.layer_init_actor, self.cfg.layer_norm)
         self.sampler_optim = init_optimizer(self.cfg.optimizer, list(self.sampler.parameters()), self.lr_sampler)
 
@@ -347,12 +347,6 @@ class LineSearchAgent(GreedyAC):
         self.actor_optimizer.zero_grad()
         pi_loss_weighted.backward()
 
-        # self.actor_optimizer.zero_grad()
-        # after_error, _ = self.eval_error_actor(state_batch)
-        # if after_error - before_error > self.error_threshold:
-        #     self.undo_update_actor()
-        #     self.simple_actor_update(state_batch, before_act, 1)
-
         grad_rec_actor = clone_gradient(self.actor)
         for bi in range(self.max_backtracking):
             if bi > 0:
@@ -370,11 +364,6 @@ class LineSearchAgent(GreedyAC):
                 self.undo_update_actor()
                 break
             else:
-                # after_value, after_action = self.eval_value_actor(stacked_s_batch)
-                # if after_value - before_value < -self.error_threshold:
-                #     self.undo_update_actor()
-                #     self.simple_actor_update(stacked_s_batch, before_action, self.actor_lr_weight)
-                #     print("Bad Actor update. Before value {:.4f}, after value {:.4f}".format(before_value, after_value))
                 break
 
         self.actor_lr_weight = self.actor_lr_weight_copy
@@ -383,8 +372,6 @@ class LineSearchAgent(GreedyAC):
     def backtrack_sampler(self, sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch):
         sampler_loss = self.proposal_loss(sample_actions, repeated_states,
                                           stacked_s_batch, best_actions, sorted_q, state_batch)
-        # sampler_loss += self.explore_bonus_eval(stacked_s_batch, best_actions).mean()
-
         before_error = self.eval_error_proposal(stacked_s_batch, best_actions, self.sampler_copy)
         self.sampler_optim.zero_grad()
         sampler_loss.backward()

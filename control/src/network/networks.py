@@ -112,7 +112,8 @@ class SquashedGaussianPolicy(nn.Module):
 
 class BetaPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim,
-                 beta_param_bias=0, init='Xavier', activation="ReLU", head_activation="Softplus", layer_norm=False):
+                 beta_param_bias=0, beta_param_bound=1e8,
+                 init='Xavier', activation="ReLU", head_activation="Softplus", layer_norm=False):
         super(BetaPolicy, self).__init__()
 
         self.action_dim = action_dim
@@ -120,7 +121,8 @@ class BetaPolicy(nn.Module):
         init_args = init.split("/")
         layer_init = internal_factory.init_layer(init_args[0])
         if len(arch) > 0:
-            self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation, head_activation=activation,
+            self.base_network = FC(device, observation_dim, arch[:-1], arch[-1], activation=activation,
+                                   head_activation=activation,
                                    init=init, layer_norm=layer_norm)
             self.alpha_head = layer_init(nn.Linear(arch[-1], action_dim, bias=bool(init_args[-1])), *init_args[1:])
             self.beta_head = layer_init(nn.Linear(arch[-1], action_dim, bias=bool(init_args[-1])), *init_args[1:])
@@ -130,24 +132,45 @@ class BetaPolicy(nn.Module):
             Initialize the weight using constant  
             """
             layer_init = internal_factory.init_layer(init_args[0])
-            self.base_network = lambda x:x
+            self.base_network = lambda x: x
             self.alpha_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
             self.beta_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False), *init_args[1:])
         self.head_activation_fn = internal_factory.init_activation_function(head_activation)
         self.beta_param_bias = torch.tensor(beta_param_bias)
+        self.beta_param_bound = torch.tensor(beta_param_bound)
         self.to(device)
 
-    def forward(self, observation, debug=False):
-        base = self.base_network(observation)
-        alpha = self.head_activation_fn(self.alpha_head(base)) + EPSILON
-        beta = self.head_activation_fn(self.beta_head(base)) + EPSILON
+    def squash_dist_param(self, dist_param, low, high):
+        tanh_out = torch.tanh(dist_param)
+        normalized_param = ((tanh_out + 1) / 2)
+        scaled_param = normalized_param * (high - low) + low  # ∈ [low, high]
 
-        alpha += self.beta_param_bias
-        beta += self.beta_param_bias
+        return scaled_param
+
+    def get_dist_params(self, observation):
+        base = self.base_network(observation)
+        alpha_head_out = self.alpha_head(base)
+        beta_head_out = self.beta_head(base)
+        low = self.beta_param_bias
+        high = self.beta_param_bound
+
+        alpha = self.squash_dist_param(alpha_head_out, low, high)
+        beta = self.squash_dist_param(beta_head_out, low, high)
+
+        return alpha, beta
+
+    def forward(self, observation, debug=False):
+        # base = self.base_network(observation)
+        # alpha = self.head_activation_fn(self.alpha_head(base)) + EPSILON
+        # beta = self.head_activation_fn(self.beta_head(base)) + EPSILON
+        # alpha += self.beta_param_bias
+        # beta += self.beta_param_bias
+
+        alpha, beta = self.get_dist_params(observation)
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)
-        out = dist.rsample() # samples of alpha and beta 
-        
+        out = dist.rsample()  # samples of alpha and beta
+
         logp = dist.log_prob(torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS))
         action = out
         # action = torch.clamp(action, min=self.action_clip[0], max=self.action_clip[1])
@@ -161,16 +184,18 @@ class BetaPolicy(nn.Module):
             info = None
 
         return action, logp, info
-        
+
     def log_prob(self, observation, action, debug=False):
         out = action
         out = torch.clamp(out, 0, 1)
-    
-        base = self.base_network(observation)
-        alpha = self.head_activation_fn(self.alpha_head(base)) + EPSILON
-        beta = self.head_activation_fn(self.beta_head(base)) + EPSILON
-        alpha += self.beta_param_bias
-        beta += self.beta_param_bias
+
+        # base = self.base_network(observation)
+        # alpha = self.head_activation_fn(self.alpha_head(base)) + EPSILON
+        # beta = self.head_activation_fn(self.beta_head(base)) + EPSILON
+        # alpha += self.beta_param_bias
+        # beta += self.beta_param_bias
+
+        alpha, beta = self.get_dist_params(observation)
 
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)

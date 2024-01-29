@@ -4,11 +4,11 @@ from src.network.networks import BetaPolicy, BetaInvParam, SquashedGaussianPolic
 from src.network.networks import FC
 
 
-def init_policy_network(name, device, state_dim, hidden_units, action_dim, beta_param_bias,
+def init_policy_network(name, device, state_dim, hidden_units, action_dim, beta_param_bias, beta_param_bound,
                         activation, head_activation, layer_init, layer_norm):
     hidden_units = [i for i in hidden_units if i > 0]
     if name == "Beta":
-        return BetaPolicy(device, state_dim, hidden_units, action_dim, beta_param_bias=beta_param_bias,
+        return BetaPolicy(device, state_dim, hidden_units, action_dim, beta_param_bias=beta_param_bias, beta_param_bound=beta_param_bound,
                           activation=activation, head_activation=head_activation, init=layer_init, layer_norm=layer_norm)
     elif name == "BetaInv":
         return BetaInvParam(device, state_dim, hidden_units, action_dim,
