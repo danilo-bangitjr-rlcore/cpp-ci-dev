@@ -44,7 +44,7 @@ class BaseAC(Evaluation):
 
         self.actor_optimizer = init_optimizer(cfg.optimizer, list(self.actor.parameters()), cfg.lr_actor)
         self.critic_optimizer = init_optimizer(cfg.optimizer, list(self.critic.parameters()), cfg.lr_critic)
-        
+
         self.buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
         self.batch_size = cfg.batch_size
         self.gamma = cfg.gamma

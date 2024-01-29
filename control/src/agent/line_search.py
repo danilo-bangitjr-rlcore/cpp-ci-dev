@@ -12,6 +12,11 @@ from src.network.torch_utils import clone_model_0to1, clone_gradient, move_gradi
 
 
 class LineSearchAgent(GreedyAC):
+
+    """
+    remove resetting; increase the backtracking length; change to sgd
+    value based, qt-opt
+    """
     def __init__(self, cfg, average_entropy=True):
         super(LineSearchAgent, self).__init__(cfg)
 
@@ -31,11 +36,20 @@ class LineSearchAgent(GreedyAC):
             self.critic_copy = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
                                                    cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
 
-        self.actor_opt_copy = init_optimizer(cfg.optimizer, list(self.actor.parameters()), cfg.lr_actor)
-        self.critic_opt_copy = init_optimizer(cfg.optimizer, list(self.critic.parameters()), cfg.lr_critic)
+        self.sampler_copy = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
+                                           cfg.beta_parameter_bias, cfg.activation,
+                                           cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
+        self.lr_sampler = cfg.lr_actor
+
+        self.actor_opt_copy = init_optimizer(cfg.optimizer, list(self.actor_copy.parameters()), cfg.lr_actor)
+        self.sampler_opt_copy = init_optimizer(cfg.optimizer, list(self.sampler_copy.parameters()), self.lr_sampler)
+        self.critic_opt_copy = init_optimizer(cfg.optimizer, list(self.critic_copy.parameters()), cfg.lr_critic)
+
 
         self.actor_lr_weight = 1  # always start with 1, tend to use a large learning rate initialization (cfg.lr_critic)
         self.actor_lr_weight_copy = 1
+        self.sampler_lr_weight = 1
+        self.sampler_lr_weight_copy = 1
         self.critic_lr_weight = 1
         self.critic_lr_weight_copy = 1
 
@@ -70,8 +84,9 @@ class LineSearchAgent(GreedyAC):
         self.increasing_rate = 1.1 # Not sure if this is going to be used
         self.critic_lr_lower_bound = 1e-07
         self.actor_lr_lower_bound = 1e-04
+        self.error_threshold = 1e-4
 
-        assert self.cfg.batch_size >= 256
+        # assert self.cfg.batch_size >= 256
         assert self.max_backtracking > 0
         self.random_prefill()
 
@@ -102,6 +117,7 @@ class LineSearchAgent(GreedyAC):
             print("Load prefilled data")
             with open(pth, "rb") as f:
                 self.buffer = pkl.load(f)
+            self.buffer.batch_size = self.batch_size
 
         # # For debugging
         # plt.figure()
@@ -153,18 +169,35 @@ class LineSearchAgent(GreedyAC):
         error = nn.functional.mse_loss(q.detach(), target.detach())
         return error
 
-    # def eval_error_actor(self, state_batch):
-    #     _, logp, _ = self.get_policy(state_batch, with_grad=False)
-    #     return -torch.exp(logp.mean()).detach()
+    def eval_error_proposal(self, state_batch, action_batch, network):
+        with torch.no_grad():
+            logp, _ = network.log_prob(state_batch, action_batch)
+        return -logp.mean().detach()
+
     def eval_error_actor(self, state_batch, action_batch, network):
         with torch.no_grad():
             logp, _ = network.log_prob(state_batch, action_batch)
-        return -torch.exp(logp.mean()).detach()
+        return -logp.mean().detach()
+
+    # def eval_error_actor(self, state_batch):
+    #     act, _, _ = self.get_policy(state_batch, with_grad=False)
+    #     q, _ = self.get_q_value(state_batch, act, with_grad=False)
+    #     return -q.mean().detach(), act.detach()
+
+    def eval_value_actor(self, state_batch):
+        act, _, _ = self.get_policy(state_batch, with_grad=False)
+        q, _ = self.get_q_value(state_batch, act, with_grad=False)
+        return q.detach().numpy().mean(), act.detach()
 
     def parameter_backup_critic(self):
         clone_model_0to1(self.critic, self.critic_copy)
         clone_model_0to1(self.critic_optimizer, self.critic_opt_copy)
         self.critic_lr_weight_copy = self.critic_lr_weight
+
+    def parameter_backup_sampler(self):
+        clone_model_0to1(self.sampler, self.sampler_copy)
+        clone_model_0to1(self.sampler_optim, self.sampler_opt_copy)
+        self.sampler_lr_weight_copy = self.sampler_lr_weight
 
     def parameter_backup_actor(self):
         clone_model_0to1(self.actor, self.actor_copy)
@@ -174,6 +207,10 @@ class LineSearchAgent(GreedyAC):
     def undo_update_critic(self):
         clone_model_0to1(self.critic_copy, self.critic)
         clone_model_0to1(self.critic_opt_copy, self.critic_optimizer)
+
+    def undo_update_sampler(self):
+        clone_model_0to1(self.sampler_copy, self.sampler)
+        clone_model_0to1(self.sampler_opt_copy, self.sampler_optim)
 
     def undo_update_actor(self):
         clone_model_0to1(self.actor_copy, self.actor)
@@ -214,10 +251,6 @@ class LineSearchAgent(GreedyAC):
                                          self.action_dim, self.cfg.beta_parameter_bias, self.cfg.activation,
                                          self.cfg.head_activation, self.cfg.layer_init_actor, self.cfg.layer_norm)
         self.actor_optimizer = init_optimizer(self.cfg.optimizer, list(self.actor.parameters()), self.cfg.lr_actor)
-        self.sampler = init_policy_network(self.cfg.actor, self.cfg.device, self.state_dim, self.cfg.hidden_actor, self.action_dim,
-                                           self.cfg.beta_parameter_bias, self.cfg.activation,
-                                           self.cfg.head_activation, self.cfg.layer_init_actor, self.cfg.layer_norm)
-        self.sampler_optim = init_optimizer(self.cfg.optimizer, list(self.sampler.parameters()), self.cfg.lr_actor)
 
         self.actor_lr_weight = 1
         self.actor_lr_weight_copy = 1
@@ -226,6 +259,7 @@ class LineSearchAgent(GreedyAC):
             data = self.get_data()
             state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
                 data['obs2'], 1 - data['done']
+
             _, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
             # pi_loss = (-logp + self.explore_bonus_eval(stacked_s_batch, best_actions)).mean()
             pi_loss = -logp.mean()
@@ -233,6 +267,34 @@ class LineSearchAgent(GreedyAC):
             self.actor_optimizer.zero_grad()
             pi_loss.backward()
             self.actor_optimizer.step()
+
+    def reset_sampler(self):
+        self.lr_sampler = max(self.lr_sampler * 0.5, self.actor_lr_lower_bound)
+        self.sampler = init_policy_network(self.cfg.actor, self.cfg.device, self.state_dim, self.cfg.hidden_actor,
+                                           self.action_dim,
+                                           self.cfg.beta_parameter_bias, self.cfg.activation,
+                                           self.cfg.head_activation, self.cfg.layer_init_actor, self.cfg.layer_norm)
+        self.sampler_optim = init_optimizer(self.cfg.optimizer, list(self.sampler.parameters()), self.lr_sampler)
+
+        for _ in range(self.reset_iteration(self.actor_lr_start, self.cfg.lr_actor)):
+            data = self.get_data()
+            state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
+                data['obs2'], 1 - data['done']
+
+            repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
+            with torch.no_grad():
+                sample_actions, _, _ = self.sampler(repeated_states)
+            q_values, _ = self.get_q_value(repeated_states, sample_actions, with_grad=False)
+            q_values = q_values.reshape(self.batch_size, self.num_samples, 1)
+            sorted_q = torch.argsort(q_values, dim=1, descending=True)
+            best_ind = sorted_q[:, :self.top_action]
+            best_ind = best_ind.repeat_interleave(self.gac_a_dim, -1)
+            sample_actions = sample_actions.reshape(self.batch_size, self.num_samples, self.gac_a_dim)
+            best_actions = torch.gather(sample_actions, 1, best_ind)
+
+            # Reshape samples for calculating the loss
+            stacked_s_batch = state_batch.repeat_interleave(self.top_action, dim=0)
+            best_actions = torch.reshape(best_actions, (-1, self.gac_a_dim))
 
             sampler_loss = self.proposal_loss(sample_actions, repeated_states,
                                               stacked_s_batch, best_actions, sorted_q, state_batch)
@@ -259,10 +321,10 @@ class LineSearchAgent(GreedyAC):
             self.critic_optimizer.step()
             after_error = self.eval_error_critic(state_batch, action_batch, reward_batch, mask_batch, next_q)
 
-            if after_error > before_error and bi < self.max_backtracking-1:
+            if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
                 self.critic_lr_weight *= 0.5
                 self.undo_update_critic()
-            elif after_error > before_error and bi == self.max_backtracking-1:
+            elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
                 print("Reset Critic", after_error, before_error, self.cfg.lr_critic)
                 self.reset_critic()
             else:
@@ -270,16 +332,28 @@ class LineSearchAgent(GreedyAC):
         self.critic_lr_weight = self.critic_lr_weight_copy
         return next_action
 
+    def simple_actor_update(self, s, a, w):
+        logp, _ = self.actor.log_prob(s, a)
+        self.actor_optimizer.zero_grad()
+        (-logp.mean() * w).backward()
+        self.actor_optimizer.step()
+
     def backtrack_actor(self, state_batch):
-        _, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
+        pi_loss, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
         before_error = self.eval_error_actor(stacked_s_batch, best_actions, self.actor_copy)
-        # pi_loss = (-logp + self.explore_bonus_eval(stacked_s_batch, best_actions)).mean()
-        pi_loss = -logp.mean()
-        pi_loss_weighted = pi_loss * self.actor_lr_weight
+        # before_value, before_action = self.eval_value_actor(stacked_s_batch)
+
+        pi_loss_weighted = pi_loss
         self.actor_optimizer.zero_grad()
         pi_loss_weighted.backward()
-        grad_rec_actor = clone_gradient(self.actor)
 
+        # self.actor_optimizer.zero_grad()
+        # after_error, _ = self.eval_error_actor(state_batch)
+        # if after_error - before_error > self.error_threshold:
+        #     self.undo_update_actor()
+        #     self.simple_actor_update(state_batch, before_act, 1)
+
+        grad_rec_actor = clone_gradient(self.actor)
         for bi in range(self.max_backtracking):
             if bi > 0:
                 self.actor_optimizer.zero_grad()
@@ -287,25 +361,58 @@ class LineSearchAgent(GreedyAC):
             self.actor_optimizer.step()
             after_error = self.eval_error_actor(stacked_s_batch, best_actions, self.actor)
 
-            if after_error > before_error and bi < self.max_backtracking-1:
+            if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
                 self.actor_lr_weight *= 0.5
                 self.undo_update_actor()
-            elif after_error > before_error and bi == self.max_backtracking-1:
-                print("Reset Actor, learning rate", after_error, before_error, self.cfg.lr_actor)
-                self.reset_actor()
+            elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
+                # print("Reset Actor, learning rate", self.cfg.lr_actor)
+                # self.reset_actor()
+                self.undo_update_actor()
+                break
             else:
+                # after_value, after_action = self.eval_value_actor(stacked_s_batch)
+                # if after_value - before_value < -self.error_threshold:
+                #     self.undo_update_actor()
+                #     self.simple_actor_update(stacked_s_batch, before_action, self.actor_lr_weight)
+                #     print("Bad Actor update. Before value {:.4f}, after value {:.4f}".format(before_value, after_value))
                 break
 
+        self.actor_lr_weight = self.actor_lr_weight_copy
+        return sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch
+
+    def backtrack_sampler(self, sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch):
         sampler_loss = self.proposal_loss(sample_actions, repeated_states,
                                           stacked_s_batch, best_actions, sorted_q, state_batch)
         # sampler_loss += self.explore_bonus_eval(stacked_s_batch, best_actions).mean()
+
+        before_error = self.eval_error_proposal(stacked_s_batch, best_actions, self.sampler_copy)
         self.sampler_optim.zero_grad()
-        (self.actor_lr_weight * sampler_loss).backward()
-        self.sampler_optim.step()
+        sampler_loss.backward()
 
-        self.actor_lr_weight = self.actor_lr_weight_copy
+        grad_rec_proposal = clone_gradient(self.sampler)
+        for bi in range(self.max_backtracking):
+            if bi > 0:
+                self.sampler_optim.zero_grad()
+                move_gradient_to_network(self.sampler, grad_rec_proposal, self.sampler_lr_weight)
+            self.sampler_optim.step()
+            after_error = self.eval_error_proposal(stacked_s_batch, best_actions, self.sampler)
 
+            if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
+                self.sampler_lr_weight *= 0.5
+                self.undo_update_sampler()
+            elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
+                print("Reset Sampler, learning rate", self.lr_sampler)
+                self.cfg.lr_actor = max(self.cfg.lr_actor * 0.5, self.actor_lr_lower_bound)
+                # self.actor_optimizer = init_optimizer(self.cfg.optimizer, list(self.actor.parameters()),
+                #                                       self.cfg.lr_actor)
+                # self.reset_sampler()
+                self.undo_update_sampler()
+                break
+            else:
+                break
+        self.sampler_lr_weight = self.sampler_lr_weight_copy
         return
+
 
     def reset_iteration(self, lr_start, lr_current):
         count = (int(np.ceil(self.buffer.size / self.cfg.batch_size)) *
@@ -326,5 +433,18 @@ class LineSearchAgent(GreedyAC):
 
         # actor update
         self.parameter_backup_actor()
-        self.backtrack_actor(state_batch)
+        sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch = self.backtrack_actor(state_batch)
+        # pi_loss, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
+        # pi_loss_weighted = pi_loss
+        # self.actor_optimizer.zero_grad()
+        # pi_loss_weighted.backward()
+        # self.actor_optimizer.step()
 
+        # proposal update
+        self.parameter_backup_sampler()
+        self.backtrack_sampler(sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch)
+        # sampler_loss = self.proposal_loss(sample_actions, repeated_states,
+        #                                   stacked_s_batch, best_actions, sorted_q, state_batch)
+        # self.sampler_optim.zero_grad()
+        # sampler_loss.backward()
+        # self.sampler_optim.step()

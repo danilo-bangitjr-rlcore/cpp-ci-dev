@@ -33,7 +33,6 @@ class GreedyAC(BaseAC):
 
     def actor_loss(self, state_batch):
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
-
         with torch.no_grad():
             sample_actions, _, _ = self.sampler(repeated_states)
 

@@ -84,6 +84,18 @@ class Clip(BaseNormalizer):
         raise NotImplementedError
 
 
+class ThreeTanksReward(BaseNormalizer):
+    def __init__(self):
+        super(ThreeTanksReward, self).__init__()
+        self.min_ = -800
+        self.clip = -1
+
+    def __call__(self, x):
+        if x < self.clip:
+            # x = self.clip - (x - self.min_) / (self.clip - self.min_)
+            x = self.clip
+        return x
+
 def init_normalizer(name, *args):
     if name == "Identity":
         return Identity()
@@ -94,6 +106,6 @@ def init_normalizer(name, *args):
     elif name == "Clip":
         return Clip(*args)
     elif name == "ThreeTanks":
-        return Clip([-1, 1])
+        return ThreeTanksReward() #Identity()#
     else:
         raise NotImplementedError

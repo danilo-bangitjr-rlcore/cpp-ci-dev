@@ -8,7 +8,7 @@ class Buffer:
         self.batch_size = batch_size
         self.data = []
         self.pos = 0
-    
+
     def feed(self, experience):
         if self.pos >= len(self.data):
             self.data.append(experience)
@@ -16,11 +16,12 @@ class Buffer:
             self.data[self.pos] = experience
         # resets to start of buffer
         self.pos = (self.pos + 1) % self.memory
-        
+
     def sample(self):
         if len(self.data) == 0:
             return None
         sampled_indices = [self.rng.randint(0, len(self.data)) for _ in range(self.batch_size)]
+
         sampled_data = [self.data[ind] for ind in sampled_indices]
         batch_data = list(map(lambda x: np.asarray(x), zip(*sampled_data)))
         for i in range(len(batch_data)):
