@@ -32,14 +32,14 @@ if __name__ == "__main__":
     parser.add_argument('--evaluation_criteria', default='return', type=str)
     parser.add_argument('--render', default=0, type=int)
 
-    parser.add_argument('--env_name', default='ThreeTank', type=str)
+    parser.add_argument('--env_name', default='Reseau', type=str)
     parser.add_argument('--env_info', default=[0., 3.], type=float, nargs='+') # go to the corresponding environment to check the specific setting
     parser.add_argument('--env_action_scaler', default=1., type=float)
 
     parser.add_argument('--gamma', default=0.99, type=float)
     parser.add_argument('--discrete_control', default=0, type=int)
 
-    parser.add_argument('--agent_name', default='SimpleAC', type=str)
+    parser.add_argument('--agent_name', default='GAC', type=str)
     parser.add_argument('--actor', default='Beta', type=str)
     parser.add_argument('--critic', default='FC', type=str)
     parser.add_argument('--layer_norm', default=0, type=int)
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_scale', default=1., type=float)
     parser.add_argument('--action_bias', default=0., type=float)
     parser.add_argument('--auto_calibrate_beta_support', default=0, type=int)
-    parser.add_argument('--decision_freq', default=0, type=int)
+   
     
     parser.add_argument('--load_path', default="", type=str)
     parser.add_argument('--load_checkpoint', default=1, type=int)
@@ -87,7 +87,11 @@ if __name__ == "__main__":
     parser.add_argument('--actions_per_dim', default=50, type=int)
     parser.add_argument('--min_trials', default=1, type=int)
     
+    # New to Reseau
     parser.add_argument('--decouple_steps',  default=0, type=int)
+    parser.add_argument('--reset_fpm', default=50, type=int) # Should it be 15?
+    parser.add_argument('--decision_freq', default=10, type=int) # frequency (s) for the agent to make decision
+    parser.add_argument('--observation_window', default=10, type=int) # window (s) for getting observations
 
     cfg = parser.parse_args()
 

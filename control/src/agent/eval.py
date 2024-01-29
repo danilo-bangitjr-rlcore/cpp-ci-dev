@@ -98,6 +98,7 @@ class Evaluation(InteractionLayer):
     def eval_episode(self, log_traj=False):
         ep_traj = []
         state, _ = self.evalenv_reset()
+       
         total_rewards = 0
         ep_steps = 0
         while True:
@@ -129,6 +130,7 @@ class Evaluation(InteractionLayer):
     def log_return(self, log_ary, name, elapsed_time):
         rewards = log_ary
         total_episodes = len(self.ep_returns)
+
         mean, median, min_, max_ = np.mean(rewards), np.median(rewards), np.min(rewards), np.max(rewards)
         
         if self.log_interval and not self.total_steps % self.log_interval:
@@ -139,10 +141,14 @@ class Evaluation(InteractionLayer):
                                     min_, max_, len(rewards), elapsed_time))
         
         return mean, median, min_, max_
+
+
+
+    def get_ep_returns_queue_train(self):
+        return self.ep_returns_queue_train[: min(self.train_stats_counter, self.stats_queue_size)]
     
     def log_file(self, elapsed_time=-1, test=True):
-        train_mean, train_median, train_min_, train_max_ = self.log_return(self.ep_returns_queue_train[: min(self.train_stats_counter, self.stats_queue_size)],
-                                                                           "TRAIN", elapsed_time)
+        train_mean, train_median, train_min_, train_max_ = self.log_return(self.get_ep_returns_queue_train(),"TRAIN", elapsed_time)
         # try:
         #     normalized = np.array([self.env.env.unwrapped.get_normalized_score(ret_) for ret_ in self.ep_returns_queue_train])
         #     train_mean, train_median, train_min_, train_max_ = self.log_return(normalized, "TRAIN Normalized", elapsed_time)

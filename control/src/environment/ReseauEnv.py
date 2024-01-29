@@ -1,6 +1,8 @@
 import datetime as dt
 import time
+import numpy as np
 from src.environment.InfluxOPCEnv import InfluxOPCEnv
+from gymnasium.spaces import Box
 
 def date_to_timestamp_reseau(date):
     """
@@ -29,14 +31,21 @@ def date_to_timestamp_reseau(date):
 
 
 class ReseauEnv(InfluxOPCEnv):
-    def __init__(self, db_client, opc_connection, control_tags, control_tag_default, date_col, col_names, runtime, decision_freq=10 * 60, offline_data_folder=None):
-        super().__init__(db_client, opc_connection, control_tags, date_col, col_names, runtime, decision_freq, offline_data_folder)
+    def __init__(self, db_client, opc_connection, control_tags, control_tag_default, date_col, col_names, 
+        runtime, decision_freq=10 * 60, observation_window=10, offline_data_folder=None):
+        super().__init__(db_client, opc_connection, control_tags, date_col, col_names, runtime, decision_freq, observation_window, offline_data_folder)
         self.control_tags_default = control_tag_default
-        
+        # TODO: figure these out
+        self.observation_space = Box(low=np.ones(12)*-1000, high=np.ones(12)*1000) # What is this?
+        self.action_space = Box(low=0, high=200)
+
     def _get_reward(self, s, a):
         return  0
     
-    def reset(self):
+    def process_observation(self, obs):
+        return np.mean(obs.to_numpy(), axis=0) # averages over timesteps
+
+    def reset(self, seed=0):
         self.take_action(self.control_tags_default)
         time.sleep(0.1)
-        return super().reset(), {}
+        return super().reset(seed)

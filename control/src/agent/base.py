@@ -174,7 +174,7 @@ class BaseAC(Evaluation):
         
         # update for some time, then get state
         start = time.time()
-        self.decoupled_inner_update(trunc)
+        self.decoupled_inner_update()
         time.sleep(start+self.decision_freq-time.time()) # if update does not take all alotted time, wait. 
         next_observation, reward, terminated, trunc, env_info = self.env.get_observation(action)  
         reset, truncate = self.update_stats(reward, terminated, trunc)
@@ -275,12 +275,12 @@ class BaseAC(Evaluation):
             for _ in range(self.update_freq):
                 self.inner_update(trunc)
                 
-    def decoupled_inner_update(self, trunc=False):
+    def decoupled_inner_update(self):
         if self.total_steps % self.update_freq == 0:
             for _ in range(self.update_freq):
-                self.decoupled_inner_update(trunc)
+                self.decoupled_inner_update()
 
-    def decoupled_inner_update(self, trunc=False):
+    def decoupled_inner_update(self):
         pass
         # raise NotImplementedError
 
