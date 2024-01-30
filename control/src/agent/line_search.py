@@ -425,20 +425,10 @@ class LineSearchAgent(GreedyAC):
         # actor update
         self.parameter_backup_actor()
         sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch = self.backtrack_actor(state_batch)
-        # pi_loss, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
-        # pi_loss_weighted = pi_loss
-        # self.actor_optimizer.zero_grad()
-        # pi_loss_weighted.backward()
-        # self.actor_optimizer.step()
 
         # proposal update
         self.parameter_backup_sampler()
         self.backtrack_sampler(sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch)
-        # sampler_loss = self.proposal_loss(sample_actions, repeated_states,
-        #                                   stacked_s_batch, best_actions, sorted_q, state_batch)
-        # self.sampler_optim.zero_grad()
-        # sampler_loss.backward()
-        # self.sampler_optim.step()
 
     def agent_debug_info(self, observation_tensor, action_tensor, pi_info, env_info):
         i_log = super(LineSearchAgent, self).agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
@@ -458,46 +448,4 @@ class LineSearchBU(LineSearchAgent):
         super(LineSearchBU, self).__init__(cfg)
 
     def get_data(self):
-        """ load a batch """
-        states, actions, rewards, next_states, terminals, truncations = self.buffer.sample_batch()
-        in_ = torch_utils.tensor(states, self.device)
-        actions = torch_utils.tensor(actions, self.device)
-        r = torch_utils.tensor(rewards, self.device)
-        ns = torch_utils.tensor(next_states, self.device)
-        d = torch_utils.tensor(terminals, self.device)
-        t = torch_utils.tensor(truncations, self.device)
-        data = {
-            'obs': in_,
-            'act': actions,
-            'reward': r,
-            'obs2': ns,
-            'done': d,
-            'trunc': t,
-        }
-        return data
-
-
-    def inner_update(self, trunc=False):
-        for _ in range(50):
-            data = self.get_data()
-            state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
-                                                                                    data['obs2'], 1 - data['done']
-            # critic update
-            self.parameter_backup_critic()
-            self.backtrack_critic(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
-
-        for _ in range(1):
-            data = self.get_data()
-            state_batch, action_batch, reward_batch, next_state_batch, mask_batch = (data['obs'], data['act'], data['reward'],
-                                                                                     data['obs2'], 1 - data['done'])
-            next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
-            # uncertainty update
-            self.explore_bonus_update(state_batch, action_batch, reward_batch, next_state_batch, next_action, mask_batch)
-
-            # actor update
-            self.parameter_backup_actor()
-            sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch = self.backtrack_actor(state_batch)
-
-            # proposal update
-            self.parameter_backup_sampler()
-            self.backtrack_sampler(sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch)
+        return self.get_all_data()

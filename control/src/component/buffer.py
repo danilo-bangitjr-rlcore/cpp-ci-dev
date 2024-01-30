@@ -55,3 +55,43 @@ class Buffer:
 
     def get_all_data(self):
         return self.data
+
+    def update_priorities(self, priority=None):
+        pass
+
+
+class PriorityBuffer(Buffer):
+    def __init__(self, memory, batch_size, seed=0):
+        super(PriorityBuffer, self).__init__(memory, batch_size, seed)
+        self.priority = []
+
+    def feed(self, experience):
+        super(PriorityBuffer, self).feed(experience)
+        self.priority = list(self.priority)
+        if self.pos >= len(self.data):
+            self.priority.append(1.0)
+        else:
+            self.priority[self.pos] = 1.0
+        self.priority = np.asarray(self.priority)
+        self.priority /= self.priority.sum()
+
+    def sample(self):
+        if len(self.data) == 0:
+            return None
+        sampled_indices = self.rng.choice(self.size, self.batch_size, replace=False, p=self.priority)
+        sampled_data = [self.data[ind] for ind in sampled_indices]
+        batch_data = list(map(lambda x: np.asarray(x), zip(*sampled_data)))
+        batch_data = self.prepare_data(batch_data)
+        return batch_data
+
+    def update_priorities(self, priority=None):
+        if priority is None:
+            raise NotImplementedError
+        else:
+            self.priority = list(priority)
+
+def init_buffer(name, cfg):
+    if name == 'Prioritized':
+        return PriorityBuffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
+    else:
+        return Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)

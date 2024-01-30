@@ -6,7 +6,7 @@ import pickle as pkl
 from src.agent.eval import Evaluation
 from src.network.factory import init_policy_network, init_critic_network, init_optimizer
 # from src.component.normalizer import init_normalizer
-from src.component.buffer import Buffer
+from src.component.buffer import init_buffer
 import src.network.torch_utils as torch_utils
 
 
@@ -45,7 +45,8 @@ class BaseAC(Evaluation):
         self.actor_optimizer = init_optimizer(cfg.optimizer, list(self.actor.parameters()), cfg.lr_actor)
         self.critic_optimizer = init_optimizer(cfg.optimizer, list(self.critic.parameters()), cfg.lr_critic)
 
-        self.buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
+        # self.buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
+        self.buffer = init_buffer(cfg.buffer_type, cfg)
         self.batch_size = cfg.batch_size
         self.gamma = cfg.gamma
         self.parameters_dir = cfg.parameters_path
@@ -157,6 +158,19 @@ class BaseAC(Evaluation):
 
         if self.use_target_network and self.total_steps % self.target_network_update_freq == 0:
             self.sync_target()
+
+        if self.cfg.buffer_type == "Prioritized":
+            data = self.get_all_data()
+            state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data[
+                'reward'], data['obs2'], 1 - data['done']
+
+            next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
+            next_q, _ = self.get_q_value_target(next_state_batch, next_action)
+            target = reward_batch + mask_batch * self.gamma * next_q
+            q_value, _ = self.get_q_value(state_batch, action_batch, with_grad=True)
+            priority = torch.abs(target - q_value).squeeze(-1)
+            priority = torch_utils.to_np(priority)
+            self.buffer.update_priorities(priority)
         return
 
     # actor-critic
@@ -213,6 +227,25 @@ class BaseAC(Evaluation):
 
     def get_data(self):
         states, actions, rewards, next_states, terminals, truncations = self.buffer.sample()
+        in_ = torch_utils.tensor(states, self.device)
+        actions = torch_utils.tensor(actions, self.device)
+        r = torch_utils.tensor(rewards, self.device)
+        ns = torch_utils.tensor(next_states, self.device)
+        d = torch_utils.tensor(terminals, self.device)
+        t = torch_utils.tensor(truncations, self.device)
+        data = {
+            'obs': in_,
+            'act': actions,
+            'reward': r,
+            'obs2': ns,
+            'done': d,
+            'trunc': t,
+        }
+        return data
+
+    def get_all_data(self):
+        """ load a batch """
+        states, actions, rewards, next_states, terminals, truncations = self.buffer.sample_batch()
         in_ = torch_utils.tensor(states, self.device)
         actions = torch_utils.tensor(actions, self.device)
         r = torch_utils.tensor(rewards, self.device)
