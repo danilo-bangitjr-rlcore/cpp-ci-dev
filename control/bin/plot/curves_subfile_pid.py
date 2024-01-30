@@ -107,6 +107,28 @@ def c20240119():
     }
     draw_sensitivity_2d(DATAROOT + SHAREPATH, 'GAC', fixed_params_list, "lr_actor", "lr_critic", "sensitivity_lr_recreate_obs1")
 
+def visualization():
+
+    target_key = [
+        "actor_info/param1",
+        "proposal_info/param1",
+        "actor_info/param2",
+        "proposal_info/param2",
+        "critic_info/Q",
+        "env_info/constrain_detail/kp1",
+        "env_info/constrain_detail/tau",
+        "env_info/constrain_detail/height",
+        "env_info/constrain_detail/flowrate",
+        "env_info/constrain_detail/C1",
+        "env_info/constrain_detail/C2",
+        "env_info/constrain_detail/C3",
+        "env_info/constrain_detail/C4",
+        # "env_info/constrain",
+        "env_info/lambda",
+    ]
+
+    file = DATAROOT + "output/test_v1/NonContexTT/heuristic_lr_exp/setpoint_3/obs_raw/action_scale/reward_clip[-1,1]/replay5000_batch256/beta_shift_1/activation_relu/optim_sgd/LineSearch/param_0/seed_0"
+    visualize_training_info(file, target_key, title="vis_temp", threshold=0.99, xlim=None, ylim=[-2, 2])
 
 if __name__ == '__main__':
     target_key = [
@@ -127,6 +149,7 @@ if __name__ == '__main__':
         "env_info/lambda",
     ]
 
-    demo()
+    # demo()
     # c20240118()
     # c20240119()
+    visualization()
