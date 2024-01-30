@@ -32,18 +32,19 @@ class GreedyAC(BaseAC):
         return q_loss, next_action
 
     def actor_loss(self, state_batch):
+        batch_size = state_batch.shape[0]
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
         with torch.no_grad():
             sample_actions, _, _ = self.sampler(repeated_states)
 
         # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
         q_values, _ = self.get_q_value(repeated_states, sample_actions, with_grad=False)
-        q_values = q_values.reshape(self.batch_size, self.num_samples, 1)
+        q_values = q_values.reshape(batch_size, self.num_samples, 1)
         sorted_q = torch.argsort(q_values, dim=1, descending=True)
         best_ind = sorted_q[:, :self.top_action]
         best_ind = best_ind.repeat_interleave(self.gac_a_dim, -1)
 
-        sample_actions = sample_actions.reshape(self.batch_size, self.num_samples, self.gac_a_dim)
+        sample_actions = sample_actions.reshape(batch_size, self.num_samples, self.gac_a_dim)
         best_actions = torch.gather(sample_actions, 1, best_ind)
 
         # Reshape samples for calculating the loss
@@ -55,6 +56,7 @@ class GreedyAC(BaseAC):
         return pi_loss, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp
 
     def proposal_loss(self, sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch):
+        batch_size = state_batch.shape[0]
         # proposal policy update
         if self.tau != 0:
             # sample_actions = sample_actions.reshape(-1, self.action_dim)
@@ -63,7 +65,7 @@ class GreedyAC(BaseAC):
             sampler_entropy, _ = self.sampler.log_prob(repeated_states, sample_actions)
             with torch.no_grad():
                 sampler_entropy *= sampler_entropy
-            sampler_entropy = sampler_entropy.reshape(self.batch_size, self.num_samples, 1)
+            sampler_entropy = sampler_entropy.reshape(batch_size, self.num_samples, 1)
 
             if self.average_entropy:
                 sampler_entropy = -sampler_entropy.mean(axis=1)
@@ -71,7 +73,7 @@ class GreedyAC(BaseAC):
                 sampler_entropy = -sampler_entropy[:, 0, :]
 
             logp, _ = self.sampler.log_prob(stacked_s_batch, best_actions)
-            sampler_loss = logp.reshape(self.batch_size, self.top_action, 1)
+            sampler_loss = logp.reshape(batch_size, self.top_action, 1)
             sampler_loss = -1 * (sampler_loss.mean(axis=1) + self.tau * sampler_entropy).mean()
         else:
             best_ind_proposal = sorted_q[:, :self.top_action_proposal]
@@ -81,7 +83,7 @@ class GreedyAC(BaseAC):
             best_actions_proposal = torch.reshape(best_actions_proposal, (-1, self.gac_a_dim))
 
             logp, _ = self.sampler.log_prob(stacked_s_batch_proposal, best_actions_proposal)
-            sampler_loss = logp.reshape(self.batch_size, self.top_action_proposal, 1)
+            sampler_loss = logp.reshape(batch_size, self.top_action_proposal, 1)
             sampler_loss = -1 * (sampler_loss.mean(axis=1)).mean()
         return sampler_loss
 

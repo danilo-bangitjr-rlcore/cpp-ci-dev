@@ -100,7 +100,7 @@ class LineSearchAgent(GreedyAC):
         if not os.path.isfile(pth):
             '''using etc's parameter here'''
             random_policy = init_policy_network("Beta", self.cfg.device, self.state_dim, [], self.action_dim,
-                                                0, 1e8, self.cfg.activation, self.cfg.head_activation, "Const/1/0", False)
+                                                0, 0, self.cfg.activation, self.cfg.head_activation, "Const/1/0", False)
             reset = True
             for t in range(self.cfg.etc_buffer_prefill):
                 if t % 1000 == 0:
@@ -284,16 +284,19 @@ class LineSearchAgent(GreedyAC):
             data = self.get_data()
             state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
                 data['obs2'], 1 - data['done']
+            batch_size = len(state_batch)
 
             repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
             with torch.no_grad():
                 sample_actions, _, _ = self.sampler(repeated_states)
             q_values, _ = self.get_q_value(repeated_states, sample_actions, with_grad=False)
-            q_values = q_values.reshape(self.batch_size, self.num_samples, 1)
+            # q_values = q_values.reshape(self.batch_size, self.num_samples, 1)
+            q_values = q_values.reshape(batch_size, self.num_samples, 1)
             sorted_q = torch.argsort(q_values, dim=1, descending=True)
             best_ind = sorted_q[:, :self.top_action]
             best_ind = best_ind.repeat_interleave(self.gac_a_dim, -1)
-            sample_actions = sample_actions.reshape(self.batch_size, self.num_samples, self.gac_a_dim)
+            # sample_actions = sample_actions.reshape(self.batch_size, self.num_samples, self.gac_a_dim)
+            sample_actions = sample_actions.reshape(batch_size, self.num_samples, self.gac_a_dim)
             best_actions = torch.gather(sample_actions, 1, best_ind)
 
             # Reshape samples for calculating the loss
@@ -329,10 +332,10 @@ class LineSearchAgent(GreedyAC):
                 self.critic_lr_weight *= 0.5
                 self.undo_update_critic()
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
-                # print("Reset Critic", after_error, before_error, self.cfg.lr_critic)
+                print("Reset Critic", after_error, before_error, self.cfg.lr_critic)
                 self.reset_critic()
             else:
-                # print("Done backtracking. Scaler is", self.critic_lr_weight)
+                print("Critic Done backtracking. Scaler is", self.critic_lr_weight)
                 break
         self.last_critic_scaler = self.critic_lr_weight if bi < self.max_backtracking-1 else 0 # When bi==self.max_backtracking-1, the critic will be reset
         self.critic_lr_weight = self.critic_lr_weight_copy
@@ -359,11 +362,12 @@ class LineSearchAgent(GreedyAC):
                 self.actor_lr_weight *= 0.5
                 self.undo_update_actor()
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
-                # print("Reset Actor, learning rate", self.cfg.lr_actor)
+                print("Actor Done backtracking. Scaler is", self.actor_lr_weight)
                 # self.reset_actor()
                 self.undo_update_actor()
                 break
             else:
+                print("Actor Done backtracking. Scaler is", self.actor_lr_weight)
                 break
         self.last_actor_scaler = self.actor_lr_weight if bi < self.max_backtracking-1 else 0
         self.actor_lr_weight = self.actor_lr_weight_copy
@@ -444,3 +448,56 @@ class LineSearchAgent(GreedyAC):
         i_log["lr_sampler_scaler"] = self.last_sampler_scaler
         i_log["lr_critic_scaler"] = self.last_critic_scaler
         return i_log
+
+
+class LineSearchBU(LineSearchAgent):
+    """
+    Batch Update
+    """
+    def __init__(self, cfg, average_entropy=True):
+        super(LineSearchBU, self).__init__(cfg)
+
+    def get_data(self):
+        """ load a batch """
+        states, actions, rewards, next_states, terminals, truncations = self.buffer.sample_batch()
+        in_ = torch_utils.tensor(states, self.device)
+        actions = torch_utils.tensor(actions, self.device)
+        r = torch_utils.tensor(rewards, self.device)
+        ns = torch_utils.tensor(next_states, self.device)
+        d = torch_utils.tensor(terminals, self.device)
+        t = torch_utils.tensor(truncations, self.device)
+        data = {
+            'obs': in_,
+            'act': actions,
+            'reward': r,
+            'obs2': ns,
+            'done': d,
+            'trunc': t,
+        }
+        return data
+
+
+    def inner_update(self, trunc=False):
+        for _ in range(50):
+            data = self.get_data()
+            state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
+                                                                                    data['obs2'], 1 - data['done']
+            # critic update
+            self.parameter_backup_critic()
+            self.backtrack_critic(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
+
+        for _ in range(1):
+            data = self.get_data()
+            state_batch, action_batch, reward_batch, next_state_batch, mask_batch = (data['obs'], data['act'], data['reward'],
+                                                                                     data['obs2'], 1 - data['done'])
+            next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
+            # uncertainty update
+            self.explore_bonus_update(state_batch, action_batch, reward_batch, next_state_batch, next_action, mask_batch)
+
+            # actor update
+            self.parameter_backup_actor()
+            sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch = self.backtrack_actor(state_batch)
+
+            # proposal update
+            self.parameter_backup_sampler()
+            self.backtrack_sampler(sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch)
