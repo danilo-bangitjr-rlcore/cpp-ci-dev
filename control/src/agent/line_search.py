@@ -79,7 +79,7 @@ class LineSearchAgent(GreedyAC):
         self.bonus_opt_1 = init_optimizer(cfg.optimizer, list(self.fbonus1.parameters()), cfg.lr_critic)
 
         # TODO: These should go to variable in main function later
-        self.max_backtracking = 10
+        self.max_backtracking = 30
         self.reducing_rate = 0.5
         self.increasing_rate = 1.1 # Not sure if this is going to be used
         self.critic_lr_lower_bound = 1e-07
@@ -325,18 +325,14 @@ class LineSearchAgent(GreedyAC):
                 self.critic_lr_weight *= 0.5
                 self.undo_update_critic()
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
-                print("Reset Critic", after_error, before_error, self.cfg.lr_critic)
+                # print("Reset Critic", after_error, before_error, self.cfg.lr_critic)
                 self.reset_critic()
             else:
+                # print("Done backtracking. Scaler is", self.critic_lr_weight)
                 break
+        self.last_critic_scaler = self.critic_lr_weight if bi < self.max_backtracking-1 else 0 # When bi==self.max_backtracking-1, the critic will be reset
         self.critic_lr_weight = self.critic_lr_weight_copy
         return next_action
-
-    def simple_actor_update(self, s, a, w):
-        logp, _ = self.actor.log_prob(s, a)
-        self.actor_optimizer.zero_grad()
-        (-logp.mean() * w).backward()
-        self.actor_optimizer.step()
 
     def backtrack_actor(self, state_batch):
         pi_loss, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
@@ -365,7 +361,7 @@ class LineSearchAgent(GreedyAC):
                 break
             else:
                 break
-
+        self.last_actor_scaler = self.actor_lr_weight if bi < self.max_backtracking-1 else 0
         self.actor_lr_weight = self.actor_lr_weight_copy
         return sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch
 
@@ -388,8 +384,7 @@ class LineSearchAgent(GreedyAC):
                 self.sampler_lr_weight *= 0.5
                 self.undo_update_sampler()
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
-                print("Reset Sampler, learning rate", self.lr_sampler)
-                self.cfg.lr_actor = max(self.cfg.lr_actor * 0.5, self.actor_lr_lower_bound)
+                # print("Reset Sampler, learning rate", self.lr_sampler)
                 # self.actor_optimizer = init_optimizer(self.cfg.optimizer, list(self.actor.parameters()),
                 #                                       self.cfg.lr_actor)
                 # self.reset_sampler()
@@ -397,6 +392,7 @@ class LineSearchAgent(GreedyAC):
                 break
             else:
                 break
+        self.last_sampler_scaler = self.sampler_lr_weight if bi < self.max_backtracking-1 else 0
         self.sampler_lr_weight = self.sampler_lr_weight_copy
         return
 
@@ -435,3 +431,12 @@ class LineSearchAgent(GreedyAC):
         # self.sampler_optim.zero_grad()
         # sampler_loss.backward()
         # self.sampler_optim.step()
+
+    def agent_debug_info(self, observation_tensor, action_tensor, pi_info, env_info):
+        i_log = super(LineSearchAgent, self).agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
+        i_log["lr_actor"] = self.cfg.lr_actor
+        i_log["lr_critic"] = self.cfg.lr_critic
+        i_log["lr_actor_scaler"] = self.last_actor_scaler
+        i_log["lr_sampler_scaler"] = self.last_sampler_scaler
+        i_log["lr_critic_scaler"] = self.last_critic_scaler
+        return i_log

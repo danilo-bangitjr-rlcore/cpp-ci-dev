@@ -52,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument('--reward_normalizer', default='Identity', type=str)
     parser.add_argument('--exploration', default=0.1, type=float)
     parser.add_argument('--beta_parameter_bias', default=0., type=float)
-    parser.add_argument('--beta_parameter_bound', default=1e8, type=float)
+    parser.add_argument('--beta_parameter_bound', default=0, type=float)
     parser.add_argument('--action_scale', default=1., type=float)
     parser.add_argument('--action_bias', default=0., type=float)
     parser.add_argument('--auto_calibrate_beta_support', default=0, type=int)

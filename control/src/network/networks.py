@@ -148,15 +148,21 @@ class BetaPolicy(nn.Module):
         return scaled_param
 
     def get_dist_params(self, observation):
-        base = self.base_network(observation)
-        alpha_head_out = self.alpha_head(base)
-        beta_head_out = self.beta_head(base)
-        low = self.beta_param_bias
-        high = self.beta_param_bound
-
-        alpha = self.squash_dist_param(alpha_head_out, low, high)
-        beta = self.squash_dist_param(beta_head_out, low, high)
-
+        if self.beta_param_bound == 0:
+            """ Not using the squash function"""
+            base = self.base_network(observation)
+            alpha = self.head_activation_fn(self.alpha_head(base)) + EPSILON
+            beta = self.head_activation_fn(self.beta_head(base)) + EPSILON
+            alpha += self.beta_param_bias
+            beta += self.beta_param_bias
+        else:
+            base = self.base_network(observation)
+            alpha_head_out = self.alpha_head(base)
+            beta_head_out = self.beta_head(base)
+            low = self.beta_param_bias
+            high = self.beta_param_bound
+            alpha = self.squash_dist_param(alpha_head_out, low, high)
+            beta = self.squash_dist_param(beta_head_out, low, high)
         return alpha, beta
 
     def forward(self, observation, debug=False):
