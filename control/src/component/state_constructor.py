@@ -9,16 +9,19 @@ class BaseStateConstructor:
     def __init__(self):
         self.parents = []
         self.children = None
+        self.called = False
+        self.o_next = None
         return
     
     def __call__(self, o):
-        if len(self.parents) == 0: # base case
-            o_parents = [o]
-        else:
-            o_parents = [p(o) for p in self.parents]
-            
-        o_next = self.process_observation(o_parents)
-        return o_next
+        if not self.called:
+            if len(self.parents) == 0: # base case
+                o_parents = [o]
+            else:
+                o_parents = [p(o) for p in self.parents]
+            self.o_next = self.process_observation(o_parents)
+            self.called = True
+        return self.o_next
     
     
     def set_parents(self, parents):
@@ -27,8 +30,14 @@ class BaseStateConstructor:
         
     def set_children(self, children):
         self.children = children
-    
-    
+        
+        
+    def reset_called(self):
+        self.called = False
+        for p in self.parents:
+            p.reset_called()
+            
+        
     def process_observation(self, o_parents):
         """
         takes a list and returns a VECTOR
@@ -36,11 +45,14 @@ class BaseStateConstructor:
         raise NotImplementedError
         
 
+
 class Identity(BaseStateConstructor):
     def process_observation(self, o_parents):
         assert len(o_parents) == 1
         return o_parents[0]
     
+
+
 
 class KOrderHistory(BaseStateConstructor):
     """
@@ -175,9 +187,20 @@ class Mid(BaseStateConstructor):
         return o[i, :]
 
 
+class State_Wrapper:
+    def __init__(self, state_constructor):
+        self.state_constructor = state_constructor
+        
+    def __call__(self, o):
+        self.state_constructor(o)
+        self.state_constructor.reset_called()
+        
+        
 def init_state_constructor(name, cfg):
     if name == "Reseau":
         # set up graph
+        
+        # TODO: how to normalize?
         s1 = Normalize(1, 0)
         s2 = WindowAverage(2)
         s2.set_parents([s1])
@@ -196,7 +219,10 @@ def init_state_constructor(name, cfg):
 
         s8 = Concatenate()
         s8.set_parents([s3, s4, s5, s6, s7])
-        return s8
+
+        s = State_Wrapper(s8)
+        
+        return s
     
     else:
         s1 = Normalize(1, 0)
