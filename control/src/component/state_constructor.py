@@ -3,6 +3,7 @@ import numpy as np
 from copy import deepcopy
 from normalizer import Scale
 import math
+from gymnasium.spaces.utils import flatdim
 
 
 class BaseStateConstructor:
@@ -43,6 +44,14 @@ class BaseStateConstructor:
         takes a list and returns a VECTOR
         """
         raise NotImplementedError
+    
+    def _clear_state(self):
+        return
+    
+    def clear_state(self):
+        self._clear_state()
+        for p in self.parents:
+            p.clear_state()
         
 
 
@@ -50,7 +59,6 @@ class Identity(BaseStateConstructor):
     def process_observation(self, o_parents):
         assert len(o_parents) == 1
         return o_parents[0]
-    
 
 
 
@@ -70,8 +78,8 @@ class KOrderHistory(BaseStateConstructor):
         takes a list and returns a VECTOR
         """
         assert(len(o_parents)) == 1
-        o_parent = o_parents[0]
-        self.obs_history.append(o_parent)
+        o = o_parents[0]
+        self.obs_history.append(o)
         
         if len(self.obs_history) > self.k:
             self.obs_history.pop(0)
@@ -85,6 +93,10 @@ class KOrderHistory(BaseStateConstructor):
                 
         return np.array(return_list)
     
+    def _clear_state(self):
+        self.obs_history = []
+        self.num_elements = 0
+    
 
 
 class MemoryTrace(BaseStateConstructor):
@@ -95,32 +107,75 @@ class MemoryTrace(BaseStateConstructor):
 
     def process_observation(self, o_parents):
         assert(len(o_parents)) == 1
-        o_parent = o_parents[0]
+        o = o_parents[0]
         if self.trace is None: # first observation received
-            self.trace = o_parent
+            self.trace = (1-self.trace_decay)*o + self.trace_decay*np.zeros_like(o)
         else:
-            self.trace = (1-self.trace_decay)*o_parent + self.trace_decay*self.trace
+            self.trace = (1-self.trace_decay)*o + self.trace_decay*self.trace
         return self.trace
+    
+    def _clear_state(self):
+        self.trace = None
+
+
+class IntraStepMemoryTrace(BaseStateConstructor):
+    def __init__(self, trace_decay):
+        super().__init__()
+        self.trace_decay = trace_decay
+        self.trace = None
+
+    def process_observation(self, o_parents):
+        assert(len(o_parents)) == 1
+        o = o_parents[0]
+        num_rows = o.shape[0]
+        for i in range(num_rows):
+            row = o[i, :]
+            if self.trace is None: # first observation received
+                self.trace = (1-self.trace_decay)*row + np.zeros_like(row)
+            else:
+                self.trace = (1-self.trace_decay)*row + self.trace_decay*self.trace
+        return self.trace
+    
+    def _clear_state(self):
+        self.trace = None
+
+
+class SubSample(BaseStateConstructor):
+    def __init__(self, n):
+        super().__init__()
+        self.n = n
+
+    def process_observation(self, o_parents):
+        assert(len(o_parents)) == 1
+        o = o_parents[0].copy()
+        
+        if len(o.shape) == 1:
+            return o
+        
+        elif len(o.shape) == 2:
+            o = np.flip(o, axis=0)
+            o = o[0::self.n]
+            return np.flip(o, axis=0)
+        else:
+            raise NotImplementedError
 
 
 class LastK(BaseStateConstructor):
     def __init__(self, k):
         super().__init__()
         self.k = k
-        self.trace = None
 
     def process_observation(self, o_parents):
         assert(len(o_parents)) == 1
-        o_parent = o_parents[0]
+        o_parent = o_parents[0].copy()
         if len(o_parent.shape) == 2: # 2D array
             o = o_parent[-self.k:, ]
-            o = o.flatten()
         elif len(o_parent.shape) == 1:
             o = o_parent[-self.k:]    
         return o
 
 
-class Flatten:
+class Flatten(BaseStateConstructor):
     def process_observation(self, o_parents):
         assert(len(o_parents)) == 1
         return o_parents[0].flatten()
@@ -142,6 +197,15 @@ class Normalize(BaseStateConstructor):
         return self.normalizer(o_parent)
 
 
+class ReseauNormalize(Normalize):
+    def __init__(self):
+        super().__init__()
+        scaler = 1
+        bias = 1
+        self.normalizer = Scale(scaler, bias)
+        
+
+
 class WindowAverage(BaseStateConstructor):
     """
     Averages every window_size observations together
@@ -153,7 +217,7 @@ class WindowAverage(BaseStateConstructor):
     
     def process_observation(self, o_parents):
         assert(len(o_parents)) == 1
-        o = o_parents[0]
+        o = o_parents[0].copy()
         assert(len(o.shape)==2)
         num_rows =  o.shape[0] 
         o = o[num_rows%self.window_size:]
@@ -166,7 +230,7 @@ class WindowAverage(BaseStateConstructor):
 class Beginning(BaseStateConstructor):
     def process_observation(self, o_parents):
         assert(len(o_parents)) == 1
-        o = o_parents[0]
+        o = o_parents[0].copy()
         assert(len(o.shape)==2)
         return o[0, :]
     
@@ -174,55 +238,103 @@ class Beginning(BaseStateConstructor):
 class End(BaseStateConstructor):
     def process_observation(self, o_parents):
         assert(len(o_parents)) == 1
-        o = o_parents[0]
+        o = o_parents[0].copy()
         assert(len(o.shape)==2)
         return o[-1, :]
+    
     
 class Mid(BaseStateConstructor):
     def process_observation(self, o_parents):
         assert(len(o_parents)) == 1
-        o = o_parents[0]
+        o = o_parents[0].copy()
         assert(len(o.shape)==2)
         i = math.ceil(o.shape[0]/2)
         return o[i, :]
 
 
-class State_Wrapper:
-    def __init__(self, state_constructor):
+class StateConstructorWrapper:
+    def __init__(self, state_constructor, time_frame=1):
         self.state_constructor = state_constructor
+        self.time_frame = time_frame
         
     def __call__(self, o):
-        self.state_constructor(o)
+        state = self.state_constructor(o)
         self.state_constructor.reset_called()
+        return state
+    
+    def get_state_dim(self, dim):
+        # dim = flatdim(env.observation_space)
+        if self.time_frame == 1:
+            test_obs = np.ones(dim)
+        else:
+            test_obs = np.ones((self.time_frame, dim))
+        state = self(test_obs)
+        assert len(state.shape) == 1
+        state_dim = state.shape[0]
+        self.state_constructor.clear_state()
+        return state_dim
         
         
+
 def init_state_constructor(name, cfg):
-    if name == "Reseau":
-        # set up graph
-        
-        # TODO: how to normalize?
-        s1 = Normalize(1, 0)
-        s2 = WindowAverage(2)
+    if name == "Identity":
+        s1 = Identity()
+        sc = StateConstructorWrapper(s1)
+        return sc
+    
+    elif name == "Reseau_order_k":
+        s1 = ReseauNormalize()
+        s2 = WindowAverage(cfg.window_average)
         s2.set_parents([s1])
 
-        s3 = Beginning()
+        s3 = End()
         s3.set_parents([s2])
-        s4 = Mid()
-        s4.set_parents([s2])
-        s5 = End()
+
+        s4 = KOrderHistory(cfg.k_order_hist)
+        s4.set_parents([s3])
+
+        s5 = Flatten()
+        s5.set_parents([s4])
+        sc = StateConstructorWrapper(s5)
+        return sc
+    
+    elif name == "Reseau_single_trace":
+        # Single trace
+        s1 = ReseauNormalize()
+        s2 = WindowAverage(cfg.window_average)
+        s2.set_parents([s1])
+        s3 = End()
+        s3.set_parents([s2])
+        s4 = MemoryTrace(cfg.trace_decay)
+        s4.set_parents([s3])
+        s5 = Concatenate()
+        s5.set_parents([s3, s4])
+        sc = StateConstructorWrapper(s5)
+        return sc
+        
+    elif name == "Reseau_double_trace":
+        # Double trace
+        s1 = ReseauNormalize()
+        s2 = WindowAverage(cfg.window_average)
+        s2.set_parents([s1])
+
+        s3 = End()
+        s3.set_parents([s2])
+
+        s4 = MemoryTrace(cfg.trace_decay)
+        s4.set_parents([s3])
+
+        s5 = SubSample(2)
         s5.set_parents([s2])
 
-        s6 = MemoryTrace(0.5)
+        s6 = IntraStepMemoryTrace(cfg.intra_step_trace_decay)
         s6.set_parents([s5])
-        s7 = MemoryTrace(0.9)
-        s7.set_parents([s5])
 
-        s8 = Concatenate()
-        s8.set_parents([s3, s4, s5, s6, s7])
+        s7 = Concatenate()
 
-        s = State_Wrapper(s8)
-        
-        return s
-    
+        s7.set_parents([s3, s4, s6])
+        sc = StateConstructorWrapper(s7)
+        return sc
+
     else:
-        s1 = Normalize(1, 0)
+        raise NotImplementedError

@@ -94,8 +94,15 @@ if __name__ == "__main__":
     parser.add_argument('--reset_fpm', default=50, type=int) # Should it be 15?
     parser.add_argument('--decision_freq', default=10, type=int) # frequency (s) for the agent to make decision
     parser.add_argument('--observation_window', default=10, type=int) # window (s) for getting observations
-    parser.add_argument('--state_constructor', default='Reseau', type=str)
-
+   
+    
+    # state constraction
+    parser.add_argument('--state_constructor', default="Identity", type=str)
+    parser.add_argument('--window_average',  default=1, type=int)
+    parser.add_argument('--k_order_hist', default=1, type=int) 
+    parser.add_argument('--trace_decay', default=0.9, type=float) 
+    parser.add_argument('--intra_step_trace_decay', default=0.9, type=int)
+    
 
     cfg = parser.parse_args()
 

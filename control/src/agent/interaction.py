@@ -16,9 +16,8 @@ class InteractionLayer:
         self.action_normalizer = init_normalizer(cfg.action_normalizer,
                                                  type('obj', (object,), {'scaler': cfg.action_scale,  'bias': cfg.action_bias}))
         
-        
         self.state_constructor = init_state_constructor(cfg.state_constructor, cfg)
-        self.state_dim = self.state_normalizer.get_new_dim(flatdim(self.env.observation_space))
+        self.state_dim = self.state_constructor.get_state_dim(flatdim(self.env.observation_space))        
         self.action_dim = self.action_normalizer.get_new_dim(flatdim(self.env.action_space))
 
     def env_reset(self):
