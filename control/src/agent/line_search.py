@@ -52,6 +52,10 @@ class LineSearchAgent(GreedyAC):
         self.sampler_lr_weight_copy = 1
         self.critic_lr_weight = 1
         self.critic_lr_weight_copy = 1
+        self.last_actor_scaler = None
+        self.last_sampler_scaler = None
+        self.last_critic_scaler = None
+
 
         self.actor_lr_start = self.cfg.lr_actor
         self.critic_lr_start = self.cfg.lr_critic
