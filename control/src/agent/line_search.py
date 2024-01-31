@@ -518,6 +518,7 @@ class LineSearchBU(LineSearchAgent):
     """
     def __init__(self, cfg, average_entropy=True):
         super(LineSearchBU, self).__init__(cfg)
+        self.separated_testset = False
 
     def get_data(self):
         return self.get_all_data()
