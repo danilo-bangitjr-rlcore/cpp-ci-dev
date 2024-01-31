@@ -19,9 +19,10 @@ if __name__ == "__main__":
     parser.add_argument('--fpm_min', default=5, type=int)
     parser.add_argument('--fpm_max', default=100, type=int)
     parser.add_argument('--num_fpms', default=100, type=int)
-    parser.add_argument('--orp_delay_start_times', default=['09:10:00', '13:10:00'], type=str, nargs='+')
-    parser.add_argument('--orp_delay_duration', default=9600, type=int) # Duration of ORP Delay Experiment in seconds (9600 = 2 hours 40 minutes)
+    parser.add_argument('--orp_delay_start_times', default=['14:29:00', '14:32:00'], type=str, nargs='+')
+    parser.add_argument('--orp_delay_duration', default=30, type=int) # Duration of ORP Delay Experiment in seconds (9600 = 2 hours 40 minutes)
     parser.add_argument('--orp_threshold_factor', default=2.0, type=float)
+
 
     cfg = parser.parse_args()
 
