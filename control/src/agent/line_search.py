@@ -16,11 +16,12 @@ class LineSearchAgent(GreedyAC):
     """
     [done] remove resetting; increase the backtracking length; change to sgd
 
-      *    use minibatch for update; use batch/another minibatch for test; increase the threshold
-      *    value based, qt-opt
+      *    Use minibatch for update; use batch/another minibatch for test; increase the threshold
+      *    Change to value based, qt-opt
+      *    Add exploration
     """
     def __init__(self, cfg, average_entropy=True):
-        super(LineSearchAgent, self).__init__(cfg)
+        super(LineSearchAgent, self).__init__(cfg, average_entropy)
 
         # Leave positions for backup the networks
         if self.discrete_control:
@@ -57,7 +58,7 @@ class LineSearchAgent(GreedyAC):
         self.last_actor_scaler = None
         self.last_sampler_scaler = None
         self.last_critic_scaler = None
-        self.separated_testset = False
+        self.separated_testset = True
 
 
         self.actor_lr_start = self.cfg.lr_actor
@@ -518,8 +519,67 @@ class LineSearchBU(LineSearchAgent):
     Batch Update
     """
     def __init__(self, cfg, average_entropy=True):
-        super(LineSearchBU, self).__init__(cfg)
+        super(LineSearchBU, self).__init__(cfg, average_entropy)
         self.separated_testset = False
 
     def get_data(self):
         return self.get_all_data()
+
+
+class LineSearchVB(LineSearchAgent):
+    """
+    Value based method
+    """
+    def __init__(self, cfg, average_entropy=True):
+        super(LineSearchVB, self).__init__(cfg, average_entropy)
+        self.exploration = cfg.exploration
+        del self.actor_copy, self.sampler_copy, self.actor, self.sampler
+        self.random_sampler = init_policy_network("Beta", self.cfg.device, self.state_dim, [], self.action_dim,
+                                                  0, 0, self.cfg.activation, self.cfg.head_activation, "Const/1/0", False)
+        self.actor = init_policy_network(self.cfg.actor, self.cfg.device, self.state_dim, self.cfg.hidden_actor,
+                                         self.action_dim, self.cfg.beta_parameter_bias, self.cfg.beta_parameter_bound, self.cfg.activation,
+                                         self.cfg.head_activation, self.cfg.layer_init_actor, self.cfg.layer_norm)
+        self.actor_optimizer = init_optimizer(self.cfg.optimizer, list(self.actor.parameters()),
+                                              self.cfg.lr_actor)
+
+    def inner_update(self, trunc=False):
+        data = self.get_data()
+        state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
+                                                                                data['obs2'], 1 - data['done']
+        # critic update
+        q_loss, _ = self.critic_loss(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
+        self.critic_optimizer.zero_grad()
+        q_loss.backward()
+        self.critic_optimizer.step()
+        return data
+
+    # def greedy_sampling(self, states):
+    #     """Gradient ascent"""
+    #     data = self.get_data_all()
+    #     state_batch = data['obs']
+    #     for _ in range(100):
+    #         sample_a, _ = self.actor(state_batch)
+    #         qs, _ = self.get_q_value(state_batch, sample_a, with_grad=False)
+    #         self.actor_optimizer.zero_grad()
+    #         (-qs.mean()).backward()
+    #         self.actor_optimizer.step()
+    #     with torch.no_grad():
+    #         best_action, _ = self.actor(states)
+    #     return best_action
+
+    def greedy_sampling(self, states):
+        """Take the max form random samples"""
+        rept_states = states.repeat_interleave(self.num_samples, dim=0)
+        with torch.no_grad():
+            sample_actions, _, _ = self.random_sampler(rept_states)
+        qs, _ = self.get_q_value(rept_states, sample_actions, with_grad=False)
+        sorted_qs = torch.argsort(qs, dim=1, descending=True)
+        _, best_action = self.get_action_with_top_value(states, sample_actions, sorted_qs, 1)
+        return best_action
+
+    def get_policy(self, observation, with_grad=False, debug=False):
+        if self.rng.random() >= self.exploration:
+            a = self.greedy_sampling(observation)
+        else:
+            a, _, _ = self.random_sampler(observation)
+        return a, None, None

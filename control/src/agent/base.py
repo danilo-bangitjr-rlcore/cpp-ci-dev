@@ -376,7 +376,7 @@ class BaseValue(BaseAC):
         self.exploration = cfg.exploration
 
     def get_policy(self, observation, with_grad, debug=False):
-        if eval or self.rng.random() >= self.exploration:
+        if with_grad or self.rng.random() >= self.exploration:
             qs, _ = self.critic(observation)
             a = torch.argmax(qs, dim=1, keepdim=True)
         else:
