@@ -367,7 +367,8 @@ class LineSearchAgent(GreedyAC):
         eval_best = eval_best.repeat_interleave(self.gac_a_dim, -1)
         eval_sample_actions = eval_sample_actions.reshape(eval_state.shape[0], self.num_samples, self.gac_a_dim)
         eval_best_action = torch.gather(eval_sample_actions, 1, eval_best)
-        eval_stacked_s = eval_state.repeat_interleave(self.top_action, dim=0)
+        eval_best_action = torch.reshape(eval_best_action, (-1, self.gac_a_dim))
+        eval_stacked_s = eval_state.repeat_interleave(count_top, dim=0)
         return eval_stacked_s, eval_best_action
 
     def get_best_action_proposal(self, eval_state):
