@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import os
 import pickle as pkl
+import time
 
 from src.agent.eval import Evaluation
 from src.network.factory import init_policy_network, init_critic_network, init_optimizer
@@ -55,6 +56,7 @@ class BaseAC(Evaluation):
         self.target_network_update_freq = 1
         self.cfg = cfg
         self.discrete_control = cfg.discrete_control
+        self.decision_freq = cfg.decision_freq
 
         # Visit count heatmap
         if self.cfg.debug:
@@ -172,6 +174,44 @@ class BaseAC(Evaluation):
             priority = torch_utils.to_np(priority)
             self.buffer.update_priorities(priority)
         return
+    
+    
+    def decoupled_step(self):
+        """
+        Similar to step, but allows the agent to continue to update itself before the state is returned
+        """
+        observation_tensor = torch_utils.tensor(self.state_normalizer(self.observation.reshape((1, -1))), self.device)
+        action_tensor, _, pi_info = self.get_policy(observation_tensor,
+                                                    with_grad=False, debug=self.cfg.debug)
+        action = torch_utils.to_np(action_tensor)[0]
+        self.env.take_action(action) # take action in the environment
+        
+        # update for some time, then get state
+        start = time.time()
+        self.decoupled_inner_update(trunc)
+        time.sleep(start+self.decision_freq-time.time()) # if update does not take all alotted time, wait. 
+        next_observation, reward, terminated, trunc, env_info = self.env.get_observation(action)  
+        reset, truncate = self.update_stats(reward, terminated, trunc)
+        self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
+
+        i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
+        self.info_log.append(i_log)
+
+        if self.cfg.render:
+            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"])
+        else:
+            env_info.pop('interval_log', None)
+            i_log['critic_info'].pop('Q-function', None)
+
+        self.update(trunc)
+
+        if reset:
+            next_observation, info = self.env.reset()
+        self.observation = next_observation
+
+        if self.use_target_network and self.total_steps % self.target_network_update_freq == 0:
+            self.sync_target()
+        return
 
     # actor-critic
     def get_policy(self, observation, with_grad, debug=False):
@@ -266,6 +306,14 @@ class BaseAC(Evaluation):
         if self.total_steps % self.update_freq == 0:
             for _ in range(self.update_freq):
                 self.inner_update(trunc)
+                
+    def decoupled_inner_update(self, trunc=False):
+        if self.total_steps % self.update_freq == 0:
+            for _ in range(self.update_freq):
+                self.async_inner_update(trunc)
+
+    def async_inner_update(self, trunc=False):
+        raise NotImplementedError
 
     def inner_update(self, trunc=False):
         raise NotImplementedError
@@ -345,9 +393,9 @@ class BaseAC(Evaluation):
             action = torch_utils.to_np(action_tensor)[0]
             x_action_ind = int(action[0] / self.x_action_increment)
             y_action_ind = int(action[1] / self.y_action_increment)
-            if x_action_ind == 1.0 / self.x_action_increment:
+            if x_action_ind == 10 / self.x_action_increment:
                 x_action_ind -= 1
-            if y_action_ind == 1.0 / self.y_action_increment:
+            if y_action_ind == 10 / self.y_action_increment:
                 y_action_ind -= 1
             self.visit_counts[y_action_ind][x_action_ind] += 1
         
