@@ -15,9 +15,8 @@ class LineSearchAgent(GreedyAC):
 
     """
     [done] remove resetting; increase the backtracking length; change to sgd
-
-      *    Use minibatch for update; use batch/another minibatch for test; increase the threshold
-      *    Change to value based, qt-opt
+    [done] Use minibatch for update; use batch/another minibatch for test; increase the threshold
+      *    Change to value based. Qt-opt?
       *    Add exploration
     """
     def __init__(self, cfg, average_entropy=True):
@@ -553,20 +552,6 @@ class LineSearchVB(LineSearchAgent):
         q_loss.backward()
         self.critic_optimizer.step()
         return data
-
-    # def greedy_sampling(self, states):
-    #     """Gradient ascent"""
-    #     data = self.get_data_all()
-    #     state_batch = data['obs']
-    #     for _ in range(100):
-    #         sample_a, _ = self.actor(state_batch)
-    #         qs, _ = self.get_q_value(state_batch, sample_a, with_grad=False)
-    #         self.actor_optimizer.zero_grad()
-    #         (-qs.mean()).backward()
-    #         self.actor_optimizer.step()
-    #     with torch.no_grad():
-    #         best_action, _ = self.actor(states)
-    #     return best_action
 
     def greedy_sampling(self, states):
         """Take the max form random samples"""
