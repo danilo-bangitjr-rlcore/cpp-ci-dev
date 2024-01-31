@@ -1,24 +1,10 @@
 import copy
 import itertools
 
-from curves import DATAROOT, sweep_offline, reproduce_demo, best_offline
-from curves import visualize_training_info, sensitivity_plot, sensitivity_plot_2d
+from curves import DATAROOT, reproduce_demo, best_offline
+from curves import visualize_training_info
+from curves import sweep_parameter, draw_sensitivity, draw_sensitivity_2d
 
-
-def sweep_parameter(pth_base, agent_list=['GAC']):
-    for agent in agent_list:
-        sweep_offline(pth_base+"/{}/".format(agent), agent)
-
-
-def draw_sensitivity(pth_base, agent, fix_params_list, sweep_param, title):
-    keys, values = zip(*fix_params_list.items())
-    fix_params_choices = [dict(zip(keys, v)) for v in itertools.product(*values)]
-    sensitivity_plot(pth_base+"/{}/".format(agent), agent, fix_params_choices, sweep_param, title)
-
-def draw_sensitivity_2d(pth_base, agent, fix_params_list, sweep_param1, sweep_param2, title):
-    keys, values = zip(*fix_params_list.items())
-    fix_params_choices = [dict(zip(keys, v)) for v in itertools.product(*values)]
-    sensitivity_plot_2d(pth_base+"/{}/".format(agent), agent, fix_params_choices, sweep_param1, sweep_param2, title)
 
 def demo():
     """
