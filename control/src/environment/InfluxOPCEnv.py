@@ -14,7 +14,7 @@ from math import floor
 import asyncio
 import time
 
-class DBClientWrapper():
+class DBClientWrapperBase():
     def __init__(self, bucket, org, token, url, date_fn=None):
         self.bucket = bucket
         self.org = org
@@ -98,10 +98,13 @@ class DBClientWrapper():
             df = df_list
         df = df[col_names]
         return df
+    
+    
+    
    
 class InfluxOPCEnv(gym.Env):
     def __init__(self, db_client, opc_connection, control_tags, date_col, col_names, 
-        runtime=None, decision_freq=10*60, observation_window=10, offline_data_folder=None):
+        runtime=None, decision_freq=10*60, observation_window=10, last_n_observations=None, offline_data_folder=None):
         # for continuing s
         self.db_client = db_client
         self.date_col = date_col,
@@ -120,6 +123,7 @@ class InfluxOPCEnv(gym.Env):
         self.runtime = runtime
         self.opc_connection = opc_connection
         self.control_tags = control_tags
+        self.last_n_observations = last_n_observations
         
 
     async def _take_action(self, a):
@@ -187,16 +191,13 @@ class InfluxOPCEnv(gym.Env):
         Gets observations, defined as all obvservations within the last self.decision_freq seconds from self._now
         
         returns: 
-            self.state (np.array) : the observation
+            self.state (pd.dataframe) : the observation
         """
         obs_df = self.db_client.query(self._now-self.observation_window, self._now, self.col_names)  
         obs = self.process_observation(obs_df)
+        if self.last_n_observations is not None:
+            obs=obs[-self.last_n_observations:] # only return the last n observations within a window. 
         return obs
-
-
-    def process_observation(self, obs):
-        raise NotImplementedError
-
 
     def reset(self, seed=0):
         """

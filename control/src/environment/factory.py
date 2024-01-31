@@ -198,7 +198,3 @@ def configure_action_scaler_and_bias(cfg):
             raise NotImplementedError
     
     
-def configure_observation_normalization(cfg):
-    
-    if cfg.auto_calibrate_obs_norm:
-        

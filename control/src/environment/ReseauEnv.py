@@ -1,8 +1,10 @@
 import datetime as dt
 import time
 import numpy as np
-from src.environment.InfluxOPCEnv import InfluxOPCEnv
+import pandas as pd
+from src.environment.InfluxOPCEnv import InfluxOPCEnv, DBClientWrapperBase
 from gymnasium.spaces import Box
+
 
 def date_to_timestamp_reseau(date):
     """
@@ -29,6 +31,7 @@ def date_to_timestamp_reseau(date):
     assert valid_format
     return dt.datetime.timestamp(time)
 
+    
 
 class ReseauEnv(InfluxOPCEnv):
     def __init__(self, db_client, opc_connection, control_tags, control_tag_default, date_col, col_names, 
@@ -40,12 +43,25 @@ class ReseauEnv(InfluxOPCEnv):
         self.action_space = Box(low=0, high=200)
 
     def _get_reward(self, s, a):
-        return  0
-    
-    def process_observation(self, obs):
-        return np.mean(obs.to_numpy(), axis=0) # averages over timesteps
+        s[a]
+        return  
+
 
     def reset(self, seed=0):
         self.take_action(self.control_tags_default)
         time.sleep(0.1)
         return super().reset(seed)
+    
+    
+    def get_observation(self, a):
+        self._update_now()
+        self.state = self._get_observation() 
+        done = self._check_done()
+        reward = self._get_reward(self.state, a)
+    
+        
+        return self.state, reward, done, False, {}
+        
+        
+        
+        return obs
