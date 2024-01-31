@@ -274,5 +274,8 @@ class Evaluation(InteractionLayer):
         return
         
     def save_info(self, filename):
+        for i_log in self.info_log:
+            i_log['critic_info'].pop('Q-function', None)
+            i_log.pop('action_visits', None)
         with open(filename, 'wb') as f:
             pickle.dump(self.info_log, f)
