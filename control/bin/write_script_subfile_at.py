@@ -12,24 +12,24 @@ def reactor_env_sweep():
     """
     settings = {
         "GAC": {
-            "--rho": [0.1, 0.2, 0.4],
-            "--prop_rho_mult": [2.0],
+            "--rho": [0.4],
+            "--prop_rho_mult": [1.5, 2.0],
             "--n": [30],
-            "--buffer_size": [1000, 30000],
-            "--buffer_prefill": [0, 1000],
-            "--batch_size": [64, 256],
+            "--buffer_size": [30000],
+            "--buffer_prefill": [0, 256],
+            "--batch_size": [256, 1024],
             "--polyak": [0.995],
-            "--lr_actor": [1e0, 1e-1, 1e-2, 1e-3],
-            "--lr_critic": [1e-2, 1e-3, 1e-4, 1e-5],
+            "--lr_actor": [1e-2, 1e-3, 1e-4],
+            "--lr_critic": [1e-2, 1e-3, 1e-4],
             "--beta_parameter_bias": [0.0, 1.0],
         },
     }
     shared_settings = {
         "--env_name": ["ReactorEnv"],
-        "--exp_name": ["Param_Sweep"],
+        "--exp_name": ["Restricted_Param_Sweep"],
         "--max_steps": [30000],
         "--timeout": [100],
-        "--gamma": [0.9, 0.99],
+        "--gamma": [0.99],
         "--hidden_actor": ["256 256"],
         "--hidden_critic": ["256 256"],
         "--log_interval": [10],
@@ -48,7 +48,7 @@ def reactor_env_sweep():
     target_agents = ["GAC"]
 
     settings = merge_independent(settings, shared_settings)
-    combinations(settings, target_agents, num_runs=1, prev_file=0, line_per_file=100, comb_num_base=0)
+    combinations(settings, target_agents, num_runs=1, prev_file=2, line_per_file=10000, comb_num_base=432)
     
     
 if __name__=='__main__':

@@ -86,6 +86,9 @@ def param_sweep(ax, data, root):
         compare_final.append(data[p][:, -100:].mean().sum())
     
     sort_compare_auc = np.argsort(compare_auc)
+    sorted_labels = [x for _, x in sorted(zip(compare_auc, params), reverse=True)]
+    print("Best Performing Labels:")
+    print(sorted_labels)
     print("Best Performing Indices:")
     print(sort_compare_auc)
     print("AUCs:")
