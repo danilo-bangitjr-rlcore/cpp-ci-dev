@@ -85,13 +85,13 @@ class BaseAC(Evaluation):
             self.buffer.feed([last_state, action[0], reward, self.observation, int(done), int(truncate)])
 
             i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
-            self.info_log.append(i_log)
 
             if self.cfg.render:
                 self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"])
-            else:
-                env_info.pop('interval_log', None)
-                i_log['critic_info'].pop('Q-function', None)
+            i_log.pop('action_visits', None)
+            env_info.pop('interval_log', None)
+            i_log['critic_info'].pop('Q-function', None)
+            self.info_log.append(i_log)
 
             track_states.append(last_state)
             track_actions.append(action[0])
