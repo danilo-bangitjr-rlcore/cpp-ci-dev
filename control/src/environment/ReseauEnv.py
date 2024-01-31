@@ -48,7 +48,6 @@ class ReseauEnv(InfluxOPCEnv):
         self.orp_sp = sp
 
     def _get_reward(self, s, a):
-        t = time.time()
         mae = (s['ait301_pv'] - self.orp_sp).abs().mean()
         return  mae
 
