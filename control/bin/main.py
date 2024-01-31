@@ -59,6 +59,7 @@ if __name__ == "__main__":
     
     parser.add_argument('--load_path', default="", type=str)
     parser.add_argument('--load_checkpoint', default=1, type=int)
+    parser.add_argument('--buffer_type', default="Random", type=str)
     parser.add_argument('--buffer_size', default=1, type=int)
     parser.add_argument('--buffer_prefill', default=0, type=int)
     parser.add_argument('--etc_buffer_prefill', default=0, type=int) # buffer prefill for etc 

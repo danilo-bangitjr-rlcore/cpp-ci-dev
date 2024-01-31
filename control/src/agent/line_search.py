@@ -118,7 +118,7 @@ class LineSearchAgent(GreedyAC):
             with open(pth, "wb") as f:
                 pkl.dump(self.buffer, f)
         else:
-            print("Load prefilled data")
+            print("Load prefilled data from", pth)
             with open(pth, "rb") as f:
                 self.buffer = pkl.load(f)
             self.buffer.batch_size = self.batch_size
@@ -332,8 +332,10 @@ class LineSearchAgent(GreedyAC):
                 self.critic_lr_weight *= 0.5
                 self.undo_update_critic()
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
-                print("Reset Critic", after_error, before_error, self.cfg.lr_critic)
-                self.reset_critic()
+                # print("Reset Critic", after_error, before_error, self.cfg.lr_critic)
+                # self.reset_critic()
+                print("Critic Done backtracking and hit the limit. Scaler is", self.critic_lr_weight)
+                break
             else:
                 print("Critic Done backtracking. Scaler is", self.critic_lr_weight)
                 break
@@ -362,9 +364,9 @@ class LineSearchAgent(GreedyAC):
                 self.actor_lr_weight *= 0.5
                 self.undo_update_actor()
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
-                print("Actor Done backtracking. Scaler is", self.actor_lr_weight)
+                print("Actor Done backtracking and hit the limit. Scaler is", self.actor_lr_weight)
                 # self.reset_actor()
-                self.undo_update_actor()
+                # self.undo_update_actor()
                 break
             else:
                 print("Actor Done backtracking. Scaler is", self.actor_lr_weight)
@@ -392,11 +394,12 @@ class LineSearchAgent(GreedyAC):
                 self.sampler_lr_weight *= 0.5
                 self.undo_update_sampler()
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
+                print("Sampler Done backtracking and hit the limit. Scaler is", self.critic_lr_weight)
                 # print("Reset Sampler, learning rate", self.lr_sampler)
                 # self.actor_optimizer = init_optimizer(self.cfg.optimizer, list(self.actor.parameters()),
                 #                                       self.cfg.lr_actor)
                 # self.reset_sampler()
-                self.undo_update_sampler()
+                # self.undo_update_sampler()
                 break
             else:
                 break
