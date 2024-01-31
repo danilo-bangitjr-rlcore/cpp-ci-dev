@@ -388,6 +388,7 @@ class LineSearchAgent(GreedyAC):
             before_error = self.eval_error_actor(eval_stacked_s, eval_best_action, self.actor_copy)
         else:
             eval_stacked_s, eval_best_action = None, None
+            eval_sample_actions, sorted_eval_q = None, None
             before_error = self.eval_error_actor(stacked_s_batch, best_actions, self.actor_copy)
 
         pi_loss_weighted = pi_loss
