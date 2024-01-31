@@ -14,7 +14,7 @@ from math import floor
 import asyncio
 import time
 
-class DBClientWrapper():
+class DBClientWrapperBase():
     def __init__(self, bucket, org, token, url, date_fn=None):
         self.bucket = bucket
         self.org = org
@@ -89,18 +89,23 @@ class DBClientWrapper():
             '|> range(start: {}, stop: {}) '.format(start_time, end_time),
             '|> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value") '
             ]
+
         query_str = ' '.join(query_str_list)
         df_list = self.query_api.query_data_frame(query_str)
-        
+       
         if type(df_list) == list:
             df = pd.concat(df_list, axis=1)
         else:
             df = df_list
         df = df[col_names]
+        
         return df
-   
+    
+    
+
 class InfluxOPCEnv(gym.Env):
-    def __init__(self, db_client, opc_connection, control_tags, date_col, col_names, runtime=None, decision_freq=10*60, offline_data_folder=None):
+    def __init__(self, db_client, opc_connection, control_tags, date_col, col_names, 
+        runtime=None, decision_freq=10*60, observation_window=10, last_n_observations=None, offline_data_folder=None):
         # for continuing s
         self.db_client = db_client
         self.date_col = date_col,
@@ -115,10 +120,11 @@ class InfluxOPCEnv(gym.Env):
             self.offline = False
             
         self.decision_freq = decision_freq
+        self.observation_window = observation_window
         self.runtime = runtime
         self.opc_connection = opc_connection
-       
         self.control_tags = control_tags
+        self.last_n_observations = last_n_observations
         
 
     async def _take_action(self, a):
@@ -143,7 +149,8 @@ class InfluxOPCEnv(gym.Env):
 
 
     def take_action(self, a):
-        asyncio.run(self._take_action(a))
+        pass
+        #asyncio.run(self._take_action(a))
       
 
     def _get_reward(self, s, a):
@@ -166,26 +173,13 @@ class InfluxOPCEnv(gym.Env):
         """
         Takes a single synchronous environmental step. 
         """
-    
         self._update_now()
         self.state = self._get_observation() 
         done = self._check_done()
         reward = self._get_reward(self.state, a)
         return self.state, reward, done, False, {}
         
-        
-    def get_observations_since_time(self, a, start_time):
-        """
-        Takes a single synchronous environmental step. Returns all observations since a certain start time. 
-        """
-    
-        self._update_now()
-        self.state = self._get_observation_since_time(start_time)
-        done = self._check_done()    
-        reward = self._get_reward(self.state, a)
-        return self.state, reward, done, False, {}
-        
-        
+
     def _update_now(self):
         if self.offline:
             self._now += self.decision_freq
@@ -193,29 +187,19 @@ class InfluxOPCEnv(gym.Env):
             self._now = floor(dt.datetime.timestamp(dt.datetime.now()))
     
     
-    def _get_observation_since_time(self, start_time):
-        """
-        Gets state, defined as all obvservations within start_time to self._now
-        
-        returns: 
-            self.state ...............(np.array) : the state
-        """
-        state = self.db_client.query(start_time, self._now, self.col_names)  
-        return state 
-    
-
     def _get_observation(self):
         """
-        Gets state, defined as all obvservations within the last self.decision_freq seconds from self._now
+        Gets observations, defined as all obvservations within the last self.decision_freq seconds from self._now
         
         returns: 
-            self.state (np.array) : the state
+            self.state (pd.dataframe) : the observation
         """
-        state = self.db_client.query(self._now-self.decision_freq, self._now, self.col_names)  
-        return state 
+        obs = self.db_client.query(self._now-self.observation_window, self._now, self.col_names) 
+        if self.last_n_observations is not None:
+            obs=obs[-self.last_n_observations:] # only return the last n observations within a window. 
+        return obs
 
-
-    def reset(self):
+    def reset(self, seed=0):
         """
         Resets the environment to its starting state
 
@@ -224,11 +208,13 @@ class InfluxOPCEnv(gym.Env):
         array_like of float
             The starting state feature representation
         """
+        # ignores seed 
+
         self.start_time = self.db_client.start_time
         self._now = self.start_time
         self._update_now()
         self.state = self._get_observation()
-        return self.state    
+        return self.state, {}
     
     
     def close(self):

@@ -109,7 +109,7 @@ def init_environment(name, cfg):
             "pt161_pv"
             ]
         return ReseauEnv(db_client, opc_connection,  control_tags, control_tag_default, 
-                        date_col, col_names, runtime, decision_freq=600)
+                        date_col, col_names, runtime, decision_freq=cfg.decision_freq, observation_window=cfg.observation_window)
     else:
         raise NotImplementedError
 
@@ -190,6 +190,11 @@ def configure_action_scaler_and_bias(cfg):
             raise NotImplementedError
         elif name == "Pendulum-v1":
             raise NotImplementedError
+        elif name == "Reseau":
+            if cfg.actor == 'Beta':
+                cfg.action_scale = 200.0
+                cfg.action_bias = 0.0
         else:
             raise NotImplementedError
+    
     

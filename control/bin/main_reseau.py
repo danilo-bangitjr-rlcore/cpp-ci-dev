@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument('--gamma', default=0.99, type=float)
     parser.add_argument('--discrete_control', default=0, type=int)
 
-    parser.add_argument('--agent_name', default='SimpleAC', type=str)
+    parser.add_argument('--agent_name', default='GAC', type=str)
     parser.add_argument('--actor', default='Beta', type=str)
     parser.add_argument('--critic', default='FC', type=str)
     parser.add_argument('--layer_norm', default=0, type=int)
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser.add_argument('--action_scale', default=1., type=float)
     parser.add_argument('--action_bias', default=0., type=float)
     parser.add_argument('--auto_calibrate_beta_support', default=0, type=int)
-    parser.add_argument('--decision_freq', default=0, type=int)
+   
     
     parser.add_argument('--load_path', default="", type=str)
     parser.add_argument('--load_checkpoint', default=1, type=int)
@@ -82,10 +82,24 @@ if __name__ == "__main__":
     parser.add_argument('--rho', default=0.1, type=float)
     parser.add_argument('--prop_rho_mult', default=2.0, type=float)
     parser.add_argument('--n', default=30, type=int)
-
+    
     # Explore Then Commit
     parser.add_argument('--actions_per_dim', default=50, type=int)
     parser.add_argument('--min_trials', default=1, type=int)
+    
+    # new to Reseau
+    parser.add_argument('--decouple_steps',  default=0, type=int)
+    parser.add_argument('--reset_fpm', default=50, type=int) # Should it be 15?
+    parser.add_argument('--decision_freq', default=10, type=int) # frequency (s) for the agent to make decision
+    parser.add_argument('--observation_window', default=10, type=int) # window (s) for getting observations
+    
+    # state constraction
+    parser.add_argument('--state_constructor', default="Identity", type=str)
+    parser.add_argument('--window_average',  default=1, type=int)
+    parser.add_argument('--k_order_hist', default=1, type=int) 
+    parser.add_argument('--trace_decay', default=0.9, type=float) 
+    parser.add_argument('--intra_step_trace_decay', default=0.9, type=int)
+    
 
     cfg = parser.parse_args()
 
@@ -122,4 +136,10 @@ if __name__ == "__main__":
     utils.write_json(cfg.exp_path, cfg) # write json after finishing all parameter changing.
     cfg.logger = utils.logger_setup(cfg)
     agent = agent_factory.init_agent(cfg.agent_name, cfg)
-    run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, cfg.buffer_prefill)
+    
+    if cfg.decouple_steps:
+        agent_step = agent.decoupled_step # decouples take action from get observation
+    else:
+        agent_step = agent.step
+         
+    run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, cfg.buffer_prefill, agent_step)
