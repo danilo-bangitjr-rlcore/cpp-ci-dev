@@ -296,6 +296,16 @@ class BaseAC(Evaluation):
         if self.cfg.render:
             self.save_render(os.path.join(self.cfg.vis_path))
 
+    def clean(self):
+        path = self.cfg.parameters_path + "/buffer.pkl"
+        if os.path.isfile(path):
+            os.remove(path)
+        prefixed = [filename for filename in os.listdir(self.cfg.parameters_path) if filename.startswith("prefill_")]
+        for filename in prefixed:
+            path = os.path.join(self.cfg.parameters_path, filename)
+            if os.path.isfile(path):
+                os.remove(path)
+
     def load(self, parameters_dir, checkpoint=False):
         pth = os.path.join(parameters_dir, 'actor_net')
         self.actor.load_state_dict(torch.load(pth, map_location=self.device))

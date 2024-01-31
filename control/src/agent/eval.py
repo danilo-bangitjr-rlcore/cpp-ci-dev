@@ -277,5 +277,6 @@ class Evaluation(InteractionLayer):
         for i_log in self.info_log:
             i_log['critic_info'].pop('Q-function', None)
             i_log.pop('action_visits', None)
+            i_log['env_info'].pop('interval_log', None)
         with open(filename, 'wb') as f:
             pickle.dump(self.info_log, f)

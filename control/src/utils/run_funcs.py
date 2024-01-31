@@ -31,6 +31,7 @@ def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_si
     agent.save_info(eval_pth + "/info_logs.pkl")
     agent.save()
     agent.savevis()
+    agent.clean()
 
     end_time = time.time()
     print("Total Time:", str(end_time - start_time))
