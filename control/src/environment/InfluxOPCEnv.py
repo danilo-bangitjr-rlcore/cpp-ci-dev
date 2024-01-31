@@ -89,19 +89,20 @@ class DBClientWrapperBase():
             '|> range(start: {}, stop: {}) '.format(start_time, end_time),
             '|> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value") '
             ]
+
         query_str = ' '.join(query_str_list)
         df_list = self.query_api.query_data_frame(query_str)
-        
+       
         if type(df_list) == list:
             df = pd.concat(df_list, axis=1)
         else:
             df = df_list
         df = df[col_names]
+        
         return df
     
     
-    
-   
+
 class InfluxOPCEnv(gym.Env):
     def __init__(self, db_client, opc_connection, control_tags, date_col, col_names, 
         runtime=None, decision_freq=10*60, observation_window=10, last_n_observations=None, offline_data_folder=None):
@@ -193,8 +194,7 @@ class InfluxOPCEnv(gym.Env):
         returns: 
             self.state (pd.dataframe) : the observation
         """
-        obs_df = self.db_client.query(self._now-self.observation_window, self._now, self.col_names)  
-        obs = self.process_observation(obs_df)
+        obs = self.db_client.query(self._now-self.observation_window, self._now, self.col_names) 
         if self.last_n_observations is not None:
             obs=obs[-self.last_n_observations:] # only return the last n observations within a window. 
         return obs

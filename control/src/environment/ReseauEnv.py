@@ -2,7 +2,7 @@ import datetime as dt
 import time
 import numpy as np
 import pandas as pd
-from src.environment.InfluxOPCEnv import InfluxOPCEnv, DBClientWrapperBase
+from InfluxOPCEnv import InfluxOPCEnv, DBClientWrapperBase
 from gymnasium.spaces import Box
 
 
@@ -35,33 +35,30 @@ def date_to_timestamp_reseau(date):
 
 class ReseauEnv(InfluxOPCEnv):
     def __init__(self, db_client, opc_connection, control_tags, control_tag_default, date_col, col_names, 
-        runtime, decision_freq=10 * 60, observation_window=10, offline_data_folder=None):
-        super().__init__(db_client, opc_connection, control_tags, date_col, col_names, runtime, decision_freq, observation_window, offline_data_folder)
+        runtime, decision_freq=1800, observation_window=1800, last_n_observations=1700, offline_data_folder=None):
+        super().__init__(db_client, opc_connection, control_tags, date_col, col_names, runtime, decision_freq, 
+        observation_window, last_n_observations, offline_data_folder)
         self.control_tags_default = control_tag_default
         # TODO: figure these out
         self.observation_space = Box(low=np.ones(12)*-1000, high=np.ones(12)*1000) # What is this?
         self.action_space = Box(low=0, high=200)
+        self.orp_sp = 100  # the ORP set point
+
+    def set_orp_sp(self, sp):
+        self.orp_sp = sp
 
     def _get_reward(self, s, a):
-        s[a]
-        return  
-
+        t = time.time()
+        mae = (s['ait301_pv'] - self.orp_sp).abs().mean()
+        return  mae
 
     def reset(self, seed=0):
         self.take_action(self.control_tags_default)
-        time.sleep(0.1)
         return super().reset(seed)
-    
     
     def get_observation(self, a):
         self._update_now()
         self.state = self._get_observation() 
         done = self._check_done()
         reward = self._get_reward(self.state, a)
-    
-        
-        return self.state, reward, done, False, {}
-        
-        
-        
-        return obs
+        return self.state.to_numpy(), reward, done, False, {}
