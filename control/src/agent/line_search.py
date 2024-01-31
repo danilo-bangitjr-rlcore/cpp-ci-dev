@@ -57,6 +57,7 @@ class LineSearchAgent(GreedyAC):
         self.last_actor_scaler = None
         self.last_sampler_scaler = None
         self.last_critic_scaler = None
+        self.separated_testset = False
 
 
         self.actor_lr_start = self.cfg.lr_actor
@@ -311,10 +312,19 @@ class LineSearchAgent(GreedyAC):
             sampler_loss.backward()
             self.sampler_optim.step()
 
-    def backtrack_critic(self, state_batch, action_batch, reward_batch, next_state_batch, mask_batch):
+    def backtrack_critic(self, state_batch, action_batch, reward_batch, next_state_batch, mask_batch,
+                         eval_state, eval_action, eval_reward, eval_next_state, eval_mask):
         next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
         next_q, _ = self.get_q_value_target(next_state_batch, next_action)
-        before_error = self.eval_error_critic(state_batch, action_batch, reward_batch, mask_batch, next_q)
+
+        if self.separated_testset:
+            eval_next_action, _, _ = self.get_policy(eval_next_state, with_grad=False)
+            eval_next_q, _ = self.get_q_value_target(eval_next_state, eval_next_action)
+            before_error = self.eval_error_critic(eval_state, eval_action, eval_reward, eval_mask, eval_next_q)
+        else:
+            eval_next_q = None
+            before_error = self.eval_error_critic(state_batch, action_batch, reward_batch, mask_batch, next_q)
+
         q_loss, next_action = self.critic_loss(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
         q_loss_weighted = q_loss * self.critic_lr_weight # The weight is supposed to always be 1.
         self.critic_optimizer.zero_grad()
@@ -327,17 +337,21 @@ class LineSearchAgent(GreedyAC):
                 self.critic_optimizer.zero_grad()
                 move_gradient_to_network(self.critic, grad_rec_critic, self.critic_lr_weight)
             self.critic_optimizer.step()
-            after_error = self.eval_error_critic(state_batch, action_batch, reward_batch, mask_batch, next_q)
+
+            if self.separated_testset:
+                after_error = self.eval_error_critic(eval_state, eval_action, eval_reward, eval_mask, eval_next_q)
+            else:
+                after_error = self.eval_error_critic(state_batch, action_batch, reward_batch, mask_batch, next_q)
 
             if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
                 self.critic_lr_weight *= 0.5
                 self.undo_update_critic()
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
-                # print("Reset Critic", after_error, before_error, self.cfg.lr_critic)
-                # self.reset_critic()
                 self.cfg.lr_critic = max(self.cfg.lr_critic * 0.5, self.critic_lr_lower_bound)
                 self.critic_optimizer = init_optimizer(self.cfg.optimizer, list(self.critic.parameters()),
                                                        self.cfg.lr_critic)
+                # print("Reset Critic", after_error, before_error, self.cfg.lr_critic)
+                # self.reset_critic()
                 print("Critic Done backtracking and hit the limit. Scaler is", self.critic_lr_weight)
                 break
             else:
@@ -347,10 +361,34 @@ class LineSearchAgent(GreedyAC):
         self.critic_lr_weight = self.critic_lr_weight_copy
         return next_action
 
-    def backtrack_actor(self, state_batch):
+    def get_action_with_top_value(self, eval_state, eval_sample_actions, sorted_eval_q, count_top):
+        eval_best = sorted_eval_q[:, : count_top]
+        eval_best = eval_best.repeat_interleave(self.gac_a_dim, -1)
+        eval_sample_actions = eval_sample_actions.reshape(eval_state.shape[0], self.num_samples, self.gac_a_dim)
+        eval_best_action = torch.gather(eval_sample_actions, 1, eval_best)
+        eval_stacked_s = eval_state.repeat_interleave(self.top_action, dim=0)
+        return eval_stacked_s, eval_best_action
+
+    def get_best_action_proposal(self, eval_state):
+        eval_size = eval_state.shape[0]
+        eval_rept_states = eval_state.repeat_interleave(self.num_samples, dim=0)
+        with torch.no_grad():
+            eval_sample_actions, _, _ = self.sampler(eval_rept_states)
+        eval_q, _ = self.get_q_value(eval_rept_states, eval_sample_actions, with_grad=False)
+        eval_q = eval_q.reshape(eval_size, self.num_samples, 1)
+        sorted_eval_q = torch.argsort(eval_q, dim=1, descending=True)
+        eval_stacked_s, eval_best_action = self.get_action_with_top_value(eval_state, eval_sample_actions, sorted_eval_q, self.top_action)
+        return eval_stacked_s, eval_best_action, eval_sample_actions, sorted_eval_q
+
+    def backtrack_actor(self, state_batch, eval_state):
         pi_loss, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
-        before_error = self.eval_error_actor(stacked_s_batch, best_actions, self.actor_copy)
-        # before_value, before_action = self.eval_value_actor(stacked_s_batch)
+
+        if self.separated_testset:
+            eval_stacked_s, eval_best_action, eval_sample_actions, sorted_eval_q = self.get_best_action_proposal(eval_state)
+            before_error = self.eval_error_actor(eval_stacked_s, eval_best_action, self.actor_copy)
+        else:
+            eval_stacked_s, eval_best_action = None, None
+            before_error = self.eval_error_actor(stacked_s_batch, best_actions, self.actor_copy)
 
         pi_loss_weighted = pi_loss
         self.actor_optimizer.zero_grad()
@@ -362,7 +400,11 @@ class LineSearchAgent(GreedyAC):
                 self.actor_optimizer.zero_grad()
                 move_gradient_to_network(self.actor, grad_rec_actor, self.actor_lr_weight)
             self.actor_optimizer.step()
-            after_error = self.eval_error_actor(stacked_s_batch, best_actions, self.actor)
+
+            if self.separated_testset:
+                after_error = self.eval_error_actor(eval_stacked_s, eval_best_action, self.actor)
+            else:
+                after_error = self.eval_error_actor(stacked_s_batch, best_actions, self.actor)
 
             if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
                 self.actor_lr_weight *= 0.5
@@ -373,19 +415,27 @@ class LineSearchAgent(GreedyAC):
                 self.actor_optimizer = init_optimizer(self.cfg.optimizer, list(self.actor.parameters()),
                                                       self.cfg.lr_actor)
                 # self.reset_actor()
-                # self.undo_update_actor()
                 break
             else:
                 print("Actor Done backtracking. Scaler is", self.actor_lr_weight)
                 break
         self.last_actor_scaler = self.actor_lr_weight if bi < self.max_backtracking-1 else 0
         self.actor_lr_weight = self.actor_lr_weight_copy
-        return sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch
+        return (sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch,
+                eval_sample_actions, sorted_eval_q)
 
-    def backtrack_sampler(self, sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch):
+    def backtrack_sampler(self, sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch,
+                          eval_state, eval_sample_actions, sorted_eval_q):
         sampler_loss = self.proposal_loss(sample_actions, repeated_states,
                                           stacked_s_batch, best_actions, sorted_q, state_batch)
-        before_error = self.eval_error_proposal(stacked_s_batch, best_actions, self.sampler_copy)
+        if self.separated_testset:
+            eval_stacked_s, eval_best_action = self.get_action_with_top_value(eval_state, eval_sample_actions, sorted_eval_q,
+                                                                              self.top_action_proposal)
+            before_error = self.eval_error_proposal(eval_stacked_s, eval_best_action, self.sampler_copy)
+        else:
+            eval_stacked_s, eval_best_action = None, None
+            before_error = self.eval_error_proposal(stacked_s_batch, best_actions, self.sampler_copy)
+
         self.sampler_optim.zero_grad()
         sampler_loss.backward()
 
@@ -395,21 +445,22 @@ class LineSearchAgent(GreedyAC):
                 self.sampler_optim.zero_grad()
                 move_gradient_to_network(self.sampler, grad_rec_proposal, self.sampler_lr_weight)
             self.sampler_optim.step()
-            after_error = self.eval_error_proposal(stacked_s_batch, best_actions, self.sampler)
+
+            if self.separated_testset:
+                after_error = self.eval_error_proposal(eval_stacked_s, eval_best_action, self.sampler)
+            else:
+                after_error = self.eval_error_proposal(stacked_s_batch, best_actions, self.sampler)
 
             if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
                 self.sampler_lr_weight *= 0.5
                 self.undo_update_sampler()
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
                 print("Sampler Done backtracking and hit the limit. Scaler is", self.critic_lr_weight)
-                # print("Reset Sampler, learning rate", self.lr_sampler)
-                # self.actor_optimizer = init_optimizer(self.cfg.optimizer, list(self.actor.parameters()),
-                #                                       self.cfg.lr_actor)
-                # self.reset_sampler()
-                # self.undo_update_sampler()
                 self.lr_sampler = max(self.lr_sampler * 0.5, self.actor_lr_lower_bound)
                 self.sampler_optim = init_optimizer(self.cfg.optimizer, list(self.sampler.parameters()),
                                                     self.lr_sampler)
+                # print("Reset Sampler, learning rate", self.lr_sampler)
+                # self.reset_sampler()
                 break
             else:
                 break
@@ -426,22 +477,30 @@ class LineSearchAgent(GreedyAC):
 
     def inner_update(self, trunc=False):
         data = self.get_data()
-        state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data['reward'], \
-                                                                                data['obs2'], 1 - data['done']
+        state_batch, action_batch, reward_batch, next_state_batch, mask_batch = (data['obs'], data['act'], data['reward'],
+                                                                                 data['obs2'], 1. - data['done'])
+
+        eval_data = self.get_all_data()
+        eval_state, eval_action, eval_reward, eval_next_state, eval_mask = (eval_data['obs'], eval_data['act'], eval_data['reward'],
+                                                                            eval_data['obs2'], 1. - eval_data['done'])
+
         # critic update
         self.parameter_backup_critic()
-        next_action = self.backtrack_critic(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
+        next_action = self.backtrack_critic(state_batch, action_batch, reward_batch, next_state_batch, mask_batch,
+                                            eval_state, eval_action, eval_reward, eval_next_state, eval_mask)
 
         # uncertainty update
         self.explore_bonus_update(state_batch, action_batch, reward_batch, next_state_batch, next_action, mask_batch)
 
         # actor update
         self.parameter_backup_actor()
-        sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch = self.backtrack_actor(state_batch)
+        sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch, eval_sample_actions, sorted_eval_q = \
+            self.backtrack_actor(state_batch, eval_state)
 
         # proposal update
         self.parameter_backup_sampler()
-        self.backtrack_sampler(sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch)
+        self.backtrack_sampler(sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch,
+                               eval_state, eval_sample_actions, sorted_eval_q)
 
     def agent_debug_info(self, observation_tensor, action_tensor, pi_info, env_info):
         i_log = super(LineSearchAgent, self).agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
