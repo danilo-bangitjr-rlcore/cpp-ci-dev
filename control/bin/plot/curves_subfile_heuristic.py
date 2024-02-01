@@ -54,7 +54,8 @@ def visualization():
     file = DATAROOT + SHAREPATH
     # visualize_training_info(file, target_key, title="heuristic_bound", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
 
-    SHAREPATH = "output/test_v1/NonContexTT/heuristic_separate_testset/setpoint_3/obs_raw/action_scale/reward_clip[-1,1]/replay5000_batch256/beta_shift_1_clip_20/activation_relu/optim_sgd/LineSearch/param_0/seed_0"
+    # SHAREPATH = "output/test_v1/NonContexTT/heuristic_separate_testset/setpoint_3/obs_raw/action_scale/reward_clip[-1,1]/replay5000_batch256/beta_shift_1.1_clip_20/activation_relu/optim_sgd/LineSearch/param_0/seed_0"
+    SHAREPATH = "output/test_v1/NonContexTT/heuristic_separate_testset/setpoint_3/obs_raw/action_scale/reward_clip[-1,1]/replay5000_batch256/beta_shift_1.1_clip_50/activation_relu/optim_sgd/LineSearch/param_0/seed_0"
     file = DATAROOT + SHAREPATH
     visualize_training_info(file, target_key, title="heuristic_sep_test", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
 
@@ -92,6 +93,6 @@ if __name__ == '__main__':
     ]
 
     # c20240129_1()
-    # visualization()
+    visualization()
 
-    clean_log_file()
+    # clean_log_file()

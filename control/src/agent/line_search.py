@@ -89,9 +89,9 @@ class LineSearchAgent(GreedyAC):
         self.max_backtracking = 30
         self.reducing_rate = 0.5
         self.increasing_rate = 1.1 # Not sure if this is going to be used
-        self.critic_lr_lower_bound = 1e-04
-        self.actor_lr_lower_bound = 1e-04
-        self.error_threshold = 1e-4
+        self.critic_lr_lower_bound = 1e-07
+        self.actor_lr_lower_bound = 1e-07
+        self.error_threshold = 1e-7
 
         # assert self.cfg.batch_size >= 256
         assert self.max_backtracking > 0
