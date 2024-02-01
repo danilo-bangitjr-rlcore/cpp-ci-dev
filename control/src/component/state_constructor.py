@@ -278,7 +278,7 @@ def init_state_constructor(name, cfg):
 
         s5 = Flatten()
         s5.set_parents([s4])
-        sc = StateConstructorWrapper(s5)
+        sc = StateConstructorWrapper(s5, time_frame=cfg.last_n_obs)
         return sc
 
     elif name == "Reseau_single_trace":
@@ -291,7 +291,7 @@ def init_state_constructor(name, cfg):
         s4.set_parents([s3])
         s5 = Concatenate()
         s5.set_parents([s3, s4])
-        sc = StateConstructorWrapper(s5)
+        sc = StateConstructorWrapper(s5, time_frame=cfg.last_n_obs)
         return sc
 
     elif name == "Reseau_double_trace":
@@ -314,7 +314,7 @@ def init_state_constructor(name, cfg):
         s7 = Concatenate()
 
         s7.set_parents([s3, s4, s6])
-        sc = StateConstructorWrapper(s7)
+        sc = StateConstructorWrapper(s7, time_frame=cfg.last_n_obs)
         return sc
 
     else:

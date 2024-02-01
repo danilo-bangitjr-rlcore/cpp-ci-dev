@@ -74,6 +74,7 @@ class BaseAC(Evaluation):
         track_return = []
         track_step = []
         self.observation, info = self.env_reset()
+       
         ep_steps = 0
         ep_return = 0
         done = False
@@ -170,27 +171,30 @@ class BaseAC(Evaluation):
         
         if change_action: # if it is time change the action
             print('changing action')
-            observation_tensor = torch_utils.tensor(self.state_constructor(self.observation.reshape((1, -1))), self.device)
+            print(self.observation.shape)
+            observation_tensor = torch_utils.tensor(self.observation.reshape((1, -1)), self.device)
             action_tensor, _, pi_info = self.get_policy(observation_tensor,
                                                         with_grad=False, debug=self.cfg.debug)
             action = torch_utils.to_np(action_tensor)[0]
-            self.env.take_action(action) # take action in the environment
+            self.take_action(action) # take action in the environment
             self.last_action = action
+            print('Choose action: {}'.format(action))
 
         if get_observation:
-            print('getting obs')
-            next_observation, reward, terminated, trunc, env_info = self.env.get_observation(self.last_action)  
-            self.buffer.feed([self.observation, self.last_action, reward, next_observation, int(terminated), int(truncate)])
+            print('getting observation')
+            next_observation, reward, terminated, trunc, env_info = self.get_observation(action)
             reset, truncate = self.update_stats(reward, terminated, trunc)
+            self.buffer.feed([self.observation, self.last_action, reward, next_observation, int(terminated), int(truncate)])
             if reset:
-                next_observation, info = self.env.reset()
+                next_observation, info = self.env_reset()
+
             self.observation = next_observation
         
         if do_update:
             print('updating')
             self.decoupled_update() # we use a different update funciton that does 
-            if self.use_target_network and self.total_steps % self.target_network_update_freq == 0:
-                self.sync_target()
+            # if self.use_target_network and self.total_steps % self.target_network_update_freq == 0:
+            #     self.sync_target()
     
         # i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
         # self.info_log.append(i_log)

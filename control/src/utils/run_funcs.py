@@ -30,10 +30,10 @@ def run_steps_decoupled(agent, max_steps, log_interval, log_test, eval_pth, onli
         if max_steps and agent.total_steps >= max_steps:
             break
         
-        if agent.get_ep_returns_queue_train().shape[0] != 0: # only log when returns have been recorded
-            train_mean, train_median, train_min_, train_max_, test_mean, test_median, test_min_, test_max_ = agent.log_file(elapsed_time=log_interval / (time.time() - t0), test=log_interval>1 and log_test)
-            train_logs.append(train_mean)
-            evaluations.append(test_mean)
+        # if agent.get_ep_returns_queue_train().shape[0] != 0: # only log when returns have been recorded
+        #     train_mean, train_median, train_min_, train_max_, test_mean, test_median, test_min_, test_max_ = agent.log_file(elapsed_time=log_interval / (time.time() - t0), test=log_interval>1 and log_test)
+        #     train_logs.append(train_mean)
+        #     evaluations.append(test_mean)
            
         change_action, get_observation, do_update = False, False, False 
         

@@ -24,7 +24,7 @@ if __name__ == "__main__":
     parser.add_argument('--device', default='cpu', type=str)
     parser.add_argument('--exp_name', default='temp', type=str)
     parser.add_argument('--exp_info', default='', type=str)
-    parser.add_argument('--timeout', default=1, type=int)
+    parser.add_argument('--timeout', default=60, type=int)
     parser.add_argument('--max_steps', default=20000, type=int)
     parser.add_argument('--log_interval', default=1, type=int)
     parser.add_argument('--log_test', default=0, type=int)
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     parser.add_argument('--evaluation_criteria', default='return', type=str)
     parser.add_argument('--render', default=0, type=int)
 
-    parser.add_argument('--env_name', default='ThreeTank', type=str)
+    parser.add_argument('--env_name', default='Reseau_online', type=str)
     parser.add_argument('--env_info', default=[0., 3.], type=float, nargs='+') # go to the corresponding environment to check the specific setting
     parser.add_argument('--env_action_scaler', default=1., type=float)
 
@@ -55,9 +55,8 @@ if __name__ == "__main__":
     parser.add_argument('--beta_parameter_bias', default=0., type=float)
     parser.add_argument('--action_scale', default=1., type=float)
     parser.add_argument('--action_bias', default=0., type=float)
-    parser.add_argument('--auto_calibrate_beta_support', default=0, type=int)
+    parser.add_argument('--auto_calibrate_beta_support', default=1, type=int)
    
-    
     parser.add_argument('--load_path', default="", type=str)
     parser.add_argument('--load_checkpoint', default=1, type=int)
     parser.add_argument('--buffer_size', default=1, type=int)
@@ -87,18 +86,18 @@ if __name__ == "__main__":
     parser.add_argument('--actions_per_dim', default=50, type=int)
     parser.add_argument('--min_trials', default=1, type=int)
     
-    # new to Reseau
-    parser.add_argument('--decouple_steps',  default=0, type=int)
-    parser.add_argument('--reset_fpm', default=50, type=int) # Should it be 15?
+    # New to Reseau
+    parser.add_argument('--decouple_steps',  default=1, type=int)
+    parser.add_argument('--reset_fpm', default=15, type=int) # Should it be 15?
     
     parser.add_argument('--obs_window', default=10, type=int) # window (s) for getting observations
-    parser.add_argument('--last_n_obs', default=10, type=int) # within observation_window, how many observations to keep
+    parser.add_argument('--last_n_obs', default=5, type=int) # within observation_window, how many observations to keep
     
     parser.add_argument('--decision_freq', default=10, type=int) # frequency for the agent to make decision
     parser.add_argument('--obs_freq', default=10, type=int) # frequency to get new observations
     
-    # state constraction
-    parser.add_argument('--state_constructor', default="Identity", type=str)
+    # state construction
+    parser.add_argument('--state_constructor', default="Reseau_single_trace", type=str)
     parser.add_argument('--window_average',  default=1, type=int)
     parser.add_argument('--k_order_hist', default=1, type=int) 
     parser.add_argument('--trace_decay', default=0.9, type=float) 
