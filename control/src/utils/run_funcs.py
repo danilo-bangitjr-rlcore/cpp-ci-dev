@@ -6,7 +6,7 @@ import numpy as np
 import pickle as pkl
 
 
-def run_steps_decoupled(agent, max_steps, log_interval, log_test, eval_pth, online_data_size, decision_freq, obs_freq, update_freq):
+def run_steps_decoupled(agent, max_steps, max_time, log_interval, log_test, eval_pth, online_data_size, decision_freq, obs_freq, update_freq):
     """
     Like run_steps(), but uses time to determine when the agent should take actions, get observations and update itself
     
@@ -28,6 +28,9 @@ def run_steps_decoupled(agent, max_steps, log_interval, log_test, eval_pth, onli
 
     while True:
         if max_steps and agent.total_steps >= max_steps:
+            break
+        
+        if max_time and time.time()-t0 >= max_time:
             break
         
         # if agent.get_ep_returns_queue_train().shape[0] != 0: # only log when returns have been recorded

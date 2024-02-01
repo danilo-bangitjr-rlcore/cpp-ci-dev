@@ -26,6 +26,7 @@ if __name__ == "__main__":
     parser.add_argument('--exp_info', default='', type=str)
     parser.add_argument('--timeout', default=60, type=int)
     parser.add_argument('--max_steps', default=20000, type=int)
+    parser.add_argument('--max_time', default=60, type=int)
     parser.add_argument('--log_interval', default=1, type=int)
     parser.add_argument('--log_test', default=0, type=int)
     parser.add_argument('--stats_queue_size', default=1, type=int)
@@ -141,7 +142,7 @@ if __name__ == "__main__":
     agent = agent_factory.init_agent(cfg.agent_name, cfg)
     
     if cfg.decouple_steps:
-        run_funcs.run_steps_decoupled(agent, cfg.max_steps, cfg.log_interval, 
+        run_funcs.run_steps_decoupled(agent, cfg.max_steps, cfg.max_time,  cfg.log_interval, 
                                       cfg.log_test, cfg.exp_path, cfg.buffer_prefill, 
                                       cfg.decision_freq, cfg.obs_freq, cfg.update_freq)
     else:
