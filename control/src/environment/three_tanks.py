@@ -305,7 +305,7 @@ class ThreeTankEnvBase(object):
 class ThreeTankEnv(ThreeTankEnvBase):
     def __init__(self, seed=None, lr_constrain=0, random_sp=[3]):
         super(ThreeTankEnv, self).__init__(True, seed=seed, random_sp=random_sp)
-        self.action_multiplier = np.array([1, 1])
+        # self.action_multiplier = np.array([1, 1])
         self.constrain_alpha = 5
         self.ep_constrain = 0
         self.ep_constrain_info = {}
@@ -323,7 +323,7 @@ class ThreeTankEnv(ThreeTankEnvBase):
         return
 
     def step(self, a):
-        pid = self.action_multiplier * a
+        pid = a #self.action_multiplier * a
         self.update_pid(pid)
         for _ in range(1000):
             sp, _ = self.inner_step(self.pid_controller())
@@ -358,8 +358,8 @@ class ThreeTankEnv(ThreeTankEnvBase):
         return s, {}
 
     def get_action_samples(self, n=10):
-        max_a = self.action_space.high/2 / self.action_multiplier # re-scale to the range of agent action
-        min_a = self.action_space.low / self.action_multiplier # re-scale to the range of agent action
+        max_a = self.action_space.high/2 #/ self.action_multiplier # re-scale to the range of agent action
+        min_a = self.action_space.low #/ self.action_multiplier # re-scale to the range of agent action
         xs = np.linspace(min_a[0], max_a[0], n)
         ys = np.linspace(min_a[1], max_a[1], n)
         xaxis, yaxis = np.meshgrid(xs, ys)
@@ -388,14 +388,16 @@ class TTChangeAction(ThreeTankEnv):
         self.agent_action_max = agent_action_max # without considering environment scaler
 
     def preprocess_action(self, a):
-        norm_pid = a + self.prev_pid
-        pid = self.action_multiplier * norm_pid
+        # norm_pid = a + self.prev_pid
+        # pid = self.action_multiplier * norm_pid
+        pid = a + self.prev_pid
         pid, self.extra_action_penalty = self.pid_clip(pid)
-        return pid, norm_pid
+        return pid #, norm_pid
 
     def step(self, a):
         # a: change of pid
-        pid, norm_pid = self.preprocess_action(a)
+        pid = self.preprocess_action(a)
+        print("environment step", a, pid)
         self.update_pid(pid)
         for _ in range(self.internal_iterations):
             sp, _ = self.inner_step(self.pid_controller())
@@ -404,9 +406,9 @@ class TTChangeAction(ThreeTankEnv):
         r = self.get_reward() / 20
         r = (r + 8) / 8 # The normalization step from main.py
         
-        sp = self.observation(a, norm_pid)
+        sp = self.observation(a, pid)
         self.prev_a = a
-        self.prev_pid = norm_pid
+        self.prev_pid = pid
         done = True
         ep_c = self.ep_constrain
         ep_c_info = self.ep_constrain_info
@@ -451,8 +453,8 @@ class TTChangeAction(ThreeTankEnv):
             C2 = abs(pid[1] - self.TAU_MIN)
         extra_action_constrain = np.float64(abs(self.W1 * C1 + self.W2 * C2))
 
-        pid[0] = np.clip(pid[0], self.KP_MIN, self.KP_MAX)
-        pid[1] = np.clip(pid[1], self.TAU_MIN, self.TAU_MAX)
+        pid[0] = np.clip(pid[0], 0.2,10)#self.KP_MIN, self.KP_MAX) # clip at 0.2, 10, follow the direct action setting
+        pid[1] = np.clip(pid[1], 0.2, 10)#self.KP_MIN, self.TAU_MAX) # clip at 0.2, 10, follow the direct action setting
         return pid, extra_action_constrain
     
     def observation(self, prev_a, pid):
@@ -506,10 +508,11 @@ class TTChangeActionDiscrete(TTChangeAction):
 
     def preprocess_action(self, a):
         a = a[0]
-        norm_pid = self.action_list[a] + self.prev_pid
-        pid = self.action_multiplier * norm_pid
+        # norm_pid = self.action_list[a] + self.prev_pid
+        # pid = self.action_multiplier * norm_pid
+        pid = self.action_list[a] + self.prev_pid
         pid, self.extra_action_penalty = self.pid_clip(pid)
-        return pid, norm_pid
+        return pid #, norm_pid
 
     def observation(self, prev_a, pid):
         prev_a = prev_a[0]
@@ -543,9 +546,10 @@ class TTAction(TTChangeAction):
                                             high=np.array([0, 0, np.inf, np.inf]), shape=(4,), dtype=np.float32)
 
     def preprocess_action(self, a):
-        norm_pid = a
-        pid = self.action_multiplier * norm_pid
-        return pid, norm_pid
+        # norm_pid = a
+        # pid = self.action_multiplier * norm_pid
+        pid = a
+        return pid #, norm_pid
 
     def reset(self, seed=None):
         s, info = super(TTAction, self).reset()
@@ -558,8 +562,8 @@ class TTAction(TTChangeAction):
         return sp, r, done, trunc, info
 
     def get_action_samples(self, n=10):
-        max_a = self.action_space.high/2 / self.action_multiplier # re-scale to the range of agent action
-        min_a = self.action_space.low / self.action_multiplier # re-scale to the range of agent action
+        max_a = self.action_space.high/2 #/ self.action_multiplier # re-scale to the range of agent action
+        min_a = self.action_space.low #/ self.action_multiplier # re-scale to the range of agent action
         xs = np.linspace(min_a[0], max_a[0], n)
         ys = np.linspace(min_a[1], max_a[1], n)
         xaxis, yaxis = np.meshgrid(xs, ys)
