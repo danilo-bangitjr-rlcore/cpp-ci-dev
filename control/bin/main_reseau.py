@@ -90,8 +90,12 @@ if __name__ == "__main__":
     # new to Reseau
     parser.add_argument('--decouple_steps',  default=0, type=int)
     parser.add_argument('--reset_fpm', default=50, type=int) # Should it be 15?
-    parser.add_argument('--decision_freq', default=10, type=int) # frequency (s) for the agent to make decision
-    parser.add_argument('--observation_window', default=10, type=int) # window (s) for getting observations
+    
+    parser.add_argument('--obs_window', default=10, type=int) # window (s) for getting observations
+    parser.add_argument('--last_n_obs', default=10, type=int) # within observation_window, how many observations to keep
+    
+    parser.add_argument('--decision_freq', default=10, type=int) # frequency for the agent to make decision
+    parser.add_argument('--obs_freq', default=10, type=int) # frequency to get new observations
     
     # state constraction
     parser.add_argument('--state_constructor', default="Identity", type=str)
@@ -138,8 +142,8 @@ if __name__ == "__main__":
     agent = agent_factory.init_agent(cfg.agent_name, cfg)
     
     if cfg.decouple_steps:
-        agent_step = agent.decoupled_step # decouples take action from get observation
+        run_funcs.run_steps_decoupled(agent, cfg.max_steps, cfg.log_interval, 
+                                      cfg.log_test, cfg.exp_path, cfg.buffer_prefill, 
+                                      cfg.decision_freq, cfg.obs_freq, cfg.update_freq)
     else:
-        agent_step = agent.step
-         
-    run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, cfg.buffer_prefill, agent_step)
+        run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, cfg.buffer_prefill)
