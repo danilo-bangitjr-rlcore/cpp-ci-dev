@@ -24,9 +24,9 @@ if __name__ == "__main__":
     parser.add_argument('--device', default='cpu', type=str)
     parser.add_argument('--exp_name', default='temp', type=str)
     parser.add_argument('--exp_info', default='', type=str)
-    parser.add_argument('--timeout', default=60, type=int)
-    parser.add_argument('--max_steps', default=20000, type=int)
-    parser.add_argument('--max_time', default=60, type=int)
+    parser.add_argument('--timeout', default=60, type=int) # time out before an episode is reset
+    parser.add_argument('--max_steps', default=20000, type=int) # the maximum number of steps in a run of training the agent
+    parser.add_argument('--max_time', default=60, type=int)  # the maximum time allowed in a run of training the agent
     parser.add_argument('--log_interval', default=1, type=int)
     parser.add_argument('--log_test', default=0, type=int)
     parser.add_argument('--stats_queue_size', default=1, type=int)
