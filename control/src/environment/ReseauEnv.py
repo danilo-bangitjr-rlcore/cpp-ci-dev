@@ -2,7 +2,7 @@ import datetime as dt
 import time
 import numpy as np
 import pandas as pd
-from InfluxOPCEnv import InfluxOPCEnv, DBClientWrapperBase
+from src.environment.InfluxOPCEnv import InfluxOPCEnv, DBClientWrapperBase
 from gymnasium.spaces import Box
 
 
@@ -34,11 +34,13 @@ def date_to_timestamp_reseau(date):
     
 
 class ReseauEnv(InfluxOPCEnv):
-    def __init__(self, db_client, opc_connection, control_tags, control_tag_default, date_col, col_names, 
-        runtime, decision_freq=1800, observation_window=1800, last_n_observations=1700, offline_data_folder=None):
-        super().__init__(db_client, opc_connection, control_tags, date_col, col_names, runtime, decision_freq, 
-        observation_window, last_n_observations, offline_data_folder)
-        self.control_tags_default = control_tag_default
+    def __init__(self, db_client, opc_connection, control_tags, control_tag_default, col_names, 
+                 runtime=None, obs_freq=60, obs_window=60, last_n_obs=50, 
+                 date_col=None, offline_data_folder=None):
+        super().__init__(db_client, opc_connection, control_tags, col_names, runtime, obs_freq, obs_window, last_n_obs, date_col, offline_data_folder)
+        
+        self.control_tag_default = control_tag_default
+        
         # TODO: figure these out
         self.observation_space = Box(low=np.ones(12)*-1000, high=np.ones(12)*1000) # What is this?
         self.action_space = Box(low=0, high=200)
@@ -49,10 +51,10 @@ class ReseauEnv(InfluxOPCEnv):
 
     def _get_reward(self, s, a):
         mae = (s['ait301_pv'] - self.orp_sp).abs().mean()
-        return  mae
+        return mae
 
     def reset(self, seed=0):
-        self.take_action(self.control_tags_default)
+        self.take_action(self.control_tag_default)
         return super().reset(seed)
     
     def get_observation(self, a):

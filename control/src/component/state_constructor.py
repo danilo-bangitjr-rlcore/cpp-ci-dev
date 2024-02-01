@@ -1,6 +1,5 @@
 import numpy as np
 from copy import deepcopy
-from src.component.normalizer import Scale
 import math
 
 
@@ -179,23 +178,18 @@ class Concatenate(BaseStateConstructor):
         return np.concatenate(o_parents, axis=0)
 
 
-class Normalize(BaseStateConstructor):
-    def __init__(self, scaler, bias):
+class MaxminNormalize(BaseStateConstructor):
+    def __init__(self, env):
         super().__init__()
-        self.normalizer = Scale(scaler, bias)
-
+        self.low = env.observation_space.low
+        self.high = env.observation_space.high
+        
+    
     def process_observation(self, o_parents):
         assert (len(o_parents)) == 1
-        o_parent = o_parents[0]
-        return self.normalizer(o_parent)
-
-
-class ReseauNormalize(Normalize):
-    def __init__(self):
-        super().__init__()
-        scaler = 1
-        bias = 1
-        self.normalizer = Scale(scaler, bias)
+        o = o_parents[0]
+        o = (o - self.low) / (self.high - self.low)
+        return o
 
 
 class WindowAverage(BaseStateConstructor):
@@ -272,7 +266,7 @@ def init_state_constructor(name, cfg):
         return sc
 
     elif name == "Reseau_order_k":
-        s1 = ReseauNormalize()
+        s1 = MaxminNormalize(cfg.train_env)
         s2 = WindowAverage(cfg.window_average)
         s2.set_parents([s1])
 
@@ -288,7 +282,7 @@ def init_state_constructor(name, cfg):
         return sc
 
     elif name == "Reseau_single_trace":
-        s1 = ReseauNormalize()
+        s1 = MaxminNormalize(cfg.train_env)
         s2 = WindowAverage(cfg.window_average)
         s2.set_parents([s1])
         s3 = End()
@@ -301,7 +295,7 @@ def init_state_constructor(name, cfg):
         return sc
 
     elif name == "Reseau_double_trace":
-        s1 = ReseauNormalize()
+        s1 = MaxminNormalize(cfg.train_env)
         s2 = WindowAverage(cfg.window_average)
         s2.set_parents([s1])
 

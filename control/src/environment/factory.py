@@ -10,7 +10,7 @@ from src.environment.smpl.envs.reactorenv import ReactorEnvGym
 from src.environment.gym_wrapper import DiscreteControlWrapper
 from src.environment.PendulumEnv import PendulumEnv
 from src.environment.ReseauEnv import ReseauEnv
-from src.environment.InfluxOPCEnv import DBClientWrapper
+from src.environment.InfluxOPCEnv import DBClientWrapperBase
 from src.environment.opc_connection import OpcConnection
 
 import json
@@ -78,14 +78,14 @@ def init_environment(name, cfg):
     elif name == "HalfCheetah-v4":
         return gym.make("HalfCheetah-v4")
     
-    elif name == "Reseau":
+    elif name == "Reseau_online":
         db_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\db_settings_osoyoos.json"
         db_settings = json.load(open(db_settings_pth, "r"))
         
         opc_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\opc_settings_osoyoos.json"
         opc_settings = json.load(open(opc_settings_pth, "r"))
         
-        db_client = DBClientWrapper(db_settings["bucket"], db_settings["org"], 
+        db_client = DBClientWrapperBase(db_settings["bucket"], db_settings["org"], 
                             db_settings["token"], db_settings["url"])
         
         opc_connection = OpcConnection(opc_settings["IP"], opc_settings["port"])
@@ -93,7 +93,6 @@ def init_environment(name, cfg):
         control_tags = ["osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"]
         control_tag_default = [cfg.reset_fpm]
         runtime = None
-        date_col = "Date "
         col_names = [
             "ait101_pv",
             "ait301_pv",
@@ -108,8 +107,10 @@ def init_environment(name, cfg):
             "pt101_pv", 
             "pt161_pv"
             ]
-        return ReseauEnv(db_client, opc_connection,  control_tags, control_tag_default, 
-                        date_col, col_names, runtime, decision_freq=cfg.decision_freq, observation_window=cfg.observation_window)
+        
+        return ReseauEnv(db_client, opc_connection, control_tags, control_tag_default, col_names, runtime,
+                  obs_freq=cfg.obs_freq, obs_window=cfg.obs_window, last_n_obs=cfg.last_n_obs)
+            
     else:
         raise NotImplementedError
 

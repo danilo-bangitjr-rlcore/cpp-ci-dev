@@ -43,7 +43,7 @@ def main():
 
 
     env = ReseauEnv(db_client, opc_connection,  control_tags, control_tag_default, date_col, 
-        col_names, runtime, decision_freq=1800, observation_window=1800, last_n_observations=1700 )
+        col_names, runtime, obs_freq=1800, obs_window=1800, last_n_obs=1700 )
     s_0 = env.reset()
 
     # s1 = MaxminNormalize(env)
