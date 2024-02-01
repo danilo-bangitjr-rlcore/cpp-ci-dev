@@ -50,8 +50,8 @@ class ReseauEnv(InfluxOPCEnv):
         self.orp_sp = sp
 
     def _get_reward(self, s, a):
-        mae = (s['ait301_pv'] - self.orp_sp).abs().mean()
-        return mae
+        mae = (s['ait301_pv'] - self.orp_sp).abs().mean()/1000 # naive normalization by 1000
+        return -mae
 
     def reset(self, seed=0):
         self.take_action(self.control_tag_default)
