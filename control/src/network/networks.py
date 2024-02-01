@@ -351,8 +351,7 @@ class RndLinearUncertainty(nn.Module):
         init_args = init.split("/")
         layer_init = internal_factory.init_layer(init_args[0])
         self.random_network = FC(device, input_dim, hidden_units[:-1], hidden_units[-1], activation=activation,
-                                 head_activation=activation,
-                                 init=init, layer_norm=layer_norm)
+                                 head_activation="None", init=init, layer_norm=layer_norm)
         self.linear_head = layer_init(nn.Linear(hidden_units[-1], output_dim, bias=bool(init_args[-1])), *init_args[1:])
         self.to(device)
 
@@ -362,8 +361,8 @@ class RndLinearUncertainty(nn.Module):
         out = self.linear_head(base)
         if debug:
             info = {
-                "param0": base.squeeze().detach().numpy(),
-                "param1": out.squeeze().detach().numpy(),
+                "rep": base.squeeze().detach().numpy(),
+                "out": out.squeeze().detach().numpy(),
             }
         else:
             info = None

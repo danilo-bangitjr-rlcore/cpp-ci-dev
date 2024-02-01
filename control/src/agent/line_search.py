@@ -14,10 +14,12 @@ from src.network.torch_utils import clone_model_0to1, clone_gradient, move_gradi
 class LineSearchAgent(GreedyAC):
 
     """
+    Based on GAC
+
     [done] remove resetting; increase the backtracking length; change to sgd
     [done] Use minibatch for update; use batch/another minibatch for test; increase the threshold
+    [done] Add exploration
       *    Change to value based. Qt-opt?
-      *    Add exploration
     """
     def __init__(self, cfg, average_entropy=True):
         super(LineSearchAgent, self).__init__(cfg, average_entropy)
@@ -148,10 +150,12 @@ class LineSearchAgent(GreedyAC):
         pred0, _ = self.fbonus0(in_)
         pred1, _ = self.fbonus1(in_)
         with torch.no_grad():
-            target0 = reward0 + mask * self.gamma * self.fbonus0(in_p1)[0]
-            target1 = reward1 + mask * self.gamma * self.fbonus1(in_p1)[0]
-        loss0 = nn.functional.mse_loss(pred0, target0)
-        loss1 = nn.functional.mse_loss(pred1, target1)
+            target0 = reward0.detach() + mask * self.gamma * self.fbonus0(in_p1)[0]
+            target1 = reward1.detach() + mask * self.gamma * self.fbonus1(in_p1)[0]
+
+        # TODO: Think more carefully about the learning rate in exploration network
+        loss0 = nn.functional.mse_loss(pred0, target0) * self.last_critic_scaler
+        loss1 = nn.functional.mse_loss(pred1, target1) * self.last_critic_scaler
 
         self.bonus_opt_0.zero_grad()
         loss0.backward()
@@ -168,7 +172,7 @@ class LineSearchAgent(GreedyAC):
             true0, _ = self.ftrue0(in_)
             true1, _ = self.ftrue1(in_)
         b, _ = torch.max(torch.concat([torch.abs(pred0 - true0), torch.abs(pred1 - true1)], dim=1), dim=1)
-        return b.detach()
+        return b.mean().detach()
 
     def eval_error_critic(self, state_batch, action_batch, reward_batch, mask_batch, next_q):
         q, _ = self.get_q_value(state_batch, action_batch, with_grad=False)
@@ -267,7 +271,6 @@ class LineSearchAgent(GreedyAC):
                 data['obs2'], 1 - data['done']
 
             _, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
-            # pi_loss = (-logp + self.explore_bonus_eval(stacked_s_batch, best_actions)).mean()
             pi_loss = -logp.mean()
             # do not change lr_weight here
             self.actor_optimizer.zero_grad()
@@ -326,6 +329,9 @@ class LineSearchAgent(GreedyAC):
             before_error = self.eval_error_critic(state_batch, action_batch, reward_batch, mask_batch, next_q)
 
         q_loss, next_action = self.critic_loss(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
+        explore_bounus = self.explore_bonus_eval(state_batch, action_batch)
+        q_loss += explore_bounus
+
         q_loss_weighted = q_loss * self.critic_lr_weight # The weight is supposed to always be 1.
         self.critic_optimizer.zero_grad()
         q_loss_weighted.backward()
@@ -508,6 +514,7 @@ class LineSearchAgent(GreedyAC):
         i_log = super(LineSearchAgent, self).agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
         i_log["lr_actor"] = self.cfg.lr_actor
         i_log["lr_critic"] = self.cfg.lr_critic
+        i_log["lr_sampler"] = self.lr_sampler
         i_log["lr_actor_scaler"] = self.last_actor_scaler
         i_log["lr_sampler_scaler"] = self.last_sampler_scaler
         i_log["lr_critic_scaler"] = self.last_critic_scaler
