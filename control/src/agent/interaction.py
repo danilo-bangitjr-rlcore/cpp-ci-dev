@@ -32,6 +32,7 @@ class InteractionLayer:
 
     def take_action(self, action):
         raw_action = self.action_normalizer.denormalize(action)[0]
+        print(raw_action)
         self.env.take_action(raw_action)
 
     def get_observation(self, action):
