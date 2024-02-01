@@ -127,11 +127,11 @@ def configure_action_scaler_and_bias(cfg):
             cfg.state_normalizer = "Identity"
             cfg.reward_normalizer = "ThreeTanks"
             if cfg.actor == 'Beta':
-                cfg.action_scale = 10.
-                cfg.action_bias = 0
+                cfg.action_scale = 9.9
+                cfg.action_bias = 0.1
             elif cfg.actor == 'SGaussian':
-                cfg.action_scale = 5
-                cfg.action_bias = 5
+                cfg.action_scale = 4.95
+                cfg.action_bias = 5.05
         elif name == "AtropineEnv":
             raise NotImplementedError
         elif name == "BeerEnv":
