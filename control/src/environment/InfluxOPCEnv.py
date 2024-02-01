@@ -18,7 +18,7 @@ class DBClientWrapperBase():
     def __init__(self, bucket, org, token, url, date_fn=None):
         self.bucket = bucket
         self.org = org
-        self.client = influxdb_client.InfluxDBClient(url=url, token=token, org=org)
+        self.client = influxdb_client.InfluxDBClient(url=url, token=token, org=org, timeout=30_000)
         self.write_client = self.client.write_api(write_options=SYNCHRONOUS)
         self.query_api = self.client.query_api()
         self.start_time = np.inf
