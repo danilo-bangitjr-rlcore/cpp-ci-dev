@@ -293,10 +293,8 @@ class ThreeTankEnvBase(object):
         # reward = -self.W1 * abs(next_reward_comp[0]) - self.W2 * abs(next_reward_comp[1]) \
         #          - self.W3 * abs(next_reward_comp[2]) - self.W4 * abs(next_reward_comp[3])
 
-        # # add self.extra_action_penalty for the clipping action setting
-        # reward = - mse.item() * 100 - self.Lambda * (self.constrain_contribution + self.extra_action_penalty)
-        # do not use constraint in the reward
-        reward = - mse.item() * 100
+        # add self.extra_action_penalty for the clipping action setting
+        reward = - mse.item() * 100 - self.Lambda * (self.constrain_contribution + self.extra_action_penalty)
         self.error_sum = 0
         self.no_of_error = 0
         self.flowrate_buffer = []
@@ -305,7 +303,6 @@ class ThreeTankEnvBase(object):
 # Observation: setpoint -> 1
 # Action: [kp1, ti1] -> 2
 class ThreeTankEnv(ThreeTankEnvBase):
-    # Bandit setting
     def __init__(self, seed=None, lr_constrain=0, random_sp=[3]):
         super(ThreeTankEnv, self).__init__(True, seed=seed, random_sp=random_sp)
         # self.action_multiplier = np.array([1, 1])
@@ -326,7 +323,7 @@ class ThreeTankEnv(ThreeTankEnvBase):
         return
 
     def step(self, a):
-        pid = a
+        pid = a #self.action_multiplier * a
         self.update_pid(pid)
         for _ in range(1000):
             sp, _ = self.inner_step(self.pid_controller())
@@ -337,13 +334,14 @@ class ThreeTankEnv(ThreeTankEnvBase):
         r = (r + 8) / 8
         done = True
 
+        ep_c = self.ep_constrain
         ep_c_info = self.ep_constrain_info
         if done:
             Loss_c = (self.ep_constrain - self.constrain_alpha)
             self.ep_constrain = 0
             self.ep_constrain_info = {}
             self.Lambda = max(0., self.Lambda + self.lr_constrain * Loss_c)
-        return sp, r, done, False, {'environment_pid': pid,
+        return sp, r, done, False, {'constrain': ep_c,
                                     'lambda': self.Lambda,
                                     'interval_log': self.height_T1_record,
                                     'constrain_detail': ep_c_info}
@@ -373,11 +371,10 @@ class ThreeTankEnv(ThreeTankEnvBase):
 # Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
 # Action: [delta_kp1, delta_ti1] -> continuous version -> 2
 class TTChangeAction(ThreeTankEnv):
-    # Normal RL setting.
     def __init__(self, seed=None, lr_constrain=0, constant_pid=True,
                  agent_action_min=-np.inf, agent_action_max=np.inf, random_sp=[3]):
         super(TTChangeAction, self).__init__(seed, lr_constrain, random_sp=random_sp)
-        self.prev_pid = np.array([1.2, 15])
+        self.prev_pid = np.zeros(2)
         self.prev_a = np.zeros(2)
         if constant_pid:
             self.internal_timeout = 1
@@ -407,16 +404,12 @@ class TTChangeAction(ThreeTankEnv):
         self.sum_constrain_info()
         r = self.get_reward() / 20
         r = (r + 8) / 8 # The normalization step from main.py
-
-        # If unsafe, reset pid to a safe value
-        # Continual learning
-        if r < -1:
-            pid = np.array([1.2, 15])
-        done = False
         
         sp = self.observation(a, pid)
         self.prev_a = a
         self.prev_pid = pid
+        done = True
+        ep_c = self.ep_constrain
         ep_c_info = self.ep_constrain_info
         self.internal_count += 1
         if self.internal_count >= self.internal_timeout:
@@ -426,13 +419,13 @@ class TTChangeAction(ThreeTankEnv):
             self.ep_constrain_info = {}
             self.Lambda = max(0., self.Lambda + self.lr_constrain * Loss_c)
 
-            info = {'environment_pid': self.prev_pid,
+            info = {'constrain': ep_c,
                     'lambda': self.Lambda,
                     'interval_log': self.height_T1_record,
                     'constrain_detail': ep_c_info}
 
         else:
-            info = {'environment_pid': self.prev_pid,
+            info = {'constrain': ep_c,
                     'lambda': self.Lambda,
                     'interval_log': [],
                     'constrain_detail': ep_c_info}
