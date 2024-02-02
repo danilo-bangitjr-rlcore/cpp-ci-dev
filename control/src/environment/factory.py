@@ -10,7 +10,7 @@ from src.environment.smpl.envs.reactorenv import ReactorEnvGym
 from src.environment.gym_wrapper import DiscreteControlWrapper
 from src.environment.PendulumEnv import PendulumEnv
 from src.environment.ReseauEnv import ReseauEnv
-from src.environment.InfluxOPCEnv import DBClientWrapper
+from src.environment.InfluxOPCEnv import DBClientWrapperBase
 from src.environment.opc_connection import OpcConnection
 
 import json
@@ -85,7 +85,7 @@ def init_environment(name, cfg):
         opc_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\opc_settings_osoyoos.json"
         opc_settings = json.load(open(opc_settings_pth, "r"))
         
-        db_client = DBClientWrapper(db_settings["bucket"], db_settings["org"], 
+        db_client = DBClientWrapperBase(db_settings["bucket"], db_settings["org"], 
                             db_settings["token"], db_settings["url"])
         
         opc_connection = OpcConnection(opc_settings["IP"], opc_settings["port"])

@@ -149,7 +149,8 @@ class InfluxOPCEnv(gym.Env):
 
 
     def take_action(self, a):
-        pass
+        print(a)
+        
         #asyncio.run(self._take_action(a))
       
 

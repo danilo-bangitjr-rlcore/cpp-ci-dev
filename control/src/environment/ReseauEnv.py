@@ -2,7 +2,7 @@ import datetime as dt
 import time
 import numpy as np
 import pandas as pd
-from InfluxOPCEnv import InfluxOPCEnv, DBClientWrapperBase
+from src.environment.InfluxOPCEnv import InfluxOPCEnv, DBClientWrapperBase
 from gymnasium.spaces import Box
 
 

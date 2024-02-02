@@ -96,7 +96,10 @@ class ReseauExplorationAgent:
 			self.reset_env()
 
 		# Set the FPM to the current FPM in self.fpm_list
-		curr_fpm = self.fpm_list[self.varying_fpm_iter_num % len(self.fpm_list)]
+		if self.varying_fpm_iter_num > 3*self.num_fpms:
+			curr_fpm = self.reset_fpm
+		else:
+			curr_fpm = self.fpm_list[self.varying_fpm_iter_num % len(self.fpm_list)]
 		print("Set FPM To " + str(curr_fpm) + " For " + str(self.reset_duration) + " Seconds")
 		self.env.take_action([curr_fpm])
 
