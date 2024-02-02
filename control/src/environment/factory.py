@@ -15,13 +15,13 @@ def init_environment(name, cfg):
         return ThreeTankEnv(cfg.seed, cfg.lr_constrain, random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/ConstPID":
         return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=True,
-                              agent_action_min=0*cfg.action_scale+cfg.action_bias,
-                              agent_action_max=1*cfg.action_scale+cfg.action_bias,
+                              agent_action_min=-5,#0*cfg.action_scale+cfg.action_bias,
+                              agent_action_max=5,#1*cfg.action_scale+cfg.action_bias,
                               random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/ChangePID":
         return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=False,
-                              agent_action_min=0*cfg.action_scale+cfg.action_bias,
-                              agent_action_max=1*cfg.action_scale+cfg.action_bias,
+                              agent_action_min=-5, #0*cfg.action_scale+cfg.action_bias,
+                              agent_action_max=5, #1*cfg.action_scale+cfg.action_bias,
                               random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/DiscreteConstPID":
         return TTChangeActionDiscrete(cfg.env_info[0], cfg.seed, cfg.lr_constrain, constant_pid=True,
@@ -94,16 +94,14 @@ def configure_action_scaler_and_bias(cfg):
             cfg.state_normalizer = "TTChangeActionState"
             cfg.reward_normalizer = "ThreeTanksReward"
             if cfg.actor == 'Beta':
-                cfg.action_scale = 2
-                cfg.action_bias = -1
+                cfg.action_scale = 10
+                cfg.action_bias = -5
             else:
                 raise NotImplementedError
         elif name == "TTChangeAction/ChangePID":
             raise NotImplementedError
         elif name == "TTChangeAction/DiscreteConstPID":
             raise NotImplementedError
-        elif name == "TTChangeAction/DiscreteRwdStay":
-           raise NotImplementedError
         elif name == "TTChangeAction/ClipConstPID":
            raise NotImplementedError
         elif name == "TTChangeAction/ClipDiscreteConstPID":

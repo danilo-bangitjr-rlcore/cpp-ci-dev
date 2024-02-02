@@ -96,6 +96,10 @@ class ThreeTanksReward(BaseNormalizer):
             x = self.clip
         return x
 
+class TTChangeActionState(Scale):
+    def __init__(self):
+        super(TTChangeActionState, self).__init__([10., 0.])
+
 def init_normalizer(name, *args):
     if name == "Identity":
         return Identity()
@@ -105,7 +109,9 @@ def init_normalizer(name, *args):
         return Scale(*args)
     elif name == "Clip":
         return Clip(*args)
-    elif name == "ThreeTanks":
-        return ThreeTanksReward() #Identity()#
+    elif name == "ThreeTanksReward":
+        return ThreeTanksReward()
+    elif name == "TTChangeActionState":
+        return TTChangeActionState()
     else:
         raise NotImplementedError

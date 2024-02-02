@@ -397,7 +397,6 @@ class TTChangeAction(ThreeTankEnv):
     def step(self, a):
         # a: change of pid
         pid = self.preprocess_action(a)
-        print("environment step", a, pid)
         self.update_pid(pid)
         for _ in range(self.internal_iterations):
             sp, _ = self.inner_step(self.pid_controller())
@@ -430,7 +429,6 @@ class TTChangeAction(ThreeTankEnv):
                     'lambda': self.Lambda,
                     'interval_log': [],
                     'constrain_detail': ep_c_info}
-
         return sp, r, done, False, info
 
     def reset(self, seed=None):

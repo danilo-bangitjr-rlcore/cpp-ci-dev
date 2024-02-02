@@ -62,8 +62,8 @@ class BaseAC(Evaluation):
         if self.cfg.debug:
             action_cover_space, heatmap_shape = self.get_action_samples()
             self.visit_counts = [[0 for i in range(heatmap_shape[1])] for j in range(heatmap_shape[0])]
-            self.x_action_increment = self.cfg.env_action_scaler / heatmap_shape[1]
-            self.y_action_increment = self.cfg.env_action_scaler / heatmap_shape[0]
+            self.x_action_increment = 1. / heatmap_shape[1]
+            self.y_action_increment = 1. / heatmap_shape[0]
 
     def fill_buffer(self, online_data_size):
         track_states = []
