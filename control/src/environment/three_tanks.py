@@ -56,7 +56,7 @@ class ThreeTankEnvBase(object):
 
         # initialize kp1 and ti1 values
         self.kp1 = 1.2
-        self.ti1 = 15
+        self.ti1 = 10
         timespan = np.linspace(0, 100, 101)
         omega = 0.3
         # self.sinfunction = 10 * np.sin(omega * timespan) + 2   # SP varying gain
@@ -146,7 +146,7 @@ class ThreeTankEnvBase(object):
 
         # initialize PID settings
         self.kp1 = 1.2  # 1.2
-        self.ti1 = 15  # 15
+        self.ti1 = 10  # 15
 
         self.time_step = 0  # initial time_step
         self.old_error1 = 0  # initialize errors as zeros
@@ -377,7 +377,7 @@ class TTChangeAction(ThreeTankEnv):
     def __init__(self, seed=None, lr_constrain=0, constant_pid=True,
                  agent_action_min=-np.inf, agent_action_max=np.inf, random_sp=[3]):
         super(TTChangeAction, self).__init__(seed, lr_constrain, random_sp=random_sp)
-        self.prev_pid = np.array([1.2, 15])
+        self.prev_pid = np.array([1.2, 10])
         self.prev_a = np.zeros(2)
         if constant_pid:
             self.internal_timeout = 1
@@ -385,8 +385,10 @@ class TTChangeAction(ThreeTankEnv):
             self.internal_timeout = 10
         self.internal_iterations = 1000//self.internal_timeout
         self.internal_count = 0
-        self.observation_space = spaces.Box(low=np.array([-np.inf]*4),
-                                            high=np.array([np.inf]*4), shape=(4,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=np.array([-np.inf]*2),
+                                            high=np.array([np.inf]*2), shape=(2,), dtype=np.float32)
+        # self.observation_space = spaces.Box(low=np.array([-np.inf]*4),
+        #                                     high=np.array([np.inf]*4), shape=(4,), dtype=np.float32)
         self.agent_action_min = agent_action_min # without considering environment scaler
         self.agent_action_max = agent_action_max # without considering environment scaler
 
@@ -399,6 +401,7 @@ class TTChangeAction(ThreeTankEnv):
 
     def step(self, a):
         # a: change of pid
+        print("action", a)
         pid = self.preprocess_action(a)
         self.update_pid(pid)
         for _ in range(self.internal_iterations):
@@ -411,7 +414,9 @@ class TTChangeAction(ThreeTankEnv):
         # If unsafe, reset pid to a safe value
         # Continual learning
         if r < -1:
-            pid = np.array([1.2, 15])
+            print("reset", pid)
+            pid = np.array([1.2, 10])
+        print("pid set to", pid)
         done = False
         
         sp = self.observation(a, pid)
@@ -464,7 +469,8 @@ class TTChangeAction(ThreeTankEnv):
     
     def observation(self, prev_a, pid):
         pid, _ = self.pid_clip(pid)
-        obs = np.concatenate([prev_a, pid], axis=0)
+        # obs = np.concatenate([prev_a, pid], axis=0)
+        obs = pid
         return obs
 
     def get_action_samples(self, n=10):
@@ -522,7 +528,8 @@ class TTChangeActionDiscrete(TTChangeAction):
     def observation(self, prev_a, pid):
         prev_a = prev_a[0]
         pid, _ = self.pid_clip(pid)
-        obs = np.concatenate([self.action_list[prev_a], pid], axis=0)
+        # obs = np.concatenate([self.action_list[prev_a], pid], axis=0)
+        obs = pid
         return obs
 
     def reset(self, seed=None):
@@ -547,8 +554,10 @@ class TTChangeActionDiscrete(TTChangeAction):
 class TTAction(TTChangeAction):
     def __init__(self, seed=None, lr_constrain=0, constant_pid=True, random_sp=[3]):
         super(TTAction, self).__init__(seed, lr_constrain, constant_pid, random_sp=random_sp)
-        self.observation_space = spaces.Box(low=np.array([0, 0, -np.inf, -np.inf]),
-                                            high=np.array([0, 0, np.inf, np.inf]), shape=(4,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=np.array([-np.inf, -np.inf]),
+                                            high=np.array([np.inf, np.inf]), shape=(2,), dtype=np.float32)
+        # self.observation_space = spaces.Box(low=np.array([0, 0, -np.inf, -np.inf]),
+        #                                     high=np.array([0, 0, np.inf, np.inf]), shape=(4,), dtype=np.float32)
 
     def preprocess_action(self, a):
         # norm_pid = a

@@ -192,12 +192,12 @@ class Evaluation(InteractionLayer):
             dot = self.eval_ax3.scatter(ary3['curr_action'][0], ary3['curr_action'][1], color = 'red')
 
             self.eval_line4 = self.eval_ax4.scatter(ary4[0], ary4[1])
-            self.eval_ax4.set_xlim(0, 20)
-            self.eval_ax4.set_ylim(0, 20)
+            self.eval_ax4.set_xlim(0, 10)
+            self.eval_ax4.set_ylim(0, 10)
             self.eval_ax4.invert_yaxis()
-            self.eval_ax4.set_xticks([0, 20], labels=[0, 20], rotation=90)
+            self.eval_ax4.set_xticks([0, 10], labels=[0, 10], rotation=90)
             self.eval_ax4.set_xlabel("dim 0")
-            self.eval_ax4.set_yticks([0, 20], labels=[0, 20], rotation=90)
+            self.eval_ax4.set_yticks([0, 10], labels=[0, 10], rotation=90)
             self.eval_ax4.set_ylabel("dim 1")
 
             self.eval_fig.tight_layout()
@@ -263,12 +263,12 @@ class Evaluation(InteractionLayer):
 
         eval_line4 = eval_ax4.scatter(ary4[0][0], ary4[0][1])
         last_xy = ary4[0]
-        eval_ax4.set_xlim(0, 20)
-        eval_ax4.set_ylim(0, 20)
+        eval_ax4.set_xlim(0, 10)
+        eval_ax4.set_ylim(0, 10)
         eval_ax4.invert_yaxis()
-        eval_ax4.set_xticks([0, 20], labels=[0, 20], rotation=90)
+        eval_ax4.set_xticks([0, 10], labels=[0, 10], rotation=90)
         eval_ax4.set_xlabel("dim 0")
-        eval_ax4.set_yticks([0, 20], labels=[0, 20], rotation=90)
+        eval_ax4.set_yticks([0, 10], labels=[0, 10], rotation=90)
         eval_ax4.set_ylabel("dim 1")
 
         eval_fig.tight_layout()
