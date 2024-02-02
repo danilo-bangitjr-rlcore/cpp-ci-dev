@@ -401,7 +401,6 @@ class TTChangeAction(ThreeTankEnv):
 
     def step(self, a):
         # a: change of pid
-        print("action", a)
         pid = self.preprocess_action(a)
         self.update_pid(pid)
         for _ in range(self.internal_iterations):
@@ -413,12 +412,11 @@ class TTChangeAction(ThreeTankEnv):
 
         # If unsafe, reset pid to a safe value
         # Continual learning
+        old_pid = pid
         if r < -1:
-            print("reset", pid)
             pid = np.array([1.2, 10])
-        print("pid set to", pid)
         done = False
-        
+
         sp = self.observation(a, pid)
         self.prev_a = a
         self.prev_pid = pid
@@ -431,13 +429,13 @@ class TTChangeAction(ThreeTankEnv):
             self.ep_constrain_info = {}
             self.Lambda = max(0., self.Lambda + self.lr_constrain * Loss_c)
 
-            info = {'environment_pid': self.prev_pid,
+            info = {'environment_pid': old_pid,
                     'lambda': self.Lambda,
                     'interval_log': self.height_T1_record,
                     'constrain_detail': ep_c_info}
 
         else:
-            info = {'environment_pid': self.prev_pid,
+            info = {'environment_pid': old_pid,
                     'lambda': self.Lambda,
                     'interval_log': [],
                     'constrain_detail': ep_c_info}
