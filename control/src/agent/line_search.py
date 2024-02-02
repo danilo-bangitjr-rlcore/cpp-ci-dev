@@ -154,7 +154,7 @@ class LineSearchAgent(GreedyAC):
             target1 = reward1.detach() + mask * self.gamma * self.fbonus1(in_p1)[0]
 
         # TODO: Think more carefully about the learning rate in exploration network
-        # TODO: Include the reward and next state in training, for the stochasity
+        # TODO: Include the reward and next state in training, for the stochasity (how?)
         loss0 = nn.functional.mse_loss(pred0, target0) * self.last_critic_scaler
         loss1 = nn.functional.mse_loss(pred1, target1) * self.last_critic_scaler
 

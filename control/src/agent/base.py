@@ -90,9 +90,11 @@ class BaseAC(Evaluation):
             self.info_log.append(i_log)
 
             if self.cfg.render:
-                self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"])
+                self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"],
+                            env_info['environment_pid'])
             else:
                 env_info.pop('interval_log', None)
+                env_info.pop('environment_pid', None)
                 i_log['critic_info'].pop('Q-function', None)
 
             track_states.append(last_state)
@@ -147,9 +149,11 @@ class BaseAC(Evaluation):
         self.info_log.append(i_log)
 
         if self.cfg.render:
-            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"])
+            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"],
+                        env_info['environment_pid'])
         else:
             env_info.pop('interval_log', None)
+            env_info.pop('environment_pid', None)
             i_log['critic_info'].pop('Q-function', None)
 
         self.update(trunc)
@@ -198,9 +202,11 @@ class BaseAC(Evaluation):
         self.info_log.append(i_log)
 
         if self.cfg.render:
-            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"])
+            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"],
+                        env_info['environment_pid'])
         else:
             env_info.pop('interval_log', None)
+            env_info.pop('environment_pid', None)
             i_log['critic_info'].pop('Q-function', None)
 
         self.update(trunc)
