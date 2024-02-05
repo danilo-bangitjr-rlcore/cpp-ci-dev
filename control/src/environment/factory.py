@@ -134,7 +134,14 @@ def configure_action_scaler_and_bias(cfg):
         elif name == "Cont-CC-SCIM-v0":
             raise NotImplementedError
         elif name == "Acrobot-v1":
-            raise NotImplementedError
+            cfg.state_normalizer = "Identity"
+            cfg.reward_normalizer = "Identity"
+            cfg.action_normalizer = "OneHot"
+            if cfg.actor == 'Softmax':
+                cfg.action_scale = 3 # This is a bad naming. It should be the action dimension.
+                cfg.action_bias = 0
+            else:
+                raise NotImplementedError
         elif name == "MountainCar-v0":
             raise NotImplementedError
         elif name == "Pendulum-v1":

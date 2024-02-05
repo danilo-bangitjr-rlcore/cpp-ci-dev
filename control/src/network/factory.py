@@ -2,6 +2,7 @@ import torch
 from src.network.torch_utils import *
 from src.network.networks import BetaPolicy, BetaInvParam, SquashedGaussianPolicy, Softmax, RndLinearUncertainty
 from src.network.networks import FC
+from src.network.networks import UniformRandomCont, UniformRandomDisc
 
 
 def init_policy_network(name, device, state_dim, hidden_units, action_dim, beta_param_bias, beta_param_bound,
@@ -18,6 +19,10 @@ def init_policy_network(name, device, state_dim, hidden_units, action_dim, beta_
     elif name == "Softmax":
         return Softmax(device, state_dim, hidden_units, action_dim,
                        activation=activation, init=layer_init, layer_norm=layer_norm)
+    elif name == "UniformRandomCont":
+        return UniformRandomCont(device, state_dim, hidden_units, action_dim)
+    elif name == "UniformRandomDisc":
+        return UniformRandomDisc(device, state_dim, hidden_units, action_dim)
     else:
         raise NotImplementedError
     

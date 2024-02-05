@@ -409,7 +409,6 @@ class TTChangeAction(ThreeTankEnv):
         self.sum_constrain_info()
         r = self.get_reward() / 20
         r = (r + 8) / 8 # The normalization step from main.py
-
         # If unsafe, reset pid to a safe value
         # Continual learning
         old_pid = pid

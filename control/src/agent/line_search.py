@@ -9,6 +9,7 @@ from src.agent.greedy_ac import GreedyAC, GreedyACDiscrete
 from src.network.factory import init_policy_network, init_critic_network, init_optimizer, init_custom_network
 import src.network.torch_utils as torch_utils
 from src.network.torch_utils import clone_model_0to1, clone_gradient, move_gradient_to_network
+from src.component.normalizer import init_normalizer
 
 
 class LineSearchAgent(GreedyAC):
@@ -33,12 +34,20 @@ class LineSearchAgent(GreedyAC):
                                                   cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic_copy = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
                                                    cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+            self.random_policy = init_policy_network("UniformRandomDisc", cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
+                                                     cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
+                                                     cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm
+                                                     )
         else:
             self.actor_copy = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
                                                   cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                                   cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic_copy = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
                                                    cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+            self.random_policy = init_policy_network("UniformRandomCont", cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
+                                                     cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
+                                                     cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm
+                                                     )
 
         self.sampler_copy = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
                                            cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
@@ -104,8 +113,6 @@ class LineSearchAgent(GreedyAC):
         pth = self.cfg.parameters_path + "/prefill_{}.pkl".format(self.cfg.etc_buffer_prefill)
         if not os.path.isfile(pth):
             '''using etc's parameter here'''
-            random_policy = init_policy_network("Beta", self.cfg.device, self.state_dim, [], self.action_dim,
-                                                0, 0, self.cfg.activation, self.cfg.head_activation, "Const/1/0", False)
             reset = True
             for t in range(self.cfg.etc_buffer_prefill):
                 if t % 1000 == 0:
@@ -114,7 +121,7 @@ class LineSearchAgent(GreedyAC):
                     observation, info = self.env_reset()
                 observation_tensor = torch_utils.tensor(observation.reshape((1, -1)), self.device)
                 with torch.no_grad():
-                    action, _, _ = random_policy(observation_tensor, False)
+                    action, _, _ = self.random_policy(observation_tensor, False)
                     action = torch_utils.to_np(action)
                 next_observation, reward, terminated, trunc, env_info = self.env_step(action)
                 reset = terminated or trunc
@@ -129,16 +136,17 @@ class LineSearchAgent(GreedyAC):
             self.buffer.batch_size = self.batch_size
 
         # # For debugging
-        # plt.figure()
+        # _, ax = plt.subplots(1, 1, figsize=(4, 4))
         # data = self.buffer.get_all_data()
         # act = np.array([i[1] for i in data])
         # rwd = np.array([i[2] for i in data])
-        # plt.scatter(act[:, 0], act[:, 1], c=rwd, s=2)
+        # ax.scatter(act[:, 0], act[:, 1], c=rwd, s=5)
+        # ax.invert_yaxis()
         # plt.show()
 
     def explore_bonus_update(self, state, action, reward, next_state, next_action, mask):
         in_ = torch.concat((state, action), dim=1)
-        in_p1 = torch.concat((next_state, next_action), dim=1)
+        in_p1 = torch.concat((next_state, action), dim=1)
         with torch.no_grad():
             true0_t, _ = self.ftrue0(in_)
             true1_t, _ = self.ftrue1(in_)
@@ -157,6 +165,8 @@ class LineSearchAgent(GreedyAC):
         # TODO: Include the reward and next state in training, for the stochasity (how?)
         loss0 = nn.functional.mse_loss(pred0, target0) * self.last_critic_scaler
         loss1 = nn.functional.mse_loss(pred1, target1) * self.last_critic_scaler
+        # print("exploration network loss", loss0, loss1)
+        # print(pred0.mean(), target0.mean())
 
         self.bonus_opt_0.zero_grad()
         loss0.backward()
@@ -172,8 +182,8 @@ class LineSearchAgent(GreedyAC):
             pred1, _ = self.fbonus1(in_)
             true0, _ = self.ftrue0(in_)
             true1, _ = self.ftrue1(in_)
-        b, _ = torch.max(torch.concat([torch.abs(pred0 - true0), torch.abs(pred1 - true1)], dim=1), dim=1)
-        print("bouns size", b.size())
+        b, _ = torch.max(torch.concat([torch.abs(pred0 - true0), torch.abs(pred1 - true1)], dim=1),
+                         dim=1, keepdim=True)
         return b.detach()
 
     def eval_error_critic(self, state_batch, action_batch, reward_batch, mask_batch, next_q):
@@ -311,7 +321,6 @@ class LineSearchAgent(GreedyAC):
 
             sampler_loss = self.proposal_loss(sample_actions, repeated_states,
                                               stacked_s_batch, best_actions, sorted_q, state_batch)
-            # sampler_loss += self.explore_bonus_eval(stacked_s_batch, best_actions).mean()
             self.sampler_optim.zero_grad()
             sampler_loss.backward()
             self.sampler_optim.step()
@@ -382,6 +391,20 @@ class LineSearchAgent(GreedyAC):
         sorted_eval_q = torch.argsort(eval_q, dim=1, descending=True)
         eval_stacked_s, eval_best_action = self.get_action_with_top_value(eval_state, eval_sample_actions, sorted_eval_q, self.top_action)
         return eval_stacked_s, eval_best_action, eval_sample_actions, sorted_eval_q
+
+    def sort_q_value(self, repeated_states, sample_actions, batch_size):
+        # Add the exploration bonus
+        q_values, _ = self.get_q_value(repeated_states, sample_actions, with_grad=False)
+        exp_b = self.explore_bonus_eval(repeated_states, sample_actions)
+        print("sortqvalue")
+        print(q_values.mean(), q_values.std(), q_values.min(), q_values.max())
+        print(exp_b.mean(), exp_b.std(), exp_b.min(), exp_b.max())
+        print("---")
+        q_values += exp_b
+
+        q_values = q_values.reshape(batch_size, self.num_samples, 1)
+        sorted_q = torch.argsort(q_values, dim=1, descending=True)
+        return sorted_q
 
     def backtrack_actor(self, state_batch, eval_state):
         pi_loss, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)

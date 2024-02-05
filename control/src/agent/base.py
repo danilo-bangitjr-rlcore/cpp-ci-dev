@@ -16,7 +16,6 @@ class BaseAC(Evaluation):
     def __init__(self, cfg):
         super(BaseAC, self).__init__(cfg)
         self.rng = np.random.RandomState(cfg.seed)
-
         # Continuous control initialization
         if cfg.discrete_control:
             # self.action_dim = self.env.action_space.n
@@ -118,10 +117,14 @@ class BaseAC(Evaluation):
 
     def update_stats(self, reward, done, trunc):
         self.ep_reward += reward
+        self.step_rewards.append(reward)
         self.total_steps += 1
         self.ep_step += 1
         reset = False
         truncate = trunc or (self.ep_step == self.timeout)
+        if not done and self.timeout >= self.cfg.max_steps:
+            if self.ep_step and self.ep_step % self.reward_window == 0:
+                self.ep_returns.append(np.array(self.step_rewards[max(0, self.total_steps-self.reward_window): ]).sum())
         if done or truncate:
             self.ep_returns.append(self.ep_reward)
             self.num_episodes += 1

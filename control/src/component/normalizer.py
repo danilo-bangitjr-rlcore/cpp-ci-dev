@@ -30,11 +30,19 @@ class OneHot(BaseNormalizer):
     def __call__(self, x):
         assert len(x.shape) == 2 and x.shape[1]==1 # shape = batch_size * 1
         oneh = torch.zeros((x.shape[0], self.total_count))
-        oneh[np.arange(x.shape[0]), (x - self.start).astype(int).squeeze()] = 1
+        if type(x) == np.ndarray:
+            oneh[np.arange(x.shape[0]), (x - self.start).astype(int).squeeze()] = 1
+        elif type(x) == torch.Tensor:
+            oneh[np.arange(x.shape[0]), (x - self.start).to(torch.int).squeeze()] = 1
         return oneh
 
     def get_new_dim(self, d):
         return self.total_count
+
+    def denormalize(self, x):
+        idx = (x == 1).nonzero(as_tuple=False)
+        idx = idx[:, 1:]
+        return idx
 
 
 class Scale(BaseNormalizer):

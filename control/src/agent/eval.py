@@ -21,6 +21,8 @@ class Evaluation(InteractionLayer):
         self.logger = cfg.logger
         self.timeout = cfg.timeout
         self.ep_reward = 0
+        self.reward_window = int(1./ (1 - self.gamma))
+        self.step_rewards = []
         self.ep_returns = []
         self.ep_step = 0
         self.total_steps = 0
@@ -68,6 +70,9 @@ class Evaluation(InteractionLayer):
     
     def populate_returns(self, log_traj=False, total_ep=None, initialize=False):
         total_ep = self.stats_queue_size if total_ep is None else total_ep
+        if self.timeout >= self.cfg.max_steps:
+            timeout_true = self.timeout
+            self.timeout = int(1./(1-self.gamma))
         total_steps = 0
         total_states = []
         total_actions = []
@@ -88,6 +93,8 @@ class Evaluation(InteractionLayer):
                     self.add_train_log(steps)
             else:
                 raise NotImplementedError
+        if self.timeout >= self.cfg.max_steps:
+            self.timeout = timeout_true
         return [total_states, total_actions, total_returns]
     
     def eval_step(self, state):

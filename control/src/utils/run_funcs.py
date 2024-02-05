@@ -28,6 +28,7 @@ def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_si
     
     np.save(eval_pth + "/train_logs.npy", np.array(train_logs))
     np.save(eval_pth + "/evaluations.npy", np.array(evaluations))
+    # np.save(eval_pth + "/reward_logs.npy", np.array(np.array(agent.step_rewards)))
     agent.save_info(eval_pth + "/info_logs.pkl")
     agent.save()
     agent.savevis()

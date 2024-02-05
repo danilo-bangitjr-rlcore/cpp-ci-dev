@@ -31,16 +31,20 @@ class GreedyAC(BaseAC):
         q_loss = torch.nn.functional.mse_loss(target, q_value)
         return q_loss, next_action
 
+    def sort_q_value(self, repeated_states, sample_actions, batch_size):
+        # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
+        q_values, _ = self.get_q_value(repeated_states, sample_actions, with_grad=False)
+        q_values = q_values.reshape(batch_size, self.num_samples, 1)
+        sorted_q = torch.argsort(q_values, dim=1, descending=True)
+        return sorted_q
+
     def actor_loss(self, state_batch):
         batch_size = state_batch.shape[0]
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
         with torch.no_grad():
             sample_actions, _, _ = self.sampler(repeated_states)
 
-        # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
-        q_values, _ = self.get_q_value(repeated_states, sample_actions, with_grad=False)
-        q_values = q_values.reshape(batch_size, self.num_samples, 1)
-        sorted_q = torch.argsort(q_values, dim=1, descending=True)
+        sorted_q = self.sort_q_value(repeated_states, sample_actions, batch_size)
         best_ind = sorted_q[:, :self.top_action]
         best_ind = best_ind.repeat_interleave(self.gac_a_dim, -1)
 

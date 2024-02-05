@@ -3,6 +3,9 @@ import src.network.torch_utils as internal_factory
 import torch.nn as nn
 import torch.distributions as distrib
 import numpy as np
+
+from src.network import torch_utils
+
 FLOAT32_EPS = 10 * \
               np.finfo(np.float32).eps # differences of this size are
                                        # representable up to ~ 15
@@ -139,6 +142,7 @@ class BetaPolicy(nn.Module):
         self.beta_param_bias = torch.tensor(beta_param_bias)
         self.beta_param_bound = torch.tensor(beta_param_bound)
         self.to(device)
+        self.device = device
 
     def squash_dist_param(self, dist_param, low, high):
         tanh_out = torch.tanh(dist_param)
@@ -302,10 +306,15 @@ class Softmax(nn.Module):
         self.num_actions = num_actions
         self.base_network = FC(device, observation_dim, arch, num_actions, init=init, activation=activation, layer_norm=layer_norm)
         self.to(device)
-        
-    def forward(self, state, debug=False):
+        self.device = device
+
+    def get_probs(self, state):
         x = self.base_network(state)
         probs = nn.functional.softmax(x, dim=1)
+        return probs, x
+
+    def forward(self, state, debug=False):
+        probs, x = self.get_probs(state)
         dist = torch.distributions.Categorical(probs=probs)
         actions = dist.sample()
 
@@ -322,16 +331,14 @@ class Softmax(nn.Module):
             }
         else:
             info = None
-   
-        return actions.reshape((-1, 1)), log_prob, info
+        actions = actions.reshape((-1, 1))
+        a_onehot = torch.FloatTensor(actions.size()[0], self.num_actions)
+        a_onehot.zero_()
+        actions = a_onehot.scatter_(1, actions, 1)
+        return actions, log_prob, info
 
     def log_prob(self, states, actions, debug=False):
-        x = self.base_network(states)
-
-        # log_prob = nn.functional.log_softmax(x, dim=1)
-        # log_prob = torch.gather(log_prob, dim=1, index=actions.long())
-
-        probs = nn.functional.softmax(x, dim=1)
+        probs, _ = self.get_probs(states)
         dist = torch.distributions.Categorical(probs)
         log_prob = dist.log_prob(actions.squeeze(-1))
 
@@ -367,3 +374,23 @@ class RndLinearUncertainty(nn.Module):
         else:
             info = None
         return out, info
+
+
+class UniformRandomCont(BetaPolicy):
+    def __init__(self, device, observation_dim, arch, action_dim):
+        super(UniformRandomCont, self).__init__(device, observation_dim, arch, action_dim, beta_param_bias=0, beta_param_bound=1e8,
+                                                init='Const/1/0', activation="ReLU", head_activation="ReLU", layer_norm=False)
+    def get_dist_params(self, observation):
+        alpha = torch_utils.tensor([[1.0]*self.action_dim], device=self.device)
+        beta = torch_utils.tensor([[1.0]*self.action_dim], device=self.device)
+        return alpha, beta
+
+class UniformRandomDisc(Softmax):
+    def __init__(self, device, observation_dim, arch, num_actions):
+        super(UniformRandomDisc, self).__init__(device, observation_dim, arch, num_actions,
+                                                init='Const/1/0', activation="ReLU", layer_norm=False)
+
+    def get_probs(self, state):
+        x = torch.ones(state.size()[0], self.num_actions)
+        probs = nn.functional.softmax(x, dim=1)
+        return probs, x
