@@ -40,8 +40,12 @@ class OneHot(BaseNormalizer):
         return self.total_count
 
     def denormalize(self, x):
-        idx = (x == 1).nonzero(as_tuple=False)
-        idx = idx[:, 1:]
+        if type(x) == np.ndarray:
+            idx = np.where(x==1)[1]
+            idx = np.expand_dims(idx, axis=1)
+        elif type(x) == torch.Tensor:
+            idx = (x == 1).nonzero(as_tuple=False)
+            idx = idx[:, 1:]
         return idx
 
 

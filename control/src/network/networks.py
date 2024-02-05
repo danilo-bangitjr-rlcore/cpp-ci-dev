@@ -338,6 +338,9 @@ class Softmax(nn.Module):
         return actions, log_prob, info
 
     def log_prob(self, states, actions, debug=False):
+        actions = (actions == 1).nonzero(as_tuple=False)
+        actions = actions[:, 1:]
+
         probs, _ = self.get_probs(states)
         dist = torch.distributions.Categorical(probs)
         log_prob = dist.log_prob(actions.squeeze(-1))

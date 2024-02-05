@@ -18,7 +18,6 @@ class GreedyAC(BaseAC):
                                            cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                            cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
         self.sampler_optim = init_optimizer(cfg.optimizer, list(self.sampler.parameters()), cfg.lr_actor)
-
         self.gac_a_dim = self.action_dim
         self.top_action = int(self.rho * self.num_samples)
         self.top_action_proposal = int(self.rho_proposal * self.num_samples)
@@ -132,5 +131,4 @@ class GreedyAC(BaseAC):
 class GreedyACDiscrete(GreedyAC):
     def __init__(self, cfg, average_entropy=True):
         super(GreedyACDiscrete, self).__init__(cfg, average_entropy)
-        self.gac_a_dim = 1
         self.top_action = 1

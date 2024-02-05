@@ -243,6 +243,7 @@ class BaseAC(Evaluation):
 
     # Discrete control
     def get_q_value_discrete(self, observation, action, with_grad):
+        action = self.action_normalizer.denormalize(action)
         action = action.squeeze(-1)
         if with_grad:
             qs = self.critic(observation)
@@ -260,6 +261,7 @@ class BaseAC(Evaluation):
         return q, None
 
     def get_q_value_target_discrete(self, observation, action):
+        action = self.action_normalizer.denormalize(action)
         action = action.squeeze(-1)
         with torch.no_grad():
             qs = self.critic_target(observation)

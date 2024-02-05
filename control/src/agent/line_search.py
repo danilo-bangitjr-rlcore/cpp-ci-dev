@@ -27,7 +27,6 @@ class LineSearchAgent(GreedyAC):
 
         # Leave positions for backup the networks
         if self.discrete_control:
-            self.gac_a_dim = 1
             self.top_action = 1
             self.actor_copy = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
                                                   cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
