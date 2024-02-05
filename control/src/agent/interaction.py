@@ -17,7 +17,6 @@ class InteractionLayer:
         
         self.state_constructor = init_state_constructor(cfg.state_constructor, cfg)
         self.state_dim = self.state_constructor.get_state_dim(flatdim(self.env.observation_space))   
-        print('State_dim: {}'.format(self.state_dim))
         self.action_dim = self.action_normalizer.get_new_dim(flatdim(self.env.action_space))
 
     def env_reset(self):
@@ -31,7 +30,6 @@ class InteractionLayer:
 
     def take_action(self, action):
         raw_action = self.action_normalizer.denormalize(action)[0]
-        print(raw_action)
         self.env.take_action(raw_action)
 
     def get_observation(self, action):

@@ -25,7 +25,7 @@ if __name__ == "__main__":
     parser.add_argument('--exp_name', default='temp', type=str)
     parser.add_argument('--exp_info', default='', type=str)
     parser.add_argument('--timeout', default=1, type=int)
-    parser.add_argument('--max_steps', default=20000, type=int)
+    parser.add_argument('--max_steps', default=5000, type=int)
     parser.add_argument('--log_interval', default=1, type=int)
     parser.add_argument('--log_test', default=0, type=int)
     parser.add_argument('--stats_queue_size', default=1, type=int)
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     parser.add_argument('--etc_reward_clip', default=[-np.inf, np.inf], type=float,  nargs='+')  
     parser.add_argument('--etc_reward_normalization', default='None', type=str)
     
-    parser.add_argument('--batch_size', default=1, type=int)
+    parser.add_argument('--batch_size', default=8, type=int)
     parser.add_argument('--update_freq', default=1, type=int)
     parser.add_argument('--use_target_network', default=1, type=int)
     parser.add_argument('--polyak', default=0, type=float) # 0 is hard sync
@@ -89,6 +89,16 @@ if __name__ == "__main__":
     # Explore Then Commit
     parser.add_argument('--actions_per_dim', default=50, type=int)
     parser.add_argument('--min_trials', default=1, type=int)
+    
+    # state construction
+    parser.add_argument('--state_constructor', default="Identity", type=str)
+    parser.add_argument('--window_average',  default=1, type=int)
+    parser.add_argument('--k_order_hist', default=1, type=int) 
+    parser.add_argument('--trace_decay', default=0.9, type=float) 
+    parser.add_argument('--intra_step_trace_decay', default=0.9, type=int)
+    
+    # sarsa
+    parser.add_argument('--greedification', default='epsilon-greedy', type=str)
 
     cfg = parser.parse_args()
 
