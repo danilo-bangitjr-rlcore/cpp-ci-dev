@@ -158,8 +158,8 @@ class LineSearchAgent(GreedyAC):
         pred0, _ = self.fbonus0(in_)
         pred1, _ = self.fbonus1(in_)
         with torch.no_grad():
-            target0 = reward0.detach() + mask * self.gamma * self.fbonus0(in_p1)[0]
-            target1 = reward1.detach() + mask * self.gamma * self.fbonus1(in_p1)[0]
+            target0 = true0_t#reward0.detach() + mask * self.gamma * self.fbonus0(in_p1)[0]
+            target1 = true1_t#reward1.detach() + mask * self.gamma * self.fbonus1(in_p1)[0]
 
         # TODO: Think more carefully about the learning rate in exploration network
         # TODO: Include the reward and next state in training, for the stochasity (how?)
