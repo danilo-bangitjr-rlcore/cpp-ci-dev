@@ -11,7 +11,6 @@ class InteractionLayer:
         self.observation, info = self.env.reset(seed=cfg.seed)
         self.eval_env.reset(seed=cfg.seed)
 
-        #self.state_normalizer = init_normalizer(cfg.state_normalizer, self.env.observation_space)
         self.reward_normalizer = init_normalizer(cfg.reward_normalizer, None)
         self.action_normalizer = init_normalizer(cfg.action_normalizer,
                                                  type('obj', (object,), {'scaler': cfg.action_scale,  'bias': cfg.action_bias}))

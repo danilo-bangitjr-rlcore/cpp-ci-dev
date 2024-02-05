@@ -10,7 +10,7 @@ class ReseauExplorationAgent:
 		self.reset_duration = cfg.reset_duration
 
 		# ORP Delay Experiment
-		self.orp_threshold_factor = cfg.orp_threshold_factor
+		# self.orp_threshold_factor = cfg.orp_threshold_factor
 		self.orp_delay_fpm = cfg.init_fpm
 		self.orp_delay_start_times = cfg.orp_delay_start_times
 		self.orp_delay_duration = cfg.orp_delay_duration
@@ -43,10 +43,10 @@ class ReseauExplorationAgent:
 		self.orp_delay_iter_num += 1
 		
 		# Reset the environment
-		self.reset_env()
+		# self.reset_env()
 		
 		# Update ORP threshold
-		self.get_reference_orp()
+		# self.get_reference_orp()
 		
 		# Set the FPM to the current ORP Delay Experiment FPM
 		print("Set FPM To " + str(self.orp_delay_fpm) + " For " + str(self.orp_delay_duration) + " Seconds")
@@ -56,6 +56,7 @@ class ReseauExplorationAgent:
 		time.sleep(self.orp_delay_duration)
 		
 		# Determine if ORP exceeds threshold and update FPM for next iteration
+		"""
 		curr_obs, _, _, _, _ = self.env.get_observation(0)
 		orp_ref = curr_obs['ait301_pv'][-5:].mean()
 		print("Current ORP:", orp_ref)
@@ -65,6 +66,8 @@ class ReseauExplorationAgent:
 		else:
 			self.orp_delay_fpm += 50
 			print("Current ORP Below Threshold. New ORP Sensor Delay FPM =", self.orp_delay_fpm)
+		"""
+		self.orp_delay_fpm += 5
 		
 		# Schedule next ORP delay iteration
 		if self.orp_delay_iter_num % len(self.orp_delay_start_times) == 0:
@@ -89,11 +92,14 @@ class ReseauExplorationAgent:
 			self.reset_env()
 		"""
 		# Perform environment resets only for the first half of tested FPMs
-		if self.varying_fpm_iter_num < (self.num_fpms / 2):
+		if self.varying_fpm_iter_num < self.num_fpms:
 			self.reset_env()
 
 		# Set the FPM to the current FPM in self.fpm_list
-		curr_fpm = self.fpm_list[self.varying_fpm_iter_num % len(self.fpm_list)]
+		if self.varying_fpm_iter_num > 3*self.num_fpms:
+			curr_fpm = self.reset_fpm
+		else:
+			curr_fpm = self.fpm_list[self.varying_fpm_iter_num % len(self.fpm_list)]
 		print("Set FPM To " + str(curr_fpm) + " For " + str(self.reset_duration) + " Seconds")
 		self.env.take_action([curr_fpm])
 
