@@ -18,7 +18,7 @@ class DBClientWrapperBase():
     def __init__(self, bucket, org, token, url, date_fn=None):
         self.bucket = bucket
         self.org = org
-        self.client = influxdb_client.InfluxDBClient(url=url, token=token, org=org)
+        self.client = influxdb_client.InfluxDBClient(url=url, token=token, org=org, timeout=30_000)
         self.write_client = self.client.write_api(write_options=SYNCHRONOUS)
         self.query_api = self.client.query_api()
         self.start_time = np.inf
@@ -104,8 +104,11 @@ class DBClientWrapperBase():
     
 
 class InfluxOPCEnv(gym.Env):
-    def __init__(self, db_client, opc_connection, control_tags, date_col, col_names, 
-        runtime=None, decision_freq=10*60, observation_window=10, last_n_observations=None, offline_data_folder=None):
+    def __init__(
+            self, db_client, opc_connection, control_tags, col_names, 
+            runtime=None, obs_freq=60, obs_window=10, last_n_obs=None,  
+            date_col= None, offline_data_folder=None):
+        
         # for continuing s
         self.db_client = db_client
         self.date_col = date_col,
@@ -113,18 +116,18 @@ class InfluxOPCEnv(gym.Env):
         
         if offline_data_folder is not None: # we will import data from a CSV
             assert date_col is not None
-            assert col_names is not None
             self.db_client.import_csv(offline_data_folder, date_col, col_names)
             self.offline = True
         else:
             self.offline = False
             
-        self.decision_freq = decision_freq
-        self.observation_window = observation_window
+        self.obs_freq = obs_freq # only used in offline replay
+        self.obs_window = obs_window
+        
         self.runtime = runtime
         self.opc_connection = opc_connection
         self.control_tags = control_tags
-        self.last_n_observations = last_n_observations
+        self.last_n_observations = last_n_obs
         
 
     async def _take_action(self, a):
@@ -183,7 +186,7 @@ class InfluxOPCEnv(gym.Env):
 
     def _update_now(self):
         if self.offline:
-            self._now += self.decision_freq
+            self._now += self.obs_freq
         else:
             self._now = floor(dt.datetime.timestamp(dt.datetime.now()))
     
@@ -195,7 +198,7 @@ class InfluxOPCEnv(gym.Env):
         returns: 
             self.state (pd.dataframe) : the observation
         """
-        obs = self.db_client.query(self._now-self.observation_window, self._now, self.col_names) 
+        obs = self.db_client.query(self._now-self.obs_window, self._now, self.col_names) 
         if self.last_n_observations is not None:
             obs=obs[-self.last_n_observations:] # only return the last n observations within a window. 
         return obs

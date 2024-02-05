@@ -56,6 +56,7 @@ class BaseAC(Evaluation):
         self.cfg = cfg
         self.discrete_control = cfg.discrete_control
         self.decision_freq = cfg.decision_freq
+        self.last_action = None 
 
         # Visit count heatmap
         if self.cfg.debug:
@@ -73,6 +74,7 @@ class BaseAC(Evaluation):
         track_return = []
         track_step = []
         self.observation, info = self.env_reset()
+       
         ep_steps = 0
         ep_return = 0
         done = False
@@ -162,46 +164,50 @@ class BaseAC(Evaluation):
         return
     
     
-    def decoupled_step(self):
+    def decoupled_step(self, change_action, get_observation, do_update):
         """
-        Similar to step, but allows the agent to continue to update itself before the state is returned
+        Similar to step, but allows the agent to different frequencies for choosing new actions, observing state and updating
         """
-        observation_tensor = torch_utils.tensor(self.state_normalizer(self.observation.reshape((1, -1))), self.device)
-        action_tensor, _, pi_info = self.get_policy(observation_tensor,
-                                                    with_grad=False, debug=self.cfg.debug)
-        action = torch_utils.to_np(action_tensor)[0]
-        self.env.take_action(action) # take action in the environment
         
-        # update for some time, then get state
-        start = time.time()
-        self.decoupled_inner_update()
-        time.sleep(start+self.decision_freq-time.time()) # if update does not take all alotted time, wait. 
-        next_observation, reward, terminated, trunc, env_info = self.env.get_observation(action)  
-        reset, truncate = self.update_stats(reward, terminated, trunc)
-        self.buffer.feed([self.observation, action, reward, next_observation, int(terminated), int(truncate)])
+        if change_action: # if it is time change the action
+            print('changing action')
+            print(self.observation.shape)
+            observation_tensor = torch_utils.tensor(self.observation.reshape((1, -1)), self.device)
+            action_tensor, _, pi_info = self.get_policy(observation_tensor,
+                                                        with_grad=False, debug=self.cfg.debug)
+            action = torch_utils.to_np(action_tensor)[0]
+            self.take_action(action) # take action in the environment
+            self.last_action = action
+            print('Choose action: {}'.format(action))
 
-        i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
-        self.info_log.append(i_log)
+        if get_observation:
+            print('getting observation')
+            next_observation, reward, terminated, trunc, env_info = self.get_observation(action)
+            reset, truncate = self.update_stats(reward, terminated, trunc)
+            self.buffer.feed([self.observation, self.last_action, reward, next_observation, int(terminated), int(truncate)])
+            if reset:
+                next_observation, info = self.env_reset()
 
-        if self.cfg.render:
-            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"])
-        else:
-            env_info.pop('interval_log', None)
-            i_log['critic_info'].pop('Q-function', None)
+            self.observation = next_observation
+        
+        if do_update:
+            print('updating')
+            self.decoupled_update() # we use a different update funciton that does 
+            # if self.use_target_network and self.total_steps % self.target_network_update_freq == 0:
+            #     self.sync_target()
+    
+        # i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
+        # self.info_log.append(i_log)
+        # if self.cfg.render:
+        #     self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"])
+        # else:
+        #     env_info.pop('interval_log', None)
+        #     i_log['critic_info'].pop('Q-function', None)
 
-        self.update(trunc)
-
-        if reset:
-            next_observation, info = self.env.reset()
-        self.observation = next_observation
-
-        if self.use_target_network and self.total_steps % self.target_network_update_freq == 0:
-            self.sync_target()
         return
 
     # actor-critic
     def get_policy(self, observation, with_grad, debug=False):
-        
         if with_grad:
             action, logp, info = self.actor(observation, debug)
         else:
@@ -275,17 +281,16 @@ class BaseAC(Evaluation):
             for _ in range(self.update_freq):
                 self.inner_update(trunc)
                 
-    def decoupled_inner_update(self):
-        if self.total_steps % self.update_freq == 0:
-            for _ in range(self.update_freq):
-                self.decoupled_inner_update()
+    def decoupled_update(self):
+        self.inner_update()
 
-    def decoupled_inner_update(self):
+    # def decoupled_inner_update(self):
+    #     pass
+    #     # raise NotImplementedError
+
+    def inner_update(self):
         pass
         # raise NotImplementedError
-
-    def inner_update(self, trunc=False):
-        raise NotImplementedError
     
     def save(self):
         parameters_dir = self.parameters_dir

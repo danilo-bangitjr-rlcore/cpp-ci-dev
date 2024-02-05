@@ -34,26 +34,29 @@ def date_to_timestamp_reseau(date):
     
 
 class ReseauEnv(InfluxOPCEnv):
-    def __init__(self, db_client, opc_connection, control_tags, control_tag_default, date_col, col_names, 
-        runtime, decision_freq=1800, observation_window=1800, last_n_observations=1700, offline_data_folder=None):
-        super().__init__(db_client, opc_connection, control_tags, date_col, col_names, runtime, decision_freq, 
-        observation_window, last_n_observations, offline_data_folder)
-        self.control_tags_default = control_tag_default
+    def __init__(self, db_client, opc_connection, control_tags, control_tag_default, col_names, 
+                 runtime=None, obs_freq=60, obs_window=60, last_n_obs=50, 
+                 date_col=None, offline_data_folder=None):
+        super().__init__(db_client, opc_connection, control_tags, col_names, runtime, obs_freq, obs_window, last_n_obs, date_col, offline_data_folder)
+        
+        self.control_tag_default = control_tag_default
+        
         # TODO: figure these out
         self.observation_space = Box(low=np.ones(12)*-1000, high=np.ones(12)*1000) # What is this?
-        self.action_space = Box(low=0, high=200)
+        self.action_space = Box(low=15, high=100)
         self.orp_sp = 100  # the ORP set point
 
     def set_orp_sp(self, sp):
         self.orp_sp = sp
 
     def _get_reward(self, s, a):
-        mae = (s['ait301_pv'] - self.orp_sp).abs().mean()
-        return  mae
+        mae = (s['ait301_pv'] - self.orp_sp).abs().mean()/1000 # naive normalization by 1000
+        return -mae
 
     def reset(self, seed=0):
-        self.take_action(self.control_tags_default)
-        return super().reset(seed)
+        self.take_action(self.control_tag_default)
+        state, info = super().reset(seed)
+        return state.to_numpy(), info
     
     def get_observation(self, a):
         self._update_now()

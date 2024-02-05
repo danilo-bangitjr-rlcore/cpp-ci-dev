@@ -78,7 +78,7 @@ def init_environment(name, cfg):
     elif name == "HalfCheetah-v4":
         return gym.make("HalfCheetah-v4")
     
-    elif name == "Reseau":
+    elif name == "Reseau_online":
         db_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\db_settings_osoyoos.json"
         db_settings = json.load(open(db_settings_pth, "r"))
         
@@ -93,7 +93,6 @@ def init_environment(name, cfg):
         control_tags = ["osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"]
         control_tag_default = [cfg.reset_fpm]
         runtime = None
-        date_col = "Date "
         col_names = [
             "ait101_pv",
             "ait301_pv",
@@ -108,8 +107,10 @@ def init_environment(name, cfg):
             "pt101_pv", 
             "pt161_pv"
             ]
-        return ReseauEnv(db_client, opc_connection,  control_tags, control_tag_default, 
-                        date_col, col_names, runtime, decision_freq=cfg.decision_freq, observation_window=cfg.observation_window)
+        
+        return ReseauEnv(db_client, opc_connection, control_tags, control_tag_default, col_names, runtime,
+                  obs_freq=cfg.obs_freq, obs_window=cfg.obs_window, last_n_obs=cfg.last_n_obs)
+            
     else:
         raise NotImplementedError
 
@@ -190,10 +191,12 @@ def configure_action_scaler_and_bias(cfg):
             raise NotImplementedError
         elif name == "Pendulum-v1":
             raise NotImplementedError
-        elif name == "Reseau":
+        elif name == "Reseau_online":
             if cfg.actor == 'Beta':
-                cfg.action_scale = 200.0
+                cfg.action_scale = 100.0
                 cfg.action_bias = 0.0
+            else:
+                raise NotImplementedError
         else:
             raise NotImplementedError
     
