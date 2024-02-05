@@ -3,6 +3,7 @@ from src.agent.sac import SAC
 from src.agent.greedy_ac import GreedyAC, GreedyACDiscrete
 from src.agent.reinforce import Reinforce
 from src.agent.explore_then_commit import ExploreThenCommit
+from src.agent.line_search import LineSearchAgent, LineSearchBU
 
 
 def init_agent(name, cfg):
@@ -24,5 +25,9 @@ def init_agent(name, cfg):
         return Reinforce(cfg)
     elif name == "ETC":
         return ExploreThenCommit(cfg)
+    elif name == "LineSearch":
+        return LineSearchAgent(cfg)
+    elif name == "LineSearchBU":
+        return LineSearchBU(cfg)
     else:
         raise NotImplementedError

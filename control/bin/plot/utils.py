@@ -217,3 +217,20 @@ def log2ary(info, k):
         elem = log2num(step_i, k_pth)
         ary.append(elem)
     return np.array(ary)
+
+import sys
+def reduce_log_file_size(root):
+    params = os.listdir(root)
+    params = [param for param in params if param != ".DS_Store"]
+    for p in params:
+        pth = os.path.join(root, p)
+        seeds = os.listdir(pth)
+        for seed in seeds:
+            info_file = os.path.join(pth, seed) + "/info_logs.pkl"
+            with open(info_file, "rb") as f:
+                info_log = pickle.load(f)
+            for i_log in info_log:
+                i_log.pop('action_visits', None)
+                i_log['critic_info'].pop('Q-function', None)
+            with open(info_file, "wb") as f:
+                pickle.dump(info_log, f)

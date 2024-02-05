@@ -7,7 +7,7 @@ import time
 from src.agent.eval import Evaluation
 from src.network.factory import init_policy_network, init_critic_network, init_optimizer
 # from src.component.normalizer import init_normalizer
-from src.component.buffer import Buffer
+from src.component.buffer import init_buffer
 import src.network.torch_utils as torch_utils
 
 
@@ -16,12 +16,11 @@ class BaseAC(Evaluation):
     def __init__(self, cfg):
         super(BaseAC, self).__init__(cfg)
         self.rng = np.random.RandomState(cfg.seed)
-
         # Continuous control initialization
         if cfg.discrete_control:
             # self.action_dim = self.env.action_space.n
             self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                             cfg.beta_parameter_bias, cfg.activation,
+                                             cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                              cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
                                               cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
@@ -32,7 +31,7 @@ class BaseAC(Evaluation):
         else:        
             # self.action_dim = np.prod(self.env.action_space.shape)
             self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
-                                             cfg.beta_parameter_bias, cfg.activation,
+                                             cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                              cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
                                               cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
@@ -45,8 +44,9 @@ class BaseAC(Evaluation):
 
         self.actor_optimizer = init_optimizer(cfg.optimizer, list(self.actor.parameters()), cfg.lr_actor)
         self.critic_optimizer = init_optimizer(cfg.optimizer, list(self.critic.parameters()), cfg.lr_critic)
-        
-        self.buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
+
+        # self.buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
+        self.buffer = init_buffer(cfg.buffer_type, cfg)
         self.batch_size = cfg.batch_size
         self.gamma = cfg.gamma
         self.parameters_dir = cfg.parameters_path
@@ -61,8 +61,8 @@ class BaseAC(Evaluation):
         if self.cfg.debug:
             action_cover_space, heatmap_shape = self.get_action_samples()
             self.visit_counts = [[0 for i in range(heatmap_shape[1])] for j in range(heatmap_shape[0])]
-            self.x_action_increment = 10 / heatmap_shape[1]
-            self.y_action_increment = 10 / heatmap_shape[0]
+            self.x_action_increment = 1. / heatmap_shape[1]
+            self.y_action_increment = 1. / heatmap_shape[0]
 
     def fill_buffer(self, online_data_size):
         track_states = []
@@ -89,9 +89,11 @@ class BaseAC(Evaluation):
             self.info_log.append(i_log)
 
             if self.cfg.render:
-                self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"])
+                self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"],
+                            env_info['environment_pid'])
             else:
                 env_info.pop('interval_log', None)
+                env_info.pop('environment_pid', None)
                 i_log['critic_info'].pop('Q-function', None)
 
             track_states.append(last_state)
@@ -115,10 +117,14 @@ class BaseAC(Evaluation):
 
     def update_stats(self, reward, done, trunc):
         self.ep_reward += reward
+        self.step_rewards.append(reward)
         self.total_steps += 1
         self.ep_step += 1
         reset = False
         truncate = trunc or (self.ep_step == self.timeout)
+        if not done and self.timeout >= self.cfg.max_steps:
+            if self.ep_step and self.ep_step % self.reward_window == 0:
+                self.ep_returns.append(np.array(self.step_rewards[max(0, self.total_steps-self.reward_window): ]).sum())
         if done or truncate:
             self.ep_returns.append(self.ep_reward)
             self.num_episodes += 1
@@ -146,9 +152,11 @@ class BaseAC(Evaluation):
         self.info_log.append(i_log)
 
         if self.cfg.render:
-            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"])
+            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"],
+                        env_info['environment_pid'])
         else:
             env_info.pop('interval_log', None)
+            env_info.pop('environment_pid', None)
             i_log['critic_info'].pop('Q-function', None)
 
         self.update(trunc)
@@ -159,6 +167,19 @@ class BaseAC(Evaluation):
 
         if self.use_target_network and self.total_steps % self.target_network_update_freq == 0:
             self.sync_target()
+
+        if self.cfg.buffer_type == "Prioritized":
+            data = self.get_all_data()
+            state_batch, action_batch, reward_batch, next_state_batch, mask_batch = data['obs'], data['act'], data[
+                'reward'], data['obs2'], 1 - data['done']
+
+            next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
+            next_q, _ = self.get_q_value_target(next_state_batch, next_action)
+            target = reward_batch + mask_batch * self.gamma * next_q
+            q_value, _ = self.get_q_value(state_batch, action_batch, with_grad=True)
+            priority = torch.abs(target - q_value).squeeze(-1)
+            priority = torch_utils.to_np(priority)
+            self.buffer.update_priorities(priority)
         return
     
     
@@ -184,9 +205,11 @@ class BaseAC(Evaluation):
         self.info_log.append(i_log)
 
         if self.cfg.render:
-            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"])
+            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"],
+                        env_info['environment_pid'])
         else:
             env_info.pop('interval_log', None)
+            env_info.pop('environment_pid', None)
             i_log['critic_info'].pop('Q-function', None)
 
         self.update(trunc)
@@ -201,7 +224,6 @@ class BaseAC(Evaluation):
 
     # actor-critic
     def get_policy(self, observation, with_grad, debug=False):
-        
         if with_grad:
             action, logp, info = self.actor(observation, debug)
         else:
@@ -221,6 +243,7 @@ class BaseAC(Evaluation):
 
     # Discrete control
     def get_q_value_discrete(self, observation, action, with_grad):
+        action = self.action_normalizer.denormalize(action)
         action = action.squeeze(-1)
         if with_grad:
             qs = self.critic(observation)
@@ -238,6 +261,7 @@ class BaseAC(Evaluation):
         return q, None
 
     def get_q_value_target_discrete(self, observation, action):
+        action = self.action_normalizer.denormalize(action)
         action = action.squeeze(-1)
         with torch.no_grad():
             qs = self.critic_target(observation)
@@ -254,6 +278,25 @@ class BaseAC(Evaluation):
 
     def get_data(self):
         states, actions, rewards, next_states, terminals, truncations = self.buffer.sample()
+        in_ = torch_utils.tensor(states, self.device)
+        actions = torch_utils.tensor(actions, self.device)
+        r = torch_utils.tensor(rewards, self.device)
+        ns = torch_utils.tensor(next_states, self.device)
+        d = torch_utils.tensor(terminals, self.device)
+        t = torch_utils.tensor(truncations, self.device)
+        data = {
+            'obs': in_,
+            'act': actions,
+            'reward': r,
+            'obs2': ns,
+            'done': d,
+            'trunc': t,
+        }
+        return data
+
+    def get_all_data(self):
+        """ load a batch """
+        states, actions, rewards, next_states, terminals, truncations = self.buffer.sample_batch()
         in_ = torch_utils.tensor(states, self.device)
         actions = torch_utils.tensor(actions, self.device)
         r = torch_utils.tensor(rewards, self.device)
@@ -312,6 +355,16 @@ class BaseAC(Evaluation):
         if self.cfg.render:
             self.save_render(os.path.join(self.cfg.vis_path))
 
+    def clean(self):
+        path = self.cfg.parameters_path + "/buffer.pkl"
+        if os.path.isfile(path):
+            os.remove(path)
+        prefixed = [filename for filename in os.listdir(self.cfg.parameters_path) if filename.startswith("prefill_")]
+        for filename in prefixed:
+            path = os.path.join(self.cfg.parameters_path, filename)
+            if os.path.isfile(path):
+                os.remove(path)
+
     def load(self, parameters_dir, checkpoint=False):
         pth = os.path.join(parameters_dir, 'actor_net')
         self.actor.load_state_dict(torch.load(pth, map_location=self.device))
@@ -360,7 +413,7 @@ class BaseAC(Evaluation):
             # Update Q heatmap
             q_current, _ = self.get_q_value(observation_tensor, action_tensor, with_grad=False)
             q_current = torch_utils.to_np(q_current)
-            action_cover_space, heatmap_shape = self.get_action_samples(n=50)
+            action_cover_space, heatmap_shape = self.get_action_samples(n=20)
             stacked_o = observation_tensor.repeat_interleave(len(action_cover_space), dim=0)
             action_cover_space_tensor = torch_utils.tensor(action_cover_space, self.device)
             q_cover_space, _ = self.get_q_value(stacked_o, action_cover_space_tensor, with_grad=False)
@@ -392,7 +445,7 @@ class BaseValue(BaseAC):
         self.exploration = cfg.exploration
 
     def get_policy(self, observation, with_grad, debug=False):
-        if eval or self.rng.random() >= self.exploration:
+        if with_grad or self.rng.random() >= self.exploration:
             qs, _ = self.critic(observation)
             a = torch.argmax(qs, dim=1, keepdim=True)
         else:

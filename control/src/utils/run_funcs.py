@@ -14,7 +14,8 @@ def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_si
     agent.populate_returns(initialize=True, log_traj=True)
     agent.fill_buffer(online_data_size)
     while True:
-        train_mean, train_median, train_min_, train_max_, test_mean, test_median, test_min_, test_max_ = agent.log_file(elapsed_time=log_interval / (time.time() - t0), test=log_interval>1 and log_test)
+        time_diff = time.time() - t0 + 1e-08
+        train_mean, train_median, train_min_, train_max_, test_mean, test_median, test_min_, test_max_ = agent.log_file(elapsed_time=log_interval / time_diff, test=log_interval>1 and log_test)
         train_logs.append(train_mean)
         evaluations.append(test_mean)
         
@@ -27,9 +28,11 @@ def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_si
     
     np.save(eval_pth + "/train_logs.npy", np.array(train_logs))
     np.save(eval_pth + "/evaluations.npy", np.array(evaluations))
+    # np.save(eval_pth + "/reward_logs.npy", np.array(np.array(agent.step_rewards)))
     agent.save_info(eval_pth + "/info_logs.pkl")
     agent.save()
     agent.savevis()
+    agent.clean()
 
     end_time = time.time()
     print("Total Time:", str(end_time - start_time))

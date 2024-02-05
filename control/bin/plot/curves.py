@@ -47,14 +47,17 @@ def sensitivity_plot_2d(pth_base, agent, fix_params_choices, sweep_param1, sweep
     plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
 
 
-def best_offline(pths, title, ylim):
+def best_offline(pths, title, ylim=None, xlim=None):
     fig, axs = plt.subplots(1, 1, figsize=(4, 3))
     # axins = zoomed_inset_axes(axs, 6, loc=1)
     axs = [axs]
     for label, [pth, c, z] in pths.items():
         setting, returns, constraints = load_param(pth)
         learning_curve(axs[0], returns, label=label, color=c, zorder=z)
-    axs[0].set_ylim(ylim)
+    if ylim is not None:
+        axs[0].set_ylim(ylim)
+    if xlim is not None:
+        axs[0].set_xlim(xlim)
     axs[0].legend()
     # axs[1].legend()
     axs[0].set_ylabel("Performance")
@@ -76,7 +79,7 @@ def best_offline_per_run(pth, title):
     plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
 
 
-def reproduce_demo(pths, title, ylim):
+def reproduce_demo(pths, title, ylim=None, xlim=None):
     def recover_paper_data(returns):
         # denormalization
         returns = returns * 8 - 8
@@ -96,7 +99,10 @@ def reproduce_demo(pths, title, ylim):
         learning_curve(axs[0], returns, label=label, color=c, zorder=z)
         # constraints = recover_paper_data(constraints)
         # learning_curve(axs[1], constraints, label=label, color=c, zorder=z)
-    axs[0].set_ylim(ylim)
+    if ylim is not None:
+        axs[0].set_ylim(ylim)
+    if xlim is not None:
+        axs[0].set_xlim(xlim)
     axs[0].legend()
     # axs[1].legend()
     axs[0].set_ylabel("Performance")
@@ -105,7 +111,7 @@ def reproduce_demo(pths, title, ylim):
     fig.tight_layout()
     plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
 
-def visualize_training_info(target_file, target_key, title='vis_training', threshold=None, xlim=None, ylim=None):
+def visualize_training_info(target_file, target_key, title='vis_training', threshold=None, xlim=None, ylim=None, log_scale_keys=[]):
     with open(target_file+"/info_logs.pkl", "rb") as f:
         info = pickle.load(f)
     ret = np.load(target_file+"/train_logs.npy")
@@ -135,13 +141,18 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
             axs.plot(reformat[k])
             axs.set_title(k)
             print(k, reformat[k][-10:].mean(), reformat[k][-10:].std(),  reformat[k][-10:].max())
-           
+            if k in log_scale_keys:
+                axs.set_yscale('log')
+                axs.set_title(k + '(log)')
         else:
             for d in range(dim):
                 axes.append(axs[d])
                 axs[d].plot(reformat[k][:, d])
                 axs[d].set_title(k+"/dimension-{}".format(d))
                 print(k, d, reformat[k][:, d][-10:].mean(), reformat[k][:, d][-10:].std())
+                if k in log_scale_keys:
+                    axs[d].set_yscale('log')
+                    axs[d].set_title(k+"/dimension-{}".format(d)+'(log)')
 
     highlight = []
     if threshold is not None:
@@ -242,3 +253,18 @@ def draw_q_functions(pth_base, fixed_params_list, agent, itr=-1, num_rows=1):
     fig.colorbar(ims[-1], cax=cbar_ax)
     
     return axs
+
+def sweep_parameter(pth_base, agent_list=['GAC']):
+    for agent in agent_list:
+        sweep_offline(pth_base+"/{}/".format(agent), agent)
+
+def draw_sensitivity(pth_base, agent, fix_params_list, sweep_param, title):
+    keys, values = zip(*fix_params_list.items())
+    fix_params_choices = [dict(zip(keys, v)) for v in itertools.product(*values)]
+    sensitivity_plot(pth_base+"/{}/".format(agent), agent, fix_params_choices, sweep_param, title)
+
+def draw_sensitivity_2d(pth_base, agent, fix_params_list, sweep_param1, sweep_param2, title):
+    keys, values = zip(*fix_params_list.items())
+    fix_params_choices = [dict(zip(keys, v)) for v in itertools.product(*values)]
+    sensitivity_plot_2d(pth_base+"/{}/".format(agent), agent, fix_params_choices, sweep_param1, sweep_param2, title)
+

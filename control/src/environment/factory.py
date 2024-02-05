@@ -3,7 +3,6 @@ import gym_electric_motor as gem
 from gymnasium.wrappers import FlattenObservation
 from src.environment.three_tanks import ThreeTankEnv, NonContexTT
 from src.environment.three_tanks import TTChangeAction, TTAction, TTChangeActionDiscrete
-from src.environment.three_tanks import TTChangeActionClip, TTChangeActionDiscreteClip
 from src.environment.smpl.envs.atropineenv import AtropineEnvGym
 from src.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
 from src.environment.smpl.envs.reactorenv import ReactorEnvGym
@@ -13,38 +12,26 @@ from src.environment.PendulumEnv import PendulumEnv
 
 def init_environment(name, cfg):
     if name == "ThreeTank":
-        return ThreeTankEnv(cfg.seed, cfg.lr_constrain, env_action_scaler=cfg.env_action_scaler, random_sp=cfg.env_info[1:])
+        return ThreeTankEnv(cfg.seed, cfg.lr_constrain, random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/ConstPID":
-        return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=True, env_action_scaler=cfg.env_action_scaler,
-                              agent_action_min=0*cfg.action_scale+cfg.action_bias,
-                              agent_action_max=1*cfg.action_scale+cfg.action_bias,
+        return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=True,
+                              agent_action_min=-5,#0*cfg.action_scale+cfg.action_bias,
+                              agent_action_max=5,#1*cfg.action_scale+cfg.action_bias,
                               random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/ChangePID":
-        return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=False, env_action_scaler=cfg.env_action_scaler,
-                              agent_action_min=0*cfg.action_scale+cfg.action_bias,
-                              agent_action_max=1*cfg.action_scale+cfg.action_bias,
+        return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=False,
+                              agent_action_min=-5, #0*cfg.action_scale+cfg.action_bias,
+                              agent_action_max=5, #1*cfg.action_scale+cfg.action_bias,
                               random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/DiscreteConstPID":
         return TTChangeActionDiscrete(cfg.env_info[0], cfg.seed, cfg.lr_constrain, constant_pid=True,
-                                      env_action_scaler=cfg.env_action_scaler, random_sp=cfg.env_info[1:])
-    elif name == "TTChangeAction/DiscreteRwdStay":
-        return TTChangeActionDiscrete(cfg.env_info[0], cfg.seed, cfg.lr_constrain, constant_pid=True,
-                                      env_action_scaler=cfg.env_action_scaler, random_sp=cfg.env_info[1:])
-    elif name == "TTChangeAction/ClipConstPID":
-        return TTChangeActionClip(cfg.seed, cfg.lr_constrain, constant_pid=True,
-                                  env_action_scaler=cfg.env_action_scaler,
-                                  agent_action_min=0*cfg.action_scale+cfg.action_bias,
-                                  agent_action_max=1*cfg.action_scale+cfg.action_bias,
-                                  random_sp=cfg.env_info[1:])
-    elif name == "TTChangeAction/ClipDiscreteConstPID":
-        return TTChangeActionDiscreteClip(cfg.env_info[0], cfg.seed, cfg.lr_constrain, constant_pid=True,
-                                          env_action_scaler=cfg.env_action_scaler, random_sp=cfg.env_info[1:])
+                                      random_sp=cfg.env_info[1:])
     elif name == "TTAction/ConstPID":
-        return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=True, env_action_scaler=cfg.env_action_scaler, random_sp=cfg.env_info[1:])
+        return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=True, random_sp=cfg.env_info[1:])
     elif name == "TTAction/ChangePID":
-        return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=False, env_action_scaler=cfg.env_action_scaler, random_sp=cfg.env_info[1:])
+        return TTAction(cfg.seed, cfg.lr_constrain, constant_pid=False, random_sp=cfg.env_info[1:])
     elif name == "NonContexTT":
-        return NonContexTT(cfg.seed, cfg.lr_constrain, env_action_scaler=cfg.env_action_scaler, obs=cfg.env_info[0])
+        return NonContexTT(cfg.seed, cfg.lr_constrain, obs=cfg.env_info[0])
     elif name == "AtropineEnv":
         return AtropineEnvGym()
     elif name == "BeerEnv":
@@ -104,17 +91,17 @@ def configure_action_scaler_and_bias(cfg):
             else:
                 raise NotImplementedError
         elif name == "TTChangeAction/ConstPID":
+            cfg.state_normalizer = "TTChangeActionState"
+            cfg.reward_normalizer = "ThreeTanksReward"
             if cfg.actor == 'Beta':
-                cfg.action_scale = 0.2
-                cfg.action_bias = -0.1
+                cfg.action_scale = 10
+                cfg.action_bias = -5
             else:
                 raise NotImplementedError
         elif name == "TTChangeAction/ChangePID":
             raise NotImplementedError
         elif name == "TTChangeAction/DiscreteConstPID":
             raise NotImplementedError
-        elif name == "TTChangeAction/DiscreteRwdStay":
-           raise NotImplementedError
         elif name == "TTChangeAction/ClipConstPID":
            raise NotImplementedError
         elif name == "TTChangeAction/ClipDiscreteConstPID":
@@ -124,12 +111,14 @@ def configure_action_scaler_and_bias(cfg):
         elif name == "TTAction/ChangePID":
            raise NotImplementedError
         elif name == "NonContexTT":
+            cfg.state_normalizer = "Identity"
+            cfg.reward_normalizer = "ThreeTanksReward"
             if cfg.actor == 'Beta':
-                cfg.action_scale = 10.
-                cfg.action_bias = 0
+                cfg.action_scale = 9.8
+                cfg.action_bias = 0.2
             elif cfg.actor == 'SGaussian':
-                cfg.action_scale = 5
-                cfg.action_bias = 5
+                cfg.action_scale = 4.9
+                cfg.action_bias = 5.1
         elif name == "AtropineEnv":
             raise NotImplementedError
         elif name == "BeerEnv":
@@ -145,7 +134,14 @@ def configure_action_scaler_and_bias(cfg):
         elif name == "Cont-CC-SCIM-v0":
             raise NotImplementedError
         elif name == "Acrobot-v1":
-            raise NotImplementedError
+            cfg.state_normalizer = "Identity"
+            cfg.reward_normalizer = "Identity"
+            cfg.action_normalizer = "OneHot"
+            if cfg.actor == 'Softmax':
+                cfg.action_scale = 3 # This is a bad naming. It should be the action dimension.
+                cfg.action_bias = 0
+            else:
+                raise NotImplementedError
         elif name == "MountainCar-v0":
             raise NotImplementedError
         elif name == "Pendulum-v1":

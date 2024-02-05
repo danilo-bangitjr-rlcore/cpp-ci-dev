@@ -4,7 +4,7 @@ import imageio
 import pickle
 import numpy as np
 import matplotlib
-matplotlib.use("Agg")
+# matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 # from gymnasium.spaces.utils import flatdim
 import src.network.torch_utils as torch_utils
@@ -21,6 +21,8 @@ class Evaluation(InteractionLayer):
         self.logger = cfg.logger
         self.timeout = cfg.timeout
         self.ep_reward = 0
+        self.reward_window = int(1./ (1 - self.gamma))
+        self.step_rewards = []
         self.ep_returns = []
         self.ep_step = 0
         self.total_steps = 0
@@ -38,20 +40,23 @@ class Evaluation(InteractionLayer):
         self.info_log = []
         if cfg.render == 1: # show the plot while running
             plt.ion()
-            self.eval_fig = plt.figure(figsize=(12, 4))
-            self.eval_ax1 = self.eval_fig.add_subplot(131)
+            self.eval_fig = plt.figure(figsize=(16, 4))
+            self.eval_ax1 = self.eval_fig.add_subplot(141)
             self.eval_ax1.set_ylim(self.env.visualization_range)
-            self.eval_ax2 = self.eval_fig.add_subplot(132)
-            self.eval_ax3 = self.eval_fig.add_subplot(133)
+            self.eval_ax2 = self.eval_fig.add_subplot(142)
+            self.eval_ax3 = self.eval_fig.add_subplot(143)
+            self.eval_ax4 = self.eval_fig.add_subplot(144)
             self.eval_line1 = None
             self.eval_line2 = None
             self.eval_line3 = None
+            self.eval_line4 = None
             self.render = self.render_online
             self.save_render = self.save_render_online
         elif cfg.render == 2:
             self.eval_line1 = []
             self.eval_line2 = []
             self.eval_line3 = []
+            self.eval_line4 = []
             self.render = self.render_offline
             self.save_render = self.save_render_offline
 
@@ -65,6 +70,9 @@ class Evaluation(InteractionLayer):
     
     def populate_returns(self, log_traj=False, total_ep=None, initialize=False):
         total_ep = self.stats_queue_size if total_ep is None else total_ep
+        if self.timeout >= self.cfg.max_steps:
+            timeout_true = self.timeout
+            self.timeout = int(1./(1-self.gamma))
         total_steps = 0
         total_states = []
         total_actions = []
@@ -85,6 +93,8 @@ class Evaluation(InteractionLayer):
                     self.add_train_log(steps)
             else:
                 raise NotImplementedError
+        if self.timeout >= self.cfg.max_steps:
+            self.timeout = timeout_true
         return [total_states, total_actions, total_returns]
     
     def eval_step(self, state):
@@ -162,7 +172,7 @@ class Evaluation(InteractionLayer):
             test_mean, test_median, test_min_, test_max_ = [np.nan] * 4
         return train_mean, train_median, train_min_, train_max_, test_mean, test_median, test_min_, test_max_
     
-    def render_online(self, ary1, ary2_info, ary3):
+    def render_online(self, ary1, ary2_info, ary3, ary4):
         ary2, ary2_coord = ary2_info
         if len(ary1)==0:
             return
@@ -188,6 +198,15 @@ class Evaluation(InteractionLayer):
 
             dot = self.eval_ax3.scatter(ary3['curr_action'][0], ary3['curr_action'][1], color = 'red')
 
+            self.eval_line4 = self.eval_ax4.scatter(ary4[0], ary4[1])
+            self.eval_ax4.set_xlim(0, 10)
+            self.eval_ax4.set_ylim(0, 10)
+            self.eval_ax4.invert_yaxis()
+            self.eval_ax4.set_xticks([0, 10], labels=[0, 10], rotation=90)
+            self.eval_ax4.set_xlabel("dim 0")
+            self.eval_ax4.set_yticks([0, 10], labels=[0, 10], rotation=90)
+            self.eval_ax4.set_ylabel("dim 1")
+
             self.eval_fig.tight_layout()
             plt.show()
             dot.remove()
@@ -198,18 +217,20 @@ class Evaluation(InteractionLayer):
             self.eval_line3.set_array(ary3['sum'])
             self.eval_line3.set_clim(vmin=ary3['sum'].min(), vmax=ary3['sum'].max())
             dot = self.eval_ax3.scatter(ary3['curr_action'][0], ary3['curr_action'][1], color = 'red')
+            self.eval_line4.set_offsets(ary4)
 
             self.eval_fig.canvas.draw()
             self.eval_fig.canvas.flush_events()
             dot.remove()
 
-    def render_offline(self, ary1, ary2_info, ary3):
+    def render_offline(self, ary1, ary2_info, ary3, ary4):
         if len(ary1)==0:
             return
         self.eval_line1.append(ary1)
         self.eval_line2.append(ary2_info[0])
         self.ary2_coord = ary2_info[1]
         self.eval_line3.append(ary3)
+        self.eval_line4.append(ary4)
         # self.ary3_coord = ary3_info[1]
 
     # def save_frames_as_gif(self, frames, filename):
@@ -217,13 +238,14 @@ class Evaluation(InteractionLayer):
     #                     frames,  # array of input frames
     #                     duration=50)
 
-    def save_frames_as_mp4(self, ary1, ary2, ary3, filename, text=None, clip_l=-2, clip_u=1):
+    def save_frames_as_mp4(self, ary1, ary2, ary3, ary4, filename, text=None, clip_l=-2, clip_u=1):
         plt.ioff()
-        eval_fig = plt.figure(figsize=(12, 4))
-        eval_ax1 = eval_fig.add_subplot(131)
-        eval_ax2 = eval_fig.add_subplot(132)
-        eval_ax3 = eval_fig.add_subplot(133)
-    
+        eval_fig = plt.figure(figsize=(16, 4))
+        eval_ax1 = eval_fig.add_subplot(141)
+        eval_ax2 = eval_fig.add_subplot(142)
+        eval_ax3 = eval_fig.add_subplot(143)
+        eval_ax4 = eval_fig.add_subplot(144)
+
         writer = imageio.get_writer(filename+".mp4", fps=20)
         eval_line1, = eval_ax1.plot(ary1[0])
         eval_ax1.set_title(0)
@@ -246,14 +268,25 @@ class Evaluation(InteractionLayer):
         eval_ax3.set_yticks(np.arange(ary3_shape + 1) - 0.5, labels=["{:.2f}".format(x) for x in ary3_labels])
         eval_ax3.set_ylabel("dim 1")
 
+        eval_line4 = eval_ax4.scatter(ary4[0][0], ary4[0][1])
+        last_xy = ary4[0]
+        eval_ax4.set_xlim(0, 10)
+        eval_ax4.set_ylim(0, 10)
+        eval_ax4.invert_yaxis()
+        eval_ax4.set_xticks([0, 10], labels=[0, 10], rotation=90)
+        eval_ax4.set_xlabel("dim 0")
+        eval_ax4.set_yticks([0, 10], labels=[0, 10], rotation=90)
+        eval_ax4.set_ylabel("dim 1")
+
         eval_fig.tight_layout()
-        for idx, [curve, q_heatmap, visit_heatmap] in enumerate(zip(ary1[0:], ary2[0:], ary3[0:])):
+        for idx, [curve, q_heatmap, visit_heatmap, xy] in enumerate(zip(ary1[0:], ary2[0:], ary3[0:], ary4[0:])):
             eval_line1.set_ydata(curve)
             eval_line2.set_array(q_heatmap)
             eval_line2.set_clim(vmin=clip_l, vmax=clip_u)
             eval_line3.set_array(visit_heatmap['sum'])
             eval_line3.set_clim(vmin=visit_heatmap['sum'].min(), vmax=visit_heatmap['sum'].max())
             dot = eval_ax3.scatter(visit_heatmap['curr_action'][0], visit_heatmap['curr_action'][1], color = 'red')
+            eval_line4.set_offsets(xy)
             eval_ax1.title.set_text(idx)
             eval_fig.canvas.draw()
             eval_fig.canvas.flush_events()
@@ -268,11 +301,16 @@ class Evaluation(InteractionLayer):
         writer.close()
 
     def save_render_offline(self, vis_dir):
-        self.save_frames_as_mp4(self.eval_line1, self.eval_line2, self.eval_line3, os.path.join(vis_dir, "render"))
+        self.save_frames_as_mp4(self.eval_line1, self.eval_line2, self.eval_line3, self.eval_line4,
+                                os.path.join(vis_dir, "render"))
 
     def save_render_online(self, vis_dir):
         return
         
     def save_info(self, filename):
+        for i_log in self.info_log:
+            i_log['critic_info'].pop('Q-function', None)
+            i_log.pop('action_visits', None)
+            i_log['env_info'].pop('interval_log', None)
         with open(filename, 'wb') as f:
             pickle.dump(self.info_log, f)
