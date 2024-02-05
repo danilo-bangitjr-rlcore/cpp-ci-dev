@@ -44,7 +44,7 @@ class ReseauEnv(InfluxOPCEnv):
         # TODO: figure these out
         self.observation_space = Box(low=np.ones(12)*-1000, high=np.ones(12)*1000) # What is this?
         self.action_space = Box(low=15, high=100)
-        self.orp_sp = 100  # the ORP set point
+        self.orp_sp = 430  # the ORP set point
 
     def set_orp_sp(self, sp):
         self.orp_sp = sp
