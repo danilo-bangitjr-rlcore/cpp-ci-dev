@@ -6,6 +6,69 @@ import numpy as np
 import pickle as pkl
 
 
+def run_steps_decoupled(agent, max_steps, max_time, log_interval, log_test, eval_pth, online_data_size, decision_freq, obs_freq, update_freq):
+    """
+    Like run_steps(), but uses time to determine when the agent should take actions, get observations and update itself
+    
+        decision_freq = the frequency of making decisions in seconds
+        obs_freq = the frequency of receiving observations in seconds
+        update_freq = the frequency of updating (e.g. gradient updates) in seconds
+    """
+    t_decision = 0 # we need to take an action immediately 
+    t_obs = 0 # we need a to take an action immediately 
+    t_update = time.time() + update_freq
+    change_action, get_observation, do_update = False, False, False 
+    
+    start_time = time.time()
+    train_logs = []
+    evaluations = []
+    t0 = time.time()
+    # agent.populate_returns(initialize=True, log_traj=True)
+    agent.fill_buffer(online_data_size)
+
+    while True:
+        if max_steps and agent.total_steps >= max_steps:
+            break
+        
+        if max_time and time.time()-t0 >= max_time:
+            break
+        
+        # if agent.get_ep_returns_queue_train().shape[0] != 0: # only log when returns have been recorded
+        #     train_mean, train_median, train_min_, train_max_, test_mean, test_median, test_min_, test_max_ = agent.log_file(elapsed_time=log_interval / (time.time() - t0), test=log_interval>1 and log_test)
+        #     train_logs.append(train_mean)
+        #     evaluations.append(test_mean)
+           
+        change_action, get_observation, do_update = False, False, False 
+        
+        now = time.time()
+        
+        # is it time to change action? 
+        if now >= t_decision:
+            change_action = True
+            t_decision = now + decision_freq
+            
+        # is it time to get a new observation?
+        if now >= t_obs:
+            get_observation = True
+            t_obs = now + obs_freq
+            
+        # is it time to update the agent?
+        if now >= t_update:
+            do_update = True
+            t_update = now + update_freq
+            
+        agent.decoupled_step(change_action, get_observation, do_update)
+        
+    np.save(eval_pth + "/train_logs.npy", np.array(train_logs))
+    np.save(eval_pth + "/evaluations.npy", np.array(evaluations))
+    agent.save_info(eval_pth + "/info_logs.pkl")
+    agent.save()
+    agent.savevis()
+
+    end_time = time.time()
+    print("Total Time:", str(end_time - start_time))
+
+
 def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_size):
     start_time = time.time()
     train_logs = []
@@ -36,8 +99,8 @@ def run_steps(agent, max_steps, log_interval, log_test, eval_pth, online_data_si
 
     end_time = time.time()
     print("Total Time:", str(end_time - start_time))
-
-
+    
+    
 def vis_reward(env, title, clip=None):
     if os.path.isfile(title+".pkl"):
         with open(title + ".pkl", 'rb') as f:

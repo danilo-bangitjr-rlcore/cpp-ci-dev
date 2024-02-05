@@ -45,6 +45,11 @@ class Buffer:
             if batch_data[i].ndim == 1:
                 batch_data[i] = batch_data[i].reshape(-1, 1)
         return batch_data
+
+    def load(self, states, actions, cumulants, dones, truncates):
+        for i in range(len(states) - 1):
+            self.feed([states[i], actions[i], cumulants[i], states[i+1], int(dones[i]), int(truncates[i])])
+
     @property
     def size(self):
         return len(self.data)

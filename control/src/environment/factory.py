@@ -8,6 +8,11 @@ from src.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
 from src.environment.smpl.envs.reactorenv import ReactorEnvGym
 from src.environment.gym_wrapper import DiscreteControlWrapper
 from src.environment.PendulumEnv import PendulumEnv
+from src.environment.ReseauEnv import ReseauEnv
+from src.environment.InfluxOPCEnv import DBClientWrapperBase
+from src.environment.opc_connection import OpcConnection
+
+import json
 
 
 def init_environment(name, cfg):
@@ -59,6 +64,40 @@ def init_environment(name, cfg):
             return PendulumEnv(render_mode="human")
     elif name == "HalfCheetah-v4":
         return gym.make("HalfCheetah-v4")
+    
+    elif name == "Reseau_online":
+        db_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\db_settings_osoyoos.json"
+        db_settings = json.load(open(db_settings_pth, "r"))
+        
+        opc_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\opc_settings_osoyoos.json"
+        opc_settings = json.load(open(opc_settings_pth, "r"))
+        
+        db_client = DBClientWrapperBase(db_settings["bucket"], db_settings["org"], 
+                            db_settings["token"], db_settings["url"])
+        
+        opc_connection = OpcConnection(opc_settings["IP"], opc_settings["port"])
+
+        control_tags = ["osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"]
+        control_tag_default = [cfg.reset_fpm]
+        runtime = None
+        col_names = [
+            "ait101_pv",
+            "ait301_pv",
+            "ait401_pv",
+            "fit101_pv",
+            "fit210_pv",
+            "fit230_pv",
+            "fit250_pv",
+            "fit401_pv", 
+            "p250_fp", 
+            "pt100_pv",
+            "pt101_pv", 
+            "pt161_pv"
+            ]
+        
+        return ReseauEnv(db_client, opc_connection, control_tags, control_tag_default, col_names, runtime,
+                  obs_freq=cfg.obs_freq, obs_window=cfg.obs_window, last_n_obs=cfg.last_n_obs)
+            
     else:
         raise NotImplementedError
 
@@ -124,7 +163,9 @@ def configure_action_scaler_and_bias(cfg):
         elif name == "BeerEnv":
             raise NotImplementedError
         elif name == "ReactorEnv":
-            raise NotImplementedError
+            if cfg.actor == 'Beta':
+                cfg.action_scale = 2.0
+                cfg.action_bias = -1.0
         elif name == "Cont-CC-PermExDc-v0":
             raise NotImplementedError
         elif name == "Cont-CC-PMSM-v0":
@@ -146,6 +187,13 @@ def configure_action_scaler_and_bias(cfg):
             raise NotImplementedError
         elif name == "Pendulum-v1":
             raise NotImplementedError
+        elif name == "Reseau_online":
+            if cfg.actor == 'Beta':
+                cfg.action_scale = 100.0
+                cfg.action_bias = 0.0
+            else:
+                raise NotImplementedError
         else:
             raise NotImplementedError
+    
     

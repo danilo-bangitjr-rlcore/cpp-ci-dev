@@ -8,7 +8,6 @@ _logger = logging.getLogger(__name__)
 
 PREFIX = "opctest"
 
-
 class OpcConnection:
     """Wrapper class around the asyncua library to make life easier for the rlai group"""
 
@@ -23,7 +22,6 @@ class OpcConnection:
         """Connects to the OPC server and opens any log files"""
         file_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         stats_fname = f"{PREFIX}_{file_datetime}.stats"
-
         if self.conn_stats:
             try:
                 self.stats = open(stats_fname, mode="w")

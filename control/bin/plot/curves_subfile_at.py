@@ -6,7 +6,8 @@ from curves import visualize_training_info
 def sweep_parameter():
     # pth_base = DATAROOT + "output/test_v0/ReactorEnv/With_LR_Param_Baseline/Param_Sweep/{}/"
     # pth_base = DATAROOT + "output/test_v0/Cont-CC-PermExDc-v0/With_LR_Param_Baseline/Episodic/Param_Sweep/{}/"
-    pth_base = DATAROOT + "output/test_v0/NonContexTT/Noncontext_PID_Alpha_Beta_Above_One_Buffer_Prefill/{}/"
+    # pth_base = DATAROOT + "output/test_v0/NonContexTT/Noncontext_PID_Alpha_Beta_Above_One_Buffer_Prefill/{}/"
+    pth_base = DATAROOT + "output/test_v0/ReactorEnv/Param_Sweep/{}/"
     #sweep_offline(pth_base, "GAC")
     #sweep_offline(pth_base, "SAC")
     #sweep_offline(pth_base, "Reinforce")
@@ -78,8 +79,8 @@ def summary_plots():
 
 
 if __name__ == '__main__':
-    #sweep_parameter()
-    compare_algorithms()
+    sweep_parameter()
+    #compare_algorithms()
     #summary_plots()
 
 

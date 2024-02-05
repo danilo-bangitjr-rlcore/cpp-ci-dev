@@ -4,6 +4,7 @@ import json
 import logging
 import numpy as np
 import torch
+import pandas as pd
 
 
 class Logger:
@@ -49,3 +50,28 @@ def logger_setup(cfg):
 def set_seed(seed):
     np.random.seed(seed)
     torch.manual_seed(seed)
+
+# This currently assumes that each row should be treated as a (s, c) pair but we need to take into account the time step
+# Two pointer approach? First pointer points at s and second pointer points at s'?
+def load_offline_logs(cfg):
+    dfs = []
+    for filename in cfg.offline_log_files:
+        df = pd.read_csv(cfg.offline_logs_path + filename, names=cfg.offline_log_tags, header=0)
+        # dfs.append(df[1:])
+
+    all_data = pd.concat(dfs, ignore_index=True)
+
+    dates = pd.to_datetime(all_data["Date"])
+    all_data = all_data.drop(['Date'], axis=1)
+
+    all_data = all_data.astype(np.float32)
+
+    cumulants = all_data[cfg.cumulant_tag]
+    all_data = all_data.drop([cfg.cumulant_tag], axis=1)
+
+    #actions = all_data[cfg.action_tag]
+    #all_data = all_data.drop([cfg.action_tag], axis=1)
+
+    observations = all_data.drop(cfg.tags_to_drop, axis=1)
+
+    return dates.to_numpy(), observations.to_numpy(), cumulants.to_numpy()
