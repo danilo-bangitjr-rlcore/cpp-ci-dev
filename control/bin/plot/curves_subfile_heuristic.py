@@ -62,7 +62,15 @@ def visualization():
     # SHAREPATH = "output/test_v1/NonContexTT/heuristic_separate_testset/setpoint_3/obs_raw/action_scale9.9_bias0.1/reward_clip[-1,1]/replay5000_batch512/beta_shift_1.1_clip_50/activation_relu/optim_sgd/LineSearch/param_0/seed_0"
     SHAREPATH = "output/test_v1/NonContexTT/heuristic_separate_testset/setpoint_3/obs_raw/action_scale9.8_bias0.2/reward_clip[-1,1]/replay5000_batch512/beta_shift_1.0_clip10000/activation_relu/optim_sgd/LineSearch/param_0/seed_0"
     file = DATAROOT + SHAREPATH
-    visualize_training_info(file, target_key, title="heuristic_sep_test", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+    # visualize_training_info(file, target_key, title="heuristic_sep_test", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+
+    SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/heuristic_exploration/setpoint_3/obs_raw/action_scale5_bias-5/reward_clip[-1,1]/replay5000_batch512/beta_shift_1.0_clip10000/activation_relu/optim_sgd/LineSearch/param_0/seed_0"
+    file = DATAROOT + SHAREPATH
+    # visualize_training_info(file, target_key, title="heuristic_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+
+    SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/rl_setting/batch_512/beta_shift1_clip10000/LineSearch/param_0/seed_0"
+    file = DATAROOT + SHAREPATH
+    visualize_training_info(file, target_key, title="rl_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
 
 def clean_log_file():
     reduce_log_file_size(DATAROOT + "output/test_v1/NonContexTT/heuristic_separate_testset/setpoint_3/obs_raw/action_scale/reward_clip[-1,1]/replay5000_batch256/beta_shift_1_clip_20/activation_relu/optim_sgd/LineSearch")
