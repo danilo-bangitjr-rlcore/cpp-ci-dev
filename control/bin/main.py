@@ -34,7 +34,6 @@ if __name__ == "__main__":
 
     parser.add_argument('--env_name', default='ThreeTank', type=str)
     parser.add_argument('--env_info', default=[0., 3.], type=float, nargs='+') # go to the corresponding environment to check the specific setting
-    parser.add_argument('--env_action_scaler', default=1., type=float)
 
     parser.add_argument('--gamma', default=0.99, type=float)
     parser.add_argument('--discrete_control', default=0, type=int)
@@ -53,13 +52,17 @@ if __name__ == "__main__":
     parser.add_argument('--reward_normalizer', default='Identity', type=str)
     parser.add_argument('--exploration', default=0.1, type=float)
     parser.add_argument('--beta_parameter_bias', default=0., type=float)
-    parser.add_argument('--action_scale', default=1., type=float)
-    parser.add_argument('--action_bias', default=0., type=float)
+    parser.add_argument('--beta_parameter_bound', default=0, type=float)
+    parser.add_argument('--action_scale', default=1., type=float, help="Do not change. It is for logging only. "
+                                                                       "The value will be changed automatically in environment factory")
+    parser.add_argument('--action_bias', default=0., type=float, help="Do not change. It is for logging only. "
+                                                                       "The value will be changed automatically in environment factory")
     parser.add_argument('--auto_calibrate_beta_support', default=0, type=int)
     parser.add_argument('--decision_freq', default=0, type=int)
     
     parser.add_argument('--load_path', default="", type=str)
     parser.add_argument('--load_checkpoint', default=1, type=int)
+    parser.add_argument('--buffer_type', default="Random", type=str)
     parser.add_argument('--buffer_size', default=1, type=int)
     parser.add_argument('--buffer_prefill', default=0, type=int)
     parser.add_argument('--etc_buffer_prefill', default=0, type=int) 
@@ -116,8 +119,7 @@ if __name__ == "__main__":
     cfg.train_env = env_factory.init_environment(cfg.env_name, cfg)
     cfg.eval_env = env_factory.init_environment(cfg.env_name, cfg)
     
-    if not cfg.discrete_control:
-        env_factory.configure_action_scaler_and_bias(cfg)
+    env_factory.configure_action_scaler_and_bias(cfg)
 
     utils.write_json(cfg.exp_path, cfg) # write json after finishing all parameter changing.
     cfg.logger = utils.logger_setup(cfg)
