@@ -394,12 +394,8 @@ class LineSearchAgent(GreedyAC):
     def sort_q_value(self, repeated_states, sample_actions, batch_size):
         # Add the exploration bonus
         q_values, _ = self.get_q_value(repeated_states, sample_actions, with_grad=False)
-        exp_b = self.explore_bonus_eval(repeated_states, sample_actions)
-        print("sortqvalue")
-        print(q_values.mean(), q_values.std(), q_values.min(), q_values.max())
-        print(exp_b.mean(), exp_b.std(), exp_b.min(), exp_b.max())
-        print("---")
-        q_values += exp_b
+        # exp_b = self.explore_bonus_eval(repeated_states, sample_actions)
+        # q_values += exp_b
 
         q_values = q_values.reshape(batch_size, self.num_samples, 1)
         sorted_q = torch.argsort(q_values, dim=1, descending=True)
