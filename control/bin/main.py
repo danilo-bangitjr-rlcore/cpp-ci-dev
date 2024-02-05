@@ -119,8 +119,7 @@ if __name__ == "__main__":
     cfg.train_env = env_factory.init_environment(cfg.env_name, cfg)
     cfg.eval_env = env_factory.init_environment(cfg.env_name, cfg)
     
-    if not cfg.discrete_control:
-        env_factory.configure_action_scaler_and_bias(cfg)
+    env_factory.configure_action_scaler_and_bias(cfg)
 
     utils.write_json(cfg.exp_path, cfg) # write json after finishing all parameter changing.
     cfg.logger = utils.logger_setup(cfg)
