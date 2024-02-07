@@ -68,7 +68,6 @@ class LineSearchAgent(GreedyAC):
         self.last_sampler_scaler = None
         self.last_critic_scaler = None
         self.separated_testset = True
-        self.explore_scaler = 0
 
 
         self.actor_lr_start = self.cfg.lr_actor
@@ -103,6 +102,7 @@ class LineSearchAgent(GreedyAC):
         self.critic_lr_lower_bound = 1e-06
         self.actor_lr_lower_bound = 1e-06
         self.error_threshold = 1e-4
+        self.explore_scaler = cfg.exploration
 
         # assert self.cfg.batch_size >= 256
         assert self.max_backtracking > 0
@@ -150,10 +150,10 @@ class LineSearchAgent(GreedyAC):
         with torch.no_grad():
             true0_t, _ = self.ftrue0(in_)
             true1_t, _ = self.ftrue1(in_)
-            true0_tp1, _ = self.ftrue0(in_p1)
-            true1_tp1, _ = self.ftrue1(in_p1)
-        reward0 = true0_t - mask * self.gamma * true0_tp1
-        reward1 = true1_t - mask * self.gamma * true1_tp1
+        #     true0_tp1, _ = self.ftrue0(in_p1)
+        #     true1_tp1, _ = self.ftrue1(in_p1)
+        # reward0 = true0_t - mask * self.gamma * true0_tp1
+        # reward1 = true1_t - mask * self.gamma * true1_tp1
 
         pred0, _ = self.fbonus0(in_)
         pred1, _ = self.fbonus1(in_)

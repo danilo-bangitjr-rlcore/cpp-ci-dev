@@ -70,7 +70,19 @@ def visualization():
 
     SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/rl_setting/batch_512/beta_shift1_clip10000/LineSearch/param_0/seed_0"
     file = DATAROOT + SHAREPATH
-    visualize_training_info(file, target_key, title="rl_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+    # visualize_training_info(file, target_key, title="rl_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+
+    SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/heuristic_exploration/setpoint_3/supervised_explore_network/1x_explore_bonus/LineSearch/param_0/seed_0"
+    file = DATAROOT + SHAREPATH
+    # visualize_training_info(file, target_key, title="rl_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+
+    SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/heuristic_exploration/setpoint_3/supervised_explore_network/5x_explore_bonus/LineSearch/param_0/seed_0"
+    file = DATAROOT + SHAREPATH
+    # visualize_training_info(file, target_key, title="rl_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+
+    SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/heuristic_exploration/setpoint_3/supervised_explore_network/10x_explore_bonus/LineSearch/param_0/seed_0"
+    file = DATAROOT + SHAREPATH
+    # visualize_training_info(file, target_key, title="rl_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
 
 def clean_log_file():
     reduce_log_file_size(DATAROOT + "output/test_v1/NonContexTT/heuristic_separate_testset/setpoint_3/obs_raw/action_scale/reward_clip[-1,1]/replay5000_batch256/beta_shift_1_clip_20/activation_relu/optim_sgd/LineSearch")
