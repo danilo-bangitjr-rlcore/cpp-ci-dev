@@ -64,6 +64,8 @@ class LineSearchAgent(GreedyAC):
         self.sampler_lr_weight_copy = 1
         self.critic_lr_weight = 1
         self.critic_lr_weight_copy = 1
+        self.explore_lr_weight = 1
+        self.explore_lr_weight_copy = 1
         self.last_actor_scaler = None
         self.last_sampler_scaler = None
         self.last_critic_scaler = None
@@ -86,14 +88,25 @@ class LineSearchAgent(GreedyAC):
         self.fbonus1 = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
                                           cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
                                           "Xavier/1", layer_norm=False)
+        self.fbonus0_copy = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
+                                          cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
+                                          "Xavier/1", layer_norm=False)
+        self.fbonus1_copy = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
+                                          cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
+                                          "Xavier/1", layer_norm=False)
 
         # Ensure the nonlinear net between learning net and target net are the same
         clone_model_0to1(self.ftrue0.random_network, self.fbonus0.random_network)
         clone_model_0to1(self.ftrue1.random_network, self.fbonus1.random_network)
+        clone_model_0to1(self.fbonus0, self.fbonus0_copy)
+        clone_model_0to1(self.fbonus1, self.fbonus1_copy)
 
         # optimizer for learning net only
-        self.bonus_opt_0 = init_optimizer(cfg.optimizer, list(self.fbonus0.parameters()), cfg.lr_critic)
-        self.bonus_opt_1 = init_optimizer(cfg.optimizer, list(self.fbonus1.parameters()), cfg.lr_critic)
+        self.lr_explore = cfg.lr_critic
+        self.bonus_opt_0 = init_optimizer(cfg.optimizer, list(self.fbonus0.parameters()), self.lr_explore)
+        self.bonus_opt_1 = init_optimizer(cfg.optimizer, list(self.fbonus1.parameters()), self.lr_explore)
+        self.bonus_opt_0_copy = init_optimizer(cfg.optimizer, list(self.fbonus0.parameters()), self.lr_explore)
+        self.bonus_opt_1_copy = init_optimizer(cfg.optimizer, list(self.fbonus1.parameters()), self.lr_explore)
 
         # TODO: These should go to variable in main function later
         self.max_backtracking = 30
@@ -144,9 +157,12 @@ class LineSearchAgent(GreedyAC):
         # ax.invert_yaxis()
         # plt.show()
 
-    def explore_bonus_update(self, state, action, reward, next_state, next_action, mask):
+    def explore_bonus_update(self, state, action, reward, next_state, next_action, mask,
+                         eval_state, eval_action, eval_reward, eval_next_state, eval_mask):
+        before_error = self.explore_bonus_eval(eval_state, eval_action)
+
         in_ = torch.concat((state, action), dim=1)
-        in_p1 = torch.concat((next_state, action), dim=1)
+        # in_p1 = torch.concat((next_state, action), dim=1)
         with torch.no_grad():
             true0_t, _ = self.ftrue0(in_)
             true1_t, _ = self.ftrue1(in_)
@@ -161,19 +177,40 @@ class LineSearchAgent(GreedyAC):
             target0 = true0_t#reward0.detach() + mask * self.gamma * self.fbonus0(in_p1)[0]
             target1 = true1_t#reward1.detach() + mask * self.gamma * self.fbonus1(in_p1)[0]
 
-        # TODO: Think more carefully about the learning rate in exploration network
         # TODO: Include the reward and next state in training, for the stochasity (how?)
-        loss0 = nn.functional.mse_loss(pred0, target0) * self.last_critic_scaler
-        loss1 = nn.functional.mse_loss(pred1, target1) * self.last_critic_scaler
-        # print("exploration network loss", loss0, loss1)
-        # print(pred0.mean(), target0.mean())
+        loss0 = nn.functional.mse_loss(pred0, target0)
+        loss1 = nn.functional.mse_loss(pred1, target1)
 
         self.bonus_opt_0.zero_grad()
         loss0.backward()
-        self.bonus_opt_0.step()
         self.bonus_opt_1.zero_grad()
         loss1.backward()
-        self.bonus_opt_1.step()
+        grad_rec_exp0 = clone_gradient(self.fbonus0)
+        grad_rec_exp1 = clone_gradient(self.fbonus1)
+        for bi in range(self.max_backtracking):
+            if bi > 0: # The first step does not need moving gradient
+                self.bonus_opt_0.zero_grad()
+                self.bonus_opt_1.zero_grad()
+                move_gradient_to_network(self.fbonus0, grad_rec_exp0, self.explore_lr_weight)
+                move_gradient_to_network(self.fbonus1, grad_rec_exp1, self.explore_lr_weight)
+            self.bonus_opt_0.step()
+            self.bonus_opt_1.step()
+
+            after_error = self.explore_bonus_eval(eval_state, eval_action)
+
+            if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
+                self.explore_lr_weight *= 0.5
+                self.undo_update_explore()
+            elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
+                self.lr_explore = max(self.cfg.lr_explore * 0.5, self.critic_lr_lower_bound)
+                self.bonus_opt_0 = init_optimizer(self.cfg.optimizer, list(self.fbonus0.parameters()), self.lr_explore)
+                self.bonus_opt_1 = init_optimizer(self.cfg.optimizer, list(self.fbonus1.parameters()), self.lr_explore)
+                break
+            else:
+                break
+        self.last_explore_scaler = self.explore_lr_weight
+        self.explore_lr_weight = self.explore_lr_weight_copy
+
 
     def explore_bonus_eval(self, state, action):
         in_ = torch.concat((state, action), dim=1)
@@ -227,6 +264,13 @@ class LineSearchAgent(GreedyAC):
         clone_model_0to1(self.actor_optimizer, self.actor_opt_copy)
         self.actor_lr_weight_copy = self.actor_lr_weight
 
+    def parameter_backup_explore(self):
+        clone_model_0to1(self.fbonus0, self.fbonus0_copy)
+        clone_model_0to1(self.fbonus1, self.fbonus1_copy)
+        clone_model_0to1(self.bonus_opt_0, self.bonus_opt_0_copy)
+        clone_model_0to1(self.bonus_opt_1, self.bonus_opt_1_copy)
+        self.explore_lr_weight_copy = self.explore_lr_weight
+
     def undo_update_critic(self):
         clone_model_0to1(self.critic_copy, self.critic)
         clone_model_0to1(self.critic_opt_copy, self.critic_optimizer)
@@ -238,6 +282,12 @@ class LineSearchAgent(GreedyAC):
     def undo_update_actor(self):
         clone_model_0to1(self.actor_copy, self.actor)
         clone_model_0to1(self.actor_opt_copy, self.actor_optimizer)
+
+    def undo_update_explore(self):
+        clone_model_0to1(self.fbonus0_copy, self.fbonus0)
+        clone_model_0to1(self.fbonus1_copy, self.fbonus1)
+        clone_model_0to1(self.bonus_opt_0_copy, self.bonus_opt_0)
+        clone_model_0to1(self.bonus_opt_1_copy, self.bonus_opt_1)
 
     def reset_critic(self):
         if self.cfg.discrete_control:
@@ -368,7 +418,7 @@ class LineSearchAgent(GreedyAC):
             else:
                 # print("Critic Done backtracking. Scaler is", self.critic_lr_weight)
                 break
-        self.last_critic_scaler = self.critic_lr_weight if bi < self.max_backtracking-1 else 0 # When bi==self.max_backtracking-1, the critic will be reset
+        self.last_critic_scaler = self.critic_lr_weight
         self.critic_lr_weight = self.critic_lr_weight_copy
         return next_action
 
@@ -446,7 +496,7 @@ class LineSearchAgent(GreedyAC):
             else:
                 # print("Actor Done backtracking. Scaler is", self.actor_lr_weight)
                 break
-        self.last_actor_scaler = self.actor_lr_weight if bi < self.max_backtracking-1 else 0
+        self.last_actor_scaler = self.actor_lr_weight
         self.actor_lr_weight = self.actor_lr_weight_copy
         return (sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch,
                 eval_sample_actions, sorted_eval_q)
@@ -516,7 +566,9 @@ class LineSearchAgent(GreedyAC):
                                             eval_state, eval_action, eval_reward, eval_next_state, eval_mask)
 
         # uncertainty update
-        self.explore_bonus_update(state_batch, action_batch, reward_batch, next_state_batch, next_action, mask_batch)
+        self.parameter_backup_explore()
+        self.explore_bonus_update(state_batch, action_batch, reward_batch, next_state_batch, next_action, mask_batch,
+                                  eval_state, eval_action, eval_reward, eval_next_state, eval_mask)
 
         # actor update
         self.parameter_backup_actor()
