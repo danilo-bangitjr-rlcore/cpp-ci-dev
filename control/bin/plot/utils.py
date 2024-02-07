@@ -218,7 +218,8 @@ def log2ary(info, k):
     ary = []
     for step_i in info:
         elem = log2num(step_i, k_pth)
-        ary.append(elem)
+        if elem is not None:
+            ary.append(elem)
     return np.array(ary)
 
 import sys
