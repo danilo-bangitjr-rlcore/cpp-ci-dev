@@ -69,6 +69,8 @@ class LineSearchAgent(GreedyAC):
         self.last_actor_scaler = None
         self.last_sampler_scaler = None
         self.last_critic_scaler = None
+        self.last_explore_scaler = None
+        self.last_explore_bonus = None
         self.separated_testset = True
 
 
@@ -159,7 +161,7 @@ class LineSearchAgent(GreedyAC):
 
     def explore_bonus_update(self, state, action, reward, next_state, next_action, mask,
                          eval_state, eval_action, eval_reward, eval_next_state, eval_mask):
-        before_error = self.explore_bonus_eval(eval_state, eval_action)
+        before_error = self.explore_bonus_eval(eval_state, eval_action).mean()
 
         in_ = torch.concat((state, action), dim=1)
         # in_p1 = torch.concat((next_state, action), dim=1)
@@ -183,9 +185,9 @@ class LineSearchAgent(GreedyAC):
 
         self.bonus_opt_0.zero_grad()
         loss0.backward()
+        grad_rec_exp0 = clone_gradient(self.fbonus0)
         self.bonus_opt_1.zero_grad()
         loss1.backward()
-        grad_rec_exp0 = clone_gradient(self.fbonus0)
         grad_rec_exp1 = clone_gradient(self.fbonus1)
         for bi in range(self.max_backtracking):
             if bi > 0: # The first step does not need moving gradient
@@ -196,7 +198,7 @@ class LineSearchAgent(GreedyAC):
             self.bonus_opt_0.step()
             self.bonus_opt_1.step()
 
-            after_error = self.explore_bonus_eval(eval_state, eval_action)
+            after_error = self.explore_bonus_eval(eval_state, eval_action).mean()
 
             if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
                 self.explore_lr_weight *= 0.5
@@ -450,6 +452,7 @@ class LineSearchAgent(GreedyAC):
         print(q_values.mean(), q_values.std(), q_values.min(), q_values.max())
         print(exp_b.mean(), exp_b.std(), exp_b.min(), exp_b.max())
         print("---")
+        self.last_explore_bonus = [exp_b.mean(), exp_b.min(), exp_b.max()]
         q_values += self.explore_scaler * exp_b
 
         q_values = q_values.reshape(batch_size, self.num_samples, 1)
@@ -588,6 +591,8 @@ class LineSearchAgent(GreedyAC):
         i_log["lr_actor_scaler"] = self.last_actor_scaler
         i_log["lr_sampler_scaler"] = self.last_sampler_scaler
         i_log["lr_critic_scaler"] = self.last_critic_scaler
+        i_log["lr_explore_scaler"] = self.last_explore_scaler
+        i_log["explore_bonus"] = self.last_explore_bonus
         return i_log
 
 

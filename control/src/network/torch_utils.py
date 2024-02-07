@@ -31,7 +31,8 @@ def clone_gradient(model):
 
 def move_gradient_to_network(model, grad_rec, weight):
     for idx, param in enumerate(model.parameters()):
-        param.grad = grad_rec[idx] * weight
+        if grad_rec[idx] is not None:
+            param.grad = grad_rec[idx] * weight
     return model
 
 def layer_init_normal(layer, bias=True):
