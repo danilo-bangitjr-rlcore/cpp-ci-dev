@@ -178,10 +178,10 @@ class LineSearchGAC(GreedyAC):
         # Add the exploration bonus
         q_values, _ = self.get_q_value(repeated_states, sample_actions, with_grad=False)
         exp_b = self.explore_bonus_eval(repeated_states, sample_actions)
-        print("sortqvalue")
-        print(q_values.mean(), q_values.std(), q_values.min(), q_values.max())
-        print(exp_b.mean(), exp_b.std(), exp_b.min(), exp_b.max())
-        print("---")
+        # print("sortqvalue")
+        # print(q_values.mean(), q_values.std(), q_values.min(), q_values.max())
+        # print(exp_b.mean(), exp_b.std(), exp_b.min(), exp_b.max())
+        # print("---")
         self.last_explore_bonus = [exp_b.mean(), exp_b.min(), exp_b.max()]
         q_values += self.explore_scaler * exp_b
 
