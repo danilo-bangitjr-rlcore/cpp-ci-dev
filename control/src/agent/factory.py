@@ -5,7 +5,7 @@ from src.agent.reinforce import Reinforce
 from src.agent.explore_then_commit import ExploreThenCommit
 from src.agent.reseau_exploration_agent import ReseauExplorationAgent
 from src.agent.sarsa import Sarsa
-from src.agent.line_search import LineSearchAgent, LineSearchBU
+from src.agent.line_search import LineSearchGAC
 
 
 def init_agent(name, cfg):
@@ -31,9 +31,7 @@ def init_agent(name, cfg):
         return ReseauExplorationAgent(cfg)
     elif name == "sarsa":
         return Sarsa(cfg)
-    elif name == "LineSearch":
-        return LineSearchAgent(cfg)
-    elif name == "LineSearchBU":
-        return LineSearchBU(cfg)
+    elif name == "LineSearchGAC":
+        return LineSearchGAC(cfg)
     else:
         raise NotImplementedError
