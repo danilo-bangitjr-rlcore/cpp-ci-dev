@@ -142,6 +142,16 @@ def visualization():
 
     SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/heuristic_exploration/setpoint_3/bootstrap_explore/LineSearch/param_{}/seed_0"
     file = DATAROOT + SHAREPATH
+    # for i in range(4):
+    #     visualize_training_info(file.format(i), target_key, title="rl_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+
+    SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/heuristic_refactor/setpoint_3/bootstrap_explore/LineSearchGAC/param_{}/seed_0"
+    file = DATAROOT + SHAREPATH
+    # for i in range(4):
+    #     visualize_training_info(file.format(i), target_key, title="rl_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+
+    SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/heuristic_refactor/setpoint_3/supervised_explore/LineSearchGAC/param_{}/seed_0"
+    file = DATAROOT + SHAREPATH
     for i in range(4):
         visualize_training_info(file.format(i), target_key, title="rl_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
 
@@ -156,12 +166,19 @@ if __name__ == '__main__':
         "proposal_info/param2",
         "critic_info/Q",
         "explore_bonus",
-        "lr_actor",
-        "lr_critic",
-        "lr_actor_scaler",
-        "lr_sampler_scaler",
-        "lr_critic_scaler",
-        "lr_explore_scaler",
+        "LS_critic/lr",
+        "LS_critic/lr_weight",
+        "LS_actor/lr",
+        "LS_actor/lr_weight",
+        "LS_sampler/lr",
+        "LS_sampler/lr_weight",
+        "LS_explore/lr",
+        "LS_explore/lr_weight",
+        # "lr_actor",
+        # "lr_critic",
+        # "lr_actor_scaler",
+        # "lr_sampler_scaler",
+        # "lr_critic_scaler",
         "env_info/constrain_detail/kp1",
         "env_info/constrain_detail/tau",
         "env_info/constrain_detail/height",
@@ -173,12 +190,21 @@ if __name__ == '__main__':
         # "env_info/lambda",
     ]
     log_scale_keys = [
-        "lr_actor",
-        "lr_critic",
-        "lr_actor_scaler",
-        "lr_sampler_scaler",
-        "lr_critic_scaler",
-        "lr_explore_scaler",
+        "explore_bonus",
+        "LS_critic/lr",
+        "LS_critic/lr_weight",
+        "LS_actor/lr",
+        "LS_actor/lr_weight",
+        "LS_sampler/lr",
+        "LS_sampler/lr_weight",
+        "LS_explore/lr",
+        "LS_explore/lr_weight",
+        # "lr_actor",
+        # "lr_critic",
+        # "lr_actor_scaler",
+        # "lr_sampler_scaler",
+        # "lr_critic_scaler",
+        # "lr_explore_scaler",
     ]
 
     # c20240129_1()
