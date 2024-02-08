@@ -8,9 +8,8 @@ import torch.nn as nn
 from src.agent.greedy_ac import GreedyAC, GreedyACDiscrete
 from src.network.factory import init_policy_network, init_critic_network, init_optimizer, init_custom_network
 import src.network.torch_utils as torch_utils
-from src.network.torch_utils import clone_model_0to1, clone_gradient, move_gradient_to_network
-from src.component.normalizer import init_normalizer
 from src.component.line_search_opt import LineSearchOpt
+from src.component.exploration import RndNetworkExplore
 
 
 class LineSearchGAC(GreedyAC):
@@ -45,32 +44,35 @@ class LineSearchGAC(GreedyAC):
                                            cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
         self.lr_sampler = cfg.lr_actor
 
+        #
+        # # Networks for uncertainty measure
+        # self.ftrue0 = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
+        #                                   cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
+        #                                   "Xavier/1", layer_norm=False)
+        # self.ftrue1 = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
+        #                                   cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
+        #                                   "Xavier/1", layer_norm=False)
+        # self.fbonus0 = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
+        #                                   cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
+        #                                   "Xavier/1", layer_norm=False)
+        # self.fbonus1 = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
+        #                                   cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
+        #                                   "Xavier/1", layer_norm=False)
+        # self.fbonus0_copy = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
+        #                                   cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
+        #                                   "Xavier/1", layer_norm=False)
+        # self.fbonus1_copy = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
+        #                                   cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
+        #                                   "Xavier/1", layer_norm=False)
+        #
+        # # Ensure the nonlinear net between learning net and target net are the same
+        # clone_model_0to1(self.ftrue0.random_network, self.fbonus0.random_network)
+        # clone_model_0to1(self.ftrue1.random_network, self.fbonus1.random_network)
+        # clone_model_0to1(self.fbonus0, self.fbonus0_copy)
+        # clone_model_0to1(self.fbonus1, self.fbonus1_copy)
 
-        # Networks for uncertainty measure
-        self.ftrue0 = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
-                                          cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
-                                          "Xavier/1", layer_norm=False)
-        self.ftrue1 = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
-                                          cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
-                                          "Xavier/1", layer_norm=False)
-        self.fbonus0 = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
-                                          cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
-                                          "Xavier/1", layer_norm=False)
-        self.fbonus1 = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
-                                          cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
-                                          "Xavier/1", layer_norm=False)
-        self.fbonus0_copy = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
-                                          cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
-                                          "Xavier/1", layer_norm=False)
-        self.fbonus1_copy = init_custom_network("RndLinearUncertainty", cfg.device, self.state_dim+self.action_dim,
-                                          cfg.hidden_critic, self.state_dim+self.action_dim, cfg.activation, "None",
-                                          "Xavier/1", layer_norm=False)
-
-        # Ensure the nonlinear net between learning net and target net are the same
-        clone_model_0to1(self.ftrue0.random_network, self.fbonus0.random_network)
-        clone_model_0to1(self.ftrue1.random_network, self.fbonus1.random_network)
-        clone_model_0to1(self.fbonus0, self.fbonus0_copy)
-        clone_model_0to1(self.fbonus1, self.fbonus1_copy)
+        self.explore_network = RndNetworkExplore(cfg.device, self.state_dim, self.action_dim, cfg.hidden_critic, cfg.activation)
+        self.fbonus0, self.fbonus1, self.fbonus0_copy, self.fbonus1_copy = self.explore_network.get_networks()
 
         self.lr_explore = cfg.lr_critic
         self.explore_scaler = cfg.exploration
@@ -88,27 +90,26 @@ class LineSearchGAC(GreedyAC):
 
     def explore_bonus_update(self, state, action, reward, next_state, next_action, mask,
                          eval_state, eval_action, eval_reward, eval_next_state, eval_mask):
-        # before_error = self.explore_bonus_eval(eval_state, eval_action).mean()
-
-        in_ = torch.concat((state, action), dim=1)
-        # in_p1 = torch.concat((next_state, action), dim=1)
-        with torch.no_grad():
-            true0_t, _ = self.ftrue0(in_)
-            true1_t, _ = self.ftrue1(in_)
-            # true0_tp1, _ = self.ftrue0(in_p1)
-            # true1_tp1, _ = self.ftrue1(in_p1)
-        # reward0 = true0_t - mask * self.gamma * true0_tp1
-        # reward1 = true1_t - mask * self.gamma * true1_tp1
-
-        pred0, _ = self.fbonus0(in_)
-        pred1, _ = self.fbonus1(in_)
-        with torch.no_grad():
-            target0 = true0_t #reward0.detach() + mask * self.gamma * self.fbonus0(in_p1)[0] #
-            target1 = true1_t #reward1.detach() + mask * self.gamma * self.fbonus1(in_p1)[0] #
-
-        # TODO: Include the reward and next state in training, for the stochasity (how?)
-        loss0 = nn.functional.mse_loss(pred0, target0)
-        loss1 = nn.functional.mse_loss(pred1, target1)
+        # in_ = torch.concat((state, action), dim=1)
+        # # in_p1 = torch.concat((next_state, action), dim=1)
+        # with torch.no_grad():
+        #     true0_t, _ = self.ftrue0(in_)
+        #     true1_t, _ = self.ftrue1(in_)
+        #     # true0_tp1, _ = self.ftrue0(in_p1)
+        #     # true1_tp1, _ = self.ftrue1(in_p1)
+        # # reward0 = true0_t - mask * self.gamma * true0_tp1
+        # # reward1 = true1_t - mask * self.gamma * true1_tp1
+        #
+        # pred0, _ = self.fbonus0(in_)
+        # pred1, _ = self.fbonus1(in_)
+        # with torch.no_grad():
+        #     target0 = true0_t #reward0.detach() + mask * self.gamma * self.fbonus0(in_p1)[0] #
+        #     target1 = true1_t #reward1.detach() + mask * self.gamma * self.fbonus1(in_p1)[0] #
+        #
+        # # TODO: Include the reward and next state in training, for the stochasity (how?)
+        # loss0 = nn.functional.mse_loss(pred0, target0)
+        # loss1 = nn.functional.mse_loss(pred1, target1)
+        loss0, loss1 = self.explore_network.explore_bonus_loss(state, action, reward, next_state, next_action, mask)
 
         self.explore_linesearch.backtrack(error_evaluation_fn=self.eval_error_bonus,
                                           error_eval_input=[eval_state, eval_action],
@@ -116,15 +117,16 @@ class LineSearchGAC(GreedyAC):
                                           loss_lst=[loss0, loss1])
 
     def explore_bonus_eval(self, state, action):
-        in_ = torch.concat((state, action), dim=1)
-        with torch.no_grad():
-            pred0, _ = self.fbonus0(in_)
-            pred1, _ = self.fbonus1(in_)
-            true0, _ = self.ftrue0(in_)
-            true1, _ = self.ftrue1(in_)
-        b, _ = torch.max(torch.concat([torch.abs(pred0 - true0), torch.abs(pred1 - true1)], dim=1),
-                         dim=1, keepdim=True)
-        return b.detach()
+        # in_ = torch.concat((state, action), dim=1)
+        # with torch.no_grad():
+        #     pred0, _ = self.fbonus0(in_)
+        #     pred1, _ = self.fbonus1(in_)
+        #     true0, _ = self.ftrue0(in_)
+        #     true1, _ = self.ftrue1(in_)
+        # b, _ = torch.max(torch.concat([torch.abs(pred0 - true0), torch.abs(pred1 - true1)], dim=1),
+        #                  dim=1, keepdim=True)
+        # return b.detach()
+        return self.explore_network.explore_bonus_eval(state, action)
 
     def eval_error_critic(self, args):
         state_batch, action_batch, reward_batch, mask_batch, next_q = args
@@ -141,7 +143,7 @@ class LineSearchGAC(GreedyAC):
 
     def eval_error_bonus(self, args):
         state, action = args
-        return self.explore_bonus_eval(state, action).mean()
+        return self.explore_network.explore_bonus_eval(state, action).mean()
 
     def critic_update(self, state_batch, action_batch, reward_batch, next_state_batch, mask_batch,
                          eval_state, eval_action, eval_reward, eval_next_state, eval_mask):
