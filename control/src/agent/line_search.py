@@ -86,23 +86,6 @@ class LineSearchGAC(GreedyAC):
         self.explore_linesearch = LineSearchOpt([self.fbonus0, self.fbonus1], [self.fbonus0_copy, self.fbonus1_copy])
         self.last_explore_bonus = None
 
-        # self.actor_opt_copy = init_optimizer(cfg.optimizer, list(self.actor_copy.parameters()), cfg.lr_actor)
-        # self.sampler_opt_copy = init_optimizer(cfg.optimizer, list(self.sampler_copy.parameters()), self.lr_sampler)
-        # self.critic_opt_copy = init_optimizer(cfg.optimizer, list(self.critic_copy.parameters()), cfg.lr_critic)
-        # self.actor_lr_weight = 1  # always start with 1, tend to use a large learning rate initialization (cfg.lr_critic)
-        # self.actor_lr_weight_copy = 1
-        # self.sampler_lr_weight = 1
-        # self.sampler_lr_weight_copy = 1
-        # self.critic_lr_weight = 1
-        # self.critic_lr_weight_copy = 1
-        # self.explore_lr_weight = 1
-        # self.explore_lr_weight_copy = 1
-        # self.last_actor_scaler = None
-        # self.last_sampler_scaler = None
-        # self.last_critic_scaler = None
-        # self.last_explore_scaler = None
-        # self.separated_testset = True
-
     def explore_bonus_update(self, state, action, reward, next_state, next_action, mask,
                          eval_state, eval_action, eval_reward, eval_next_state, eval_mask):
         # before_error = self.explore_bonus_eval(eval_state, eval_action).mean()
@@ -149,12 +132,6 @@ class LineSearchGAC(GreedyAC):
         target = reward_batch + mask_batch * self.gamma * next_q
         error = nn.functional.mse_loss(q.detach(), target.detach())
         return error
-
-    # def eval_error_proposal(self, args):
-    #     state_batch, action_batch, network = args
-    #     with torch.no_grad():
-    #         logp, _ = network.log_prob(state_batch, action_batch)
-    #     return -logp.mean().detach()
 
     def eval_error_actor(self, args):
         state_batch, action_batch, network = args
@@ -215,113 +192,24 @@ class LineSearchGAC(GreedyAC):
     def actor_update(self, state_batch, eval_state):
         pi_loss, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
         eval_stacked_s, eval_best_action, eval_sample_actions, sorted_eval_q = self.get_best_action_proposal(eval_state)
-        # print("ACTOR")
         self.actor_linesearch.backtrack(error_evaluation_fn=self.eval_error_actor,
                                         error_eval_input=[eval_stacked_s, eval_best_action, self.actor],
                                         network_lst=[self.actor],
                                         loss_lst=[pi_loss])
-        # print("ACTOR ENDS")
         return (sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch,
                 eval_sample_actions, sorted_eval_q)
 
-
-        # clone_model_0to1(self.actor, self.actor_copy)
-        # clone_model_0to1(self.actor_optimizer, self.actor_opt_copy)
-        # self.actor_lr_weight_copy = self.actor_lr_weight
-        #
-        # pi_loss, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(
-        #     state_batch)
-        #
-        # eval_stacked_s, eval_best_action, eval_sample_actions, sorted_eval_q = self.get_best_action_proposal(eval_state)
-        # before_error = self.eval_error_actor([eval_stacked_s, eval_best_action, self.actor_copy])
-        #
-        # pi_loss_weighted = pi_loss
-        # self.actor_optimizer.zero_grad()
-        # pi_loss_weighted.backward()
-        #
-        # grad_rec_actor = clone_gradient(self.actor)
-        # print("ACTOR")
-        # for bi in range(30):
-        #     if bi > 0:
-        #         self.actor_optimizer.zero_grad()
-        #         move_gradient_to_network(self.actor, grad_rec_actor, self.actor_lr_weight)
-        #     self.actor_optimizer.step()
-        #
-        #     after_error = self.eval_error_actor([eval_stacked_s, eval_best_action, self.actor])
-        #     print(bi, before_error, after_error)
-        #
-        #     if after_error - before_error > 1e-4 and bi < 30 - 1:
-        #         self.actor_lr_weight *= 0.5
-        #         clone_model_0to1(self.actor_copy, self.actor)
-        #         clone_model_0to1(self.actor_opt_copy, self.actor_optimizer)
-        #     elif after_error - before_error > 1e-4 and bi == 30 - 1:
-        #         # print("Actor Done backtracking and hit the limit. Scaler is", self.actor_lr_weight)
-        #         self.cfg.lr_actor = max(self.cfg.lr_actor * 0.5, 1e-6)
-        #         self.actor_optimizer = init_optimizer(self.cfg.optimizer, list(self.actor.parameters()),
-        #                                               self.cfg.lr_actor)
-        #         # self.reset_actor()
-        #         break
-        #     else:
-        #         # print("Actor Done backtracking. Scaler is", self.actor_lr_weight)
-        #         break
-        # self.last_actor_scaler = self.actor_lr_weight
-        # self.actor_lr_weight = self.actor_lr_weight_copy
-        # print("ACTOR ENDS")
-        # return (sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch,
-        #         eval_sample_actions, sorted_eval_q)
     def sampler_update(self, sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch,
                           eval_state, eval_sample_actions, sorted_eval_q):
         sampler_loss = self.proposal_loss(sample_actions, repeated_states,
                                           stacked_s_batch, best_actions, sorted_q, state_batch)
         eval_stacked_s, eval_best_action = self.get_action_with_top_value(eval_state, eval_sample_actions, sorted_eval_q,
                                                                           self.top_action_proposal)
-        # print("SAMPLER")
         self.sampler_linesearch.backtrack(error_evaluation_fn=self.eval_error_actor, # use the same error evaluation function as the actor
                                           error_eval_input=[eval_stacked_s, eval_best_action, self.sampler],
                                           network_lst=[self.sampler],
                                           loss_lst=[sampler_loss])
-        # print("SAMPLER ENDS")
         return
-
-        # clone_model_0to1(self.sampler, self.sampler_copy)
-        # clone_model_0to1(self.sampler_optim, self.sampler_opt_copy)
-        # self.sampler_lr_weight_copy = self.sampler_lr_weight
-        # sampler_loss = self.proposal_loss(sample_actions, repeated_states,
-        #                                   stacked_s_batch, best_actions, sorted_q, state_batch)
-        # eval_stacked_s, eval_best_action = self.get_action_with_top_value(eval_state, eval_sample_actions, sorted_eval_q,
-        #                                                                   self.top_action_proposal)
-        # before_error = self.eval_error_actor([eval_stacked_s, eval_best_action, self.sampler_copy])
-        #
-        # self.sampler_optim.zero_grad()
-        # sampler_loss.backward()
-        # print("SAMPLER")
-        # grad_rec_proposal = clone_gradient(self.sampler)
-        # for bi in range(30):
-        #     if bi > 0:
-        #         self.sampler_optim.zero_grad()
-        #         move_gradient_to_network(self.sampler, grad_rec_proposal, self.sampler_lr_weight)
-        #     self.sampler_optim.step()
-        #
-        #     after_error = self.eval_error_actor([eval_stacked_s, eval_best_action, self.sampler])
-        #     print(bi, before_error, after_error)
-        #
-        #     if after_error - before_error > 1e-4 and bi < 30-1:
-        #         self.sampler_lr_weight *= 0.5
-        #         clone_model_0to1(self.sampler_copy, self.sampler)
-        #         clone_model_0to1(self.sampler_opt_copy, self.sampler_optim)
-        #
-        #     elif after_error - before_error > 1e-4 and bi == 30-1:
-        #         self.lr_sampler = max(self.lr_sampler * 0.5, 1e-6)
-        #         self.sampler_optim = init_optimizer(self.cfg.optimizer, list(self.sampler.parameters()),
-        #                                             self.lr_sampler)
-        #         break
-        #     else:
-        #         break
-        # print("SAMPLER ENDS")
-        # self.last_sampler_scaler = self.sampler_lr_weight
-        # self.sampler_lr_weight = self.sampler_lr_weight_copy
-        # return
-
 
     def inner_update(self, trunc=False):
         data = self.get_data()
