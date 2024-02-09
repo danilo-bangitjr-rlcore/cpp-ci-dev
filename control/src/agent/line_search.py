@@ -63,7 +63,8 @@ class LineSearchGAC(GreedyAC):
 
     def explore_bonus_update(self, state, action, reward, next_state, next_action, mask,
                          eval_state, eval_action, eval_reward, eval_next_state, eval_mask):
-        loss0, loss1 = self.explore_network.explore_bonus_loss(state, action, reward, next_state, next_action, mask)
+        random_next_action, _, _ = self.random_policy(state)
+        loss0, loss1 = self.explore_network.explore_bonus_loss(state, action, reward, next_state, random_next_action, mask)
         self.explore_linesearch.backtrack(error_evaluation_fn=self.eval_error_bonus,
                                           error_eval_input=[eval_state, eval_action],
                                           network_lst=[self.fbonus0, self.fbonus1],
@@ -163,6 +164,7 @@ class LineSearchGAC(GreedyAC):
                                                                                  data['obs2'], 1. - data['done'])
 
         eval_data = self.get_all_data()
+        # eval_data = self.get_data()
         eval_state, eval_action, eval_reward, eval_next_state, eval_mask = (eval_data['obs'], eval_data['act'], eval_data['reward'],
                                                                             eval_data['obs2'], 1. - eval_data['done'])
 

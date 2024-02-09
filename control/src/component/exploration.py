@@ -39,20 +39,20 @@ class RndNetworkExplore:
 
     def explore_bonus_loss(self, state, action, reward, next_state, next_action, mask):
         in_ = torch.concat((state, action), dim=1)
-        # in_p1 = torch.concat((next_state, action), dim=1)
+        in_p1 = torch.concat((next_state, action), dim=1)
         with torch.no_grad():
             true0_t, _ = self.ftrue0(in_)
             true1_t, _ = self.ftrue1(in_)
-            # true0_tp1, _ = self.ftrue0(in_p1)
-            # true1_tp1, _ = self.ftrue1(in_p1)
-        # reward0 = true0_t - mask * self.gamma * true0_tp1
-        # reward1 = true1_t - mask * self.gamma * true1_tp1
+            true0_tp1, _ = self.ftrue0(in_p1)
+            true1_tp1, _ = self.ftrue1(in_p1)
+        reward0 = true0_t - mask * self.gamma * true0_tp1
+        reward1 = true1_t - mask * self.gamma * true1_tp1
 
         pred0, _ = self.fbonus0(in_)
         pred1, _ = self.fbonus1(in_)
         with torch.no_grad():
-            target0 = true0_t #reward0.detach() + mask * self.gamma * self.fbonus0(in_p1)[0] #
-            target1 = true1_t #reward1.detach() + mask * self.gamma * self.fbonus1(in_p1)[0] #
+            target0 = reward0.detach() + mask * self.gamma * self.fbonus0(in_p1)[0] #true0_t #
+            target1 = reward1.detach() + mask * self.gamma * self.fbonus1(in_p1)[0] #true1_t #
 
         # TODO: Include the reward and next state in training, for the stochasity (how?)
         loss0 = nn.functional.mse_loss(pred0, target0)
