@@ -152,7 +152,12 @@ def visualization():
 
     SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/heuristic_refactor/setpoint_3/supervised_explore/LineSearchGAC/param_{}/seed_0"
     file = DATAROOT + SHAREPATH
-    for i in range(4):
+    # for i in range(4):
+    #     visualize_training_info(file.format(i), target_key, title="rl_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+
+    SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/heuristic_refactor/setpoint_3/bootstrap_from_random_explore/LineSearchGAC/param_{}/seed_0"
+    file = DATAROOT + SHAREPATH
+    for i in range(1, 4):
         visualize_training_info(file.format(i), target_key, title="rl_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
 
 def clean_log_file():

@@ -406,12 +406,16 @@ class BaseAC(Evaluation):
         if self.cfg.debug:
             # Update Action Visit Counts
             action = torch_utils.to_np(action_tensor)[0]
-            x_action_ind = int(action[0] / self.x_action_increment)
-            y_action_ind = int(action[1] / self.y_action_increment)
-            if x_action_ind == 10 / self.x_action_increment:
-                x_action_ind -= 1
-            if y_action_ind == 10 / self.y_action_increment:
-                y_action_ind -= 1
+            if self.discrete_control:
+                x_action_ind = 0
+                y_action_ind = self.action_normalizer.denormalize(action.reshape((-1, self.action_dim)))[0,0]
+            else:
+                x_action_ind = int(action[0] / self.x_action_increment)
+                y_action_ind = int(action[1] / self.y_action_increment)
+                if x_action_ind == 10 / self.x_action_increment:
+                    x_action_ind -= 1
+                if y_action_ind == 10 / self.y_action_increment:
+                    y_action_ind -= 1
             self.visit_counts[y_action_ind][x_action_ind] += 1
         
             # Update Q heatmap

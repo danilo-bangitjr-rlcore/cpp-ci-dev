@@ -164,8 +164,8 @@ class LineSearchGAC(GreedyAC):
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = (data['obs'], data['act'], data['reward'],
                                                                                  data['obs2'], 1. - data['done'])
 
-        eval_data = self.get_all_data()
-        # eval_data = self.get_data()
+        # eval_data = self.get_all_data() # get batch
+        eval_data = self.get_data() # get minibatch
         eval_state, eval_action, eval_reward, eval_next_state, eval_mask = (eval_data['obs'], eval_data['act'], eval_data['reward'],
                                                                             eval_data['obs2'], 1. - eval_data['done'])
 

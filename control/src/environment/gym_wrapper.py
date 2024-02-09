@@ -11,7 +11,12 @@ class DiscreteControlWrapper(gym.Env):
     
     def step(self, action):
         action_ = action[0]
-        return self.env.step(action_)    
+        return self.env.step(action_)
         
     def reset(self, seed=0):
         return self.env.reset(seed=seed)
+
+    def get_action_samples(self, n=None):
+        samples = np.arange(self.action_space.n).reshape(-1, 1)
+        shape = samples.shape
+        return samples, shape
