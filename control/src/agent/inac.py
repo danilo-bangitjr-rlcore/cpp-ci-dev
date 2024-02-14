@@ -47,7 +47,7 @@ class InAC(BaseAC):
     def compute_loss_value(self, data):
         """L_{\phi}, learn z for state value, v = tau log z"""
         states = data['obs']
-        v_phi = self.value_net(states).squeeze(-1)
+        v_phi = self.value_net(states)
         actions, log_probs, _ = self.get_policy(states, with_grad=False)
         min_Q, _ = self.get_q_value_target(states, actions)
         target = min_Q - self.tau * log_probs
@@ -71,13 +71,12 @@ class InAC(BaseAC):
 
         log_probs, _ = self.actor.log_prob(states, actions)
         min_Q, _ = self.get_q_value(states, actions, with_grad=False)
+        min_Q = min_Q.squeeze(-1)
         with torch.no_grad():
             value = self.get_state_value(states)
             beh_log_prob, _ = self.beh_pi.log_prob(states, actions)
-
         clipped = torch.clip(torch.exp((min_Q - value) / self.tau - beh_log_prob), self.eps, self.exp_threshold)
         pi_loss = -(clipped * log_probs).mean()
-
         return pi_loss, ""
 
     def update_beta(self, data):
@@ -150,8 +149,8 @@ class InAC(BaseAC):
 
         path = os.path.join(parameters_dir, "log_alpha")
         torch.save(self.log_temperature, path)
-        self.log_alpha = torch.load(path)  # something weird going on here
-        torch.save(self.log_alpha.state_dict(), path)
+        log_alpha_loc = torch.load(path)  # something weird going on here
+        torch.save(log_alpha_loc.state_dict(), path)
 
         if self.cfg.tau == -1:
             path = os.path.join(parameters_dir, "alpha_opt")
