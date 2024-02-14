@@ -32,11 +32,6 @@ class InAC(BaseAC):
         self.exp_threshold = 10000
         return
 
-    def get_state_value(self, state):
-        with torch.no_grad():
-            value = self.value_net(state).squeeze(-1)
-        return value
-
     def compute_loss_beh_pi(self, data):
         """L_{\omega}, learn behavior policy"""
         states, actions = data['obs'], data['act']
@@ -73,7 +68,7 @@ class InAC(BaseAC):
         min_Q, _ = self.get_q_value(states, actions, with_grad=False)
         min_Q = min_Q.squeeze(-1)
         with torch.no_grad():
-            value = self.get_state_value(states)
+            value = self.value_net(states).squeeze(-1)
             beh_log_prob, _ = self.beh_pi.log_prob(states, actions)
         clipped = torch.clip(torch.exp((min_Q - value) / self.tau - beh_log_prob), self.eps, self.exp_threshold)
         pi_loss = -(clipped * log_probs).mean()
