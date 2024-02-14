@@ -22,18 +22,18 @@ class Sarsa(Evaluation):
         if cfg.discrete_control:
             # self.action_dim = self.env.action_space.n
             self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
-                                              cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+                                              cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
-                                                     cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+                                                     cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.get_q_value = self.get_q_value_discrete
             self.get_q_value_target = self.get_q_value_target_discrete
         
         else:        
             # self.action_dim = np.prod(self.env.action_space.shape)
             self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
-                                              cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+                                              cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
-                                                     cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+                                                     cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.get_q_value = self.get_q_value_continuous
             self.get_q_value_target = self.get_q_value_target_continuous
 
@@ -259,7 +259,7 @@ class Sarsa(Evaluation):
         x = torch.concat((obs_repeat, self.action_grid), axis=1)
         x = torch_utils.tensor(x, self.device)
 
-        q = self.critic(x)
+        q, _ = self.critic(x)
         max_q_idx = torch.argmax(q)
         greedy_action  = self.action_grid[max_q_idx, :]
 
@@ -284,34 +284,34 @@ class Sarsa(Evaluation):
     def get_q_value_continuous(self, observation, action, with_grad):
         x = torch.concat((observation, action), dim=1)
         if with_grad:
-            q = self.critic(x)
+            q, _ = self.critic(x)
         else:
             with torch.no_grad():
-                q = self.critic(x)
+                q, _ = self.critic(x)
         return q, None
 
     # Discrete control
     def get_q_value_discrete(self, observation, action, with_grad):
         action = action.squeeze(-1)
         if with_grad:
-            qs = self.critic(observation)
+            qs, _ = self.critic(observation)
             q = qs[np.arange(len(action)), action.long()].unsqueeze(-1)
         else:
             with torch.no_grad():
-                qs = self.critic(observation)
+                qs, _ = self.critic(observation)
                 q = qs[np.arange(len(action)), action.long()].unsqueeze(-1)
         return q, qs
 
     def get_q_value_target_continuous(self, observation, action):
         x = torch.concat((observation, action), dim=1)
         with torch.no_grad():
-            q = self.critic_target(x)
+            q, _ = self.critic_target(x)
         return q, None
 
     def get_q_value_target_discrete(self, observation, action):
         action = action.squeeze(-1)
         with torch.no_grad():
-            qs = self.critic_target(observation)
+            qs, _ = self.critic_target(observation)
             q = qs[np.arange(len(action)), action.long()].unsqueeze(-1)
         return q, qs
 

@@ -44,6 +44,41 @@ class FC(nn.Module):
         return out
 
 
+class EnsembleCritic(nn.Module):
+    def __init__(self, device, input_dim, arch, output_dim, ensemble=2, activation="ReLU", head_activation="None",
+                 init='Xavier', layer_norm=False):
+        super(EnsembleCritic, self).__init__()
+        self.device = device
+        self.ensemble = ensemble
+        self.subnetworks = [FC(device, input_dim, arch, output_dim, activation=activation, head_activation=head_activation,
+                               init=init, layer_norm=layer_norm) for _ in range(ensemble)]
+        self.to(device)
+
+    def forward(self, input_tensor):
+        qs = [net(input_tensor) for net in self.subnetworks]
+        for i in range(self.ensemble):
+            qs[i] = torch.unsqueeze(qs[i], -1)
+        qs = torch.cat(qs, dim=-1)
+        q, _ = torch.min(qs, dim=-1)
+        print("ensemble", q.size(), qs.size())
+        return q, qs
+
+    def state_dict(self):
+        sd = (net.state_dict() for net in self.subnetworks)
+        return sd
+
+    def load_state_dict(self, state_dict_lst):
+        for i in range(self.ensemble):
+            self.subnetworks[i].load_state_dict(state_dict_lst[i])
+        return
+
+    def parameters(self):
+        param_lst = []
+        for i in range(self.ensemble):
+            param_lst += list(self.subnetworks[i].parameters())
+        return param_lst
+
+
 class SquashedGaussianPolicy(nn.Module):
     def __init__(self, device, observation_dim, arch, action_dim, init='Xavier', activation="ReLU", layer_norm=False):
         super(SquashedGaussianPolicy, self).__init__()

@@ -1,7 +1,7 @@
 import torch
 from src.network.torch_utils import *
 from src.network.networks import BetaPolicy, BetaInvParam, SquashedGaussianPolicy, Softmax, RndLinearUncertainty
-from src.network.networks import FC
+from src.network.networks import EnsembleCritic
 from src.network.networks import UniformRandomCont, UniformRandomDisc
 
 
@@ -26,11 +26,13 @@ def init_policy_network(name, device, state_dim, hidden_units, action_dim, beta_
     else:
         raise NotImplementedError
     
-def init_critic_network(name, device, input_dim, hidden_units, output_dim, activation, layer_init, layer_norm):
+def init_critic_network(name, device, input_dim, hidden_units, output_dim, activation, layer_init, layer_norm, ensemble):
     hidden_units = [i for i in hidden_units if i > 0]
     if name == "FC":
-        return FC(device, input_dim, hidden_units, output_dim,
-                  activation=activation, head_activation="None", init=layer_init, layer_norm=layer_norm)
+        # return FC(device, input_dim, hidden_units, output_dim,
+        #           activation=activation, head_activation="None", init=layer_init, layer_norm=layer_norm)
+        return EnsembleCritic(device, input_dim, hidden_units, output_dim, ensemble=ensemble, activation=activation,\
+                              head_activation="None", init=layer_init, layer_norm=layer_norm)
     else:
         raise NotImplementedError
 

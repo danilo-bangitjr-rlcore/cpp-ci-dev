@@ -76,6 +76,7 @@ if __name__ == "__main__":
     parser.add_argument('--polyak', default=0, type=float) # 0 is hard sync
     parser.add_argument('--hidden_actor', default=[256, 256], type=int, nargs='+')
     parser.add_argument('--hidden_critic', default=[256, 256], type=int, nargs='+')
+    parser.add_argument('--critic_ensemble', default=2, type=int)
     parser.add_argument('--lr_actor', default=0.0001, type=float)
     parser.add_argument('--lr_critic', default=0.001, type=float)
     parser.add_argument('--lr_v', default=0.001, type=float)

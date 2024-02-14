@@ -23,7 +23,7 @@ class LineSearchGAC(GreedyAC):
                                                   cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                                   cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic_copy = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
-                                                   cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+                                                   cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.random_policy = init_policy_network("UniformRandomDisc", cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
                                                      cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                                      cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm
@@ -33,7 +33,7 @@ class LineSearchGAC(GreedyAC):
                                                   cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                                   cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic_copy = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
-                                                   cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+                                                   cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.random_policy = init_policy_network("UniformRandomCont", cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
                                                      cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                                      cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm

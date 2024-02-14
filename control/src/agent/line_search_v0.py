@@ -32,7 +32,7 @@ class LineSearchAgent(GreedyAC):
                                                   cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                                   cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic_copy = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
-                                                   cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+                                                   cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.random_policy = init_policy_network("UniformRandomDisc", cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
                                                      cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                                      cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm
@@ -42,7 +42,7 @@ class LineSearchAgent(GreedyAC):
                                                   cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                                   cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic_copy = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
-                                                   cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+                                                   cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.random_policy = init_policy_network("UniformRandomCont", cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
                                                      cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                                      cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm
@@ -294,14 +294,14 @@ class LineSearchAgent(GreedyAC):
     def reset_critic(self):
         if self.cfg.discrete_control:
             self.critic = init_critic_network(self.cfg.critic, self.cfg.device, self.state_dim, self.cfg.hidden_critic, self.action_dim,
-                                              self.cfg.activation, self.cfg.layer_init_critic, self.cfg.layer_norm)
+                                              self.cfg.activation, self.cfg.layer_init_critic, self.cfg.layer_norm, self.cfg.critic_ensemble)
             self.critic_target = init_critic_network(self.cfg.critic, self.cfg.device, self.state_dim, self.cfg.hidden_critic, self.action_dim,
-                                                     self.cfg.activation, self.cfg.layer_init_critic, self.cfg.layer_norm)
+                                                     self.cfg.activation, self.cfg.layer_init_critic, self.cfg.layer_norm, self.cfg.critic_ensemble)
         else:
             self.critic = init_critic_network(self.cfg.critic, self.cfg.device, self.state_dim + self.action_dim, self.cfg.hidden_critic, 1,
-                                              self.cfg.activation, self.cfg.layer_init_critic, self.cfg.layer_norm)
+                                              self.cfg.activation, self.cfg.layer_init_critic, self.cfg.layer_norm, self.cfg.critic_ensemble)
             self.critic_target = init_critic_network(self.cfg.critic, self.cfg.device, self.state_dim + self.action_dim, self.cfg.hidden_critic, 1,
-                                                     self.cfg.activation, self.cfg.layer_init_critic, self.cfg.layer_norm)
+                                                     self.cfg.activation, self.cfg.layer_init_critic, self.cfg.layer_norm, self.cfg.critic_ensemble)
 
         clone_model_0to1(self.critic, self.critic_target)
         self.critic_optimizer = init_optimizer(self.cfg.optimizer, list(self.critic.parameters()), self.cfg.lr_critic)

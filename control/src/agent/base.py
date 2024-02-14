@@ -23,9 +23,9 @@ class BaseAC(Evaluation):
                                              cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                              cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
-                                              cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+                                              cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
-                                                     cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+                                                     cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.get_q_value = self.get_q_value_discrete
             self.get_q_value_target = self.get_q_value_target_discrete
         else:        
@@ -34,9 +34,9 @@ class BaseAC(Evaluation):
                                              cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                              cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
-                                              cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+                                              cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
-                                                     cfg.activation, cfg.layer_init_critic, cfg.layer_norm)
+                                                     cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.get_q_value = self.get_q_value_continuous
             self.get_q_value_target = self.get_q_value_target_continuous
 
@@ -239,38 +239,38 @@ class BaseAC(Evaluation):
     def get_q_value_continuous(self, observation, action, with_grad):
         x = torch.concat((observation, action), dim=1)
         if with_grad:
-            q = self.critic(x)
+            q, qs = self.critic(x)
         else:
             with torch.no_grad():
-                q = self.critic(x)
-        return q, None
+                q, qs = self.critic(x)
+        return q, qs
 
     # Discrete control
     def get_q_value_discrete(self, observation, action, with_grad):
         action = self.action_normalizer.denormalize(action)
         action = action.squeeze(-1)
         if with_grad:
-            qs = self.critic(observation)
+            qs, qsens = self.critic(observation)
             q = qs[np.arange(len(action)), action.long()].unsqueeze(-1)
         else:
             with torch.no_grad():
-                qs = self.critic(observation)
+                qs, qsens = self.critic(observation)
                 q = qs[np.arange(len(action)), action.long()].unsqueeze(-1)
-        return q, qs
+        return q, qsens
 
     def get_q_value_target_continuous(self, observation, action):
         x = torch.concat((observation, action), dim=1)
         with torch.no_grad():
-            q = self.critic_target(x)
-        return q, None
+            q, qs = self.critic_target(x)
+        return q, qs
 
     def get_q_value_target_discrete(self, observation, action):
         action = self.action_normalizer.denormalize(action)
         action = action.squeeze(-1)
         with torch.no_grad():
-            qs = self.critic_target(observation)
+            qs, qsens = self.critic_target(observation)
             q = qs[np.arange(len(action)), action.long()].unsqueeze(-1)
-        return q, qs
+        return q, qsens
 
     def get_v_value(self, observation, with_grad):
         if with_grad:
