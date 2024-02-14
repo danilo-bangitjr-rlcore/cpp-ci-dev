@@ -263,9 +263,13 @@ def c20240214(settings, shared_settings, target_agents):
 
     """
     Test LineSearchGAC with two Q networks
+
+    Commit 66cc181099b5f411b43647c4bac9323e24679dde
+    Added ensemble critic
+    Save log to test_v2
     """
     cmds = [
-        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 5000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /temp/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /setpoint_3/bootstrap_from_random_explore/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1 --critic_ensemble=2",
+        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 2  --max_steps 1000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /ensemble_critic/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /setpoint_3/ensemble_2/bootstrap_from_random_explore/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1 --critic_ensemble=2",
     ]
     write_cmd(cmds, prev_file=0, line_per_file=1)
 
@@ -301,4 +305,4 @@ if __name__=='__main__':
     }
     target_agents = ["LineSearchGAC"]
 
-    c20240212(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    c20240214(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
