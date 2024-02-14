@@ -73,6 +73,22 @@ def c20240207():
     }
     draw_sensitivity_2d(DATAROOT + SHAREPATH, 'LineSearch', fixed_params_list, "rho", "exploration", "sensitivity_linesearch")
 
+def c20240209():
+    SHAREPATH = "output/test_v1/Acrobot-v1/heuristic/bootstrap_from_random_explore/LineSearchGAC/param_{}/"
+    pths = {
+        "explore=0": [DATAROOT + SHAREPATH.format(0), "C0", 5],
+        "explore=1": [DATAROOT + SHAREPATH.format(1), "C1", 5],
+        "explore=10": [DATAROOT + SHAREPATH.format(2), "C2", 5],
+    }
+    best_offline(pths, "lsgac_acrobot", ylim=[-501, -50])
+
+def c20240212():
+    SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/heuristic_bonus/setpoint_3/bootstrap_from_random_explore/LineSearchGAC/param_{}/"
+    pths = {
+        "SGD": [DATAROOT + SHAREPATH.format(1), "C0", 5],
+        "RMSprop": [DATAROOT + SHAREPATH.format(2), "C1", 5],
+    }
+    best_offline(pths, "lsgac_acrobot", xlim=[0, 51])
 
 def visualization():
 
@@ -157,11 +173,17 @@ def visualization():
 
     SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/heuristic_refactor/setpoint_3/bootstrap_from_random_explore/LineSearchGAC/param_{}/seed_0"
     file = DATAROOT + SHAREPATH
-    for i in range(1, 4):
-        visualize_training_info(file.format(i), target_key, title="rl_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+    # for i in range(1, 4):
+    #     visualize_training_info(file.format(i), target_key, title="rl_change_action", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+
+    SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/heuristic_bonus/setpoint_3/bootstrap_from_random_explore/LineSearchGAC/param_2/seed_0"
+    file = DATAROOT + SHAREPATH
+    visualize_training_info(file, target_key, title="heuristic", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
 
 def clean_log_file():
-    reduce_log_file_size(DATAROOT + "output/test_v1/NonContexTT/heuristic_separate_testset/setpoint_3/obs_raw/action_scale/reward_clip[-1,1]/replay5000_batch256/beta_shift_1_clip_20/activation_relu/optim_sgd/LineSearch")
+    # reduce_log_file_size(DATAROOT + "output/test_v1/NonContexTT/heuristic_separate_testset/setpoint_3/obs_raw/action_scale/reward_clip[-1,1]/replay5000_batch256/beta_shift_1_clip_20/activation_relu/optim_sgd/LineSearch")
+    return
+
 
 if __name__ == '__main__':
     target_key = [
@@ -214,6 +236,8 @@ if __name__ == '__main__':
 
     # c20240129_1()
     # c20240207()
-    visualization()
+    # c20240209()
+    c20240212()
+    # visualization()
 
     # clean_log_file()

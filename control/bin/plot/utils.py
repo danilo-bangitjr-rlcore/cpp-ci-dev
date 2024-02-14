@@ -13,7 +13,7 @@ def learning_curve(ax, data, label="", color=None, zorder=None):
         p = ax.plot(idx, avg, label=label, zorder=zorder)
         color = p[0].get_color()
     else:
-        p = ax.plot(idx, avg, label=label, color=color, zorder=zorder)
+        p = ax.plot(idx, avg, label=label, color=color, zorder=zorder, alpha=0.5)
     ax.fill_between(idx, avg - ste * 1.96, avg + ste * 1.96, alpha=0.3, linewidth=0., color=color)
     return p
 

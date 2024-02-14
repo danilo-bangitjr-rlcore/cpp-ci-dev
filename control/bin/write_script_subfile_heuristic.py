@@ -233,11 +233,34 @@ def c20240209(settings, shared_settings, target_agents):
     Test exploration in acrobot
     """
     cmds = [
-        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 50000 --timeout 1000 --log_interval 500 --stats_queue_size 5 --debug 0  --render 0  --polyak 0.995  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --env_name Acrobot-v1  --env_info 1.0 3.0  --discrete_control 1  --buffer_size 50000  --batch_size 512  --exp_name /heuristic/  --activation ReLU  --lr_actor 1  --lr_critic 1  --etc_buffer_prefill 1  --exp_info /supervised_explore/  --seed 0 --actor Softmax --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.95 --exploration 0",
-        "python3 main.py  --param 1  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 50000 --timeout 1000 --log_interval 500 --stats_queue_size 5 --debug 0  --render 0  --polyak 0.995  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --env_name Acrobot-v1  --env_info 1.0 3.0  --discrete_control 1  --buffer_size 50000  --batch_size 512  --exp_name /heuristic/  --activation ReLU  --lr_actor 1  --lr_critic 1  --etc_buffer_prefill 1  --exp_info /supervised_explore/  --seed 0 --actor Softmax --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.95 --exploration 1",
-        "python3 main.py  --param 2  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 50000 --timeout 1000 --log_interval 500 --stats_queue_size 5 --debug 0  --render 0  --polyak 0.995  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --env_name Acrobot-v1  --env_info 1.0 3.0  --discrete_control 1  --buffer_size 50000  --batch_size 512  --exp_name /heuristic/  --activation ReLU  --lr_actor 1  --lr_critic 1  --etc_buffer_prefill 1  --exp_info /supervised_explore/  --seed 0 --actor Softmax --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.95 --exploration 10",
+        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 50000 --timeout 1000 --log_interval 500 --stats_queue_size 5 --debug 0  --render 0  --polyak 0.995  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --env_name Acrobot-v1  --env_info 1.0 3.0  --discrete_control 1  --buffer_size 50000  --batch_size 512  --exp_name /heuristic/  --activation ReLU  --lr_actor 1  --lr_critic 1  --etc_buffer_prefill 1  --exp_info /bootstrap_from_random_explore/  --seed 0 --actor Softmax --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.95 --exploration 0",
+        "python3 main.py  --param 1  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 50000 --timeout 1000 --log_interval 500 --stats_queue_size 5 --debug 0  --render 0  --polyak 0.995  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --env_name Acrobot-v1  --env_info 1.0 3.0  --discrete_control 1  --buffer_size 50000  --batch_size 512  --exp_name /heuristic/  --activation ReLU  --lr_actor 1  --lr_critic 1  --etc_buffer_prefill 1  --exp_info /bootstrap_from_random_explore/  --seed 0 --actor Softmax --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.95 --exploration 1",
+        "python3 main.py  --param 2  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 50000 --timeout 1000 --log_interval 500 --stats_queue_size 5 --debug 0  --render 0  --polyak 0.995  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --env_name Acrobot-v1  --env_info 1.0 3.0  --discrete_control 1  --buffer_size 50000  --batch_size 512  --exp_name /heuristic/  --activation ReLU  --lr_actor 1  --lr_critic 1  --etc_buffer_prefill 1  --exp_info /bootstrap_from_random_explore/  --seed 0 --actor Softmax --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.95 --exploration 10",
     ]
     write_cmd(cmds, prev_file=0, line_per_file=1)
+
+def c20240212(settings, shared_settings, target_agents):
+    """
+    check
+    change sgd to rmsprop
+    in changed action, run longer
+    """
+    cmds = [
+        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 5000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /heuristic_bonus/  --activation ReLU  --lr_actor 1  --lr_critic 1  --etc_buffer_prefill 1  --exp_info /setpoint_3/bootstrap_from_random_explore/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1",
+        "python3 main.py  --param 1  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 20000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /heuristic_bonus/  --activation ReLU  --lr_actor 1  --lr_critic 1  --etc_buffer_prefill 1  --exp_info /setpoint_3/bootstrap_from_random_explore/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1",
+        "python3 main.py  --param 2  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 5000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer RMSprop  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /heuristic_bonus/  --activation ReLU  --lr_actor 1  --lr_critic 1  --etc_buffer_prefill 1  --exp_info /setpoint_3/bootstrap_from_random_explore/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1",
+    ]
+    write_cmd(cmds, prev_file=0, line_per_file=1)
+
+def c20240214(settings, shared_settings, target_agents):
+    """
+    Test CQLGAC for offline learning
+    """
+    cmds = [
+        "python3 main.py  --param 0  --agent_name CQLGAC  --rho 0.4  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 5000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /heuristic_bonus/  --activation ReLU  --lr_actor 1  --lr_critic 1  --etc_buffer_prefill 1  --exp_info /setpoint_3/bootstrap_from_random_explore/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1",
+    ]
+    write_cmd(cmds, prev_file=0, line_per_file=1)
+
 
 if __name__=='__main__':
     settings = {
@@ -269,4 +292,4 @@ if __name__=='__main__':
     }
     target_agents = ["LineSearchGAC"]
 
-    c20240209(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    c20240212(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
