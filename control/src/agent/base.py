@@ -43,7 +43,7 @@ class BaseAC(Evaluation):
         self.critic_target.load_state_dict(self.critic.state_dict())
 
         self.actor_optimizer = init_optimizer(cfg.optimizer, list(self.actor.parameters()), cfg.lr_actor)
-        self.critic_optimizer = init_optimizer(cfg.optimizer, list(self.critic.parameters()), cfg.lr_critic)
+        self.critic_optimizer = init_optimizer(cfg.optimizer, self.critic.parameters(independent=True), cfg.lr_critic, ensemble=True)
 
         # self.buffer = Buffer(cfg.buffer_size, cfg.batch_size, cfg.seed)
         self.buffer = init_buffer(cfg.buffer_type, cfg)
@@ -332,7 +332,16 @@ class BaseAC(Evaluation):
     def inner_update(self):
         pass
         # raise NotImplementedError
-    
+
+    def ensemble_mse(self, target, q_ens):
+        mses = [torch.nn.functional.mse_loss(target, q) for q in q_ens]
+        return mses
+
+    def ensemble_critic_loss_backward(self, loss):
+        for i in range(len(loss)):
+            loss[i].backward(inputs=list(self.critic.parameters(independent=True)[i]))
+        return
+
     def save(self):
         parameters_dir = self.parameters_dir
         

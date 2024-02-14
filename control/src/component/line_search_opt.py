@@ -49,14 +49,15 @@ class LineSearchOpt:
             self.clone_model_0to1(self.opt_copy_lst[i], opt_lst[i])
         return net_lst, opt_lst
 
-    def backtrack(self, error_evaluation_fn, error_eval_input, network_lst, loss_lst):
+    def backtrack(self, error_evaluation_fn, error_eval_input, network_lst, loss_lst, backward_fn):
         self.parameter_backup(network_lst, self.optimizer_lst)
         before_error = error_evaluation_fn(error_eval_input)
         grad_rec = []
         for i in range(len(network_lst)):
             weighted_loss = loss_lst[i] * self.lr_weight # The weight is supposed to always be 1.
             self.optimizer_lst[i].zero_grad()
-            weighted_loss.backward()
+            backward_fn(weighted_loss)
+            # weighted_loss.backward()
             grad_rec.append(self.clone_gradient(network_lst[i]))
 
         for bi in range(self.max_backtracking):

@@ -18,8 +18,8 @@ class CQLGAC(GreedyAC):
         next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
         next_q, _ = self.get_q_value_target(next_state_batch, next_action)
         target = reward_batch + mask_batch * self.gamma * next_q
-        q_value, _ = self.get_q_value(state_batch, action_batch, with_grad=True)
-        q_loss_main = torch.nn.functional.mse_loss(target, q_value)
+        q_value, q_ens = self.get_q_value(state_batch, action_batch, with_grad=True)
+        q_loss_main = self.ensemble_mse(target, q_ens)#torch.nn.functional.mse_loss(target, q_value)
 
         batch_size = action_batch.shape[0]
         action_dim = action_batch.shape[-1]

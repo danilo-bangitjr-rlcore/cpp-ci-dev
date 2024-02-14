@@ -364,12 +364,12 @@ class Sarsa(Evaluation):
         next_q, _ = self.get_q_value_target(next_state_batch, next_action)
         
         target = reward_batch + mask_batch * self.gamma * next_q
-        q_value, _ = self.get_q_value(state_batch, action_batch, with_grad=True)
+        _, q_ens = self.get_q_value(state_batch, action_batch, with_grad=True)
        
 
-        q_loss = torch.nn.functional.mse_loss(target, q_value)
+        q_loss = self.ensemble_mse(target, q_ens) #torch.nn.functional.mse_loss(target, q_value)
         self.critic_optimizer.zero_grad()
-        q_loss.backward()
+        self.ensemble_critic_loss_backward(q_loss) #q_loss.backward()
         self.critic_optimizer.step()
 
        

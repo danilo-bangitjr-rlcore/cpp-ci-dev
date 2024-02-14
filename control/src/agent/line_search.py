@@ -69,7 +69,8 @@ class LineSearchGAC(GreedyAC):
         self.explore_linesearch.backtrack(error_evaluation_fn=self.eval_error_bonus,
                                           error_eval_input=[eval_state, eval_action],
                                           network_lst=[self.fbonus0, self.fbonus1],
-                                          loss_lst=[loss0, loss1])
+                                          loss_lst=[loss0, loss1],
+                                          backward_fn=lambda l: l.backward())
 
     def explore_bonus_eval(self, state, action):
         return self.explore_network.explore_bonus_eval(state, action)
@@ -99,7 +100,8 @@ class LineSearchGAC(GreedyAC):
         self.critic_linesearch.backtrack(error_evaluation_fn=self.eval_error_critic,
                                          error_eval_input=[eval_state, eval_action, eval_reward, eval_mask, eval_next_q],
                                          network_lst=[self.critic],
-                                         loss_lst=[q_loss])
+                                         loss_lst=[q_loss],
+                                         backward_fn=self.ensemble_critic_loss_backward)
         return next_action
 
     def get_action_with_top_value(self, eval_state, eval_sample_actions, sorted_eval_q, count_top):
@@ -143,7 +145,8 @@ class LineSearchGAC(GreedyAC):
         self.actor_linesearch.backtrack(error_evaluation_fn=self.eval_error_actor,
                                         error_eval_input=[eval_stacked_s, eval_best_action, self.actor],
                                         network_lst=[self.actor],
-                                        loss_lst=[pi_loss])
+                                        loss_lst=[pi_loss],
+                                        backward_fn=lambda l: l.backward())
         return (sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch,
                 eval_sample_actions, sorted_eval_q)
 
@@ -156,7 +159,8 @@ class LineSearchGAC(GreedyAC):
         self.sampler_linesearch.backtrack(error_evaluation_fn=self.eval_error_actor, # use the same error evaluation function as the actor
                                           error_eval_input=[eval_stacked_s, eval_best_action, self.sampler],
                                           network_lst=[self.sampler],
-                                          loss_lst=[sampler_loss])
+                                          loss_lst=[sampler_loss],
+                                          backward_fn=lambda l: l.backward())
         return
 
     def inner_update(self, trunc=False):

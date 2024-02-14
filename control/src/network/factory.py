@@ -48,13 +48,24 @@ def init_custom_network(name, device, input_dim, hidden_units, output_dim, activ
     else:
         raise NotImplementedError
 
-def init_optimizer(name, param, lr):
-    if name == "RMSprop":
-        return torch.optim.RMSprop(param, lr)
-    elif name == 'Adam':
-        return torch.optim.Adam(param, lr)
-    elif name == "SGD":
-        return torch.optim.SGD(param, lr)
+def init_optimizer(name, param, lr, ensemble=False):
+    if ensemble:
+        if name == "RMSprop":
+            return EnsembleOptimizer(torch.optim.RMSprop, param, lr=lr)
+        elif name == 'Adam':
+            return EnsembleOptimizer(torch.optim.Adam, param, lr=lr)
+        elif name == "SGD":
+            return EnsembleOptimizer(torch.optim.SGD, param, lr=lr)
+        else:
+            raise NotImplementedError
     else:
-        raise NotImplementedError
+        if name == "RMSprop":
+            return torch.optim.RMSprop(param, lr)
+        elif name == 'Adam':
+            return torch.optim.Adam(param, lr)
+        elif name == "SGD":
+            return torch.optim.SGD(param, lr)
+        else:
+            raise NotImplementedError
+
 

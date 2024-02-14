@@ -52,12 +52,12 @@ class InAC(BaseAC):
     def compute_loss_q(self, data):
         states, actions, rewards, next_states, dones = (data['obs'], data['act'], data['reward'],
                                                         data['obs2'], data['done'])
-        minq, _ = self.get_q_value(states, actions, with_grad=True)
+        _, q_ens = self.get_q_value(states, actions, with_grad=True)
         a2, logp_a2, _ = self.get_policy(next_states, with_grad=False)  # self.ac.pi(op)
         q_pi_targ, _ = self.get_q_value_target(next_states, a2)
         q_pi_targ -= self.tau * logp_a2
         target = rewards + self.gamma * (1-dones) * q_pi_targ
-        loss = torch.nn.functional.mse_loss(minq, target)
+        loss = self.ensemble_mse(target, q_ens)#torch.nn.functional.mse_loss(minq, target)
         return loss
 
     def compute_loss_pi(self, data):
@@ -102,7 +102,7 @@ class InAC(BaseAC):
 
         loss_q = self.compute_loss_q(data)
         self.critic_optimizer.zero_grad()
-        loss_q.backward()
+        self.ensemble_critic_loss_backward(loss_q) #loss_q.backward()
         self.critic_optimizer.step()
 
         loss_pi, _ = self.compute_loss_pi(data)
@@ -119,7 +119,7 @@ class InAC(BaseAC):
         parameters_dir = self.parameters_dir
 
         path = os.path.join(parameters_dir, "actor_net")
-        torch.save(self.ac.pi.state_dict(), path)
+        torch.save(self.actor.state_dict(), path)
 
         path = os.path.join(parameters_dir, "actor_opt")
         torch.save(self.pi_optimizer.state_dict(), path)

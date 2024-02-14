@@ -315,7 +315,7 @@ class LineSearchAgent(GreedyAC):
             q_loss, _ = self.critic_loss(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
             # do not change lr_weight here
             self.critic_optimizer.zero_grad()
-            q_loss.backward()
+            self.ensemble_critic_loss_backward(q_loss) #q_loss.backward()
             self.critic_optimizer.step()
 
     def reset_actor(self):
@@ -393,7 +393,7 @@ class LineSearchAgent(GreedyAC):
         q_loss, next_action = self.critic_loss(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
         q_loss_weighted = q_loss * self.critic_lr_weight # The weight is supposed to always be 1.
         self.critic_optimizer.zero_grad()
-        q_loss_weighted.backward()
+        self.ensemble_critic_loss_backward(q_loss_weighted) #q_loss_weighted.backward()
         grad_rec_critic = clone_gradient(self.critic)
 
         for bi in range(self.max_backtracking):
@@ -631,7 +631,7 @@ class LineSearchVB(LineSearchAgent):
         # critic update
         q_loss, _ = self.critic_loss(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
         self.critic_optimizer.zero_grad()
-        q_loss.backward()
+        self.ensemble_critic_loss_backward(q_loss) #q_loss.backward()
         self.critic_optimizer.step()
         return data
 

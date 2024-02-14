@@ -57,14 +57,13 @@ class EnsembleCritic(nn.Module):
     def forward(self, input_tensor):
         qs = [net(input_tensor) for net in self.subnetworks]
         for i in range(self.ensemble):
-            qs[i] = torch.unsqueeze(qs[i], -1)
-        qs = torch.cat(qs, dim=-1)
-        q, _ = torch.min(qs, dim=-1)
-        print("ensemble", q.size(), qs.size())
+            qs[i] = torch.unsqueeze(qs[i], 0)
+        qs = torch.cat(qs, dim=0)
+        q, _ = torch.min(qs, dim=0)
         return q, qs
 
     def state_dict(self):
-        sd = (net.state_dict() for net in self.subnetworks)
+        sd = [net.state_dict() for net in self.subnetworks]
         return sd
 
     def load_state_dict(self, state_dict_lst):
@@ -72,10 +71,14 @@ class EnsembleCritic(nn.Module):
             self.subnetworks[i].load_state_dict(state_dict_lst[i])
         return
 
-    def parameters(self):
+    def parameters(self, independent=False):
         param_lst = []
-        for i in range(self.ensemble):
-            param_lst += list(self.subnetworks[i].parameters())
+        if independent:
+            for i in range(self.ensemble):
+                param_lst.append(self.subnetworks[i].parameters())
+        else:
+            for i in range(self.ensemble):
+                param_lst += list(self.subnetworks[i].parameters())
         return param_lst
 
 

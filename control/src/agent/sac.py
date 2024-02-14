@@ -26,8 +26,8 @@ class SAC(BaseAC):
         # with torch.no_grad():
         #     q_pi_targ = self.v_baseline(next_state_batch)#.squeeze(-1)    # v is trained with entropy
         next_q_value = reward_batch + mask_batch * self.gamma * q_pi_targ
-        q, _ = self.get_q_value(state_batch, action_batch, with_grad=True)
-        critic_loss = torch.nn.functional.mse_loss(q, next_q_value)
+        _, q_ens = self.get_q_value(state_batch, action_batch, with_grad=True)
+        critic_loss = self.ensemble_mse(next_q_value, q_ens) #torch.nn.functional.mse_loss(q, next_q_value)
         return critic_loss
 
     def compute_loss_pi(self, state_batch, action_batch):
@@ -67,7 +67,7 @@ class SAC(BaseAC):
     
         self.critic_optimizer.zero_grad()
         qf_loss = self.compute_loss_q(state_batch, action_batch, reward_batch, next_state_batch, mask_batch)
-        qf_loss.backward()
+        self.ensemble_critic_loss_backward(qf_loss) #qf_loss.backward()
         self.critic_optimizer.step()
     
         policy_loss, log_pi = self.compute_loss_pi(state_batch, action_batch)
