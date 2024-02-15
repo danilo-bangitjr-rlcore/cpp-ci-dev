@@ -28,6 +28,10 @@ class BaseAC(Evaluation):
                                                      cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.get_q_value = self.get_q_value_discrete
             self.get_q_value_target = self.get_q_value_target_discrete
+            self.random_policy = init_policy_network("UniformRandomDisc", cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
+                                                     cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
+                                                     cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm
+                                                     )
         else:        
             # self.action_dim = np.prod(self.env.action_space.shape)
             self.actor = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
@@ -39,6 +43,11 @@ class BaseAC(Evaluation):
                                                      cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.get_q_value = self.get_q_value_continuous
             self.get_q_value_target = self.get_q_value_target_continuous
+            self.random_policy = init_policy_network("UniformRandomCont", cfg.device, self.state_dim, cfg.hidden_critic,
+                                                     self.action_dim,
+                                                     cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
+                                                     cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm
+                                                     )
 
         self.critic_target.load_state_dict(self.critic.state_dict())
 
@@ -80,7 +89,9 @@ class BaseAC(Evaluation):
         done = False
         for _ in range(online_data_size):
             observation_tensor = torch_utils.tensor(self.observation.reshape((1, -1)), self.device)
-            action_tensor, _, pi_info = self.get_policy(observation_tensor, with_grad=False, debug=self.cfg.debug)
+            # action_tensor, _, pi_info = self.get_policy(observation_tensor, with_grad=False, debug=self.cfg.debug)
+            with torch.no_grad():
+                action_tensor, _, pi_info = self.random_policy(observation_tensor, self.cfg.debug)
             action = torch_utils.to_np(action_tensor) # move the zero index to env_step.
             last_state = self.observation
             self.observation, reward, done, truncate, env_info = self.env_step(action)

@@ -11,7 +11,7 @@ import src.network.torch_utils as torch_utils
 from src.component.line_search_opt import LineSearchOpt
 from src.component.exploration import RndNetworkExplore
 import src.network.torch_utils as utils
-
+from torch.utils.data import DataLoader
 
 class LineSearchGAC(GreedyAC):
     def __init__(self, cfg, average_entropy=True):
@@ -25,20 +25,20 @@ class LineSearchGAC(GreedyAC):
                                                   cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic_copy = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
                                                    cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
-            self.random_policy = init_policy_network("UniformRandomDisc", cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
-                                                     cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
-                                                     cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm
-                                                     )
+            # self.random_policy = init_policy_network("UniformRandomDisc", cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
+            #                                          cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
+            #                                          cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm
+            #                                          )
         else:
             self.actor_copy = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
                                                   cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
                                                   cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm)
             self.critic_copy = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
                                                    cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
-            self.random_policy = init_policy_network("UniformRandomCont", cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
-                                                     cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
-                                                     cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm
-                                                     )
+            # self.random_policy = init_policy_network("UniformRandomCont", cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
+            #                                          cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
+            #                                          cfg.head_activation, cfg.layer_init_actor, cfg.layer_norm
+            #                                          )
 
         self.sampler_copy = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
                                            cfg.beta_parameter_bias, cfg.beta_parameter_bound, cfg.activation,
@@ -56,10 +56,10 @@ class LineSearchGAC(GreedyAC):
         del self.critic_optimizer
         del self.sampler_optim
 
-        self.actor_linesearch = LineSearchOpt([self.actor], [self.actor_copy])
-        self.critic_linesearch = LineSearchOpt([self.critic], [self.critic_copy])
-        self.sampler_linesearch = LineSearchOpt([self.sampler], [self.sampler_copy])
-        self.explore_linesearch = LineSearchOpt([self.fbonus0, self.fbonus1], [self.fbonus0_copy, self.fbonus1_copy])
+        self.actor_linesearch = LineSearchOpt([self.actor], [self.actor_copy], optimizer_type=self.cfg.optimizer)
+        self.critic_linesearch = LineSearchOpt([self.critic], [self.critic_copy], optimizer_type=self.cfg.optimizer)
+        self.sampler_linesearch = LineSearchOpt([self.sampler], [self.sampler_copy], optimizer_type=self.cfg.optimizer)
+        self.explore_linesearch = LineSearchOpt([self.fbonus0, self.fbonus1], [self.fbonus0_copy, self.fbonus1_copy], optimizer_type=self.cfg.optimizer)
         self.last_explore_bonus = None
 
     def explore_bonus_update(self, state, action, reward, next_state, next_action, mask,
@@ -166,9 +166,9 @@ class LineSearchGAC(GreedyAC):
 
     def inner_update(self, trunc=False):
         data = self.get_data()
+
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = (data['obs'], data['act'], data['reward'],
                                                                                  data['obs2'], 1. - data['done'])
-
         # eval_data = self.get_all_data() # get batch
         eval_data = self.get_data() # get minibatch
         eval_state, eval_action, eval_reward, eval_next_state, eval_mask = (eval_data['obs'], eval_data['act'], eval_data['reward'],
@@ -223,12 +223,16 @@ class LineSearchReset(LineSearchGAC):
     def __init__(self, cfg, average_entropy=True):
         super(LineSearchReset, self).__init__(cfg, average_entropy)
         self.reset_nets = cfg.reset_nets
-        if cfg.reset_mode == "Random":
+        if cfg.reset_mode == "None":
+            self.reset_weight = utils.reset_weight_pass
+        elif cfg.reset_mode == "Random":
             self.reset_weight = utils.reset_weight_random
         elif cfg.reset_mode == "Shift":
             self.reset_weight = utils.reset_weight_shift
         elif cfg.reset_mode == "Shrink":
             self.reset_weight = utils.reset_weight_shrink
+        elif cfg.reset_mode == "Shrink+Rnd":
+            self.reset_weight = utils.reset_weight_shrink_rnd
         else:
             raise NotImplementedError
         self.actor_lr_start = self.cfg.lr_actor
@@ -242,24 +246,30 @@ class LineSearchReset(LineSearchGAC):
                                            self.cfg.head_activation, self.cfg.layer_init_actor, self.cfg.layer_norm)
         self.sampler = self.reset_weight(self.sampler, new_sampler, self.cfg.reset_param)
         self.sampler_copy.load_state_dict(self.sampler.state_dict())
-        self.sampler_linesearch = LineSearchOpt([self.sampler], [self.sampler_copy])
+        self.sampler_linesearch = LineSearchOpt([self.sampler], [self.sampler_copy], optimizer_type=self.cfg.optimizer)
 
         done = False
         while not done:
-            data = self.get_data()
-            state_batch, action_batch, reward_batch, next_state_batch, mask_batch = \
-                data['obs'], data['act'], data['reward'], data['obs2'], 1 - data['done']
-            eval_data = self.get_data() # get minibatch
+            eval_data = self.get_all_data()
             eval_state, eval_action, eval_reward, eval_next_state, eval_mask = \
                 eval_data['obs'], eval_data['act'], eval_data['reward'], eval_data['obs2'], 1. - eval_data['done']
 
-            repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions = \
-                self.get_policy_update_data(state_batch)
-            _, _, eval_sample_actions, sorted_eval_q = self.get_best_action_proposal(eval_state)
-            self.sampler_update(sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch,
-                                   eval_state, eval_sample_actions, sorted_eval_q)
-            done = self.sampler_linesearch.latest_change < self.reset_improvement_threshold
-            print(self.sampler_linesearch.latest_change)
+            data = self.get_all_data()
+            idxs = np.arange(len(data['obs']))
+            dataloader = DataLoader(idxs, batch_size=self.cfg.batch_size, shuffle=True)
+            lc = []
+            for id_ in iter(dataloader):
+                state_batch, action_batch, reward_batch, next_state_batch, mask_batch = \
+                    data['obs'][id_], data['act'][id_], data['reward'][id_], data['obs2'][id_], 1 - data['done'][id_]
+
+                repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions = \
+                    self.get_policy_update_data(state_batch)
+                _, _, eval_sample_actions, sorted_eval_q = self.get_best_action_proposal(eval_state)
+                self.sampler_update(sample_actions, repeated_states, stacked_s_batch, best_actions, sorted_q, state_batch,
+                                       eval_state, eval_sample_actions, sorted_eval_q)
+                lc.append(np.abs(self.sampler_linesearch.latest_change))
+            done = np.array(lc).mean() < self.reset_improvement_threshold
+            print("Resetting sampler", self.sampler_linesearch.latest_change)
 
     def reset_actor(self):
         new_actor = init_policy_network(self.cfg.actor, self.cfg.device, self.state_dim, self.cfg.hidden_actor,
@@ -268,23 +278,30 @@ class LineSearchReset(LineSearchGAC):
                                         self.cfg.layer_norm)
         self.actor = self.reset_weight(self.actor, new_actor, self.cfg.reset_param)
         self.actor_copy.load_state_dict(self.actor.state_dict())
-        self.actor_linesearch = LineSearchOpt([self.actor], [self.actor_copy])
+        self.actor_linesearch = LineSearchOpt([self.actor], [self.actor_copy], optimizer_type=self.cfg.optimizer)
 
         done = False
         while not done:
-            data = self.get_data()
-            state_batch = data['obs']
-            eval_data = self.get_data()  # get minibatch
+            eval_data = self.get_all_data()
             eval_state = eval_data['obs']
-            self.actor_update(state_batch, eval_state)
-            done = self.sampler_linesearch.latest_change < self.reset_improvement_threshold
+
+            data = self.get_all_data()
+
+            idxs = np.arange(len(data['obs']))
+            dataloader = DataLoader(idxs, batch_size=self.cfg.batch_size, shuffle=True)
+            lc = []
+            for id_ in iter(dataloader):
+                state_batch = data['obs'][id_]
+                self.actor_update(state_batch, eval_state)
+                lc.append(np.abs(self.actor_linesearch.latest_change))
+            done = np.array(lc).mean() < self.reset_improvement_threshold
 
     def inner_update(self, trunc=False):
         super(LineSearchReset, self).inner_update(trunc=trunc)
         print("critic", self.critic_linesearch.latest_change)
         print("sampler", self.sampler_linesearch.latest_change)
         print("actor", self.actor_linesearch.latest_change)
-        if self.total_steps % 50 == 0:
+        if self.total_steps % 20 == 0:
             print("Reseting at step {}".format(self.total_steps))
             if "Sampler" in self.reset_nets:
                 self.reset_sampler()

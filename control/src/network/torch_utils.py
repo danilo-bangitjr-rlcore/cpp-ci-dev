@@ -31,9 +31,18 @@ def reset_weight_shrink(old_net, new_net, param):
     with torch.no_grad():
         for p, p_new in zip(old_net.parameters(), new_net.parameters()):
             p_new.data.mul_(0)
-            p_new.data.add_(p.data / param)
+            p_new.data.add_(p.data * param)
     return new_net
 
+def reset_weight_shrink_rnd(old_net, new_net, param):
+    with torch.no_grad():
+        for p, p_new in zip(old_net.parameters(), new_net.parameters()):
+            p_new.data.mul_(0.5)
+            p_new.data.add_(p.data * param * 0.5)
+    return new_net
+
+def reset_weight_pass(old_net, new_net, param):
+    return old_net
 
 def clone_model_0to1(net0, net1):
     with torch.no_grad():
