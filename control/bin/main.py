@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     # linesearch
     parser.add_argument('--reset_nets', default=['Sampler'], type=str, nargs='+')
-    parser.add_argument('--reset_mode', default='Random', type=str)
+    parser.add_argument('--reset_mode', default='None', type=str)
     parser.add_argument('--reset_param', default=0., type=float)
 
     cfg = parser.parse_args()
