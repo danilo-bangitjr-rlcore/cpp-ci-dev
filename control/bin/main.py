@@ -65,11 +65,6 @@ if __name__ == "__main__":
     parser.add_argument('--buffer_type', default="Random", type=str)
     parser.add_argument('--buffer_size', default=1, type=int)
     parser.add_argument('--buffer_prefill', default=0, type=int)
-    parser.add_argument('--etc_buffer_prefill', default=0, type=int) 
-    parser.add_argument('--etc_learning_start', default=0, type=int) 
-    parser.add_argument('--etc_reward_clip', default=[-np.inf, np.inf], type=float,  nargs='+')  
-    parser.add_argument('--etc_reward_normalization', default='None', type=str)
-    
     parser.add_argument('--batch_size', default=8, type=int)
     parser.add_argument('--update_freq', default=1, type=int)
     parser.add_argument('--use_target_network', default=1, type=int)
@@ -90,7 +85,11 @@ if __name__ == "__main__":
     # Explore Then Commit
     parser.add_argument('--actions_per_dim', default=50, type=int)
     parser.add_argument('--min_trials', default=1, type=int)
-    
+    parser.add_argument('--etc_buffer_prefill', default=0, type=int)
+    parser.add_argument('--etc_learning_start', default=0, type=int)
+    parser.add_argument('--etc_reward_clip', default=[-np.inf, np.inf], type=float, nargs='+')
+    parser.add_argument('--etc_reward_normalization', default='None', type=str)
+
     # state construction
     parser.add_argument('--state_constructor', default="Identity", type=str)
     parser.add_argument('--window_average',  default=1, type=int)
@@ -100,6 +99,11 @@ if __name__ == "__main__":
     
     # sarsa
     parser.add_argument('--greedification', default='epsilon-greedy', type=str)
+
+    # linesearch
+    parser.add_argument('--reset_nets', default=['Sampler'], type=str, nargs='+')
+    parser.add_argument('--reset_mode', default='Random', type=str)
+    parser.add_argument('--reset_param', default=0., type=float)
 
     cfg = parser.parse_args()
 
