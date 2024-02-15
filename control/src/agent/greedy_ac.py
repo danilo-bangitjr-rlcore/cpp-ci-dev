@@ -37,7 +37,7 @@ class GreedyAC(BaseAC):
         sorted_q = torch.argsort(q_values, dim=1, descending=True)
         return sorted_q
 
-    def actor_loss(self, state_batch):
+    def get_policy_update_data(self, state_batch):
         batch_size = state_batch.shape[0]
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
         with torch.no_grad():
@@ -53,7 +53,10 @@ class GreedyAC(BaseAC):
         # Reshape samples for calculating the loss
         stacked_s_batch = state_batch.repeat_interleave(self.top_action, dim=0)
         best_actions = torch.reshape(best_actions, (-1, self.gac_a_dim))
+        return repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions
 
+    def actor_loss(self, state_batch):
+        repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions = self.get_policy_update_data(state_batch)
         logp, _ = self.actor.log_prob(stacked_s_batch, best_actions)
         pi_loss = -logp.mean()
         return pi_loss, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp

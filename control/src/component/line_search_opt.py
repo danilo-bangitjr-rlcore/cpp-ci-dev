@@ -1,9 +1,10 @@
 from src.network.factory import init_optimizer
 import torch
+import numpy as np
 
 class LineSearchOpt:
-    def __init__(self, net_lst, net_copy_lst, optimizer_type='SGD', lr_main=1, max_backtracking=30, error_threshold=1e-4,
-                 lr_lower_bound=1e-6):
+    def __init__(self, net_lst, net_copy_lst,
+                 optimizer_type='SGD', lr_main=1, max_backtracking=30, error_threshold=1e-4, lr_lower_bound=1e-6):
         self.net_copy_lst = net_copy_lst
         self.optimizer_type = optimizer_type
         self.optimizer_lst = []
@@ -20,6 +21,7 @@ class LineSearchOpt:
         self.error_threshold = error_threshold
         self.lr_lower_bound = lr_lower_bound
         self.last_scaler = None
+        self.last_change = np.inf
 
     def clone_gradient(self, model):
         grad_rec = {}
@@ -78,10 +80,10 @@ class LineSearchOpt:
             after_error = error_evaluation_fn(error_eval_input)
             # print(bi, before_error, after_error)
             if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
-                self.lr_weight *= 0.5
+                self.lr_weight *= self.lr_decay_rate
                 network_lst, self.optimizer_lst = self.undo_update(network_lst, self.optimizer_lst)
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
-                self.lr_main = max(self.lr_main * 0.5, self.lr_lower_bound)
+                self.lr_main = max(self.lr_main * self.lr_decay_rate, self.lr_lower_bound)
                 self.optimizer_lst = []
                 for i in range(len(network_lst)):
                     self.optimizer_lst.append(init_optimizer(self.optimizer_type, list(network_lst[i].parameters()),
@@ -91,7 +93,12 @@ class LineSearchOpt:
                 break
         self.last_scaler = self.lr_weight
         self.lr_weight = self.lr_weight_copy
+        self.last_change = (after_error - before_error).detach().numpy()
         return network_lst
+
+    @property
+    def latest_change(self):
+        return self.last_change
 
     def debug_info(self):
         i_log = {

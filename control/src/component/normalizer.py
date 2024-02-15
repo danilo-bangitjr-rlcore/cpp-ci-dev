@@ -94,8 +94,8 @@ class ThreeTanksReward(BaseNormalizer):
 
     def __call__(self, x):
         if x < self.clip:
-            x = self.clip - (x - self.min_) / (self.clip - self.min_)
-            # x = self.clip
+            # x = self.clip - (x - self.min_) / (self.clip - self.min_)
+            x = self.clip
         return x
 
 class TTChangeActionState(Scale):
