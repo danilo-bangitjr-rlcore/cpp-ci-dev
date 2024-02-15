@@ -90,6 +90,37 @@ def c20240212():
     }
     best_offline(pths, "lsgac_acrobot", xlim=[0, 51])
 
+def c20240214():
+    SHAREPATH = "output/test_v2/TTChangeAction/ConstPID/ensemble_critic/setpoint_3/"
+    pths = {
+        # "SGD-rho0.1": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/SGD/rho0.1/LineSearchGAC/param_0/", "C0", 5],
+        # "SGD-rho0.4": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/SGD/rho0.4/LineSearchGAC/param_0/", "C1", 5],
+        "Adam-rho0.1": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/Adam/rho0.1/LineSearchGAC/param_0/", "C2", 5],
+        "Adam-rho0.4": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/Adam/rho0.4/LineSearchGAC/param_0/", "C3", 5],
+    }
+    best_offline(pths, "lsgac_ens2")
+    pths = {
+        # "SGD-rho0.1": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/SGD/rho0.1/LineSearchGAC/param_0/", "C0", 5],
+        # "SGD-rho0.4": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/SGD/rho0.4/LineSearchGAC/param_0/", "C1", 5],
+        "Adam-rho0.1": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/Adam/rho0.1/LineSearchGAC/param_0/", "C2", 5],
+        "Adam-rho0.4": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/Adam/rho0.4/LineSearchGAC/param_0/", "C3", 5],
+    }
+    best_offline(pths, "lsgac_ens1")
+
+    pths = {
+        "Ens 1": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/Adam/rho0.1/LineSearchGAC/param_0/", "C0", 5],
+        "Ens 2": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/Adam/rho0.1/LineSearchGAC/param_0/", "C1", 5],
+    }
+    best_offline(pths, "lsgac_compare_ens")
+
+    pths = {
+        "Adam 0.1": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/Adam/rho0.1/LineSearchGAC/param_0/", "C0", 5],
+        "SGD 0.1": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/SGD/rho0.1/LineSearchGAC/param_0/", "C1", 5],
+        # "Adam 0.4": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/Adam/rho0.4/LineSearchGAC/param_0/", "C0", 5],
+        # "SGD 0.4": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/SGD/rho0.4/LineSearchGAC/param_0/", "C1", 5],
+    }
+    best_offline(pths, "lsgac_compare_opt", xlim=[0, 1000])
+
 def visualization():
 
     SHAREPATH = "output/test_v1/NonContexTT/exp_betaBound_and_prefill/setpoint_3/obs_raw/action_scale/reward_clip[-1,1]/replay5000_batch256/activation_relu/optim_sgd/LineSearch/param_2/seed_0"
@@ -178,7 +209,11 @@ def visualization():
 
     SHAREPATH = "output/test_v1/TTChangeAction/ConstPID/heuristic_bonus/setpoint_3/bootstrap_from_random_explore/LineSearchGAC/param_2/seed_0"
     file = DATAROOT + SHAREPATH
-    visualize_training_info(file, target_key, title="heuristic", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+    # visualize_training_info(file, target_key, title="heuristic", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
+
+    SHAREPATH = "output/test_v2/TTChangeAction/ConstPID/ensemble_critic/setpoint_3/ensemble_2/bootstrap_from_random_explore/LineSearchGAC/param_0/seed_0"
+    file = DATAROOT + SHAREPATH
+    visualize_training_info(file, target_key, title="ens2", threshold=0.99, xlim=None, ylim=[-1, 1.2], log_scale_keys=log_scale_keys)
 
 def clean_log_file():
     # reduce_log_file_size(DATAROOT + "output/test_v1/NonContexTT/heuristic_separate_testset/setpoint_3/obs_raw/action_scale/reward_clip[-1,1]/replay5000_batch256/beta_shift_1_clip_20/activation_relu/optim_sgd/LineSearch")
@@ -237,7 +272,8 @@ if __name__ == '__main__':
     # c20240129_1()
     # c20240207()
     # c20240209()
-    c20240212()
+    # c20240212()
+    c20240214()
     # visualization()
 
     # clean_log_file()
