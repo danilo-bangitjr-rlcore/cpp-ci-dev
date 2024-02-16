@@ -54,7 +54,6 @@ class RndNetworkExplore:
             target0 = reward0.detach() + mask * gamma * self.fbonus0(in_p1)[0] #true0_t #
             target1 = reward1.detach() + mask * gamma * self.fbonus1(in_p1)[0] #true1_t #
 
-        # TODO: Include the reward and next state in training, for the stochasity (how?)
         loss0 = nn.functional.mse_loss(pred0, target0)
         loss1 = nn.functional.mse_loss(pred1, target1)
         return [loss0, loss1]

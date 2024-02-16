@@ -111,7 +111,8 @@ def reproduce_demo(pths, title, ylim=None, xlim=None):
     fig.tight_layout()
     plt.savefig(DATAROOT + "img/{}.png".format(title), dpi=300, bbox_inches='tight')
 
-def visualize_training_info(target_file, target_key, title='vis_training', threshold=None, xlim=None, ylim=None, log_scale_keys=[]):
+def visualize_training_info(target_file, target_key, title='vis_training', threshold=None, xlim=None, ylim=None,
+                            log_scale_keys=[], mark_xs=[]):
     with open(target_file+"/info_logs.pkl", "rb") as f:
         info = pickle.load(f)
     ret = np.load(target_file+"/train_logs.npy")
@@ -170,6 +171,10 @@ def visualize_training_info(target_file, target_key, title='vis_training', thres
 
     if ylim is not None:
         axes[0].set_ylim(ylim)
+
+    for x in mark_xs:
+        for ax in axes:
+            ax.axvline(x, linestyle='-', color='red', linewidth=0.5, zorder=1)
 
     # fig, axs = plt.subplots(len(target_key)+1, 1, figsize=(12, 3*len(target_key)))
     # axs[0].plot(ret)

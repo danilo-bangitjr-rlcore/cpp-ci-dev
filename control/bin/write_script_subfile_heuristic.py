@@ -296,11 +296,19 @@ def c20240215(settings, shared_settings, target_agents):
     cmds = [
         "python3 main.py  --param 0  --agent_name LineSearchReset  --rho 0.4  --tau 0  --prop_rho_mult 2  --version 2  --max_steps 1000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /reset_test/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /setpoint_3/ensemble_2/SGD/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1 --critic_ensemble 2 --reset_mode None --reset_param 0",
         "python3 main.py  --param 1  --agent_name LineSearchReset  --rho 0.4  --tau 0  --prop_rho_mult 2  --version 2  --max_steps 1000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /reset_test/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /setpoint_3/ensemble_2/SGD/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1 --critic_ensemble 2 --reset_mode Random --reset_param 0",
-        "python3 main.py  --param 2  --agent_name LineSearchReset  --rho 0.4  --tau 0  --prop_rho_mult 2  --version 2  --max_steps 1000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /reset_test/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /setpoint_3/ensemble_2/SGD/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1 --critic_ensemble 2 --reset_mode Shift --reset_param -1.",
+        "python3 main.py  --param 2  --agent_name LineSearchReset  --rho 0.4  --tau 0  --prop_rho_mult 2  --version 2  --max_steps 1000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /reset_test/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /setpoint_3/ensemble_2/SGD/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1 --critic_ensemble 2 --reset_mode Shift --reset_param=-1.",
         "python3 main.py  --param 3  --agent_name LineSearchReset  --rho 0.4  --tau 0  --prop_rho_mult 2  --version 2  --max_steps 1000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /reset_test/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /setpoint_3/ensemble_2/SGD/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1 --critic_ensemble 2 --reset_mode Shrink --reset_param 0.5",
         "python3 main.py  --param 4  --agent_name LineSearchReset  --rho 0.4  --tau 0  --prop_rho_mult 2  --version 2  --max_steps 1000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer SGD  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /reset_test/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /setpoint_3/ensemble_2/SGD/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1 --critic_ensemble 2 --reset_mode Shrink+Rnd --reset_param 0.5",
     ]
     write_cmd(cmds, prev_file=0, line_per_file=1)
+
+def c20240216(settings, shared_settings, target_agents):
+    """
+    Fix linesearch with Adam and RMSprop optimizers
+    """
+    cmds = [
+        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.4  --tau 0  --prop_rho_mult 2  --version 2  --max_steps 1000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer Adam  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /temp/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /setpoint_3/ensemble_2/Adam/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1 --critic_ensemble 2",
+    ]
 
 
 if __name__=='__main__':
@@ -333,4 +341,4 @@ if __name__=='__main__':
     }
     target_agents = ["LineSearchGAC"]
 
-    c20240214(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
+    c20240215(copy.deepcopy(settings), copy.deepcopy(shared_settings), copy.deepcopy(target_agents))
