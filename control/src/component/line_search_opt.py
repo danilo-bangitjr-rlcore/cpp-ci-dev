@@ -107,6 +107,7 @@ class LineSearchOpt:
         before_error = error_evaluation_fn(error_eval_input)
         grad_rec = []
         for i in range(len(network_lst)):
+            self.reset_lr(self.optimizer_lst[i], self.lr_weight * self.lr_main)
             self.optimizer_lst[i].zero_grad()
             backward_fn(loss_lst[i])
             grad_rec.append(self.clone_gradient(network_lst[i]))

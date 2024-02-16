@@ -308,6 +308,7 @@ def c20240216(settings, shared_settings, target_agents):
     """
     cmds = [
         "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.4  --tau 0  --prop_rho_mult 2  --version 2  --max_steps 1000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer Adam  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /temp/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /setpoint_3/ensemble_2/Adam/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1 --critic_ensemble 2",
+        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.4  --tau 0  --prop_rho_mult 2  --version 2  --max_steps 1000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer RMSprop  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /temp/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /setpoint_3/ensemble_2/RMSprop/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1 --critic_ensemble 2",
     ]
 
 
