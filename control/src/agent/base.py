@@ -267,7 +267,10 @@ class BaseAC(Evaluation):
             with torch.no_grad():
                 qs, qsens = self.critic(observation)
                 q = qs[np.arange(len(action)), action.long()].unsqueeze(-1)
-        return q, qsens
+        qens = []
+        for i in range(self.cfg.critic_ensemble):
+            qens.append(qsens[i][np.arange(len(action)), action.long()].unsqueeze(-1))
+        return q, qens
 
     def get_q_value_target_continuous(self, observation, action):
         x = torch.concat((observation, action), dim=1)
@@ -281,7 +284,10 @@ class BaseAC(Evaluation):
         with torch.no_grad():
             qs, qsens = self.critic_target(observation)
             q = qs[np.arange(len(action)), action.long()].unsqueeze(-1)
-        return q, qsens
+        qens = []
+        for i in range(self.cfg.critic_ensemble):
+            qens.append(qsens[i][np.arange(len(action)), action.long()].unsqueeze(-1))
+        return q, qens
 
     def get_v_value(self, observation, with_grad):
         if with_grad:

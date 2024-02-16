@@ -310,6 +310,17 @@ def c20240216(settings, shared_settings, target_agents):
         "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.4  --tau 0  --prop_rho_mult 2  --version 2  --max_steps 1000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer Adam  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /temp/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /setpoint_3/ensemble_2/Adam/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1 --critic_ensemble 2",
         "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.4  --tau 0  --prop_rho_mult 2  --version 2  --max_steps 1000  --debug 1  --render 2  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer RMSprop  --action_normalizer Scale  --env_name TTChangeAction/ConstPID  --env_info 1.0 3.0  --buffer_size 10000  --batch_size 512  --exp_name /temp/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /setpoint_3/ensemble_2/RMSprop/  --seed 0 --actor Beta --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.9 --exploration 1 --critic_ensemble 2",
     ]
+    write_cmd(cmds, prev_file=0, line_per_file=1)
+
+    """
+    Target network v.s. min Q
+    """
+    cmds = [
+        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 50000 --timeout 1000 --log_interval 500 --stats_queue_size 5 --debug 0  --render 0  --polyak 0.995  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer Adam  --env_name Acrobot-v1  --discrete_control 1  --buffer_size 50000  --batch_size 512  --exp_name /compare_minQ_targetNet/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /target_0.995/ensemble1/  --seed 0 --actor Softmax --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.95 --exploration 1 --critic_ensemble 1",
+        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 50000 --timeout 1000 --log_interval 500 --stats_queue_size 5 --debug 0  --render 0  --polyak 0.995  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer Adam  --env_name Acrobot-v1  --discrete_control 1  --buffer_size 50000  --batch_size 512  --exp_name /compare_minQ_targetNet/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /target_0.995/ensemble2/  --seed 0 --actor Softmax --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.95 --exploration 1 --critic_ensemble 2",
+        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 2  --version 1  --max_steps 50000 --timeout 1000 --log_interval 500 --stats_queue_size 5 --debug 0  --render 0  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer Adam  --env_name Acrobot-v1  --discrete_control 1  --buffer_size 50000  --batch_size 512  --exp_name /compare_minQ_targetNet/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /target_0/ensemble2/  --seed 0 --actor Softmax --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.95 --exploration 1 --critic_ensemble 2",
+    ]
+    write_cmd(cmds, prev_file=0, line_per_file=1)
 
 
 if __name__=='__main__':
