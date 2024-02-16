@@ -14,8 +14,8 @@ class LineSearchOpt:
             self.opt_copy_lst.append(init_optimizer(optimizer_type, list(net_lst[i].parameters()), lr_main))
         if optimizer_type == 'SGD':
             self.backtrack = self.backtrack_sgd
-        elif optimizer_type == 'Adam':
-            self.backtrack = self.backtrack_adam
+        elif optimizer_type in ['Adam', 'RMSprop']:
+            self.backtrack = self.backtrack_momentum
         else:
             raise NotImplementedError
 
@@ -102,7 +102,7 @@ class LineSearchOpt:
         self.last_change = (after_error - before_error).detach().numpy()
         return network_lst
 
-    def backtrack_adam(self, error_evaluation_fn, error_eval_input, network_lst, loss_lst, backward_fn):
+    def backtrack_momentum(self, error_evaluation_fn, error_eval_input, network_lst, loss_lst, backward_fn):
         self.parameter_backup(network_lst, self.optimizer_lst)
         before_error = error_evaluation_fn(error_eval_input)
         grad_rec = []
