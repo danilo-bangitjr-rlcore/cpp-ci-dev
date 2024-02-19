@@ -98,16 +98,17 @@ class BaseAC(Evaluation):
             reset, truncate = self.update_stats(reward, done, truncate)
             self.buffer.feed([last_state, action[0], reward, self.observation, int(done), int(truncate)])
 
-            i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
-            self.info_log.append(i_log)
+            if self.cfg.debug:
+                i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
+                self.info_log.append(i_log)
 
-            if self.cfg.render:
-                self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"],
-                            env_info['environment_pid'])
-            else:
-                env_info.pop('interval_log', None)
-                env_info.pop('environment_pid', None)
-                i_log['critic_info'].pop('Q-function', None)
+                if self.cfg.render:
+                    self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"],
+                                env_info['environment_pid'])
+                else:
+                    env_info.pop('interval_log', None)
+                    env_info.pop('environment_pid', None)
+                    i_log['critic_info'].pop('Q-function', None)
 
             track_states.append(last_state)
             track_actions.append(action[0])
@@ -161,16 +162,17 @@ class BaseAC(Evaluation):
         reset, truncate = self.update_stats(reward, terminated, trunc)
         self.buffer.feed([self.observation, action[0], reward, next_observation, int(terminated), int(truncate)])
 
-        i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
-        self.info_log.append(i_log)
+        if self.cfg.debug:
+            i_log = self.agent_debug_info(observation_tensor, action_tensor, pi_info, env_info)
+            self.info_log.append(i_log)
 
-        if self.cfg.render:
-            self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"],
-                        env_info['environment_pid'])
-        else:
-            env_info.pop('interval_log', None)
-            env_info.pop('environment_pid', None)
-            i_log['critic_info'].pop('Q-function', None)
+            if self.cfg.render:
+                self.render(np.array(env_info['interval_log']), i_log['critic_info']['Q-function'], i_log["action_visits"],
+                            env_info['environment_pid'])
+            else:
+                env_info.pop('interval_log', None)
+                env_info.pop('environment_pid', None)
+                i_log['critic_info'].pop('Q-function', None)
 
         self.update(trunc)
 
