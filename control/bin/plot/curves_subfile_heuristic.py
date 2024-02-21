@@ -133,6 +133,14 @@ def c20240215():
     }
     best_offline(pths, "reset_policy")
 
+def c20240216():
+    SHAREPATH = "output/test_v2/Acrobot-v1/compare_minQ_targetNet/SGD/"
+    pths = {
+        "No target": [DATAROOT + SHAREPATH + "target_0/ensemble2/LineSearchGAC/param_0", "C0", 5],
+        "With target": [DATAROOT + SHAREPATH + "target_0.995/ensemble2/LineSearchGAC/param_0", "C1", 5],
+    }
+    best_offline(pths, "target")
+
 def visualization():
 
     SHAREPATH = "output/test_v1/NonContexTT/exp_betaBound_and_prefill/setpoint_3/obs_raw/action_scale/reward_clip[-1,1]/replay5000_batch256/activation_relu/optim_sgd/LineSearch/param_2/seed_0"
@@ -300,6 +308,7 @@ if __name__ == '__main__':
     # c20240212()
     # c20240214()
     # c20240215()
-    visualization()
+    c20240216()
+    # visualization()
 
     # clean_log_file()

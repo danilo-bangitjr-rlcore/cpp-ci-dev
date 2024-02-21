@@ -12,13 +12,14 @@ class LineSearchOpt:
         for i in range(len(net_copy_lst)):
             self.optimizer_lst.append(init_optimizer(optimizer_type, list(net_lst[i].parameters()), lr_main, kwargs=opt_kwargs))
             self.opt_copy_lst.append(init_optimizer(optimizer_type, list(net_lst[i].parameters()), lr_main, kwargs=opt_kwargs))
-        if optimizer_type == 'SGD':
-            self.backtrack = self.backtrack_sgd
-        elif optimizer_type in ['Adam', 'RMSprop']:
-            self.backtrack = self.backtrack_momentum
-        else:
-            raise NotImplementedError
-        # self.backtrack = self.backtrack_momentum
+
+        # if optimizer_type == 'SGD':
+        #     self.backtrack = self.backtrack_sgd
+        # elif optimizer_type in ['Adam', 'RMSprop']:
+        #     self.backtrack = self.backtrack_momentum
+        # else:
+        #     raise NotImplementedError
+        self.backtrack = self.backtrack_momentum
 
         self.lr_main = lr_main
         self.lr_weight = 1
