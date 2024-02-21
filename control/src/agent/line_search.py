@@ -56,10 +56,19 @@ class LineSearchGAC(GreedyAC):
         del self.critic_optimizer
         del self.sampler_optim
 
-        self.actor_linesearch = LineSearchOpt([self.actor], [self.actor_copy], optimizer_type=self.cfg.optimizer)
-        self.critic_linesearch = LineSearchOpt([self.critic], [self.critic_copy], optimizer_type=self.cfg.optimizer)
-        self.sampler_linesearch = LineSearchOpt([self.sampler], [self.sampler_copy], optimizer_type=self.cfg.optimizer)
-        self.explore_linesearch = LineSearchOpt([self.fbonus0, self.fbonus1], [self.fbonus0_copy, self.fbonus1_copy], optimizer_type=self.cfg.optimizer)
+        self.opt_param = {
+            'Adam': {'betas': (cfg.optimizer_param)},
+            'SGD': {},
+        }
+        self.actor_linesearch = LineSearchOpt([self.actor], [self.actor_copy], optimizer_type=self.cfg.optimizer,
+                                              error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])
+        self.critic_linesearch = LineSearchOpt([self.critic], [self.critic_copy], optimizer_type=self.cfg.optimizer,
+                                              error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])
+        self.sampler_linesearch = LineSearchOpt([self.sampler], [self.sampler_copy], optimizer_type=self.cfg.optimizer,
+                                              error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])
+        self.explore_linesearch = LineSearchOpt([self.fbonus0, self.fbonus1], [self.fbonus0_copy, self.fbonus1_copy],
+                                                optimizer_type=self.cfg.optimizer, error_threshold=self.cfg.error_threshold,
+                                                opt_kwargs=self.opt_param[self.cfg.optimizer])
         self.last_explore_bonus = None
 
     def explore_bonus_update(self, state, action, reward, next_state, next_action, mask,

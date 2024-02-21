@@ -134,6 +134,8 @@ if __name__ == "__main__":
     parser.add_argument('--reset_nets', default=['Sampler'], type=str, nargs='+')
     parser.add_argument('--reset_mode', default='None', type=str)
     parser.add_argument('--reset_param', default=0., type=float)
+    parser.add_argument('--error_threshold', default=1e-4, type=float)
+    parser.add_argument('--optimizer_param', default=[0.9, 0.999], type=float, nargs='+')
 
     cfg = parser.parse_args()
 

@@ -140,9 +140,9 @@ def init_layer(init):
 
 
 class EnsembleOptimizer:
-    def __init__(self, individual_optim, param, lr):
+    def __init__(self, individual_optim, param, lr, kwargs):
         self.optim = [
-            individual_optim(list(p), lr) for p in param
+            individual_optim(list(p), lr, **kwargs) for p in param
         ]
 
     def zero_grad(self):

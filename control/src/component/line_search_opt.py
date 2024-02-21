@@ -4,14 +4,14 @@ import numpy as np
 
 class LineSearchOpt:
     def __init__(self, net_lst, net_copy_lst,
-                 optimizer_type='SGD', lr_main=1, max_backtracking=30, error_threshold=1e-4, lr_lower_bound=1e-6):
+                 optimizer_type='SGD', lr_main=1, max_backtracking=30, error_threshold=1e-4, lr_lower_bound=1e-6, opt_kwargs={}):
         self.net_copy_lst = net_copy_lst
         self.optimizer_type = optimizer_type
         self.optimizer_lst = []
         self.opt_copy_lst = []
         for i in range(len(net_copy_lst)):
-            self.optimizer_lst.append(init_optimizer(optimizer_type, list(net_lst[i].parameters()), lr_main))
-            self.opt_copy_lst.append(init_optimizer(optimizer_type, list(net_lst[i].parameters()), lr_main))
+            self.optimizer_lst.append(init_optimizer(optimizer_type, list(net_lst[i].parameters()), lr_main, kwargs=opt_kwargs))
+            self.opt_copy_lst.append(init_optimizer(optimizer_type, list(net_lst[i].parameters()), lr_main, kwargs=opt_kwargs))
         if optimizer_type == 'SGD':
             self.backtrack = self.backtrack_sgd
         elif optimizer_type in ['Adam', 'RMSprop']:
