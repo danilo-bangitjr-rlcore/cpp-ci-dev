@@ -96,27 +96,27 @@ def c20240214():
     pths = {
         # "SGD-rho0.1": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/SGD/rho0.1/LineSearchGAC/param_0/", "C0", 5],
         # "SGD-rho0.4": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/SGD/rho0.4/LineSearchGAC/param_0/", "C1", 5],
-        "Adam-rho0.1": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/Adam/rho0.1/LineSearchGAC/param_0/", "C2", 5],
-        "Adam-rho0.4": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/Adam/rho0.4/LineSearchGAC/param_0/", "C3", 5],
+        "Adam-rho0.1": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/prefill_0/Adam/rho0.1/LineSearchGAC/param_0/", "C2", 5],
+        "Adam-rho0.4": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/prefill_0/Adam/rho0.4/LineSearchGAC/param_0/", "C3", 5],
     }
     best_offline(pths, "lsgac_ens2")
     pths = {
         # "SGD-rho0.1": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/SGD/rho0.1/LineSearchGAC/param_0/", "C0", 5],
         # "SGD-rho0.4": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/SGD/rho0.4/LineSearchGAC/param_0/", "C1", 5],
-        "Adam-rho0.1": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/Adam/rho0.1/LineSearchGAC/param_0/", "C2", 5],
-        "Adam-rho0.4": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/Adam/rho0.4/LineSearchGAC/param_0/", "C3", 5],
+        "Adam-rho0.1": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/prefill_0/Adam/rho0.1/LineSearchGAC/param_0/", "C2", 5],
+        "Adam-rho0.4": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/prefill_0/Adam/rho0.4/LineSearchGAC/param_0/", "C3", 5],
     }
     best_offline(pths, "lsgac_ens1")
 
     pths = {
-        "Ens 1": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/Adam/rho0.1/LineSearchGAC/param_0/", "C0", 5],
-        "Ens 2": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/Adam/rho0.1/LineSearchGAC/param_0/", "C1", 5],
+        "Ens 1": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/prefill_0/Adam/rho0.1/LineSearchGAC/param_0/", "C0", 5],
+        "Ens 2": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/prefill_0/Adam/rho0.1/LineSearchGAC/param_0/", "C1", 5],
     }
     best_offline(pths, "lsgac_compare_ens")
 
     pths = {
-        "Adam 0.1": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/Adam/rho0.1/LineSearchGAC/param_0/", "C0", 5],
-        "SGD 0.1": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/SGD/rho0.1/LineSearchGAC/param_0/", "C1", 5],
+        "Adam 0.1": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/prefill_0/Adam/rho0.1/LineSearchGAC/param_0/", "C0", 5],
+        "SGD 0.1": [DATAROOT + SHAREPATH + "ensemble_2/bootstrap_from_random_explore/prefill_0/SGD/rho0.1/LineSearchGAC/param_0/", "C1", 5],
         # "Adam 0.4": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/Adam/rho0.4/LineSearchGAC/param_0/", "C0", 5],
         # "SGD 0.4": [DATAROOT + SHAREPATH + "ensemble_1/bootstrap_from_random_explore/SGD/rho0.4/LineSearchGAC/param_0/", "C1", 5],
     }

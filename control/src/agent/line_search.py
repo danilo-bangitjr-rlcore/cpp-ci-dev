@@ -57,7 +57,8 @@ class LineSearchGAC(GreedyAC):
         del self.sampler_optim
 
         self.opt_param = {
-            'Adam': {'betas': (cfg.optimizer_param)},
+            'Adam': {'betas': (cfg.optimizer_param[:2]),
+                     'eps': cfg.optimizer_param[2]},
             'SGD': {},
         }
         self.actor_linesearch = LineSearchOpt([self.actor], [self.actor_copy], optimizer_type=self.cfg.optimizer,
@@ -255,7 +256,9 @@ class LineSearchReset(LineSearchGAC):
                                            self.cfg.head_activation, self.cfg.layer_init_actor, self.cfg.layer_norm)
         self.sampler = self.reset_weight(self.sampler, new_sampler, self.cfg.reset_param)
         self.sampler_copy.load_state_dict(self.sampler.state_dict())
-        self.sampler_linesearch = LineSearchOpt([self.sampler], [self.sampler_copy], optimizer_type=self.cfg.optimizer)
+        last_lr_main = self.sampler_linesearch.latest_lr_main
+        self.sampler_linesearch = LineSearchOpt([self.sampler], [self.sampler_copy], optimizer_type=self.cfg.optimizer,
+                                                lr_main=last_lr_main)
 
         done = False
         while not done:
@@ -287,7 +290,9 @@ class LineSearchReset(LineSearchGAC):
                                         self.cfg.layer_norm)
         self.actor = self.reset_weight(self.actor, new_actor, self.cfg.reset_param)
         self.actor_copy.load_state_dict(self.actor.state_dict())
-        self.actor_linesearch = LineSearchOpt([self.actor], [self.actor_copy], optimizer_type=self.cfg.optimizer)
+        last_lr_main = self.actor_linesearch.latest_lr_main
+        self.actor_linesearch = LineSearchOpt([self.actor], [self.actor_copy], optimizer_type=self.cfg.optimizer,
+                                                lr_main=last_lr_main)
 
         done = False
         while not done:
@@ -310,7 +315,7 @@ class LineSearchReset(LineSearchGAC):
         print("critic", self.critic_linesearch.latest_change)
         print("sampler", self.sampler_linesearch.latest_change)
         print("actor", self.actor_linesearch.latest_change)
-        if self.total_steps % 20 == 0:
+        if self.total_steps % 100 == 0:
             print("Reseting at step {}".format(self.total_steps))
             if "Sampler" in self.reset_nets:
                 self.reset_sampler()

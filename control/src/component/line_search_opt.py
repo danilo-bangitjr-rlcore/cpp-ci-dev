@@ -149,6 +149,14 @@ class LineSearchOpt:
     def latest_change(self):
         return self.last_change
 
+    @property
+    def latest_lr_main(self):
+        return self.lr_main
+
+    @property
+    def latest_lr_scaler(self):
+        return self.lr_weight
+
     def debug_info(self):
         i_log = {
             "lr": self.lr_main,
