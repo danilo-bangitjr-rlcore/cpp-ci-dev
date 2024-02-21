@@ -18,6 +18,7 @@ class LineSearchOpt:
             self.backtrack = self.backtrack_momentum
         else:
             raise NotImplementedError
+        # self.backtrack = self.backtrack_momentum
 
         self.lr_main = lr_main
         self.lr_weight = 1

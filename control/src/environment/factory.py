@@ -54,7 +54,7 @@ def init_environment(name, cfg):
     elif name == "Cont-CC-EESM-v0":
         return FlattenObservation(gem.make("Cont-CC-EESM-v0"))
     elif name == "Acrobot-v1":
-        return DiscreteControlWrapper("Acrobot-v1")
+        return DiscreteControlWrapper("Acrobot-v1", cfg.timeout)
     elif name == "MountainCarContinuous-v0":
         return  gym.make("MountainCarContinuous-v0")
     elif name == "Pendulum-v1":
