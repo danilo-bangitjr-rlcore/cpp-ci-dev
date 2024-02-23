@@ -1,17 +1,20 @@
 from src.network.factory import init_optimizer
 import torch
 import numpy as np
+import src.network.torch_utils as torch_utils
+import copy
 
 class LineSearchOpt:
-    def __init__(self, net_lst, net_copy_lst,
+    def __init__(self, device, net_lst, net_copy_lst,
                  optimizer_type='SGD', lr_main=1, max_backtracking=30, error_threshold=1e-4, lr_lower_bound=1e-6, opt_kwargs={}):
+        self.device = device
         self.net_copy_lst = net_copy_lst
         self.optimizer_type = optimizer_type
         self.optimizer_lst = []
-        self.opt_copy_lst = []
+        self.opt_copy_dict = {}
         for i in range(len(net_copy_lst)):
             self.optimizer_lst.append(init_optimizer(optimizer_type, list(net_lst[i].parameters()), lr_main, kwargs=opt_kwargs))
-            self.opt_copy_lst.append(init_optimizer(optimizer_type, list(net_lst[i].parameters()), lr_main, kwargs=opt_kwargs))
+            self.opt_copy_dict[i] = None
 
         # if optimizer_type == 'SGD':
         #     self.backtrack = self.backtrack_sgd
@@ -31,6 +34,8 @@ class LineSearchOpt:
         self.last_scaler = None
         self.last_change = np.inf
 
+        self.inner_count = 0
+
     def clone_gradient(self, model):
         grad_rec = {}
         for idx, param in enumerate(model.parameters()):
@@ -48,15 +53,82 @@ class LineSearchOpt:
             net1.load_state_dict(net0.state_dict())
         return net1
 
+    def save_opt(self, i, opt0):
+        def recursive_save(data):
+            if type(data) == dict:
+                saved = {}
+                for key in data.keys():
+                    saved[key] = recursive_save(data[key])
+            elif type(data) == list:
+                saved = []
+                for d in data:
+                    saved.append(recursive_save(d))
+            elif type(data) != torch.Tensor:
+                saved = copy.deepcopy(data)
+            else:
+                saved = copy.deepcopy(data).detach()
+            return saved
+
+        self.opt_copy_dict[i] = recursive_save(opt0.state_dict())
+        return
+
+    def load_opt(self, i, opt0):
+        def recursive_load(ref, data):
+            if type(data) == dict:
+                # if "step" in ref.keys():
+                    # print("debug", ref['step'], data['step'])
+                for key in data.keys():
+                    recursive_load(ref[key], data[key])
+                refkeys = list(ref.keys())
+                for key in refkeys:
+                    if key not in data.keys():
+                        del ref[key]
+                        # print("delete unexist key {}".format(key))
+            elif type(data) == list:
+                for di in range(len(data)):
+                    recursive_load(ref[di], data[di])
+            elif type(data) != torch.Tensor:
+                ref = data
+            else:
+                if len(ref.size()) == 2:
+                    idx = torch.arange(ref.size()[1])
+                    idx = torch.tile(idx, (ref.size()[0], 1))
+                    ref.scatter_(1, idx, torch_utils.tensor(data, self.device))
+                elif len(ref.size()) == 1:
+                    idx = torch.arange(ref.size()[0])
+                    ref.scatter_(0, idx, torch_utils.tensor(data, self.device))
+                else:
+                    ref.fill_(torch_utils.tensor(data, self.device))
+            return ref
+
+        opt0.load_state_dict(recursive_load(opt0.state_dict(), self.opt_copy_dict[i]))
+        return opt0
+
     def parameter_backup(self, net_lst, opt_lst):
         for i in range(len(net_lst)):
             self.clone_model_0to1(net_lst[i], self.net_copy_lst[i])
-            self.clone_model_0to1(opt_lst[i], self.opt_copy_lst[i])
+            self.save_opt(i, opt_lst[i])
 
     def undo_update(self, net_lst, opt_lst):
         for i in range(len(net_lst)):
+            # if len(self.opt_copy_dict[i]["state"])!=0:
+            #     print("before opt")
+            #     print("    ", opt_lst[i].state[list(opt_lst[i].state)[0]]['step'])
+            #     print("    ", opt_lst[i].state[list(opt_lst[i].state)[0]]['exp_avg'].mean())
+            #     print("    ", opt_lst[i].state[list(opt_lst[i].state)[0]]['exp_avg_sq'].mean())
+            #     print("before net")
+            #     print("    ", list(net_lst[i].parameters())[0])
             self.clone_model_0to1(self.net_copy_lst[i], net_lst[i])
-            self.clone_model_0to1(self.opt_copy_lst[i], opt_lst[i])
+            opt_lst[i] = self.load_opt(i, opt_lst[i])
+            # if len(opt_lst[i].state) != 0:
+            #     print("after opt")
+            #     print("    ", opt_lst[i].state[list(opt_lst[i].state)[0]]['step'])
+            #     print("    ", opt_lst[i].state[list(opt_lst[i].state)[0]]['exp_avg'].mean())
+            #     print("    ", opt_lst[i].state[list(opt_lst[i].state)[0]]['exp_avg_sq'].mean())
+            #     # # Net loading works
+            #     print("after net")
+            #     print("    ", list(net_lst[i].parameters())[0])
+            #     print()
         return net_lst, opt_lst
 
     def weighting_loss(self, loss, lr_weight):
@@ -102,6 +174,7 @@ class LineSearchOpt:
         self.last_scaler = self.lr_weight
         self.lr_weight = self.lr_weight_copy
         self.last_change = (after_error - before_error).detach().numpy()
+        self.inner_count += 1
         return network_lst
 
     def backtrack_momentum(self, error_evaluation_fn, error_eval_input, network_lst, loss_lst, backward_fn):
@@ -126,9 +199,11 @@ class LineSearchOpt:
             # print(bi, before_error, after_error)
             if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
                 self.lr_weight *= self.lr_decay_rate
+                # print("undo, ", self.inner_count, bi)
                 network_lst, self.optimizer_lst = self.undo_update(network_lst, self.optimizer_lst)
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
                 self.lr_main = max(self.lr_main * self.lr_decay_rate, self.lr_lower_bound)
+                print("reducing lr",  self.net_copy_lst, self.lr_main)
                 self.optimizer_lst = []
                 for i in range(len(network_lst)):
                     self.optimizer_lst.append(init_optimizer(self.optimizer_type, list(network_lst[i].parameters()),
@@ -139,10 +214,11 @@ class LineSearchOpt:
         self.last_scaler = self.lr_weight
         self.lr_weight = self.lr_weight_copy
         self.last_change = (after_error - before_error).detach().numpy()
+        self.inner_count += 1
         return network_lst
 
-    def reset_lr(self, optim, new_lr):
-        for g in optim.param_groups:
+    def reset_lr(self, opt, new_lr):
+        for g in opt.param_groups:
             g['lr'] = new_lr
 
     @property

@@ -54,6 +54,8 @@ def init_optimizer(name, param, lr, ensemble=False, kwargs={}):
             return EnsembleOptimizer(torch.optim.RMSprop, param, lr=lr, kwargs=kwargs)
         elif name == 'Adam':
             return EnsembleOptimizer(torch.optim.Adam, param, lr=lr, kwargs=kwargs)
+        elif name == 'CustomAdam':
+            return EnsembleOptimizer(CustomADAM, param, lr=lr, kwargs=kwargs)
         elif name == "SGD":
             return EnsembleOptimizer(torch.optim.SGD, param, lr=lr, kwargs=kwargs)
         else:
@@ -63,6 +65,8 @@ def init_optimizer(name, param, lr, ensemble=False, kwargs={}):
             return torch.optim.RMSprop(param, lr)
         elif name == 'Adam':
             return torch.optim.Adam(param, lr)
+        elif name == 'CustomAdam':
+            return CustomADAM(param, lr)
         elif name == "SGD":
             return torch.optim.SGD(param, lr)
         else:

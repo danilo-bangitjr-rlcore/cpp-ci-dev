@@ -26,7 +26,9 @@ class GreedyAC(BaseAC):
         next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
         next_q, _ = self.get_q_value_target(next_state_batch, next_action)
         target = reward_batch + mask_batch * self.gamma * next_q
-        _, q_ens = self.get_q_value(state_batch, action_batch, with_grad=True)
+        temp, q_ens = self.get_q_value(state_batch, action_batch, with_grad=True)
+        # for i in range(len(temp)):
+        #     print(temp[i], [q_ens[j][i] for j in range(len(q_ens))])
         q_loss = self.ensemble_mse(target, q_ens) #torch.nn.functional.mse_loss(target, q_value)
         return q_loss, next_action
 
