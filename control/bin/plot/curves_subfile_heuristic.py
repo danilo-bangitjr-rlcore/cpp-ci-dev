@@ -128,8 +128,8 @@ def c20240215():
         "None": [DATAROOT + SHAREPATH.format(0), "C0", 5],
         "Random": [DATAROOT + SHAREPATH.format(1), "C1", 5],
         "Shift -1": [DATAROOT + SHAREPATH.format(2), "C2", 5],
-        "Shrink 0.5": [DATAROOT + SHAREPATH.format(3), "C3", 5],
-        "Shrink+Random": [DATAROOT + SHAREPATH.format(4), "C4", 5],
+        # "Shrink 0.5": [DATAROOT + SHAREPATH.format(3), "C3", 5],
+        # "Shrink+Random": [DATAROOT + SHAREPATH.format(4), "C4", 5],
     }
     best_offline(pths, "reset_policy")
 
@@ -237,16 +237,16 @@ def visualization():
 
     SHAREPATH = "output/test_v2/TTChangeAction/ConstPID/reset_test/setpoint_3/ensemble_2/SGD/LineSearchReset/param_{}/seed_0"
     file = DATAROOT + SHAREPATH
-    # for i in range(5):
-    #     visualize_training_info(file.format(i), target_key, title="reset", threshold=0.99, xlim=None, ylim=[-2.2, 1.2], log_scale_keys=log_scale_keys, mark_xs=np.arange(0, 1000, 20))
+    for i in range(5):
+        visualize_training_info(file.format(i), target_key, title="reset", threshold=0.99, xlim=None, ylim=[-2.2, 1.2], log_scale_keys=log_scale_keys, mark_xs=np.arange(0, 1000, 100))
 
     SHAREPATH = "output/test_v2/TTChangeAction/ConstPID/bug_fix/setpoint_3/ensemble_2/Adam/LineSearchGAC/param_0/seed_0"
     file = DATAROOT + SHAREPATH
-    visualize_training_info(file, target_key, title="fix", threshold=0.99, xlim=None, ylim=[-2.2, 1.2], log_scale_keys=log_scale_keys)
+    # visualize_training_info(file, target_key, title="fix", threshold=0.99, xlim=None, ylim=[-2.2, 1.2], log_scale_keys=log_scale_keys)
 
     SHAREPATH = "output/test_v2/TTChangeAction/ConstPID/bug_fix/setpoint_3/ensemble_2/RMSprop/LineSearchGAC/param_0/seed_0"
     file = DATAROOT + SHAREPATH
-    visualize_training_info(file, target_key, title="fix", threshold=0.99, xlim=None, ylim=[-2.2, 1.2], log_scale_keys=log_scale_keys)
+    # visualize_training_info(file, target_key, title="fix", threshold=0.99, xlim=None, ylim=[-2.2, 1.2], log_scale_keys=log_scale_keys)
 
 def clean_log_file():
     # reduce_log_file_size(DATAROOT + "output/test_v1/NonContexTT/heuristic_separate_testset/setpoint_3/obs_raw/action_scale/reward_clip[-1,1]/replay5000_batch256/beta_shift_1_clip_20/activation_relu/optim_sgd/LineSearch")
@@ -307,8 +307,8 @@ if __name__ == '__main__':
     # c20240209()
     # c20240212()
     # c20240214()
-    # c20240215()
-    c20240216()
+    c20240215()
+    # c20240216()
     # visualization()
 
     # clean_log_file()
