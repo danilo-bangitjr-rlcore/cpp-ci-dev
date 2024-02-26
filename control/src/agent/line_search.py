@@ -65,17 +65,18 @@ class LineSearchGAC(GreedyAC):
             'RMSprop': {},
             'SGD': {},
         }
-        self.actor_linesearch = LineSearchOpt(self.device, [self.actor], [self.actor_copy], lr_main=self.cfg.lr_actor, max_backtracking=1,
+        max_backtracking = 30
+        self.actor_linesearch = LineSearchOpt(self.device, [self.actor], [self.actor_copy], lr_main=self.cfg.lr_actor, max_backtracking=max_backtracking,
                                               optimizer_type=self.cfg.optimizer,
                                               error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])
-        self.critic_linesearch = LineSearchOpt(self.device, [self.critic], [self.critic_copy], lr_main=self.cfg.lr_critic, max_backtracking=1,
+        self.critic_linesearch = LineSearchOpt(self.device, [self.critic], [self.critic_copy], lr_main=self.cfg.lr_critic, max_backtracking=max_backtracking,
                                                optimizer_type=self.cfg.optimizer,
                                               error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])
-        self.sampler_linesearch = LineSearchOpt(self.device, [self.sampler], [self.sampler_copy], lr_main=self.cfg.lr_actor, max_backtracking=1,
+        self.sampler_linesearch = LineSearchOpt(self.device, [self.sampler], [self.sampler_copy], lr_main=self.cfg.lr_actor, max_backtracking=max_backtracking,
                                                 optimizer_type=self.cfg.optimizer,
                                                 error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])
         self.explore_linesearch = LineSearchOpt(self.device, [self.fbonus0, self.fbonus1], [self.fbonus0_copy, self.fbonus1_copy],
-                                                lr_main=self.cfg.lr_critic, max_backtracking=1,
+                                                lr_main=self.cfg.lr_critic, max_backtracking=max_backtracking,
                                                 optimizer_type=self.cfg.optimizer, error_threshold=self.cfg.error_threshold,
                                                 opt_kwargs=self.opt_param[self.cfg.optimizer])
         self.last_explore_bonus = None

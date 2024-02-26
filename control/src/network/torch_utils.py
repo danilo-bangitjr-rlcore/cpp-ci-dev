@@ -1,6 +1,11 @@
+import copy
+
 import torch
 import torch.nn as nn
 import math
+import collections
+
+from torch.optim.optimizer import StateDict
 
 
 class Float(torch.nn.Module):
@@ -192,9 +197,7 @@ class CustomADAM(torch.optim.Optimizer):
                 # State initialization
                 if len(state) == 0:
                     state['step'] = 0
-                    # Exponential moving average of gradient values
                     state['exp_avg'] = torch.zeros_like(p.data, memory_format=torch.preserve_format)
-                    # Exponential moving average of squared gradient values
                     state['exp_avg_sq'] = torch.zeros_like(p.data, memory_format=torch.preserve_format)
 
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
@@ -207,3 +210,96 @@ class CustomADAM(torch.optim.Optimizer):
                 lr = group['lr'] / (v_hat.sqrt().add_(group['eps']))
                 p.data.add_(-lr.mul_(m_hat))
         return loss
+
+    def state_dict(self):
+        hard_copy = {
+            'state': {},
+            'param_groups': []
+        }
+        # print(self.state)
+        # print("====================================")
+        # print(self.param_groups)
+        # print("====================================")
+        # print(self.param_groups[0]['params'][0])
+        # print(type(self.param_groups[0]['params'][0]))
+        # exit()
+        with torch.no_grad():
+            for s in self.state:
+                hard_copy['state'][s] = {}
+                if len(self.state[s].keys()) > 0:
+                    hard_copy['state'][s]['step'] = copy.deepcopy(self.state[s]['step'])
+                    hard_copy['state'][s]['exp_avg'] = copy.deepcopy(self.state[s]['exp_avg'].data.detach())
+                    hard_copy['state'][s]['exp_avg_sq'] = copy.deepcopy(self.state[s]['exp_avg_sq'].data.detach())
+                    # print("save", hard_copy['state'][s]['step'])
+                    # print("save", hard_copy['state'][s]['exp_avg'][-1])
+                    # print("save", hard_copy['state'][s]['exp_avg_sq'][-1])
+            for group in self.param_groups:
+                hard_copy['param_groups'].append({})
+                hard_copy['param_groups'][-1]['params'] = []
+                for ele in group['params']:
+                    hard_copy['param_groups'][-1]['params'].append(copy.deepcopy(ele.data.detach()))
+
+                #     print("save", hard_copy['param_groups'][-1]['params'][-1].data[-1])
+                # print()
+
+                hard_copy['param_groups'][-1]['lr'] = group['lr']
+                hard_copy['param_groups'][-1]['betas'] = group['betas']
+                hard_copy['param_groups'][-1]['eps'] = group['eps']
+                hard_copy['param_groups'][-1]['weight_decay'] = group['weight_decay']
+                hard_copy['param_groups'][-1]['amsgrad'] = group['amsgrad']
+        return hard_copy
+
+    def load_state_dict(self, state_dict):
+        def inposition_fill(ref, data):
+            if len(ref.data.size()) == 2:
+                idx = torch.arange(ref.data.size()[1])
+                idx = torch.tile(idx, (ref.data.size()[0], 1))
+                ref.data.scatter_(1, idx, data)
+            elif len(ref.data.size()) == 1:
+                idx = torch.arange(ref.data.size()[0])
+                ref.data.scatter_(0, idx, data)
+            else:
+                ref.data.fill_(data)
+
+        with torch.no_grad():
+            for s in self.state:
+                if len(state_dict['state'][s].keys()) > 0:
+                    # print("before load", self.state[s]['step'])
+                    # print("before load", self.state[s]['exp_avg'][-1])
+                    # print("before load", self.state[s]['exp_avg_sq'][-1])
+
+                    self.state[s]['step'] = state_dict['state'][s]['step']
+                    # self.state[s]['exp_avg'].data.fill_(state_dict['state'][s]['exp_avg'])
+                    # self.state[s]['exp_avg_sq'].data.fill_(state_dict['state'][s]['exp_avg_sq'])
+                    inposition_fill(self.state[s]['exp_avg'], state_dict['state'][s]['exp_avg'])
+                    inposition_fill(self.state[s]['exp_avg_sq'], state_dict['state'][s]['exp_avg_sq'])
+
+                    # print("after load", self.state[s]['step'])
+                    # print("after load", self.state[s]['exp_avg'][-1])
+                    # print("after load", self.state[s]['exp_avg_sq'][-1])
+                    # exit()
+
+                else:
+                    del self.state[s]['step']
+                    del self.state[s]['exp_avg']
+                    del self.state[s]['exp_avg_sq']
+            for g in range(len(state_dict['param_groups'])):
+                for i in range(len(state_dict['param_groups'][g]['params'])):
+                    # print("before load", self.param_groups[g]['params'][i].data[-1])
+                    # if len(self.param_groups[g]['params'][i].data.size()) == 2:
+                    #     idx = torch.arange(self.param_groups[g]['params'][i].data.size()[1])
+                    #     idx = torch.tile(idx, (self.param_groups[g]['params'][i].data.size()[0], 1))
+                    #     self.param_groups[g]['params'][i].data.scatter_(1, idx, state_dict['param_groups'][g]['params'][i])
+                    # elif len(self.param_groups[g]['params'][i].data.size()) == 1:
+                    #     idx = torch.arange(self.param_groups[g]['params'][i].data.size()[0])
+                    #     self.param_groups[g]['params'][i].data.scatter_(0, idx, state_dict['param_groups'][g]['params'][i])
+                    # else:
+                    #     self.param_groups[g]['params'][i].data.fill_(state_dict['param_groups'][g]['params'][i])
+                    inposition_fill(self.param_groups[g]['params'][i], state_dict['param_groups'][g]['params'][i])
+                #     print("after load", self.param_groups[g]['params'][i].data[-1])
+                # print()
+                self.param_groups[g]['lr'] = state_dict['param_groups'][g]['lr']
+                self.param_groups[g]['betas'] = state_dict['param_groups'][g]['betas']
+                self.param_groups[g]['eps'] = state_dict['param_groups'][g]['eps']
+                self.param_groups[g]['weight_decay'] = state_dict['param_groups'][g]['weight_decay']
+                self.param_groups[g]['amsgrad'] = state_dict['param_groups'][g]['amsgrad']

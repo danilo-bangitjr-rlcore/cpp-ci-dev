@@ -75,7 +75,9 @@ class LineSearchOpt:
         #     self.opt_copy_dict[i] = recursive_save(opt0.state_dict())
         # else:
         #     raise NotImplementedError
-        self.opt_copy_dict[i] = recursive_save(opt0.state_dict())
+        # self.opt_copy_dict[i] = recursive_save(opt0.state_dict())
+        # print(opt0.state_dict)
+        self.opt_copy_dict[i] = opt0.state_dict()
         return
 
     def load_opt(self, i, opt0):
@@ -114,7 +116,9 @@ class LineSearchOpt:
         #     opt0.load_state_dict(recursive_load(opt0.state_dict(), self.opt_copy_dict[i]))
         # else:
         #     raise NotImplementedError
-        opt0.load_state_dict(recursive_load(opt0.state_dict(), self.opt_copy_dict[i]))
+
+        # opt0.load_state_dict(recursive_load(opt0.state_dict(), self.opt_copy_dict[i]))
+        opt0.load_state_dict(self.opt_copy_dict[i])
         return opt0
 
     def parameter_backup(self, net_lst, opt_lst):
@@ -132,7 +136,9 @@ class LineSearchOpt:
             #     print("before net")
             #     print("    ", list(net_lst[i].parameters())[0])
             self.clone_model_0to1(self.net_copy_lst[i], net_lst[i])
+            # self.clone_model_0to1(self.opt_copy_dict[i], opt_lst[i])
             opt_lst[i] = self.load_opt(i, opt_lst[i])
+
             # if len(opt_lst[i].state) != 0:
             #     print("after opt")
             #     print("    ", opt_lst[i].state[list(opt_lst[i].state)[0]]['step'])
