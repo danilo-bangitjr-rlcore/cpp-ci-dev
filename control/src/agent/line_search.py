@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
-from src.agent.greedy_ac import GreedyAC, GreedyACDiscrete
+from src.agent.greedy_ac import GreedyAC
 from src.network.factory import init_policy_network, init_critic_network, init_optimizer, init_custom_network
 import src.network.torch_utils as torch_utils
 from src.component.line_search_opt import LineSearchOpt
@@ -65,13 +65,17 @@ class LineSearchGAC(GreedyAC):
             'RMSprop': {},
             'SGD': {},
         }
-        self.actor_linesearch = LineSearchOpt(self.device, [self.actor], [self.actor_copy], optimizer_type=self.cfg.optimizer,
+        self.actor_linesearch = LineSearchOpt(self.device, [self.actor], [self.actor_copy], lr_main=self.cfg.lr_actor, max_backtracking=1,
+                                              optimizer_type=self.cfg.optimizer,
                                               error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])
-        self.critic_linesearch = LineSearchOpt(self.device, [self.critic], [self.critic_copy], optimizer_type=self.cfg.optimizer,
+        self.critic_linesearch = LineSearchOpt(self.device, [self.critic], [self.critic_copy], lr_main=self.cfg.lr_critic, max_backtracking=1,
+                                               optimizer_type=self.cfg.optimizer,
                                               error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])
-        self.sampler_linesearch = LineSearchOpt(self.device, [self.sampler], [self.sampler_copy], optimizer_type=self.cfg.optimizer,
-                                              error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])
+        self.sampler_linesearch = LineSearchOpt(self.device, [self.sampler], [self.sampler_copy], lr_main=self.cfg.lr_actor, max_backtracking=1,
+                                                optimizer_type=self.cfg.optimizer,
+                                                error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])
         self.explore_linesearch = LineSearchOpt(self.device, [self.fbonus0, self.fbonus1], [self.fbonus0_copy, self.fbonus1_copy],
+                                                lr_main=self.cfg.lr_critic, max_backtracking=1,
                                                 optimizer_type=self.cfg.optimizer, error_threshold=self.cfg.error_threshold,
                                                 opt_kwargs=self.opt_param[self.cfg.optimizer])
         self.last_explore_bonus = None

@@ -197,33 +197,13 @@ class CustomADAM(torch.optim.Optimizer):
                     # Exponential moving average of squared gradient values
                     state['exp_avg_sq'] = torch.zeros_like(p.data, memory_format=torch.preserve_format)
 
-                # m, v = state['exp_avg'], state['exp_avg_sq']
-                # beta1, beta2 = group['betas']
-
-                # state['step'] += 1
-                # m.mul_(beta1).add_((1 - beta1) * grad)
-                # v.mul_(beta2).add_((1 - beta2) * torch.square(grad))
-                # m_hat = m / (1 - beta1 ** state['step'])
-                # v_hat = v / (1 - beta2 ** state['step'])
-                # lr = group['lr'] / (v_hat.sqrt().add_(group['eps']))
-                # p.data.add_(-lr.mul_(m_hat))
-
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
-
                 state['step'] += 1
-                bias_correction1 = 1 - beta1 ** state['step']
-                bias_correction2 = 1 - beta2 ** state['step']
-
-                if group['weight_decay'] != 0:
-                    grad = grad.add(group['weight_decay'], p.data)
-
-                # Decay the first and second moment running average coefficient
-                exp_avg.mul_(beta1).add_(grad, 1 - beta1)
-                exp_avg_sq.mul_(beta2).addcmul_(1 - beta2, grad, grad)
-                denom = (exp_avg_sq.sqrt() / math.sqrt(bias_correction2)).add_(group['eps'])
-
-                step_size = group['lr'] / bias_correction1
-
-                p.data.addcdiv_(-step_size, exp_avg, denom)
+                exp_avg.mul_(beta1).add_((1 - beta1) * grad)
+                exp_avg_sq.mul_(beta2).add_((1 - beta2) * torch.square(grad))
+                m_hat = exp_avg / (1 - beta1 ** state['step'])
+                v_hat = exp_avg_sq / (1 - beta2 ** state['step'])
+                lr = group['lr'] / (v_hat.sqrt().add_(group['eps']))
+                p.data.add_(-lr.mul_(m_hat))
         return loss

@@ -20,13 +20,13 @@ def init_environment(name, cfg):
         return ThreeTankEnv(cfg.seed, cfg.lr_constrain, random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/ConstPID":
         return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=True,
-                              agent_action_min=-5,#0*cfg.action_scale+cfg.action_bias,
-                              agent_action_max=5,#1*cfg.action_scale+cfg.action_bias,
+                              agent_action_min=-1,#0*cfg.action_scale+cfg.action_bias,
+                              agent_action_max=1,#1*cfg.action_scale+cfg.action_bias,
                               random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/ChangePID":
         return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=False,
-                              agent_action_min=-5, #0*cfg.action_scale+cfg.action_bias,
-                              agent_action_max=5, #1*cfg.action_scale+cfg.action_bias,
+                              agent_action_min=-1, #0*cfg.action_scale+cfg.action_bias,
+                              agent_action_max=1, #1*cfg.action_scale+cfg.action_bias,
                               random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/DiscreteConstPID":
         return TTChangeActionDiscrete(cfg.env_info[0], cfg.seed, cfg.lr_constrain, constant_pid=True,

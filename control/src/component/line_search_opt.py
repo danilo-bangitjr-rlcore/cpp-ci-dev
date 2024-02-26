@@ -64,17 +64,23 @@ class LineSearchOpt:
                 for d in data:
                     saved.append(recursive_save(d))
             elif type(data) != torch.Tensor:
+                # print("save: ref, data", data)
                 saved = copy.deepcopy(data)
             else:
                 saved = copy.deepcopy(data).detach()
             return saved
-
+        # if self.optimizer_type == "SGD":
+        #     self.opt_copy_dict[i] = opt0.state_dict()
+        # elif self.optimizer_type in ["Adam", "CustomAdam"]:
+        #     self.opt_copy_dict[i] = recursive_save(opt0.state_dict())
+        # else:
+        #     raise NotImplementedError
         self.opt_copy_dict[i] = recursive_save(opt0.state_dict())
         return
 
     def load_opt(self, i, opt0):
         def recursive_load(ref, data):
-            if type(data) == dict:
+            if type(ref) == dict:
                 # if "step" in ref.keys():
                     # print("debug", ref['step'], data['step'])
                 for key in data.keys():
@@ -84,10 +90,11 @@ class LineSearchOpt:
                     if key not in data.keys():
                         del ref[key]
                         # print("delete unexist key {}".format(key))
-            elif type(data) == list:
+            elif type(ref) == list:
                 for di in range(len(data)):
                     recursive_load(ref[di], data[di])
-            elif type(data) != torch.Tensor:
+            elif type(ref) != torch.Tensor:
+                # print("load: ref, data", ref, data)
                 ref = data
             else:
                 if len(ref.size()) == 2:
@@ -101,6 +108,12 @@ class LineSearchOpt:
                     ref.fill_(torch_utils.tensor(data, self.device))
             return ref
 
+        # if self.optimizer_type == "SGD":
+        #     opt0.load_state_dict(self.opt_copy_dict[i])
+        # elif self.optimizer_type in ["Adam", "CustomAdam"]:
+        #     opt0.load_state_dict(recursive_load(opt0.state_dict(), self.opt_copy_dict[i]))
+        # else:
+        #     raise NotImplementedError
         opt0.load_state_dict(recursive_load(opt0.state_dict(), self.opt_copy_dict[i]))
         return opt0
 
@@ -203,7 +216,7 @@ class LineSearchOpt:
                 network_lst, self.optimizer_lst = self.undo_update(network_lst, self.optimizer_lst)
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
                 self.lr_main = max(self.lr_main * self.lr_decay_rate, self.lr_lower_bound)
-                print("reducing lr",  self.net_copy_lst, self.lr_main)
+                # print("reducing lr",  self.net_copy_lst, self.lr_main)
                 self.optimizer_lst = []
                 for i in range(len(network_lst)):
                     self.optimizer_lst.append(init_optimizer(self.optimizer_type, list(network_lst[i].parameters()),
@@ -211,6 +224,7 @@ class LineSearchOpt:
                 break
             else:
                 break
+        # print("last lr", self.lr_main, self.last_scaler)
         self.last_scaler = self.lr_weight
         self.lr_weight = self.lr_weight_copy
         self.last_change = (after_error - before_error).detach().numpy()
