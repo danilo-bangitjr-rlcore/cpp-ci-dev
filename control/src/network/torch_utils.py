@@ -177,6 +177,16 @@ class CustomADAM(torch.optim.Optimizer):
                         weight_decay=weight_decay, amsgrad=False)
         super(CustomADAM, self).__init__(params, defaults)
 
+        self.state_idx = {}
+        max_p_len = 0
+        for gi, group in enumerate(self.param_groups):
+            if len(group['params']) > max_p_len:
+                max_p_len = len(group['params'])
+        self.max_p_len = max_p_len
+        for gi, group in enumerate(self.param_groups):
+            for pi, p in enumerate(group['params']):
+                self.state_idx[gi * self.max_p_len + pi] = {}
+
     def __setstate__(self, state):
         super(CustomADAM, self).__setstate__(state)
         for group in self.param_groups:
@@ -187,12 +197,14 @@ class CustomADAM(torch.optim.Optimizer):
         if closure is not None:
             loss = closure()
 
-        for group in self.param_groups:
-            for p in group['params']:
+        for gi, group in enumerate(self.param_groups):
+            # for p in group['params']:
+            for pi, p in enumerate(group['params']):
+
                 if p.grad is None:
                     continue
                 grad = p.grad.data
-                state = self.state[p]
+                state = self.state_idx[gi * self.max_p_len + pi]
 
                 # State initialization
                 if len(state) == 0:
@@ -212,32 +224,26 @@ class CustomADAM(torch.optim.Optimizer):
         return loss
 
     def state_dict(self):
+        # default_dict = super().state_dict()
         hard_copy = {
             'state': {},
             'param_groups': []
         }
-        # print(self.state)
-        # print("====================================")
-        # print(self.param_groups)
-        # print("====================================")
-        # print(self.param_groups[0]['params'][0])
-        # print(type(self.param_groups[0]['params'][0]))
-        # exit()
         with torch.no_grad():
-            for s in self.state:
+            for s in self.state_idx:
                 hard_copy['state'][s] = {}
-                if len(self.state[s].keys()) > 0:
-                    hard_copy['state'][s]['step'] = copy.deepcopy(self.state[s]['step'])
-                    hard_copy['state'][s]['exp_avg'] = copy.deepcopy(self.state[s]['exp_avg'].data.detach())
-                    hard_copy['state'][s]['exp_avg_sq'] = copy.deepcopy(self.state[s]['exp_avg_sq'].data.detach())
-                    # print("save", hard_copy['state'][s]['step'])
-                    # print("save", hard_copy['state'][s]['exp_avg'][-1])
-                    # print("save", hard_copy['state'][s]['exp_avg_sq'][-1])
-            for group in self.param_groups:
+                # print("state_dict", hard_copy['state'][s])
+                if len(self.state_idx[s].keys()) > 0:
+                    hard_copy['state'][s]['step'] = copy.deepcopy(self.state_idx[s]['step'])
+                    hard_copy['state'][s]['exp_avg'] = copy.deepcopy(self.state_idx[s]['exp_avg'].data.detach())
+                    hard_copy['state'][s]['exp_avg_sq'] = copy.deepcopy(self.state_idx[s]['exp_avg_sq'].data.detach())
+            for gi, group in enumerate(self.param_groups):
                 hard_copy['param_groups'].append({})
-                hard_copy['param_groups'][-1]['params'] = []
-                for ele in group['params']:
-                    hard_copy['param_groups'][-1]['params'].append(copy.deepcopy(ele.data.detach()))
+                
+                # hard_copy['param_groups'][-1]['params'] = default_dict['param_groups'][gi]['params']
+                # hard_copy['param_groups'][-1]['params'] = []
+                # for ele in group['params']:
+                #     hard_copy['param_groups'][-1]['params'].append(copy.deepcopy(ele.data.detach()))
 
                 #     print("save", hard_copy['param_groups'][-1]['params'][-1].data[-1])
                 # print()
@@ -250,6 +256,7 @@ class CustomADAM(torch.optim.Optimizer):
         return hard_copy
 
     def load_state_dict(self, state_dict):
+        # super().load_state_dict(state_dict)
         def inposition_fill(ref, data):
             if len(ref.data.size()) == 2:
                 idx = torch.arange(ref.data.size()[1])
@@ -262,44 +269,18 @@ class CustomADAM(torch.optim.Optimizer):
                 ref.data.fill_(data)
 
         with torch.no_grad():
-            for s in self.state:
-                if len(state_dict['state'][s].keys()) > 0:
-                    # print("before load", self.state[s]['step'])
-                    # print("before load", self.state[s]['exp_avg'][-1])
-                    # print("before load", self.state[s]['exp_avg_sq'][-1])
-
-                    self.state[s]['step'] = state_dict['state'][s]['step']
-                    # self.state[s]['exp_avg'].data.fill_(state_dict['state'][s]['exp_avg'])
-                    # self.state[s]['exp_avg_sq'].data.fill_(state_dict['state'][s]['exp_avg_sq'])
-                    inposition_fill(self.state[s]['exp_avg'], state_dict['state'][s]['exp_avg'])
-                    inposition_fill(self.state[s]['exp_avg_sq'], state_dict['state'][s]['exp_avg_sq'])
-
-                    # print("after load", self.state[s]['step'])
-                    # print("after load", self.state[s]['exp_avg'][-1])
-                    # print("after load", self.state[s]['exp_avg_sq'][-1])
-                    # exit()
-
-                else:
-                    del self.state[s]['step']
-                    del self.state[s]['exp_avg']
-                    del self.state[s]['exp_avg_sq']
             for g in range(len(state_dict['param_groups'])):
-                for i in range(len(state_dict['param_groups'][g]['params'])):
-                    # print("before load", self.param_groups[g]['params'][i].data[-1])
-                    # if len(self.param_groups[g]['params'][i].data.size()) == 2:
-                    #     idx = torch.arange(self.param_groups[g]['params'][i].data.size()[1])
-                    #     idx = torch.tile(idx, (self.param_groups[g]['params'][i].data.size()[0], 1))
-                    #     self.param_groups[g]['params'][i].data.scatter_(1, idx, state_dict['param_groups'][g]['params'][i])
-                    # elif len(self.param_groups[g]['params'][i].data.size()) == 1:
-                    #     idx = torch.arange(self.param_groups[g]['params'][i].data.size()[0])
-                    #     self.param_groups[g]['params'][i].data.scatter_(0, idx, state_dict['param_groups'][g]['params'][i])
-                    # else:
-                    #     self.param_groups[g]['params'][i].data.fill_(state_dict['param_groups'][g]['params'][i])
-                    inposition_fill(self.param_groups[g]['params'][i], state_dict['param_groups'][g]['params'][i])
-                #     print("after load", self.param_groups[g]['params'][i].data[-1])
-                # print()
                 self.param_groups[g]['lr'] = state_dict['param_groups'][g]['lr']
                 self.param_groups[g]['betas'] = state_dict['param_groups'][g]['betas']
                 self.param_groups[g]['eps'] = state_dict['param_groups'][g]['eps']
                 self.param_groups[g]['weight_decay'] = state_dict['param_groups'][g]['weight_decay']
                 self.param_groups[g]['amsgrad'] = state_dict['param_groups'][g]['amsgrad']
+
+            s_keys = self.state_idx.keys()
+            for s in s_keys:
+                if len(state_dict['state'][s].keys()) > 0:
+                    self.state_idx[s]['step'] = state_dict['state'][s]['step']
+                    inposition_fill(self.state_idx[s]['exp_avg'], state_dict['state'][s]['exp_avg'])
+                    inposition_fill(self.state_idx[s]['exp_avg_sq'], state_dict['state'][s]['exp_avg_sq'])
+                else:
+                    self.state_idx[s] = {}

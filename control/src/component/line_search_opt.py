@@ -76,7 +76,6 @@ class LineSearchOpt:
         # else:
         #     raise NotImplementedError
         # self.opt_copy_dict[i] = recursive_save(opt0.state_dict())
-        # print(opt0.state_dict)
         self.opt_copy_dict[i] = opt0.state_dict()
         return
 
