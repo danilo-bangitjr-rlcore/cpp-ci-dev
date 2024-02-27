@@ -175,7 +175,6 @@ class BaseAC(Evaluation):
                 i_log['critic_info'].pop('Q-function', None)
 
         self.update(trunc)
-
         if reset:
             next_observation, info = self.env_reset()
         self.observation = next_observation
