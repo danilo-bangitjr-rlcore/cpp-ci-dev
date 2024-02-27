@@ -299,8 +299,8 @@ class BaseAC(Evaluation):
                 v = self.v_baseline(observation)
         return v
 
-    def get_data(self):
-        states, actions, rewards, next_states, terminals, truncations = self.buffer.sample()
+    def get_data(self, batch_size=None):
+        states, actions, rewards, next_states, terminals, truncations = self.buffer.sample(batch_size)
         in_ = torch_utils.tensor(states, self.device)
         actions = torch_utils.tensor(actions, self.device)
         r = torch_utils.tensor(rewards, self.device)

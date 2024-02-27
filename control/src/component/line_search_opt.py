@@ -54,98 +54,83 @@ class LineSearchOpt:
         return net1
 
     def save_opt(self, i, opt0):
-        def recursive_save(data):
-            if type(data) == dict:
-                saved = {}
-                for key in data.keys():
-                    saved[key] = recursive_save(data[key])
-            elif type(data) == list:
-                saved = []
-                for d in data:
-                    saved.append(recursive_save(d))
-            elif type(data) != torch.Tensor:
-                # print("save: ref, data", data)
-                saved = copy.deepcopy(data)
-            else:
-                saved = copy.deepcopy(data).detach()
-            return saved
-        # if self.optimizer_type == "SGD":
-        #     self.opt_copy_dict[i] = opt0.state_dict()
-        # elif self.optimizer_type in ["Adam", "CustomAdam"]:
-        #     self.opt_copy_dict[i] = recursive_save(opt0.state_dict())
-        # else:
-        #     raise NotImplementedError
+        # def recursive_save(data):
+        #     if type(data) == dict:
+        #         saved = {}
+        #         for key in data.keys():
+        #             saved[key] = recursive_save(data[key])
+        #     elif type(data) == list:
+        #         saved = []
+        #         for d in data:
+        #             saved.append(recursive_save(d))
+        #     elif type(data) != torch.Tensor:
+        #         # print("save: ref, data", data)
+        #         saved = copy.deepcopy(data)
+        #     else:
+        #         saved = copy.deepcopy(data).detach()
+        #     return saved
         # self.opt_copy_dict[i] = recursive_save(opt0.state_dict())
         self.opt_copy_dict[i] = opt0.state_dict()
         return
 
     def load_opt(self, i, opt0):
-        def recursive_load(ref, data):
-            if type(ref) == dict:
-                # if "step" in ref.keys():
-                    # print("debug", ref['step'], data['step'])
-                for key in data.keys():
-                    recursive_load(ref[key], data[key])
-                refkeys = list(ref.keys())
-                for key in refkeys:
-                    if key not in data.keys():
-                        del ref[key]
-                        # print("delete unexist key {}".format(key))
-            elif type(ref) == list:
-                for di in range(len(data)):
-                    recursive_load(ref[di], data[di])
-            elif type(ref) != torch.Tensor:
-                # print("load: ref, data", ref, data)
-                ref = data
-            else:
-                if len(ref.size()) == 2:
-                    idx = torch.arange(ref.size()[1])
-                    idx = torch.tile(idx, (ref.size()[0], 1))
-                    ref.scatter_(1, idx, torch_utils.tensor(data, self.device))
-                elif len(ref.size()) == 1:
-                    idx = torch.arange(ref.size()[0])
-                    ref.scatter_(0, idx, torch_utils.tensor(data, self.device))
-                else:
-                    ref.fill_(torch_utils.tensor(data, self.device))
-            return ref
-
-        # if self.optimizer_type == "SGD":
-        #     opt0.load_state_dict(self.opt_copy_dict[i])
-        # elif self.optimizer_type in ["Adam", "CustomAdam"]:
-        #     opt0.load_state_dict(recursive_load(opt0.state_dict(), self.opt_copy_dict[i]))
-        # else:
-        #     raise NotImplementedError
-
+        # def recursive_load(ref, data):
+        #     if type(ref) == dict:
+        #         # if "step" in ref.keys():
+        #             # print("debug", ref['step'], data['step'])
+        #         for key in data.keys():
+        #             recursive_load(ref[key], data[key])
+        #         refkeys = list(ref.keys())
+        #         for key in refkeys:
+        #             if key not in data.keys():
+        #                 del ref[key]
+        #                 # print("delete unexist key {}".format(key))
+        #     elif type(ref) == list:
+        #         for di in range(len(data)):
+        #             recursive_load(ref[di], data[di])
+        #     elif type(ref) != torch.Tensor:
+        #         # print("load: ref, data", ref, data)
+        #         ref = data
+        #     else:
+        #         if len(ref.size()) == 2:
+        #             idx = torch.arange(ref.size()[1])
+        #             idx = torch.tile(idx, (ref.size()[0], 1))
+        #             ref.scatter_(1, idx, torch_utils.tensor(data, self.device))
+        #         elif len(ref.size()) == 1:
+        #             idx = torch.arange(ref.size()[0])
+        #             ref.scatter_(0, idx, torch_utils.tensor(data, self.device))
+        #         else:
+        #             ref.fill_(torch_utils.tensor(data, self.device))
+        #     return ref
         # opt0.load_state_dict(recursive_load(opt0.state_dict(), self.opt_copy_dict[i]))
         opt0.load_state_dict(self.opt_copy_dict[i])
         return opt0
 
     def parameter_backup(self, net_lst, opt_lst):
         for i in range(len(net_lst)):
-            self.clone_model_0to1(net_lst[i], self.net_copy_lst[i])
             self.save_opt(i, opt_lst[i])
+            self.clone_model_0to1(net_lst[i], self.net_copy_lst[i])
 
     def undo_update(self, net_lst, opt_lst):
         for i in range(len(net_lst)):
-            # if len(self.opt_copy_dict[i]["state"])!=0:
+            # if len(opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]])!=0:
             #     print("before opt")
-            #     print("    ", opt_lst[i].state[list(opt_lst[i].state)[0]]['step'])
-            #     print("    ", opt_lst[i].state[list(opt_lst[i].state)[0]]['exp_avg'].mean())
-            #     print("    ", opt_lst[i].state[list(opt_lst[i].state)[0]]['exp_avg_sq'].mean())
+            #     print("    ", opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]['step'])
+            #     print("    ", opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]['exp_avg'].mean())
+            #     print("    ", opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]['exp_avg_sq'].mean())
             #     print("before net")
-            #     print("    ", list(net_lst[i].parameters())[0])
+            #     print("    ", list(net_lst[i].parameters())[-1])
             self.clone_model_0to1(self.net_copy_lst[i], net_lst[i])
-            # self.clone_model_0to1(self.opt_copy_dict[i], opt_lst[i])
             opt_lst[i] = self.load_opt(i, opt_lst[i])
 
-            # if len(opt_lst[i].state) != 0:
-            #     print("after opt")
-            #     print("    ", opt_lst[i].state[list(opt_lst[i].state)[0]]['step'])
-            #     print("    ", opt_lst[i].state[list(opt_lst[i].state)[0]]['exp_avg'].mean())
-            #     print("    ", opt_lst[i].state[list(opt_lst[i].state)[0]]['exp_avg_sq'].mean())
+            # if len(opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]) != 0:
+            #     # print("after opt")
+            #     # print("    ", opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]['step'])
+            #     # print("    ", opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]['exp_avg'].mean())
+            #     # print("    ", opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]['exp_avg_sq'].mean())
             #     # # Net loading works
             #     print("after net")
-            #     print("    ", list(net_lst[i].parameters())[0])
+            #     print("    ", list(net_lst[i].parameters())[-1])
             #     print()
         return net_lst, opt_lst
 
