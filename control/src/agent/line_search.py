@@ -61,11 +61,11 @@ class LineSearchGAC(GreedyAC):
             'Adam': {'betas': (cfg.optimizer_param[:2]),
                      'eps': cfg.optimizer_param[2]},
             'CustomAdam': {'betas': (cfg.optimizer_param[:2]),
-                     'eps': cfg.optimizer_param[2]},
+                           'eps': cfg.optimizer_param[2]},
             'RMSprop': {},
             'SGD': {},
         }
-        max_backtracking = 30
+        max_backtracking = self.cfg.max_backtracking
         self.actor_linesearch = LineSearchOpt(self.device, [self.actor], [self.actor_copy], lr_main=self.cfg.lr_actor, max_backtracking=max_backtracking,
                                               optimizer_type=self.cfg.optimizer,
                                               error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])

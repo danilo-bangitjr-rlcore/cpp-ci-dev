@@ -213,13 +213,15 @@ class LineSearchOpt:
                 network_lst, self.optimizer_lst = self.undo_update(network_lst, self.optimizer_lst)
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
                 self.lr_main = max(self.lr_main * self.lr_decay_rate, self.lr_lower_bound)
-                # print("reducing lr",  self.net_copy_lst, self.lr_main)
+                # print("Errors", after_error, before_error, ". Reducing lr",  self.lr_main)
+
                 # self.optimizer_lst = []
                 # for i in range(len(network_lst)):
                 #     self.optimizer_lst.append(init_optimizer(self.optimizer_type, list(network_lst[i].parameters()),
                 #                                              self.lr_main))
-                for i in range(len(self.optimizer_lst)):
-                    self.reset_lr(self.optimizer_lst[i], self.lr_weight * self.lr_main)
+
+                # for i in range(len(self.optimizer_lst)):
+                #     self.reset_lr(self.optimizer_lst[i], self.lr_weight * self.lr_main)
                 break
             else:
                 break

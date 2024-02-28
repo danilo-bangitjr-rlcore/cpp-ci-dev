@@ -199,9 +199,8 @@ class CustomADAM(torch.optim.Optimizer):
 
         # for gi, group in enumerate(network_param_groups):
         for gi, group in enumerate(self.param_groups):
-            for pi, p in enumerate(network_param_groups[gi]):
             # for pi, p in enumerate(group['params']):
-
+            for pi, p in enumerate(network_param_groups[gi]):
                 if p.grad is None:
                     continue
                 grad = p.grad.data
@@ -217,13 +216,30 @@ class CustomADAM(torch.optim.Optimizer):
                 exp_avg, exp_avg_sq = state['exp_avg'], state['exp_avg_sq']
                 beta1, beta2 = group['betas']
                 state['step'] += 1
-                exp_avg.mul_(beta1).add_((1 - beta1) * grad)
-                exp_avg_sq.mul_(beta2).add_((1 - beta2) * torch.square(grad))
-                m_hat = exp_avg / (1 - beta1 ** state['step'])
-                v_hat = exp_avg_sq / (1 - beta2 ** state['step'])
-                lr = group['lr'] / (v_hat.sqrt().add_(group['eps']))
-                p.data.add_(-lr.mul_(m_hat))
+                step = state['step']
+                lr = group['lr']
+                # if pi == 5 and len(self.state_idx[5].keys()) > 0:
+                #     print("step", self.state_idx[5]['exp_avg'], self.state_idx[5]['exp_avg_sq'])
+
+                exp_avg.lerp_(grad, 1 - beta1)
+                exp_avg_sq.mul_(beta2).addcmul_(grad, grad.conj(), value=1 - beta2)
+                bias_correction1 = 1 - beta1 ** step
+                bias_correction2 = 1 - beta2 ** step
+                step_size = lr / bias_correction1
+                bias_correction2_sqrt = self._dispatch_sqrt(bias_correction2)
+                denom = (exp_avg_sq.sqrt() / bias_correction2_sqrt).add_(group['eps'])
+                p.data.addcdiv_(exp_avg, denom, value=-step_size)
+
+                # if pi == 5 and len(self.state_idx[5].keys()) > 0:
+                #     print("updated", self.state_idx[5]['exp_avg'], self.state_idx[5]['exp_avg_sq'])
+
         return loss
+
+    def _dispatch_sqrt(self, x: float):  # float annotation is needed because of torchscript type inference
+        if not torch.jit.is_scripting() and isinstance(x, torch.Tensor):
+            return x.sqrt()
+        else:
+            return math.sqrt(x)
 
     def state_dict(self):
         hard_copy = {
@@ -232,9 +248,9 @@ class CustomADAM(torch.optim.Optimizer):
         }
         with torch.no_grad():
             for s in self.state_idx:
-            # st_keys = list(self.state.keys())
-            # for st in st_keys:
-            #     s = copy.deepcopy(st.data.detach())
+                # if s == 5 and len(self.state_idx[5].keys()) > 0:
+                #     print("saving state", self.state_idx[5]['exp_avg'], self.state_idx[5]['exp_avg_sq'])
+
                 hard_copy['state'][s] = {}
                 if len(self.state_idx[s].keys()) > 0:
                     hard_copy['state'][s]['step'] = copy.deepcopy(self.state_idx[s]['step'])
@@ -254,11 +270,11 @@ class CustomADAM(torch.optim.Optimizer):
                 # for ele in group['params']:
                 #     hard_copy['param_groups'][-1]['params'].append(copy.deepcopy(ele.data.detach()))
 
-                hard_copy['param_groups'][-1]['lr'] = group['lr']
-                hard_copy['param_groups'][-1]['betas'] = group['betas']
-                hard_copy['param_groups'][-1]['eps'] = group['eps']
-                hard_copy['param_groups'][-1]['weight_decay'] = group['weight_decay']
-                hard_copy['param_groups'][-1]['amsgrad'] = group['amsgrad']
+                hard_copy['param_groups'][-1]['lr'] = copy.deepcopy(group['lr'])
+                hard_copy['param_groups'][-1]['betas'] = copy.deepcopy(group['betas'])
+                hard_copy['param_groups'][-1]['eps'] = copy.deepcopy(group['eps'])
+                hard_copy['param_groups'][-1]['weight_decay'] = copy.deepcopy(group['weight_decay'])
+                hard_copy['param_groups'][-1]['amsgrad'] = copy.deepcopy(group['amsgrad'])
         return hard_copy
 
     def load_state_dict(self, state_dict):
@@ -291,6 +307,11 @@ class CustomADAM(torch.optim.Optimizer):
                     self.state_idx[s]['step'] = state_dict['state'][s]['step']
                     inposition_fill(self.state_idx[s]['exp_avg'], state_dict['state'][s]['exp_avg'])
                     inposition_fill(self.state_idx[s]['exp_avg_sq'], state_dict['state'][s]['exp_avg_sq'])
+
+                    # if s==5 and len(state_dict['state'][5].keys()) > 0:
+                    #     print("loaded in loop", self.state_idx[5]['exp_avg'], state_dict['state'][5]['exp_avg'])
+                    #     print("loaded in loop", self.state_idx[5]['exp_avg_sq'], state_dict['state'][5]['exp_avg_sq'])
+
                 # if state_dict['state'].get(s) is None:
                 #     del self.state[s]
                 # elif state_dict['state'].get(s) is not None and (len(state_dict['state'][s].keys()) > 0):
@@ -303,6 +324,5 @@ class CustomADAM(torch.optim.Optimizer):
                     ssk = list(self.state_idx[s].keys())
                     for k in ssk:
                         del self.state_idx[s][k]
-                    # ssk = list(self.state[s].keys())
-                    # for k in ssk:
-                    #     del self.state[s][k]
+            # if len(state_dict['state'][5].keys()) > 0:
+            #     print("loaded", self.state_idx[5]['exp_avg'], self.state_idx[5]['exp_avg_sq'])
