@@ -148,10 +148,6 @@ class LineSearchGAC(GreedyAC):
         # Add the exploration bonus
         q_values, _ = self.get_q_value(repeated_states, sample_actions, with_grad=False)
         exp_b = self.explore_bonus_eval(repeated_states, sample_actions)
-        # print("sortqvalue")
-        # print(q_values.mean(), q_values.std(), q_values.min(), q_values.max())
-        # print(exp_b.mean(), exp_b.std(), exp_b.min(), exp_b.max())
-        # print("---")
         self.last_explore_bonus = [exp_b.mean(), exp_b.min(), exp_b.max()]
         q_values += self.explore_scaler * exp_b
 
@@ -322,9 +318,6 @@ class LineSearchReset(LineSearchGAC):
 
     def inner_update(self, trunc=False):
         super(LineSearchReset, self).inner_update(trunc=trunc)
-        print("critic", self.critic_linesearch.latest_change)
-        print("sampler", self.sampler_linesearch.latest_change)
-        print("actor", self.actor_linesearch.latest_change)
         if self.total_steps % 100 == 0:
             print("Reseting at step {}".format(self.total_steps))
             if "Sampler" in self.reset_nets:

@@ -28,7 +28,6 @@ class LineSearchOpt:
             self.backtrack = self.backtrack_momentum
         else:
             raise NotImplementedError
-        # self.backtrack = self.backtrack_momentum
 
         self.lr_main = lr_main
         self.lr_weight = 1
@@ -60,55 +59,10 @@ class LineSearchOpt:
         return net1
 
     def save_opt(self, i, opt0):
-        # def recursive_save(data):
-        #     if type(data) == dict:
-        #         saved = {}
-        #         for key in data.keys():
-        #             saved[key] = recursive_save(data[key])
-        #     elif type(data) == list:
-        #         saved = []
-        #         for d in data:
-        #             saved.append(recursive_save(d))
-        #     elif type(data) != torch.Tensor:
-        #         # print("save: ref, data", data)
-        #         saved = copy.deepcopy(data)
-        #     else:
-        #         saved = copy.deepcopy(data).detach()
-        #     return saved
-        # self.opt_copy_dict[i] = recursive_save(opt0.state_dict())
         self.opt_copy_dict[i] = opt0.state_dict()
         return
 
     def load_opt(self, i, opt0):
-        # def recursive_load(ref, data):
-        #     if type(ref) == dict:
-        #         # if "step" in ref.keys():
-        #             # print("debug", ref['step'], data['step'])
-        #         for key in data.keys():
-        #             recursive_load(ref[key], data[key])
-        #         refkeys = list(ref.keys())
-        #         for key in refkeys:
-        #             if key not in data.keys():
-        #                 del ref[key]
-        #                 # print("delete unexist key {}".format(key))
-        #     elif type(ref) == list:
-        #         for di in range(len(data)):
-        #             recursive_load(ref[di], data[di])
-        #     elif type(ref) != torch.Tensor:
-        #         # print("load: ref, data", ref, data)
-        #         ref = data
-        #     else:
-        #         if len(ref.size()) == 2:
-        #             idx = torch.arange(ref.size()[1])
-        #             idx = torch.tile(idx, (ref.size()[0], 1))
-        #             ref.scatter_(1, idx, torch_utils.tensor(data, self.device))
-        #         elif len(ref.size()) == 1:
-        #             idx = torch.arange(ref.size()[0])
-        #             ref.scatter_(0, idx, torch_utils.tensor(data, self.device))
-        #         else:
-        #             ref.fill_(torch_utils.tensor(data, self.device))
-        #     return ref
-        # opt0.load_state_dict(recursive_load(opt0.state_dict(), self.opt_copy_dict[i]))
         opt0.load_state_dict(self.opt_copy_dict[i])
         return opt0
 
@@ -119,25 +73,8 @@ class LineSearchOpt:
 
     def undo_update(self, net_lst, opt_lst):
         for i in range(len(net_lst)):
-            # if len(opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]])!=0:
-            #     print("before opt")
-            #     print("    ", opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]['step'])
-            #     print("    ", opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]['exp_avg'].mean())
-            #     print("    ", opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]['exp_avg_sq'].mean())
-            #     # Net loading works
-            #     print("before net")
-            #     print("    ", list(net_lst[i].parameters())[-1])
             self.clone_model_0to1(self.net_copy_lst[i], net_lst[i])
             opt_lst[i] = self.load_opt(i, opt_lst[i])
-            # if len(list(opt_lst[i].state_idx)) != 0 and len(opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]) != 0:
-            #     print("after opt")
-            #     print("    ", opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]['step'])
-            #     print("    ", opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]['exp_avg'].mean())
-            #     print("    ", opt_lst[i].state_idx[list(opt_lst[i].state_idx)[0]]['exp_avg_sq'].mean())
-            #     # Net loading works
-            #     print("after net")
-            #     print("    ", list(net_lst[i].parameters())[-1])
-            #     print()
         return net_lst, opt_lst
 
     def weighting_loss(self, loss, lr_weight):
@@ -152,11 +89,9 @@ class LineSearchOpt:
         before_error = error_evaluation_fn(error_eval_input)
         grad_rec = []
         for i in range(len(network_lst)):
-            # weighted_loss = loss_lst[i] * self.lr_weight
             weighted_loss = self.weighting_loss(loss_lst[i], self.lr_weight) # The weight is supposed to always be 1.
             self.optimizer_lst[i].zero_grad()
             backward_fn(weighted_loss)
-            # weighted_loss.backward()
             grad_rec.append(self.clone_gradient(network_lst[i]))
 
         for bi in range(self.max_backtracking):
@@ -167,7 +102,6 @@ class LineSearchOpt:
             for i in range(len(network_lst)):
                 self.optimizer_lst[i].step()
             after_error = error_evaluation_fn(error_eval_input)
-            # print(bi, before_error, after_error)
             if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
                 self.lr_weight *= self.lr_decay_rate
                 network_lst, self.optimizer_lst = self.undo_update(network_lst, self.optimizer_lst)
@@ -204,28 +138,15 @@ class LineSearchOpt:
                     self.move_gradient_to_network(network_lst[i], grad_rec[i], 1)
             for i in range(len(network_lst)):
                 self.optimizer_lst[i].step([self.net_parameter_ref[i]])
-                # self.optimizer_lst[i].step()
             after_error = error_evaluation_fn(error_eval_input)
-            # print(bi, before_error, after_error)
             if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
                 self.lr_weight *= self.lr_decay_rate
-                # print("undo, ", self.inner_count, bi)
                 network_lst, self.optimizer_lst = self.undo_update(network_lst, self.optimizer_lst)
             elif after_error - before_error > self.error_threshold and bi == self.max_backtracking-1:
                 self.lr_main = max(self.lr_main * self.lr_decay_rate, self.lr_lower_bound)
-                # print("Errors", after_error, before_error, ". Reducing lr",  self.lr_main)
-
-                # self.optimizer_lst = []
-                # for i in range(len(network_lst)):
-                #     self.optimizer_lst.append(init_optimizer(self.optimizer_type, list(network_lst[i].parameters()),
-                #                                              self.lr_main))
-
-                # for i in range(len(self.optimizer_lst)):
-                #     self.reset_lr(self.optimizer_lst[i], self.lr_weight * self.lr_main)
                 break
             else:
                 break
-        # print("last lr", self.lr_main, "*", self.last_scaler, "=", self.lr_main*self.last_scaler)
         self.last_scaler = self.lr_weight
         self.lr_weight = self.lr_weight_copy
         self.last_change = (after_error - before_error).detach().numpy()
