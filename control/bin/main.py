@@ -17,7 +17,7 @@ import linecache
 os.chdir("..")
 print("Change dir to", os.getcwd())
 
-def display_top(snapshot, key_type='lineno', limit=10):
+def display_top(snapshot, key_type='lineno', limit=20):
     snapshot = snapshot.filter_traces((
         tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
         tracemalloc.Filter(False, "<unknown>"),
@@ -134,6 +134,7 @@ if __name__ == "__main__":
     parser.add_argument('--reset_nets', default=['Sampler'], type=str, nargs='+')
     parser.add_argument('--reset_mode', default='None', type=str)
     parser.add_argument('--reset_param', default=0., type=float)
+    parser.add_argument('--max_backtracking', default=30, type=int)
     parser.add_argument('--error_threshold', default=1e-4, type=float)
     parser.add_argument('--optimizer_param', default=[0.9, 0.999, 1e-08], type=float, nargs='+')
 
