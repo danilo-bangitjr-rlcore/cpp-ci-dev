@@ -17,6 +17,10 @@ class NoneActivation(nn.Module):
     def forward(self, x):
         return x
 
+def expectile_loss(diff, expectile=0.8):
+    weight = torch.where(diff > 0, expectile, (1 - expectile))
+    return weight * (diff ** 2)
+
 def reset_weight_random(old_net, new_net, param):
     return new_net
 
