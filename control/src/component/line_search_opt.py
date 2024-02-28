@@ -37,7 +37,7 @@ class LineSearchOpt:
         self.max_backtracking = max_backtracking
         self.error_threshold = error_threshold
         self.lr_lower_bound = lr_lower_bound
-        self.last_scaler = None
+        self.last_scaler = 1.0
         self.last_change = np.inf
 
         self.inner_count = 0
@@ -225,7 +225,7 @@ class LineSearchOpt:
                 break
             else:
                 break
-        # print("last lr", self.lr_main, self.last_scaler)
+        # print("last lr", self.lr_main, "*", self.last_scaler, "=", self.lr_main*self.last_scaler)
         self.last_scaler = self.lr_weight
         self.lr_weight = self.lr_weight_copy
         self.last_change = (after_error - before_error).detach().numpy()

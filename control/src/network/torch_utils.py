@@ -309,6 +309,7 @@ class CustomADAM(torch.optim.Optimizer):
                     inposition_fill(self.state_idx[s]['exp_avg_sq'], state_dict['state'][s]['exp_avg_sq'])
 
                     # if s==5 and len(state_dict['state'][5].keys()) > 0:
+                    #     print("loaded in loop", self.state_idx[5]['step'], state_dict['state'][5]['step'])
                     #     print("loaded in loop", self.state_idx[5]['exp_avg'], state_dict['state'][5]['exp_avg'])
                     #     print("loaded in loop", self.state_idx[5]['exp_avg_sq'], state_dict['state'][5]['exp_avg_sq'])
 
