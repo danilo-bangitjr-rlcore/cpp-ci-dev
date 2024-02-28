@@ -354,10 +354,38 @@ def c20240221(settings, shared_settings, target_agents):
 
 def c20240222(settings, shared_settings, target_agents):
     """
-    Check Customized Adam optimizer
+    Check Customized Adam optimizer (X)
     """
     cmds = [
-        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 5  --version 2  --max_steps 300000 --timeout 500 --log_interval 500 --stats_queue_size 1 --debug 0  --render 0  --use_target_network 1  --polyak 0.995  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer CustomAdam  --env_name Acrobot-v1  --discrete_control 1  --buffer_size 300000  --batch_size 512  --exp_name /temp/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /Adam/target_0.995/ensemble1/  --seed 0 --actor Softmax --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.99 --exploration 1 --critic_ensemble 1  --n 30  --optimizer_param 0.9 0.999 1e-08",
+        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.1  --tau 0  --prop_rho_mult 5  --version 2  --max_steps 300000 --timeout 500 --log_interval 500 --stats_queue_size 1 --debug 0  --render 0  --use_target_network 1  --polyak 0.995  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer Adam  --env_name Acrobot-v1  --discrete_control 1  --buffer_size 300000  --batch_size 512  --exp_name /temp/  --activation ReLU  --lr_actor 1  --lr_critic 1  --exp_info /Adam/target_0.995/ensemble1/  --seed 0 --actor Softmax --hidden_actor 256 256 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.99 --exploration 1 --critic_ensemble 1  --n 30  --optimizer_param 0.9 0.999 1e-08",
+    ]
+    write_cmd(cmds, prev_file=0, line_per_file=1)
+
+def c20240226(settings, shared_settings, target_agents):
+    """
+    A working cmd for GAC in Acrobot, for debugging.
+        - Adam
+        - Customized Adam
+    """
+    cmds = [
+        "python3 main.py  --param 0  --agent_name GAC  --rho 0.1  --tau 1e-2  --prop_rho_mult 5  --version 2  --max_steps 300000 --timeout 1000 --log_interval 1000 --stats_queue_size 5 --debug 0  --render 0  --use_target_network 1  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer Adam  --env_name Acrobot-v1  --discrete_control 1  --buffer_size 300000  --batch_size 32  --exp_name /temp/  --activation ReLU  --lr_actor 1e-3  --lr_critic 1e-3  --exp_info /temp/  --seed 0 --actor Softmax --hidden_actor 64 64 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.99 --exploration 0 --critic_ensemble 1  --n 30  --optimizer_param 0.9 0.999 1e-08 --buffer_prefill 10000",
+        "python3 main.py  --param 0  --agent_name GAC  --rho 0.1  --tau 1e-2  --prop_rho_mult 5  --version 2  --max_steps 300000 --timeout 1000 --log_interval 1000 --stats_queue_size 5 --debug 0  --render 0  --use_target_network 1  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer CustomAdam  --env_name Acrobot-v1  --discrete_control 1  --buffer_size 300000  --batch_size 32  --exp_name /temp/  --activation ReLU  --lr_actor 1e-3  --lr_critic 1e-3  --exp_info /temp/  --seed 0 --actor Softmax --hidden_actor 64 64 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.99 --exploration 0 --critic_ensemble 1  --n 30  --optimizer_param 0.9 0.999 1e-08 --buffer_prefill 10000",
+    ]
+    """
+    A test cmd for LineSearch+Adam in Acrobot, for debugging.
+        - Customized Adam
+    """
+    cmds = [
+        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.1  --tau 1e-2  --prop_rho_mult 5  --version 2  --max_steps 300000 --timeout 1000 --log_interval 1000 --stats_queue_size 5 --debug 0  --render 0  --use_target_network 1  --polyak 0  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer CustomAdam  --env_name Acrobot-v1  --discrete_control 1  --buffer_size 300000  --batch_size 32  --exp_name /temp/  --activation ReLU  --lr_actor 1e-3  --lr_critic 1e-2  --exp_info /temp/  --seed 0 --actor Softmax --hidden_actor 64 64 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.99 --exploration 0 --critic_ensemble 2  --optimizer_param 0.9 0.999 1e-08"
+    ]
+    write_cmd(cmds, prev_file=0, line_per_file=1)
+
+def c20240228(settings, shared_settings, target_agents):
+    """
+    A working cmd for linesearch+CustomAdam in Pendulum
+    """
+    cmds = [
+        "python3 main.py  --param 0  --agent_name LineSearchGAC  --rho 0.1  --tau 1e-2  --prop_rho_mult 5  --version 2  --max_steps 100000 --timeout 1000 --log_interval 1000 --stats_queue_size 5 --debug 0  --render 0  --use_target_network 1  --polyak 0.995  --beta_parameter_bias 1.0  --head_activation ReLU  --optimizer CustomAdam  --env_name Pendulum-v1  --discrete_control 1  --buffer_size 300000  --batch_size 512  --exp_name /temp/  --activation ReLU  --lr_actor 1e-3  --lr_critic 1e-3  --exp_info /temp/  --seed 0 --actor Softmax --hidden_actor 64 64  --hidden_critic 64 64 --layer_init_actor Xavier/1 --beta_parameter_bound 10000 --gamma 0.99 --exploration 1 --critic_ensemble 1  --optimizer_param 0.9 0.999 1e-08 --buffer_prefill 0  --n 30 --max_backtracking 30"
     ]
     write_cmd(cmds, prev_file=0, line_per_file=1)
 
