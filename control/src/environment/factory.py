@@ -64,6 +64,8 @@ def init_environment(name, cfg):
             return PendulumEnv(render_mode="human")
     elif name == "HalfCheetah-v4":
         return gym.make("HalfCheetah-v4")
+    elif name == "Ant-expert":
+        return D4RLWrapper("ant-expert-v2", cfg.seed)
     elif name == "Walker2d-expert":
         return D4RLWrapper("walker2d-expert-v2", cfg.seed)
     elif name == "Walker2d-medium":
@@ -204,9 +206,15 @@ def configure_action_scaler_and_bias(cfg):
                 cfg.action_bias = 0.0
             else:
                 raise NotImplementedError
-        elif name in ["Walker2d-expert", "Walker2d-medium"]:
+        elif name in ["Walker2d-expert", "Walker2d-medium", "Ant-expert"]:
+            cfg.state_normalizer = "Identity"
+            cfg.reward_normalizer = "Identity"
+            cfg.action_normalizer = "Scale"
             if cfg.actor == 'Beta':
-                cfg.action_scale = 100.0
+                cfg.action_scale = 2.0
+                cfg.action_bias = -1.0
+            elif cfg.actor == 'SGaussian':
+                cfg.action_scale = 1
                 cfg.action_bias = 0.0
             else:
                 raise NotImplementedError

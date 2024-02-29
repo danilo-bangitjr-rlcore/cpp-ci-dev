@@ -10,11 +10,15 @@ class BaseACOff(BaseAC):
 
     def load_offline_data(self):
         data = self.env.get_dataset()
+        """
+        1. Normalization
+        2. Tensor
+        """
         dataset = {
-            'obs': torch_utils.tensor(data['observations'], self.device),
-            'act': torch_utils.tensor(data['actions'], self.device),
-            'reward': torch_utils.tensor(data['rewards'], self.device),
-            'obs2': torch_utils.tensor(data['next_observations'], self.device),
+            'obs': torch_utils.tensor(self.state_constructor(data['observations']), self.device),
+            'act': torch_utils.tensor(self.action_normalizer(data['actions']), self.device),
+            'reward': torch_utils.tensor(self.reward_normalizer(data['rewards']), self.device),
+            'obs2': torch_utils.tensor(self.state_constructor(data['next_observations']), self.device),
             'done': torch_utils.tensor(data['terminals'], self.device)
         }
         return dataset, len(data['observations'])
