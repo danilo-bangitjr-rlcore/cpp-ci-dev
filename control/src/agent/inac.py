@@ -66,16 +66,15 @@ class InAC(BaseACOff):
 
         log_probs, _ = self.actor.log_prob(states, actions)
         min_Q, _ = self.get_q_value(states, actions, with_grad=False)
-        min_Q = min_Q.squeeze(-1)
         with torch.no_grad():
-            value = self.value_net(states).squeeze(-1)
+            value = self.value_net(states)
             beh_log_prob, _ = self.beh_pi.log_prob(states, actions)
         clipped = torch.clip(torch.exp((min_Q - value) / self.tau - beh_log_prob), self.eps, self.exp_threshold)
         pi_loss = -(clipped * log_probs).mean()
         return pi_loss, ""
 
     def update_beta(self, data):
-        loss_beh_pi, logp = self.compute_loss_beh_pi(data)
+        loss_beh_pi, _ = self.compute_loss_beh_pi(data)
         self.beh_pi_optimizer.zero_grad()
         loss_beh_pi.backward()
         self.beh_pi_optimizer.step()

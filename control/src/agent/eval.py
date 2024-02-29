@@ -162,21 +162,20 @@ class Evaluation(InteractionLayer):
     
     def log_file(self, elapsed_time=-1, test=True):
         train_mean, train_median, train_min_, train_max_ = self.log_return(self.get_ep_returns_queue_train(),"TRAIN", elapsed_time)
-        # try:
-        #     normalized = np.array([self.env.env.unwrapped.get_normalized_score(ret_) for ret_ in self.ep_returns_queue_train])
-        #     train_mean, train_median, train_min_, train_max_ = self.log_return(normalized, "TRAIN Normalized", elapsed_time)
-        # except:
-        #     pass
-        
+        try:
+            normalized = np.array([self.env.env.unwrapped.get_normalized_score(ret_) for ret_ in self.ep_returns_queue_train])
+            train_mean, train_median, train_min_, train_max_ = self.log_return(normalized, "TRAIN Normalized", elapsed_time)
+        except:
+            pass
         if test:
             self.populate_states, self.populate_actions, self.populate_sampled_returns = self.populate_returns(log_traj=True)
             self.populate_latest = True
             test_mean, test_median, test_min_, test_max_ = self.log_return(self.ep_returns_queue_test, "TEST", elapsed_time)
-            # try:
-            #     normalized = np.array([self.eval_env.env.unwrapped.get_normalized_score(ret_) for ret_ in self.ep_returns_queue_test])
-            #     test_mean, test_median, test_min_, test_max_ = self.log_return(normalized, "TEST Normalized", elapsed_time)
-            # except:
-            #     pass
+            try:
+                normalized = np.array([self.eval_env.env.unwrapped.get_normalized_score(ret_) for ret_ in self.ep_returns_queue_test])
+                test_mean, test_median, test_min_, test_max_ = self.log_return(normalized, "TEST Normalized", elapsed_time)
+            except:
+                pass
         else:
             test_mean, test_median, test_min_, test_max_ = [np.nan] * 4
         return train_mean, train_median, train_min_, train_max_, test_mean, test_median, test_min_, test_max_

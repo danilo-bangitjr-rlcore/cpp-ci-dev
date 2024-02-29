@@ -5,7 +5,7 @@ import src.network.torch_utils as torch_utils
 
 class BaseACOff(BaseAC):
     def __init__(self, cfg):
-        super(BaseACOff).__init__(cfg)
+        super(BaseACOff, self).__init__(cfg)
         self.dataset, self.dataset_size = self.load_offline_data()
 
     def load_offline_data(self):
@@ -15,12 +15,13 @@ class BaseACOff(BaseAC):
             'act': torch_utils.tensor(data['actions'], self.device),
             'reward': torch_utils.tensor(data['rewards'], self.device),
             'obs2': torch_utils.tensor(data['next_observations'], self.device),
-            'trunc': torch_utils.tensor(data['terminals'], self.device)
+            'done': torch_utils.tensor(data['terminals'], self.device)
         }
         return dataset, len(data['observations'])
 
     def step(self):
         self.update()
+        self.update_stats(0, False, False)
         return
 
     def get_data(self, batch_size=None):
@@ -33,7 +34,7 @@ class BaseACOff(BaseAC):
             'reward': self.dataset['reward'][idx],
             'obs2': self.dataset['obs2'][idx],
             'done': self.dataset['done'][idx],
-            'trunc': self.dataset['trunc'][idx],
+            'trunc': self.dataset['done'][idx],
         }
         return data
 

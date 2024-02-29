@@ -23,32 +23,29 @@ class IQL(BaseACOff):
         states, actions = data['obs'], data['act']
         with torch.no_grad():
             v = self.value_net(states)
-        min_Q, _, _ = self.get_q_value_target(states, actions)
+        min_Q, _ = self.get_q_value_target(states, actions)
         exp_a = torch.exp((min_Q - v) * self.temperature)
         exp_a = torch.min(exp_a, torch.FloatTensor([100.0]).to(states.device))#.squeeze(-1)
-        log_probs = self.ac.pi.get_logprob(states, actions)
+        log_probs, _ = self.actor.log_prob(states, actions)
         actor_loss = -(exp_a * log_probs).mean()
-        print("pi loss", v.size(), min_Q.size(), exp_a.size(), log_probs.size())
         return actor_loss
 
     def compute_loss_value(self, data):
         states, actions = data['obs'], data['act']
-        min_Q, _, _ = self.get_q_value_target(states, actions)
+        min_Q, _ = self.get_q_value_target(states, actions)
 
         value = self.value_net(states)
         value_loss = torch_utils.expectile_loss(min_Q - value, self.expectile).mean()
-        print("value loss", min_Q.size(), value.size(), torch_utils.expectile_loss(min_Q - value, self.expectile).size())
         return value_loss
 
     def compute_loss_q(self, data):
         states, actions, rewards, next_states, dones = data['obs'], data['act'], data['reward'], data['obs2'], data[
             'done']
         with torch.no_grad():
-            next_v = self.value_net(next_states)#.squeeze(-1)
+            next_v = self.value_net(next_states)
             target = rewards + (self.gamma * (1 - dones) * next_v)
         _, q_ens = self.get_q_value(states, actions, with_grad=True)
         q_loss = self.ensemble_mse(target, q_ens)
-        print("q loss", next_v.size(), target.size(), q_ens[0].size())
         return q_loss
 
     def inner_update(self, trunc=False):

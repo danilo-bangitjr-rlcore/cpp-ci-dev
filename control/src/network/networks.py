@@ -114,8 +114,8 @@ class SquashedGaussianPolicy(nn.Module):
      
         # action = torch.clamp(action, min=self.action_clip[0], max=self.action_clip[1])
         logp = normal.log_prob(out)
-        logp -= torch.log((1 - tanhout.pow(2)) + EPSILON).sum(axis=-1).reshape(logp.shape)
-
+        logp -= torch.log((1 - tanhout.pow(2)) + EPSILON).sum(axis=-1)
+        logp = logp.view((logp.shape[0], 1))
         if debug:
             info = {
                 # "distribution": normal,
@@ -148,6 +148,7 @@ class SquashedGaussianPolicy(nn.Module):
             }
         else:
             info = None
+        logp = logp.view(-1,1)
         return logp, info
 
 
@@ -220,6 +221,7 @@ class BetaPolicy(nn.Module):
         out = dist.rsample()  # samples of alpha and beta
 
         logp = dist.log_prob(torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS))
+        logp = logp.view((logp.shape[0], 1))
         action = out
         # action = torch.clamp(action, min=self.action_clip[0], max=self.action_clip[1])
         if debug:
@@ -258,6 +260,7 @@ class BetaPolicy(nn.Module):
             }
         else:
             info = None
+        logp = logp.view(-1,1)
         return logp, info
 
 
@@ -300,6 +303,7 @@ class BetaInvParam(nn.Module):
         out = dist.rsample() # samples of alpha and beta
 
         logp = dist.log_prob(torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS))
+        logp = logp.view((logp.shape[0], 1))
         action = out
         if debug:
             info = {
@@ -335,6 +339,7 @@ class BetaInvParam(nn.Module):
             }
         else:
             info = None
+        logp = logp.view(-1,1)
         return logp, info
 
 
@@ -361,6 +366,7 @@ class Softmax(nn.Module):
         # log_prob = torch.gather(log_prob, dim=1, index=actions)
 
         log_prob = dist.log_prob(actions)
+        log_prob = log_prob.view((log_prob.shape[0], 1))
 
         if debug:
             info = {
@@ -390,6 +396,7 @@ class Softmax(nn.Module):
             }
         else:
             info = None
+        log_prob = log_prob.view(-1,1)
         return log_prob, info
 
 

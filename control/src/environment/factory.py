@@ -6,7 +6,7 @@ from src.environment.three_tanks import TTChangeAction, TTAction, TTChangeAction
 from src.environment.smpl.envs.atropineenv import AtropineEnvGym
 from src.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
 from src.environment.smpl.envs.reactorenv import ReactorEnvGym
-from src.environment.gym_wrapper import DiscreteControlWrapper
+from src.environment.gym_wrapper import DiscreteControlWrapper, D4RLWrapper
 from src.environment.PendulumEnv import PendulumEnv
 from src.environment.ReseauEnv import ReseauEnv
 from src.environment.InfluxOPCEnv import DBClientWrapperBase
@@ -65,11 +65,9 @@ def init_environment(name, cfg):
     elif name == "HalfCheetah-v4":
         return gym.make("HalfCheetah-v4")
     elif name == "Walker2d-expert":
-        import d4rl
-        return gym.make("walker2d-expert-v2")
+        return D4RLWrapper("walker2d-expert-v2", cfg.seed)
     elif name == "Walker2d-medium":
-        import d4rl
-        return gym.make("walker2d-medium-/v2")
+        return D4RLWrapper("walker2d-medium-v2", cfg.seed)
 
     elif name == "Reseau_online":
         db_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\db_settings_osoyoos.json"
@@ -206,7 +204,14 @@ def configure_action_scaler_and_bias(cfg):
                 cfg.action_bias = 0.0
             else:
                 raise NotImplementedError
+        elif name in ["Walker2d-expert", "Walker2d-medium"]:
+            if cfg.actor == 'Beta':
+                cfg.action_scale = 100.0
+                cfg.action_bias = 0.0
+            else:
+                raise NotImplementedError
         else:
+            print(name, "configure not defined")
             raise NotImplementedError
     
     

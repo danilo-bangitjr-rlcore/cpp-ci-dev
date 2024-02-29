@@ -1,7 +1,7 @@
 import torch
 from src.network.torch_utils import *
 from src.network.networks import BetaPolicy, BetaInvParam, SquashedGaussianPolicy, Softmax, RndLinearUncertainty
-from src.network.networks import EnsembleCritic
+from src.network.networks import FC, EnsembleCritic
 from src.network.networks import UniformRandomCont, UniformRandomDisc
 from src.network.custm_torch_opts import CustomADAM
 
