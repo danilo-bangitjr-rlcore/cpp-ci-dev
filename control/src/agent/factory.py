@@ -34,5 +34,7 @@ def init_agent(name, cfg):
 
     elif name == "IQL":
         return IQL(cfg)
+    elif name == "InAC":
+        return InAC(cfg)
     else:
         raise NotImplementedError

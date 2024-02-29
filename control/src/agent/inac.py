@@ -1,12 +1,12 @@
 import os
 import numpy as np
 import torch
-from src.agent.base import BaseAC
+from src.agent.base_offline import BaseACOff
 import src.network.torch_utils as torch_utils
 from src.network.factory import init_policy_network, init_optimizer, init_custom_network
 
 
-class InAC(BaseAC):
+class InAC(BaseACOff):
     def __init__(self, cfg):
         super(InAC, self).__init__(cfg)
         self.beh_pi = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,

@@ -2,12 +2,12 @@ import os
 import torch
 from torch.nn.utils import clip_grad_norm_
 
-from src.agent.base import BaseAC
+from src.agent.base_offline import BaseACOff
 from src.network.factory import init_optimizer, init_custom_network
 import src.network.torch_utils as torch_utils
 
 
-class IQL(BaseAC):
+class IQL(BaseACOff):
     def __init__(self, cfg):
         super(IQL, self).__init__(cfg)
 

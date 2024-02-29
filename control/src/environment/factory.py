@@ -64,7 +64,13 @@ def init_environment(name, cfg):
             return PendulumEnv(render_mode="human")
     elif name == "HalfCheetah-v4":
         return gym.make("HalfCheetah-v4")
-    
+    elif name == "Walker2d-expert":
+        import d4rl
+        return gym.make("walker2d-expert-v2")
+    elif name == "Walker2d-medium":
+        import d4rl
+        return gym.make("walker2d-medium-/v2")
+
     elif name == "Reseau_online":
         db_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\db_settings_osoyoos.json"
         db_settings = json.load(open(db_settings_pth, "r"))
