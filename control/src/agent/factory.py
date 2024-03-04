@@ -6,6 +6,8 @@ from src.agent.explore_then_commit import ExploreThenCommit
 from src.agent.reseau_exploration_agent import ReseauExplorationAgent
 from src.agent.sarsa import Sarsa
 from src.agent.line_search import LineSearchGAC, LineSearchReset
+from src.agent.inac import InAC
+from src.agent.iql import IQL
 
 
 def init_agent(name, cfg):
@@ -29,5 +31,10 @@ def init_agent(name, cfg):
         return LineSearchGAC(cfg)
     elif name == "LineSearchReset":
         return LineSearchReset(cfg)
+
+    elif name == "IQL":
+        return IQL(cfg)
+    elif name == "InAC":
+        return InAC(cfg)
     else:
         raise NotImplementedError

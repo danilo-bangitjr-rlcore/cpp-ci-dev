@@ -31,7 +31,7 @@ def write_cmd(cmds, prev_file=0, line_per_file=1):
     print("First script:", cmd_file)
     file = open(cmd_file, 'w')
     for cmd in cmds:
-        file.write(cmd)
+        file.write(cmd + "\n")
         count += 1
         if count % line_per_file == 0:
             file.close()

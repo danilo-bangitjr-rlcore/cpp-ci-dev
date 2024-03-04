@@ -245,7 +245,7 @@ class BaseAC(Evaluation):
         else:
             with torch.no_grad():
                 action, logp, info = self.actor(observation, debug)
-        return action, logp.unsqueeze(-1), info
+        return action, logp, info
 
     # Continuous control
     def get_q_value_continuous(self, observation, action, with_grad):
