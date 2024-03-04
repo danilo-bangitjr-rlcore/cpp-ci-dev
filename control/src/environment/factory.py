@@ -20,13 +20,13 @@ def init_environment(name, cfg):
         return ThreeTankEnv(cfg.seed, cfg.lr_constrain, random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/ConstPID":
         return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=True,
-                              agent_action_min=-5,#0*cfg.action_scale+cfg.action_bias,
-                              agent_action_max=5,#1*cfg.action_scale+cfg.action_bias,
+                              agent_action_min=-1,#0*cfg.action_scale+cfg.action_bias,
+                              agent_action_max=1,#1*cfg.action_scale+cfg.action_bias,
                               random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/ChangePID":
         return TTChangeAction(cfg.seed, cfg.lr_constrain, constant_pid=False,
-                              agent_action_min=-5, #0*cfg.action_scale+cfg.action_bias,
-                              agent_action_max=5, #1*cfg.action_scale+cfg.action_bias,
+                              agent_action_min=-1, #0*cfg.action_scale+cfg.action_bias,
+                              agent_action_max=1, #1*cfg.action_scale+cfg.action_bias,
                               random_sp=cfg.env_info[1:])
     elif name == "TTChangeAction/DiscreteConstPID":
         return TTChangeActionDiscrete(cfg.env_info[0], cfg.seed, cfg.lr_constrain, constant_pid=True,
@@ -54,7 +54,7 @@ def init_environment(name, cfg):
     elif name == "Cont-CC-EESM-v0":
         return FlattenObservation(gem.make("Cont-CC-EESM-v0"))
     elif name == "Acrobot-v1":
-        return DiscreteControlWrapper("Acrobot-v1")
+        return DiscreteControlWrapper("Acrobot-v1", cfg.timeout)
     elif name == "MountainCarContinuous-v0":
         return  gym.make("MountainCarContinuous-v0")
     elif name == "Pendulum-v1":
@@ -186,7 +186,14 @@ def configure_action_scaler_and_bias(cfg):
         elif name == "MountainCar-v0":
             raise NotImplementedError
         elif name == "Pendulum-v1":
-            raise NotImplementedError
+            cfg.state_normalizer = "Identity"
+            cfg.reward_normalizer = "Identity"
+            cfg.action_normalizer = "OneHot"
+            if cfg.actor == 'Softmax':
+                cfg.action_scale = 3 # This is a bad naming. It should be the action dimension.
+                cfg.action_bias = 0
+            else:
+                raise NotImplementedError
         elif name == "Reseau_online":
             if cfg.actor == 'Beta':
                 cfg.action_scale = 100.0

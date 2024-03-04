@@ -11,10 +11,40 @@ import src.agent.factory as agent_factory
 import src.utils.utils as utils
 import src.utils.run_funcs as run_funcs
 
+import tracemalloc
+import linecache
+
 os.chdir("..")
 print("Change dir to", os.getcwd())
 
+def display_top(snapshot, key_type='lineno', limit=20):
+    snapshot = snapshot.filter_traces((
+        tracemalloc.Filter(False, "<frozen importlib._bootstrap>"),
+        tracemalloc.Filter(False, "<unknown>"),
+    ))
+    top_stats = snapshot.statistics(key_type)
+
+    print("Top %s lines" % limit)
+    for index, stat in enumerate(top_stats[:limit], 1):
+        frame = stat.traceback[0]
+        # replace "/path/to/module/file.py" with "module/file.py"
+        filename = os.sep.join(frame.filename.split(os.sep)[-2:])
+        print("#%s: %s:%s: %.1f KiB"
+              % (index, filename, frame.lineno, stat.size / 1024))
+        line = linecache.getline(frame.filename, frame.lineno).strip()
+        if line:
+            print('    %s' % line)
+
+    other = top_stats[limit:]
+    if other:
+        size = sum(stat.size for stat in other)
+        print("%s other: %.1f KiB" % (len(other), size / 1024))
+    total = sum(stat.size for stat in top_stats)
+    print("Total allocated size: %.1f KiB" % (total / 1024))
+
 if __name__ == "__main__":
+    tracemalloc.start()
+
     parser = argparse.ArgumentParser(description="run_file")
     parser.add_argument('--load_from_json', default='', type=str)
     parser.add_argument('--debug', default=0, type=int)
@@ -104,6 +134,9 @@ if __name__ == "__main__":
     parser.add_argument('--reset_nets', default=['Sampler'], type=str, nargs='+')
     parser.add_argument('--reset_mode', default='None', type=str)
     parser.add_argument('--reset_param', default=0., type=float)
+    parser.add_argument('--max_backtracking', default=30, type=int)
+    parser.add_argument('--error_threshold', default=1e-4, type=float)
+    parser.add_argument('--optimizer_param', default=[0.9, 0.999, 1e-08], type=float, nargs='+')
 
     cfg = parser.parse_args()
 
@@ -140,3 +173,6 @@ if __name__ == "__main__":
     cfg.logger = utils.logger_setup(cfg)
     agent = agent_factory.init_agent(cfg.agent_name, cfg)
     run_funcs.run_steps(agent, cfg.max_steps, cfg.log_interval, cfg.log_test, cfg.exp_path, cfg.buffer_prefill)
+
+    # snapshot = tracemalloc.take_snapshot()
+    # display_top(snapshot)

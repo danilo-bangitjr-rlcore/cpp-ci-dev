@@ -4,8 +4,8 @@ from gymnasium.wrappers import FlattenObservation
 import numpy as np
 
 class DiscreteControlWrapper(gym.Env):
-    def __init__(self, name):
-        self.env = gym.make(name)
+    def __init__(self, name, timeout):
+        self.env = gym.make(name, max_episode_steps=timeout)
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
     

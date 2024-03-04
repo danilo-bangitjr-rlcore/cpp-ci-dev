@@ -5,13 +5,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
-from src.agent.greedy_ac import GreedyAC, GreedyACDiscrete
+from src.agent.greedy_ac import GreedyAC
 from src.network.factory import init_policy_network, init_critic_network, init_optimizer, init_custom_network
 import src.network.torch_utils as torch_utils
 from src.component.line_search_opt import LineSearchOpt
 from src.component.exploration import RndNetworkExplore
 import src.network.torch_utils as utils
 from torch.utils.data import DataLoader
+
 
 class LineSearchGAC(GreedyAC):
     def __init__(self, cfg, average_entropy=True):
@@ -56,10 +57,28 @@ class LineSearchGAC(GreedyAC):
         del self.critic_optimizer
         del self.sampler_optim
 
-        self.actor_linesearch = LineSearchOpt([self.actor], [self.actor_copy], optimizer_type=self.cfg.optimizer)
-        self.critic_linesearch = LineSearchOpt([self.critic], [self.critic_copy], optimizer_type=self.cfg.optimizer)
-        self.sampler_linesearch = LineSearchOpt([self.sampler], [self.sampler_copy], optimizer_type=self.cfg.optimizer)
-        self.explore_linesearch = LineSearchOpt([self.fbonus0, self.fbonus1], [self.fbonus0_copy, self.fbonus1_copy], optimizer_type=self.cfg.optimizer)
+        self.opt_param = {
+            'Adam': {'betas': (cfg.optimizer_param[:2]),
+                     'eps': cfg.optimizer_param[2]},
+            'CustomAdam': {'betas': (cfg.optimizer_param[:2]),
+                           'eps': cfg.optimizer_param[2]},
+            'RMSprop': {},
+            'SGD': {},
+        }
+        max_backtracking = self.cfg.max_backtracking
+        self.actor_linesearch = LineSearchOpt(self.device, [self.actor], [self.actor_copy], lr_main=self.cfg.lr_actor, max_backtracking=max_backtracking,
+                                              optimizer_type=self.cfg.optimizer,
+                                              error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])
+        self.critic_linesearch = LineSearchOpt(self.device, [self.critic], [self.critic_copy], lr_main=self.cfg.lr_critic, max_backtracking=max_backtracking,
+                                               optimizer_type=self.cfg.optimizer,
+                                              error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])
+        self.sampler_linesearch = LineSearchOpt(self.device, [self.sampler], [self.sampler_copy], lr_main=self.cfg.lr_actor, max_backtracking=max_backtracking,
+                                                optimizer_type=self.cfg.optimizer,
+                                                error_threshold=self.cfg.error_threshold, opt_kwargs=self.opt_param[self.cfg.optimizer])
+        self.explore_linesearch = LineSearchOpt(self.device, [self.fbonus0, self.fbonus1], [self.fbonus0_copy, self.fbonus1_copy],
+                                                lr_main=self.cfg.lr_critic, max_backtracking=max_backtracking,
+                                                optimizer_type=self.cfg.optimizer, error_threshold=self.cfg.error_threshold,
+                                                opt_kwargs=self.opt_param[self.cfg.optimizer])
         self.last_explore_bonus = None
 
     def explore_bonus_update(self, state, action, reward, next_state, next_action, mask,
@@ -129,10 +148,6 @@ class LineSearchGAC(GreedyAC):
         # Add the exploration bonus
         q_values, _ = self.get_q_value(repeated_states, sample_actions, with_grad=False)
         exp_b = self.explore_bonus_eval(repeated_states, sample_actions)
-        # print("sortqvalue")
-        # print(q_values.mean(), q_values.std(), q_values.min(), q_values.max())
-        # print(exp_b.mean(), exp_b.std(), exp_b.min(), exp_b.max())
-        # print("---")
         self.last_explore_bonus = [exp_b.mean(), exp_b.min(), exp_b.max()]
         q_values += self.explore_scaler * exp_b
 
@@ -142,6 +157,7 @@ class LineSearchGAC(GreedyAC):
 
     def actor_update(self, state_batch, eval_state):
         pi_loss, repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions, logp = self.actor_loss(state_batch)
+        # print(best_actions)
         eval_stacked_s, eval_best_action, eval_sample_actions, sorted_eval_q = self.get_best_action_proposal(eval_state)
         self.actor_linesearch.backtrack(error_evaluation_fn=self.eval_error_actor,
                                         error_eval_input=[eval_stacked_s, eval_best_action, self.actor],
@@ -170,7 +186,7 @@ class LineSearchGAC(GreedyAC):
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = (data['obs'], data['act'], data['reward'],
                                                                                  data['obs2'], 1. - data['done'])
         # eval_data = self.get_all_data() # get batch
-        eval_data = self.get_data() # get minibatch
+        eval_data = self.get_data(batch_size=512) # get minibatch
         eval_state, eval_action, eval_reward, eval_next_state, eval_mask = (eval_data['obs'], eval_data['act'], eval_data['reward'],
                                                                             eval_data['obs2'], 1. - eval_data['done'])
 
@@ -246,7 +262,9 @@ class LineSearchReset(LineSearchGAC):
                                            self.cfg.head_activation, self.cfg.layer_init_actor, self.cfg.layer_norm)
         self.sampler = self.reset_weight(self.sampler, new_sampler, self.cfg.reset_param)
         self.sampler_copy.load_state_dict(self.sampler.state_dict())
-        self.sampler_linesearch = LineSearchOpt([self.sampler], [self.sampler_copy], optimizer_type=self.cfg.optimizer)
+        last_lr_main = self.sampler_linesearch.latest_lr_main
+        self.sampler_linesearch = LineSearchOpt(self.device, [self.sampler], [self.sampler_copy], optimizer_type=self.cfg.optimizer,
+                                                lr_main=last_lr_main)
 
         done = False
         while not done:
@@ -278,7 +296,9 @@ class LineSearchReset(LineSearchGAC):
                                         self.cfg.layer_norm)
         self.actor = self.reset_weight(self.actor, new_actor, self.cfg.reset_param)
         self.actor_copy.load_state_dict(self.actor.state_dict())
-        self.actor_linesearch = LineSearchOpt([self.actor], [self.actor_copy], optimizer_type=self.cfg.optimizer)
+        last_lr_main = self.actor_linesearch.latest_lr_main
+        self.actor_linesearch = LineSearchOpt(self.device, [self.actor], [self.actor_copy], optimizer_type=self.cfg.optimizer,
+                                                lr_main=last_lr_main)
 
         done = False
         while not done:
@@ -298,10 +318,7 @@ class LineSearchReset(LineSearchGAC):
 
     def inner_update(self, trunc=False):
         super(LineSearchReset, self).inner_update(trunc=trunc)
-        print("critic", self.critic_linesearch.latest_change)
-        print("sampler", self.sampler_linesearch.latest_change)
-        print("actor", self.actor_linesearch.latest_change)
-        if self.total_steps % 20 == 0:
+        if self.total_steps % 100 == 0:
             print("Reseting at step {}".format(self.total_steps))
             if "Sampler" in self.reset_nets:
                 self.reset_sampler()

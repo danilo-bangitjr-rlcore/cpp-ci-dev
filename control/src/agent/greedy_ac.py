@@ -22,11 +22,21 @@ class GreedyAC(BaseAC):
         self.top_action = int(self.rho * self.num_samples)
         self.top_action_proposal = int(self.rho_proposal * self.num_samples)
 
+        if self.discrete_control:
+            self.top_action = 1
+            if self.num_samples > self.gac_a_dim:
+                self.get_policy_update_data = self.get_policy_update_data_discrete
+                self.num_samples = self.gac_a_dim
+                self.top_action_proposal = self.gac_a_dim
+
+
     def critic_loss(self, state_batch, action_batch, reward_batch, next_state_batch, mask_batch):
         next_action, _, _ = self.get_policy(next_state_batch, with_grad=False)
         next_q, _ = self.get_q_value_target(next_state_batch, next_action)
         target = reward_batch + mask_batch * self.gamma * next_q
-        _, q_ens = self.get_q_value(state_batch, action_batch, with_grad=True)
+        temp, q_ens = self.get_q_value(state_batch, action_batch, with_grad=True)
+        # for i in range(len(temp)):
+        #     print(temp[i], [q_ens[j][i] for j in range(len(q_ens))])
         q_loss = self.ensemble_mse(target, q_ens) #torch.nn.functional.mse_loss(target, q_value)
         return q_loss, next_action
 
@@ -42,6 +52,27 @@ class GreedyAC(BaseAC):
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
         with torch.no_grad():
             sample_actions, _, _ = self.sampler(repeated_states)
+
+        sorted_q = self.sort_q_value(repeated_states, sample_actions, batch_size)
+        best_ind = sorted_q[:, :self.top_action]
+        best_ind = best_ind.repeat_interleave(self.gac_a_dim, -1)
+
+        sample_actions = sample_actions.reshape(batch_size, self.num_samples, self.gac_a_dim)
+        best_actions = torch.gather(sample_actions, 1, best_ind)
+
+        # Reshape samples for calculating the loss
+        stacked_s_batch = state_batch.repeat_interleave(self.top_action, dim=0)
+        best_actions = torch.reshape(best_actions, (-1, self.gac_a_dim))
+        return repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions
+
+    def get_policy_update_data_discrete(self, state_batch):
+        batch_size = state_batch.shape[0]
+        repeated_states = state_batch.repeat_interleave(self.gac_a_dim, dim=0)
+        actions = torch.arange(self.gac_a_dim).reshape((1, -1))
+        actions = actions.repeat_interleave(batch_size, dim=0).reshape((-1, 1))
+        a_onehot = torch.FloatTensor(actions.size()[0], self.gac_a_dim)
+        a_onehot.zero_()
+        sample_actions = a_onehot.scatter_(1, actions, 1)
 
         sorted_q = self.sort_q_value(repeated_states, sample_actions, batch_size)
         best_ind = sorted_q[:, :self.top_action]
@@ -131,7 +162,3 @@ class GreedyAC(BaseAC):
         return i_log
 
 
-class GreedyACDiscrete(GreedyAC):
-    def __init__(self, cfg, average_entropy=True):
-        super(GreedyACDiscrete, self).__init__(cfg, average_entropy)
-        self.top_action = 1
