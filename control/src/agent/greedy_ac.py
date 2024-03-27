@@ -160,5 +160,3 @@ class GreedyAC(BaseAC):
         _, _, prop_pi_info = self.sampler(observation_tensor, self.cfg.debug)
         i_log["proposal_info"] = prop_pi_info
         return i_log
-
-
