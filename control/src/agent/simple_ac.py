@@ -22,6 +22,9 @@ class SimpleAC(BaseAC):
         targ = batch['reward'] + self.gamma * (1.0 - batch['done']) * vp
         ent = -log_prob
         loss_actor = -(self.tau * ent + log_prob * (targ - v.detach())).mean()
+
+
+
         loss_critic = nn.functional.mse_loss(v, targ)
         
         self.actor_optimizer.zero_grad()

@@ -1,12 +1,9 @@
 from abc import ABC, abstractmethod
-from root.component.optimizers.factory import  init_optimizer
-from root.component.networks.factory import  init_network
+
 class BaseCritic(ABC):
     @abstractmethod
     def __init__(self, cfg):
-        self.model = init_network(cfg)
-        self.target = None
-        self.optimizer = init_optimizer(cfg)
+        raise NotImplementedError
 
     @abstractmethod
     def update(self, loss):
@@ -15,16 +12,17 @@ class BaseCritic(ABC):
 
 class BaseV(BaseCritic):
     @abstractmethod
-    def __init__(self, cfg):
+    def __init__(self, cfg, state_dim):
         super(BaseV, self).__init__(cfg)
 
     @abstractmethod
     def get_v(self, state):
         raise NotImplementedError
 
+
 class BaseQ(BaseCritic):
     @abstractmethod
-    def __init__(self, cfg):
+    def __init__(self, cfg, state_dim, action_dim):
         super(BaseQ, self).__init__(cfg)
 
     @abstractmethod

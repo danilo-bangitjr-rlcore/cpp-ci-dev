@@ -262,7 +262,7 @@ def c20240214(settings, shared_settings, target_agents):
     # write_cmd(cmds, prev_file=0, line_per_file=1)
 
     """
-    Test LineSearchGAC with two Q networks
+    Test LineSearchGAC with two Q network
 
     Commit 66cc181099b5f411b43647c4bac9323e24679dde
     Added ensemble critic

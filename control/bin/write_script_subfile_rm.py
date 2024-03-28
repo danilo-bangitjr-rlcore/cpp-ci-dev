@@ -4,7 +4,7 @@ from write_script import combinations, merge_independent
 
 def learning_rate_sweep_adam_RMSprop(settings, shared_settings, target_agents):
     """
-    Sweeps over learning rates for adam and RMSprop
+    Sweeps over learning rates for adam.yaml and RMSprop
     
     Ran on Jan 9, 2023
     """

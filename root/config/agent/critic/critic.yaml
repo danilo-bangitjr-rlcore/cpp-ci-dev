@@ -1,0 +1,7 @@
+defaults:
+  - network: fc
+  - optimizer : adam
+  -  _self_
+
+name : ${agent.critic.network.name} # Revan: this works for getting the networks name, but isn't the fanciest
+polyak : 0.0

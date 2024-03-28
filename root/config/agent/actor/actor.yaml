@@ -1,0 +1,6 @@
+defaults:
+  - network: fc
+  - optimizer : adam
+  -  _self_
+
+name : "network" #${agent.actor.network.name} # Revan: this works for getting the networks name, but isn't the fanciest

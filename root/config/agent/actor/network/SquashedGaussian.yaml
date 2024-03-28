@@ -1,0 +1,5 @@
+defaults:
+  - fc
+  - _self_
+
+name : SquashedGaussian
