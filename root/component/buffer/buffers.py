@@ -1,6 +1,8 @@
 import numpy as np
 import root.component.network.utils as network_utils
-def send_to_device(batch, device):
+from omegaconf import DictConfig
+
+def send_to_device(batch: list, device: str) -> dict:
     states, actions, rewards, next_states, terminals, truncations = batch
     s = network_utils.tensor(states, device)
     a = network_utils.tensor(actions, device)
@@ -18,15 +20,16 @@ def send_to_device(batch, device):
     }
     return data
 class UniformBuffer:
-    def __init__(self, cfg, seed=0):
-        self.rng = np.random.RandomState(seed)
+    def __init__(self, cfg: DictConfig):
+        self.seed = cfg.seed
+        self.rng = np.random.RandomState(self.seed)
         self.memory = cfg.memory
         self.batch_size = cfg.batch_size
         self.device = cfg.device
         self.data = []
         self.pos = 0
 
-    def feed(self, experience):
+    def feed(self, experience: tuple) -> None:
         if self.pos >= len(self.data):
             self.data.append(experience)
         else:
@@ -34,7 +37,7 @@ class UniformBuffer:
         # resets to start of buffer
         self.pos = (self.pos + 1) % self.memory
 
-    def sample(self, batch_size=None):
+    def sample(self, batch_size: int=None)-> dict:
         if len(self.data) == 0:
             return None
         if batch_size is None:
@@ -46,7 +49,8 @@ class UniformBuffer:
         batch_data = send_to_device(batch_data, device=self.device)
         return batch_data
 
-    def sample_batch(self):
+
+    def sample_batch(self) -> dict:
         if len(self.data) == 0:
             return None
         sampled_data = list(self.data)
@@ -58,25 +62,25 @@ class UniformBuffer:
         batch_data = send_to_device(batch_data, device=self.device)
         return batch_data
 
-    def prepare_data(self, batch_data):
+    def prepare_data(self, batch_data: list) -> list:
         for i in range(len(batch_data)):
             if batch_data[i].ndim == 1:
                 batch_data[i] = batch_data[i].reshape(-1, 1)
         return batch_data
 
-    def load(self, states, actions, cumulants, dones, truncates):
+    def load(self, states: list, actions: list, cumulants: list, dones: list, truncates: list) -> None:
         for i in range(len(states) - 1):
-            self.feed([states[i], actions[i], cumulants[i], states[i+1], int(dones[i]), int(truncates[i])])
+            self.feed((states[i], actions[i], cumulants[i], states[i+1], int(dones[i]), int(truncates[i])))
 
     @property
-    def size(self):
+    def size(self) -> int:
         return len(self.data)
 
-    def reset(self):
+    def reset(self) -> None:
         self.data = []
         self.pos = 0
 
-    def get_all_data(self):
+    def get_all_data(self) -> list:
         return self.data
 
     def update_priorities(self, priority=None):
@@ -84,11 +88,11 @@ class UniformBuffer:
 
 
 class PriorityBuffer(UniformBuffer):
-    def __init__(self, cfg, seed=0):
-        super(PriorityBuffer, self).__init__(cfg, seed)
+    def __init__(self, cfg: DictConfig):
+        super(PriorityBuffer, self).__init__(cfg)
         self.priority = []
 
-    def feed(self, experience):
+    def feed(self, experience: tuple) -> None:
         super(PriorityBuffer, self).feed(experience)
         self.priority = list(self.priority)
         if self.pos >= len(self.data):
@@ -98,7 +102,7 @@ class PriorityBuffer(UniformBuffer):
         self.priority = np.asarray(self.priority)
         self.priority /= self.priority.sum()
 
-    def sample(self, batch_size=None):
+    def sample(self, batch_size: int=None) -> dict:
         if len(self.data) == 0:
             return None
         if batch_size is None:
@@ -107,6 +111,7 @@ class PriorityBuffer(UniformBuffer):
         sampled_data = [self.data[ind] for ind in sampled_indices]
         batch_data = list(map(lambda x: np.asarray(x), zip(*sampled_data)))
         batch_data = self.prepare_data(batch_data)
+        batch_data = send_to_device(batch_data, device=self.device)
         return batch_data
 
     def update_priorities(self, priority=None):

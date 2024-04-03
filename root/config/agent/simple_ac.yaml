@@ -9,6 +9,7 @@ buffer :
   memory: 100000
   name: Uniform
   device : cpu
+  seed : ${experiment.seed}
 
 name : SimpleAC
 tau : 0.0

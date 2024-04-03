@@ -4,6 +4,8 @@ import torch.distributions as distrib
 import numpy as np
 import root.component.network.utils as utils
 
+from omegaconf import DictConfig
+
 FLOAT32_EPS = 10 * \
               np.finfo(np.float32).eps  # differences of this size are
 # representable up to ~ 15
@@ -12,7 +14,7 @@ EPSILON = 1e-6
 
 # TODO: here is an example of initializing a network.
 class FC(nn.Module):
-    def __init__(self, cfg, input_dim, output_dim):
+    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super().__init__()
 
         device = cfg.device
@@ -39,23 +41,22 @@ class FC(nn.Module):
         self.head_act = utils.init_activation(head_activation)()
         self.to(device)
 
-    def forward(self, input_tensor):
+    def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
         out = self.network(input_tensor)
         out = self.head_act(out)
         return out
 
 
 class EnsembleCritic(nn.Module):
-    def __init__(self, cfg, input_dim, output_dim):
+    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(EnsembleCritic, self).__init__()
-
         device = cfg.device
         self.ensemble = cfg.ensemble
         self.subnetworks = [
             FC(cfg, input_dim, output_dim) for _ in range(self.ensemble)]
         self.to(device)
 
-    def forward(self, input_tensor):
+    def forward(self, input_tensor:torch.Tensor) -> (torch.Tensor, torch.Tensor):
         qs = [net(input_tensor) for net in self.subnetworks]
         for i in range(self.ensemble):
             qs[i] = torch.unsqueeze(qs[i], 0)
@@ -64,16 +65,16 @@ class EnsembleCritic(nn.Module):
 
         return q, qs
 
-    def state_dict(self):
+    def state_dict(self) -> list:
         sd = [net.state_dict() for net in self.subnetworks]
         return sd
 
-    def load_state_dict(self, state_dict_lst):
+    def load_state_dict(self, state_dict_lst: list) -> None:
         for i in range(self.ensemble):
             self.subnetworks[i].load_state_dict(state_dict_lst[i])
         return
 
-    def parameters(self, independent=False):
+    def parameters(self, independent: bool=False) -> list:
         param_lst = []
         if independent:
             for i in range(self.ensemble):
@@ -85,7 +86,7 @@ class EnsembleCritic(nn.Module):
 
 
 class SquashedGaussian(nn.Module):
-    def __init__(self, cfg, input_dim, output_dim):
+    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(SquashedGaussian, self).__init__()
 
         device = cfg.device
@@ -102,7 +103,8 @@ class SquashedGaussian(nn.Module):
         self.to(device)
 
     # TODO: include n samples
-    def forward(self, observation, debug=False):
+    # TODO: rename observations to state
+    def forward(self, observation: torch.Tensor, debug:bool = False) -> (torch.Tensor, dict):
         base = self.base_network(observation)
         mean = self.mean_head(base)
         log_std = torch.clamp(self.logstd_head(base), min=-20, max=2)
@@ -134,7 +136,7 @@ class SquashedGaussian(nn.Module):
             info = None
         return action, info
 
-    def log_prob(self, observation, action, debug=False):
+    def log_prob(self, observation: torch.Tensor, action: torch.Tensor, debug:bool = False) -> (torch.Tensor, dict):
         base = self.base_network(observation)
         mean = self.mean_head(base)
         log_std = torch.clamp(self.logstd_head(base), min=-20, max=2)
@@ -159,7 +161,7 @@ class SquashedGaussian(nn.Module):
         return logp, info
 
 class BetaPolicy(nn.Module):
-    def __init__(self, cfg, input_dim, output_dim):
+    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(BetaPolicy, self).__init__()
 
         layer_init = utils.init_layer(cfg.layer_init)
@@ -188,14 +190,14 @@ class BetaPolicy(nn.Module):
         self.to(device)
         self.device = device
 
-    def squash_dist_param(self, dist_param, low, high):
+    def squash_dist_param(self, dist_param: torch.Tensor, low: float, high: float) -> torch.Tensor:
         tanh_out = torch.tanh(dist_param)
         normalized_param = ((tanh_out + 1) / 2)
         scaled_param = normalized_param * (high - low) + low  # ∈ [low, high]
 
         return scaled_param
 
-    def get_dist_params(self, observation):
+    def get_dist_params(self, observation: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         if self.beta_param_bound == 0:
             """ Not using the squash function"""
             base = self.base_network(observation)
@@ -213,7 +215,7 @@ class BetaPolicy(nn.Module):
             beta = self.squash_dist_param(beta_head_out, low, high)
         return alpha, beta
 
-    def forward(self, observation, debug=False):
+    def forward(self, observation: torch.Tensor, debug: bool = False) -> (torch.Tensor, dict):
         alpha, beta = self.get_dist_params(observation)
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)
@@ -233,7 +235,7 @@ class BetaPolicy(nn.Module):
 
         return action, info
 
-    def log_prob(self, observation, action, debug=False):
+    def log_prob(self, observation: torch.Tensor, action: torch.Tensor, debug: bool = False) -> (torch.Tensor, dict):
         out = action
         out = torch.clamp(out, 0, 1)
 

@@ -1,22 +1,24 @@
+from omegaconf import DictConfig
+
+import torch.nn as nn
+import numpy
+
 from root.agent.base import BaseAC
 from root.component.actor.factory import init_actor
 from root.component.critic.factory import init_v_critic
 from root.component.buffer.factory import init_buffer
 from root.component.network.utils import tensor, to_np, state_to_tensor
 
-import torch.nn as nn
-import numpy
-
 
 class SimpleAC(BaseAC):
-    def __init__(self, cfg, state_dim: int, action_dim: int, discrete_control: bool = False):
-        super().__init__(cfg, state_dim, action_dim, discrete_control)
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+        super().__init__(cfg, state_dim, action_dim)
         self.tau = cfg.tau
         self.device = cfg.device
 
         self.critic = init_v_critic(cfg.critic, state_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
-        self.buffer = init_buffer(cfg.buffer, self.seed)
+        self.buffer = init_buffer(cfg.buffer)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, self.device)
@@ -24,10 +26,10 @@ class SimpleAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transition: tuple):
+    def update_buffer(self, transition: tuple) -> None:
         self.buffer.feed(transition)
 
-    def update_actor(self):
+    def update_actor(self) -> None:
         batch = self.buffer.sample()
         states = batch['states']
         actions = batch['actions']
@@ -44,7 +46,7 @@ class SimpleAC(BaseAC):
 
         self.actor.update(loss_actor)
 
-    def update_critic(self):
+    def update_critic(self) -> None:
         batch = self.buffer.sample()
         states = batch['states']
         next_states = batch['next_states']
@@ -59,12 +61,13 @@ class SimpleAC(BaseAC):
 
         self.critic.update(loss_critic)
 
-    def update(self):
+    def update(self) -> None:
         self.update_critic()
         self.update_critic()
 
-    def save(self):
+    def save(self) -> None:
         pass
+        # TODO: implement
         # parameters_dir = self.parameters_dir
         #
         # path = os.path.join(parameters_dir, "actor_net")
@@ -83,5 +86,5 @@ class SimpleAC(BaseAC):
         # with open(path, "wb") as f:
         #     pkl.dump(self.buffer, f)
 
-    def load(self):
+    def load(self, path: str) -> None:
         pass

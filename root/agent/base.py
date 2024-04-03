@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
+from omegaconf import DictConfig
 import numpy
 
 class BaseAgent(ABC):
-    def __init__(self, cfg, state_dim: int, action_dim: int, discrete_control: bool):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         self.replay_ratio = cfg.replay_ratio
         self.update_freq = cfg.update_freq
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.gamma = cfg.gamma
-        self.discrete_control = discrete_control
+        self.discrete_control = cfg.discrete_control
         self.seed = cfg.seed
 
     @abstractmethod
@@ -16,27 +17,27 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update(self):
+    def update(self) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def update_buffer(self, transition: tuple):
+    def update_buffer(self, transition: tuple) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def save(self):
+    def save(self) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def load(self):
+    def load(self, path: str) -> None:
         raise NotImplementedError
 
 
 class BaseAC(BaseAgent):
     @abstractmethod
-    def update_actor(self):
+    def update_actor(self) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def update_critic(self):
+    def update_critic(self) -> None:
         raise NotImplementedError
