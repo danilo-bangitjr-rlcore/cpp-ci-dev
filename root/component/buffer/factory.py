@@ -1,4 +1,4 @@
-import buffers
+import root.component.buffer.buffers as buffers
 
 def init_buffer(cfg, seed):
     name = cfg.name

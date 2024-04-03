@@ -1,4 +1,4 @@
-  device : cpu
+  device : ${experiment.device}
   layer_norm : 0
   arch : [256, 256]
   init_args : ReLU

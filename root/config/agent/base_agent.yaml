@@ -1,0 +1,3 @@
+replay_ratio : 1
+update_freq : 1
+gamma : 0.9

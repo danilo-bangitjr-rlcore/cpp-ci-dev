@@ -1,5 +1,5 @@
 import torch
-from ensemble_optimizer import EnsembleOptimizer
+from root.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 
 def init_optimizer(cfg, param, ensemble=False):
     """

@@ -1,4 +1,4 @@
-from base_critic import BaseQ, BaseV
+from root.component.critic.base_critic import BaseQ, BaseV
 from root.component.optimizers.factory import init_optimizer
 from root.component.network.factory import init_critic_network
 import torch
@@ -7,25 +7,33 @@ class EnsembleQCritic(BaseQ):
     def __init__(self, cfg, state_dim, action_dim):
         self.model = init_critic_network(cfg.network, state_dim, action_dim)
         self.target = init_critic_network(cfg.network, state_dim, action_dim)
-        self.optimizer = init_optimizer(cfg.optimizer) # TODO
+        self.optimizer = init_optimizer(cfg.optimizer, self.model.parameters())  # TODO: change this optimizer to True
         self.polyak = cfg.polyak
         self.target_sync_freq = cfg.target_sync_freq
         self.target_sync_counter = 0
 
-    def get_q(self, states, actions, with_grad=False):
+    def get_q(self, states, actions, with_grad=False, get_qs=False):
         state_actions = torch.concat((states, actions), dim=1)
         if with_grad:
             q, qs = self.model(state_actions)
         else:
             with torch.no_grad():
                 q, qs = self.model(state_actions)
-        return q, qs
 
-    def get_q_target(self, states, actions):
+        if get_qs:
+            return q, qs
+        else:
+            return q
+
+    def get_q_target(self, states, actions, get_qs=False):
         state_actions = torch.concat((states, actions), dim=1)
         with torch.no_grad():
             q, qs = self.target(state_actions)
-        return q, qs
+
+        if get_qs:
+            return q, qs
+        else:
+            return q
 
     def update(self, loss):
         loss.backward()
@@ -45,23 +53,31 @@ class EnsembleVCritic(BaseV):
     def __init__(self, cfg, state_dim):
         self.model = init_critic_network(cfg.network, state_dim, output_dim=1)
         self.target = init_critic_network(cfg.network, state_dim, output_dim=1)
-        self.optimizer = init_optimizer(cfg.optimizer) # TODO
+        self.optimizer = init_optimizer(cfg.optimizer, self.model.parameters())
         self.polyak = cfg.polyak
         self.target_sync_freq = cfg.target_sync_freq
         self.target_sync_counter = 0
 
-    def get_v(self, states, with_grad=False):
+    def get_v(self, states, with_grad=False, get_vs=False):
         if with_grad:
             v, vs = self.model(states)
         else:
             with torch.no_grad():
                 v, vs = self.model(states)
-        return v, vs
 
-    def get_v_target(self, states):
+        if get_vs:
+            return v, vs
+        else:
+            return v
+
+    def get_v_target(self, states, get_vs=False):
         with torch.no_grad():
             v, vs = self.target(states)
-        return v, vs
+
+        if get_vs:
+            return v, vs
+        else:
+            return v
 
     def update(self, loss):
         loss.backward()

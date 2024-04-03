@@ -2,19 +2,19 @@ import numpy as np
 import root.component.network.utils as network_utils
 def send_to_device(batch, device):
     states, actions, rewards, next_states, terminals, truncations = batch
-    in_ = network_utils.tensor(states, device)
-    actions = network_utils.tensor(actions, device)
+    s = network_utils.tensor(states, device)
+    a = network_utils.tensor(actions, device)
     r = network_utils.tensor(rewards, device)
     ns = network_utils.tensor(next_states, device)
     d = network_utils.tensor(terminals, device)
     t = network_utils.tensor(truncations, device)
     data = {
-        'states': in_,
-        'actions': actions,
+        'states': s,
+        'actions': a,
         'rewards': r,
-        'next_state': ns,
-        'done': d,
-        'trunc': t,
+        'next_states': ns,
+        'dones': d,
+        'truncs': t,
     }
     return data
 class UniformBuffer:

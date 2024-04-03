@@ -1,18 +1,18 @@
 from abc import ABC, abstractmethod
-
+import numpy
 
 class BaseAgent(ABC):
-    def __init__(self, cfg, state_dim, action_dim, discrete_control):
+    def __init__(self, cfg, state_dim: int, action_dim: int, discrete_control: bool):
         self.replay_ratio = cfg.replay_ratio
         self.update_freq = cfg.update_freq
-        self.update_counter = 0 # TODO not sure if we should keep this here
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.gamma = cfg.gamma
         self.discrete_control = discrete_control
+        self.seed = cfg.seed
 
     @abstractmethod
-    def get_action(self, state):
+    def get_action(self, state: numpy.ndarray) -> numpy.ndarray:  # returns a numpy array, not a tensor.
         raise NotImplementedError
 
     @abstractmethod
@@ -20,7 +20,7 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update_buffer(self, transition):
+    def update_buffer(self, transition: tuple):
         raise NotImplementedError
 
     @abstractmethod

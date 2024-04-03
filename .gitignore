@@ -174,3 +174,9 @@ run.sh
 # saved results 
 saved_experiments/
 reseau/*
+
+root/outputs
+/out/
+/control/bin/data/
+/control/bin/data_old/
+/root/config/outputs/

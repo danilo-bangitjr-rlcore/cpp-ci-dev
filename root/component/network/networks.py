@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.distributions as distrib
 import numpy as np
-import utils
+import root.component.network.utils as utils
 
 FLOAT32_EPS = 10 * \
               np.finfo(np.float32).eps  # differences of this size are
@@ -52,7 +52,7 @@ class EnsembleCritic(nn.Module):
         device = cfg.device
         self.ensemble = cfg.ensemble
         self.subnetworks = [
-            FC(cfg, input_dim, output_dim) for _ in range(self.ensemblee)]
+            FC(cfg, input_dim, output_dim) for _ in range(self.ensemble)]
         self.to(device)
 
     def forward(self, input_tensor):
@@ -61,6 +61,7 @@ class EnsembleCritic(nn.Module):
             qs[i] = torch.unsqueeze(qs[i], 0)
         qs = torch.cat(qs, dim=0)
         q, _ = torch.min(qs, dim=0)
+
         return q, qs
 
     def state_dict(self):
@@ -92,8 +93,8 @@ class SquashedGaussian(nn.Module):
         arch = cfg.arch
 
         if len(arch) > 0:
-            self.base_network = FC(cfg, input_dim, output_dim)
-            self.mean_head = layer_init(nn.Linear(arch[-1], output_dim, bias = cfg.bias))
+            self.base_network = FC(cfg, input_dim, arch[-1])
+            self.mean_head = layer_init(nn.Linear(arch[-1], output_dim, bias=cfg.bias))
             self.logstd_head = layer_init(nn.Linear(arch[-1], output_dim, bias=cfg.bias))
         else:
             raise NotImplementedError
@@ -131,7 +132,7 @@ class SquashedGaussian(nn.Module):
             }
         else:
             info = None
-        return action, logp, info
+        return action, info
 
     def log_prob(self, observation, action, debug=False):
         base = self.base_network(observation)
@@ -161,8 +162,6 @@ class BetaPolicy(nn.Module):
     def __init__(self, cfg, input_dim, output_dim):
         super(BetaPolicy, self).__init__()
 
-        action_dim = input_dim
-        observation_dim = output_dim
         layer_init = utils.init_layer(cfg.layer_init)
         arch = cfg.arch
         device = cfg.device
@@ -172,17 +171,17 @@ class BetaPolicy(nn.Module):
         beta_param_bound = cfg.beta_param_bound
 
         if len(arch) > 0:
-            self.base_network = FC(cfg, input_dim, output_dim)
-            self.alpha_head = layer_init(nn.Linear(arch[-1], action_dim, bias=bias))
-            self.beta_head = layer_init(nn.Linear(arch[-1], action_dim, bias=bias))
+            self.base_network = FC(cfg, input_dim, arch[-1])
+            self.alpha_head = layer_init(nn.Linear(arch[-1], output_dim, bias=bias))
+            self.beta_head = layer_init(nn.Linear(arch[-1],  output_dim, bias=bias))
         else:
             """ 
             A special case of learning alpha and beta directly. 
             Initialize the weight using constant  
             """
             self.base_network = lambda x: x
-            self.alpha_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False))
-            self.beta_head = layer_init(nn.Linear(observation_dim, action_dim, bias=False))
+            self.alpha_head = layer_init(nn.Linear(input_dim, output_dim, bias=False))
+            self.beta_head = layer_init(nn.Linear(input_dim, output_dim, bias=False))
         self.head_activation_fn = utils.init_activation_function(head_activation)
         self.beta_param_bias = torch.tensor(beta_param_bias)
         self.beta_param_bound = torch.tensor(beta_param_bound)
@@ -232,7 +231,7 @@ class BetaPolicy(nn.Module):
         else:
             info = None
 
-        return action, logp, info
+        return action, info
 
     def log_prob(self, observation, action, debug=False):
         out = action

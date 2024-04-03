@@ -1,0 +1,21 @@
+defaults:
+  - _self_
+  - agent: simple_ac
+  - env : three_tanks
+
+experiment:
+  exp_name : experiment
+  exp_info : experiment
+  debug : 0
+  seed : 0
+  param : 0
+  device : cpu
+  timeout : 1
+  max_steps : 5000
+  load_from_json: ''
+  log_interval :  1
+  log_test : 0
+  stats_queue_size : 1
+  evaluation_criteria : return
+  render : 0
+  start_step : 0

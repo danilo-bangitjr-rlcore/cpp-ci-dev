@@ -1,3 +1,4 @@
+import numpy
 import torch
 import torch.nn as nn
 
@@ -118,8 +119,18 @@ def tensor(x, device):
     return x
 
 
+def state_to_tensor(state: numpy.ndarray, device: str) -> torch.Tensor:
+    state = tensor(state.reshape((1, -1)), device)
+    return state
+
+
 def to_np(t):
-    return t.cpu().detach().numpy()
+    if isinstance(t, torch.Tensor):
+        return t.cpu().detach().numpy()
+    elif isinstance(t, numpy.ndarray):
+        return t
+    else:
+        raise AssertionError("")
 
 
 def init_activation(name):
@@ -161,7 +172,6 @@ def init_layer(init):
         raise NotImplementedError
     return layer_init
 
-
 # TODO remove this
 # class EnsembleOptimizer:
 #     def __init__(self, individual_optim, param, lr, kwargs):
@@ -186,4 +196,3 @@ def init_layer(init):
 #         for opt, sd in zip(self.optim, state_dict_lst):
 #             opt.load_state_dict(sd)
 #         return
-

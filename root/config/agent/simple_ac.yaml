@@ -1,10 +1,16 @@
 defaults:
   - base_agent
   - critic: critic
+  - actor : actor
   - _self_
 
 buffer :
   batch_size: 512
   memory: 100000
   name: Uniform
+  device : cpu
 
+name : SimpleAC
+tau : 0.0
+device : ${experiment.device}
+seed : ${experiment.seed}

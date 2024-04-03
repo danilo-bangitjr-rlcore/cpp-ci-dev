@@ -1,4 +1,4 @@
-import networks
+from root.component.network import networks
 
 def init_critic_network(cfg, input_dim, output_dim):
     """
@@ -17,7 +17,7 @@ def init_actor_network(cfg, input_dim, output_dim):
     if cfg.name == 'SquashedGaussian':
         network = networks.SquashedGaussian(cfg, input_dim, output_dim)
     elif cfg.name == 'Beta':
-        network = networks.SquashedGaussian(cfg, input_dim, output_dim)
+        network = networks.BetaPolicy(cfg, input_dim, output_dim)
     else:
         raise NotImplementedError
 

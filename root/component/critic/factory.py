@@ -1,4 +1,4 @@
-from ensemble_critic import EnsembleQCritic, EnsembleVCritic
+from root.component.critic.ensemble_critic import EnsembleQCritic, EnsembleVCritic
 
 
 def init_q_critic(cfg, state_dim, action_dim):
