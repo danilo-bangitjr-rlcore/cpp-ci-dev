@@ -18,7 +18,7 @@ class LineSearchGAC(GreedyAC):
     def __init__(self, cfg, average_entropy=True):
         super(LineSearchGAC, self).__init__(cfg, average_entropy)
 
-        # Leave positions for backup the network
+        # Leave positions for backup the actor_network
         if self.discrete_control:
             self.top_action = 1
             self.actor_copy = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
@@ -52,7 +52,7 @@ class LineSearchGAC(GreedyAC):
         self.lr_explore = cfg.lr_critic
         self.explore_scaler = cfg.exploration
 
-        # Ensure not using the wrong optimizer
+        # Ensure not using the wrong actor_optimizer
         del self.actor_optimizer
         del self.critic_optimizer
         del self.sampler_optim

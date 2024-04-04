@@ -409,11 +409,11 @@ class BaseAC(Evaluation):
         if checkpoint:
             pth = os.path.join(parameters_dir, 'actor_opt')
             self.actor_optimizer.load_state_dict(torch.load(pth, map_location=self.device))
-            self.logger.info("Load actor optimizer from {}".format(pth))
+            self.logger.info("Load actor actor_optimizer from {}".format(pth))
         
             pth = os.path.join(parameters_dir, 'critic_opt')
             self.critic_optimizer.load_state_dict(torch.load(pth, map_location=self.device))
-            self.logger.info("Load critic optimizer from {}".format(pth))
+            self.logger.info("Load critic actor_optimizer from {}".format(pth))
 
             pth = os.path.join(parameters_dir, 'critic_target')
             self.critic_target.load_state_dict(torch.load(pth, map_location=self.device))

@@ -25,7 +25,7 @@ class LineSearchAgent(GreedyAC):
     def __init__(self, cfg, average_entropy=True):
         super(LineSearchAgent, self).__init__(cfg, average_entropy)
 
-        # Leave positions for backup the network
+        # Leave positions for backup the actor_network
         if self.discrete_control:
             self.top_action = 1
             self.actor_copy = init_policy_network(cfg.actor, cfg.device, self.state_dim, cfg.hidden_actor, self.action_dim,
@@ -103,7 +103,7 @@ class LineSearchAgent(GreedyAC):
         clone_model_0to1(self.fbonus0, self.fbonus0_copy)
         clone_model_0to1(self.fbonus1, self.fbonus1_copy)
 
-        # optimizer for learning net only
+        # actor_optimizer for learning net only
         self.lr_explore = cfg.lr_critic
         self.bonus_opt_0 = init_optimizer(cfg.optimizer, list(self.fbonus0.parameters()), self.lr_explore)
         self.bonus_opt_1 = init_optimizer(cfg.optimizer, list(self.fbonus1.parameters()), self.lr_explore)

@@ -10,7 +10,7 @@ from curves import visualize_training_info, draw_q_functions
 def draw_q_plots():
     # fixed_params_list = {
     #     "lr_critic": [1e-3],
-    #     "optimizer": ['RMSprop'],
+    #     "actor_optimizer": ['RMSprop'],
     #     "etc_learning_start" : [2500] ,
     #     "etc_reward_clip" : [[-100, 1], [-10, 1], [-2, 1]],
     #     "batch_size" : [8, 64, 256, 2500],
@@ -26,7 +26,7 @@ def draw_q_plots():
     
     fixed_params_list = {
         "lr_critic": [1e-3],
-        "optimizer": ['RMSprop'],
+        "actor_optimizer": ['RMSprop'],
         "etc_learning_start" : [2500] ,
         # "etc_reward_clip" : [[-100, 1], [-10, 1], [-2, 1]],
         "lr_critic" : [10**i for i in range(-2, -6, -1)],
@@ -59,7 +59,7 @@ def draw_sensitivity_2d_buffer():
     
 def draw_sensitivity_2d_adam_RMSprop():
     fixed_params_list = {
-        "optimizer": ['Adam', 'RMSprop']
+        "actor_optimizer": ['Adam', 'RMSprop']
     }
     
     pth_base = DATAROOT + "output/test_v0/NonContexTT/learning_rate_sweep_adam_RMS_prop/target0/replay5000_batch8/env_scale_10/"

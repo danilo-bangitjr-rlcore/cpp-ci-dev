@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 import numpy
 
+
 class BaseAgent(ABC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         self.replay_ratio = cfg.replay_ratio
@@ -13,7 +14,7 @@ class BaseAgent(ABC):
         self.seed = cfg.seed
 
     @abstractmethod
-    def get_action(self, state: numpy.ndarray) -> numpy.ndarray:  # returns a numpy array, not a tensor.
+    def get_action(self, state: numpy.ndarray) -> numpy.ndarray:  # must return a numpy array, not a tensor.
         raise NotImplementedError
 
     @abstractmethod

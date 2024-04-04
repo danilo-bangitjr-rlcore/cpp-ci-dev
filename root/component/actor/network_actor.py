@@ -8,8 +8,8 @@ from root.component.optimizers.factory import init_optimizer
 
 class NetworkActor(BaseActor):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
-        self.model = init_actor_network(cfg.network, state_dim, action_dim)
-        self.optimizer = init_optimizer(cfg.optimizer, self.model.parameters())
+        self.model = init_actor_network(cfg.actor_network, state_dim, action_dim)
+        self.optimizer = init_optimizer(cfg.actor_optimizer, self.model.parameters())
 
     def update(self, loss: torch.Tensor) -> None:
         self.optimizer.zero_grad()
@@ -17,6 +17,8 @@ class NetworkActor(BaseActor):
         self.optimizer.step()
 
     def get_action(self, state: torch.Tensor, with_grad=False) -> (torch.Tensor, dict):
+
+        # if this is discrete control, something will change.
         if with_grad:
             return self.model.forward(state)
         else:

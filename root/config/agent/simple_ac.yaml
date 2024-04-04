@@ -1,7 +1,7 @@
 defaults:
   - base_agent
   - critic: critic
-  - actor : actor
+  - actor : network
   - _self_
 
 buffer :
@@ -14,4 +14,4 @@ buffer :
 name : SimpleAC
 tau : 0.0
 device : ${experiment.device}
-seed : ${experiment.seed}
+

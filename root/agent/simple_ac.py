@@ -17,6 +17,8 @@ class SimpleAC(BaseAC):
         self.device = cfg.device
 
         self.critic = init_v_critic(cfg.critic, state_dim)
+
+        print(cfg.actor)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
         self.buffer = init_buffer(cfg.buffer)
 

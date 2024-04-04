@@ -19,3 +19,7 @@ experiment:
   evaluation_criteria : return
   render : 0
   start_step : 0
+
+
+interaction:
+  state_constructor

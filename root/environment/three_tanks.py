@@ -553,14 +553,10 @@ class TTAction(TTChangeAction):
         super(TTAction, self).__init__(seed, lr_constrain, constant_pid, random_sp=random_sp)
         self.observation_space = spaces.Box(low=np.array([-np.inf, -np.inf]),
                                             high=np.array([np.inf, np.inf]), shape=(2,), dtype=np.float32)
-        # self.observation_space = spaces.Box(low=np.array([0, 0, -np.inf, -np.inf]),
-        #                                     high=np.array([0, 0, np.inf, np.inf]), shape=(4,), dtype=np.float32)
 
     def preprocess_action(self, a):
-        # norm_pid = a
-        # pid = self.action_multiplier * norm_pid
         pid = a
-        return pid #, norm_pid
+        return pid
 
     def reset(self, seed=None):
         s, info = super(TTAction, self).reset()

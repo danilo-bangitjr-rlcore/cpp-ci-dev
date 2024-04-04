@@ -95,5 +95,5 @@ class SAC(BaseAC):
         if checkpoint:
             pth = os.path.join(parameters_dir, 'alpha_opt')
             self.alpha_optimizer.load_state_dict(torch.load(pth, map_location=self.device))
-            self.logger.info("Load alpha optimizer from {}".format(pth))
+            self.logger.info("Load alpha actor_optimizer from {}".format(pth))
             

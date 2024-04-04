@@ -26,7 +26,7 @@ if __name__ == "__main__":
     parser.add_argument('--layer_norm', default=0, type=int)
     parser.add_argument('--layer_init', default='Xavier', type=str)
     parser.add_argument('--activation', default='ReLU6', type=str)
-    parser.add_argument('--optimizer', default='RMSprop', type=str)
+    parser.add_argument('--actor_optimizer', default='RMSprop', type=str)
     parser.add_argument('--obs_normalizer', default='Identity', type=str)
     parser.add_argument('--obs_scale', default=[1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], type=float, nargs='+')
     parser.add_argument('--obs_bias', default=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], type=float, nargs='+')

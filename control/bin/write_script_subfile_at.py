@@ -39,7 +39,7 @@ def reactor_env_sweep():
         "--reward_normalizer": ["Identity"],
         "--actor": ["Beta"],
         "--critic": ["FC"],
-        "--optimizer": ["RMSprop"],
+        "--actor_optimizer": ["RMSprop"],
         "--action_scale": [2],
         "--action_bias": [-1],
         "--debug": [0],

@@ -1,5 +1,7 @@
 class EnsembleOptimizer:
     def __init__(self, individual_optim, param, lr, kwargs):
+
+
         self.optim = [
             individual_optim(list(p), lr, **kwargs) for p in param
         ]

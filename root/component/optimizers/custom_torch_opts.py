@@ -3,12 +3,12 @@ import copy
 import math
 
 
-class CustomADAM(torch.optim.Optimizer):
+class CustomAdam(torch.optim.Optimizer):
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
                  weight_decay=0):
         defaults = dict(lr=lr, betas=betas, eps=eps,
                         weight_decay=weight_decay, amsgrad=False)
-        super(CustomADAM, self).__init__(params, defaults)
+        super(CustomAdam, self).__init__(params, defaults)
 
         self.state_idx = {}
         max_p_len = 0
@@ -21,7 +21,7 @@ class CustomADAM(torch.optim.Optimizer):
                 self.state_idx[gi * self.max_p_len + pi] = {}
 
     def __setstate__(self, state):
-        super(CustomADAM, self).__setstate__(state)
+        super(CustomAdam, self).__setstate__(state)
         for group in self.param_groups:
             group.setdefault('amsgrad', False)
 

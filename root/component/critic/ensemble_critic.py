@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from omegaconf import DictConfig
 
 from root.component.critic.base_critic import BaseQ, BaseV
@@ -8,35 +9,35 @@ from root.component.network.factory import init_critic_network
 
 class EnsembleQCritic(BaseQ):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
-        self.model = init_critic_network(cfg.network, state_dim, action_dim)
-        self.target = init_critic_network(cfg.network, state_dim, action_dim)
-        self.optimizer = init_optimizer(cfg.optimizer, self.model.parameters())  # TODO: change this optimizer to True
+        self.model = init_critic_network(cfg.critic_network, state_dim, action_dim)
+        self.target = init_critic_network(cfg.critic_network, state_dim, action_dim)
+        self.optimizer = init_optimizer(cfg.critic_optimizer, list(self.model.parameters(independent=True)), ensemble=True)
         self.polyak = cfg.polyak
         self.target_sync_freq = cfg.target_sync_freq
         self.target_sync_counter = 0
 
-    def get_q(self, states: torch.Tensor, actions: torch.Tensor, with_grad: bool = False, get_qs: bool = False) -> torch.Tensor | (torch.Tensor, torch.Tensor):
+    def get_qs(self, states: torch.Tensor, actions: torch.Tensor, with_grad: bool = False) -> (torch.Tensor, torch.Tensor):
+        # Assumes
         state_actions = torch.concat((states, actions), dim=1)
         if with_grad:
             q, qs = self.model(state_actions)
         else:
             with torch.no_grad():
                 q, qs = self.model(state_actions)
+        return q, qs
 
-        if get_qs:
-            return q, qs
-        else:
-            return q
+    def get_q(self, states: torch.Tensor, actions: torch.Tensor, with_grad: bool = False) -> torch.Tensor:
+        q, qs = self.get_qs(states, actions, with_grad=with_grad)
+        return q
 
-    def get_q_target(self, states: torch.Tensor, actions: torch.Tensor, get_qs: bool = False) -> torch.Tensor | (torch.Tensor, torch.Tensor):
+    def get_qs_target(self, states: torch.Tensor, actions: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         state_actions = torch.concat((states, actions), dim=1)
         with torch.no_grad():
-            q, qs = self.target(state_actions)
+            return self.target(state_actions)
 
-        if get_qs:
-            return q, qs
-        else:
-            return q
+    def get_q_target(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
+        q, qs = self.get_qs_target(states, actions)
+        return q
 
     def update(self, loss: torch.Tensor) -> None:
         loss.backward()
@@ -54,33 +55,32 @@ class EnsembleQCritic(BaseQ):
 
 class EnsembleVCritic(BaseV):
     def __init__(self, cfg: DictConfig, state_dim: int):
-        self.model = init_critic_network(cfg.network, state_dim, output_dim=1)
-        self.target = init_critic_network(cfg.network, state_dim, output_dim=1)
-        self.optimizer = init_optimizer(cfg.optimizer, self.model.parameters())
+        self.model = init_critic_network(cfg.critic_network, state_dim, output_dim=1)
+        self.target = init_critic_network(cfg.critic_network, state_dim, output_dim=1)
+        self.optimizer = init_optimizer(cfg.critic_optimizer, list(self.model.parameters(independent=True)), ensemble=True)
         self.polyak = cfg.polyak
         self.target_sync_freq = cfg.target_sync_freq
         self.target_sync_counter = 0
 
-    def get_v(self, states: torch.Tensor, with_grad: bool = False, get_vs: bool = False) -> torch.Tensor | (torch.Tensor, torch.Tensor):
+    def get_vs(self, states: torch.Tensor, with_grad: bool = False) -> (torch.Tensor, torch.Tensor):
         if with_grad:
             v, vs = self.model(states)
         else:
             with torch.no_grad():
                 v, vs = self.model(states)
+        return v, vs
 
-        if get_vs:
-            return v, vs
-        else:
-            return v
+    def get_v(self, states: torch.Tensor, with_grad: bool = False) -> torch.Tensor:
+        v, vs = self.get_vs(states, with_grad=with_grad)
+        return v
 
-    def get_v_target(self, states: torch.Tensor, get_vs: bool = False) -> torch.Tensor | (torch.Tensor, torch.Tensor):
+    def get_vs_target(self, states: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         with torch.no_grad():
-            v, vs = self.target(states)
+            return self.target(states)
 
-        if get_vs:
-            return v, vs
-        else:
-            return v
+    def get_v_target(self, states: torch.Tensor) -> torch.Tensor:
+        v, vs = self.get_vs_target(states)
+        return v
 
     def update(self, loss: torch.Tensor) -> None:
         loss.backward()

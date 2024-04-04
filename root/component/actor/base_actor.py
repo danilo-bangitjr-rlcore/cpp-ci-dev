@@ -11,5 +11,14 @@ class BaseActor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_action(self, state: np.ndarray) -> (np.ndarray | torch.Tensor, dict):
+    def get_action(self, state: np.ndarray | torch.Tensor, **kwargs) -> (np.ndarray | torch.Tensor, dict):
         raise NotImplementedError
+
+    @abstractmethod
+    def update(self, *args) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_log_prob(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
+        pass
+

@@ -10,7 +10,7 @@ def train_val_test(gvf, cfg):
     # Train GVF on offline training set
     train_loss = gvf.train()
 
-    # Save training loss, gvf, and optimizer
+    # Save training loss, gvf, and actor_optimizer
     np.save(cfg.exp_path + "/train_loss.npy", np.array(train_loss))
     gvf.save()
 

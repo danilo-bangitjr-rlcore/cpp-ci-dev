@@ -7,36 +7,34 @@ from root.environment.smpl.envs.atropineenv import AtropineEnvGym
 from root.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
 from root.environment.smpl.envs.reactorenv import ReactorEnvGym
 from root.environment.gym_wrapper import DiscreteControlWrapper, D4RLWrapper
-from root.environment.pendulum_env  import PendulumEnv
-from root.environment.reseau_env  import ReseauEnv
+from root.environment.pendulum_env import PendulumEnv
+from root.environment.reseau_env import ReseauEnv
 from root.environment.influx_opc_env import DBClientWrapperBase
 from root.environment.opc_connection import OpcConnection
 
 import json
 
-def init_environment(cfg, seed):
+
+def init_environment(cfg):
+    seed = cfg.seed
     name = cfg.name
     if name == "ThreeTank":
-        return ThreeTankEnv(seed, cfg.lr_constrain, random_sp=cfg.random_sp)
-    elif name == "TTChangeAction/ConstPID":
-        return TTChangeAction(seed, cfg.lr_constrain, constant_pid=True,
-                              agent_action_min=-1,#0*cfg.action_scale+cfg.action_bias,
-                              agent_action_max=1,#1*cfg.action_scale+cfg.action_bias,
-                              random_sp=cfg.random_sp)
-    elif name == "TTChangeAction/ChangePID":
-        return TTChangeAction(seed, cfg.lr_constrain, constant_pid=False,
-                              agent_action_min=-1,
-                              agent_action_max=1,
-                              random_sp=cfg.random_sp)
-    elif name == "TTChangeAction/DiscreteConstPID":
-        return TTChangeActionDiscrete(cfg.env_info[0], seed, cfg.lr_constrain, constant_pid=True,
+        if cfg.change_action:
+            if cfg.discrete_action:
+                TTChangeActionDiscrete(cfg.delta_step, seed, cfg.lr_constrain,
+                                       constant_pid=cfg.constant_pid,
+                                       random_sp=cfg.random_sp)
+            else:
+                return TTChangeAction(seed, cfg.lr_constrain, constant_pid=cfg.constant_pid,
+                                      agent_action_min=-1,
+                                      agent_action_max=1,
                                       random_sp=cfg.random_sp)
-    elif name == "TTAction/ConstPID":
-        return TTAction(seed, cfg.lr_constrain, constant_pid=True, random_sp = cfg.random_sp)
-    elif name == "TTAction/ChangePID":
-        return TTAction(seed, cfg.lr_constrain, constant_pid=False, random_sp = cfg.random_sp)
-    elif name == "NonContexTT":
-        return NonContexTT(seed, cfg.lr_constrain, obs=cfg.env_info[0])
+        else:
+            if cfg.discrete_action:
+                raise NotImplementedError
+            else:
+                return ThreeTankEnv(seed, cfg.lr_constrain, random_sp=cfg.random_sp)
+
     elif name == "AtropineEnv":
         return AtropineEnvGym()
     elif name == "BeerEnv":
@@ -56,12 +54,9 @@ def init_environment(cfg, seed):
     elif name == "Acrobot-v1":
         return DiscreteControlWrapper("Acrobot-v1", cfg.timeout)
     elif name == "MountainCarContinuous-v0":
-        return  gym.make("MountainCarContinuous-v0")
+        return gym.make("MountainCarContinuous-v0")
     elif name == "Pendulum-v1":
-        if cfg.discrete_control:
-            return PendulumEnv(render_mode="human", continuous_action=False) 
-        else:
-            return PendulumEnv(render_mode="human")
+        return PendulumEnv(render_mode="human", continuous_action=(not cfg.discrete_control))
     elif name == "HalfCheetah-v4":
         return gym.make("HalfCheetah-v4")
     elif name == "Ant-expert":
@@ -74,13 +69,13 @@ def init_environment(cfg, seed):
     elif name == "Reseau_online":
         db_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\db_settings_osoyoos.json"
         db_settings = json.load(open(db_settings_pth, "r"))
-        
+
         opc_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\opc_settings_osoyoos.json"
         opc_settings = json.load(open(opc_settings_pth, "r"))
-        
-        db_client = DBClientWrapperBase(db_settings["bucket"], db_settings["org"], 
-                            db_settings["token"], db_settings["url"])
-        
+
+        db_client = DBClientWrapperBase(db_settings["bucket"], db_settings["org"],
+                                        db_settings["token"], db_settings["url"])
+
         opc_connection = OpcConnection(opc_settings["IP"], opc_settings["port"])
 
         control_tags = ["osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"]
@@ -94,16 +89,16 @@ def init_environment(cfg, seed):
             "fit210_pv",
             "fit230_pv",
             "fit250_pv",
-            "fit401_pv", 
-            "p250_fp", 
+            "fit401_pv",
+            "p250_fp",
             "pt100_pv",
-            "pt101_pv", 
+            "pt101_pv",
             "pt161_pv"
-            ]
-        
+        ]
+
         return ReseauEnv(db_client, opc_connection, control_tags, control_tag_default, col_names, runtime,
-                  obs_freq=cfg.obs_freq, obs_window=cfg.obs_window, last_n_obs=cfg.last_n_obs)
-            
+                         obs_freq=cfg.obs_freq, obs_window=cfg.obs_window, last_n_obs=cfg.last_n_obs)
+
     else:
         raise NotImplementedError
 
@@ -117,14 +112,14 @@ def configure_action_scaler_and_bias(cfg):
             action_high = cfg.train_env.action_space.high
             action_range = action_high - action_low
             cfg.action_scale = float(action_range[0])
-            cfg.action_bias = float(action_low[0]) 
+            cfg.action_bias = float(action_low[0])
         elif cfg.actor == 'SGaussian':
             action_low = cfg.train_env.action_space.low
             action_high = cfg.train_env.action_space.high
             action_range = action_high - action_low
-            cfg.action_scale = float(action_range[0]) / 2 # since SGaussian defined on [-1, 1]
-            cfg.action_bias = float(action_low[0]) + cfg.action_scale 
-    else: 
+            cfg.action_scale = float(action_range[0]) / 2  # since SGaussian defined on [-1, 1]
+            cfg.action_bias = float(action_low[0]) + cfg.action_scale
+    else:
         # if we are not automatically calibrating the scale and bias based on the environment. 
         # We can set values here based on domain knowlegde
         name = cfg.env_name
@@ -150,13 +145,13 @@ def configure_action_scaler_and_bias(cfg):
         elif name == "TTChangeAction/DiscreteConstPID":
             raise NotImplementedError
         elif name == "TTChangeAction/ClipConstPID":
-           raise NotImplementedError
+            raise NotImplementedError
         elif name == "TTChangeAction/ClipDiscreteConstPID":
             raise NotImplementedError
         elif name == "TTAction/ConstPID":
-           raise NotImplementedError
+            raise NotImplementedError
         elif name == "TTAction/ChangePID":
-           raise NotImplementedError
+            raise NotImplementedError
         elif name == "NonContexTT":
             cfg.state_normalizer = "Identity"
             cfg.reward_normalizer = "ThreeTanksReward"
@@ -187,7 +182,7 @@ def configure_action_scaler_and_bias(cfg):
             cfg.reward_normalizer = "Identity"
             cfg.action_normalizer = "OneHot"
             if cfg.actor == 'Softmax':
-                cfg.action_scale = 3 # This is a bad naming. It should be the action dimension.
+                cfg.action_scale = 3  # This is a bad naming. It should be the action dimension.
                 cfg.action_bias = 0
             else:
                 raise NotImplementedError
@@ -198,7 +193,7 @@ def configure_action_scaler_and_bias(cfg):
             cfg.reward_normalizer = "Identity"
             cfg.action_normalizer = "OneHot"
             if cfg.actor == 'Softmax':
-                cfg.action_scale = 3 # This is a bad naming. It should be the action dimension.
+                cfg.action_scale = 3  # This is a bad naming. It should be the action dimension.
                 cfg.action_bias = 0
             else:
                 raise NotImplementedError
@@ -223,5 +218,3 @@ def configure_action_scaler_and_bias(cfg):
         else:
             print(name, "configure not defined")
             raise NotImplementedError
-    
-    

@@ -59,7 +59,7 @@ def c20240117_0(settings, shared_settings, target_agents):
         --env_action_scaler 1.0
         --head_activation ReLU
         --hidden_actor 0
-        --optimizer RMSprop
+        --actor_optimizer RMSprop
         --env_name NonContexTT
         --env_info 1.0 3.0
         --buffer_size 1
@@ -89,7 +89,7 @@ def c20240117_0(settings, shared_settings, target_agents):
     shared_settings["--lr_actor"] = [0.5]
     shared_settings["--lr_critic"] = [1e-5]
     shared_settings["--action_normalizer"] = ["Scale"]
-    shared_settings["--optimizer"] = ["RMSprop"]
+    shared_settings["--actor_optimizer"] = ["RMSprop"]
     shared_settings["--activation"] = ["ReLU6"]
 
     shared_settings["--exp_info"] = ["/directly_learn_beta/totally_changed_envActionScaler1_betaScaler10_withActionNormalizer/"]
@@ -101,12 +101,12 @@ def c20240117_0(settings, shared_settings, target_agents):
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=1, line_per_file=1, comb_num_base=0)
 
-    shared_settings["--optimizer"] = ["Adam"]
+    shared_settings["--actor_optimizer"] = ["Adam"]
     shared_settings["--exp_info"] = ["/directly_learn_beta/totally_changed_envActionScaler1_betaScaler10_withActionNormalizer/change_to_ReLU/change_to_Adam"] # fails in this setting
     settings = merge_independent(settings, shared_settings)
     combinations(settings, target_agents, num_runs=1, prev_file=2, line_per_file=1, comb_num_base=0)
 
-    shared_settings["--optimizer"] = ["RMSprop"]
+    shared_settings["--actor_optimizer"] = ["RMSprop"]
     shared_settings["--action_normalizer"] = ["Identity"]
     shared_settings["--exp_info"] = ["/directly_learn_beta/totally_changed_envActionScaler1_betaScaler10_withActionNormalizer/change_to_ReLU/remove_action_normalizer"]
     settings = merge_independent(settings, shared_settings)
@@ -131,7 +131,7 @@ def c20240118(settings, shared_settings, target_agents):
     shared_settings["--prop_rho_mult"] = [2.0]
     shared_settings["--exp_name"] = ["recreating_results_vis"]
     shared_settings["--action_normalizer"] = ["Scale"]
-    shared_settings["--optimizer"] = ["RMSprop"]
+    shared_settings["--actor_optimizer"] = ["RMSprop"]
     shared_settings["--activation"] = ["ReLU6"]
     shared_settings["--head_activation"] = ["Softplus"]
 
@@ -161,7 +161,7 @@ def c20240119(settings, shared_settings, target_agents):
     shared_settings["--prop_rho_mult"] = [2.0]
     shared_settings["--exp_name"] = ["recreating_results_vis"]
     shared_settings["--action_normalizer"] = ["Scale"]
-    shared_settings["--optimizer"] = ["RMSprop"]
+    shared_settings["--actor_optimizer"] = ["RMSprop"]
     shared_settings["--activation"] = ["ReLU6"]
     shared_settings["--head_activation"] = ["Softplus"]
 
@@ -225,7 +225,7 @@ if __name__=='__main__':
         "--env_action_scaler": [1.],
 
         "--head_activation": ["ReLU"],
-        "--optimizer": ["Adam"],
+        "--actor_optimizer": ["Adam"],
         "--action_normalizer": ["Scale"],
     }
     target_agents = ["GAC"]

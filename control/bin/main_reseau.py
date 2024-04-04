@@ -48,7 +48,7 @@ if __name__ == "__main__":
     parser.add_argument('--layer_init_critic', default='Xavier/1', type=str)
     parser.add_argument('--activation', default='ReLU', type=str)
     parser.add_argument('--head_activation', default='Softplus', type=str)
-    parser.add_argument('--optimizer', default='RMSprop', type=str)
+    parser.add_argument('--actor_optimizer', default='RMSprop', type=str)
     parser.add_argument('--state_normalizer', default='Identity', type=str)
     parser.add_argument('--action_normalizer', default='Scale', type=str)
     parser.add_argument('--reward_normalizer', default='Identity', type=str) 
