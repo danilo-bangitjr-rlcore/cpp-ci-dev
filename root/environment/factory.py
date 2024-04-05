@@ -1,8 +1,8 @@
 import gymnasium as gym
 import gym_electric_motor as gem
 from gymnasium.wrappers import FlattenObservation
-from root.environment.three_tanks import ThreeTankEnv, NonContexTT
-from root.environment.three_tanks import TTChangeAction, TTAction, TTChangeActionDiscrete
+from root.environment.three_tanks import ThreeTankEnv
+from root.environment.three_tanks import TTChangeAction, TTChangeActionDiscrete
 from root.environment.smpl.envs.atropineenv import AtropineEnvGym
 from root.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
 from root.environment.smpl.envs.reactorenv import ReactorEnvGym
@@ -11,6 +11,7 @@ from root.environment.pendulum_env import PendulumEnv
 from root.environment.reseau_env import ReseauEnv
 from root.environment.influx_opc_env import DBClientWrapperBase
 from root.environment.opc_connection import OpcConnection
+from root.environment.wrapper.one_hot_wrapper import OneHotWrapper
 
 import json
 
@@ -25,196 +26,65 @@ def init_environment(cfg):
                                        constant_pid=cfg.constant_pid,
                                        random_sp=cfg.random_sp)
             else:
-                return TTChangeAction(seed, cfg.lr_constrain, constant_pid=cfg.constant_pid,
-                                      agent_action_min=-1,
-                                      agent_action_max=1,
-                                      random_sp=cfg.random_sp)
+                env = TTChangeAction(seed, cfg.lr_constrain, constant_pid=cfg.constant_pid,
+                                     agent_action_min=-1,
+                                     agent_action_max=1,
+                                     random_sp=cfg.random_sp)
         else:
-            if cfg.discrete_action:
+            if cfg.discrete_control:
                 raise NotImplementedError
             else:
-                return ThreeTankEnv(seed, cfg.lr_constrain, random_sp=cfg.random_sp)
+                env = ThreeTankEnv(seed, cfg.lr_constrain, random_sp=cfg.random_sp)
 
     elif name == "AtropineEnv":
-        return AtropineEnvGym()
+        env = AtropineEnvGym()
     elif name == "BeerEnv":
-        return BeerFMTEnvGym()
+        env = BeerFMTEnvGym()
     elif name == "ReactorEnv":
-        return ReactorEnvGym()
+        env = ReactorEnvGym()
     elif name == "Cont-CC-PermExDc-v0":
-        return FlattenObservation(gem.make("Cont-CC-PermExDc-v0"))
+        env = FlattenObservation(gem.make("Cont-CC-PermExDc-v0"))
     elif name == "Cont-CC-PMSM-v0":
-        return FlattenObservation(gem.make("Cont-CC-PMSM-v0"))
+        env = FlattenObservation(gem.make("Cont-CC-PMSM-v0"))
     elif name == "Cont-CC-DFIM-v0":
-        return FlattenObservation(gem.make("Cont-CC-DFIM-v0"))
+        env = FlattenObservation(gem.make("Cont-CC-DFIM-v0"))
     elif name == "Cont-CC-SCIM-v0":
-        return FlattenObservation(gem.make("Cont-CC-SCIM-v0"))
+        env = FlattenObservation(gem.make("Cont-CC-SCIM-v0"))
     elif name == "Cont-CC-EESM-v0":
-        return FlattenObservation(gem.make("Cont-CC-EESM-v0"))
+        env = FlattenObservation(gem.make("Cont-CC-EESM-v0"))
     elif name == "Acrobot-v1":
-        return DiscreteControlWrapper("Acrobot-v1", cfg.timeout)
+        env = DiscreteControlWrapper("Acrobot-v1", cfg.timeout)
     elif name == "MountainCarContinuous-v0":
-        return gym.make("MountainCarContinuous-v0")
+        env = gym.make("MountainCarContinuous-v0")
     elif name == "Pendulum-v1":
-        return PendulumEnv(render_mode="human", continuous_action=(not cfg.discrete_control))
+        env = PendulumEnv(render_mode="human", continuous_action=(not cfg.discrete_control))
     elif name == "HalfCheetah-v4":
-        return gym.make("HalfCheetah-v4")
+        env = gym.make("HalfCheetah-v4")
     elif name == "Ant-expert":
-        return D4RLWrapper("ant-expert-v2", seed)
+        env = D4RLWrapper("ant-expert-v2", seed)
     elif name == "Walker2d-expert":
-        return D4RLWrapper("walker2d-expert-v2", seed)
+        env = D4RLWrapper("walker2d-expert-v2", seed)
     elif name == "Walker2d-medium":
-        return D4RLWrapper("walker2d-medium-v2", seed)
+        env = D4RLWrapper("walker2d-medium-v2", seed)
 
     elif name == "Reseau_online":
-        db_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\db_settings_osoyoos.json"
-        db_settings = json.load(open(db_settings_pth, "r"))
-
-        opc_settings_pth = "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\opc_settings_osoyoos.json"
-        opc_settings = json.load(open(opc_settings_pth, "r"))
+        db_settings = json.load(open(cfg.db_settings_pth, "r"))
+        opc_settings = json.load(open(cfg.opc_settings_pth, "r"))
 
         db_client = DBClientWrapperBase(db_settings["bucket"], db_settings["org"],
                                         db_settings["token"], db_settings["url"])
 
         opc_connection = OpcConnection(opc_settings["IP"], opc_settings["port"])
 
-        control_tags = ["osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"]
         control_tag_default = [cfg.reset_fpm]
         runtime = None
-        col_names = [
-            "ait101_pv",
-            "ait301_pv",
-            "ait401_pv",
-            "fit101_pv",
-            "fit210_pv",
-            "fit230_pv",
-            "fit250_pv",
-            "fit401_pv",
-            "p250_fp",
-            "pt100_pv",
-            "pt101_pv",
-            "pt161_pv"
-        ]
-
-        return ReseauEnv(db_client, opc_connection, control_tags, control_tag_default, col_names, runtime,
-                         obs_freq=cfg.obs_freq, obs_window=cfg.obs_window, last_n_obs=cfg.last_n_obs)
+        env = ReseauEnv(db_client, opc_connection, cfg.control_tags, control_tag_default, cfg.col_names, runtime,
+                        obs_freq=cfg.obs_freq, obs_window=cfg.obs_window, last_n_obs=cfg.last_n_obs)
 
     else:
         raise NotImplementedError
 
+    if cfg.discrete_control:
+        env = OneHotWrapper(env)
 
-# this needs a better api
-def configure_action_scaler_and_bias(cfg):
-    if cfg.auto_calibrate_beta_support:
-        # auto scales based on gym env.action_space attributes
-        if cfg.actor == 'Beta':
-            action_low = cfg.train_env.action_space.low
-            action_high = cfg.train_env.action_space.high
-            action_range = action_high - action_low
-            cfg.action_scale = float(action_range[0])
-            cfg.action_bias = float(action_low[0])
-        elif cfg.actor == 'SGaussian':
-            action_low = cfg.train_env.action_space.low
-            action_high = cfg.train_env.action_space.high
-            action_range = action_high - action_low
-            cfg.action_scale = float(action_range[0]) / 2  # since SGaussian defined on [-1, 1]
-            cfg.action_bias = float(action_low[0]) + cfg.action_scale
-    else:
-        # if we are not automatically calibrating the scale and bias based on the environment. 
-        # We can set values here based on domain knowlegde
-        name = cfg.env_name
-        if name == "ThreeTank":
-            if cfg.actor == 'Beta':
-                cfg.action_scale = 10
-                cfg.action_bias = 0
-            elif cfg.actor == 'SGaussian':
-                cfg.action_scale = 5
-                cfg.action_bias = 5
-            else:
-                raise NotImplementedError
-        elif name == "TTChangeAction/ConstPID":
-            cfg.state_normalizer = "TTChangeActionState"
-            cfg.reward_normalizer = "ThreeTanksReward"
-            if cfg.actor == 'Beta':
-                cfg.action_scale = 10
-                cfg.action_bias = -5
-            else:
-                raise NotImplementedError
-        elif name == "TTChangeAction/ChangePID":
-            raise NotImplementedError
-        elif name == "TTChangeAction/DiscreteConstPID":
-            raise NotImplementedError
-        elif name == "TTChangeAction/ClipConstPID":
-            raise NotImplementedError
-        elif name == "TTChangeAction/ClipDiscreteConstPID":
-            raise NotImplementedError
-        elif name == "TTAction/ConstPID":
-            raise NotImplementedError
-        elif name == "TTAction/ChangePID":
-            raise NotImplementedError
-        elif name == "NonContexTT":
-            cfg.state_normalizer = "Identity"
-            cfg.reward_normalizer = "ThreeTanksReward"
-            if cfg.actor == 'Beta':
-                cfg.action_scale = 9.8
-                cfg.action_bias = 0.2
-            elif cfg.actor == 'SGaussian':
-                cfg.action_scale = 4.9
-                cfg.action_bias = 5.1
-        elif name == "AtropineEnv":
-            raise NotImplementedError
-        elif name == "BeerEnv":
-            raise NotImplementedError
-        elif name == "ReactorEnv":
-            if cfg.actor == 'Beta':
-                cfg.action_scale = 2.0
-                cfg.action_bias = -1.0
-        elif name == "Cont-CC-PermExDc-v0":
-            raise NotImplementedError
-        elif name == "Cont-CC-PMSM-v0":
-            raise NotImplementedError
-        elif name == "Cont-CC-DFIM-v0":
-            raise NotImplementedError
-        elif name == "Cont-CC-SCIM-v0":
-            raise NotImplementedError
-        elif name == "Acrobot-v1":
-            cfg.state_normalizer = "Identity"
-            cfg.reward_normalizer = "Identity"
-            cfg.action_normalizer = "OneHot"
-            if cfg.actor == 'Softmax':
-                cfg.action_scale = 3  # This is a bad naming. It should be the action dimension.
-                cfg.action_bias = 0
-            else:
-                raise NotImplementedError
-        elif name == "MountainCar-v0":
-            raise NotImplementedError
-        elif name == "Pendulum-v1":
-            cfg.state_normalizer = "Identity"
-            cfg.reward_normalizer = "Identity"
-            cfg.action_normalizer = "OneHot"
-            if cfg.actor == 'Softmax':
-                cfg.action_scale = 3  # This is a bad naming. It should be the action dimension.
-                cfg.action_bias = 0
-            else:
-                raise NotImplementedError
-        elif name == "Reseau_online":
-            if cfg.actor == 'Beta':
-                cfg.action_scale = 100.0
-                cfg.action_bias = 0.0
-            else:
-                raise NotImplementedError
-        elif name in ["Walker2d-expert", "Walker2d-medium", "Ant-expert"]:
-            cfg.state_normalizer = "Identity"
-            cfg.reward_normalizer = "Identity"
-            cfg.action_normalizer = "Scale"
-            if cfg.actor == 'Beta':
-                cfg.action_scale = 2.0
-                cfg.action_bias = -1.0
-            elif cfg.actor == 'SGaussian':
-                cfg.action_scale = 1
-                cfg.action_bias = 0.0
-            else:
-                raise NotImplementedError
-        else:
-            print(name, "configure not defined")
-            raise NotImplementedError
+    return env

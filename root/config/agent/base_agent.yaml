@@ -1,5 +1,0 @@
-replay_ratio : 1
-update_freq : 1
-gamma : 0.9
-discrete_control : ${env.discrete_control}
-seed : ${experiment.seed}

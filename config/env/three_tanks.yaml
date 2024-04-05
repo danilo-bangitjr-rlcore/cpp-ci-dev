@@ -1,0 +1,11 @@
+defaults:
+  - base_env
+  - _self_
+
+name : ThreeTank
+random_sp : [3]
+lr_constrain : 0
+discrete_control : False
+change_action : False
+constant_pid : False
+delta_step : 0.1

@@ -1,0 +1,4 @@
+name: clip
+clip_min: -100 # arbitrary examples
+clip_max: 100 # arbitrary examples
+discrete_control: ${env.discrete_control}

@@ -1,0 +1,5 @@
+defaults:
+  - action_normalizer: identity
+  - reward_normalizer: identity
+
+name: normalizer

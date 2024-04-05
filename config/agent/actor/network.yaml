@@ -1,0 +1,6 @@
+defaults:
+  - actor_network: Softmax
+  - actor_optimizer : adam
+  -  _self_
+
+name : "network"

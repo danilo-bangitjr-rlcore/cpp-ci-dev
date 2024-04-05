@@ -1,0 +1,4 @@
+name : scale
+action_high : False
+action_low : False
+discrete_control: ${env.discrete_control}

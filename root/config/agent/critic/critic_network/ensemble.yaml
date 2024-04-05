@@ -1,6 +1,0 @@
-defaults:
-  - fc
-  - _self_
-
-ensemble : 1
-name : ensemble

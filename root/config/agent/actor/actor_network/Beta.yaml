@@ -1,7 +1,0 @@
-defaults:
-  - fc
-  - _self_
-
-name : Beta
-beta_param_bias : 0
-beta_param_bound : 1e8
