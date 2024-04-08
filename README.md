@@ -121,8 +121,6 @@ If you implement something new, there are three different places to update the c
 
 
 ## TODO:
-1. Implement remaining agents.
-   2. Python code 
-   3. yaml.config files
+1. Implement remaining agents (Python code + yaml.config files)
 2. Testing agents on environments.
 3. Implementing line search as an optimizer.
