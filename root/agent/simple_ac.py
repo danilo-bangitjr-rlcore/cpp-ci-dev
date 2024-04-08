@@ -3,7 +3,6 @@ from pathlib import Path
 
 import torch.nn as nn
 import numpy
-import os
 import pickle as pkl
 
 from root.agent.base import BaseAC

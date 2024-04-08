@@ -79,9 +79,10 @@ values to be replaced.
 This repo uses the following code style:
 1. Classes: camel case. E.g. `GreedyActorCritic`
 2. Python modules: lowercase with underscores. E.g. `greedy_actor_critic.py`
-3. Config files: lowercase with underscores. E.g. `greedy_actor_critic.yaml`
-4. [WIP] String arguments in configs: lowercase with underscores. E.g. `agent: greedy_actor_critic`
-5. Paths: please use `pathlib` instead of `os`
+3. Python variables: lowercase with underscores. E.g. `agent = GreedyActorCritic()`
+4. Config files: lowercase with underscores. E.g. `greedy_actor_critic.yaml`
+5. [WIP] String arguments in configs: lowercase with underscores. E.g. `agent: greedy_actor_critic`
+6. Paths: please use `pathlib` instead of `os`
 
 
 ## Logging & Debugging
@@ -111,6 +112,13 @@ log.LOG.increment()
 log.LOG.clear()  # Optionally clearing the log
 ```
 Calling `log.LOG.increment() ` will make sure you don't overwrite previously saved logs. 
+
+## What Do I Do to Implement More Stuff?
+If you implement something new, there are three different places to update the code:
+1. The python code that defines the class you have implemented.
+2. The factory function that instantiates it
+3. The .yaml config file
+
 
 ## TODO:
 1. Implement remaining agents.

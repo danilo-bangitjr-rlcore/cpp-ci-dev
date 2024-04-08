@@ -8,8 +8,9 @@ from root.component.network.factory import init_critic_network
 
 class EnsembleQCritic(BaseQ):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
-        self.model = init_critic_network(cfg.critic_network, state_dim, action_dim)
-        self.target = init_critic_network(cfg.critic_network, state_dim, action_dim)
+        state_action_dim = state_dim + action_dim
+        self.model = init_critic_network(cfg.critic_network, input_dim=state_action_dim, output_dim=1)
+        self.target = init_critic_network(cfg.critic_network, input_dim=state_action_dim, output_dim=1)
         self.optimizer = init_optimizer(cfg.critic_optimizer, list(self.model.parameters(independent=True)),
                                         ensemble=True)
         self.polyak = cfg.polyak
@@ -52,6 +53,29 @@ class EnsembleQCritic(BaseQ):
             for p, p_targ in zip(self.model.parameters(), self.target.parameters()):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
+
+    def save(self, path: Path) -> None:
+        path.mkdir(parents=True, exist_ok=True)
+
+        net_path = path / "critic_net"
+        torch.save(self.model.state_dict(), net_path)
+
+        target_path = path / "critic_target"
+        torch.save(self.target.state_dict(), target_path)
+
+        opt_path = path / "critic_opt"
+        torch.save(self.optimizer.state_dict(), opt_path)
+
+    def load(self, path: Path) -> None:
+        net_path = path / 'critic_net'
+        device = self.model.device
+        self.model.load_state_dict(torch.load(net_path, map_location=device))
+
+        target_path = path / 'critic_target'
+        self.target.load_state_dict(torch.load(target_path, map_location=device))
+
+        opt_path = path / 'critic_opt'
+        self.optimizer.load_state_dict(torch.load(opt_path, map_location=device))
 
 
 class EnsembleVCritic(BaseV):

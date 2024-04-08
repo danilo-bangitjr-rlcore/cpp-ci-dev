@@ -5,8 +5,8 @@ defaults:
   - buffer: uniform
   - _self_
 
-
-name : simple_ac
-tau : 0.0
+name : iql
+temp : 1.0
+expectile: 0.8
 device : ${experiment.device}
 
