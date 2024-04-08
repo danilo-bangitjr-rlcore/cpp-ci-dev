@@ -5,7 +5,7 @@ import torch.nn as nn
 
 def init_critic_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
     """
-        corresponding config : root/config/agent/critic/critic.yaml
+    corresponding configs : root/config/agent/critic/critic_network
     """
     name = cfg.name
     if name == 'ensemble':
@@ -18,14 +18,13 @@ def init_critic_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.
 
 def init_actor_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
     """
-        corresponding config : root/config/agent/actor/network.yaml
+    corresponding configs : root/config/agent/actor/actor_network
     """
-
-    if cfg.name == 'SquashedGaussian':
+    if cfg.name == 'squashed_gaussian':
         network = networks.SquashedGaussian(cfg, input_dim, output_dim)
-    elif cfg.name == 'Beta':
+    elif cfg.name == 'beta':
         network = networks.BetaPolicy(cfg, input_dim, output_dim)
-    elif cfg.name == 'Softmax':
+    elif cfg.name == 'softmax':
         network = networks.Softmax(cfg, input_dim, output_dim)
     else:
         raise NotImplementedError

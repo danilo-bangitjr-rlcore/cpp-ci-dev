@@ -17,6 +17,14 @@ class BaseCritic(ABC):
     def update(self, loss: torch.Tensor) -> None:
         raise NotImplementedError
 
+    @abstractmethod
+    def save(self, path: str) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def load(self, path: str) -> None:
+        raise NotImplementedError
+
 
 class BaseV(BaseCritic):
     @abstractmethod

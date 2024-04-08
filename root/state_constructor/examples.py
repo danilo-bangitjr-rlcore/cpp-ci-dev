@@ -9,7 +9,6 @@ class MultiTrace(CompositeStateConstructor):
     """
     A trace constructor that is composed of multiple traces
     """
-
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         # define the computation graphs
         norm_sc = comp.MaxminNormalize(env)  # first component in the graph

@@ -174,8 +174,15 @@ run.sh
 saved_experiments/
 reseau/*
 
-root/outputs
+output/
+outputs/
+root/outputs/
+root/output/
 /out/
 /control/bin/data/
 /control/bin/data_old/
 /root/config/outputs/
+root/old/control/bin/data_old/
+root/old/control/bin/data/
+
+

@@ -2,4 +2,4 @@ defaults:
   - fc
   - _self_
 
-name : Softmax
+name : squashed_gaussian

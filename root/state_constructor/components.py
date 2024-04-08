@@ -120,6 +120,7 @@ class Concatenate(BaseStateConstructorComponent):
 class MaxminNormalize(BaseStateConstructorComponent):
     def __init__(self, env: gymnasium.Env, parents: list | None = None):
         super().__init__(parents=parents)
+        # NOTE: this should only be used for environments with continuous observation spaces
         self.low = env.observation_space.low
         self.high = env.observation_space.high
 
@@ -137,7 +138,6 @@ class Difference(BaseStateConstructorComponent):
     """
     Difference between the first and last element in a queue
     """
-
     def __init__(self, memory: int, parents: list | None = None):
         super().__init__(parents=parents)
         self.memory = memory

@@ -26,7 +26,7 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def save(self) -> None:
+    def save(self, path) -> None:
         raise NotImplementedError
 
     @abstractmethod

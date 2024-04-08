@@ -4,6 +4,9 @@ from omegaconf import DictConfig
 
 
 def init_q_critic(cfg: DictConfig, state_dim: int, action_dim: int) -> BaseQ:
+    """
+    corresponding configs: config/agent/critic
+    """
     if cfg.name == 'ensemble':
         critic = EnsembleQCritic(cfg, state_dim, action_dim)
     else:
@@ -13,6 +16,9 @@ def init_q_critic(cfg: DictConfig, state_dim: int, action_dim: int) -> BaseQ:
 
 
 def init_v_critic(cfg: DictConfig, state_dim: int) -> BaseV:
+    """
+    corresponding configs: config/agent/critic
+    """
     if cfg.name == 'ensemble':
         critic = EnsembleVCritic(cfg, state_dim)
     else:

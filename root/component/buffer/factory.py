@@ -3,10 +3,13 @@ from omegaconf import DictConfig
 
 
 def init_buffer(cfg: DictConfig) -> buffers.UniformBuffer:
+    """
+    corresponding configs: part of config/agent
+    """
     name = cfg.name
-    if name == 'Prioritized':
+    if name == 'prioritized':
         buffer = buffers.PriorityBuffer(cfg)
-    elif name == 'Uniform':
+    elif name == 'uniform':
         buffer = buffers.UniformBuffer(cfg)
     else:
         raise NotImplementedError

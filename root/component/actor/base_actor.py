@@ -19,6 +19,9 @@ class BaseActor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_log_prob(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
-        pass
+    def save(self, path: str) -> None:
+        raise NotImplementedError
 
+    @abstractmethod
+    def load(self, path: str) -> None:
+        raise NotImplementedError

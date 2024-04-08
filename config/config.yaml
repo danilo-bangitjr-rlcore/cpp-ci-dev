@@ -21,4 +21,8 @@ experiment:
   evaluation_criteria : return
   render : 0
   start_step : 0
+  save_path : output
 
+
+hydra:
+  output_subdir: null

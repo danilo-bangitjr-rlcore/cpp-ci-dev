@@ -5,7 +5,10 @@ from typing import Type
 
 
 def init_agent(cfg: DictConfig, state_dim: int, action_dim: int) -> BaseAgent:
-    if cfg.name == 'SimpleAC':
+    """
+    corresponding configs: config/agent
+    """
+    if cfg.name == 'simple_ac':
         agent = SimpleAC(cfg, state_dim, action_dim)
     else:
         raise NotImplementedError

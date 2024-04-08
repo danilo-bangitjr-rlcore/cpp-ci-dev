@@ -17,7 +17,7 @@ class FC(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super().__init__()
 
-        device = cfg.device
+        self.device = cfg.device
         layer_norm = cfg.layer_norm
         arch = cfg.arch
         activation = cfg.activation
@@ -39,7 +39,7 @@ class FC(nn.Module):
 
         self.network = nn.Sequential(*modules)
         self.head_act = utils.init_activation(head_activation)()
-        self.to(device)
+        self.to(self.device)
 
     def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
         out = self.network(input_tensor)
@@ -50,11 +50,11 @@ class FC(nn.Module):
 class EnsembleCritic(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(EnsembleCritic, self).__init__()
-        device = cfg.device
+        self.device = cfg.device
         self.ensemble = cfg.ensemble
         self.subnetworks = [
             FC(cfg, input_dim, output_dim) for _ in range(self.ensemble)]
-        self.to(device)
+        self.to(self.device)
 
     def forward(self, input_tensor: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         qs = [net(input_tensor) for net in self.subnetworks]
@@ -89,7 +89,7 @@ class SquashedGaussian(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(SquashedGaussian, self).__init__()
 
-        device = cfg.device
+        self.device = cfg.device
         layer_init = utils.init_layer(cfg.layer_init)
         arch = cfg.arch
 
@@ -100,7 +100,7 @@ class SquashedGaussian(nn.Module):
         else:
             raise NotImplementedError
 
-        self.to(device)
+        self.to(self.device)
 
     # TODO: include n samples
     # TODO: rename observations to state
@@ -167,7 +167,7 @@ class BetaPolicy(nn.Module):
 
         layer_init = utils.init_layer(cfg.layer_init)
         arch = cfg.arch
-        device = cfg.device
+        self.device = cfg.device
         head_activation = cfg.head_activation
         bias = cfg.bias
         beta_param_bias = cfg.beta_param_bias
@@ -188,8 +188,7 @@ class BetaPolicy(nn.Module):
         self.head_activation_fn = utils.init_activation_function(head_activation)
         self.beta_param_bias = torch.tensor(beta_param_bias)
         self.beta_param_bound = torch.tensor(beta_param_bound)
-        self.to(device)
-        self.device = device
+        self.to(self.device)
 
     def squash_dist_param(self, dist_param: torch.Tensor, low: float, high: float) -> torch.Tensor:
         tanh_out = torch.tanh(dist_param)
@@ -225,44 +224,20 @@ class BetaPolicy(nn.Module):
         logp = dist.log_prob(torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS))
         logp = logp.view((logp.shape[0], 1))
         action = out
-        if debug:
-            info = {
-                # "distribution": dist,
-                "param1": alpha.squeeze().detach().numpy(),
-                "param2": beta.squeeze().detach().numpy()
-            }
-        else:
-            info = None
 
-        return action, info
+        return action, {'logp': logp}
 
     def log_prob(self, observation: torch.Tensor, action: torch.Tensor, debug: bool = False) -> (torch.Tensor, dict):
         out = action
         out = torch.clamp(out, 0, 1)
 
-        # base = self.base_network(observation)
-        # alpha = self.head_activation_fn(self.alpha_head(base)) + EPSILON
-        # beta = self.head_activation_fn(self.beta_head(base)) + EPSILON
-        # alpha += self.beta_param_bias
-        # beta += self.beta_param_bias
-
         alpha, beta = self.get_dist_params(observation)
-
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)
 
         logp = dist.log_prob(torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS))
-
-        if debug:
-            info = {
-                # "distribution": dist,
-                "param1": alpha.squeeze().detach().numpy(),
-                "param2": beta.squeeze().detach().numpy()
-            }
-        else:
-            info = None
         logp = logp.view(-1, 1)
-        return logp, info
+        return logp, {}
 
 
 class Softmax(nn.Module):
@@ -283,34 +258,20 @@ class Softmax(nn.Module):
         dist = torch.distributions.Categorical(probs=probs)
         actions = dist.sample()
 
-        log_prob = dist.log_prob(actions)
-        log_prob = log_prob.view((log_prob.shape[0], 1))
+        logp = dist.log_prob(actions)
+        logp = logp.view((logp.shape[0], 1))
 
-        if debug:
-            info = {
-                "param1": x.squeeze().detach().numpy(),
-            }
-        else:
-            info = None
         actions = actions.reshape((-1, 1))
         a_onehot = torch.FloatTensor(actions.size()[0], self.output_dim)
         a_onehot.zero_()
         actions = a_onehot.scatter_(1, actions, 1)
-        return actions, info
+        return actions,  {'logp': logp}
 
     def log_prob(self, states: torch.Tensor, actions: torch.Tensor, debug: bool = False) -> (torch.Tensor, dict):
         actions = (actions == 1).nonzero(as_tuple=False)
         actions = actions[:, 1:]
-
         probs, _ = self.get_probs(states)
         dist = torch.distributions.Categorical(probs)
-        log_prob = dist.log_prob(actions.squeeze(-1))
-
-        if debug:
-            info = {
-                "param1": probs.squeeze().detach().numpy(),
-            }
-        else:
-            info = None
-        log_prob = log_prob.view(-1, 1)
-        return log_prob, info
+        logp = dist.log_prob(actions.squeeze(-1))
+        logp = logp.view(-1, 1)
+        return logp, {}

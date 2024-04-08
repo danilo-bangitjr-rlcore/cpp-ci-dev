@@ -1,13 +1,16 @@
 from omegaconf import DictConfig
+from pathlib import Path
 
 import torch.nn as nn
 import numpy
+import os
+import pickle as pkl
 
 from root.agent.base import BaseAC
 from root.component.actor.factory import init_actor
 from root.component.critic.factory import init_v_critic
 from root.component.buffer.factory import init_buffer
-from root.component.network.utils import tensor, to_np, state_to_tensor
+from root.component.network.utils import to_np, state_to_tensor
 
 
 class SimpleAC(BaseAC):
@@ -15,10 +18,7 @@ class SimpleAC(BaseAC):
         super().__init__(cfg, state_dim, action_dim)
         self.tau = cfg.tau
         self.device = cfg.device
-
         self.critic = init_v_critic(cfg.critic, state_dim)
-
-        print(cfg.actor)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
         self.buffer = init_buffer(cfg.buffer)
 
@@ -67,26 +67,26 @@ class SimpleAC(BaseAC):
         self.update_critic()
         self.update_critic()
 
-    def save(self) -> None:
-        pass
-        # TODO: implement
-        # parameters_dir = self.parameters_dir
-        #
-        # path = os.path.join(parameters_dir, "actor_net")
-        # torch.save(self.actor.state_dict(), path)
-        #
-        # path = os.path.join(parameters_dir, "actor_opt")
-        # torch.save(self.actor_optimizer.state_dict(), path)
-        #
-        # path = os.path.join(parameters_dir, "v_baseline_net")
-        # torch.save(self.v_baseline.state_dict(), path)
-        #
-        # path = os.path.join(parameters_dir, "v_baseline_opt")
-        # torch.save(self.v_optimizer.state_dict(), path)
-        #
-        # path = os.path.join(parameters_dir, "buffer.pkl")
-        # with open(path, "wb") as f:
-        #     pkl.dump(self.buffer, f)
+    def save(self, path: Path) -> None:
+        path.mkdir(parents=True, exist_ok=True)
 
-    def load(self, path: str) -> None:
-        pass
+        actor_path = path / "actor"
+        self.actor.save(actor_path)
+
+        critic_path = path / "critic"
+        self.critic.save(critic_path)
+
+        buffer_path = path / "buffer.pkl"
+        with open(buffer_path, "wb") as f:
+            pkl.dump(self.buffer, f)
+
+    def load(self, path: Path) -> None:
+        actor_path = path / "actor"
+        self.actor.load(actor_path)
+
+        critic_path = path / "critic"
+        self.critic.load(critic_path)
+
+        buffer_path = path / "buffer.pkl"
+        with open(buffer_path, "rb") as f:
+            self.buffer = pkl.load(f)

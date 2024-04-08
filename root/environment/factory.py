@@ -19,7 +19,7 @@ import json
 def init_environment(cfg):
     seed = cfg.seed
     name = cfg.name
-    if name == "ThreeTank":
+    if name == "three_tanks":
         if cfg.change_action:
             if cfg.discrete_action:
                 TTChangeActionDiscrete(cfg.delta_step, seed, cfg.lr_constrain,
