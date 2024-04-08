@@ -1,8 +1,8 @@
 import pickle as pkl
 
-LOG = None
+freezer = None
 
-class StepLog(dict):
+class Freezer(dict):
     def __init__(self, save_path):
         super().__init__()
         self.save_path = save_path
@@ -21,6 +21,6 @@ class StepLog(dict):
         self.step += 1
 
 
-def init_step_log(save_path):
-    global LOG
-    LOG = StepLog(save_path)
+def init_freezer(save_path):
+    global freezer
+    freezer = Freezer(save_path)

@@ -51,8 +51,7 @@ def init_action_normalizer(cfg, env: gymnasium.Env) -> BaseNormalizer:
 
     else:  # continuous control
         name = cfg.name
-        action_low = env.action_space.low
-        action_high = env.action_space.high
+
         if name == "identity":
             return Identity()
         elif name == "scale":
@@ -62,8 +61,8 @@ def init_action_normalizer(cfg, env: gymnasium.Env) -> BaseNormalizer:
                 action_low = np.array(action_low)
                 action_high = np.array(action_high)
             else:  # use information from the environment
-                action_high = env_high
-                action_low = env_low
+                action_low = env.action_space.low
+                action_high = env.action_space.high
             scaler = (action_high - action_low)
             bias = action_high - action_low
             return Scale([scaler, bias])
@@ -74,7 +73,6 @@ def init_action_normalizer(cfg, env: gymnasium.Env) -> BaseNormalizer:
 
 
 def init_reward_normalizer(cfg) -> BaseNormalizer:
-    print(cfg)
     name = cfg.name
     if name == "identity":
         return Identity()

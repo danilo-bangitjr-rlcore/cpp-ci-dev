@@ -10,8 +10,7 @@ from root.agent.factory import init_agent
 from root.environment.factory import init_environment
 from root.state_constructor.factory import init_state_constructor
 from root.interaction.factory import init_interaction
-from root.step_log import init_step_log
-import root.step_log as log
+import root.freezer as fr
 
 """
 Revan: This is an example of how to run the code in the library. 
@@ -36,7 +35,7 @@ def prepare_save_dir(cfg):
 @hydra.main(version_base=None, config_name='config', config_path="config")
 def main(cfg: DictConfig) -> None:
     save_path = prepare_save_dir(cfg)
-    init_step_log(save_path / 'logs')
+    fr.init_freezer(save_path / 'logs')
 
     env = init_environment(cfg.env)
     sc = init_state_constructor(cfg.state_constructor, env)
@@ -67,10 +66,10 @@ def main(cfg: DictConfig) -> None:
             pbar.set_description("avg reward: {:.2f}".format(sum(reward_queue) / len(reward_queue)))
 
         # logging example
-        log.LOG['transition'] = transition
-        log.LOG.save()
-        log.LOG.increment()
-        log.LOG.clear()  # Optionally clearing the log
+        fr.freezer['transition'] = transition
+        fr.freezer.save()
+        fr.freezer.increment()
+        fr.freezer.clear()  # Optionally clearing the log
 
         # examples of saving and loading
         agent.save(save_path / 'agent')

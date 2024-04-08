@@ -85,33 +85,38 @@ This repo uses the following code style:
 6. Paths: please use `pathlib` instead of `os`
 
 
-## Logging & Debugging
-This codebase uses a global dictionary for logging. To use this, be sure to
-include the following imports in your main file:
+## Debugging with the Freezer
+To aid in debugging and logging, I have a module called `freezer.py` that can be used
+to save objects from __anywhere__ in your code. 
+
+My intention is to have this aid in saving larger/more complicated objects to files
+that can be used in debugging or for generating plots. The freezer does not necessarily replace logging to the terminal,
+but could be used in conjunction with the python logging library. 
+
+To use the freezer, be sure to include the following import in your main file:
 ```
-from root.step_log import init_step_log
-import root.step_log as log
+import root.freezer as fr
 ```
-Also include the following function call to initialize the log 
+Also include the following function call to initialize the freezer with where you want to save files:
 ```
-init_step_log(save_path)
+fr.init_freezer(save_path)
 ```
-Now, anywhere in your code you can append to the global logger as you would a dictionary. 
+Now, anywhere in your code you can add to the freezer as you would a dictionary. 
 However, you must first import it. In your code, import the logging module with.
 ```
-import root.step_log as log
+import root.freezer as fr
 ```
-You may then add to the logger as you would a dictionary:
+You may then add to the freezer as you would a dictionary:
 ```
-log.LOG['test'] = SOMETHING
+fr.freezer['test'] = SOMETHING
 ```
-To output the contents of the logger, use the following lines of code:
+To output the contents of the freezer, use the following lines of code:
 ```
-log.LOG.save() 
-log.LOG.increment()  
-log.LOG.clear()  # Optionally clearing the log
+fr.freezer.save() 
+fr.freezer.increment()  
+fr.freezer.clear()  # Optionally clearing the log
 ```
-Calling `log.LOG.increment() ` will make sure you don't overwrite previously saved logs. 
+Calling `fr.freezer.increment() ` will make sure you don't overwrite previously saved logs. 
 
 ## What Do I Do to Implement More Stuff?
 If you implement something new, there are three different places to update the code:
