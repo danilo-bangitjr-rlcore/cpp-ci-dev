@@ -22,6 +22,7 @@ experiment:
   render : 0
   start_step : 0
   save_path : output
+  reward_queue_len : 100
 
 
 hydra:
