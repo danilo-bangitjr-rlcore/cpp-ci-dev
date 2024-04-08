@@ -1,6 +1,6 @@
 # root
 
-This is the main repo containing code for our agents, environments, state_constructors and interactions. 
+This is the main repo containing code for our agents, environments, state constructors and interactions. 
 
 ## Installation
 Clone this repo, then run 
@@ -14,11 +14,11 @@ inside `root/`.
 This repo uses [hydra](https://hydra.cc/docs/intro/). I recommend you read their tutorials starting  [here](https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/). 
 
 I have provided a basic `main.py` to show code functionality. Feel free to use this as a starting point for your 
-project-specific main-files!
+project-specific main files!
 
 Configuration files are stored in `root/config`. I recommend you copy the config directory and rename it to 
 ``root/YOUR_PROJECT_config``. Within `root/config`, folders specify hydra __config groups__; these are different options for configurations.
-For example, within `root/config` we have a config file for each environment that specifies necessary info for that environment. 
+For example, within `root/config/env` we have a config file for each environment that specifies necessary info for that environment. 
 
 ### Modifying Values
 We can select an environment by running
@@ -43,9 +43,11 @@ the same random seed as the one specified in `experiment.seed`. This is done by 
 `base_agent.yaml`. This looks at the value stored in `experiment.seed` and copies it over to the agent. 
 
 ### Configuration Inheritance
-Hydra also lets us implement inheritance amongst config files. An example is in `config/agent/actor/actor_network`. 
+Hydra also lets us implement inheritance amongst config files (more info [here](https://hydra.cc/docs/patterns/extending_configs/)). An example is in `config/agent/actor/actor_network`. 
 `beta.yaml`
-extends `fc.yaml`. Here are the contends of `fc.yaml`:
+extends `fc.yaml`. 
+
+Here are the contents of `fc.yaml`:
 ```
   layer_norm : 0
   arch : [256, 256]
