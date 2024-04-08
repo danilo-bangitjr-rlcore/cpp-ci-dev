@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 
+from pathlib import Path
 from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 
@@ -19,9 +20,9 @@ class BaseActor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def save(self, path: str) -> None:
+    def save(self, path: Path) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def load(self, path: str) -> None:
+    def load(self, path: Path) -> None:
         raise NotImplementedError

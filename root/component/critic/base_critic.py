@@ -1,8 +1,9 @@
-from abc import ABC, abstractmethod
-
 import numpy as np
 import torch
 from omegaconf import DictConfig
+
+from pathlib import Path
+from abc import ABC, abstractmethod
 
 
 class BaseCritic(ABC):
@@ -18,11 +19,11 @@ class BaseCritic(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def save(self, path: str) -> None:
+    def save(self, path: Path) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def load(self, path: str) -> None:
+    def load(self, path: Path) -> None:
         raise NotImplementedError
 
 
