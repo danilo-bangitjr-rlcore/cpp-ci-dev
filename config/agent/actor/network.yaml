@@ -1,5 +1,5 @@
 defaults:
-  - actor_network: softmax
+  - actor_network: beta
   - actor_optimizer : adam
   -  _self_
 

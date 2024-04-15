@@ -33,9 +33,9 @@ class IQL(BaseAC):
     def update_buffer(self, transition: tuple) -> None:
         self.buffer.feed(transition)
 
-    def compute_actor_loss(self, data: dict) -> torch.Tensor:
-        states = data['states']
-        actions = data['actions']
+    def compute_actor_loss(self, batch: dict) -> torch.Tensor:
+        states = batch['states']
+        actions = batch['actions']
         v = self.v_critic.get_v(states, with_grad=False)
         q = self.q_critic.get_q(states, actions, with_grad=False)  # NOTE: we are not using target networks
         exp_a = torch.exp((q - v) * self.temp)
@@ -45,15 +45,15 @@ class IQL(BaseAC):
         return actor_loss
 
 
-    def compute_v_loss(self, data: dict) -> torch.Tensor:
-        states, actions = data['states'], data['actions']
+    def compute_v_loss(self, batch: dict) -> torch.Tensor:
+        states, actions = batch['states'], batch['actions']
         q = self.q_critic.get_q(states, actions, with_grad=False)
         v = self.v_critic.get_v(states, with_grad=True)
         value_loss = expectile_loss(q - v, self.expectile).mean()
         return value_loss
 
-    def compute_q_loss(self, data: dict) -> torch.Tensor:
-        states, actions, rewards, next_states, dones = data['states'], data['actions'], data['rewards'], data['next_states'], data[
+    def compute_q_loss(self, batch: dict) -> torch.Tensor:
+        states, actions, rewards, next_states, dones = batch['states'], batch['actions'], batch['rewards'], batch['next_states'], batch[
             'dones']
 
         next_v = self.v_critic.get_v(states, with_grad=False)

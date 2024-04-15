@@ -3,8 +3,10 @@ from omegaconf import DictConfig
 from root.component.actor.network_actor import NetworkActor
 from root.component.actor.network_actor import BaseActor
 
+from typing import Optional
 
-def init_actor(cfg: DictConfig, state_dim: int, action_dim: int, initializer: BaseActor | None = None) -> NetworkActor:
+
+def init_actor(cfg: DictConfig, state_dim: int, action_dim: int, initializer: Optional[BaseActor] = None) -> NetworkActor:
     """
     corresponding configs: config/agent/actor
     """

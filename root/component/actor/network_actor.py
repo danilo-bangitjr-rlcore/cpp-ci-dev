@@ -1,6 +1,7 @@
 import torch
 from pathlib import Path
 from omegaconf import DictConfig
+from typing import Optional
 
 from root.component.actor.base_actor import BaseActor
 from root.component.network.factory import init_actor_network
@@ -8,12 +9,10 @@ from root.component.optimizers.factory import init_optimizer
 
 
 class NetworkActor(BaseActor):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, initializer: NetworkActor | None = None):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, initializer: Optional['NetworkActor'] = None):
+        self.model = init_actor_network(cfg.actor_network, state_dim, action_dim)
         if initializer:
             self.model.load_state_dict(initializer.model.state_dict())
-        else:
-            self.model = init_actor_network(cfg.actor_network, state_dim, action_dim)
-        
         self.optimizer = init_optimizer(cfg.actor_optimizer, self.model.parameters())
 
     def update(self, loss: torch.Tensor) -> None:

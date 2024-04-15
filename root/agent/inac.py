@@ -36,8 +36,8 @@ class InAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def compute_beh_loss(self, data: dict) -> torch.Tensor:
-        states, actions = data['states'], data['actions']
+    def compute_beh_loss(self, batch: dict) -> torch.Tensor:
+        states, actions = batch['states'], batch['actions']
         beh_log_probs, _ = self.behaviour.get_log_prob(states, actions)
         beh_loss = -beh_log_probs.mean()
         return beh_loss
@@ -52,9 +52,9 @@ class InAC(BaseAC):
         value_loss = (0.5 * (v_phi - target) ** 2).mean()
         return value_loss
 
-    def compute_q_loss(self, data):
-        states, actions, rewards, next_states, dones = (data['states'], data['actions'], data['rewards'],
-                                                        data['next_states'], data['dones'])
+    def compute_q_loss(self, batch):
+        states, actions, rewards, next_states, dones = (batch['states'], batch['actions'], batch['rewards'],
+                                                        batch['next_states'], batch['dones'])
 
         q = self.q_critic.get_q(states, actions, with_grad=True)
         next_actions, _ = self.actor.get_action(next_states, with_grad=False)
@@ -66,8 +66,8 @@ class InAC(BaseAC):
         q_loss = nn.functional.mse_loss(q, target)
         return q_loss
 
-    def compute_actor_loss(self, data):
-        states, actions = data['states'], data['actions']
+    def compute_actor_loss(self, batch):
+        states, actions = batch['states'], batch['actions']
         log_probs, _ = self.actor.get_log_prob(states, actions, with_grad=True)
         q = self.q_critic.get_q(states, actions, with_grad=False)
         v = self.v_critic.get_v(states, with_grad=False)

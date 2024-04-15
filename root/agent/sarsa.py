@@ -52,9 +52,9 @@ class EpsilonGreedySarsa(BaseAgent):
         greedy_action = action_samples[max_q_idx, :]
         return greedy_action
 
-    def compute_q_loss(self, data):
-        states, actions, rewards, next_states, dones = (data['states'], data['actions'],
-                                                        data['rewards'], data['next_states'], data['dones'])
+    def compute_q_loss(self, batch):
+        states, actions, rewards, next_states, dones = (batch['states'], batch['actions'],
+                                                        batch['rewards'], batch['next_states'], batch['dones'])
         next_action = self._get_action(next_states)
         next_q = self.q_critic.get_q_target(next_states, next_action)
         target = rewards + (1 - dones) * self.gamma * next_q
