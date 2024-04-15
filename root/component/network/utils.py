@@ -24,6 +24,10 @@ def expectile_loss(diff, expectile=0.8):
     weight = torch.where(diff > 0, expectile, (1 - expectile))
     return weight * (diff ** 2)
 
+def ensemble_mse(self, target, q_ens):
+    mses = [nn.functional.mse_loss(target, q) for q in q_ens]
+    return mses
+
 
 def reset_weight_random(old_net, new_net, param):
     return new_net

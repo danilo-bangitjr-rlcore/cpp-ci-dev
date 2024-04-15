@@ -8,8 +8,12 @@ from root.component.optimizers.factory import init_optimizer
 
 
 class NetworkActor(BaseActor):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
-        self.model = init_actor_network(cfg.actor_network, state_dim, action_dim)
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, initializer: NetworkActor | None = None):
+        if initializer:
+            self.model.load_state_dict(initializer.model.state_dict())
+        else:
+            self.model = init_actor_network(cfg.actor_network, state_dim, action_dim)
+        
         self.optimizer = init_optimizer(cfg.actor_optimizer, self.model.parameters())
 
     def update(self, loss: torch.Tensor) -> None:

@@ -19,6 +19,7 @@ def send_to_device(batch: list, device: str) -> dict:
         'truncs': t,
     }
     return data
+
 class UniformBuffer:
     def __init__(self, cfg: DictConfig):
         self.seed = cfg.seed
@@ -29,6 +30,11 @@ class UniformBuffer:
         self.data = []
         self.pos = 0
 
+        if self.batch_size == 0:
+            self.sample = self.sample_batch
+        else:
+            self.sample = self.sample_mini_batch
+
     def feed(self, experience: tuple) -> None:
         if self.pos >= len(self.data):
             self.data.append(experience)
@@ -37,7 +43,7 @@ class UniformBuffer:
         # resets to start of buffer
         self.pos = (self.pos + 1) % self.memory
 
-    def sample(self, batch_size: int=None)-> dict:
+    def sample_mini_batch(self, batch_size: int=None)-> dict:
         if len(self.data) == 0:
             return None
         if batch_size is None:
@@ -48,7 +54,6 @@ class UniformBuffer:
         batch_data = self.prepare_data(batch_data)
         batch_data = send_to_device(batch_data, device=self.device)
         return batch_data
-
 
     def sample_batch(self) -> dict:
         if len(self.data) == 0:
@@ -102,7 +107,7 @@ class PriorityBuffer(UniformBuffer):
         self.priority = np.asarray(self.priority)
         self.priority /= self.priority.sum()
 
-    def sample(self, batch_size: int=None) -> dict:
+    def sample_mini_batch(self, batch_size: int=None) -> dict:
         if len(self.data) == 0:
             return None
         if batch_size is None:
