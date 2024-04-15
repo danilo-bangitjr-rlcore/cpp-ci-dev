@@ -25,7 +25,7 @@ class IQL(BaseACOff):
             v = self.value_net(states)
         min_Q, _ = self.get_q_value_target(states, actions)
         exp_a = torch.exp((min_Q - v) * self.temperature)
-        exp_a = torch.min(exp_a, torch.FloatTensor([100.0]).to(states.device))#.squeeze(-1)
+        exp_a = torch.min(exp_a, torch.FloatTensor([100.0]).to(states.device))
         log_probs, _ = self.actor.log_prob(states, actions)
         actor_loss = -(exp_a * log_probs).mean()
         return actor_loss
@@ -45,7 +45,7 @@ class IQL(BaseACOff):
             next_v = self.value_net(next_states)
             target = rewards + (self.gamma * (1 - dones) * next_v)
         _, q_ens = self.get_q_value(states, actions, with_grad=True)
-        q_loss = self.ensemble_mse(target, q_ens)
+        q_loss = self.ensemble_mse(target, q_ens) # w
         return q_loss
 
     def inner_update(self, trunc=False):

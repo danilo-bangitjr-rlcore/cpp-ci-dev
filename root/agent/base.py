@@ -15,6 +15,9 @@ class BaseAgent(ABC):
 
     @abstractmethod
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:  # must return a numpy array, not a tensor.
+        """
+        This method is for getting actions for the main agent/environment interaction loop.
+        """
         raise NotImplementedError
 
     @abstractmethod

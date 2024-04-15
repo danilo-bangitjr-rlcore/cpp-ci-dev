@@ -36,6 +36,10 @@ class BaseV(BaseCritic):
     def get_v(self, state: torch.Tensor | np.ndarray, **kwargs) -> torch.Tensor | np.ndarray:
         raise NotImplementedError
 
+    @abstractmethod
+    def get_v_target(self, state: torch.Tensor | np.ndarray, **kwargs) -> torch.Tensor | np.ndarray:
+        raise NotImplementedError
+
 
 class BaseQ(BaseCritic):
     @abstractmethod
@@ -44,4 +48,8 @@ class BaseQ(BaseCritic):
 
     @abstractmethod
     def get_q(self, state: torch.Tensor | np.ndarray, action: torch.Tensor | np.ndarray, **kwargs) -> torch.Tensor | np.ndarray:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_q_target(self, state: torch.Tensor | np.ndarray, action: torch.Tensor | np.ndarray, **kwargs) -> torch.Tensor | np.ndarray:
         raise NotImplementedError

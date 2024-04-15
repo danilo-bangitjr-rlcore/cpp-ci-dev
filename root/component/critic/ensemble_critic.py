@@ -42,7 +42,7 @@ class EnsembleQCritic(BaseQ):
         return q
 
     def update(self, loss: torch.Tensor) -> None:
-        loss.backward()
+        loss.backward() # ADD stuff
         self.optimizer.step()
         if self.target_sync_counter % self.target_sync_freq == 0:
             self.sync_target()

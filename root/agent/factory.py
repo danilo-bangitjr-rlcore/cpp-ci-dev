@@ -1,5 +1,7 @@
 from root.agent.iql import IQL
 from root.agent.simple_ac import SimpleAC
+from root.agent.sarsa import EpsilonGreedySarsa
+from root.agent.inac import InAC
 from omegaconf import DictConfig
 from root.agent.base import BaseAgent
 
@@ -12,6 +14,10 @@ def init_agent(cfg: DictConfig, state_dim: int, action_dim: int) -> BaseAgent:
         agent = SimpleAC(cfg, state_dim, action_dim)
     elif cfg.name == 'iql':
         agent = IQL(cfg, state_dim, action_dim)
+    elif cfg.name == 'inac':
+        agent = InAC(cfg, state_dim, action_dim)
+    elif cfg.name == 'epsilon_greedy_sarsa':
+        agent = EpsilonGreedySarsa(cfg, state_dim, action_dim)
     else:
         raise NotImplementedError
 

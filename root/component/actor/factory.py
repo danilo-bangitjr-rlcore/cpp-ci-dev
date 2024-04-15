@@ -4,7 +4,7 @@ from root.component.actor.network_actor import NetworkActor
 from root.component.actor.network_actor import BaseActor
 
 
-def init_actor(cfg: DictConfig, state_dim: int, action_dim: int) -> BaseActor:
+def init_actor(cfg: DictConfig, state_dim: int, action_dim: int) -> NetworkActor:
     """
     corresponding configs: config/agent/actor
     """
