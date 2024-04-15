@@ -21,18 +21,18 @@ class Sarsa(Evaluation):
         # Continuous control initialization
         if cfg.discrete_control:
             # self.action_dim = self.env.action_space.n
-            self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
+            self.critic = init_critic_network(cfg.q_critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
                                               cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
-            self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
+            self.critic_target = init_critic_network(cfg.q_critic, cfg.device, self.state_dim, cfg.hidden_critic, self.action_dim,
                                                      cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.get_q_value = self.get_q_value_discrete
             self.get_q_value_target = self.get_q_value_target_discrete
         
         else:        
             # self.action_dim = np.prod(self.env.action_space.shape)
-            self.critic = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
+            self.critic = init_critic_network(cfg.q_critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
                                               cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
-            self.critic_target = init_critic_network(cfg.critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
+            self.critic_target = init_critic_network(cfg.q_critic, cfg.device, self.state_dim + self.action_dim, cfg.hidden_critic, 1,
                                                      cfg.activation, cfg.layer_init_critic, cfg.layer_norm, cfg.critic_ensemble)
             self.get_q_value = self.get_q_value_continuous
             self.get_q_value_target = self.get_q_value_target_continuous

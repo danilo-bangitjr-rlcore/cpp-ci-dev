@@ -1,0 +1,13 @@
+defaults:
+  - base_agent
+  - critic: critic
+  - actor : network
+  - buffer: uniform
+  - _self_
+
+name : inac
+temp : 1.0
+eps : 1e-8
+exp_threshold : 10000
+device : ${experiment.device}
+
