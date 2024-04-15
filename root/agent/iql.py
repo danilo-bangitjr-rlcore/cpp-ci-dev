@@ -28,6 +28,7 @@ class IQL(BaseAC):
         tensor_state = state_to_tensor(state, self.device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
+        
         return action
 
     def update_buffer(self, transition: tuple) -> None:
@@ -44,16 +45,17 @@ class IQL(BaseAC):
         exp_a = torch.min(exp_a, torch.FloatTensor([100.0]).to(states.device))
         log_probs, _ = self.actor.log_prob(states, actions)
         actor_loss = -(exp_a * log_probs).mean()
-        return actor_loss
+        self.actor.update(actor_loss)
 
-    def compute_v_loss(self, data):
+    def compute_v_loss(self, data: dict): -> torch.Tensor
         states, actions = data['states'], data['actions']
         q = self.q_critic.get_q_target(states, actions)
         v = self.v_critic.get_v(states, with_grad=True)
         value_loss = expectile_loss(q - v, self.expectile).mean()
+        
         return value_loss
 
-    def compute_q_loss(self, data):
+    def compute_q_loss(self, data: dict): -> torch.Tensor
         states, actions, rewards, next_states, dones = data['states'], data['actions'], data['rewards'], data['next_states'], data[
             'dones']
 
@@ -73,7 +75,7 @@ class IQL(BaseAC):
 
     def update(self) -> None:
         self.update_critic()
-        self.update_critic()
+        self.update_actor()
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
