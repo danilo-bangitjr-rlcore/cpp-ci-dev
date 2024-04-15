@@ -28,34 +28,31 @@ class IQL(BaseAC):
         tensor_state = state_to_tensor(state, self.device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
-        
         return action
 
     def update_buffer(self, transition: tuple) -> None:
         self.buffer.feed(transition)
 
-    def update_actor(self) -> None:
-        batch = self.buffer.sample()
-        states = batch['states']
-        actions = batch['actions']
-
+    def compute_actor_loss(self, data: dict) -> torch.Tensor:
+        states = data['states']
+        actions = data['actions']
         v = self.v_critic.get_v(states, with_grad=False)
-        q = self.q_critic.get_q(states, actions, with_grad=True)
+        q = self.q_critic.get_q(states, actions, with_grad=False)  # NOTE: we are not using target networks
         exp_a = torch.exp((q - v) * self.temp)
         exp_a = torch.min(exp_a, torch.FloatTensor([100.0]).to(states.device))
-        log_probs, _ = self.actor.log_prob(states, actions)
+        log_probs, _ = self.actor.get_log_prob(states, actions, with_grad=True)
         actor_loss = -(exp_a * log_probs).mean()
-        self.actor.update(actor_loss)
+        return actor_loss
 
-    def compute_v_loss(self, data: dict): -> torch.Tensor
+
+    def compute_v_loss(self, data: dict) -> torch.Tensor:
         states, actions = data['states'], data['actions']
-        q = self.q_critic.get_q_target(states, actions)
+        q = self.q_critic.get_q(states, actions, with_grad=False)
         v = self.v_critic.get_v(states, with_grad=True)
         value_loss = expectile_loss(q - v, self.expectile).mean()
-        
         return value_loss
 
-    def compute_q_loss(self, data: dict): -> torch.Tensor
+    def compute_q_loss(self, data: dict) -> torch.Tensor:
         states, actions, rewards, next_states, dones = data['states'], data['actions'], data['rewards'], data['next_states'], data[
             'dones']
 
@@ -68,10 +65,17 @@ class IQL(BaseAC):
 
     def update_critic(self) -> None:
         batch = self.buffer.sample()
+
         v_loss = self.compute_v_loss(batch)
-        q_loss = self.compute_q_loss(batch)
         self.v_critic.update(v_loss)
+
+        q_loss = self.compute_q_loss(batch)
         self.q_critic.update(q_loss)
+
+    def update_actor(self) -> None:
+        batch = self.buffer.sample()
+        actor_loss = self.compute_actor_loss(batch)
+        self.actor.update(actor_loss)
 
     def update(self) -> None:
         self.update_critic()
