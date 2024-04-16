@@ -8,13 +8,7 @@ from root.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
 from root.environment.smpl.envs.reactorenv import ReactorEnvGym
 from root.environment.gym_wrapper import DiscreteControlWrapper, D4RLWrapper
 from root.environment.pendulum_env import PendulumEnv
-from root.environment.reseau_env import ReseauEnv
-from root.environment.influx_opc_env import DBClientWrapperBase
-from root.environment.opc_connection import OpcConnection
 from root.environment.wrapper.one_hot_wrapper import OneHotWrapper
-
-import json
-
 
 def init_environment(cfg):
     seed = cfg.seed
@@ -66,21 +60,6 @@ def init_environment(cfg):
         env = D4RLWrapper("walker2d-expert-v2", seed)
     elif name == "Walker2d-medium":
         env = D4RLWrapper("walker2d-medium-v2", seed)
-
-    elif name == "Reseau_online":
-        db_settings = json.load(open(cfg.db_settings_pth, "r"))
-        opc_settings = json.load(open(cfg.opc_settings_pth, "r"))
-
-        db_client = DBClientWrapperBase(db_settings["bucket"], db_settings["org"],
-                                        db_settings["token"], db_settings["url"])
-
-        opc_connection = OpcConnection(opc_settings["IP"], opc_settings["port"])
-
-        control_tag_default = [cfg.reset_fpm]
-        runtime = None
-        env = ReseauEnv(db_client, opc_connection, cfg.control_tags, control_tag_default, cfg.col_names, runtime,
-                        obs_freq=cfg.obs_freq, obs_window=cfg.obs_window, last_n_obs=cfg.last_n_obs)
-
     else:
         raise NotImplementedError
 
