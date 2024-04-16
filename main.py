@@ -10,7 +10,8 @@ from root.agent.factory import init_agent
 from root.environment.factory import init_environment
 from root.state_constructor.factory import init_state_constructor
 from root.interaction.factory import init_interaction
-import root.freezer as fr
+
+import root.utils.freezer as fr
 
 """
 Revan: This is an example of how to run the code in the library. 
@@ -20,11 +21,9 @@ I expect that each project may need something slightly different than what's her
 
 def prepare_save_dir(cfg):
     now = datetime.now()
-    dt_string = now.strftime("%d-%m-%Y_%H-%M-%S")
-    dt_strings = dt_string.split("_")
-    # not sure what the exact hierarchy should be
+    # dt_string = now.strftime("%d-%m-%Y")
     save_path = (Path(cfg.experiment.save_path) / cfg.experiment.exp_name
-                 / dt_strings[0] / dt_strings[1] / cfg.experiment.exp_info / str(cfg.experiment.seed))
+                 / ('param-' + str(cfg.experiment.param)) / ('seed-' + str(cfg.experiment.seed)))
     save_path.mkdir(parents=True, exist_ok=True)
     with open(save_path / "config.yaml", "w") as f:
         OmegaConf.save(cfg, f)

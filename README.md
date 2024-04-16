@@ -73,7 +73,15 @@ This extends the config in `fc.yaml` using the default list. It also adds two ne
 values to be replaced. 
 
 
+### Hyperparameter Sweeps
+Hydra also has built-in [hyperparameter sweeping capabilities](https://hydra.cc/docs/1.0/tutorials/basic/running_your_app/multi-run/).
 
+For example, to sweep over two different agents, we could run
+```
+python3 main.py agent=greedy_ac,iql -m
+```
+
+Other types 
 
 ## Style
 This repo uses the following code style:

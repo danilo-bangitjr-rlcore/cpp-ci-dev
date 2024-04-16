@@ -13,11 +13,11 @@ class CustomADAM(torch.optim.Optimizer):
         self.state_idx = {}
         max_p_len = 0
         for gi, group in enumerate(self.param_groups):
-            if len(group['params']) > max_p_len:
-                max_p_len = len(group['params'])
+            if len(group['configs']) > max_p_len:
+                max_p_len = len(group['configs'])
         self.max_p_len = max_p_len
         for gi, group in enumerate(self.param_groups):
-            for pi, p in enumerate(group['params']):
+            for pi, p in enumerate(group['configs']):
                 self.state_idx[gi * self.max_p_len + pi] = {}
 
     def __setstate__(self, state):

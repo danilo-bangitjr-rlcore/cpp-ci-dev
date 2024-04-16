@@ -229,7 +229,7 @@ def draw_q_functions(pth_base, fixed_params_list, agent, itr=-1, num_rows=1):
     ims = []
     for p in params:
         param_list, log_list = load_logs(root +'/' + p)
-        setting = param_list[0] # all seeds have same params
+        setting = param_list[0] # all seeds have same configs
         for fixed_params_index, fix_params_choice in enumerate(fix_params_choices):
             add = True
             for tp, tv in fix_params_choice.items():
