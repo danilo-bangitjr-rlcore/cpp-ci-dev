@@ -6,6 +6,7 @@ from typing import Optional
 from root.component.actor.base_actor import BaseActor
 from root.component.network.factory import init_actor_network
 from root.component.optimizers.factory import init_optimizer
+from root.component.optimizers.linesearch_optimizer import LineSearchOpt
 
 
 class NetworkActor(BaseActor):
@@ -49,3 +50,22 @@ class NetworkActor(BaseActor):
 
         opt_path = path / 'actor_opt'
         self.optimizer.load_state_dict(torch.load(opt_path, map_location=device))
+
+
+class NetworkActorLineSearch(NetworkActor):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int,
+                 initializer: Optional['NetworkActor'] = None):
+        super().__init__(cfg, state_dim, action_dim, initializer)
+        self.optimizer = LineSearchOpt(cfg.actor_optimizer, [self.model], cfg.actor_optimizer.lr)
+        self.cfg = cfg
+
+    def __default_eval_error_fn(self, args):
+        state_batch, action_batch, reward_batch, next_state_batch, mask_batch = args
+        with torch.no_grad():
+            logp, _ = self.model.log_prob(state_batch, action_batch)
+        return -logp.mean().detach()
+
+    def set_parameters(self, buffer_address, eval_error_fn=None):
+        if eval_error_fn is None:
+            eval_error_fn = self.__default_eval_error_fn
+        self.optimizer.set_params(self.cfg.actor_optimizer.name, buffer_address, eval_error_fn)

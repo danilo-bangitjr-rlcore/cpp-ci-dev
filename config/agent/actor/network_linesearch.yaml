@@ -1,0 +1,6 @@
+defaults:
+  - actor_network: beta
+  - actor_optimizer : custom_adam
+  -  _self_
+
+name : "network_linesearch"

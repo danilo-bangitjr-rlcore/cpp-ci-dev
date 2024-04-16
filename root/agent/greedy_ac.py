@@ -273,3 +273,20 @@ class GreedyACUniformProp(GreedyAC):
         buffer_path = path / "buffer.pkl"
         with open(buffer_path, "rb") as f:
             self.buffer = pkl.load(f)
+
+
+class GreedyACLineSearch(GreedyAC):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+        super().__init__(cfg, state_dim, action_dim)
+        self.actor.set_parameters(id(self.buffer))
+        self.sampler.set_parameters(id(self.buffer))
+        self.q_critic.set_parameters(id(self.buffer), eval_error_fn=self.critic_eval_error_fn)
+
+    def critic_eval_error_fn(self, args):
+        state_batch, action_batch, reward_batch, next_state_batch, mask_batch = args
+        q = self.q_critic.get_q(state_batch, action_batch, with_grad=False)
+        next_action, _ = self.actor.get_action(next_state_batch, with_grad=False)
+        next_q = self.q_critic.get_q_target(next_state_batch, next_action)
+        target = reward_batch + mask_batch * self.gamma * next_q
+        error = torch.nn.functional.mse_loss(q.detach(), target.detach())
+        return error

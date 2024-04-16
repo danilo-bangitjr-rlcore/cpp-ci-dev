@@ -1,4 +1,5 @@
-from root.component.critic.ensemble_critic import EnsembleQCritic, EnsembleVCritic
+from root.component.critic.ensemble_critic import (EnsembleQCritic, EnsembleVCritic,
+                                                   EnsembleQCriticLineSearch)
 from root.component.critic.ensemble_critic import BaseQ, BaseV
 from omegaconf import DictConfig
 
@@ -9,6 +10,8 @@ def init_q_critic(cfg: DictConfig, state_dim: int, action_dim: int) -> BaseQ:
     """
     if cfg.name == 'ensemble':
         critic = EnsembleQCritic(cfg, state_dim, action_dim)
+    elif cfg.name == 'ensemble_linesearch':
+        critic = EnsembleQCriticLineSearch(cfg, state_dim, action_dim)
     else:
         raise NotImplementedError
 

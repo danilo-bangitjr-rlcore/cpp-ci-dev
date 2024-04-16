@@ -5,6 +5,8 @@ from omegaconf import DictConfig
 from root.component.critic.base_critic import BaseQ, BaseV
 from root.component.optimizers.factory import init_optimizer
 from root.component.network.factory import init_critic_network
+from root.component.optimizers.linesearch_optimizer import LineSearchOpt
+
 
 class EnsembleQCritic(BaseQ):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -143,3 +145,25 @@ class EnsembleVCritic(BaseV):
 
         opt_path = path / 'critic_opt'
         self.optimizer.load_state_dict(torch.load(opt_path, map_location=device))
+
+
+class EnsembleQCriticLineSearch(EnsembleQCritic):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+        super().__init__(cfg, state_dim, action_dim)
+        # linesearch does not need to know how many independent networks are there
+        self.optimizer = LineSearchOpt(cfg.critic_optimizer, [self.model], cfg.critic_optimizer.lr)
+        self.cfg = cfg
+
+    def set_parameters(self, buffer_address, eval_error_fn):
+        self.optimizer.set_params(self.cfg.critic_optimizer.name, buffer_address, eval_error_fn)
+
+
+class EnsembleVCriticLineSearch(EnsembleVCritic):
+    def __init__(self, cfg: DictConfig, state_dim: int):
+        super().__init__(cfg, state_dim)
+        # linesearch does not need to know how many independent networks are there
+        self.optimizer = LineSearchOpt(cfg.critic_optimizer, [self.model], cfg.critic_optimizer.lr)
+        self.cfg = cfg
+
+    def set_parameters(self, buffer_address, eval_error_fn):
+        self.optimizer.set_params(self.cfg.critic_optimizer.name, buffer_address, eval_error_fn)
