@@ -23,16 +23,17 @@ def flatten_list(nd_list: list) -> list:
 def params_to_list(params: dict) -> list[dict]:
     keys, values = zip(*params['independent'].items())
     runs_ = [dict(zip(keys, v)) for v in itertools.product(*values)]
-    for run in runs_:
-        for k in run.keys():
-            run[k] = [run[k]]
 
     runs = []
     for run in runs_:
-        for k in params['conditional'].keys():
-            ind_key, ind_value, conditional_values = params['conditional'][k]
-            if run[ind_key][0] in ind_value or run[ind_key][0] == ind_value:
-                run[k] = conditional_values
+        for cond_key, cond_fn in params['conditional'].items():
+            cond_value = cond_fn(run)
+            if cond_value is not None:
+                run[cond_key] = cond_value
+
+        for k in run.keys():
+            if not isinstance(run[k], list):
+                run[k] = [run[k]]
 
         keys, values = zip(*run.items())
         run = [dict(zip(keys, v)) for v in itertools.product(*values)]

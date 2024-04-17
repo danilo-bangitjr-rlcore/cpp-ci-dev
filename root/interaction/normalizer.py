@@ -18,6 +18,7 @@ class NormalizerInteraction(BaseInteraction):
         denormalized_action = self.action_normalizer.denormalize(action)
         next_observation, reward, terminated, truncate, env_info = self.env.step(denormalized_action)
         next_state = self.state_constructor(next_observation)
+        reward = self.reward_normalizer(reward)
         return next_state, reward, terminated, truncate, env_info
 
     def reset(self) -> (np.ndarray, dict):

@@ -24,7 +24,7 @@ class GreedyAC(BaseAC):
         self.tau = cfg.tau  # Entropy constant used in the entropy version of the proposal policy update
         self.rho = cfg.rho  # percentage of sampled actions used in actor update
         self.rho_proposal = self.rho * cfg.prop_rho_mult  # percentage of sampled actions used in the non-entropy version of the proposal policy update
-        self.num_samples = cfg.n  # number of actions sampled from the proposal policy
+        self.num_samples = cfg.num_samples  # number of actions sampled from the proposal policy
         self.top_actions = int(self.rho * self.num_samples)  # Number of actions used to update actor
         self.top_actions_proposal = int(
             self.rho_proposal * self.num_samples)  # Number of actions used to update proposal policy
