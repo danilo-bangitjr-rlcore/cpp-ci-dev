@@ -38,8 +38,8 @@ class SimpleAC(BaseAC):
         rewards = batch['rewards']
         dones = batch['dones']
 
-        log_prob, _ = self.actor.get_log_prob(states, actions)
-        v = self.critic.get_v(states, with_grad=True)
+        log_prob, _ = self.actor.get_log_prob(states, actions, with_grad=True)
+        v = self.critic.get_v(states, with_grad=False)
         v_next = self.critic.get_v(next_states, with_grad=False)
         target = rewards + self.gamma * (1.0 - dones) * v_next
         ent = -log_prob
@@ -64,7 +64,7 @@ class SimpleAC(BaseAC):
 
     def update(self) -> None:
         self.update_critic()
-        self.update_critic()
+        self.update_actor()
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

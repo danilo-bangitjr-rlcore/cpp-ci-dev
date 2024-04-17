@@ -1,9 +1,9 @@
 defaults:
-  - _self_
   - agent: simple_ac
   - env : three_tanks
   - interaction : normalizer
   - state_constructor : identity
+  - _self_
 
 experiment:
   exp_name : experiment
@@ -25,5 +25,7 @@ experiment:
   reward_queue_len : 100
 
 
-hydra:
-  output_subdir: null
+evaluator:
+  gamma : ${agent.gamma}
+  return_window : 100
+  reward_window : 100

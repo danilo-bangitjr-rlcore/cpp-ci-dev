@@ -3,5 +3,5 @@ defaults:
   - _self_
 
 name : beta
-beta_param_bias : 0
-beta_param_bound : 1e8
+beta_param_bias : 0.01
+beta_param_bound : 10000

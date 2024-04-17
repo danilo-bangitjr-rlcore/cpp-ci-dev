@@ -19,7 +19,7 @@ class GreedyIQL(IQL):
         actor_loss = -logp.mean()
         return actor_loss
 
-    def sort_q_value(self, repeated_states, sample_actions, batch_size):
+    def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor, batch_size: int) -> torch.Tensor:
         # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
         q_values, _ = self.q_critic.get_q(repeated_states, sample_actions, with_grad=False)
         q_values = q_values.reshape(batch_size, self.num_samples, 1)
@@ -27,7 +27,7 @@ class GreedyIQL(IQL):
         return sorted_q
 
     # Assuming uniform proposal policy
-    def get_policy_update_data(self, state_batch):
+    def get_policy_update_data(self, state_batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         batch_size = state_batch.shape[0]
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
 

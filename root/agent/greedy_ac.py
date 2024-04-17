@@ -24,7 +24,7 @@ class GreedyAC(BaseAC):
         self.tau = cfg.tau  # Entropy constant used in the entropy version of the proposal policy update
         self.rho = cfg.rho  # percentage of sampled actions used in actor update
         self.rho_proposal = self.rho * cfg.prop_rho_mult  # percentage of sampled actions used in the non-entropy version of the proposal policy update
-        self.num_samples = cfg.n  # number of actions sampled from the proposal policy
+        self.num_samples = cfg.num_samples  # number of actions sampled from the proposal policy
         self.top_actions = int(self.rho * self.num_samples)  # Number of actions used to update actor
         self.top_actions_proposal = int(
             self.rho_proposal * self.num_samples)  # Number of actions used to update proposal policy
@@ -156,12 +156,12 @@ class GreedyAC(BaseAC):
         states = data['states']
         repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions = self.get_policy_update_data(states)
         logp, _ = self.actor.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
-        pi_loss = -logp.mean()
+        actor_loss = -logp.mean()
 
-        return pi_loss, (repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions)
+        return actor_loss, (repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions)
 
     def compute_actor_sampler_losses(self, data) -> (torch.Tensor, torch.Tensor):
-        pi_loss, extra_info = self.compute_actor_loss(data)
+        actor_loss, extra_info = self.compute_actor_loss(data)
         states = data['states']
         batch_size = states.shape[0]
         if self.tau != 0:  # Entropy version of proposal policy update
@@ -171,7 +171,7 @@ class GreedyAC(BaseAC):
             # A greater percentage of actions are used to update the proposal policy than the actor policy
             sampler_loss = self.compute_sampler_no_entropy_loss(extra_info, batch_size, states)
 
-        return pi_loss, sampler_loss
+        return actor_loss, sampler_loss
 
     def update_critic(self) -> None:
         batch = self.buffer.sample()
@@ -180,8 +180,8 @@ class GreedyAC(BaseAC):
 
     def update_actor(self) -> None:
         batch = self.buffer.sample()
-        pi_loss, sampler_loss = self.compute_actor_sampler_losses(batch)
-        self.actor.update(pi_loss)
+        actor_loss, sampler_loss = self.compute_actor_sampler_losses(batch)
+        self.actor.update(actor_loss)
         self.sampler.update(sampler_loss)
 
     def update(self) -> None:
