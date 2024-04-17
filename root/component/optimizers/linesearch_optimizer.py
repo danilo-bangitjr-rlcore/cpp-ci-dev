@@ -187,7 +187,6 @@ class LineSearchOpt:
             # self.optimizer_lst[i].zero_grad()
             # backward_fn(loss_lst[i])
             grad_rec.append(self.__clone_gradient(network_lst[i]))
-
         after_error = None
         for bi in range(self.max_backtracking):
             if bi > 0: # The first step does not need moving gradient
@@ -195,13 +194,21 @@ class LineSearchOpt:
                     self.__reset_lr(self.optimizer_lst[i], self.lr_weight * self.lr_main)
                     self.optimizer_lst[i].zero_grad()
                     self.__move_gradient_to_network(network_lst[i], grad_rec[i], 1)
+
             for i in range(len(network_lst)):
                 self.optimizer_lst[i].step([self.net_parameter_ref[i]])
             after_error = error_evaluation_fn(error_eval_input)
             if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
                 self.lr_weight *= self.lr_decay_rate
+                # print(self.lr_weight)
+                # if 'exp_avg' in self.optimizer_lst[0].state_idx[0]:
+                #     print(bi, "before", self.optimizer_lst[0].state_idx[0]['exp_avg'][0])
+                #     print(bi, "before", self.optimizer_lst[0].param_groups[0]['lr'])
                 network_lst, self.optimizer_lst = self.__undo_update(network_lst,
                                                                      self.optimizer_lst)
+                # if 'exp_avg' in self.optimizer_lst[0].state_idx[0]:
+                #     print(bi, "after", self.optimizer_lst[0].state_idx[0]['exp_avg'][0])
+                #     print(bi, "after", self.optimizer_lst[0].param_groups[0]['lr'])
             elif after_error - before_error > self.error_threshold and \
                     bi == self.max_backtracking-1:
                 self.lr_main = max(self.lr_main * self.lr_decay_rate, self.lr_lower_bound)
@@ -212,6 +219,7 @@ class LineSearchOpt:
         self.lr_weight = self.lr_weight_copy
         self.last_change = (after_error - before_error).detach().numpy()
         self.inner_count += 1
+        print()
         return network_lst
 
     def __reset_lr(self, opt, new_lr):
