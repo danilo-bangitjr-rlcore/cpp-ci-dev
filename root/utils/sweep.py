@@ -4,6 +4,7 @@ from pathlib import Path
 from omegaconf import OmegaConf
 import pandas as pd
 import pickle as pkl
+import json
 
 
 def flatten_list(nd_list: list) -> list:
@@ -89,10 +90,19 @@ def get_sweep_results(path: Path, config_keys: list[str], steps: list[int], step
                         step_log[key] = get_nested_value(step_log_, key)
                     return_dict['step_logs'][step] = step_log
 
+            # last, grab the stats
+            with open(p / 'stats.json', 'r') as f:
+                stats = json.load(f)
+                for k in stats.keys():
+                    return_dict[k] = stats[k]
+
             config_list.append(return_dict)
 
     return config_list
 
 
-def list_to_df(lst: list[dict]) -> pd.DataFrame:
-    return pd.DataFrame(lst)
+def list_to_df(lst: list[dict], ignore_step_logs: bool = True) -> pd.DataFrame:
+    df = pd.DataFrame(lst)
+    if ignore_step_logs:
+        df.drop('step_logs', axis=1, inplace=True)
+    return df

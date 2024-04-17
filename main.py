@@ -35,6 +35,14 @@ def prepare_save_dir(cfg):
 
     return save_path
 
+def update_pbar(pbar, stats):
+    pbar_str = ''
+    for k, v in stats.items():
+        if isinstance(v, float):
+            pbar_str += '{key} : {val:.1f}, '.format(key=k, val=v)
+        else:
+            pbar_str += '{key} : {val} '.format(key=k, val=v)
+    pbar.set_description(pbar_str)
 
 @hydra.main(version_base=None, config_name='config', config_path="config")
 def main(cfg: DictConfig) -> None:
@@ -60,7 +68,7 @@ def main(cfg: DictConfig) -> None:
 
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(range(max_steps))
-    for step in pbar:
+    for _ in pbar:
         action = agent.get_action(state)
         next_state, reward, done, truncate, env_info = interaction.step(action)
         transition = (state, action, reward, next_state, done, truncate)
@@ -73,13 +81,7 @@ def main(cfg: DictConfig) -> None:
 
         # progress bar logging
         stats = evaluator.get_stats()
-        pbar_str = ''
-        for k, v in stats.items():
-            if isinstance(v, float):
-                pbar_str += '{key} : {val:.1f}, '.format(key=k, val=v)
-            else:
-                pbar_str += '{key} : {val} '.format(key=k, val=v)
-        pbar.set_description(pbar_str)
+        update_pbar(pbar, stats)
 
         # logging example
         fr.freezer['transition'] = transition
@@ -90,6 +92,8 @@ def main(cfg: DictConfig) -> None:
         # examples of saving and loading
         agent.save(save_path / 'agent')
         agent.load(save_path / 'agent')
+
+    evaluator.output(save_path / 'stats.json')
 
 
 if __name__ == "__main__":

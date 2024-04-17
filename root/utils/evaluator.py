@@ -42,5 +42,9 @@ class Evaluator:
         return stats
 
     def output(self, path: Path):
+        stats = self.get_stats()
+        stats['returns'] = self.returns
+        stats['rewards'] = self.rewards
+
         with open(path, 'w') as f:
-            json.dump(self.get_stats(), f)
+            json.dump(stats, f)
