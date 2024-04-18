@@ -9,15 +9,14 @@ class CustomAdam(torch.optim.Optimizer):
         defaults = dict(lr=lr, betas=betas, eps=eps,
                         weight_decay=weight_decay, amsgrad=False)
         super(CustomAdam, self).__init__(params, defaults)
-
         self.state_idx = {}
         max_p_len = 0
         for gi, group in enumerate(self.param_groups):
-            if len(group['configs']) > max_p_len:
-                max_p_len = len(group['configs'])
+            if len(group['params']) > max_p_len:
+                max_p_len = len(group['params'])
         self.max_p_len = max_p_len
         for gi, group in enumerate(self.param_groups):
-            for pi, p in enumerate(group['configs']):
+            for pi, p in enumerate(group['params']):
                 self.state_idx[gi * self.max_p_len + pi] = {}
 
     def __setstate__(self, state):
@@ -29,7 +28,6 @@ class CustomAdam(torch.optim.Optimizer):
         loss = None
         if closure is not None:
             loss = closure()
-
         for gi, group in enumerate(self.param_groups):
             for pi, p in enumerate(network_param_groups[gi]):
                 if p.grad is None:
