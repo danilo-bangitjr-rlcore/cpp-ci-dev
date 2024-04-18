@@ -24,12 +24,14 @@ class CustomAdam(torch.optim.Optimizer):
         for group in self.param_groups:
             group.setdefault('amsgrad', False)
 
-    def step(self, network_param_groups, closure=None):
+    # def step(self, network_param_groups, closure=None):
+    def step(self, closure=None):
         loss = None
         if closure is not None:
             loss = closure()
         for gi, group in enumerate(self.param_groups):
-            for pi, p in enumerate(network_param_groups[gi]):
+            # for pi, p in enumerate(network_param_groups[gi]):
+            for pi, p in enumerate(group['params']):
                 if p.grad is None:
                     continue
                 grad = p.grad.data
