@@ -278,6 +278,11 @@ class GreedyACUniformProp(GreedyAC):
 class GreedyACLineSearch(GreedyAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
+        #
+        # actor_copy = init_actor(cfg.actor, state_dim, action_dim)
+        # sampler_copy = init_actor(cfg.actor, state_dim, action_dim, initializer=self.actor)
+        # q_critic_copy = init_q_critic(cfg.critic, state_dim, action_dim)
+
         self.actor.set_parameters(id(self.buffer))
         self.sampler.set_parameters(id(self.buffer))
         self.q_critic.set_parameters(id(self.buffer), eval_error_fn=self.critic_eval_error_fn)

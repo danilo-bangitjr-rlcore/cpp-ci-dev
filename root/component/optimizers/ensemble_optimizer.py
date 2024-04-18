@@ -26,7 +26,5 @@ class EnsembleOptimizer:
     def param_groups(self):
         pg = []
         for opt in self.optim:
-            # assert type(opt.param_groups) == list
             pg += opt.param_groups
-            # pg.append(opt.param_groups)
         return pg

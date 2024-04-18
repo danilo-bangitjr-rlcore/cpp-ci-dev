@@ -57,7 +57,8 @@ class NetworkActorLineSearch(NetworkActor):
                  initializer: Optional['NetworkActor'] = None):
         super().__init__(cfg, state_dim, action_dim, initializer)
         self.optimizer = LineSearchOpt(cfg.actor_optimizer, [self.model], cfg.actor_optimizer.lr)
-        self.cfg = cfg
+        # self.cfg = cfg
+        # self.model_copy = init_actor_network(cfg.actor_network, state_dim, action_dim)
 
     def __default_eval_error_fn(self, args):
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = args
@@ -68,7 +69,5 @@ class NetworkActorLineSearch(NetworkActor):
     def set_parameters(self, buffer_address, eval_error_fn=None):
         if eval_error_fn is None:
             eval_error_fn = self.__default_eval_error_fn
-        self.optimizer.set_params(self.cfg.actor_optimizer.name, buffer_address, eval_error_fn)
-
-    # def update(self, loss: torch.Tensor) -> None:
-    #     self.optimizer.step([loss])
+        self.optimizer.set_params(buffer_address, eval_error_fn)
+        # self.optimizer.set_params(buffer_address, [self.model_copy], eval_error_fn)

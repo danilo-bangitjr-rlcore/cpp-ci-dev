@@ -30,7 +30,6 @@ class CustomAdam(torch.optim.Optimizer):
         if closure is not None:
             loss = closure()
         for gi, group in enumerate(self.param_groups):
-            # for pi, p in enumerate(network_param_groups[gi]):
             for pi, p in enumerate(group['params']):
                 if p.grad is None:
                     continue

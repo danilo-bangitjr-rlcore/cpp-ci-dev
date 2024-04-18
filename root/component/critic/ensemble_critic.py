@@ -152,16 +152,12 @@ class EnsembleQCriticLineSearch(EnsembleQCritic):
         super().__init__(cfg, state_dim, action_dim)
         # linesearch does not need to know how many independent networks are there
         self.optimizer = LineSearchOpt(cfg.critic_optimizer, [self.model], cfg.critic_optimizer.lr)
-        self.cfg = cfg
+        # self.cfg = cfg
+        # self.model_copy = init_critic_network(cfg.critic_network, input_dim=state_dim + action_dim, output_dim=1)
 
     def set_parameters(self, buffer_address, eval_error_fn):
-        self.optimizer.set_params(self.cfg.critic_optimizer.name, buffer_address, eval_error_fn, ensemble=True)
-
-    # def update(self, loss: torch.Tensor) -> None:
-    #     self.optimizer.step([loss])
-    #     if self.target_sync_counter % self.target_sync_freq == 0:
-    #         self.sync_target()
-    #         self.target_sync_counter = 0
+        self.optimizer.set_params(buffer_address, eval_error_fn, ensemble=True)
+        # self.optimizer.set_params(buffer_address, [self.model_copy], eval_error_fn, ensemble=True)
 
 
 class EnsembleVCriticLineSearch(EnsembleVCritic):
@@ -169,7 +165,9 @@ class EnsembleVCriticLineSearch(EnsembleVCritic):
         super().__init__(cfg, state_dim)
         # linesearch does not need to know how many independent networks are there
         self.optimizer = LineSearchOpt(cfg.critic_optimizer, [self.model], cfg.critic_optimizer.lr)
-        self.cfg = cfg
+        # self.model_copy = init_critic_network(cfg.critic_network, state_dim, output_dim=1)
+        # self.cfg = cfg
 
     def set_parameters(self, buffer_address, eval_error_fn):
-        self.optimizer.set_params(self.cfg.critic_optimizer.name, buffer_address, eval_error_fn, ensemble=True)
+        self.optimizer.set_params(buffer_address, eval_error_fn, ensemble=True)
+        # self.optimizer.set_params(buffer_address, [self.model_copy], eval_error_fn, ensemble=True)
