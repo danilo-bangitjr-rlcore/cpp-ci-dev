@@ -155,7 +155,13 @@ class EnsembleQCriticLineSearch(EnsembleQCritic):
         self.cfg = cfg
 
     def set_parameters(self, buffer_address, eval_error_fn):
-        self.optimizer.set_params(self.cfg.critic_optimizer.name, buffer_address, eval_error_fn)
+        self.optimizer.set_params(self.cfg.critic_optimizer.name, buffer_address, eval_error_fn, ensemble=True)
+
+    # def update(self, loss: torch.Tensor) -> None:
+    #     self.optimizer.step([loss])
+    #     if self.target_sync_counter % self.target_sync_freq == 0:
+    #         self.sync_target()
+    #         self.target_sync_counter = 0
 
 
 class EnsembleVCriticLineSearch(EnsembleVCritic):
@@ -166,4 +172,4 @@ class EnsembleVCriticLineSearch(EnsembleVCritic):
         self.cfg = cfg
 
     def set_parameters(self, buffer_address, eval_error_fn):
-        self.optimizer.set_params(self.cfg.critic_optimizer.name, buffer_address, eval_error_fn)
+        self.optimizer.set_params(self.cfg.critic_optimizer.name, buffer_address, eval_error_fn, ensemble=True)

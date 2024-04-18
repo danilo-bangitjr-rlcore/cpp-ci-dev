@@ -69,3 +69,6 @@ class NetworkActorLineSearch(NetworkActor):
         if eval_error_fn is None:
             eval_error_fn = self.__default_eval_error_fn
         self.optimizer.set_params(self.cfg.actor_optimizer.name, buffer_address, eval_error_fn)
+
+    # def update(self, loss: torch.Tensor) -> None:
+    #     self.optimizer.step([loss])

@@ -11,7 +11,7 @@ class LineSearchOpt:
         self.cfg = cfg
         # self.device = device
         self.opt_copy_dict = {}
-        self.net_parameter_ref = []
+        # self.net_parameter_ref = []
         self.net_lst = net_lst
         self.net_copy_dict = {}
 
@@ -32,16 +32,17 @@ class LineSearchOpt:
         self.optimizer_type = None
         self.optimizer_lst = None
 
-    def set_params(self, optimizer_type, buffer_address, error_evaluation_fn,
-                   max_backtracking=30, error_threshold=1e-4, lr_lower_bound=1e-6) -> None:  # default
+    def set_params(self, optimizer_type, buffer_address, error_evaluation_fn, ensemble=False,
+                   max_backtracking=1, error_threshold=1e-4, lr_lower_bound=1e-6) -> None:  # default
         self.optimizer_type = optimizer_type
         self.optimizer_lst = []
         for i in range(len(self.net_lst)):
-            param_ref = self.net_lst[i].parameters()
-            # self.optimizer_lst.append(init_optimizer(self.cfg, optimizer_type, param_ref, self.lr_main))
-            self.optimizer_lst.append(init_optimizer(self.cfg, param_ref))
+            if ensemble:
+                self.optimizer_lst.append(init_optimizer(self.cfg, self.net_lst[i].parameters(independent=True), ensemble=ensemble))
+            else:
+                self.optimizer_lst.append(init_optimizer(self.cfg, self.net_lst[i].parameters(), ensemble=ensemble))
             self.opt_copy_dict[i] = None
-            self.net_parameter_ref.append(param_ref)
+            # self.net_parameter_ref.append(self.net_lst[i].parameters())
         if optimizer_type == 'sgd':
             self.__backtrack_fn = self.__backtrack_sgd
         elif optimizer_type in ['rms_prop', 'adam']:
@@ -63,6 +64,7 @@ class LineSearchOpt:
         grad_rec = {}
         for idx, param in enumerate(model.parameters()):
             grad_rec[idx] = param.grad
+        # print("clone", grad_rec[idx])
         return grad_rec
 
     def __move_gradient_to_network(self, model, grad_rec, weight):
@@ -108,10 +110,13 @@ class LineSearchOpt:
             loss *= lr_weight
         return loss
 
-    def zero_grad(self) -> None:
-        for i in range(len(self.optimizer_lst)):
-            self.optimizer_lst[i].zero_grad()
+    def zero_grad(self):
+        # print("zero_grad")
+        for opt in self.optimizer_lst:
+            opt.zero_grad()
+        return
 
+    # def step(self, loss_lst) -> None:
     def step(self) -> None:
         batch = self.buffer.sample()
         state_batch = batch['states']
@@ -124,6 +129,7 @@ class LineSearchOpt:
             self.error_evaluation_fn,
             error_evaluation_in,
             self.net_lst,
+            # loss_lst
         )
 
     def state_dict(self) -> list:
@@ -161,14 +167,14 @@ class LineSearchOpt:
             elif (after_error - before_error > self.error_threshold and
                   bi == self.max_backtracking-1):
                 self.lr_main = max(self.lr_main * self.lr_decay_rate, self.lr_lower_bound)
-                self.optimizer_lst = []
-                for i in range(len(network_lst)):
-                    # self.optimizer_lst.append(init_optimizer(self.optimizer_type,
-                    #                                          list(network_lst[i].parameters()),
-                    #                                          self.lr_main))
-                    self.cfg.lr = self.lr_main
-                    self.optimizer_lst.append(init_optimizer(self.cfg,
-                                                             list(network_lst[i].parameters())))
+                # self.optimizer_lst = []
+                # for i in range(len(network_lst)):
+                #     # self.optimizer_lst.append(init_optimizer(self.optimizer_type,
+                #     #                                          list(network_lst[i].parameters()),
+                #     #                                          self.lr_main))
+                #     self.cfg.lr = self.lr_main
+                #     self.optimizer_lst.append(init_optimizer(self.cfg,
+                #                                              network_lst[i].parameters()))
                 break
             else:
                 break
@@ -178,6 +184,7 @@ class LineSearchOpt:
         self.inner_count += 1
         return network_lst
 
+    # def __backtrack_momentum(self, error_evaluation_fn, error_eval_input, network_lst, loss_lst):
     def __backtrack_momentum(self, error_evaluation_fn, error_eval_input, network_lst):
         self.__parameter_backup(network_lst, self.optimizer_lst)
         before_error = error_evaluation_fn(error_eval_input)
@@ -185,7 +192,7 @@ class LineSearchOpt:
         for i in range(len(network_lst)):
             # self.__reset_lr(self.optimizer_lst[i], self.lr_weight * self.lr_main)
             # self.optimizer_lst[i].zero_grad()
-            # backward_fn(loss_lst[i])
+            # loss_lst[i].backward()
             grad_rec.append(self.__clone_gradient(network_lst[i]))
         after_error = None
         for bi in range(self.max_backtracking):
@@ -196,11 +203,13 @@ class LineSearchOpt:
                     self.__move_gradient_to_network(network_lst[i], grad_rec[i], 1)
 
             for i in range(len(network_lst)):
-                self.optimizer_lst[i].step([self.net_parameter_ref[i]])
+                # self.optimizer_lst[i].step([self.net_parameter_ref[i]])
+                self.optimizer_lst[i].step()
             after_error = error_evaluation_fn(error_eval_input)
+            # print("inner", before_error, after_error, after_error - before_error, self.error_threshold, self.lr_weight)
             if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
                 self.lr_weight *= self.lr_decay_rate
-                # print(self.lr_weight)
+                # print("lrweight", self.lr_weight)
                 # if 'exp_avg' in self.optimizer_lst[0].state_idx[0]:
                 #     print(bi, "before", self.optimizer_lst[0].state_idx[0]['exp_avg'][0])
                 #     print(bi, "before", self.optimizer_lst[0].param_groups[0]['lr'])
@@ -218,8 +227,8 @@ class LineSearchOpt:
         self.last_scaler = self.lr_weight
         self.lr_weight = self.lr_weight_copy
         self.last_change = (after_error - before_error).detach().numpy()
+        print(before_error, after_error, self.last_change)
         self.inner_count += 1
-        print()
         return network_lst
 
     def __reset_lr(self, opt, new_lr):
