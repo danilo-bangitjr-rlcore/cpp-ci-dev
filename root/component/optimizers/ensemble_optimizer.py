@@ -26,16 +26,7 @@ class EnsembleOptimizer:
     def param_groups(self):
         pg = []
         for opt in self.optim:
-            assert type(opt.param_groups) == list
-            pg += opt.param_groups
+            # assert type(opt.param_groups) == list
+            # pg += opt.param_groups
+            pg.append(opt.param_groups)
         return pg
-
-
-class EnsembleCustomOptimizer(EnsembleOptimizer):
-    def __init__(self, individual_optim, param, lr, kwargs):
-        super(EnsembleCustomOptimizer, self).__init__(individual_optim, param, lr, kwargs)
-
-    def step(self, param_lst):
-        for i, opt in enumerate(self.optim):
-            opt.step(param_lst[i])
-        return
