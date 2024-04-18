@@ -164,5 +164,8 @@ If you implement something new, there are three different places to update the c
 
 ## TODO:
 1. Implement remaining agents (Python code + yaml.config files)
-2. Testing agents on environments.
+2. Testing agents on environments/testsuite.
 3. Implementing line search as an optimizer.
+4. [Jaxtyping](https://github.com/patrick-kidger/jaxtyping)?
+5. Implement Exploration networks
+6. n-updates argument for updates
