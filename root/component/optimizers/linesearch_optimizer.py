@@ -8,7 +8,8 @@ from root.component.network.factory import init_actor_network
 import pickle
 
 class LineSearchOpt:
-    def __init__(self, cfg, net_lst, lr=1):
+    def __init__(self, cfg, net_lst, lr,
+                 max_backtracking, error_threshold, lr_lower_bound, base_optimizer):
         self.cfg = cfg
         self.opt_copy_dict = {}
         self.net_lst = net_lst
@@ -23,10 +24,10 @@ class LineSearchOpt:
 
         self.inner_count = 0
 
-        self.max_backtracking = 2#cfg.max_backtracking
-        self.error_threshold = cfg.error_threshold
-        self.lr_lower_bound = cfg.lr_lower_bound
-        self.optimizer_type = cfg.name
+        self.max_backtracking = max_backtracking
+        self.error_threshold = error_threshold
+        self.lr_lower_bound = lr_lower_bound
+        self.optimizer_type = base_optimizer
         self.buffer = None
         self.error_evaluation_fn = None
         self.optimizer_lst = None
@@ -40,8 +41,8 @@ class LineSearchOpt:
             #     weights.append(param.data)
             # self.net_copy_lst.append(weights)
 
-    def set_params(self, buffer_address, error_evaluation_fn, ensemble=False) -> None:  # default
-    # def set_params(self, buffer_address, net_copy, error_evaluation_fn, ensemble=False) -> None:  # default
+    # def set_params(self, buffer_address, error_evaluation_fn, ensemble=False) -> None:  # default
+    def set_params(self, buffer_address, net_copy, error_evaluation_fn, ensemble=False) -> None:  # default
         self.optimizer_lst = []
         for i in range(len(self.net_lst)):
             if ensemble:
@@ -62,7 +63,7 @@ class LineSearchOpt:
         self.buffer = ctypes.cast(buffer_address, ctypes.py_object).value
         self.error_evaluation_fn = error_evaluation_fn
 
-        # self.net_copy_lst = net_copy
+        self.net_copy_lst = net_copy
 
 
     def __clone_gradient(self, model):
