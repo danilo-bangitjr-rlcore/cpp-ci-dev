@@ -154,11 +154,10 @@ class EnsembleQCriticLineSearch(EnsembleQCritic):
         self.optimizer = LineSearchOpt(cfg.critic_optimizer, [self.model], cfg.critic_optimizer.lr,
                                        cfg.max_backtracking, cfg.error_threshold, cfg.lr_lower_bound,
                                        cfg.base_optimizer)
-        # self.cfg = cfg
-        self.model_copy = init_critic_network(cfg.critic_network, input_dim=state_dim + action_dim, output_dim=1)
+        self.model_copy = init_critic_network(cfg.critic_network, input_dim=state_dim + action_dim,
+                                              output_dim=1)
 
     def set_parameters(self, buffer_address, eval_error_fn):
-        # self.optimizer.set_params(buffer_address, eval_error_fn, ensemble=True)
         self.optimizer.set_params(buffer_address, [self.model_copy], eval_error_fn, ensemble=True)
 
 
@@ -170,8 +169,6 @@ class EnsembleVCriticLineSearch(EnsembleVCritic):
                                        cfg.max_backtracking, cfg.error_threshold, cfg.lr_lower_bound,
                                        cfg.base_optimizer)
         self.model_copy = init_critic_network(cfg.critic_network, state_dim, output_dim=1)
-        # self.cfg = cfg
 
     def set_parameters(self, buffer_address, eval_error_fn):
-        # self.optimizer.set_params(buffer_address, eval_error_fn, ensemble=True)
         self.optimizer.set_params(buffer_address, [self.model_copy], eval_error_fn, ensemble=True)

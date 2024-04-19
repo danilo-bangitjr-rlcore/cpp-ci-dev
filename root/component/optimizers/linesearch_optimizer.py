@@ -32,23 +32,15 @@ class LineSearchOpt:
         self.error_evaluation_fn = None
         self.optimizer_lst = None
 
-        self.net_copy_lst = []
-        for net in self.net_lst:
-            # self.net_copy_lst.append(pickle.loads(pickle.dumps(net)))
-            self.net_copy_lst.append(copy.deepcopy(net))
-            # weights = []
-            # for param in net.parameters():
-            #     weights.append(param.data)
-            # self.net_copy_lst.append(weights)
-
-    # def set_params(self, buffer_address, error_evaluation_fn, ensemble=False) -> None:  # default
-    def set_params(self, buffer_address, net_copy, error_evaluation_fn, ensemble=False) -> None:  # default
+    def set_params(self, buffer_address, net_copy, error_evaluation_fn, ensemble=False) -> None:
         self.optimizer_lst = []
         for i in range(len(self.net_lst)):
             if ensemble:
-                self.optimizer_lst.append(init_optimizer(self.cfg, self.net_lst[i].parameters(independent=True), ensemble=ensemble))
+                self.optimizer_lst.append(init_optimizer(
+                    self.cfg, self.net_lst[i].parameters(independent=True), ensemble=ensemble))
             else:
-                self.optimizer_lst.append(init_optimizer(self.cfg, self.net_lst[i].parameters(), ensemble=ensemble))
+                self.optimizer_lst.append(init_optimizer(
+                    self.cfg, self.net_lst[i].parameters(), ensemble=ensemble))
             self.opt_copy_dict[i] = None
         if self.optimizer_type == 'sgd':
             self.__backtrack_fn = self.__backtrack_sgd
@@ -83,31 +75,6 @@ class LineSearchOpt:
             net1.load_state_dict(net0.state_dict())
         return net1
 
-    # def __clone_model_to_weight(self, net0):
-    #     with torch.no_grad():
-    #         weights = []
-    #         for param in net0.parameters():
-    #             weights.append(param.clone())
-    #     return weights
-    #
-    # def inposition_fill(self, ref, data):
-    #     if len(ref.data.size()) == 2:
-    #         idx = torch.arange(ref.data.size()[1])
-    #         idx = torch.tile(idx, (ref.data.size()[0], 1))
-    #         ref.data.scatter_(1, idx, data)
-    #     elif len(ref.data.size()) == 1:
-    #         idx = torch.arange(ref.data.size()[0])
-    #         ref.data.scatter_(0, idx, data)
-    #     else:
-    #         ref.data.fill_(data)
-    #
-    # def __clone_weight_to_model(self, weight0, net0):
-    #     with torch.no_grad():
-    #         print(len(weight0), len(list(net0.state_dict())))
-    #         for i, layer in enumerate(net0.state_dict()):
-    #             # net0.state_dict()[layer].data.fill_(weight0[i])
-    #             self.inposition_fill(net0.state_dict()[layer], weight0[i])
-
     def __save_opt(self, i, opt0):
         self.opt_copy_dict[i] = opt0.state_dict()
         return
@@ -120,13 +87,10 @@ class LineSearchOpt:
         for i in range(len(net_lst)):
             self.__save_opt(i, opt_lst[i])
             self.__clone_model_0to1(net_lst[i], self.net_copy_lst[i])
-            # self.net_copy_lst[i] = self.__clone_model_to_weight(net_lst[i])
-        # print("backup", list(self.net_copy_lst[0].parameters())[-2][0][10:15])
 
     def __undo_update(self, net_lst, opt_lst):
         for i in range(len(net_lst)):
             self.__clone_model_0to1(self.net_copy_lst[i], net_lst[i])
-            # self.__clone_weight_to_model(self.net_copy_lst[i], net_lst[i])
             opt_lst[i] = self.__load_opt(i, opt_lst[i])
         return net_lst, opt_lst
 
@@ -169,7 +133,6 @@ class LineSearchOpt:
         before_error = error_evaluation_fn(error_eval_input)
         grad_rec = []
         for i in range(len(network_lst)):
-            # # The weight is supposed to always be 1.
             grad_rec.append(self.__clone_gradient(network_lst[i]))
 
         after_error = None
@@ -199,9 +162,6 @@ class LineSearchOpt:
 
     def __backtrack_momentum(self, error_evaluation_fn, error_eval_input, network_lst):
         self.__parameter_backup(network_lst, self.optimizer_lst)
-        # print("start, learning", list(network_lst[0].parameters())[-2][0][10:15])
-        # print("start, copy", list(self.net_copy_lst[0].parameters())[-2][0][10:15])
-        # print("start, copy", self.net_copy_lst[0][-2][0][10:15])
         before_error = error_evaluation_fn(error_eval_input)
         grad_rec = []
         for i in range(len(network_lst)):
@@ -210,7 +170,6 @@ class LineSearchOpt:
         for bi in range(self.max_backtracking):
             if bi > 0: # The first step does not need moving gradient
                 for i in range(len(network_lst)):
-                    # self.__reset_lr(self.optimizer_lst[i], self.lr_weight * self.lr_main)
                     self.optimizer_lst[i].zero_grad()
                     self.__move_gradient_to_network(network_lst[i], grad_rec[i], 1)
 
@@ -219,12 +178,9 @@ class LineSearchOpt:
                 self.optimizer_lst[i].step()
             after_error = error_evaluation_fn(error_eval_input)
             if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
-                # print("back, ",  after_error - before_error, ">", self.error_threshold)
                 self.lr_weight *= self.lr_decay_rate
-                # print("before undo, learning", list(network_lst[0].parameters())[-2][0][10:15])
                 network_lst, self.optimizer_lst = self.__undo_update(network_lst,
                                                                      self.optimizer_lst)
-                # print("after undo", list(network_lst[0].parameters())[-2][0][10:15])
             elif after_error - before_error > self.error_threshold and \
                     bi == self.max_backtracking-1:
                 self.lr_main = max(self.lr_main * self.lr_decay_rate, self.lr_lower_bound)
@@ -234,7 +190,6 @@ class LineSearchOpt:
         self.last_scaler = self.lr_weight
         self.lr_weight = self.lr_weight_copy
         self.last_change = (after_error - before_error).detach().numpy()
-        print(self.lr_main, self.last_scaler, self.last_change)
         self.inner_count += 1
         return network_lst
 
