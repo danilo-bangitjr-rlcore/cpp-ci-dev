@@ -26,8 +26,12 @@ class Evaluator:
     def get_stats(self):
         stats = {'num_episodes': len(self.returns),
                  'avg_reward': sum(self.rewards) / len(self.rewards),
-                 'avg_return': sum(self.returns) / len(self.returns),
                  }
+
+        if  len(self.returns) > 0:
+            stats['avg_return'] = sum(self.returns) / len(self.returns)
+        else:
+            stats['avg_return'] = 'n/a'
 
         if len(self.rewards) > self.reward_window:
             stats['avg_reward ({})'.format(self.reward_window)] = sum(self.rewards[-self.reward_window:]) / self.reward_window

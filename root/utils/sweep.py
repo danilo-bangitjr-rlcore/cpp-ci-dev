@@ -2,6 +2,7 @@ import itertools
 import importlib.util
 from pathlib import Path
 from omegaconf import OmegaConf
+from typing import Callable
 import pandas as pd
 import pickle as pkl
 import json
@@ -21,7 +22,7 @@ def flatten_list(nd_list: list) -> list:
     return flat_list
 
 
-def params_to_list(params: dict) -> list[dict]:
+def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[list[Callable]]]:
     keys, values = zip(*params['independent'].items())
     runs_ = [dict(zip(keys, v)) for v in itertools.product(*values)]
 
@@ -44,7 +45,12 @@ def params_to_list(params: dict) -> list[dict]:
     for i in range(len(runs)):
         runs[i]['experiment.param'] = i
 
-    return flatten_list(runs)
+    runs = flatten_list(runs)
+    if 'tests' in params.keys():
+        expected_results = [params['tests'] for i in range(len(runs))]
+        return runs, expected_results
+    else:
+        return runs
 
 
 def get_sweep_params(name: str, path: Path) -> list[dict]:

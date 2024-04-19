@@ -140,9 +140,17 @@ SWEEP_PARAMS = {
 }
 ```
 Once you have a sweep config defined, you may use `make_sweep.py` to generate a shell script with each of your runs. 
-By default this is saved to `sweep/outputs`. 
+By default, this is saved to `sweep/outputs`. 
 
 We also include a file `get_sweep_results.py` that will assist in getting the results from a sweep. 
+
+## Test Suite
+This repo includes a test-suite in `tests`. Tests are configured in a similar way to hyperparameter sweeps. Configs
+are in `tests/configs`. Please specify a config for each environment in the test suite. This file will also specify 
+tests for desired performance of algorithms. To run the full test suite run:
+```
+python3 run_tests.py
+```
 
 
 ## Style

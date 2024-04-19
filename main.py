@@ -25,8 +25,6 @@ I expect that each project may need something slightly different than what's her
 
 
 def prepare_save_dir(cfg):
-    now = datetime.now()
-    # dt_string = now.strftime("%d-%m-%Y")
     save_path = (Path(cfg.experiment.save_path) / cfg.experiment.exp_name
                  / ('param-' + str(cfg.experiment.param)) / ('seed-' + str(cfg.experiment.seed)))
     save_path.mkdir(parents=True, exist_ok=True)
@@ -44,7 +42,7 @@ def update_pbar(pbar, stats):
             pbar_str += '{key} : {val} '.format(key=k, val=v)
     pbar.set_description(pbar_str)
 
-@hydra.main(version_base=None, config_name='config', config_path="config")
+@hydra.main(version_base=None, config_name='config', config_path="config/")
 def main(cfg: DictConfig) -> None:
     save_path = prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
@@ -94,7 +92,7 @@ def main(cfg: DictConfig) -> None:
         agent.load(save_path / 'agent')
 
     evaluator.output(save_path / 'stats.json')
-
+    return evaluator.get_stats()
 
 if __name__ == "__main__":
     main()
