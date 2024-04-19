@@ -279,8 +279,8 @@ class GreedyACLineSearch(GreedyAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
 
-        self.actor.set_parameters(id(self.buffer))
-        self.sampler.set_parameters(id(self.buffer))
+        self.actor.set_parameters(id(self.buffer), eval_error_fn=self.actor_eval_error_fn)
+        self.sampler.set_parameters(id(self.buffer), eval_error_fn=self.sampler_eval_error_fn)
         self.q_critic.set_parameters(id(self.buffer), eval_error_fn=self.critic_eval_error_fn)
 
     def critic_eval_error_fn(self, args):
@@ -291,3 +291,17 @@ class GreedyACLineSearch(GreedyAC):
         target = reward_batch + mask_batch * self.gamma * next_q
         error = torch.nn.functional.mse_loss(q.detach(), target.detach())
         return error
+
+    def actor_eval_error_fn(self, args):
+        eval_state, _, _, _, _ = args
+        _, _, _, stacked_s_batch, best_actions = \
+            self.get_policy_update_data(eval_state)
+        logp, _ = self.actor.get_log_prob(stacked_s_batch.detach(), best_actions.detach(), with_grad=False)
+        return -logp.mean().detach()
+
+    def sampler_eval_error_fn(self, args):
+        eval_state, _, _, _, _ = args
+        _, _, _, stacked_s_batch, best_actions = \
+            self.get_policy_update_data(eval_state)
+        logp, _ = self.sampler.get_log_prob(stacked_s_batch.detach(), best_actions.detach(), with_grad=False)
+        return -logp.mean().detach()

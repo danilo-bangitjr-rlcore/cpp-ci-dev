@@ -219,6 +219,7 @@ class LineSearchOpt:
                 self.optimizer_lst[i].step()
             after_error = error_evaluation_fn(error_eval_input)
             if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
+                # print("back, ",  after_error - before_error, ">", self.error_threshold)
                 self.lr_weight *= self.lr_decay_rate
                 # print("before undo, learning", list(network_lst[0].parameters())[-2][0][10:15])
                 network_lst, self.optimizer_lst = self.__undo_update(network_lst,
@@ -233,6 +234,7 @@ class LineSearchOpt:
         self.last_scaler = self.lr_weight
         self.lr_weight = self.lr_weight_copy
         self.last_change = (after_error - before_error).detach().numpy()
+        print(self.lr_main, self.last_scaler, self.last_change)
         self.inner_count += 1
         return network_lst
 
