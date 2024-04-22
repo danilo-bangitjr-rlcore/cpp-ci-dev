@@ -10,6 +10,7 @@ from root.agent.base import BaseAC
 from root.component.actor.factory import init_actor
 from root.component.critic.factory import init_q_critic
 from root.component.buffer.factory import init_buffer
+from root.component.exploration.factory import init_exploration_module
 from root.component.network.utils import to_np, state_to_tensor
 
 
@@ -283,6 +284,9 @@ class GreedyACLineSearch(GreedyAC):
         self.sampler.set_parameters(id(self.buffer), eval_error_fn=self.sampler_eval_error_fn)
         self.q_critic.set_parameters(id(self.buffer), eval_error_fn=self.critic_eval_error_fn)
 
+        # self.exploration = init_exploration_module(cfg.exploration, state_dim, action_dim)
+        # self.exploration.set_parameters(id(self.buffer))
+
     def critic_eval_error_fn(self, args):
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = args
         q = self.q_critic.get_q(state_batch, action_batch, with_grad=False)
@@ -293,15 +297,20 @@ class GreedyACLineSearch(GreedyAC):
         return error
 
     def actor_eval_error_fn(self, args):
-        eval_state, _, _, _, _ = args
+        state_batch, _, _, _, _ = args
         _, _, _, stacked_s_batch, best_actions = \
-            self.get_policy_update_data(eval_state)
+            self.get_policy_update_data(state_batch)
         logp, _ = self.actor.get_log_prob(stacked_s_batch.detach(), best_actions.detach(), with_grad=False)
         return -logp.mean().detach()
 
     def sampler_eval_error_fn(self, args):
-        eval_state, _, _, _, _ = args
+        state_batch, _, _, _, _ = args
         _, _, _, stacked_s_batch, best_actions = \
-            self.get_policy_update_data(eval_state)
+            self.get_policy_update_data(state_batch)
         logp, _ = self.sampler.get_log_prob(stacked_s_batch.detach(), best_actions.detach(), with_grad=False)
         return -logp.mean().detach()
+
+    # def update(self) -> None:
+    #     super().update()
+    #     self.exploration.update()
+    #     print("updating exploration network")

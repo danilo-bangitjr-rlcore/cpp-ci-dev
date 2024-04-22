@@ -32,6 +32,17 @@ def init_actor_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.M
     return network
 
 
-# TODO : implement this
 def init_custom_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
-    raise NotImplementedError
+    if cfg.name == 'fc':
+        network = networks.FC(cfg, input_dim, output_dim)
+    elif cfg.name == 'random_linear_uncertainty':
+        network = networks.RndLinearUncertainty(cfg, input_dim, output_dim)
+    elif cfg.name == 'random_beta':
+        if cfg.discrete_control:
+            network = networks.UniformRandomDisc(cfg, input_dim, output_dim)
+        else:
+            network = networks.UniformRandomCont(cfg, input_dim, output_dim)
+    else:
+        raise NotImplementedError
+
+    return network
