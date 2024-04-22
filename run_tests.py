@@ -7,6 +7,17 @@ import subprocess
 from omegaconf import DictConfig, OmegaConf
 from main import main as run_main
 
+import sys, os
+
+class HiddenPrints:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
+
 
 def get_cfg(params: dict) -> (str, DictConfig):
     cmd = 'python3 test/output_conf.py '
@@ -34,7 +45,7 @@ def main():
         if '__' not in env.name:
             env_cfg_name = env.name.strip('.py')
             sweep_params, tests = sweep.get_sweep_params(env_cfg_name,
-                                                                    Path(cfg.path) / '{}.py'.format(env_cfg_name))
+                                                         Path(cfg.path) / '{}.py'.format(env_cfg_name))
             run_params += sweep_params
             run_tests += tests
 
@@ -47,9 +58,10 @@ def main():
     failed_runs = []
     num_runs = len(run_tests)
     for i, param in enumerate(run_params):
-        print('Running test {}/{}'.format(i,num_runs))
+        print('Running test {}/{}'.format(i, num_runs))
         cmd, cfg = get_cfg(param)
         stats = run_main(cfg)
+
         tests = run_tests[i]
 
         failed = False

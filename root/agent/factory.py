@@ -4,7 +4,7 @@ from root.agent.iql import IQL
 from root.agent.simple_ac import SimpleAC
 from root.agent.sarsa import EpsilonGreedySarsa
 from root.agent.inac import InAC
-from root.agent.greedy_ac import GreedyAC, GreedyACUniformProp
+from root.agent.greedy_ac import GreedyAC
 from root.agent.greedy_iql import GreedyIQL
 
 
@@ -22,10 +22,8 @@ def init_agent(cfg: DictConfig, state_dim: int, action_dim: int) -> BaseAgent:
         agent = EpsilonGreedySarsa(cfg, state_dim, action_dim)
     elif cfg.name == 'greedy_ac':
         agent = GreedyAC(cfg, state_dim, action_dim)
-    elif cfg.name == 'greedy_ac_uniform_prop':
-        agent = GreedyACUniformProp(cfg, state_dim, action_dim)
     elif cfg.name == 'greedy_iql':
-        agent = GreedyACUniformProp(cfg, state_dim, action_dim)
+        agent = GreedyIQL(cfg, state_dim, action_dim)
     else:
         raise NotImplementedError
 

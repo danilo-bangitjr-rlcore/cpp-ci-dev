@@ -30,7 +30,14 @@ class GreedyAC(BaseAC):
         self.rho = cfg.rho  # percentage of sampled actions used in actor update
         self.rho_proposal = self.rho * cfg.prop_rho_mult  # percentage of sampled actions used in the non-entropy version of the proposal policy update
         self.num_samples = cfg.num_samples  # number of actions sampled from the proposal policy
+
+        self.uniform_proposal = cfg.uniform_proposal
+        # if self.uniform_proposal:
+        #     self.top_action = cfg.top_actions
+        # else:
         self.top_actions = int(self.rho * self.num_samples)  # Number of actions used to update actor
+        # print(self.top_actions)
+
         self.top_actions_proposal = int(
             self.rho_proposal * self.num_samples)  # Number of actions used to update proposal policy
 
@@ -86,8 +93,16 @@ class GreedyAC(BaseAC):
             sample_actions: Float[torch.Tensor, 'batch_size*action_dim action_dim']
             sample_actions = utils.get_batch_actions_discrete(state_batch, self.action_dim)
         else:  # o/w sample from sampler
-            sample_actions: Float[torch.Tensor, 'batch_size*action_dim action_dim']
-            sample_actions, _ = self.sampler.get_action(repeated_states, with_grad=False)
+            if self.uniform_proposal:
+                # for the continuous case
+                if self.discrete_control:
+                    sample_actions = utils.get_batch_actions_discrete(state_batch, self.action_dim,
+                                                                      samples=self.num_samples)
+                else:
+                    sample_actions = torch.rand((self.num_samples*batch_size, self.action_dim))
+            else:
+                sample_actions: Float[torch.Tensor, 'batch_size*action_dim action_dim']
+                sample_actions, _ = self.sampler.get_action(repeated_states, with_grad=False)
 
         sorted_q_inds: Float[torch.Tensor, 'batch_size num_samples']
         sorted_q_inds = self.sort_q_value(repeated_states, sample_actions, batch_size)
@@ -203,10 +218,11 @@ class GreedyAC(BaseAC):
         # share_batch ensures that update_actor and update_sampler use the same batch
         self.update_critic()
         update_info = self.update_actor()
-        if share_batch:
-            self.update_sampler(update_info=update_info)
-        else:
-            self.update_sampler(update_info=None)
+        if not self.uniform_proposal:
+            if share_batch:
+                self.update_sampler(update_info=update_info)
+            else:
+                self.update_sampler(update_info=None)
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
@@ -230,62 +246,6 @@ class GreedyAC(BaseAC):
 
         sampler_path = path / "sampler"
         self.sampler.load(sampler_path)
-
-        q_critic_path = path / "q_critic"
-        self.q_critic.load(q_critic_path)
-
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "rb") as f:
-            self.buffer = pkl.load(f)
-
-
-class GreedyACUniformProp(GreedyAC):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
-        self.top_action = cfg.top_actions
-
-    def get_policy_update_data_continuous(self, state_batch: torch.Tensor) -> (
-            torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor):
-        batch_size = state_batch.shape[0]
-        repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
-
-        # Sample actions from uniform proposal policy
-        sample_actions = torch.rand((self.num_samples, self.action_dim))
-        sample_actions = sample_actions.repeat_interleave(batch_size, dim=0)
-        sorted_q = self.sort_q_value(repeated_states, sample_actions, batch_size)
-        best_ind = sorted_q[:, :self.top_actions]
-        best_ind = best_ind.repeat_interleave(self.action_dim, -1)
-
-        sample_actions = sample_actions.reshape(batch_size, self.num_samples, self.action_dim)
-        best_actions = torch.gather(sample_actions, 1, best_ind)
-
-        # Reshape samples for calculating the loss
-        stacked_s_batch = state_batch.repeat_interleave(self.top_actions, dim=0)
-        best_actions = torch.reshape(best_actions, (-1, self.action_dim))
-
-        return repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions
-
-    def update_actor(self) -> None:
-        batch = self.buffer.sample()
-        pi_loss, _ = self.compute_actor_loss(batch)  # Update Actor. No need to update proposal policy
-        self.actor.update(pi_loss)
-
-    def save(self, path: Path) -> None:
-        path.mkdir(parents=True, exist_ok=True)
-
-        actor_path = path / "actor"
-        self.actor.save(actor_path)
-
-        q_critic_path = path / "q_critic"
-        self.q_critic.save(q_critic_path)
-
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "wb") as f:
-            pkl.dump(self.buffer, f)
-
-    def load(self, path: Path) -> None:
-        actor_path = path / "actor"
-        self.actor.load(actor_path)
 
         q_critic_path = path / "q_critic"
         self.q_critic.load(q_critic_path)

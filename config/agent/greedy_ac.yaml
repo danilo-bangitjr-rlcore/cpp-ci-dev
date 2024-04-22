@@ -12,5 +12,6 @@ rho : 0.2
 prop_rho_mult : 2.0
 num_samples : 100
 temp : 0.0
+uniform_proposal : False
 device : ${experiment.device}
 

@@ -177,3 +177,4 @@ If you implement something new, there are three different places to update the c
 4. [Jaxtyping](https://github.com/patrick-kidger/jaxtyping)?
 5. Implement Exploration networks
 6. n-updates argument for updates
+7. Bimodal continuous policies

@@ -70,7 +70,6 @@ def main(cfg: DictConfig) -> None:
         action = agent.get_action(state)
         next_state, reward, done, truncate, env_info = interaction.step(action)
         transition = (state, action, reward, next_state, done, truncate)
-
         agent.update_buffer(transition)
         agent.update()
         state = next_state
