@@ -43,7 +43,7 @@ class UniformBuffer:
         # resets to start of buffer
         self.pos = (self.pos + 1) % self.memory
 
-    def sample_mini_batch(self, batch_size: int=None) -> dict:
+    def sample_mini_batch(self, batch_size: int = None) -> dict:
         if len(self.data) == 0:
             return None
         if batch_size is None:
