@@ -1,5 +1,5 @@
 """
-A module of simple state constructors that can composed to produce more complex state constructors
+A module of simple state constructors that can be composed to produce more complex state constructors
 """
 import numpy as np
 import gymnasium
@@ -72,15 +72,17 @@ class KOrderHistory(BaseStateConstructorComponent):
         assert len(obs_parents) == 1
         obs = obs_parents[0]
         self.obs_history.append(obs)
+        self.num_elements += 1
 
-        if len(self.obs_history) > self.k:
+        if self.num_elements > self.k:
             self.obs_history.pop(0)
+            self.num_elements -= 1
 
         return_list = deepcopy(self.obs_history)
         # ensure returned list has self.k elements
-        if len(return_list) < self.k:
+        if self.num_elements < self.k:
             last_element = return_list[-1]
-            for _ in range(len(return_list), self.k):
+            for _ in range(self.num_elements, self.k):
                 return_list.append(last_element)
         return np.array(return_list)
 
@@ -117,7 +119,7 @@ class Concatenate(BaseStateConstructorComponent):
         return
 
 
-class MaxminNormalize(BaseStateConstructorComponent):
+class MaxMinNormalize(BaseStateConstructorComponent):
     def __init__(self, env: gymnasium.Env, parents: list | None = None):
         super().__init__(parents=parents)
         # NOTE: this should only be used for environments with continuous observation spaces
@@ -162,3 +164,93 @@ class Average(BaseStateConstructorComponent):
 
     def _clear_state(self) -> None:
         return
+
+class LongAverage(BaseStateConstructorComponent):
+    def __init__(self, memory: int, parents: list | None = None):
+        super().__init__(parents=parents)
+        self.memory = memory
+        self.queue = deque([], self.memory)
+       
+    def process_observation(self, obs_parents: list) -> np.ndarray:
+        assert len(obs_parents) == 1
+        o = obs_parents[0]
+        self.queue.appendleft(o)
+        sum_ = 0
+        for i in self.queue:
+            sum_ += i
+            
+        return np.array(sum_/self.memory)
+    
+    def _clear_state(self) -> None:
+        self.queue = deque([], self.memory)
+
+class HandleNan(BaseStateConstructorComponent):
+    def process_observation(self, obs_parents: list) -> np.ndarray:
+        assert len(obs_parents) == 1
+        return self.fill_loop(obs_parents[0])
+       
+    def fill_loop(self, arr: np.ndarray) -> np.ndarray:
+        # Adapted from https://stackoverflow.com/a/62039015 
+        fill = np.nanmean(arr, axis=0) # try to fill with the mean in each column 
+        # If an entire column is nan, fill with zeros
+        fill_mask = np.isnan(fill) 
+        fill[fill_mask] = np.zeros_like(fill)[fill_mask] 
+        
+        mask = np.isnan(arr[0]) 
+        arr[0][mask] = fill[mask]
+        for i in range(1, len(arr)):
+            mask = np.isnan(arr[i])
+            arr[i][mask] = arr[i - 1][mask]
+        return arr
+
+    def _clear_state(self) -> None:
+        return
+
+class Flatten(BaseStateConstructorComponent):
+    def process_observation(self, obs_parents: list) -> np.ndarray:
+        assert len(obs_parents) == 1
+        return obs_parents[0].flatten()
+
+    def _clear_state(self) -> None:
+        return
+
+class KeepCols(BaseStateConstructorComponent):
+    """
+    Get an individual column in an array of sensor readings
+    """
+    def __init__(self, keep_cols: int, parents: list | None = None):
+        super().__init__(parents=parents)
+        self.keep_cols = keep_cols
+    
+    def process_observation(self, obs_parents: list) -> np.ndarray:
+        assert len(obs_parents) == 1
+        o = obs_parents[0].copy()
+        assert len(o.shape) == 2
+        return o[:, self.keep_cols].reshape(1, -1)
+
+    def _clear_state(self) -> None:
+        return
+
+class ErrorIntegral(BaseStateConstructorComponent):
+    def __init__(self, column: int, setpoint: float, memory: int):
+        super().__init__()
+        self.column = column
+        self.setpoint = setpoint
+        self.memory = memory
+        self.queue = deque([], self.memory)
+
+    def process_observation(self, obs_parents: list) -> np.ndarray:
+        assert len(obs_parents) == 1
+        o = obs_parents[0]
+
+        error = o[self.column] - self.setpoint 
+        self.queue.appendleft(error)
+            
+        sum_ = 0
+        for i in self.queue:
+            sum_ += i
+    
+        return np.array([sum_])/self.memory
+
+    def _clear_state(self) -> None:
+        self.queue = deque([], self.memory)

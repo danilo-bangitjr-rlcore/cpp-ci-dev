@@ -10,17 +10,17 @@ class D4RLWrapper:
         self.action_space = Box(low=self.env.action_space.low, high=self.env.action_space.high)
         self.env._max_episode_steps = np.inf  # control timeout setting in agent
 
-    def step(self, action):
+    def step(self, action: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, bool, dict):
         ret = self.env.step(action)
         state, reward, done, info = ret
         return np.asarray(state), np.asarray(reward), np.asarray(done), False, info
 
-    def reset(self, seed=None):
+    def reset(self, seed: int | None=None) -> (np.ndarray, dict, dict):
         if seed is not None:
             self.env.unwrapped.seed(seed)
         return self.env.reset(), {}
 
-    def get_dataset(self):
+    def get_dataset(self) -> dict:
         data = self.env.get_dataset()
         data['rewards'] = data['rewards'].reshape((-1, 1))
         data['terminals'] = data['terminals'].reshape((-1, 1))

@@ -4,13 +4,13 @@ from omegaconf import DictConfig
 
 from root.component.critic.base_critic import BaseQ, BaseV
 from root.component.optimizers.factory import init_optimizer
-from root.component.network.factory import init_critic_network
+from root.component.network.factory import init_critic_network, init_critic_target
 
 class EnsembleQCritic(BaseQ):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         state_action_dim = state_dim + action_dim
         self.model = init_critic_network(cfg.critic_network, input_dim=state_action_dim, output_dim=1)
-        self.target = init_critic_network(cfg.critic_network, input_dim=state_action_dim, output_dim=1)
+        self.target = init_critic_target(cfg.critic_network, input_dim=state_action_dim, output_dim=1, self.model)
         self.optimizer = init_optimizer(cfg.critic_optimizer, list(self.model.parameters(independent=True)),
                                         ensemble=True)
         self.polyak = cfg.polyak
@@ -42,6 +42,7 @@ class EnsembleQCritic(BaseQ):
         return q
 
     def update(self, loss: torch.Tensor) -> None:
+        self.optimizer.zero_grad()
         loss.backward() # ADD stuff
         self.optimizer.step()
         if self.target_sync_counter % self.target_sync_freq == 0:
@@ -80,8 +81,8 @@ class EnsembleQCritic(BaseQ):
 
 class EnsembleVCritic(BaseV):
     def __init__(self, cfg: DictConfig, state_dim: int):
-        self.model = init_critic_network(cfg.critic_network, state_dim, output_dim=1)
-        self.target = init_critic_network(cfg.critic_network, state_dim, output_dim=1)
+        self.model = init_critic_network(cfg.critic_network, input_dim=state_dim, output_dim=1)
+        self.target = init_critic_target(cfg.critic_network, input_dim=state_dim, output_dim=1, self.model)
         self.optimizer = init_optimizer(cfg.critic_optimizer, list(self.model.parameters(independent=True)),
                                         ensemble=True)
         self.polyak = cfg.polyak
@@ -109,6 +110,7 @@ class EnsembleVCritic(BaseV):
         return v
 
     def update(self, loss: torch.Tensor) -> None:
+        self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
         if self.target_sync_counter % self.target_sync_freq == 0:

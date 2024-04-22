@@ -10,7 +10,7 @@ from root.agent.base import BaseAC
 from root.component.actor.factory import init_actor
 from root.component.critic.factory import init_v_critic, init_q_critic
 from root.component.buffer.factory import init_buffer
-from root.component.network.utils import to_np, state_to_tensor, expectile_loss
+from root.component.network.utils import to_np, state_to_tensor, expectile_loss, ensemble_mse
 
 
 class IQL(BaseAC):
@@ -56,10 +56,10 @@ class IQL(BaseAC):
         states, actions, rewards, next_states, dones = batch['states'], batch['actions'], batch['rewards'], batch['next_states'], batch[
             'dones']
 
-        next_v = self.v_critic.get_v(states, with_grad=False)
+        next_v = self.v_critic.get_v(next_states, with_grad=False)
         target = rewards + (self.gamma * (1 - dones) * next_v)
-        q = self.q_critic.get_q(states, actions, with_grad=True)
-        q_loss = nn.functional.mse_loss(q, target)
+        _, q_ens = self.q_critic.get_qs(states, actions, with_grad=True)
+        q_loss = ensemble_mse(target, q_ens)
 
         return q_loss
 

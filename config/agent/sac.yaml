@@ -1,0 +1,11 @@
+defaults:
+  - base_agent
+  - critic: critic
+  - actor : network
+  - buffer: uniform
+  - _self_
+
+name : sac
+tau : -1
+lr_alpha : 0.001
+device : ${experiment.device}

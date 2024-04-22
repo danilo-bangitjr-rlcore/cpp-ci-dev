@@ -11,11 +11,11 @@ from root.agent.base import BaseAC
 from root.component.actor.factory import init_actor
 from root.component.critic.factory import init_q_critic
 from root.component.buffer.factory import init_buffer
-from root.component.network.utils import to_np, state_to_tensor
+from root.component.network.utils import to_np, state_to_tensor,  ensemble_mse
 import root.agent.utils as utils
 
-from typing import Optional
 from jaxtyping import Float
+from typing import Optional
 
 
 class GreedyAC(BaseAC):
@@ -32,9 +32,6 @@ class GreedyAC(BaseAC):
         self.num_samples = cfg.num_samples  # number of actions sampled from the proposal policy
 
         self.uniform_proposal = cfg.uniform_proposal
-        # if self.uniform_proposal:
-        #     self.top_action = cfg.top_actions
-        # else:
         self.top_actions = int(self.rho * self.num_samples)  # Number of actions used to update actor
         # print(self.top_actions)
 
@@ -137,8 +134,8 @@ class GreedyAC(BaseAC):
         next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
         next_q = self.q_critic.get_q_target(next_state_batch, next_actions)
         target = reward_batch + mask_batch * self.gamma * next_q
-        q = self.q_critic.get_q(state_batch, action_batch, with_grad=True)
-        q_loss = nn.functional.mse_loss(q, target)
+        _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)
+        q_loss = ensemble_mse(target, q_ens)
 
         return q_loss
 
@@ -178,6 +175,7 @@ class GreedyAC(BaseAC):
         sampler_loss = -1 * (sampler_loss.mean(axis=1)).mean()
 
         return sampler_loss
+
 
     def compute_actor_loss(self, update_info) -> (torch.Tensor, tuple):
         _, _, _, _, stacked_s_batch, best_actions, _ = update_info

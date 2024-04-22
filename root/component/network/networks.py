@@ -11,6 +11,11 @@ FLOAT32_EPS = 10 * \
 # representable up to ~ 15
 EPSILON = 1e-6
 
+def create_base(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
+    if cfg.base.name == "fc":
+        return FC(cfg.base, input_dim, output_dim)
+    else:
+        raise NotImplementedError
 
 # TODO: here is an example of initializing a actor_network.
 class FC(nn.Module):
@@ -53,7 +58,7 @@ class EnsembleCritic(nn.Module):
         self.device = cfg.device
         self.ensemble = cfg.ensemble
         self.subnetworks = [
-            FC(cfg, input_dim, output_dim) for _ in range(self.ensemble)]
+            create_base(cfg, input_dim, output_dim) for _ in range(self.ensemble)]
         self.to(self.device)
 
     def forward(self, input_tensor: torch.Tensor) -> (torch.Tensor, torch.Tensor):
@@ -69,20 +74,20 @@ class EnsembleCritic(nn.Module):
         sd = [net.state_dict() for net in self.subnetworks]
         return sd
 
-    def load_state_dict(self, state_dict_lst: list) -> None:
+    def load_state_dict(self, state_dict_list: list) -> None:
         for i in range(self.ensemble):
-            self.subnetworks[i].load_state_dict(state_dict_lst[i])
+            self.subnetworks[i].load_state_dict(state_dict_list[i])
         return
 
     def parameters(self, independent: bool = False) -> list:
-        param_lst = []
+        param_list = []
         if independent:
             for i in range(self.ensemble):
-                param_lst.append(self.subnetworks[i].parameters())
+                param_list.append(self.subnetworks[i].parameters())
         else:
             for i in range(self.ensemble):
-                param_lst += list(self.subnetworks[i].parameters())
-        return param_lst
+                param_list += list(self.subnetworks[i].parameters())
+        return param_list
 
 
 class SquashedGaussian(nn.Module):
@@ -94,7 +99,7 @@ class SquashedGaussian(nn.Module):
         arch = cfg.arch
 
         if len(arch) > 0:
-            self.base_network = FC(cfg, input_dim, arch[-1])
+            self.base_network = create_base(cfg, input_dim, arch[-1])
             self.mean_head = layer_init(nn.Linear(arch[-1], output_dim, bias=cfg.bias))
             self.logstd_head = layer_init(nn.Linear(arch[-1], output_dim, bias=cfg.bias))
         else:
@@ -119,12 +124,6 @@ class SquashedGaussian(nn.Module):
         logp = normal.log_prob(out)
         logp -= torch.log((1 - tanhout.pow(2)) + EPSILON).sum(axis=-1)
         logp = logp.view((logp.shape[0], 1))
-
-        info = {
-            # "distribution": normal,
-            "param1": mean.squeeze().detach().numpy(),
-            "param2": std.squeeze().detach().numpy(),
-        }
 
         if debug:
             info = {
@@ -174,7 +173,7 @@ class BetaPolicy(nn.Module):
         beta_param_bound = cfg.beta_param_bound
 
         if len(arch) > 0:
-            self.base_network = FC(cfg, input_dim, arch[-1])
+            self.base_network = create_base(cfg, input_dim, arch[-1])
             self.alpha_head = layer_init(nn.Linear(arch[-1], output_dim, bias=bias))
             self.beta_head = layer_init(nn.Linear(arch[-1], output_dim, bias=bias))
         else:
@@ -188,10 +187,11 @@ class BetaPolicy(nn.Module):
         self.head_activation_fn = utils.init_activation_function(head_activation)
         self.beta_param_bias = torch.tensor(beta_param_bias)
         self.beta_param_bound = torch.tensor(beta_param_bound)
+        self.tanh_shift = cfg.tanh_shift
         self.to(self.device)
 
     def squash_dist_param(self, dist_param: torch.Tensor, low: float, high: float) -> torch.Tensor:
-        tanh_out = torch.tanh(dist_param)
+        tanh_out = torch.tanh(dist_param + self.tanh_shift)
         normalized_param = ((tanh_out + 1) / 2)
         scaled_param = normalized_param * (high - low) + low  # ∈ [low, high]
 
@@ -244,7 +244,7 @@ class Softmax(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(Softmax, self).__init__()
         self.output_dim = output_dim
-        self.base_network = FC(cfg, input_dim, output_dim)
+        self.base_network = create_base(cfg, input_dim, output_dim)
         self.to(cfg.device)
         self.device = cfg.device
 

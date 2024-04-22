@@ -4,11 +4,11 @@ import torch.nn as nn
 
 
 class Float(torch.nn.Module):
-    def __init__(self, device, init_value):
+    def __init__(self, device: str, init_value: float):
         super().__init__()
         self.constant = torch.nn.Parameter(torch.tensor(init_value, dtype=torch.float32).to(device))
 
-    def forward(self):
+    def forward(self) -> torch.nn.Parameter:
         return self.constant
 
 
@@ -16,24 +16,24 @@ class NoneActivation(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x
 
 
-def expectile_loss(diff, expectile=0.8):
+def expectile_loss(diff: torch.Tensor, expectile: float=0.9) -> torch.Tensor:
     weight = torch.where(diff > 0, expectile, (1 - expectile))
     return weight * (diff ** 2)
 
-def ensemble_mse(self, target, q_ens):
+def ensemble_mse(self, target: torch.Tensor, q_ens: list[torch.Tensor]) -> list[torch.Tensor]:
     mses = [nn.functional.mse_loss(target, q) for q in q_ens]
     return mses
 
 
-def reset_weight_random(old_net, new_net, param):
+def reset_weight_random(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
     return new_net
 
 
-def reset_weight_shift(old_net, new_net, param):
+def reset_weight_shift(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
     with torch.no_grad():
         for p, p_new in zip(old_net.parameters(), new_net.parameters()):
             p_new.data.mul_(0)
@@ -41,7 +41,7 @@ def reset_weight_shift(old_net, new_net, param):
     return new_net
 
 
-def reset_weight_shrink(old_net, new_net, param):
+def reset_weight_shrink(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
     with torch.no_grad():
         for p, p_new in zip(old_net.parameters(), new_net.parameters()):
             p_new.data.mul_(0)
@@ -49,7 +49,7 @@ def reset_weight_shrink(old_net, new_net, param):
     return new_net
 
 
-def reset_weight_shrink_rnd(old_net, new_net, param):
+def reset_weight_shrink_rnd(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
     with torch.no_grad():
         for p, p_new in zip(old_net.parameters(), new_net.parameters()):
             p_new.data.mul_(0.5)
@@ -57,66 +57,67 @@ def reset_weight_shrink_rnd(old_net, new_net, param):
     return new_net
 
 
-def reset_weight_pass(old_net, new_net, param):
+def reset_weight_pass(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
     return old_net
 
 
-def clone_model_0to1(net0, net1):
+def clone_model_0to1(net0: nn.Module, net1: nn.Module) -> nn.Module:
     with torch.no_grad():
         net1.load_state_dict(net0.state_dict())
     return net1
 
 
-def clone_gradient(model):
+def clone_gradient(model: nn.Module) -> dict:
     grad_rec = {}
     for idx, param in enumerate(model.parameters()):
         grad_rec[idx] = param.grad
     return grad_rec
 
 
-def move_gradient_to_network(model, grad_rec, weight):
+def move_gradient_to_network(model: nn.Module, grad_rec: dict, weight: float) -> nn.Module:
     for idx, param in enumerate(model.parameters()):
         if grad_rec[idx] is not None:
             param.grad = grad_rec[idx] * weight
     return model
 
 
-def layer_init_normal(layer, bias=True):
+def layer_init_normal(layer: nn.Module, bias: bool=True) -> nn.Module:
     nn.init.normal_(layer.weight)
     if int(bias):
         nn.init.constant_(layer.bias.data, 0)
     return layer
 
 
-def layer_init_zero(layer, bias=True):
+def layer_init_zero(layer: nn.Module, bias: bool=True) -> nn.Module:
     nn.init.constant_(layer.weight, 0)
     if int(bias):
         nn.init.constant_(layer.bias.data, 0)
     return layer
 
 
-def layer_init_constant(layer, const, bias=True):
+# Same constant for both weight and bias?
+def layer_init_constant(layer: nn.Module, const: float, bias: bool=True) -> nn.Module:
     nn.init.constant_(layer.weight, float(const))
     if int(bias):
         nn.init.constant_(layer.bias.data, float(const))
     return layer
 
 
-def layer_init_xavier(layer, bias=True):
+def layer_init_xavier(layer: nn.Module, bias: bool=True) -> nn.Module:
     nn.init.xavier_uniform_(layer.weight)
     if int(bias):
         nn.init.constant_(layer.bias.data, 0)
     return layer
 
-
-def layer_init_uniform(layer, low=-0.003, high=0.003, bias=0):
+# Why does the bias have to be an int?
+def layer_init_uniform(layer: nn.Module, low: float=-0.003, high: float=0.003, bias: int=0) -> nn.Module:
     nn.init.uniform_(layer.weight, low, high)
     if int(bias):
         nn.init.constant_(layer.bias.data, bias)
     return layer
 
 
-def tensor(x, device):
+def tensor(x: float | numpy.ndarray | torch.Tensor, device: str) -> torch.Tensor:
     if isinstance(x, torch.Tensor):
         return x
     x = torch.tensor(x, dtype=torch.float32).to(device)
@@ -128,7 +129,7 @@ def state_to_tensor(state: numpy.ndarray, device: str) -> torch.Tensor:
     return state
 
 
-def to_np(t):
+def to_np(t: numpy.ndarray | torch.Tensor) -> numpy.ndarray:
     if isinstance(t, torch.Tensor):
         return t.cpu().detach().numpy()
     elif isinstance(t, numpy.ndarray):
@@ -137,7 +138,7 @@ def to_np(t):
         raise AssertionError("")
 
 
-def init_activation(name):
+def init_activation(name: str) -> nn.Module:
     if name == "ReLU":
         return torch.nn.ReLU
     elif name == "Softplus":
@@ -150,7 +151,7 @@ def init_activation(name):
         raise NotImplementedError
 
 
-def init_activation_function(name):
+def init_activation_function(name: str):
     if name == "ReLU":
         return torch.nn.functional.relu
     elif name == "Softplus":
@@ -163,7 +164,7 @@ def init_activation_function(name):
         raise NotImplementedError
 
 
-def init_layer(init):
+def init_layer(init: str) -> callable:
     if init == 'Xavier':
         layer_init = layer_init_xavier
     elif init == 'Const':
@@ -175,28 +176,3 @@ def init_layer(init):
     else:
         raise NotImplementedError
     return layer_init
-
-# TODO remove this
-# class EnsembleOptimizer:
-#     def __init__(self, individual_optim, param, lr, kwargs):
-#         self.optim = [
-#             individual_optim(list(p), lr, **kwargs) for p in param
-#         ]
-#
-#     def zero_grad(self):
-#         for opt in self.optim:
-#             opt.zero_grad()
-#         return
-#
-#     def step(self):
-#         for opt in self.optim:
-#             opt.step()
-#         return
-#
-#     def state_dict(self):
-#         return [opt.state_dict() for opt in self.optim]
-#
-#     def load_state_dict(self, state_dict_lst):
-#         for opt, sd in zip(self.optim, state_dict_lst):
-#             opt.load_state_dict(sd)
-#         return

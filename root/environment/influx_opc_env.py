@@ -13,9 +13,11 @@ from csv import DictReader
 from math import floor
 import asyncio
 import time
+from typing import Callable
+from src.environment.opc_connection import OpcConnection
 
 class DBClientWrapperBase():
-    def __init__(self, bucket, org, token, url, date_fn=None):
+    def __init__(self, bucket: str, org: str, token: str, url: str, date_fn: Callable=None):
         self.bucket = bucket
         self.org = org
         self.client = influxdb_client.InfluxDBClient(url=url, token=token, org=org, timeout=30_000)
@@ -25,7 +27,7 @@ class DBClientWrapperBase():
         self.end_time = -np.inf
         self.date_fn = date_fn
     
-    def import_csv(self, root, date_col, col_names):
+    def import_csv(self, root: str, date_col: str, col_names: list) -> None:
         self.col_names = col_names
         record = []
         for pth in os.listdir(root):
@@ -39,7 +41,7 @@ class DBClientWrapperBase():
         self.write_client.write(self.bucket, self.org, record)
         
         
-    def _parse_row(self, row, date_col, col_names):
+    def _parse_row(self, row: dict, date_col: str, col_names: list) -> Point:
         """
         Parse row of CSV file into Point 
         
@@ -66,7 +68,7 @@ class DBClientWrapperBase():
         return point
 
 
-    def query(self, start_time, end_time, col_names=None, include_time=False):
+    def query(self, start_time: int, end_time: int, col_names: list | None=None, include_time: bool=False) -> pd.DataFrame:
         """
         Returns all data between start_time and end_time
         
@@ -105,13 +107,13 @@ class DBClientWrapperBase():
 
 class InfluxOPCEnv(gym.Env):
     def __init__(
-            self, db_client, opc_connection, control_tags, col_names, 
-            runtime=None, obs_freq=60, obs_window=10, last_n_obs=None,  
-            date_col= None, offline_data_folder=None):
+            self, db_client: DBClientWrapperBase, opc_connection: OpcConnection, control_tags: list, col_names: list, 
+            runtime: int | None=None, obs_freq: int=60, obs_window: int=10, last_n_obs: int | None=None,  
+            date_col: str | None=None, offline_data_folder: str | None=None):
         
         # for continuing s
         self.db_client = db_client
-        self.date_col = date_col,
+        self.date_col = date_col
         self.col_names = col_names
         
         if offline_data_folder is not None: # we will import data from a CSV
@@ -130,7 +132,7 @@ class InfluxOPCEnv(gym.Env):
         self.last_n_observations = last_n_obs
         
 
-    async def _take_action(self, a):
+    async def _take_action(self, a: float):
         await self.opc_connection.connect()
         # get the list of nodes
         # remember these are simulated nodes for these
@@ -151,16 +153,16 @@ class InfluxOPCEnv(gym.Env):
         await self.opc_connection.write_values(nodes, variant_types, a)
 
 
-    def take_action(self, a):
-        print(a)
+    def take_action(self, a: float):
+        print("Taking Action: " + str(a))
         
-        #asyncio.run(self._take_action(a))
+        asyncio.run(self._take_action(a))
       
 
-    def _get_reward(self, s, a):
+    def _get_reward(self, s: np.ndarray, a: float):
         raise NotImplementedError
     
-    def _check_done(self):
+    def _check_done(self) -> bool:
         if self.state.size == 0 and self.offline:
             done = True
         elif self.runtime is not None: # not a continuing task
@@ -173,7 +175,7 @@ class InfluxOPCEnv(gym.Env):
         return done
             
     
-    def get_observation(self, a):
+    def get_observation(self, a: float) -> (np.ndarray, float, bool, bool, dict):
         """
         Takes a single synchronous environmental step. 
         """
@@ -191,7 +193,7 @@ class InfluxOPCEnv(gym.Env):
             self._now = floor(dt.datetime.timestamp(dt.datetime.now()))
     
     
-    def _get_observation(self):
+    def _get_observation(self) -> pd.DataFrame:
         """
         Gets observations, defined as all obvservations within the last self.decision_freq seconds from self._now
         
@@ -203,7 +205,7 @@ class InfluxOPCEnv(gym.Env):
             obs=obs[-self.last_n_observations:] # only return the last n observations within a window. 
         return obs
 
-    def reset(self, seed=0):
+    def reset(self, seed: int=0) -> (np.ndarray, dict):
         """
         Resets the environment to its starting state
 

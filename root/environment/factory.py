@@ -1,5 +1,6 @@
 import gymnasium as gym
 import gym_electric_motor as gem
+from omegaconf import DictConfig
 from gymnasium.wrappers import FlattenObservation
 from root.environment.three_tanks import ThreeTankEnv
 from root.environment.three_tanks import TTChangeAction, TTChangeActionDiscrete
@@ -11,7 +12,7 @@ from root.environment.wrapper.d4rl import D4RLWrapper
 from root.environment.pendulum_env import PendulumEnv
 from root.environment.wrapper.one_hot_wrapper import OneHotWrapper
 
-def init_environment(cfg):
+def init_environment(cfg: DictConfig) -> gym.Env:
     seed = cfg.seed
     name = cfg.name
     if name == "three_tanks":

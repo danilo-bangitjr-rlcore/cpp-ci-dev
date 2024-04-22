@@ -1,8 +1,9 @@
 import torch
+from omegaconf import DictConfig
 from root.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from root.component.optimizers.custom_torch_opts import CustomAdam
 
-def init_optimizer(cfg, param, ensemble=False):
+def init_optimizer(cfg: DictConfig, param: list[torch.Tensor], ensemble: bool=False) -> EnsembleOptimizer | torch.optim.Optimizer:
     """
     config files: root/config/agent/critic/critic_optimizer or root/config/agent/actor/actor_optimizer
     """

@@ -11,7 +11,7 @@ PREFIX = "opctest"
 class OpcConnection:
     """Wrapper class around the asyncua library to make life easier for the rlai group"""
 
-    def __init__(self, ip_address="localhost", port="49320", conn_stats=False) -> None:
+    def __init__(self, ip_address: str="localhost", port: str="49320", conn_stats: bool=False) -> None:
         self.ip_address = ip_address
         self.port = port
         self.conn_attempts = 0
