@@ -31,7 +31,8 @@ class RndNetworkExploreLineSearch(BaseExploration):
         clone_model_0to1(self.fbonus1, self.fbonus1_copy)
         self.optimizer = LineSearchOpt(cfg.exploration_optimizer, [self.fbonus0, self.fbonus1],
                                        cfg.exploration_optimizer.lr, cfg.max_backtracking,
-                                       cfg.error_threshold, cfg.lr_lower_bound, cfg.base_optimizer)
+                                       cfg.error_threshold, cfg.lr_lower_bound,
+                                       cfg.exploration_optimizer.name)
 
         self.random_policy = init_custom_network(cfg.policy_network, state_dim, action_dim)
 

@@ -1,6 +1,6 @@
 defaults:
   - critic_network: ensemble
-  - critic_optimizer : custom_adam
+  - critic_optimizer : sgd
   -  _self_
 
 name : ${agent.critic.critic_network.name}_linesearch # Revan: this works for getting the networks name, but isn't the fanciest
@@ -10,4 +10,3 @@ target_sync_freq : 1
 max_backtracking : 30
 error_threshold : 1e-4
 lr_lower_bound : 1e-6
-base_optimizer : sgd

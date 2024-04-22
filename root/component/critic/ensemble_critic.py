@@ -153,7 +153,7 @@ class EnsembleQCriticLineSearch(EnsembleQCritic):
         # linesearch does not need to know how many independent networks are there
         self.optimizer = LineSearchOpt(cfg.critic_optimizer, [self.model], cfg.critic_optimizer.lr,
                                        cfg.max_backtracking, cfg.error_threshold, cfg.lr_lower_bound,
-                                       cfg.base_optimizer)
+                                       cfg.critic_optimizer.name)
         self.model_copy = init_critic_network(cfg.critic_network, input_dim=state_dim + action_dim,
                                               output_dim=1)
 
@@ -167,7 +167,7 @@ class EnsembleVCriticLineSearch(EnsembleVCritic):
         # linesearch does not need to know how many independent networks are there
         self.optimizer = LineSearchOpt(cfg.critic_optimizer, [self.model], cfg.critic_optimizer.lr,
                                        cfg.max_backtracking, cfg.error_threshold, cfg.lr_lower_bound,
-                                       cfg.base_optimizer)
+                                       cfg.critic_optimizer.name)
         self.model_copy = init_critic_network(cfg.critic_network, state_dim, output_dim=1)
 
     def set_parameters(self, buffer_address, eval_error_fn):

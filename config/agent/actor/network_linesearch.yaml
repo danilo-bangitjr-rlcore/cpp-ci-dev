@@ -1,10 +1,9 @@
 defaults:
   - actor_network: beta
-  - actor_optimizer : custom_adam
+  - actor_optimizer : sgd
   -  _self_
 
 name : "network_linesearch"
 max_backtracking : 30
 error_threshold : 1e-4
 lr_lower_bound : 1e-6
-base_optimizer : sgd

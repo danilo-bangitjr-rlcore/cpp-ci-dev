@@ -58,7 +58,7 @@ class NetworkActorLineSearch(NetworkActor):
         super().__init__(cfg, state_dim, action_dim, initializer)
         self.optimizer = LineSearchOpt(cfg.actor_optimizer, [self.model], cfg.actor_optimizer.lr,
                                        cfg.max_backtracking, cfg.error_threshold, cfg.lr_lower_bound,
-                                       cfg.base_optimizer)
+                                       cfg.actor_optimizer.name)
         self.model_copy = init_actor_network(cfg.actor_network, state_dim, action_dim)
 
     def set_parameters(self, buffer_address, eval_error_fn=None):
