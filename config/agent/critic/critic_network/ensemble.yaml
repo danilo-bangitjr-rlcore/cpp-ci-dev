@@ -1,7 +1,6 @@
 defaults:
-  - fc
+  - base: fc
   - _self_
 
 ensemble : 1
 name : ensemble
-base: fc
