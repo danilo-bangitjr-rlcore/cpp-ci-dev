@@ -10,13 +10,13 @@ from pathlib import Path
 from datetime import datetime
 from collections import deque
 
-from root.agent.factory import init_agent
-from root.environment.factory import init_environment
-from root.state_constructor.factory import init_state_constructor
-from root.interaction.factory import init_interaction
-from root.utils.evaluator import Evaluator
+from corerl.agent.factory import init_agent
+from corerl.environment.factory import init_environment
+from corerl.state_constructor.factory import init_state_constructor
+from corerl.interaction.factory import init_interaction
+from corerl.utils.evaluator import Evaluator
 
-import root.utils.freezer as fr
+import corerl.utils.freezer as fr
 
 """
 Revan: This is an example of how to run the code in the library. 

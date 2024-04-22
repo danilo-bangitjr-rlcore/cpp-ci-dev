@@ -1,0 +1,253 @@
+import numpy as np
+from omegaconf import DictConfig
+from pathlib import Path
+
+import torch.nn as nn
+import torch
+import numpy
+import pickle as pkl
+
+from corerl.agent.base import BaseAC
+from corerl.component.actor.factory import init_actor
+from corerl.component.critic.factory import init_q_critic
+from corerl.component.buffer.factory import init_buffer
+from corerl.component.network.utils import to_np, state_to_tensor,  ensemble_mse
+import corerl.agent.utils as utils
+
+from jaxtyping import Float
+from typing import Optional
+
+
+class GreedyAC(BaseAC):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+        super().__init__(cfg, state_dim, action_dim)
+        self.device = cfg.device
+        self.action_dim = action_dim
+        # Removed self.gac_a_dim = self.action_dim. Hopefully this doesn't break anything
+
+        self.average_entropy = cfg.average_entropy  # Whether to average the proposal policy's entropy over all the sampled actions
+        self.tau = cfg.tau  # Entropy constant used in the entropy version of the proposal policy update
+        self.rho = cfg.rho  # percentage of sampled actions used in actor update
+        self.rho_proposal = self.rho * cfg.prop_rho_mult  # percentage of sampled actions used in the non-entropy version of the proposal policy update
+        self.num_samples = cfg.num_samples  # number of actions sampled from the proposal policy
+
+        self.uniform_proposal = cfg.uniform_proposal
+        self.top_actions = int(self.rho * self.num_samples)  # Number of actions used to update actor
+        # print(self.top_actions)
+
+        self.top_actions_proposal = int(
+            self.rho_proposal * self.num_samples)  # Number of actions used to update proposal policy
+
+        self.actor = init_actor(cfg.actor, state_dim, action_dim)
+        self.sampler = init_actor(cfg.actor, state_dim, action_dim, initializer=self.actor)
+        self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
+        self.buffer = init_buffer(cfg.buffer)
+
+        self.sample_all_discrete_actions = False
+        if self.discrete_control:
+            self.top_actions = 1
+            if self.num_samples >= self.action_dim:
+                self.num_samples = self.action_dim
+                self.top_actions_proposal = self.action_dim
+
+    def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
+        tensor_state = state_to_tensor(state, self.device)
+        tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
+        action = to_np(tensor_action)[0]
+
+        return action
+
+    def update_buffer(self, transition: tuple) -> None:
+        self.buffer.feed(transition)
+
+    def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
+                     batch_size: int) -> Float[torch.Tensor, 'batch_size num_samples']:
+        # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
+
+        q_values: Float[torch.Tensor, 'batch_size*num_samples 1']
+        q_values = self.q_critic.get_q(repeated_states, sample_actions, with_grad=False)
+        q_values: Float[torch.Tensor, 'batch_size num_samples 1']
+        q_values = q_values.reshape(batch_size, self.num_samples, 1)
+        sorted_q_inds: Float[torch.Tensor, 'batch_size num_samples 1']
+        sorted_q_inds = torch.argsort(q_values, dim=1, descending=True)
+        return sorted_q_inds
+
+    def get_policy_update_info(self, state_batch: Float[torch.Tensor, 'batch_size state_dim']) -> (
+            Float[torch.Tensor, 'batch_size state_dim'],
+            Float[torch.Tensor, 'batch_size*num_samples state_dim'],
+            Float[torch.Tensor, 'batch_size num_samples action_dim'],
+            Float[torch.Tensor, 'batch_size num_samples'],
+            Float[torch.Tensor, 'batch_size*top_actions state_dim'],
+            Float[torch.Tensor, 'batch_size*num_samples action_dim'],
+            int):
+
+        batch_size = state_batch.shape[0]
+        # recall that if self.sample_all_discrete_actions then self.num_samples = self.action_dim
+        repeated_states: Float[torch.Tensor, 'batch_size*num_samples state_dim']
+        repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
+
+        if self.sample_all_discrete_actions:  # if discrete control AND we are sampling all actions
+            sample_actions: Float[torch.Tensor, 'batch_size*action_dim action_dim']
+            sample_actions = utils.get_batch_actions_discrete(state_batch, self.action_dim)
+        else:  # o/w sample from sampler
+            if self.uniform_proposal:
+                # for the continuous case
+                if self.discrete_control:
+                    sample_actions = utils.get_batch_actions_discrete(state_batch, self.action_dim,
+                                                                      samples=self.num_samples)
+                else:
+                    sample_actions = torch.rand((self.num_samples*batch_size, self.action_dim))
+            else:
+                sample_actions: Float[torch.Tensor, 'batch_size*action_dim action_dim']
+                sample_actions, _ = self.sampler.get_action(repeated_states, with_grad=False)
+
+        sorted_q_inds: Float[torch.Tensor, 'batch_size num_samples']
+        sorted_q_inds = self.sort_q_value(repeated_states, sample_actions, batch_size)
+
+        best_ind: Float[torch.Tensor, 'batch_size top_actions 1']
+        best_ind = sorted_q_inds[:, :self.top_actions]
+
+        best_ind: Float[torch.Tensor, 'batch_size top_actions action_dim']
+        best_ind = best_ind.repeat_interleave(self.action_dim, -1)
+
+        # recall that if self.sample_all_discrete_actions then self.num_samples = self.action_dim
+        sample_actions: Float[torch.Tensor, 'batch_size num_samples action_dim']
+        sample_actions = sample_actions.reshape(batch_size, self.num_samples, self.action_dim)
+        best_actions = torch.gather(sample_actions, dim=1, index=best_ind)
+
+        # Reshape samples for calculating the loss
+        stacked_s_batch: Float[torch.Tensor, 'batch_size*top_actions state_dim']
+        stacked_s_batch = state_batch.repeat_interleave(self.top_actions, dim=0)
+
+        best_actions: Float[torch.Tensor, 'batch_size*num_samples action_dim']
+        best_actions = torch.reshape(best_actions, (-1, self.action_dim))
+
+        return state_batch, repeated_states, sample_actions, sorted_q_inds, stacked_s_batch, best_actions, batch_size
+
+    def compute_critic_loss(self, batch: dict) -> torch.Tensor:
+        state_batch = batch['states']
+        action_batch = batch['actions']
+        reward_batch = batch['rewards']
+        next_state_batch = batch['next_states']
+        mask_batch = 1 - batch['dones']
+
+        next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
+        next_q = self.q_critic.get_q_target(next_state_batch, next_actions)
+        target = reward_batch + mask_batch * self.gamma * next_q
+        _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)
+        q_loss = ensemble_mse(target, q_ens)
+
+        return q_loss
+
+    def compute_sampler_entropy_loss(self, update_info: tuple) -> torch.Tensor:
+        (_, repeated_states, sample_actions, _, stacked_s_batch, best_actions, batch_size) = update_info
+
+        sample_actions = sample_actions.reshape(-1, self.action_dim)
+        sampler_entropy, _ = self.sampler.get_log_prob(repeated_states, sample_actions)
+
+        with torch.no_grad():
+            sampler_entropy *= sampler_entropy
+        sampler_entropy = sampler_entropy.reshape(batch_size, self.num_samples, 1)
+
+        if self.average_entropy:
+            sampler_entropy = -sampler_entropy.mean(axis=1)
+        else:
+            sampler_entropy = -sampler_entropy[:, 0, :]
+
+        logp, _ = self.sampler.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
+        sampler_loss = logp.reshape(batch_size, self.top_actions, 1)
+        sampler_loss = -1 * (sampler_loss.mean(axis=1) + self.tau * sampler_entropy).mean()
+
+        return sampler_loss
+
+    def compute_sampler_no_entropy_loss(self, update_info: tuple) -> torch.Tensor:
+        (state_batch, _, sample_actions, sorted_q_inds, _, _, batch_size) = update_info
+
+        # gets the best actions
+        best_ind_proposal = sorted_q_inds[:, :self.top_actions_proposal]
+        best_ind_proposal = best_ind_proposal.repeat_interleave(self.action_dim, -1)
+        best_actions_proposal = torch.gather(sample_actions, 1, best_ind_proposal)
+        stacked_s_batch_proposal = state_batch.repeat_interleave(self.top_actions_proposal, dim=0)
+        best_actions_proposal = torch.reshape(best_actions_proposal, (-1, self.action_dim))
+
+        logp, _ = self.sampler.get_log_prob(stacked_s_batch_proposal, best_actions_proposal, with_grad=True)
+        sampler_loss = logp.reshape(batch_size, self.top_actions_proposal, 1)
+        sampler_loss = -1 * (sampler_loss.mean(axis=1)).mean()
+
+        return sampler_loss
+
+
+    def compute_actor_loss(self, update_info) -> (torch.Tensor, tuple):
+        _, _, _, _, stacked_s_batch, best_actions, _ = update_info
+        logp, _ = self.actor.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
+        actor_loss = -logp.mean()
+        return actor_loss
+
+    def compute_sampler_loss(self, update_info) -> (torch.Tensor, torch.Tensor):
+        if self.tau != 0:  # Entropy version of proposal policy update
+            sampler_loss = self.compute_sampler_entropy_loss(update_info)
+        else:
+            # Non-entropy version of proposal policy update.
+            # A greater percentage of actions are used to update the proposal policy than the actor policy
+            sampler_loss = self.compute_sampler_no_entropy_loss(update_info)
+
+        return sampler_loss
+
+    def update_critic(self) -> None:
+        batch = self.buffer.sample()
+        q_loss = self.compute_critic_loss(batch)
+        self.q_critic.update(q_loss)
+
+    def update_actor(self) -> None:
+        batch = self.buffer.sample()
+        update_info = self.get_policy_update_info(batch['states'])
+        actor_loss = self.compute_actor_loss(update_info)
+        self.actor.update(actor_loss)
+        return update_info
+
+    def update_sampler(self, update_info: Optional[tuple]) -> None:
+        if update_info is None:
+            batch = self.buffer.sample()
+            update_info = self.get_policy_update_info(batch['states'])
+        sampler_loss = self.compute_sampler_loss(update_info)
+        self.sampler.update(sampler_loss)
+
+    def update(self, share_batch: bool = True) -> None:
+        # share_batch ensures that update_actor and update_sampler use the same batch
+        self.update_critic()
+        update_info = self.update_actor()
+        if not self.uniform_proposal:
+            if share_batch:
+                self.update_sampler(update_info=update_info)
+            else:
+                self.update_sampler(update_info=None)
+
+    def save(self, path: Path) -> None:
+        path.mkdir(parents=True, exist_ok=True)
+
+        actor_path = path / "actor"
+        self.actor.save(actor_path)
+
+        sampler_path = path / "sampler"
+        self.sampler.save(sampler_path)
+
+        q_critic_path = path / "q_critic"
+        self.q_critic.save(q_critic_path)
+
+        buffer_path = path / "buffer.pkl"
+        with open(buffer_path, "wb") as f:
+            pkl.dump(self.buffer, f)
+
+    def load(self, path: Path) -> None:
+        actor_path = path / "actor"
+        self.actor.load(actor_path)
+
+        sampler_path = path / "sampler"
+        self.sampler.load(sampler_path)
+
+        q_critic_path = path / "q_critic"
+        self.q_critic.load(q_critic_path)
+
+        buffer_path = path / "buffer.pkl"
+        with open(buffer_path, "rb") as f:
+            self.buffer = pkl.load(f)

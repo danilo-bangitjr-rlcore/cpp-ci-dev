@@ -1,4 +1,4 @@
-# root
+# core-rl
 
 This is the main repo containing code for our agents, environments, state constructors and interactions. 
 
@@ -7,7 +7,7 @@ Clone this repo, then run
 ```
 pip3 -e .
 ```
-inside `root/`.
+inside `corerl/`.
 
 
 ## Running & Configs
@@ -16,17 +16,17 @@ This repo uses [hydra](https://hydra.cc/docs/intro/). I recommend you read their
 I have provided a basic `main.py` to show code functionality. Feel free to use this as a starting point for your 
 project-specific main files!
 
-Configuration files are stored in `root/config`. I recommend you copy the config directory and rename it to 
-``root/YOUR_PROJECT_config``. Within `root/config`, folders specify hydra __config groups__; these are different options for configurations.
-For example, within `root/config/env` we have a config file for each environment that specifies necessary info for that environment. 
+Configuration files are stored in `corerl/config`. I recommend you copy the config directory and rename it to 
+``corerl/YOUR_PROJECT_config``. Within `corerl/config`, folders specify hydra __config groups__; these are different options for configurations.
+For example, within `corerl/config/env` we have a config file for each environment that specifies necessary info for that environment. 
 
 ### Modifying Values
 We can select an environment by running
 ```
 python3 main.py env=three_tanks
 ```
-Sometimes, there will be a hierarchy of config groups; e.g.  within `root/config/agent` we have `root/config/agent/actor`
-for storing the config group related to actors and `root/config/agent/critic` for critics.
+Sometimes, there will be a hierarchy of config groups; e.g.  within `corerl/config/agent` we have `corerl/config/agent/actor`
+for storing the config group related to actors and `corerl/config/agent/critic` for critics.
 
 You may choose a config within a hierarchical config group as follows
 ```
@@ -95,7 +95,7 @@ but could be used in conjunction with the python logging library.
 
 To use the freezer, be sure to include the following import in your main file:
 ```
-import root.freezer as fr
+import corerl.freezer as fr
 ```
 Also include the following function call to initialize the freezer with where you want to save files:
 ```
@@ -104,7 +104,7 @@ fr.init_freezer(save_path)
 Now, anywhere in your code you can add to the freezer as you would a dictionary. 
 However, you must first import it. In your code, import the logging module with.
 ```
-import root.freezer as fr
+import corerl.freezer as fr
 ```
 You may then add to the freezer as you would a dictionary:
 ```

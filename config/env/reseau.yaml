@@ -1,6 +1,6 @@
 name: Reseau_online
-db_settings_pth: "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\db_settings_osoyoos.json"
-opc_settings_pth : "\\Users\\RLCORE\\root\\control\\src\\environment\\reseau\\opc_settings_osoyoos.json"
+db_settings_pth: "\\Users\\RLCORE\\corerl\\control\\src\\environment\\reseau\\db_settings_osoyoos.json"
+opc_settings_pth : "\\Users\\RLCORE\\corerl\\control\\src\\environment\\reseau\\opc_settings_osoyoos.json"
 control_tags : ["osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"]
 reset_fpm: 15
 col_names : [

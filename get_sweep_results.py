@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-import root.utils.sweep as sweep
+import corerl.utils.sweep as sweep
 
 
 def main():

@@ -176,13 +176,13 @@ reseau/*
 
 output/
 outputs/
-root/outputs/
-root/output/
+corerl/outputs/
+corerl/output/
 /out/
 /control/bin/data/
 /control/bin/data_old/
-/root/config/outputs/
-root/old/control/bin/data_old/
-root/old/control/bin/data/
+/corerl/config/outputs/
+corerl/old/control/bin/data_old/
+corerl/old/control/bin/data/
 
 
