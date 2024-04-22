@@ -15,6 +15,15 @@ def init_critic_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.
 
     return network
 
+def init_critic_target(cfg: DictConfig, input_dim: int, output_dim: int, critic: nn.Module) -> nn.Module:
+    """
+    corresponding configs : root/config/agent/critic/critic_network
+    """
+    target_net = init_critic_network(cfg, input_dim, output_dim)
+    target_net.load_state_dict(critic.state_dict())
+    
+    return target_net
+
 
 def init_actor_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
     """

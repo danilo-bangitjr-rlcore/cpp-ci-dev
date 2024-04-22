@@ -11,7 +11,7 @@ import pickle as pkl
 from root.agent.base import BaseAgent
 from root.component.critic.factory import init_q_critic
 from root.component.buffer.factory import init_buffer
-from root.component.network.utils import to_np
+from root.component.network.utils import to_np, ensemble_mse
 
 
 class EpsilonGreedySarsa(BaseAgent):
@@ -43,7 +43,7 @@ class EpsilonGreedySarsa(BaseAgent):
 
         return actions
 
-    def get_greedy_action(self, state):
+    def get_greedy_action(self, state: torch.Tensor) -> torch.Tensor:
         state = torch.unsqueeze(state, dim=0)
         state_repeated = torch.repeat_interleave(state, self.samples)
         action_samples = torch.rand((self.samples, self.action_dim))
@@ -52,14 +52,14 @@ class EpsilonGreedySarsa(BaseAgent):
         greedy_action = action_samples[max_q_idx, :]
         return greedy_action
 
-    def compute_q_loss(self, batch):
+    def compute_q_loss(self, batch: dict) -> torch.Tensor:
         states, actions, rewards, next_states, dones = (batch['states'], batch['actions'],
                                                         batch['rewards'], batch['next_states'], batch['dones'])
         next_action = self._get_action(next_states)
         next_q = self.q_critic.get_q_target(next_states, next_action)
         target = rewards + (1 - dones) * self.gamma * next_q
-        q = self.q_critic.get_q(states, actions, with_grad=True)
-        q_loss = nn.functional.mse_loss(q, target)
+        _, q_ens = self.q_critic.get_qs(states, actions, with_grad=True)
+        q_loss = ensemble_mse(target, q_ens)
         return q_loss
 
     def update(self) -> None:

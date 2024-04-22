@@ -4,3 +4,4 @@ defaults:
 
 ensemble : 1
 name : ensemble
+base: fc

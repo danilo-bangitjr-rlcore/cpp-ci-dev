@@ -11,7 +11,7 @@ class MultiTrace(CompositeStateConstructor):
     """
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         # define the computation graphs
-        norm_sc = comp.MaxminNormalize(env)  # first component in the graph
+        norm_sc = comp.MaxMinNormalize(env)  # first component in the graph
         trace_components = []
         for trace_value in cfg.trace_values:
             # all traces will receive the output of norm_sc as input
@@ -32,5 +32,5 @@ class Identity(CompositeStateConstructor):
 
 class Normalize(CompositeStateConstructor):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
-        sc = comp.MaxminNormalize(env)
+        sc = comp.MaxMinNormalize(env)
         self.sc = sc

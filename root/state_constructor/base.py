@@ -26,6 +26,10 @@ class BaseStateConstructor(ABC):
     def get_state_dim(self, *args) -> int:
         raise NotImplementedError
 
+    @abstractmethod
+    def reset(self) -> None:
+        raise NotImplementedError
+
 
 class CompositeStateConstructor(BaseStateConstructor):
     @abstractmethod
@@ -59,3 +63,6 @@ class CompositeStateConstructor(BaseStateConstructor):
         Resets the state of all components in the graph
         """
         self.sc.clear_state()
+
+    def reset(self) -> None:
+        self._reset_graph_state()

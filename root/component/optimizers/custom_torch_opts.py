@@ -4,8 +4,8 @@ import math
 
 
 class CustomAdam(torch.optim.Optimizer):
-    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
-                 weight_decay=0):
+    def __init__(self, params: torch.Tensor | dict, lr: float=1e-3, betas: (float, float)=(0.9, 0.999),
+                 eps: float=1e-8, weight_decay: float=0):
         defaults = dict(lr=lr, betas=betas, eps=eps,
                         weight_decay=weight_decay, amsgrad=False)
         super(CustomAdam, self).__init__(params, defaults)
@@ -20,12 +20,12 @@ class CustomAdam(torch.optim.Optimizer):
             for pi, p in enumerate(group['configs']):
                 self.state_idx[gi * self.max_p_len + pi] = {}
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: dict[str, any]):
         super(CustomAdam, self).__setstate__(state)
         for group in self.param_groups:
             group.setdefault('amsgrad', False)
 
-    def step(self, network_param_groups, closure=None):
+    def step(self, network_param_groups: dict[str, any], closure: callable | None=None):
         loss = None
         if closure is not None:
             loss = closure()
@@ -58,13 +58,13 @@ class CustomAdam(torch.optim.Optimizer):
                 p.data.addcdiv_(exp_avg, denom, value=-step_size)
         return loss
 
-    def _dispatch_sqrt(self, x: float):  # float annotation is needed because of torchscript type inference
+    def _dispatch_sqrt(self, x: float | torch.Tensor) -> float | torch.Tensor:  # float annotation is needed because of torchscript type inference
         if not torch.jit.is_scripting() and isinstance(x, torch.Tensor):
             return x.sqrt()
         else:
             return math.sqrt(x)
 
-    def state_dict(self):
+    def state_dict(self) -> dict[str, any]:
         hard_copy = {
             'state': {},
             'param_groups': []
@@ -85,7 +85,7 @@ class CustomAdam(torch.optim.Optimizer):
                 hard_copy['param_groups'][-1]['amsgrad'] = copy.deepcopy(group['amsgrad'])
         return hard_copy
 
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict: dict[str, any]) -> None:
         def inposition_fill(ref, data):
             if len(ref.data.size()) == 2:
                 idx = torch.arange(ref.data.size()[1])

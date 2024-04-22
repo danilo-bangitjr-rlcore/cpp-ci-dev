@@ -10,7 +10,7 @@ from root.agent.base import BaseAC
 from root.component.actor.factory import init_actor
 from root.component.critic.factory import init_v_critic, init_q_critic
 from root.component.buffer.factory import init_buffer
-from root.component.network.utils import to_np, state_to_tensor
+from root.component.network.utils import to_np, state_to_tensor, ensemble_mse
 from root.component.actor.network_actor import NetworkActor
 
 
@@ -30,6 +30,7 @@ class InAC(BaseAC):
 
     def update_buffer(self, transition: tuple) -> None:
         self.buffer.feed(transition)
+    
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, self.device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
@@ -56,14 +57,14 @@ class InAC(BaseAC):
         states, actions, rewards, next_states, dones = (batch['states'], batch['actions'], batch['rewards'],
                                                         batch['next_states'], batch['dones'])
 
-        q = self.q_critic.get_q(states, actions, with_grad=True)
+        _, q_ens = self.q_critic.get_qs(states, actions, with_grad=True)
         next_actions, _ = self.actor.get_action(next_states, with_grad=False)
         next_log_probs, _ = self.actor.get_log_prob(next_states, next_actions,
                                                     with_grad=False)
 
         q_pi_target = self.q_critic.get_q_target(next_states, next_actions) - self.temp * next_log_probs
         target = rewards + self.gamma * (1 - dones) * q_pi_target
-        q_loss = nn.functional.mse_loss(q, target)
+        q_loss = ensemble_mse(target, q_ens)
         return q_loss
 
     def compute_actor_loss(self, batch):

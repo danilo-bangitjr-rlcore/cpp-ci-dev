@@ -3,3 +3,4 @@ defaults:
   - _self_
 
 name : softmax
+base: fc

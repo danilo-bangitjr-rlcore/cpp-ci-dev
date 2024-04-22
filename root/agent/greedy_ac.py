@@ -10,7 +10,7 @@ from root.agent.base import BaseAC
 from root.component.actor.factory import init_actor
 from root.component.critic.factory import init_q_critic
 from root.component.buffer.factory import init_buffer
-from root.component.network.utils import to_np, state_to_tensor
+from root.component.network.utils import to_np, state_to_tensor, ensemble_mse
 
 
 class GreedyAC(BaseAC):
@@ -113,8 +113,8 @@ class GreedyAC(BaseAC):
         next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
         next_q = self.q_critic.get_q_target(next_state_batch, next_actions)
         target = reward_batch + mask_batch * self.gamma * next_q
-        q = self.q_critic.get_q(state_batch, action_batch, with_grad=True)
-        q_loss = nn.functional.mse_loss(q, target)
+        _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)
+        q_loss = ensemble_mse(target, q_ens)
 
         return q_loss
 
@@ -152,7 +152,7 @@ class GreedyAC(BaseAC):
 
         return sampler_loss
 
-    def compute_actor_loss(self, data) -> (torch.Tensor, tuple):
+    def compute_actor_loss(self, data: dict) -> (torch.Tensor, tuple):
         states = data['states']
         repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions = self.get_policy_update_data(states)
         logp, _ = self.actor.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
@@ -160,7 +160,7 @@ class GreedyAC(BaseAC):
 
         return actor_loss, (repeated_states, sample_actions, sorted_q, stacked_s_batch, best_actions)
 
-    def compute_actor_sampler_losses(self, data) -> (torch.Tensor, torch.Tensor):
+    def compute_actor_sampler_losses(self, data: dict) -> (torch.Tensor, torch.Tensor):
         actor_loss, extra_info = self.compute_actor_loss(data)
         states = data['states']
         batch_size = states.shape[0]
@@ -222,7 +222,7 @@ class GreedyAC(BaseAC):
 class GreedyACUniformProp(GreedyAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
-        self.top_action = cfg.top_actions
+        self.top_actions = cfg.top_actions
 
     def get_policy_update_data(self, state_batch: torch.Tensor) -> (
             torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor):

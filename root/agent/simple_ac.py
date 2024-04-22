@@ -9,7 +9,7 @@ from root.agent.base import BaseAC
 from root.component.actor.factory import init_actor
 from root.component.critic.factory import init_v_critic
 from root.component.buffer.factory import init_buffer
-from root.component.network.utils import to_np, state_to_tensor
+from root.component.network.utils import to_np, state_to_tensor, ensemble_mse
 
 
 class SimpleAC(BaseAC):
@@ -38,8 +38,8 @@ class SimpleAC(BaseAC):
         rewards = batch['rewards']
         dones = batch['dones']
 
-        log_prob, _ = self.actor.get_log_prob(states, actions)
-        v = self.critic.get_v(states, with_grad=True)
+        log_prob, _ = self.actor.get_log_prob(states, actions, with_grad=True)
+        v = self.critic.get_v(states, with_grad=False)
         v_next = self.critic.get_v(next_states, with_grad=False)
         target = rewards + self.gamma * (1.0 - dones) * v_next
         ent = -log_prob
@@ -54,11 +54,11 @@ class SimpleAC(BaseAC):
         rewards = batch['rewards']
         dones = batch['dones']
 
-        v = self.critic.get_v(states, with_grad=True)
-        v_next = self.critic.get_v(next_states, with_grad=False)
+        _, v_ens = self.critic.get_vs(states, with_grad=True)
+        v_next = self.critic.get_v_target(next_states, with_grad=False)
         target = rewards + self.gamma * (1.0 - dones) * v_next
 
-        loss_critic = nn.functional.mse_loss(v, target)
+        loss_critic = ensemble_mse(target, v_ens)
 
         self.critic.update(loss_critic)
 

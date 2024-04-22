@@ -43,7 +43,7 @@ class UniformBuffer:
         # resets to start of buffer
         self.pos = (self.pos + 1) % self.memory
 
-    def sample_mini_batch(self, batch_size: int=None)-> dict:
+    def sample_mini_batch(self, batch_size: int=None) -> dict:
         if len(self.data) == 0:
             return None
         if batch_size is None:
@@ -73,9 +73,15 @@ class UniformBuffer:
                 batch_data[i] = batch_data[i].reshape(-1, 1)
         return batch_data
 
+    """
     def load(self, states: list, actions: list, cumulants: list, dones: list, truncates: list) -> None:
         for i in range(len(states) - 1):
             self.feed((states[i], actions[i], cumulants[i], states[i+1], int(dones[i]), int(truncates[i])))
+    """
+
+    def load(self, transitions: tuple) -> None:
+        for transition in transitions:
+            self.feed(transition)
 
     @property
     def size(self) -> int:
