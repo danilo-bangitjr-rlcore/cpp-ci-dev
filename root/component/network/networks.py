@@ -12,8 +12,8 @@ FLOAT32_EPS = 10 * \
 EPSILON = 1e-6
 
 def create_base(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
-    if cfg.base == "fc":
-        return FC(cfg, input_dim, output_dim)
+    if cfg.base.name == "fc":
+        return FC(cfg.base, input_dim, output_dim)
     else:
         raise NotImplementedError
 

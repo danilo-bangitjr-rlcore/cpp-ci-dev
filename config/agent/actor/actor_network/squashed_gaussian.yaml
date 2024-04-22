@@ -1,6 +1,5 @@
 defaults:
-  - fc
+  - base: fc
   - _self_
 
 name : squashed_gaussian
-base : fc
