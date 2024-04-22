@@ -162,7 +162,6 @@ class LineSearchOpt:
 
     def __backtrack_momentum(self, error_evaluation_fn, error_eval_input, network_lst):
         self.__parameter_backup(network_lst, self.optimizer_lst)
-        # print("in", list(network_lst[0].parameters())[-2][-1][-5:])
         before_error = error_evaluation_fn(error_eval_input)
         grad_rec = []
         for i in range(len(network_lst)): # save gradient
@@ -172,9 +171,7 @@ class LineSearchOpt:
             if bi > 0: # The first step does not need moving gradient
                 for i in range(len(network_lst)):
                     self.optimizer_lst[i].zero_grad() # clean gradient
-                    # print("back before move", list(network_lst[0].parameters())[-2][0][0:5])
                     self.__move_gradient_to_network(network_lst[i], grad_rec[i], 1) # backward
-                    # print("back after move", list(network_lst[0].parameters())[-2][0][0:5])
 
             for i in range(len(network_lst)):
                 self.__reset_lr(self.optimizer_lst[i], self.lr_weight * self.lr_main)
@@ -182,17 +179,8 @@ class LineSearchOpt:
             after_error = error_evaluation_fn(error_eval_input)
             if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
                 self.lr_weight *= self.lr_decay_rate
-                # print("updated")
-                # print(self.optimizer_lst[0].state_idx[0]['exp_avg'][-3:])
-                # print(list(network_lst[0].parameters())[-2][-1][-5:])
                 network_lst, self.optimizer_lst = self.__undo_update(network_lst,
                                                                      self.optimizer_lst)
-                # print("undo")
-                # print(list(network_lst[0].parameters())[-2][-1][-5:])
-                # if 'exp_avg' in self.optimizer_lst[0].state_idx[0]:
-                #     print(self.optimizer_lst[0].state_idx[0]['exp_avg'][-3:])
-                # print()
-
             elif after_error - before_error > self.error_threshold and \
                     bi == self.max_backtracking-1:
                 self.lr_main = max(self.lr_main * self.lr_decay_rate, self.lr_lower_bound)
