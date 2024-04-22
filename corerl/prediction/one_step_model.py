@@ -18,9 +18,9 @@ class OneStepModel:
         self.buffer.feed(train_transitions)
         self.test_buffer.feed(test_transitions)
 
-        input_dim = len(train_transitions[0][0])  # not sure about this
+        input_dim = len(train_transitions[0][0])
         action_dim = len(train_transitions[0][1])
-        self.model = init_custom_network(cfg.model, input_dim=input_dim + action_dim, output_dim=input_dim)
+        self.model = init_custom_network(cfg.model, input_dim=input_dim+action_dim, output_dim=input_dim)
         self.optimizer = init_optimizer(cfg.optimizer, list(self.model.parameters()))
 
         self.train_losses = []
