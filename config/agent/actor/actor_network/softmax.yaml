@@ -4,6 +4,5 @@ defaults:
 
 name : softmax
 layer_init : Xavier
-device : ${experiment.device}
 head_activation : Softplus
 bias : True

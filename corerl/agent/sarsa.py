@@ -12,7 +12,7 @@ from corerl.agent.base import BaseAgent
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, ensemble_mse
-
+from corerl.utils.device import device
 
 class EpsilonGreedySarsa(BaseAgent):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -20,7 +20,6 @@ class EpsilonGreedySarsa(BaseAgent):
         self.samples = cfg.samples
         self.epsilon = cfg.samples
         self.action_dim = action_dim
-        self.device = cfg.device
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.buffer = init_buffer(cfg.buffer)
 
@@ -36,7 +35,7 @@ class EpsilonGreedySarsa(BaseAgent):
         actions = torch.zeros(num_states, self.action_dim)
         for i, o in enumerate(state):
             if random.random() <= self.epsilon:
-                action = torch.rand((1, self.action_dim), device=self.device)
+                action = torch.rand((1, self.action_dim), device=device)
             else:
                 action = self.get_greedy_action(o)
             actions[i, :] = action

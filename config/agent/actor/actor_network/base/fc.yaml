@@ -5,5 +5,4 @@
   activation : ReLU
   layer_init : Xavier
   bias : True
-  name : fc
-  device : ${experiment.device}
+  name: fc

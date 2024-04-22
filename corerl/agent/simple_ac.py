@@ -1,7 +1,6 @@
 from omegaconf import DictConfig
 from pathlib import Path
 
-import torch.nn as nn
 import numpy
 import pickle as pkl
 
@@ -10,19 +9,18 @@ from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, ensemble_mse
-
+from corerl.utils.device import device
 
 class SimpleAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         self.tau = cfg.tau
-        self.device = cfg.device
         self.critic = init_v_critic(cfg.critic, state_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
         self.buffer = init_buffer(cfg.buffer)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        tensor_state = state_to_tensor(state, self.device)
+        tensor_state = state_to_tensor(state, device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
         return action

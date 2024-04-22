@@ -1,8 +1,9 @@
 import numpy as np
 import corerl.component.network.utils as network_utils
+from corerl.utils.device import device
 from omegaconf import DictConfig
 
-def send_to_device(batch: list, device: str) -> dict:
+def send_to_device(batch: list) -> dict:
     states, actions, rewards, next_states, terminals, truncations = batch
     s = network_utils.tensor(states, device)
     a = network_utils.tensor(actions, device)
@@ -26,7 +27,6 @@ class UniformBuffer:
         self.rng = np.random.RandomState(self.seed)
         self.memory = cfg.memory
         self.batch_size = cfg.batch_size
-        self.device = cfg.device
         self.data = []
         self.pos = 0
 
@@ -52,7 +52,7 @@ class UniformBuffer:
         sampled_data = [self.data[ind] for ind in sampled_indices]
         batch_data = list(map(lambda x: np.asarray(x), zip(*sampled_data)))
         batch_data = self.prepare_data(batch_data)
-        batch_data = send_to_device(batch_data, device=self.device)
+        batch_data = send_to_device(batch_data)
         return batch_data
 
     def sample_batch(self) -> dict:
@@ -64,7 +64,7 @@ class UniformBuffer:
         else:
             batch_data = [np.asarray([x]) for x in sampled_data[0]]
         batch_data = self.prepare_data(batch_data)
-        batch_data = send_to_device(batch_data, device=self.device)
+        batch_data = send_to_device(batch_data)
         return batch_data
 
     def prepare_data(self, batch_data: list) -> list:
@@ -122,7 +122,7 @@ class PriorityBuffer(UniformBuffer):
         sampled_data = [self.data[ind] for ind in sampled_indices]
         batch_data = list(map(lambda x: np.asarray(x), zip(*sampled_data)))
         batch_data = self.prepare_data(batch_data)
-        batch_data = send_to_device(batch_data, device=self.device)
+        batch_data = send_to_device(batch_data)
         return batch_data
 
     def update_priorities(self, priority=None):

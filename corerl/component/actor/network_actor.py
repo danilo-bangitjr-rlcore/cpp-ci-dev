@@ -6,7 +6,7 @@ from typing import Optional
 from corerl.component.actor.base_actor import BaseActor
 from corerl.component.network.factory import init_actor_network
 from corerl.component.optimizers.factory import init_optimizer
-
+from corerl.utils.device import device
 
 class NetworkActor(BaseActor):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, initializer: Optional['NetworkActor'] = None):
@@ -44,7 +44,6 @@ class NetworkActor(BaseActor):
 
     def load(self, path: Path) -> None:
         net_path = path / 'actor_net'
-        device = self.model.device
         self.model.load_state_dict(torch.load(net_path, map_location=device))
 
         opt_path = path / 'actor_opt'

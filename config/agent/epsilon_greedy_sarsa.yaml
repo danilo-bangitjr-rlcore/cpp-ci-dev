@@ -7,5 +7,4 @@ defaults:
 name : epsilon_greedy_sarsa
 epsilon : 0.1
 samples : 10000
-device : ${experiment.device}
 

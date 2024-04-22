@@ -5,7 +5,7 @@ from omegaconf import DictConfig
 from corerl.component.critic.base_critic import BaseQ, BaseV
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.network.factory import init_critic_network, init_critic_target
-
+from corerl.utils.device import device
 
 class EnsembleQCritic(BaseQ):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -76,7 +76,6 @@ class EnsembleQCritic(BaseQ):
 
     def load(self, path: Path) -> None:
         net_path = path / 'critic_net'
-        device = self.model.device
         self.model.load_state_dict(torch.load(net_path, map_location=device))
 
         target_path = path / 'critic_target'
@@ -144,7 +143,6 @@ class EnsembleVCritic(BaseV):
 
     def load(self, path: Path) -> None:
         net_path = path / 'critic_net'
-        device = self.model.device
         self.model.load_state_dict(torch.load(net_path, map_location=device))
 
         target_path = path / 'critic_target'

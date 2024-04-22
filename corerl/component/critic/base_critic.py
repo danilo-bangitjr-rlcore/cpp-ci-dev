@@ -9,10 +9,8 @@ from abc import ABC, abstractmethod
 class BaseCritic(ABC):
     @abstractmethod
     def __init__(self, cfg: DictConfig):
-        print(cfg.discrete_control)
-        assert False
-
         self.discrete_control = cfg.discrete_control
+        raise NotImplementedError
 
     @abstractmethod
     def update(self, loss: torch.Tensor) -> None:
@@ -47,9 +45,11 @@ class BaseQ(BaseCritic):
         super(BaseQ, self).__init__(cfg)
 
     @abstractmethod
-    def get_q(self, state: torch.Tensor | np.ndarray, action: torch.Tensor | np.ndarray, **kwargs) -> torch.Tensor | np.ndarray:
+    def get_q(self, state: torch.Tensor | np.ndarray, action: torch.Tensor | np.ndarray,
+              **kwargs) -> torch.Tensor | np.ndarray:
         raise NotImplementedError
 
     @abstractmethod
-    def get_q_target(self, state: torch.Tensor | np.ndarray, action: torch.Tensor | np.ndarray, **kwargs) -> torch.Tensor | np.ndarray:
+    def get_q_target(self, state: torch.Tensor | np.ndarray, action: torch.Tensor | np.ndarray,
+                     **kwargs) -> torch.Tensor | np.ndarray:
         raise NotImplementedError

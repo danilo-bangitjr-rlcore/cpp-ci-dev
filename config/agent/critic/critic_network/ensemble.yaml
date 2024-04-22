@@ -4,4 +4,3 @@ defaults:
 
 ensemble : 1
 name : ensemble
-device : ${experiment.device}

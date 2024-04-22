@@ -11,8 +11,7 @@ from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic, init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, ensemble_mse
-from corerl.component.actor.network_actor import NetworkActor
-
+from corerl.utils.device import device
 
 class InAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -20,8 +19,6 @@ class InAC(BaseAC):
         self.temp = cfg.temp
         self.eps = cfg.eps
         self.exp_threshold = cfg.exp_threshold
-
-        self.device = cfg.device
         self.v_critic = init_v_critic(cfg.critic, state_dim)
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
@@ -32,7 +29,7 @@ class InAC(BaseAC):
         self.buffer.feed(transition)
     
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        tensor_state = state_to_tensor(state, self.device)
+        tensor_state = state_to_tensor(state, device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
         return action

@@ -10,7 +10,6 @@ class GreedyIQL(GreedyAC, IQL):
     """
     A verison of IQL that uses GAC-style updates.
     """
-
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
 

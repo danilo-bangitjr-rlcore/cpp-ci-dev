@@ -16,12 +16,12 @@ import corerl.agent.utils as utils
 
 from jaxtyping import Float
 from typing import Optional
+from corerl.utils.device import device
 
 
 class GreedyAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
-        self.device = cfg.device
         self.action_dim = action_dim
         # Removed self.gac_a_dim = self.action_dim. Hopefully this doesn't break anything
 
@@ -51,7 +51,7 @@ class GreedyAC(BaseAC):
                 self.top_actions_proposal = self.action_dim
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        tensor_state = state_to_tensor(state, self.device)
+        tensor_state = state_to_tensor(state, device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
 

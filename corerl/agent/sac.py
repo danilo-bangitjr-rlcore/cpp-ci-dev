@@ -7,15 +7,13 @@ import pickle as pkl
 
 from corerl.agent.base import BaseAC
 from corerl.component.actor.factory import init_actor
-from corerl.component.critic.factory import init_v_critic, init_q_critic
+from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, Float, ensemble_mse
-
+from corerl.utils.device import device
 class SAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
-        self.device = cfg.device
-
         # self.v_critic = init_v_critic(cfg.critic, state_dim) # Paper has V and Q...
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
@@ -25,14 +23,14 @@ class SAC(BaseAC):
         self.automatic_entropy_tuning = cfg.tau == -1
         if self.automatic_entropy_tuning:
             self.target_entropy = -np.prod(action_dim).item() # If action_dim is an int, is this necessary?
-            self.log_alpha = Float(self.device, 0.0)
+            self.log_alpha = Float(device, 0.0)
         else:
-            self.log_alpha = Float(self.device, np.log(cfg.tau))
+            self.log_alpha = Float(device, np.log(cfg.tau))
         self.alpha = self.log_alpha().exp().detach()
         self.alpha_optimizer = torch.optim.Adam(self.log_alpha.parameters(), lr=cfg.lr_alpha)
 
     def get_action(self, state: np.ndarray) -> np.ndarray:
-        tensor_state = state_to_tensor(state, self.device)
+        tensor_state = state_to_tensor(state, device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
         return action
@@ -161,10 +159,10 @@ class SAC(BaseAC):
         self.q_critic.load(q_critic_path)
 
         log_alpha_path = path / "log_alpha"
-        self.log_alpha.load_state_dict(torch.load(log_alpha_path, map_location=self.device))
+        self.log_alpha.load_state_dict(torch.load(log_alpha_path, map_location=device))
 
         alpha_opt_path = path / "alpha_opt"
-        self.alpha_optimizer.load_state_dict(torch.load(alpha_opt_path, map_location=self.device))
+        self.alpha_optimizer.load_state_dict(torch.load(alpha_opt_path, map_location=device))
 
         buffer_path = path / "buffer.pkl"
         with open(buffer_path, "rb") as f:

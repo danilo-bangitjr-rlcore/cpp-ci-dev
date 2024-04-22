@@ -8,5 +8,3 @@ defaults:
 
 name : simple_ac
 tau : 0.0
-device : ${experiment.device}
-

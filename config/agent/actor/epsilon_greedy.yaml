@@ -1,4 +1,3 @@
 name : "uniform_sampling_epsilon_greedy"
 epsilon : 0.1
 samples: 10000
-device : ${experiment.device}

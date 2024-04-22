@@ -1,7 +1,6 @@
 from omegaconf import DictConfig
 from pathlib import Path
 
-import torch.nn as nn
 import torch
 import numpy
 import pickle as pkl
@@ -11,21 +10,21 @@ from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic, init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, expectile_loss, ensemble_mse
-
+from corerl.utils.device import device
 
 class IQL(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         self.temp = cfg.temp
         self.expectile = cfg.expectile
-        self.device = cfg.device
+      
         self.v_critic = init_v_critic(cfg.critic, state_dim)
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
         self.buffer = init_buffer(cfg.buffer)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        tensor_state = state_to_tensor(state, self.device)
+        tensor_state = state_to_tensor(state, device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
         return action

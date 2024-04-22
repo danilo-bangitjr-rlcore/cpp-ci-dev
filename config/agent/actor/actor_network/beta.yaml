@@ -6,7 +6,6 @@ name : beta
 beta_param_bias : 1.0
 beta_param_bound : 10000
 layer_init : Xavier
-device : ${experiment.device}
 head_activation : Softplus
 bias : True
 tanh_shift : 2.0

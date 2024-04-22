@@ -3,19 +3,16 @@ from pathlib import Path
 
 import torch
 import numpy as np
-import pickle as pkl
 
 from corerl.agent.base import BaseAC
 from corerl.component.actor.factory import init_actor
-from corerl.component.critic.factory import init_v_critic, init_q_critic
-from corerl.component.buffer.factory import init_buffer
+from corerl.component.critic.factory import init_v_critic
 from corerl.component.network.utils import to_np, state_to_tensor, tensor, ensemble_mse
+from corerl.utils.device import device
 
 class Reinforce(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
-        self.device = cfg.device
-
         self.v_critic = init_v_critic(cfg.critic, state_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
 
@@ -32,7 +29,7 @@ class Reinforce(BaseAC):
         self.trunc = trunc
 
     def get_action(self, state: np.ndarray) -> np.ndarray:
-        tensor_state = state_to_tensor(state, self.device)
+        tensor_state = state_to_tensor(state, device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
         return action
@@ -46,7 +43,7 @@ class Reinforce(BaseAC):
 
         # If the episode is truncated, returns bootstrap the final state
         if self.trunc:
-            tensor_state = state_to_tensor(self.ep_states[ep_t], self.device)
+            tensor_state = state_to_tensor(self.ep_states[ep_t], device)
             v_boot = self.v_critic.get_v(tensor_state, with_grad=False)
             curr_return = v_boot
 
@@ -57,12 +54,12 @@ class Reinforce(BaseAC):
             curr_return = self.ep_rewards[t] + self.gamma * curr_return
             self.returns[t] = curr_return
 
-        self.returns = tensor(self.returns, self.device)
+        self.returns = tensor(self.returns, device)
 
         self.ep_states = np.asarray(self.ep_states[:-1])
-        self.ep_states = tensor(self.ep_states, self.device)
+        self.ep_states = tensor(self.ep_states, device)
         self.ep_actions = np.asarray(self.ep_actions)
-        self.ep_actions = tensor(self.ep_actions, self.device)
+        self.ep_actions = tensor(self.ep_actions, device)
 
     def compute_v_loss(self) -> torch.Tensor:
         _, v_ens = self.v_critic.get_vs(self.ep_states, with_grad=True)

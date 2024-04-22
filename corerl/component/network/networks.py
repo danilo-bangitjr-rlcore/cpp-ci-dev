@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.distributions as distrib
 import numpy as np
 import corerl.component.network.utils as utils
+from corerl.utils.device import device
 
 from omegaconf import DictConfig
 
@@ -21,8 +22,6 @@ def create_base(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
 class FC(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super().__init__()
-
-        self.device = cfg.device
         layer_norm = cfg.layer_norm
         arch = cfg.arch
         activation = cfg.activation
@@ -44,7 +43,7 @@ class FC(nn.Module):
 
         self.network = nn.Sequential(*modules)
         self.head_act = utils.init_activation(head_activation)()
-        self.to(self.device)
+        self.to(device)
 
     def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
         out = self.network(input_tensor)
@@ -55,11 +54,10 @@ class FC(nn.Module):
 class EnsembleCritic(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(EnsembleCritic, self).__init__()
-        self.device = cfg.device
         self.ensemble = cfg.ensemble
         self.subnetworks = [
             create_base(cfg.base, input_dim, output_dim) for _ in range(self.ensemble)]
-        self.to(self.device)
+        self.to(device)
 
     def forward(self, input_tensor: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         qs = [net(input_tensor) for net in self.subnetworks]
@@ -93,8 +91,6 @@ class EnsembleCritic(nn.Module):
 class SquashedGaussian(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(SquashedGaussian, self).__init__()
-
-        self.device = cfg.device
         layer_init = utils.init_layer(cfg.layer_init)
         arch = cfg.arch
 
@@ -105,7 +101,7 @@ class SquashedGaussian(nn.Module):
         else:
             raise NotImplementedError
 
-        self.to(self.device)
+        self.to(device)
 
     # TODO: include n samples
     # TODO: rename observations to state
@@ -163,10 +159,8 @@ class SquashedGaussian(nn.Module):
 class BetaPolicy(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(BetaPolicy, self).__init__()
-
         layer_init = utils.init_layer(cfg.layer_init)
         arch = cfg.base.arch
-        self.device = cfg.device
         head_activation = cfg.head_activation
         bias = cfg.bias
         beta_param_bias = cfg.beta_param_bias
@@ -188,7 +182,7 @@ class BetaPolicy(nn.Module):
         self.beta_param_bias = torch.tensor(beta_param_bias)
         self.beta_param_bound = torch.tensor(beta_param_bound)
         self.tanh_shift = cfg.tanh_shift
-        self.to(self.device)
+        self.to(device)
 
     def squash_dist_param(self, dist_param: torch.Tensor, low: float, high: float) -> torch.Tensor:
         tanh_out = torch.tanh(dist_param + self.tanh_shift)
@@ -245,8 +239,7 @@ class Softmax(nn.Module):
         super(Softmax, self).__init__()
         self.output_dim = output_dim
         self.base_network = create_base(cfg.base, input_dim, output_dim)
-        self.to(cfg.device)
-        self.device = cfg.device
+        self.to(device)
 
     def get_probs(self, state: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         x = self.base_network(state)

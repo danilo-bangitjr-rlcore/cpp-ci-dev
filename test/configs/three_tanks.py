@@ -61,7 +61,7 @@ def avg_reward_last_iterations(params: dict, stats: dict) -> Tuple[bool | None, 
 
 SWEEP_PARAMS = {
     'independent': {
-        'agent': ['greedy_iql', 'greedy_ac'],
+        'agent': ['greedy_ac'],
         'experiment.max_steps': [1000],
         'env': ['three_tanks'],
         'experiment.seed': [0],

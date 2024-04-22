@@ -8,5 +8,3 @@ defaults:
 name : iql
 temp : 1.0
 expectile: 0.8
-device : ${experiment.device}
-

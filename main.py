@@ -7,14 +7,13 @@ from tqdm import tqdm
 from omegaconf import DictConfig, OmegaConf
 from gymnasium.spaces.utils import flatdim
 from pathlib import Path
-from datetime import datetime
-from collections import deque
 
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.interaction.factory import init_interaction
 from corerl.utils.evaluator import Evaluator
+from corerl.utils.device import init_device
 
 import corerl.utils.freezer as fr
 
@@ -47,6 +46,7 @@ def main(cfg: DictConfig) -> None:
     save_path = prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
 
+    init_device(cfg.experiment.device)
     # set the random seeds
     seed = cfg.experiment.seed
     np.random.seed(seed)
