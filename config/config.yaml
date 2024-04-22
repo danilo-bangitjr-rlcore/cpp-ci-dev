@@ -23,3 +23,9 @@ experiment:
   start_step : 0
   save_path : output
   reward_queue_len : 100
+
+
+evaluator:
+  gamma : ${agent.gamma}
+  return_window : 100
+  reward_window : 100

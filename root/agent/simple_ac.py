@@ -64,7 +64,7 @@ class SimpleAC(BaseAC):
 
     def update(self) -> None:
         self.update_critic()
-        self.update_critic()
+        self.update_actor()
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

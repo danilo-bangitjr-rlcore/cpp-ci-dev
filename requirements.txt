@@ -54,3 +54,5 @@ root~=0.0
 asyncua~=1.0.6
 setuptools~=69.2.0
 pip~=24.0
+jaxtyping~=0.2.28
+gym~=0.23.1

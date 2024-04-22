@@ -7,7 +7,8 @@ from root.environment.three_tanks import TTChangeAction, TTChangeActionDiscrete
 from root.environment.smpl.envs.atropineenv import AtropineEnvGym
 from root.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
 from root.environment.smpl.envs.reactorenv import ReactorEnvGym
-from root.environment.gym_wrapper import DiscreteControlWrapper, D4RLWrapper
+from root.environment.wrapper.discrete_control_wrapper import DiscreteControlWrapper
+from root.environment.wrapper.d4rl import D4RLWrapper
 from root.environment.pendulum_env import PendulumEnv
 from root.environment.wrapper.one_hot_wrapper import OneHotWrapper
 
@@ -37,6 +38,7 @@ def init_environment(cfg: DictConfig) -> gym.Env:
         env = BeerFMTEnvGym()
     elif name == "ReactorEnv":
         env = ReactorEnvGym()
+    # unsure about these gem things
     elif name == "Cont-CC-PermExDc-v0":
         env = FlattenObservation(gem.make("Cont-CC-PermExDc-v0"))
     elif name == "Cont-CC-PMSM-v0":

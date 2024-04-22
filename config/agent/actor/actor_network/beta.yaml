@@ -1,8 +1,7 @@
 defaults:
-  - base : fc
+  - fc
   - _self_
 
 name : beta
 beta_param_bias : 0
 beta_param_bound : 1e8
-tanh_shift : -2.0

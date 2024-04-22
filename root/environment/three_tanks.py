@@ -247,7 +247,7 @@ class ThreeTankEnvBase(object):
             self.C4 = abs(self.flowrate_T1 - self.MV_MAX)
         elif self.flowrate_T1 < self.MV_MIN:
             self.C4 = abs(self.flowrate_T1 - self.MV_MIN)
-        self.constrain_contribution = np.float64(abs(self.W1 * self.C1 + self.W2 * self.C2 + self.W3 * self.C3 + self.W4 * self.C4))
+        self.constrain_contribution = np.abs(self.W1 * self.C1 + self.W2 * self.C2 + self.W3 * self.C3 + self.W4 * self.C4)
         self.constrain_info = {
             "C1": self.C1,
             "C2": self.C2,
