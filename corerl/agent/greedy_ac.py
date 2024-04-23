@@ -1,4 +1,3 @@
-import numpy as np
 from omegaconf import DictConfig
 from pathlib import Path
 
@@ -12,6 +11,7 @@ from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, ensemble_mse
+from corerl.component.exploration.factory import init_exploration_module
 import corerl.agent.utils as utils
 
 from jaxtyping import Float
@@ -22,7 +22,9 @@ from corerl.utils.device import device
 class GreedyAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
+        self.device = cfg.device
         self.action_dim = action_dim
+        # Removed self.gac_a_dim = self.action_dim. Hopefully this doesn't break anything
 
         self.average_entropy = cfg.average_entropy  # Whether to average the proposal policy's entropy over all the sampled actions
         self.tau = cfg.tau  # Entropy constant used in the entropy version of the proposal policy update
@@ -292,3 +294,30 @@ class GreedyACLineSearch(GreedyAC):
         _, _, _, _, stacked_s_batch, best_actions, _ = self.get_policy_update_info(state_batch)
         logp, _ = self.sampler.get_log_prob(stacked_s_batch.detach(), best_actions.detach(), with_grad=False)
         return -logp.mean().detach()
+
+
+class ExploreLSGAC(GreedyACLineSearch):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+        super().__init__(cfg, state_dim, action_dim)
+        # initialize exploration module
+        self.exploration = init_exploration_module(cfg.exploration, state_dim, action_dim)
+        self.exploration.set_parameters(id(self.buffer))
+        self.exploration_weight = cfg.exploration_weight
+
+    def update(self) -> None:
+        super().update()
+        # update exploration module
+        self.exploration.update()
+
+    def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
+                     batch_size: int) -> torch.Tensor:
+
+        q_values = self.q_critic.get_q(repeated_states, sample_actions, with_grad=False)
+
+        # query the exploration bonus
+        exp_b = self.exploration.get_exploration_bonus(repeated_states, sample_actions)
+        q_values += self.exploration_weight * exp_b
+
+        q_values = q_values.reshape(batch_size, self.num_samples, 1)
+        sorted_q = torch.argsort(q_values, dim=1, descending=True)
+        return sorted_q

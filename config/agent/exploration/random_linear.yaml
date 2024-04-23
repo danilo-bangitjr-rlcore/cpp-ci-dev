@@ -1,0 +1,11 @@
+defaults:
+  - exploration_network: random_linear_uncertainty
+  - exploration_optimizer : custom_adam
+  - policy_network : random_beta
+  -  _self_
+
+name : random_linear
+max_backtracking : 30
+error_threshold : 1e-4
+lr_lower_bound : 1e-6
+gamma: ${agent.gamma}

@@ -4,7 +4,7 @@ from corerl.agent.iql import IQL
 from corerl.agent.simple_ac import SimpleAC
 from corerl.agent.sarsa import EpsilonGreedySarsa
 from corerl.agent.inac import InAC
-from corerl.agent.greedy_ac import GreedyAC, GreedyACLineSearch
+from corerl.agent.greedy_ac import GreedyAC, GreedyACLineSearch, ExploreLSGAC
 from corerl.agent.greedy_iql import GreedyIQL
 
 
@@ -26,6 +26,8 @@ def init_agent(cfg: DictConfig, state_dim: int, action_dim: int) -> BaseAgent:
         agent = GreedyIQL(cfg, state_dim, action_dim)
     elif cfg.name == 'greedy_ac_linesearch':
         agent = GreedyACLineSearch(cfg, state_dim, action_dim)
+    elif cfg.name == 'greedy_ac_linesearch_explore':
+        agent = ExploreLSGAC(cfg, state_dim, action_dim)
     else:
         raise NotImplementedError
 

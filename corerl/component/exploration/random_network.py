@@ -7,9 +7,10 @@ from root.component.network.utils import clone_model_0to1, clone_gradient, move_
 from root.component.exploration.base import BaseExploration
 from root.component.network.factory import init_custom_network
 from root.component.optimizers.linesearch_optimizer import LineSearchOpt
+from root.component.optimizers.factory import init_optimizer
 
 
-class RndNetworkExploreLineSearch(BaseExploration):
+class RndNetworkExplore(BaseExploration):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg)
         self.gamma = cfg.gamma
@@ -20,32 +21,18 @@ class RndNetworkExploreLineSearch(BaseExploration):
         self.fbonus0 = init_custom_network(cfg.exploration_network, state_dim+action_dim, state_dim+action_dim)
         self.fbonus1 = init_custom_network(cfg.exploration_network, state_dim+action_dim, state_dim+action_dim)
 
-        self.fbonus0_copy = init_custom_network(cfg.exploration_network, state_dim+action_dim, state_dim+action_dim)
-        self.fbonus1_copy = init_custom_network(cfg.exploration_network, state_dim+action_dim, state_dim+action_dim)
-
         # Ensure the nonlinear net between learning net and target net are the same
         clone_model_0to1(self.ftrue0.random_network, self.fbonus0.random_network)
         clone_model_0to1(self.ftrue1.random_network, self.fbonus1.random_network)
-        clone_model_0to1(self.fbonus0, self.fbonus0_copy)
-        clone_model_0to1(self.fbonus1, self.fbonus1_copy)
-        self.optimizer = LineSearchOpt(cfg.exploration_optimizer, [self.fbonus0, self.fbonus1],
-                                       cfg.exploration_optimizer.lr, cfg.max_backtracking,
-                                       cfg.error_threshold, cfg.lr_lower_bound,
-                                       cfg.exploration_optimizer.name)
 
+        self.optimizer0 = init_optimizer(cfg.exploration_optimizer, self.fbonus0.parameters())
+        self.optimizer1 = init_optimizer(cfg.exploration_optimizer, self.fbonus0.parameters())
         self.random_policy = init_custom_network(cfg.policy_network, state_dim, action_dim)
 
-    def exploration_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
-        state, action, _, _, _ = args
-        return self.get_exploration_bonus(state, action).mean()
-
     def set_parameters(self, buffer_address: int, eval_error_fn: Optional['Callable'] = None) -> None:
-        assert eval_error_fn is None # Define the evaluation function inside the class
-        self.optimizer.set_params(buffer_address, [self.fbonus0_copy, self.fbonus1_copy],
-                                  self.exploration_eval_error_fn)
         self.buffer = ctypes.cast(buffer_address, ctypes.py_object).value
 
-    def __explore_bonus_loss(self, state: torch.Tensor, action: torch.Tensor, next_state: torch.Tensor,
+    def explore_bonus_loss(self, state: torch.Tensor, action: torch.Tensor, next_state: torch.Tensor,
                              next_action: torch.Tensor, mask: torch.Tensor, gamma: float) -> list[torch.Tensor]:
         in_ = torch.concat((state, action), dim=1)
         in_p1 = torch.concat((next_state, next_action), dim=1)
@@ -85,8 +72,51 @@ class RndNetworkExploreLineSearch(BaseExploration):
         next_state_batch = batch['next_states']
         mask_batch = 1 - batch['dones']
         random_next_action, _ = self.random_policy(next_state_batch)
-        loss0, loss1 = self.__explore_bonus_loss(state_batch, action_batch, next_state_batch,
-                                                 random_next_action, mask_batch, self.gamma)
+        loss0, loss1 = self.explore_bonus_loss(state_batch, action_batch, next_state_batch,
+                                               random_next_action, mask_batch, self.gamma)
+        self.optimizer0.zero_grad()
+        loss0.backward()
+        self.optimizer0.step()
+        self.optimizer1.zero_grad()
+        loss1.backward()
+        self.optimizer1.step()
+
+    def get_networks(self) -> tuple[torch.nn.Module]:
+        return (self.fbonus0, self.fbonus1)
+
+
+class RndNetworkExploreLineSearch(RndNetworkExplore):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+        super().__init__(cfg, state_dim, action_dim)
+        self.fbonus0_copy = init_custom_network(cfg.exploration_network, state_dim+action_dim, state_dim+action_dim)
+        self.fbonus1_copy = init_custom_network(cfg.exploration_network, state_dim+action_dim, state_dim+action_dim)
+
+        clone_model_0to1(self.fbonus0, self.fbonus0_copy)
+        clone_model_0to1(self.fbonus1, self.fbonus1_copy)
+        self.optimizer = LineSearchOpt(cfg.exploration_optimizer, [self.fbonus0, self.fbonus1],
+                                       cfg.exploration_optimizer.lr, cfg.max_backtracking,
+                                       cfg.error_threshold, cfg.lr_lower_bound,
+                                       cfg.exploration_optimizer.name)
+
+    def set_parameters(self, buffer_address: int, eval_error_fn: Optional['Callable'] = None) -> None:
+        assert eval_error_fn is None # Define the evaluation function inside the class
+        self.optimizer.set_params(buffer_address, [self.fbonus0_copy, self.fbonus1_copy],
+                                  self.exploration_eval_error_fn)
+        self.buffer = ctypes.cast(buffer_address, ctypes.py_object).value
+
+    def exploration_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
+        state, action, _, _, _ = args
+        return self.get_exploration_bonus(state, action).mean()
+
+    def update(self) -> None:
+        batch = self.buffer.sample()
+        state_batch = batch['states']
+        action_batch = batch['actions']
+        next_state_batch = batch['next_states']
+        mask_batch = 1 - batch['dones']
+        random_next_action, _ = self.random_policy(next_state_batch)
+        loss0, loss1 = self.explore_bonus_loss(state_batch, action_batch, next_state_batch,
+                                               random_next_action, mask_batch, self.gamma)
         self.optimizer.zero_grad()
         loss0.backward()
         loss1.backward()
@@ -94,3 +124,4 @@ class RndNetworkExploreLineSearch(BaseExploration):
 
     def get_networks(self) -> tuple[torch.nn.Module]:
         return (self.fbonus0, self.fbonus1, self.fbonus0_copy, self.fbonus1_copy)
+
