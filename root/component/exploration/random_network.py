@@ -3,6 +3,7 @@ from abc import abstractmethod
 import torch
 import torch.nn as nn
 import ctypes
+from typing import Optional, Callable
 
 from root.component.network.utils import clone_model_0to1, clone_gradient, move_gradient_to_network
 from root.component.exploration.base import BaseExploration
@@ -11,7 +12,7 @@ from root.component.optimizers.linesearch_optimizer import LineSearchOpt
 
 
 class RndNetworkExploreLineSearch(BaseExploration):
-    def __init__(self, cfg: DictConfig, state_dim, action_dim):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg)
         self.gamma = cfg.gamma
         # Networks for uncertainty measure
@@ -36,17 +37,18 @@ class RndNetworkExploreLineSearch(BaseExploration):
 
         self.random_policy = init_custom_network(cfg.policy_network, state_dim, action_dim)
 
-    def exploration_eval_error_fn(self, args):
+    def exploration_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
         state, action, _, _, _ = args
         return self.get_exploration_bonus(state, action).mean()
 
-    def set_parameters(self, buffer_address, eval_error_fn=None):
+    def set_parameters(self, buffer_address: int, eval_error_fn: Optional['Callable'] = None) -> None:
         assert eval_error_fn is None # Define the evaluation function inside the class
         self.optimizer.set_params(buffer_address, [self.fbonus0_copy, self.fbonus1_copy],
                                   self.exploration_eval_error_fn)
         self.buffer = ctypes.cast(buffer_address, ctypes.py_object).value
 
-    def __explore_bonus_loss(self, state, action, next_state, next_action, mask, gamma):
+    def __explore_bonus_loss(self, state: torch.Tensor, action: torch.Tensor, next_state: torch.Tensor,
+                             next_action: torch.Tensor, mask: torch.Tensor, gamma: float) -> list[torch.Tensor]:
         in_ = torch.concat((state, action), dim=1)
         in_p1 = torch.concat((next_state, next_action), dim=1)
         with torch.no_grad():
@@ -67,7 +69,7 @@ class RndNetworkExploreLineSearch(BaseExploration):
         loss1 = nn.functional.mse_loss(pred1, target1)
         return [loss0, loss1]
 
-    def get_exploration_bonus(self, state, action):
+    def get_exploration_bonus(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         in_ = torch.concat((state, action), dim=1)
         with torch.no_grad():
             pred0, _ = self.fbonus0(in_)
@@ -78,7 +80,7 @@ class RndNetworkExploreLineSearch(BaseExploration):
                          dim=1, keepdim=True)
         return b.detach()
 
-    def update(self):
+    def update(self) -> None:
         batch = self.buffer.sample()
         state_batch = batch['states']
         action_batch = batch['actions']
@@ -92,5 +94,5 @@ class RndNetworkExploreLineSearch(BaseExploration):
         loss1.backward()
         self.optimizer.step()
 
-    def get_networks(self):
-        return self.fbonus0, self.fbonus1, self.fbonus0_copy, self.fbonus1_copy
+    def get_networks(self) -> tuple[torch.nn.Module]:
+        return (self.fbonus0, self.fbonus1, self.fbonus0_copy, self.fbonus1_copy)

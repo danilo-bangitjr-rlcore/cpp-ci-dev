@@ -287,7 +287,7 @@ class GreedyACLineSearch(GreedyAC):
         # self.exploration = init_exploration_module(cfg.exploration, state_dim, action_dim)
         # self.exploration.set_parameters(id(self.buffer))
 
-    def critic_eval_error_fn(self, args):
+    def critic_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = args
         q = self.q_critic.get_q(state_batch, action_batch, with_grad=False)
         next_action, _ = self.actor.get_action(next_state_batch, with_grad=False)
@@ -296,14 +296,14 @@ class GreedyACLineSearch(GreedyAC):
         error = torch.nn.functional.mse_loss(q.detach(), target.detach())
         return error
 
-    def actor_eval_error_fn(self, args):
+    def actor_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
         state_batch, _, _, _, _ = args
         _, _, _, stacked_s_batch, best_actions = \
             self.get_policy_update_data(state_batch)
         logp, _ = self.actor.get_log_prob(stacked_s_batch.detach(), best_actions.detach(), with_grad=False)
         return -logp.mean().detach()
 
-    def sampler_eval_error_fn(self, args):
+    def sampler_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
         state_batch, _, _, _, _ = args
         _, _, _, stacked_s_batch, best_actions = \
             self.get_policy_update_data(state_batch)

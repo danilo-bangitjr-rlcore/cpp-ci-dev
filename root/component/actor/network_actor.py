@@ -1,7 +1,7 @@
 import torch
 from pathlib import Path
 from omegaconf import DictConfig
-from typing import Optional
+from typing import Optional, Callable
 
 from root.component.actor.base_actor import BaseActor
 from root.component.network.factory import init_actor_network
@@ -61,5 +61,5 @@ class NetworkActorLineSearch(NetworkActor):
                                        cfg.actor_optimizer.name)
         self.model_copy = init_actor_network(cfg.actor_network, state_dim, action_dim)
 
-    def set_parameters(self, buffer_address, eval_error_fn=None):
+    def set_parameters(self, buffer_address: int, eval_error_fn: Optional['Callable'] = None) -> None:
         self.optimizer.set_params(buffer_address, [self.model_copy], eval_error_fn)

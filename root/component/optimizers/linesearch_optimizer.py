@@ -1,11 +1,10 @@
-import copy
-
 from root.component.optimizers.factory import init_optimizer
+from root.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 import torch
 import numpy as np
 import ctypes
-from root.component.network.factory import init_actor_network
-import pickle
+from typing import Optional, Callable
+
 
 class LineSearchOpt:
     def __init__(self, cfg, net_lst, lr,
@@ -32,7 +31,8 @@ class LineSearchOpt:
         self.error_evaluation_fn = None
         self.optimizer_lst = None
 
-    def set_params(self, buffer_address, net_copy, error_evaluation_fn, ensemble=False) -> None:
+    def set_params(self, buffer_address: int, net_copy: list, error_evaluation_fn: Callable,
+                   ensemble: Optional['bool'] = False) -> None:
         self.optimizer_lst = []
         for i in range(len(self.net_lst)):
             if ensemble:
@@ -58,50 +58,48 @@ class LineSearchOpt:
         self.net_copy_lst = net_copy
 
 
-    def __clone_gradient(self, model):
+    def __clone_gradient(self, model: torch.nn.Module) -> dict:
         grad_rec = {}
         for idx, param in enumerate(model.parameters()):
             grad_rec[idx] = param.grad
         return grad_rec
 
-    def __move_gradient_to_network(self, model, grad_rec, weight):
+    def __move_gradient_to_network(self, model: torch.nn.Module, grad_rec: dict,
+                                   weight: float) -> torch.nn.Module:
         for idx, param in enumerate(model.parameters()):
             if grad_rec[idx] is not None:
                 param.grad = grad_rec[idx] * weight
         return model
 
-    def __clone_model_0to1(self, net0, net1):
+    def __clone_model_0to1(self, net0: torch.nn.Module, net1: torch.nn.Module) -> torch.nn.Module:
         with torch.no_grad():
             net1.load_state_dict(net0.state_dict())
         return net1
 
-    def __save_opt(self, i, opt0):
+    def __save_opt(self, i: int, opt0: torch.optim.Optimizer | EnsembleOptimizer) -> None:
         self.opt_copy_dict[i] = opt0.state_dict()
         return
 
-    def __load_opt(self, i, opt0):
+    def __load_opt(self, i: int, opt0: torch.optim.Optimizer | EnsembleOptimizer) \
+            -> torch.optim.Optimizer | EnsembleOptimizer:
         opt0.load_state_dict(self.opt_copy_dict[i])
         return opt0
 
-    def __parameter_backup(self, net_lst, opt_lst):
+    def __parameter_backup(self, net_lst: list[torch.nn.Module],
+                           opt_lst: list[torch.optim.Optimizer | EnsembleOptimizer]) -> None:
         for i in range(len(net_lst)):
             self.__save_opt(i, opt_lst[i])
             self.__clone_model_0to1(net_lst[i], self.net_copy_lst[i])
 
-    def __undo_update(self, net_lst, opt_lst):
+    def __undo_update(self, net_lst: list[torch.nn.Module],
+                      opt_lst: list[torch.optim.Optimizer | EnsembleOptimizer]) \
+            -> [list[torch.nn.Module], list[torch.optim.Optimizer | EnsembleOptimizer]]:
         for i in range(len(net_lst)):
             self.__clone_model_0to1(self.net_copy_lst[i], net_lst[i])
             opt_lst[i] = self.__load_opt(i, opt_lst[i])
         return net_lst, opt_lst
 
-    def __weighting_loss(self, loss, lr_weight):
-        if type(loss) == list:
-            loss = [l * lr_weight for l in loss]
-        else:
-            loss *= lr_weight
-        return loss
-
-    def zero_grad(self):
+    def zero_grad(self) -> None:
         for opt in self.optimizer_lst:
             opt.zero_grad()
         return
@@ -114,21 +112,22 @@ class LineSearchOpt:
         next_state_batch = batch['next_states']
         mask_batch = 1 - batch['dones']
         error_evaluation_in = [state_batch, action_batch, reward_batch, next_state_batch, mask_batch]
-        return self.__backtrack_fn(
+        self.__backtrack_fn(
             self.error_evaluation_fn,
             error_evaluation_in,
             self.net_lst,
         )
 
-    def state_dict(self) -> list:
+    def state_dict(self) -> list[dict]:
         return [opt.state_dict() for opt in self.optimizer_lst]
 
-    def load_state_dict(self, state_dict_lst) -> None:
+    def load_state_dict(self, state_dict_lst: list[dict]) -> None:
         for opt, sd in zip(self.optimizer_lst, state_dict_lst):
             opt.load_state_dict(sd)
         return
 
-    def __backtrack_sgd(self, error_evaluation_fn, error_eval_input, network_lst):
+    def __backtrack_sgd(self, error_evaluation_fn: Callable, error_eval_input: list[torch.Tensor],
+                        network_lst: list[torch.nn.Module]) -> None:
         self.__parameter_backup(network_lst, self.optimizer_lst)
         before_error = error_evaluation_fn(error_eval_input)
         grad_rec = []
@@ -158,9 +157,10 @@ class LineSearchOpt:
         self.lr_weight = self.lr_weight_copy
         self.last_change = (after_error - before_error).detach().numpy()
         self.inner_count += 1
-        return network_lst
+        return
 
-    def __backtrack_momentum(self, error_evaluation_fn, error_eval_input, network_lst):
+    def __backtrack_momentum(self, error_evaluation_fn: Callable, error_eval_input: list[torch.Tensor],
+                        network_lst: list[torch.nn.Module]) -> None:
         self.__parameter_backup(network_lst, self.optimizer_lst)
         before_error = error_evaluation_fn(error_eval_input)
         grad_rec = []
@@ -191,22 +191,22 @@ class LineSearchOpt:
         self.lr_weight = self.lr_weight_copy
         self.last_change = (after_error - before_error).detach().numpy()
         self.inner_count += 1
-        return network_lst
+        return
 
-    def __reset_lr(self, opt, new_lr):
+    def __reset_lr(self, opt: torch.optim.Optimizer | EnsembleOptimizer, new_lr) -> None:
         for g in opt.param_groups:
             g['lr'] = new_lr
 
     @property
-    def latest_change(self):
+    def latest_change(self) -> float:
         return self.last_change
 
     @property
-    def latest_lr_main(self):
+    def latest_lr_main(self) -> float:
         return self.lr_main
 
     @property
-    def latest_lr_scaler(self):
+    def latest_lr_scaler(self) -> float:
         return self.lr_weight
 
     def debug_info(self) -> dict:

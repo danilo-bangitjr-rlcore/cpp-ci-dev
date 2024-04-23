@@ -1,6 +1,7 @@
 import torch
 from pathlib import Path
 from omegaconf import DictConfig
+from typing import Optional, Callable
 
 from root.component.critic.base_critic import BaseQ, BaseV
 from root.component.optimizers.factory import init_optimizer
@@ -157,7 +158,7 @@ class EnsembleQCriticLineSearch(EnsembleQCritic):
         self.model_copy = init_critic_network(cfg.critic_network, input_dim=state_dim + action_dim,
                                               output_dim=1)
 
-    def set_parameters(self, buffer_address, eval_error_fn):
+    def set_parameters(self, buffer_address: int, eval_error_fn: Optional['Callable'] = None) -> None:
         self.optimizer.set_params(buffer_address, [self.model_copy], eval_error_fn, ensemble=True)
 
 
@@ -170,5 +171,5 @@ class EnsembleVCriticLineSearch(EnsembleVCritic):
                                        cfg.critic_optimizer.name)
         self.model_copy = init_critic_network(cfg.critic_network, state_dim, output_dim=1)
 
-    def set_parameters(self, buffer_address, eval_error_fn):
+    def set_parameters(self, buffer_address: int, eval_error_fn: Optional['Callable'] = None) -> None:
         self.optimizer.set_params(buffer_address, [self.model_copy], eval_error_fn, ensemble=True)

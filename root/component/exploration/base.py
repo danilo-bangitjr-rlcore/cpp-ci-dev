@@ -17,6 +17,6 @@ class BaseExploration:
         raise NotImplementedError
 
     @abstractmethod
-    def get_networks(self):
+    def get_networks(self) -> list[torch.nn.Module]:
         raise NotImplementedError
 
