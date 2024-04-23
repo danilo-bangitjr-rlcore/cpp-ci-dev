@@ -3,7 +3,7 @@ defaults:
   - critic: critic_linesearch
   - actor : network_linesearch
   - buffer: uniform
-  - exploration: random
+  - exploration: random_linear_linesearch
   - _self_
 
 name : greedy_ac_linesearch_explore
