@@ -284,9 +284,6 @@ class GreedyACLineSearch(GreedyAC):
         self.sampler.set_parameters(id(self.buffer), eval_error_fn=self.sampler_eval_error_fn)
         self.q_critic.set_parameters(id(self.buffer), eval_error_fn=self.critic_eval_error_fn)
 
-        # self.exploration = init_exploration_module(cfg.exploration, state_dim, action_dim)
-        # self.exploration.set_parameters(id(self.buffer))
-
     def critic_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = args
         q = self.q_critic.get_q(state_batch, action_batch, with_grad=False)
@@ -310,7 +307,29 @@ class GreedyACLineSearch(GreedyAC):
         logp, _ = self.sampler.get_log_prob(stacked_s_batch.detach(), best_actions.detach(), with_grad=False)
         return -logp.mean().detach()
 
-    # def update(self) -> None:
-    #     super().update()
-    #     self.exploration.update()
-    #     print("updating exploration network")
+
+class ExploreLSGAC(GreedyACLineSearch):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+        super().__init__(cfg, state_dim, action_dim)
+        # initialize exploration module
+        self.exploration = init_exploration_module(cfg.exploration, state_dim, action_dim)
+        self.exploration.set_parameters(id(self.buffer))
+        self.exploration_weight = cfg.exploration_weight
+
+    def update(self) -> None:
+        super().update()
+        # update exploration module
+        self.exploration.update()
+
+    def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
+                     batch_size: int) -> torch.Tensor:
+
+        q_values = self.q_critic.get_q(repeated_states, sample_actions, with_grad=False)
+
+        # query the exploration bonus
+        exp_b = self.exploration.get_exploration_bonus(repeated_states, sample_actions)
+        q_values += self.exploration_weight * exp_b
+
+        q_values = q_values.reshape(batch_size, self.num_samples, 1)
+        sorted_q = torch.argsort(q_values, dim=1, descending=True)
+        return sorted_q
