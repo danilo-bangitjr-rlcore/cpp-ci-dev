@@ -1,7 +1,7 @@
 import torch
 import copy
 import math
-from typing import Optional, Callable
+from typing import Optional
 
 
 class CustomAdam(torch.optim.Optimizer):
