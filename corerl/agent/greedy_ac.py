@@ -263,3 +263,37 @@ class GreedyAC(BaseAC):
         buffer_path = path / "buffer.pkl"
         with open(buffer_path, "rb") as f:
             self.buffer = pkl.load(f)
+
+class GreedyACLineSearch(GreedyAC):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+        super().__init__(cfg, state_dim, action_dim)
+
+        self.actor.set_parameters(id(self.buffer), eval_error_fn=self.actor_eval_error_fn)
+        self.sampler.set_parameters(id(self.buffer), eval_error_fn=self.sampler_eval_error_fn)
+        self.q_critic.set_parameters(id(self.buffer), eval_error_fn=self.critic_eval_error_fn)
+
+        # self.exploration = init_exploration_module(cfg.exploration, state_dim, action_dim)
+        # self.exploration.set_parameters(id(self.buffer))
+
+    def critic_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
+        state_batch, action_batch, reward_batch, next_state_batch, mask_batch = args
+        q = self.q_critic.get_q(state_batch, action_batch, with_grad=False)
+        next_action, _ = self.actor.get_action(next_state_batch, with_grad=False)
+        next_q = self.q_critic.get_q_target(next_state_batch, next_action)
+        target = reward_batch + mask_batch * self.gamma * next_q
+        error = torch.nn.functional.mse_loss(q.detach(), target.detach())
+        return error
+
+    def actor_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
+        state_batch, _, _, _, _ = args
+        _, _, _, stacked_s_batch, best_actions = \
+            self.get_policy_update_data(state_batch)
+        logp, _ = self.actor.get_log_prob(stacked_s_batch.detach(), best_actions.detach(), with_grad=False)
+        return -logp.mean().detach()
+
+    def sampler_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
+        state_batch, _, _, _, _ = args
+        _, _, _, stacked_s_batch, best_actions = \
+            self.get_policy_update_data(state_batch)
+        logp, _ = self.sampler.get_log_prob(stacked_s_batch.detach(), best_actions.detach(), with_grad=False)
+        return -logp.mean().detach()
