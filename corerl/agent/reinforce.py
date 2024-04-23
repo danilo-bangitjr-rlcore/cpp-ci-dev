@@ -68,25 +68,23 @@ class Reinforce(BaseAC):
         return v_base_loss
 
     def update_critic(self) -> None:
-        v_loss = self.compute_v_loss()
-        self.v_critic.update(v_loss)
+        for _ in range(self.n_critic_updates):
+            v_loss = self.compute_v_loss()
+            self.v_critic.update(v_loss)
 
     def compute_actor_loss(self) -> torch.Tensor:
         v_base = self.v_critic.get_v(self.ep_states, with_grad=False)
-
         with torch.no_grad():
             delta = self.returns - v_base
-
         log_prob, _ = self.actor.get_log_prob(self.ep_states, self.ep_actions)
-        # log_prob = log_prob.view(-1,1)
-
         actor_loss = torch.mean(-log_prob * delta)
 
         return actor_loss
 
     def update_actor(self) -> None:
-        actor_loss = self.compute_actor_loss()
-        self.actor.update(actor_loss)
+        for _ in range(self.n_actor_updates):
+            actor_loss = self.compute_actor_loss()
+            self.actor.update(actor_loss)
 
     def update(self) -> None:
         self.compute_returns()

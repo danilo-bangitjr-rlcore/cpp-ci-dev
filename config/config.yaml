@@ -1,5 +1,5 @@
 defaults:
-  - agent: simple_ac
+  - agent: greedy_ac
   - env : three_tanks
   - interaction : normalizer
   - state_constructor : identity

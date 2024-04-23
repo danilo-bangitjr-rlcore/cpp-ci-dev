@@ -79,7 +79,7 @@ class UniformBuffer:
             self.feed((states[i], actions[i], cumulants[i], states[i+1], int(dones[i]), int(truncates[i])))
     """
 
-    def load(self, transitions: tuple) -> None:
+    def load(self, transitions: list) -> None:
         for transition in transitions:
             self.feed(transition)
 

@@ -12,12 +12,13 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, expectile_loss, ensemble_mse
 from corerl.utils.device import device
 
+
 class IQL(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         self.temp = cfg.temp
         self.expectile = cfg.expectile
-      
+
         self.v_critic = init_v_critic(cfg.critic, state_dim)
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
@@ -43,7 +44,6 @@ class IQL(BaseAC):
         actor_loss = -(exp_a * log_probs).mean()
         return actor_loss
 
-
     def compute_v_loss(self, batch: dict) -> torch.Tensor:
         states, actions = batch['states'], batch['actions']
         q = self.q_critic.get_q(states, actions, with_grad=False)
@@ -63,18 +63,20 @@ class IQL(BaseAC):
         return q_loss
 
     def update_critic(self) -> None:
-        batch = self.buffer.sample()
+        for _ in range(self.n_critic_updates):
+            batch = self.buffer.sample()
 
-        v_loss = self.compute_v_loss(batch)
-        self.v_critic.update(v_loss)
+            v_loss = self.compute_v_loss(batch)
+            self.v_critic.update(v_loss)
 
-        q_loss = self.compute_q_loss(batch)
-        self.q_critic.update(q_loss)
+            q_loss = self.compute_q_loss(batch)
+            self.q_critic.update(q_loss)
 
     def update_actor(self) -> None:
-        batch = self.buffer.sample()
-        actor_loss = self.compute_actor_loss(batch)
-        self.actor.update(actor_loss)
+        for _ in range(self.n_actor_updates):
+            batch = self.buffer.sample()
+            actor_loss = self.compute_actor_loss(batch)
+            self.actor.update(actor_loss)
 
     def update(self) -> None:
         self.update_critic()

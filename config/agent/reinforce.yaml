@@ -1,8 +1,5 @@
 defaults:
-  - base_agent
-  - critic: critic
-  - actor : network
-  - buffer: uniform
+  - base_ac
   - _self_
 
 name : reinforce
