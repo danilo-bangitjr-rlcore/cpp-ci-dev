@@ -1,0 +1,17 @@
+defaults:
+  - base_agent
+  - critic: critic_linesearch
+  - actor : network_linesearch
+  - buffer: uniform
+  - exploration: random
+  - _self_
+
+name : greedy_ac_linesearch
+average_entropy : True
+tau : 0.0
+rho : 0.2
+prop_rho_mult : 2.0
+num_samples : 100
+temp : 0.0
+device : ${experiment.device}
+
