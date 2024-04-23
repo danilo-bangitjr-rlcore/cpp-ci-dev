@@ -103,6 +103,11 @@ class EnsembleVCritic(BaseV):
                 v, vs = self.model(states)
         return v, vs
 
+    def ensemble_backward(self, loss):
+        for i in range(len(loss)):
+            loss[i].backward(inputs=list(self.model.parameters(independent=True)[i]))
+        return
+
     def get_v(self, states: torch.Tensor, with_grad: bool = False) -> torch.Tensor:
         v, vs = self.get_vs(states, with_grad=with_grad)
         return v
@@ -117,7 +122,7 @@ class EnsembleVCritic(BaseV):
 
     def update(self, loss: torch.Tensor) -> None:
         self.optimizer.zero_grad()
-        loss.backward()
+        self.ensemble_backward(loss)
         self.optimizer.step()
         if self.target_sync_counter % self.target_sync_freq == 0:
             self.sync_target()
