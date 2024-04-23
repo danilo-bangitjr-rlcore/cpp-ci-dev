@@ -52,10 +52,10 @@ class IQL(BaseAC):
         return value_loss
 
     def compute_q_loss(self, batch: dict) -> torch.Tensor:
-        states, actions, rewards, next_states, dones = batch['states'], batch['actions'], batch['rewards'], batch['next_states'], batch[
-            'dones']
+        states, actions, rewards, next_states, dones = (batch['states'], batch['actions'],
+                                                        batch['rewards'], batch['next_states'], batch['dones'])
 
-        next_v = self.v_critic.get_v(next_states, with_grad=False)
+        next_v = self.v_critic.get_v_target(next_states)
         target = rewards + (self.gamma * (1 - dones) * next_v)
         _, q_ens = self.q_critic.get_qs(states, actions, with_grad=True)
         q_loss = ensemble_mse(target, q_ens)
