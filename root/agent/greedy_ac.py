@@ -6,12 +6,12 @@ import torch
 import numpy
 import pickle as pkl
 
-from root.agent.base import BaseAC
-from root.component.actor.factory import init_actor
-from root.component.critic.factory import init_q_critic
-from root.component.buffer.factory import init_buffer
-from root.component.exploration.factory import init_exploration_module
-from root.component.network.utils import to_np, state_to_tensor
+from corerl.agent.base import BaseAC
+from corerl.component.actor.factory import init_actor
+from corerl.component.critic.factory import init_q_critic
+from corerl.component.buffer.factory import init_buffer
+from corerl.component.exploration.factory import init_exploration_module
+from corerl.component.network.utils import to_np, state_to_tensor
 
 
 class GreedyAC(BaseAC):

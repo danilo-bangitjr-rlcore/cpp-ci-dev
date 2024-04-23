@@ -1,5 +1,3 @@
-import numpy as np
-
 SWEEP_PARAMS = {
     'independent': {
         'agent': ['greedy_ac', 'iql'],

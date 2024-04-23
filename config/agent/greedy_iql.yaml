@@ -1,14 +1,9 @@
 defaults:
-  - base_agent
-  - critic: critic
-  - actor : network
-  - buffer: uniform
+  - greedy_ac
   - _self_
 
 name : greedy_iql
 temp : 1.0
 expectile: 0.8
-num_samples : 200
-top_action : 10
-device : ${experiment.device}
+
 

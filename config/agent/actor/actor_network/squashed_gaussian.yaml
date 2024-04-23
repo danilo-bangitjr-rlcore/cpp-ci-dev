@@ -1,5 +1,8 @@
 defaults:
-  - fc
+  - base: fc
   - _self_
 
 name : squashed_gaussian
+layer_init : Xavier
+head_activation : Softplus
+bias : True
