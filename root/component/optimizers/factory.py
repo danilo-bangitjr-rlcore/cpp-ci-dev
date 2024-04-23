@@ -1,8 +1,10 @@
+from omegaconf import DictConfig
+from typing import Optional
 import torch
 from root.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from root.component.optimizers.custom_torch_opts import CustomAdam
 
-def init_optimizer(cfg, param, ensemble=False):
+def init_optimizer(cfg: DictConfig, param: list|dict, ensemble: Optional['bool']=False):
     """
     config files: root/config/agent/critic/critic_optimizer or root/config/agent/actor/actor_optimizer
     """

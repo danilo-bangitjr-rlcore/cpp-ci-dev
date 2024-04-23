@@ -1,11 +1,13 @@
 import torch
 import copy
 import math
+from typing import Optional, Callable
 
 
 class CustomAdam(torch.optim.Optimizer):
-    def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-8,
-                 weight_decay=0):
+    def __init__(self, params: list|dict, lr: Optional['float']=1e-3,
+                 betas: Optional['tuple']=(0.9, 0.999), eps: Optional['float']=1e-8,
+                 weight_decay: Optional['float']=0.):
         defaults = dict(lr=lr, betas=betas, eps=eps,
                         weight_decay=weight_decay, amsgrad=False)
         super(CustomAdam, self).__init__(params, defaults)
@@ -24,11 +26,7 @@ class CustomAdam(torch.optim.Optimizer):
         for group in self.param_groups:
             group.setdefault('amsgrad', False)
 
-    # def step(self, network_param_groups, closure=None):
-    def step(self, closure=None):
-        loss = None
-        if closure is not None:
-            loss = closure()
+    def step(self) -> None:
         for gi, group in enumerate(self.param_groups):
             for pi, p in enumerate(group['params']):
                 if p.grad is None:
@@ -55,15 +53,15 @@ class CustomAdam(torch.optim.Optimizer):
                 bias_correction2_sqrt = self._dispatch_sqrt(bias_correction2)
                 denom = (exp_avg_sq.sqrt() / bias_correction2_sqrt).add_(group['eps'])
                 p.data.addcdiv_(exp_avg, denom, value=-step_size)
-        return loss
+        return
 
-    def _dispatch_sqrt(self, x: float):  # float annotation is needed because of torchscript type inference
+    def _dispatch_sqrt(self, x: float) -> float:  # float annotation is needed because of torchscript type inference
         if not torch.jit.is_scripting() and isinstance(x, torch.Tensor):
             return x.sqrt()
         else:
             return math.sqrt(x)
 
-    def state_dict(self):
+    def state_dict(self) -> dict:
         hard_copy = {
             'state': {},
             'param_groups': []
@@ -84,7 +82,7 @@ class CustomAdam(torch.optim.Optimizer):
                 hard_copy['param_groups'][-1]['amsgrad'] = copy.deepcopy(group['amsgrad'])
         return hard_copy
 
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict: dict) -> None:
         def inposition_fill(ref, data):
             if len(ref.data.size()) == 2:
                 idx = torch.arange(ref.data.size()[1])
