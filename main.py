@@ -74,13 +74,12 @@ def main(cfg: DictConfig) -> None:
         agent.update()
         state = next_state
 
+        # logging
         evaluator.update(transition)
-
-        # progress bar logging
         stats = evaluator.get_stats()
         update_pbar(pbar, stats)
 
-        # logging example
+        # freezer example
         fr.freezer['transition'] = transition
         fr.freezer.save()
         fr.freezer.increment()

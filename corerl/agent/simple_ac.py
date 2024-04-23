@@ -2,6 +2,7 @@ from omegaconf import DictConfig
 from pathlib import Path
 
 import numpy
+import torch
 import pickle as pkl
 
 from corerl.agent.base import BaseAC
@@ -28,38 +29,44 @@ class SimpleAC(BaseAC):
     def update_buffer(self, transition: tuple) -> None:
         self.buffer.feed(transition)
 
+    def compute_actor_loss(self, batch: dict) -> torch.Tensor:
+        states = batch['states']
+        actions = batch['actions']
+        next_states = batch['next_states']
+        rewards = batch['rewards']
+        dones = batch['dones']
+
+        log_prob, _ = self.actor.get_log_prob(states, actions, with_grad=True)
+        v = self.critic.get_v(states, with_grad=False)
+        v_next = self.critic.get_v(next_states, with_grad=False)
+        target = rewards + self.gamma * (1.0 - dones) * v_next
+        ent = -log_prob
+        loss_actor = -(self.tau * ent + log_prob * (target - v.detach())).mean()
+        return loss_actor
+
     def update_actor(self) -> None:
         for _ in range(self.n_actor_updates):
             batch = self.buffer.sample()
-            states = batch['states']
-            actions = batch['actions']
-            next_states = batch['next_states']
-            rewards = batch['rewards']
-            dones = batch['dones']
-
-            log_prob, _ = self.actor.get_log_prob(states, actions, with_grad=True)
-            v = self.critic.get_v(states, with_grad=False)
-            v_next = self.critic.get_v(next_states, with_grad=False)
-            target = rewards + self.gamma * (1.0 - dones) * v_next
-            ent = -log_prob
-            loss_actor = -(self.tau * ent + log_prob * (target - v.detach())).mean()
-
+            loss_actor = self.compute_actor_loss(batch)
             self.actor.update(loss_actor)
+
+    def compute_critic_loss(self, batch:dict) -> torch.Tensor:
+        states = batch['states']
+        next_states = batch['next_states']
+        rewards = batch['rewards']
+        dones = batch['dones']
+
+        _, v_ens = self.critic.get_vs(states, with_grad=True)
+        v_next = self.critic.get_v_target(next_states)
+        target = rewards + self.gamma * (1.0 - dones) * v_next
+
+        loss_critic = ensemble_mse(target, v_ens)
+        return loss_critic
 
     def update_critic(self) -> None:
         for _ in range(self.n_critic_updates):
             batch = self.buffer.sample()
-            states = batch['states']
-            next_states = batch['next_states']
-            rewards = batch['rewards']
-            dones = batch['dones']
-
-            _, v_ens = self.critic.get_vs(states, with_grad=True)
-            v_next = self.critic.get_v_target(next_states)
-            target = rewards + self.gamma * (1.0 - dones) * v_next
-
-            loss_critic = ensemble_mse(target, v_ens)
-
+            loss_critic = self.compute_critic_loss(batch)
             self.critic.update(loss_critic)
 
     def update(self) -> None:
