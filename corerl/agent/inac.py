@@ -25,6 +25,7 @@ class InAC(BaseAC):
         self.behaviour = init_actor(cfg.actor, state_dim, action_dim)
         self.buffer = init_buffer(cfg.buffer)
 
+
     def update_buffer(self, transition: tuple) -> None:
         self.buffer.feed(transition)
     
@@ -75,18 +76,20 @@ class InAC(BaseAC):
         return pi_loss
 
     def update_critic(self) -> None:
-        batch = self.buffer.sample()
+        for _ in range(self.n_critic_updates):
+            batch = self.buffer.sample()
 
-        v_loss = self.compute_v_loss(batch)
-        self.v_critic.update(v_loss)
+            v_loss = self.compute_v_loss(batch)
+            self.v_critic.update(v_loss)
 
-        q_loss = self.compute_q_loss(batch)
-        self.q_critic.update(q_loss)
+            q_loss = self.compute_q_loss(batch)
+            self.q_critic.update(q_loss)
 
     def update_actor(self) -> None:
-        batch = self.buffer.sample()
-        actor_loss = self.compute_actor_loss(batch)
-        self.actor.update(actor_loss)
+        for _ in range(self.n_actor_updates):
+            batch = self.buffer.sample()
+            actor_loss = self.compute_actor_loss(batch)
+            self.actor.update(actor_loss)
 
     def update_beh(self) -> None:
         batch = self.buffer.sample()
@@ -96,7 +99,7 @@ class InAC(BaseAC):
     def update(self) -> None:
         self.update_critic()
         self.update_actor()
-        # unsure if beh updates should go here. Han pleas advise.
+        # unsure if beh updates should go here. Han please advise.
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

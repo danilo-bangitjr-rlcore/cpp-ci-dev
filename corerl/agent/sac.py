@@ -18,6 +18,7 @@ class SAC(BaseAC):
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
         self.buffer = init_buffer(cfg.buffer)
+        self.n_entropy_updates = cfg.n_entropy_updates
         
         # Entropy
         self.automatic_entropy_tuning = cfg.tau == -1
@@ -53,7 +54,6 @@ class SAC(BaseAC):
         
         # Version of SAC that uses state-value function
         # q_pi_targ = self.v_critic.get_v(next_state_batch, with_grad=False)
-
         next_q_value = reward_batch + mask_batch * self.gamma * q_pi_targ
         _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)
 
@@ -85,35 +85,32 @@ class SAC(BaseAC):
 
         return policy_loss, log_pi
 
-    def update_entropy(self, batch: dict):
-        batch = self.buffer.sample()
-        state_batch = batch['states']
+    def update_entropy(self):
+        for _ in range(self.n_entropy_updates):
+            batch = self.buffer.sample()
+            state_batch = batch['states']
 
-        _, info = self.actor.get_action(state_batch, with_grad=False)
-        log_pi = info['logp'] # Do this or should we call self.actor.get_log_prob?
-        alpha_loss = -(self.log_alpha() * (log_pi + self.target_entropy).detach()).mean()
+            _, info = self.actor.get_action(state_batch, with_grad=False)
+            log_pi = info['logp']  # Do this or should we call self.actor.get_log_prob?
+            alpha_loss = -(self.log_alpha() * (log_pi + self.target_entropy).detach()).mean()
 
-        self.alpha_optimizer.zero_grad()
-        alpha_loss.backward()
-        self.alpha_optimizer.step()
+            self.alpha_optimizer.zero_grad()
+            alpha_loss.backward()
+            self.alpha_optimizer.step()
 
-        self.alpha = self.log_alpha().exp().detach()
+            self.alpha = self.log_alpha().exp().detach()
 
     def update_critic(self) -> None:
-        batch = self.buffer.sample()
-
-        """
-        v_loss = self.compute_v_loss(batch)
-        self.v_critic.update(v_loss)
-        """
-
-        q_loss = self.compute_q_loss(batch)
-        self.q_critic.update(q_loss)
+        for _ in range(self.n_critic_updates):
+            batch = self.buffer.sample()
+            q_loss = self.compute_q_loss(batch)
+            self.q_critic.update(q_loss)
 
     def update_actor(self) -> None:
-        batch = self.buffer.sample()
-        actor_loss = self.compute_actor_loss(batch)
-        self.actor.update(actor_loss)
+        for _ in range(self.n_actor_updates):
+            batch = self.buffer.sample()
+            actor_loss = self.compute_actor_loss(batch)
+            self.actor.update(actor_loss)
 
     def update(self) -> None:
         self.update_critic()

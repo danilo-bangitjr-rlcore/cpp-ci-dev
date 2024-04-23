@@ -1,0 +1,9 @@
+defaults:
+  - base_agent
+  - critic: critic
+  - actor : network
+  - buffer: uniform
+  - _self_
+
+n_critic_updates : 1
+n_actor_updates : 1

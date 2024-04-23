@@ -20,7 +20,7 @@ class GreedyIQL(GreedyAC, IQL):
         IQL.update_critic(self)
 
     def update(self, share_batch: bool = True) -> None:
-        GreedyAC.update(self, share_batch=share_batch)
+        GreedyAC.update(self)
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
