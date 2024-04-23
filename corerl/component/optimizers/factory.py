@@ -1,11 +1,14 @@
+from omegaconf import DictConfig
+from typing import Optional
 import torch
 from omegaconf import DictConfig
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.custom_torch_opts import CustomAdam
 
-def init_optimizer(cfg: DictConfig, param: list[torch.Tensor], ensemble: bool=False) -> EnsembleOptimizer | torch.optim.Optimizer:
+
+def init_optimizer(cfg: DictConfig, param: list|dict, ensemble: Optional['bool']=False):
     """
-    config files: corerl/config/agent/critic/critic_optimizer or corerl/config/agent/actor/actor_optimizer
+    config files: root/config/agent/critic/critic_optimizer or root/config/agent/actor/actor_optimizer
     """
     name = cfg.name
     lr = cfg.lr
