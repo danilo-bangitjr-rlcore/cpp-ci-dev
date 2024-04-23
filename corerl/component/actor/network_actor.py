@@ -6,7 +6,7 @@ from typing import Optional, Callable
 from corerl.component.actor.base_actor import BaseActor
 from corerl.component.network.factory import init_actor_network
 from corerl.component.optimizers.factory import init_optimizer
-from root.component.optimizers.linesearch_optimizer import LineSearchOpt
+from corerl.component.optimizers.linesearch_optimizer import LineSearchOpt
 from corerl.utils.device import device
 
 class NetworkActor(BaseActor):

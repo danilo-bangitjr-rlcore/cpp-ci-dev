@@ -3,8 +3,8 @@ import torch
 import numpy as np
 import ctypes
 from typing import Optional, Callable
-from root.component.optimizers.factory import init_optimizer
-from root.component.optimizers.ensemble_optimizer import EnsembleOptimizer
+from corerl.component.optimizers.factory import init_optimizer
+from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 
 
 class LineSearchOpt:

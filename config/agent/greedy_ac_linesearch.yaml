@@ -3,7 +3,6 @@ defaults:
   - critic: critic_linesearch
   - actor : network_linesearch
   - buffer: uniform
-  - exploration: random
   - _self_
 
 name : greedy_ac_linesearch
@@ -12,6 +11,12 @@ tau : 0.0
 rho : 0.2
 prop_rho_mult : 2.0
 num_samples : 100
+share_batch : True
 temp : 0.0
-device : ${experiment.device}
+uniform_proposal : False
+n_sampler_updates: 1
+n_critic_updates : 1
+n_actor_updates : 1
+
+
 

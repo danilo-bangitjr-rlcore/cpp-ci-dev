@@ -8,4 +8,4 @@ beta_param_bound : 10000
 layer_init : Xavier
 head_activation : Softplus
 bias : True
-tanh_shift : 2.0
+tanh_shift : 0.0

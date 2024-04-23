@@ -272,9 +272,6 @@ class GreedyACLineSearch(GreedyAC):
         self.sampler.set_parameters(id(self.buffer), eval_error_fn=self.sampler_eval_error_fn)
         self.q_critic.set_parameters(id(self.buffer), eval_error_fn=self.critic_eval_error_fn)
 
-        # self.exploration = init_exploration_module(cfg.exploration, state_dim, action_dim)
-        # self.exploration.set_parameters(id(self.buffer))
-
     def critic_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = args
         q = self.q_critic.get_q(state_batch, action_batch, with_grad=False)
