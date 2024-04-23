@@ -6,7 +6,6 @@ import corerl.component.network.utils as utils
 from corerl.utils.device import device
 
 from omegaconf import DictConfig
-import root.component.network.utils as network_utils
 
 FLOAT32_EPS = 10 * \
               np.finfo(np.float32).eps  # differences of this size are
