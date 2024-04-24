@@ -22,7 +22,6 @@ from corerl.utils.device import device
 class GreedyAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
-        self.device = cfg.device
         self.action_dim = action_dim
         # Removed self.gac_a_dim = self.action_dim. Hopefully this doesn't break anything
 

@@ -3,11 +3,11 @@ import torch
 import torch.nn as nn
 import ctypes
 from typing import Optional, Callable
-from root.component.network.utils import clone_model_0to1, clone_gradient, move_gradient_to_network
-from root.component.exploration.base import BaseExploration
-from root.component.network.factory import init_custom_network
-from root.component.optimizers.linesearch_optimizer import LineSearchOpt
-from root.component.optimizers.factory import init_optimizer
+from corerl.component.network.utils import clone_model_0to1
+from corerl.component.exploration.base import BaseExploration
+from corerl.component.network.factory import init_custom_network
+from corerl.component.optimizers.linesearch_optimizer import LineSearchOpt
+from corerl.component.optimizers.factory import init_optimizer
 
 
 class RndNetworkExplore(BaseExploration):

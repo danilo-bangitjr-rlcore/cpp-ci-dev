@@ -1,6 +1,6 @@
 from omegaconf import DictConfig
-from root.component.exploration.random_network import BaseExploration
-from root.component.exploration.random_network import RndNetworkExplore, RndNetworkExploreLineSearch
+from corerl.component.exploration.base import BaseExploration
+from corerl.component.exploration.random_network import RndNetworkExplore, RndNetworkExploreLineSearch
 
 
 def init_exploration_module(cfg: DictConfig, state_dim: int, action_dim: int) -> BaseExploration:
