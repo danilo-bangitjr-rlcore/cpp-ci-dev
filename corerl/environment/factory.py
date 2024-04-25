@@ -7,7 +7,8 @@ from corerl.environment.three_tanks import TTChangeAction, TTChangeActionDiscret
 from corerl.environment.smpl.envs.atropineenv import AtropineEnvGym
 from corerl.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
 from corerl.environment.smpl.envs.reactorenv import ReactorEnvGym
-from corerl.environment.wrapper.discrete_control_wrapper import DiscreteControlWrapper
+from corerl.environment.wrapper.discrete_control_wrapper import DiscreteControlWrapper, \
+    SparseDiscreteControlWrapper
 from corerl.environment.wrapper.d4rl import D4RLWrapper
 from corerl.environment.pendulum_env import PendulumEnv
 from corerl.environment.wrapper.one_hot_wrapper import OneHotWrapper
@@ -51,18 +52,50 @@ def init_environment(cfg: DictConfig) -> gym.Env:
         env = FlattenObservation(gem.make("Cont-CC-EESM-v0"))
     elif name == "Acrobot-v1":
         env = DiscreteControlWrapper("Acrobot-v1", cfg.timeout)
+    elif name == "Acrobot-v1-sparse":
+        env = SparseDiscreteControlWrapper("Acrobot-v1", cfg.timeout)
     elif name == "MountainCarContinuous-v0":
         env = gym.make("MountainCarContinuous-v0")
+    elif name == "MountainCar-v0":
+        env = DiscreteControlWrapper("MountainCar-v0", cfg.timeout)
+    elif name == "MountainCar-v0-sparse":
+        env = SparseDiscreteControlWrapper("MountainCar-v0", cfg.timeout)
     elif name == "Pendulum-v1":
         env = PendulumEnv(render_mode="human", continuous_action=(not cfg.discrete_control))
     elif name == "HalfCheetah-v4":
         env = gym.make("HalfCheetah-v4")
     elif name == "Ant-expert":
         env = D4RLWrapper("ant-expert-v2", seed)
+    elif name == "Ant-medium":
+        env = D4RLWrapper("ant-medium-v2", seed)
+    elif name == "Ant-medium-expert":
+        env = D4RLWrapper("ant-medium-expert", seed)
+    elif name == "Ant-medium-replay":
+        env = D4RLWrapper("ant-medium-replay", seed)
+    elif name == "HalfCheetah-expert":
+        env = D4RLWrapper("halfcheetah-expert-v2", seed)
+    elif name == "HalfCheetah-medium":
+        env = D4RLWrapper("halfcheetah-medium-v2", seed)
+    elif name == "HalfCheetah-medium-expert":
+        env = D4RLWrapper("halfcheetah-medium-expert", seed)
+    elif name == "HalfCheetah-medium-replay":
+        env = D4RLWrapper("halfcheetah-medium-replay", seed)
+    elif name == "Hopper-expert":
+        env = D4RLWrapper("hopper-expert-v2", seed)
+    elif name == "Hopper-medium":
+        env = D4RLWrapper("hopper-medium-v2", seed)
+    elif name == "Hopper-medium-expert":
+        env = D4RLWrapper("hopper-medium-expert", seed)
+    elif name == "Hopper-medium-replay":
+        env = D4RLWrapper("hopper-medium-replay", seed)
     elif name == "Walker2d-expert":
         env = D4RLWrapper("walker2d-expert-v2", seed)
     elif name == "Walker2d-medium":
         env = D4RLWrapper("walker2d-medium-v2", seed)
+    elif name == "Walker2d-medium-expert":
+        env = D4RLWrapper("walker2d-medium-expert", seed)
+    elif name == "Walker2d-medium-replay":
+        env = D4RLWrapper("walker2d-medium-replay", seed)
     else:
         raise NotImplementedError
 
