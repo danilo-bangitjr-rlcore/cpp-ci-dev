@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import logging
 
+import numpy as np
 from asyncua import Client, Node, ua
 
 _logger = logging.getLogger(__name__)
@@ -11,12 +12,12 @@ PREFIX = "opctest"
 class OpcConnection:
     """Wrapper class around the asyncua library to make life easier for the rlai group"""
 
-    def __init__(self, ip_address: str="localhost", port: str="49320", conn_stats: bool=False) -> None:
-        self.ip_address = ip_address
-        self.port = port
+    def __init__(self, cfg) -> None:
+        self.ip_address = cfg.ip_address
+        self.port = cfg.port
         self.conn_attempts = 0
         self.values_read = 0
-        self.conn_stats = conn_stats
+        self.conn_stats = cfg.conn_stats
 
     async def connect(self) -> None:
         """Connects to the OPC server and opens any log files"""
@@ -88,7 +89,7 @@ class OpcConnection:
                 await asyncio.sleep(2)
 
     async def write_values(
-        self, nodes: list[Node], variants: list[ua.VariantType], values: list[any]
+        self, nodes: list[Node], variants: list[ua.VariantType], values: list[any] | np.ndarray
     ) -> None:
         """Writes the Values with corresponding VariantTypes to the list of Nodes"""
         while True:
