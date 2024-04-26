@@ -2,6 +2,9 @@ import gymnasium as gym
 import numpy as np
 
 # Revan: I don't remember what the purpose of this clas is
+# To take the first action in the list.
+# So that the action returned by the agent has consistent number of dimensions
+# as in continuous control tasks. (1, action_dimension)
 class DiscreteControlWrapper(gym.Env):
     def __init__(self, name, timeout):
         self.env = gym.make(name, max_episode_steps=timeout)
