@@ -13,13 +13,13 @@ class NormalizerInteraction(BaseInteraction):
         self.action_normalizer = init_action_normalizer(cfg.action_normalizer, self.env)
         self.reward_normalizer = init_reward_normalizer(cfg.reward_normalizer)
 
-    def step(self, action: np.ndarray) -> tuple:
+    def step(self, state: np.ndarray, action: np.ndarray) -> tuple[list[tuple], list[dict]]:
         denormalized_action = self.action_normalizer.denormalize(action)
         next_observation, raw_reward, terminated, truncate, env_info = self.env.step(denormalized_action)
         reward = self.reward_normalizer(raw_reward)
         next_state = self.state_constructor(next_observation)
         reward = self.reward_normalizer(reward)
-        return next_state, reward, terminated, truncate, env_info
+        return [(state, action, reward, next_state, terminated, truncate)], [env_info]
 
     def reset(self) -> (np.ndarray, dict):
         observation, info = self.env.reset()

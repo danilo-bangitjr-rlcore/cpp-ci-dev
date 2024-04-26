@@ -19,7 +19,7 @@ class BaseStateConstructor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def __call__(self, obs: np.ndarray) -> np.ndarray:
+    def __call__(self, obs: np.ndarray, **kwargs) -> np.ndarray:
         raise NotImplementedError
 
     @abstractmethod
@@ -30,6 +30,9 @@ class BaseStateConstructor(ABC):
     def reset(self) -> None:
         raise NotImplementedError
 
+    def get_current_state(self) -> np.ndarray:
+       return self.state
+
 
 class CompositeStateConstructor(BaseStateConstructor):
     @abstractmethod
@@ -37,8 +40,8 @@ class CompositeStateConstructor(BaseStateConstructor):
         self.sc = None  # a placeholder for the final component in the graph
         raise NotImplementedError
 
-    def __call__(self, obs: np.ndarray) -> np.ndarray:
-        state = self._call_graph(obs)
+    def __call__(self, obs: np.ndarray, **kwargs) -> np.ndarray:
+        state = self._call_graph(obs, **kwargs)
         self._reset_graph_call()
         return state
 
@@ -49,8 +52,8 @@ class CompositeStateConstructor(BaseStateConstructor):
         self._reset_graph_state()
         return state_dim
 
-    def _call_graph(self, obs: np.ndarray) -> np.ndarray:
-        return self.sc(obs)
+    def _call_graph(self, obs: np.ndarray,  **kwargs) -> np.ndarray:
+        return self.sc(obs,  **kwargs)
 
     def _reset_graph_call(self) -> None:
         """

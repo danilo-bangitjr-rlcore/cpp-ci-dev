@@ -13,17 +13,23 @@ class TimedInteraction(NormalizerInteraction):
     """
     def __init__(self, cfg: DictConfig, env: gymnasium.Env, state_constructor: BaseStateConstructor):
         super().__init__(cfg, env, state_constructor)
-        self.step_length = cfg.step_length  # how long reach step should take in seconds
-        assert self.step_length > 0, "Step length should be greater than 0."
+        self.steps_per_decision = cfg.decision_steps  # how many observation steps per decision step
+        assert self.steps_per_decision > 0, "Step length should be greater than 0."
         self.obs_length = cfg.obs_length  # how often to update the observation
         assert self.obs_length > 0, "Step length should be greater than 0."
 
-    def step(self, action: np.ndarray) -> tuple:
-        step_end_time = time.time() + self.step_length
-        while time.time() < step_end_time:
+    def step(self, state: np.ndarray, action: np.ndarray) -> tuple[list[tuple], list[dict]]:
+        transitions = []
+        env_info_list = []
+        for obs_step in range(self.steps_per_decision):
             obs_end_time = time.time() + self.obs_length
-            transition = NormalizerInteraction.step(self, action)
+            transitions_step, env_infos_step = NormalizerInteraction.step(self, state, action)
+            # since transitions_step is returned from normalizer NormalizerInteraction.step,
+            # it should only be a list of length 1
+            assert len(transitions_step) == 1
+            assert len(env_infos_step) == 1
+            transitions += transitions_step
+            env_info_list += env_infos_step
             time.sleep(obs_end_time - time.time())
 
-        return transition
-
+        return transitions, env_info_list

@@ -1,8 +1,8 @@
 defaults:
   - agent: greedy_ac
   - env : three_tanks
-  - interaction : normalizer
-  - state_constructor : identity
+  - interaction : anytime
+  - state_constructor : anytime
   - _self_
 
 experiment:
