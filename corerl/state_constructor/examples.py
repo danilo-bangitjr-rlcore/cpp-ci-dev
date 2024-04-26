@@ -9,6 +9,7 @@ class MultiTrace(CompositeStateConstructor):
     """
     A trace constructor that is composed of multiple traces
     """
+
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         # define the computation graphs
         norm_sc = comp.MaxMinNormalize(env)  # first component in the graph
@@ -34,3 +35,11 @@ class Normalize(CompositeStateConstructor):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         sc = comp.MaxMinNormalize(env)
         self.sc = sc
+
+
+class Anytime(CompositeStateConstructor):
+    def __init__(self, cfg: DictConfig, env: gymnasium.Env):
+        identity_sc = comp.Identity()
+        anytime_sc = comp.Anytime(cfg.decision_steps, parents=[identity_sc])
+        concat_sc = comp.Concatenate(parents=[identity_sc, anytime_sc])
+        self.sc = concat_sc

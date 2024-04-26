@@ -20,13 +20,13 @@ class BaseStateConstructorComponent(ABC):
         self.obs_next = None
         return
 
-    def __call__(self, obs: np.ndarray) -> np.ndarray:
+    def __call__(self, obs: np.ndarray, **kwargs) -> np.ndarray:
         if not self.called:
             if len(self.parents) == 0:  # base case
                 obs_parents = [obs]
             else:
                 obs_parents = [p(obs) for p in self.parents]
-            self.obs_next = self.process_observation(obs_parents)
+            self.obs_next = self.process_observation(obs_parents, **kwargs)
             self.called = True
         return self.obs_next
 
@@ -39,7 +39,7 @@ class BaseStateConstructorComponent(ABC):
             p.reset_called()
 
     @abstractmethod
-    def process_observation(self, obs_parents: list) -> np.ndarray:
+    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         raise NotImplementedError
 
     @abstractmethod
@@ -53,7 +53,7 @@ class BaseStateConstructorComponent(ABC):
 
 
 class Identity(BaseStateConstructorComponent):
-    def process_observation(self, obs_parents: list) -> np.ndarray:
+    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         assert len(obs_parents) == 1
         return obs_parents[0]
 
@@ -68,7 +68,7 @@ class KOrderHistory(BaseStateConstructorComponent):
         self.obs_history = []
         self.num_elements = 0
 
-    def process_observation(self, obs_parents: np.ndarray) -> np.ndarray:
+    def process_observation(self, obs_parents: np.ndarray, **kwargs) -> np.ndarray:
         assert len(obs_parents) == 1
         obs = obs_parents[0]
         self.obs_history.append(obs)
@@ -98,7 +98,7 @@ class MemoryTrace(BaseStateConstructorComponent):
         self.trace_decay = trace_decay
         self.trace = None
 
-    def process_observation(self, obs_parents: list) -> np.ndarray:
+    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         assert len(obs_parents) == 1
         obs = obs_parents[0]
         if self.trace is None:  # first observation received
@@ -112,7 +112,7 @@ class MemoryTrace(BaseStateConstructorComponent):
 
 
 class Concatenate(BaseStateConstructorComponent):
-    def process_observation(self, obs_parents: list) -> np.ndarray:
+    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         return np.concatenate(obs_parents, axis=0)
 
     def _clear_state(self) -> None:
@@ -126,7 +126,7 @@ class MaxMinNormalize(BaseStateConstructorComponent):
         self.low = env.observation_space.low
         self.high = env.observation_space.high
 
-    def process_observation(self, obs_parents: list) -> np.ndarray:
+    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         assert len(obs_parents) == 1
         obs = obs_parents[0]
         obs = (obs - self.low) / (self.high - self.low)
@@ -140,12 +140,13 @@ class Difference(BaseStateConstructorComponent):
     """
     Difference between the first and last element in a queue
     """
+
     def __init__(self, memory: int, parents: list | None = None):
         super().__init__(parents=parents)
         self.memory = memory
         self.queue = deque([], self.memory)
 
-    def process_observation(self, obs_parents: list) -> np.ndarray:
+    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         assert (len(obs_parents)) == 1
         obs = obs_parents[0]
         self.queue.appendleft(obs)
@@ -156,7 +157,7 @@ class Difference(BaseStateConstructorComponent):
 
 
 class Average(BaseStateConstructorComponent):
-    def process_observation(self, obs_parents: list) -> np.ndarray:
+    def process_observation(self, obs_parents: list,  **kwargs) -> np.ndarray:
         assert len(obs_parents) == 1
         obs = obs_parents[0].copy()
         assert len(obs.shape) == 2
@@ -165,38 +166,40 @@ class Average(BaseStateConstructorComponent):
     def _clear_state(self) -> None:
         return
 
+
 class LongAverage(BaseStateConstructorComponent):
     def __init__(self, memory: int, parents: list | None = None):
         super().__init__(parents=parents)
         self.memory = memory
         self.queue = deque([], self.memory)
-       
-    def process_observation(self, obs_parents: list) -> np.ndarray:
+
+    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         assert len(obs_parents) == 1
         o = obs_parents[0]
         self.queue.appendleft(o)
         sum_ = 0
         for i in self.queue:
             sum_ += i
-            
-        return np.array(sum_/self.memory)
-    
+
+        return np.array(sum_ / self.memory)
+
     def _clear_state(self) -> None:
         self.queue = deque([], self.memory)
 
+
 class HandleNan(BaseStateConstructorComponent):
-    def process_observation(self, obs_parents: list) -> np.ndarray:
+    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         assert len(obs_parents) == 1
         return self.fill_loop(obs_parents[0])
-       
+
     def fill_loop(self, arr: np.ndarray) -> np.ndarray:
         # Adapted from https://stackoverflow.com/a/62039015 
-        fill = np.nanmean(arr, axis=0) # try to fill with the mean in each column 
+        fill = np.nanmean(arr, axis=0)  # try to fill with the mean in each column
         # If an entire column is nan, fill with zeros
-        fill_mask = np.isnan(fill) 
-        fill[fill_mask] = np.zeros_like(fill)[fill_mask] 
-        
-        mask = np.isnan(arr[0]) 
+        fill_mask = np.isnan(fill)
+        fill[fill_mask] = np.zeros_like(fill)[fill_mask]
+
+        mask = np.isnan(arr[0])
         arr[0][mask] = fill[mask]
         for i in range(1, len(arr)):
             mask = np.isnan(arr[i])
@@ -206,23 +209,26 @@ class HandleNan(BaseStateConstructorComponent):
     def _clear_state(self) -> None:
         return
 
+
 class Flatten(BaseStateConstructorComponent):
-    def process_observation(self, obs_parents: list) -> np.ndarray:
+    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         assert len(obs_parents) == 1
         return obs_parents[0].flatten()
 
     def _clear_state(self) -> None:
         return
 
+
 class KeepCols(BaseStateConstructorComponent):
     """
     Get an individual column in an array of sensor readings
     """
+
     def __init__(self, keep_cols: int, parents: list | None = None):
         super().__init__(parents=parents)
         self.keep_cols = keep_cols
-    
-    def process_observation(self, obs_parents: list) -> np.ndarray:
+
+    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         assert len(obs_parents) == 1
         o = obs_parents[0].copy()
         assert len(o.shape) == 2
@@ -231,26 +237,48 @@ class KeepCols(BaseStateConstructorComponent):
     def _clear_state(self) -> None:
         return
 
+
 class ErrorIntegral(BaseStateConstructorComponent):
-    def __init__(self, column: int, setpoint: float, memory: int):
-        super().__init__()
+    def __init__(self, column: int, setpoint: float, memory: int, parents: list | None = None):
+        super().__init__(parents=parents)
         self.column = column
         self.setpoint = setpoint
         self.memory = memory
         self.queue = deque([], self.memory)
 
-    def process_observation(self, obs_parents: list) -> np.ndarray:
+    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         assert len(obs_parents) == 1
         o = obs_parents[0]
 
-        error = o[self.column] - self.setpoint 
+        error = o[self.column] - self.setpoint
         self.queue.appendleft(error)
-            
+
         sum_ = 0
         for i in self.queue:
             sum_ += i
-    
-        return np.array([sum_])/self.memory
+
+        return np.array([sum_]) / self.memory
 
     def _clear_state(self) -> None:
         self.queue = deque([], self.memory)
+
+
+class Anytime(BaseStateConstructorComponent):
+    def __init__(self, decision_steps: int, parents: list | None = None):
+        super().__init__(parents=parents)
+        self.decision_step = decision_steps
+        self.steps_since_decision = 0
+
+    def process_observation(self, obs_parents: list, decision_point=False) -> np.ndarray:
+        if not decision_point:
+            self.steps_since_decision = 0
+        else:
+            self.steps_since_decision += 1
+
+        countdown = 1 - self.steps_since_decision/self.decision_step
+        indicator = 1 if decision_point else 0
+
+        return np.array([countdown, indicator])
+
+    def _clear_state(self) -> None:
+        self.steps_since_decision = 0
