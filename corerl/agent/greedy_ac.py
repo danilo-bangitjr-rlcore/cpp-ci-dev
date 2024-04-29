@@ -1,4 +1,3 @@
-import numpy as np
 from omegaconf import DictConfig
 from pathlib import Path
 
@@ -11,7 +10,8 @@ from corerl.agent.base import BaseAC
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, state_to_tensor,  ensemble_mse
+from corerl.component.network.utils import to_np, state_to_tensor, ensemble_mse
+from corerl.component.exploration.factory import init_exploration_module
 import corerl.agent.utils as utils
 
 from jaxtyping import Float
@@ -29,12 +29,16 @@ class GreedyAC(BaseAC):
         self.tau = cfg.tau  # Entropy constant used in the entropy version of the proposal policy update
         self.rho = cfg.rho  # percentage of sampled actions used in actor update
         self.rho_proposal = self.rho * cfg.prop_rho_mult  # percentage of sampled actions used in the non-entropy version of the proposal policy update
+
         self.num_samples = cfg.num_samples  # number of actions sampled from the proposal policy
+        self.share_batch = cfg.share_batch  # whether updates to proposal and actor should share a batch
+        self.uniform_proposal = cfg.uniform_proposal  # whether to use a uniform proposal policy
 
-        self.uniform_proposal = cfg.uniform_proposal
+        self.n_sampler_updates = cfg.n_sampler_updates
+        if self.share_batch:
+            assert self.n_critic_updates == self.n_sampler_updates, "Actor and proposal must use same number of updates"
+
         self.top_actions = int(self.rho * self.num_samples)  # Number of actions used to update actor
-        # print(self.top_actions)
-
         self.top_actions_proposal = int(
             self.rho_proposal * self.num_samples)  # Number of actions used to update proposal policy
 
@@ -96,7 +100,7 @@ class GreedyAC(BaseAC):
                     sample_actions = utils.get_batch_actions_discrete(state_batch, self.action_dim,
                                                                       samples=self.num_samples)
                 else:
-                    sample_actions = torch.rand((self.num_samples*batch_size, self.action_dim))
+                    sample_actions = torch.rand((self.num_samples * batch_size, self.action_dim))
             else:
                 sample_actions: Float[torch.Tensor, 'batch_size*action_dim action_dim']
                 sample_actions, _ = self.sampler.get_action(repeated_states, with_grad=False)
@@ -176,7 +180,6 @@ class GreedyAC(BaseAC):
 
         return sampler_loss
 
-
     def compute_actor_loss(self, update_info) -> (torch.Tensor, tuple):
         _, _, _, _, stacked_s_batch, best_actions, _ = update_info
         logp, _ = self.actor.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
@@ -194,33 +197,42 @@ class GreedyAC(BaseAC):
         return sampler_loss
 
     def update_critic(self) -> None:
-        batch = self.buffer.sample()
-        q_loss = self.compute_critic_loss(batch)
-        self.q_critic.update(q_loss)
+        for _ in range(self.n_critic_updates):
+            batch = self.buffer.sample()
+            q_loss = self.compute_critic_loss(batch)
+            self.q_critic.update(q_loss)
 
     def update_actor(self) -> None:
-        batch = self.buffer.sample()
-        update_info = self.get_policy_update_info(batch['states'])
-        actor_loss = self.compute_actor_loss(update_info)
-        self.actor.update(actor_loss)
-        return update_info
-
-    def update_sampler(self, update_info: Optional[tuple]) -> None:
-        if update_info is None:
+        update_infos = []
+        for _ in range(self.n_actor_updates):
             batch = self.buffer.sample()
             update_info = self.get_policy_update_info(batch['states'])
-        sampler_loss = self.compute_sampler_loss(update_info)
-        self.sampler.update(sampler_loss)
+            actor_loss = self.compute_actor_loss(update_info)
+            self.actor.update(actor_loss)
+            update_infos.append(update_info)
+        return update_infos
 
-    def update(self, share_batch: bool = True) -> None:
+    def update_sampler(self, update_infos: Optional[list[tuple]]) -> None:
+        if update_infos is not None:
+            for update_info in update_infos:
+                sampler_loss = self.compute_sampler_loss(update_info)
+                self.sampler.update(sampler_loss)
+        else:
+            for i in range(self.n_sampler_updates):
+                batch = self.buffer.sample()
+                update_info = self.get_policy_update_info(batch['states'])
+                sampler_loss = self.compute_sampler_loss(update_info)
+                self.sampler.update(sampler_loss)
+
+    def update(self) -> None:
         # share_batch ensures that update_actor and update_sampler use the same batch
         self.update_critic()
-        update_info = self.update_actor()
+        update_infos = self.update_actor()
         if not self.uniform_proposal:
-            if share_batch:
-                self.update_sampler(update_info=update_info)
+            if self.share_batch:
+                self.update_sampler(update_infos=update_infos)
             else:
-                self.update_sampler(update_info=None)
+                self.update_sampler(update_infos=None)
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
@@ -251,3 +263,60 @@ class GreedyAC(BaseAC):
         buffer_path = path / "buffer.pkl"
         with open(buffer_path, "rb") as f:
             self.buffer = pkl.load(f)
+
+
+class GreedyACLineSearch(GreedyAC):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+        super().__init__(cfg, state_dim, action_dim)
+
+        self.actor.set_parameters(id(self.buffer), eval_error_fn=self.actor_eval_error_fn)
+        self.sampler.set_parameters(id(self.buffer), eval_error_fn=self.sampler_eval_error_fn)
+        self.q_critic.set_parameters(id(self.buffer), eval_error_fn=self.critic_eval_error_fn)
+
+    def critic_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
+        state_batch, action_batch, reward_batch, next_state_batch, mask_batch = args
+        q = self.q_critic.get_q(state_batch, action_batch, with_grad=False)
+        next_action, _ = self.actor.get_action(next_state_batch, with_grad=False)
+        next_q = self.q_critic.get_q_target(next_state_batch, next_action)
+        target = reward_batch + mask_batch * self.gamma * next_q
+        error = torch.nn.functional.mse_loss(q.detach(), target.detach())
+        return error
+
+    def actor_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
+        state_batch, _, _, _, _ = args
+        _, _, _, _, stacked_s_batch, best_actions, _ = self.get_policy_update_info(state_batch)
+        logp, _ = self.actor.get_log_prob(stacked_s_batch.detach(), best_actions.detach(), with_grad=False)
+        return -logp.mean().detach()
+
+    def sampler_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
+        state_batch, _, _, _, _ = args
+        _, _, _, _, stacked_s_batch, best_actions, _ = self.get_policy_update_info(state_batch)
+        logp, _ = self.sampler.get_log_prob(stacked_s_batch.detach(), best_actions.detach(), with_grad=False)
+        return -logp.mean().detach()
+
+
+class ExploreLSGAC(GreedyACLineSearch):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+        super().__init__(cfg, state_dim, action_dim)
+        # initialize exploration module
+        self.exploration = init_exploration_module(cfg.exploration, state_dim, action_dim)
+        self.exploration.set_parameters(id(self.buffer))
+        self.exploration_weight = cfg.exploration_weight
+
+    def update(self) -> None:
+        super().update()
+        # update exploration module
+        self.exploration.update()
+
+    def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
+                     batch_size: int) -> torch.Tensor:
+
+        q_values = self.q_critic.get_q(repeated_states, sample_actions, with_grad=False)
+
+        # query the exploration bonus
+        exp_b = self.exploration.get_exploration_bonus(repeated_states, sample_actions)
+        q_values += self.exploration_weight * exp_b
+
+        q_values = q_values.reshape(batch_size, self.num_samples, 1)
+        sorted_q = torch.argsort(q_values, dim=1, descending=True)
+        return sorted_q

@@ -268,3 +268,48 @@ class Softmax(nn.Module):
         logp = dist.log_prob(actions.squeeze(-1))
         logp = logp.view(-1, 1)
         return logp, {}
+
+
+
+class RndLinearUncertainty(nn.Module):
+    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
+        super(RndLinearUncertainty, self).__init__()
+        self.output_dim = output_dim
+        arch = cfg.arch
+        self.random_network = FC(cfg, input_dim, arch[-1])
+        layer_init = utils.init_layer(cfg.layer_init)
+        self.linear_head = layer_init(nn.Linear(arch[-1], output_dim, bias=cfg.bias))
+        self.to(cfg.device)
+        self.device = cfg.device
+
+    def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
+        with torch.no_grad():
+            base = self.random_network(input_tensor)
+        out = self.linear_head(base)
+        info = {
+            "rep": base.squeeze().detach().numpy(),
+            "out": out.squeeze().detach().numpy(),
+        }
+        return out, info
+
+
+class UniformRandomCont(BetaPolicy):
+    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
+        super(UniformRandomCont, self).__init__(cfg, input_dim, output_dim)
+        self.output_dim = output_dim
+
+    def get_dist_params(self, observation):
+        alpha = torch.ones(observation.size()[0], self.output_dim)
+        beta = torch.ones(observation.size()[0], self.output_dim)
+        return alpha, beta
+
+
+class UniformRandomDisc(Softmax):
+    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
+        super(UniformRandomDisc, self).__init__(cfg, input_dim, output_dim)
+        self.output_dim = output_dim
+
+    def get_probs(self, state):
+        x = torch.ones(state.size()[0], self.output_dim)
+        probs = nn.functional.softmax(x, dim=1)
+        return probs, x

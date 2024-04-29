@@ -1,0 +1,7 @@
+defaults:
+  - normalizer
+
+name: anytime
+decision_steps : 5
+obs_length : 1 # 1 second
+gamma : ${agent.gamma}

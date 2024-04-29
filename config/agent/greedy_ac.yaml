@@ -1,8 +1,5 @@
 defaults:
-  - base_agent
-  - critic: critic
-  - actor : network
-  - buffer: uniform
+  - base_ac
   - _self_
 
 name : greedy_ac
@@ -11,5 +8,8 @@ tau : 0.0
 rho : 0.2
 prop_rho_mult : 2.0
 num_samples : 100
+share_batch : True
 uniform_proposal : False
+n_sampler_updates: 1
+
 

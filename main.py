@@ -71,8 +71,7 @@ def main(cfg: DictConfig) -> None:
     interaction = init_interaction(cfg.interaction, env, sc)
     action_dim = flatdim(env.action_space)
 
-    state, info = env.reset()
-    state_dim = sc.get_state_dim(state)  # gets state_dim dynamically
+    state_dim = interaction.get_state_dim()  # gets state_dim dynamically
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
     # Offline Training
@@ -93,22 +92,24 @@ def main(cfg: DictConfig) -> None:
     evaluator = Evaluator(cfg.evaluator)
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(range(max_steps))
+    state, info = interaction.reset()
     for _ in pbar:
         action = agent.get_action(state)
-        next_state, reward, done, truncate, env_info = interaction.step(action)
-        transition = (state, action, reward, next_state, done, truncate)
-        agent.update_buffer(transition)
+        transitions, envinfo = interaction.step(state, action)
+
+        for transition in transitions:
+            agent.update_buffer(transition)
+            evaluator.update(transition)
+
         agent.update()
-        state = next_state
+        state = transitions[-1][0]
 
-        evaluator.update(transition)
-
-        # progress bar logging
+        # logging
         stats = evaluator.get_stats()
         update_pbar(pbar, stats)
 
-        # logging example
-        fr.freezer['transition'] = transition
+        # freezer example
+        fr.freezer['transitions'] = transitions[-1]
         fr.freezer.save()
         fr.freezer.increment()
         fr.freezer.clear()  # Optionally clearing the log

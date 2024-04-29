@@ -2,6 +2,7 @@ from omegaconf import DictConfig
 from pathlib import Path
 
 import numpy
+import torch
 import pickle as pkl
 
 from corerl.agent.base import BaseAC
@@ -28,8 +29,7 @@ class SimpleAC(BaseAC):
     def update_buffer(self, transition: tuple) -> None:
         self.buffer.feed(transition)
 
-    def update_actor(self) -> None:
-        batch = self.buffer.sample()
+    def compute_actor_loss(self, batch: dict) -> torch.Tensor:
         states = batch['states']
         actions = batch['actions']
         next_states = batch['next_states']
@@ -42,11 +42,15 @@ class SimpleAC(BaseAC):
         target = rewards + self.gamma * (1.0 - dones) * v_next
         ent = -log_prob
         loss_actor = -(self.tau * ent + log_prob * (target - v.detach())).mean()
+        return loss_actor
 
-        self.actor.update(loss_actor)
+    def update_actor(self) -> None:
+        for _ in range(self.n_actor_updates):
+            batch = self.buffer.sample()
+            loss_actor = self.compute_actor_loss(batch)
+            self.actor.update(loss_actor)
 
-    def update_critic(self) -> None:
-        batch = self.buffer.sample()
+    def compute_critic_loss(self, batch:dict) -> torch.Tensor:
         states = batch['states']
         next_states = batch['next_states']
         rewards = batch['rewards']
@@ -57,8 +61,13 @@ class SimpleAC(BaseAC):
         target = rewards + self.gamma * (1.0 - dones) * v_next
 
         loss_critic = ensemble_mse(target, v_ens)
+        return loss_critic
 
-        self.critic.update(loss_critic)
+    def update_critic(self) -> None:
+        for _ in range(self.n_critic_updates):
+            batch = self.buffer.sample()
+            loss_critic = self.compute_critic_loss(batch)
+            self.critic.update(loss_critic)
 
     def update(self) -> None:
         self.update_critic()

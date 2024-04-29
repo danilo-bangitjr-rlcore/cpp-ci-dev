@@ -12,6 +12,7 @@ class BaseAgent(ABC):
         self.gamma = cfg.gamma
         self.discrete_control = cfg.discrete_control
         self.seed = cfg.seed
+        self.n_updates = cfg.n_updates  # how many updates to apply each time update() is called
 
     @abstractmethod
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:  # must return a numpy array, not a tensor.
@@ -38,6 +39,11 @@ class BaseAgent(ABC):
 
 
 class BaseAC(BaseAgent):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+        super().__init__(cfg, state_dim, action_dim)
+        self.n_critic_updates = cfg.n_critic_updates
+        self.n_actor_updates = cfg.n_actor_updates
+
     @abstractmethod
     def update_actor(self) -> None:
         raise NotImplementedError

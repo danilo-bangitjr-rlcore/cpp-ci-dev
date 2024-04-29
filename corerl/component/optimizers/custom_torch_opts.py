@@ -1,7 +1,8 @@
 import torch
 import copy
 import math
-from typing import Optional
+from typing import Optional, Callable
+
 
 
 class CustomAdam(torch.optim.Optimizer):
@@ -10,15 +11,14 @@ class CustomAdam(torch.optim.Optimizer):
         defaults = dict(lr=lr, betas=betas, eps=eps,
                         weight_decay=weight_decay, amsgrad=False)
         super(CustomAdam, self).__init__(params, defaults)
-
         self.state_idx = {}
         max_p_len = 0
         for gi, group in enumerate(self.param_groups):
-            if len(group['configs']) > max_p_len:
-                max_p_len = len(group['configs'])
+            if len(group['params']) > max_p_len:
+                max_p_len = len(group['params'])
         self.max_p_len = max_p_len
         for gi, group in enumerate(self.param_groups):
-            for pi, p in enumerate(group['configs']):
+            for pi, p in enumerate(group['params']):
                 self.state_idx[gi * self.max_p_len + pi] = {}
 
     def __setstate__(self, state: dict[str, any]):
@@ -26,13 +26,13 @@ class CustomAdam(torch.optim.Optimizer):
         for group in self.param_groups:
             group.setdefault('amsgrad', False)
 
-    def step(self, network_param_groups: dict[str, any], closure: Optional[callable] = None):
+    # def step(self, network_param_groups, closure=None):
+    def step(self, closure: Optional[Callable] = None):
         loss = None
         if closure is not None:
             loss = closure()
-
         for gi, group in enumerate(self.param_groups):
-            for pi, p in enumerate(network_param_groups[gi]):
+            for pi, p in enumerate(group['params']):
                 if p.grad is None:
                     continue
                 grad = p.grad.data
