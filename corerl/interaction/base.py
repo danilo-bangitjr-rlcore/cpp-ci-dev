@@ -11,6 +11,8 @@ class BaseInteraction(ABC):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env, state_constructor: BaseStateConstructor):
         self.env = env
         self.state_constructor = state_constructor
+        self.timeout = cfg.timeout
+        self.internal_clock = 0
 
     @abstractmethod
     def step(self, action: np.ndarray) -> tuple:
@@ -23,3 +25,10 @@ class BaseInteraction(ABC):
     @abstractmethod
     def warmup_sc(self, *args, **kwargs) -> None:
         raise NotImplementedError
+
+    def env_counter(self):
+        self.internal_clock += 1
+        trunc = self.internal_clock % self.timeout == 0
+        if trunc:
+            self.reset()
+        return trunc
