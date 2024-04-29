@@ -11,7 +11,7 @@ class BaseInteraction(ABC):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env, state_constructor: BaseStateConstructor):
         self.env = env
         self.state_constructor = state_constructor
-        self.timeout = cfg.timeout
+        self.timeout = cfg.timeout # When timeout is set to 0, there is no timeout.
         self.internal_clock = 0
 
     @abstractmethod
@@ -28,7 +28,7 @@ class BaseInteraction(ABC):
 
     def env_counter(self):
         self.internal_clock += 1
-        trunc = self.internal_clock % self.timeout == 0
+        trunc = (self.timeout > 0) and (self.internal_clock % self.timeout == 0)
         if trunc:
             self.reset()
         return trunc
