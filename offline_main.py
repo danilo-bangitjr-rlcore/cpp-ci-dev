@@ -58,6 +58,7 @@ def main(cfg: DictConfig) -> None:
     torch.manual_seed(seed)
 
     data_loader = init_data_loader(cfg.data_loader)
+    # Any way to avoid this if the transition file already exists?
     offline_data_df = data_loader.load_data()
     obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
 
@@ -71,8 +72,9 @@ def main(cfg: DictConfig) -> None:
     interaction = init_interaction(cfg.interaction, env, sc)
     action_dim = flatdim(env.action_space)
 
-    state, info = env.reset()
-    state_dim = sc.get_state_dim(state)  # gets state_dim dynamically
+    obs_shape = (env.obs_freq, flatdim(env.observation_space))
+    dummy_obs = np.ones(obs_shape)
+    state_dim = sc.get_state_dim(dummy_obs)  # gets state_dim dynamically
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
     # Offline Training
@@ -88,37 +90,6 @@ def main(cfg: DictConfig) -> None:
     pbar = tqdm(range(offline_steps))
     for _ in pbar:
         agent.update()
-
-    # Online Deployment
-    evaluator = Evaluator(cfg.evaluator)
-    max_steps = cfg.experiment.max_steps
-    pbar = tqdm(range(max_steps))
-    for _ in pbar:
-        action = agent.get_action(state)
-        next_state, reward, done, truncate, env_info = interaction.step(action)
-        transition = (state, action, reward, next_state, done, truncate)
-        agent.update_buffer(transition)
-        agent.update()
-        state = next_state
-
-        evaluator.update(transition)
-
-        # progress bar logging
-        stats = evaluator.get_stats()
-        update_pbar(pbar, stats)
-
-        # logging example
-        fr.freezer['transition'] = transition
-        fr.freezer.save()
-        fr.freezer.increment()
-        fr.freezer.clear()  # Optionally clearing the log
-
-        # examples of saving and loading
-        agent.save(save_path / 'agent')
-        agent.load(save_path / 'agent')
-
-    evaluator.output(save_path / 'stats.json')
-    return evaluator.get_stats()
 
 if __name__ == "__main__":
     main()

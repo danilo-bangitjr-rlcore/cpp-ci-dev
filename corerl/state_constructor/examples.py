@@ -11,7 +11,11 @@ class MultiTrace(CompositeStateConstructor):
     """
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         # define the computation graphs
-        norm_sc = comp.MaxMinNormalize(env)  # first component in the graph
+        nan_sc = comp.HandleNan() # first component in the graph. Handle observations with NaNs
+
+        avg_sc = comp.Average(parents=[nan_sc]) # Average the rows
+
+        norm_sc = comp.MaxMinNormalize(env, parents=[avg_sc])  # first component in the graph
         trace_components = []
         for trace_value in cfg.trace_values:
             # all traces will receive the output of norm_sc as input

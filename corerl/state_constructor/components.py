@@ -113,7 +113,7 @@ class MemoryTrace(BaseStateConstructorComponent):
 
 class Concatenate(BaseStateConstructorComponent):
     def process_observation(self, obs_parents: list) -> np.ndarray:
-        return np.concatenate(obs_parents, axis=0)
+        return np.squeeze(np.concatenate(obs_parents, axis=1))
 
     def _clear_state(self) -> None:
         return

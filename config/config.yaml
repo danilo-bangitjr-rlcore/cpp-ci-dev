@@ -3,6 +3,7 @@ defaults:
   - env : three_tanks
   - interaction : normalizer
   - state_constructor : identity
+  - data_loader : direct_action
   - _self_
 
 experiment:
@@ -13,6 +14,7 @@ experiment:
   param : 0
   device : cpu
   timeout : 1
+  offline_steps : 0
   max_steps : 5000
   load_from_json: ''
   log_interval :  1
