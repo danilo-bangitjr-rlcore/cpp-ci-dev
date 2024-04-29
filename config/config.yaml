@@ -1,6 +1,7 @@
 defaults:
   - agent: greedy_ac
   - env : three_tanks
+  - data_loader : direct_action
   - interaction : anytime
   - state_constructor : anytime
   - _self_
@@ -13,6 +14,7 @@ experiment:
   param : 0
   device : cpu
   timeout : 1
+  offline_steps : 0
   max_steps : 5000
   render : 0
   save_path : output

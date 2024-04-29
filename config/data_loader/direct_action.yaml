@@ -1,0 +1,15 @@
+name : direct_action
+offline_data_path : offline_data
+offline_filenames : []
+skip_rows : 1 # Number of lines to skip at the top of the csv file
+header : 0 # df_col_names replaces the column names in the csv file
+df_col_names : []
+obs_col_names : []
+control_col_names : []
+date_col_name : Date
+max_time_delta: 10 # In seconds
+decision_freq : 1800
+obs_freq : 60
+warmup_steps : 360
+train_split : 0.95
+gamma : ${agent.gamma}
