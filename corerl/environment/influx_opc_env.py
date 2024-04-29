@@ -1,32 +1,35 @@
 import influxdb_client
 from influxdb_client import InfluxDBClient, Point, WriteOptions
 from influxdb_client.client.write_api import SYNCHRONOUS
+from abc import ABC, abstractmethod
 
 import datetime as dt
 import numpy as np
 import os
-import time
 import gymnasium as gym
 import pandas as pd
+import time
 
 from csv import DictReader
 from math import floor
 import asyncio
-import time
-from typing import Callable
-from src.environment.opc_connection import OpcConnection
 
-class DBClientWrapperBase():
-    def __init__(self, bucket: str, org: str, token: str, url: str, date_fn: Callable=None):
-        self.bucket = bucket
-        self.org = org
-        self.client = influxdb_client.InfluxDBClient(url=url, token=token, org=org, timeout=30_000)
+from typing import Callable
+from corerl.utils.opc_connection import OpcConnection
+
+
+
+class DBClientWrapper:
+    def __init__(self, cfg, date_fn: Callable = None):
+        self.bucket = cfg.bucket
+        self.org = cfg.org
+        self.client = influxdb_client.InfluxDBClient(url=cfg.url, token=cfg.token, org=self.org, timeout=30_000)
         self.write_client = self.client.write_api(write_options=SYNCHRONOUS)
         self.query_api = self.client.query_api()
         self.start_time = np.inf
         self.end_time = -np.inf
         self.date_fn = date_fn
-    
+
     def import_csv(self, root: str, date_col: str, col_names: list) -> None:
         self.col_names = col_names
         record = []
@@ -37,10 +40,9 @@ class DBClientWrapperBase():
                 for datum in dataset:
                     point = self._parse_row(datum, date_col, col_names)
                     record.append(point)
-        
+
         self.write_client.write(self.bucket, self.org, record)
-        
-        
+
     def _parse_row(self, row: dict, date_col: str, col_names: list) -> Point:
         """
         Parse row of CSV file into Point 
@@ -49,26 +51,25 @@ class DBClientWrapperBase():
             row: dict representing one row of csv
             date_col: label of date within the dict
             col_names: labels of data (i.e. non-date) columns in the dictionary
-          
         """
-        
+
         time = self.date_fn(row[date_col])
-        time -= 7*60*60 # to adjust for the conversion between GMT and MST     
-        
+        time -= 7 * 60 * 60  # to adjust for the conversion between GMT and MST
+
         point = Point("reading")
         for i in range(len(col_names)):
-            point = point.field(col_names[i], float(row[col_names[i]])) 
-            
+            point = point.field(col_names[i], float(row[col_names[i]]))
+
         if self.start_time >= time:
             self.start_time = int(time)
         if self.end_time <= time:
-            self.end_time= int(time)
-            
-        point = point.time(int(time*1e9)) # multiplication to convert timestamp in seconds to nanoseconds
+            self.end_time = int(time)
+
+        point = point.time(int(time * 1e9))  # multiplication to convert timestamp in seconds to nanoseconds
         return point
 
-
-    def query(self, start_time: int, end_time: int, col_names: list | None=None, include_time: bool=False) -> pd.DataFrame:
+    def query(self, start_time: int, end_time: int, col_names: list | None = None,
+              include_time: bool = False) -> pd.DataFrame:
         """
         Returns all data between start_time and end_time
         
@@ -77,151 +78,81 @@ class DBClientWrapperBase():
             end_time (int) : a timestamp
             col_names (list) : list of columns to retreive. The default is to use self.col_names
         """
-        
+
         assert end_time >= start_time
-        
+
         if col_names is None:
             col_names = self.col_names
-        
+
         if include_time:
             col_names = ["_time"] + col_names
-        
+
         query_str_list = [
             'from(bucket:"{}") '.format(self.bucket),
             '|> range(start: {}, stop: {}) '.format(start_time, end_time),
             '|> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value") '
-            ]
+        ]
 
         query_str = ' '.join(query_str_list)
         df_list = self.query_api.query_data_frame(query_str)
-       
+
         if type(df_list) == list:
             df = pd.concat(df_list, axis=1)
         else:
             df = df_list
         df = df[col_names]
-        
+
         return df
-    
-    
 
-class InfluxOPCEnv(gym.Env):
-    def __init__(
-            self, db_client: DBClientWrapperBase, opc_connection: OpcConnection, control_tags: list, col_names: list, 
-            runtime: int | None=None, obs_freq: int=60, obs_window: int=10, last_n_obs: int | None=None,  
-            date_col: str | None=None, offline_data_folder: str | None=None):
-        
-        # for continuing s
-        self.db_client = db_client
-        self.date_col = date_col
-        self.col_names = col_names
-        
-        if offline_data_folder is not None: # we will import data from a CSV
-            assert date_col is not None
-            self.db_client.import_csv(offline_data_folder, date_col, col_names)
-            self.offline = True
-        else:
-            self.offline = False
-            
-        self.obs_freq = obs_freq # only used in offline replay
-        self.obs_window = obs_window
-        
-        self.runtime = runtime
-        self.opc_connection = opc_connection
-        self.control_tags = control_tags
-        self.last_n_observations = last_n_obs
-        
 
-    async def _take_action(self, a: float):
+class InfluxOPCEnv(ABC, gym.Env):
+    def __init__(self, cfg):
+        self.db_client = DBClientWrapper(cfg.db)
+        self.opc_connection = OpcConnection(cfg.opc)
+        self.control_tags = cfg.control_tags
+        self.col_names = cfg.col_names
+        self.obs_length = cfg.obs_length
+
+    async def _take_action(self,a: np.ndarray) -> None:
         await self.opc_connection.connect()
-        # get the list of nodes
-        # remember these are simulated nodes for these
-        # write examples so we don't change real
-        # values on the PLC
         nodes = await self.opc_connection.get_nodes(self.control_tags)
-       
-        # get the variant types
-        # this is necessary to properly specify the
-        # data types for the actual write operation
-        # time.sleep(0.1)
         variant_types = await self.opc_connection.read_variant_types(nodes)
-        
-        # # write the values
-        # # you need to provide 3 lists: the nodes, the variant types
-        # # of the nodes, and the values. Of course, these should all be the same
-        # # length
         await self.opc_connection.write_values(nodes, variant_types, a)
 
-
-    def take_action(self, a: float):
-        print("Taking Action: " + str(a))
-        
+    def take_action(self, a: np.ndarray):
+        # NOTE: you may want to add handling if the action did not change, so running_take_action is not necessary
         asyncio.run(self._take_action(a))
-      
 
-    def _get_reward(self, s: np.ndarray, a: float):
+    @abstractmethod
+    def _get_reward(self, s: np.ndarray | pd.DataFrame, a: np.ndarray):
         raise NotImplementedError
-    
-    def _check_done(self) -> bool:
-        if self.state.size == 0 and self.offline:
-            done = True
-        elif self.runtime is not None: # not a continuing task
-            if self._now>=self.start_time+self.runtime:
-                done = True
-            else: 
-                done = False
-        else:
-            done = False
-        return done
-            
-    
-    def get_observation(self, a: float) -> (np.ndarray, float, bool, bool, dict):
-        """
-        Takes a single synchronous environmental step. 
-        """
-        self._update_now()
-        self.state = self._get_observation() 
-        done = self._check_done()
-        reward = self._get_reward(self.state, a)
-        return self.state, reward, done, False, {}
-        
 
-    def _update_now(self):
-        if self.offline:
-            self._now += self.obs_freq
-        else:
-            self._now = floor(dt.datetime.timestamp(dt.datetime.now()))
-    
-    
+    @abstractmethod
+    def _check_done(self) -> bool:
+        raise NotImplementedError
+
+    def get_observation(self, a: np.ndarray) -> (np.ndarray, float, bool, bool, dict):
+        state = self._get_observation()
+        done = self._check_done()
+        reward = self._get_reward(state, a)
+        state = state.to_numpy()
+        return state, reward, done, False, {}
+
     def _get_observation(self) -> pd.DataFrame:
-        """
-        Gets observations, defined as all obvservations within the last self.decision_freq seconds from self._now
-        
-        returns: 
-            self.state (pd.dataframe) : the observation
-        """
-        obs = self.db_client.query(self._now-self.obs_window, self._now, self.col_names) 
-        if self.last_n_observations is not None:
-            obs=obs[-self.last_n_observations:] # only return the last n observations within a window. 
+        now = floor(time.time())
+        obs = self.db_client.query(now - self.obs_length, now, self.col_names)
         return obs
 
-    def reset(self, seed: int=0) -> (np.ndarray, dict):
-        """
-        Resets the environment to its starting state
+    def step(self, action: np.ndarray):
+        self.take_action(action)
+        end_timer = time.time() + self.obs_length
+        time.sleep(end_timer - time.time())
+        return self.get_observation(action)
 
-        Returns
-        -------
-        array_like of float
-            The starting state feature representation
-        """
-        # ignores seed 
+    def reset(self) -> (np.ndarray, dict):
+        state = self._get_observation()
+        state = state.to_numpy()
+        return state, {}
 
-        self.start_time = self.db_client.start_time
-        self._now = self.start_time
-        self._update_now()
-        self.state = self._get_observation()
-        return self.state, {}
-    
-    
     def close(self):
         asyncio.run(self.opc_connection.disconnect())

@@ -13,5 +13,7 @@ def init_state_constructor(cfg: DictConfig, env: gymnasium.Env) -> BaseStateCons
         return examples.Identity(cfg, env)
     elif name == 'normalize':
         return examples.Normalize(cfg, env)
+    elif name == 'anytime':
+        return examples.Anytime(cfg, env)
     else:
         raise NotImplementedError
