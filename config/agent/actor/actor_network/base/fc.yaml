@@ -1,7 +1,7 @@
   layer_norm : 0
   arch : [256, 256]
   init_args : ReLU
-  head_activation : Softplus
+  head_activation : ReLU
   activation : ReLU
   layer_init : Xavier
   bias : True

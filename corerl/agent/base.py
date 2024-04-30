@@ -13,6 +13,7 @@ class BaseAgent(ABC):
         self.discrete_control = cfg.discrete_control
         self.seed = cfg.seed
         self.n_updates = cfg.n_updates  # how many updates to apply each time update() is called
+        self.freezer_freq = cfg.freezer_freq  # how often to save to freezer. This counter is not used currently.
 
     @abstractmethod
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:  # must return a numpy array, not a tensor.
@@ -36,6 +37,10 @@ class BaseAgent(ABC):
     @abstractmethod
     def load(self, path: str) -> None:
         raise NotImplementedError
+
+    # A function to save stats and other objects during the run
+    def add_to_freezer(self) -> None:
+        pass
 
 
 class BaseAC(BaseAgent):
