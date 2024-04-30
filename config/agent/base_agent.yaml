@@ -4,3 +4,4 @@ gamma : 0.9
 discrete_control : ${env.discrete_control}
 seed : ${experiment.seed}
 n_updates : 1
+freezer_freq : 1
