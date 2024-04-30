@@ -14,9 +14,8 @@ from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.interaction.normalizer_utils import init_action_normalizer, init_reward_normalizer
 from corerl.interaction.factory import init_interaction
-from corerl.utils.evaluator import Evaluator
 from corerl.utils.device import init_device
-from corerl.component.data_loaders.factory import init_data_loader
+from corerl.data_loaders.factory import init_data_loader
 from corerl.environment.reward.factory import init_reward_function
 
 import corerl.utils.freezer as fr
@@ -31,6 +30,7 @@ def prepare_save_dir(cfg):
 
     return save_path
 
+
 def update_pbar(pbar, stats):
     pbar_str = ''
     for k, v in stats.items():
@@ -39,6 +39,33 @@ def update_pbar(pbar, stats):
         else:
             pbar_str += '{key} : {val} '.format(key=k, val=v)
     pbar.set_description(pbar_str)
+
+
+def load_transitions(cfg, save_path):
+    data_loader = init_data_loader(cfg.data_loader)
+    offline_data_df = data_loader.load_data()  # Any way to avoid this if the transition file already exists?
+    obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
+
+    # set up environment and state constructor.
+    # This is not the most general approach, what if we don't want
+    env = init_environment(cfg.env)
+    env.observation_space = spaces.Box(low=obs_space_low, high=obs_space_high, dtype=np.float32)
+    sc = init_state_constructor(cfg.state_constructor, env)
+
+    reward_func = init_reward_function(cfg.env.reward)
+    reward_normalizer = init_reward_normalizer(cfg.interaction.reward_normalizer)
+    action_normalizer = init_action_normalizer(cfg.interaction.action_normalizer, env)
+
+    # Load transitions
+    if (save_path / "offline_transitions.pkl").is_file():
+        offline_transitions = data_loader.load_transitions(save_path / "offline_transitions.pkl")
+    else:
+        offline_transitions = data_loader.create_transitions(offline_data_df, sc, reward_func, action_normalizer,
+                                                             reward_normalizer)
+        data_loader.save_transitions(offline_transitions, save_path / "offline_transitions.pkl")
+    train_transitions, test_transitions = data_loader.train_test_split(offline_transitions)
+
+    return train_transitions, test_transitions, sc, env
 
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
@@ -53,34 +80,14 @@ def main(cfg: DictConfig) -> None:
     random.seed(seed)
     torch.manual_seed(seed)
 
-    data_loader = init_data_loader(cfg.data_loader)
-    offline_data_df = data_loader.load_data()  # Any way to avoid this if the transition file already exists?
-    obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
+    train_transitions, test_transitions, sc, env = load_transitions(cfg, save_path)
 
-    env = init_environment(cfg.env)
-    env.observation_space = spaces.Box(low=obs_space_low, high=obs_space_high, dtype=np.float32)
-
-    sc = init_state_constructor(cfg.state_constructor, env)
-    reward_func = init_reward_function(cfg.env.reward)
-    reward_normalizer = init_reward_normalizer(cfg.interaction.reward_normalizer)
-    action_normalizer = init_action_normalizer(cfg.interaction.action_normalizer, env)
-    interaction = init_interaction(cfg.interaction, env, sc)
-    action_dim = flatdim(env.action_space)
-
-    obs_shape = (env.obs_freq, flatdim(env.observation_space))
+    # get the initial state dimension
+    obs_shape = (cfg.env.obs_length, flatdim(env.observation_space))
     dummy_obs = np.ones(obs_shape)
     state_dim = sc.get_state_dim(dummy_obs)  # gets state_dim dynamically
+    action_dim = flatdim(env.action_space)
     agent = init_agent(cfg.agent, state_dim, action_dim)
-
-    # Load transitions
-    if (save_path / "offline_transitions.pkl").is_file():
-        offline_transitions = data_loader.load_transitions(save_path / "offline_transitions.pkl")
-    else:
-        offline_transitions = data_loader.create_transitions(offline_data_df, sc, reward_func, action_normalizer, reward_normalizer)
-        data_loader.save_transitions(offline_transitions, save_path / "offline_transitions.pkl")
-    train_transitions, test_transitions = data_loader.train_test_split(offline_transitions)
-
-    # put transitions in the agent's buffer
     for transition in train_transitions:
         agent.update_buffer(transition)
 
@@ -89,6 +96,7 @@ def main(cfg: DictConfig) -> None:
     pbar = tqdm(range(offline_steps))
     for _ in pbar:
         agent.update()
+
 
 if __name__ == "__main__":
     main()

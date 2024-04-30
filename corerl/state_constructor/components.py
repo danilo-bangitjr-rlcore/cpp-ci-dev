@@ -270,7 +270,7 @@ class Anytime(BaseStateConstructorComponent):
         self.steps_since_decision = 0
 
     def process_observation(self, obs_parents: list, decision_point=False) -> np.ndarray:
-        if not decision_point:
+        if decision_point:
             self.steps_since_decision = 0
         else:
             self.steps_since_decision += 1
@@ -278,7 +278,7 @@ class Anytime(BaseStateConstructorComponent):
         countdown = 1 - self.steps_since_decision/self.decision_step
         indicator = 1 if decision_point else 0
 
-        return np.array([countdown, indicator])
+        return np.array([countdown, indicator]).reshape(1, -1)
 
     def _clear_state(self) -> None:
         self.steps_since_decision = 0

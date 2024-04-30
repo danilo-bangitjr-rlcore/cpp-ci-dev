@@ -8,8 +8,7 @@ obs_col_names : ["ait301_pv", "fit250_pv", "p250_fp"]
 control_col_names : ["p250_fp"]
 date_col_name : Date
 max_time_delta: 10 # In seconds
-decision_freq : 1800
-obs_freq : 60
+obs_length : 60
 warmup_steps : 360
 train_split : 0.95
 gamma : ${agent.gamma}

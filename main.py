@@ -16,7 +16,7 @@ from corerl.interaction.normalizer_utils import init_action_normalizer, init_rew
 from corerl.interaction.factory import init_interaction
 from corerl.utils.evaluator import Evaluator
 from corerl.utils.device import init_device
-from corerl.component.data_loaders.factory import init_data_loader
+from corerl.data_loaders.factory import init_data_loader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.utils.plotting import make_plots
 

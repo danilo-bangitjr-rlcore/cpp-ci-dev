@@ -13,7 +13,6 @@ class MultiTrace(CompositeStateConstructor):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         # define the computation graphs
         nan_sc = comp.HandleNan() # first component in the graph. Handle observations with NaNs
-
         avg_sc = comp.Average(parents=[nan_sc]) # Average the rows
 
         norm_sc = comp.MaxMinNormalize(env, parents=[avg_sc])  # first component in the graph
@@ -43,7 +42,9 @@ class Normalize(CompositeStateConstructor):
 
 class Anytime(CompositeStateConstructor):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
-        identity_sc = comp.Identity()
-        anytime_sc = comp.Anytime(cfg.decision_steps, parents=[identity_sc])
-        concat_sc = comp.Concatenate(parents=[identity_sc, anytime_sc])
+        nan_sc = comp.HandleNan() # first component in the graph. Handle observations with NaNs
+        avg_sc = comp.Average(parents=[nan_sc]) # Average the rows
+        norm_sc = comp.MaxMinNormalize(env, parents=[avg_sc])  # first component in the graph
+        anytime_sc = comp.Anytime(cfg.decision_steps, parents=[norm_sc])
+        concat_sc = comp.Concatenate(parents=[norm_sc, anytime_sc])
         self.sc = concat_sc
