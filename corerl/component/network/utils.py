@@ -96,8 +96,8 @@ def layer_init_zero(layer: nn.Module, bias: bool = True) -> nn.Module:
     return layer
 
 
-# Same constant for both weight and bias?
-def layer_init_constant(layer: nn.Module, const: float=0, bias: bool = True) -> nn.Module:
+
+def layer_init_constant(layer: nn.Module, const: float, bias: bool=True) -> nn.Module:
     nn.init.constant_(layer.weight, float(const))
     if int(bias):
         nn.init.constant_(layer.bias.data, float(const))
@@ -111,10 +111,9 @@ def layer_init_xavier(layer: nn.Module, bias: bool = True) -> nn.Module:
     return layer
 
 
-# Why does the bias have to be an int?
-def layer_init_uniform(layer: nn.Module, low: float = -0.003, high: float = 0.003, bias: int = 0) -> nn.Module:
+def layer_init_uniform(layer: nn.Module, low: float=-0.003, high: float=0.003, bias: float=0) -> nn.Module:
     nn.init.uniform_(layer.weight, low, high)
-    if int(bias):
+    if float(bias):
         nn.init.constant_(layer.bias.data, bias)
     return layer
 

@@ -18,7 +18,6 @@ from corerl.utils.evaluator import Evaluator
 from corerl.utils.device import init_device
 from corerl.component.data_loaders.factory import init_data_loader
 from corerl.environment.reward.factory import init_reward_function
-from corerl.utils.plotting import make_plots
 
 import corerl.utils.freezer as fr
 
@@ -59,6 +58,7 @@ def main(cfg: DictConfig) -> None:
     torch.manual_seed(seed)
 
     data_loader = init_data_loader(cfg.data_loader)
+    # Any way to avoid this if the transition file already exists?
     offline_data_df = data_loader.load_data()
     obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
 
@@ -72,7 +72,9 @@ def main(cfg: DictConfig) -> None:
     interaction = init_interaction(cfg.interaction, env, sc)
     action_dim = flatdim(env.action_space)
 
-    state_dim = interaction.get_state_dim()  # gets state_dim dynamically
+    obs_shape = (env.obs_freq, flatdim(env.observation_space))
+    dummy_obs = np.ones(obs_shape)
+    state_dim = sc.get_state_dim(dummy_obs)  # gets state_dim dynamically
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
     # Offline Training
@@ -88,39 +90,6 @@ def main(cfg: DictConfig) -> None:
     pbar = tqdm(range(offline_steps))
     for _ in pbar:
         agent.update()
-
-    # Online Deployment
-    evaluator = Evaluator(cfg.evaluator)
-    max_steps = cfg.experiment.max_steps
-    pbar = tqdm(range(max_steps))
-    state, info = interaction.reset()
-    for _ in pbar:
-        action = agent.get_action(state)
-        transitions, envinfo = interaction.step(state, action)
-
-        for transition in transitions:
-            agent.update_buffer(transition)
-            evaluator.update(transition)
-
-        agent.update()
-        agent.add_to_freezer()
-        state = transitions[-1][0]
-
-        # logging
-        stats = evaluator.get_stats()
-        update_pbar(pbar, stats)
-
-        # freezer example
-        fr.freezer.save()
-
-        # # examples of saving and loading
-        # agent.save(save_path / 'agent')
-        # agent.load(save_path / 'agent')
-
-    evaluator.output(save_path / 'stats.json')
-    make_plots(fr.freezer, save_path / 'plots')
-
-    return evaluator.get_stats()
 
 if __name__ == "__main__":
     main()
