@@ -184,5 +184,4 @@ corerl/output/
 /corerl/config/outputs/
 corerl/old/control/bin/data_old/
 corerl/old/control/bin/data/
-
-
+offline_data/

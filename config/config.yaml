@@ -1,6 +1,6 @@
 defaults:
   - agent: greedy_ac
-  - env : three_tanks
+  - env : reseau
   - data_loader : direct_action
   - interaction : anytime
   - state_constructor : anytime

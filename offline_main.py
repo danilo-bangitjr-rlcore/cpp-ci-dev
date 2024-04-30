@@ -21,11 +21,6 @@ from corerl.environment.reward.factory import init_reward_function
 
 import corerl.utils.freezer as fr
 
-"""
-Revan: This is an example of how to run the code in the library. 
-I expect that each project may need something slightly different than what's here. 
-"""
-
 
 def prepare_save_dir(cfg):
     save_path = (Path(cfg.experiment.save_path) / cfg.experiment.exp_name
@@ -45,12 +40,13 @@ def update_pbar(pbar, stats):
             pbar_str += '{key} : {val} '.format(key=k, val=v)
     pbar.set_description(pbar_str)
 
+
 @hydra.main(version_base=None, config_name='config', config_path="config/")
 def main(cfg: DictConfig) -> None:
     save_path = prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
-
     init_device(cfg.experiment.device)
+
     # set the random seeds
     seed = cfg.experiment.seed
     np.random.seed(seed)
@@ -58,8 +54,7 @@ def main(cfg: DictConfig) -> None:
     torch.manual_seed(seed)
 
     data_loader = init_data_loader(cfg.data_loader)
-    # Any way to avoid this if the transition file already exists?
-    offline_data_df = data_loader.load_data()
+    offline_data_df = data_loader.load_data()  # Any way to avoid this if the transition file already exists?
     obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
 
     env = init_environment(cfg.env)
@@ -77,15 +72,19 @@ def main(cfg: DictConfig) -> None:
     state_dim = sc.get_state_dim(dummy_obs)  # gets state_dim dynamically
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
-    # Offline Training
+    # Load transitions
     if (save_path / "offline_transitions.pkl").is_file():
         offline_transitions = data_loader.load_transitions(save_path / "offline_transitions.pkl")
     else:
         offline_transitions = data_loader.create_transitions(offline_data_df, sc, reward_func, action_normalizer, reward_normalizer)
         data_loader.save_transitions(offline_transitions, save_path / "offline_transitions.pkl")
     train_transitions, test_transitions = data_loader.train_test_split(offline_transitions)
+
+    # put transitions in the agent's buffer
     for transition in train_transitions:
         agent.update_buffer(transition)
+
+    # train offline for some number of steps
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
     for _ in pbar:
