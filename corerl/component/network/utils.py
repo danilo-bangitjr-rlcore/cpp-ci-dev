@@ -20,9 +20,10 @@ class NoneActivation(nn.Module):
         return x
 
 
-def expectile_loss(diff: torch.Tensor, expectile: float=0.9) -> torch.Tensor:
+def expectile_loss(diff: torch.Tensor, expectile: float = 0.9) -> torch.Tensor:
     weight = torch.where(diff > 0, expectile, (1 - expectile))
     return weight * (diff ** 2)
+
 
 def ensemble_mse(target: torch.Tensor, q_ens: list[torch.Tensor]) -> list[torch.Tensor]:
     mses = [nn.functional.mse_loss(target, q) for q in q_ens]
@@ -81,14 +82,14 @@ def move_gradient_to_network(model: nn.Module, grad_rec: dict, weight: float) ->
     return model
 
 
-def layer_init_normal(layer: nn.Module, bias: bool=True) -> nn.Module:
+def layer_init_normal(layer: nn.Module, bias: bool = True) -> nn.Module:
     nn.init.normal_(layer.weight)
     if int(bias):
         nn.init.constant_(layer.bias.data, 0)
     return layer
 
 
-def layer_init_zero(layer: nn.Module, bias: bool=True) -> nn.Module:
+def layer_init_zero(layer: nn.Module, bias: bool = True) -> nn.Module:
     nn.init.constant_(layer.weight, 0)
     if int(bias):
         nn.init.constant_(layer.bias.data, 0)
@@ -96,21 +97,22 @@ def layer_init_zero(layer: nn.Module, bias: bool=True) -> nn.Module:
 
 
 # Same constant for both weight and bias?
-def layer_init_constant(layer: nn.Module, const: float, bias: bool=True) -> nn.Module:
+def layer_init_constant(layer: nn.Module, const: float=0, bias: bool = True) -> nn.Module:
     nn.init.constant_(layer.weight, float(const))
     if int(bias):
         nn.init.constant_(layer.bias.data, float(const))
     return layer
 
 
-def layer_init_xavier(layer: nn.Module, bias: bool=True) -> nn.Module:
+def layer_init_xavier(layer: nn.Module, bias: bool = True) -> nn.Module:
     nn.init.xavier_uniform_(layer.weight)
     if int(bias):
         nn.init.constant_(layer.bias.data, 0)
     return layer
 
+
 # Why does the bias have to be an int?
-def layer_init_uniform(layer: nn.Module, low: float=-0.003, high: float=0.003, bias: int=0) -> nn.Module:
+def layer_init_uniform(layer: nn.Module, low: float = -0.003, high: float = 0.003, bias: int = 0) -> nn.Module:
     nn.init.uniform_(layer.weight, low, high)
     if int(bias):
         nn.init.constant_(layer.bias.data, bias)

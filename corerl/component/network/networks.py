@@ -12,11 +12,13 @@ FLOAT32_EPS = 10 * \
 # representable up to ~ 15
 EPSILON = 1e-6
 
+
 def create_base(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
     if cfg.name == "fc":
         return FC(cfg, input_dim, output_dim)
     else:
         raise NotImplementedError
+
 
 # TODO: here is an example of initializing a actor_network.
 class FC(nn.Module):
@@ -105,8 +107,8 @@ class SquashedGaussian(nn.Module):
 
     # TODO: include n samples
     # TODO: rename observations to state
-    def forward(self, observation: torch.Tensor, debug: bool = False) -> (torch.Tensor, dict):
-        base = self.base_network(observation)
+    def forward(self, state: torch.Tensor) -> (torch.Tensor, dict):
+        base = self.base_network(state)
         mean = self.mean_head(base)
         log_std = torch.clamp(self.logstd_head(base), min=-20, max=2)
         std = log_std.exp()
@@ -119,20 +121,18 @@ class SquashedGaussian(nn.Module):
 
         logp = normal.log_prob(out)
         logp -= torch.log((1 - tanhout.pow(2)) + EPSILON).sum(axis=-1)
-        logp = logp.view((logp.shape[0], 1))
 
-        if debug:
-            info = {
-                # "distribution": normal,
-                "param1": mean.squeeze().detach().numpy(),
-                "param2": std.squeeze().detach().numpy(),
-            }
-        else:
-            info = None
+        info = {
+            "mean": mean.squeeze().detach().numpy(),
+            "variance": std.squeeze().detach().numpy() ** 2,
+            "param1": mean.squeeze().detach().numpy(),
+            "param2": std.squeeze().detach().numpy(),
+        }
+
         return action, info
 
-    def log_prob(self, observation: torch.Tensor, action: torch.Tensor, debug: bool = False) -> (torch.Tensor, dict):
-        base = self.base_network(observation)
+    def log_prob(self, state: torch.Tensor, action: torch.Tensor) -> (torch.Tensor, dict):
+        base = self.base_network(state)
         mean = self.mean_head(base)
         log_std = torch.clamp(self.logstd_head(base), min=-20, max=2)
         std = log_std.exp()
@@ -145,13 +145,8 @@ class SquashedGaussian(nn.Module):
         logp = normal.log_prob(out)
         logp -= torch.log((1 - tanhout.pow(2)) + EPSILON).sum(axis=-1).reshape(logp.shape)
 
-        if debug:
-            info = {
-                "param1": mean.squeeze().detach().numpy(),
-                "param2": std.squeeze().detach().numpy()
-            }
-        else:
-            info = None
+        info = None
+
         logp = logp.view(-1, 1)
         return logp, info
 
@@ -184,23 +179,23 @@ class BetaPolicy(nn.Module):
         self.tanh_shift = cfg.tanh_shift
         self.to(device)
 
-    def squash_dist_param(self, dist_param: torch.Tensor, low: float, high: float) -> torch.Tensor:
+    def squash_dist_param(self, dist_param: torch.Tensor, low: float | torch.Tensor,
+                          high: float | torch.Tensor) -> torch.Tensor:
         tanh_out = torch.tanh(dist_param + self.tanh_shift)
         normalized_param = ((tanh_out + 1) / 2)
         scaled_param = normalized_param * (high - low) + low  # ∈ [low, high]
-
         return scaled_param
 
-    def get_dist_params(self, observation: torch.Tensor) -> (torch.Tensor, torch.Tensor):
+    def get_dist_params(self, state: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         if self.beta_param_bound == 0:
             """ Not using the squash function"""
-            base = self.base_network(observation)
+            base = self.base_network(state)
             alpha = self.head_activation_fn(self.alpha_head(base)) + EPSILON
             beta = self.head_activation_fn(self.beta_head(base)) + EPSILON
             alpha += self.beta_param_bias
             beta += self.beta_param_bias
         else:
-            base = self.base_network(observation)
+            base = self.base_network(state)
             alpha_head_out = self.alpha_head(base)
             beta_head_out = self.beta_head(base)
             low = self.beta_param_bias
@@ -209,8 +204,8 @@ class BetaPolicy(nn.Module):
             beta = self.squash_dist_param(beta_head_out, low, high)
         return alpha, beta
 
-    def forward(self, observation: torch.Tensor, debug: bool = False) -> (torch.Tensor, dict):
-        alpha, beta = self.get_dist_params(observation)
+    def forward(self, state: torch.Tensor) -> (torch.Tensor, dict):
+        alpha, beta = self.get_dist_params(state)
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)
         out = dist.rsample()  # samples of alpha and beta
@@ -219,13 +214,25 @@ class BetaPolicy(nn.Module):
         logp = logp.view((logp.shape[0], 1))
         action = out
 
-        return action, {'logp': logp}
+        # see https://en.wikipedia.org/wiki/Beta_distribution
+        mean = alpha / (alpha + beta)
+        variance = (alpha * beta) / ((alpha + beta) ** 2 * (alpha + beta + 1))
 
-    def log_prob(self, observation: torch.Tensor, action: torch.Tensor, debug: bool = False) -> (torch.Tensor, dict):
+        info = {
+            'logp': logp,
+            'mean': mean,
+            'variance': variance,
+            "param1": alpha,
+            "param2": beta,
+        }
+
+        return action, info
+
+    def log_prob(self, state: torch.Tensor, action: torch.Tensor, debug: bool = False) -> (torch.Tensor, dict):
         out = action
         out = torch.clamp(out, 0, 1)
 
-        alpha, beta = self.get_dist_params(observation)
+        alpha, beta = self.get_dist_params(state)
         dist = distrib.Beta(alpha, beta)
         dist = distrib.Independent(dist, 1)
 
@@ -258,7 +265,7 @@ class Softmax(nn.Module):
         a_onehot = torch.FloatTensor(actions.size()[0], self.output_dim)
         a_onehot.zero_()
         actions = a_onehot.scatter_(1, actions, 1)
-        return actions,  {'logp': logp}
+        return actions, {'logp': logp}
 
     def log_prob(self, states: torch.Tensor, actions: torch.Tensor, debug: bool = False) -> (torch.Tensor, dict):
         actions = (actions == 1).nonzero(as_tuple=False)
@@ -268,7 +275,6 @@ class Softmax(nn.Module):
         logp = dist.log_prob(actions.squeeze(-1))
         logp = logp.view(-1, 1)
         return logp, {}
-
 
 
 class RndLinearUncertainty(nn.Module):
@@ -298,9 +304,9 @@ class UniformRandomCont(BetaPolicy):
         super(UniformRandomCont, self).__init__(cfg, input_dim, output_dim)
         self.output_dim = output_dim
 
-    def get_dist_params(self, observation):
-        alpha = torch.ones(observation.size()[0], self.output_dim)
-        beta = torch.ones(observation.size()[0], self.output_dim)
+    def get_dist_params(self, state):
+        alpha = torch.ones(state.size()[0], self.output_dim)
+        beta = torch.ones(state.size()[0], self.output_dim)
         return alpha, beta
 
 

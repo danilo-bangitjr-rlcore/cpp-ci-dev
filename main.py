@@ -14,6 +14,7 @@ from corerl.state_constructor.factory import init_state_constructor
 from corerl.interaction.factory import init_interaction
 from corerl.utils.evaluator import Evaluator
 from corerl.utils.device import init_device
+from corerl.utils.plotting import make_plots
 
 import corerl.utils.freezer as fr
 
@@ -74,6 +75,7 @@ def main(cfg: DictConfig) -> None:
             evaluator.update(transition)
 
         agent.update()
+        agent.add_to_freezer()
         state = transitions[-1][0]
 
         # logging
@@ -81,16 +83,15 @@ def main(cfg: DictConfig) -> None:
         update_pbar(pbar, stats)
 
         # freezer example
-        fr.freezer['transitions'] = transitions[-1]
         fr.freezer.save()
-        fr.freezer.increment()
-        fr.freezer.clear()  # Optionally clearing the log
 
-        # examples of saving and loading
-        agent.save(save_path / 'agent')
-        agent.load(save_path / 'agent')
+        # # examples of saving and loading
+        # agent.save(save_path / 'agent')
+        # agent.load(save_path / 'agent')
 
     evaluator.output(save_path / 'stats.json')
+    make_plots(fr.freezer, save_path / 'plots')
+
     return evaluator.get_stats()
 
 if __name__ == "__main__":

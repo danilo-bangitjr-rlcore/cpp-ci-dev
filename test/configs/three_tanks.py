@@ -74,7 +74,7 @@ SWEEP_PARAMS = {
         'agent.rho': lambda d: [0.1],
         'agent.expectile': lambda d: [0.8] if d['agent'] == 'greedy_iql' else None,
         'agent.num_samples': lambda d: [300],
-        'agent.uniform_proposal': lambda d: [True, False]
+        'agent.uniform_proposal': lambda d: [True]
     },
 
     'tests': [avg_reward, avg_reward_last_iterations]

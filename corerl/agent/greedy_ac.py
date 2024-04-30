@@ -1,7 +1,6 @@
 from omegaconf import DictConfig
 from pathlib import Path
 
-import torch.nn as nn
 import torch
 import numpy
 import pickle as pkl
@@ -13,6 +12,7 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, ensemble_mse
 from corerl.component.exploration.factory import init_exploration_module
 import corerl.agent.utils as utils
+import corerl.utils.freezer as fr
 
 from jaxtyping import Float
 from typing import Optional
@@ -56,9 +56,10 @@ class GreedyAC(BaseAC):
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device)
-        tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
+        tensor_action, action_info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
-
+        # log the action_info to the freezer
+        fr.freezer.store('action_info', action_info)
         return action
 
     def update_buffer(self, transition: tuple) -> None:
@@ -234,9 +235,15 @@ class GreedyAC(BaseAC):
             else:
                 self.update_sampler(update_infos=None)
 
+    def add_to_freezer(self):
+        # log the action_gap
+        batch = self.buffer.sample()
+        state_batch = batch['states']
+        ag = utils.get_batch_action_gap(self, state_batch, self.action_dim)
+        fr.freezer.store('action_gap', ag)
+
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
-
         actor_path = path / "actor"
         self.actor.save(actor_path)
 
@@ -310,7 +317,6 @@ class ExploreLSGAC(GreedyACLineSearch):
 
     def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
                      batch_size: int) -> torch.Tensor:
-
         q_values = self.q_critic.get_q(repeated_states, sample_actions, with_grad=False)
 
         # query the exploration bonus

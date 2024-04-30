@@ -22,3 +22,7 @@ evaluator:
   gamma : ${agent.gamma} # refers to gamma of the agent
   return_window : 100
   reward_window : 100
+
+
+offline_training:
+  dataset_path :
