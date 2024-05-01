@@ -6,10 +6,12 @@ import numpy as np
 # So that the action returned by the agent has consistent number of dimensions
 # as in continuous control tasks. (1, action_dimension)
 class DiscreteControlWrapper(gym.Env):
-    def __init__(self, name, timeout):
-        self.env = gym.make(name, max_episode_steps=timeout)
+    def __init__(self, name, seed):
+        self.env = gym.make(name)
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
+        self.env._max_episode_steps = np.inf  # control timeout setting in agent
+        self.env.reset(seed=seed)
 
     def step(self, action):
         action_ = action[0]
@@ -25,8 +27,8 @@ class DiscreteControlWrapper(gym.Env):
 
 
 class SparseDiscreteControlWrapper(DiscreteControlWrapper):
-    def __init__(self, name, timeout):
-        super(SparseDiscreteControlWrapper, self).__init__(name, timeout)
+    def __init__(self, name, seed):
+        super(SparseDiscreteControlWrapper, self).__init__(name, seed)
         assert name in ['MountainCar-v0', 'Acrobot-v1'], "Only works for episodic tasks"
 
     def step(self, action):
