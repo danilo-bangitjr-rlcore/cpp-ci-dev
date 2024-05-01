@@ -4,4 +4,3 @@ defaults:
 
 name : Acrobot-v1
 discrete_control : True
-timeout: 1000
