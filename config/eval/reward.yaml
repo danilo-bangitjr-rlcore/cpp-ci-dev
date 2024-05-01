@@ -1,0 +1,4 @@
+name : reward
+gamma : ${agent.gamma}
+return_window : 100
+reward_window : 100

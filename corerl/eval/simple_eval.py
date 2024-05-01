@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 
 
-class Evaluator:
+class RewardEval:
     def __init__(self, cfg):
         self.gamma = cfg.gamma
         self.episode_steps = 0
@@ -28,18 +28,20 @@ class Evaluator:
                  'avg_reward': sum(self.rewards) / len(self.rewards),
                  }
 
-        if  len(self.returns) > 0:
+        if len(self.returns) > 0:
             stats['avg_return'] = sum(self.returns) / len(self.returns)
         else:
             stats['avg_return'] = 'n/a'
 
         if len(self.rewards) > self.reward_window:
-            stats['avg_reward ({})'.format(self.reward_window)] = sum(self.rewards[-self.reward_window:]) / self.reward_window
+            stats['avg_reward ({})'.format(self.reward_window)] = sum(
+                self.rewards[-self.reward_window:]) / self.reward_window
         else:
             stats['avg_reward ({})'.format(self.reward_window)] = 'n/a'
 
         if len(self.returns) > self.return_window:
-            stats['avg_return ({})'.format(self.return_window)] = sum(self.returns[-self.return_window:]) / self.return_window
+            stats['avg_return ({})'.format(self.return_window)] = sum(
+                self.returns[-self.return_window:]) / self.return_window
         else:
             stats['avg_return ({})'.format(self.return_window)] = 'n/a'
 

@@ -9,7 +9,7 @@ from corerl.agent.base import BaseAC
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic, init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, state_to_tensor, expectile_loss, ensemble_mse
+from corerl.component.network.utils import to_np, state_to_tensor, ensemble_expectile_loss, ensemble_mse
 from corerl.utils.device import device
 
 
@@ -47,8 +47,8 @@ class IQL(BaseAC):
     def compute_v_loss(self, batch: dict) -> torch.Tensor:
         states, actions = batch['states'], batch['actions']
         q = self.q_critic.get_q(states, actions, with_grad=False)
-        v = self.v_critic.get_v(states, with_grad=True)
-        value_loss = expectile_loss(q - v, self.expectile).mean()
+        _, vs = self.v_critic.get_vs(states, with_grad=True)
+        value_loss = ensemble_expectile_loss(q, vs, self.expectile)
         return value_loss
 
     def compute_q_loss(self, batch: dict) -> torch.Tensor:
@@ -60,6 +60,7 @@ class IQL(BaseAC):
         _, q_ens = self.q_critic.get_qs(states, actions, with_grad=True)
         q_loss = ensemble_mse(target, q_ens)
 
+        print(q_loss)
         return q_loss
 
     def update_critic(self) -> None:

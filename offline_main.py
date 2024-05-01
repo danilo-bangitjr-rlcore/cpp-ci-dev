@@ -17,6 +17,7 @@ from corerl.interaction.factory import init_interaction
 from corerl.utils.device import init_device
 from corerl.data_loaders.factory import init_data_loader
 from corerl.environment.reward.factory import init_reward_function
+from corerl.eval.ibe import IBE
 
 import corerl.utils.freezer as fr
 
@@ -91,11 +92,14 @@ def main(cfg: DictConfig) -> None:
     for transition in train_transitions:
         agent.update_buffer(transition)
 
+    ibe = IBE(cfg.eval, agent)
+
     # train offline for some number of steps
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
     for _ in pbar:
         agent.update()
+        # ibe.update()
 
 
 if __name__ == "__main__":

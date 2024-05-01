@@ -1,9 +1,11 @@
 defaults:
-  - agent: greedy_ac
+  - agent: iql
   - env : reseau
   - data_loader : direct_action
   - interaction : anytime
   - state_constructor : anytime
+  - eval :  # we may have multiple evaluators.
+      - ibe
   - _self_
 
 experiment:
@@ -14,17 +16,8 @@ experiment:
   param : 0
   device : cpu
   timeout : 1
-  offline_steps : 100
+  offline_steps : 1000
   max_steps : 5000
   render : 0
   save_path : output
 
-
-evaluator:
-  gamma : ${agent.gamma} # refers to gamma of the agent
-  return_window : 100
-  reward_window : 100
-
-
-offline_training:
-  dataset_path :

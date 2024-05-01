@@ -184,7 +184,7 @@ class GreedyAC(BaseAC):
     def compute_actor_loss(self, update_info) -> (torch.Tensor, tuple):
         _, _, _, _, stacked_s_batch, best_actions, _ = update_info
         logp, _ = self.actor.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
-        actor_loss = -logp.mean()
+        actor_loss = -logp.mean() # BUG: This is negative?
         return actor_loss
 
     def compute_sampler_loss(self, update_info) -> (torch.Tensor, torch.Tensor):

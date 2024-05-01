@@ -14,7 +14,7 @@ from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.interaction.normalizer_utils import init_action_normalizer, init_reward_normalizer
 from corerl.interaction.factory import init_interaction
-from corerl.utils.evaluator import Evaluator
+from corerl.eval.simple_eval import RewardEval
 from corerl.utils.device import init_device
 from corerl.data_loaders.factory import init_data_loader
 from corerl.environment.reward.factory import init_reward_function
@@ -90,7 +90,7 @@ def main(cfg: DictConfig) -> None:
         agent.update()
 
     # Online Deployment
-    evaluator = Evaluator(cfg.evaluator)
+    evaluator = RewardEval(cfg.evaluator)
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(range(max_steps))
     state, info = interaction.reset()
