@@ -31,8 +31,6 @@ class BaseInteraction(ABC):
     def env_counter(self):
         self.internal_clock += 1
         trunc = (self.timeout > 0) and (self.internal_clock % self.timeout == 0)
-        if trunc:
-            self.reset()
         return trunc
 
     def get_state_dim(self) -> int:

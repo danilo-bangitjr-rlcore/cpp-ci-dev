@@ -48,7 +48,7 @@ class AnytimeInteraction(NormalizerInteraction):
         for obs_step in range(self.steps_per_decision):
             obs_end_time = time.time() + self.obs_length
             denormalized_action = self.action_normalizer.denormalize(action)
-            next_observation, raw_reward, terminated, _, env_info = self.env.step(denormalized_action)
+            next_observation, raw_reward, terminated, env_truncate, env_info = self.env.step(denormalized_action)
             truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
 
             reward = self.reward_normalizer(raw_reward)
