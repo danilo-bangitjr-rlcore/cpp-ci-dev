@@ -1,3 +1,4 @@
+import numpy as np
 import gymnasium as gym
 import gym_electric_motor as gem
 from omegaconf import DictConfig
@@ -34,12 +35,13 @@ def init_environment(cfg: DictConfig) -> gym.Env:
                 env = ThreeTankEnv(seed, cfg.lr_constrain, random_sp=cfg.random_sp)
 
     elif name == "AtropineEnv":
-        env = AtropineEnvGym()
+        env = AtropineEnvGym(max_steps=-1) # remove timeout in environment, set timeout in the interaction layer
     elif name == "BeerEnv":
-        env = BeerFMTEnvGym()
+        env = BeerFMTEnvGym(max_steps=-1)
     elif name == "ReactorEnv":
-        env = ReactorEnvGym()
+        env = ReactorEnvGym(max_steps=-1)
     # unsure about these gem things
+    # Didn't find interface for timeout & seed setting for gem environments.
     elif name == "Cont-CC-PermExDc-v0":
         env = FlattenObservation(gem.make("Cont-CC-PermExDc-v0"))
     elif name == "Cont-CC-PMSM-v0":
@@ -51,19 +53,25 @@ def init_environment(cfg: DictConfig) -> gym.Env:
     elif name == "Cont-CC-EESM-v0":
         env = FlattenObservation(gem.make("Cont-CC-EESM-v0"))
     elif name == "Acrobot-v1":
-        env = DiscreteControlWrapper("Acrobot-v1", cfg.timeout)
+        env = DiscreteControlWrapper("Acrobot-v1", seed)
     elif name == "Acrobot-v1-sparse":
-        env = SparseDiscreteControlWrapper("Acrobot-v1", cfg.timeout)
+        env = SparseDiscreteControlWrapper("Acrobot-v1", seed)
     elif name == "MountainCarContinuous-v0":
         env = gym.make("MountainCarContinuous-v0")
+        env._max_episode_steps = np.inf
+        env.reset(seed=seed)
     elif name == "MountainCar-v0":
-        env = DiscreteControlWrapper("MountainCar-v0", cfg.timeout)
+        env = DiscreteControlWrapper("MountainCar-v0", seed)
     elif name == "MountainCar-v0-sparse":
-        env = SparseDiscreteControlWrapper("MountainCar-v0", cfg.timeout)
+        env = SparseDiscreteControlWrapper("MountainCar-v0", seed)
     elif name == "Pendulum-v1":
+        # continual learning task. No timeout
         env = PendulumEnv(render_mode="human", continuous_action=(not cfg.discrete_control))
+        env.reset(seed=seed)
     elif name == "HalfCheetah-v4":
         env = gym.make("HalfCheetah-v4")
+        env._max_episode_steps = np.inf
+        env.reset(seed=seed)
     elif name == "Ant-expert":
         env = D4RLWrapper("ant-expert-v2", seed)
     elif name == "Ant-medium":
