@@ -1,9 +1,9 @@
 defaults:
   - agent: greedy_ac
-  - env : reseau
+  - env : three_tanks
   - data_loader : direct_action
-  - interaction : anytime
-  - state_constructor : anytime
+  - interaction : normalizer
+  - state_constructor : identity
   - _self_
 
 experiment:
