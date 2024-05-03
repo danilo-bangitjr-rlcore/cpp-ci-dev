@@ -11,6 +11,8 @@ class BaseInteraction(ABC):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env, state_constructor: BaseStateConstructor):
         self.env = env
         self.state_constructor = state_constructor
+        self.timeout = cfg.timeout # When timeout is set to 0, there is no timeout.
+        self.internal_clock = 0
 
     @abstractmethod
     # step returns a list of transitions and a list of environment infos
@@ -26,6 +28,10 @@ class BaseInteraction(ABC):
     def warmup_sc(self, *args, **kwargs) -> None:
         raise NotImplementedError
 
+    def env_counter(self):
+        self.internal_clock += 1
+        trunc = (self.timeout > 0) and (self.internal_clock % self.timeout == 0)
+        return trunc
 
     def get_state_dim(self) -> int:
         obs, _ = self.env.reset()

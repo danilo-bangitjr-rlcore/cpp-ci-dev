@@ -216,7 +216,7 @@ class smplEnvBase(Env):
             done_info["terminal"] = True
             done = True
         # check for step_count
-        if step_count >= self.max_steps:  # same as range(0, max_steps)
+        if step_count >= self.max_steps and self.max_steps != -1:  # same as range(0, max_steps)
             done_info["terminal"] = True
             done_info["timeout"] = True
             done = True

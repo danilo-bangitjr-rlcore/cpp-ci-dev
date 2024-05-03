@@ -3,3 +3,4 @@ defaults:
   - reward_normalizer: clip
 
 name: normalizer
+timeout: ${experiment.timeout}

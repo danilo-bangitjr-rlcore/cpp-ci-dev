@@ -8,7 +8,7 @@ class D4RLWrapper:
         self.env.unwrapped.seed(seed)
         self.observation_space = Box(low=self.env.observation_space.low, high=self.env.observation_space.high)
         self.action_space = Box(low=self.env.action_space.low, high=self.env.action_space.high)
-        self.env._max_episode_steps = np.inf  # control timeout setting in agent
+        self.env._max_episode_steps = np.inf  # control timeout setting in the interface layer
 
     def step(self, action: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray, bool, dict):
         ret = self.env.step(action)
