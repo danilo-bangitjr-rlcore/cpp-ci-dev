@@ -1,6 +1,10 @@
 import torch
+import numpy as np
 from jaxtyping import Float
 from typing import Optional
+
+import corerl.component.network.utils as utils
+from corerl.component.network.utils import to_np, state_to_tensor, tensor
 
 
 def get_batch_actions_discrete(state_batch: Float[torch.Tensor, "batch_size state_dim"], action_dim: int,
@@ -81,3 +85,31 @@ def get_batch_action_gap(agent, state_batch: Float[torch.Tensor, "batch_size sta
     action_gap = torch.norm(best_q_actions - best_pi_actions, p=2, dim=1)
     mean_action_gap = torch.mean(action_gap)
     return mean_action_gap.item()
+
+def get_test_state_qs_and_policy_params(agent, test_transitions, device):
+    test_actions = 100
+    num_states = len(test_transitions)
+    test_transitions = np.array(test_transitions, dtype=object)
+    test_states_np = np.array(list(test_transitions[:, 0]), dtype=np.float32)
+
+    #test_states = state_to_tensor(test_states_np, device)
+    test_states = tensor(test_states_np, device)
+    actions = np.linspace(np.array([0]), np.array([1]), num=test_actions)
+
+    # Q-Values
+    repeated_test_states = test_states.repeat_interleave(test_actions, dim=0)
+    repeated_actions = [actions for i in range(num_states)]
+    repeated_actions = np.concatenate(repeated_actions)
+    repeated_actions = tensor(repeated_actions, device)
+
+    q_values = agent.q_critic.get_q(repeated_test_states, repeated_actions, with_grad=False)
+    q_values = to_np(q_values)
+    q_values = q_values.reshape(num_states, test_actions)
+
+    # Actor Params
+    actor_alphas, actor_betas = agent.actor.model.get_dist_params(test_states)
+    actor_alphas = to_np(actor_alphas)
+    actor_betas = to_np(actor_betas)
+
+    return test_states_np, actions, q_values, np.array(list(zip(actor_alphas, actor_betas)))
+

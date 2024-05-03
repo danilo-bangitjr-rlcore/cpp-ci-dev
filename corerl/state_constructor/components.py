@@ -25,7 +25,7 @@ class BaseStateConstructorComponent(ABC):
             if len(self.parents) == 0:  # base case
                 obs_parents = [obs]
             else:
-                obs_parents = [p(obs) for p in self.parents]
+                obs_parents = [p(obs, **kwargs) for p in self.parents]
             self.obs_next = self.process_observation(obs_parents, **kwargs)
             self.called = True
         return self.obs_next
@@ -269,8 +269,10 @@ class Anytime(BaseStateConstructorComponent):
         self.decision_step = decision_steps
         self.steps_since_decision = 0
 
-    def process_observation(self, obs_parents: list, decision_point=False) -> np.ndarray:
-        if not decision_point:
+    def process_observation(self, obs_parents: list, decision_point=False, steps_since_decision=-1) -> np.ndarray:
+        if steps_since_decision >= 0:
+            self.steps_since_decision = steps_since_decision
+        elif decision_point:
             self.steps_since_decision = 0
         else:
             self.steps_since_decision += 1
@@ -278,7 +280,7 @@ class Anytime(BaseStateConstructorComponent):
         countdown = 1 - self.steps_since_decision/self.decision_step
         indicator = 1 if decision_point else 0
 
-        return np.array([countdown, indicator])
+        return np.array([[countdown, indicator]])
 
     def _clear_state(self) -> None:
         self.steps_since_decision = 0

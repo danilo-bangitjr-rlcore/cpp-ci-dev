@@ -4,13 +4,15 @@ from corerl.utils.device import device
 from omegaconf import DictConfig
 
 def send_to_device(batch: list) -> dict:
-    states, actions, rewards, next_states, terminals, truncations = batch
+    states, actions, rewards, next_states, terminals, truncations, decision_points, gamma_exps = batch
     s = network_utils.tensor(states, device)
     a = network_utils.tensor(actions, device)
     r = network_utils.tensor(rewards, device)
     ns = network_utils.tensor(next_states, device)
     d = network_utils.tensor(terminals, device)
     t = network_utils.tensor(truncations, device)
+    dp = network_utils.tensor(decision_points, device)
+    ge = network_utils.tensor(gamma_exps, device)
     data = {
         'states': s,
         'actions': a,
@@ -18,6 +20,8 @@ def send_to_device(batch: list) -> dict:
         'next_states': ns,
         'dones': d,
         'truncs': t,
+        'decision_points': dp,
+        'gamma_exps': ge
     }
     return data
 

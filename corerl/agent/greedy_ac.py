@@ -135,10 +135,11 @@ class GreedyAC(BaseAC):
         reward_batch = batch['rewards']
         next_state_batch = batch['next_states']
         mask_batch = 1 - batch['dones']
+        gamma_exp_batch = batch['gamma_exps']
 
         next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
         next_q = self.q_critic.get_q_target(next_state_batch, next_actions)
-        target = reward_batch + mask_batch * self.gamma * next_q
+        target = reward_batch + mask_batch * (self.gamma ** gamma_exp_batch) * next_q
         _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)
         q_loss = ensemble_mse(target, q_ens)
 

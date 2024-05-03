@@ -31,8 +31,8 @@ class DirectActionDataLoader(BaseDataLoader):
         self.date_col_name = cfg.date_col_name
         self.max_time_delta = cfg.max_time_delta
         self.time_thresh = pd.Timedelta(self.max_time_delta, "s")
-        self.decision_freq = cfg.decision_freq
-        self.obs_freq = cfg.obs_freq
+        self.steps_per_decision = cfg.steps_per_decision
+        self.obs_length = cfg.obs_length
         self.warmup_steps = cfg.warmup_steps
         self.gamma = cfg.gamma
         self.train_split = cfg.train_split
@@ -100,27 +100,45 @@ class DirectActionDataLoader(BaseDataLoader):
         """
         Warm up state constructor
         """
+        warmup_sec = timedelta(seconds=self.obs_length * self.warmup_steps)
+        elapsed_warmup = timedelta(seconds=0)
+        action_start = start_ind
+        warmup_end = start_ind + warmup_sec
+
         state_constructor.reset()
 
-        # Determine portion of dataframe that will be used in state constructor warmup
-        warmup_sec = self.obs_freq * self.warmup_steps
-        warmup_start = df.loc[start_ind].name
-        warmup_end = warmup_start + timedelta(seconds=warmup_sec)
+        while elapsed_warmup < warmup_sec:
+            curr_action, action_end, next_action_start, _, _, data_gap = self.find_action_boundary(df, action_start)
 
-        # Warmup state constructor
-        obs_start = warmup_start
-        state = None
-        while obs_start < warmup_end:
-            _, state = self.get_state(df, obs_start, state_constructor)
-            obs_start = obs_start + timedelta(seconds=self.obs_freq)
+            if data_gap:
+                elapsed_warmup = timedelta(seconds=0)
+                state_constructor.reset()
+            else:
+                curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
+                step_remainder = curr_action_steps % self.steps_per_decision
+                if step_remainder > 0:
+                    steps_since_decision = (self.steps_per_decision - step_remainder) + 1
+                else:
+                    steps_since_decision = 1
+                for i in range(curr_action_steps):
+                    decision_point = steps_since_decision == 0
+                    _, state = self.get_state(state_constructor, df, step_start, decision_point, steps_since_decision)
+                    steps_since_decision = (steps_since_decision + 1) % self.steps_per_decision
+                    step_start += timedelta(seconds=self.obs_length)
+                    elapsed_warmup += timedelta(seconds=self.obs_length)
+                    if elapsed_warmup >= warmup_sec:
+                        warmup_end = step_start
+                        break
 
-        return state_constructor, warmup_end, state
+            action_start = next_action_start
+        
+        return state_constructor, warmup_end, state, decision_point
 
-    def get_state(self, df: pd.DataFrame, start: pd.Timestamp, decision_point: bool, state_constructor: BaseStateConstructor) -> (pd.DataFrame, np.ndarray):
-        end = start + timedelta(seconds=self.obs_freq)
+    def get_state(self, state_constructor: BaseStateConstructor, df: pd.DataFrame, start: pd.Timestamp, decision_point: bool, steps_since_decision: int) -> (pd.DataFrame, np.ndarray):
+        end = start + timedelta(seconds=self.obs_length)
         obs_df = self.get_df_date_range(df, start, end)
         obs = obs_df.to_numpy()
-        state = state_constructor(obs, decision_point=decision_point)
+        state = state_constructor(obs, decision_point=decision_point, steps_since_decision=steps_since_decision)
 
         return obs_df, state
 
@@ -155,23 +173,20 @@ class DirectActionDataLoader(BaseDataLoader):
         """
         return False, False
 
-    def prepare_reward_info(self, **kwargs) -> dict:
-        """
-        Project specific. Returns a dictionary that will be passed to a reward function of the form reward_function(**kwargs)
-        """
-        raise NotImplementedError
-
-    def create_n_step_transitions_(self, transitions: list[tuple], state_action_rewards: list[tuple], boot_state: np.ndarray, trunc: bool, term: bool) -> list[tuple]:
+    def create_n_step_transitions_(self, transitions: list[tuple], state_action_rewards: list[tuple], boot_state: np.ndarray, term: bool, trunc: bool) -> list[tuple]:
         # Create "Anytime" variable n-step transitions, where 'n' depends on the number of steps from the action boundary
         n_step_reward = 0.0
+        gamma_exp = 1
         for i in range(len(state_action_rewards) - 1, -1, -1):
             sar = state_action_rewards[i]
             state = sar[0]
             action = sar[1]
             reward = sar[2]
+            decision_point = sar[3]
             # Recursively updating n-step reward
             n_step_reward = reward + self.gamma * n_step_reward
-            transitions.append((state, action, n_step_reward, boot_state, trunc, term))
+            transitions.append((state, action, n_step_reward, boot_state, term, trunc, int(decision_point), gamma_exp))
+            gamma_exp += 1
 
         return transitions
 
@@ -180,8 +195,8 @@ class DirectActionDataLoader(BaseDataLoader):
         Determine the number of time steps that fit in the given action window and align the time steps, taking into account the time remainder
         """
         action_duration = action_end - action_start
-        curr_action_steps = action_duration // timedelta(seconds=self.obs_freq)
-        time_remainder = action_duration % timedelta(seconds=self.obs_freq)
+        curr_action_steps = action_duration // timedelta(seconds=self.obs_length)
+        time_remainder = action_duration % timedelta(seconds=self.obs_length)
         step_start = action_start + time_remainder
 
         return curr_action_steps, step_start
@@ -201,23 +216,31 @@ class DirectActionDataLoader(BaseDataLoader):
             prev_action = None
 
             # Warmup state constructor using data starting from action_start
-            state_constructor, warmup_end, state = self.warmup_sc(df, state_constructor, action_start)
+            state_constructor, warmup_end, state, warmup_dp = self.warmup_sc(df, state_constructor, action_start)
 
             # Iterate over the action windows in the remainder of the df
             # Produce n-step transitions with the "Anytime" paradigm
             # The 'n' is the number of time steps away from the action boundary
             action_start = warmup_end
+            prev_decision_point = warmup_dp
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(df, action_start)
+                norm_curr_action = action_normalizer(curr_action)
                 
                 # Align time steps within action window
                 curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
+                step_remainder = curr_action_steps % self.steps_per_decision
+                if step_remainder > 0:
+                    steps_since_decision = (self.steps_per_decision - step_remainder) + 1
+                else:
+                    steps_since_decision = 1
 
                 # Iterate over current action time steps and produce (S,A,R)
                 state_action_rewards = []
                 for i in range(curr_action_steps):
-                    decision_point = i == curr_action_steps - 1
-                    obs_df, next_state = self.get_state(df, step_start, decision_point, state_constructor)
+                    decision_point = steps_since_decision == 0
+                    obs_df, next_state = self.get_state(state_constructor, df, step_start, decision_point, steps_since_decision)
+
                     # Any way to make the creation of reward_info more universal?
                     reward_info = {}
                     reward_info['df'] = obs_df
@@ -225,15 +248,23 @@ class DirectActionDataLoader(BaseDataLoader):
                     reward_info['curr_action'] = curr_action
                     raw_reward = reward_function(**reward_info)
                     reward = reward_normalizer(raw_reward)
-                    state_action_rewards.append((state, curr_action, reward))
-                    prev_action = curr_action
-                    step_start = step_start + timedelta(seconds=self.obs_freq)
-                    state = next_state
-                
-                # State that will be bootstrapped from in n-step updates
-                boot_state = state
+                    state_action_rewards.append((state, norm_curr_action, reward, prev_decision_point))
 
-                # Create n-step Transitions
+                    # Create n-step Transitions
+                    if decision_point and len(state_action_rewards) > 0:
+                        boot_state = next_state
+                        # Set trunc and term to false since we haven't reached the final action boundary within the action window
+                        transitions = self.create_n_step_transitions_(transitions, state_action_rewards, boot_state, False, False)
+                        state_action_rewards = []
+                    
+                    prev_action = curr_action
+                    step_start = step_start + timedelta(seconds=self.obs_length)
+                    state = next_state
+                    steps_since_decision = (steps_since_decision + 1) % self.steps_per_decision
+                    prev_decision_point = decision_point
+                
+                # Create remaining transitions
+                boot_state = state
                 transitions = self.create_n_step_transitions_(transitions, state_action_rewards, boot_state, trunc, term)
 
                 action_start = next_action_start

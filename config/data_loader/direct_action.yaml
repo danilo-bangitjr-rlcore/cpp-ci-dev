@@ -8,8 +8,8 @@ obs_col_names : []
 control_col_names : []
 date_col_name : Date
 max_time_delta: 10 # In seconds
-decision_freq : 1800
-obs_freq : 60
+steps_per_decision : ${interaction.decision_steps}
+obs_length : ${interaction.obs_length} # 1 second
 warmup_steps : 360
 train_split : 0.95
 gamma : ${agent.gamma}
