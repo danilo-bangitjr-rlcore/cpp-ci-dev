@@ -7,14 +7,17 @@ from torch.nn.functional import mse_loss
 
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
+from corerl.eval.base_eval import BaseEval
 
-# TODO next: figure out nice funciton calls for eval
 
-class IBE:
-    def __init__(self, cfg,  agent): #(,, state_dim, action_dim):
-        state_dim = agent.state_dim
-        action_dim = agent.action_dim
-        self.agent = agent
+class IBE(BaseEval):
+    def __init__(self, cfg, **kwargs):
+        if 'agent' not in kwargs:
+            raise KeyError("Missing required argument: 'agent'")
+
+        self.agent = kwargs['agent']
+        state_dim = self.agent.state_dim
+        action_dim = self.agent.action_dim
         self.n_updates = cfg.n_updates
         self.gamma = cfg.gamma
         self.model = init_custom_network(cfg.network, state_dim + action_dim, output_dim=1)
@@ -32,15 +35,13 @@ class IBE:
         next_q = self.agent.q_critic.get_q_target(next_state_batch, next_actions)
         target = reward_batch + mask_batch * self.gamma * next_q
 
-        print(target)
-
         sa = torch.concatenate((state_batch, action_batch), dim=1)
         predictions = self.model(sa)
 
         loss = mse_loss(target, predictions)
         return loss
 
-    def update(self):
+    def do_eval(self, **kwargs):
         losses = []
         for _ in range(self.n_updates):
             batch = self.agent.buffer.sample()
@@ -49,6 +50,6 @@ class IBE:
             loss.backward()
             self.optimizer.step()
             loss = loss.detach().item()
-            # losses.append(loss.detach().item())
 
-            print(loss)
+    def get_stats(self):
+        pass

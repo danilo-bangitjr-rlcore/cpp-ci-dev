@@ -11,7 +11,7 @@ from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.interaction.factory import init_interaction
-from corerl.eval.simple_eval import RewardEval
+from corerl.eval.reward import RewardEval
 from corerl.utils.device import init_device
 from corerl.utils.multithreading import multithreaded_step
 from main import prepare_save_dir, update_pbar
@@ -47,7 +47,7 @@ def main(cfg: DictConfig) -> None:
         action = agent.get_action(state)
         transition = multithreaded_step(agent, interaction, state, action)
         agent.update_buffer(transition)
-        evaluator.update(transition)
+        evaluator.do_eval(transition)
 
         state = transition[3]  # next_state is the fourth entry of the transition tuple
 

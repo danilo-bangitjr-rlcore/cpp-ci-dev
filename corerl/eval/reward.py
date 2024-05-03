@@ -1,9 +1,10 @@
+from corerl.eval.base_eval import BaseEval
 from pathlib import Path
 import json
 
 
-class RewardEval:
-    def __init__(self, cfg):
+class RewardEval(BaseEval):
+    def __init__(self, cfg,  **kwargs):
         self.gamma = cfg.gamma
         self.episode_steps = 0
         self.episode_return = 0
@@ -12,16 +13,20 @@ class RewardEval:
         self.returns = []
         self.rewards = []
 
-    def update(self, transition: tuple) -> None:
-        state, action, reward, next_state, done, truncate = transition
-        self.episode_return += reward * (self.gamma ** self.episode_steps)
-        self.rewards.append(reward)
-        if done:
-            self.episode_steps = 0
-            self.returns.append(self.episode_return)
-            self.episode_return = 0
-        else:
-            self.episode_steps += 1
+    def do_eval(self, **kwargs) -> None:
+        if 'transitions' not in kwargs:
+            raise KeyError("Missing required argument: 'transitions'")
+        transitions = kwargs['transitions']
+        for transition in transitions:
+            state, action, reward, next_state, done, truncate = transition
+            self.episode_return += reward * (self.gamma ** self.episode_steps)
+            self.rewards.append(reward)
+            if done:
+                self.episode_steps = 0
+                self.returns.append(self.episode_return)
+                self.episode_return = 0
+            else:
+                self.episode_steps += 1
 
     def get_stats(self):
         stats = {'num_episodes': len(self.returns),

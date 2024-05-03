@@ -47,7 +47,7 @@ class CompositeStateConstructor(BaseStateConstructor):
 
     def get_state_dim(self, obs: np.ndarray) -> int:
         state = self(obs)
-        assert len(state.shape) == 1
+        assert len(state.shape)  # not sure if this will always be necessary or desired. But we are assuming that
         state_dim = state.shape[0]
         self._reset_graph_state()
         return state_dim

@@ -31,7 +31,7 @@ def get_cfg(params: dict) -> (str, DictConfig):
 
 def main():
     parser = argparse.ArgumentParser(description="sweep maker")
-    parser.add_argument('--path', default='test/configs', type=str)
+    parser.add_argument('--path', default='test/configs/reseau', type=str)
     parser.add_argument('--run_file', default='output_conf.py', type=str)
     parser.add_argument('--cmd', default='python3', type=str)
     parser.add_argument('--save_file', default='runs.sh', type=str)
@@ -44,6 +44,7 @@ def main():
     for env in Path(cfg.path).iterdir():
         if '__' not in env.name:
             env_cfg_name = env.name.strip('.py')
+
             sweep_params, tests = sweep.get_sweep_params(env_cfg_name,
                                                          Path(cfg.path) / '{}.py'.format(env_cfg_name))
             run_params += sweep_params

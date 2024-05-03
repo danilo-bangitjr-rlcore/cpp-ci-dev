@@ -213,8 +213,8 @@ class DirectActionDataLoader(BaseDataLoader):
             # The 'n' is the number of time steps away from the action boundary
             action_start = warmup_end
             while not data_gap and action_start < df_end:
-                curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(df,
-                                                                                                              action_start)
+                curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(df, action_start)
+                curr_action = action_normalizer(curr_action)
 
                 # Align time steps within action window
                 curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
@@ -236,6 +236,12 @@ class DirectActionDataLoader(BaseDataLoader):
                     step_start = step_start + timedelta(seconds=self.obs_length)
 
                     state = next_state
+
+                    # make sure normalization works
+                    # assert (state >= 0).all()
+                    # assert (state <= 1).all()
+                    # assert (prev_action <= 1).all()
+                    # assert (prev_action >= 0).all()
 
                     # sometimes it can't find step_start in the df, so throw the
                     # pbar updating in a try-except

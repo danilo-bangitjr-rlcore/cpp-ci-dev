@@ -40,7 +40,7 @@ class Normalize(CompositeStateConstructor):
         self.sc = sc
 
 
-class Anytime(CompositeStateConstructor):
+class ReseauAnytime(CompositeStateConstructor):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         nan_sc = comp.HandleNan() # first component in the graph. Handle observations with NaNs
         avg_sc = comp.Average(parents=[nan_sc]) # Average the rows

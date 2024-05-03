@@ -19,6 +19,8 @@ class NormalizerInteraction(BaseInteraction):
         reward = self.reward_normalizer(raw_reward)
         next_state = self.state_constructor(next_observation)
         reward = self.reward_normalizer(reward)
+
+
         return [(state, action, reward, next_state, terminated, truncate)], [env_info]
 
     def reset(self) -> (np.ndarray, dict):

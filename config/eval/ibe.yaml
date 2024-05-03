@@ -16,3 +16,6 @@ network:
   layer_init : Xavier
   bias : True
   name: fc
+
+offline_eval : True
+online_eval : True

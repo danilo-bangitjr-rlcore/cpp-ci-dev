@@ -1,12 +1,14 @@
 from omegaconf import DictConfig
-from corerl.eval.simple_eval import RewardEval
+from corerl.eval.base_eval import BaseEval
+from corerl.eval.reward import RewardEval
 from corerl.eval.ibe import IBE
 
-def init_evaluator(cfg:  DictConfig, state_dim: int, action_dim:int):
+
+def init_evaluator(cfg: DictConfig, eval_args: dict) -> BaseEval:
     name = cfg.name
     if name == 'ibe':
-        return IBE(cfg, state_dim, action_dim)  # TODO: seems really specific ?
+        return IBE(cfg, **eval_args)  # TODO: seems really specific ?
     elif name == 'reward':
-        return RewardEval(cfg)
+        return RewardEval(cfg, **eval_args)
     else:
         raise NotImplementedError()

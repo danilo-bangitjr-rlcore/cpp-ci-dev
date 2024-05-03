@@ -1,5 +1,5 @@
 defaults:
-  - action_normalizer: identity
-  - reward_normalizer: clip
+  - action_normalizer: scale
+  - reward_normalizer: identity
 
 name: normalizer
