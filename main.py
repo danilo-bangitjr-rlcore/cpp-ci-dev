@@ -12,9 +12,8 @@ from pathlib import Path
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
-from corerl.eval.factory import init_evaluator
+from corerl.eval.composite_eval import CompositeEval
 from corerl.interaction.factory import init_interaction
-from corerl.eval.reward import RewardEval
 from corerl.utils.device import init_device
 from corerl.data_loaders.factory import init_data_loader
 from corerl.environment.reward.factory import init_reward_function
@@ -39,12 +38,15 @@ def prepare_save_dir(cfg):
 
 
 def update_pbar(pbar, stats):
+    keys = ['last_bellman_error', 'avg_reward']  # which information to display
     pbar_str = ''
     for k, v in stats.items():
-        if isinstance(v, float):
-            pbar_str += '{key} : {val:.1f}, '.format(key=k, val=v)
-        else:
-            pbar_str += '{key} : {val} '.format(key=k, val=v)
+        if k in keys:
+
+            if isinstance(v, float):
+                pbar_str += '{key} : {val:.1f}, '.format(key=k, val=v)
+            else:
+                pbar_str += '{key} : {val} '.format(key=k, val=v)
     pbar.set_description(pbar_str)
 
 
@@ -53,7 +55,6 @@ def load_transitions(cfg, save_path, env):
     offline_data_df = data_loader.load_data()  # Any way to avoid this if the transition file already exists?
     obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
 
-    print(cfg.experiment.set_env_obs_space)
     if cfg.experiment.set_env_obs_space:
         env.observation_space = spaces.Box(low=obs_space_low, high=obs_space_high, dtype=np.float32)
 
@@ -79,17 +80,6 @@ def load_transitions(cfg, save_path, env):
     return train_transitions, test_transitions, offline_sc
 
 
-def instantiate_evaluators(eval_cfg, eval_args, online=False, offline=False):
-    assert online != offline
-    evaluators = []
-    for eval_type in eval_cfg.keys():
-        eval_type_cfg = eval_cfg[eval_type]
-        # check if the mode of running for the evaluator matches the offline/online flag
-        if (online and eval_cfg[eval_type].online_eval) or (offline and eval_cfg[eval_type].offline_eval):
-            evaluators.append(init_evaluator(eval_type_cfg, eval_args))
-    return evaluators
-
-
 def get_state_action_dim(env_cfg, env, sc):
     if env_cfg.obs_length == 1:
         obs_shape = (flatdim(env.observation_space), )
@@ -101,7 +91,7 @@ def get_state_action_dim(env_cfg, env, sc):
     return state_dim, action_dim
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
-def main(cfg: DictConfig) -> None:
+def main(cfg: DictConfig) -> dict:
     save_path = prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
     init_device(cfg.experiment.device)
@@ -129,7 +119,7 @@ def main(cfg: DictConfig) -> None:
     offline_eval_args = {
         'agent': agent
     }
-    offline_evaluators = instantiate_evaluators(cfg.eval, offline_eval_args, offline=True)
+    offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
 
     if do_offline_training:
         print('Starting offline training...')
@@ -140,20 +130,20 @@ def main(cfg: DictConfig) -> None:
         for _ in pbar:
             agent.update()
             # run all evaluators
-            for evaluator in offline_evaluators:
-                evaluator.do_eval(**offline_eval_args)
+            offline_eval.do_eval(**offline_eval_args)
+            stats = offline_eval.get_stats()
 
     # Online Deployment
-
     # Instantiate online evaluators
     online_eval_args = {
         'agent': agent
     }
-    online_evaluators = instantiate_evaluators(cfg.eval, online_eval_args, online=True)
+    online_eval = CompositeEval(cfg.eval, online_eval_args, online=True)
 
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(range(max_steps))
     state, info = interaction.reset()
+    print('Starting online training...')
     for _ in pbar:
         action = agent.get_action(state)
         transitions, envinfo = interaction.step(state, action)
@@ -162,18 +152,16 @@ def main(cfg: DictConfig) -> None:
             agent.update_buffer(transition)
 
         agent.update()
-        agent.add_to_freezer()
         state = transitions[-1][0]
 
         # logging + evaluation
-        online_eval_args = {
+        online_eval_args = {  # union of the information needed by all evaluators
             'agent': agent,
             'transitions': transitions
         }
-        for evaluator in online_evaluators:
-            evaluator.do_eval(**online_eval_args)
 
-        stats = evaluator.get_stats()
+        online_eval.do_eval(**online_eval_args)
+        stats = online_eval.get_stats()
         update_pbar(pbar, stats)
 
         # freezer example
@@ -183,10 +171,12 @@ def main(cfg: DictConfig) -> None:
         # agent.save(save_path / 'agent')
         # agent.load(save_path / 'agent')
 
-    evaluator.output(save_path / 'stats.json')
-    make_plots(fr.freezer, save_path / 'plots')
+    online_eval.output(save_path / 'stats.json')
+    # need to update make_plots here
+    stats = online_eval.get_stats()
+    make_plots(fr.freezer, stats, save_path / 'plots')
 
-    return evaluator.get_stats()
+    return stats
 
 
 if __name__ == "__main__":

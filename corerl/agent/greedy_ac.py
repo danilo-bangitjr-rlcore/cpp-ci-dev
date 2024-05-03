@@ -137,10 +137,6 @@ class GreedyAC(BaseAC):
         mask_batch = 1 - batch['dones']
 
         next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
-
-        print(next_state_batch.shape)
-        print(next_actions.shape)
-
         next_q = self.q_critic.get_q_target(next_state_batch, next_actions)
         target = reward_batch + mask_batch * self.gamma * next_q
         _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)
@@ -238,13 +234,6 @@ class GreedyAC(BaseAC):
                 self.update_sampler(update_infos=update_infos)
             else:
                 self.update_sampler(update_infos=None)
-
-    def add_to_freezer(self):
-        # log the action_gap
-        batch = self.buffer.sample()
-        state_batch = batch['states']
-        ag = utils.get_batch_action_gap(self, state_batch, self.action_dim)
-        fr.freezer.store('action_gap', ag)
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
