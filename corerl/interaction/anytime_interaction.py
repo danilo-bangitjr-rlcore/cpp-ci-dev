@@ -29,9 +29,14 @@ class AnytimeInteraction(NormalizerInteraction):
     Interaction that will repeat an action for some length of time, while the observation is still
     updated more frequently
     """
-
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env, state_constructor: BaseStateConstructor):
-        super().__init__(cfg, env, state_constructor)
+    def __init__(
+        self,
+        cfg: DictConfig,
+        env: gymnasium.Env,
+        state_constructor: BaseStateConstructor,
+        agent,
+    ):
+        super().__init__(cfg, env, state_constructor, agent)
         self.steps_per_decision = cfg.decision_steps  # how many observation steps per decision step
         self.obs_length = cfg.obs_length  # how often to update the observation
         self.gamma = cfg.gamma

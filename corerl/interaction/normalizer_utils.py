@@ -1,9 +1,10 @@
+import warnings
+import time
 from omegaconf import DictConfig
 from abc import ABC, abstractmethod
 
 import numpy as np
 import gymnasium
-
 
 class BaseNormalizer(ABC):
     @abstractmethod
@@ -70,24 +71,51 @@ class OneHot(BaseNormalizer):
         return idx
 
 
-def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> BaseNormalizer:
+def _get_policy_bounds(agent):
+    return agent.actor.distribution_bounds()
+
+
+def init_action_normalizer(
+    cfg: DictConfig, env: gymnasium.Env, agent,
+) -> BaseNormalizer:
+    print(cfg.name)
+
     if cfg.discrete_control:
         return Identity()
     else:  # continuous control
         name = cfg.name
+
         if name == "identity":
+            dist_min, dist_max = _get_policy_bounds(agent)
+            action_min = env.action_space.low
+            action_max = env.action_space.high
+
+            warnings.warn(
+                "\033[1;33m" +
+                f"actions are bounded between [{action_min}, {action_max}] " +
+                f"but the policy has support only over [{dist_min}, " +
+                f"{dist_max}]. Are you sure this is what you wanted to do?" +
+                "\033[0m"
+            )
+
             return Identity()
         elif name == "scale":
             if cfg.action_low:  # use high and low specified in the config
                 assert cfg.action_high, "Please specify cfg.action_normalizer.action_high in config file"
-                action_low = np.array(cfg.action_low)
-                action_high = np.array(cfg.action_high)
+                action_min = np.array(action_low)
+                action_max = np.array(action_high)
             else:  # use information from the environment
-                action_low = env.action_space.low
-                action_high = env.action_space.high
-            scale = action_high - action_low
-            bias = action_low
+                action_min = env.action_space.low
+                action_max = env.action_space.high
+
+            dist_min, dist_max = _get_policy_bounds(agent)
+            scale = (action_max - action_min) / (dist_max - dist_min)
+            bias = -scale * dist_min + action_min
+
+            print(f"Using scale = {scale} and bias = {bias}")
+
             return Scale(scale, bias)
+
         elif name == "clip":
             return Clip(cfg.clip_min, cfg.clip_max)
         else:
@@ -103,7 +131,7 @@ def init_reward_normalizer(cfg: DictConfig) -> BaseNormalizer:
         reward_high = float(cfg.reward_high)
         reward_low = float(cfg.reward_low)
         scale = reward_high - reward_low
-        bias = float(cfg.bias)
+        bias = reward_low
         return Scale(scale, bias)
     elif name == "clip":
         return Clip(cfg.clip_min, cfg.clip_max)

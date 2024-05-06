@@ -105,6 +105,9 @@ class SquashedGaussian(nn.Module):
 
         self.to(device)
 
+    def distribution_bounds(self):
+        return -1, 1
+
     # TODO: include n samples
     # TODO: rename observations to state
     def forward(self, state: torch.Tensor) -> (torch.Tensor, dict):
@@ -166,9 +169,9 @@ class BetaPolicy(nn.Module):
             self.alpha_head = layer_init(nn.Linear(arch[-1], output_dim, bias=bias))
             self.beta_head = layer_init(nn.Linear(arch[-1], output_dim, bias=bias))
         else:
-            """ 
-            A special case of learning alpha and beta directly. 
-            Initialize the weight using constant  
+            """
+            A special case of learning alpha and beta directly.
+            Initialize the weight using constant
             """
             self.base_network = lambda x: x
             self.alpha_head = layer_init(nn.Linear(input_dim, output_dim, bias=False))
@@ -178,6 +181,9 @@ class BetaPolicy(nn.Module):
         self.beta_param_bound = torch.tensor(beta_param_bound)
         self.tanh_shift = cfg.tanh_shift
         self.to(device)
+
+    def distribution_bounds(self):
+        return 0, 1
 
     def squash_dist_param(self, dist_param: torch.Tensor, low: float | torch.Tensor,
                           high: float | torch.Tensor) -> torch.Tensor:
