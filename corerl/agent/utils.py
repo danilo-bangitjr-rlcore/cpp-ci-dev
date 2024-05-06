@@ -68,24 +68,6 @@ def get_top_action(func, states, actions, action_dim, batch_size, n_actions, ret
 #     return best_actions
 
 
-def get_batch_action_gap(agent, state_batch: Float[torch.Tensor, "batch_size state_dim"],
-                         action_dim: int, n_samples=1000) -> float:
-    batch_size = state_batch.shape[0]
-    actions = torch.rand(size=(batch_size * n_samples, action_dim))
-    states = torch.repeat_interleave(state_batch, n_samples, dim=0)
-
-    best_q_actions = get_top_action(agent.q_critic.get_q, states, actions,
-                                    action_dim, batch_size, n_actions=n_samples)
-
-    best_pi_actions = get_top_action(agent.actor.get_log_prob, states, actions,
-                                     action_dim, batch_size, n_actions=n_samples, return_idx=0)
-
-    best_q_actions = best_q_actions.squeeze()
-    best_pi_actions = best_pi_actions.squeeze()
-    action_gap = torch.norm(best_q_actions - best_pi_actions, p=2, dim=1)
-    mean_action_gap = torch.mean(action_gap)
-    return mean_action_gap.item()
-
 def get_test_state_qs_and_policy_params(agent, test_transitions, device):
     test_actions = 100
     num_states = len(test_transitions)

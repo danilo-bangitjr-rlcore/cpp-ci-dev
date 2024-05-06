@@ -3,12 +3,26 @@ defaults:
   - reward : reseau
   - _self_
 
-name: Reseau_online
-db_settings_pth: "\\Users\\RLCORE\\corerl\\control\\src\\environment\\reseau\\db_settings_osoyoos.json"
-opc_settings_pth : "\\Users\\RLCORE\\corerl\\control\\src\\environment\\reseau\\opc_settings_osoyoos.json"
-control_tags_online : ["osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"]
-control_tags_default : 20.0
+opc:
+  ip_address : "localhost"
+  port : "49320"
+  conn_stats : False
+
+db:
+  bucket : "rlcore-bucket"
+  org : "rlcore"
+  url :  "http://localhost:8086"
+  token : "placeholder_token"
+
+
+name: reseau
+control_tags : ["osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"]
 col_names : ["ait301_pv", "fit250_pv",  "p250_fp"]
+obs_length : 60
+action_low : 0
+action_high : 300
+
+
 reset_fpm: 15
 decision_freq : 1800
 obs_freq : 60

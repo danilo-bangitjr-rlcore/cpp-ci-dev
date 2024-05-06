@@ -14,6 +14,7 @@ def remove_spines(axs, spines=["top", "right"], has_subplots=True):
     else:
         _remove_spines(axs, spines)
 
+
 def make_action_mean_variance_plot(freezer, save_path):
     action_info = freezer['action_info']
 
@@ -75,9 +76,12 @@ def make_param_plot(freezer, save_path):
     remove_spines(axs)
     plt.savefig(save_path / 'action_params.png', bbox_inches='tight')
 
-def make_action_gap_plot(freezer, save_path):
-    action_gap = freezer['action_gap']
 
+def make_action_gap_plot(stats, save_path):
+    if 'action_gap' not in stats:
+        return
+
+    action_gap = stats['action_gap']
     fig, ax = plt.subplots()
     ax.plot(action_gap)
     remove_spines(ax, has_subplots=False)
@@ -85,12 +89,24 @@ def make_action_gap_plot(freezer, save_path):
     ax.set_ylabel('Action gap')
     plt.savefig(save_path / 'action_gap.png', bbox_inches='tight')
 
-def make_plots(freezer, save_path):
+
+def make_bellman_error_plot(stats, save_path):
+    if 'bellman_error' not in stats:
+        return
+
+    bes = stats['bellman_error']
+
+    fig, ax = plt.subplots()
+    ax.plot(bes)
+    remove_spines(ax, has_subplots=False)
+    ax.set_xlabel('Step')
+    ax.set_ylabel('BE')
+    plt.savefig(save_path / 'bellman_error.png', bbox_inches='tight')
+
+
+def make_plots(freezer, stats, save_path):
     save_path.mkdir(parents=True, exist_ok=True)
     make_action_mean_variance_plot(freezer, save_path)
     make_param_plot(freezer, save_path)
-    make_action_gap_plot(freezer, save_path)
-
-
-
-
+    make_action_gap_plot(stats, save_path)
+    make_bellman_error_plot(stats, save_path)

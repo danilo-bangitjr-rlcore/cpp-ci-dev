@@ -277,10 +277,9 @@ class Anytime(BaseStateConstructorComponent):
         else:
             self.steps_since_decision += 1
 
-        countdown = 1 - self.steps_since_decision/self.decision_step
+        countdown = max(1 - self.steps_since_decision/self.decision_step, 0)
         indicator = 1 if decision_point else 0
-
-        return np.array([[countdown, indicator]])
+        return np.array([countdown, indicator]).reshape(1, -1)
 
     def _clear_state(self) -> None:
         self.steps_since_decision = 0

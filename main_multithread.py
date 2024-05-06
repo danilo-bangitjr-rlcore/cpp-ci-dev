@@ -2,7 +2,6 @@ import hydra
 import numpy as np
 import torch
 import random
-import queue
 
 from tqdm import tqdm
 from omegaconf import DictConfig
@@ -12,7 +11,7 @@ from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.interaction.factory import init_interaction
-from corerl.utils.evaluator import Evaluator
+from corerl.eval.reward import RewardEval
 from corerl.utils.device import init_device
 from corerl.utils.multithreading import multithreaded_step
 from main import prepare_save_dir, update_pbar
@@ -40,7 +39,7 @@ def main(cfg: DictConfig) -> None:
     state_dim = sc.get_state_dim(state)  # gets state_dim dynamically
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
-    evaluator = Evaluator(cfg.evaluator)
+    evaluator = RewardEval(cfg.evaluator)
 
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(range(max_steps))
@@ -48,7 +47,7 @@ def main(cfg: DictConfig) -> None:
         action = agent.get_action(state)
         transition = multithreaded_step(agent, interaction, state, action)
         agent.update_buffer(transition)
-        evaluator.update(transition)
+        evaluator.do_eval(transition)
 
         state = transition[3]  # next_state is the fourth entry of the transition tuple
 

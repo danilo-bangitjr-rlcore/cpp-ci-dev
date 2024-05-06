@@ -1,0 +1,61 @@
+defaults:
+  - config
+  - override agent: greedy_ac
+  - override env: reseau
+  - override data_loader: direct_action
+  - override interaction: anytime
+  - override state_constructor: reseau_anytime
+  - override interaction/action_normalizer: scale
+  - override interaction/reward_normalizer: scale
+  - _self_
+
+# values may be overridden outside of the defaults list
+experiment :
+  exp_name : "reseau_test"
+  max_steps : 0
+  offline_steps : 10000
+  set_env_obs_space : True
+
+env:
+  opc : null
+  db : null
+
+interaction :
+  obs_length : 60
+  decision_steps : 30
+  action_normalizer:
+    action_high : 300
+    action_low:  0
+  reward_normalizer:
+    reward_high : 4
+    reward_low : -20
+    reward_bias : 4
+
+state_constructor:
+  decision_steps : 30
+
+agent:
+  tau : 0
+  rho : 0.04
+  num_samples: 500
+  uniform_proposal : True
+  critic:
+    polyak': 0.995
+    critic_optimizer:
+      lr : 0.0003
+      weight_decay : 0.001
+  actor:
+    actor_optimizer:
+      lr : 0.001
+
+data_loader:
+  offline_data_path : offline_data
+  offline_filenames': ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv", "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie.csv", "rosie_2.csv"]
+  skip_rows : 3
+  header : 0
+  df_col_names : ["Blank", "Result", "Table", "Date", "ait101_pv", "ait301_pv", "ait401_pv", "fit101_pv", "fit210_pv", "fit230_pv", "fit250_pv", "fit401_pv", "p250_fp", "pt100_pv", "pt101_pv", "pt161_pv", "pt171_pv", "pt302_pv"]
+  obs_col_names: ["ait301_pv", "fit250_pv", "p250_fp"]
+  control_col_names: ["p250_fp"]
+
+
+

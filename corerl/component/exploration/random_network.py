@@ -99,7 +99,7 @@ class RndNetworkExploreLineSearch(RndNetworkExplore):
                                        cfg.exploration_optimizer.name)
 
     def set_parameters(self, buffer_address: int, eval_error_fn: Optional['Callable'] = None) -> None:
-        assert eval_error_fn is None # Define the evaluation function inside the class
+        assert eval_error_fn is None # Define the eval function inside the class
         self.optimizer.set_params(buffer_address, [self.fbonus0_copy, self.fbonus1_copy],
                                   self.exploration_eval_error_fn)
         self.buffer = ctypes.cast(buffer_address, ctypes.py_object).value

@@ -3,6 +3,8 @@ import gymnasium as gym
 import gym_electric_motor as gem
 from omegaconf import DictConfig
 from gymnasium.wrappers import FlattenObservation
+
+from corerl.environment.reseau_env import ReseauEnv
 from corerl.environment.three_tanks import ThreeTankEnv
 from corerl.environment.three_tanks import TTChangeAction, TTChangeActionDiscrete
 from corerl.environment.smpl.envs.atropineenv import AtropineEnvGym
@@ -104,6 +106,8 @@ def init_environment(cfg: DictConfig) -> gym.Env:
         env = D4RLWrapper("walker2d-medium-expert", seed)
     elif name == "Walker2d-medium-replay":
         env = D4RLWrapper("walker2d-medium-replay", seed)
+    elif name == 'reseau':
+        env = ReseauEnv(cfg)
     else:
         raise NotImplementedError
 
