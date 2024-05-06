@@ -4,3 +4,4 @@ defaults:
 
 name: normalizer
 timeout: ${experiment.timeout}
+gamma : ${agent.gamma}

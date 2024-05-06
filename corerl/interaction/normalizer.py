@@ -12,8 +12,10 @@ class NormalizerInteraction(BaseInteraction):
         super().__init__(cfg, env, state_constructor)
         self.action_normalizer = init_action_normalizer(cfg.action_normalizer, self.env)
         self.reward_normalizer = init_reward_normalizer(cfg.reward_normalizer)
+        self.gamma = cfg.gamma
 
-    def step(self, state: np.ndarray, action: np.ndarray) -> tuple[list[tuple], list[dict]]:
+    def step(self, state: np.ndarray, action: np.ndarray, decision_point=False) -> tuple[list[tuple], list[dict]]:
+        # Revan: I'm not sure that this is the best place for decision_point ^
         denormalized_action = self.action_normalizer.denormalize(action)
         next_observation, raw_reward, terminated, env_truncate, env_info = self.env.step(denormalized_action)
         reward = self.reward_normalizer(raw_reward)
@@ -22,7 +24,8 @@ class NormalizerInteraction(BaseInteraction):
         truncate = self.env_counter() # use the interaction counter to decide reset. Remove reset in environment
         if terminated or truncate:
             next_state, env_info = self.reset() # if truncated or terminated, replace the next state and env_info with the return after resetting.
-        return [(state, action, reward, next_state, terminated, truncate)], [env_info]
+
+        return [(state, action, reward, next_state, terminated, truncate, decision_point, self.gamma)], [env_info]
 
     def reset(self) -> (np.ndarray, dict):
         observation, info = self.env.reset()

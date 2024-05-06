@@ -111,9 +111,10 @@ def main(cfg: DictConfig) -> dict:
         train_transitions, test_transitions, sc = load_transitions(cfg, save_path, env)
 
     sc = init_state_constructor(cfg.state_constructor, env)
-    interaction = init_interaction(cfg.interaction, env, sc)
     state_dim, action_dim = get_state_action_dim(cfg.env, env, sc)
     agent = init_agent(cfg.agent, state_dim, action_dim)
+    interaction = init_interaction(cfg.interaction, env, sc)
+
 
     # instantiate offline evaluators
     offline_eval_args = {
@@ -132,6 +133,7 @@ def main(cfg: DictConfig) -> dict:
             # run all evaluators
             offline_eval.do_eval(**offline_eval_args)
             stats = offline_eval.get_stats()
+            update_pbar(pbar, stats)
 
     # Online Deployment
     # Instantiate online evaluators
