@@ -19,8 +19,8 @@ def init_interaction(
     if name == "normalizer":
         return NormalizerInteraction(cfg, env, sc, agent)
     if name == "timed":
-        return TimedInteraction(cfg, env, sc)
+        return TimedInteraction(cfg, env, sc, agent)
     if name == 'anytime':
-        return AnytimeInteraction(cfg, env, sc)
+        return AnytimeInteraction(cfg, env, sc, agent)
     else:
         raise NotImplementedError
