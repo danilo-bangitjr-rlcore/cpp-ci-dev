@@ -152,7 +152,7 @@ def main(cfg: DictConfig) -> dict:
             agent.update_buffer(transition)
 
         agent.update()
-        state = transitions[-1][0]
+        state = transitions[-1][3]
 
         # logging + evaluation
         online_eval_args = {  # union of the information needed by all evaluators

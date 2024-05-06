@@ -1,6 +1,6 @@
 name: ibe
 gamma: ${agent.gamma}
-n_updates: 10
+n_updates: 100
 
 optimizer:
   name: adam
