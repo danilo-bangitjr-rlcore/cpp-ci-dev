@@ -4,6 +4,7 @@ import gym_electric_motor as gem
 from omegaconf import DictConfig
 from gymnasium.wrappers import FlattenObservation
 
+from corerl.environment.bimodal import Bimodal
 from corerl.environment.reseau_env import ReseauEnv
 from corerl.environment.three_tanks import ThreeTankEnv
 from corerl.environment.three_tanks import TTChangeAction, TTChangeActionDiscrete
@@ -66,6 +67,11 @@ def init_environment(cfg: DictConfig) -> gym.Env:
         env = DiscreteControlWrapper("MountainCar-v0", seed)
     elif name == "MountainCar-v0-sparse":
         env = SparseDiscreteControlWrapper("MountainCar-v0", seed)
+    elif name == "Bimodal":
+        reward_v = False
+        if "reward_variance" in cfg.keys():
+            reward_v = cfg.reward_variance
+        env = Bimodal(seed, reward_v)
     elif name == "Pendulum-v1":
         # continual learning task. No timeout
         env = PendulumEnv(render_mode="human", continuous_action=(not cfg.discrete_control))
