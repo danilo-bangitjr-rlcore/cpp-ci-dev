@@ -4,5 +4,5 @@ defaults:
 
 name : squashed_gaussian
 layer_init : Xavier
-head_activation : Softplus
+head_activation : None
 bias : True
