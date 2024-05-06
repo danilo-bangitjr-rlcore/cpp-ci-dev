@@ -94,7 +94,7 @@ class SquashedGaussian(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(SquashedGaussian, self).__init__()
         layer_init = utils.init_layer(cfg.layer_init)
-        arch = cfg.arch
+        arch = cfg.base.arch
 
         if len(arch) > 0:
             self.base_network = create_base(cfg.base, input_dim, arch[-1])
