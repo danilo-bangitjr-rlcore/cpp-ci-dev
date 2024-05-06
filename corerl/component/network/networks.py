@@ -1,3 +1,4 @@
+import time
 import torch
 import torch.nn as nn
 import torch.distributions as distrib
@@ -7,10 +8,54 @@ from corerl.utils.device import device
 
 from omegaconf import DictConfig
 
-FLOAT32_EPS = 10 * \
-              np.finfo(np.float32).eps  # differences of this size are
-# representable up to ~ 15
+# Differences of this size are representable up to ~ 15
+FLOAT32_EPS = 10 * np.finfo(np.float32).eps
 EPSILON = 1e-6
+
+
+def _percentile_bootstrap(
+    x, dim, batch_size, n_samples, percentile, statistic=torch.mean
+):
+    size = (*x.shape[:dim], batch_size * n_samples, *x.shape[dim + 1:])
+    ind = torch.randint(0, x.shape[dim], size)
+
+    samples = torch.gather(x, dim, ind)
+
+    size = (
+        *x.shape[:dim],
+        batch_size,
+        n_samples,
+        *x.shape[dim + 1:],
+    )
+    samples = samples.reshape(size)
+    bootstr_stat = statistic(samples, dim=(len(x.shape[:dim])))
+
+    return torch.quantile(bootstr_stat, percentile, dim=dim)
+
+
+def _init_ensemble_reduct(cfg: DictConfig):
+    reduct = cfg.reduct
+    if reduct.startswith("torch.nn."):
+        return getattr(torch, reduct[9:])
+    elif reduct.startswith("torch."):
+        return getattr(torch, reduct[6:])
+    elif reduct.lower() == "min":
+        def _f(x, dim):
+            return torch.min(x, dim=dim)[0]
+    elif reduct.lower() == "max":
+        def _f(x, dim):
+            return torch.max(x, dim=dim)[0]
+    elif reduct.lower() == "percentile":
+        def _f(x, dim):
+            return _percentile_bootstrap(
+                x, dim, cfg.bootstrap_batch_size, cfg.bootstrap_samples,
+                cfg.percentile,
+            )
+    else:
+        raise ValueError(f"unknown reduct type {reduct}")
+
+    return _f
+
 
 
 def create_base(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
@@ -58,15 +103,20 @@ class EnsembleCritic(nn.Module):
         super(EnsembleCritic, self).__init__()
         self.ensemble = cfg.ensemble
         self.subnetworks = [
-            create_base(cfg.base, input_dim, output_dim) for _ in range(self.ensemble)]
+            create_base(cfg.base, input_dim, output_dim)
+            for _ in range(self.ensemble)
+        ]
+        self._reduct = _init_ensemble_reduct(cfg)
         self.to(device)
 
-    def forward(self, input_tensor: torch.Tensor) -> (torch.Tensor, torch.Tensor):
+    def forward(
+        self, input_tensor: torch.Tensor,
+    ) -> (torch.Tensor, torch.Tensor):
         qs = [net(input_tensor) for net in self.subnetworks]
         for i in range(self.ensemble):
             qs[i] = torch.unsqueeze(qs[i], 0)
         qs = torch.cat(qs, dim=0)
-        q, _ = torch.min(qs, dim=0)
+        q = self._reduct(qs, dim=0)
 
         return q, qs
 
