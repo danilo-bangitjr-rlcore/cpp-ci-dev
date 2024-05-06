@@ -59,7 +59,7 @@ class EnsembleQCritic(BaseQ):
     ) -> (torch.Tensor, torch.Tensor):
         state_actions = torch.concat((states, actions), dim=1)
         with torch.no_grad():
-            return self.target(state_actions).detach()
+            return self.target(state_actions)
 
     def get_q_target(
         self, states: torch.Tensor, actions: torch.Tensor,
