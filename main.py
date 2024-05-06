@@ -50,44 +50,46 @@ def update_pbar(pbar, stats):
 def main(cfg: DictConfig) -> None:
     save_path = prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
-
     init_device(cfg.experiment.device)
+
     # set the random seeds
     seed = cfg.experiment.seed
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)
 
-    data_loader = init_data_loader(cfg.data_loader)
-    offline_data_df = data_loader.load_data()
-    obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
-
     env = init_environment(cfg.env)
-    env.observation_space = spaces.Box(low=obs_space_low, high=obs_space_high, dtype=np.float32)
+
+    do_offline_training = cfg.experiment.offline_steps > 0
+    if do_offline_training:
+        data_loader = init_data_loader(cfg.data_loader)
+        offline_data_df = data_loader.load_data()
+        obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
+        env.observation_space = spaces.Box(low=obs_space_low, high=obs_space_high, dtype=np.float32)
 
     sc = init_state_constructor(cfg.state_constructor, env)
-    reward_func = init_reward_function(cfg.env.reward)
-    reward_normalizer = init_reward_normalizer(cfg.interaction.reward_normalizer)
-    action_normalizer = init_action_normalizer(cfg.interaction.action_normalizer, env)
     interaction = init_interaction(cfg.interaction, env, sc)
     action_dim = flatdim(env.action_space)
-
     state_dim = interaction.get_state_dim()  # gets state_dim dynamically
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
-    # Offline Training
-    if (save_path / "offline_transitions.pkl").is_file():
-        offline_transitions = data_loader.load_transitions(save_path / "offline_transitions.pkl")
-    else:
-        offline_transitions = data_loader.create_transitions(offline_data_df, sc, reward_func, action_normalizer, reward_normalizer)
-        data_loader.save_transitions(offline_transitions, save_path / "offline_transitions.pkl")
-    train_transitions, test_transitions = data_loader.train_test_split(offline_transitions)
-    for transition in train_transitions:
-        agent.update_buffer(transition)
-    offline_steps = cfg.experiment.offline_steps
-    pbar = tqdm(range(offline_steps))
-    for _ in pbar:
-        agent.update()
+    if do_offline_training:
+        reward_func = init_reward_function(cfg.env.reward)
+        reward_normalizer = init_reward_normalizer(cfg.interaction.reward_normalizer)
+        action_normalizer = init_action_normalizer(cfg.interaction.action_normalizer, env)
+        # Offline Training
+        if (save_path / "offline_transitions.pkl").is_file():
+            offline_transitions = data_loader.load_transitions(save_path / "offline_transitions.pkl")
+        else:
+            offline_transitions = data_loader.create_transitions(offline_data_df, sc, reward_func, action_normalizer, reward_normalizer)
+            data_loader.save_transitions(offline_transitions, save_path / "offline_transitions.pkl")
+        train_transitions, test_transitions = data_loader.train_test_split(offline_transitions)
+        for transition in train_transitions:
+            agent.update_buffer(transition)
+        offline_steps = cfg.experiment.offline_steps
+        pbar = tqdm(range(offline_steps))
+        for _ in pbar:
+            agent.update()
 
     # Online Deployment
     evaluator = Evaluator(cfg.evaluator)

@@ -1,0 +1,6 @@
+defaults:
+  - base_env
+  - _self_
+
+name : AtropineEnv
+discrete_control : False

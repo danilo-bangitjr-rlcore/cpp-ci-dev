@@ -1,0 +1,6 @@
+defaults:
+  - base_env
+  - _self_
+
+name : MountainCarContinuous-v0
+discrete_control : False

@@ -1,0 +1,6 @@
+defaults:
+  - base_env
+  - _self_
+
+name : BeerEnv
+discrete_control : False

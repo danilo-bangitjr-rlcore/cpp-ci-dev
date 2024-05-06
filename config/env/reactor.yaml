@@ -1,0 +1,6 @@
+defaults:
+  - base_env
+  - _self_
+
+name : ReactorEnv
+discrete_control : False

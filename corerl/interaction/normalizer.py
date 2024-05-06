@@ -15,10 +15,13 @@ class NormalizerInteraction(BaseInteraction):
 
     def step(self, state: np.ndarray, action: np.ndarray) -> tuple[list[tuple], list[dict]]:
         denormalized_action = self.action_normalizer.denormalize(action)
-        next_observation, raw_reward, terminated, truncate, env_info = self.env.step(denormalized_action)
+        next_observation, raw_reward, terminated, env_truncate, env_info = self.env.step(denormalized_action)
         reward = self.reward_normalizer(raw_reward)
         next_state = self.state_constructor(next_observation)
         reward = self.reward_normalizer(reward)
+        truncate = self.env_counter() # use the interaction counter to decide reset. Remove reset in environment
+        if terminated or truncate:
+            next_state, env_info = self.reset() # if truncated or terminated, replace the next state and env_info with the return after resetting.
         return [(state, action, reward, next_state, terminated, truncate)], [env_info]
 
     def reset(self) -> (np.ndarray, dict):

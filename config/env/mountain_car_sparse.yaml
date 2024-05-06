@@ -1,0 +1,6 @@
+defaults:
+  - base_env
+  - _self_
+
+name : MountainCar-v0-sparse
+discrete_control : True

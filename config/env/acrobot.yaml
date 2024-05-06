@@ -1,0 +1,6 @@
+defaults:
+  - base_env
+  - _self_
+
+name : Acrobot-v1
+discrete_control : True
