@@ -27,7 +27,7 @@ def init_critic_target(cfg: DictConfig, input_dim: int, output_dim: int, critic:
 
 def init_actor_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
     """
-    corresponding configs : corerl/config/agent/actor/actor_network
+    corresponding configs : corerl/config/agent/actor/network
     """
     if cfg.name == 'squashed_gaussian':
         network = networks.SquashedGaussian(cfg, input_dim, output_dim)

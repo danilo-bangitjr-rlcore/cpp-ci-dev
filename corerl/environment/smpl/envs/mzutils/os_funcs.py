@@ -364,7 +364,7 @@ def set_local_vars_from_yaml(yaml_loc, name_space_dict):
     import yaml
     with open(yaml_loc, 'r') as fp:
         config_dict = yaml.safe_load(fp)
-    name_space_dict.update(config_dict)
+    name_space_dict.do_eval(config_dict)
 
 
 class TimeRecorder:

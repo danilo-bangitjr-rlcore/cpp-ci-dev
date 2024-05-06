@@ -1,19 +1,17 @@
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
+from tqdm import tqdm
 
-import gymnasium
-from gymnasium import spaces
 from datetime import timedelta
 import pandas as pd
 import numpy as np
 import pickle as pkl
 import random
-from corerl.environment.factory import init_environment
 from corerl.environment.reward.base import BaseReward
-from corerl.state_constructor.factory import init_state_constructor
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.interaction.normalizer_utils import BaseNormalizer
-from corerl.component.data_loaders.base import BaseDataLoader
+from corerl.data_loaders.base import BaseDataLoader
+
 
 class DirectActionDataLoader(BaseDataLoader):
     def __init__(self, cfg: DictConfig):
@@ -31,8 +29,7 @@ class DirectActionDataLoader(BaseDataLoader):
         self.date_col_name = cfg.date_col_name
         self.max_time_delta = cfg.max_time_delta
         self.time_thresh = pd.Timedelta(self.max_time_delta, "s")
-        self.decision_freq = cfg.decision_freq
-        self.obs_freq = cfg.obs_freq
+        self.obs_length = cfg.obs_length
         self.warmup_steps = cfg.warmup_steps
         self.gamma = cfg.gamma
         self.train_split = cfg.train_split
@@ -43,15 +40,16 @@ class DirectActionDataLoader(BaseDataLoader):
         """
         dfs = []
         for file in self.offline_filenames:
-            df = pd.read_csv(file, dtype=np.float32, skiprows=self.skip_rows, header=self.header, names=self.df_col_names, index_col=self.date_col_name, parse_dates=True)
+            df = pd.read_csv(file, dtype=np.float32, skiprows=self.skip_rows, header=self.header,
+                             names=self.df_col_names, index_col=self.date_col_name, parse_dates=True)
             dfs.append(df)
         concat_df = pd.concat(dfs)
         concat_df.sort_values(by=[self.date_col_name], inplace=True)
         concat_df = concat_df[self.obs_col_names]
 
-        print("Concatenated DF:")
-        print(concat_df)
-        
+        # print("Concatenated DF:")
+        # print(concat_df)
+
         return concat_df
 
     def get_obs_max_min(self, df: pd.DataFrame) -> (np.ndarray, np.ndarray):
@@ -61,15 +59,15 @@ class DirectActionDataLoader(BaseDataLoader):
         np_min_max = df.agg(['min', 'max']).to_numpy()
         obs_space_low = np_min_max[0, :]
         obs_space_high = np_min_max[1, :]
-        
-        print("Obs Space Low:", obs_space_low)
-        print("Obs Space High:", obs_space_high)
+
+        # print("Obs Space Low:", obs_space_low)
+        # print("Obs Space High:", obs_space_high)
 
         return obs_space_low, obs_space_high
 
     def find_uninterrupted_windows(self, df: pd.DataFrame) -> list[pd.DataFrame]:
         """
-        There may be large gaps in time in the input dataframe so we split it up into a list of dataframes that are each uninterrupted
+        There may be large gaps in time in the input dataframe, so we split it up into a list of dataframes that are each uninterrupted
         """
         df_list = []
         time_thresh = pd.Timedelta(self.max_time_delta, "s")
@@ -85,25 +83,26 @@ class DirectActionDataLoader(BaseDataLoader):
             prev_date = curr_date
         final_df = self.get_df_date_range(df, df_start, index)
         df_list.append(final_df)
-        
+
         print("DF List:")
         print(df_list)
 
         return df_list
 
     def get_df_date_range(self, df: pd.DataFrame, start_ind: pd.Timestamp, end_ind: pd.Timestamp) -> pd.DataFrame:
-        window_df = df.loc[start_ind : end_ind]
+        window_df = df.loc[start_ind: end_ind]
 
         return window_df
 
-    def warmup_sc(self, df: pd.DataFrame, state_constructor: BaseStateConstructor, start_ind: pd.Timestamp) -> (BaseStateConstructor, pd.Timestamp, np.ndarray):
+    def warmup_sc(self, df: pd.DataFrame, state_constructor: BaseStateConstructor, start_ind: pd.Timestamp) -> (
+            BaseStateConstructor, pd.Timestamp, np.ndarray):
         """
         Warm up state constructor
         """
         state_constructor.reset()
 
         # Determine portion of dataframe that will be used in state constructor warmup
-        warmup_sec = self.obs_freq * self.warmup_steps
+        warmup_sec = self.obs_length * self.warmup_steps
         warmup_start = df.loc[start_ind].name
         warmup_end = warmup_start + timedelta(seconds=warmup_sec)
 
@@ -111,20 +110,22 @@ class DirectActionDataLoader(BaseDataLoader):
         obs_start = warmup_start
         state = None
         while obs_start < warmup_end:
-            _, state = self.get_state(df, obs_start, state_constructor)
-            obs_start = obs_start + timedelta(seconds=self.obs_freq)
+            _, state = self.get_state(df, obs_start, True, state_constructor)  # what to do here??
+            obs_start = obs_start + timedelta(seconds=self.obs_length)
 
         return state_constructor, warmup_end, state
 
-    def get_state(self, df: pd.DataFrame, start: pd.Timestamp, decision_point: bool, state_constructor: BaseStateConstructor) -> (pd.DataFrame, np.ndarray):
-        end = start + timedelta(seconds=self.obs_freq)
+    def get_state(self, df: pd.DataFrame, start: pd.Timestamp, decision_point: bool,
+                  state_constructor: BaseStateConstructor) -> (pd.DataFrame, np.ndarray):
+        end = start + timedelta(seconds=self.obs_length)
         obs_df = self.get_df_date_range(df, start, end)
         obs = obs_df.to_numpy()
         state = state_constructor(obs, decision_point=decision_point)
 
         return obs_df, state
 
-    def find_action_boundary(self, df: pd.DataFrame, start_ind: pd.Timestamp) -> (np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool):
+    def find_action_boundary(self, df: pd.DataFrame, start_ind: pd.Timestamp) -> (
+            np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool):
         """
         Return the action taken at the beginning of the dataframe.
         Iterate through the dataframe until an action change, a truncation/termination in the episode, or a large break in time.
@@ -161,7 +162,8 @@ class DirectActionDataLoader(BaseDataLoader):
         """
         raise NotImplementedError
 
-    def create_n_step_transitions_(self, transitions: list[tuple], state_action_rewards: list[tuple], boot_state: np.ndarray, trunc: bool, term: bool) -> list[tuple]:
+    def create_n_step_transitions_(self, transitions: list[tuple], state_action_rewards: list[tuple],
+                                   boot_state: np.ndarray, trunc: bool, term: bool) -> list[tuple]:
         # Create "Anytime" variable n-step transitions, where 'n' depends on the number of steps from the action boundary
         n_step_reward = 0.0
         for i in range(len(state_action_rewards) - 1, -1, -1):
@@ -180,24 +182,27 @@ class DirectActionDataLoader(BaseDataLoader):
         Determine the number of time steps that fit in the given action window and align the time steps, taking into account the time remainder
         """
         action_duration = action_end - action_start
-        curr_action_steps = action_duration // timedelta(seconds=self.obs_freq)
-        time_remainder = action_duration % timedelta(seconds=self.obs_freq)
+        curr_action_steps = action_duration // timedelta(seconds=self.obs_length)
+        time_remainder = action_duration % timedelta(seconds=self.obs_length)
         step_start = action_start + time_remainder
 
         return curr_action_steps, step_start
 
-    def create_transitions(self, df: pd.DataFrame, state_constructor: BaseStateConstructor, reward_function: BaseReward, action_normalizer: BaseNormalizer, reward_normalizer: BaseNormalizer) -> list[tuple]:
+    def create_transitions(self, df: pd.DataFrame, state_constructor: BaseStateConstructor, reward_function: BaseReward,
+                           action_normalizer: BaseNormalizer, reward_normalizer: BaseNormalizer) -> list[tuple]:
         """
         Iterate through the df and produce transitions using the "Anytime" paradigm.
         Take into account discontinuities in the dataframe (large gaps in time between consecutive rows)
         """
+        print('Loading transitions...')
         transitions = []
 
         # Keep trying to create transitions until you reach the end of the df
         action_start = df.iloc[0].name
         df_end = df.iloc[-1].name
+        pbar = tqdm(total=df.index.get_loc(df_end))
         while action_start < df_end:
-            data_gap = False # Indicates a discontinuity in the df
+            data_gap = False  # Indicates a discontinuity in the df
             prev_action = None
 
             # Warmup state constructor using data starting from action_start
@@ -209,7 +214,8 @@ class DirectActionDataLoader(BaseDataLoader):
             action_start = warmup_end
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(df, action_start)
-                
+                curr_action = action_normalizer(curr_action)
+
                 # Align time steps within action window
                 curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
 
@@ -227,14 +233,30 @@ class DirectActionDataLoader(BaseDataLoader):
                     reward = reward_normalizer(raw_reward)
                     state_action_rewards.append((state, curr_action, reward))
                     prev_action = curr_action
-                    step_start = step_start + timedelta(seconds=self.obs_freq)
+                    step_start = step_start + timedelta(seconds=self.obs_length)
+
                     state = next_state
-                
+
+                    # make sure normalization works
+                    # assert (state >= 0).all()
+                    # assert (state <= 1).all()
+                    # assert (prev_action <= 1).all()
+                    # assert (prev_action >= 0).all()
+
+                    # sometimes it can't find step_start in the df, so throw the
+                    # pbar updating in a try-except
+                    try:
+                        pbar.n = df.index.get_loc(step_start)
+                        pbar.refresh()
+                    except:
+                        pass
+
                 # State that will be bootstrapped from in n-step updates
                 boot_state = state
 
                 # Create n-step Transitions
-                transitions = self.create_n_step_transitions_(transitions, state_action_rewards, boot_state, trunc, term)
+                transitions = self.create_n_step_transitions_(transitions, state_action_rewards,
+                                                              boot_state, trunc, term)
 
                 action_start = next_action_start
 
@@ -242,15 +264,15 @@ class DirectActionDataLoader(BaseDataLoader):
 
         return transitions
 
-    def train_test_split(self, transitions: list[tuple], shuffle: bool=True) -> (list[tuple], list[tuple]):
+    def train_test_split(self, transitions: list[tuple], shuffle: bool = True) -> (list[tuple], list[tuple]):
         if shuffle:
             random.shuffle(transitions)
-        
+
         num_samples = len(transitions)
         train_samples = int(self.train_split * num_samples)
         train_transitions = transitions[:train_samples]
         test_transitions = transitions[train_samples:]
-        
+
         return train_transitions, test_transitions
 
     def save_transitions(self, transitions: list[tuple], path: Path):

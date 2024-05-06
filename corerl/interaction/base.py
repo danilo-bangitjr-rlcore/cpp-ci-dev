@@ -26,7 +26,3 @@ class BaseInteraction(ABC):
     def warmup_sc(self, *args, **kwargs) -> None:
         raise NotImplementedError
 
-
-    def get_state_dim(self) -> int:
-        obs, _ = self.env.reset()
-        return self.state_constructor.get_state_dim(obs)

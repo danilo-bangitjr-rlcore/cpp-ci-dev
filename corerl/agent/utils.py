@@ -37,47 +37,4 @@ def get_top_action(func, states, actions, action_dim, batch_size, n_actions, ret
     return best_actions
 
 
-# def get_max_actions_critic(critic, states, actions, action_dim, batch_size, n_samples):
-#     qs = critic.get_q(states, actions)
-#     qs = qs.reshape((batch_size, n_samples, 1))
-#     sorted_q_inds = torch.argsort(qs, dim=1, descending=True)
-#
-#     best_inds = sorted_q_inds[:, 0, :]  # index for the best action in each state
-#     best_inds = best_inds.unsqueeze(1)
-#     best_inds = best_inds.repeat_interleave(action_dim, -1)
-#
-#     actions = actions.reshape(batch_size, n_samples, action_dim)
-#     best_actions = torch.gather(actions, dim=1, index=best_inds)
-#     return best_actions
 
-# def get_max_actions_actor(actor, states, actions, action_dim, batch_size, n_samples):
-#     log_probs, _ = actor.get_log_prob(states, actions)
-#     log_probs = log_probs.reshape((batch_size, n_samples, 1))
-#     sorted_prob_inds = torch.argsort(log_probs, dim=1, descending=True)
-#
-#     best_inds = sorted_prob_inds[:, 0, :]  # index for the best action in each state
-#     best_inds = best_inds.unsqueeze(1)
-#     best_inds = best_inds.repeat_interleave(action_dim, -1)
-#
-#     sample_actions = actions.reshape(batch_size, n_samples, action_dim)
-#     best_actions = torch.gather(sample_actions, dim=1, index=best_inds)
-#     return best_actions
-
-
-def get_batch_action_gap(agent, state_batch: Float[torch.Tensor, "batch_size state_dim"],
-                         action_dim: int, n_samples=1000) -> float:
-    batch_size = state_batch.shape[0]
-    actions = torch.rand(size=(batch_size * n_samples, action_dim))
-    states = torch.repeat_interleave(state_batch, n_samples, dim=0)
-
-    best_q_actions = get_top_action(agent.q_critic.get_q, states, actions,
-                                    action_dim, batch_size, n_actions=n_samples)
-
-    best_pi_actions = get_top_action(agent.actor.get_log_prob, states, actions,
-                                     action_dim, batch_size, n_actions=n_samples, return_idx=0)
-
-    best_q_actions = best_q_actions.squeeze()
-    best_pi_actions = best_pi_actions.squeeze()
-    action_gap = torch.norm(best_q_actions - best_pi_actions, p=2, dim=1)
-    mean_action_gap = torch.mean(action_gap)
-    return mean_action_gap.item()

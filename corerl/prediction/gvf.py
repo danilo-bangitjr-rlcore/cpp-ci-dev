@@ -35,7 +35,7 @@ class BaseGVF(ABC):
     def update(self):
         batch = self.buffer.sample_mini_batch(self.batch_size)
         loss = self.compute_gvf_loss(batch, with_grad=True)
-        self.gvf.update(loss)
+        self.gvf.do_eval(loss)
         self.train_losses.append(loss.detach().numpy())
 
     def train(self):

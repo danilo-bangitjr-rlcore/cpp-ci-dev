@@ -129,7 +129,7 @@ class GreedyAC(BaseAC):
 
         return state_batch, repeated_states, sample_actions, sorted_q_inds, stacked_s_batch, best_actions, batch_size
 
-    def compute_critic_loss(self, batch: dict) -> torch.Tensor:
+    def compute_critic_loss(self, batch: dict) -> list[torch.Tensor]:
         state_batch = batch['states']
         action_batch = batch['actions']
         reward_batch = batch['rewards']
@@ -184,7 +184,7 @@ class GreedyAC(BaseAC):
     def compute_actor_loss(self, update_info) -> (torch.Tensor, tuple):
         _, _, _, _, stacked_s_batch, best_actions, _ = update_info
         logp, _ = self.actor.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
-        actor_loss = -logp.mean()
+        actor_loss = -logp.mean() # BUG: This is negative?
         return actor_loss
 
     def compute_sampler_loss(self, update_info) -> (torch.Tensor, torch.Tensor):
@@ -234,13 +234,6 @@ class GreedyAC(BaseAC):
                 self.update_sampler(update_infos=update_infos)
             else:
                 self.update_sampler(update_infos=None)
-
-    def add_to_freezer(self):
-        # log the action_gap
-        batch = self.buffer.sample()
-        state_batch = batch['states']
-        ag = utils.get_batch_action_gap(self, state_batch, self.action_dim)
-        fr.freezer.store('action_gap', ag)
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

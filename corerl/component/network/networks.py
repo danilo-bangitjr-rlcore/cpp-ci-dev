@@ -20,7 +20,7 @@ def create_base(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
         raise NotImplementedError
 
 
-# TODO: here is an example of initializing a actor_network.
+# TODO: here is an example of initializing a network.
 class FC(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super().__init__()
@@ -228,7 +228,7 @@ class BetaPolicy(nn.Module):
 
         return action, info
 
-    def log_prob(self, state: torch.Tensor, action: torch.Tensor, debug: bool = False) -> (torch.Tensor, dict):
+    def log_prob(self, state: torch.Tensor, action: torch.Tensor) -> (torch.Tensor, dict):
         out = action
         out = torch.clamp(out, 0, 1)
 

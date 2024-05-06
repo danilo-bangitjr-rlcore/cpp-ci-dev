@@ -674,7 +674,7 @@ class ReactorEnvGym(smplEnvBase):
     def evaluate_observation(self, observation):
         """
         observation: numpy array of shape (self.observation_dim)
-        returns: observation evaluation (reward in a sense)
+        returns: observation eval (reward in a sense)
         
         return float(- (np.mean((observation - self.steady_observations) ** 2 / np.maximum(
             (self.init_observation - self.steady_observations) ** 2, 1e-8))))

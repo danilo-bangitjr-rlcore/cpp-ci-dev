@@ -123,6 +123,7 @@ class MaxMinNormalize(BaseStateConstructorComponent):
     def __init__(self, env: gymnasium.Env, parents: list | None = None):
         super().__init__(parents=parents)
         # NOTE: this should only be used for environments with continuous observation spaces
+
         self.low = env.observation_space.low
         self.high = env.observation_space.high
 
@@ -270,15 +271,14 @@ class Anytime(BaseStateConstructorComponent):
         self.steps_since_decision = 0
 
     def process_observation(self, obs_parents: list, decision_point=False) -> np.ndarray:
-        if not decision_point:
+        if decision_point:
             self.steps_since_decision = 0
         else:
             self.steps_since_decision += 1
 
-        countdown = 1 - self.steps_since_decision/self.decision_step
+        countdown = max(1 - self.steps_since_decision/self.decision_step, 0)
         indicator = 1 if decision_point else 0
-
-        return np.array([countdown, indicator])
+        return np.array([countdown, indicator]).reshape(1, -1)
 
     def _clear_state(self) -> None:
         self.steps_since_decision = 0

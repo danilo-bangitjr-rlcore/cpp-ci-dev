@@ -25,6 +25,16 @@ def expectile_loss(diff: torch.Tensor, expectile: float = 0.9) -> torch.Tensor:
     return weight * (diff ** 2)
 
 
+def ensemble_expectile_loss(q: torch.Tensor, vs: list[torch.Tensor], expectile: float = 0.9) -> list[torch.Tensor]:
+    losses = []
+    for v in vs:
+        diff = q - v
+        weight = torch.where(diff > 0, expectile, (1 - expectile))
+        loss_v = (weight * (diff ** 2)).mean()
+        losses.append(loss_v)
+    return losses
+
+
 def ensemble_mse(target: torch.Tensor, q_ens: list[torch.Tensor]) -> list[torch.Tensor]:
     mses = [nn.functional.mse_loss(target, q) for q in q_ens]
     return mses
@@ -96,8 +106,7 @@ def layer_init_zero(layer: nn.Module, bias: bool = True) -> nn.Module:
     return layer
 
 
-
-def layer_init_constant(layer: nn.Module, const: float, bias: bool=True) -> nn.Module:
+def layer_init_constant(layer: nn.Module, const: float, bias: bool = True) -> nn.Module:
     nn.init.constant_(layer.weight, float(const))
     if int(bias):
         nn.init.constant_(layer.bias.data, float(const))
@@ -111,7 +120,7 @@ def layer_init_xavier(layer: nn.Module, bias: bool = True) -> nn.Module:
     return layer
 
 
-def layer_init_uniform(layer: nn.Module, low: float=-0.003, high: float=0.003, bias: float=0) -> nn.Module:
+def layer_init_uniform(layer: nn.Module, low: float = -0.003, high: float = 0.003, bias: float = 0) -> nn.Module:
     nn.init.uniform_(layer.weight, low, high)
     if float(bias):
         nn.init.constant_(layer.bias.data, bias)
