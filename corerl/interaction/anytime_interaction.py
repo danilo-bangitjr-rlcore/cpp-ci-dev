@@ -76,6 +76,8 @@ class AnytimeInteraction(NormalizerInteraction):
         # assemble the transitions
         num_completed_steps = len(truncate_list)
         transitions = []
+
+        # TODO: change this
         for obs_step in range(num_completed_steps):  # note: we do not return a transition for the final state
             transition = (state_list[obs_step], action, reward_list[obs_step], next_state, terminated_list[obs_step],
                           truncate_list[obs_step])

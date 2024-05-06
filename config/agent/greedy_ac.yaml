@@ -9,7 +9,7 @@ rho : 0.2
 prop_rho_mult : 2.0
 num_samples : 100
 share_batch : True
-uniform_proposal : False
+uniform_proposal : True
 n_sampler_updates: 1
 
 

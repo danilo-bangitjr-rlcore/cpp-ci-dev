@@ -13,7 +13,7 @@ class BaseExploration:
         raise NotImplementedError
 
     @abstractmethod
-    def get_exploration_bonus(self, *args) -> torch.Tensor: # evaluation
+    def get_exploration_bonus(self, *args) -> torch.Tensor: # eval
         raise NotImplementedError
 
     @abstractmethod

@@ -14,14 +14,14 @@ def update_agent_until(agent, interaction_done):
         if len(agent.buffer.data) == 0:
             pass
         else:
-            agent.update()
+            agent.do_eval()
 
 
 def update_agent(agent, interaction_done):
     if len(agent.buffer.data) == 0:
         pass
     else:
-        agent.update()
+        agent.do_eval()
     interaction_done.wait()
 
 

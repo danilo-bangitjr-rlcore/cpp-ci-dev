@@ -1,6 +1,7 @@
 defaults:
-  - action_normalizer: identity
+  - action_normalizer: scale
   - reward_normalizer: clip
 
 name: normalizer
 timeout: ${experiment.timeout}
+gamma : ${agent.gamma}

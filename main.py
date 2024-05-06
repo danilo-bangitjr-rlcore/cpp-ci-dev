@@ -12,11 +12,10 @@ from pathlib import Path
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
-from corerl.interaction.normalizer_utils import init_action_normalizer, init_reward_normalizer
+from corerl.eval.composite_eval import CompositeEval
 from corerl.interaction.factory import init_interaction
-from corerl.utils.evaluator import Evaluator
 from corerl.utils.device import init_device
-from corerl.component.data_loaders.factory import init_data_loader
+from corerl.data_loaders.factory import init_data_loader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.utils.plotting import make_plots
 
@@ -37,19 +36,64 @@ def prepare_save_dir(cfg):
 
     return save_path
 
+
 def update_pbar(pbar, stats):
+    keys = ['last_bellman_error', 'avg_reward']  # which information to display
     pbar_str = ''
     for k, v in stats.items():
-        if isinstance(v, float):
-            pbar_str += '{key} : {val:.1f}, '.format(key=k, val=v)
-        else:
-            pbar_str += '{key} : {val} '.format(key=k, val=v)
+        if k in keys:
+            if isinstance(v, float):
+                pbar_str += '{key} : {val:.1f}, '.format(key=k, val=v)
+            else:
+                pbar_str += '{key} : {val} '.format(key=k, val=v)
     pbar.set_description(pbar_str)
 
+
+def load_transitions(cfg, save_path, env):
+    data_loader = init_data_loader(cfg.data_loader)
+    offline_data_df = data_loader.load_data()  # Any way to avoid this if the transition file already exists?
+    obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
+
+    if cfg.experiment.set_env_obs_space:
+        env.observation_space = spaces.Box(low=obs_space_low, high=obs_space_high, dtype=np.float32)
+
+    offline_sc = init_state_constructor(cfg.state_constructor, env)
+    offline_interaction = init_interaction(cfg.interaction, env, offline_sc)
+
+    reward_func = init_reward_function(cfg.env.reward)
+    reward_normalizer = offline_interaction.reward_normalizer
+    action_normalizer = offline_interaction.action_normalizer
+
+    # Load transitions
+    if (save_path / "offline_transitions.pkl").is_file():
+        offline_transitions = data_loader.load_transitions(save_path / "offline_transitions.pkl")
+    else:
+        # In the future, we may just want to pass the entire normalizer in. This assumes you're
+        # using a normalizer interaction
+        offline_transitions = data_loader.create_transitions(offline_data_df, offline_sc, reward_func,
+                                                             action_normalizer,
+                                                             reward_normalizer)
+        data_loader.save_transitions(offline_transitions, save_path / "offline_transitions.pkl")
+    train_transitions, test_transitions = data_loader.train_test_split(offline_transitions)
+
+    return train_transitions, test_transitions, offline_sc
+
+
+def get_state_action_dim(env_cfg, env, sc):
+    if env_cfg.obs_length == 1:
+        obs_shape = (flatdim(env.observation_space), )
+    else:
+        obs_shape = (env_cfg.obs_length, flatdim(env.observation_space))
+    dummy_obs = np.ones(obs_shape)
+    state_dim = sc.get_state_dim(dummy_obs)  # gets state_dim dynamically
+    action_dim = flatdim(env.action_space)
+    return state_dim, action_dim
+
 @hydra.main(version_base=None, config_name='config', config_path="config/")
-def main(cfg: DictConfig) -> None:
+def main(cfg: DictConfig) -> dict:
     save_path = prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
+
     init_device(cfg.experiment.device)
 
     # set the random seeds
@@ -58,58 +102,68 @@ def main(cfg: DictConfig) -> None:
     random.seed(seed)
     torch.manual_seed(seed)
 
+    # load_transitions() will potentially modify the environment by setting obs_space high and low, so
+    # we instantiate it first
     env = init_environment(cfg.env)
 
     do_offline_training = cfg.experiment.offline_steps > 0
     if do_offline_training:
-        data_loader = init_data_loader(cfg.data_loader)
-        offline_data_df = data_loader.load_data()
-        obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
-        env.observation_space = spaces.Box(low=obs_space_low, high=obs_space_high, dtype=np.float32)
+        train_transitions, test_transitions, sc = load_transitions(cfg, save_path, env)
 
     sc = init_state_constructor(cfg.state_constructor, env)
-    interaction = init_interaction(cfg.interaction, env, sc)
-    action_dim = flatdim(env.action_space)
-    state_dim = interaction.get_state_dim()  # gets state_dim dynamically
+    state_dim, action_dim = get_state_action_dim(cfg.env, env, sc)
     agent = init_agent(cfg.agent, state_dim, action_dim)
+    interaction = init_interaction(cfg.interaction, env, sc)
+
+
+    # instantiate offline evaluators
+    offline_eval_args = {
+        'agent': agent
+    }
+    offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
 
     if do_offline_training:
-        reward_func = init_reward_function(cfg.env.reward)
-        reward_normalizer = init_reward_normalizer(cfg.interaction.reward_normalizer)
-        action_normalizer = init_action_normalizer(cfg.interaction.action_normalizer, env)
-        # Offline Training
-        if (save_path / "offline_transitions.pkl").is_file():
-            offline_transitions = data_loader.load_transitions(save_path / "offline_transitions.pkl")
-        else:
-            offline_transitions = data_loader.create_transitions(offline_data_df, sc, reward_func, action_normalizer, reward_normalizer)
-            data_loader.save_transitions(offline_transitions, save_path / "offline_transitions.pkl")
-        train_transitions, test_transitions = data_loader.train_test_split(offline_transitions)
+        print('Starting offline training...')
         for transition in train_transitions:
             agent.update_buffer(transition)
         offline_steps = cfg.experiment.offline_steps
         pbar = tqdm(range(offline_steps))
         for _ in pbar:
             agent.update()
+            # run all evaluators
+            offline_eval.do_eval(**offline_eval_args)
+            stats = offline_eval.get_stats()
+            update_pbar(pbar, stats)
 
     # Online Deployment
-    evaluator = Evaluator(cfg.evaluator)
+    # Instantiate online evaluators
+    online_eval_args = {
+        'agent': agent
+    }
+    online_eval = CompositeEval(cfg.eval, online_eval_args, online=True)
+
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(range(max_steps))
     state, info = interaction.reset()
+    print('Starting online training...')
     for _ in pbar:
         action = agent.get_action(state)
         transitions, envinfo = interaction.step(state, action)
 
         for transition in transitions:
             agent.update_buffer(transition)
-            evaluator.update(transition)
 
         agent.update()
-        agent.add_to_freezer()
-        state = transitions[-1][0]
+        state = transitions[-1][3]
 
-        # logging
-        stats = evaluator.get_stats()
+        # logging + evaluation
+        online_eval_args = {  # union of the information needed by all evaluators
+            'agent': agent,
+            'transitions': transitions
+        }
+
+        online_eval.do_eval(**online_eval_args)
+        stats = online_eval.get_stats()
         update_pbar(pbar, stats)
 
         # freezer example
@@ -119,10 +173,13 @@ def main(cfg: DictConfig) -> None:
         # agent.save(save_path / 'agent')
         # agent.load(save_path / 'agent')
 
-    evaluator.output(save_path / 'stats.json')
-    make_plots(fr.freezer, save_path / 'plots')
+    online_eval.output(save_path / 'stats.json')
+    # need to update make_plots here
+    stats = online_eval.get_stats()
+    make_plots(fr.freezer, stats, save_path / 'plots')
 
-    return evaluator.get_stats()
+    return stats
+
 
 if __name__ == "__main__":
     main()

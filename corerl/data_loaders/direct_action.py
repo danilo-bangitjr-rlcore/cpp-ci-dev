@@ -1,19 +1,16 @@
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
+from tqdm import tqdm
 
-import gymnasium
-from gymnasium import spaces
 from datetime import timedelta
 import pandas as pd
 import numpy as np
 import pickle as pkl
 import random
-from corerl.environment.factory import init_environment
 from corerl.environment.reward.base import BaseReward
-from corerl.state_constructor.factory import init_state_constructor
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.interaction.normalizer_utils import BaseNormalizer
-from corerl.component.data_loaders.base import BaseDataLoader
+from corerl.data_loaders.base import BaseDataLoader
 
 class DirectActionDataLoader(BaseDataLoader):
     def __init__(self, cfg: DictConfig):
@@ -211,6 +208,7 @@ class DirectActionDataLoader(BaseDataLoader):
         # Keep trying to create transitions until you reach the end of the df
         action_start = df.iloc[0].name
         df_end = df.iloc[-1].name
+        pbar = tqdm(total=df.index.get_loc(df_end))
         while action_start < df_end:
             data_gap = False # Indicates a discontinuity in the df
             prev_action = None
@@ -262,6 +260,12 @@ class DirectActionDataLoader(BaseDataLoader):
                     state = next_state
                     steps_since_decision = (steps_since_decision + 1) % self.steps_per_decision
                     prev_decision_point = decision_point
+
+                    try:
+                        pbar.n = df.index.get_loc(step_start)
+                        pbar.refresh()
+                    except:
+                        pass
                 
                 # Create remaining transitions
                 boot_state = state

@@ -1,1 +1,2 @@
 seed : ${experiment.seed}
+obs_length : 1

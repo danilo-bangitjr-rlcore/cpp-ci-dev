@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import gymnasium
 
+
 class BaseNormalizer(ABC):
     @abstractmethod
     def __init__(self):
@@ -74,14 +75,13 @@ def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> BaseNormalize
         return Identity()
     else:  # continuous control
         name = cfg.name
-
         if name == "identity":
             return Identity()
         elif name == "scale":
             if cfg.action_low:  # use high and low specified in the config
                 assert cfg.action_high, "Please specify cfg.action_normalizer.action_high in config file"
-                action_low = np.array(action_low)
-                action_high = np.array(action_high)
+                action_low = np.array(cfg.action_low)
+                action_high = np.array(cfg.action_high)
             else:  # use information from the environment
                 action_low = env.action_space.low
                 action_high = env.action_space.high

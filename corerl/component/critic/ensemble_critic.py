@@ -53,6 +53,8 @@ class EnsembleQCritic(BaseQ):
             self.sync_target()
             self.target_sync_counter = 0
 
+        self.target_sync_counter += 1
+
     def ensemble_backward(self, loss):
         for i in range(len(loss)):
             loss[i].backward(inputs=list(self.model.parameters(independent=True)[i]))
@@ -129,6 +131,8 @@ class EnsembleVCritic(BaseV):
         if self.target_sync_counter % self.target_sync_freq == 0:
             self.sync_target()
             self.target_sync_counter = 0
+
+        self.target_sync_counter += 1
 
     def sync_target(self) -> None:
         with torch.no_grad():

@@ -107,8 +107,16 @@ class DBClientWrapper:
 
 class InfluxOPCEnv(ABC, gym.Env):
     def __init__(self, cfg):
-        self.db_client = DBClientWrapper(cfg.db)
-        self.opc_connection = OpcConnection(cfg.opc)
+        if cfg.db is not None:
+            self.db_client = DBClientWrapper(cfg.db)
+        else:
+            self.db_client = None
+
+        if cfg.opc is not None:
+            self.opc_connection = OpcConnection(cfg.opc)
+        else:
+            self.opc_connection = None
+
         self.control_tags = cfg.control_tags
         self.col_names = cfg.col_names
         self.obs_length = cfg.obs_length

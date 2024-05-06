@@ -32,7 +32,3 @@ class BaseInteraction(ABC):
         self.internal_clock += 1
         trunc = (self.timeout > 0) and (self.internal_clock % self.timeout == 0)
         return trunc
-
-    def get_state_dim(self) -> int:
-        obs, _ = self.env.reset()
-        return self.state_constructor.get_state_dim(obs)
