@@ -103,6 +103,19 @@ def make_bellman_error_plot(stats, save_path):
     ax.set_ylabel('BE')
     plt.savefig(save_path / 'bellman_error.png', bbox_inches='tight')
 
+def make_reward_plot(stats, save_path):
+    if 'rewards' not in stats:
+        return
+
+    rewards = stats['rewards']
+
+    fig, ax = plt.subplots()
+    ax.plot(rewards)
+    remove_spines(ax, has_subplots=False)
+    ax.set_xlabel('Step')
+    ax.set_ylabel('Reward')
+    plt.savefig(save_path / 'rewards.png', bbox_inches='tight')
+
 
 def make_plots(freezer, stats, save_path):
     save_path.mkdir(parents=True, exist_ok=True)
@@ -110,3 +123,4 @@ def make_plots(freezer, stats, save_path):
     make_param_plot(freezer, save_path)
     make_action_gap_plot(stats, save_path)
     make_bellman_error_plot(stats, save_path)
+    make_reward_plot(stats, save_path)

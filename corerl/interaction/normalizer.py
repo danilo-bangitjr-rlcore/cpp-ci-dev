@@ -25,7 +25,7 @@ class NormalizerInteraction(BaseInteraction):
         if terminated or truncate:
             next_state, env_info = self.reset() # if truncated or terminated, replace the next state and env_info with the return after resetting.
 
-        return [(state, action, reward, next_state, terminated, truncate, decision_point, self.gamma)], [env_info]
+        return [(state, action, reward, next_state, terminated, truncate, decision_point, 1)], [env_info]
 
     def reset(self) -> (np.ndarray, dict):
         observation, info = self.env.reset()

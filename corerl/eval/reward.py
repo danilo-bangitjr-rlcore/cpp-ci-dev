@@ -50,12 +50,7 @@ class RewardEval(BaseEval):
         else:
             stats['avg_return ({})'.format(self.return_window)] = 'n/a'
 
-        return stats
-
-    def output(self, path: Path):
-        stats = self.get_stats()
-        stats['returns'] = self.returns
         stats['rewards'] = self.rewards
+        stats['returns'] = self.returns
 
-        with open(path, 'w') as f:
-            json.dump(stats, f)
+        return stats

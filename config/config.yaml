@@ -5,7 +5,7 @@ defaults:
   - interaction : normalizer
   - state_constructor : identity
   - eval@eval.ibe : ibe # this lets us have multiple subconfigs rooted at eval
-  - eval@eval.reward : reward
+#  - eval@eval.reward : reward
 #  - eval@eval.action_gap : action_gap
   - _self_
 
@@ -18,7 +18,7 @@ experiment:
   device : cpu
   timeout : 1
   offline_steps : 0
-  max_steps : 1000
+  max_steps : 200
   offline_critic_steps : 0
   offline_actor_steps : 0
   render : 0
