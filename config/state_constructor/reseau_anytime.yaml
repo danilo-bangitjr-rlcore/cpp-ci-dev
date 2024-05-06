@@ -1,0 +1,6 @@
+name: reseau_anytime
+decision_steps : 30
+orp_col : 0
+flow_rate_col : 1
+fpm_col : 2
+memory : [30, 60, 180, 360]

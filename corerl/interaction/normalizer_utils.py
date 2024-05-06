@@ -103,7 +103,7 @@ def init_reward_normalizer(cfg: DictConfig) -> BaseNormalizer:
         reward_high = float(cfg.reward_high)
         reward_low = float(cfg.reward_low)
         scale = reward_high - reward_low
-        bias = reward_low
+        bias = float(cfg.bias)
         return Scale(scale, bias)
     elif name == "clip":
         return Clip(cfg.clip_min, cfg.clip_max)
