@@ -12,18 +12,15 @@ class MultiTrace(CompositeStateConstructor):
 
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         # define the computation graphs
-        nan_sc = comp.HandleNan() # first component in the graph. Handle observations with NaNs
-        avg_sc = comp.Average(parents=[nan_sc]) # Average the rows
-
-        norm_sc = comp.MaxMinNormalize(env, parents=[avg_sc])  # first component in the graph
+        start_sc = comp.Identity()  # first component in the graph
         trace_components = []
         for trace_value in cfg.trace_values:
             # all traces will receive the output of norm_sc as input
-            trace_sc = comp.MemoryTrace(trace_value, parents=[norm_sc])
+            trace_sc = comp.MemoryTrace(trace_value, parents=[start_sc])
             trace_components.append(trace_sc)
 
         # finally, we will concatenate all the traces and normalized values together
-        concat_parents = [norm_sc] + trace_components  # the parents are normalized values and the trace's outputs
+        concat_parents = [start_sc] + trace_components  # the parents are normalized values and the trace's outputs
         concat_sc = comp.Concatenate(parents=concat_parents)
         self.sc = concat_sc
 
@@ -40,43 +37,38 @@ class Normalize(CompositeStateConstructor):
         self.sc = sc
 
 
-class ReseauAnytime(CompositeStateConstructor):
+class SimpleReseauAnytime(CompositeStateConstructor):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
-        nan_sc = comp.HandleNan() # first component in the graph. Handle observations with NaNs
-        avg_sc = comp.Average(parents=[nan_sc]) # Average the rows
-        norm_sc = comp.MaxMinNormalize(env, parents=[avg_sc])  # first component in the graph
-        anytime_sc = comp.Anytime(cfg.decision_steps, parents=[norm_sc])
-        concat_sc = comp.Concatenate(parents=[norm_sc, anytime_sc])
+        identity_sc = comp.Identity()
+        anytime_sc = comp.Anytime(cfg.decision_steps, parents=[identity_sc])
+        concat_sc = comp.Concatenate(parents=[identity_sc, anytime_sc])
         self.sc = concat_sc
+
 
 class ReseauAnytime(CompositeStateConstructor):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         identity_sc = comp.Identity()
 
-        s0 = comp.HandleNan(parents=[identity_sc])
-        s1 = comp.Average(parents=[s0])
-        s2 = comp.MaxMinNormalize(env, parents=[s1])
-        
-        s3 = comp.KeepCols(cfg.orp_col, parents=[s2])
-        s4 = comp.KeepCols(cfg.flow_rate_col, parents=[s2])
-        s5 = comp.KeepCols(cfg.fpm_col, parents=[s2])
-        
+        col_sc_1 = comp.KeepCols(cfg.orp_col, parents=[identity_sc])
+        col_sc_2 = comp.KeepCols(cfg.flow_rate_col, parents=[identity_sc])
+        col_sc_3 = comp.KeepCols(cfg.fpm_col, parents=[identity_sc])
+
         # Differences in the ORP over some timeframe
         orp_diffs = []
         for horizon in cfg.memory:
-            orp_diffs.append(comp.Difference(horizon, parents=[s3]))
+            orp_diffs.append(comp.Difference(horizon, parents=[col_sc_1]))
 
         # Differences in the Flow Rate over some timeframe
         flow_diffs = []
         for horizon in cfg.memory:
-            flow_diffs.append(comp.Difference(horizon, parents=[s4]))
-        
+            flow_diffs.append(comp.Difference(horizon, parents=[col_sc_2]))
+
         # averages of the FPM
         fpm_avgs = []
         for horizon in cfg.memory:
-            fpm_avgs.append(comp.LongAverage(horizon, parents=[s5]))
+            fpm_avgs.append(comp.LongAverage(horizon, parents=[col_sc_3]))
 
         anytime_sc = comp.Anytime(cfg.decision_steps, parents=[identity_sc])
-        concat_parents = [s2] + orp_diffs + flow_diffs + fpm_avgs + [anytime_sc]
+        concat_parents = [identity_sc] + orp_diffs + flow_diffs + fpm_avgs + [anytime_sc]
         concat_sc = comp.Concatenate(parents=concat_parents)
         self.sc = concat_sc

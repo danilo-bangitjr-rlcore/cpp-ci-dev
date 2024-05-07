@@ -9,8 +9,9 @@ import pickle as pkl
 import random
 from corerl.environment.reward.base import BaseReward
 from corerl.state_constructor.base import BaseStateConstructor
-from corerl.interaction.normalizer_utils import BaseNormalizer
+from corerl.interaction.normalizer import NormalizerInteraction
 from corerl.data_loaders.base import BaseDataLoader
+from copy import deepcopy
 
 
 class DirectActionDataLoader(BaseDataLoader):
@@ -34,6 +35,8 @@ class DirectActionDataLoader(BaseDataLoader):
         self.warmup_steps = cfg.warmup_steps
         self.gamma = cfg.gamma
         self.train_split = cfg.train_split
+        # if we return the state constructors's internal state for each transition
+        self.return_sc_state = cfg.return_sc_state
 
     def load_data(self) -> pd.DataFrame:
         """
@@ -95,8 +98,11 @@ class DirectActionDataLoader(BaseDataLoader):
 
         return window_df
 
-    def warmup_sc(self, df: pd.DataFrame, state_constructor: BaseStateConstructor, start_ind: pd.Timestamp) -> (
-    BaseStateConstructor, pd.Timestamp, np.ndarray):
+    def warmup_sc(self,
+                  df: pd.DataFrame,
+                  state_constructor: BaseStateConstructor,
+                  interaction: NormalizerInteraction,
+                  start_ind: pd.Timestamp) -> (BaseStateConstructor, pd.Timestamp, np.ndarray, bool, BaseStateConstructor):
         """
         Warm up state constructor
         """
@@ -122,7 +128,12 @@ class DirectActionDataLoader(BaseDataLoader):
                     steps_since_decision = 1
                 for i in range(curr_action_steps):
                     decision_point = steps_since_decision == 0
-                    _, state = self.get_state(state_constructor, df, step_start, decision_point, steps_since_decision)
+                    _, state, sc_at_state = self.get_state(state_constructor,
+                                                           interaction,
+                                                           df,
+                                                           step_start,
+                                                           decision_point,
+                                                           steps_since_decision)
                     steps_since_decision = (steps_since_decision + 1) % self.steps_per_decision
                     step_start += timedelta(seconds=self.obs_length)
                     elapsed_warmup += timedelta(seconds=self.obs_length)
@@ -132,20 +143,32 @@ class DirectActionDataLoader(BaseDataLoader):
 
             action_start = next_action_start
 
-        return state_constructor, warmup_end, state, decision_point
+        return state_constructor, warmup_end, state, decision_point, sc_at_state
 
-    def get_state(self, state_constructor: BaseStateConstructor, df: pd.DataFrame, start: pd.Timestamp,
-                  decision_point: bool, steps_since_decision: int) -> (pd.DataFrame, np.ndarray):
+    def get_state(self,
+                  state_constructor: BaseStateConstructor,
+                  interaction: NormalizerInteraction,
+                  df: pd.DataFrame,
+                  start: pd.Timestamp,
+                  decision_point: bool,
+                  steps_since_decision: int) -> (pd.DataFrame, np.ndarray):
+
         end = start + timedelta(seconds=self.obs_length)
         obs_df = self.get_df_date_range(df, start, end)
         obs = obs_df.to_numpy()
+        obs = interaction.obs_normalizer(obs)
         state = state_constructor(obs, decision_point=decision_point, steps_since_decision=steps_since_decision)
+        # copy the state constructor's internal state. This will be used for calibration_models training
 
+        if self.return_sc_state:
+            sc_at_state = deepcopy(state_constructor)
+        else:
+            sc_at_state = None
 
-        return obs_df, state
+        return obs_df, state, sc_at_state
 
-    def find_action_boundary(self, df: pd.DataFrame, start_ind: pd.Timestamp) -> (
-    np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool):
+    def find_action_boundary(self, df: pd.DataFrame,
+                             start_ind: pd.Timestamp) -> (np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool):
         """
         Return the action taken at the beginning of the dataframe.
         Iterate through the dataframe until an action change, a truncation/termination in the episode, or a large break in time.
@@ -176,8 +199,12 @@ class DirectActionDataLoader(BaseDataLoader):
         """
         return False, False
 
-    def create_n_step_transitions_(self, transitions: list[tuple], state_action_rewards: list[tuple],
-                                   boot_state: np.ndarray, term: bool, trunc: bool) -> list[tuple]:
+    def create_n_step_transitions_(self,
+                                   transitions: list[tuple],
+                                   state_action_rewards: list[tuple],
+                                   boot_state: np.ndarray,
+                                   term: bool,
+                                   trunc: bool) -> list[tuple]:
         # Create "Anytime" variable n-step transitions, where 'n' depends on the number of steps from the action boundary
         n_step_reward = 0.0
         gamma_exp = 1
@@ -205,24 +232,32 @@ class DirectActionDataLoader(BaseDataLoader):
 
         return curr_action_steps, step_start
 
-    def create_transitions(self, df: pd.DataFrame, state_constructor: BaseStateConstructor, reward_function: BaseReward,
-                           action_normalizer: BaseNormalizer, reward_normalizer: BaseNormalizer) -> list[tuple]:
+    def create_transitions(self,
+                           df: pd.DataFrame,
+                           state_constructor: BaseStateConstructor,
+                           reward_function: BaseReward,
+                           interaction: NormalizerInteraction) -> (list[tuple], list[BaseStateConstructor]):
         """
         Iterate through the df and produce transitions using the "Anytime" paradigm.
         Take into account discontinuities in the dataframe (large gaps in time between consecutive rows)
         """
         transitions = []
+        sc_states = []  # will keep a list of the state constructor at each state in transitions
 
         # Keep trying to create transitions until you reach the end of the df
         action_start = df.iloc[0].name
         df_end = df.iloc[-1].name
         pbar = tqdm(total=df.index.get_loc(df_end))
+
         while action_start < df_end:
             data_gap = False  # Indicates a discontinuity in the df
             prev_action = None
 
             # Warmup state constructor using data starting from action_start
-            state_constructor, warmup_end, state, warmup_dp = self.warmup_sc(df, state_constructor, action_start)
+            state_constructor, warmup_end, state, warmup_dp, sc_at_state = self.warmup_sc(df,
+                                                                                          state_constructor,
+                                                                                          interaction,
+                                                                                          action_start)
 
             # Iterate over the action windows in the remainder of the df
             # Produce n-step transitions with the "Anytime" paradigm
@@ -232,7 +267,7 @@ class DirectActionDataLoader(BaseDataLoader):
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(df,
                                                                                                               action_start)
-                norm_curr_action = action_normalizer(curr_action)
+                norm_curr_action = interaction.action_normalizer(curr_action)
 
                 # Align time steps within action window
                 curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
@@ -244,10 +279,15 @@ class DirectActionDataLoader(BaseDataLoader):
 
                 # Iterate over current action time steps and produce (S,A,R)
                 state_action_rewards = []
+
                 for i in range(curr_action_steps):
                     decision_point = steps_since_decision == 0
-                    obs_df, next_state = self.get_state(state_constructor, df, step_start, decision_point,
-                                                        steps_since_decision)
+                    obs_df, next_state, sc_at_next_state = self.get_state(state_constructor,
+                                                                          interaction,
+                                                                          df,
+                                                                          step_start,
+                                                                          decision_point,
+                                                                          steps_since_decision)
 
                     # Any way to make the creation of reward_info more universal?
                     reward_info = {}
@@ -255,8 +295,9 @@ class DirectActionDataLoader(BaseDataLoader):
                     reward_info['prev_action'] = prev_action
                     reward_info['curr_action'] = curr_action
                     raw_reward = reward_function(**reward_info)
-                    reward = reward_normalizer(raw_reward)
+                    reward = interaction.action_normalizer(raw_reward)
                     state_action_rewards.append((state, norm_curr_action, reward, prev_decision_point))
+                    sc_states.append(sc_at_next_state)
 
                     # Create n-step Transitions
                     if decision_point and len(state_action_rewards) > 0:
@@ -287,7 +328,12 @@ class DirectActionDataLoader(BaseDataLoader):
 
         print("Total Transitions:", len(transitions))
 
-        return transitions
+        print(len(transitions))
+        print(len(sc_states))
+
+        assert len(transitions) == len(sc_states)
+
+        return transitions, sc_states
 
     def train_test_split(self, transitions: list[tuple], shuffle: bool = True) -> (list[tuple], list[tuple]):
         if shuffle:

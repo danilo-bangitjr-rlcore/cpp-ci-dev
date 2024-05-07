@@ -13,3 +13,4 @@ obs_length : ${interaction.obs_length} # 1 second
 warmup_steps : 360
 train_split : 0.95
 gamma : ${agent.gamma}
+return_sc_state : True

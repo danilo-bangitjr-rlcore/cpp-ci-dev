@@ -50,9 +50,7 @@ class AnytimeInteraction(NormalizerInteraction):
         truncate_list = []
         env_info_list = []
         decision_point_list = []
-        # gamma_list_exp = []
 
-        gamma = 1
         for obs_step in range(self.steps_per_decision):
             obs_end_time = time.time() + self.obs_length
             denormalized_action = self.action_normalizer.denormalize(action)
@@ -60,6 +58,8 @@ class AnytimeInteraction(NormalizerInteraction):
             truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
 
             reward = self.reward_normalizer(raw_reward)
+
+            next_observation = self.obs_normalizer(next_observation)
 
             gamma_exponents = create_countdown_vector(obs_step, self.steps_per_decision)
             gammas = np.power(self.gamma, gamma_exponents)
@@ -78,7 +78,6 @@ class AnytimeInteraction(NormalizerInteraction):
             terminated_list.append(terminated)
             truncate_list.append(truncate)
             env_info_list.append(env_info)
-            # gamma_list_exp.append(gamma**(obs_step+1))
             decision_point_list.append(decision_point)
 
             time.sleep(obs_end_time-time.time())
@@ -89,8 +88,9 @@ class AnytimeInteraction(NormalizerInteraction):
         num_completed_steps = len(truncate_list)
         transitions = []
         for obs_step in range(num_completed_steps):  # note: we do not return a transition for the final state
+            gamma_exp = obs_step+1
             transition = (state_list[obs_step], action, reward_list[obs_step], next_state, terminated_list[obs_step],
-                          truncate_list[obs_step], decision_point_list[obs_step], obs_step+1)
+                          truncate_list[obs_step], decision_point_list[obs_step], gamma_exp)
             transitions.append(transition)
 
         return transitions, env_info_list

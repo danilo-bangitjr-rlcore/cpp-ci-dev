@@ -51,9 +51,6 @@ def update_pbar(pbar, stats):
 
 def load_transitions(cfg, save_path, interaction, data_loader, offline_data_df):
     reward_func = init_reward_function(cfg.env.reward)
-    reward_normalizer = interaction.reward_normalizer
-    action_normalizer = interaction.action_normalizer
-
     # Load transitions
     if (save_path / "offline_transitions.pkl").is_file():
         offline_transitions = data_loader.load_transitions(save_path / "offline_transitions.pkl")
@@ -63,8 +60,7 @@ def load_transitions(cfg, save_path, interaction, data_loader, offline_data_df):
         offline_transitions = data_loader.create_transitions(offline_data_df,
                                                              interaction.state_constructor,
                                                              reward_func,
-                                                             action_normalizer,
-                                                             reward_normalizer)
+                                                             interaction)
         data_loader.save_transitions(offline_transitions, save_path / "offline_transitions.pkl")
     train_transitions, test_transitions = data_loader.train_test_split(offline_transitions)
 
@@ -72,10 +68,7 @@ def load_transitions(cfg, save_path, interaction, data_loader, offline_data_df):
 
 
 def get_state_action_dim(env_cfg, env, sc):
-    if env_cfg.obs_length == 1:
-        obs_shape = (flatdim(env.observation_space),)
-    else:
-        obs_shape = (env_cfg.obs_length, flatdim(env.observation_space))
+    obs_shape = (flatdim(env.observation_space),)
     dummy_obs = np.ones(obs_shape)
     state_dim = sc.get_state_dim(dummy_obs)  # gets state_dim dynamically
     action_dim = flatdim(env.action_space)

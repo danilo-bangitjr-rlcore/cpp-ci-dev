@@ -7,6 +7,7 @@ defaults:
   - override state_constructor: reseau_anytime
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
+  - override interaction/obs_normalizer: avg_nan_norm
   - _self_
 
 # values may be overridden outside of the defaults list
@@ -30,6 +31,7 @@ interaction :
     reward_high : 4
     reward_low : -20
     reward_bias : 4
+
 
 state_constructor:
   decision_steps : 30
