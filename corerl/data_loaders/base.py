@@ -1,3 +1,4 @@
+import numpy as np
 from omegaconf import DictConfig
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -35,4 +36,8 @@ class BaseDataLoader(ABC):
 
     @abstractmethod
     def load_transitions(self, path: Path) -> list[tuple]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_obs_max_min(self, offline_data_df: pd.DataFrame) -> (np.ndarray, np.ndarray):
         raise NotImplementedError
