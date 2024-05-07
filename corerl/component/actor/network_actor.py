@@ -16,6 +16,9 @@ class NetworkActor(BaseActor):
             self.model.load_state_dict(initializer.model.state_dict())
         self.optimizer = init_optimizer(cfg.actor_optimizer, self.model.parameters())
 
+    def distribution_bounds(self):
+        return self.model.distribution_bounds()
+
     def update(self, loss: torch.Tensor) -> None:
         self.optimizer.zero_grad()
         loss.backward()

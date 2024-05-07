@@ -1,3 +1,8 @@
+# Ignore vim files
+*.swp
+*.un~
+.tags
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -170,7 +175,7 @@ control/out/
 control/bin/*.txt
 run.sh
 
-# saved results 
+# saved results
 saved_experiments/
 reseau/*
 

@@ -8,9 +8,17 @@ from corerl.state_constructor.base import BaseStateConstructor
 
 
 class NormalizerInteraction(BaseInteraction):
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env, state_constructor: BaseStateConstructor):
+    def __init__(
+        self,
+        cfg: DictConfig,
+        env: gymnasium.Env,
+        state_constructor: BaseStateConstructor,
+        agent,
+    ):
         super().__init__(cfg, env, state_constructor)
-        self.action_normalizer = init_action_normalizer(cfg.action_normalizer, self.env)
+        self.action_normalizer = init_action_normalizer(
+            cfg.action_normalizer, self.env, agent,
+        )
         self.reward_normalizer = init_reward_normalizer(cfg.reward_normalizer)
         self.gamma = cfg.gamma
 

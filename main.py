@@ -22,8 +22,8 @@ from corerl.utils.plotting import make_plots
 import corerl.utils.freezer as fr
 
 """
-Revan: This is an example of how to run the code in the library. 
-I expect that each project may need something slightly different than what's here. 
+Revan: This is an example of how to run the code in the library.
+I expect that each project may need something slightly different than what's here.
 """
 
 
@@ -113,8 +113,7 @@ def main(cfg: DictConfig) -> dict:
     sc = init_state_constructor(cfg.state_constructor, env)
     state_dim, action_dim = get_state_action_dim(cfg.env, env, sc)
     agent = init_agent(cfg.agent, state_dim, action_dim)
-    interaction = init_interaction(cfg.interaction, env, sc)
-
+    interaction = init_interaction(cfg.interaction, env, sc, agent)
 
     # instantiate offline evaluators
     offline_eval_args = {
@@ -148,13 +147,12 @@ def main(cfg: DictConfig) -> dict:
     print('Starting online training...')
     for _ in pbar:
         action = agent.get_action(state)
-        transitions, envinfo = interaction.step(state, action)
+        transitions, _ = interaction.step(state, action)
 
         for transition in transitions:
             agent.update_buffer(transition)
 
         agent.update()
-        state = transitions[-1][3]
 
         # logging + evaluation
         online_eval_args = {  # union of the information needed by all evaluators
@@ -172,6 +170,14 @@ def main(cfg: DictConfig) -> dict:
         # # examples of saving and loading
         # agent.save(save_path / 'agent')
         # agent.load(save_path / 'agent')
+
+        terminated = transitions[-1][-2]
+        truncated = transitions[-1][-1]
+        if terminated or truncated:
+            state, _ = interaction.reset()
+        else:
+            state = transitions[-1][3]
+
 
     online_eval.output(save_path / 'stats.json')
     # need to update make_plots here
