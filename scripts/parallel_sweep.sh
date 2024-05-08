@@ -2,7 +2,7 @@
 
 SCRIPT_NAME=$(basename "$0")
 SHORT="e:h:v:r:pj:"
-LONG="env:,hypers:,values:,exe:,progress,jobs:,help"
+LONG="env:,hypers:,values:,exe:,progress,jobs:,help,nthreads:"
 
 function usage() {
     cat << EOF
@@ -35,6 +35,9 @@ Sweep over hyperparameters in parallel.
 		means one job per CPU thread on each machine.
 	+num	Add num to the number of CPU threads.
 	-num   	Subtract num from the number of CPU threads.
+    --nthreads num
+	Set the value for the OMP_NUM_THREADS environment variable to 'num'. By
+	default this is set to 1.
 EOF
 }
 
@@ -45,6 +48,7 @@ EXE="main.py"
 PROGRESS=false
 BAR=false
 N_JOBS=""
+OMP_NUM_THREADS=1
 
 TEMP=$(getopt -o $SHORT --long $LONG --name "$SCRIPT_NAME" -- "$@")
 eval set -- "${TEMP}"
@@ -79,6 +83,10 @@ while :; do
 	    N_JOBS="${2}"
 	    shift 2
 	    ;;
+	--nthreads )
+	    OMP_NUM_THREADS="${2}"
+	    shift 2
+	    ;;
 	-- )
 	    shift
 	    break
@@ -95,6 +103,8 @@ while :; do
 	    ;;
     esac
 done
+
+export OMP_NUM_THREADS=$OMP_NUM_THREADS
 
 IFS=":" read -r -a hypers <<< $HYPERS
 IFS=":" read -r -a values <<< $VALUES
