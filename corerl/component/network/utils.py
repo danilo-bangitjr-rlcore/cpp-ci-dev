@@ -35,8 +35,25 @@ def ensemble_expectile_loss(q: torch.Tensor, vs: list[torch.Tensor], expectile: 
     return losses
 
 
-def ensemble_mse(target: torch.Tensor, q_ens: list[torch.Tensor]) -> list[torch.Tensor]:
-    mses = [nn.functional.mse_loss(target, q) for q in q_ens]
+def ensemble_mse(target, q_ens) -> list[torch.Tensor]:
+    """
+    Calculate the MSE of an ensemble of q values
+
+    Parameters
+    ----------
+    q_ens : torch.Tensor
+        An ensemble of predicted q values, with batch dimension 0
+    target : torch.Tensor
+        The targets of prediction for each q value in `q_ens`. If each q value
+        in `q_ens` should have a different target for prediction, then `target`
+        should have batch dimension 0 with `target.shape == q_ens.shape`.
+    """
+    assert q_ens.ndim == 3
+    ensemble_target = target.ndim == 3
+    if ensemble_target:
+        mses = [nn.functional.mse_loss(t, q) for (t, q) in zip(target, q_ens)]
+    else:
+        mses = [nn.functional.mse_loss(target, q) for q in q_ens]
     return mses
 
 

@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 
-def _prepare(batch: list) -> dict:
+def _prepare(batch) -> dict:
     s, a, r, ns, d, t, dp, ge = batch
     return {
         'states': s,
