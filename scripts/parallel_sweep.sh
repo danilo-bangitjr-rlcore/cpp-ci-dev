@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 SCRIPT_NAME=$(basename "$0")
-SHORT="e:h:v:r:pj:"
-LONG="env:,hypers:,values:,exe:,progress,jobs:,help,nthreads:"
+SHORT="y:h:v:r:pj:n:o:e:"
+LONG="env:,hypers:,values:,exe:,progress,jobs:,help,nthreads:,output:,error:"
 
 function usage() {
     cat << EOF
@@ -10,7 +10,7 @@ Usage: $SCRIPT_NAME [OPTION]... -h [ARGS] -v [ARGS]
 
 Sweep over hyperparameters in parallel.
 
-  -e, --env FILE
+  -y, --env FILE
     Use the specified virtual environment
   -h, --hypers ARGS
     A colon-delimited list of hyperparameters to sweep.
@@ -35,9 +35,15 @@ Sweep over hyperparameters in parallel.
 		means one job per CPU thread on each machine.
 	+num	Add num to the number of CPU threads.
 	-num   	Subtract num from the number of CPU threads.
-    --nthreads num
-	Set the value for the OMP_NUM_THREADS environment variable to 'num'. By
+    -n, --nthreads NUM
+	Set the value for the OMP_NUM_THREADS environment variable to 'NUM'. By
 	default this is set to 1.
+    -o, --output FILENAME
+	Write the stdout of each job to a file named 'FILENAME-X.out', where
+	'X' is the job number
+    -e, --error FILENAME
+	Write the stderr of each job to a file named 'FILENAME-X.err', where
+	'X' is the job number
 EOF
 }
 
@@ -49,13 +55,15 @@ PROGRESS=false
 BAR=false
 N_JOBS=""
 OMP_NUM_THREADS=1
+STDOUT_FILENAME=""
+STDERR_FILENAME=""
 
 TEMP=$(getopt -o $SHORT --long $LONG --name "$SCRIPT_NAME" -- "$@")
 eval set -- "${TEMP}"
 
 while :; do
     case "${1}" in
-        -e | --env )
+        -y | --env )
 	    if [[ "${2}" == *"/bin/activate" ]]; then
 		source "${2}"
 	    else
@@ -83,8 +91,16 @@ while :; do
 	    N_JOBS="${2}"
 	    shift 2
 	    ;;
-	--nthreads )
+	-n | --nthreads )
 	    OMP_NUM_THREADS="${2}"
+	    shift 2
+	    ;;
+	-e | --error )
+	    STDERR_FILENAME="${2}"
+	    shift 2
+	    ;;
+	-o | --output )
+	    STDOUT_FILENAME="${2}"
 	    shift 2
 	    ;;
 	-- )
@@ -94,7 +110,6 @@ while :; do
 	--help )
 	    usage
 	    exit 0
-	    break
 	    ;;
         * )
 	    echo "$SCRIPT_NAME: missing operand"
@@ -121,17 +136,33 @@ for i in ${!hypers[@]}; do
 done
 
 # Build up command
-cmd="parallel"
+cmd="parallel "
 if [[ $N_JOBS != "" ]]; then
     cmd="$cmd --jobs $N_JOBS"
 fi
 if $PROGRESS; then
     cmd="$cmd --eta "
 fi
-cmd="$cmd python3 $EXE"
+cmd="$cmd \"python3 $EXE"
+
+if [[ $STDOUT_FILENAME != "" ]]; then
+    cmd="$cmd > ${STDOUT_FILENAME}-{#}.out"
+fi
+
+echo error $STDERR_FILENAME
+echo error $STDERR_FILENAME
+echo error $STDERR_FILENAME
+if [[ $STDERR_FILENAME != "" ]]; then
+    cmd="$cmd 2> ${STDERR_FILENAME}-{#}.out"
+fi
+
+cmd="$cmd\""
+echo $cmd
+
 for i in ${!all_hyper_sweeps[@]}; do
     cmd="$cmd :::${all_hyper_sweeps[$i]}"
 done
+cmd
 
 # Print to stdout the command we are running
 echo
