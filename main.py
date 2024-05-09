@@ -13,6 +13,8 @@ from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.eval.composite_eval import CompositeEval
+from corerl.calibration_models.simple import SimpleCalibrationModel
+from corerl.calibration_models.anytime import AnytimeCalibrationModel
 from corerl.interaction.factory import init_interaction
 from corerl.utils.device import init_device
 from corerl.data_loaders.factory import init_data_loader
@@ -49,22 +51,24 @@ def update_pbar(pbar, stats):
     pbar.set_description(pbar_str)
 
 
-def load_transitions(cfg, save_path, interaction, data_loader, offline_data_df):
+def load_offline_data(cfg, save_path, interaction, data_loader, offline_data_df):
     reward_func = init_reward_function(cfg.env.reward)
     # Load transitions
-    if (save_path / "offline_transitions.pkl").is_file():
-        offline_transitions = data_loader.load_transitions(save_path / "offline_transitions.pkl")
+    if (save_path / "offline_data.pkl").is_file():
+        offline_data = data_loader.load(save_path / "offline_data.pkl")
     else:
-        # In the future, we may just want to pass the entire normalizer in. This assumes you're
-        # using a normalizer interaction
-        offline_transitions = data_loader.create_transitions(offline_data_df,
-                                                             interaction.state_constructor,
-                                                             reward_func,
-                                                             interaction)
-        data_loader.save_transitions(offline_transitions, save_path / "offline_transitions.pkl")
-    train_transitions, test_transitions = data_loader.train_test_split(offline_transitions)
+        # offline_data has entries 'transitions', 'obs_transitions' and 'test_scs'
+        print("Loading offline data...")
+        offline_data = data_loader.create_transitions(offline_data_df,
+                                                      interaction.state_constructor,
+                                                      reward_func,
+                                                      interaction)
 
-    return train_transitions, test_transitions
+        print("Saving data...")
+        data_loader.save(offline_data, save_path / "offline_data.pkl")
+
+    offline_data['reward_func'] = reward_func
+    return offline_data
 
 
 def get_state_action_dim(env_cfg, env, sc):
@@ -95,8 +99,9 @@ def main(cfg: DictConfig) -> dict:
         # first load transitions if we are doing offline training
         data_loader = init_data_loader(cfg.data_loader)
         offline_data_df = data_loader.load_data()
-        obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
-        if cfg.experiment.set_env_obs_space:  #
+
+        if cfg.experiment.set_env_obs_space:
+            obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
             env.observation_space = spaces.Box(low=obs_space_low, high=obs_space_high, dtype=np.float32)
 
     # we must instantiate the sc after we set env.observation_space since normalization depends on these values
@@ -107,13 +112,25 @@ def main(cfg: DictConfig) -> dict:
 
     if do_offline_training:
         print('Loading offline transitions...')
-        train_transitions, test_transitions = load_transitions(cfg, save_path, interaction,
-                                                               data_loader, offline_data_df)
+        offline_data = load_offline_data(cfg, save_path, interaction, data_loader, offline_data_df)
+
+        train_transitions, test_transitions = offline_data['transitions']
         # instantiate offline evaluators
         offline_eval_args = {
             'agent': agent
         }
         offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
+
+        # train calibration model
+        train_obs, test_obs = offline_data['obs_transitions']
+        cm = AnytimeCalibrationModel(cfg.calib_model,
+                                     interaction,
+                                     train_obs,
+                                     test_obs,
+                                     offline_data['test_scs'],
+                                     offline_data['reward_func'])
+        cm.train()
+
 
         print('Starting offline training...')
         for transition in train_transitions:
@@ -125,6 +142,10 @@ def main(cfg: DictConfig) -> dict:
             offline_eval.do_eval(**offline_eval_args)  # run all evaluators
             stats = offline_eval.get_stats()
             update_pbar(pbar, stats)
+
+        # rollout in calibration models
+        cm.do_n_rollouts(agent, rollout_len=100, num_rollouts=1)
+
 
     # Online Deployment
     # Instantiate online evaluators

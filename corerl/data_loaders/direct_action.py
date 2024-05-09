@@ -102,7 +102,8 @@ class DirectActionDataLoader(BaseDataLoader):
                   df: pd.DataFrame,
                   state_constructor: BaseStateConstructor,
                   interaction: NormalizerInteraction,
-                  start_ind: pd.Timestamp) -> (BaseStateConstructor, pd.Timestamp, np.ndarray, bool, BaseStateConstructor):
+                  start_ind: pd.Timestamp) -> (
+            BaseStateConstructor, pd.Timestamp, np.ndarray, bool, BaseStateConstructor):
         """
         Warm up state constructor
         """
@@ -128,12 +129,12 @@ class DirectActionDataLoader(BaseDataLoader):
                     steps_since_decision = 1
                 for i in range(curr_action_steps):
                     decision_point = steps_since_decision == 0
-                    _, state, sc_at_state = self.get_state(state_constructor,
-                                                           interaction,
-                                                           df,
-                                                           step_start,
-                                                           decision_point,
-                                                           steps_since_decision)
+                    state, sc_at_state, obs = self.get_state(state_constructor,
+                                                             interaction,
+                                                             df,
+                                                             step_start,
+                                                             decision_point,
+                                                             steps_since_decision)
                     steps_since_decision = (steps_since_decision + 1) % self.steps_per_decision
                     step_start += timedelta(seconds=self.obs_length)
                     elapsed_warmup += timedelta(seconds=self.obs_length)
@@ -151,7 +152,7 @@ class DirectActionDataLoader(BaseDataLoader):
                   df: pd.DataFrame,
                   start: pd.Timestamp,
                   decision_point: bool,
-                  steps_since_decision: int) -> (pd.DataFrame, np.ndarray):
+                  steps_since_decision: int) -> (np.ndarray, BaseStateConstructor, np.ndarray):
 
         end = start + timedelta(seconds=self.obs_length)
         obs_df = self.get_df_date_range(df, start, end)
@@ -159,13 +160,12 @@ class DirectActionDataLoader(BaseDataLoader):
         obs = interaction.obs_normalizer(obs)
         state = state_constructor(obs, decision_point=decision_point, steps_since_decision=steps_since_decision)
         # copy the state constructor's internal state. This will be used for calibration_models training
-
         if self.return_sc_state:
             sc_at_state = deepcopy(state_constructor)
         else:
             sc_at_state = None
 
-        return obs_df, state, sc_at_state
+        return state, sc_at_state, obs
 
     def find_action_boundary(self, df: pd.DataFrame,
                              start_ind: pd.Timestamp) -> (np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool):
@@ -200,14 +200,16 @@ class DirectActionDataLoader(BaseDataLoader):
         return False, False
 
     def create_n_step_transitions_(self,
-                                   transitions: list[tuple],
                                    state_action_rewards: list[tuple],
+                                   next_observations: list[np.ndarray],
                                    boot_state: np.ndarray,
                                    term: bool,
-                                   trunc: bool) -> list[tuple]:
+                                   trunc: bool) -> (list[tuple], list[tuple]):
         # Create "Anytime" variable n-step transitions, where 'n' depends on the number of steps from the action boundary
         n_step_reward = 0.0
         gamma_exp = 1
+        new_transitions = []
+        new_obs_transitions = []
         for i in range(len(state_action_rewards) - 1, -1, -1):
             sar = state_action_rewards[i]
             state = sar[0]
@@ -216,10 +218,23 @@ class DirectActionDataLoader(BaseDataLoader):
             decision_point = sar[3]
             # Recursively updating n-step reward
             n_step_reward = reward + self.gamma * n_step_reward
-            transitions.append((state, action, n_step_reward, boot_state, term, trunc, int(decision_point), gamma_exp))
+            new_transitions.append(
+                (state, action, n_step_reward, boot_state, term, trunc, int(decision_point), gamma_exp))
+
+            new_obs_transitions.append(
+                (state, action, n_step_reward, next_observations[i], term, trunc, int(decision_point), gamma_exp))
+
             gamma_exp += 1
 
-        return transitions
+            if i != len(state_action_rewards) - 1:
+                # NOTE: check that next observation is equal to the observation part included in the next state
+                # we are not checking the "next_state" in the transition, since that is boot_state, aka
+                # the state at the decision point
+                assert np.array_equal(state_action_rewards[i + 1][0][0:3], next_observations[i])
+
+        new_transitions.reverse()
+        new_obs_transitions.reverse()
+        return new_transitions, new_obs_transitions
 
     def get_curr_action_steps(self, action_start: pd.Timestamp, action_end: pd.Timestamp) -> (int, pd.Timestamp):
         """
@@ -236,13 +251,17 @@ class DirectActionDataLoader(BaseDataLoader):
                            df: pd.DataFrame,
                            state_constructor: BaseStateConstructor,
                            reward_function: BaseReward,
-                           interaction: NormalizerInteraction) -> (list[tuple], list[BaseStateConstructor]):
+                           interaction: NormalizerInteraction) -> dict:
+
         """
         Iterate through the df and produce transitions using the "Anytime" paradigm.
         Take into account discontinuities in the dataframe (large gaps in time between consecutive rows)
         """
-        transitions = []
-        sc_states = []  # will keep a list of the state constructor at each state in transitions
+        train_transitions = []
+        test_transitions = []
+        train_obs_transitions = []  # transitions where the next state is the next observation, rather than state
+        test_obs_transitions = []
+        test_scs = []
 
         # Keep trying to create transitions until you reach the end of the df
         action_start = df.iloc[0].name
@@ -265,6 +284,7 @@ class DirectActionDataLoader(BaseDataLoader):
             action_start = warmup_end
             prev_decision_point = warmup_dp
             while not data_gap and action_start < df_end:
+                assert len(test_transitions) == len(test_scs) == len(test_obs_transitions)
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(df,
                                                                                                               action_start)
                 norm_curr_action = interaction.action_normalizer(curr_action)
@@ -279,37 +299,55 @@ class DirectActionDataLoader(BaseDataLoader):
 
                 # Iterate over current action time steps and produce (S,A,R)
                 state_action_rewards = []
-
-                for i in range(curr_action_steps):
+                state_scs = []  # the state constructors at S
+                next_observations = []
+                for i in range(curr_action_steps):  # how many steps we are talking the current action
                     decision_point = steps_since_decision == 0
-                    obs_df, next_state, sc_at_next_state = self.get_state(state_constructor,
-                                                                          interaction,
-                                                                          df,
-                                                                          step_start,
-                                                                          decision_point,
-                                                                          steps_since_decision)
+                    next_state, sc_at_next_state, next_obs = self.get_state(state_constructor,
+                                                                            interaction,
+                                                                            df,
+                                                                            step_start,
+                                                                            decision_point,
+                                                                            steps_since_decision)
 
                     # Any way to make the creation of reward_info more universal?
                     reward_info = {}
-                    reward_info['df'] = obs_df
                     reward_info['prev_action'] = prev_action
                     reward_info['curr_action'] = curr_action
-                    raw_reward = reward_function(**reward_info)
+                    raw_reward = reward_function(interaction.obs_normalizer.denormalize(next_obs), **reward_info)
+
                     reward = interaction.action_normalizer(raw_reward)
                     state_action_rewards.append((state, norm_curr_action, reward, prev_decision_point))
-                    sc_states.append(sc_at_next_state)
+                    state_scs.append(sc_at_state)  # the state constructor at state
+                    next_observations.append(next_obs)  # the next observation for each state
 
                     # Create n-step Transitions
                     if decision_point and len(state_action_rewards) > 0:
                         boot_state = next_state
                         # Set trunc and term to false since we haven't reached the final action boundary within the action window
-                        transitions = self.create_n_step_transitions_(transitions, state_action_rewards, boot_state,
-                                                                      False, False)
+                        new_transitions, new_obs_transitions = self.create_n_step_transitions_(state_action_rewards,
+                                                                                               next_observations,
+                                                                                               boot_state,
+                                                                                               False,
+                                                                                               False)
+
+                        # splits returns a list of (train, test)  for each list passed to self.train_test_split
+                        splits = self.train_test_split(new_transitions, new_obs_transitions, state_scs)
+                        train_transitions += splits[0][0]
+                        test_transitions += splits[0][1]
+                        train_obs_transitions += splits[1][0]
+                        test_obs_transitions += splits[1][1]
+                        test_scs += splits[2][1]
+
                         state_action_rewards = []
+                        state_scs = []
+                        next_observations = []
 
                     prev_action = curr_action
                     step_start = step_start + timedelta(seconds=self.obs_length)
                     state = next_state
+                    sc_at_state = sc_at_next_state
+
                     steps_since_decision = (steps_since_decision + 1) % self.steps_per_decision
                     prev_decision_point = decision_point
 
@@ -320,38 +358,57 @@ class DirectActionDataLoader(BaseDataLoader):
                         pass
 
                 # Create remaining transitions
-                boot_state = state
-                transitions = self.create_n_step_transitions_(transitions, state_action_rewards, boot_state, trunc,
-                                                              term)
+                if len(state_action_rewards) > 0:
+                    boot_state = state
+                    new_transitions, new_obs_transitions = self.create_n_step_transitions_(state_action_rewards,
+                                                                                           next_observations,
+                                                                                           boot_state,
+                                                                                           trunc,
+                                                                                           term)
+
+                    splits = self.train_test_split(new_transitions, new_obs_transitions, state_scs)
+                    train_transitions += splits[0][0]
+                    test_transitions += splits[0][1]
+                    train_obs_transitions += splits[1][0]
+                    test_obs_transitions += splits[1][1]
+                    test_scs += splits[2][1]
 
                 action_start = next_action_start
 
-        print("Total Transitions:", len(transitions))
+        return_dict = {
+            'transitions': (train_transitions, test_transitions),
+            'obs_transitions': (train_obs_transitions, test_obs_transitions),
+            'test_scs': test_scs
+        }
 
-        print(len(transitions))
-        print(len(sc_states))
+        return return_dict
 
-        assert len(transitions) == len(sc_states)
+    def train_test_split(self, *lsts, shuffle: bool = True) -> (list[tuple], list[tuple]):
+        num_samples = len(lsts[0])
+        for a in lsts:
+            assert len(a) == num_samples
 
-        return transitions, sc_states
-
-    def train_test_split(self, transitions: list[tuple], shuffle: bool = True) -> (list[tuple], list[tuple]):
         if shuffle:
-            random.shuffle(transitions)
+            lsts = parallel_shuffle(*lsts)
 
-        num_samples = len(transitions)
-        train_samples = int(self.train_split * num_samples)
-        train_transitions = transitions[:train_samples]
-        test_transitions = transitions[train_samples:]
+        num_train_samples = int(self.train_split * num_samples)
+        train_samples = [lsts[:num_train_samples] for lsts in lsts]
+        test_samples = [lsts[num_train_samples:] for lsts in lsts]
 
-        return train_transitions, test_transitions
+        return list(zip(train_samples, test_samples))
 
-    def save_transitions(self, transitions: list[tuple], path: Path):
-        with open(path, "wb") as transition_file:
-            pkl.dump(transitions, transition_file)
+    def save(self, save_obj: object, path: Path):
+        with open(path, "wb") as file:
+            pkl.dump(save_obj, file)
 
-    def load_transitions(self, path: Path) -> list[tuple]:
-        with open(path, "rb") as transition_file:
-            transitions = pkl.load(transition_file)
+    def load(self, path: Path) -> object:
+        with open(path, "rb") as file:
+            obj = pkl.load(file)
+            return obj
 
-            return transitions
+
+def parallel_shuffle(*args):
+    zipped_list = list(zip(*args))
+    random.shuffle(zipped_list)
+    unzipped = zip(*zipped_list)
+    return list(unzipped)

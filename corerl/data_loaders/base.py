@@ -26,7 +26,7 @@ class BaseDataLoader(ABC):
                            df: pd.DataFrame,
                            state_constructor: BaseStateConstructor,
                            reward_function: BaseReward,
-                           interaction: BaseInteraction) -> list[tuple]:
+                           interaction: BaseInteraction) -> dict:
         raise NotImplementedError
 
     @abstractmethod
@@ -34,11 +34,11 @@ class BaseDataLoader(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def save_transitions(self, transitions: list[tuple], path: Path):
+    def save(self, lst: object, path: Path):
         raise NotImplementedError
 
     @abstractmethod
-    def load_transitions(self, path: Path) -> list[tuple]:
+    def load(self, path: Path) -> object:
         raise NotImplementedError
 
     @abstractmethod

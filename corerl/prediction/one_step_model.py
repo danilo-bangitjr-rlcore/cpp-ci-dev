@@ -6,7 +6,6 @@ from omegaconf import DictConfig
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
-from corerl.component.network.utils import to_np
 
 
 class OneStepModel:
@@ -21,7 +20,9 @@ class OneStepModel:
 
         input_dim = len(train_transitions[0][0])
         action_dim = len(train_transitions[0][1])
-        self.model = init_custom_network(cfg.model, input_dim=input_dim+action_dim, output_dim=input_dim)
+        output_dim = len(train_transitions[0][3])
+
+        self.model = init_custom_network(cfg.model, input_dim=input_dim+action_dim, output_dim=output_dim)
         self.optimizer = init_optimizer(cfg.optimizer, list(self.model.parameters()))
 
         self.train_losses = []
@@ -49,6 +50,7 @@ class OneStepModel:
         self.train_losses.append(loss.detach().numpy())
 
     def train(self):
+        print('Training model...')
         pbar = tqdm(range(self.train_itr))
         for _ in pbar:
             self.update()

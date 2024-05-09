@@ -6,20 +6,6 @@ import numpy as np
 import torch
 
 
-def _prepare(batch: list) -> dict:
-    s, a, r, ns, d, t, dp, ge = batch
-    return {
-        'states': s,
-        'actions': a,
-        'rewards': r,
-        'next_states': ns,
-        'dones': d,
-        'truncs': t,
-        'decision_points': dp,
-        'gamma_exps': ge
-    }
-
-
 class UniformBuffer:
     def __init__(self, cfg: DictConfig):
         self.seed = cfg.seed
@@ -67,7 +53,7 @@ class UniformBuffer:
             self.data[i][sampled_indices] for i in range(len(self.data))
         )
 
-        return _prepare(sampled_data)
+        return self._prepare(sampled_data)
 
     def sample_batch(self) -> dict:
         if len(self.data) == 0 or self.data is None:
@@ -80,7 +66,7 @@ class UniformBuffer:
                 self.data[i][:self.pos] for i in range(len(self.data))
             )
 
-        return _prepare(sampled_data)
+        return self._prepare(sampled_data)
 
     """
     def load(
@@ -114,6 +100,19 @@ class UniformBuffer:
     def update_priorities(self, priority=None):
         pass
 
+    def _prepare(self, batch: list) -> dict:
+        s, a, r, ns, d, t, dp, ge = batch
+        return {
+            'states': s,
+            'actions': a,
+            'rewards': r,
+            'next_states': ns,
+            'dones': d,
+            'truncs': t,
+            'decision_points': dp,
+            'gamma_exps': ge
+        }
+
 
 class PriorityBuffer(UniformBuffer):
     def __init__(self, cfg: DictConfig):
@@ -146,7 +145,7 @@ class PriorityBuffer(UniformBuffer):
             self.data[i][sampled_indices] for i in range(len(self.data))
         )
 
-        return _prepare(sampled_data)
+        return self._prepare(sampled_data)
 
     def update_priorities(self, priority=None):
         if priority is None:

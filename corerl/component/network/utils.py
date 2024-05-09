@@ -1,6 +1,8 @@
 import numpy
 import torch
 import torch.nn as nn
+from corerl.utils.device import device as global_device
+from typing import Optional
 
 
 class Float(torch.nn.Module):
@@ -127,14 +129,17 @@ def layer_init_uniform(layer: nn.Module, low: float = -0.003, high: float = 0.00
     return layer
 
 
-def tensor(x: float | numpy.ndarray | torch.Tensor, device: str) -> torch.Tensor:
+def tensor(x: float | numpy.ndarray | torch.Tensor, device: Optional[str] = None) -> torch.Tensor:
     if isinstance(x, torch.Tensor):
         return x
-    x = torch.tensor(x, dtype=torch.float32).to(device)
+    if device is not None:
+        x = torch.tensor(x, dtype=torch.float32).to(device)
+    else:
+        x = torch.tensor(x, dtype=torch.float32).to(global_device)
     return x
 
 
-def state_to_tensor(state: numpy.ndarray, device: str) -> torch.Tensor:
+def state_to_tensor(state: numpy.ndarray,  device: Optional[str] = None) -> torch.Tensor:
     state = tensor(state.reshape((1, -1)), device)
     return state
 

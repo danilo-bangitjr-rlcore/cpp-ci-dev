@@ -14,7 +14,7 @@ defaults:
 experiment :
   exp_name : "reseau_test"
   max_steps : 0
-  offline_steps : 10000
+  offline_steps : 10
   set_env_obs_space : True
 
 env:
