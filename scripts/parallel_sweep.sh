@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 SCRIPT_NAME=$(basename "$0")
-SHORT="y:h:v:r:pj:n:o:e:"
-LONG="env:,hypers:,values:,exe:,progress,jobs:,help,nthreads:,output:,error:"
+SHORT="v:h:s:r:pj:n:o:e:"
+LONG="env:,hypers:,sweep:,exe:,progress,jobs:,help,omp-num-threads:,output:,error:"
 
 if [[ "$#" == 0 ]]; then
     usage
@@ -158,7 +158,7 @@ echo error $STDERR_FILENAME
 echo error $STDERR_FILENAME
 echo error $STDERR_FILENAME
 if [[ $STDERR_FILENAME != "" ]]; then
-    cmd="$cmd 2> ${STDERR_FILENAME}-{#}.out"
+    cmd="$cmd 2> ${STDERR_FILENAME}-{#}.err"
 fi
 
 cmd="$cmd\""
