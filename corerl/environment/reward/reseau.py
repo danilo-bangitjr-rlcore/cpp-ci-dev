@@ -28,3 +28,5 @@ class ReseauReward(BaseReward):
             return np.clip(-np.log(0.2 * mae), 0.0, 5.0) - penalty
         else:
             return -0.2 * mae + 1.0 - penalty
+
+        return reward.squeeze()

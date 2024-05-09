@@ -52,11 +52,14 @@ class EpsilonGreedySarsa(BaseAgent):
         return greedy_action
 
     def compute_q_loss(self, batch: dict) -> torch.Tensor:
-        states, actions, rewards, next_states, dones = (batch['states'], batch['actions'],
-                                                        batch['rewards'], batch['next_states'], batch['dones'])
-        next_action = self._get_action(next_states)
-        next_q = self.q_critic.get_q_target(next_states, next_action)
-        target = rewards + (1 - dones) * self.gamma * next_q
+        states, actions, rewards, next_states, dones, gamma_exps, dp_mask = (batch['states'], batch['actions'],
+                                                                             batch['rewards'], batch['next_states'], batch['dones'],
+                                                                             batch['gamma_exps'], batch['next_state_decision_points'])
+        next_actions = self._get_action(next_states)
+        with torch.no_grad():
+            next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * actions)
+        next_q = self.q_critic.get_q_target(next_states, next_actions)
+        target = rewards + (1 - dones) * (self.gamma ** gamma_exps) * next_q
         _, q_ens = self.q_critic.get_qs(states, actions, with_grad=True)
         q_loss = ensemble_mse(target, q_ens)
         return q_loss
