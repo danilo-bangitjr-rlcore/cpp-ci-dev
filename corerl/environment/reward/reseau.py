@@ -25,8 +25,8 @@ class ReseauReward(BaseReward):
             penalty = self.penalty_weight * abs(prev_action - curr_action) / self.action_scale
 
         if mae <= 5.0:
-            return np.clip(-np.log(0.2 * mae), 0.0, 5.0) - penalty
+            reward = np.clip(-np.log(0.2 * mae), 0.0, 5.0) - penalty
         else:
-            return -0.2 * mae + 1.0 - penalty
+            reward = -0.2 * mae + 1.0 - penalty
 
-        return reward.squeeze()
+        return reward.item()

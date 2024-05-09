@@ -210,7 +210,6 @@ class DirectActionDataLoader(BaseDataLoader):
         new_transitions = []
         new_obs_transitions = []
 
-        # TODO: rename state_action_rewards
         dp_counter = 1
         if self.n_step == 0:
             n_step_rewards = deque([], self.steps_per_decision)
@@ -224,7 +223,7 @@ class DirectActionDataLoader(BaseDataLoader):
             state = sar[0]
             action = sar[1]
             reward = sar[2]
-            s_dp = sar[3] # whether
+            s_dp = sar[3]
             boot_state_queue.appendleft(state)
 
             # Recursively updating n-step reward
@@ -331,7 +330,7 @@ class DirectActionDataLoader(BaseDataLoader):
                     reward_info['curr_action'] = curr_action
                     raw_reward = reward_function(interaction.obs_normalizer.denormalize(next_obs), **reward_info)
 
-                    reward = interaction.action_normalizer(raw_reward)
+                    reward = interaction.reward_normalizer(raw_reward)
                     state_action_rewards.append((state, norm_curr_action, reward, prev_decision_point))
                     state_scs.append(sc_at_state)  # the state constructor at state
                     next_observations.append(next_obs)  # the next observation for each state
