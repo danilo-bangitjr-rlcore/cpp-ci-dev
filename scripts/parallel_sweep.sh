@@ -2,7 +2,7 @@
 
 SCRIPT_NAME=$(basename "$0")
 SHORT="v:h:s:r:pj:n:o:e:d"
-LONG="env:,hypers:,sweep:,exe:,progress,jobs:,help,omp-num-threads:,output:,error:,debug"
+LONG="env:,hypers:,sweep:,exe:,progress,jobs:,help,omp-num-threads:,output:,error:,debug,file"
 
 if [[ "$#" == 0 ]]; then
     usage
@@ -11,7 +11,7 @@ fi
 
 function usage() {
     cat << EOF
-Usage: $SCRIPT_NAME [OPTION]... -h [ARGS] -v [ARGS]
+Usage: $SCRIPT_NAME [OPTION]... -h [ARGS] -s [ARGS]
 
 Sweep over hyperparameters in parallel.
 
@@ -26,6 +26,9 @@ Sweep over hyperparameters in parallel.
     for a specific hyperparameter. For example '1,2,3:4,5,6' will sweep values
     1, 2, and 3 for the first hyperparameter provided in the '-h' option and 4,
     5, and 6 for the second hyperparameter provided in the '-h' option.
+  --file
+    Specify that the arguments for the '-h' and '-s' options should come from a
+    newline-delimited file
   -r, --exe FILE
     The executable to run, by default 'main.py'
   -p, --progress
@@ -66,6 +69,7 @@ OMP_NUM_THREADS=1
 STDOUT_FILENAME=""
 STDERR_FILENAME=""
 DEBUG=false
+FILE=false
 
 TEMP=$(getopt -o $SHORT --long $LONG --name "$SCRIPT_NAME" -- "$@")
 eval set -- "${TEMP}"
@@ -87,6 +91,10 @@ while :; do
 	-s | --sweep )
 	    VALUES="${2}"
 	    shift 2
+	    ;;
+	--file )
+	    FILE=true
+	    shift
 	    ;;
 	-r | --exe )
 	    EXE="${2}"
@@ -134,8 +142,13 @@ done
 
 export OMP_NUM_THREADS=$OMP_NUM_THREADS
 
-IFS=":" read -r -a hypers <<< $HYPERS
-IFS=":" read -r -a values <<< $VALUES
+if $FILE; then
+    IFS=$'\n' readarray -t hypers < $HYPERS
+    IFS=$'\n' readarray -t values < $VALUES
+else
+    IFS=":" read -r -a hypers <<< $HYPERS
+    IFS=":" read -r -a values <<< $VALUES
+fi
 
 declare -a all_hyper_sweeps
 
@@ -167,9 +180,6 @@ if [[ $STDOUT_FILENAME != "" ]]; then
     cmd="$cmd > ${STDOUT_FILENAME}-{#}.out"
 fi
 
-echo error $STDERR_FILENAME
-echo error $STDERR_FILENAME
-echo error $STDERR_FILENAME
 if [[ $STDERR_FILENAME != "" ]]; then
     cmd="$cmd 2> ${STDERR_FILENAME}-{#}.err"
 fi
