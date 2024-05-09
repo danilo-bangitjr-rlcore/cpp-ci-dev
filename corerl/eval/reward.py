@@ -18,7 +18,7 @@ class RewardEval(BaseEval):
             raise KeyError("Missing required argument: 'transitions'")
         transitions = kwargs['transitions']
         for transition in transitions:
-            state, action, reward, next_state, done, truncate, dp, gamma_exp = transition
+            _, _, reward, _, done, truncate, _, _, gamma_exp = transition
             self.episode_return += reward * (self.gamma ** self.episode_steps)
             self.rewards.append(reward)
             if done or truncate:

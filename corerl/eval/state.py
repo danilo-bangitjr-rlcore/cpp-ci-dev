@@ -13,7 +13,7 @@ class StateEval(BaseEval):
             raise KeyError("Missing required argument: 'transitions'")
         transitions = kwargs['transitions']
         for transition in transitions:
-            state, _, _, next_state, _, _, _, _ = transition
+            state, next_state = transition[0], transition[3]
             if self.start:
                 self.start = False
                 for state_elem in state:
