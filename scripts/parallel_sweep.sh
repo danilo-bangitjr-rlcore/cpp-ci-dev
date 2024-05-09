@@ -11,9 +11,11 @@ fi
 
 function usage() {
     cat << EOF
-Usage: $SCRIPT_NAME [OPTION]... -h [ARGS] -s [ARGS]
+Usage: $SCRIPT_NAME [OPTION]... -h [ARGS] -s [ARGS] [COMMANDLINE_ARGS]
 
-Sweep over hyperparameters in parallel.
+Sweep over hyperparameters in parallel. The '-h' and '-s' options determines
+which values are swept over. Any commandline arguments are passed directly to
+the executable specified by the '-r' option.
 
   -v, --venv FILE
     Use the specified virtual environment
@@ -171,9 +173,9 @@ if $PROGRESS; then
 fi
 
 if $DEBUG; then
-    cmd="$cmd \"echo $EXE {}"
+    cmd="$cmd \"echo $EXE $@ {}"
 else
-    cmd="$cmd \"python3 $EXE {}"
+    cmd="$cmd \"python3 $EXE $@ {}"
 fi
 
 if [[ $STDOUT_FILENAME != "" ]]; then
