@@ -35,11 +35,12 @@ class SimpleAC(BaseAC):
         next_states = batch['next_states']
         rewards = batch['rewards']
         dones = batch['dones']
+        gamma_exps = batch['gamma_exps']
 
         log_prob, _ = self.actor.get_log_prob(states, actions, with_grad=True)
         v = self.critic.get_v(states, with_grad=False)
         v_next = self.critic.get_v(next_states, with_grad=False)
-        target = rewards + self.gamma * (1.0 - dones) * v_next
+        target = rewards + (self.gamma ** gamma_exps) * (1.0 - dones) * v_next
         ent = -log_prob
         loss_actor = -(self.tau * ent + log_prob * (target - v.detach())).mean()
         return loss_actor
@@ -55,10 +56,11 @@ class SimpleAC(BaseAC):
         next_states = batch['next_states']
         rewards = batch['rewards']
         dones = batch['dones']
+        gamma_exps = batch['gamma_exps']
 
         _, v_ens = self.critic.get_vs(states, with_grad=True)
         v_next = self.critic.get_v_target(next_states)
-        target = rewards + self.gamma * (1.0 - dones) * v_next
+        target = rewards + (self.gamma ** gamma_exps) * (1.0 - dones) * v_next
 
         loss_critic = ensemble_mse(target, v_ens)
         return loss_critic

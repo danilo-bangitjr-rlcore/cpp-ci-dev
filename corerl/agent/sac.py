@@ -11,6 +11,7 @@ from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, Float, ensemble_mse
 from corerl.utils.device import device
+
 class SAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
@@ -45,16 +46,21 @@ class SAC(BaseAC):
         reward_batch = batch['rewards']
         next_state_batch = batch['next_states']
         mask_batch = 1 - batch['dones']
+        gamma_exp_batch = batch['gamma_exps']
+        dp_mask = batch['next_state_decision_points']
 
-        next_state_action, info = self.actor.get_action(next_state_batch, with_grad=False)
-        next_state_log_pi = info['logp'] # Do this or should we call self.actor.get_log_prob?
+        next_actions, info = self.actor.get_action(next_state_batch, with_grad=False)
+        with torch.no_grad():
+            next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
+
+        next_state_log_pi, _ = self.actor.get_log_prob(next_state_batch, next_actions, with_grad=False)
         
-        q_pi_targ = self.q_critic.get_q_target(next_state_batch, next_state_action)
+        q_pi_targ = self.q_critic.get_q_target(next_state_batch, next_actions)
         q_pi_targ -= self.alpha * next_state_log_pi
         
         # Version of SAC that uses state-value function
         # q_pi_targ = self.v_critic.get_v(next_state_batch, with_grad=False)
-        next_q_value = reward_batch + mask_batch * self.gamma * q_pi_targ
+        next_q_value = reward_batch + mask_batch * (self.gamma ** gamma_exp_batch) * q_pi_targ
         _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)
 
         critic_loss = ensemble_mse(next_q_value, q_ens)
@@ -65,10 +71,14 @@ class SAC(BaseAC):
     # def compute_v_loss(self, batch: dict) -> (torch.Tensor, np.ndarray, np.ndarray):
     #     """L_{\phi}, learn z for state value, v = tau log z"""
     #     state_batch = batch['states']
+    #     action_batch = batch['actions']
+    #     dp_mask = batch['state_decision_points']
     #     
     #     v_phi = self.v_critic.get_v(state_batch, with_grad=True)
     #     actions, info = self.actor.get_action(state_batch, with_grad=False)
-    #     log_probs = info['logp'] # Do this or should we call self.actor.get_log_prob?
+    #     with torch.no_grad():
+    #         actions = (dp_mask * actions) + ((1.0 - dp_mask) * action_batch)
+    #     log_probs, _ = self.actor.get_log_prob(state_batch, actions, with_grad=False)
     #     min_q = self.q_critic.get_q(state_batch, actions)
     #     target = min_q - self.alpha * log_probs
     #     value_loss = (0.5 * (v_phi - target) ** 2).mean()
@@ -77,9 +87,12 @@ class SAC(BaseAC):
 
     def compute_actor_loss(self, batch: dict) -> (torch.Tensor, torch.Tensor):
         state_batch = batch['states']
+        action_batch = batch['actions']
+        dp_mask = batch['state_decision_points']
 
         actions, info = self.actor.get_action(state_batch, with_grad=True)
-        log_pi = info['logp'] # Do this or should we call self.actor.get_log_prob?
+        actions = (dp_mask * actions) + ((1.0 - dp_mask) * action_batch)
+        log_pi, _ = self.actor.get_log_prob(state_batch, actions, with_grad=True)
         min_q = self.q_critic.get_q(state_batch, actions, with_grad=True)
         policy_loss = ((self.alpha * log_pi) - min_q).mean()
 
@@ -89,9 +102,15 @@ class SAC(BaseAC):
         for _ in range(self.n_entropy_updates):
             batch = self.buffer.sample()
             state_batch = batch['states']
+            action_batch = batch['actions']
+            dp_mask = batch['state_decision_points']
 
-            _, info = self.actor.get_action(state_batch, with_grad=False)
-            log_pi = info['logp']  # Do this or should we call self.actor.get_log_prob?
+            actions, info = self.actor.get_action(state_batch, with_grad=False)
+            with torch.no_grad():
+                actions = (dp_mask * actions) + ((1.0 - dp_mask) * action_batch)
+
+            log_pi, _ = self.actor.get_log_prob(state_batch, actions, with_grad=False)
+            
             alpha_loss = -(self.log_alpha() * (log_pi + self.target_entropy).detach()).mean()
 
             self.alpha_optimizer.zero_grad()
