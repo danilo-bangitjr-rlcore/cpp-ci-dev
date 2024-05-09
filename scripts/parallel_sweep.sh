@@ -4,6 +4,10 @@ SCRIPT_NAME=$(basename "$0")
 SHORT="y:h:v:r:pj:n:o:e:"
 LONG="env:,hypers:,values:,exe:,progress,jobs:,help,nthreads:,output:,error:"
 
+if [[ "$#" == 0 ]]; then
+    exit
+fi
+
 function usage() {
     cat << EOF
 Usage: $SCRIPT_NAME [OPTION]... -h [ARGS] -v [ARGS]
