@@ -7,7 +7,7 @@ import torch
 
 
 def _prepare(batch) -> dict:
-    s, a, r, ns, d, t, dp, ge = batch
+    s, a, r, ns, d, t, s_dp, ns_dp, ge = batch
     return {
         'states': s,
         'actions': a,
@@ -15,7 +15,8 @@ def _prepare(batch) -> dict:
         'next_states': ns,
         'dones': d,
         'truncs': t,
-        'decision_points': dp,
+        'state_decision_points': s_dp,
+        'next_state_decision_points': ns_dp,
         'gamma_exps': ge
     }
 

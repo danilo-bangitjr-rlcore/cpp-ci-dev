@@ -58,6 +58,4 @@ class RewardEval(BaseEval):
 
     def output(self, path: Path):
         stats = self.get_stats()
-
-        with open(path, 'w') as f:
-            json.dump(stats, f)
+        return stats
