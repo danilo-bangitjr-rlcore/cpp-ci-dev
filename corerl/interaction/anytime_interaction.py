@@ -29,9 +29,14 @@ class AnytimeInteraction(NormalizerInteraction):
     Interaction that will repeat an action for some length of time, while the observation is still
     updated more frequently
     """
-
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env, state_constructor: BaseStateConstructor):
-        super().__init__(cfg, env, state_constructor)
+    def __init__(
+        self,
+        cfg: DictConfig,
+        env: gymnasium.Env,
+        state_constructor: BaseStateConstructor,
+        agent,
+    ):
+        super().__init__(cfg, env, state_constructor, agent)
         self.steps_per_decision = cfg.decision_steps  # how many observation steps per decision step
         self.obs_length = cfg.obs_length  # how often to update the observation
         self.gamma = cfg.gamma
@@ -44,7 +49,10 @@ class AnytimeInteraction(NormalizerInteraction):
         terminated_list = []
         truncate_list = []
         env_info_list = []
+        decision_point_list = []
+        # gamma_list_exp = []
 
+        gamma = 1
         for obs_step in range(self.steps_per_decision):
             obs_end_time = time.time() + self.obs_length
             denormalized_action = self.action_normalizer.denormalize(action)
@@ -61,13 +69,17 @@ class AnytimeInteraction(NormalizerInteraction):
             is_done = is_decision_point or terminated or truncate
             if is_done:
                 next_state = self.state_constructor(next_observation, decision_point=True)
+                decision_point = True
             else:
                 next_state = self.state_constructor(next_observation)
+                decision_point = False
 
             state_list.append(next_state)
             terminated_list.append(terminated)
             truncate_list.append(truncate)
             env_info_list.append(env_info)
+            # gamma_list_exp.append(gamma**(obs_step+1))
+            decision_point_list.append(decision_point)
 
             time.sleep(obs_end_time-time.time())
             if terminated or truncate:
@@ -76,11 +88,9 @@ class AnytimeInteraction(NormalizerInteraction):
         # assemble the transitions
         num_completed_steps = len(truncate_list)
         transitions = []
-
-        # TODO: change this
         for obs_step in range(num_completed_steps):  # note: we do not return a transition for the final state
             transition = (state_list[obs_step], action, reward_list[obs_step], next_state, terminated_list[obs_step],
-                          truncate_list[obs_step])
+                          truncate_list[obs_step], decision_point_list[obs_step], obs_step+1)
             transitions.append(transition)
 
         return transitions, env_info_list

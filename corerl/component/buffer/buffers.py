@@ -1,29 +1,25 @@
-import numpy as np
-import corerl.component.network.utils as network_utils
 from corerl.utils.device import device
 from omegaconf import DictConfig
+from warnings import warn
+import corerl.component.network.utils as network_utils
+import numpy as np
+import torch
 
-def send_to_device(batch: list) -> dict:
-    states, actions, rewards, next_states, terminals, truncations, decision_points, gamma_exps = batch
-    s = network_utils.tensor(states, device)
-    a = network_utils.tensor(actions, device)
-    r = network_utils.tensor(rewards, device)
-    ns = network_utils.tensor(next_states, device)
-    d = network_utils.tensor(terminals, device)
-    t = network_utils.tensor(truncations, device)
-    dp = network_utils.tensor(decision_points, device)
-    ge = network_utils.tensor(gamma_exps, device)
-    data = {
+
+def _prepare(batch: list) -> dict:
+    s, a, r, ns, d, t, s_dp, ns_dp, ge = batch
+    return {
         'states': s,
         'actions': a,
         'rewards': r,
         'next_states': ns,
         'dones': d,
         'truncs': t,
-        'decision_points': dp,
+        'state_decision_points': s_dp,
+        'next_state_decision_points': ns_dp,
         'gamma_exps': ge
     }
-    return data
+
 
 class UniformBuffer:
     def __init__(self, cfg: DictConfig):
@@ -31,8 +27,10 @@ class UniformBuffer:
         self.rng = np.random.RandomState(self.seed)
         self.memory = cfg.memory
         self.batch_size = cfg.batch_size
-        self.data = []
+        self.data = None
         self.pos = 0
+        self.full = False
+        self.device = torch.device(cfg.device)
 
         if self.batch_size == 0:
             self.sample = self.sample_batch
@@ -40,47 +38,63 @@ class UniformBuffer:
             self.sample = self.sample_mini_batch
 
     def feed(self, experience: tuple) -> None:
-        if self.pos >= len(self.data):
-            self.data.append(experience)
-        else:
-            self.data[self.pos] = experience
-        # resets to start of buffer
+        if self.data is None:
+            # Lazy instatiation
+            data_size = _get_size(experience)
+            self.data = tuple([
+                torch.empty(
+                    (self.memory, *s), device=self.device,
+                ) for s in data_size
+            ])
+
+        for i in range(len(experience)):
+            self.data[i][self.pos] = _to_tensor(experience[i])
         self.pos = (self.pos + 1) % self.memory
 
+        if not self.full and self.pos == self.memory:
+            self.full = True
+
     def sample_mini_batch(self, batch_size: int = None) -> dict:
-        if len(self.data) == 0:
+        if self.data is None or len(self.data) == 0:
             return None
         if batch_size is None:
             batch_size = self.batch_size
-        sampled_indices = [self.rng.randint(0, len(self.data)) for _ in range(batch_size)]
-        sampled_data = [self.data[ind] for ind in sampled_indices]
-        batch_data = list(map(lambda x: np.asarray(x), zip(*sampled_data)))
-        batch_data = self.prepare_data(batch_data)
-        batch_data = send_to_device(batch_data)
-        return batch_data
+
+        sampled_indices = self.rng.randint(
+            0, len(self.data) if self.full else self.pos, batch_size,
+        )
+
+        sampled_data = (
+            self.data[i][sampled_indices] for i in range(len(self.data))
+        )
+
+        return _prepare(sampled_data)
 
     def sample_batch(self) -> dict:
-        if len(self.data) == 0:
+        if len(self.data) == 0 or self.data is None:
             return None
-        sampled_data = list(self.data)
-        if len(sampled_data) > 1:
-            batch_data = list(map(lambda x: np.asarray(x), zip(*sampled_data)))
-        else:
-            batch_data = [np.asarray([x]) for x in sampled_data[0]]
-        batch_data = self.prepare_data(batch_data)
-        batch_data = send_to_device(batch_data)
-        return batch_data
 
-    def prepare_data(self, batch_data: list) -> list:
-        for i in range(len(batch_data)):
-            if batch_data[i].ndim == 1:
-                batch_data[i] = batch_data[i].reshape(-1, 1)
-        return batch_data
+        if self.full:
+            sampled_data = self.data
+        else:
+            sampled_data = (
+                self.data[i][:self.pos] for i in range(len(self.data))
+            )
+
+        return _prepare(sampled_data)
 
     """
-    def load(self, states: list, actions: list, cumulants: list, dones: list, truncates: list) -> None:
+    def load(
+        self, states: list, actions: list, cumulants: list, dones: list,
+        truncates: list,
+        ) -> None:
         for i in range(len(states) - 1):
-            self.feed((states[i], actions[i], cumulants[i], states[i+1], int(dones[i]), int(truncates[i])))
+            self.feed(
+                (
+                    states[i], actions[i], cumulants[i], states[i+1],
+                    int(dones[i]), int(truncates[i]),
+                ),
+            )
     """
 
     def load(self, transitions: list) -> None:
@@ -105,32 +119,67 @@ class UniformBuffer:
 class PriorityBuffer(UniformBuffer):
     def __init__(self, cfg: DictConfig):
         super(PriorityBuffer, self).__init__(cfg)
-        self.priority = []
+        self.priority = torch.zeros((self.memory,))
+        warn("Priority buffer has not been tested yet")
 
     def feed(self, experience: tuple) -> None:
         super(PriorityBuffer, self).feed(experience)
-        self.priority = list(self.priority)
-        if self.pos >= len(self.data):
-            self.priority.append(1.0)
-        else:
-            self.priority[self.pos] = 1.0
-        self.priority = np.asarray(self.priority)
-        self.priority /= self.priority.sum()
+        self.priority[self.pos] = 1.0
 
-    def sample_mini_batch(self, batch_size: int=None) -> dict:
+        if self.full:
+            scale = self.priority.sum()
+        else:
+            scale = self.priority[:self.pos].sum()
+
+        self.priority /= scale
+
+    def sample_mini_batch(self, batch_size: int = None) -> dict:
         if len(self.data) == 0:
             return None
         if batch_size is None:
             batch_size = self.batch_size
-        sampled_indices = self.rng.choice(self.size, batch_size, replace=False, p=self.priority)
-        sampled_data = [self.data[ind] for ind in sampled_indices]
-        batch_data = list(map(lambda x: np.asarray(x), zip(*sampled_data)))
-        batch_data = self.prepare_data(batch_data)
-        batch_data = send_to_device(batch_data)
-        return batch_data
+        sampled_indices = self.rng.choice(
+            self.size, batch_size, replace=False,
+            p=(self.priority if self.full else self.priority[:self.pos]),
+        )
+
+        sampled_data = (
+            self.data[i][sampled_indices] for i in range(len(self.data))
+        )
+
+        return _prepare(sampled_data)
 
     def update_priorities(self, priority=None):
         if priority is None:
             raise NotImplementedError
         else:
-            self.priority = list(priority)
+            assert priority.shape == self.priority.shape
+            self.priority = torch.Tensor(priority)
+
+
+def _to_tensor(elem):
+    if (
+        isinstance(elem, torch.Tensor) or
+        isinstance(elem, np.ndarray) or
+        isinstance(elem, list)
+    ):
+        return torch.Tensor(elem)
+    else:
+        return torch.Tensor([elem])
+
+
+def _get_size(experience: tuple) -> int:
+    size = []
+    for elem in experience:
+        if isinstance(elem, np.ndarray):
+            size.append(elem.shape)
+        elif (
+            isinstance(elem, int) or
+            isinstance(elem, float) or
+            isinstance(elem, bool)
+        ):
+            size.append((1,))
+        else:
+            raise TypeError(f"unknown type {type(elem)}")
+
+    return size

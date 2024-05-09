@@ -31,7 +31,7 @@ def get_cfg(params: dict) -> (str, DictConfig):
 
 def main():
     parser = argparse.ArgumentParser(description="sweep maker")
-    parser.add_argument('--path', default='test/configs/reseau', type=str)
+    parser.add_argument('--path', default='test/configs', type=str)
     parser.add_argument('--run_file', default='output_conf.py', type=str)
     parser.add_argument('--cmd', default='python3', type=str)
     parser.add_argument('--save_file', default='runs.sh', type=str)

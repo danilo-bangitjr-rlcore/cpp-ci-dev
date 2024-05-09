@@ -129,15 +129,18 @@ class GreedyAC(BaseAC):
 
         return state_batch, repeated_states, sample_actions, sorted_q_inds, stacked_s_batch, best_actions, batch_size
 
-    def compute_critic_loss(self, batch: dict) -> list[torch.Tensor]:
+    def compute_critic_loss(self, batch: dict) -> torch.Tensor:
         state_batch = batch['states']
         action_batch = batch['actions']
         reward_batch = batch['rewards']
         next_state_batch = batch['next_states']
         mask_batch = 1 - batch['dones']
         gamma_exp_batch = batch['gamma_exps']
+        dp_mask = batch['next_state_decision_points']
 
         next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
+        with torch.no_grad():
+            next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
         next_q = self.q_critic.get_q_target(next_state_batch, next_actions)
         target = reward_batch + mask_batch * (self.gamma ** gamma_exp_batch) * next_q
         _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)

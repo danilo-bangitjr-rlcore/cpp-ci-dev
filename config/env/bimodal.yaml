@@ -1,0 +1,7 @@
+defaults:
+  - base_env
+  - _self_
+
+name : Bimodal
+discrete_control : False
+reward_variance : False

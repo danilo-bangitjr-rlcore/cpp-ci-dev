@@ -8,9 +8,17 @@ from corerl.state_constructor.base import BaseStateConstructor
 
 
 class NormalizerInteraction(BaseInteraction):
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env, state_constructor: BaseStateConstructor):
+    def __init__(
+        self,
+        cfg: DictConfig,
+        env: gymnasium.Env,
+        state_constructor: BaseStateConstructor,
+        agent,
+    ):
         super().__init__(cfg, env, state_constructor)
-        self.action_normalizer = init_action_normalizer(cfg.action_normalizer, self.env)
+        self.action_normalizer = init_action_normalizer(
+            cfg.action_normalizer, self.env, agent,
+        )
         self.reward_normalizer = init_reward_normalizer(cfg.reward_normalizer)
         self.gamma = cfg.gamma
 
@@ -25,7 +33,7 @@ class NormalizerInteraction(BaseInteraction):
         if terminated or truncate:
             next_state, env_info = self.reset() # if truncated or terminated, replace the next state and env_info with the return after resetting.
 
-        return [(state, action, reward, next_state, terminated, truncate, decision_point, self.gamma)], [env_info]
+        return [(state, action, reward, next_state, terminated, truncate, decision_point, 1)], [env_info]
 
     def reset(self) -> (np.ndarray, dict):
         observation, info = self.env.reset()

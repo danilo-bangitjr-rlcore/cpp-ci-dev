@@ -1,11 +1,11 @@
 name : direct_action
 offline_data_path : offline_data
-offline_filenames : ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv", "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie.csv", "rosie_2.csv"]
-skip_rows : 3 # Number of lines to skip at the top of the csv file
+offline_filenames : []
+skip_rows : 1 # Number of lines to skip at the top of the csv file
 header : 0 # df_col_names replaces the column names in the csv file
-df_col_names : ["Blank", "Result", "Table", "Date", "ait101_pv", "ait301_pv", "ait401_pv", "fit101_pv", "fit210_pv", "fit230_pv", "fit250_pv", "fit401_pv", "p250_fp", "pt100_pv", "pt101_pv", "pt161_pv", "pt171_pv", "pt302_pv"]
-obs_col_names : ["ait301_pv", "fit250_pv", "p250_fp"]
-control_col_names : ["p250_fp"]
+df_col_names : []
+obs_col_names : []
+control_col_names : []
 date_col_name : Date
 max_time_delta: 10 # In seconds
 steps_per_decision : ${interaction.decision_steps}
@@ -13,3 +13,4 @@ obs_length : ${interaction.obs_length} # 1 second
 warmup_steps : 360
 train_split : 0.95
 gamma : ${agent.gamma}
+n_step : ${interaction.n_step}

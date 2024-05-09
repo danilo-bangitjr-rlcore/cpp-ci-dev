@@ -43,8 +43,14 @@ class InAC(BaseAC):
 
     def compute_v_loss(self, data: dict) -> torch.Tensor:
         states = data['states']
+        observed_actions = data['actions']
+        dp_mask = data['state_decision_points']
+
         v_phi = self.v_critic.get_v(states, with_grad=True)
-        actions, _ = self.actor.get_action(states, with_grad=False)
+        sampled_actions, _ = self.actor.get_action(states, with_grad=False)
+        # Is this what we should be doing for InAC?
+        with torch.no_grad():
+            actions = (dp_mask * sampled_actions) + ((1.0 - dp_mask) * observed_actions)
         log_probs, _ = self.actor.get_log_prob(states, actions)
         q = self.q_critic.get_q_target(states, actions)
         target = q - self.temp * log_probs
@@ -52,16 +58,19 @@ class InAC(BaseAC):
         return value_loss
 
     def compute_q_loss(self, batch):
-        states, actions, rewards, next_states, dones = (batch['states'], batch['actions'], batch['rewards'],
-                                                        batch['next_states'], batch['dones'])
+        states, actions, rewards, next_states, dones, dp_mask, gamma_exps = (batch['states'], batch['actions'], batch['rewards'],
+                                                                             batch['next_states'], batch['dones'],
+                                                                             batch['next_state_decision_points'], batch['gamma_exps'])
 
         _, q_ens = self.q_critic.get_qs(states, actions, with_grad=True)
         next_actions, _ = self.actor.get_action(next_states, with_grad=False)
+        with torch.no_grad():
+            next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * actions)
         next_log_probs, _ = self.actor.get_log_prob(next_states, next_actions,
                                                     with_grad=False)
 
         q_pi_target = self.q_critic.get_q_target(next_states, next_actions) - self.temp * next_log_probs
-        target = rewards + self.gamma * (1 - dones) * q_pi_target
+        target = rewards + (self.gamma ** gamma_exps) * (1 - dones) * q_pi_target
         q_loss = ensemble_mse(target, q_ens)
         return q_loss
 
