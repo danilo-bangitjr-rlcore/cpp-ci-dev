@@ -6,8 +6,8 @@ from gymnasium.wrappers import FlattenObservation
 
 from corerl.environment.bimodal import Bimodal
 from corerl.environment.reseau_env import ReseauEnv
-from corerl.environment.three_tanks import ThreeTankEnv
-from corerl.environment.three_tanks import TTChangeAction, TTChangeActionDiscrete
+import corerl.environment.three_tanks_v2 as TTv2
+import corerl.environment.three_tanks as TTv1
 from corerl.environment.smpl.envs.atropineenv import AtropineEnvGym
 from corerl.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
 from corerl.environment.smpl.envs.reactorenv import ReactorEnvGym
@@ -17,28 +17,44 @@ from corerl.environment.wrapper.d4rl import D4RLWrapper
 from corerl.environment.pendulum_env import PendulumEnv
 from corerl.environment.wrapper.one_hot_wrapper import OneHotWrapper
 
+
 def init_environment(cfg: DictConfig) -> gym.Env:
     seed = cfg.seed
     name = cfg.name
-    if name == "three_tanks":
+    if name == "three_tanks_v2":
         if cfg.change_action:
-            if cfg.discrete_action:
-                TTChangeActionDiscrete(cfg.delta_step, seed, cfg.lr_constrain,
-                                       constant_pid=cfg.constant_pid,
-                                       random_sp=cfg.random_sp)
+            if cfg.discrete_control:
+                raise NotImplementedError
             else:
-                env = TTChangeAction(seed, cfg.lr_constrain, constant_pid=cfg.constant_pid,
-                                     agent_action_min=-1,
-                                     agent_action_max=1,
-                                     random_sp=cfg.random_sp)
+                env = TTv2.TTChangeAction(seed)
         else:
             if cfg.discrete_control:
                 raise NotImplementedError
             else:
-                env = ThreeTankEnv(seed, cfg.lr_constrain, random_sp=cfg.random_sp)
-
+                env = TTv2.ThreeTankEnv(seed, random_sp=cfg.random_sp)
+    elif name == "three_tanks":
+        if cfg.change_action:
+            if cfg.discrete_action:
+                TTv1.TTChangeActionDiscrete(
+                    cfg.delta_step, seed, cfg.lr_constrain,
+                    constant_pid=cfg.constant_pid, random_sp=cfg.random_sp,
+                )
+            else:
+                env = TTv1.TTChangeAction(
+                    seed, cfg.lr_constrain, constant_pid=cfg.constant_pid,
+                    agent_action_min=-1, agent_action_max=1,
+                    random_sp=cfg.random_sp,
+                )
+        else:
+            if cfg.discrete_control:
+                raise NotImplementedError
+            else:
+                env = TTv1.ThreeTankEnv(
+                    seed, cfg.lr_constrain, random_sp=cfg.random_sp,
+                )
     elif name == "AtropineEnv":
-        env = AtropineEnvGym(max_steps=-1) # remove timeout in environment, set timeout in the interaction layer
+        # remove timeout in environment, set timeout in the interaction layer
+        env = AtropineEnvGym(max_steps=-1)
     elif name == "BeerEnv":
         env = BeerFMTEnvGym(max_steps=-1)
     elif name == "ReactorEnv":
@@ -74,7 +90,9 @@ def init_environment(cfg: DictConfig) -> gym.Env:
         env = Bimodal(seed, reward_v)
     elif name == "Pendulum-v1":
         # continual learning task. No timeout
-        env = PendulumEnv(render_mode="human", continuous_action=(not cfg.discrete_control))
+        env = PendulumEnv(
+            render_mode="human", continuous_action=(not cfg.discrete_control),
+        )
         env.reset(seed=seed)
     elif name == "HalfCheetah-v4":
         env = gym.make("HalfCheetah-v4")
