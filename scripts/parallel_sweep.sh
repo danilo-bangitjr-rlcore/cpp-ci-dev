@@ -187,12 +187,10 @@ if [[ $STDERR_FILENAME != "" ]]; then
 fi
 
 cmd="$cmd\""
-echo $cmd
 
 for i in ${!all_hyper_sweeps[@]}; do
     cmd="$cmd :::${all_hyper_sweeps[$i]}"
 done
-cmd
 
 # Print to stdout the command we are running
 echo
