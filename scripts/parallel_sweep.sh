@@ -5,7 +5,8 @@ SHORT="y:h:v:r:pj:n:o:e:"
 LONG="env:,hypers:,values:,exe:,progress,jobs:,help,nthreads:,output:,error:"
 
 if [[ "$#" == 0 ]]; then
-    exit
+    usage
+    exit 2
 fi
 
 function usage() {
@@ -14,21 +15,21 @@ Usage: $SCRIPT_NAME [OPTION]... -h [ARGS] -v [ARGS]
 
 Sweep over hyperparameters in parallel.
 
-  -y, --env FILE
+  -v, --venv FILE
     Use the specified virtual environment
   -h, --hypers ARGS
     A colon-delimited list of hyperparameters to sweep.
-  -v, --values ARGS
+  -s, --sweep ARGS
     A comma- and colon-delimited list of hyperparameter values to sweep for
     each hyperparameter specified in the '-h' option. colons delmit values to
     sweep for each separate hyperparameter and commas delimit values to sweep
     for a specific hyperparameter. For example '1,2,3:4,5,6' will sweep values
     1, 2, and 3 for the first hyperparameter provided in the '-h' option and 4,
     5, and 6 for the second hyperparameter provided in the '-h' option.
-  -r, --run FILE
+  -r, --exe FILE
     The executable to run, by default 'main.py'
   -p, --progress
-    Flag which determines if the current progress is shown
+    Show current progress
   -j, --jobs num
     Set the maximum number of jobs to run in parallel to num. See the -j option
     for gnu parallel for more information:
@@ -39,7 +40,7 @@ Sweep over hyperparameters in parallel.
 		means one job per CPU thread on each machine.
 	+num	Add num to the number of CPU threads.
 	-num   	Subtract num from the number of CPU threads.
-    -n, --nthreads NUM
+    -n, --omp-num-threads NUM
 	Set the value for the OMP_NUM_THREADS environment variable to 'NUM'. By
 	default this is set to 1.
     -o, --output FILENAME
@@ -67,7 +68,7 @@ eval set -- "${TEMP}"
 
 while :; do
     case "${1}" in
-        -y | --env )
+        -v | --venv )
 	    if [[ "${2}" == *"/bin/activate" ]]; then
 		source "${2}"
 	    else
@@ -79,11 +80,11 @@ while :; do
 	    HYPERS="${2}"
 	    shift 2
 	    ;;
-	-v | --values )
+	-s | --sweep )
 	    VALUES="${2}"
 	    shift 2
 	    ;;
-	-r | --run )
+	-r | --exe )
 	    EXE="${2}"
 	    shift 2
 	    ;;
@@ -95,7 +96,7 @@ while :; do
 	    N_JOBS="${2}"
 	    shift 2
 	    ;;
-	-n | --nthreads )
+	-n | --omp-num-threads )
 	    OMP_NUM_THREADS="${2}"
 	    shift 2
 	    ;;
