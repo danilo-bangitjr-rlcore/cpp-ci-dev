@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 SCRIPT_NAME=$(basename "$0")
-SHORT="v:h:s:r:pj:n:o:e:"
-LONG="env:,hypers:,sweep:,exe:,progress,jobs:,help,omp-num-threads:,output:,error:"
+SHORT="v:h:s:r:pj:n:o:e:d"
+LONG="env:,hypers:,sweep:,exe:,progress,jobs:,help,omp-num-threads:,output:,error:,debug"
 
 if [[ "$#" == 0 ]]; then
     usage
@@ -49,6 +49,9 @@ Sweep over hyperparameters in parallel.
     -e, --error FILENAME
 	Write the stderr of each job to a file named 'FILENAME-X.err', where
 	'X' is the job number
+  -d, --debug
+    Echo each separate command that will be run, without actually executing the
+    commands
 EOF
 }
 
@@ -62,6 +65,7 @@ N_JOBS=""
 OMP_NUM_THREADS=1
 STDOUT_FILENAME=""
 STDERR_FILENAME=""
+DEBUG=false
 
 TEMP=$(getopt -o $SHORT --long $LONG --name "$SCRIPT_NAME" -- "$@")
 eval set -- "${TEMP}"
@@ -92,6 +96,10 @@ while :; do
 	    PROGRESS=true
 	    shift
 	    ;;
+	-d | --debug )
+	    DEBUG=true
+	    shift
+	    ;;
 	-j | --jobs )
 	    N_JOBS="${2}"
 	    shift 2
@@ -117,7 +125,7 @@ while :; do
 	    exit 0
 	    ;;
         * )
-	    echo "$SCRIPT_NAME: missing operand"
+	    echo "$SCRIPT_NAME: missing operand for option ${1}"
 	    echo "Try '$SCRIPT_NAME --help' for more information"
 	    exit 1
 	    ;;
@@ -148,7 +156,12 @@ fi
 if $PROGRESS; then
     cmd="$cmd --eta "
 fi
-cmd="$cmd \"python3 $EXE"
+
+if $DEBUG; then
+    cmd="$cmd \"echo $EXE {}"
+else
+    cmd="$cmd \"python3 $EXE {}"
+fi
 
 if [[ $STDOUT_FILENAME != "" ]]; then
     cmd="$cmd > ${STDOUT_FILENAME}-{#}.out"
