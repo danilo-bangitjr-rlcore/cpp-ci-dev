@@ -2,7 +2,7 @@ defaults:
   - base_env
   - _self_
 
-name : three_tanks
+name : three_tanks_v2
 random_sp : [3]
 lr_constrain : 0
 discrete_control : False
