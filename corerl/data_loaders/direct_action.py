@@ -303,7 +303,6 @@ class DirectActionDataLoader(BaseDataLoader):
         test_trajectories = []
         test_obs_transitions = []
 
-        # TODO: deal with this
         test_scs = []
 
         # Keep trying to create transitions until you reach the end of the df
