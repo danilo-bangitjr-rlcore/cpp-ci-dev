@@ -44,7 +44,7 @@ class DirectActionDataLoader(BaseDataLoader):
         self.train_split = cfg.train_split
         self.n_step = cfg.n_step
         # if we return the state constructors's internal state for each transition
-        self.return_sc_state = cfg.return_sc_state
+        self.return_sc_state = False #cfg.return_sc_state
 
     def load_data(self) -> pd.DataFrame:
         """
@@ -249,6 +249,7 @@ class DirectActionDataLoader(BaseDataLoader):
 
             new_transitions.append(
                 (state, action, np_n_step_rewards[-1], boot_state, term, trunc, int(s_dp), int(ns_dp), gamma_exp))
+
             new_obs_transitions.append((state, action, np_n_step_rewards[-1], next_observations[i], term, trunc,
                                         int(s_dp), int(ns_dp), gamma_exp))
 
