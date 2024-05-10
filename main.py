@@ -71,10 +71,12 @@ def load_offline_data(cfg, save_path, interaction, data_loader, offline_data_df)
     return offline_data
 
 
-def get_state_action_dim(env_cfg, env, sc):
+def get_state_action_dim(env, sc):
     obs_shape = (flatdim(env.observation_space),)
     dummy_obs = np.ones(obs_shape)
-    state_dim = sc.get_state_dim(dummy_obs)  # gets state_dim dynamically
+    action_shape = (flatdim(env.action_space),)
+    dummy_action = np.ones( action_shape)
+    state_dim = sc.get_state_dim(dummy_obs, dummy_action)  # gets state_dim dynamically
     action_dim = flatdim(env.action_space)
     return state_dim, action_dim
 
@@ -106,7 +108,7 @@ def main(cfg: DictConfig) -> dict:
 
     # we must instantiate the sc after we set env.observation_space since normalization depends on these values
     sc = init_state_constructor(cfg.state_constructor, env)
-    state_dim, action_dim = get_state_action_dim(cfg.env, env, sc)
+    state_dim, action_dim = get_state_action_dim(env, sc)
     agent = init_agent(cfg.agent, state_dim, action_dim)
     interaction = init_interaction(cfg.interaction, env, sc, agent)
 

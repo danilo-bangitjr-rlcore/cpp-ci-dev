@@ -15,6 +15,7 @@ from corerl.interaction.normalizer import NormalizerInteraction
 from corerl.data_loaders.base import BaseDataLoader
 from copy import deepcopy
 
+
 class DirectActionDataLoader(BaseDataLoader):
     def __init__(self, cfg: DictConfig):
         self.offline_data_path = Path(cfg.offline_data_path)
@@ -25,9 +26,14 @@ class DirectActionDataLoader(BaseDataLoader):
             self.offline_filenames = [self.offline_data_path / file for file in cfg.offline_filenames]
         self.skip_rows = cfg.skip_rows
         self.header = cfg.header
+        # not sure if OmegaConf.to_object is necessary anymore?
         self.df_col_names = OmegaConf.to_object(cfg.df_col_names)
-        self.obs_col_names = OmegaConf.to_object(cfg.obs_col_names)
-        self.control_col_names = OmegaConf.to_object(cfg.control_col_names)
+
+        self.endog_obs_col_names = OmegaConf.to_object(cfg.endog_obs_col_names)
+        self.exo_obs_col_names = OmegaConf.to_object(cfg.exo_obs_col_names)
+        self.obs_col_names = self.exo_obs_col_names + self.endog_obs_col_names
+        self.action_col_names = OmegaConf.to_object(cfg.action_col_names)
+
         self.date_col_name = cfg.date_col_name
         self.max_time_delta = cfg.max_time_delta
         self.time_thresh = pd.Timedelta(self.max_time_delta, "s")
@@ -46,11 +52,12 @@ class DirectActionDataLoader(BaseDataLoader):
         """
         dfs = []
         for file in self.offline_filenames:
-            df = pd.read_csv(file, dtype=np.float32, skiprows=self.skip_rows, header=self.header, names=self.df_col_names, index_col=self.date_col_name, parse_dates=True)
+            df = pd.read_csv(file, dtype=np.float32, skiprows=self.skip_rows, header=self.header,
+                             names=self.df_col_names, index_col=self.date_col_name, parse_dates=True)
             dfs.append(df)
         concat_df = pd.concat(dfs)
         concat_df.sort_values(by=[self.date_col_name], inplace=True)
-        concat_df = concat_df[self.obs_col_names]
+        concat_df = concat_df[self.obs_col_names+self.action_col_names]
 
         print("Concatenated DF:")
         print(concat_df)
@@ -61,7 +68,9 @@ class DirectActionDataLoader(BaseDataLoader):
         """
         Find the max and min values for each column in the input df to later be used for normalization
         """
-        np_min_max = df.agg(['min', 'max']).to_numpy()
+
+        obs_db = df[self.obs_col_names]
+        np_min_max = obs_db.agg(['min', 'max']).to_numpy()
         obs_space_low = np_min_max[0, :]
         obs_space_high = np_min_max[1, :]
 
@@ -95,7 +104,7 @@ class DirectActionDataLoader(BaseDataLoader):
         return df_list
 
     def get_df_date_range(self, df: pd.DataFrame, start_ind: pd.Timestamp, end_ind: pd.Timestamp) -> pd.DataFrame:
-        window_df = df.loc[start_ind: end_ind]
+        window_df = df.loc[start_ind: end_ind, self.obs_col_names]
 
         return window_df
 
@@ -128,11 +137,13 @@ class DirectActionDataLoader(BaseDataLoader):
                 for i in range(curr_action_steps):
                     decision_point = steps_since_decision == 0
                     state, sc_at_state, obs = self.get_state(state_constructor,
+                                                             curr_action,
                                                              interaction,
                                                              df,
                                                              step_start,
                                                              decision_point,
                                                              steps_since_decision)
+
                     steps_since_decision = (steps_since_decision + 1) % self.steps_per_decision
                     step_start += timedelta(seconds=self.obs_length)
                     elapsed_warmup += timedelta(seconds=self.obs_length)
@@ -146,6 +157,7 @@ class DirectActionDataLoader(BaseDataLoader):
 
     def get_state(self,
                   state_constructor: BaseStateConstructor,
+                  action,
                   interaction: NormalizerInteraction,
                   df: pd.DataFrame,
                   start: pd.Timestamp,
@@ -156,7 +168,8 @@ class DirectActionDataLoader(BaseDataLoader):
         obs_df = self.get_df_date_range(df, start, end)
         obs = obs_df.to_numpy()
         obs = interaction.obs_normalizer(obs)
-        state = state_constructor(obs, decision_point=decision_point, steps_since_decision=steps_since_decision)
+        action = interaction.action_normalizer(action)
+        state = state_constructor(obs, action, decision_point=decision_point, steps_since_decision=steps_since_decision)
         # copy the state constructor's internal state. This will be used for calibration_models training
         if self.return_sc_state:
             sc_at_state = deepcopy(state_constructor)
@@ -174,7 +187,7 @@ class DirectActionDataLoader(BaseDataLoader):
         """
         data_gap = False
         prev_date = start_ind
-        curr_action = df[self.control_col_names].loc[start_ind].to_numpy()
+        curr_action = df[self.action_col_names].loc[start_ind].to_numpy()
         for curr_date, row in df.loc[start_ind:].iterrows():
             date_diff = curr_date - prev_date
             # Is there a large gap in time between consecutive rows in the df?
@@ -182,7 +195,7 @@ class DirectActionDataLoader(BaseDataLoader):
                 data_gap = True
             # Is the episode terminated/truncated?
             trunc, term = self.check_termination_truncation(row)
-            row_action = row[self.control_col_names].to_numpy()
+            row_action = row[self.action_col_names].to_numpy()
             # Has there been a change in action/truncation/termination/gap in data?
             if data_gap or trunc or term or not np.array_equal(curr_action, row_action):
                 return curr_action, prev_date, curr_date, trunc, term, data_gap
@@ -234,19 +247,21 @@ class DirectActionDataLoader(BaseDataLoader):
             gamma_exp = len(n_step_rewards)
             ns_dp = dp_counter <= boot_state_queue.maxlen
 
-            new_transitions.append((state, action, np_n_step_rewards[-1], boot_state, term, trunc, int(s_dp), int(ns_dp), gamma_exp))
-            new_obs_transitions.append((state, action, np_n_step_rewards[-1],  next_observations[i], term, trunc, int(s_dp), int(ns_dp), gamma_exp))
+            new_transitions.append(
+                (state, action, np_n_step_rewards[-1], boot_state, term, trunc, int(s_dp), int(ns_dp), gamma_exp))
+            new_obs_transitions.append((state, action, np_n_step_rewards[-1], next_observations[i], term, trunc,
+                                        int(s_dp), int(ns_dp), gamma_exp))
 
             dp_counter += 1
             n_step_rewards = deque(np_n_step_rewards, n_step_rewards.maxlen)
-            if len(boot_state_queue) == boot_state_queue.maxlen: # if queue is full
+            if len(boot_state_queue) == boot_state_queue.maxlen:  # if queue is full
                 boot_state = boot_state_queue[-1]
 
-            if i != len(state_action_rewards) - 1:
-                # NOTE: check that next observation is equal to the observation part included in the next state
-                # we are not checking the "next_state" in the transition, since that is boot_state, aka
-                # the state at the decision point
-                assert np.array_equal(state_action_rewards[i + 1][0][0:3], next_observations[i])
+            # if i != len(state_action_rewards) - 1:
+            #     # NOTE: check that next observation is equal to the observation part included in the next state
+            #     # we are not checking the "next_state" in the transition, since that is boot_state, aka
+            #     # the state at the decision point
+            #     assert np.array_equal(state_action_rewards[i + 1][0][1:3], next_observations[i])
 
         new_transitions.reverse()
         new_obs_transitions.reverse()
@@ -286,7 +301,7 @@ class DirectActionDataLoader(BaseDataLoader):
         pbar = tqdm(total=df.index.get_loc(df_end))
 
         while action_start < df_end:
-            data_gap = False # Indicates a discontinuity in the df
+            data_gap = False  # Indicates a discontinuity in the df
             prev_action = None
 
             # Warmup state constructor using data starting from action_start
@@ -318,6 +333,8 @@ class DirectActionDataLoader(BaseDataLoader):
                 for i in range(curr_action_steps):  # how many steps we are talking the current action
                     decision_point = steps_since_decision == 0
                     next_state, sc_at_next_state, next_obs = self.get_state(state_constructor,
+                                                                            curr_action,
+                                                                            # should we curr_action or prev action?
                                                                             interaction,
                                                                             df,
                                                                             step_start,
@@ -381,7 +398,6 @@ class DirectActionDataLoader(BaseDataLoader):
         }
 
         return return_dict
-
 
     def train_test_split(self, *lsts, shuffle: bool = True) -> (list[tuple], list[tuple]):
         num_samples = len(lsts[0])

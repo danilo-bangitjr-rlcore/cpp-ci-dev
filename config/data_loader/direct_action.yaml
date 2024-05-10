@@ -4,8 +4,9 @@ offline_filenames : []
 skip_rows : 1 # Number of lines to skip at the top of the csv file
 header : 0 # df_col_names replaces the column names in the csv file
 df_col_names : []
-obs_col_names : []
-control_col_names : []
+endog_obs_col_names: [] # endogenous variables in the dataset (variables we can control)
+exo_obs_col_names: [] # exogenous variables in the dataset (variables we cannot control i.e. whether)
+action_col_names : []
 date_col_name : Date
 max_time_delta: 10 # In seconds
 steps_per_decision : ${interaction.decision_steps}

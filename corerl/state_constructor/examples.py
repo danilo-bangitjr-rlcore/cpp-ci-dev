@@ -53,6 +53,11 @@ class ReseauAnytime(CompositeStateConstructor):
         col_sc_2 = comp.KeepCols(cfg.flow_rate_col, parents=[identity_sc])
         col_sc_3 = comp.KeepCols(cfg.fpm_col, parents=[identity_sc])
 
+        # averages of the FPM
+        fpm_avgs = []
+        for horizon in cfg.memory:
+            fpm_avgs.append(comp.LongAverage(horizon, parents=[col_sc_3]))
+
         # Differences in the ORP over some timeframe
         orp_diffs = []
         for horizon in cfg.memory:
@@ -63,12 +68,7 @@ class ReseauAnytime(CompositeStateConstructor):
         for horizon in cfg.memory:
             flow_diffs.append(comp.Difference(horizon, parents=[col_sc_2]))
 
-        # averages of the FPM
-        fpm_avgs = []
-        for horizon in cfg.memory:
-            fpm_avgs.append(comp.LongAverage(horizon, parents=[col_sc_3]))
-
         anytime_sc = comp.Anytime(cfg.decision_steps, parents=[identity_sc])
-        concat_parents = [identity_sc] + orp_diffs + flow_diffs + fpm_avgs + [anytime_sc]
+        concat_parents = [identity_sc] + fpm_avgs + orp_diffs + flow_diffs + [anytime_sc]
         concat_sc = comp.Concatenate(parents=concat_parents)
         self.sc = concat_sc

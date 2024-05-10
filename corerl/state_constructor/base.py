@@ -19,7 +19,8 @@ class BaseStateConstructor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def __call__(self, obs: np.ndarray, **kwargs) -> np.ndarray:
+    def __call__(self, obs: np.ndarray, action: np.ndarray, **kwargs) -> np.ndarray:
+        a_obs = np.concatenate([action, obs])  # convention: action goes first in the state array
         raise NotImplementedError
 
     @abstractmethod
@@ -40,13 +41,14 @@ class CompositeStateConstructor(BaseStateConstructor):
         self.sc = None  # a placeholder for the final component in the graph
         raise NotImplementedError
 
-    def __call__(self, obs: np.ndarray, **kwargs) -> np.ndarray:
-        state = self._call_graph(obs, **kwargs)
+    def __call__(self, obs: np.ndarray, action: np.ndarray, **kwargs) -> np.ndarray:
+        a_obs = np.concatenate([action, obs])  # convention: action goes first in the state array
+        state = self._call_graph(a_obs, **kwargs)
         self._reset_graph_call()
         return state
 
-    def get_state_dim(self, obs: np.ndarray) -> int:
-        state = self(obs)
+    def get_state_dim(self, obs: np.ndarray, action: np.ndarray) -> int:
+        state = self(obs, action)
         assert len(state.shape)  # not sure if this will always be necessary or desired. But we are assuming that
         state_dim = state.shape[0]
         self._reset_graph_state()

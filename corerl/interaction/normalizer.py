@@ -27,7 +27,7 @@ class NormalizerInteraction(BaseInteraction):
         denormalized_action = self.action_normalizer.denormalize(action)
         next_observation, raw_reward, terminated, env_truncate, env_info = self.env.step(denormalized_action)
         next_observation = self.obs_normalizer(next_observation)
-        next_state = self.state_constructor(next_observation)
+        next_state = self.state_constructor(next_observation, action)
         reward = self.reward_normalizer(raw_reward)
         truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
 

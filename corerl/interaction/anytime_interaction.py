@@ -68,10 +68,10 @@ class AnytimeInteraction(NormalizerInteraction):
             is_decision_point = (obs_step == self.steps_per_decision - 1)
             is_done = is_decision_point or terminated or truncate
             if is_done:
-                next_state = self.state_constructor(next_observation, decision_point=True)
+                next_state = self.state_constructor(next_observation, action, decision_point=True)
                 decision_point = True
             else:
-                next_state = self.state_constructor(next_observation)
+                next_state = self.state_constructor(next_observation, action)
                 decision_point = False
 
             state_list.append(next_state)
