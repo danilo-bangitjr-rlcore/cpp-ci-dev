@@ -16,3 +16,5 @@ train_split : 0.95
 gamma : ${agent.gamma}
 n_step : ${interaction.n_step}
 return_sc_state : True
+test_trajectory_len : 100
+

@@ -1,7 +1,7 @@
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
 from tqdm import tqdm
-
+import time
 from datetime import timedelta
 import pandas as pd
 import numpy as np
@@ -31,7 +31,7 @@ class DirectActionDataLoader(BaseDataLoader):
 
         self.endog_obs_col_names = OmegaConf.to_object(cfg.endog_obs_col_names)
         self.exo_obs_col_names = OmegaConf.to_object(cfg.exo_obs_col_names)
-        self.obs_col_names = self.exo_obs_col_names + self.endog_obs_col_names
+        self.obs_col_names = self.endog_obs_col_names + self.exo_obs_col_names
         self.action_col_names = OmegaConf.to_object(cfg.action_col_names)
 
         self.date_col_name = cfg.date_col_name
@@ -43,8 +43,10 @@ class DirectActionDataLoader(BaseDataLoader):
         self.gamma = cfg.gamma
         self.train_split = cfg.train_split
         self.n_step = cfg.n_step
+        self.test_trajectory_len = cfg.test_trajectory_len
+        self.return_test_trajectory = self.test_trajectory_len != 0
         # if we return the state constructors's internal state for each transition
-        self.return_sc_state = False #cfg.return_sc_state
+        self.return_sc_state = cfg.return_sc_state
 
     def load_data(self) -> pd.DataFrame:
         """
@@ -57,7 +59,8 @@ class DirectActionDataLoader(BaseDataLoader):
             dfs.append(df)
         concat_df = pd.concat(dfs)
         concat_df.sort_values(by=[self.date_col_name], inplace=True)
-        concat_df = concat_df[self.obs_col_names+self.action_col_names]
+        concat_df = concat_df[self.obs_col_names + self.action_col_names]
+        concat_df = concat_df.fillna(method='ffill')
 
         print("Concatenated DF:")
         print(concat_df)
@@ -104,12 +107,12 @@ class DirectActionDataLoader(BaseDataLoader):
         return df_list
 
     def get_df_date_range(self, df: pd.DataFrame, start_ind: pd.Timestamp, end_ind: pd.Timestamp) -> pd.DataFrame:
-        window_df = df.loc[start_ind: end_ind, self.obs_col_names]
-
+        window_df = df.loc[start_ind: end_ind]
         return window_df
 
     def warmup_sc(self,
-                  df: pd.DataFrame,
+                  obs_df: pd.DataFrame,
+                  action_df: pd.DataFrame,
                   state_constructor: BaseStateConstructor,
                   interaction: NormalizerInteraction,
                   start_ind: pd.Timestamp) -> (
@@ -125,8 +128,8 @@ class DirectActionDataLoader(BaseDataLoader):
         state_constructor.reset()
 
         while elapsed_warmup < warmup_sec:
-            curr_action, action_end, next_action_start, _, _, data_gap = self.find_action_boundary(df, action_start)
-
+            curr_action, action_end, next_action_start, _, _, data_gap = self.find_action_boundary(action_df,
+                                                                                                   action_start)
             if data_gap:
                 elapsed_warmup = timedelta(seconds=0)
                 state_constructor.reset()
@@ -139,7 +142,7 @@ class DirectActionDataLoader(BaseDataLoader):
                     state, sc_at_state, obs = self.get_state(state_constructor,
                                                              curr_action,
                                                              interaction,
-                                                             df,
+                                                             obs_df,
                                                              step_start,
                                                              decision_point,
                                                              steps_since_decision)
@@ -150,7 +153,7 @@ class DirectActionDataLoader(BaseDataLoader):
                     if elapsed_warmup >= warmup_sec:
                         warmup_end = step_start
                         break
-
+            # action start must equal next action start?
             action_start = next_action_start
 
         return state_constructor, warmup_end, state, decision_point, sc_at_state
@@ -165,11 +168,12 @@ class DirectActionDataLoader(BaseDataLoader):
                   steps_since_decision: int) -> (np.ndarray, BaseStateConstructor, np.ndarray):
 
         end = start + timedelta(seconds=self.obs_length)
-        obs_df = self.get_df_date_range(df, start, end)
+        obs_df = self.get_df_date_range(df, start, end)  # here it is only used for observations
         obs = obs_df.to_numpy()
         obs = interaction.obs_normalizer(obs)
         action = interaction.action_normalizer(action)
         state = state_constructor(obs, action, decision_point=decision_point, steps_since_decision=steps_since_decision)
+
         # copy the state constructor's internal state. This will be used for calibration_models training
         if self.return_sc_state:
             sc_at_state = deepcopy(state_constructor)
@@ -178,7 +182,7 @@ class DirectActionDataLoader(BaseDataLoader):
 
         return state, sc_at_state, obs
 
-    def find_action_boundary(self, df: pd.DataFrame,
+    def find_action_boundary(self, action_df: pd.DataFrame,
                              start_ind: pd.Timestamp) -> (np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool):
         """
         Return the action taken at the beginning of the dataframe.
@@ -187,8 +191,8 @@ class DirectActionDataLoader(BaseDataLoader):
         """
         data_gap = False
         prev_date = start_ind
-        curr_action = df[self.action_col_names].loc[start_ind].to_numpy()
-        for curr_date, row in df.loc[start_ind:].iterrows():
+        curr_action = action_df.loc[start_ind].to_numpy()
+        for curr_date, row in action_df.loc[start_ind:].iterrows():
             date_diff = curr_date - prev_date
             # Is there a large gap in time between consecutive rows in the df?
             if date_diff > self.time_thresh:
@@ -268,7 +272,8 @@ class DirectActionDataLoader(BaseDataLoader):
         new_obs_transitions.reverse()
         return new_transitions, new_obs_transitions
 
-    def get_curr_action_steps(self, action_start: pd.Timestamp, action_end: pd.Timestamp) -> (int, pd.Timestamp):
+    def get_curr_action_steps(self, action_start: pd.Timestamp, action_end: pd.Timestamp, test_len=1) -> (
+            int, pd.Timestamp):
         """
         Determine the number of time steps that fit in the given action window and align the time steps, taking into account the time remainder
         """
@@ -290,10 +295,15 @@ class DirectActionDataLoader(BaseDataLoader):
         Take into account discontinuities in the dataframe (large gaps in time between consecutive rows)
         Creates fixed n-step transitions or variable n-step transitions that always bootstrap off the state at the next decision point
         """
+
         train_transitions = []
-        test_transitions = []
         train_obs_transitions = []  # transitions where the next state is the next observation, rather than state
+        test_transitions = []
+
+        test_trajectories = []
         test_obs_transitions = []
+
+        # TODO: deal with this
         test_scs = []
 
         # Keep trying to create transitions until you reach the end of the df
@@ -301,12 +311,16 @@ class DirectActionDataLoader(BaseDataLoader):
         df_end = df.iloc[-1].name
         pbar = tqdm(total=df.index.get_loc(df_end))
 
+        action_df = df[self.action_col_names]
+        obs_df = df[self.obs_col_names]
+
         while action_start < df_end:
             data_gap = False  # Indicates a discontinuity in the df
             prev_action = None
 
             # Warmup state constructor using data starting from action_start
-            state_constructor, warmup_end, state, warmup_dp, sc_at_state = self.warmup_sc(df,
+            state_constructor, warmup_end, state, warmup_dp, sc_at_state = self.warmup_sc(obs_df,
+                                                                                          action_df,
                                                                                           state_constructor,
                                                                                           interaction,
                                                                                           action_start)
@@ -316,9 +330,17 @@ class DirectActionDataLoader(BaseDataLoader):
             # The 'n' is the number of time steps away from the action boundary
             action_start = warmup_end
             prev_decision_point = warmup_dp
+
+            num_transitions_in_test_traj = 0
+            in_test_trajectory = False
+
             while not data_gap and action_start < df_end:
-                assert len(test_transitions) == len(test_scs) == len(test_obs_transitions)
-                curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(df,
+                if not self.return_test_trajectory:
+                    assert len(test_transitions) == len(test_scs) == len(test_obs_transitions)
+                else:
+                    assert len(test_trajectories) == len(test_scs)
+
+                curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
                                                                                                               action_start)
                 norm_curr_action = interaction.action_normalizer(curr_action)
 
@@ -333,21 +355,40 @@ class DirectActionDataLoader(BaseDataLoader):
                 next_observations = []
                 for i in range(curr_action_steps):  # how many steps we are talking the current action
                     decision_point = steps_since_decision == 0
+                    just_started = False
+                    # Are we going to start a new test trajectory?
+                    if prev_decision_point and self.return_test_trajectory: # if the previous state was a decision_point
+                        if (not in_test_trajectory) and (random.uniform(0, 1) >= self.train_split):
+                            print("Starting test trajectory")
+                            in_test_trajectory = True
+                            num_transitions_in_test_traj = 0
+                            test_trajectories.append([])  # list for the latest trajectory
+                            test_scs.append(sc_at_state)  # append the starting state constructor for this trajectory
+                            just_started = True
+
                     next_state, sc_at_next_state, next_obs = self.get_state(state_constructor,
                                                                             curr_action,
                                                                             # should we curr_action or prev action?
                                                                             interaction,
-                                                                            df,
+                                                                            obs_df,
                                                                             step_start,
                                                                             decision_point,
                                                                             steps_since_decision)
+
+                    if just_started:
+                        # just started test trajectory
+                        print("state", state)
+                        print("next_obs", next_obs)
+                        print("predicted next state", sc_at_state(next_obs, norm_curr_action))
+                        print("next_state", next_state)
+
+
 
                     # Any way to make the creation of reward_info more universal?
                     reward_info = {}
                     reward_info['prev_action'] = prev_action
                     reward_info['curr_action'] = curr_action
                     raw_reward = reward_function(interaction.obs_normalizer.denormalize(next_obs), **reward_info)
-
                     reward = interaction.reward_normalizer(raw_reward)
                     state_action_rewards.append((state, norm_curr_action, reward, prev_decision_point))
                     state_scs.append(sc_at_state)  # the state constructor at state
@@ -363,13 +404,39 @@ class DirectActionDataLoader(BaseDataLoader):
                                                                                                False,
                                                                                                False)
 
-                        # splits returns a list of (train, test)  for each list passed to self.train_test_split
-                        splits = self.train_test_split(new_transitions, new_obs_transitions, state_scs)
-                        train_transitions += splits[0][0]
-                        test_transitions += splits[0][1]
-                        train_obs_transitions += splits[1][0]
-                        test_obs_transitions += splits[1][1]
-                        test_scs += splits[2][1]
+                        if not self.return_test_trajectory:
+                            # splits returns a list of (train, test)  for each list passed to self.train_test_split
+                            splits = self.train_test_split(new_transitions, new_obs_transitions, state_scs)
+                            train_transitions += splits[0][0]
+                            test_transitions += splits[0][1]
+                            train_obs_transitions += splits[1][0]
+                            test_obs_transitions += splits[1][1]
+                            test_scs += splits[2][1]
+                        else:
+                            if in_test_trajectory:
+                                num_transitions_to_add = min(self.test_trajectory_len - num_transitions_in_test_traj,
+                                                             len(new_transitions))
+
+                                # add as many transitions to the trajectory as you can
+                                test_trajectories[-1] += new_transitions[:num_transitions_to_add]
+                                test_transitions += new_transitions[:num_transitions_to_add]
+                                test_obs_transitions += new_obs_transitions[:num_transitions_to_add]
+
+                                num_transitions_in_test_traj += num_transitions_to_add
+
+                                # add remaining transitions to the train set
+                                train_transitions += new_transitions[num_transitions_to_add:]
+                                train_obs_transitions += new_obs_transitions[num_transitions_to_add:]
+
+                                if num_transitions_in_test_traj >= self.test_trajectory_len:
+                                    assert len(test_trajectories[-1]) == self.test_trajectory_len
+                                    in_test_trajectory = False
+                                    num_transitions_in_test_traj = 0
+
+                            else:  # everything to the training transitions
+                                train_transitions += new_transitions
+                                train_obs_transitions += new_obs_transitions
+
 
                         # reset lists
                         state_action_rewards = []
@@ -397,6 +464,13 @@ class DirectActionDataLoader(BaseDataLoader):
             'obs_transitions': (train_obs_transitions, test_obs_transitions),
             'test_scs': test_scs
         }
+
+        assert len(train_transitions) == len(train_obs_transitions)
+        assert len(test_transitions) == len(test_obs_transitions)
+        assert len(test_scs) == len(test_trajectories)
+
+        if self.return_test_trajectory:
+            return_dict['test_trajectories'] = test_trajectories
 
         return return_dict
 

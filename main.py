@@ -75,13 +75,13 @@ def get_state_action_dim(env, sc):
     obs_shape = (flatdim(env.observation_space),)
     dummy_obs = np.ones(obs_shape)
     action_shape = (flatdim(env.action_space),)
-    dummy_action = np.ones( action_shape)
+    dummy_action = np.ones(action_shape)
     state_dim = sc.get_state_dim(dummy_obs, dummy_action)  # gets state_dim dynamically
     action_dim = flatdim(env.action_space)
     return state_dim, action_dim
 
 
-@hydra.main(version_base=None, config_name='config', config_path="config/")
+@hydra.main(version_base=None, config_name='reseau', config_path="config/")
 def main(cfg: DictConfig) -> dict:
     save_path = prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')

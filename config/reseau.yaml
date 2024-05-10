@@ -57,6 +57,8 @@ data_loader:
                   "fit101_pv", "fit210_pv", "fit230_pv", "fit250_pv", "fit401_pv", "p250_fp",
                   "pt100_pv", "pt101_pv", "pt161_pv", "pt171_pv", "pt302_pv"]
   action_col_names: ["p250_fp"]
+
+  # NOTE: the endog will come first in the SC
   endog_obs_col_names: ["ait301_pv"]
   exo_obs_col_names: ["fit250_pv"]
 
