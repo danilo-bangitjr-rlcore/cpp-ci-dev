@@ -22,6 +22,8 @@ from corerl.utils.device import device
 class GreedyAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
+        self.ensemble_targets = cfg.ensemble_targets
+
         self.action_dim = action_dim
         # Removed self.gac_a_dim = self.action_dim. Hopefully this doesn't break anything
 
@@ -138,15 +140,19 @@ class GreedyAC(BaseAC):
         gamma_exp_batch = batch['gamma_exps']
         dp_mask = batch['next_state_decision_points']
 
-        next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
         with torch.no_grad():
             next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
-        next_q = self.q_critic.get_q_target(next_state_batch, next_actions)
+
+        if self.ensemble_targets:
+            _, next_q = self.q_critic.get_qs_target(
+                next_state_batch, next_actions,
+            )
+        else:
+            next_q = self.q_critic.get_q_target(next_state_batch, next_actions)
+
         target = reward_batch + mask_batch * (self.gamma ** gamma_exp_batch) * next_q
         _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)
-        q_loss = ensemble_mse(target, q_ens)
-
-        return q_loss
+        return ensemble_mse(target, q_ens)
 
     def compute_sampler_entropy_loss(self, update_info: tuple) -> torch.Tensor:
         (_, repeated_states, sample_actions, _, stacked_s_batch, best_actions, batch_size) = update_info

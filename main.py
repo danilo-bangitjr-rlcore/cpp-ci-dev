@@ -3,6 +3,9 @@ import numpy as np
 import torch
 import random
 
+import hashlib
+import copy
+
 from tqdm import tqdm
 from omegaconf import DictConfig, OmegaConf
 from gymnasium.spaces.utils import flatdim
@@ -23,13 +26,27 @@ import corerl.utils.freezer as fr
 
 """
 Revan: This is an example of how to run the code in the library.
-I expect that each project may need something slightly different than what's here.
+I expect that each project may need something slightly different than what's
+here.
 """
 
 
 def prepare_save_dir(cfg):
-    save_path = (Path(cfg.experiment.save_path) / cfg.experiment.exp_name
-                 / ('param-' + str(cfg.experiment.param)) / ('seed-' + str(cfg.experiment.seed)))
+    if cfg.experiment.param_from_hash:
+        cfg_copy = copy.deepcopy(cfg)
+        del cfg_copy.experiment.seed
+        cfg_hash = hashlib.sha1(str(cfg_copy).encode("utf-8")).hexdigest()
+        print("Creating experiment param from hash:", cfg_hash)
+        cfg.experiment.param = cfg_hash
+    save_path = (
+        Path(cfg.experiment.save_path) /
+        cfg.experiment.exp_name /
+        (f'param-{cfg.experiment.param}') /
+        (f'seed-{cfg.experiment.seed}')
+    )
+    print(save_path)
+    print(save_path)
+    print(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
     with open(save_path / "config.yaml", "w") as f:
         OmegaConf.save(cfg, f)
@@ -49,24 +66,31 @@ def update_pbar(pbar, stats):
     pbar.set_description(pbar_str)
 
 
-def load_transitions(cfg, save_path, interaction, data_loader, offline_data_df):
+def load_transitions(
+    cfg, save_path, interaction, data_loader, offline_data_df,
+):
     reward_func = init_reward_function(cfg.env.reward)
     reward_normalizer = interaction.reward_normalizer
     action_normalizer = interaction.action_normalizer
 
     # Load transitions
     if (save_path / "offline_transitions.pkl").is_file():
-        offline_transitions = data_loader.load_transitions(save_path / "offline_transitions.pkl")
+        offline_transitions = data_loader.load_transitions(
+            save_path / "offline_transitions.pkl",
+        )
     else:
-        # In the future, we may just want to pass the entire normalizer in. This assumes you're
-        # using a normalizer interaction
-        offline_transitions = data_loader.create_transitions(offline_data_df,
-                                                             interaction.state_constructor,
-                                                             reward_func,
-                                                             action_normalizer,
-                                                             reward_normalizer)
-        data_loader.save_transitions(offline_transitions, save_path / "offline_transitions.pkl")
-    train_transitions, test_transitions = data_loader.train_test_split(offline_transitions)
+        # In the future, we may just want to pass the entire normalizer in.
+        # This assumes you're using a normalizer interaction
+        offline_transitions = data_loader.create_transitions(
+            offline_data_df, interaction.state_constructor, reward_func,
+            action_normalizer, reward_normalizer,
+        )
+        data_loader.save_transitions(
+            offline_transitions, save_path / "offline_transitions.pkl",
+        )
+    train_transitions, test_transitions = data_loader.train_test_split(
+        offline_transitions,
+    )
 
     return train_transitions, test_transitions
 
@@ -154,8 +178,10 @@ def main(cfg: DictConfig) -> dict:
         agent.update()
 
         # logging + evaluation
-        online_eval_args = {  # union of the information needed by all evaluators
+        # union of the information needed by all evaluators
+        online_eval_args = {
             'agent': agent,
+            'env': env,
             'transitions': transitions
         }
 
@@ -181,6 +207,9 @@ def main(cfg: DictConfig) -> dict:
     # need to update make_plots here
     stats = online_eval.get_stats()
     make_plots(fr.freezer, stats, save_path / 'plots')
+
+    agent.save(save_path / 'agent')
+    agent.load(save_path / 'agent')
 
     return stats
 

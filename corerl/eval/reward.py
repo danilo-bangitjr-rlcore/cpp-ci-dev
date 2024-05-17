@@ -18,10 +18,10 @@ class RewardEval(BaseEval):
             raise KeyError("Missing required argument: 'transitions'")
         transitions = kwargs['transitions']
         for transition in transitions:
-            state, action, reward, next_state, done, truncate, dp, gamma_exp = transition
+            _, _, reward, _, done, truncate, _, _, gamma_exp = transition
             self.episode_return += reward * (self.gamma ** self.episode_steps)
             self.rewards.append(reward)
-            if done:
+            if done or truncate:
                 self.episode_steps = 0
                 self.returns.append(self.episode_return)
                 self.episode_return = 0
@@ -29,9 +29,10 @@ class RewardEval(BaseEval):
                 self.episode_steps += 1
 
     def get_stats(self):
-        stats = {'num_episodes': len(self.returns),
-                 'avg_reward': sum(self.rewards) / len(self.rewards),
-                 }
+        stats = {
+            'num_episodes': len(self.returns),
+            'avg_reward': sum(self.rewards) / len(self.rewards),
+        }
 
         if len(self.returns) > 0:
             stats['avg_return'] = sum(self.returns) / len(self.returns)
@@ -50,7 +51,11 @@ class RewardEval(BaseEval):
         else:
             stats['avg_return ({})'.format(self.return_window)] = 'n/a'
 
-        stats['rewards'] = self.rewards
         stats['returns'] = self.returns
+        stats['rewards'] = self.rewards
 
+        return stats
+
+    def output(self, path: Path):
+        stats = self.get_stats()
         return stats
