@@ -37,7 +37,7 @@ class AnytimeInteraction(NormalizerInteraction):
         agent,
     ):
         super().__init__(cfg, env, state_constructor, agent)
-        self.steps_per_decision = cfg.decision_steps  # how many observation steps per decision step
+        self.steps_per_decision = cfg.steps_per_decision  # how many observation steps per decision step
         self.obs_length = cfg.obs_length  # how often to update the observation
         self.gamma = cfg.gamma
         assert self.obs_length > 0, "Step length should be greater than 0."

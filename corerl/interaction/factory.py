@@ -20,7 +20,7 @@ def init_interaction(
         return NormalizerInteraction(cfg, env, sc, agent)
     if name == "timed":
         return TimedInteraction(cfg, env, sc, agent)
-    if name == 'anytime':
+    if name == 'anytime.yaml':
         return AnytimeInteraction(cfg, env, sc, agent)
     else:
         raise NotImplementedError

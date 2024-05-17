@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 
-class UniformBuffer:
+class UniformCalibrationModelBuffer:
     def __init__(self, cfg: DictConfig):
         self.seed = cfg.seed
         self.rng = np.random.RandomState(self.seed)

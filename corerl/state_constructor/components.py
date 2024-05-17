@@ -197,7 +197,6 @@ class ErrorIntegral(BaseStateConstructorComponent):
     def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         assert len(obs_parents) == 1
         o = obs_parents[0]
-
         error = o[self.column] - self.setpoint
         self.queue.appendleft(error)
 

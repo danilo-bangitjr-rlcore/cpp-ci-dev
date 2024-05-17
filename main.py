@@ -13,8 +13,7 @@ from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.eval.composite_eval import CompositeEval
-from corerl.calibration_models.simple import SimpleCalibrationModel
-from corerl.calibration_models.anytime import AnytimeCalibrationModel
+from corerl.calibration_models.factory import init_calibration_model
 from corerl.interaction.factory import init_interaction
 from corerl.utils.device import init_device
 from corerl.data_loaders.factory import init_data_loader
@@ -54,18 +53,22 @@ def update_pbar(pbar, stats):
 def load_offline_data(cfg, save_path, interaction, data_loader, offline_data_df):
     reward_func = init_reward_function(cfg.env.reward)
     # Load transitions
-    if (save_path / "offline_data.pkl").is_file():
-        offline_data = data_loader.load(save_path / "offline_data.pkl")
+    transition_file_name = "offline_data.pkl"
+    if (save_path / transition_file_name).is_file():
+        offline_data = data_loader.load(save_path / transition_file_name)
     else:
-        # offline_data has entries 'transitions', 'obs_transitions' and 'test_scs'
-        print("Loading offline data...")
-        offline_data = data_loader.create_transitions(offline_data_df,
-                                                      interaction.state_constructor,
-                                                      reward_func,
-                                                      interaction)
+        print("Loading offline transitions...")
+        offline_data = data_loader.create_trajectories(offline_data_df,
+                                                       interaction.state_constructor,
+                                                       reward_func,
+                                                       interaction)
+        # offline_data = data_loader.create_transitions(offline_data_df,
+        #                                                interaction.state_constructor,
+        #                                                reward_func,
+        #                                                interaction)
 
         print("Saving data...")
-        data_loader.save(offline_data, save_path / "offline_data.pkl")
+        data_loader.save(offline_data, save_path / transition_file_name)
 
     offline_data['reward_func'] = reward_func
     return offline_data
@@ -115,8 +118,6 @@ def main(cfg: DictConfig) -> dict:
     if do_offline_training:
         print('Loading offline transitions...')
         offline_data = load_offline_data(cfg, save_path, interaction, data_loader, offline_data_df)
-
-        train_transitions, test_transitions = offline_data['transitions']
         # instantiate offline evaluators
         offline_eval_args = {
             'agent': agent
@@ -124,17 +125,12 @@ def main(cfg: DictConfig) -> dict:
         offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
 
         # train calibration model
-        train_obs, test_obs = offline_data['obs_transitions']
-        cm = AnytimeCalibrationModel(cfg.calib_model,
-                                     interaction,
-                                     train_obs,
-                                     test_obs,
-                                     offline_data['test_scs'],
-                                     offline_data['reward_func'])
+        offline_data['interaction'] = interaction
+        cm = init_calibration_model(cfg.calibration_model, offline_data)
         cm.train()
 
-
         print('Starting offline training...')
+        train_transitions, test_transitions = offline_data['train_transitions'], offline_data['test_transitions']
         for transition in train_transitions:
             agent.update_buffer(transition)
         offline_steps = cfg.experiment.offline_steps
@@ -147,7 +143,6 @@ def main(cfg: DictConfig) -> dict:
 
         # rollout in calibration models
         cm.do_n_rollouts(agent, rollout_len=100, num_rollouts=1)
-
 
     # Online Deployment
     # Instantiate online evaluators

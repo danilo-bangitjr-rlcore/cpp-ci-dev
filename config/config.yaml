@@ -4,6 +4,7 @@ defaults:
   - data_loader : direct_action
   - interaction : normalizer
   - state_constructor : identity
+  - calibration_model : simple
   - eval@eval.ibe : ibe # this lets us have multiple subconfigs rooted at eval
   - eval@eval.reward : reward
 #  - eval@eval.action_gap : action_gap
@@ -24,32 +25,4 @@ experiment:
   render : 0
   save_path : output
   set_env_obs_space : False
-
-
-calib_model:
-  model:
-    buffer:
-      batch_size: 512
-      memory: 100000
-      name: uniform
-      device: cpu
-      seed: ${experiment.seed}
-
-    train_itr: 100
-    batch_size : 512
-
-    model:
-      layer_norm: 0
-      arch: [ 256, 256 ]
-      init_args: ReLU
-      head_activation: None
-      activation: ReLU
-      layer_init: Xavier
-      bias: True
-      name: fc
-
-    optimizer:
-      lr: 0.001
-      weight_decay: 0.0
-      name: adam
 

@@ -4,7 +4,7 @@ defaults:
   - override env: reseau
   - override data_loader: direct_action
   - override interaction: anytime
-  - override state_constructor: simple_reseau #reseau_anytime
+  - override state_constructor: reseau_anytime
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
   - override interaction/obs_normalizer: avg_nan_norm
@@ -12,7 +12,7 @@ defaults:
 
 # values may be overridden outside of the defaults list
 experiment :
-  exp_name : "reseau_test"
+  exp_name : "reseau_test_burn_in"
   max_steps : 0
   offline_steps : 10
   set_env_obs_space : True
@@ -23,7 +23,7 @@ env:
 
 interaction :
   obs_length : 60
-  decision_steps : 30
+  steps_per_decision : 30
   action_normalizer:
     action_high : 300
     action_low:  0
@@ -59,8 +59,11 @@ data_loader:
   action_col_names: ["p250_fp"]
 
   # NOTE: the endog will come first in the SC
-  endog_obs_col_names: ["ait301_pv"]
+  endo_obs_col_names: ["ait301_pv"]
   exo_obs_col_names: ["fit250_pv"]
+  return_sc_state : True
+  separate_endo_exo : True
+  load_trajectories : True
 
 
 

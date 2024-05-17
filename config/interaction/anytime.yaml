@@ -1,8 +1,8 @@
 defaults:
   - normalizer
 
-name: anytime
-decision_steps : 5
+name: anytime.yaml
+steps_per_decisio : 5
 obs_length : 1 # 1 second
 gamma : ${agent.gamma}
 n_step : 0 # 0 indicates a variable n-step update where the bootstrap state is always the state at the next decision point. n_step > 0 indicates a normal fixed n-step update that doesn't cross action boundaries.
