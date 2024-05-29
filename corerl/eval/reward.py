@@ -4,7 +4,7 @@ import json
 
 
 class RewardEval(BaseEval):
-    def __init__(self, cfg,  **kwargs):
+    def __init__(self, cfg, **kwargs):
         self.gamma = cfg.gamma
         self.episode_steps = 0
         self.episode_return = 0
@@ -18,10 +18,11 @@ class RewardEval(BaseEval):
             raise KeyError("Missing required argument: 'transitions'")
         transitions = kwargs['transitions']
         for transition in transitions:
-            state, action, reward, next_state, done, truncate, dp, gamma_exp = transition
+            reward = transition.reward
+            terminated = transition.terminated
             self.episode_return += reward * (self.gamma ** self.episode_steps)
             self.rewards.append(reward)
-            if done:
+            if terminated:
                 self.episode_steps = 0
                 self.returns.append(self.episode_return)
                 self.episode_return = 0

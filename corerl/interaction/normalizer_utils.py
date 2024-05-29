@@ -155,8 +155,7 @@ def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env, agent) -> BaseNo
 
             return Identity()
         elif name == "scale":
-            if cfg.action_low:  # use high and low specified in the config
-                assert cfg.action_high, "Please specify cfg.action_normalizer.action_high in config file"
+            if cfg.use_cfg_values:  # use high and low specified in the config
                 action_min = np.array(cfg.action_low)
                 action_max = np.array(cfg.action_high)
             else:  # use information from the environment
@@ -182,11 +181,10 @@ def init_reward_normalizer(cfg: DictConfig) -> BaseNormalizer:
     if name == "identity":
         return Identity()
     elif name == "scale":
-        assert cfg.reward_high, "Please specify cfg.reward_normalizer.reward_high in config file"
         reward_high = float(cfg.reward_high)
         reward_low = float(cfg.reward_low)
         scale = reward_high - reward_low
-        bias = reward_low
+        bias = float(cfg.reward_bias)
         return Scale(scale, bias)
     elif name == "clip":
         return Clip(cfg.clip_min, cfg.clip_max)

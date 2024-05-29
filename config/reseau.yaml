@@ -4,6 +4,7 @@ defaults:
   - override env: reseau
   - override data_loader: direct_action
   - override interaction: anytime
+  - override calibration_model : gru
   - override state_constructor: reseau_anytime
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
@@ -48,7 +49,7 @@ agent:
       lr : 0.001
 
 data_loader:
-  offline_data_path : offline_data
+  offline_data_path : offline_data/reseau
   offline_filenames': ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv",
                        "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie.csv", "rosie_2.csv"]
   skip_rows : 3

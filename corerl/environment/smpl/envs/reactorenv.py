@@ -31,7 +31,7 @@ MAX_ACTIONS = [35.0, 0.2]  # Tc (coolant temperature), qout (volumetric flow rat
 MIN_ACTIONS = [15.0, 0.05]
 STEADY_OBSERVATIONS = [0.8778252, 51.34660837, 0.659]
 STEADY_ACTIONS = [26.85, 0.1]
-ERROR_REWARD = -1000.0
+ERROR_REWARD = -2 # -1000.0
 
 
 class ReactorPID:

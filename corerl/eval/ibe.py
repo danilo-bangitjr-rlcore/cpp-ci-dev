@@ -9,6 +9,7 @@ from omegaconf import DictConfig
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.eval.base_eval import BaseEval
+from corerl.data import TransitionBatch, Transition
 
 
 class IBE(BaseEval):
@@ -26,12 +27,12 @@ class IBE(BaseEval):
         self.losses = []
         self.bes = []  # the bellman errors
 
-    def get_delta(self, batch: dict) -> torch.Tensor:
-        state_batch = batch['states']
-        action_batch = batch['actions']
-        reward_batch = batch['rewards']
-        next_state_batch = batch['next_states']
-        mask_batch = 1 - batch['dones']
+    def get_delta(self, batch: TransitionBatch) -> torch.Tensor:
+        state_batch = batch.state
+        action_batch = batch.action
+        reward_batch = batch.reward
+        next_state_batch = batch.next_state
+        mask_batch = 1 - batch.terminated
 
         q = self.agent.q_critic.get_q(state_batch, action_batch, with_grad=False)
         next_actions, _ = self.agent.actor.get_action(next_state_batch, with_grad=False)
@@ -41,10 +42,10 @@ class IBE(BaseEval):
         delta = bootstrapped_return - q
         return delta
 
-    def get_loss(self, batch: dict) -> torch.Tensor:
+    def get_loss(self, batch: TransitionBatch) -> torch.Tensor:
         delta = self.get_delta(batch)
-        state_batch = batch['states']
-        action_batch = batch['actions']
+        state_batch = batch.state
+        action_batch = batch.action
         sa = torch.concatenate((state_batch, action_batch), dim=1)
         predictions = self.model(sa)
         loss = mse_loss(delta, predictions)
@@ -66,9 +67,9 @@ class IBE(BaseEval):
         be = self.estimate_be(batch)
         self.bes.append(be)
 
-    def estimate_be(self, batch: dict) -> torch.Tensor:
-        state_batch = batch['states']
-        action_batch = batch['actions']
+    def estimate_be(self, batch: TransitionBatch) -> torch.Tensor:
+        state_batch = batch.state
+        action_batch = batch.action
 
         sa = torch.concatenate((state_batch, action_batch), dim=1)
         predictions = self.model(sa)

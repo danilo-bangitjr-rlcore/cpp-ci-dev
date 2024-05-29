@@ -29,7 +29,7 @@ class BaseGVF(ABC):
         self.gvf = None
 
     @abstractmethod
-    def compute_gvf_loss(self, batch: dict, with_grad: bool = False) -> torch.Tensor:
+    def compute_gvf_loss(self, batch: TransitionBatch, with_grad: bool = False) -> torch.Tensor:
         raise NotImplementedError
 
     def update(self):
@@ -58,10 +58,10 @@ class SimpleGVF(BaseGVF):
         super().__init__(cfg, train_transitions, test_transitions)
         self.gvf = init_v_critic(cfg.critic, self.input_dim)
 
-    def compute_gvf_loss(self, batch: dict, with_grad: bool = False) -> list[torch.Tensor]:
+    def compute_gvf_loss(self, batch: TransitionBatch, with_grad: bool = False) -> list[torch.Tensor]:
         def _compute_gvf_loss():
-            states, actions, rewards, next_states, dones = (batch['states'], batch['actions'],
-                                                            batch['rewards'], batch['next_states'], batch['dones'])
+            states, actions, rewards, next_states, dones = (batch.state, batch.action,
+                                                            batch.reward, batch.next_state, batch.terminated)
             next_v = self.gvf.get_v_target(next_states)
             target = rewards + (1 - dones) * self.gamma * next_v
             _, v_ens = self.gvf.get_qs(states, actions, with_grad=True)

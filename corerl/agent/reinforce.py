@@ -9,6 +9,7 @@ from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic
 from corerl.component.network.utils import to_np, state_to_tensor, tensor, ensemble_mse
 from corerl.utils.device import device
+from corerl.data import TransitionBatch, Transition
 
 class Reinforce(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -34,7 +35,7 @@ class Reinforce(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transition: tuple) -> None:
+    def update_buffer(self, transition: Transition) -> None:
         return
 
     def compute_returns(self) -> None:

@@ -39,7 +39,7 @@ class OneStepModel:
 
     def update(self):
         batch = self.buffer.sample_mini_batch(self.batch_size)
-        state_batch, action_batch, next_state_batch = batch['states'], batch['actions'], batch['next_states']
+        state_batch, action_batch, next_state_batch = batch.state, batch.action, batch.next_state
         prediction = self.get_prediction(state_batch, action_batch, with_grad=True)
         loss = nn.functional.mse_loss(prediction, next_state_batch)
 
@@ -61,7 +61,7 @@ class OneStepModel:
 
     def get_test_loss(self):
         batch = self.test_buffer.sample_batch()
-        state_batch, action_batch, next_state_batch = batch['states'], batch['actions'], batch[
+        state_batch, action_batch, next_state_batch = batch.state, batch.action, batch[
             'next_states']
         prediction = self.get_prediction(state_batch, action_batch, with_grad=False)
         loss = nn.functional.mse_loss(prediction, next_state_batch)

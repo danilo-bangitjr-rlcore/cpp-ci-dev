@@ -12,6 +12,7 @@ from corerl.component.critic.factory import init_v_critic, init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, ensemble_mse
 from corerl.utils.device import device
+from corerl.data import TransitionBatch, Transition
 
 class InAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -26,7 +27,7 @@ class InAC(BaseAC):
         self.buffer = init_buffer(cfg.buffer)
 
 
-    def update_buffer(self, transition: tuple) -> None:
+    def update_buffer(self, transition: Transition) -> None:
         self.buffer.feed(transition)
     
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
@@ -35,8 +36,8 @@ class InAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def compute_beh_loss(self, batch: dict) -> torch.Tensor:
-        states, actions = batch['states'], batch['actions']
+    def compute_beh_loss(self, batch: TransitionBatch) -> torch.Tensor:
+        states, actions = batch.state, batch.action
         beh_log_probs, _ = self.behaviour.get_log_prob(states, actions)
         beh_loss = -beh_log_probs.mean()
         return beh_loss
@@ -58,9 +59,9 @@ class InAC(BaseAC):
         return value_loss
 
     def compute_q_loss(self, batch):
-        states, actions, rewards, next_states, dones, dp_mask, gamma_exps = (batch['states'], batch['actions'], batch['rewards'],
-                                                                             batch['next_states'], batch['dones'],
-                                                                             batch['next_state_decision_points'], batch['gamma_exps'])
+        states, actions, rewards, next_states, dones, dp_mask, gamma_exps = (batch.state, batch.action, batch.reward,
+                                                                             batch.next_state, batch.terminated,
+                                                                             batch.next_decision_point, batch.gamma_exponent)
 
         _, q_ens = self.q_critic.get_qs(states, actions, with_grad=True)
         next_actions, _ = self.actor.get_action(next_states, with_grad=False)
@@ -75,7 +76,7 @@ class InAC(BaseAC):
         return q_loss
 
     def compute_actor_loss(self, batch):
-        states, actions = batch['states'], batch['actions']
+        states, actions = batch.state, batch.action
         log_probs, _ = self.actor.get_log_prob(states, actions, with_grad=True)
         q = self.q_critic.get_q(states, actions, with_grad=False)
         v = self.v_critic.get_v(states, with_grad=False)

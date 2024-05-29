@@ -107,11 +107,11 @@ class LineSearchOpt:
 
     def step(self) -> None:
         batch = self.buffer.sample()
-        state_batch = batch['states']
-        action_batch = batch['actions']
-        reward_batch = batch['rewards']
-        next_state_batch = batch['next_states']
-        mask_batch = 1 - batch['dones']
+        state_batch = batch.state
+        action_batch = batch.action
+        reward_batch = batch.reward
+        next_state_batch = batch.next_state
+        mask_batch = 1 - batch.terminated
         error_evaluation_in = [state_batch, action_batch, reward_batch, next_state_batch, mask_batch]
         self.__backtrack_fn(
             self.error_evaluation_fn,

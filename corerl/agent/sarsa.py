@@ -2,7 +2,6 @@ import numpy as np
 from omegaconf import DictConfig
 from pathlib import Path
 
-import torch.nn as nn
 import torch
 import numpy
 import random
@@ -13,6 +12,7 @@ from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, ensemble_mse
 from corerl.utils.device import device
+from corerl.data import TransitionBatch, Transition
 
 class EpsilonGreedySarsa(BaseAgent):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -23,7 +23,7 @@ class EpsilonGreedySarsa(BaseAgent):
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.buffer = init_buffer(cfg.buffer)
 
-    def update_buffer(self, transition: tuple) -> None:
+    def update_buffer(self, transition: Transition) -> None:
         self.buffer.feed(transition)
 
     def get_action(self, state: torch.Tensor, with_grad=False) -> numpy.ndarray:
@@ -51,10 +51,10 @@ class EpsilonGreedySarsa(BaseAgent):
         greedy_action = action_samples[max_q_idx, :]
         return greedy_action
 
-    def compute_q_loss(self, batch: dict) -> torch.Tensor:
-        states, actions, rewards, next_states, dones, gamma_exps, dp_mask = (batch['states'], batch['actions'],
-                                                                             batch['rewards'], batch['next_states'], batch['dones'],
-                                                                             batch['gamma_exps'], batch['next_state_decision_points'])
+    def compute_q_loss(self, batch: TransitionBatch) -> torch.Tensor:
+        states, actions, rewards, next_states, dones, gamma_exps, dp_mask = (batch.state, batch.action,
+                                                                             batch.reward, batch.next_state, batch.terminated,
+                                                                             batch.gamma_exponent, batch.next_decision_point)
         next_actions = self._get_action(next_states)
         with torch.no_grad():
             next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * actions)

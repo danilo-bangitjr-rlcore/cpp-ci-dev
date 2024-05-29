@@ -11,12 +11,12 @@ from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, ensemble_mse
 from corerl.component.exploration.factory import init_exploration_module
+from corerl.utils.device import device
+from corerl.data import TransitionBatch, Transition
 import corerl.agent.utils as utils
-import corerl.utils.freezer as fr
 
 from jaxtyping import Float
 from typing import Optional
-from corerl.utils.device import device
 
 
 class GreedyAC(BaseAC):
@@ -59,10 +59,10 @@ class GreedyAC(BaseAC):
         tensor_action, action_info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
         # log the action_info to the freezer
-        fr.freezer.store('action_info', action_info)
+        # fr.freezer.store('action_info', action_info)
         return action
 
-    def update_buffer(self, transition: tuple) -> None:
+    def update_buffer(self, transition: Transition) -> None:
         self.buffer.feed(transition)
 
     def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
@@ -129,14 +129,14 @@ class GreedyAC(BaseAC):
 
         return state_batch, repeated_states, sample_actions, sorted_q_inds, stacked_s_batch, best_actions, batch_size
 
-    def compute_critic_loss(self, batch: dict) -> torch.Tensor:
-        state_batch = batch['states']
-        action_batch = batch['actions']
-        reward_batch = batch['rewards']
-        next_state_batch = batch['next_states']
-        mask_batch = 1 - batch['dones']
-        gamma_exp_batch = batch['gamma_exps']
-        dp_mask = batch['next_state_decision_points']
+    def compute_critic_loss(self, batch: TransitionBatch) -> torch.Tensor:
+        state_batch = batch.state
+        action_batch = batch.action
+        reward_batch = batch.reward
+        next_state_batch = batch.next_state
+        mask_batch = 1 - batch.terminated
+        gamma_exp_batch = batch.gamma_exponent
+        dp_mask = batch.next_decision_point
 
         next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
         with torch.no_grad():
@@ -188,7 +188,7 @@ class GreedyAC(BaseAC):
     def compute_actor_loss(self, update_info) -> (torch.Tensor, tuple):
         _, _, _, _, stacked_s_batch, best_actions, _ = update_info
         logp, _ = self.actor.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
-        actor_loss = -logp.mean() # BUG: This is negative?
+        actor_loss = -logp.mean()  # BUG: This is negative?
         return actor_loss
 
     def compute_sampler_loss(self, update_info) -> (torch.Tensor, torch.Tensor):
@@ -211,7 +211,7 @@ class GreedyAC(BaseAC):
         update_infos = []
         for _ in range(self.n_actor_updates):
             batch = self.buffer.sample()
-            update_info = self.get_policy_update_info(batch['states'])
+            update_info = self.get_policy_update_info(batch.state)
             actor_loss = self.compute_actor_loss(update_info)
             self.actor.update(actor_loss)
             update_infos.append(update_info)
@@ -225,7 +225,7 @@ class GreedyAC(BaseAC):
         else:
             for i in range(self.n_sampler_updates):
                 batch = self.buffer.sample()
-                update_info = self.get_policy_update_info(batch['states'])
+                update_info = self.get_policy_update_info(batch.state)
                 sampler_loss = self.compute_sampler_loss(update_info)
                 self.sampler.update(sampler_loss)
 

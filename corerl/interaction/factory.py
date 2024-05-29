@@ -14,13 +14,14 @@ def init_interaction(
     env: gymnasium.Env,
     sc: BaseStateConstructor,
     agent,
+    action_dim
 ) -> BaseInteraction:
     name = cfg.name
     if name == "normalizer":
-        return NormalizerInteraction(cfg, env, sc, agent)
+        return NormalizerInteraction(cfg, env, sc, agent, action_dim)
     if name == "timed":
-        return TimedInteraction(cfg, env, sc, agent)
+        return TimedInteraction(cfg, env, sc, agent, action_dim)
     if name == 'anytime.yaml':
-        return AnytimeInteraction(cfg, env, sc, agent)
+        return AnytimeInteraction(cfg, env, sc, agent, action_dim)
     else:
         raise NotImplementedError

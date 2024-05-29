@@ -11,6 +11,7 @@ from corerl.component.critic.factory import init_v_critic, init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, ensemble_expectile_loss, ensemble_mse
 from corerl.utils.device import device
+from corerl.data import TransitionBatch, Transition
 
 
 class IQL(BaseAC):
@@ -30,12 +31,12 @@ class IQL(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transition: tuple) -> None:
+    def update_buffer(self, transition: Transition) -> None:
         self.buffer.feed(transition)
 
-    def compute_actor_loss(self, batch: dict) -> torch.Tensor:
-        states = batch['states']
-        actions = batch['actions']
+    def compute_actor_loss(self, batch: TransitionBatch) -> torch.Tensor:
+        states = batch.state
+        actions = batch.action
         v = self.v_critic.get_v(states, with_grad=False)
         q = self.q_critic.get_q(states, actions, with_grad=False)  # NOTE: we are not using target networks
         exp_a = torch.exp((q - v) * self.temp)
@@ -44,17 +45,17 @@ class IQL(BaseAC):
         actor_loss = -(exp_a * log_probs).mean()
         return actor_loss
 
-    def compute_v_loss(self, batch: dict) -> torch.Tensor:
-        states, actions = batch['states'], batch['actions']
+    def compute_v_loss(self, batch: TransitionBatch) -> torch.Tensor:
+        states, actions = batch.state, batch.action
         q = self.q_critic.get_q(states, actions, with_grad=False)
         _, vs = self.v_critic.get_vs(states, with_grad=True)
         value_loss = ensemble_expectile_loss(q, vs, self.expectile)
         return value_loss
 
-    def compute_q_loss(self, batch: dict) -> torch.Tensor:
-        states, actions, rewards, next_states, dones, gamma_exps = (batch['states'], batch['actions'],
-                                                                    batch['rewards'], batch['next_states'],
-                                                                    batch['dones'], batch['gamma_exps'])
+    def compute_q_loss(self, batch: TransitionBatch) -> torch.Tensor:
+        states, actions, rewards, next_states, dones, gamma_exps = (batch.state, batch.action,
+                                                                    batch.reward, batch.next_state,
+                                                                    batch.terminated, batch.gamma_exponent)
 
         next_v = self.v_critic.get_v_target(next_states)
         target = rewards + ((self.gamma ** gamma_exps) * (1 - dones) * next_v)
