@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 import numpy
 
+from corerl.data import Transition
+
 
 class BaseAgent(ABC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -27,7 +29,7 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update_buffer(self, transition: tuple) -> None:
+    def update_buffer(self, transition: Transition) -> None:
         raise NotImplementedError
 
     @abstractmethod

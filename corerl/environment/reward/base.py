@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+
+import numpy as np
 from omegaconf import DictConfig
 
 class BaseReward(ABC):
@@ -12,5 +14,5 @@ class BaseReward(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def __call__(self, **kwargs) -> float:
+    def __call__(self, obs: np.ndarray, **kwargs) -> float:
         raise NotImplementedError

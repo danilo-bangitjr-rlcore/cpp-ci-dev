@@ -113,24 +113,7 @@ class MemoryTrace(BaseStateConstructorComponent):
 
 class Concatenate(BaseStateConstructorComponent):
     def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
-        return np.squeeze(np.concatenate(obs_parents, axis=1))
-
-    def _clear_state(self) -> None:
-        return
-
-
-class MaxMinNormalize(BaseStateConstructorComponent):
-    def __init__(self, env: gymnasium.Env, parents: list | None = None):
-        super().__init__(parents=parents)
-        # NOTE: this should only be used for environments with continuous observation spaces
-        self.low = env.observation_space.low
-        self.high = env.observation_space.high
-
-    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
-        assert len(obs_parents) == 1
-        obs = obs_parents[0]
-        obs = (obs - self.low) / (self.high - self.low)
-        return obs
+        return np.concatenate(obs_parents)
 
     def _clear_state(self) -> None:
         return
@@ -156,17 +139,6 @@ class Difference(BaseStateConstructorComponent):
         self.queue = deque([], self.memory)
 
 
-class Average(BaseStateConstructorComponent):
-    def process_observation(self, obs_parents: list,  **kwargs) -> np.ndarray:
-        assert len(obs_parents) == 1
-        obs = obs_parents[0].copy()
-        assert len(obs.shape) == 2
-        return np.mean(obs, axis=0).reshape(1, -1)
-
-    def _clear_state(self) -> None:
-        return
-
-
 class LongAverage(BaseStateConstructorComponent):
     def __init__(self, memory: int, parents: list | None = None):
         super().__init__(parents=parents)
@@ -185,29 +157,6 @@ class LongAverage(BaseStateConstructorComponent):
 
     def _clear_state(self) -> None:
         self.queue = deque([], self.memory)
-
-
-class HandleNan(BaseStateConstructorComponent):
-    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
-        assert len(obs_parents) == 1
-        return self.fill_loop(obs_parents[0])
-
-    def fill_loop(self, arr: np.ndarray) -> np.ndarray:
-        # Adapted from https://stackoverflow.com/a/62039015 
-        fill = np.nanmean(arr, axis=0)  # try to fill with the mean in each column
-        # If an entire column is nan, fill with zeros
-        fill_mask = np.isnan(fill)
-        fill[fill_mask] = np.zeros_like(fill)[fill_mask]
-
-        mask = np.isnan(arr[0])
-        arr[0][mask] = fill[mask]
-        for i in range(1, len(arr)):
-            mask = np.isnan(arr[i])
-            arr[i][mask] = arr[i - 1][mask]
-        return arr
-
-    def _clear_state(self) -> None:
-        return
 
 
 class Flatten(BaseStateConstructorComponent):
@@ -231,8 +180,7 @@ class KeepCols(BaseStateConstructorComponent):
     def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         assert len(obs_parents) == 1
         o = obs_parents[0].copy()
-        assert len(o.shape) == 2
-        return o[:, self.keep_cols].reshape(1, -1)
+        return o[self.keep_cols:self.keep_cols + 1]  # slicing since we want to return an array
 
     def _clear_state(self) -> None:
         return
@@ -249,7 +197,6 @@ class ErrorIntegral(BaseStateConstructorComponent):
     def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
         assert len(obs_parents) == 1
         o = obs_parents[0]
-
         error = o[self.column] - self.setpoint
         self.queue.appendleft(error)
 
@@ -277,9 +224,10 @@ class Anytime(BaseStateConstructorComponent):
         else:
             self.steps_since_decision += 1
 
-        countdown = max(1 - self.steps_since_decision/self.decision_step, 0)
+        countdown = 1 - self.steps_since_decision/self.decision_step
+        assert 1 >= countdown >= 0, 'countdown must be between 0 and 1'
         indicator = 1 if decision_point else 0
-        return np.array([countdown, indicator]).reshape(1, -1)
+        return np.array([countdown, indicator])
 
     def _clear_state(self) -> None:
         self.steps_since_decision = 0

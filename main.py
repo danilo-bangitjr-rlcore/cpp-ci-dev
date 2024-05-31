@@ -44,9 +44,6 @@ def prepare_save_dir(cfg):
         (f'param-{cfg.experiment.param}') /
         (f'seed-{cfg.experiment.seed}')
     )
-    print(save_path)
-    print(save_path)
-    print(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
     with open(save_path / "config.yaml", "w") as f:
         OmegaConf.save(cfg, f)
@@ -66,42 +63,36 @@ def update_pbar(pbar, stats):
     pbar.set_description(pbar_str)
 
 
-def load_transitions(
-    cfg, save_path, interaction, data_loader, offline_data_df,
-):
+def load_offline_data(cfg, save_path, interaction, data_loader, offline_data_df):
     reward_func = init_reward_function(cfg.env.reward)
-    reward_normalizer = interaction.reward_normalizer
-    action_normalizer = interaction.action_normalizer
-
     # Load transitions
-    if (save_path / "offline_transitions.pkl").is_file():
-        offline_transitions = data_loader.load_transitions(
-            save_path / "offline_transitions.pkl",
-        )
+    transition_file_name = "offline_data.pkl"
+    if (save_path / transition_file_name).is_file():
+        offline_data = data_loader.load(save_path / transition_file_name)
     else:
-        # In the future, we may just want to pass the entire normalizer in.
-        # This assumes you're using a normalizer interaction
-        offline_transitions = data_loader.create_transitions(
-            offline_data_df, interaction.state_constructor, reward_func,
-            action_normalizer, reward_normalizer,
-        )
-        data_loader.save_transitions(
-            offline_transitions, save_path / "offline_transitions.pkl",
-        )
-    train_transitions, test_transitions = data_loader.train_test_split(
-        offline_transitions,
-    )
+        print("Loading offline transitions...")
+        offline_data = data_loader.create_trajectories(offline_data_df,
+                                                       interaction.state_constructor,
+                                                       reward_func,
+                                                       interaction)
+        # offline_data = data_loader.create_transitions(offline_data_df,
+        #                                                interaction.state_constructor,
+        #                                                reward_func,
+        #                                                interaction)
 
-    return train_transitions, test_transitions
+        print("Saving data...")
+        data_loader.save(offline_data, save_path / transition_file_name)
+
+    offline_data['reward_func'] = reward_func
+    return offline_data
 
 
-def get_state_action_dim(env_cfg, env, sc):
-    if env_cfg.obs_length == 1:
-        obs_shape = (flatdim(env.observation_space),)
-    else:
-        obs_shape = (env_cfg.obs_length, flatdim(env.observation_space))
+def get_state_action_dim(env, sc):
+    obs_shape = (flatdim(env.observation_space),)
     dummy_obs = np.ones(obs_shape)
-    state_dim = sc.get_state_dim(dummy_obs)  # gets state_dim dynamically
+    action_shape = (flatdim(env.action_space),)
+    dummy_action = np.ones(action_shape)
+    state_dim = sc.get_state_dim(dummy_obs, dummy_action)  # gets state_dim dynamically
     action_dim = flatdim(env.action_space)
     return state_dim, action_dim
 
@@ -126,27 +117,33 @@ def main(cfg: DictConfig) -> dict:
         # first load transitions if we are doing offline training
         data_loader = init_data_loader(cfg.data_loader)
         offline_data_df = data_loader.load_data()
-        obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
-        if cfg.experiment.set_env_obs_space:  #
+
+        if cfg.experiment.set_env_obs_space:
+            obs_space_low, obs_space_high = data_loader.get_obs_max_min(offline_data_df)
             env.observation_space = spaces.Box(low=obs_space_low, high=obs_space_high, dtype=np.float32)
 
     # we must instantiate the sc after we set env.observation_space since normalization depends on these values
     sc = init_state_constructor(cfg.state_constructor, env)
-    state_dim, action_dim = get_state_action_dim(cfg.env, env, sc)
+    state_dim, action_dim = get_state_action_dim(env, sc)
     agent = init_agent(cfg.agent, state_dim, action_dim)
-    interaction = init_interaction(cfg.interaction, env, sc, agent)
+    interaction = init_interaction(cfg.interaction, env, sc, agent, action_dim)
 
     if do_offline_training:
         print('Loading offline transitions...')
-        train_transitions, test_transitions = load_transitions(cfg, save_path, interaction,
-                                                               data_loader, offline_data_df)
+        offline_data = load_offline_data(cfg, save_path, interaction, data_loader, offline_data_df)
         # instantiate offline evaluators
         offline_eval_args = {
             'agent': agent
         }
         offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
 
+        # train calibration model
+        offline_data['interaction'] = interaction
+        # cm = init_calibration_model(cfg.calibration_model, offline_data)
+        # cm.train()
+
         print('Starting offline training...')
+        train_transitions, test_transitions = offline_data['train_transitions'], offline_data['test_transitions']
         for transition in train_transitions:
             agent.update_buffer(transition)
         offline_steps = cfg.experiment.offline_steps
@@ -156,6 +153,9 @@ def main(cfg: DictConfig) -> dict:
             offline_eval.do_eval(**offline_eval_args)  # run all evaluators
             stats = offline_eval.get_stats()
             update_pbar(pbar, stats)
+
+        # rollout in calibration models
+        # cm.do_test_rollouts(agent, rollout_len=100, num_rollouts=1)
 
     # Online Deployment
     # Instantiate online evaluators
@@ -170,7 +170,7 @@ def main(cfg: DictConfig) -> dict:
     print('Starting online training...')
     for _ in pbar:
         action = agent.get_action(state)
-        transitions, _ = interaction.step(state, action)
+        transitions, _ = interaction.step(action)
 
         for transition in transitions:
             agent.update_buffer(transition)
@@ -189,19 +189,14 @@ def main(cfg: DictConfig) -> dict:
         stats = online_eval.get_stats()
         update_pbar(pbar, stats)
 
-        # freezer example
-        fr.freezer.save()
-
-        # # examples of saving and loading
-        # agent.save(save_path / 'agent')
-        # agent.load(save_path / 'agent')
-
-        terminated = transitions[-1][-4]
-        truncated = transitions[-1][-3]
+        terminated = transitions[-1].terminated
+        truncated = transitions[-1].truncate
         if terminated or truncated:
             state, _ = interaction.reset()
         else:
-            state = transitions[-1][3]
+            state = transitions[-1].boot_state
+
+    env.plot()
 
     online_eval.output(save_path / 'stats.json')
     # need to update make_plots here

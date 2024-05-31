@@ -29,9 +29,15 @@ def make_action_mean_variance_plot(freezer, save_path):
     variance = np.array(variance).squeeze().T
 
     assert mean.shape[0] == variance.shape[0]
-    action_dim = mean.shape[0]
 
     fig, axs = plt.subplots(2, sharex=True)
+
+    if len(mean.shape) != 2:
+        mean = np.expand_dims(mean, axis=0)
+        variance = np.expand_dims(variance, axis=0)
+
+    action_dim = mean.shape[0]
+
     for action_idx in range(action_dim):
         axs[0].plot(mean[action_idx, :], label='dim {}'.format(action_idx))
         axs[1].plot(variance[action_idx, :], label='dim {}'.format(action_idx))
@@ -60,9 +66,15 @@ def make_param_plot(freezer, save_path):
     param2 = np.array(param2).squeeze().T
 
     assert param1.shape[0] == param2.shape[0]
-    action_dim = param1.shape[0]
 
     fig, axs = plt.subplots(2, sharex=True)
+
+    if len(param1.shape) != 2:
+        param1 = np.expand_dims(param1, axis=0)
+        param2 = np.expand_dims(param2, axis=0)
+
+    action_dim = param1.shape[0]
+
     for action_idx in range(action_dim):
         axs[0].plot(param1[action_idx, :], label='dim {}'.format(action_idx))
         axs[1].plot(param2[action_idx, :], label='dim {}'.format(action_idx))
@@ -102,6 +114,7 @@ def make_bellman_error_plot(stats, save_path):
     ax.set_xlabel('Step')
     ax.set_ylabel('BE')
     plt.savefig(save_path / 'bellman_error.png', bbox_inches='tight')
+
 
 def make_reward_plot(stats, save_path):
     if 'rewards' not in stats:

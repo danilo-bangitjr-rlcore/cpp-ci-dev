@@ -3,42 +3,71 @@ import gymnasium
 from omegaconf import DictConfig
 
 from corerl.interaction.base import BaseInteraction
-from corerl.interaction.normalizer_utils import init_action_normalizer, init_reward_normalizer
+from corerl.interaction.normalizer_utils import init_action_normalizer, init_reward_normalizer, init_obs_normalizer
 from corerl.state_constructor.base import BaseStateConstructor
+from corerl.data import Transition
 
 
 class NormalizerInteraction(BaseInteraction):
     def __init__(
-        self,
-        cfg: DictConfig,
-        env: gymnasium.Env,
-        state_constructor: BaseStateConstructor,
-        agent,
+            self,
+            cfg: DictConfig,
+            env: gymnasium.Env,
+            state_constructor: BaseStateConstructor,
+            agent,
+            action_dim
     ):
-        super().__init__(cfg, env, state_constructor)
-        self.action_normalizer = init_action_normalizer(
-            cfg.action_normalizer, self.env, agent,
-        )
+        super().__init__(cfg, env, state_constructor, action_dim)
+        self.action_normalizer = init_action_normalizer(cfg.action_normalizer, self.env, agent)
         self.reward_normalizer = init_reward_normalizer(cfg.reward_normalizer)
+        self.obs_normalizer = init_obs_normalizer(cfg.obs_normalizer, env)
         self.gamma = cfg.gamma
+        self.last_state = None
+        self.last_obs = None
 
-    def step(self, state: np.ndarray, action: np.ndarray, decision_point=False) -> tuple[list[tuple], list[dict]]:
+    def step(self, action: np.ndarray) -> tuple[list[Transition], list[dict]]:
         # Revan: I'm not sure that this is the best place for decision_point ^
+        # also adding next_decision_point, which is whether the next state is a decision point.
         denormalized_action = self.action_normalizer.denormalize(action)
-        next_observation, raw_reward, terminated, env_truncate, env_info = self.env.step(denormalized_action)
-        reward = self.reward_normalizer(raw_reward)
-        next_state = self.state_constructor(next_observation)
-        reward = self.reward_normalizer(reward)
-        truncate = self.env_counter() # use the interaction counter to decide reset. Remove reset in environment
-        if terminated or truncate:
-            next_state, env_info = self.reset() # if truncated or terminated, replace the next state and env_info with the return after resetting.
 
-        return [(state, action, reward, next_state, terminated, truncate, decision_point, 1)], [env_info]
+        next_obs, raw_reward, terminated, env_truncate, env_info = self.env.step(denormalized_action)
+        normalized_next_obs = self.obs_normalizer(next_obs)
+        next_state = self.state_constructor(normalized_next_obs, action)
+        reward = self.reward_normalizer(raw_reward)
+        truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
+        gamma_exponent = 1
+
+        transition = Transition(
+            self.last_obs,
+            self.last_state,
+            action,
+            normalized_next_obs,
+            next_state,
+            reward,
+            normalized_next_obs,  # the obs for boot strapping is the same as the next obs here
+            next_state,  # the state for boot strapping is the same as the next state here
+            terminated,
+            truncate,
+            True,  # always a decision point
+            True,  # always a decision point
+            gamma_exponent)
+
+        self.last_state = next_state
+        self.last_obs = next_obs
+
+        return [transition], [env_info]
 
     def reset(self) -> (np.ndarray, dict):
         observation, info = self.env.reset()
         self.state_constructor.reset()
-        state = self.state_constructor(observation)
+
+        normalized_observation = self.obs_normalizer(observation)
+        dummy_action = np.zeros(self.action_dim)
+        state = self.state_constructor(normalized_observation, dummy_action, initial_state=True)
+
+        self.last_obs = normalized_observation
+        self.last_state = state
+
         return state, info
 
     def warmup_sc(self) -> None:

@@ -11,6 +11,7 @@ from corerl.component.critic.factory import init_v_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, ensemble_mse
 from corerl.utils.device import device
+from corerl.data import TransitionBatch, Transition
 
 class SimpleAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -26,16 +27,16 @@ class SimpleAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transition: tuple) -> None:
+    def update_buffer(self, transition: Transition) -> None:
         self.buffer.feed(transition)
 
-    def compute_actor_loss(self, batch: dict) -> torch.Tensor:
-        states = batch['states']
-        actions = batch['actions']
-        next_states = batch['next_states']
-        rewards = batch['rewards']
-        dones = batch['dones']
-        gamma_exps = batch['gamma_exps']
+    def compute_actor_loss(self, batch: TransitionBatch) -> torch.Tensor:
+        states = batch.state
+        actions = batch.action
+        next_states = batch.boot_state
+        rewards = batch.reward
+        dones = batch.terminated
+        gamma_exps = batch.gamma_exponent
 
         log_prob, _ = self.actor.get_log_prob(states, actions, with_grad=True)
         v = self.critic.get_v(states, with_grad=False)
@@ -52,11 +53,11 @@ class SimpleAC(BaseAC):
             self.actor.update(loss_actor)
 
     def compute_critic_loss(self, batch:dict) -> torch.Tensor:
-        states = batch['states']
-        next_states = batch['next_states']
-        rewards = batch['rewards']
-        dones = batch['dones']
-        gamma_exps = batch['gamma_exps']
+        states = batch.state
+        next_states = batch.next_state
+        rewards = batch.reward
+        dones = batch.terminated
+        gamma_exps = batch.gamma_exponent
 
         _, v_ens = self.critic.get_vs(states, with_grad=True)
         v_next = self.critic.get_v_target(next_states)

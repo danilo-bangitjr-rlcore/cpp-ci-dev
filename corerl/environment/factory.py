@@ -16,6 +16,7 @@ from corerl.environment.wrapper.discrete_control_wrapper import DiscreteControlW
 from corerl.environment.wrapper.d4rl import D4RLWrapper
 from corerl.environment.pendulum_env import PendulumEnv
 from corerl.environment.wrapper.one_hot_wrapper import OneHotWrapper
+from corerl.environment.saturation import Saturation
 
 
 def init_environment(cfg: DictConfig) -> gym.Env:
@@ -132,6 +133,8 @@ def init_environment(cfg: DictConfig) -> gym.Env:
         env = D4RLWrapper("walker2d-medium-replay", seed)
     elif name == 'reseau':
         env = ReseauEnv(cfg)
+    elif name == 'saturation':
+        env = Saturation(seed)
     else:
         raise NotImplementedError
 

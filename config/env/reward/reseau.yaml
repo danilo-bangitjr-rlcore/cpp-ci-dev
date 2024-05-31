@@ -4,3 +4,4 @@ orp_col_name : ait301_pv
 penalty_weight : 10.0
 action_scale : 300.0
 no_db : True
+orp_col : 0

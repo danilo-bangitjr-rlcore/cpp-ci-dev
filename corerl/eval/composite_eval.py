@@ -18,10 +18,13 @@ class CompositeEval(BaseEval):
             evaluator.do_eval(**kwargs)
 
     def get_stats(self) -> dict:
-        all_stats_list = [e.get_stats() for e in self.evaluators]
-        # merge stats
-        merged_stats = reduce(lambda x, y: {**x, **y}, all_stats_list)
-        return merged_stats
+        if len(self.evaluators) > 0 :
+            all_stats_list = [e.get_stats() for e in self.evaluators]
+            # merge stats
+            merged_stats = reduce(lambda x, y: {**x, **y}, all_stats_list)
+            return merged_stats
+        else:
+            return {}
 
 
 def _instantiate_evaluators(eval_cfg, eval_args, online=False, offline=False) -> list[BaseEval]:
@@ -32,4 +35,5 @@ def _instantiate_evaluators(eval_cfg, eval_args, online=False, offline=False) ->
         # check if the mode of running for the evaluator matches the offline/online flag
         if (online and eval_cfg[eval_type].online_eval) or (offline and eval_cfg[eval_type].offline_eval):
             evaluators.append(init_single_evaluator(eval_type_cfg, eval_args))
+
     return evaluators

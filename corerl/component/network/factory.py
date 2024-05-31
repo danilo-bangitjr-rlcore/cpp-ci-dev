@@ -51,6 +51,8 @@ def init_custom_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.
             network = networks.UniformRandomDisc(cfg, input_dim, output_dim)
         else:
             network = networks.UniformRandomCont(cfg, input_dim, output_dim)
+    elif cfg.name == 'gru':
+        network = networks.GRU(cfg, input_dim, output_dim)
     else:
         raise NotImplementedError
 

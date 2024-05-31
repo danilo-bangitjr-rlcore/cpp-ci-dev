@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 from omegaconf import DictConfig
+from typing import Optional
 
 import gymnasium
 
@@ -18,9 +19,17 @@ class BaseStateConstructor(ABC):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         raise NotImplementedError
 
-    @abstractmethod
-    def __call__(self, obs: np.ndarray, **kwargs) -> np.ndarray:
-        raise NotImplementedError
+    def __call__(self, obs: np.ndarray, action: np.ndarray = None, initial_state=False, **kwargs) -> np.ndarray:
+        """
+        We pass in the new observation, the last action, and whether or not this state is an initial state
+        """
+        init_array = np.zeros(1, dtype=bool)
+
+        # TODO: have this include a dummy action
+
+        init_array[0] = initial_state
+        state = np.concatenate([action, init_array, obs])  # convention: action goes first in the state array
+        raise state
 
     @abstractmethod
     def get_state_dim(self, *args) -> int:
@@ -31,7 +40,7 @@ class BaseStateConstructor(ABC):
         raise NotImplementedError
 
     def get_current_state(self) -> np.ndarray:
-       return self.state
+        return self.state
 
 
 class CompositeStateConstructor(BaseStateConstructor):
@@ -40,20 +49,21 @@ class CompositeStateConstructor(BaseStateConstructor):
         self.sc = None  # a placeholder for the final component in the graph
         raise NotImplementedError
 
-    def __call__(self, obs: np.ndarray, **kwargs) -> np.ndarray:
-        state = self._call_graph(obs, **kwargs)
+    def __call__(self, obs: np.ndarray, action: np.ndarray, **kwargs) -> np.ndarray:
+        a_obs = np.concatenate([action, obs])  # convention: action goes first in the state array
+        state = self._call_graph(a_obs, **kwargs)
         self._reset_graph_call()
         return state
 
-    def get_state_dim(self, obs: np.ndarray) -> int:
-        state = self(obs)
+    def get_state_dim(self, obs: np.ndarray, action: np.ndarray) -> int:
+        state = self(obs, action)
         assert len(state.shape)  # not sure if this will always be necessary or desired. But we are assuming that
         state_dim = state.shape[0]
         self._reset_graph_state()
         return state_dim
 
-    def _call_graph(self, obs: np.ndarray,  **kwargs) -> np.ndarray:
-        return self.sc(obs,  **kwargs)
+    def _call_graph(self, obs: np.ndarray, **kwargs) -> np.ndarray:
+        return self.sc(obs, **kwargs)
 
     def _reset_graph_call(self) -> None:
         """

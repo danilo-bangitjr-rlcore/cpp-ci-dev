@@ -11,6 +11,7 @@ from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, Float, ensemble_mse
 from corerl.utils.device import device
+from corerl.data import TransitionBatch, Transition
 
 class SAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -37,17 +38,17 @@ class SAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transition: tuple) -> None:
+    def update_buffer(self, transition: Transition) -> None:
         self.buffer.feed(transition)
 
-    def compute_q_loss(self, batch: dict) -> (list, torch.Tensor):
-        state_batch = batch['states']
-        action_batch = batch['actions']
-        reward_batch = batch['rewards']
-        next_state_batch = batch['next_states']
-        mask_batch = 1 - batch['dones']
-        gamma_exp_batch = batch['gamma_exps']
-        dp_mask = batch['next_state_decision_points']
+    def compute_q_loss(self, batch: TransitionBatch) -> (list, torch.Tensor):
+        state_batch = batch.state
+        action_batch = batch.action
+        reward_batch = batch.reward
+        next_state_batch = batch.boot_state
+        mask_batch = 1 - batch.terminated
+        gamma_exp_batch = batch.gamma_exponent
+        dp_mask = batch.next_decision_point
 
         next_actions, info = self.actor.get_action(next_state_batch, with_grad=False)
         with torch.no_grad():
@@ -68,10 +69,10 @@ class SAC(BaseAC):
         return critic_loss
 
     # Version of SAC that uses state-value function
-    # def compute_v_loss(self, batch: dict) -> (torch.Tensor, np.ndarray, np.ndarray):
+    # def compute_v_loss(self, batch: TransitionBatch) -> (torch.Tensor, np.ndarray, np.ndarray):
     #     """L_{\phi}, learn z for state value, v = tau log z"""
-    #     state_batch = batch['states']
-    #     action_batch = batch['actions']
+    #     state_batch = batch.state
+    #     action_batch = batch.action
     #     dp_mask = batch['state_decision_points']
     #     
     #     v_phi = self.v_critic.get_v(state_batch, with_grad=True)
@@ -85,9 +86,9 @@ class SAC(BaseAC):
     #
     #     return value_loss, v_phi.detach().numpy(), log_probs.detach().numpy()
 
-    def compute_actor_loss(self, batch: dict) -> (torch.Tensor, torch.Tensor):
-        state_batch = batch['states']
-        action_batch = batch['actions']
+    def compute_actor_loss(self, batch: TransitionBatch) -> (torch.Tensor, torch.Tensor):
+        state_batch = batch.state
+        action_batch = batch.action
         dp_mask = batch['state_decision_points']
 
         actions, info = self.actor.get_action(state_batch, with_grad=True)
@@ -101,8 +102,8 @@ class SAC(BaseAC):
     def update_entropy(self):
         for _ in range(self.n_entropy_updates):
             batch = self.buffer.sample()
-            state_batch = batch['states']
-            action_batch = batch['actions']
+            state_batch = batch.state
+            action_batch = batch.action
             dp_mask = batch['state_decision_points']
 
             actions, info = self.actor.get_action(state_batch, with_grad=False)
