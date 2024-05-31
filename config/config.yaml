@@ -25,4 +25,5 @@ experiment:
   render : 0
   save_path : output
   set_env_obs_space : False
+  param_from_hash : True
 

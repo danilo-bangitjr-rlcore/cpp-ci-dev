@@ -141,6 +141,7 @@ class GreedyAC(BaseAC):
         gamma_exp_batch = batch.gamma_exponent
         dp_mask = batch.boot_decision_point
 
+        next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
         with torch.no_grad():
             next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
 

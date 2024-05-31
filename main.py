@@ -16,7 +16,6 @@ from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.eval.composite_eval import CompositeEval
-from corerl.calibration_models.factory import init_calibration_model
 from corerl.interaction.factory import init_interaction
 from corerl.utils.device import init_device
 from corerl.data_loaders.factory import init_data_loader
@@ -45,9 +44,6 @@ def prepare_save_dir(cfg):
         (f'param-{cfg.experiment.param}') /
         (f'seed-{cfg.experiment.seed}')
     )
-    print(save_path)
-    print(save_path)
-    print(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
     with open(save_path / "config.yaml", "w") as f:
         OmegaConf.save(cfg, f)
@@ -193,19 +189,14 @@ def main(cfg: DictConfig) -> dict:
         stats = online_eval.get_stats()
         update_pbar(pbar, stats)
 
-        # freezer example
-        fr.freezer.save()
-
-        # # examples of saving and loading
-        # agent.save(save_path / 'agent')
-        # agent.load(save_path / 'agent')
-
         terminated = transitions[-1].terminated
         truncated = transitions[-1].truncate
         if terminated or truncated:
             state, _ = interaction.reset()
         else:
             state = transitions[-1].boot_state
+
+    env.plot()
 
     online_eval.output(save_path / 'stats.json')
     # need to update make_plots here
