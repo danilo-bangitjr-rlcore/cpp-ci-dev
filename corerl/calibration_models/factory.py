@@ -6,7 +6,7 @@ def init_calibration_model(cfg, kwargs):
     name = cfg.name
     if name == 'simple':
         cm = SimpleCalibrationModel(cfg, **kwargs)
-    if name == 'gru':
+    elif name == 'gru':
         cm = GRUCalibrationModel(cfg, **kwargs)
     else:
         raise NotImplementedError

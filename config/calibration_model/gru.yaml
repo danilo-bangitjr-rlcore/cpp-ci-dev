@@ -1,14 +1,10 @@
-name : simple
+name : gru
 
-buffer:
-  batch_size: 16
-  memory: 100000
-  name: uniform
-  device: cpu
-  seed: ${experiment.seed}
-
-train_itr: 200
+train_itr: 100
 batch_size : 64
+
+endo_inds : [0] # indices of endogenous variables within the observation
+exo_inds : [1] # indices of exogenous variables within the observation
 
 model:
   base:
@@ -31,3 +27,4 @@ optimizer:
 max_rollout_len : ${data_loader.trajectory_len}
 steps_per_decision : ${interaction.steps_per_decision}
 warmup_len : 180
+skip : 5

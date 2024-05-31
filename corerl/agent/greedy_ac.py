@@ -14,6 +14,7 @@ from corerl.component.exploration.factory import init_exploration_module
 from corerl.utils.device import device
 from corerl.data import TransitionBatch, Transition
 import corerl.agent.utils as utils
+import corerl.utils.freezer as fr
 
 from jaxtyping import Float
 from typing import Optional
@@ -59,7 +60,7 @@ class GreedyAC(BaseAC):
         tensor_action, action_info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
         # log the action_info to the freezer
-        # fr.freezer.store('action_info', action_info)
+        fr.freezer.store('action_info', action_info)
         return action
 
     def update_buffer(self, transition: Transition) -> None:
@@ -133,10 +134,10 @@ class GreedyAC(BaseAC):
         state_batch = batch.state
         action_batch = batch.action
         reward_batch = batch.reward
-        next_state_batch = batch.next_state
+        next_state_batch = batch.boot_state
         mask_batch = 1 - batch.terminated
         gamma_exp_batch = batch.gamma_exponent
-        dp_mask = batch.next_decision_point
+        dp_mask = batch.boot_decision_point
 
         next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
         with torch.no_grad():

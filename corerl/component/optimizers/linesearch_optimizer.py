@@ -110,7 +110,7 @@ class LineSearchOpt:
         state_batch = batch.state
         action_batch = batch.action
         reward_batch = batch.reward
-        next_state_batch = batch.next_state
+        next_state_batch = batch.boot_state
         mask_batch = 1 - batch.terminated
         error_evaluation_in = [state_batch, action_batch, reward_batch, next_state_batch, mask_batch]
         self.__backtrack_fn(

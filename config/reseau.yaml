@@ -59,7 +59,7 @@ data_loader:
                   "pt100_pv", "pt101_pv", "pt161_pv", "pt171_pv", "pt302_pv"]
   action_col_names: ["p250_fp"]
 
-  # NOTE: the endog will come first in the SC
+  # NOTE: the endo will come first in the SC
   endo_obs_col_names: ["ait301_pv"]
   exo_obs_col_names: ["fit250_pv"]
   return_sc_state : True

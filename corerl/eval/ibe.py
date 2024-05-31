@@ -31,7 +31,7 @@ class IBE(BaseEval):
         state_batch = batch.state
         action_batch = batch.action
         reward_batch = batch.reward
-        next_state_batch = batch.next_state
+        next_state_batch = batch.boot_state
         mask_batch = 1 - batch.terminated
 
         q = self.agent.q_critic.get_q(state_batch, action_batch, with_grad=False)

@@ -16,7 +16,7 @@ from corerl.calibration_models.utils import prepare_obs_transition
 
 class SimpleCalibrationModel:
     def __init__(self, cfg: DictConfig, **kwargs):
-        train_transitions = kwargs['train_obs_transitions']
+        train_transitions = kwargs['train_transitions']
         self.test_trajectories = kwargs['test_trajectories']
         self.reward_func = kwargs['reward_func']
         self.interaction = kwargs['interaction']
@@ -28,10 +28,12 @@ class SimpleCalibrationModel:
         self.batch_size = cfg.batch_size
 
         self.buffer.load(train_transitions)
+        self.endo_inds = cfg.endo_inds
+        self.exo_inds = cfg.exo_inds
 
-        input_dim = len(train_transitions[0][0])
-        action_dim = len(train_transitions[0][1])
-        output_dim = len(train_transitions[0][3])
+        input_dim = len(train_transitions[0].state)
+        action_dim = len(train_transitions[0].action)
+        output_dim = len(train_transitions[0].obs[self.endo_inds])
 
         self.model = init_custom_network(cfg.model, input_dim=input_dim + action_dim, output_dim=output_dim)
         self.optimizer = init_optimizer(cfg.optimizer, list(self.model.parameters()))
@@ -44,9 +46,11 @@ class SimpleCalibrationModel:
 
     def update(self):
         batch = self.buffer.sample_mini_batch(self.batch_size)
-        state_batch, action_batch, next_state_batch = batch.state, batch.action, batch.next_state
+        state_batch, action_batch, next_obs_batch = batch.state, batch.action, batch.next_obs
+        # we only predict the next endogenous component of the observation
+        endo_next_obs_batch = next_obs_batch[:, self.endo_inds]
         prediction = self.get_prediction(state_batch, action_batch, with_grad=True)
-        loss = nn.functional.mse_loss(prediction, next_state_batch)
+        loss = nn.functional.mse_loss(prediction, endo_next_obs_batch)
 
         self.optimizer.zero_grad()
         loss.backward()
@@ -61,49 +65,56 @@ class SimpleCalibrationModel:
             self.update()
             pbar.set_description("train loss: {:7.6f}".format(self.train_losses[-1]))
 
-        self.test_n_rollouts(100)
+        self.do_test_rollouts()
 
         return self.train_losses, self.test_losses
 
-    def test_rollout(self, traj):
+    def do_test_rollout(self, traj):
         # validates the model's accurary on a test rollout
-        transitions = traj.endo_vars
+        transitions = traj.transitions
         sc = deepcopy(traj.start_sc)
         losses = []
-        rollout_len = min(traj.num_transitions(), self.max_rollout_len)
+        rollout_len = min(traj.num_transitions, self.max_rollout_len)
 
+        state = transitions[0].state
         for step in range(rollout_len):
             t = transitions[step]
-            exo_obs = traj.exo_vars[step]
 
-            if step == 0:  # on the first iteration, get the state from the
-                state, action, endo_obs = prepare_obs_transition(t)
-            else:
-                _, action, endo_obs = prepare_obs_transition(t)
+            action = t.action
+            next_obs = t.next_obs
+            next_endo_obs = next_obs[self.endo_inds]
 
-            if step > 0:
-                loss_step = np.mean(np.abs(endo_obs - predicted_endo_obs))
-                losses.append(loss_step)
+            state_tensor = tensor(state).reshape((1, -1))
+            action_tensor = tensor(action).reshape((1, -1))
 
-            predicted_endo_obs = self._model_step(state, action).reshape(-1)
-            obs = np.concatenate((predicted_endo_obs, exo_obs), axis=0)
+            predicted_next_endo_obs = self.get_prediction(state_tensor, action_tensor)
+
+            # log the loss
+            loss_step = np.mean(np.abs(next_endo_obs - to_np(predicted_next_endo_obs)))
+            losses.append(loss_step)
+
+            # construct a fictitous observation using the predicted endogenous variables and the actual
+            # exogenous variables
+            new_obs = next_obs.copy()
+            for i, j in enumerate(self.endo_inds):
+                new_obs[j] = predicted_next_endo_obs[i]
+
             decision_point = step % self.steps_per_decision == 0
-            state = sc(obs, action, decision_point=decision_point)
+            state = sc(new_obs, action, decision_point=decision_point)
 
         return losses
 
-    def test_n_rollouts(self, n):
+    def do_test_rollouts(self):
         import matplotlib.pyplot as plt
-        for _ in range(n):
-            test_traj = random.choice(self.test_trajectories)
-            losses = self.test_rollout(test_traj)
+        for test_traj in self.test_trajectories:
+            losses = self.do_test_rollout(test_traj)
             plt.plot(np.array(losses), c='b', alpha=0.2)  # * (471.20947 - 2.6265918e+02)
 
         plt.ylabel("Absolute Error From True ORP")
         plt.xlabel("Rollout Step")
         plt.show()
 
-    def get_prediction(self, state, action, with_grad=False):
+    def get_prediction(self, state: torch.Tensor, action: torch.Tensor, with_grad: bool = False):
         x = torch.concat((state, action), dim=1)
         if with_grad:
             y = self.model(x)
@@ -112,22 +123,31 @@ class SimpleCalibrationModel:
                 y = self.model(x)
         return y
 
-    def _model_step(self, state, action):
-        obs = self.get_prediction(tensor(state).reshape((1, -1)),
-                                  tensor(action).reshape((1, -1)),
-                                  with_grad=False)
-
-        obs = to_np(obs)
-        return obs
-
-    def do_rollout(self, state, sc, agent, rollout_len=20):
+    def do_agent_rollout(self, traj, agent, rollout_len=20):
         gamma = agent.gamma
         g = 0  # the return
         prev_action = None
-        for i in range(rollout_len):
+
+        transitions = traj.transitions
+        sc = deepcopy(traj.start_sc)
+        state = transitions[0].state
+        for step in range(rollout_len):
+            t = transitions[step]
+
             action = agent.get_action(state)
-            obs = self._model_step(state, action)
-            state = sc(obs)
+            next_obs = t.next_obs
+
+            state_tensor = tensor(state).reshape((1, -1))
+            action_tensor = tensor(action).reshape((1, -1))
+
+            predicted_next_endo_obs = self.get_prediction(state_tensor, action_tensor)
+
+            new_obs = next_obs.copy()
+            for i, j in enumerate(self.endo_inds):
+                new_obs[j] = predicted_next_endo_obs[i]
+
+            decision_point = step % self.steps_per_decision == 0
+            state = sc(new_obs, action, decision_point=decision_point)
 
             reward_info = {}
             if prev_action is None:
@@ -136,22 +156,16 @@ class SimpleCalibrationModel:
                 reward_info['prev_action'] = prev_action
             reward_info['curr_action'] = action
 
-            denormalized_obs = self.interaction.obs_normalizer.denormalize(obs)
+            denormalized_obs = self.interaction.obs_normalizer.denormalize(new_obs)
             g += gamma * self.reward_func(denormalized_obs, **reward_info)
             prev_action = action
 
-        # This does not factor in truncs, or dones. Should it?
         return g
 
-    def do_n_rollouts(self, agent, num_rollouts=100, rollout_len=20):
+    def do_agent_rollouts(self, agent):
         returns = []
-        for rollout in range(num_rollouts):
-            rand_idx = random.randint(0, len(self.state_constructors))
-            start_transition = self.test_transitions[rand_idx]
-            start_state = start_transition[0]
-            start_sc = self.state_constructors[rand_idx]
-
-            return_rollout = self.do_rollout(start_state, start_sc, agent, rollout_len=rollout_len)
-            returns.append(return_rollout)
+        for test_traj in self.test_trajectories:
+            rollout_return = self.do_agent_rollout(test_traj, agent)
+            returns.append(rollout_return)
 
         return returns

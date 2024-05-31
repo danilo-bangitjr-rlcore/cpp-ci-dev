@@ -38,6 +38,9 @@ class Trajectory:
     def action_dim(self):
         return len(self.transitions[0][1])
 
+    def get_transitions_attr(self, param):
+        pass
+
 
 def prepare_obs_transition(transition):
     return tensor(transition[0]), tensor(transition[1]), transition[3]

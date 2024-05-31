@@ -220,7 +220,7 @@ class DirectActionDataLoader(BaseDataLoader):
         return False, False
 
     def create_n_step_transitions_(self,
-                                   state_action_rewards: list[tuple],
+                                   partial_transitions: list[tuple],
                                    boot_state: np.ndarray,
                                    boot_obs: np.ndarray,
                                    term: bool,
@@ -239,13 +239,16 @@ class DirectActionDataLoader(BaseDataLoader):
             n_step_rewards = deque([], self.n_step)
             boot_state_queue = deque([], self.n_step)
 
-        for i in range(len(state_action_rewards) - 1, -1, -1):
-            sar = state_action_rewards[i]
+        for i in range(len(partial_transitions) - 1, -1, -1):
+            sar = partial_transitions[i]
             obs = sar[0]
             state = sar[1]
             action = sar[2]
             reward = sar[3]
             s_dp = sar[4]
+            next_obs = sar[5]
+            next_state = sar[6]
+
             boot_state_queue.appendleft(state)
 
             # Recursively updating n-step reward
@@ -256,18 +259,20 @@ class DirectActionDataLoader(BaseDataLoader):
             gamma_exp = len(n_step_rewards)
             ns_dp = dp_counter <= boot_state_queue.maxlen
 
-            transition = Transition(state,
-                                    action,
-                                    np_n_step_rewards[-1].item(),
-                                    boot_state,
-                                    term,
-                                    trunc,
-                                    s_dp,
-                                    ns_dp,
-                                    gamma_exp,
-                                    obs,
-                                    boot_obs
-                                    )
+            transition = Transition(
+                obs,
+                state,
+                action,
+                next_obs,  # the immediate next obs
+                next_state,  # the immediate next state
+                np_n_step_rewards[-1].item(),
+                boot_obs,  # the obs we bootstrap off
+                boot_state,  # the state we bootstrap off
+                term,
+                trunc,
+                s_dp,
+                ns_dp,
+                gamma_exp)
 
             new_transitions.append(transition)
             dp_counter += 1
@@ -344,8 +349,8 @@ class DirectActionDataLoader(BaseDataLoader):
                 step_remainder = curr_action_steps % self.steps_per_decision
                 steps_since_decision = ((self.steps_per_decision - step_remainder) + 1) % self.steps_per_decision
 
-                # Iterate over current action time steps and produce (0,S,A,R)
-                partial_transitions = []  # contains (O, S, A, R, S_DP)
+                # Iterate over current action time steps and produce partial transitions
+                partial_transitions = []  # contains (O, S, A, R, S_DP, O', S')
                 state_scs = []  # the state constructors at S
 
                 for i in range(curr_action_steps):  # how many steps we are talking the current action
@@ -365,7 +370,14 @@ class DirectActionDataLoader(BaseDataLoader):
                     reward_info['curr_action'] = curr_action
                     raw_reward = reward_function(interaction.obs_normalizer.denormalize(next_obs), **reward_info)
                     reward = interaction.reward_normalizer(raw_reward)
-                    partial_transitions.append((obs, state, norm_curr_action, reward, prev_decision_point))
+                    partial_transitions.append((obs,
+                                                state,
+                                                norm_curr_action,
+                                                reward,
+                                                prev_decision_point,
+                                                next_obs,
+                                                next_state))
+
                     state_scs.append(sc_at_state)  # the state constructor at state
 
                     # Create n-step Transitions for the states observed since the last decision point
@@ -374,8 +386,8 @@ class DirectActionDataLoader(BaseDataLoader):
                         boot_obs = next_obs
                         # Set trunc and term to false since we haven't reached the final action boundary within the action window
                         new_transitions = self.create_n_step_transitions_(partial_transitions,
-                                                                          boot_obs,
                                                                           boot_state,
+                                                                          boot_obs,
                                                                           False,
                                                                           False)
 
@@ -469,8 +481,8 @@ class DirectActionDataLoader(BaseDataLoader):
                 step_remainder = curr_action_steps % self.steps_per_decision
                 steps_since_decision = ((self.steps_per_decision - step_remainder) + 1) % self.steps_per_decision
 
-                # Iterate over current action time steps and produce (0,S,A,R)
-                partial_transitions = []  # contains (O, S, A, R, S_DP)
+                # Iterate over current action time steps and produce partial transitions
+                partial_transitions = []  # contains (O, S, A, R, S_DP, O', S')
                 state_scs = []  # the state constructors at S
                 for i in range(curr_action_steps):  # how many steps we are talking the current action
                     decision_point = steps_since_decision == 0
@@ -489,7 +501,14 @@ class DirectActionDataLoader(BaseDataLoader):
                     reward_info['curr_action'] = curr_action
                     raw_reward = reward_function(interaction.obs_normalizer.denormalize(next_obs), **reward_info)
                     reward = interaction.reward_normalizer(raw_reward)
-                    partial_transitions.append((obs, state, norm_curr_action, reward, prev_decision_point))
+                    partial_transitions.append((obs,
+                                                state,
+                                                norm_curr_action,
+                                                reward,
+                                                prev_decision_point,
+                                                next_obs,
+                                                next_state))
+
                     state_scs.append(sc_at_state)  # the state constructor at state
 
                     # Create n-step Transitions for the states observed since the last decision point
@@ -498,12 +517,12 @@ class DirectActionDataLoader(BaseDataLoader):
                         boot_obs = next_obs
                         # Set trunc and term to false since we haven't reached the final action boundary within the action window
                         new_transitions = self.create_n_step_transitions_(partial_transitions,
-                                                                          boot_obs,
                                                                           boot_state,
+                                                                          boot_obs,
                                                                           False,
                                                                           False)
 
-                        for transition in zip(new_transitions):
+                        for transition in new_transitions:
                             trajectory.add_transition(transition)
 
                         # if we start a new trajectory, will it be a test or train trajectory?

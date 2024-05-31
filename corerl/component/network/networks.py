@@ -337,7 +337,7 @@ class GRU(nn.Module):
         self.gru = nn.GRU(input_dim, self.gru_hidden_dim, self.num_gru_layers, batch_first=True)
         self.to(device)
 
-    def forward(self, x, prediction_start=None):
+    def forward(self, x: torch.Tensor, prediction_start=None) -> torch.Tensor:
         batch_size, seq_length, _ = x.size()
         h = torch.zeros(self.num_gru_layers, batch_size, self.gru_hidden_dim).to(device)
         if prediction_start is None:
@@ -355,6 +355,7 @@ class GRU(nn.Module):
                 else:  # feed the networks predictions back in.
                     out_t_len = out_t.size(-1)
                     # replace the first out_t_len elements of x_t with out_t
+                    # the network only predicts endogenous variables, so we grab the exogenous from that time step
                     x_t = torch.cat((out_t, x_t[:, :, out_t_len:]), dim=-1)
 
                     out_t, h = self.gru(x_t, h)

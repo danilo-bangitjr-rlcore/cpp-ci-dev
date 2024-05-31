@@ -14,7 +14,7 @@ defaults:
 
 experiment :
   exp_name : "calibration_model_test"
-  max_steps : 5000
+  max_steps : 500
   offline_steps : 0
   set_env_obs_space : True
   timeout: 0

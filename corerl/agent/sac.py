@@ -45,7 +45,7 @@ class SAC(BaseAC):
         state_batch = batch.state
         action_batch = batch.action
         reward_batch = batch.reward
-        next_state_batch = batch.next_state
+        next_state_batch = batch.boot_state
         mask_batch = 1 - batch.terminated
         gamma_exp_batch = batch.gamma_exponent
         dp_mask = batch.next_decision_point

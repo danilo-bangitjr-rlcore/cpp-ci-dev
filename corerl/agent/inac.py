@@ -60,8 +60,8 @@ class InAC(BaseAC):
 
     def compute_q_loss(self, batch):
         states, actions, rewards, next_states, dones, dp_mask, gamma_exps = (batch.state, batch.action, batch.reward,
-                                                                             batch.next_state, batch.terminated,
-                                                                             batch.next_decision_point, batch.gamma_exponent)
+                                                                             batch.boot_state, batch.terminated,
+                                                                             batch.boot_decision_point, batch.gamma_exponent)
 
         _, q_ens = self.q_critic.get_qs(states, actions, with_grad=True)
         next_actions, _ = self.actor.get_action(next_states, with_grad=False)

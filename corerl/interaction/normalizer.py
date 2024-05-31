@@ -23,34 +23,37 @@ class NormalizerInteraction(BaseInteraction):
         self.obs_normalizer = init_obs_normalizer(cfg.obs_normalizer, env)
         self.gamma = cfg.gamma
         self.last_state = None
-        self.last_observation = None
+        self.last_obs = None
 
     def step(self, action: np.ndarray) -> tuple[list[Transition], list[dict]]:
         # Revan: I'm not sure that this is the best place for decision_point ^
         # also adding next_decision_point, which is whether the next state is a decision point.
         denormalized_action = self.action_normalizer.denormalize(action)
 
-        next_observation, raw_reward, terminated, env_truncate, env_info = self.env.step(denormalized_action)
-        normalized_observation = self.obs_normalizer(next_observation)
-        next_state = self.state_constructor(normalized_observation, action)
+        next_obs, raw_reward, terminated, env_truncate, env_info = self.env.step(denormalized_action)
+        normalized_next_obs = self.obs_normalizer(next_obs)
+        next_state = self.state_constructor(normalized_next_obs, action)
         reward = self.reward_normalizer(raw_reward)
         truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
         gamma_exponent = 1
 
-        transition = Transition(self.last_state,
-                                action,
-                                reward,
-                                next_state,
-                                terminated,
-                                truncate,
-                                True,  # always a decision point
-                                True,  # always a decision point
-                                gamma_exponent,
-                                self.last_observation,
-                                next_observation)
+        transition = Transition(
+            self.last_obs,
+            self.last_state,
+            action,
+            normalized_next_obs,
+            next_state,
+            reward,
+            normalized_next_obs,  # the obs for boot strapping is the same as the next obs here
+            next_state,  # the state for boot strapping is the same as the next state here
+            terminated,
+            truncate,
+            True,  # always a decision point
+            True,  # always a decision point
+            gamma_exponent)
 
         self.last_state = next_state
-        self.last_observation = next_observation
+        self.last_obs = next_obs
 
         return [transition], [env_info]
 
@@ -62,7 +65,7 @@ class NormalizerInteraction(BaseInteraction):
         dummy_action = np.zeros(self.action_dim)
         state = self.state_constructor(normalized_observation, dummy_action, initial_state=True)
 
-        self.last_observation = normalized_observation
+        self.last_obs = normalized_observation
         self.last_state = state
 
         return state, info

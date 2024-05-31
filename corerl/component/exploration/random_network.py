@@ -69,7 +69,7 @@ class RndNetworkExplore(BaseExploration):
         batch = self.buffer.sample()
         state_batch = batch.state
         action_batch = batch.action
-        next_state_batch = batch.next_state
+        next_state_batch = batch.boot_state
         mask_batch = 1 - batch.terminated
         random_next_action, _ = self.random_policy(next_state_batch)
         loss0, loss1 = self.explore_bonus_loss(state_batch, action_batch, next_state_batch,
@@ -112,7 +112,7 @@ class RndNetworkExploreLineSearch(RndNetworkExplore):
         batch = self.buffer.sample()
         state_batch = batch.state
         action_batch = batch.action
-        next_state_batch = batch.next_state
+        next_state_batch = batch.boot_state
         mask_batch = 1 - batch.terminated
         random_next_action, _ = self.random_policy(next_state_batch)
         loss0, loss1 = self.explore_bonus_loss(state_batch, action_batch, next_state_batch,

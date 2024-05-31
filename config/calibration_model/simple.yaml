@@ -1,7 +1,7 @@
 name : simple
 
 buffer:
-  batch_size: 16
+  batch_size: 64
   memory: 100000
   name: uniform
   device: cpu
@@ -10,9 +10,12 @@ buffer:
 train_itr: 10000
 batch_size : 64
 
+endo_inds : [0] # indices of endogenous variables within the observation
+exo_inds : [1] # indices of exogenous variables within the observation
+
 model:
   layer_norm: 0
-  arch: [ 256, 256]
+  arch: [256, 256]
   init_args: ReLU
   head_activation: None
   activation: ReLU
@@ -21,10 +24,9 @@ model:
   name: fc
 
 optimizer:
-  lr: 0.00001
+  lr: 0.0001
   weight_decay: 0.0
   name: adam
 
 max_rollout_len : ${data_loader.trajectory_len}
 steps_per_decision : ${interaction.steps_per_decision}
-warmup_len : 180

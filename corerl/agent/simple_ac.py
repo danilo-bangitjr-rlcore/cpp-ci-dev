@@ -33,7 +33,7 @@ class SimpleAC(BaseAC):
     def compute_actor_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states = batch.state
         actions = batch.action
-        next_states = batch.next_state
+        next_states = batch.boot_state
         rewards = batch.reward
         dones = batch.terminated
         gamma_exps = batch.gamma_exponent

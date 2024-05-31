@@ -58,14 +58,14 @@ def load_offline_data(cfg, save_path, interaction, data_loader, offline_data_df)
         offline_data = data_loader.load(save_path / transition_file_name)
     else:
         print("Loading offline transitions...")
-        # offline_data = data_loader.create_trajectories(offline_data_df,
-        #                                                interaction.state_constructor,
-        #                                                reward_func,
-        #                                                interaction)
-        offline_data = data_loader.create_transitions(offline_data_df,
+        offline_data = data_loader.create_trajectories(offline_data_df,
                                                        interaction.state_constructor,
                                                        reward_func,
                                                        interaction)
+        # offline_data = data_loader.create_transitions(offline_data_df,
+        #                                                interaction.state_constructor,
+        #                                                reward_func,
+        #                                                interaction)
 
         print("Saving data...")
         data_loader.save(offline_data, save_path / transition_file_name)
@@ -84,7 +84,7 @@ def get_state_action_dim(env, sc):
     return state_dim, action_dim
 
 
-@hydra.main(version_base=None, config_name='reseau', config_path="config/")
+@hydra.main(version_base=None, config_name='config', config_path="config/")
 def main(cfg: DictConfig) -> dict:
     save_path = prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
@@ -126,8 +126,8 @@ def main(cfg: DictConfig) -> dict:
 
         # train calibration model
         offline_data['interaction'] = interaction
-        cm = init_calibration_model(cfg.calibration_model, offline_data)
-        cm.train()
+        # cm = init_calibration_model(cfg.calibration_model, offline_data)
+        # cm.train()
 
         print('Starting offline training...')
         train_transitions, test_transitions = offline_data['train_transitions'], offline_data['test_transitions']
@@ -142,7 +142,7 @@ def main(cfg: DictConfig) -> dict:
             update_pbar(pbar, stats)
 
         # rollout in calibration models
-        cm.do_n_rollouts(agent, rollout_len=100, num_rollouts=1)
+        # cm.do_test_rollouts(agent, rollout_len=100, num_rollouts=1)
 
     # Online Deployment
     # Instantiate online evaluators
@@ -186,7 +186,7 @@ def main(cfg: DictConfig) -> dict:
         if terminated or truncated:
             state, _ = interaction.reset()
         else:
-            state = transitions[-1].next_state
+            state = transitions[-1].boot_state
 
     online_eval.output(save_path / 'stats.json')
     # need to update make_plots here

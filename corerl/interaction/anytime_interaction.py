@@ -53,6 +53,10 @@ class AnytimeInteraction(NormalizerInteraction):
         truncate_list = []
         observation_list = []
         env_info_list = []
+        env_info_list = []
+
+
+        # this needs to change with the next
 
         num_completed_steps = 0
         for obs_step in range(self.steps_per_decision):
@@ -92,19 +96,22 @@ class AnytimeInteraction(NormalizerInteraction):
         transitions = []
         for obs_step in range(num_completed_steps):  # note: we do not return a transition for the final state
             gamma_exp = obs_step + 1
-            transition = Transition(state_list[obs_step],
-                                    action,
-                                    reward_list[obs_step].item(),
-                                    state_list[-1],
-                                    terminated_list[obs_step],
-                                    terminated_list[obs_step],
-                                    # state is a decision point at the state
-                                    True if obs_step == 0 else False,
-                                    # the next state is only a decision point at the end
-                                    True if obs_step == num_completed_steps - 1 else False,
-                                    gamma_exp,
-                                    observation_list[obs_step],
-                                    observation_list[-1])
+            transition = Transition(
+                observation_list[obs_step],
+                state_list[obs_step],
+                action,
+                observation_list[obs_step+1],
+                state_list[obs_step+1],
+                reward_list[obs_step].item(),
+                observation_list[-1],
+                state_list[-1],
+                terminated_list[obs_step],
+                terminated_list[obs_step],
+                # state is a decision point at the state
+                True if obs_step == 0 else False,
+                # the next state is only a decision point at the end
+                True if obs_step == num_completed_steps - 1 else False,
+                gamma_exp)
 
             transitions.append(transition)
 
