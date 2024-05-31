@@ -1,6 +1,7 @@
 defaults:
   - action_normalizer: scale
   - reward_normalizer: clip
+  - obs_normalizer: identity
 
 name: normalizer
 timeout: ${experiment.timeout}

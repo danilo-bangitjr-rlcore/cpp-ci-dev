@@ -43,7 +43,7 @@ class ActionGapEval(BaseEval):
 
     def do_eval(self, **kwargs) -> None:
         batch = self.agent.buffer.sample()
-        state_batch = batch['states']
+        state_batch = batch.state
         action_gap = self.get_batch_action_gap(state_batch)
         self.action_gaps.append(action_gap)
 

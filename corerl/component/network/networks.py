@@ -413,3 +413,43 @@ class UniformRandomDisc(Softmax):
         x = torch.ones(state.size()[0], self.output_dim)
         probs = nn.functional.softmax(x, dim=1)
         return probs, x
+
+
+class GRU(nn.Module):
+    def __init__(self, cfg, input_dim, output_dim):
+        super(GRU, self).__init__()
+        self.input_dim = input_dim
+        self.gru_hidden_dim = cfg.gru_hidden_dim
+        self.num_gru_layers = cfg.num_gru_layers
+        self.output_net = create_base(cfg.base, self.gru_hidden_dim, output_dim)
+        self.gru = nn.GRU(input_dim, self.gru_hidden_dim, self.num_gru_layers, batch_first=True)
+        self.to(device)
+
+    def forward(self, x: torch.Tensor, prediction_start=None) -> torch.Tensor:
+        batch_size, seq_length, _ = x.size()
+        h = torch.zeros(self.num_gru_layers, batch_size, self.gru_hidden_dim).to(device)
+        if prediction_start is None:
+            out, _ = self.gru(x, h)
+            out = self.output_net(out)
+        else:
+            out = []
+            for t in range(seq_length):
+                x_t = x[:, t, :].unsqueeze(1)
+
+                if t <= prediction_start:
+                    out_t, h = self.gru(x_t, h)
+                    out_t = self.output_net(out_t)
+
+                else:  # feed the networks predictions back in.
+                    out_t_len = out_t.size(-1)
+                    # replace the first out_t_len elements of x_t with out_t
+                    # the network only predicts endogenous variables, so we grab the exogenous from that time step
+                    x_t = torch.cat((out_t, x_t[:, :, out_t_len:]), dim=-1)
+
+                    out_t, h = self.gru(x_t, h)
+                    out_t = self.output_net(out_t)
+
+                out.append(out_t)
+            out = torch.cat(out, dim=1)
+
+        return out

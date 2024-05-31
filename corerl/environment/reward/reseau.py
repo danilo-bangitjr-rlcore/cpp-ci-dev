@@ -5,31 +5,28 @@ import pandas as pd
 
 from corerl.environment.reward.base import BaseReward
 
+
 class ReseauReward(BaseReward):
     def __init__(self, cfg: DictConfig):
         self.orp_sp = cfg.orp_sp
         self.orp_col_name = cfg.orp_col_name
+        self.orp_col = cfg.orp_col
         self.penalty_weight = cfg.penalty_weight
         self.action_scale = cfg.action_scale
 
-    def __call__(self, **kwargs) -> float:
-        df = kwargs['df']
+    def __call__(self, obs, **kwargs) -> float:
         prev_action = kwargs['prev_action']
         curr_action = kwargs['curr_action']
-        
-        orps = df[self.orp_col_name].to_numpy()
-        orps = orps[~np.isnan(orps)]
+        mae = np.abs(self.orp_sp - obs[self.orp_col])
 
-        mae = np.mean(np.abs(self.orp_sp - orps))
-
-        if prev_action == None:
+        if prev_action is None:
             penalty = 0.0
         else:
             penalty = self.penalty_weight * abs(prev_action - curr_action) / self.action_scale
 
         if mae <= 5.0:
-            reward = np.clip(-np.log(0.2*mae), 0.0, 5.0) - penalty
+            reward = np.clip(-np.log(0.2 * mae), 0.0, 5.0) - penalty
         else:
-            reward = -0.2*mae + 1.0 - penalty
+            reward = -0.2 * mae + 1.0 - penalty
 
-        return reward.squeeze()
+        return reward.item()

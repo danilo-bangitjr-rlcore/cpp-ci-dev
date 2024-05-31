@@ -1,24 +1,10 @@
 from corerl.utils.device import device
 from omegaconf import DictConfig
 from warnings import warn
-import corerl.component.network.utils as network_utils
 import numpy as np
 import torch
 
-
-def _prepare(batch) -> dict:
-    s, a, r, ns, d, t, s_dp, ns_dp, ge = batch
-    return {
-        'states': s,
-        'actions': a,
-        'rewards': r,
-        'next_states': ns,
-        'dones': d,
-        'truncs': t,
-        'state_decision_points': s_dp,
-        'next_state_decision_points': ns_dp,
-        'gamma_exps': ge
-    }
+from corerl.data import Transition, TransitionBatch
 
 
 class UniformBuffer:
@@ -37,7 +23,7 @@ class UniformBuffer:
         else:
             self.sample = self.sample_mini_batch
 
-    def feed(self, experience: tuple) -> None:
+    def feed(self, experience: Transition) -> None:
         if self.data is None:
             # Lazy instatiation
             data_size = _get_size(experience)
@@ -47,14 +33,15 @@ class UniformBuffer:
                 ) for s in data_size
             ])
 
-        for i in range(len(experience)):
-            self.data[i][self.pos] = _to_tensor(experience[i])
+        for i, elem in enumerate(experience):
+            self.data[i][self.pos] = _to_tensor(elem)
+
         self.pos = (self.pos + 1) % self.memory
 
         if not self.full and self.pos == self.memory:
             self.full = True
 
-    def sample_mini_batch(self, batch_size: int = None) -> dict:
+    def sample_mini_batch(self, batch_size: int = None) -> TransitionBatch:
         if self.data is None or len(self.data) == 0:
             return None
         if batch_size is None:
@@ -64,13 +51,13 @@ class UniformBuffer:
             0, len(self.data) if self.full else self.pos, batch_size,
         )
 
-        sampled_data = (
+        sampled_data = [
             self.data[i][sampled_indices] for i in range(len(self.data))
-        )
+        ]
 
-        return _prepare(sampled_data)
+        return self._prepare(sampled_data)
 
-    def sample_batch(self) -> dict:
+    def sample_batch(self) -> TransitionBatch:
         if len(self.data) == 0 or self.data is None:
             return None
 
@@ -81,7 +68,7 @@ class UniformBuffer:
                 self.data[i][:self.pos] for i in range(len(self.data))
             )
 
-        return _prepare(sampled_data)
+        return self._prepare(sampled_data)
 
     """
     def load(
@@ -115,6 +102,10 @@ class UniformBuffer:
     def update_priorities(self, priority=None):
         pass
 
+    def _prepare(self, batch: list) -> TransitionBatch:
+        batch = TransitionBatch(*batch)
+        return batch
+
 
 class PriorityBuffer(UniformBuffer):
     def __init__(self, cfg: DictConfig):
@@ -122,7 +113,7 @@ class PriorityBuffer(UniformBuffer):
         self.priority = torch.zeros((self.memory,))
         warn("Priority buffer has not been tested yet")
 
-    def feed(self, experience: tuple) -> None:
+    def feed(self, experience: Transition) -> None:
         super(PriorityBuffer, self).feed(experience)
         self.priority[self.pos] = 1.0
 
@@ -133,7 +124,7 @@ class PriorityBuffer(UniformBuffer):
 
         self.priority /= scale
 
-    def sample_mini_batch(self, batch_size: int = None) -> dict:
+    def sample_mini_batch(self, batch_size: int = None) -> TransitionBatch:
         if len(self.data) == 0:
             return None
         if batch_size is None:
@@ -143,11 +134,11 @@ class PriorityBuffer(UniformBuffer):
             p=(self.priority if self.full else self.priority[:self.pos]),
         )
 
-        sampled_data = (
+        sampled_data = [
             self.data[i][sampled_indices] for i in range(len(self.data))
-        )
+        ]
 
-        return _prepare(sampled_data)
+        return self._prepare(sampled_data)
 
     def update_priorities(self, priority=None):
         if priority is None:
@@ -168,15 +159,15 @@ def _to_tensor(elem):
         return torch.Tensor([elem])
 
 
-def _get_size(experience: tuple) -> int:
+def _get_size(experience: Transition) -> list[tuple]:
     size = []
     for elem in experience:
         if isinstance(elem, np.ndarray):
             size.append(elem.shape)
         elif (
-            isinstance(elem, int) or
-            isinstance(elem, float) or
-            isinstance(elem, bool)
+                isinstance(elem, int) or
+                isinstance(elem, float) or
+                isinstance(elem, bool)
         ):
             size.append((1,))
         else:

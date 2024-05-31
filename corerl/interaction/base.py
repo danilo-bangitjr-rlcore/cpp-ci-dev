@@ -5,19 +5,21 @@ from omegaconf import DictConfig
 import gymnasium
 
 from corerl.state_constructor.base import BaseStateConstructor
+from corerl.data import Transition
+
 
 class BaseInteraction(ABC):
     @abstractmethod
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env, state_constructor: BaseStateConstructor):
+    def __init__(self, cfg: DictConfig, env: gymnasium.Env, state_constructor: BaseStateConstructor, action_dim:int):
         self.env = env
         self.state_constructor = state_constructor
-        self.timeout = cfg.timeout # When timeout is set to 0, there is no timeout.
+        self.timeout = cfg.timeout  # When timeout is set to 0, there is no timeout.
         self.internal_clock = 0
+        self.action_dim = action_dim
 
     @abstractmethod
     # step returns a list of transitions and a list of environment infos
-    # the reason it takes in the current state is to build these transitions
-    def step(self, state: np.ndarray,  action: np.ndarray) -> tuple[list[tuple], list[dict]]:
+    def step(self, action: np.ndarray) -> tuple[list[Transition], list[dict]]:
         raise NotImplementedError
 
     @abstractmethod

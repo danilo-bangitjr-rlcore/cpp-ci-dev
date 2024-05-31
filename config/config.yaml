@@ -4,7 +4,8 @@ defaults:
   - data_loader : direct_action
   - interaction : normalizer
   - state_constructor : identity
-  - eval@eval.ibe : ibe # this lets us have multiple subconfigs rooted at eval
+  - calibration_model : simple
+#  - eval@eval.ibe : ibe # this lets us have multiple subconfigs rooted at eval
   - eval@eval.reward : reward
 #  - eval@eval.action_gap : action_gap
   - _self_
@@ -24,3 +25,4 @@ experiment:
   render : 0
   save_path : output
   set_env_obs_space : False
+

@@ -1,0 +1,48 @@
+defaults:
+  - config
+  - override agent: greedy_ac
+  - override env: saturation
+  - override data_loader: direct_action
+  - override interaction: normalizer
+  - override calibration_model : gru
+  - override state_constructor: multi_trace
+  - override interaction/action_normalizer: scale
+  - override interaction/reward_normalizer: identity
+  - override interaction/obs_normalizer: identity
+#  - override agent/actor/actor_network: squashed_gaussian
+  - _self_
+
+experiment :
+  exp_name : "calibration_model_test"
+  max_steps : 500
+  offline_steps : 0
+  set_env_obs_space : True
+  timeout: 0
+  trajectory_len : 360
+
+env:
+  opc : null
+  db : null
+
+interaction :
+  action_normalizer:
+    use_cfg_values : False
+
+agent:
+  tau : 0
+  rho : 0.05
+  num_samples: 100
+  uniform_proposal : True
+  critic:
+    polyak': 0.995
+    critic_optimizer:
+      lr : 0.0003
+      weight_decay : 0.0
+  actor:
+    actor_optimizer:
+      lr : 0.001
+
+
+
+
+

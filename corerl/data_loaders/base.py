@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 from corerl.environment.reward.base import BaseReward
 from corerl.state_constructor.base import BaseStateConstructor
-from corerl.interaction.normalizer_utils import BaseNormalizer
+from corerl.interaction.base import BaseInteraction
 
 
 class BaseDataLoader(ABC):
@@ -22,8 +22,11 @@ class BaseDataLoader(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def create_transitions(self, df: pd.DataFrame, state_constructor: BaseStateConstructor, reward_function: BaseReward,
-                           action_normalizer: BaseNormalizer, reward_normalizer: BaseNormalizer) -> list[tuple]:
+    def create_transitions(self,
+                           df: pd.DataFrame,
+                           state_constructor: BaseStateConstructor,
+                           reward_function: BaseReward,
+                           interaction: BaseInteraction) -> dict:
         raise NotImplementedError
 
     @abstractmethod
@@ -31,11 +34,11 @@ class BaseDataLoader(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def save_transitions(self, transitions: list[tuple], path: Path):
+    def save(self, lst: object, path: Path):
         raise NotImplementedError
 
     @abstractmethod
-    def load_transitions(self, path: Path) -> list[tuple]:
+    def load(self, path: Path) -> object:
         raise NotImplementedError
 
     @abstractmethod
