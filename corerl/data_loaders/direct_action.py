@@ -22,10 +22,13 @@ class DirectActionDataLoader(BaseDataLoader):
     def __init__(self, cfg: DictConfig):
         self.offline_data_path = Path(cfg.offline_data_path)
         # You can either load all the csvs in the directory or a subset
-        if cfg.offline_filenames == []:
-            self.offline_filenames = list(self.offline_data_path.glob('*.csv'))
+        if cfg.train_filenames == []:
+            self.train_filenames = list(self.offline_data_path.glob('*.csv'))
         else:
-            self.offline_filenames = [self.offline_data_path / file for file in cfg.offline_filenames]
+            self.train_filenames = [self.offline_data_path / file for file in cfg.train_filenames]
+
+        # Are we using separate files for the text set
+
         self.skip_rows = cfg.skip_rows
         self.header = cfg.header
         # not sure if OmegaConf.to_object is necessary anymore?
@@ -58,7 +61,7 @@ class DirectActionDataLoader(BaseDataLoader):
         Read csvs into a single concatenated df sorted by date, containing only the columns in the observation space
         """
         dfs = []
-        for file in self.offline_filenames:
+        for file in self.train_filenames:
             df = pd.read_csv(file, dtype=np.float32, skiprows=self.skip_rows, header=self.header,
                              names=self.df_col_names, index_col=self.date_col_name, parse_dates=True)
             dfs.append(df)
@@ -89,7 +92,8 @@ class DirectActionDataLoader(BaseDataLoader):
 
     def find_uninterrupted_windows(self, df: pd.DataFrame) -> list[pd.DataFrame]:
         """
-        There may be large gaps in time in the input dataframe so we split it up into a list of dataframes that are each uninterrupted
+        There may be large gaps in time in the input dataframe,
+        so we split it up into a list of dataframes that are each uninterrupted
         """
         df_list = []
         time_thresh = pd.Timedelta(self.max_time_delta, "s")
@@ -433,10 +437,10 @@ class DirectActionDataLoader(BaseDataLoader):
                             df: pd.DataFrame,
                             state_constructor: BaseStateConstructor,
                             reward_function: BaseReward,
-                            interaction: NormalizerInteraction) -> dict:
+                            interaction: NormalizerInteraction, new_traj_at_gap: bool = False) -> dict:
 
         """
-        Iterate through the df and produce transitions using the "Anytime" paradigm.
+        Iterate through the df and produce transitions and trajectories using the "Anytime" paradigm.
         Take into account discontinuities in the dataframe (large gaps in time between consecutive rows)
         Creates fixed n-step transitions or variable n-step transitions that always bootstrap off the state at the next decision point
         """
@@ -471,6 +475,7 @@ class DirectActionDataLoader(BaseDataLoader):
             trajectory = Trajectory(is_test=False)
             if self.return_sc_state:
                 trajectory.add_start_sc(sc_at_state)
+
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
                                                                                                               action_start)
@@ -525,19 +530,20 @@ class DirectActionDataLoader(BaseDataLoader):
                         for transition in new_transitions:
                             trajectory.add_transition(transition)
 
-                        # if we start a new trajectory, will it be a test or train trajectory?
-                        next_traj_test = random.uniform(0, 1) >= self.train_split
-                        done_trajectory = trajectory.num_transitions > self.trajectory_len
+                        if not new_traj_at_gap:
+                            # if we start a new trajectory, will it be a test or train trajectory?
+                            next_traj_test = random.uniform(0, 1) >= self.train_split
+                            done_trajectory = trajectory.num_transitions > self.trajectory_len
 
-                        if done_trajectory:  # add the final endogenous observation.
-                            if trajectory.is_test:
-                                test_trajectories.append(trajectory)
-                            else:
-                                train_trajectories.append(trajectory)
+                            if done_trajectory:  # add the final endogenous observation.
+                                if trajectory.is_test:
+                                    test_trajectories.append(trajectory)
+                                else:
+                                    train_trajectories.append(trajectory)
 
-                            trajectory = Trajectory(is_test=next_traj_test)
-                            if self.return_sc_state:
-                                trajectory.add_start_sc(sc_at_state)
+                                trajectory = Trajectory(is_test=next_traj_test)
+                                if self.return_sc_state:
+                                    trajectory.add_start_sc(sc_at_state)
 
                         # reset lists
                         partial_transitions = []

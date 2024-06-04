@@ -1,4 +1,5 @@
 import numpy as np
+import pickle as pkl
 from omegaconf import DictConfig
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -24,22 +25,18 @@ class BaseDataLoader(ABC):
     @abstractmethod
     def create_transitions(self,
                            df: pd.DataFrame,
-                           state_constructor: BaseStateConstructor,
-                           reward_function: BaseReward,
-                           interaction: BaseInteraction) -> dict:
+                           reward_function: BaseReward, *args) -> dict:
         raise NotImplementedError
 
-    @abstractmethod
-    def train_test_split(self, transitions: list[tuple], shuffle: bool = True) -> (list[tuple], list[tuple]):
-        raise NotImplementedError
+    def save(self, save_obj: object, path: Path):
+        with open(path, "wb") as file:
+            pkl.dump(save_obj, file)
 
-    @abstractmethod
-    def save(self, lst: object, path: Path):
-        raise NotImplementedError
-
-    @abstractmethod
     def load(self, path: Path) -> object:
-        raise NotImplementedError
+        with open(path, "rb") as file:
+            obj = pkl.load(file)
+            return obj
+
 
     @abstractmethod
     def get_obs_max_min(self, offline_data_df: pd.DataFrame) -> (np.ndarray, np.ndarray):

@@ -39,10 +39,10 @@ def prepare_save_dir(cfg):
         print("Creating experiment param from hash:", cfg_hash)
         cfg.experiment.param = cfg_hash
     save_path = (
-        Path(cfg.experiment.save_path) /
-        cfg.experiment.exp_name /
-        (f'param-{cfg.experiment.param}') /
-        (f'seed-{cfg.experiment.seed}')
+            Path(cfg.experiment.save_path) /
+            cfg.experiment.exp_name /
+            (f'param-{cfg.experiment.param}') /
+            (f'seed-{cfg.experiment.seed}')
     )
     save_path.mkdir(parents=True, exist_ok=True)
     with open(save_path / "config.yaml", "w") as f:
@@ -65,26 +65,32 @@ def update_pbar(pbar, stats):
 
 def load_offline_data(cfg, save_path, interaction, data_loader, offline_data_df):
     reward_func = init_reward_function(cfg.env.reward)
-    # Load transitions
-    transition_file_name = "offline_data.pkl"
-    if (save_path / transition_file_name).is_file():
-        offline_data = data_loader.load(save_path / transition_file_name)
+
+    # Load observation_transitions
+    obs_transition_filename = "obs_transitions.pkl"
+    if (save_path / obs_transition_filename).is_file():
+        obs_transitions = data_loader.load(save_path / obs_transition_filename)
     else:
         print("Loading offline transitions...")
-        offline_data = data_loader.create_trajectories(offline_data_df,
-                                                       interaction.state_constructor,
-                                                       reward_func,
-                                                       interaction)
+        # offline_data = data_loader.create_trajectories(offline_data_df,
+        #                                                interaction.state_constructor,
+        #                                                reward_func,
+        #                                                interaction)
         # offline_data = data_loader.create_transitions(offline_data_df,
         #                                                interaction.state_constructor,
         #                                                reward_func,
         #                                                interaction)
+        obs_transitions = data_loader.create_obs_transitions(offline_data_df, reward_func)
 
         print("Saving data...")
-        data_loader.save(offline_data, save_path / transition_file_name)
+        data_loader.save(obs_transitions, save_path / obs_transition_filename)
 
-    offline_data['reward_func'] = reward_func
-    return offline_data
+    # next, process these observations
+
+
+    from corerl.data_loaders.utils import make_transitions, make_anytime_transitions
+    transitions = make_anytime_transitions(obs_transitions, interaction, sc_warmup=10)
+    return transitions
 
 
 def get_state_action_dim(env, sc):

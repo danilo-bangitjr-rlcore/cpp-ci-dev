@@ -8,7 +8,7 @@ defaults:
   - override state_constructor: reseau_anytime
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
-  - override interaction/obs_normalizer: avg_nan_norm
+  - override interaction/obs_normalizer: maxmin
   - _self_
 
 # values may be overridden outside of the defaults list
@@ -50,8 +50,9 @@ agent:
 
 data_loader:
   offline_data_path : offline_data/reseau
-  offline_filenames': ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv",
+  train_filenames: ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv",
                        "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie.csv", "rosie_2.csv"]
+  test_filenames: []
   skip_rows : 3
   header : 0
   df_col_names : ["Blank", "Result", "Table", "Date", "ait101_pv", "ait301_pv", "ait401_pv",

@@ -196,7 +196,7 @@ def init_obs_normalizer(cfg: DictConfig, env) -> BaseNormalizer:
     name = cfg.name
     if name == "identity":
         return Identity()
-    elif name == "maxmin.yaml":
+    elif name == "maxmin":
         return MaxMin(env)
     elif name == "avg_nan_norm":
         return AvgNanNorm(env)

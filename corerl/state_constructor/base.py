@@ -23,12 +23,11 @@ class BaseStateConstructor(ABC):
         """
         We pass in the new observation, the last action, and whether or not this state is an initial state
         """
-        init_array = np.zeros(1, dtype=bool)
 
         # TODO: have this include a dummy action
-
+        init_array = np.zeros(1, dtype=bool)  # whether or not this is an initial state
         init_array[0] = initial_state
-        state = np.concatenate([action, init_array, obs])  # convention: action goes first in the state array
+        state = np.concatenate([init_array, action, obs])  # convention: action goes first in the state array
         raise state
 
     @abstractmethod
@@ -49,10 +48,13 @@ class CompositeStateConstructor(BaseStateConstructor):
         self.sc = None  # a placeholder for the final component in the graph
         raise NotImplementedError
 
-    def __call__(self, obs: np.ndarray, action: np.ndarray, **kwargs) -> np.ndarray:
+    def __call__(self, obs: np.ndarray, action: np.ndarray = None, initial_state=False,  **kwargs) -> np.ndarray:
         a_obs = np.concatenate([action, obs])  # convention: action goes first in the state array
         state = self._call_graph(a_obs, **kwargs)
         self._reset_graph_call()
+        init_array = np.zeros(1, dtype=bool)  # whether or not this is an initial state
+        init_array[0] = initial_state
+        state = np.concatenate([init_array, state])
         return state
 
     def get_state_dim(self, obs: np.ndarray, action: np.ndarray) -> int:
