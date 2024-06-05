@@ -1,22 +1,13 @@
 name : direct_action
 offline_data_path : offline_data
-offline_filenames : []
+train_filenames : []
+test_filenames : []
 skip_rows : 1 # Number of lines to skip at the top of the csv file
 header : 0 # df_col_names replaces the column names in the csv file
 df_col_names : []
-endo_obs_col_names: [] # endogenous variables in the dataset (variables we can control)
-exo_obs_col_names: [] # exogenous variables in the dataset (variables we cannot control i.e. whether)
+obs_col_names: []
 action_col_names : []
 date_col_name : Date
 max_time_delta: 10 # In seconds
-steps_per_decision : ${interaction.steps_per_decision }
-obs_length : ${interaction.obs_length} # 1 second
-warmup_steps : 360
-train_split : 0.95
-gamma : ${agent.gamma}
-n_step : ${interaction.n_step}
-return_sc_state : False
-trajectory_len : 360
-separate_endo_exo : False
-load_trajectories : False
+obs_length : 60
 

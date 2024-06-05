@@ -10,12 +10,11 @@ from corerl.data import Transition
 
 class BaseInteraction(ABC):
     @abstractmethod
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env, state_constructor: BaseStateConstructor, action_dim:int):
+    def __init__(self, cfg: DictConfig, env: gymnasium.Env, state_constructor: BaseStateConstructor):
         self.env = env
         self.state_constructor = state_constructor
         self.timeout = cfg.timeout  # When timeout is set to 0, there is no timeout.
         self.internal_clock = 0
-        self.action_dim = action_dim
 
     @abstractmethod
     # step returns a list of transitions and a list of environment infos

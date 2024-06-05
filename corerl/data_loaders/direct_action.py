@@ -1,87 +1,74 @@
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
-from tqdm import tqdm
-import time
+
 from datetime import timedelta
 import pandas as pd
 import numpy as np
 import pickle as pkl
-import random
-from collections import deque
 from tqdm import tqdm
-from copy import deepcopy
 
 from corerl.environment.reward.base import BaseReward
-from corerl.state_constructor.base import BaseStateConstructor
-from corerl.interaction.normalizer import NormalizerInteraction
 from corerl.data_loaders.base import BaseDataLoader
-from corerl.data import Transition, Trajectory
+from corerl.data_loaders.utils import ObsTransition
 
 
 class DirectActionDataLoader(BaseDataLoader):
+    """
+    This class takes a dataset consisting of a group of CSV files and produces a list of observation transitions
+
+    """
     def __init__(self, cfg: DictConfig):
         self.offline_data_path = Path(cfg.offline_data_path)
         # You can either load all the csvs in the directory or a subset
-        if cfg.train_filenames == []:
+
+        if not cfg.train_filenames:
+            # will return all files as training data
             self.train_filenames = list(self.offline_data_path.glob('*.csv'))
+            self.test_filenames = []
         else:
             self.train_filenames = [self.offline_data_path / file for file in cfg.train_filenames]
+            self.test_filenames = [self.offline_data_path / file for file in cfg.test_filenames]
 
+        self.all_filenames = self.train_filenames + self.test_filenames
         # Are we using separate files for the text set
-
         self.skip_rows = cfg.skip_rows
         self.header = cfg.header
         # not sure if OmegaConf.to_object is necessary anymore?
         self.df_col_names = OmegaConf.to_object(cfg.df_col_names)
-
-        self.endo_obs_col_names = OmegaConf.to_object(cfg.endo_obs_col_names)
-        self.num_endo = len(self.endo_obs_col_names)  # the numer of endoenous variables
-        self.exo_obs_col_names = OmegaConf.to_object(cfg.exo_obs_col_names)
-        self.separate_endo_exo = cfg.separate_endo_exo
-        self.obs_col_names = self.endo_obs_col_names + self.exo_obs_col_names  # NOTE: endo first here
+        self.obs_col_names = cfg.obs_col_names
         self.action_col_names = OmegaConf.to_object(cfg.action_col_names)
-
         self.date_col_name = cfg.date_col_name
         self.max_time_delta = cfg.max_time_delta
         self.time_thresh = pd.Timedelta(self.max_time_delta, "s")
-        self.steps_per_decision = cfg.steps_per_decision
         self.obs_length = cfg.obs_length
-        self.warmup_steps = cfg.warmup_steps
-        self.gamma = cfg.gamma
-        self.train_split = cfg.train_split
-        self.n_step = cfg.n_step
-        self.trajectory_len = cfg.trajectory_len
-        self.return_test_trajectory = self.trajectory_len != 0
 
-        # if we return the state constructor's internal state for each transition
-        self.return_sc_state = cfg.return_sc_state
-
-    def load_data(self) -> pd.DataFrame:
+    def load_data(self, filenames: list[str]) -> pd.DataFrame | None:
         """
         Read csvs into a single concatenated df sorted by date, containing only the columns in the observation space
         """
-        dfs = []
-        for file in self.train_filenames:
-            df = pd.read_csv(file, dtype=np.float32, skiprows=self.skip_rows, header=self.header,
-                             names=self.df_col_names, index_col=self.date_col_name, parse_dates=True)
-            dfs.append(df)
-        concat_df = pd.concat(dfs)
-        concat_df.sort_values(by=[self.date_col_name], inplace=True)
-        concat_df = concat_df[self.obs_col_names + self.action_col_names]
-        concat_df = concat_df.fillna(method='ffill')
+        if len(filenames) != 0:
+            dfs = []
+            for file in filenames:
+                df = pd.read_csv(file, dtype=np.float32, skiprows=self.skip_rows, header=self.header,
+                                 names=self.df_col_names, index_col=self.date_col_name, parse_dates=True)
+                dfs.append(df)
 
-        print("Concatenated DF:")
-        print(concat_df)
+            concat_df = pd.concat(dfs)
+            concat_df.sort_values(by=[self.date_col_name], inplace=True)
+            concat_df = concat_df[self.obs_col_names + self.action_col_names]
+            concat_df = concat_df.ffill()
 
-        return concat_df
+            return concat_df
+        else:
+            return None
 
     def get_obs_max_min(self, df: pd.DataFrame) -> (np.ndarray, np.ndarray):
         """
         Find the max and min values for each column in the input df to later be used for normalization
         """
 
-        obs_db = df[self.obs_col_names]
-        np_min_max = obs_db.agg(['min', 'max']).to_numpy()
+        obs_df = df[self.obs_col_names]
+        np_min_max = obs_df.agg(['min', 'max']).to_numpy()
         obs_space_low = np_min_max[0, :]
         obs_space_high = np_min_max[1, :]
 
@@ -90,106 +77,15 @@ class DirectActionDataLoader(BaseDataLoader):
 
         return obs_space_low, obs_space_high
 
-    def find_uninterrupted_windows(self, df: pd.DataFrame) -> list[pd.DataFrame]:
-        """
-        There may be large gaps in time in the input dataframe,
-        so we split it up into a list of dataframes that are each uninterrupted
-        """
-        df_list = []
-        time_thresh = pd.Timedelta(self.max_time_delta, "s")
-        df_start = df.iloc[0].name
-        prev_date = df_start
-        for index, row in df.iterrows():
-            curr_date = index
-            date_diff = curr_date - prev_date
-            if date_diff > time_thresh:
-                curr_df = self.get_df_date_range(df, df_start, prev_date)
-                df_list.append(curr_df)
-                df_start = curr_date
-            prev_date = curr_date
-        final_df = self.get_df_date_range(df, df_start, index)
-        df_list.append(final_df)
-
-        print("DF List:")
-        print(df_list)
-
-        return df_list
-
     def get_df_date_range(self, df: pd.DataFrame, start_ind: pd.Timestamp, end_ind: pd.Timestamp) -> pd.DataFrame:
         window_df = df.loc[start_ind: end_ind]
         return window_df
 
-    def warmup_sc(self,
-                  obs_df: pd.DataFrame,
-                  action_df: pd.DataFrame,
-                  state_constructor: BaseStateConstructor,
-                  interaction: NormalizerInteraction,
-                  start_ind: pd.Timestamp) -> (
-            BaseStateConstructor, pd.Timestamp, np.ndarray, bool, BaseStateConstructor):
-        """
-        Warm up state constructor
-        """
-        warmup_sec = timedelta(seconds=self.obs_length * self.warmup_steps)
-        elapsed_warmup = timedelta(seconds=0)
-        action_start = start_ind
-        warmup_end = start_ind + warmup_sec
-
-        state_constructor.reset()
-
-        while elapsed_warmup < warmup_sec:
-            curr_action, action_end, next_action_start, _, _, data_gap = self.find_action_boundary(action_df,
-                                                                                                   action_start)
-            if data_gap:
-                elapsed_warmup = timedelta(seconds=0)
-                state_constructor.reset()
-            else:
-                curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
-                step_remainder = curr_action_steps % self.steps_per_decision
-                steps_since_decision = ((self.steps_per_decision - step_remainder) + 1) % self.steps_per_decision
-                for i in range(curr_action_steps):
-                    decision_point = steps_since_decision == 0
-                    state, sc_at_state, obs = self.get_state(state_constructor,
-                                                             curr_action,
-                                                             interaction,
-                                                             obs_df,
-                                                             step_start,
-                                                             decision_point,
-                                                             steps_since_decision)
-
-                    steps_since_decision = (steps_since_decision + 1) % self.steps_per_decision
-                    step_start += timedelta(seconds=self.obs_length)
-                    elapsed_warmup += timedelta(seconds=self.obs_length)
-                    if elapsed_warmup >= warmup_sec:
-                        warmup_end = step_start
-                        break
-            # action start must equal next action start?
-            action_start = next_action_start
-
-        return state_constructor, warmup_end, state, decision_point, sc_at_state, obs
-
-    def get_state(self,
-                  state_constructor: BaseStateConstructor,
-                  action,
-                  interaction: NormalizerInteraction,
-                  df: pd.DataFrame,
-                  start: pd.Timestamp,
-                  decision_point: bool,
-                  steps_since_decision: int) -> (np.ndarray, BaseStateConstructor, np.ndarray):
-
-        end = start + timedelta(seconds=self.obs_length)
+    def get_obs(self, df: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp) -> np.ndarray:
         obs_df = self.get_df_date_range(df, start, end)  # here it is only used for observations
         obs = obs_df.to_numpy()
-        obs = interaction.obs_normalizer(obs)
-        action = interaction.action_normalizer(action)
-        state = state_constructor(obs, action, decision_point=decision_point, steps_since_decision=steps_since_decision)
-
-        # copy the state constructor's internal state. This will be used for calibration_models training
-        if self.return_sc_state:
-            sc_at_state = deepcopy(state_constructor)
-        else:
-            sc_at_state = None
-
-        return state, sc_at_state, obs
+        obs = np.mean(obs, axis=0)
+        return obs
 
     def find_action_boundary(self, action_df: pd.DataFrame,
                              start_ind: pd.Timestamp) -> (np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool):
@@ -223,75 +119,7 @@ class DirectActionDataLoader(BaseDataLoader):
         """
         return False, False
 
-    def create_n_step_transitions_(self,
-                                   partial_transitions: list[tuple],
-                                   boot_state: np.ndarray,
-                                   boot_obs: np.ndarray,
-                                   term: bool,
-                                   trunc: bool) -> (list[tuple], list[tuple]):
-        # If n_step = 0, create transitions where all states bootstrap off the state at the next decision point
-        # If n_step > 0, create transitions where states bootstrap off the state n steps into the future.
-        # If the state n steps ahead is beyond the next decision point, bootstrap off the state at the decision point
-
-        new_transitions = []
-
-        dp_counter = 1
-        if self.n_step == 0:
-            n_step_rewards = deque([], self.steps_per_decision)
-            boot_state_queue = deque([], self.steps_per_decision)
-        else:
-            n_step_rewards = deque([], self.n_step)
-            boot_state_queue = deque([], self.n_step)
-
-        for i in range(len(partial_transitions) - 1, -1, -1):
-            sar = partial_transitions[i]
-            obs = sar[0]
-            state = sar[1]
-            action = sar[2]
-            reward = sar[3]
-            s_dp = sar[4]
-            next_obs = sar[5]
-            next_state = sar[6]
-
-            boot_state_queue.appendleft(state)
-
-            # Recursively updating n-step reward
-            n_step_rewards.appendleft(0.0)
-            np_n_step_rewards = np.array(n_step_rewards)
-            curr_reward = np.array([reward for i in range(len(n_step_rewards))])
-            np_n_step_rewards = curr_reward + (self.gamma * np_n_step_rewards)
-            gamma_exp = len(n_step_rewards)
-            ns_dp = dp_counter <= boot_state_queue.maxlen
-
-            transition = Transition(
-                obs,
-                state,
-                action,
-                next_obs,  # the immediate next obs
-                next_state,  # the immediate next state
-                np_n_step_rewards[-1].item(),
-                boot_obs,  # the obs we bootstrap off
-                boot_state,  # the state we bootstrap off
-                term,
-                trunc,
-                s_dp,
-                ns_dp,
-                gamma_exp)
-
-            new_transitions.append(transition)
-            dp_counter += 1
-
-            # TODO: not sure about this stuff here...
-            n_step_rewards = deque(np_n_step_rewards, n_step_rewards.maxlen)
-            if len(boot_state_queue) == boot_state_queue.maxlen:  # if queue is full
-                boot_state = boot_state_queue[-1]
-
-        new_transitions.reverse()
-
-        return new_transitions
-
-    def get_curr_action_steps(self, action_start: pd.Timestamp, action_end: pd.Timestamp) -> (
-            int, pd.Timestamp):
+    def get_curr_action_steps(self, action_start: pd.Timestamp, action_end: pd.Timestamp) -> (int, pd.Timestamp):
         """
         Determine the number of time steps that fit in the given action window and align the time steps, taking into account the time remainder
         """
@@ -302,21 +130,14 @@ class DirectActionDataLoader(BaseDataLoader):
 
         return curr_action_steps, step_start
 
-    def create_transitions(self,
-                           df: pd.DataFrame,
-                           state_constructor: BaseStateConstructor,
-                           reward_function: BaseReward,
-                           interaction: NormalizerInteraction) -> dict:
-
+    def create_obs_transitions(self, df: pd.DataFrame, reward_function: BaseReward, *args) -> list[ObsTransition]:
         """
         Iterate through the df and produce transitions using the "Anytime" paradigm.
         Take into account discontinuities in the dataframe (large gaps in time between consecutive rows)
         Creates fixed n-step transitions or variable n-step transitions that always bootstrap off the state at the next decision point
         """
 
-        train_transitions = []
-        test_transitions = []
-        test_scs = []
+        obs_transitions = []
 
         # Keep trying to create transitions until you reach the end of the df
         action_start = df.iloc[0].name
@@ -329,290 +150,52 @@ class DirectActionDataLoader(BaseDataLoader):
         while action_start < df_end:
             data_gap = False  # Indicates a discontinuity in the df
             prev_action = None
-
-            # Warmup state constructor using data starting from action_start
-            state_constructor, warmup_end, state, warmup_dp, sc_at_state, obs = self.warmup_sc(obs_df,
-                                                                                               action_df,
-                                                                                               state_constructor,
-                                                                                               interaction,
-                                                                                               action_start)
-
-            # Iterate over the action windows in the remainder of the df
-            # Produce n-step transitions with the "Anytime" paradigm
-            # The 'n' is the number of time steps away from the action boundary
-            action_start = warmup_end
-            prev_decision_point = warmup_dp
-
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
                                                                                                               action_start)
-                norm_curr_action = interaction.action_normalizer(curr_action)
-
                 # Align time steps within action window
                 curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
-                step_remainder = curr_action_steps % self.steps_per_decision
-                steps_since_decision = ((self.steps_per_decision - step_remainder) + 1) % self.steps_per_decision
-
-                # Iterate over current action time steps and produce partial transitions
-                partial_transitions = []  # contains (O, S, A, R, S_DP, O', S')
-                state_scs = []  # the state constructors at S
-
-                for i in range(curr_action_steps):  # how many steps we are talking the current action
-                    decision_point = steps_since_decision == 0
-                    next_state, sc_at_next_state, next_obs = self.get_state(state_constructor,
-                                                                            curr_action,
-                                                                            # should we curr_action or prev action?
-                                                                            interaction,
-                                                                            obs_df,
-                                                                            step_start,
-                                                                            decision_point,
-                                                                            steps_since_decision)
-
-                    # Any way to make the creation of reward_info more universal?
-                    reward_info = {}
-                    reward_info['prev_action'] = prev_action
-                    reward_info['curr_action'] = curr_action
-                    raw_reward = reward_function(interaction.obs_normalizer.denormalize(next_obs), **reward_info)
-                    reward = interaction.reward_normalizer(raw_reward)
-                    partial_transitions.append((obs,
-                                                state,
-                                                norm_curr_action,
-                                                reward,
-                                                prev_decision_point,
-                                                next_obs,
-                                                next_state))
-
-                    state_scs.append(sc_at_state)  # the state constructor at state
-
-                    # Create n-step Transitions for the states observed since the last decision point
-                    if decision_point and len(partial_transitions) > 0:
-                        boot_state = next_state
-                        boot_obs = next_obs
-                        # Set trunc and term to false since we haven't reached the final action boundary within the action window
-                        new_transitions = self.create_n_step_transitions_(partial_transitions,
-                                                                          boot_state,
-                                                                          boot_obs,
-                                                                          False,
-                                                                          False)
-
-                        # splits returns a list of (train, test)  for each list passed to self.train_test_split
-                        splits = self.train_test_split(new_transitions, state_scs)
-                        train_transitions += splits[0][0]
-                        test_transitions += splits[0][1]
-                        test_scs += splits[2][1]
-
-                        # reset lists
-                        partial_transitions = []
-                        state_scs = []
-
-                    prev_action = curr_action
+                # Next, iterate over current action time steps and produce partial transitions
+                if curr_action_steps > 0:
+                    # produce the initial observation
+                    step_end = step_start + timedelta(seconds=self.obs_length)
+                    last_obs = self.get_obs(obs_df, step_end, step_end)
                     step_start = step_start + timedelta(seconds=self.obs_length)
-                    state = next_state
-                    obs = next_obs
-                    sc_at_state = sc_at_next_state
 
-                    steps_since_decision = (steps_since_decision + 1) % self.steps_per_decision
-                    prev_decision_point = decision_point
+                    # how many steps we are talking the current action, minus the first observation
+                    for step in range(curr_action_steps - 1):
+                        step_end = step_start + timedelta(seconds=self.obs_length)
+                        obs = self.get_obs(obs_df, step_end, step_end)
 
-                    try:
-                        pbar.n = df.index.get_loc(step_start)
-                        pbar.refresh()
-                    except:
-                        pass
+                        # Any way to make the creation of reward_info more universal?
+                        reward_info = {}
+                        reward_info['prev_action'] = prev_action
+                        reward_info['curr_action'] = curr_action
+                        reward = reward_function(obs, **reward_info)
+
+                        transition = ObsTransition(
+                            last_obs,
+                            curr_action,
+                            reward,
+                            obs,
+                            False,  # assume a continuing env
+                            False,  # assume a continuing env
+                            gap=(step == curr_action_steps - 2) and data_gap  # if the last step and there is a data gap
+                        )
+
+                        obs_transitions.append(transition)
+                        prev_action = curr_action
+                        step_start = step_start + timedelta(seconds=self.obs_length)
+                        last_obs = obs
+
+                        try:
+                            pbar.n = df.index.get_loc(step_start)
+                            pbar.refresh()
+                        except:
+                            pass
 
                 action_start = next_action_start
 
-        return_dict = {
-            'train_transitions': train_transitions,
-            'test_transitions': test_transitions,
-            'test_scs': test_scs
-        }
+        print("Number of observation transitions: {}".format(len(obs_transitions)))
 
-        print("Num train transitions: {}".format(len(train_transitions)))
-        print("Num test transitions: {}".format(len(test_transitions)))
-
-        return return_dict
-
-    def create_trajectories(self,
-                            df: pd.DataFrame,
-                            state_constructor: BaseStateConstructor,
-                            reward_function: BaseReward,
-                            interaction: NormalizerInteraction, new_traj_at_gap: bool = False) -> dict:
-
-        """
-        Iterate through the df and produce transitions and trajectories using the "Anytime" paradigm.
-        Take into account discontinuities in the dataframe (large gaps in time between consecutive rows)
-        Creates fixed n-step transitions or variable n-step transitions that always bootstrap off the state at the next decision point
-        """
-        train_trajectories = []
-        test_trajectories = []  # transitions where the next state is the next observation, rather than state
-
-        # Keep trying to create transitions until you reach the end of the df
-        action_start = df.iloc[0].name
-        df_end = df.iloc[-1].name
-        pbar = tqdm(total=df.index.get_loc(df_end))
-
-        action_df = df[self.action_col_names]
-        obs_df = df[self.obs_col_names]
-
-        while action_start < df_end:
-            data_gap = False  # Indicates a discontinuity in the df
-            prev_action = None
-
-            # Warmup state constructor using data starting from action_start
-            state_constructor, warmup_end, state, warmup_dp, sc_at_state, obs = self.warmup_sc(obs_df,
-                                                                                               action_df,
-                                                                                               state_constructor,
-                                                                                               interaction,
-                                                                                               action_start)
-
-            # Iterate over the action windows in the remainder of the df
-            # Produce n-step transitions with the "Anytime" paradigm
-            # The 'n' is the number of time steps away from the action boundary
-            action_start = warmup_end
-            prev_decision_point = warmup_dp
-
-            trajectory = Trajectory(is_test=False)
-            if self.return_sc_state:
-                trajectory.add_start_sc(sc_at_state)
-
-            while not data_gap and action_start < df_end:
-                curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
-                                                                                                              action_start)
-                norm_curr_action = interaction.action_normalizer(curr_action)
-
-                # Align time steps within action window
-                curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
-                step_remainder = curr_action_steps % self.steps_per_decision
-                steps_since_decision = ((self.steps_per_decision - step_remainder) + 1) % self.steps_per_decision
-
-                # Iterate over current action time steps and produce partial transitions
-                partial_transitions = []  # contains (O, S, A, R, S_DP, O', S')
-                state_scs = []  # the state constructors at S
-                for i in range(curr_action_steps):  # how many steps we are talking the current action
-                    decision_point = steps_since_decision == 0
-                    next_state, sc_at_next_state, next_obs = self.get_state(state_constructor,
-                                                                            curr_action,
-                                                                            # should we curr_action or prev action?
-                                                                            interaction,
-                                                                            obs_df,
-                                                                            step_start,
-                                                                            decision_point,
-                                                                            steps_since_decision)
-
-                    # Any way to make the creation of reward_info more universal?
-                    reward_info = {}
-                    reward_info['prev_action'] = prev_action
-                    reward_info['curr_action'] = curr_action
-                    raw_reward = reward_function(interaction.obs_normalizer.denormalize(next_obs), **reward_info)
-                    reward = interaction.reward_normalizer(raw_reward)
-                    partial_transitions.append((obs,
-                                                state,
-                                                norm_curr_action,
-                                                reward,
-                                                prev_decision_point,
-                                                next_obs,
-                                                next_state))
-
-                    state_scs.append(sc_at_state)  # the state constructor at state
-
-                    # Create n-step Transitions for the states observed since the last decision point
-                    if decision_point and len(partial_transitions) > 0:
-                        boot_state = next_state
-                        boot_obs = next_obs
-                        # Set trunc and term to false since we haven't reached the final action boundary within the action window
-                        new_transitions = self.create_n_step_transitions_(partial_transitions,
-                                                                          boot_state,
-                                                                          boot_obs,
-                                                                          False,
-                                                                          False)
-
-                        for transition in new_transitions:
-                            trajectory.add_transition(transition)
-
-                        if not new_traj_at_gap:
-                            # if we start a new trajectory, will it be a test or train trajectory?
-                            next_traj_test = random.uniform(0, 1) >= self.train_split
-                            done_trajectory = trajectory.num_transitions > self.trajectory_len
-
-                            if done_trajectory:  # add the final endogenous observation.
-                                if trajectory.is_test:
-                                    test_trajectories.append(trajectory)
-                                else:
-                                    train_trajectories.append(trajectory)
-
-                                trajectory = Trajectory(is_test=next_traj_test)
-                                if self.return_sc_state:
-                                    trajectory.add_start_sc(sc_at_state)
-
-                        # reset lists
-                        partial_transitions = []
-                        state_scs = []
-
-                    prev_action = curr_action
-                    step_start = step_start + timedelta(seconds=self.obs_length)
-                    state = next_state
-                    obs = next_obs
-
-                    steps_since_decision = (steps_since_decision + 1) % self.steps_per_decision
-                    prev_decision_point = decision_point
-
-                    try:
-                        pbar.n = df.index.get_loc(step_start)
-                        pbar.refresh()
-                    except:
-                        pass
-
-                action_start = next_action_start
-
-        print("Num train trajectories: {}".format(len(train_trajectories)))
-        print("Num test trajectories: {}".format(len(test_trajectories)))
-        print("Num train transitions: {}".format(sum([t.num_transitions for t in train_trajectories])))
-        print("Num test transitions: {}".format(sum([t.num_transitions for t in test_trajectories])))
-
-        train_transitions = []
-        for traj in train_trajectories:
-            train_transitions += traj.transitions
-
-        test_transitions = []
-        for traj in test_trajectories:
-            test_transitions.append(traj.transitions[0])
-
-        test_scs = [t.start_sc for t in test_trajectories]
-        return_dict = {'test_trajectories': test_trajectories,
-                       'train_trajectories': train_trajectories,
-                       'train_transitions': train_transitions,
-                       'test_transitions': test_transitions,
-                       'test_scs': test_scs}
-
-        return return_dict
-
-    def train_test_split(self, *lsts, shuffle: bool = True) -> (list[tuple], list[tuple]):
-        num_samples = len(lsts[0])
-        for a in lsts:
-            assert len(a) == num_samples
-
-        if shuffle:
-            lsts = parallel_shuffle(*lsts)
-
-        num_train_samples = int(self.train_split * num_samples)
-        train_samples = [lsts[:num_train_samples] for lsts in lsts]
-        test_samples = [lsts[num_train_samples:] for lsts in lsts]
-
-        return list(zip(train_samples, test_samples))
-
-    def save(self, save_obj: object, path: Path):
-        with open(path, "wb") as file:
-            pkl.dump(save_obj, file)
-
-    def load(self, path: Path) -> object:
-        with open(path, "rb") as file:
-            obj = pkl.load(file)
-            return obj
-
-
-def parallel_shuffle(*args):
-    zipped_list = list(zip(*args))
-    random.shuffle(zipped_list)
-    unzipped = zip(*zipped_list)
-    return list(unzipped)
+        return obs_transitions

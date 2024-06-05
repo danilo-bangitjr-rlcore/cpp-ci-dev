@@ -1,7 +1,7 @@
 from omegaconf import DictConfig
 from corerl.data_loaders.base import BaseDataLoader
 # from corerl.data_loaders.direct_action import DirectActionDataLoader
-from corerl.data_loaders.direct_action_observation import DirectActionDataLoader
+from corerl.data_loaders.direct_action import DirectActionDataLoader
 
 def init_data_loader(cfg: DictConfig) -> BaseDataLoader:
     """

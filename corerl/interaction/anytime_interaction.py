@@ -36,11 +36,9 @@ class AnytimeInteraction(NormalizerInteraction):
             self,
             cfg: DictConfig,
             env: gymnasium.Env,
-            state_constructor: BaseStateConstructor,
-            agent,
-            action_dim
+            state_constructor: BaseStateConstructor
     ):
-        super().__init__(cfg, env, state_constructor, agent, action_dim)
+        super().__init__(cfg, env, state_constructor)
         self.steps_per_decision = cfg.steps_per_decision  # how many observation steps per decision step
         self.obs_length = cfg.obs_length  # how often to update the observation
         self.gamma = cfg.gamma
@@ -53,11 +51,9 @@ class AnytimeInteraction(NormalizerInteraction):
         truncate_list = []
         observation_list = []
         env_info_list = []
-        env_info_list = []
 
 
         # this needs to change with the next
-
         num_completed_steps = 0
         for obs_step in range(self.steps_per_decision):
             obs_end_time = time.time() + self.obs_length
