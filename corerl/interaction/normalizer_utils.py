@@ -134,24 +134,20 @@ def _get_policy_bounds(agent):
     return agent.actor.distribution_bounds()
 
 
-def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env, agent) -> BaseNormalizer:
+def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> BaseNormalizer:
     if cfg.discrete_control:
         return Identity()
     else:  # continuous control
         name = cfg.name
-
         if name == "identity":
-            dist_min, dist_max = _get_policy_bounds(agent)
             action_min = env.action_space.low
             action_max = env.action_space.high
 
             warnings.warn(
                 "\033[1;33m" +
                 f"actions are bounded between [{action_min}, {action_max}] " +
-                f"but the policy has support only over [{dist_min}, " +
-                f"{dist_max}]. Are you sure this is what you wanted to do?" +
-                "\033[0m"
-            )
+                f"but the policy has support only over [0, 1]. Are you sure this is what you wanted to do?" +
+                "\033[0m")
 
             return Identity()
         elif name == "scale":
@@ -162,9 +158,8 @@ def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env, agent) -> BaseNo
                 action_min = env.action_space.low
                 action_max = env.action_space.high
 
-            dist_min, dist_max = _get_policy_bounds(agent)
-            scale = (action_max - action_min) / (dist_max - dist_min)
-            bias = -scale * dist_min + action_min
+            scale = (action_max - action_min)
+            bias = action_min
 
             print(f"Using scale = {scale} and bias = {bias}")
 
@@ -196,7 +191,7 @@ def init_obs_normalizer(cfg: DictConfig, env) -> BaseNormalizer:
     name = cfg.name
     if name == "identity":
         return Identity()
-    elif name == "maxmin.yaml":
+    elif name == "maxmin":
         return MaxMin(env)
     elif name == "avg_nan_norm":
         return AvgNanNorm(env)

@@ -1,4 +1,4 @@
 name : scale
 reward_high : False
 reward_low : False
-bias : 0
+reward_bias : 0

@@ -1,2 +1,3 @@
 name: simple_reseau
 decision_steps : 30
+warmup : 180

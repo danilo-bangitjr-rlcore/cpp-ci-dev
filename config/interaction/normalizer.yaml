@@ -1,8 +1,8 @@
 defaults:
   - action_normalizer: scale
-  - reward_normalizer: clip
-  - obs_normalizer: identity
+  - reward_normalizer: scale
+  - obs_normalizer: maxmin
 
 name: normalizer
 timeout: ${experiment.timeout}
-gamma : ${agent.gamma}
+gamma : ${experiment.gamma}

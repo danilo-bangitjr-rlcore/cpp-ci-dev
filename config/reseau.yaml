@@ -8,10 +8,13 @@ defaults:
   - override state_constructor: reseau_anytime
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
-  - override interaction/obs_normalizer: avg_nan_norm
+  - override interaction/obs_normalizer: maxmin
   - _self_
 
 # values may be overridden outside of the defaults list
+
+offline_data_output_path : offline_data/reseau
+
 experiment :
   exp_name : "reseau_test_burn_in"
   max_steps : 0
@@ -33,7 +36,6 @@ interaction :
     reward_low : -20
     reward_bias : 4
 
-
 agent:
   tau : 0
   rho : 0.04
@@ -48,23 +50,16 @@ agent:
     actor_optimizer:
       lr : 0.001
 
+
 data_loader:
-  offline_data_path : offline_data/reseau
-  offline_filenames': ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv",
+  offline_data_path : offline_data/reseau/csv
+  train_filenames: ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv",
                        "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie.csv", "rosie_2.csv"]
+  test_filenames: []
   skip_rows : 3
   header : 0
   df_col_names : ["Blank", "Result", "Table", "Date", "ait101_pv", "ait301_pv", "ait401_pv",
                   "fit101_pv", "fit210_pv", "fit230_pv", "fit250_pv", "fit401_pv", "p250_fp",
                   "pt100_pv", "pt101_pv", "pt161_pv", "pt171_pv", "pt302_pv"]
   action_col_names: ["p250_fp"]
-
-  # NOTE: the endo will come first in the SC
-  endo_obs_col_names: ["ait301_pv"]
-  exo_obs_col_names: ["fit250_pv"]
-  return_sc_state : True
-  separate_endo_exo : True
-  load_trajectories : True
-
-
-
+  obs_col_names: ["ait301_pv", "fit250_pv"]

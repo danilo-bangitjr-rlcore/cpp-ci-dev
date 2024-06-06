@@ -16,16 +16,13 @@ class TimedInteraction(NormalizerInteraction):
         self,
         cfg: DictConfig,
         env: gymnasium.Env,
-        state_constructor: BaseStateConstructor,
-        agent,
-        action_dim
+        state_constructor: BaseStateConstructor
     ):
-        super().__init__(cfg, env, state_constructor, agent, action_dim)
+        super().__init__(cfg, env, state_constructor)
         self.steps_per_decision = cfg.decision_steps  # how many observation steps per decision step
         assert self.steps_per_decision > 0, "Step length should be greater than 0."
         self.obs_length = cfg.obs_length  # how often to update the observation
         assert self.obs_length > 0, "Step length should be greater than 0."
-        self.agent = agent
 
     def step(self, action: np.ndarray) -> tuple[list[Transition], list[dict]]:
         transitions = []

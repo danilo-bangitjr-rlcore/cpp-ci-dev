@@ -14,7 +14,7 @@ EPSILON = 1e-6
 
 
 def _percentile_bootstrap(
-    x, dim, batch_size, n_samples, percentile, statistic=torch.mean
+        x, dim, batch_size, n_samples, percentile, statistic=torch.mean
 ):
     size = (*x.shape[:dim], batch_size * n_samples, *x.shape[dim + 1:])
 
@@ -59,7 +59,7 @@ def _init_ensemble_reduct(cfg: DictConfig):
 
 
 def create_base(
-    cfg: DictConfig, input_dim: int, output_dim: int,
+        cfg: DictConfig, input_dim: int, output_dim: int,
 ) -> nn.Module:
     if cfg.name == "fc":
         return FC(cfg, input_dim, output_dim)
@@ -112,7 +112,7 @@ class EnsembleCritic(nn.Module):
         self.to(device)
 
     def forward(
-        self, input_tensor: torch.Tensor,
+            self, input_tensor: torch.Tensor,
     ) -> (torch.Tensor, torch.Tensor):
         qs = [net(input_tensor) for net in self.subnetworks]
         for i in range(self.ensemble):
@@ -165,7 +165,6 @@ class SquashedGaussian(nn.Module):
         return -1, 1
 
     # TODO: include n samples
-    # TODO: rename observations to state
     def forward(self, state: torch.Tensor) -> (torch.Tensor, dict):
         base = self.base_network(state)
         mean = self.mean_head(base)
@@ -177,9 +176,7 @@ class SquashedGaussian(nn.Module):
         out = normal.rsample()
         tanhout = torch.tanh(out)
         action = tanhout
-
-        logp = normal.log_prob(out)
-        logp -= torch.log((1 - tanhout.pow(2)) + EPSILON).sum(axis=-1)
+        action = (action + 1) / 2
 
         info = {
             "mean": mean.squeeze().detach().numpy(),
@@ -191,7 +188,7 @@ class SquashedGaussian(nn.Module):
         return action, info
 
     def log_prob(
-        self, state: torch.Tensor, action: torch.Tensor,
+            self, state: torch.Tensor, action: torch.Tensor,
     ) -> (torch.Tensor, dict):
         base = self.base_network(state)
         mean = self.mean_head(base)
@@ -201,12 +198,13 @@ class SquashedGaussian(nn.Module):
         normal = distrib.Normal(mean, std)
         normal = distrib.Independent(normal, 1)
 
-        tanhout = action
+        tanhout = action * 2 - 1
         out = torch.atanh(torch.clamp(tanhout, -1.0 + EPSILON, 1.0 - EPSILON))
         logp = normal.log_prob(out)
         logp -= torch.log(
             (1 - tanhout.pow(2)) + EPSILON
         ).sum(axis=-1).reshape(logp.shape)
+        logp += torch.log(2)
 
         info = None
 
@@ -256,10 +254,10 @@ class BetaPolicy(nn.Module):
         return 0, 1
 
     def squash_dist_param(
-        self,
-        dist_param: torch.Tensor,
-        low: float | torch.Tensor,
-        high: float | torch.Tensor,
+            self,
+            dist_param: torch.Tensor,
+            low: float | torch.Tensor,
+            high: float | torch.Tensor,
     ) -> torch.Tensor:
         tanh_out = torch.tanh(dist_param + self.tanh_shift)
         normalized_param = ((tanh_out + 1) / 2)
@@ -267,7 +265,7 @@ class BetaPolicy(nn.Module):
         return scaled_param
 
     def get_dist_params(
-        self, state: torch.Tensor,
+            self, state: torch.Tensor,
     ) -> (torch.Tensor, torch.Tensor):
         if self.beta_param_bound == 0:
             """ Not using the squash function"""
@@ -313,7 +311,7 @@ class BetaPolicy(nn.Module):
         return action, info
 
     def log_prob(
-        self, state: torch.Tensor, action: torch.Tensor,
+            self, state: torch.Tensor, action: torch.Tensor,
     ) -> (torch.Tensor, dict):
         out = action
         out = torch.clamp(out, 0, 1)
@@ -342,7 +340,7 @@ class Softmax(nn.Module):
         return probs, x
 
     def forward(
-        self, state: torch.Tensor, debug: bool = False,
+            self, state: torch.Tensor, debug: bool = False,
     ) -> (torch.Tensor, dict):
         probs, x = self.get_probs(state)
         dist = torch.distributions.Categorical(probs=probs)
@@ -358,7 +356,7 @@ class Softmax(nn.Module):
         return actions, {'logp': logp}
 
     def log_prob(
-        self, states: torch.Tensor, actions: torch.Tensor, debug: bool = False,
+            self, states: torch.Tensor, actions: torch.Tensor, debug: bool = False,
     ) -> (torch.Tensor, dict):
         actions = (actions == 1).nonzero(as_tuple=False)
         actions = actions[:, 1:]

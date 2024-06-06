@@ -8,20 +8,13 @@ from corerl.interaction.anytime_interaction import AnytimeInteraction
 from corerl.state_constructor.base import BaseStateConstructor
 
 
-
-def init_interaction(
-    cfg: DictConfig,
-    env: gymnasium.Env,
-    sc: BaseStateConstructor,
-    agent,
-    action_dim
-) -> BaseInteraction:
+def init_interaction(cfg: DictConfig, env: gymnasium.Env, sc: BaseStateConstructor) -> BaseInteraction:
     name = cfg.name
     if name == "normalizer":
-        return NormalizerInteraction(cfg, env, sc, agent, action_dim)
+        return NormalizerInteraction(cfg, env, sc)
     if name == "timed":
-        return TimedInteraction(cfg, env, sc, agent, action_dim)
+        return TimedInteraction(cfg, env, sc)
     if name == 'anytime.yaml':
-        return AnytimeInteraction(cfg, env, sc, agent, action_dim)
+        return AnytimeInteraction(cfg, env, sc)
     else:
         raise NotImplementedError
