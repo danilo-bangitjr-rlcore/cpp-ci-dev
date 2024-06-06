@@ -18,6 +18,11 @@ from main import prepare_save_dir, update_pbar
 import corerl.utils.freezer as fr
 
 
+
+
+# TODO: this file is really out of date. Someone needs to update it
+
+
 @hydra.main(version_base=None, config_name='config', config_path="config/")
 def main(cfg: DictConfig) -> None:
     save_path = prepare_save_dir(cfg)
