@@ -27,7 +27,8 @@ def main(cfg: DictConfig) -> dict:
         'train_transitions': train_transitions,
         'reward_func': reward_func,
         'interaction' : interaction,
-        'test_scs' : test_scs
+        'test_scs' : test_scs,
+        # TODO: trajectories
     }
 
     # need to update make_plots here
