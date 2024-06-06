@@ -27,7 +27,7 @@ env:
 
 interaction :
   obs_length : 60
-  steps_per_decision : 30
+  steps_per_decision : 1
   action_normalizer:
     action_high : 300
     action_low:  0

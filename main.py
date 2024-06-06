@@ -110,6 +110,10 @@ def load_offline_data(cfg):
     test_data_df = load_or_create(output_path, [cfg.data_loader],
                                   'test_data_df', create_df, [dl, dl.test_filenames])
 
+    assert not all_data_df.isnull().values.any()
+    assert not train_data_df.isnull().values.any()
+    assert not test_data_df.isnull().values.any()
+
     create_bounds = lambda dl_, df: dl.get_obs_max_min(df)
     obs_bounds = load_or_create(output_path, [cfg.data_loader],
                                 'obs_bounds', create_bounds, [dl, all_data_df])
@@ -130,30 +134,39 @@ def load_offline_data(cfg):
     else:
         test_obs_transitions = None
 
-    interaction = init_interaction(cfg.interaction, env, sc)
-    # create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_anytime_transitions(
-    #     obs_transitions,
-    #     interaction_,
-    #     sc_warmup=cfg.state_constructor.warmup,
-    #     steps_per_decision=cfg.interaction.steps_per_decision,
-    #     gamma=cfg.experiment.gamma,
-    #     return_scs=return_scs
-    #     )
-    # train_transitions, _ = load_or_create(output_path,
-    #                                    [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-    #                                    'train_transitions', create_transitions,
-    #                                    [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
-    #
-    # if test_obs_transitions is not None:
-    #     test_transitions, test_scs = load_or_create(output_path,
-    #                                       [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-    #                                       'test_transitions', create_transitions,
-    #                                       [test_obs_transitions, interaction, cfg.state_constructor.warmup, True])
-    # else:
-    #     test_transitions = None
-    #     test_scs = None
+    from dataclasses import fields
+    for obs_tran in train_obs_transitions:
+        for field in fields(obs_tran):
+            if isinstance(getattr(obs_tran, field.name), np.ndarray):
+                if np.any(np.isnan(getattr(obs_tran, field.name))):
+                    print(obs_tran)
+                    print('\n')
 
-    # TODO: next restucture these into transitions.
+    interaction = init_interaction(cfg.interaction, env, sc)
+    create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_anytime_transitions(
+        obs_transitions,
+        interaction_,
+        sc_warmup=cfg.state_constructor.warmup,
+        steps_per_decision=cfg.interaction.steps_per_decision,
+        gamma=cfg.experiment.gamma,
+        return_scs=return_scs
+    )
+    train_transitions_1, _ = load_or_create(output_path,
+                                            [cfg.data_loader, cfg.state_constructor, cfg.interaction],
+                                            'train_transitions_1', create_transitions,
+                                            [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
+
+    if test_obs_transitions is not None:
+        test_transitions, test_scs = load_or_create(output_path,
+                                                    [cfg.data_loader, cfg.state_constructor, cfg.interaction],
+                                                    'test_transitions', create_transitions,
+                                                    [test_obs_transitions, interaction, cfg.state_constructor.warmup,
+                                                     True])
+    else:
+        test_transitions = None
+        test_scs = None
+
+    # SECOND WAY
 
     create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_transitions(
         obs_transitions,
@@ -161,22 +174,32 @@ def load_offline_data(cfg):
         sc_warmup=cfg.state_constructor.warmup,
         return_scs=return_scs)
 
-    train_transitions, _ = load_or_create(output_path,
-                                       [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-                                       'train_transitions', create_transitions,
-                                       [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
+    train_transitions_2, _ = load_or_create(output_path,
+                                            [cfg.data_loader, cfg.state_constructor, cfg.interaction],
+                                            'train_transitions_2', create_transitions,
+                                            [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
 
     if test_obs_transitions is not None:
         test_transitions, test_scs = load_or_create(output_path,
-                                          [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-                                          'test_transitions', create_transitions,
-                                          [test_obs_transitions, interaction, cfg.state_constructor.warmup, True])
+                                                    [cfg.data_loader, cfg.state_constructor, cfg.interaction],
+                                                    'test_transitions', create_transitions,
+                                                    [test_obs_transitions, interaction, cfg.state_constructor.warmup,
+                                                     True])
     else:
         test_transitions = None
         test_scs = None
 
+    print(len(train_transitions_1), len(train_transitions_2))
+
+    for i in range(len(train_obs_transitions)):
+        if train_transitions_1[i] != train_transitions_2[i]:
+            print(i)
+            print(train_transitions_1[i])
+            print(train_transitions_2[i])
+            assert train_transitions_1[i] == train_transitions_2[i]
+
     print("Done loading data!")
-    return env, sc, interaction, train_transitions, test_transitions, test_scs
+    return env, sc, interaction, train_transitions_1, test_transitions, test_scs
 
 
 def get_state_action_dim(env, sc):
