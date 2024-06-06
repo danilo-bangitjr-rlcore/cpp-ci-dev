@@ -5,7 +5,7 @@ defaults:
   - override data_loader: direct_action
   - override interaction: anytime
   - override calibration_model : gru
-  - override state_constructor: reseau_anytime
+  - override state_constructor: identity #reseau_anytime
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
   - override interaction/obs_normalizer: maxmin

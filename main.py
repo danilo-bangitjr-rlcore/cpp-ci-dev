@@ -131,14 +131,36 @@ def load_offline_data(cfg):
         test_obs_transitions = None
 
     interaction = init_interaction(cfg.interaction, env, sc)
-    create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_anytime_transitions(
+    # create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_anytime_transitions(
+    #     obs_transitions,
+    #     interaction_,
+    #     sc_warmup=cfg.state_constructor.warmup,
+    #     steps_per_decision=cfg.interaction.steps_per_decision,
+    #     gamma=cfg.experiment.gamma,
+    #     return_scs=return_scs
+    #     )
+    # train_transitions, _ = load_or_create(output_path,
+    #                                    [cfg.data_loader, cfg.state_constructor, cfg.interaction],
+    #                                    'train_transitions', create_transitions,
+    #                                    [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
+    #
+    # if test_obs_transitions is not None:
+    #     test_transitions, test_scs = load_or_create(output_path,
+    #                                       [cfg.data_loader, cfg.state_constructor, cfg.interaction],
+    #                                       'test_transitions', create_transitions,
+    #                                       [test_obs_transitions, interaction, cfg.state_constructor.warmup, True])
+    # else:
+    #     test_transitions = None
+    #     test_scs = None
+
+    # TODO: next restucture these into transitions.
+
+    create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_transitions(
         obs_transitions,
         interaction_,
-        sc_warmup=0,
-        steps_per_decision=cfg.interaction.steps_per_decision,
-        gamma=cfg.experiment.gamma,
-        return_scs=return_scs
-        )
+        sc_warmup=cfg.state_constructor.warmup,
+        return_scs=return_scs)
+
     train_transitions, _ = load_or_create(output_path,
                                        [cfg.data_loader, cfg.state_constructor, cfg.interaction],
                                        'train_transitions', create_transitions,
@@ -153,6 +175,7 @@ def load_offline_data(cfg):
         test_transitions = None
         test_scs = None
 
+    print("Done loading data!")
     return env, sc, interaction, train_transitions, test_transitions, test_scs
 
 

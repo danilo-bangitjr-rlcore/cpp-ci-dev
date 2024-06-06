@@ -52,13 +52,15 @@ def parallel_shuffle(*args):
 def make_transitions(
         obs_transitions: list[ObsTransition],
         interaction: NormalizerInteraction,
-        sc_warmup=0
+        sc_warmup=0,
+        return_scs=False
 ):
     sc = interaction.state_constructor
     transitions = []
     initial_state = True
     last_state = None
     warmup_counter = 0
+    scs = []
     for obs_transition in obs_transitions:
         obs = obs_transition.obs
         action = obs_transition.action
@@ -74,11 +76,15 @@ def make_transitions(
             # Note: assumes the last action was the same as the current action. This won't always be the case
             last_state = sc(norm_obs, norm_action, initial_state=True)
             initial_state = False
+            if return_scs and warmup_counter >= sc_warmup :
+                scs.append(deepcopy(sc))
 
         next_state = sc(norm_next_obs, norm_action, initial_state=False)
-
         warmup_counter += 1
         if warmup_counter >= sc_warmup:
+            if return_scs:
+                scs.append(deepcopy(sc))
+
             transition = Transition(
                 obs,
                 last_state,
@@ -98,10 +104,13 @@ def make_transitions(
 
         if obs_transition.gap:
             initial_state = True
-            warmup_counter = 0
 
         last_state = next_state
 
+    scs = scs[:-1]
+    if return_scs:
+        assert len(transitions) == len(scs)
+    return transitions, scs
 
 def _normalize(obs_transition, interaction):
     obs_transition.obs = interaction.obs_normalizer(obs_transition.obs)
@@ -201,10 +210,10 @@ def make_transitions_for_chunk(curr_chunk_obs_transitions, interaction, sc,
                                           states, obs_transition, last_state)
     curr_chunk_transitions += new_transitions
     curr_chunk_transitions = curr_chunk_transitions[sc_warmup:]  # only add transitions after the warmup period
-    new_scs = new_scs[:-1]  # exclude the last element, since it corresponds to a state after the last transition
 
     assert len(curr_chunk_transitions) == len(curr_chunk_transitions)
     if return_scs:
+        new_scs = new_scs[sc_warmup:-1]  # exclude the last element, since it corresponds to a state after the last transition
         assert len(new_scs) == len(curr_chunk_transitions)
 
     return curr_chunk_transitions, new_scs
@@ -243,3 +252,5 @@ def make_anytime_transitions(
         scs += new_scs
 
     return transitions, scs
+
+
