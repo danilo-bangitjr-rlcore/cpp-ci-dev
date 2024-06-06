@@ -69,7 +69,7 @@ def check_exists(save_path):
 def load_or_create(root, cfgs, prefix, create_func, args):
     cfg_str = ''
     for cfg in cfgs:
-        cfg_copy = OmegaConf.to_container(copy.deepcopy(cfg))
+        cfg_copy = OmegaConf.to_container(copy.deepcopy(cfg), resolve=True)
         cfg_str += str(cfg_copy)
 
     cfg_hash = hashlib.sha1(cfg_str.encode("utf-8")).hexdigest()
@@ -131,22 +131,29 @@ def load_offline_data(cfg):
         test_obs_transitions = None
 
     interaction = init_interaction(cfg.interaction, env, sc)
-    create_transitions = lambda obs_transitions, interaction_, warmup: make_anytime_transitions(obs_transitions,
-                                                                                                interaction_, warmup)
-    train_transitions = load_or_create(output_path,
+    create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_anytime_transitions(
+        obs_transitions,
+        interaction_,
+        sc_warmup=0,
+        steps_per_decision=cfg.interaction.steps_per_decision,
+        gamma=cfg.experiment.gamma,
+        return_scs=return_scs
+        )
+    train_transitions, _ = load_or_create(output_path,
                                        [cfg.data_loader, cfg.state_constructor, cfg.interaction],
                                        'train_transitions', create_transitions,
-                                       [train_obs_transitions, interaction, cfg.state_constructor.warmup])
+                                       [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
 
     if test_obs_transitions is not None:
-        test_transitions = load_or_create(output_path,
+        test_transitions, test_scs = load_or_create(output_path,
                                           [cfg.data_loader, cfg.state_constructor, cfg.interaction],
                                           'test_transitions', create_transitions,
-                                          [test_obs_transitions, interaction, cfg.state_constructor.warmup])
+                                          [test_obs_transitions, interaction, cfg.state_constructor.warmup, True])
     else:
         test_transitions = None
+        test_scs = None
 
-    return env, sc, interaction, train_transitions, test_transitions
+    return env, sc, interaction, train_transitions, test_transitions, test_scs
 
 
 def get_state_action_dim(env, sc):
@@ -243,7 +250,7 @@ def main(cfg: DictConfig) -> dict:
     do_offline_training = cfg.experiment.offline_steps > 0
     if do_offline_training:
         print('Loading offline transitions...')
-        env, sc, interaction, train_transitions, test_transitions = load_offline_data(cfg)
+        env, sc, interaction, train_transitions, test_transitions, _ = load_offline_data(cfg)
     else:
         env = init_environment(cfg.env)
         sc = init_state_constructor(cfg.state_constructor, env)

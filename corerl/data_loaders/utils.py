@@ -139,12 +139,84 @@ def get_new_transitions(curr_decision_transitions, gamma, states, obs_transition
     return new_transitions
 
 
+def make_transitions_for_chunk(curr_chunk_obs_transitions, interaction, sc,
+                               steps_per_decision, return_scs, gamma, sc_warmup):
+    new_transitions = []
+    new_scs = []
+    steps_since_decision = 0
+    first_obs_transition = deepcopy(curr_chunk_obs_transitions[0])
+    first_obs_transition = _normalize(first_obs_transition, interaction)
+    last_state = sc(first_obs_transition.obs,
+                    first_obs_transition.action,
+                    initial_state=True,
+                    decision_point=True,
+                    steps_since_decision=steps_since_decision)
+    states = [last_state]
+    last_action = first_obs_transition.action
+    curr_chunk_transitions = []
+    curr_decision_obs_transitions = []
+
+    if return_scs:
+        new_scs.append(deepcopy(sc))
+
+    # next, consider remaining transitions and compute the next states
+    for obs_transition in curr_chunk_obs_transitions:
+        obs_transition = _normalize(obs_transition, interaction)
+        decision_point = (obs_transition.action != last_action
+                          or steps_since_decision >= steps_per_decision - 1)
+
+        next_state = sc(obs_transition.next_obs,
+                        obs_transition.action,
+                        initial_state=False,
+                        decision_point=decision_point,
+                        steps_since_decision=steps_since_decision)
+
+        states.append(next_state)
+        if return_scs:
+            new_scs.append(deepcopy(sc))
+
+        if decision_point:
+            # because we have already produced the next state for the observation after the decision point,
+            # there are two more states than curr_decision_obs_transitions
+            assert len(states) == len(curr_decision_obs_transitions) + 2
+
+            new_transitions = get_new_transitions(curr_decision_obs_transitions, gamma,
+                                                  states, obs_transition, last_state)
+
+            curr_chunk_transitions += new_transitions
+            # if obs_transitions was a decision point, we did not add it previously
+            curr_decision_obs_transitions = [obs_transition]
+            states = [last_state, next_state]
+            last_action = obs_transition.action
+            steps_since_decision = 0
+        else:
+            # if obs_transitions was not a decision point we will add it now
+            curr_decision_obs_transitions.append(obs_transition)
+            steps_since_decision += 1
+
+        last_state = next_state
+
+    # add remaining transitions for the final iteration
+    new_transitions = get_new_transitions(curr_decision_obs_transitions, gamma,
+                                          states, obs_transition, last_state)
+    curr_chunk_transitions += new_transitions
+    curr_chunk_transitions = curr_chunk_transitions[sc_warmup:]  # only add transitions after the warmup period
+    new_scs = new_scs[:-1]  # exclude the last element, since it corresponds to a state after the last transition
+
+    assert len(curr_chunk_transitions) == len(curr_chunk_transitions)
+    if return_scs:
+        assert len(new_scs) == len(curr_chunk_transitions)
+
+    return curr_chunk_transitions, new_scs
+
+
 def make_anytime_transitions(
         obs_transitions: list[ObsTransition],
         interaction: NormalizerInteraction,
         sc_warmup=0,
         steps_per_decision=30,
-        gamma=0.9
+        gamma=0.9,
+        return_scs=False
 ):
     obs_transitions = deepcopy(obs_transitions)
     sc = interaction.state_constructor
@@ -152,6 +224,7 @@ def make_anytime_transitions(
     done = False
     transition_idx = 0
     pbar = tqdm(total=len(obs_transitions))
+    scs = []
     while not done:
         # first, get transitions until a gap
         curr_chunk_obs_transitions = []
@@ -164,46 +237,9 @@ def make_anytime_transitions(
             done = (transition_idx == len(obs_transitions) - 1)
             pbar.update(1)
 
-        # At this point, we have all transitions until a gap happens
-        # Initialize the state constructor with the first observation.
-        steps_since_decision = 0
-        first_obs_transition = deepcopy(curr_chunk_obs_transitions[0])
-        first_obs_transition = _normalize(first_obs_transition, interaction)
-        last_state = sc(first_obs_transition.obs,
-                        first_obs_transition.action,
-                        initial_state=True,
-                        decision_point=True,
-                        steps_since_decision=steps_since_decision)
-        states = [last_state]
-        last_action = first_obs_transition.action
-        curr_chunk_transitions = []
-        curr_decision_obs_transitions = []
+        new_transitions, new_scs = make_transitions_for_chunk(curr_chunk_obs_transitions, interaction, sc,
+                                                              steps_per_decision, return_scs, gamma, sc_warmup)
+        transitions += new_transitions
+        scs += new_scs
 
-        # next, consider remaining transitions and compute the next states
-        for obs_transition in curr_chunk_obs_transitions:
-            obs_transition = _normalize(obs_transition, interaction)
-            decision_point = (obs_transition.action != last_action
-                              or steps_since_decision >= steps_per_decision-1)
-
-            next_state = sc(obs_transition.next_obs,
-                            obs_transition.action,
-                            initial_state=False,
-                            decision_point=decision_point,
-                            steps_since_decision=steps_since_decision)
-            states.append(next_state)
-
-            if decision_point:
-                new_transitions = get_new_transitions(curr_decision_obs_transitions, gamma, states, obs_transition, last_state)
-                curr_chunk_transitions += new_transitions
-                curr_decision_obs_transitions = [obs_transition]   # if obs_transitions was a decision point, we did not add it previously
-                states = [next_state]
-                last_action = obs_transition.action
-                steps_since_decision = 0
-            else:
-                curr_decision_obs_transitions.append(obs_transition)   # if obs_transitions was not a decision point we will add it now
-                steps_since_decision += 1
-
-            last_state = next_state
-        transitions += curr_chunk_transitions[sc_warmup:] # only add transitions after the warmup period
-
-    return transitions
+    return transitions, scs
