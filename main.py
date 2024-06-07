@@ -22,7 +22,7 @@ from corerl.utils.device import init_device
 from corerl.data_loaders.factory import init_data_loader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.utils.plotting import make_plots
-from corerl.data_loaders.utils import make_transitions, make_anytime_transitions, train_test_split
+from corerl.data_loaders.utils import make_anytime_transitions, train_test_split
 import corerl.utils.freezer as fr
 
 
@@ -110,6 +110,10 @@ def load_offline_data(cfg):
     test_data_df = load_or_create(output_path, [cfg.data_loader],
                                   'test_data_df', create_df, [dl, dl.test_filenames])
 
+    assert not all_data_df.isnull().values.any()
+    assert not train_data_df.isnull().values.any()
+    assert not test_data_df.isnull().values.any()
+
     create_bounds = lambda dl_, df: dl.get_obs_max_min(df)
     obs_bounds = load_or_create(output_path, [cfg.data_loader],
                                 'obs_bounds', create_bounds, [dl, all_data_df])
@@ -131,52 +135,30 @@ def load_offline_data(cfg):
         test_obs_transitions = None
 
     interaction = init_interaction(cfg.interaction, env, sc)
-    # create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_anytime_transitions(
-    #     obs_transitions,
-    #     interaction_,
-    #     sc_warmup=cfg.state_constructor.warmup,
-    #     steps_per_decision=cfg.interaction.steps_per_decision,
-    #     gamma=cfg.experiment.gamma,
-    #     return_scs=return_scs
-    #     )
-    # train_transitions, _ = load_or_create(output_path,
-    #                                    [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-    #                                    'train_transitions', create_transitions,
-    #                                    [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
-    #
-    # if test_obs_transitions is not None:
-    #     test_transitions, test_scs = load_or_create(output_path,
-    #                                       [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-    #                                       'test_transitions', create_transitions,
-    #                                       [test_obs_transitions, interaction, cfg.state_constructor.warmup, True])
-    # else:
-    #     test_transitions = None
-    #     test_scs = None
-
-    # TODO: next restucture these into transitions.
-
-    create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_transitions(
+    create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_anytime_transitions(
         obs_transitions,
         interaction_,
         sc_warmup=cfg.state_constructor.warmup,
-        return_scs=return_scs)
-
-    train_transitions, _ = load_or_create(output_path,
-                                       [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-                                       'train_transitions', create_transitions,
-                                       [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
+        steps_per_decision=cfg.interaction.steps_per_decision,
+        gamma=cfg.experiment.gamma,
+        return_scs=return_scs
+    )
+    train_transitions_1, _ = load_or_create(output_path,
+                                            [cfg.data_loader, cfg.state_constructor, cfg.interaction],
+                                            'train_transitions_1', create_transitions,
+                                            [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
 
     if test_obs_transitions is not None:
         test_transitions, test_scs = load_or_create(output_path,
-                                          [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-                                          'test_transitions', create_transitions,
-                                          [test_obs_transitions, interaction, cfg.state_constructor.warmup, True])
+                                                    [cfg.data_loader, cfg.state_constructor, cfg.interaction],
+                                                    'test_transitions', create_transitions,
+                                                    [test_obs_transitions, interaction, cfg.state_constructor.warmup,
+                                                     True])
     else:
         test_transitions = None
         test_scs = None
 
-    print("Done loading data!")
-    return env, sc, interaction, train_transitions, test_transitions, test_scs
+    return env, sc, interaction, train_transitions_1, test_transitions, test_scs
 
 
 def get_state_action_dim(env, sc):

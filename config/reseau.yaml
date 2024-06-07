@@ -5,7 +5,7 @@ defaults:
   - override data_loader: direct_action
   - override interaction: anytime
   - override calibration_model : gru
-  - override state_constructor: identity #reseau_anytime
+  - override state_constructor: multi_trace
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
   - override interaction/obs_normalizer: maxmin
@@ -27,7 +27,7 @@ env:
 
 interaction :
   obs_length : 60
-  steps_per_decision : 30
+  steps_per_decision : 1
   action_normalizer:
     action_high : 300
     action_low:  0

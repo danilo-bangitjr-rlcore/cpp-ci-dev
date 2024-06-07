@@ -159,13 +159,13 @@ class DirectActionDataLoader(BaseDataLoader):
                 if curr_action_steps > 0:
                     # produce the initial observation
                     step_end = step_start + timedelta(seconds=self.obs_length)
-                    last_obs = self.get_obs(obs_df, step_end, step_end)
+                    last_obs = self.get_obs(obs_df, step_start, step_end)
                     step_start = step_start + timedelta(seconds=self.obs_length)
 
                     # how many steps we are talking the current action, minus the first observation
                     for step in range(curr_action_steps - 1):
                         step_end = step_start + timedelta(seconds=self.obs_length)
-                        obs = self.get_obs(obs_df, step_end, step_end)
+                        obs = self.get_obs(obs_df, step_start, step_end)
 
                         # Any way to make the creation of reward_info more universal?
                         reward_info = {}
