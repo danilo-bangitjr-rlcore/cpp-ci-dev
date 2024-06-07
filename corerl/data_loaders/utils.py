@@ -49,71 +49,6 @@ def parallel_shuffle(*args):
     return list(unzipped)
 
 
-def make_transitions(
-        obs_transitions: list[ObsTransition],
-        interaction: NormalizerInteraction,
-        sc_warmup=0,
-        return_scs=False
-):
-    sc = interaction.state_constructor
-    transitions = []
-    initial_state = True
-    last_state = None
-    warmup_counter = 0
-    scs = []
-    for obs_transition in obs_transitions:
-        obs = obs_transition.obs
-        action = obs_transition.action
-        reward = obs_transition.reward
-        next_obs = obs_transition.next_obs
-
-        norm_obs = interaction.obs_normalizer(obs)
-        norm_next_obs = interaction.obs_normalizer(next_obs)
-        norm_action = interaction.action_normalizer(action)
-        norm_reward = interaction.reward_normalizer(reward)
-
-        if initial_state:
-            # Note: assumes the last action was the same as the current action. This won't always be the case
-            sc.reset()
-            last_state = sc(norm_obs, norm_action, initial_state=True)
-            initial_state = False
-            if return_scs and warmup_counter >= sc_warmup:
-                scs.append(deepcopy(sc))
-
-        next_state = sc(norm_next_obs, norm_action, initial_state=False)
-        warmup_counter += 1
-        if warmup_counter >= sc_warmup:
-            if return_scs:
-                scs.append(deepcopy(sc))
-
-            transition = Transition(
-                norm_obs ,
-                last_state,
-                norm_action,
-                norm_next_obs,
-                next_state,
-                norm_reward,
-                norm_next_obs,  # the obs for bootstrapping is the same as the next obs here
-                next_state,  # the state for bootstrapping is the same as the next state here
-                obs_transition.terminated,
-                obs_transition.truncate,
-                True,  # last_state always a decision point
-                True,  # next_state always a decision point
-                1)
-
-            transitions.append(transition)
-
-        if obs_transition.gap:
-            initial_state = True
-
-        last_state = next_state
-
-    scs = scs[:-1]
-    if return_scs:
-        assert len(transitions) == len(scs)
-    return transitions, scs
-
-
 def _normalize(obs_transition, interaction):
     obs_transition.obs = interaction.obs_normalizer(obs_transition.obs)
     obs_transition.action = interaction.action_normalizer(obs_transition.action)
@@ -140,13 +75,13 @@ def get_new_anytime_transitions(curr_decision_transitions, gamma, states, obs_tr
             states[curr_obs_i + 1],
             partial_returns[curr_obs_i],
             # the obs for bootstrapping comes from obs_transition, since it is a decision point
-            last_obs, # obs_transition.obs,
+            last_obs,  # obs_transition.obs,
             last_state,  # the state for bootstrapping
             False,  # assume continuing
             False,  # assume continuing
             curr_obs_i == 0,  # only the first state is a decision point
             True,
-            max_gamma_exp - curr_obs_i) # TODO: the gamme exponent is wrong here
+            max_gamma_exp - curr_obs_i)  # TODO: the gamme exponent is wrong here
         new_transitions.append(transition)
 
     return new_transitions
@@ -218,7 +153,8 @@ def make_anytime_transitions_for_chunk(curr_chunk_obs_transitions, interaction, 
     curr_chunk_transitions += new_transitions
     curr_chunk_transitions = curr_chunk_transitions[sc_warmup:]  # only add transitions after the warmup period
 
-    assert len(curr_chunk_obs_transitions) == len(curr_chunk_transitions)
+    assert len(curr_chunk_obs_transitions) == len(curr_chunk_transitions) + sc_warmup
+
     if return_scs:
         # exclude the last element, since it corresponds to a state after the last transition
         new_scs = new_scs[sc_warmup:-1]

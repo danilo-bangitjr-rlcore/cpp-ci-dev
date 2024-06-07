@@ -22,7 +22,7 @@ from corerl.utils.device import init_device
 from corerl.data_loaders.factory import init_data_loader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.utils.plotting import make_plots
-from corerl.data_loaders.utils import make_transitions, make_anytime_transitions, train_test_split
+from corerl.data_loaders.utils import make_anytime_transitions, train_test_split
 import corerl.utils.freezer as fr
 
 
@@ -134,14 +134,6 @@ def load_offline_data(cfg):
     else:
         test_obs_transitions = None
 
-    from dataclasses import fields
-    for obs_tran in train_obs_transitions:
-        for field in fields(obs_tran):
-            if isinstance(getattr(obs_tran, field.name), np.ndarray):
-                if np.any(np.isnan(getattr(obs_tran, field.name))):
-                    print(obs_tran)
-                    print('\n')
-
     interaction = init_interaction(cfg.interaction, env, sc)
     create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_anytime_transitions(
         obs_transitions,
@@ -166,39 +158,6 @@ def load_offline_data(cfg):
         test_transitions = None
         test_scs = None
 
-    # SECOND WAY
-
-    create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_transitions(
-        obs_transitions,
-        interaction_,
-        sc_warmup=cfg.state_constructor.warmup,
-        return_scs=return_scs)
-
-    train_transitions_2, _ = load_or_create(output_path,
-                                            [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-                                            'train_transitions_2', create_transitions,
-                                            [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
-
-    if test_obs_transitions is not None:
-        test_transitions, test_scs = load_or_create(output_path,
-                                                    [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-                                                    'test_transitions', create_transitions,
-                                                    [test_obs_transitions, interaction, cfg.state_constructor.warmup,
-                                                     True])
-    else:
-        test_transitions = None
-        test_scs = None
-
-    print(len(train_transitions_1), len(train_transitions_2))
-
-    for i in range(len(train_obs_transitions)):
-        if train_transitions_1[i] != train_transitions_2[i]:
-            print(i)
-            print(train_transitions_1[i])
-            print(train_transitions_2[i])
-            assert train_transitions_1[i] == train_transitions_2[i]
-
-    print("Done loading data!")
     return env, sc, interaction, train_transitions_1, test_transitions, test_scs
 
 
