@@ -17,15 +17,14 @@ import torch.nn as nn
 
 
 class GRUCalibrationModel:
-    def __init__(self, cfg: DictConfig, **kwargs):
-        self.train_trajectories = kwargs['train_trajectories']
-        self.test_trajectories = kwargs['test_trajectories']
+    def __init__(self, cfg: DictConfig, train_info):
+        self.train_trajectories = train_info['train_trajectories']
+        self.test_trajectories = train_info['test_trajectories']
+        self.reward_func = train_info['reward_func']
+        self.interaction = train_info['interaction']
+
         self.train_data = []  # pre-processed version of self.train_trajectories
         self.test_data = []  # pre-processed version of self.train_trajectories
-
-        reward_func = kwargs['reward_func']
-        self.interaction = kwargs['interaction']
-        self.state_constructors = kwargs['test_scs']
 
         self.train_itr = cfg.train_itr
         self.batch_size = cfg.batch_size
@@ -33,7 +32,7 @@ class GRUCalibrationModel:
         self.endo_inds = cfg.endo_inds
         self.exo_inds = cfg.exo_inds
 
-        assert len(self.train_trajectories) > 0
+        assert len(self.train_trajectories) > 0, "Must provide at least one train trajectory"
 
         example_transition = self.train_trajectories[0].transitions[0]
         action_dim = len(example_transition.action.shape)
@@ -48,10 +47,9 @@ class GRUCalibrationModel:
         self.train_losses = []
         self.test_losses = []
 
-        self.reward_func = reward_func
         self.max_rollout_len = cfg.max_rollout_len
         self.steps_per_decision = cfg.steps_per_decision
-        self.skip = 1  # what if we don't predict every observation, but every nth observation?
+        self.skip = cfg.skip  # what if we don't predict every observation, but every nth observation?
         self.warmup_len = cfg.warmup_len // self.skip
 
     def prepare_data(self) -> None:
@@ -100,18 +98,27 @@ class GRUCalibrationModel:
         assert inputs.size(1) == outputs.size(1)
         return inputs, outputs
 
-    def sample_mini_batch(self, batch_size: int = None) -> Tuple[torch.Tensor, torch.Tensor]:
-        sampled_data = random.choices(self.train_data, k=batch_size)  # sampled data is a list of (input, output) pairs
+    def sample_mini_batch(self, data, batch_size: int = None) -> Tuple[torch.Tensor, torch.Tensor]:
+        traj_lens = [sampled_data[0].size(1) for sampled_data in data]
+        probs = [traj_len / sum(traj_lens) for traj_len in traj_lens]
 
-        inputs, outputs = list(zip(*sampled_data))
-        seq_lens = [input_tensor.shape[1] for input_tensor in inputs]
-        min_seq_len = min(seq_lens)
+        batch_inputs, batch_outputs = [], []
+        while len(batch_inputs) < batch_size:
+            # sampled data is a list of (input, output) pairs
+            sampled_data = random.choices(data, weights=probs, k=1)[0]  # zero-index bc choices returns list
+            sampled_traj_inputs, sampled_traj_outputs = sampled_data[0], sampled_data[1]
+            num_transitions = sampled_traj_inputs.size(1)
 
-        input_tensors = [input_tensor[:, 0:min_seq_len, :] for input_tensor in inputs]
-        input_tensor = torch.concat(input_tensors, dim=0).to(device)
+            if num_transitions >= self.max_rollout_len:
+                start_index = random.randint(0, num_transitions - self.max_rollout_len - 1)
+                sub_traj_inputs = sampled_traj_inputs[:, start_index:start_index + self.max_rollout_len, :]
+                sub_traj_outputs = sampled_traj_outputs[:, start_index:start_index + self.max_rollout_len, :]
+                assert sub_traj_inputs.size(1) == self.max_rollout_len == sub_traj_outputs.size(1)
+                batch_inputs.append(sub_traj_inputs)
+                batch_outputs.append(sub_traj_outputs)
 
-        output_tensors = [output_tensor[:, 0:min_seq_len, :] for output_tensor in outputs]
-        output_tensor = torch.concat(output_tensors, dim=0).to(device)
+        input_tensor = torch.concat(batch_inputs, dim=0).to(device)
+        output_tensor = torch.concat(batch_outputs, dim=0).to(device)
 
         return input_tensor, output_tensor
 
@@ -123,36 +130,55 @@ class GRUCalibrationModel:
         test_loss = 0
 
         for itr in pbar:
-            self.update()
+            if itr == self.train_itr - 1:
+                self.update(plot=True)
+            else:
+                self.update(plot=False)
             pbar.set_description("train loss: {:7.4f}, test loss: {:7.4f}".format(
                 self.train_losses[-1], test_loss))
-            if itr % 10 == 0:
-                test_loss = self.test_rollouts()
+            # if itr % 10 == 0:
+        test_loss = self.test_rollouts()
 
         return self.train_losses, self.test_losses
 
-    def update(self):
-        batch = self.sample_mini_batch(batch_size=self.batch_size)
+    def update(self, plot=False):
+        batch = self.sample_mini_batch(self.train_data, batch_size=self.batch_size)
         inputs, outputs = batch
-
         predicted_out = self.model(inputs, prediction_start=self.warmup_len - 1)
-        # predicted_out = self.model(inputs)
-        # loss = nn.functional.mse_loss(predicted_out[:, self.warmup_len-1:, :], outputs[:, self.warmup_len-1:, :])
         loss = nn.functional.mse_loss(predicted_out, outputs)
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
+        if plot:
+            for b in range(self.batch_size):
+                orps = outputs[b, :, 0].detach().numpy()  # the actual ORP
+                actions = inputs[b, :, -1].detach().numpy()  # the preceding action
+                predicted_orps = predicted_out[b, :, 0].detach().numpy()
+
+                plt.plot(orps, label='orps')
+                plt.plot(actions, label='actions')
+                plt.plot(predicted_orps, label='predicted orps')
+                plt.legend()
+
+                plt.xlabel("Rollout Step")
+                plt.savefig(f"train_{b}.png", bbox_inches='tight')
+                plt.clf()
+
         self.train_losses.append(loss.detach().numpy())
 
     def test_rollouts(self):
+        num_test = 10
+        test_batch = self.sample_mini_batch(self.test_data, batch_size=num_test)
         all_losses = []
-        for n, test_data in enumerate(self.test_data):
-            losses = self.test_rollout(test_data, n)
-            all_losses.append(np.mean(losses[self.warmup_len - 1:]))
+        for t in range(num_test):
+            test_in = torch.unsqueeze(test_batch[0][t, :, :], 0)
+            test_out = torch.unsqueeze(test_batch[1][t, :, :], 0)
+            losses = self.test_rollout((test_in, test_out), t)
+            # all_losses.append(np.mean(losses[self.warmup_len - 1:]))
+            # plt.plot(np.array(losses), c='b', alpha=0.2)
 
-        #     plt.plot(np.array(losses), c='b', alpha=0.2)
         #
         # plt.ylabel("Absolute Error From True ORP")
         # plt.xlabel("Rollout Step")
@@ -168,12 +194,12 @@ class GRUCalibrationModel:
 
         rollout_len = predicted_out.size(1)
         assert predicted_out.size(1) == outputs.size(1)
-        for step in range(self.warmup_len-1, rollout_len):
+        for step in range(self.warmup_len - 1, rollout_len):
             loss = torch.nn.functional.l1_loss(predicted_out[0, step, :], outputs[0, step, :]).detach().numpy()
             losses.append(loss)
 
-        orps = outputs[0, :, 0] # the actual ORP
-        actions = inputs[0, :, -1] # the preceding action
+        orps = outputs[0, :, 0]  # the actual ORP
+        actions = inputs[0, :, -1]  # the preceding action
         predicted_orps = predicted_out[0, :, 0]
 
         plt.plot(orps, label='orps')

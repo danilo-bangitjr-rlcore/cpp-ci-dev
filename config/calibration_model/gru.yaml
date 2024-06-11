@@ -1,7 +1,7 @@
 name : gru
 
-train_itr: 100
-batch_size : 64
+train_itr: 2000
+batch_size : 128
 
 endo_inds : [0] # indices of endogenous variables within the observation
 exo_inds : [1] # indices of exogenous variables within the observation
@@ -9,22 +9,23 @@ exo_inds : [1] # indices of exogenous variables within the observation
 model:
   base:
     layer_norm: 0
-    arch: [64, 64]
+    arch: [32, 32]
     init_args: ReLU
     head_activation: None
     activation: ReLU
     layer_init: Xavier
     bias: True
     name: fc
-  gru_hidden_dim : 256
-  num_gru_layers : 1
+  gru_hidden_dim : 32
+  num_gru_layers : 2
+  gru_input_dim : 4
 
 optimizer:
   lr: 0.0001
   weight_decay: 0.0
   name: adam
 
-max_rollout_len : ${data_loader.trajectory_len}
+max_rollout_len : 480
 steps_per_decision : ${interaction.steps_per_decision}
-warmup_len : 180
-skip : 5
+warmup_len : 300
+skip : 1

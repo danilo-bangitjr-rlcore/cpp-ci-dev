@@ -6,6 +6,25 @@ from corerl.state_constructor.base import BaseStateConstructor
 
 
 @dataclass
+class ObsTransition:
+    obs: np.array  # the raw observation of state
+    action: np.array
+    reward: float
+    next_obs: np.array  # the immediate next observation
+    terminated: bool
+    truncate: bool
+    gap: bool  # whether there is a gap in the dataset following next_ovs
+
+    def __iter__(self):
+        for field in fields(self):
+            yield getattr(self, field.name)
+
+    @property
+    def field_names(self):
+        return [field.name for field in fields(self)]
+
+
+@dataclass
 class Transition:
     obs: np.array  # the raw observation of state
     state: np.array
@@ -52,6 +71,17 @@ class Transition:
 
         return True
 
+    def to_obs_transition(self):
+        obs_transition = ObsTransition(
+            self.obs,
+            self.action,
+            self.reward,
+            self.next_obs,
+            self.terminated,
+            self.truncate,
+            False)  # assume there is no gap in the dataset
+        return obs_transition
+
 
 @dataclass
 class TransitionBatch:
@@ -89,9 +119,13 @@ class Trajectory:
     def __post_init__(self):
         self.transitions = []
         self.start_sc = None
+        self.scs = []
 
     def add_transition(self, transition: Transition) -> None:
         self.transitions.append(transition)
+
+    def add_sc(self, sc: BaseStateConstructor) -> None:
+        self.scs.append(sc)
 
     @property
     def num_transitions(self):

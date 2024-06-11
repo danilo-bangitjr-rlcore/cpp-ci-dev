@@ -4,7 +4,7 @@ defaults:
   - override env: reseau
   - override data_loader: direct_action
   - override interaction: anytime
-  - override calibration_model : gru
+  - override calibration_model : nstep
   - override state_constructor: multi_trace
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
@@ -13,7 +13,9 @@ defaults:
 
 # values may be overridden outside of the defaults list
 
-offline_data_output_path : offline_data/reseau
+offline_data:
+  load_from : csv # alternatively, use "transition"
+  output_path : offline_data/reseau
 
 experiment :
   exp_name : "reseau_test_burn_in"

@@ -9,18 +9,16 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
 
-import random
 from corerl.component.network.utils import tensor, to_np
-from corerl.calibration_models.utils import prepare_obs_transition
+import matplotlib.pyplot as plt
 
 
 class SimpleCalibrationModel:
-    def __init__(self, cfg: DictConfig, **kwargs):
-        train_transitions = kwargs['train_transitions']
-        self.test_trajectories = kwargs['test_trajectories']
-        self.reward_func = kwargs['reward_func']
-        self.interaction = kwargs['interaction']
-        self.state_constructors = kwargs['test_scs']
+    def __init__(self, cfg: DictConfig, train_info):
+        train_transitions = train_info['train_transitions']
+        self.test_trajectories = train_info['test_trajectories']
+        self.reward_func = train_info['reward_func']
+        self.interaction = train_info['interaction']
 
         self.buffer = init_buffer(cfg.buffer)
         self.test_buffer = init_buffer(cfg.buffer)
@@ -69,17 +67,24 @@ class SimpleCalibrationModel:
 
         return self.train_losses, self.test_losses
 
-    def do_test_rollout(self, traj):
-        # validates the model's accurary on a test rollout
-        transitions = traj.transitions
+    def do_test_rollout(self, traj, num):
+        # validates the model's accuracy on a test rollout
+        transitions = traj.transitions[2150:]
         sc = deepcopy(traj.start_sc)
         losses = []
         rollout_len = min(traj.num_transitions, self.max_rollout_len)
 
         state = transitions[0].state
+
+        orps = []
+        predicted_orps = []
+        actions = []
+
+        print("initial", state)
+        print(transitions[0].obs)
+
         for step in range(rollout_len):
             t = transitions[step]
-
             action = t.action
             next_obs = t.next_obs
             next_endo_obs = next_obs[self.endo_inds]
@@ -88,6 +93,10 @@ class SimpleCalibrationModel:
             action_tensor = tensor(action).reshape((1, -1))
 
             predicted_next_endo_obs = self.get_prediction(state_tensor, action_tensor)
+
+            actions.append(action)
+            orps.append(next_obs[0])
+            predicted_orps.append(predicted_next_endo_obs)
 
             # log the loss
             loss_step = np.mean(np.abs(next_endo_obs - to_np(predicted_next_endo_obs)))
@@ -102,17 +111,29 @@ class SimpleCalibrationModel:
             decision_point = step % self.steps_per_decision == 0
             state = sc(new_obs, action, decision_point=decision_point)
 
+        plt.plot(orps, label='orps')
+        plt.plot(actions, label='actions')
+
+        predicted_orps = [np.squeeze(to_np(p)) for p in predicted_orps]
+        plt.plot(predicted_orps, label='predicted orps')
+        plt.legend()
+
+        plt.xlabel("Rollout Step")
+        plt.savefig(f"test_{num}.png", bbox_inches='tight')
+        plt.clf()
+
         return losses
 
     def do_test_rollouts(self):
         import matplotlib.pyplot as plt
-        for test_traj in self.test_trajectories:
-            losses = self.do_test_rollout(test_traj)
-            plt.plot(np.array(losses), c='b', alpha=0.2)  # * (471.20947 - 2.6265918e+02)
+        for n, test_traj in enumerate(self.test_trajectories):
+            losses = self.do_test_rollout(test_traj, n)
 
-        plt.ylabel("Absolute Error From True ORP")
-        plt.xlabel("Rollout Step")
-        plt.show()
+
+        # plt.plot(np.array(losses), c='b', alpha=0.2)  # * (471.20947 - 2.6265918e+02)
+        # plt.ylabel("Absolute Error From True ORP")
+        # plt.xlabel("Rollout Step")
+        # plt.show()
 
     def get_prediction(self, state: torch.Tensor, action: torch.Tensor, with_grad: bool = False):
         x = torch.concat((state, action), dim=1)

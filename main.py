@@ -96,11 +96,11 @@ def load_or_create(root, cfgs, prefix, create_func, args):
     return obj
 
 
-def load_offline_data(cfg):
+def load_offline_data_from_csv(cfg):
     env = init_environment(cfg.env)
     dl = init_data_loader(cfg.data_loader)
 
-    output_path = Path(cfg.offline_data_output_path)
+    output_path = Path(cfg.offline_data.output_path)
 
     create_df = lambda dl_, filenames: dl_.load_data(filenames)
     all_data_df = load_or_create(output_path, [cfg.data_loader],
@@ -143,9 +143,9 @@ def load_offline_data(cfg):
         gamma=cfg.experiment.gamma,
         return_scs=return_scs
     )
-    train_transitions_1, _ = load_or_create(output_path,
+    train_transitions, _ = load_or_create(output_path,
                                             [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-                                            'train_transitions_1', create_transitions,
+                                            'train_transitions', create_transitions,
                                             [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
 
     if test_obs_transitions is not None:
@@ -158,8 +158,52 @@ def load_offline_data(cfg):
         test_transitions = None
         test_scs = None
 
-    return env, sc, interaction, train_transitions_1, test_transitions, test_scs
+    return env, sc, interaction, train_transitions, test_transitions, test_scs
 
+
+def load_offline_data_from_transitions(cfg):
+    output_path = Path(cfg.offline_data.output_path)
+
+    # We assume that transitions have been created with make_offline_transitions.py
+    nothing_fn = lambda *args: None
+
+    train_obs_transitions = load_or_create(output_path,
+                                           [cfg.env, cfg.state_constructor, cfg.interaction, cfg.agent],
+                                           'obs_transitions', nothing_fn,
+                                           [])
+
+
+    # TODO make this actually return something
+    test_obs_transitions = None
+
+    env = init_environment(cfg.env)
+    sc = init_state_constructor(cfg.state_constructor, env)
+    interaction = init_interaction(cfg.interaction, env, sc)
+
+    create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_anytime_transitions(
+        obs_transitions,
+        interaction_,
+        sc_warmup=cfg.state_constructor.warmup,
+        steps_per_decision=cfg.interaction.steps_per_decision,
+        gamma=cfg.experiment.gamma,
+        return_scs=return_scs
+    )
+    train_transitions, _ = load_or_create(output_path,
+                                            [cfg.data_loader, cfg.state_constructor, cfg.interaction],
+                                            'train_transitions', create_transitions,
+                                            [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
+
+    if test_obs_transitions is not None:
+        test_transitions, test_scs = load_or_create(output_path,
+                                                    [cfg.data_loader, cfg.state_constructor, cfg.interaction],
+                                                    'test_transitions', create_transitions,
+                                                    [test_obs_transitions, interaction, cfg.state_constructor.warmup,
+                                                     True])
+    else:
+        test_transitions = None
+        test_scs = None
+
+    return env, sc, interaction, train_transitions, test_transitions, test_scs
 
 def get_state_action_dim(env, sc):
     obs_shape = (flatdim(env.observation_space),)
@@ -253,9 +297,13 @@ def main(cfg: DictConfig) -> dict:
     torch.manual_seed(seed)
 
     do_offline_training = cfg.experiment.offline_steps > 0
+
     if do_offline_training:
         print('Loading offline transitions...')
-        env, sc, interaction, train_transitions, test_transitions, _ = load_offline_data(cfg)
+        if cfg.offline_data.load_from == 'csv':
+            env, sc, interaction, train_transitions, test_transitions, _ = load_offline_data_from_csv(cfg)
+        elif cfg.offline_data.load_from == 'transition':
+            env, sc, interaction, train_transitions, test_transitions, test_scs = load_offline_data_from_transitions(cfg)
     else:
         env = init_environment(cfg.env)
         sc = init_state_constructor(cfg.state_constructor, env)

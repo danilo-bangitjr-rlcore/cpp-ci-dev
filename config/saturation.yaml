@@ -12,10 +12,14 @@ defaults:
 #  - override agent/actor/actor_network: squashed_gaussian
   - _self_
 
+offline_data:
+  load_from : transition
+  output_path : offline_data/saturation
+
 experiment :
   exp_name : "calibration_model_test"
-  max_steps : 5000
-  offline_steps : 0
+  max_steps : 100
+  offline_steps : 100
   set_env_obs_space : True
   timeout: 0
   trajectory_len : 360
