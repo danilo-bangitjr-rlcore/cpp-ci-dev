@@ -28,19 +28,24 @@ def create_countdown_vector(start, total_length):
 
 class AnytimeInteraction(NormalizerInteraction):
     """
-    Interaction that will repeat an action for some length of time, while the observation is still
-    updated more frequently
+    Interaction that will repeat an action for some length of time, while the
+    observation is still updated more frequently
     """
 
     def __init__(
-            self,
-            cfg: DictConfig,
-            env: gymnasium.Env,
-            state_constructor: BaseStateConstructor
+        self,
+        cfg: DictConfig,
+        env: gymnasium.Env,
+        state_constructor: BaseStateConstructor
     ):
         super().__init__(cfg, env, state_constructor)
-        self.steps_per_decision = cfg.steps_per_decision  # how many observation steps per decision step
-        self.obs_length = cfg.obs_length  # how often to update the observation
+
+        # How many observation steps per decision step
+        self.steps_per_decision = cfg.steps_per_decision
+
+        # How often to update the observation
+        self.obs_length = cfg.obs_length
+
         self.gamma = cfg.gamma
         assert self.obs_length > 0, "Step length should be greater than 0."
 
@@ -52,46 +57,53 @@ class AnytimeInteraction(NormalizerInteraction):
         observation_list = []
         env_info_list = []
 
-
         # this needs to change with the next
         for obs_step in range(self.steps_per_decision):
             obs_end_time = time.time() + self.obs_length
             denormalized_action = self.action_normalizer.denormalize(action)
-            next_observation, raw_reward, terminated, env_truncate, env_info = self.env.step(denormalized_action)
-            truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
+
+            out = self.env.step(denormalized_action)
+            next_obs, raw_reward, term, env_trunc, env_info = out
+
+            # Use the interaction counter to decide reset. Remove reset in
+            # environment
+            truncate = self.env_counter()
 
             reward = self.reward_normalizer(raw_reward)
+            next_obs = self.obs_normalizer(next_obs)
 
-            next_observation = self.obs_normalizer(next_observation)
-
-            gamma_exponents = create_countdown_vector(obs_step, self.steps_per_decision)
+            gamma_exponents = create_countdown_vector(
+                obs_step, self.steps_per_decision,
+            )
             gammas = np.power(self.gamma, gamma_exponents)
             reward_list += gammas * reward
 
             is_decision_point = (obs_step == self.steps_per_decision - 1)
-            is_done = is_decision_point or terminated or truncate
+            is_done = is_decision_point or term or truncate
             if is_done:
-                next_state = self.state_constructor(next_observation, action, decision_point=True)
+                next_state = self.state_constructor(
+                    next_obs, action, decision_point=True,
+                )
             else:
-                next_state = self.state_constructor(next_observation, action)
+                next_state = self.state_constructor(next_obs, action)
 
             # update the lists
             state_list.append(next_state)
-            observation_list.append(next_observation)
-            terminated_list.append(terminated)
+            observation_list.append(next_obs)
+            terminated_list.append(term)
             truncate_list.append(truncate)
             env_info_list.append(env_info)
 
             time.sleep(obs_end_time - time.time())
-            if terminated or truncate:
+            if term or truncate:
                 num_completed_steps = obs_step
                 break
         else:
             num_completed_steps = obs_step
 
-        # assemble the transitions
+        # Assemble the transitions
         transitions = []
-        for obs_step in range(num_completed_steps):  # note: we do not return a transition for the final state
+        for obs_step in range(num_completed_steps):
             gamma_exp = obs_step + 1
             transition = Transition(
                 observation_list[obs_step],
@@ -104,15 +116,15 @@ class AnytimeInteraction(NormalizerInteraction):
                 state_list[-1],
                 terminated_list[obs_step],
                 terminated_list[obs_step],
-                # state is a decision point at the state
+                # State is a decision point at the state
                 True if obs_step == 0 else False,
-                # the next state is only a decision point at the end
+                # The next state is only a decision point at the end
                 True if obs_step == num_completed_steps - 1 else False,
                 gamma_exp)
 
             transitions.append(transition)
 
         self.last_state = next_state
-        self.last_observation = next_observation
+        self.last_observation = next_obs
 
         return transitions, env_info_list
