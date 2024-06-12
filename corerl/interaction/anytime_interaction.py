@@ -54,7 +54,6 @@ class AnytimeInteraction(NormalizerInteraction):
 
 
         # this needs to change with the next
-        num_completed_steps = 0
         for obs_step in range(self.steps_per_decision):
             obs_end_time = time.time() + self.obs_length
             denormalized_action = self.action_normalizer.denormalize(action)
@@ -87,6 +86,8 @@ class AnytimeInteraction(NormalizerInteraction):
             if terminated or truncate:
                 num_completed_steps = obs_step
                 break
+        else:
+            num_completed_steps = obs_step
 
         # assemble the transitions
         transitions = []
