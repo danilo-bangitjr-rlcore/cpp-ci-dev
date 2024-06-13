@@ -171,7 +171,7 @@ class NStepCalibrationModel:
     def do_rollout(self, batch, with_grad=False, plot=False):
         scs, states, actions, outputs = batch
         scs = deepcopy(scs)
-        states_step = states[:, 0, :] # states from the first time step
+        states_step = states[:, 0, :]  # states from the first time step
         loss = 0.0
 
         predicted_ORPS = []

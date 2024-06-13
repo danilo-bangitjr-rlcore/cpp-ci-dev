@@ -147,3 +147,18 @@ class Trajectory:
                 raise AttributeError("Invalid attribute for Trajectory")
         else:
             raise AssertionError("Please ensure that transitions have been added")
+
+    def split_at(self, idx):
+        child_1 = Trajectory()
+        child_2 = Trajectory()
+
+        child_1.transitions = self.transitions[:idx]
+        child_2.transitions = self.transitions[idx:]
+
+        child_1.scs = self.scs[:idx]
+        child_2.scs = self.scs[idx:]
+
+        child_1.start_sc = child_1.scs[0]
+        child_2.start_sc = child_2.scs[0]
+
+        return child_1, child_2

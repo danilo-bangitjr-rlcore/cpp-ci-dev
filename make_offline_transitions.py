@@ -80,7 +80,7 @@ def main(cfg: DictConfig) -> dict:
         return transitions_
 
     load_or_create(output_path,
-                   [cfg.env, cfg.state_constructor, cfg.interaction, cfg.agent],
+                   [cfg.env,  cfg.state_constructor, cfg.interaction, cfg.agent],
                    'transitions', create_transitions,
                    [transitions])
 
@@ -92,7 +92,7 @@ def main(cfg: DictConfig) -> dict:
         return obs_transitions
 
     load_or_create(output_path,
-                   [cfg.env, cfg.state_constructor, cfg.interaction, cfg.agent],
+                   [cfg.env, cfg.interaction, cfg.agent],
                    'obs_transitions', create_obs_transitions,
                    [transitions])
 

@@ -21,11 +21,6 @@ def load_cm_offline_data_from_csv(cfg):
     assert not train_data_df.isnull().values.any()
     assert not test_data_df.isnull().values.any()
 
-
-    print(all_data_df)
-    print(train_data_df)
-    print(test_data_df)
-
     create_bounds = lambda dl_, df: dl.get_obs_max_min(df)
     obs_bounds = load_or_create(output_path, [cfg.data_loader],
                                 'obs_bounds', create_bounds, [dl, all_data_df])
@@ -67,9 +62,10 @@ def load_cm_offline_data_from_csv(cfg):
                                            [test_obs_transitions, interaction, cfg.state_constructor.warmup,
                                             True])
     else:
-        test_trajectories = None
-
-
+        train_trajectories, test_trajectories = train_trajectories[0].split_at(3999)
+        train_trajectories = [train_trajectories]
+        test_trajectories = [test_trajectories]
+        print('here')
 
     return env, sc, interaction, train_trajectories, test_trajectories
 
@@ -81,15 +77,9 @@ def load_cm_offline_data_from_transitions(cfg):
     nothing_fn = lambda *args: None
 
     train_obs_transitions = load_or_create(output_path,
-                                           [cfg.env, cfg.state_constructor, cfg.interaction, cfg.agent],
+                                           [cfg.env, cfg.interaction, cfg.agent],
                                            'obs_transitions', nothing_fn,
                                            [])
-
-    # transitions = load_or_create(output_path,
-    #                              [cfg.env, cfg.state_constructor, cfg.interaction, cfg.agent],
-    #                              'transitions', nothing_fn,
-    #                              [])
-
     create_trajectories = lambda obs_transitions, interaction_, warmup, return_scs: make_anytime_trajectories(
         obs_transitions,
         interaction_,
@@ -106,9 +96,11 @@ def load_cm_offline_data_from_transitions(cfg):
     train_trajectories = load_or_create(output_path,
                                         [cfg.data_loader, cfg.state_constructor, cfg.interaction],
                                         'train_trajectories', create_trajectories,
-                                        [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
+                                        [train_obs_transitions, interaction, cfg.state_constructor.warmup, True])
 
-    test_trajectories = None
+    train_trajectories, test_trajectories = train_trajectories[0].split_at(2999)
+    train_trajectories = [train_trajectories]
+    test_trajectories = [test_trajectories]
 
     return env, sc, interaction, train_trajectories, test_trajectories
 
@@ -144,7 +136,6 @@ def main(cfg: DictConfig) -> dict:
         'interaction': interaction,
         'test_trajectories': test_trajectories
     }
-    print(train_transitions[0].obs)
     cm = init_calibration_model(cfg.calibration_model, train_info)
     cm.train()
 

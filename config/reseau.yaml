@@ -4,7 +4,7 @@ defaults:
   - override env: reseau
   - override data_loader: direct_action
   - override interaction: anytime
-  - override calibration_model : nstep
+  - override calibration_model : simple
   - override state_constructor: multi_trace
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
@@ -29,7 +29,7 @@ env:
 
 interaction :
   obs_length : 60
-  steps_per_decision : 1
+  steps_per_decision : 30
   action_normalizer:
     action_high : 300
     action_low:  0
@@ -55,9 +55,11 @@ agent:
 
 data_loader:
   offline_data_path : offline_data/reseau/csv
-  train_filenames: ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv",
-                       "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie_2.csv"]
-  test_filenames: ["rosie.csv"]
+#  train_filenames: ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv",
+#                       "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie_2.csv"]
+
+  train_filenames: [ "exp.csv", "f_1.csv", "f_2.csv", "m_1.csv",  "m_3.csv", "rosie.csv", "rosie_2.csv" ]
+  test_filenames: ["m_2.csv"]
   skip_rows : 3
   header : 0
   df_col_names : ["Blank", "Result", "Table", "Date", "ait101_pv", "ait301_pv", "ait401_pv",

@@ -134,7 +134,7 @@ class GRUCalibrationModel:
                 self.update(plot=True)
             else:
                 self.update(plot=False)
-            pbar.set_description("train loss: {:7.4f}, test loss: {:7.4f}".format(
+            pbar.set_description("train loss: {:7.6f}, test loss: {:7.4f}".format(
                 self.train_losses[-1], test_loss))
             # if itr % 10 == 0:
         test_loss = self.test_rollouts()

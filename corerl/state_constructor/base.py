@@ -54,7 +54,7 @@ class CompositeStateConstructor(BaseStateConstructor):
         if isinstance(obs, np.ndarray):
             assert isinstance(action, np.ndarray), 'obs and action must have the same type'
             concat_fn = np.concatenate
-            zero_fn =  np.zeros
+            zero_fn = np.zeros
         elif isinstance(obs, torch.Tensor):
             assert isinstance(action, torch.Tensor), 'obs and action must have the same type'
             concat_fn = torch.concat

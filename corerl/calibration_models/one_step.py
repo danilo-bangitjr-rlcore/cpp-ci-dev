@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 
 class SimpleCalibrationModel:
     def __init__(self, cfg: DictConfig, train_info):
-        train_transitions = train_info['train_transitions']
         self.test_trajectories = train_info['test_trajectories']
+        train_transitions = train_info['train_transitions']
         self.reward_func = train_info['reward_func']
         self.interaction = train_info['interaction']
 
@@ -67,10 +67,11 @@ class SimpleCalibrationModel:
 
         return self.train_losses, self.test_losses
 
-    def do_test_rollout(self, traj, num):
+    def do_test_rollout(self, traj, num, start):
         # validates the model's accuracy on a test rollout
-        transitions = traj.transitions[2150:]
-        sc = deepcopy(traj.start_sc)
+        transitions = traj.transitions[start:]
+        sc = deepcopy(traj.scs[start])  # cuz this is completely wrong hey!
+        # print("initial trace", sc.sc.parents[1].trace)
         losses = []
         rollout_len = min(traj.num_transitions, self.max_rollout_len)
 
@@ -79,9 +80,6 @@ class SimpleCalibrationModel:
         orps = []
         predicted_orps = []
         actions = []
-
-        print("initial", state)
-        print(transitions[0].obs)
 
         for step in range(rollout_len):
             t = transitions[step]
@@ -109,7 +107,7 @@ class SimpleCalibrationModel:
                 new_obs[j] = predicted_next_endo_obs[i]
 
             decision_point = step % self.steps_per_decision == 0
-            state = sc(new_obs, action, decision_point=decision_point)
+            state = sc(new_obs, action, decision_point=decision_point) # TODO there is a bug here I think
 
         plt.plot(orps, label='orps')
         plt.plot(actions, label='actions')
@@ -119,18 +117,28 @@ class SimpleCalibrationModel:
         plt.legend()
 
         plt.xlabel("Rollout Step")
-        plt.savefig(f"test_{num}.png", bbox_inches='tight')
+        plt.savefig(f"test_{num}_{start}.png", bbox_inches='tight')
         plt.clf()
 
         return losses
 
     def do_test_rollouts(self):
         import matplotlib.pyplot as plt
+        import random
+
+
         for n, test_traj in enumerate(self.test_trajectories):
-            losses = self.do_test_rollout(test_traj, n)
+            last = test_traj.num_transitions - self.max_rollout_len
+            num_rollouts = 20
+            increase_idx = last // num_rollouts
+            start_idx = 0
+            for start in range(num_rollouts):
+                # start_idx = random.choice(range(0, test_traj.num_transitions-self.max_rollout_len))
+                losses = self.do_test_rollout(test_traj, n,  start_idx)
+                start_idx += increase_idx
 
 
-        # plt.plot(np.array(losses), c='b', alpha=0.2)  # * (471.20947 - 2.6265918e+02)
+        #         plt.plot(np.array(losses), c='b', alpha=0.2)  # * (471.20947 - 2.6265918e+02)
         # plt.ylabel("Absolute Error From True ORP")
         # plt.xlabel("Rollout Step")
         # plt.show()

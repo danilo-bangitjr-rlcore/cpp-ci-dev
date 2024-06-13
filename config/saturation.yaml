@@ -4,7 +4,7 @@ defaults:
   - override env: saturation
   - override data_loader: direct_action
   - override interaction: normalizer
-  - override calibration_model : gru
+  - override calibration_model : simple
   - override state_constructor: multi_trace
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: identity
@@ -18,7 +18,7 @@ offline_data:
 
 experiment :
   exp_name : "calibration_model_test"
-  max_steps : 100
+  max_steps : 5000
   offline_steps : 100
   set_env_obs_space : True
   timeout: 0

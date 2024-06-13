@@ -192,7 +192,6 @@ def make_anytime_trajectories(
     done = False
     transition_idx = 0
     pbar = tqdm(total=len(obs_transitions))
-    scs = []
     while not done:
         # first, get transitions until a gap
         curr_chunk_obs_transitions = []
