@@ -128,6 +128,10 @@ def main(cfg: DictConfig) -> dict:
     for traj in train_trajectories:
         train_transitions += traj.transitions
 
+    test_transitions = []
+    for traj in test_trajectories:
+        test_transitions += traj.transitions
+
     reward_func = init_reward_function(cfg.env.reward)
     train_info = {
         'train_trajectories': train_trajectories,
@@ -141,6 +145,15 @@ def main(cfg: DictConfig) -> dict:
 
     state_dim, action_dim = get_state_action_dim(env, sc)
     agent = init_agent(cfg.agent, state_dim, action_dim)
+
+    # agent should be pretty bad
+    returns = cm.do_agent_rollouts(agent, plot=True)
+    print("Returns", returns)
+
+    # now, train the agent, is it better?
+    offline_eval = offline_training(cfg, agent, test_transitions, train_transitions)
+    returns = cm.do_agent_rollouts(agent, plot=True)
+    print("Returns", returns)
 
 
 if __name__ == "__main__":

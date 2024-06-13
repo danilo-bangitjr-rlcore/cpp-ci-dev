@@ -30,3 +30,4 @@ optimizer:
 
 max_rollout_len : 400
 steps_per_decision : ${interaction.steps_per_decision}
+num_test_rollouts : 20

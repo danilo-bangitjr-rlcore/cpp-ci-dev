@@ -1,4 +1,4 @@
-from corerl.calibration_models.one_step import SimpleCalibrationModel
+from corerl.calibration_models.one_step import OneStep
 from corerl.calibration_models.gru import GRUCalibrationModel
 from corerl.calibration_models.simple_n_step import NStepCalibrationModel
 # from corerl.calibration_models.anytime_interpolation import AnytimeCalibrationModel
@@ -8,7 +8,7 @@ from corerl.calibration_models.anytime import AnytimeCalibrationModel
 def init_calibration_model(cfg, train_info):
     name = cfg.name
     if name == 'simple':
-        cm = SimpleCalibrationModel(cfg, train_info)
+        cm = OneStep(cfg, train_info)
     elif name == 'nstep':
         cm = NStepCalibrationModel(cfg, train_info)
     elif name == 'gru':

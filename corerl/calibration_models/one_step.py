@@ -1,19 +1,26 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import random
+
 from tqdm import tqdm
 from copy import deepcopy
 from omegaconf import DictConfig
-from corerl.component.buffer.factory import init_buffer
+from typing import Optional
 
+from corerl.agent.base import BaseAgent
+from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
-
 from corerl.component.network.utils import tensor, to_np
+from corerl.calibration_models.base import BaseCalibrationModel
+from corerl.data import Trajectory
+import corerl.calibration_models.utils as utils
+
 import matplotlib.pyplot as plt
 
 
-class SimpleCalibrationModel:
+class OneStep(BaseCalibrationModel):
     def __init__(self, cfg: DictConfig, train_info):
         self.test_trajectories = train_info['test_trajectories']
         train_transitions = train_info['train_transitions']
@@ -41,6 +48,7 @@ class SimpleCalibrationModel:
 
         self.max_rollout_len = cfg.max_rollout_len
         self.steps_per_decision = cfg.steps_per_decision
+        self.num_test_rollouts = cfg.num_test_rollouts
 
     def update(self):
         batch = self.buffer.sample_mini_batch(self.batch_size)
@@ -64,84 +72,7 @@ class SimpleCalibrationModel:
             pbar.set_description("train loss: {:7.6f}".format(self.train_losses[-1]))
 
         self.do_test_rollouts()
-
         return self.train_losses, self.test_losses
-
-    def do_test_rollout(self, traj, num, start):
-        # validates the model's accuracy on a test rollout
-        transitions = traj.transitions[start:]
-        sc = deepcopy(traj.scs[start])  # cuz this is completely wrong hey!
-        # print("initial trace", sc.sc.parents[1].trace)
-        losses = []
-        rollout_len = min(traj.num_transitions, self.max_rollout_len)
-
-        state = transitions[0].state
-
-        orps = []
-        predicted_orps = []
-        actions = []
-
-        for step in range(rollout_len):
-            t = transitions[step]
-            action = t.action
-            next_obs = t.next_obs
-            next_endo_obs = next_obs[self.endo_inds]
-
-            state_tensor = tensor(state).reshape((1, -1))
-            action_tensor = tensor(action).reshape((1, -1))
-
-            predicted_next_endo_obs = self.get_prediction(state_tensor, action_tensor)
-
-            actions.append(action)
-            orps.append(next_obs[0])
-            predicted_orps.append(predicted_next_endo_obs)
-
-            # log the loss
-            loss_step = np.mean(np.abs(next_endo_obs - to_np(predicted_next_endo_obs)))
-            losses.append(loss_step)
-
-            # construct a fictitous observation using the predicted endogenous variables and the actual
-            # exogenous variables
-            new_obs = next_obs.copy()
-            for i, j in enumerate(self.endo_inds):
-                new_obs[j] = predicted_next_endo_obs[i]
-
-            decision_point = step % self.steps_per_decision == 0
-            state = sc(new_obs, action, decision_point=decision_point) # TODO there is a bug here I think
-
-        plt.plot(orps, label='orps')
-        plt.plot(actions, label='actions')
-
-        predicted_orps = [np.squeeze(to_np(p)) for p in predicted_orps]
-        plt.plot(predicted_orps, label='predicted orps')
-        plt.legend()
-
-        plt.xlabel("Rollout Step")
-        plt.savefig(f"test_{num}_{start}.png", bbox_inches='tight')
-        plt.clf()
-
-        return losses
-
-    def do_test_rollouts(self):
-        import matplotlib.pyplot as plt
-        import random
-
-
-        for n, test_traj in enumerate(self.test_trajectories):
-            last = test_traj.num_transitions - self.max_rollout_len
-            num_rollouts = 20
-            increase_idx = last // num_rollouts
-            start_idx = 0
-            for start in range(num_rollouts):
-                # start_idx = random.choice(range(0, test_traj.num_transitions-self.max_rollout_len))
-                losses = self.do_test_rollout(test_traj, n,  start_idx)
-                start_idx += increase_idx
-
-
-        #         plt.plot(np.array(losses), c='b', alpha=0.2)  # * (471.20947 - 2.6265918e+02)
-        # plt.ylabel("Absolute Error From True ORP")
-        # plt.xlabel("Rollout Step")
-        # plt.show()
 
     def get_prediction(self, state: torch.Tensor, action: torch.Tensor, with_grad: bool = False):
         x = torch.concat((state, action), dim=1)
@@ -152,31 +83,112 @@ class SimpleCalibrationModel:
                 y = self.model(x)
         return y
 
-    def do_agent_rollout(self, traj, agent, rollout_len=20):
-        gamma = agent.gamma
-        g = 0  # the return
-        prev_action = None
-
-        transitions = traj.transitions
-        sc = deepcopy(traj.start_sc)
+    def do_test_rollout(self, traj: Trajectory, start_idx, plot=False):
+        transitions = traj.transitions[start_idx:]
+        sc = deepcopy(traj.scs[start_idx])
         state = transitions[0].state
-        for step in range(rollout_len):
-            t = transitions[step]
+        rollout_len = min(len(transitions), self.max_rollout_len)
+        losses = []
+        endo_obss = []
+        predicted_endo_obss = []
+        actions = []
 
-            action = agent.get_action(state)
-            next_obs = t.next_obs
+        for step in range(rollout_len):
+            transition_step = transitions[step]
+            action = transition_step.action
+            next_obs = transition_step.next_obs
+            next_endo_obs = next_obs[self.endo_inds]
 
             state_tensor = tensor(state).reshape((1, -1))
             action_tensor = tensor(action).reshape((1, -1))
 
             predicted_next_endo_obs = self.get_prediction(state_tensor, action_tensor)
 
-            new_obs = next_obs.copy()
-            for i, j in enumerate(self.endo_inds):
-                new_obs[j] = predicted_next_endo_obs[i]
+            # log the loss
+            loss_step = np.mean(np.abs(next_endo_obs - to_np(predicted_next_endo_obs)))
+            losses.append(loss_step)
+
+            # construct a fictitious observation using the predicted endogenous variables and the actual
+            # exogenous variables
+            new_fictitious_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
 
             decision_point = step % self.steps_per_decision == 0
-            state = sc(new_obs, action, decision_point=decision_point)
+            state = sc(new_fictitious_obs, action, decision_point=decision_point)
+
+            # log stuff
+            actions.append(action)
+            endo_obss.append(next_obs[0])
+            predicted_endo_obss.append(predicted_next_endo_obs)
+
+        if plot:
+            plt.plot(endo_obss, label='endo obs.')
+            plt.plot(actions, label='actions')
+
+            predicted_endo_obss = [np.squeeze(to_np(p)) for p in predicted_endo_obss]
+            plt.plot(predicted_endo_obss, label='predicted endo obs.')
+            plt.legend()
+
+            plt.xlabel("Rollout Step")
+            plt.savefig(f"test_{start_idx}.png", bbox_inches='tight')
+            plt.clf()
+
+        return losses
+
+    def do_test_rollouts(self):
+        for n, test_traj in enumerate(self.test_trajectories):
+            last = test_traj.num_transitions - self.max_rollout_len
+            increase_idx = last // self.num_test_rollouts
+            start_idx = 0
+            for start in range(self.num_test_rollouts):
+                self.do_test_rollout(test_traj, start_idx)
+                start_idx += increase_idx
+
+    def do_agent_rollout(self, traj: Trajectory, agent: BaseAgent, start_idx: Optional[int] = None, plot=False) -> float:
+        if start_idx is None:
+            start_idx = random.randint(0, traj.num_transitions - self.max_rollout_len - 1)
+
+        transitions = traj.transitions[start_idx:]
+        sc = deepcopy(traj.scs[start_idx])
+        state = transitions[0].state
+
+        gamma = agent.gamma
+        g = 0  # the return
+        prev_action = None
+
+        losses = []
+        endo_obss = []
+        predicted_endo_obss = []
+        actions = []
+        rollout_len = min(len(transitions), self.max_rollout_len)
+
+        remaining_decision_steps = transitions[0].gamma_exponent
+        action = transitions[0].action
+
+        for step in range(rollout_len):
+            if remaining_decision_steps == 0:
+                action = agent.get_action(state)
+                remaining_decision_steps = self.steps_per_decision
+
+            transition_step = transitions[step]
+
+            next_obs = transition_step.next_obs
+            next_endo_obs = next_obs[self.endo_inds]
+
+            state_tensor = tensor(state).reshape((1, -1))
+            action_tensor = tensor(action).reshape((1, -1))
+
+            predicted_next_endo_obs = self.get_prediction(state_tensor, action_tensor)
+
+            # log the loss
+            loss_step = np.mean(np.abs(next_endo_obs - to_np(predicted_next_endo_obs)))
+            losses.append(loss_step)
+
+            # construct a fictitious observation using the predicted endogenous variables and the actual
+            # exogenous variables
+            new_fictitious_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
+
+            decision_point = step % self.steps_per_decision == 0
+            state = sc(new_fictitious_obs, action, decision_point=decision_point)
 
             reward_info = {}
             if prev_action is None:
@@ -185,16 +197,38 @@ class SimpleCalibrationModel:
                 reward_info['prev_action'] = prev_action
             reward_info['curr_action'] = action
 
-            denormalized_obs = self.interaction.obs_normalizer.denormalize(new_obs)
-            g += gamma * self.reward_func(denormalized_obs, **reward_info)
+            # Not sure if this denormalizer should be here.
+            denormalized_obs = self.interaction.obs_normalizer.denormalize(new_fictitious_obs)
+            r = self.reward_func(denormalized_obs, **reward_info)
+            r_norm = self.interaction.reward_normalizer(r)
+            g += gamma * r_norm
             prev_action = action
+
+            remaining_decision_steps -= 1
+
+            # log stuff
+            actions.append(action)
+            endo_obss.append(next_obs[0])
+            predicted_endo_obss.append(predicted_next_endo_obs)
+
+        if plot:
+            plt.plot(endo_obss, label='endo obs.')
+            plt.plot(actions, label='actions')
+
+            predicted_endo_obss = [np.squeeze(to_np(p)) for p in predicted_endo_obss]
+            plt.plot(predicted_endo_obss, label='predicted endo obs.')
+            plt.legend()
+
+            plt.xlabel("Rollout Step")
+            plt.savefig(f"test_{start_idx}.png", bbox_inches='tight')
+            plt.clf()
 
         return g
 
-    def do_agent_rollouts(self, agent):
+    def do_agent_rollouts(self, agent: BaseAgent, plot=False):
         returns = []
         for test_traj in self.test_trajectories:
-            rollout_return = self.do_agent_rollout(test_traj, agent)
+            rollout_return = self.do_agent_rollout(test_traj, agent, plot=plot, start_idx=1000)
             returns.append(rollout_return)
 
         return returns

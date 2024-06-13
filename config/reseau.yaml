@@ -20,7 +20,7 @@ offline_data:
 experiment :
   exp_name : "reseau_test_burn_in"
   max_steps : 0
-  offline_steps : 10
+  offline_steps : 1000
   set_env_obs_space : True
 
 env:
