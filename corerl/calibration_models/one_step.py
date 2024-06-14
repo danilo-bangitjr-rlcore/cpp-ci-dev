@@ -13,19 +13,20 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.network.utils import tensor, to_np
-from corerl.calibration_models.base import BaseCalibrationModel
+from corerl.calibration_models.base import NNCalibrationModel
 from corerl.data import Trajectory
+from corerl.state_constructor.base import BaseStateConstructor
 import corerl.calibration_models.utils as utils
 
 import matplotlib.pyplot as plt
 
 
-class OneStep(BaseCalibrationModel):
+class OneStep(NNCalibrationModel):
     def __init__(self, cfg: DictConfig, train_info):
-        self.test_trajectories = train_info['test_trajectories']
-        train_transitions = train_info['train_transitions']
+        self.test_trajectories = train_info['test_trajectories_cm']
+        train_transitions = train_info['train_transitions_cm']
         self.reward_func = train_info['reward_func']
-        self.interaction = train_info['interaction']
+        self.interaction = train_info['interaction_cm']
 
         self.buffer = init_buffer(cfg.buffer)
         self.test_buffer = init_buffer(cfg.buffer)
@@ -83,19 +84,33 @@ class OneStep(BaseCalibrationModel):
                 y = self.model(x)
         return y
 
-    def do_test_rollout(self, traj: Trajectory, start_idx, plot=False):
+    def do_test_rollouts(self):
+        for n, test_traj in enumerate(self.test_trajectories):
+            last = test_traj.num_transitions - self.max_rollout_len
+            increase_idx = last // self.num_test_rollouts
+            start_idx = 0
+            for start in range(self.num_test_rollouts):
+                self.do_test_rollout(test_traj, start_idx=start_idx, plot=True)
+                start_idx += increase_idx
+
+    def do_test_rollout(self, traj: Trajectory, start_idx: Optional[int] = None, plot=False) -> list[float]:
+        if start_idx is None:
+            start_idx = random.randint(0, traj.num_transitions - self.max_rollout_len - 1)
+
         transitions = traj.transitions[start_idx:]
         sc = deepcopy(traj.scs[start_idx])
         state = transitions[0].state
-        rollout_len = min(len(transitions), self.max_rollout_len)
+
         losses = []
         endo_obss = []
         predicted_endo_obss = []
         actions = []
+        rollout_len = min(len(transitions), self.max_rollout_len)
 
         for step in range(rollout_len):
             transition_step = transitions[step]
             action = transition_step.action
+
             next_obs = transition_step.next_obs
             next_endo_obs = next_obs[self.endo_inds]
 
@@ -134,22 +149,23 @@ class OneStep(BaseCalibrationModel):
 
         return losses
 
-    def do_test_rollouts(self):
-        for n, test_traj in enumerate(self.test_trajectories):
-            last = test_traj.num_transitions - self.max_rollout_len
-            increase_idx = last // self.num_test_rollouts
-            start_idx = 0
-            for start in range(self.num_test_rollouts):
-                self.do_test_rollout(test_traj, start_idx)
-                start_idx += increase_idx
-
-    def do_agent_rollout(self, traj: Trajectory, agent: BaseAgent, start_idx: Optional[int] = None, plot=False) -> float:
+    def do_agent_rollout(self,
+                         traj_cm: Trajectory,
+                         traj_agent: Trajectory,
+                         agent: BaseAgent,
+                         start_idx: Optional[int] = None,
+                         plot=False) -> float:
         if start_idx is None:
-            start_idx = random.randint(0, traj.num_transitions - self.max_rollout_len - 1)
+            start_idx = random.randint(0, traj_cm.num_transitions - self.max_rollout_len - 1)
 
-        transitions = traj.transitions[start_idx:]
-        sc = deepcopy(traj.scs[start_idx])
-        state = transitions[0].state
+        transitions_cm = traj_cm.transitions[start_idx:]
+        transitions_agent = traj_agent.transitions[start_idx:]
+        # we have two different state constructors, one for the agent and one for the model
+        sc_cm = deepcopy(traj_cm.scs[start_idx])
+        sc_agent = deepcopy(traj_agent.scs[start_idx])
+
+        state_cm = transitions_cm[0].state
+        state_agent = transitions_agent[0].state
 
         gamma = agent.gamma
         g = 0  # the return
@@ -159,25 +175,25 @@ class OneStep(BaseCalibrationModel):
         endo_obss = []
         predicted_endo_obss = []
         actions = []
-        rollout_len = min(len(transitions), self.max_rollout_len)
+        rollout_len = min(len(transitions_cm), self.max_rollout_len)
 
-        remaining_decision_steps = transitions[0].gamma_exponent
-        action = transitions[0].action
+        remaining_decision_steps = transitions_cm[0].gamma_exponent
+        action = transitions_cm[0].action  # the initial agent's action
 
         for step in range(rollout_len):
-            if remaining_decision_steps == 0:
-                action = agent.get_action(state)
-                remaining_decision_steps = self.steps_per_decision
+            transition_step = transitions_cm[step]
 
-            transition_step = transitions[step]
+            # if it is time for a decision, sample an action from the agent
+            if remaining_decision_steps == 0:
+                action = agent.get_action(state_agent)
+                remaining_decision_steps = self.steps_per_decision
 
             next_obs = transition_step.next_obs
             next_endo_obs = next_obs[self.endo_inds]
 
-            state_tensor = tensor(state).reshape((1, -1))
+            state_cm_tensor = tensor(state_cm).reshape((1, -1))
             action_tensor = tensor(action).reshape((1, -1))
-
-            predicted_next_endo_obs = self.get_prediction(state_tensor, action_tensor)
+            predicted_next_endo_obs = self.get_prediction(state_cm_tensor, action_tensor)
 
             # log the loss
             loss_step = np.mean(np.abs(next_endo_obs - to_np(predicted_next_endo_obs)))
@@ -188,7 +204,8 @@ class OneStep(BaseCalibrationModel):
             new_fictitious_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
 
             decision_point = step % self.steps_per_decision == 0
-            state = sc(new_fictitious_obs, action, decision_point=decision_point)
+            state_cm = sc_cm(new_fictitious_obs, action, decision_point=decision_point)
+            state_agent = sc_agent(new_fictitious_obs, action, decision_point=decision_point)
 
             reward_info = {}
             if prev_action is None:
@@ -225,10 +242,12 @@ class OneStep(BaseCalibrationModel):
 
         return g
 
-    def do_agent_rollouts(self, agent: BaseAgent, plot=False):
+    def do_agent_rollouts(self, agent: BaseAgent, trajectories_agent: list[Trajectory], plot=False):
         returns = []
-        for test_traj in self.test_trajectories:
-            rollout_return = self.do_agent_rollout(test_traj, agent, plot=plot, start_idx=1000)
-            returns.append(rollout_return)
-
+        assert len(trajectories_agent) == len(self.test_trajectories)
+        for traj_i in range(len(trajectories_agent)):
+            traj_cm = self.test_trajectories[traj_i]
+            traj_agent = self.test_trajectories[traj_i]
+            return_ = self.do_agent_rollout(traj_cm, traj_agent, agent, start_idx=1000, plot=True)
+            returns.append(return_)
         return returns

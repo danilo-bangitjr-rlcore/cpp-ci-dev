@@ -1,19 +1,24 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import matplotlib.pyplot as plt
+
 from tqdm import tqdm
 from copy import deepcopy
 from omegaconf import DictConfig
-from corerl.component.buffer.factory import init_buffer
+from typing import Optional
 
+import corerl.calibration_models.utils as utils
+from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
-
+from corerl.calibration_models.base import NNCalibrationModel
 from corerl.component.network.utils import tensor, to_np
-import matplotlib.pyplot as plt
+from corerl.data import Trajectory
+from corerl.agent.base import BaseAgent
 
 
-class AnytimeCalibrationModel:
+class AnytimeCalibrationModel(NNCalibrationModel):
     def __init__(self, cfg: DictConfig, train_info):
         self.test_trajectories = train_info['test_trajectories']
         train_transitions = train_info['train_transitions']
@@ -49,7 +54,10 @@ class AnytimeCalibrationModel:
 
         self.max_rollout_len = cfg.max_rollout_len
         self.steps_per_decision = cfg.steps_per_decision
-        self.max_action_duration = 30
+        # this is for duration normalization. Could be different in the future.
+        self.max_action_duration = cfg.steps_per_decision
+        self.interpolation = cfg.interpolation
+        self.num_test_rollouts = cfg.num_test_rollouts
 
     def eval(self, batch, with_grad):
         # gamma_exponents double as the durations of actions
@@ -95,26 +103,24 @@ class AnytimeCalibrationModel:
             pbar.set_description("train loss: {:7.6f}, test_loss: {:7.6f}".format(train_loss, test_loss))
 
         self.do_test_rollouts()
-        # plt.plot(train_losses)
-        # plt.yscale('log')
-        #
-        # plt.plot(test_losses)
-        #
-        # plt.show()
-
         return self.train_losses, self.test_losses
 
-    def do_test_rollout(self, traj, num, start):
+    def linear_interpolation(self, inter_step, duration_int, curr_obs, predicted_next_endo_obs):
+        w = (inter_step) / duration_int
+        fictitious_endo_obs = (1 - w) * curr_obs[self.endo_inds] + w * predicted_next_endo_obs
+        return fictitious_endo_obs
+
+    def do_test_rollout(self, traj: Trajectory, start_idx: int, plot: bool = False, agent: BaseAgent=None) -> list[float]:
         # validates the model's accuracy on a test rollout
-        transitions = traj.transitions[start:]
-        sc = deepcopy(traj.scs[start])
+        transitions = traj.transitions[start_idx:]
+        sc = deepcopy(traj.scs[start_idx])
         losses = []
         rollout_len = min(traj.num_transitions, self.max_rollout_len)
 
         state = transitions[0].state
 
-        orps = []
-        predicted_orps = []
+        endo_obss = []
+        predicted_endo_obss = []
         actions = []
 
         step = 0
@@ -122,115 +128,89 @@ class AnytimeCalibrationModel:
 
         num_predictions = 0
         curr_obs = transitions[0].obs
-        while not done:
-            t = transitions[step]
-            action = t.action
+        remaining_decision_steps = 0
 
-            boot_obs = t.boot_obs
-            boot_endo_obs = boot_obs[self.endo_inds]
-            duration_int = t.gamma_exponent
+
+        # but the agent could be using a different state constructor from the environment, hey????
+        while not done:
+            transition_step = transitions[step]
+
+            # this logic decides whether to get the next action from the agent or the environment
+            if agent is not None:
+                if remaining_decision_steps == 0:
+                    action = agent.get_action(state)
+                    remaining_decision_steps = self.steps_per_decision
+                    duration_int = self.steps_per_decision
+                else:
+                    duration_int = remaining_decision_steps
+            else:
+                action = transition_step.action
+                duration_int = transition_step.gamma_exponent
+
             duration = duration_int / self.max_action_duration
 
             state_tensor = tensor(state).reshape((1, -1))
             action_tensor = tensor(action).reshape((1, -1))
             duration_tensor = tensor(duration).reshape((1, -1))
 
-            # generate a sequence of fictitious observations
-
-            fictitious_obss = []
-            print("duration_int", duration_int)
-            # I'm not sure the for loop here is entirely correct.
-
             predicted_next_endo_obs = to_np(self.get_prediction(state_tensor, action_tensor, duration_tensor))
-            # for inter_step in range(1, duration_int + 1):
-            #     print("inter_step", inter_step)
-            #     inter_step_transition = transitions[step + inter_step]
-            #     inter_step_obs = inter_step_transition.obs
-            #     print("action", inter_step_transition.action)
-            #
-            #     inter_step_duration = inter_step / self.max_action_duration
-            #     inter_duration_tensor = tensor(inter_step_duration).reshape((1, -1))
-            #     predicted_inter_endo_obs = to_np(
-            #         self.get_prediction(state_tensor, action_tensor, inter_duration_tensor))
-            #     if inter_step == duration_int:
-            #         print('prediction_1', predicted_inter_endo_obs)
-            #         print('prediction_2', predicted_next_endo_obs)
-            #
-            #     fictitious_obs = inter_step_obs.copy()
-            #     for i, j in enumerate(self.endo_inds):
-            #         fictitious_obs[j] = predicted_inter_endo_obs[i]
-            #
-            #     # assert transitions[step + inter_step].action == action
-            #     decision_point = step + inter_step % self.steps_per_decision == 0
-            #
-            #     state = sc(fictitious_obs, action, decision_point=decision_point)
-            #
-            #     loss_step = np.mean(np.abs(inter_step_obs[self.endo_inds] - to_np(predicted_inter_endo_obs)))
-            #     losses.append(loss_step)
-            #
-            #     actions.append(action)
-            #     orps.append(inter_step_obs[0])
-            #     predicted_orps.append(predicted_inter_endo_obs)
-
             for inter_step in range(1, duration_int + 1):
-                w = (inter_step) / duration_int
-                fictitious_endo_obs = (1 - w) * curr_obs[self.endo_inds] + w * predicted_next_endo_obs
+                inter_step_transition = transitions[step + inter_step]
+                inter_step_obs = inter_step_transition.obs
+                inter_next_obs = inter_step_transition.next_obs
 
-                inter_step_obs = transitions[step + inter_step].obs
-                fictitious_obs = inter_step_obs.copy()
-                for i, j in enumerate(self.endo_inds):
-                    fictitious_obs[j] = fictitious_endo_obs[i]
+                if self.interpolation == 'linear':
+                    predicted_inter_endo_obs = self.linear_interpolation(inter_step, duration_int, curr_obs,
+                                                                         predicted_next_endo_obs)
+                else:  # use the model to interpolate
+                    inter_step_duration = inter_step / self.max_action_duration
+                    inter_duration_tensor = tensor(inter_step_duration).reshape((1, -1))
 
-                # assert transitions[step + inter_step].action == action
+                    predicted_inter_endo_obs = to_np(
+                        self.get_prediction(state_tensor, action_tensor, inter_duration_tensor))
+
+                fictitious_obs = utils.new_fictitious_obs(predicted_inter_endo_obs, inter_next_obs, self.endo_inds)
                 decision_point = step + inter_step % self.steps_per_decision == 0
                 state = sc(fictitious_obs, action, decision_point=decision_point)
 
+                loss_step = np.mean(np.abs(inter_step_obs[self.endo_inds] - to_np(predicted_inter_endo_obs)))
+                losses.append(loss_step)
+
                 actions.append(action)
-                orps.append(inter_step_obs[0])
-                predicted_orps.append(fictitious_endo_obs)
+                endo_obss.append(inter_step_obs[0])
+                predicted_endo_obss.append(predicted_inter_endo_obs)
 
             step += duration_int
             num_predictions += 1
 
             # log the loss
-
             curr_obs = fictitious_obs
 
             if step > rollout_len:
                 done = True
 
-        print('NUM PREDICTIONS', num_predictions)
+        if plot:
+            plt.plot(endo_obss, label='endo obs.')
+            plt.plot(actions, label='actions')
 
-        plt.plot(orps, label='orps')
-        plt.plot(actions, label='actions')
+            predicted_endo_obss = [np.squeeze(to_np(p)) for p in predicted_endo_obss]
+            plt.plot(predicted_endo_obss, label='predicted endo obs.')
+            plt.legend()
 
-        predicted_orps = [np.squeeze(to_np(p)) for p in predicted_orps]
-        plt.plot(predicted_orps, label='predicted orps')
-        plt.legend()
-
-        plt.xlabel("Rollout Step")
-        plt.savefig(f"test_{num}_{start}.png", bbox_inches='tight')
-        plt.clf()
+            plt.xlabel("Rollout Step")
+            plt.savefig(f"test_{start_idx}.png", bbox_inches='tight')
+            plt.clf()
 
         return losses
 
     def do_test_rollouts(self):
-        import matplotlib.pyplot as plt
-        import random
         for n, test_traj in enumerate(self.test_trajectories):
             last = test_traj.num_transitions - self.max_rollout_len
-            num_rollouts = 20
-            increase_idx = last // num_rollouts
+            increase_idx = last // self.num_test_rollouts
             start_idx = 0
-            for start in range(num_rollouts):
-                # start_idx = random.choice(range(0, test_traj.num_transitions-self.max_rollout_len))
-                losses = self.do_test_rollout(test_traj, n,  start_idx)
+            for start in range(self.num_test_rollouts):
+                self.do_test_rollout(test_traj, start_idx=start_idx, plot=True)
                 start_idx += increase_idx
-
-        #         plt.plot(np.array(losses), c='b', alpha=0.2)  # * (471.20947 - 2.6265918e+02)
-        # plt.ylabel("Absolute Error From True ORP")
-        # plt.xlabel("Rollout Step")
-        # plt.show()
 
     def get_prediction(self, state: torch.Tensor, action: torch.Tensor, duration: torch.Tensor,
                        with_grad: bool = False):
@@ -242,5 +222,12 @@ class AnytimeCalibrationModel:
                 y = self.model(x)
         return y
 
-    def do_agent_rollout(self, traj, agent, rollout_len=20):
-        pass
+
+    def do_agent_rollouts(self, agent, plot=False):
+        returns = []
+        for test_traj in self.test_trajectories:
+            rollout_return = self.do_test_rollout(test_traj, agent=agent, plot=plot, start_idx=1000)
+            returns.append(rollout_return)
+
+        return returns
+

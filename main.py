@@ -215,7 +215,7 @@ def get_state_action_dim(env, sc):
     return state_dim, action_dim
 
 
-def offline_training(cfg, agent, test_transitions, train_transitions):
+def offline_training(cfg, agent, train_transitions, test_transitions):
     print('Starting offline training...')
     offline_eval_args = {
         'agent': agent
@@ -313,7 +313,7 @@ def main(cfg: DictConfig) -> dict:
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
     if do_offline_training:
-        offline_eval = offline_training(cfg, agent, test_transitions, train_transitions)
+        offline_eval = offline_training(cfg, agent, train_transitions, test_transitions)
 
     online_eval = online_deployment(cfg, agent, interaction, env)
     online_eval.output(save_path / 'stats.json')

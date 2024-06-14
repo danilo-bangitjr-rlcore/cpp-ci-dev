@@ -21,10 +21,6 @@ class BaseCalibrationModel(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def do_agent_rollout(self, traj: Trajectory, agent: BaseAgent):
-        raise NotImplementedError
-
-    @abstractmethod
     def do_agent_rollouts(self, agent):
         raise NotImplementedError
 

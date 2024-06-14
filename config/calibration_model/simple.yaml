@@ -1,3 +1,7 @@
+defaults:
+  - /state_constructor: multi_trace
+  - _self_
+
 name : simple
 
 buffer:
@@ -6,6 +10,7 @@ buffer:
   name: uniform
   device: cpu
   seed: ${experiment.seed}
+
 
 train_itr: 10000
 batch_size : 64
