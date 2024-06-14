@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 
 from tqdm import tqdm
 from copy import deepcopy
@@ -20,10 +21,11 @@ from corerl.agent.base import BaseAgent
 
 class AnytimeCalibrationModel(NNCalibrationModel):
     def __init__(self, cfg: DictConfig, train_info):
-        self.test_trajectories = train_info['test_trajectories']
-        train_transitions = train_info['train_transitions']
+        self.test_trajectories = train_info['test_trajectories_cm']
+        train_transitions = train_info['train_transitions_cm']
+        test_transitions = train_info['test_transitions_cm']
         self.reward_func = train_info['reward_func']
-        self.interaction = train_info['interaction']
+        self.interaction = train_info['interaction_cm']
 
         self.buffer = init_buffer(cfg.buffer)
         self.test_buffer = init_buffer(cfg.buffer)
@@ -31,11 +33,6 @@ class AnytimeCalibrationModel(NNCalibrationModel):
         self.batch_size = cfg.batch_size
 
         self.buffer.load(train_transitions)
-
-        test_transitions = []
-        for t in self.test_trajectories:
-            test_transitions += t.transitions
-
         self.test_buffer.load(test_transitions)
 
         self.endo_inds = cfg.endo_inds
@@ -110,8 +107,20 @@ class AnytimeCalibrationModel(NNCalibrationModel):
         fictitious_endo_obs = (1 - w) * curr_obs[self.endo_inds] + w * predicted_next_endo_obs
         return fictitious_endo_obs
 
-    def do_test_rollout(self, traj: Trajectory, start_idx: int, plot: bool = False, agent: BaseAgent=None) -> list[float]:
-        # validates the model's accuracy on a test rollout
+    def get_prediction(self, state: torch.Tensor, action: torch.Tensor, duration: torch.Tensor,
+                       with_grad: bool = False):
+        x = torch.concat((state, action, duration), dim=1)
+        if with_grad:
+            y = self.model(x)
+        else:
+            with torch.no_grad():
+                y = self.model(x)
+        return y
+
+    def do_test_rollout(self, traj: Trajectory, start_idx: int, plot: bool = False) -> list[float]:
+        """
+        Validates the model's accuracy on a test rollout, where actions are from the dataset
+        """
         transitions = traj.transitions[start_idx:]
         sc = deepcopy(traj.scs[start_idx])
         losses = []
@@ -125,28 +134,13 @@ class AnytimeCalibrationModel(NNCalibrationModel):
 
         step = 0
         done = False
-
         num_predictions = 0
         curr_obs = transitions[0].obs
-        remaining_decision_steps = 0
 
-
-        # but the agent could be using a different state constructor from the environment, hey????
         while not done:
             transition_step = transitions[step]
-
-            # this logic decides whether to get the next action from the agent or the environment
-            if agent is not None:
-                if remaining_decision_steps == 0:
-                    action = agent.get_action(state)
-                    remaining_decision_steps = self.steps_per_decision
-                    duration_int = self.steps_per_decision
-                else:
-                    duration_int = remaining_decision_steps
-            else:
-                action = transition_step.action
-                duration_int = transition_step.gamma_exponent
-
+            action = transition_step.action
+            duration_int = transition_step.gamma_exponent
             duration = duration_int / self.max_action_duration
 
             state_tensor = tensor(state).reshape((1, -1))
@@ -173,6 +167,7 @@ class AnytimeCalibrationModel(NNCalibrationModel):
                 decision_point = step + inter_step % self.steps_per_decision == 0
                 state = sc(fictitious_obs, action, decision_point=decision_point)
 
+                # log the loss
                 loss_step = np.mean(np.abs(inter_step_obs[self.endo_inds] - to_np(predicted_inter_endo_obs)))
                 losses.append(loss_step)
 
@@ -182,8 +177,6 @@ class AnytimeCalibrationModel(NNCalibrationModel):
 
             step += duration_int
             num_predictions += 1
-
-            # log the loss
             curr_obs = fictitious_obs
 
             if step > rollout_len:
@@ -212,22 +205,129 @@ class AnytimeCalibrationModel(NNCalibrationModel):
                 self.do_test_rollout(test_traj, start_idx=start_idx, plot=True)
                 start_idx += increase_idx
 
-    def get_prediction(self, state: torch.Tensor, action: torch.Tensor, duration: torch.Tensor,
-                       with_grad: bool = False):
-        x = torch.concat((state, action, duration), dim=1)
-        if with_grad:
-            y = self.model(x)
-        else:
-            with torch.no_grad():
-                y = self.model(x)
-        return y
+    def do_agent_rollout(self,
+                         traj_cm: Trajectory,
+                         traj_agent: Trajectory,
+                         agent: BaseAgent,
+                         start_idx: Optional[int] = None,
+                         plot=False) -> float:
 
+        if start_idx is None:
+            start_idx = random.randint(0, traj_cm.num_transitions - self.max_rollout_len - 1)
 
-    def do_agent_rollouts(self, agent, plot=False):
+        transitions_cm = traj_cm.transitions[start_idx:]
+        transitions_agent = traj_agent.transitions[start_idx:]
+        # we have two different state constructors, one for the agent and one for the model
+        sc_cm = deepcopy(traj_cm.scs[start_idx])
+        sc_agent = deepcopy(traj_agent.scs[start_idx])
+
+        state_cm = transitions_cm[0].state
+        state_agent = transitions_agent[0].state
+
+        gamma = agent.gamma
+        g = 0  # the return
+        prev_action = None
+
+        losses = []
+        endo_obss = []
+        predicted_endo_obss = []
+        actions = []
+        rollout_len = min(len(transitions_cm), self.max_rollout_len)
+
+        remaining_decision_steps = transitions_cm[0].gamma_exponent
+        action = transitions_cm[0].action  # the initial agent's action
+
+        step = 0
+        done = False
+
+        num_predictions = 0
+        curr_obs = transitions_cm[0].obs
+
+        while not done:
+            # if it is time for a decision, sample an action from the agent
+            if remaining_decision_steps == 0:
+                action = agent.get_action(state_agent)
+                remaining_decision_steps = self.steps_per_decision
+
+            duration_int = remaining_decision_steps  # how long to hold this action for
+            duration = remaining_decision_steps / self.max_action_duration
+
+            state_cm_tensor = tensor(state_cm).reshape((1, -1))
+            action_tensor = tensor(action).reshape((1, -1))
+            duration_tensor = tensor(duration).reshape((1, -1))
+
+            predicted_next_endo_obs = to_np(self.get_prediction(state_cm_tensor, action_tensor, duration_tensor))
+            for inter_step in range(1, duration_int + 1):
+                inter_step_transition = transitions_cm[step + inter_step]
+                inter_step_obs = inter_step_transition.obs
+                inter_next_obs = inter_step_transition.next_obs
+
+                if self.interpolation == 'linear':
+                    predicted_inter_endo_obs = self.linear_interpolation(inter_step, duration_int, curr_obs,
+                                                                         predicted_next_endo_obs)
+                else:  # use the model to interpolate
+                    inter_step_duration = inter_step / self.max_action_duration
+                    inter_duration_tensor = tensor(inter_step_duration).reshape((1, -1))
+
+                    predicted_inter_endo_obs = to_np(
+                        self.get_prediction(state_cm_tensor, action_tensor, inter_duration_tensor))
+
+                fictitious_obs = utils.new_fictitious_obs(predicted_inter_endo_obs, inter_next_obs, self.endo_inds)
+                decision_point = step + inter_step % self.steps_per_decision == 0
+                state_cm = sc_cm(fictitious_obs, action, decision_point=decision_point)
+                state_agent = sc_agent(fictitious_obs, action, decision_point=decision_point)
+
+                reward_info = {}
+                if prev_action is None:
+                    reward_info['prev_action'] = action
+                else:
+                    reward_info['prev_action'] = prev_action
+                reward_info['curr_action'] = action
+
+                # Not sure if this denormalizer should be here.
+                denormalized_obs = self.interaction.obs_normalizer.denormalize(fictitious_obs)
+                r = self.reward_func(denormalized_obs, **reward_info)
+                r_norm = self.interaction.reward_normalizer(r)
+                g += gamma * r_norm
+                prev_action = action
+
+                loss_step = np.mean(np.abs(inter_step_obs[self.endo_inds] - to_np(predicted_inter_endo_obs)))
+                losses.append(loss_step)
+
+                actions.append(action)
+                endo_obss.append(inter_step_obs[0])
+                predicted_endo_obss.append(predicted_inter_endo_obs)
+                remaining_decision_steps -= 1
+
+            step += duration_int
+            num_predictions += 1
+
+            # log the loss
+            curr_obs = fictitious_obs
+
+            if step > rollout_len:
+                done = True
+
+        if plot:
+            plt.plot(endo_obss, label='endo obs.')
+            plt.plot(actions, label='actions')
+
+            predicted_endo_obss = [np.squeeze(to_np(p)) for p in predicted_endo_obss]
+            plt.plot(predicted_endo_obss, label='predicted endo obs.')
+            plt.legend()
+
+            plt.xlabel("Rollout Step")
+            plt.savefig(f"test_{start_idx}.png", bbox_inches='tight')
+            plt.clf()
+
+        return g
+
+    def do_agent_rollouts(self, agent: BaseAgent, trajectories_agent: list[Trajectory], plot=False):
         returns = []
-        for test_traj in self.test_trajectories:
-            rollout_return = self.do_test_rollout(test_traj, agent=agent, plot=plot, start_idx=1000)
-            returns.append(rollout_return)
-
+        assert len(trajectories_agent) == len(self.test_trajectories)
+        for traj_i in range(len(trajectories_agent)):
+            traj_cm = self.test_trajectories[traj_i]
+            traj_agent = self.test_trajectories[traj_i]
+            return_ = self.do_agent_rollout(traj_cm, traj_agent, agent, start_idx=1000, plot=True)
+            returns.append(return_)
         return returns
-

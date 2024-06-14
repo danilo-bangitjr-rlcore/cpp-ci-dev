@@ -34,5 +34,5 @@ optimizer:
 
 max_rollout_len : 400
 steps_per_decision : ${interaction.steps_per_decision}
-interpolation : linear
+interpolation : model
 num_test_rollouts : 20
