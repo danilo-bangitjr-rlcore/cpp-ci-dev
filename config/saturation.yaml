@@ -19,7 +19,7 @@ offline_data:
 experiment :
   exp_name : "calibration_model_test"
   max_steps : 5000
-  offline_steps : 100
+  offline_steps : 0
   set_env_obs_space : True
   timeout: 0
   trajectory_len : 360

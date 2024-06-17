@@ -17,6 +17,4 @@ uniform_proposal : False
 n_sampler_updates: 1
 n_critic_updates : 1
 n_actor_updates : 1
-
-
-
+ensemble_targets: True
