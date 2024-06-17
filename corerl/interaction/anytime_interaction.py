@@ -31,7 +31,6 @@ class AnytimeInteraction(NormalizerInteraction):
     Interaction that will repeat an action for some length of time, while the observation is still
     updated more frequently
     """
-
     def __init__(
             self,
             cfg: DictConfig,
@@ -52,8 +51,6 @@ class AnytimeInteraction(NormalizerInteraction):
         observation_list = []
         env_info_list = []
 
-
-        # this needs to change with the next
         num_completed_steps = 0
         for obs_step in range(self.steps_per_decision):
             obs_end_time = time.time() + self.obs_length
@@ -96,8 +93,8 @@ class AnytimeInteraction(NormalizerInteraction):
                 observation_list[obs_step],
                 state_list[obs_step],
                 action,
-                observation_list[obs_step+1],
-                state_list[obs_step+1],
+                observation_list[obs_step + 1],
+                state_list[obs_step + 1],
                 reward_list[obs_step].item(),
                 observation_list[-1],
                 state_list[-1],

@@ -316,7 +316,9 @@ def main(cfg: DictConfig) -> dict:
         offline_eval = offline_training(cfg, agent, train_transitions, test_transitions)
 
     online_eval = online_deployment(cfg, agent, interaction, env)
-    online_eval.output(save_path / 'stats.json')
+    online_eval.output(save_path / 'stats.json')\
+
+    env.plot()
 
     # need to update make_plots here
     stats = online_eval.get_stats()
