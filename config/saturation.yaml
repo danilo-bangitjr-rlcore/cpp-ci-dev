@@ -5,11 +5,10 @@ defaults:
   - override data_loader: direct_action
   - override interaction: normalizer
   - override calibration_model : simple
-  - override state_constructor: multi_trace
+  - override state_constructor: anytime_multi_trace
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: identity
   - override interaction/obs_normalizer: identity
-#  - override agent/actor/actor_network: squashed_gaussian
   - _self_
 
 offline_data:
@@ -17,12 +16,11 @@ offline_data:
   output_path : offline_data/saturation
 
 experiment :
-  exp_name : "calibration_model_test"
+  exp_name : "saturation"
   max_steps : 5000
   offline_steps : 0
   set_env_obs_space : True
   timeout: 0
-  trajectory_len : 360
 
 env:
   opc : null

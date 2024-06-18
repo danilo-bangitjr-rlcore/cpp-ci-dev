@@ -137,8 +137,15 @@ class AnytimeCalibrationModel(NNCalibrationModel):
         num_predictions = 0
         curr_obs = transitions[0].obs
 
+        steps_until_decision_point = None
         while not done:
             transition_step = transitions[step]
+            if steps_until_decision_point == None:
+                assert step == 0
+                steps_until_decision_point = transition_step.gamma_exponent
+            elif steps_until_decision_point == 0:
+                steps_until_decision_point = self.steps_per_decision
+
             action = transition_step.action
             duration_int = transition_step.gamma_exponent
             duration = duration_int / self.max_action_duration
@@ -159,12 +166,14 @@ class AnytimeCalibrationModel(NNCalibrationModel):
                 else:  # use the model to interpolate
                     inter_step_duration = inter_step / self.max_action_duration
                     inter_duration_tensor = tensor(inter_step_duration).reshape((1, -1))
-
                     predicted_inter_endo_obs = to_np(
                         self.get_prediction(state_tensor, action_tensor, inter_duration_tensor))
 
                 fictitious_obs = utils.new_fictitious_obs(predicted_inter_endo_obs, inter_next_obs, self.endo_inds)
-                decision_point = step + inter_step % self.steps_per_decision == 0
+
+                # update the state constructor
+                steps_until_decision_point -= 1
+                decision_point = steps_until_decision_point == 0
                 state = sc(fictitious_obs, action, decision_point=decision_point)
 
                 # log the loss
@@ -234,23 +243,30 @@ class AnytimeCalibrationModel(NNCalibrationModel):
         actions = []
         rollout_len = min(len(transitions_cm), self.max_rollout_len)
 
-        remaining_decision_steps = transitions_cm[0].gamma_exponent
-        action = transitions_cm[0].action  # the initial agent's action
-
         step = 0
         done = False
 
         num_predictions = 0
         curr_obs = transitions_cm[0].obs
 
+        steps_until_decision_point = None
+        action = transitions_cm[0].action  # the initial agent's action
+        decision_point = transitions_cm[0].decision_point
         while not done:
             # if it is time for a decision, sample an action from the agent
-            if remaining_decision_steps == 0:
-                action = agent.get_action(state_agent)
-                remaining_decision_steps = self.steps_per_decision
+            if steps_until_decision_point == None:
+                assert step == 0
+                steps_until_decision_point = transitions_cm[0].gamma_exponent
+            elif steps_until_decision_point == 0:
+                steps_until_decision_point = self.steps_per_decision
 
-            duration_int = remaining_decision_steps  # how long to hold this action for
-            duration = remaining_decision_steps / self.max_action_duration
+            # whether the current state is a decision_point. Note this will either be defined initially,
+            # or at the end of the for loop
+            if decision_point:
+                action = agent.get_action(state_agent)
+
+            duration_int = steps_until_decision_point  # how long to hold this action for
+            duration = steps_until_decision_point / self.max_action_duration
 
             state_cm_tensor = tensor(state_cm).reshape((1, -1))
             action_tensor = tensor(action).reshape((1, -1))
@@ -273,7 +289,10 @@ class AnytimeCalibrationModel(NNCalibrationModel):
                         self.get_prediction(state_cm_tensor, action_tensor, inter_duration_tensor))
 
                 fictitious_obs = utils.new_fictitious_obs(predicted_inter_endo_obs, inter_next_obs, self.endo_inds)
-                decision_point = step + inter_step % self.steps_per_decision == 0
+
+                # update the state constructors
+                steps_until_decision_point -= 1
+                decision_point = steps_until_decision_point == 0
                 state_cm = sc_cm(fictitious_obs, action, decision_point=decision_point)
                 state_agent = sc_agent(fictitious_obs, action, decision_point=decision_point)
 
@@ -297,7 +316,6 @@ class AnytimeCalibrationModel(NNCalibrationModel):
                 actions.append(action)
                 endo_obss.append(inter_step_obs[0])
                 predicted_endo_obss.append(predicted_inter_endo_obs)
-                remaining_decision_steps -= 1
 
             step += duration_int
             num_predictions += 1

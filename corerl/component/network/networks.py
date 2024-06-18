@@ -441,15 +441,10 @@ class GRU(nn.Module):
 
                 else:  # feed the networks predictions back in.
                     out_t_len = out_t.size(-1)
-
                     # replace the first out_t_len elements of x_t with out_t
                     # the network only predicts endogenous variables, so we grab the exogenous from that time step
-                    # Note: out_t is the prediction of endogenous variables from the prev. time ste[
-                    # print(x_t[0, 0, :])
+                    # Note: out_t is the prediction of endogenous variables from the prev. time step
                     x_t = torch.cat((out_t, x_t[:, :, out_t_len:]), dim=-1)
-                    #
-                    # print(x_t[0, 0, :])
-                    # print("\n")
                     out_t, h = self.gru(x_t, h)
                     out_t = self.output_net(out_t)
 

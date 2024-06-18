@@ -102,15 +102,21 @@ class OneStep(NNCalibrationModel):
         state = transitions[0].state
 
         losses = []
-        endo_obss = []
-        predicted_endo_obss = []
+        endo_obss = []  # the true endogenous observations
+        predicted_endo_obss = []  # the predicted endogenous observations
         actions = []
         rollout_len = min(len(transitions), self.max_rollout_len)
 
+        steps_until_decision_point = None
         for step in range(rollout_len):
             transition_step = transitions[step]
-            action = transition_step.action
+            if steps_until_decision_point == None:
+                assert step == 0
+                steps_until_decision_point = transition_step.gamma_exponent
+            elif steps_until_decision_point == 0:
+                steps_until_decision_point = self.steps_per_decision
 
+            action = transition_step.action
             next_obs = transition_step.next_obs
             next_endo_obs = next_obs[self.endo_inds]
 
@@ -127,7 +133,9 @@ class OneStep(NNCalibrationModel):
             # exogenous variables
             new_fictitious_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
 
-            decision_point = step % self.steps_per_decision == 0
+            # update the state constructor
+            steps_until_decision_point -= 1
+            decision_point = steps_until_decision_point == 0
             state = sc(new_fictitious_obs, action, decision_point=decision_point)
 
             # log stuff
@@ -155,6 +163,7 @@ class OneStep(NNCalibrationModel):
                          agent: BaseAgent,
                          start_idx: Optional[int] = None,
                          plot=False) -> float:
+
         if start_idx is None:
             start_idx = random.randint(0, traj_cm.num_transitions - self.max_rollout_len - 1)
 
@@ -177,22 +186,28 @@ class OneStep(NNCalibrationModel):
         actions = []
         rollout_len = min(len(transitions_cm), self.max_rollout_len)
 
-        remaining_decision_steps = transitions_cm[0].gamma_exponent
+        steps_until_decision_point = None
         action = transitions_cm[0].action  # the initial agent's action
-
+        decision_point = transitions_cm[0].decision_point
         for step in range(rollout_len):
             transition_step = transitions_cm[step]
+            if steps_until_decision_point == None:
+                assert step == 0
+                steps_until_decision_point = transition_step.gamma_exponent
+            elif steps_until_decision_point == 0:
+                steps_until_decision_point = self.steps_per_decision
 
-            # if it is time for a decision, sample an action from the agent
-            if remaining_decision_steps == 0:
+            # whether the current state is a decision_point. Note this will either be defined initially,
+            # or at the end of the for loop
+            if decision_point:
                 action = agent.get_action(state_agent)
-                remaining_decision_steps = self.steps_per_decision
 
             next_obs = transition_step.next_obs
             next_endo_obs = next_obs[self.endo_inds]
 
             state_cm_tensor = tensor(state_cm).reshape((1, -1))
             action_tensor = tensor(action).reshape((1, -1))
+
             predicted_next_endo_obs = self.get_prediction(state_cm_tensor, action_tensor)
 
             # log the loss
@@ -203,7 +218,9 @@ class OneStep(NNCalibrationModel):
             # exogenous variables
             new_fictitious_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
 
-            decision_point = step % self.steps_per_decision == 0
+            # update the state constructors
+            steps_until_decision_point -= 1
+            decision_point = steps_until_decision_point == 0
             state_cm = sc_cm(new_fictitious_obs, action, decision_point=decision_point)
             state_agent = sc_agent(new_fictitious_obs, action, decision_point=decision_point)
 
@@ -214,14 +231,12 @@ class OneStep(NNCalibrationModel):
                 reward_info['prev_action'] = prev_action
             reward_info['curr_action'] = action
 
-            # Not sure if this denormalizer should be here.
+            # NOTE: Not sure if this denormalizer should be here.
             denormalized_obs = self.interaction.obs_normalizer.denormalize(new_fictitious_obs)
             r = self.reward_func(denormalized_obs, **reward_info)
             r_norm = self.interaction.reward_normalizer(r)
             g += gamma * r_norm
             prev_action = action
-
-            remaining_decision_steps -= 1
 
             # log stuff
             actions.append(action)

@@ -4,8 +4,8 @@ defaults:
   - override env: reseau
   - override data_loader: direct_action
   - override interaction: anytime
-  - override calibration_model : anytime
-  - override state_constructor: multi_trace
+  - override calibration_model : one_step
+  - override state_constructor: anytime_multi_trace
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
   - override interaction/obs_normalizer: maxmin

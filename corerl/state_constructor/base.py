@@ -63,7 +63,7 @@ class CompositeStateConstructor(BaseStateConstructor):
         a_obs = concat_fn([action, obs])  # convention: action goes first in the state array
         state = self._call_graph(a_obs, **kwargs)
         self._reset_graph_call()
-        init_array = zero_fn(1, dtype=bool)  # whether or not this is an initial state
+        init_array = zero_fn(1, dtype=bool)  # whether this is an initial state
         init_array[0] = initial_state
         state = concat_fn([init_array, state])
         return state

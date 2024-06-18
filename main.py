@@ -252,13 +252,12 @@ def online_deployment(cfg, agent, interaction, env):
     pbar = tqdm(range(max_steps))
     state, info = interaction.reset()
     print('Starting online training...')
-    for _ in pbar:
+    for itr in pbar:
         action = agent.get_action(state)
         transitions, _ = interaction.step(action)
 
         for transition in transitions:
             agent.update_buffer(transition)
-
         agent.update()
 
         # logging + evaluation
