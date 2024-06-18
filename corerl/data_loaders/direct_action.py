@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from corerl.environment.reward.base import BaseReward
 from corerl.data_loaders.base import BaseDataLoader
-from corerl.data_loaders.utils import ObsTransition
+from corerl.data import ObsTransition
 
 
 class DirectActionDataLoader(BaseDataLoader):

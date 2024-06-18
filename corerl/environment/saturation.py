@@ -12,13 +12,8 @@ class Saturation(gym.Env):
 
         self.saturation = np.array([0.])
         self.saturation_sp = np.array([0.5])
-        # self.sensitivity =  np.array([1.])
-        #
-        # self.sensitivity_min = np.array([0.])
-        # self.sensitivity_max = np.array([1.])
 
-        # self.decay = np.array([0.95])
-        self.decay_period = 200
+        self.decay_period = 500
 
         self._action_dim = 1
         self._action_min = np.array([0])

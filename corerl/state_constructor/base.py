@@ -1,10 +1,10 @@
-from abc import ABC, abstractmethod
-
 import numpy as np
-from omegaconf import DictConfig
-from typing import Optional
-
+import torch
 import gymnasium
+
+from omegaconf import DictConfig
+from abc import ABC, abstractmethod
+from typing import Optional
 
 
 class BaseStateConstructor(ABC):
@@ -19,7 +19,7 @@ class BaseStateConstructor(ABC):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         raise NotImplementedError
 
-    def __call__(self, obs: np.ndarray, action: np.ndarray = None, initial_state=False, **kwargs) -> np.ndarray:
+    def __call__(self, obs: np.ndarray, action: np.ndarray, initial_state=False, **kwargs) -> np.ndarray:
         """
         We pass in the new observation, the last action, and whether or not this state is an initial state
         """
@@ -48,13 +48,24 @@ class CompositeStateConstructor(BaseStateConstructor):
         self.sc = None  # a placeholder for the final component in the graph
         raise NotImplementedError
 
-    def __call__(self, obs: np.ndarray, action: np.ndarray = None, initial_state=False,  **kwargs) -> np.ndarray:
-        a_obs = np.concatenate([action, obs])  # convention: action goes first in the state array
+    def __call__(self, obs: np.ndarray | torch.Tensor, action: np.ndarray | torch.Tensor, initial_state=False,
+                 **kwargs) -> np.ndarray | torch.Tensor:
+
+        if isinstance(obs, np.ndarray):
+            assert isinstance(action, np.ndarray), 'obs and action must have the same type'
+            concat_fn = np.concatenate
+            zero_fn = np.zeros
+        elif isinstance(obs, torch.Tensor):
+            assert isinstance(action, torch.Tensor), 'obs and action must have the same type'
+            concat_fn = torch.concat
+            zero_fn = torch.zeros
+
+        a_obs = concat_fn([action, obs])  # convention: action goes first in the state array
         state = self._call_graph(a_obs, **kwargs)
         self._reset_graph_call()
-        init_array = np.zeros(1, dtype=bool)  # whether or not this is an initial state
+        init_array = zero_fn(1, dtype=bool)  # whether this is an initial state
         init_array[0] = initial_state
-        state = np.concatenate([init_array, state])
+        state = concat_fn([init_array, state])
         return state
 
     def get_state_dim(self, obs: np.ndarray, action: np.ndarray) -> int:

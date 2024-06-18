@@ -1,4 +1,8 @@
-name : simple
+defaults:
+  - /state_constructor: multi_trace
+  - _self_
+
+name : one_step
 
 buffer:
   batch_size: 64
@@ -6,6 +10,7 @@ buffer:
   name: uniform
   device: cpu
   seed: ${experiment.seed}
+
 
 train_itr: 10000
 batch_size : 64
@@ -28,5 +33,6 @@ optimizer:
   weight_decay: 0.0
   name: adam
 
-max_rollout_len : ${data_loader.trajectory_len}
+max_rollout_len : 20
 steps_per_decision : ${interaction.steps_per_decision}
+num_test_rollouts : 1

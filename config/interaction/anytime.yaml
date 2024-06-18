@@ -1,8 +1,8 @@
 defaults:
   - normalizer
 
-name: anytime.yaml
+name: anytime
 steps_per_decision : 5
-obs_length : 1 # 1 second
+obs_length : 0 # 1 second
 gamma : ${experiment.gamma}
 n_step : 0 # 0 indicates a variable n-step update where the bootstrap state is always the state at the next decision point. n_step > 0 indicates a normal fixed n-step update that doesn't cross action boundaries.

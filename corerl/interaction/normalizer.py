@@ -17,9 +17,6 @@ class NormalizerInteraction(BaseInteraction):
             state_constructor: BaseStateConstructor
     ):
 
-        # can't I just get the action dim from the env?
-
-
         super().__init__(cfg, env, state_constructor)
         self.action_normalizer = init_action_normalizer(cfg.action_normalizer, self.env)
         self.reward_normalizer = init_reward_normalizer(cfg.reward_normalizer)
@@ -48,8 +45,8 @@ class NormalizerInteraction(BaseInteraction):
             normalized_next_obs,
             next_state,
             reward,
-            normalized_next_obs,  # the obs for boot strapping is the same as the next obs here
-            next_state,  # the state for boot strapping is the same as the next state here
+            normalized_next_obs,  # the obs for bootstrapping is the same as the next obs here
+            next_state,  # the state for bootstrapping is the same as the next state here
             terminated,
             truncate,
             True,  # always a decision point
@@ -67,7 +64,8 @@ class NormalizerInteraction(BaseInteraction):
 
         normalized_observation = self.obs_normalizer(observation)
         dummy_action = np.zeros(self.action_dim)
-        state = self.state_constructor(normalized_observation, dummy_action, initial_state=True)
+        # assume the initial state is always a decision point
+        state = self.state_constructor(normalized_observation, dummy_action, initial_state=True, decision_point=True)
 
         self.last_obs = normalized_observation
         self.last_state = state
