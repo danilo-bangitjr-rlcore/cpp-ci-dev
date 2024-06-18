@@ -14,7 +14,7 @@ def init_interaction(cfg: DictConfig, env: gymnasium.Env, sc: BaseStateConstruct
         return NormalizerInteraction(cfg, env, sc)
     if name == "timed":
         return TimedInteraction(cfg, env, sc)
-    if name == 'anytime.yaml':
+    if name == 'anytime':
         return AnytimeInteraction(cfg, env, sc)
     else:
         raise NotImplementedError

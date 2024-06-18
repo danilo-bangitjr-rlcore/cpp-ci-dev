@@ -1,13 +1,13 @@
-from corerl.calibration_models.simple import SimpleCalibrationModel
-from corerl.calibration_models.simple_gru_warmup import GRUCalibrationModel
+from corerl.calibration_models.one_step import OneStep
+from corerl.calibration_models.anytime import AnytimeCalibrationModel
 
 
-def init_calibration_model(cfg, kwargs):
+def init_calibration_model(cfg, train_info):
     name = cfg.name
-    if name == 'simple':
-        cm = SimpleCalibrationModel(cfg, **kwargs)
-    elif name == 'gru':
-        cm = GRUCalibrationModel(cfg, **kwargs)
+    if name == 'one_step':
+        cm = OneStep(cfg, train_info)
+    elif name == 'anytime':
+        cm = AnytimeCalibrationModel(cfg, train_info)
     else:
         raise NotImplementedError
 

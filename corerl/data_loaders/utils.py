@@ -1,30 +1,10 @@
-import numpy as np
 import random
 from tqdm import tqdm
-from dataclasses import dataclass, fields
+
 
 from corerl.interaction.normalizer import NormalizerInteraction
-from corerl.data import Transition, Trajectory
+from corerl.data import Transition, Trajectory, ObsTransition
 from copy import deepcopy
-
-
-@dataclass
-class ObsTransition:
-    obs: np.array  # the raw observation of state
-    action: np.array
-    reward: float
-    next_obs: np.array  # the immediate next observation
-    terminated: bool
-    truncate: bool
-    gap: bool  # whether there is a gap in the dataset following next_ovs
-
-    def __iter__(self):
-        for field in fields(self):
-            yield getattr(self, field.name)
-
-    @property
-    def field_names(self):
-        return [field.name for field in fields(self)]
 
 
 def train_test_split(*lsts, train_split: float = 0.9, shuffle: bool = True) -> (list[tuple], list[tuple]):
@@ -212,7 +192,6 @@ def make_anytime_trajectories(
     done = False
     transition_idx = 0
     pbar = tqdm(total=len(obs_transitions))
-    scs = []
     while not done:
         # first, get transitions until a gap
         curr_chunk_obs_transitions = []
@@ -230,9 +209,12 @@ def make_anytime_trajectories(
                                                                       steps_per_decision, return_scs, gamma, sc_warmup)
 
         new_traj = Trajectory()
-        for transition in new_transitions:
+        for i, transition in enumerate(new_transitions):
             new_traj.add_transition(transition)
-            new_traj.add_start_sc(new_scs[0])
+            if return_scs:
+                new_traj.add_start_sc(new_scs[0])
+                new_traj.add_sc(new_scs[i])
+
         trajectories.append(new_traj)
 
-    return trajectories, scs
+    return trajectories

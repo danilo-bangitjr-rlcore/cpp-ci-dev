@@ -25,6 +25,29 @@ class MultiTrace(CompositeStateConstructor):
         self.sc = concat_sc
 
 
+class AnytimeMultiTrace(CompositeStateConstructor):
+    """
+    A trace constructor that is composed of multiple traces
+    """
+
+    def __init__(self, cfg: DictConfig, env: gymnasium.Env):
+        # define the computation graphs
+        start_sc = comp.Identity()  # first component in the graph
+        trace_components = []
+        for trace_value in cfg.trace_values:
+            # all traces will receive the output of norm_sc as input
+            trace_sc = comp.MemoryTrace(trace_value, parents=[start_sc])
+            trace_components.append(trace_sc)
+
+        anytime_sc = comp.Anytime(cfg.decision_steps, parents=[start_sc])
+
+        # finally, we will concatenate all the traces and normalized values together
+        concat_parents = [start_sc] + trace_components + [
+            anytime_sc]  # the parents are normalized values and the trace's outputs
+        concat_sc = comp.Concatenate(parents=concat_parents)
+        self.sc = concat_sc
+
+
 class Identity(CompositeStateConstructor):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         sc = comp.Identity()

@@ -2,11 +2,14 @@
 A module of simple state constructors that can be composed to produce more complex state constructors
 """
 import numpy as np
-import gymnasium
+import torch
 
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from collections import deque
+
+from corerl.component.network.utils import tensor
+from corerl.utils.device import device
 
 
 class BaseStateConstructorComponent(ABC):
@@ -98,11 +101,18 @@ class MemoryTrace(BaseStateConstructorComponent):
         self.trace_decay = trace_decay
         self.trace = None
 
-    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
+    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray | torch.Tensor:
         assert len(obs_parents) == 1
         obs = obs_parents[0]
+
+        if isinstance(obs, np.ndarray):
+            zeros = np.zeros_like(obs)
+        elif isinstance(obs, torch.Tensor):
+            zeros = torch.zeros_like(obs)
+            self.trace = tensor(self.trace, device)
+
         if self.trace is None:  # first observation received
-            self.trace = (1 - self.trace_decay) * obs + self.trace_decay * np.zeros_like(obs)
+            self.trace = (1 - self.trace_decay) * obs + self.trace_decay * zeros
         else:
             self.trace = (1 - self.trace_decay) * obs + self.trace_decay * self.trace
         return self.trace
@@ -112,8 +122,11 @@ class MemoryTrace(BaseStateConstructorComponent):
 
 
 class Concatenate(BaseStateConstructorComponent):
-    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray:
-        return np.concatenate(obs_parents)
+    def process_observation(self, obs_parents: list, **kwargs) -> np.ndarray | torch.Tensor:
+        if isinstance(obs_parents[0], np.ndarray):
+            return np.concatenate(obs_parents)
+        elif isinstance(obs_parents[0], torch.Tensor):
+            return torch.cat(obs_parents)
 
     def _clear_state(self) -> None:
         return
@@ -224,9 +237,11 @@ class Anytime(BaseStateConstructorComponent):
         else:
             self.steps_since_decision += 1
 
-        countdown = 1 - self.steps_since_decision/self.decision_step
+        countdown = 1 - self.steps_since_decision / self.decision_step
         assert 1 >= countdown >= 0, 'countdown must be between 0 and 1'
         indicator = 1 if decision_point else 0
+
+
         return np.array([countdown, indicator])
 
     def _clear_state(self) -> None:

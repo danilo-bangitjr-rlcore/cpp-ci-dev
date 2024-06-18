@@ -28,6 +28,7 @@ class IBE(BaseEval):
         self.bes = []  # the bellman errors
 
     def get_delta(self, batch: TransitionBatch) -> torch.Tensor:
+        # TODO: this does not work with anytime. Need to update
         state_batch = batch.state
         action_batch = batch.action
         reward_batch = batch.reward
