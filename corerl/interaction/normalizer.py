@@ -17,9 +17,6 @@ class NormalizerInteraction(BaseInteraction):
             state_constructor: BaseStateConstructor
     ):
 
-        # can't I just get the action dim from the env?
-
-
         super().__init__(cfg, env, state_constructor)
         self.action_normalizer = init_action_normalizer(cfg.action_normalizer, self.env)
         self.reward_normalizer = init_reward_normalizer(cfg.reward_normalizer)
