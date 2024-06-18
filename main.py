@@ -258,6 +258,7 @@ def online_deployment(cfg, agent, interaction, env):
 
         for transition in transitions:
             agent.update_buffer(transition)
+
         agent.update()
 
         # logging + evaluation
@@ -317,7 +318,7 @@ def main(cfg: DictConfig) -> dict:
     online_eval = online_deployment(cfg, agent, interaction, env)
     online_eval.output(save_path / 'stats.json')\
 
-    env.plot()
+    # env.plot()
 
     # need to update make_plots here
     stats = online_eval.get_stats()

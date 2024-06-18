@@ -240,6 +240,8 @@ class Anytime(BaseStateConstructorComponent):
         countdown = 1 - self.steps_since_decision / self.decision_step
         assert 1 >= countdown >= 0, 'countdown must be between 0 and 1'
         indicator = 1 if decision_point else 0
+
+
         return np.array([countdown, indicator])
 
     def _clear_state(self) -> None:

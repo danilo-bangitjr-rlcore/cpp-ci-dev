@@ -4,8 +4,8 @@ defaults:
   - override env: saturation
   - override data_loader: direct_action
   - override interaction: normalizer
-  - override calibration_model : simple
-  - override state_constructor: anytime_multi_trace
+  - override calibration_model : one_step
+  - override state_constructor: multi_trace
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: identity
   - override interaction/obs_normalizer: identity
