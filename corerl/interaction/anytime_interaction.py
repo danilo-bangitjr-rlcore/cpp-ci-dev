@@ -93,23 +93,24 @@ class AnytimeInteraction(NormalizerInteraction):
         # assemble the transitions
         transitions = []
         for obs_step in range(num_completed_steps):  # note: we do not return a transition for the final state
-            gamma_exp = obs_step + 1
+            gamma_exp = num_completed_steps - obs_step
             transition = Transition(
-                observation_list[obs_step],
-                state_list[obs_step],
+                observation_list[obs_step],  # the current obs
+                state_list[obs_step],  # the current state
                 action,
-                observation_list[obs_step+1],
-                state_list[obs_step+1],
-                reward_list[obs_step].item(),
-                observation_list[-1],
-                state_list[-1],
+                observation_list[obs_step + 1],  # the next observation
+                state_list[obs_step + 1],  # the next state
+                partial_return_list[obs_step],
+                observation_list[-1],  # the boot observation
+                state_list[-1],  # the boot state
                 terminated_list[obs_step],
                 terminated_list[obs_step],
                 # state is a decision point at the state
                 True if obs_step == 0 else False,
                 # the next state is only a decision point at the end
                 True if obs_step == num_completed_steps - 1 else False,
-                gamma_exp)
+                gamma_exp
+            )
 
             transitions.append(transition)
 
