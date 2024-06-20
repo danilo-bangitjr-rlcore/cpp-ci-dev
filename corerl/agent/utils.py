@@ -3,7 +3,9 @@ import numpy as np
 from jaxtyping import Float
 from typing import Optional
 
+import corerl.component.network.utils as utils
 from corerl.component.network.utils import to_np, tensor
+from corerl.utils.device import device
 
 
 def get_batch_actions_discrete(state_batch: Float[torch.Tensor, "batch_size state_dim"], action_dim: int,
@@ -67,11 +69,13 @@ def get_top_action(func, states, actions, action_dim, batch_size, n_actions, ret
 #     return best_actions
 
 
-def get_test_state_qs_and_policy_params(agent, test_transitions, device):
+def get_test_state_qs_and_policy_params(agent, test_transitions):
     test_actions = 100
     num_states = len(test_transitions)
-    test_transitions = np.array(test_transitions, dtype=object)
-    test_states_np = np.array(list(test_transitions[:, 0]), dtype=np.float32)
+    test_states = []
+    for transition in test_transitions:
+        test_states.append(transition.state)
+    test_states_np = np.array(test_states, dtype=np.float32)
 
     test_states = tensor(test_states_np, device)
     actions = np.linspace(np.array([0]), np.array([1]), num=test_actions)

@@ -1,2 +1,2 @@
 seed : ${experiment.seed}
-obs_length : 1
+obs_length : ${interaction.obs_length}

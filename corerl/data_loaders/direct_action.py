@@ -15,12 +15,11 @@ from corerl.data_loaders.utils import ObsTransition
 class DirectActionDataLoader(BaseDataLoader):
     """
     This class takes a dataset consisting of a group of CSV files and produces a list of observation transitions
-
     """
     def __init__(self, cfg: DictConfig):
         self.offline_data_path = Path(cfg.offline_data_path)
-        # You can either load all the csvs in the directory or a subset
 
+        # You can either load all the csvs in the directory or a subset
         if not cfg.train_filenames:
             # will return all files as training data
             self.train_filenames = list(self.offline_data_path.glob('*.csv'))
@@ -41,6 +40,7 @@ class DirectActionDataLoader(BaseDataLoader):
         self.max_time_delta = cfg.max_time_delta
         self.time_thresh = pd.Timedelta(self.max_time_delta, "s")
         self.obs_length = cfg.obs_length
+        self.steps_per_decision = cfg.steps_per_decision
 
     def load_data(self, filenames: list[str]) -> pd.DataFrame | None:
         """
@@ -136,7 +136,6 @@ class DirectActionDataLoader(BaseDataLoader):
         Take into account discontinuities in the dataframe (large gaps in time between consecutive rows)
         Creates fixed n-step transitions or variable n-step transitions that always bootstrap off the state at the next decision point
         """
-
         obs_transitions = []
 
         # Keep trying to create transitions until you reach the end of the df
@@ -150,49 +149,59 @@ class DirectActionDataLoader(BaseDataLoader):
         while action_start < df_end:
             data_gap = False  # Indicates a discontinuity in the df
             prev_action = None
+            obs = np.empty(0)
+            prev_decision_point = None
+            prev_steps_since_decision = None
             while not data_gap and action_start < df_end:
-                curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
-                                                                                                              action_start)
+                curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df, action_start)
+
                 # Align time steps within action window
                 curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
-                # Next, iterate over current action time steps and produce partial transitions
-                if curr_action_steps > 0:
-                    # produce the initial observation
+                step_remainder = curr_action_steps % self.steps_per_decision
+                steps_since_decision = ((self.steps_per_decision - step_remainder) + 1) % self.steps_per_decision
+
+                # Next, iterate over current action time steps and produce obs transitions
+                for step in range(curr_action_steps):
+                    decision_point = steps_since_decision == 0
+                    
                     step_end = step_start + timedelta(seconds=self.obs_length)
-                    last_obs = self.get_obs(obs_df, step_start, step_end)
-                    step_start = step_start + timedelta(seconds=self.obs_length)
+                    next_obs = self.get_obs(obs_df, step_start, step_end)
 
-                    # how many steps we are talking the current action, minus the first observation
-                    for step in range(curr_action_steps - 1):
-                        step_end = step_start + timedelta(seconds=self.obs_length)
-                        obs = self.get_obs(obs_df, step_start, step_end)
+                    # Any way to make the creation of reward_info more universal?
+                    reward_info = {}
+                    reward_info['prev_action'] = prev_action
+                    reward_info['curr_action'] = curr_action
+                    reward = reward_function(next_obs, **reward_info)
 
-                        # Any way to make the creation of reward_info more universal?
-                        reward_info = {}
-                        reward_info['prev_action'] = prev_action
-                        reward_info['curr_action'] = curr_action
-                        reward = reward_function(obs, **reward_info)
-
+                    if obs.any():
                         transition = ObsTransition(
-                            last_obs,
+                            prev_action,
+                            obs,
+                            prev_steps_since_decision,
+                            prev_decision_point,
                             curr_action,
                             reward,
-                            obs,
+                            next_obs,
+                            steps_since_decision,
+                            decision_point,
                             False,  # assume a continuing env
                             False,  # assume a continuing env
-                            gap=(step == curr_action_steps - 2) and data_gap  # if the last step and there is a data gap
+                            gap=(step == curr_action_steps - 1) and data_gap  # if the last step and there is a data gap
                         )
-
                         obs_transitions.append(transition)
-                        prev_action = curr_action
-                        step_start = step_start + timedelta(seconds=self.obs_length)
-                        last_obs = obs
 
-                        try:
-                            pbar.n = df.index.get_loc(step_start)
-                            pbar.refresh()
-                        except:
-                            pass
+                    prev_action = curr_action
+                    step_start = step_start + timedelta(seconds=self.obs_length)
+                    obs = next_obs
+                    prev_decision_point = decision_point
+                    prev_steps_since_decision = steps_since_decision
+                    steps_since_decision = (steps_since_decision + 1) % self.steps_per_decision
+
+                    try:
+                        pbar.n = df.index.get_loc(step_start)
+                        pbar.refresh()
+                    except:
+                        pass
 
                 action_start = next_action_start
 

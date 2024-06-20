@@ -6,3 +6,5 @@ defaults:
 name: normalizer
 timeout: ${experiment.timeout}
 gamma : ${experiment.gamma}
+steps_per_decision : 1
+obs_length : 60 # 60 seconds

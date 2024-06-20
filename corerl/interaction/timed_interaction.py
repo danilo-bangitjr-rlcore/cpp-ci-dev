@@ -6,6 +6,7 @@ from omegaconf import DictConfig
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.interaction.normalizer import NormalizerInteraction
 from corerl.data import Transition
+from corerl.alerts.composite_alert import CompositeAlert
 
 class TimedInteraction(NormalizerInteraction):
     """
@@ -16,13 +17,10 @@ class TimedInteraction(NormalizerInteraction):
         self,
         cfg: DictConfig,
         env: gymnasium.Env,
-        state_constructor: BaseStateConstructor
+        state_constructor: BaseStateConstructor,
+        alerts: CompositeAlert
     ):
-        super().__init__(cfg, env, state_constructor)
-        self.steps_per_decision = cfg.decision_steps  # how many observation steps per decision step
-        assert self.steps_per_decision > 0, "Step length should be greater than 0."
-        self.obs_length = cfg.obs_length  # how often to update the observation
-        assert self.obs_length > 0, "Step length should be greater than 0."
+        super().__init__(cfg, env, state_constructor, alerts)
 
     def step(self, action: np.ndarray) -> tuple[list[Transition], list[dict]]:
         transitions = []
