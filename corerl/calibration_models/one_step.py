@@ -235,7 +235,7 @@ class OneStep(NNCalibrationModel):
             denormalized_obs = self.interaction.obs_normalizer.denormalize(new_fictitious_obs)
             r = self.reward_func(denormalized_obs, **reward_info)
             r_norm = self.interaction.reward_normalizer(r)
-            g += gamma * r_norm
+            g += gamma**step * r_norm
             prev_action = action
 
             # log stuff

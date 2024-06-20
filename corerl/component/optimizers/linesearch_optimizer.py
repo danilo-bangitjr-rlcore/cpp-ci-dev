@@ -58,7 +58,6 @@ class LineSearchOpt:
 
         self.net_copy_lst = net_copy
 
-
     def __clone_gradient(self, model: torch.nn.Module) -> dict:
         grad_rec = {}
         for idx, param in enumerate(model.parameters()):
@@ -137,19 +136,19 @@ class LineSearchOpt:
 
         after_error = None
         for bi in range(self.max_backtracking):
-            if bi > 0: # The first step does not need moving gradient
+            if bi > 0:  # The first step does not need moving gradient
                 for i in range(len(network_lst)):
                     self.optimizer_lst[i].zero_grad()
                     self.__move_gradient_to_network(network_lst[i], grad_rec[i], self.lr_weight)
             for i in range(len(network_lst)):
                 self.optimizer_lst[i].step()
             after_error = error_evaluation_fn(error_eval_input)
-            if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
+            if after_error - before_error > self.error_threshold and bi < self.max_backtracking - 1:
                 self.lr_weight *= self.lr_decay_rate
                 network_lst, self.optimizer_lst = self.__undo_update(network_lst,
                                                                      self.optimizer_lst)
             elif (after_error - before_error > self.error_threshold and
-                  bi == self.max_backtracking-1):
+                  bi == self.max_backtracking - 1):
                 self.lr_main = max(self.lr_main * self.lr_decay_rate, self.lr_lower_bound)
                 break
             else:
@@ -161,29 +160,29 @@ class LineSearchOpt:
         return
 
     def __backtrack_momentum(self, error_evaluation_fn: Callable, error_eval_input: list[torch.Tensor],
-                        network_lst: list[torch.nn.Module]) -> None:
+                             network_lst: list[torch.nn.Module]) -> None:
         self.__parameter_backup(network_lst, self.optimizer_lst)
         before_error = error_evaluation_fn(error_eval_input)
         grad_rec = []
-        for i in range(len(network_lst)): # save gradient
+        for i in range(len(network_lst)):  # save gradient
             grad_rec.append(self.__clone_gradient(network_lst[i]))
         after_error = None
         for bi in range(self.max_backtracking):
-            if bi > 0: # The first step does not need moving gradient
+            if bi > 0:  # The first step does not need moving gradient
                 for i in range(len(network_lst)):
-                    self.optimizer_lst[i].zero_grad() # clean gradient
-                    self.__move_gradient_to_network(network_lst[i], grad_rec[i], 1) # backward
+                    self.optimizer_lst[i].zero_grad()  # clean gradient
+                    self.__move_gradient_to_network(network_lst[i], grad_rec[i], 1)  # backward
 
             for i in range(len(network_lst)):
                 self.__reset_lr(self.optimizer_lst[i], self.lr_weight * self.lr_main)
                 self.optimizer_lst[i].step()
             after_error = error_evaluation_fn(error_eval_input)
-            if after_error - before_error > self.error_threshold and bi < self.max_backtracking-1:
+            if after_error - before_error > self.error_threshold and bi < self.max_backtracking - 1:
                 self.lr_weight *= self.lr_decay_rate
                 network_lst, self.optimizer_lst = self.__undo_update(network_lst,
                                                                      self.optimizer_lst)
             elif after_error - before_error > self.error_threshold and \
-                    bi == self.max_backtracking-1:
+                    bi == self.max_backtracking - 1:
                 self.lr_main = max(self.lr_main * self.lr_decay_rate, self.lr_lower_bound)
                 break
             else:

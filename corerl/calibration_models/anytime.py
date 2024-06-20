@@ -307,7 +307,7 @@ class AnytimeCalibrationModel(NNCalibrationModel):
                 denormalized_obs = self.interaction.obs_normalizer.denormalize(fictitious_obs)
                 r = self.reward_func(denormalized_obs, **reward_info)
                 r_norm = self.interaction.reward_normalizer(r)
-                g += gamma * r_norm
+                g += gamma**(step + inter_step) * r_norm # TODO: double check this is right .
                 prev_action = action
 
                 loss_step = np.mean(np.abs(inter_step_obs[self.endo_inds] - to_np(predicted_inter_endo_obs)))
