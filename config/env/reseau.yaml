@@ -17,20 +17,10 @@ db:
 
 name: reseau
 control_tags : ["osoyoos.plc.Process_DB.P250 Flow Pace Calc.Flow Pace Multiplier"]
-col_names : ["ait301_pv", "fit250_pv",  "p250_fp"]
-obs_length : 60
+col_names : ["ait301_pv", "fit250_pv", "p250_fp"]
 action_low : 0
 action_high : 300
 
-
-reset_fpm: 15
-decision_freq : 1800
-obs_freq : 60
-obs_window : 60
-last_n_obs : 60
-obs_space_low : [250.0, 0.0, 0.0]
-obs_space_high : [450.0, 20.0, 300.0]
-orp_sp : 350.0
-penalty_weight : 10.0
+obs_space_low : [250.0, 0.0]
+obs_space_high : [450.0, 20.0]
 discrete_control : False
-change_action : False

@@ -224,9 +224,9 @@ class ErrorIntegral(BaseStateConstructorComponent):
 
 
 class Anytime(BaseStateConstructorComponent):
-    def __init__(self, decision_steps: int, parents: list | None = None):
+    def __init__(self, steps_per_decision: int, parents: list | None = None):
         super().__init__(parents=parents)
-        self.decision_step = decision_steps
+        self.steps_per_decision = steps_per_decision
         self.steps_since_decision = 0
 
     def process_observation(self, obs_parents: list, decision_point=False, steps_since_decision=-1) -> np.ndarray:
@@ -237,11 +237,9 @@ class Anytime(BaseStateConstructorComponent):
         else:
             self.steps_since_decision += 1
 
-        countdown = 1 - self.steps_since_decision / self.decision_step
+        countdown = 1 - self.steps_since_decision/self.steps_per_decision
         assert 1 >= countdown >= 0, 'countdown must be between 0 and 1'
         indicator = 1 if decision_point else 0
-
-
         return np.array([countdown, indicator])
 
     def _clear_state(self) -> None:

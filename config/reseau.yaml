@@ -3,9 +3,9 @@ defaults:
   - override agent: greedy_ac
   - override env: reseau
   - override data_loader: direct_action
-  - override interaction: anytime
-  - override calibration_model : one_step
-  - override state_constructor: multi_trace
+  - override interaction: offline_anytime
+  - override calibration_model : gru
+  - override state_constructor: reseau_anytime
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
   - override interaction/obs_normalizer: maxmin
@@ -18,10 +18,13 @@ offline_data:
   output_path : offline_data/reseau
 
 experiment :
-  exp_name : "reseau_test_burn_in"
-  max_steps : 0
-  offline_steps : 1000
+  exp_name : "Fixed_Data_Loader_Transitions_Composite_Alert_Sweep"
+  max_steps : 50000
+  offline_steps : 20000
   set_env_obs_space : True
+  gamma : 0.95
+  train_split : 0.995
+  test_epochs : [9999, 19999]
 
 env:
   opc : null
@@ -30,12 +33,14 @@ env:
 interaction :
   obs_length : 60
   steps_per_decision : 30
+  signal_col_names : ["ait301_pv"]
+  signal_inds : [0]
   action_normalizer:
     action_high : 300
     action_low:  0
   reward_normalizer:
     reward_high : 4
-    reward_low : -20
+    reward_low : -9
     reward_bias : 4
 
 agent:
@@ -67,3 +72,17 @@ data_loader:
                   "pt100_pv", "pt101_pv", "pt161_pv", "pt171_pv", "pt302_pv"]
   action_col_names: ["p250_fp"]
   obs_col_names: ["ait301_pv", "fit250_pv"]
+
+alerts:
+  action_value:
+    gamma : 0.8
+    ret_perc : 0.1
+    trace_decay : 0.995
+    trace_thresh : 0.1
+  gvf:
+    endo_obs_col_names: ["ait301_pv"]
+    gamma : 0.8
+    ret_perc : 0.1
+    trace_decay : 0.995
+    trace_thresh : 0.1
+

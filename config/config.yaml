@@ -1,10 +1,12 @@
 defaults:
   - agent: greedy_ac
   - env : three_tanks
-  - data_loader : direct_action
   - interaction : normalizer
+  - data_loader : direct_action
   - state_constructor : identity
   - calibration_model : simple
+  - alerts@alerts.action_value : action_value
+  - alerts@alerts.gvf : gvf
 #  - eval@eval.ibe : ibe # this lets us have multiple subconfigs rooted at eval
   - eval@eval.reward : reward
 #  - eval@eval.action_gap : action_gap
@@ -22,13 +24,11 @@ experiment:
   timeout : 1
   offline_steps : 0
   max_steps : 200
-  offline_critic_steps : 0
-  offline_actor_steps : 0
   render : 0
   save_path : output
   set_env_obs_space : False
   param_from_hash : True
   gamma : 0.9
   train_split : 0.9
-
+  test_epochs : [999, 9999, 19999]
 

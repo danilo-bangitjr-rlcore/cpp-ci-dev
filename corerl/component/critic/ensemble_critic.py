@@ -12,13 +12,13 @@ from corerl.utils.device import device
 
 
 class EnsembleQCritic(BaseQ):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, output_dim: int = 1):
         state_action_dim = state_dim + action_dim
         self.model = init_critic_network(
-            cfg.critic_network, input_dim=state_action_dim, output_dim=1,
+            cfg.critic_network, input_dim=state_action_dim, output_dim=output_dim,
         )
         self.target = init_critic_target(
-            cfg.critic_network, input_dim=state_action_dim, output_dim=1,
+            cfg.critic_network, input_dim=state_action_dim, output_dim=output_dim,
             critic=self.model,
         )
         self.optimizer = init_optimizer(
@@ -120,12 +120,12 @@ class EnsembleQCritic(BaseQ):
 
 
 class EnsembleVCritic(BaseV):
-    def __init__(self, cfg: DictConfig, state_dim: int):
+    def __init__(self, cfg: DictConfig, state_dim: int, output_dim: int = 1):
         self.model = init_critic_network(
-            cfg.critic_network, input_dim=state_dim, output_dim=1,
+            cfg.critic_network, input_dim=state_dim, output_dim=output_dim,
         )
         self.target = init_critic_target(
-            cfg.critic_network, input_dim=state_dim, output_dim=1,
+            cfg.critic_network, input_dim=state_dim, output_dim=output_dim,
             critic=self.model,
         )
         self.optimizer = init_optimizer(
@@ -216,8 +216,8 @@ class EnsembleVCritic(BaseV):
 
 
 class EnsembleQCriticLineSearch(EnsembleQCritic):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, output_dim: int = 1):
+        super().__init__(cfg, state_dim, action_dim, output_dim)
         # linesearch does not need to know how many independent networks are
         # there
         self.optimizer = LineSearchOpt(
@@ -226,7 +226,7 @@ class EnsembleQCriticLineSearch(EnsembleQCritic):
             cfg.critic_optimizer.name,
         )
         self.model_copy = init_critic_network(
-            cfg.critic_network, input_dim=state_dim + action_dim, output_dim=1,
+            cfg.critic_network, input_dim=state_dim + action_dim, output_dim=output_dim,
         )
 
     def set_parameters(
@@ -240,8 +240,8 @@ class EnsembleQCriticLineSearch(EnsembleQCritic):
 
 
 class EnsembleVCriticLineSearch(EnsembleVCritic):
-    def __init__(self, cfg: DictConfig, state_dim: int):
-        super().__init__(cfg, state_dim)
+    def __init__(self, cfg: DictConfig, state_dim: int, output_dim: int = 1):
+        super().__init__(cfg, state_dim, output_dim)
         # linesearch does not need to know how many independent networks are
         # there
         self.optimizer = LineSearchOpt(
@@ -250,7 +250,7 @@ class EnsembleVCriticLineSearch(EnsembleVCritic):
             cfg.critic_optimizer.name,
         )
         self.model_copy = init_critic_network(
-            cfg.critic_network, state_dim, output_dim=1,
+            cfg.critic_network, state_dim, output_dim=output_dim,
         )
 
     def set_parameters(

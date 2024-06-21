@@ -2,5 +2,3 @@ defaults:
   - normalizer
 
 name: timed
-step_length : 5
-obs_length : 1

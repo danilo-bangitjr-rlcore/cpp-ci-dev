@@ -1,4 +1,4 @@
 name : scale
-reward_high : False
+reward_high : False # Should these be defined in env?
 reward_low : False
 reward_bias : 0

@@ -1,5 +1,5 @@
 name : scale
-action_high : False
-action_low : False
+action_high : ${env.action_high}
+action_low : ${env.action_low}
 use_cfg_values : False
 discrete_control: ${env.discrete_control}
