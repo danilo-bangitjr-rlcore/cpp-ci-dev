@@ -7,13 +7,18 @@ from corerl.state_constructor.base import BaseStateConstructor
 
 @dataclass
 class ObsTransition:
+    prev_action: np.array # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
     obs: np.array  # the raw observation of state
-    action: np.array
+    obs_steps_since_decision: int
+    obs_dp: bool # Whether 'obs' is at a decision point
+    action: np.array # the action taken after 'obs' that occurs concurrently with 'next_obs'
     reward: float
     next_obs: np.array  # the immediate next observation
+    next_obs_steps_since_decision: int
+    next_obs_dp: bool # Whether 'next_obs' is at a decision point
     terminated: bool
     truncate: bool
-    gap: bool  # whether there is a gap in the dataset following next_ovs
+    gap: bool  # whether there is a gap in the dataset following next_obs
 
     def __iter__(self):
         for field in fields(self):

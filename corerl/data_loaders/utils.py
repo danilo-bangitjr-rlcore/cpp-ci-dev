@@ -1,38 +1,13 @@
 import random
 import numpy as np
 from tqdm import tqdm
-from dataclasses import dataclass, fields
 from collections import deque
 
 from corerl.interaction.normalizer import NormalizerInteraction
-from corerl.data import Transition, Trajectory, ObsTransition
+from corerl.data import ObsTransition
 from corerl.data import Transition, Trajectory
 from corerl.alerts.composite_alert import CompositeAlert
 from copy import deepcopy
-
-# TODO: move to data.py
-# @dataclass
-# class ObsTransition:
-#     prev_action: np.array # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
-#     obs: np.array  # the raw observation of state
-#     obs_steps_since_decision: int
-#     obs_dp: bool # Whether 'obs' is at a decision point
-#     action: np.array # the action taken after 'obs' that occurs concurrently with 'next_obs'
-#     reward: float
-#     next_obs: np.array  # the immediate next observation
-#     next_obs_steps_since_decision: int
-#     next_obs_dp: bool # Whether 'next_obs' is at a decision point
-#     terminated: bool
-#     truncate: bool
-#     gap: bool  # whether there is a gap in the dataset following next_obs
-#
-#     def __iter__(self):
-#         for field in fields(self):
-#             yield getattr(self, field.name)
-#
-#     @property
-#     def field_names(self):
-#         return [field.name for field in fields(self)]
 
 
 def train_test_split(*lsts, train_split: float = 0.9, shuffle: bool = True) -> (list[tuple], list[tuple]):

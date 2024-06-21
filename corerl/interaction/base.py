@@ -20,7 +20,7 @@ class BaseInteraction(ABC):
 
         self.steps_per_decision = cfg.steps_per_decision  # how many observation steps per decision step
         self.obs_length = cfg.obs_length  # how often to update the observation
-        assert self.obs_length > 0, "Step length should be greater than 0."
+        assert self.obs_length >= 0
 
     @abstractmethod
     # step returns a list of transitions and a list of environment infos
