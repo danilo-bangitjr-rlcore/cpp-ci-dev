@@ -20,7 +20,7 @@ import corerl.utils.freezer as fr
 
 
 
-# TODO: this file is really out of date. Someone needs to update it
+# TODO: this file is horribly out of date. Someone needs to update it
 
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")

@@ -232,9 +232,8 @@ def main(cfg: DictConfig) -> dict:
     print("returns", returns)
 
     # now, train the agent, is it better?
-    offline_eval = offline_training(cfg, agent,
-                                    train_info["train_transitions_agent"],
-                                    train_info["test_transitions_agent"])
+    offline_eval = offline_training(cfg, agent, train_info["train_transitions_agent"],
+                                    train_info["test_transitions_agent"],,
 
     returns = cm.do_agent_rollouts(agent, train_info['test_trajectories_agent'], plot=True)
     print("returns", returns)
