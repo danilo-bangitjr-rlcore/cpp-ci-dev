@@ -7,9 +7,10 @@ from corerl.data import Transition
 class CompositeAlert(BaseAlert):
     def __init__(self, cfg: DictConfig, alert_args: dict):
         self.alerts = []
-        for alert_type in cfg.keys():
-            alert_type_cfg = cfg[alert_type]
-            self.alerts.append(init_alert(alert_type_cfg, alert_args))
+        if cfg:
+            for alert_type in cfg.keys():
+                alert_type_cfg = cfg[alert_type]
+                self.alerts.append(init_alert(alert_type_cfg, alert_args))
 
     def update_buffer(self, transitions: list[Transition]) -> None:
         assert len(transitions) == len(self.alerts), "Need a new transition for each type of alert"

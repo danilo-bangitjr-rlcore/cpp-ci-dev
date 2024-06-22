@@ -45,7 +45,17 @@ class AnytimeInteraction(NormalizerInteraction):
         self.n_step = cfg.n_step
         self.warmup_steps = cfg.warmup_steps
 
-    def step(self, action: np.ndarray) -> tuple[list[Transition], list[dict]]:
+    def step(self, action: np.ndarray) -> tuple[list[Transition], list[Transition], list[Transition], list[dict], list[dict]]:
+        """
+        Execute 'action' in the environment for a duration of self.steps_per_decision * self.obs_length
+        A new obs/state is created every self.obs_length seconds
+        Returns:
+        - new_agent_transitions: List of all produced agent transitions
+        - agent_train_transitions: List of Agent transitions that didn't trigger an alert
+        - alert_train_transitions: List of Alert transitions that didn't trigger an alert
+        - alert_info_list: List of dictionaries describing which types of alerts were/weren't triggered
+        - env_info_list: List of dictionaries describing env info
+        """
         partial_transitions = []  # contains (O, S, A, R, S_DP, O', S', C)
         alert_info_list = []
         env_info_list = []
@@ -55,6 +65,7 @@ class AnytimeInteraction(NormalizerInteraction):
         trunc = False
         term = False
         prev_decision_point = True
+        # Execute 'action' for self.steps_per_decision steps
         for obs_step in range(self.steps_per_decision):
             out = self.env.step(denormalized_action)  # env.step() already ensures self.obs_length has elapsed
             next_obs, raw_reward, term, env_trunc, env_info = out
@@ -119,9 +130,11 @@ class AnytimeInteraction(NormalizerInteraction):
                                   boot_obs: np.ndarray,
                                   term: bool,
                                   trunc: bool) -> (list[tuple], list[tuple]):
-        # If n_step = 0, create transitions where all states bootstrap off the state at the next decision point
-        # If n_step > 0, create transitions where states bootstrap off the state n steps into the future.
-        # If the state n steps ahead is beyond the next decision point, bootstrap off the state at the decision point
+        """
+        If n_step = 0, create transitions where all states bootstrap off the state at the next decision point
+        If n_step > 0, create transitions where states bootstrap off the state n steps into the future.
+        If the state n steps ahead is beyond the next decision point, bootstrap off the state at the decision point
+        """
         agent_transitions = []
         alert_transitions = []
 
@@ -185,32 +198,34 @@ class AnytimeInteraction(NormalizerInteraction):
             agent_transitions.append(agent_transition)
 
             # Create alert transition(s)
-            np_n_step_cumulants = self.update_n_step_cumulants(n_step_cumulants, cumulants, alert_gammas)
+            if self.alerts.get_dim() > 0:
+                np_n_step_cumulants = self.update_n_step_cumulants(n_step_cumulants, cumulants, alert_gammas)
 
-            step_alert_transitions = []
-            alert_start_ind = 0
-            for alert in self.alerts.alerts:
-                alert_end_ind = alert_start_ind + alert.get_dim()
+                step_alert_transitions = []
+                alert_start_ind = 0
+                for alert in self.alerts.alerts:
+                    alert_end_ind = alert_start_ind + alert.get_dim()
 
-                alert_transition = Transition(
-                    obs,
-                    state,
-                    action,
-                    next_obs,  # the immediate next obs
-                    next_state,  # the immediate next state
-                    np_n_step_cumulants[-1][alert_start_ind: alert_end_ind].item(),
-                    boot_obs_queue[-1],  # the obs we bootstrap off
-                    boot_state_queue[-1],  # the state we bootstrap off
-                    term_queue[-1],
-                    trunc_queue[-1],
-                    s_dp,
-                    ns_dp,
-                    gamma_exp)
+                    alert_transition = Transition(
+                        obs,
+                        state,
+                        action,
+                        next_obs,  # the immediate next obs
+                        next_state,  # the immediate next state
+                        np_n_step_cumulants[-1][alert_start_ind: alert_end_ind].item(),
+                        boot_obs_queue[-1],  # the obs we bootstrap off
+                        boot_state_queue[-1],  # the state we bootstrap off
+                        term_queue[-1],
+                        trunc_queue[-1],
+                        s_dp,
+                        ns_dp,
+                        gamma_exp)
 
-                step_alert_transitions.append(alert_transition)
-                alert_start_ind = alert_end_ind
+                    step_alert_transitions.append(alert_transition)
+                    alert_start_ind = alert_end_ind
 
-            alert_transitions.append(step_alert_transitions)
+                alert_transitions.append(step_alert_transitions)
+                n_step_cumulants = deque(np_n_step_cumulants, n_step_cumulants.maxlen)
 
             # Update queues and counters
             dp_counter += 1
@@ -220,7 +235,6 @@ class AnytimeInteraction(NormalizerInteraction):
                 False)  # Can assume the partial transitions before the last one don't truncate or terminate
             trunc_queue.appendleft(False)
             n_step_rewards = deque(np_n_step_rewards, n_step_rewards.maxlen)
-            n_step_cumulants = deque(np_n_step_cumulants, n_step_cumulants.maxlen)
 
         agent_transitions.reverse()
         alert_transitions.reverse()

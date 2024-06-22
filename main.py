@@ -91,8 +91,9 @@ def merge_dictionaries(dict_1, dict_2):
 def load_or_create(root, cfgs, prefix, create_func, args):
     cfg_str = ''
     for cfg in cfgs:
-        cfg_copy = OmegaConf.to_container(copy.deepcopy(cfg), resolve=True)
-        cfg_str += str(cfg_copy)
+        if cfg:
+            cfg_copy = OmegaConf.to_container(copy.deepcopy(cfg), resolve=True)
+            cfg_str += str(cfg_copy)
 
     cfg_hash = hashlib.sha1(cfg_str.encode("utf-8")).hexdigest()
     save_path = root / cfg_hash / f"{prefix}-{cfg_hash}.pkl"
@@ -105,8 +106,12 @@ def load_or_create(root, cfgs, prefix, create_func, args):
         save_path = root / cfg_hash
         save_path.mkdir(parents=True, exist_ok=True)
 
-        with open(save_path / "config.yaml", "w") as f:
-            OmegaConf.save(cfg, f)
+        """
+        # Only printing one of the cfgs? Do we ever use this saved config?
+        if cfg:
+            with open(save_path / "config.yaml", "w") as f:
+                OmegaConf.save(cfg, f)
+        """
 
         with open(save_path / f"{prefix}-{cfg_hash}.pkl", 'wb') as f:
             pkl.dump(obj, f)
@@ -119,10 +124,14 @@ def load_or_create(root, cfgs, prefix, create_func, args):
 
 
 def load_offline_obs(cfg, env):
+    """
+    Load offline csv files into a pandas DF and create ObsTransitions
+    """
     dl = init_data_loader(cfg.data_loader)
 
     output_path = Path(cfg.offline_data_output_path)
 
+    # Load csv data into a DF
     create_df = lambda dl_, filenames: dl_.load_data(filenames)
     all_data_df = load_or_create(output_path, [cfg.data_loader],
                                  'all_data_df', create_df, [dl, dl.all_filenames])
@@ -135,6 +144,7 @@ def load_offline_obs(cfg, env):
     assert not train_data_df.isnull().values.any()
     assert not test_data_df.isnull().values.any()
 
+    # Update environment observation bounds with offline data
     create_bounds = lambda dl_, df: dl.get_obs_max_min(df)
     obs_bounds = load_or_create(output_path, [cfg.data_loader],
                                 'obs_bounds', create_bounds, [dl, all_data_df])
@@ -142,6 +152,7 @@ def load_offline_obs(cfg, env):
     env.observation_space = spaces.Box(low=obs_bounds[0], high=obs_bounds[1], dtype=np.float32)
     print("Updated Env Observation Space:", env.observation_space)
 
+    # Create ObsTransitions from DF
     reward_func = init_reward_function(cfg.env.reward)
     create_obs_transitions = lambda dl_, r_func, df: dl_.create_obs_transitions(df, reward_func)
     train_obs_transitions = load_or_create(output_path, [cfg.data_loader],
@@ -159,6 +170,9 @@ def load_offline_obs(cfg, env):
 
 
 def get_offline_transitions(cfg, train_obs_transitions, test_obs_transitions, interaction, alerts):
+    """
+    Convert ObsTransitions into state transitions
+    """
     output_path = Path(cfg.offline_data_output_path)
 
     create_transitions = lambda obs_transitions, interaction_, alerts_, warmup, return_scs: make_anytime_transitions(
@@ -277,7 +291,8 @@ def offline_training(cfg, env, agent, alerts, agent_train_transitions, agent_tes
         offline_eval.do_eval(**offline_eval_args)  # run all evaluators
         stats = offline_eval.get_stats()
 
-        if i in test_epochs:
+        # Visualize agent's actor PDF and critic at set of test states
+        if i in test_epochs and len(agent_test_transitions) > 0:
             test_states, test_actions, test_q_values, actor_params = get_test_state_qs_and_policy_params(agent, agent_test_transitions)
             visualize_actor_critic(test_states, test_actions, test_q_values, actor_params, env, save_path, "Offline_Training", i)
 
@@ -287,23 +302,24 @@ def offline_training(cfg, env, agent, alerts, agent_train_transitions, agent_tes
 
 # TODO: make agent_test_transitions and test_epochs optional
 def online_deployment(cfg, agent, interaction, env, alerts, agent_test_transitions, test_epochs, save_path):
-    # Online Deployment
     # Instantiate online evaluators
     online_eval_args = {
         'agent': agent
     }
     online_eval = CompositeEval(cfg.eval, online_eval_args, online=True)
 
+    alerts_plot_info = {}
+
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(range(max_steps))
-    alerts_plot_info = {}
     state, info = interaction.reset()
-    # State Warmup Here?
+    # Put State Warmup Here
     print('Starting online training...')
     for j in pbar:
         action = agent.get_action(state)
         new_agent_transitions, agent_train_transitions, alert_train_transitions, alert_info_list, env_info_list = interaction.step(action)
 
+        # Only train on transitions that didn't trigger alerts
         for transition in agent_train_transitions:
             agent.update_buffer(transition)
 
@@ -328,7 +344,7 @@ def online_deployment(cfg, agent, interaction, env, alerts, agent_test_transitio
         for i in range(len(alert_info_list)):
             alerts_plot_info = merge_dictionaries(alerts_plot_info, alert_info_list[i])
 
-        if j in test_epochs:
+        if j in test_epochs and len(agent_test_transitions) > 0:
             test_states, test_actions, test_q_values, actor_params = get_test_state_qs_and_policy_params(agent, agent_test_transitions)
             visualize_actor_critic(test_states, test_actions, test_q_values, actor_params, env, save_path, "Online_Deployment", j)
 
@@ -340,26 +356,30 @@ def online_deployment(cfg, agent, interaction, env, alerts, agent_test_transitio
             state = new_agent_transitions[-1].next_state
 
     # Make Alerts Plot
-    alert_trace_thresholds = alerts.get_trace_thresh()
-    plot_action_value_alert(alerts_plot_info, alert_trace_thresholds, save_path)
+    if alerts.get_dim() > 0:
+        alert_trace_thresholds = alerts.get_trace_thresh()
+        plot_action_value_alert(alerts_plot_info, alert_trace_thresholds, save_path)
 
     return online_eval
 
 def offline_anytime_deployment(cfg, agent, interaction, env, alerts, agent_test_transitions, test_epochs, save_path):
-    # Online Deployment
+    """
+    Interacting with an offline dataset as if it were online
+    """
     # Instantiate online evaluators
     online_eval_args = {
         'agent': agent
     }
     online_eval = CompositeEval(cfg.eval, online_eval_args, online=True)
 
+    alerts_plot_info = {}
+
     max_steps = cfg.experiment.max_steps
     interaction.warmup_sc()
-    alerts_plot_info = {}
     pbar = tqdm(range(max_steps))
     print('Starting online anytime training with offline dataset...')
     for j in pbar:
-        agent_transitions, agent_train_transitions, alert_train_transitions, info_list = interaction.step()
+        agent_transitions, agent_train_transitions, alert_train_transitions, alert_info_list, _ = interaction.step()
 
         for transition in agent_train_transitions:
             agent.update_buffer(transition)
@@ -381,12 +401,12 @@ def offline_anytime_deployment(cfg, agent, interaction, env, alerts, agent_test_
         online_eval.do_eval(**online_eval_args)
         stats = online_eval.get_stats()
 
-        if j in test_epochs:
+        if j in test_epochs and len(agent_test_transitions) > 0:
             test_states, test_actions, test_q_values, actor_params = get_test_state_qs_and_policy_params(agent, agent_test_transitions)
             visualize_actor_critic(test_states, test_actions, test_q_values, actor_params, env, save_path, "Online_Interaction_Offline_Data", j)
 
-        for i in range(len(info_list)):
-            alerts_plot_info = merge_dictionaries(alerts_plot_info, info_list[i])
+        for i in range(len(alert_info_list)):
+            alerts_plot_info = merge_dictionaries(alerts_plot_info, alert_info_list[i])
 
         update_pbar(pbar, stats)
 
@@ -395,8 +415,9 @@ def offline_anytime_deployment(cfg, agent, interaction, env, alerts, agent_test_
             break
 
     # Make Alerts Plot
-    alert_trace_thresholds = alerts.get_trace_thresh()
-    plot_action_value_alert(alerts_plot_info, alert_trace_thresholds, save_path)
+    if alerts.get_dim() > 0:
+        alert_trace_thresholds = alerts.get_trace_thresh()
+        plot_action_value_alert(alerts_plot_info, alert_trace_thresholds, save_path)
 
     return online_eval
 

@@ -114,40 +114,41 @@ def get_new_anytime_transitions(curr_decision_transitions, states, interaction, 
         new_agent_transitions.append(agent_transition)
 
         # Create Alert Transition(s)
-        np_n_step_cumulants = interaction.update_n_step_cumulants(n_step_cumulants, cumulant, alert_gammas)
+        if alerts.get_dim() > 0:
+            np_n_step_cumulants = interaction.update_n_step_cumulants(n_step_cumulants, cumulant, alert_gammas)
 
-        # Create transition for each alert type, using the relevant part of the cumulant
-        step_alert_transitions = []
-        alert_start_ind = 0
-        for alert in alerts.alerts:
-            alert_end_ind = alert_start_ind + alert.get_dim()
+            # Create transition for each alert type, using the relevant part of the cumulant
+            step_alert_transitions = []
+            alert_start_ind = 0
+            for alert in alerts.alerts:
+                alert_end_ind = alert_start_ind + alert.get_dim()
 
-            alert_transition = Transition(
-                obs,
-                state,
-                action,
-                next_obs,  # the immediate next obs
-                next_state,  # the immediate next state
-                np_n_step_cumulants[-1][alert_start_ind : alert_end_ind].item(),
-                boot_obs_queue[-1],  # the obs we bootstrap off
-                boot_state_queue[-1],  # the state we bootstrap off
-                term,
-                trunc,
-                s_dp,
-                ns_dp,
-                gamma_exp)
+                alert_transition = Transition(
+                    obs,
+                    state,
+                    action,
+                    next_obs,  # the immediate next obs
+                    next_state,  # the immediate next state
+                    np_n_step_cumulants[-1][alert_start_ind : alert_end_ind].item(),
+                    boot_obs_queue[-1],  # the obs we bootstrap off
+                    boot_state_queue[-1],  # the state we bootstrap off
+                    term,
+                    trunc,
+                    s_dp,
+                    ns_dp,
+                    gamma_exp)
 
-            step_alert_transitions.append(alert_transition)
-            alert_start_ind = alert_end_ind
+                step_alert_transitions.append(alert_transition)
+                alert_start_ind = alert_end_ind
 
-        new_alert_transitions.append(step_alert_transitions)
+            new_alert_transitions.append(step_alert_transitions)
+            n_step_cumulants = deque(np_n_step_cumulants, n_step_cumulants.maxlen)
 
         # Update queues and counters
         dp_counter += 1
         boot_state_queue.appendleft(state)
         boot_obs_queue.appendleft(obs)
         n_step_rewards = deque(np_n_step_rewards, n_step_rewards.maxlen)
-        n_step_cumulants = deque(np_n_step_cumulants, n_step_cumulants.maxlen)
 
     new_agent_transitions.reverse()
     new_alert_transitions.reverse()

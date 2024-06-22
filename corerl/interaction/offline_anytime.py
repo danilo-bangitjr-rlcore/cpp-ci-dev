@@ -82,12 +82,22 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
         self.curr_time = warmup_end
         self.prev_decision_point = decision_point
 
-    def step(self) -> tuple[list[Transition], list[list[Transition]], list[dict]]:
+    def step(self) -> tuple[list[Transition], list[Transition], list[Transition], list[dict], list[dict]]:
+        """
+        Process the offline data, as if it were encountered online, until the next decision point is reached.
+        Create transitions using the 'Anytime' paradigm
+        Returns:
+        - new_agent_transitions: List of all produced agent transitions
+        - agent_train_transitions: List of Agent transitions that didn't trigger an alert
+        - alert_train_transitions: List of Alert transitions that didn't trigger an alert
+        - alert_info_list: List of dictionaries describing which types of alerts were/weren't triggered
+        - env_info_list: List of dictionaries describing env info
+        """
         partial_transitions = []  # contains (O, S, A, R, S_DP, O', S', C)
-        info_list = []
+        alert_info_list = []
         trunc = False
 
-        # If at the end of an action window, find the next action window and align the steps
+        # If at the end of an action window, find the next action window in the DF and align the time steps
         if self.curr_time >= self.action_end:
             self.curr_action, self.action_end, _, _, _, _ = self.data_loader.find_action_boundary(self.action_df, self.curr_time)
             self.norm_curr_action = self.action_normalizer(self.curr_action)
@@ -120,20 +130,22 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
 
                 curr_cumulants = self.get_cumulants(reward, next_obs)
 
-                info = {}
-                info["raw_action"] = [self.curr_action]
-                info["action"] = [self.norm_curr_action]
-                info["state"] = [self.state]
-                info["reward"] = [reward]
-                info["next_obs"] = [next_obs]
+                alert_info = {}
+                alert_info["raw_action"] = [self.curr_action]
+                alert_info["action"] = [self.norm_curr_action]
+                alert_info["state"] = [self.state]
+                alert_info["reward"] = [reward]
+                alert_info["next_obs"] = [next_obs]
 
                 # Additional signals (sensors) we want to plot
                 for j in range(len(self.signal_col_names)):
-                    info[self.signal_col_names[j]] = [raw_next_obs[self.signal_inds[j]]]
+                    alert_info[self.signal_col_names[j]] = [raw_next_obs[self.signal_inds[j]]]
 
-                step_alert_info = self.alerts.evaluate(**info)
+                step_alert_info = self.alerts.evaluate(**alert_info)
                 for key in step_alert_info:
-                    info[key] = step_alert_info[key]
+                    alert_info[key] = step_alert_info[key]
+
+                alert_info_list.append(alert_info)
 
                 partial_transitions.append((self.obs,
                                             self.state,
@@ -143,8 +155,6 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
                                             next_obs,
                                             next_state,
                                             curr_cumulants))
-
-                info_list.append(info)
 
                 self.curr_time += self.obs_duration
                 self.prev_decision_point = decision_point
@@ -160,8 +170,8 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
                                                                                       trunc)
 
         # Only train on transitions where there weren't any alerts
-        agent_train_transitions = self.get_agent_train_transitions(new_agent_transitions, info_list)
-        alert_train_transitions = self.get_alert_train_transitions(new_alert_transitions, info_list)
+        agent_train_transitions = self.get_agent_train_transitions(new_agent_transitions, alert_info_list)
+        alert_train_transitions = self.get_alert_train_transitions(new_alert_transitions, alert_info_list)
 
-        return (new_agent_transitions, agent_train_transitions, alert_train_transitions, info_list)
+        return (new_agent_transitions, agent_train_transitions, alert_train_transitions, alert_info_list, [{}])
 

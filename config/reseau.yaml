@@ -4,7 +4,7 @@ defaults:
   - override env: reseau
   - override data_loader: direct_action
   - override interaction: offline_anytime
-  - override calibration_model : gru
+  - override calibration_model : one_step
   - override state_constructor: reseau_anytime
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
@@ -13,12 +13,10 @@ defaults:
 
 # values may be overridden outside of the defaults list
 
-offline_data:
-  load_from : csv # alternatively, use "transition"
-  output_path : offline_data/reseau
+offline_data_output_path : offline_data/reseau
 
 experiment :
-  exp_name : "Fixed_Data_Loader_Transitions_Composite_Alert_Sweep"
+  exp_name : "GVF_Alert_Sweep_Rosie_2_Eval"
   max_steps : 50000
   offline_steps : 20000
   set_env_obs_space : True
@@ -59,12 +57,10 @@ agent:
 
 
 data_loader:
-  offline_data_path : offline_data/reseau/csv
-#  train_filenames: ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv",
-#                       "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie_2.csv"]
-
-  train_filenames: [ "exp.csv", "f_1.csv", "f_2.csv", "m_1.csv",  "m_3.csv", "rosie.csv", "rosie_2.csv" ]
-  test_filenames: ["m_2.csv"]
+  offline_data_path : offline_data
+  train_filenames: ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv",
+                       "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie.csv"]
+  test_filenames: ["rosie_2_alert.csv"]
   skip_rows : 3
   header : 0
   df_col_names : ["Blank", "Result", "Table", "Date", "ait101_pv", "ait301_pv", "ait401_pv",
