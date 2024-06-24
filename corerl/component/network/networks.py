@@ -287,6 +287,7 @@ class BetaPolicy(nn.Module):
     def forward(self, state: torch.Tensor) -> (torch.Tensor, dict):
         alpha, beta = self.get_dist_params(state)
         dist = distrib.Beta(alpha, beta)
+
         dist = distrib.Independent(dist, 1)
         out = dist.rsample()  # samples of alpha and beta
 

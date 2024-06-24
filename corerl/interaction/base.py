@@ -24,7 +24,7 @@ class BaseInteraction(ABC):
 
     @abstractmethod
     # step returns a list of transitions and a list of environment infos
-    def step(self, action: np.ndarray) -> tuple[list[Transition], list[dict]]:
+    def step(self, action: np.ndarray) -> tuple:
         raise NotImplementedError
 
     @abstractmethod

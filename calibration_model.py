@@ -124,6 +124,10 @@ def main(cfg: DictConfig) -> dict:
     }
     composite_alert = CompositeAlert(cfg.alerts, alert_args)
 
+    # assume scs have the same warmup period for now
+    assert cfg.state_constructor.warmup == cfg.calibration_model.state_constructor.warmup
+    warmup = cfg.state_constructor.warmup
+
     # load trajectories for the agent
     interaction_agent = init_interaction(cfg.interaction, env, sc_agent, composite_alert, data_loader=dl)
     agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.interaction]
@@ -132,7 +136,9 @@ def main(cfg: DictConfig) -> dict:
                                                                                        train_obs_transitions,
                                                                                        test_obs_transitions,
                                                                                        interaction_agent,
-                                                                                       composite_alert)
+                                                                                       composite_alert,
+                                                                                       warmup=warmup,
+                                                                                       )
 
     # load trajectories for the model
     print("loading trajectories for the model")
@@ -145,7 +151,9 @@ def main(cfg: DictConfig) -> dict:
                                                                                  test_obs_transitions,
                                                                                  interaction_cm,
                                                                                  composite_alert,
-                                                                                 return_train_sc=True)
+                                                                                 return_train_sc=True,
+                                                                                 warmup=warmup,
+                                                                                 )
 
     train_info = {
         'interaction_cm': interaction_cm,
@@ -166,7 +174,8 @@ def main(cfg: DictConfig) -> dict:
     cm.train()
 
     # agent should be pretty bad here
-    returns = cm.do_agent_rollouts(agent, train_info['test_trajectories_agent'], plot='pre_training', plot_save_path=save_path)
+    returns = cm.do_agent_rollouts(agent, train_info['test_trajectories_agent'], plot='pre_training',
+                                   plot_save_path=save_path)
     cm.do_test_rollouts(save_path)
     print("returns", returns)
     print("mean return pre-training:", np.mean(returns))

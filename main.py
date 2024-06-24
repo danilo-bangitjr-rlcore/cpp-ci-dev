@@ -66,6 +66,7 @@ def main(cfg: DictConfig) -> dict:
                                                                                                                                             test_obs_transitions,
                                                                                                                                             interaction,
                                                                                                                                             composite_alert)
+
         utils.offline_alert_training(cfg, composite_alert, alert_train_transitions)
         offline_eval = utils.offline_training(cfg,
                                               env,
@@ -98,6 +99,8 @@ def main(cfg: DictConfig) -> dict:
                                               test_epochs)
         online_eval.output(save_path / 'stats.json')
 
+
+    env.plot()
     # need to update make_plots here
     stats = online_eval.get_stats()
     # make_plots(fr.freezer, stats, save_path / 'plots')

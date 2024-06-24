@@ -68,11 +68,7 @@ class NormalizerInteraction(BaseInteraction):
         step_alert_transitions = []
         alert_start_ind = 0
         for alert in self.alerts.alerts:
-            print('alert', alert)
             alert_end_ind = alert_start_ind + alert.get_dim()
-            print(curr_cumulants[alert_start_ind: alert_end_ind])
-
-            # TODO: something is not working here
             alert_transition = Transition(
                 self.last_obs,
                 self.last_state,

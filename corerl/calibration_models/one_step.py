@@ -95,7 +95,7 @@ class OneStep(NNCalibrationModel):
     def do_test_rollout(self, traj: Trajectory,
                         start_idx: Optional[int] = None,
                         plot=False,
-                        plot_save_path=None) ->  list[float]:
+                        plot_save_path=None) -> list[float]:
         if start_idx is None:
             start_idx = random.randint(0, traj.num_transitions - self.max_rollout_len - 1)
 
@@ -180,6 +180,11 @@ class OneStep(NNCalibrationModel):
 
         state_cm = transitions_cm[0].state
         state_agent = transitions_agent[0].state
+
+        for i in range(len(transitions_cm)):
+            assert np.array_equal(transitions_cm[i].obs, transitions_agent[i].obs)
+            assert np.array_equal(transitions_cm[i].action, transitions_agent[i].action)
+            assert np.array_equal(transitions_cm[i].next_obs, transitions_agent[i].next_obs)
 
         gamma = agent.gamma
         g = 0  # the return

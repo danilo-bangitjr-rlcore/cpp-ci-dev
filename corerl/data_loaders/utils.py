@@ -175,8 +175,8 @@ def make_anytime_transitions_for_chunk(curr_chunk_obs_transitions, interaction, 
                initial_state=True,
                decision_point=first_obs_transition.obs_dp,
                steps_since_decision=first_obs_transition.obs_steps_since_decision)
-    states = [state]
 
+    states = [state]
     # Produce remaining states and create list of transitions when decision points are encountered
     curr_decision_obs_transitions = []
 
@@ -188,6 +188,7 @@ def make_anytime_transitions_for_chunk(curr_chunk_obs_transitions, interaction, 
                         initial_state=False,
                         decision_point=obs_transition.next_obs_dp,
                         steps_since_decision=obs_transition.next_obs_steps_since_decision)
+
         states.append(next_state)
         curr_decision_obs_transitions.append(obs_transition)
 
@@ -207,8 +208,6 @@ def make_anytime_transitions_for_chunk(curr_chunk_obs_transitions, interaction, 
 
             curr_decision_obs_transitions = []
             states = [next_state]
-
-    print(len(curr_decision_obs_transitions))
 
     # Remove the transitions that were created during the state constructor warmup period
     curr_chunk_agent_transitions = curr_chunk_agent_transitions[sc_warmup:]
@@ -293,7 +292,9 @@ def make_anytime_trajectories(
             curr_chunk_obs_transitions.append(obs_transition)
             gap = obs_transition.gap
             transition_idx += 1
-            done = (transition_idx == len(obs_transitions) - 1)
+
+            # this done condition is slightly different
+            done = transition_idx == len(obs_transitions)
             pbar.update(1)
 
         # we will store all

@@ -45,7 +45,7 @@ class AnytimeInteraction(NormalizerInteraction):
         self.n_step = cfg.n_step
         self.warmup_steps = cfg.warmup_steps
 
-    def step(self, action: np.ndarray) -> tuple[list[Transition], list[dict]]:
+    def step(self, action: np.ndarray) -> tuple[list[Transition], list[dict]]: # TODO: update this
         partial_transitions = []  # contains (O, S, A, R, S_DP, O', S', C)
         alert_info_list = []
         env_info_list = []
@@ -99,7 +99,7 @@ class AnytimeInteraction(NormalizerInteraction):
         agent_train_transitions = self.get_agent_train_transitions(new_agent_transitions, alert_info_list)
         alert_train_transitions = self.get_alert_train_transitions(new_alert_transitions, alert_info_list)
 
-        return (new_agent_transitions, agent_train_transitions, alert_train_transitions, alert_info_list, env_info_list)
+        return new_agent_transitions, agent_train_transitions, alert_train_transitions, alert_info_list, env_info_list
 
     def update_n_step_cumulants(self, n_step_cumulant_q, new_cumulant, gammas) -> np.ndarray:
         """

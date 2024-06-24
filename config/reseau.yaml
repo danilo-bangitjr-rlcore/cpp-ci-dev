@@ -19,8 +19,8 @@ offline_data:
 
 experiment :
   exp_name : "calibration_model"
-  max_steps : 50000
-  offline_steps : 10000 #20000
+  max_steps : 500
+  offline_steps : 10 #20000
   set_env_obs_space : True
   gamma : 0.95
   train_split : 0.995

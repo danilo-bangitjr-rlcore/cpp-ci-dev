@@ -116,7 +116,8 @@ class AnytimeCalibrationModel(NNCalibrationModel):
                 y = self.model(x)
         return y
 
-    def do_test_rollout(self, traj: Trajectory, start_idx: Optional[int] = None,  plot: bool = False,  plot_save_path=None) -> list[float]:
+    def do_test_rollout(self, traj: Trajectory, start_idx: Optional[int] = None, plot: bool = False,
+                        plot_save_path=None) -> list[float]:
         """
         Validates the model's accuracy on a test rollout, where actions are from the dataset
         """
@@ -237,6 +238,11 @@ class AnytimeCalibrationModel(NNCalibrationModel):
         state_cm = transitions_cm[0].state
         state_agent = transitions_agent[0].state
 
+        for i in range(len(transitions_cm)):
+            assert np.array_equal(transitions_cm[i].obs, transitions_agent[i].obs)
+            assert np.array_equal(transitions_cm[i].action, transitions_agent[i].action)
+            assert np.array_equal(transitions_cm[i].next_obs, transitions_agent[i].next_obs)
+
         gamma = agent.gamma
         g = 0  # the return
         prev_action = None
@@ -311,7 +317,7 @@ class AnytimeCalibrationModel(NNCalibrationModel):
                 denormalized_obs = self.interaction.obs_normalizer.denormalize(fictitious_obs)
                 r = self.reward_func(denormalized_obs, **reward_info)
                 r_norm = self.interaction.reward_normalizer(r)
-                g += gamma**(step + inter_step - 1) * r_norm # TODO: double check this is right .
+                g += gamma ** (step + inter_step - 1) * r_norm  # TODO: double check this is right .
                 prev_action = action
 
                 loss_step = np.mean(np.abs(inter_step_obs[self.endo_inds] - to_np(predicted_inter_endo_obs)))
