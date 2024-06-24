@@ -55,8 +55,8 @@ class NormalizerInteraction(BaseInteraction):
             normalized_next_obs,
             next_state,
             reward,
-            normalized_next_obs,  # the obs for boot strapping is the same as the next obs here
-            next_state,  # the state for boot strapping is the same as the next state here
+            normalized_next_obs,  # the obs for bootstrapping is the same as the next obs here
+            next_state,  # the state for bootstrapping is the same as the next state here
             terminated,
             truncate,
             True,  # always a decision point
@@ -68,17 +68,20 @@ class NormalizerInteraction(BaseInteraction):
         step_alert_transitions = []
         alert_start_ind = 0
         for alert in self.alerts.alerts:
+            print('alert', alert)
             alert_end_ind = alert_start_ind + alert.get_dim()
+            print(curr_cumulants[alert_start_ind: alert_end_ind])
 
+            # TODO: something is not working here
             alert_transition = Transition(
                 self.last_obs,
                 self.last_state,
                 action,
                 normalized_next_obs,
                 next_state,
-                curr_cumulants[alert_start_ind : alert_end_ind].item(),
-                normalized_next_obs,  # the obs for boot strapping is the same as the next obs here
-                next_state,  # the state for boot strapping is the same as the next state here
+                curr_cumulants[alert_start_ind: alert_end_ind].item(),
+                normalized_next_obs,  # the obs for bootstrapping is the same as the next obs here
+                next_state,  # the state for bootstrapping is the same as the next state here
                 terminated,
                 truncate,
                 True,  # always a decision point
@@ -125,33 +128,37 @@ class NormalizerInteraction(BaseInteraction):
 
     def get_agent_train_transitions(self, new_agent_transitions, alert_info_list):
         """
-        Filter out transitions that triggered an alert
+        Filter out agent transitions that triggered an alert
         """
-        # TODO: modify if there are no alerts
-        agent_train_transitions = []
-        for j in range(len(new_agent_transitions)):
-            self.agent_transition_queue.appendleft(new_agent_transitions[j])
-            if len(alert_info_list[j]["alert"].keys()) > 0:
-                agent_transition = self.agent_transition_queue.pop()
-                if alert_info_list[j]["composite_alert"] == [False]:
-                    agent_train_transitions.append(agent_transition)
+        if self.alerts.get_dim() > 0:
+            agent_train_transitions = []
+            for j in range(len(new_agent_transitions)):
+                self.agent_transition_queue.appendleft(new_agent_transitions[j])
+                if len(alert_info_list[j]["alert"].keys()) > 0:
+                    agent_transition = self.agent_transition_queue.pop()
+                    if alert_info_list[j]["composite_alert"] == [False]:
+                        agent_train_transitions.append(agent_transition)
 
-        return agent_train_transitions
+            return agent_train_transitions
+        else:
+            return new_agent_transitions
 
     def get_alert_train_transitions(self, new_alert_transitions, alert_info_list):
         """
-        Filter out transitions that triggered an alert
+        Filter out alert transitions that triggered an alert
         """
-        # TODO: modify if there are no alerts
-        alert_train_transitions = []
-        for j in range(len(new_alert_transitions)):
-            self.alert_transition_queue.appendleft(new_alert_transitions[j])
-            if len(alert_info_list[j]["alert"].keys()) > 0:
-                alert_transition = self.alert_transition_queue.pop()
-                if alert_info_list[j]["composite_alert"] == [False]:
-                    alert_train_transitions.append(alert_transition)
+        if self.alerts.get_dim() > 0:
+            alert_train_transitions = []
+            for j in range(len(new_alert_transitions)):
+                self.alert_transition_queue.appendleft(new_alert_transitions[j])
+                if len(alert_info_list[j]["alert"].keys()) > 0:
+                    alert_transition = self.alert_transition_queue.pop()
+                    if alert_info_list[j]["composite_alert"] == [False]:
+                        alert_train_transitions.append(alert_transition)
 
-        return alert_train_transitions
+            return alert_train_transitions
+        else:
+            return new_alert_transitions
 
     def get_cumulants(self, reward, next_obs):
         cumulant_args = {}
@@ -175,6 +182,3 @@ class NormalizerInteraction(BaseInteraction):
             alert_info[key] = step_alert_info[key]
 
         return alert_info
-
-
-

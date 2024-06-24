@@ -17,10 +17,10 @@ from corerl.interaction.factory import init_interaction
 from corerl.data_loaders.factory import init_data_loader
 from corerl.data_loaders.base import BaseDataLoader
 from corerl.environment.reward.factory import init_reward_function
-from corerl.data_loaders.utils import make_anytime_transitions, train_test_split
+from corerl.data_loaders.utils import make_anytime_transitions, train_test_split, make_anytime_trajectories
 from corerl.agent.utils import get_test_state_qs_and_policy_params
 from corerl.utils.plotting import visualize_actor_critic, plot_action_value_alert
-from corerl.data import Transition, ObsTransition
+from corerl.data import Transition, ObsTransition, Trajectory
 from corerl.interaction.base import BaseInteraction
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.state_constructor.base import BaseStateConstructor
@@ -135,7 +135,7 @@ def load_offline_obs_from_csv(cfg: DictConfig, env: Env) -> tuple[
 
     dl = init_data_loader(cfg.data_loader)
 
-    output_path = Path(cfg.offline_data_output_path)
+    output_path = Path(cfg.offline_data.output_path)
 
     create_df = lambda dl_, filenames: dl_.load_data(filenames)
     all_data_df = load_or_create(output_path, [cfg.data_loader],
@@ -149,7 +149,7 @@ def load_offline_obs_from_csv(cfg: DictConfig, env: Env) -> tuple[
     assert not train_data_df.isnull().values.any()
     assert not test_data_df.isnull().values.any()
 
-    create_bounds = lambda dl_, df: dl.get_obs_max_min(df)
+    create_bounds = lambda dl_, df: dl_.get_obs_max_min(df)
     obs_bounds = load_or_create(output_path, [cfg.data_loader],
                                 'obs_bounds', create_bounds, [dl, all_data_df])
 
@@ -177,13 +177,13 @@ def get_offline_transitions(cfg: DictConfig,
                             test_obs_transitions: list[ObsTransition],
                             interaction: BaseInteraction,
                             alerts: CompositeAlert) -> tuple[
-    BaseInteraction, list[Transition], list[Transition], list[Transition], list[Transition], list[
+    list[Transition], list[Transition], list[Transition], list[Transition], list[
         BaseStateConstructor]]:
     """
     Takes observation transitions and produces offline transitions (including state) using the interactions's state
     constructor=
     """
-    output_path = Path(cfg.offline_data_output_path)
+    output_path = Path(cfg.offline_data.output_path)
 
     create_transitions = lambda obs_transitions, interaction_, alerts_, warmup, return_scs: make_anytime_transitions(
         obs_transitions,
@@ -216,11 +216,54 @@ def get_offline_transitions(cfg: DictConfig,
         alert_test_transitions = None
         test_scs = None
 
-    return interaction, agent_train_transitions, alert_train_transitions, agent_test_transitions, alert_test_transitions, test_scs
+    return agent_train_transitions, alert_train_transitions, agent_test_transitions, alert_test_transitions, test_scs
 
 
-def load_offline_data_from_transitions(cfg):
-    # TODO: test this out when I test saturation
+def get_offline_trajectories(cfg: DictConfig,
+                             hash_cfgs: list[DictConfig],
+                             train_obs_transitions: list[ObsTransition],
+                             test_obs_transitions: list[ObsTransition],
+                             interaction: BaseInteraction,
+                             alerts: CompositeAlert,
+                             return_train_sc=False) -> tuple[
+    list[Trajectory], list[Transition], list[Trajectory], list[Transition]]:
+    """
+    Takes observation transitions and produces offline transitions (including state) using the interaction's state
+    constructor
+    """
+    output_path = Path(cfg.offline_data.output_path)
+    create_trajectories = lambda obs_transitions, interaction_, warmup, return_scs: make_anytime_trajectories(
+        obs_transitions,
+        interaction_,
+        alerts,
+        sc_warmup=warmup,
+        steps_per_decision=cfg.interaction.steps_per_decision,
+        gamma=cfg.experiment.gamma,
+        return_scs=return_scs
+    )
+
+    alert_test_transitions = None
+    # next, we will create the training and test transitions for the calibration model
+    train_trajectories, alert_train_transitions, _ = load_or_create(output_path, hash_cfgs,
+                                                                    'train_trajectories', create_trajectories,
+                                                                    [train_obs_transitions, interaction,
+                                                                     cfg.calibration_model.state_constructor.warmup,
+                                                                     return_train_sc])
+    if test_obs_transitions is not None:
+        test_trajectories, alert_test_transitions, _ = load_or_create(output_path, hash_cfgs,
+                                                                      'test_trajectories', create_trajectories,
+                                                                      [test_obs_transitions, interaction,
+                                                                       cfg.calibration_model.state_constructor.warmup,
+                                                                       True])
+    else:
+        train_trajectories, test_trajectories = train_trajectories[0].split_at(3999)
+        train_trajectories = [train_trajectories]
+        test_trajectories = [test_trajectories]
+
+    return train_trajectories, alert_train_transitions, test_trajectories, alert_test_transitions
+
+
+def load_offline_data_from_transitions(cfg):  # TODO: test this out when I test saturation
     output_path = Path(cfg.offline_data.output_path)
 
     # We assume that transitions have been created with make_offline_transitions.py
@@ -273,19 +316,29 @@ def get_state_action_dim(env: Env, sc: BaseStateConstructor) -> tuple[int, int]:
     return state_dim, action_dim
 
 
+def offline_alert_training(cfg: DictConfig, alerts: CompositeAlert, alert_train_transitions: list[Transition]) -> None:
+    print('Starting offline alert training...')
+    print("Num alert train transitions:", len(alert_train_transitions))
+    for transition_tup in alert_train_transitions:
+        alerts.update_buffer(transition_tup)
+
+    offline_steps = cfg.experiment.offline_steps
+    pbar = tqdm(range(offline_steps))
+    for i in pbar:
+        alerts.update()
+
+
 def offline_training(cfg: DictConfig,
                      env: Env,
                      agent: BaseAgent,
-                     alerts: CompositeAlert,
                      agent_train_transitions: list[Transition],
                      agent_test_transitions: list[Transition],
-                     alert_train_transitions: list[Transition],
                      save_path: Path,
                      test_epochs: Optional[list[int]] = None) -> CompositeEval:
     if test_epochs is None:
         test_epochs = []
 
-    print('Starting offline training...')
+    print('Starting offline agent training...')
     offline_eval_args = {
         'agent': agent
     }
@@ -295,19 +348,15 @@ def offline_training(cfg: DictConfig,
         split = train_test_split(agent_train_transitions, train_split=cfg.experiment.train_split)
         agent_train_transitions, agent_test_transitions = split[0][0], split[0][1]
 
-    print("Num Agent Train Transitions:", len(agent_train_transitions))
+    print("Num agent train transitions:", len(agent_train_transitions))
     for transition in agent_train_transitions:
         agent.update_buffer(transition)
 
-    print("Num Alert Train Transitions:", len(alert_train_transitions))
-    for transition_tup in alert_train_transitions:
-        alerts.update_buffer(transition_tup)
-
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
+    keys = cfg.experiment.offline_stat_keys  # which keys to log on the progress bar
     for i in pbar:
         agent.update()
-        alerts.update()
         offline_eval.do_eval(**offline_eval_args)  # run all evaluators
         stats = offline_eval.get_stats()
 
@@ -317,7 +366,7 @@ def offline_training(cfg: DictConfig,
             visualize_actor_critic(test_states, test_actions, test_q_values, actor_params, env, save_path,
                                    "Offline_Training", i)
 
-        update_pbar(pbar, stats)
+        update_pbar(pbar, stats, keys)
 
     return offline_eval
 

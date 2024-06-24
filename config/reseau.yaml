@@ -4,7 +4,7 @@ defaults:
   - override env: reseau
   - override data_loader: direct_action
   - override interaction: offline_anytime
-  - override calibration_model : gru
+  - override calibration_model : anytime
   - override state_constructor: reseau_anytime
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
@@ -18,13 +18,15 @@ offline_data:
   output_path : offline_data/reseau
 
 experiment :
-  exp_name : "Fixed_Data_Loader_Transitions_Composite_Alert_Sweep"
+  exp_name : "calibration_model"
   max_steps : 50000
-  offline_steps : 20000
+  offline_steps : 10000 #20000
   set_env_obs_space : True
   gamma : 0.95
   train_split : 0.995
-  test_epochs : [9999, 19999]
+  test_epochs : [0, 999, 9999, 19999]
+  offline_stat_keys : []
+  online_stat_keys : []
 
 env:
   opc : null
@@ -46,7 +48,7 @@ interaction :
 agent:
   tau : 0
   rho : 0.04
-  num_samples: 500
+  num_samples: 250
   uniform_proposal : True
   critic:
     polyak': 0.995

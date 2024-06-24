@@ -99,7 +99,6 @@ class AnytimeCalibrationModel(NNCalibrationModel):
 
             pbar.set_description("train loss: {:7.6f}, test_loss: {:7.6f}".format(train_loss, test_loss))
 
-        self.do_test_rollouts()
         return self.train_losses, self.test_losses
 
     def linear_interpolation(self, inter_step, duration_int, curr_obs, predicted_next_endo_obs):
@@ -117,31 +116,34 @@ class AnytimeCalibrationModel(NNCalibrationModel):
                 y = self.model(x)
         return y
 
-    def do_test_rollout(self, traj: Trajectory, start_idx: int, plot: bool = False) -> list[float]:
+    def do_test_rollout(self, traj: Trajectory, start_idx: Optional[int] = None,  plot: bool = False,  plot_save_path=None) -> list[float]:
         """
         Validates the model's accuracy on a test rollout, where actions are from the dataset
         """
+
+        if start_idx is None:
+            start_idx = random.randint(0, traj.num_transitions - self.max_rollout_len - 1)
+
         transitions = traj.transitions[start_idx:]
         sc = deepcopy(traj.scs[start_idx])
-        losses = []
-        rollout_len = min(traj.num_transitions, self.max_rollout_len)
-
         state = transitions[0].state
 
+        losses = []
         endo_obss = []
         predicted_endo_obss = []
         actions = []
+        rollout_len = min(traj.num_transitions, self.max_rollout_len)
 
         step = 0
         done = False
         num_predictions = 0
         curr_obs = transitions[0].obs
-
         steps_until_decision_point = None
         while not done:
             transition_step = transitions[step]
             if steps_until_decision_point == None:
                 assert step == 0
+                # on the first iteration, start from the right number of actions remaining
                 steps_until_decision_point = transition_step.gamma_exponent
             elif steps_until_decision_point == 0:
                 steps_until_decision_point = self.steps_per_decision
@@ -205,13 +207,13 @@ class AnytimeCalibrationModel(NNCalibrationModel):
 
         return losses
 
-    def do_test_rollouts(self):
+    def do_test_rollouts(self, plot_save_path=None):
         for n, test_traj in enumerate(self.test_trajectories):
             last = test_traj.num_transitions - self.max_rollout_len
             increase_idx = last // self.num_test_rollouts
             start_idx = 0
             for start in range(self.num_test_rollouts):
-                self.do_test_rollout(test_traj, start_idx=start_idx, plot=True)
+                self.do_test_rollout(test_traj, start_idx=start_idx, plot=True, plot_save_path=plot_save_path)
                 start_idx += increase_idx
 
     def do_agent_rollout(self,
@@ -219,7 +221,9 @@ class AnytimeCalibrationModel(NNCalibrationModel):
                          traj_agent: Trajectory,
                          agent: BaseAgent,
                          start_idx: Optional[int] = None,
-                         plot=False) -> float:
+                         plot=None,
+                         plot_save_path=None,
+                         ) -> float:
 
         if start_idx is None:
             start_idx = random.randint(0, traj_cm.num_transitions - self.max_rollout_len - 1)
@@ -326,7 +330,7 @@ class AnytimeCalibrationModel(NNCalibrationModel):
             if step > rollout_len:
                 done = True
 
-        if plot:
+        if plot is not None:
             plt.plot(endo_obss, label='endo obs.')
             plt.plot(actions, label='actions')
 
@@ -335,17 +339,26 @@ class AnytimeCalibrationModel(NNCalibrationModel):
             plt.legend()
 
             plt.xlabel("Rollout Step")
-            plt.savefig(f"test_{start_idx}.png", bbox_inches='tight')
+            plt.savefig(plot_save_path / f"rollout_{plot}_{start_idx}.png", bbox_inches='tight')
             plt.clf()
 
         return g
 
-    def do_agent_rollouts(self, agent: BaseAgent, trajectories_agent: list[Trajectory], plot=False):
+    def do_agent_rollouts(self, agent: BaseAgent, trajectories_agent: list[Trajectory], plot=None, plot_save_path=None):
         returns = []
         assert len(trajectories_agent) == len(self.test_trajectories)
-        for traj_i in range(len(trajectories_agent)):
+        for traj_i, _ in enumerate(self.test_trajectories):
             traj_cm = self.test_trajectories[traj_i]
-            traj_agent = self.test_trajectories[traj_i]
-            return_ = self.do_agent_rollout(traj_cm, traj_agent, agent, start_idx=1000, plot=True)
-            returns.append(return_)
+            traj_agent = trajectories_agent[traj_i]
+
+            assert traj_cm.num_transitions == traj_agent.num_transitions
+
+            last = traj_cm.num_transitions - self.max_rollout_len
+            increase_idx = last // self.num_test_rollouts
+            start_idx = 0
+            for start in range(self.num_test_rollouts):
+                return_ = self.do_agent_rollout(traj_cm, traj_agent, agent, start_idx=start_idx, plot=plot,
+                                                plot_save_path=plot_save_path)
+                start_idx += increase_idx
+                returns.append(return_)
         return returns

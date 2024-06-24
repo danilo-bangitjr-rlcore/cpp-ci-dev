@@ -22,6 +22,7 @@ experiment :
   set_env_obs_space : True
   timeout: 0
 
+
 env:
   opc : null
   db : null
@@ -44,7 +45,15 @@ agent:
     actor_optimizer:
       lr : 0.001
 
-
-
-
-
+alerts:
+  action_value:
+    gamma : 0.8
+    ret_perc : 0.1
+    trace_decay : 0.995
+    trace_thresh : 0.1
+  gvf:
+    endo_obs_col_names: ["saturation"]
+    gamma : 0.8
+    ret_perc : 0.1
+    trace_decay : 0.995
+    trace_thresh : 0.1
