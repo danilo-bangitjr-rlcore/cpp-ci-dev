@@ -112,17 +112,7 @@ class AnytimeInteraction(NormalizerInteraction):
 
         return new_agent_transitions, agent_train_transitions, alert_train_transitions, alert_info_list, env_info_list
 
-    def update_n_step_cumulants(self, n_step_cumulant_q, new_cumulant, gammas) -> np.ndarray:
-        """
-        Recursively updating n-step cumulant
-        """
-        num_cumulants = len(new_cumulant)
-        n_step_cumulant_q.appendleft([0.0 for _ in range(num_cumulants)])
-        np_n_step_cumulants = np.array(n_step_cumulant_q)
-        np_new_cumulant = np.array([new_cumulant for _ in range(len(n_step_cumulant_q))])
-        np_n_step_cumulants = np_new_cumulant + (gammas * np_n_step_cumulants)
 
-        return np_n_step_cumulants
 
     def create_n_step_transitions(self,
                                   partial_transitions: list[tuple],

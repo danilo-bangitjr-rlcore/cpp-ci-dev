@@ -7,15 +7,15 @@ from corerl.state_constructor.base import BaseStateConstructor
 
 @dataclass
 class ObsTransition:
-    prev_action: np.array # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
+    prev_action: np.array  # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
     obs: np.array  # the raw observation of state
     obs_steps_since_decision: int
-    obs_dp: bool # Whether 'obs' is at a decision point
-    action: np.array # the action taken after 'obs' that occurs concurrently with 'next_obs'
+    obs_dp: bool  # Whether 'obs' is at a decision point
+    action: np.array  # the action taken after 'obs' that occurs concurrently with 'next_obs'
     reward: float
     next_obs: np.array  # the immediate next observation
     next_obs_steps_since_decision: int
-    next_obs_dp: bool # Whether 'next_obs' is at a decision point
+    next_obs_dp: bool  # Whether 'next_obs' is at a decision point
     terminated: bool
     truncate: bool
     gap: bool  # whether there is a gap in the dataset following next_obs
@@ -39,6 +39,7 @@ class Transition:
     # NOTE: we distinguish between the next state and the next state which we bootstrap off of. All following
     # attributes are defined w.r.t. the boot strap state.
     reward: float
+    n_step_cumulants: np.array  #
     # the state which we bootstrap off of, which is not necesssarily the next state
     # in the MDP
     boot_obs: np.array  # the raw observation of next_state
@@ -86,6 +87,66 @@ class Transition:
             self.truncate,
             False)  # assume there is no gap in the dataset
         return obs_transition
+
+
+#
+# @dataclass
+# class Transition:
+#     obs: np.array  # the raw observation of state
+#     state: np.array
+#     action: np.array
+#     next_obs: np.array  # the immediate next observation
+#     next_state: np.array  # the next state in the
+#     # NOTE: we distinguish between the next state and the next state which we bootstrap off of. All following
+#     # attributes are defined w.r.t. the boot strap state.
+#     reward: float
+#     # the state which we bootstrap off of, which is not necesssarily the next state
+#     # in the MDP
+#     boot_obs: np.array  # the raw observation of next_state
+#     boot_state: np.array
+#     terminated: bool
+#     truncate: bool
+#     decision_point: bool  # whether state is a decision point
+#     boot_decision_point: bool  # whether next_state is a decision point
+#     gamma_exponent: int  # the exponent of gamma used for bootstrapping
+#
+#     def __iter__(self):
+#         for field in fields(self):
+#             yield getattr(self, field.name)
+#
+#     @property
+#     def field_names(self):
+#         return [field.name for field in fields(self)]
+#
+#     def __eq__(self, other: object) -> bool:
+#         if not isinstance(other, Transition):  # Not the same class, so not equal
+#             return False
+#
+#         for field in fields(self):
+#             attr_self = getattr(self, field.name)
+#             attr_other = getattr(other, field.name)
+#
+#             if not isinstance(attr_self, type(attr_other)):  # attributes are not the same class
+#                 return False
+#
+#             if isinstance(attr_self, np.ndarray):
+#                 if not np.array_equal(attr_self, attr_other):
+#                     return False
+#             elif attr_self != attr_other:
+#                 return False
+#
+#         return True
+#
+#     def to_obs_transition(self):
+#         obs_transition = ObsTransition(
+#             self.obs,
+#             self.action,
+#             self.reward,
+#             self.next_obs,
+#             self.terminated,
+#             self.truncate,
+#             False)  # assume there is no gap in the dataset
+#         return obs_transition
 
 
 @dataclass

@@ -39,6 +39,7 @@ def main(cfg: DictConfig) -> dict:
     do_offline_training = cfg.experiment.offline_steps > 0
     if do_offline_training:
         print('Loading offline observations...')
+        # pass in env because load_offline_obs_from_csv updates env's observation space
         env, dl, train_obs_transitions, test_obs_transitions = utils.load_offline_obs_from_csv(cfg, env)
 
     sc = init_state_constructor(cfg.state_constructor, env)

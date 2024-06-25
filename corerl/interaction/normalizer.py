@@ -32,7 +32,8 @@ class NormalizerInteraction(BaseInteraction):
         self.agent_transition_queue = deque([])
         self.alert_transition_queue = deque([])
 
-    def step(self, action: np.ndarray) -> tuple[list[Transition], list[Transition], list[Transition], list[dict], list[dict]]:
+    def step(self, action: np.ndarray) -> tuple[
+        list[Transition], list[Transition], list[Transition], list[dict], list[dict]]:
         """
         Execute the action in the environment and transition to the next decision point.
         Not 'Anytime' - Single observation/state per decision
@@ -87,9 +88,9 @@ class NormalizerInteraction(BaseInteraction):
                     action,
                     normalized_next_obs,
                     next_state,
-                    curr_cumulants[alert_start_ind : alert_end_ind].item(),
-                    normalized_next_obs,  # the obs for boot strapping is the same as the next obs here
-                    next_state,  # the state for boot strapping is the same as the next state here
+                    curr_cumulants[alert_start_ind: alert_end_ind].item(),
+                    normalized_next_obs,  # the obs for bootstrapping is the same as the next obs here
+                    next_state,  # the state for bootstrapping is the same as the next state here
                     terminated,
                     truncate,
                     True,  # always a decision point
@@ -176,37 +177,4 @@ class NormalizerInteraction(BaseInteraction):
             return alert_train_transitions
         else:
             return new_alert_transitions
-
-    def get_cumulants(self, reward, next_obs) -> np.ndarray:
-        """
-        Get cumulants used to train alert value functions
-        Currently passes the information required for Action-Value and GVF alerts.
-        """
-        cumulant_args = {}
-        cumulant_args["reward"] = reward
-        cumulant_args["obs"] = next_obs
-        curr_cumulants = self.alerts.get_cumulants(**cumulant_args)
-        curr_cumulants = np.array(curr_cumulants)
-
-        return curr_cumulants
-
-    def get_step_alerts(self, raw_action, action, state, next_obs, reward) -> dict:
-        """
-        Determine if there is an alert triggered at the given state-action pair.
-        Currently passes the information required for Action-Value and GVF alerts.
-        """
-        alert_info = {}
-        alert_info["raw_action"] = [raw_action]
-        alert_info["action"] = [action]
-        alert_info["state"] = [state]
-        alert_info["next_obs"] = [next_obs]
-        alert_info["reward"] = [reward]
-
-        step_alert_info = self.alerts.evaluate(**alert_info)
-        for key in step_alert_info:
-            alert_info[key] = step_alert_info[key]
-
-        return alert_info
-
-
 

@@ -7,7 +7,7 @@ from corerl.interaction.normalizer import NormalizerInteraction
 from corerl.data import ObsTransition
 from corerl.data import Transition, Trajectory
 from corerl.alerts.composite_alert import CompositeAlert
-from copy import deepcopy
+
 
 
 def train_test_split(*lsts, train_split: float = 0.9, shuffle: bool = True) -> (list[tuple], list[tuple]):

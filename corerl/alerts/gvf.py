@@ -8,6 +8,7 @@ from corerl.utils.device import device
 from corerl.prediction.gvf import SimpleGVF, QGVF
 from corerl.data import Transition
 
+
 class GVFAlert(BaseAlert):
     def __init__(self, cfg: DictConfig, **kwargs):
         if 'agent' not in kwargs:
@@ -29,7 +30,7 @@ class GVFAlert(BaseAlert):
         self.num_gvfs = self.gvfs.get_num_gvfs()
         self.gamma = cfg.gamma
 
-        self.ret_perc = cfg.ret_perc # Percentage of the full return being neglected in the observed partial return
+        self.ret_perc = cfg.ret_perc  # Percentage of the full return being neglected in the observed partial return
         self.return_steps = int(np.ceil(np.log(self.ret_perc) / np.log(self.gamma)))
         self.trace_thresh = cfg.trace_thresh
         self.trace_decay = cfg.trace_decay
@@ -66,7 +67,7 @@ class GVFAlert(BaseAlert):
         # The GVF predicts the expected full return. Need to take into account that we're neglecting some percentage of the return.
         corrected_values = curr_values * (1.0 - self.ret_perc)
         self.values.appendleft(corrected_values)
-        
+
         curr_cumulants = next_obs[self.endo_inds]
 
         # Update Partial GVF Returns
@@ -74,7 +75,7 @@ class GVFAlert(BaseAlert):
         np_partial_returns = np.array(self.partial_returns)
         num_entries = len(self.partial_returns)
         curr_cumulants = np.array([curr_cumulants for i in range(num_entries)])
-        gammas = np.array([self.gamma ** i for i in range(num_entries)]).reshape(-1,1)
+        gammas = np.array([self.gamma ** i for i in range(num_entries)]).reshape(-1, 1)
         np_partial_returns += curr_cumulants * gammas
         self.partial_returns = deque(np_partial_returns, self.return_steps)
 
@@ -117,5 +118,3 @@ class GVFAlert(BaseAlert):
             trace_threshes[sensor_name] = self.trace_thresh
 
         return trace_threshes
-
-

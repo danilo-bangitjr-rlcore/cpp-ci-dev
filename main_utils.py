@@ -125,8 +125,7 @@ def load_or_create(root: Path, cfgs: list[DictConfig], prefix: str, create_func:
     return obj
 
 
-def load_offline_obs_from_csv(cfg: DictConfig, env: Env) -> tuple[
-    Env, BaseDataLoader, list[ObsTransition], Optional[list[ObsTransition]]]:
+def load_offline_obs_from_csv(cfg: DictConfig, env: Env) -> tuple[Env, BaseDataLoader, list[ObsTransition], Optional[list[ObsTransition]]]:
     """
     Loads offline observation transitions (transitions without states) from an offline dataset.
 
