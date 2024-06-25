@@ -142,6 +142,8 @@ class GreedyAC(BaseAC):
         dp_mask = batch.boot_decision_point
 
         next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
+        # For the 'Anytime' paradigm, only states at decision points can sample next_actions
+        # If a state isn't at a decision point, its next_action is set to the current action
         with torch.no_grad():
             next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
 
@@ -152,6 +154,8 @@ class GreedyAC(BaseAC):
         else:
             next_q = self.q_critic.get_q_target(next_state_batch, next_actions)
 
+        # N-Step SARSA update with variable 'N', thus 'reward_batch' is an n_step reward
+        # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
         target = reward_batch + mask_batch * (self.gamma ** gamma_exp_batch) * next_q
         _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)
         return ensemble_mse(target, q_ens)
