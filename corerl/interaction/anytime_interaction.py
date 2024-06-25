@@ -110,7 +110,7 @@ class AnytimeInteraction(NormalizerInteraction):
         agent_train_transitions = self.get_agent_train_transitions(new_agent_transitions, alert_info_list)
         alert_train_transitions = self.get_alert_train_transitions(new_alert_transitions, alert_info_list)
 
-        return (new_agent_transitions, agent_train_transitions, alert_train_transitions, alert_info_list, env_info_list)
+        return new_agent_transitions, agent_train_transitions, alert_train_transitions, alert_info_list, env_info_list
 
     def update_n_step_cumulants(self, n_step_cumulant_q, new_cumulant, gammas) -> np.ndarray:
         """

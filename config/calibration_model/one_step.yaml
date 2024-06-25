@@ -33,6 +33,6 @@ optimizer:
   weight_decay: 0.0
   name: adam
 
-max_rollout_len : 20
+max_rollout_len : 180
 steps_per_decision : ${interaction.steps_per_decision}
-num_test_rollouts : 1
+num_test_rollouts : 20

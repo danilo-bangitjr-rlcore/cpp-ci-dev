@@ -15,22 +15,28 @@ from corerl.data import TransitionBatch, Transition
 
 class OfflineAnytimeInteraction(AnytimeInteraction):
     def __init__(
-        self,
-        cfg: DictConfig,
-        env: gymnasium.Env,
-        state_constructor: BaseStateConstructor,
-        alerts: CompositeAlert,
-        data_loader: BaseDataLoader
+            self,
+            cfg: DictConfig,
+            env: gymnasium.Env,
+            state_constructor: BaseStateConstructor,
+            alerts: CompositeAlert,
+            data_loader: BaseDataLoader
     ):
         super().__init__(cfg, env, state_constructor, alerts)
         self.obs_duration = timedelta(seconds=self.obs_length)
 
         self.data_loader = data_loader
-        self.df = self.data_loader.load_data(self.data_loader.test_filenames) # Assuming df only has actions of duration self.obs_length * self.steps_per_decision
+        self.df = self.data_loader.load_data(
+            self.data_loader.test_filenames)  # Assuming df only has actions of duration self.obs_length * self.steps_per_decision
+
+        assert not self.df.isnull().values.any()
+        assert np.isnan(self.df.to_numpy()).any() == False
+
         self.action_df = self.df[self.data_loader.action_col_names]
+
         self.obs_df = self.df[self.data_loader.obs_col_names]
-        self.curr_time = self.df.iloc[0].name # pd.Timestamp
-        self.end_time = self.df.iloc[-1].name # pd.Timestamp
+        self.curr_time = self.df.iloc[0].name  # pd.Timestamp
+        self.end_time = self.df.iloc[-1].name  # pd.Timestamp
 
         self.signal_col_names = cfg.signal_col_names
         self.signal_inds = cfg.signal_inds
@@ -49,13 +55,14 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
         initial_state = True
 
         while elapsed_warmup < warmup_sec:
-            self.curr_action, self.action_end, next_action_start, _, _, _ = self.data_loader.find_action_boundary(self.action_df, action_start)
+            self.curr_action, self.action_end, next_action_start, _, _, _ = self.data_loader.find_action_boundary(
+                self.action_df, action_start)
             self.norm_curr_action = self.action_normalizer(self.curr_action)
-            
+
             curr_action_steps, step_start = self.data_loader.get_curr_action_steps(action_start, self.action_end)
             step_remainder = curr_action_steps % self.steps_per_decision
             self.steps_since_decision = ((self.steps_per_decision - step_remainder) + 1) % self.steps_per_decision
-            
+
             for i in range(curr_action_steps):
                 decision_point = self.steps_since_decision == 0
 
@@ -64,10 +71,10 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
                 self.obs = self.obs_normalizer(raw_obs)
 
                 self.state = self.state_constructor(self.obs,
-                                               self.norm_curr_action,
-                                               initial_state=initial_state,
-                                               decision_point=decision_point,
-                                               steps_since_decision=self.steps_since_decision)
+                                                    self.norm_curr_action,
+                                                    initial_state=initial_state,
+                                                    decision_point=decision_point,
+                                                    steps_since_decision=self.steps_since_decision)
 
                 initial_state = False
                 self.steps_since_decision = (self.steps_since_decision + 1) % self.steps_per_decision
@@ -99,7 +106,8 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
 
         # If at the end of an action window, find the next action window in the DF and align the time steps
         if self.curr_time >= self.action_end:
-            self.curr_action, self.action_end, _, _, _, _ = self.data_loader.find_action_boundary(self.action_df, self.curr_time)
+            self.curr_action, self.action_end, _, _, _, _ = self.data_loader.find_action_boundary(self.action_df,
+                                                                                                  self.curr_time)
             self.norm_curr_action = self.action_normalizer(self.curr_action)
 
             curr_action_steps, step_start = self.data_loader.get_curr_action_steps(self.curr_time, self.action_end)
@@ -116,7 +124,10 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
                 decision_point = self.steps_since_decision == 0
 
                 step_end = self.curr_time + timedelta(seconds=self.obs_length)
+
+                # NOTE: this may return nan if there is a gap in the df
                 raw_next_obs = self.data_loader.get_obs(self.obs_df, self.curr_time, step_end)
+
                 next_obs = self.obs_normalizer(raw_next_obs)
 
                 next_state = self.state_constructor(next_obs,
@@ -124,7 +135,7 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
                                                     initial_state=False,
                                                     decision_point=decision_point,
                                                     steps_since_decision=self.steps_since_decision)
-                
+
                 raw_reward = self.env._get_reward(raw_next_obs, self.curr_action)
                 reward = self.reward_normalizer(raw_reward)
 
@@ -166,7 +177,7 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
         new_agent_transitions, new_alert_transitions = self.create_n_step_transitions(partial_transitions,
                                                                                       self.state,
                                                                                       self.obs,
-                                                                                      False, # Assuming continuing env
+                                                                                      False,  # Assuming continuing env
                                                                                       trunc)
 
         # Only train on transitions where there weren't any alerts

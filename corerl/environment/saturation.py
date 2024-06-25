@@ -13,7 +13,7 @@ class Saturation(gym.Env):
         self.saturation = np.array([0.])
         self.saturation_sp = np.array([0.5])
 
-        self.decay_period = 500
+        self.decay_period = 100
 
         self._action_dim = 1
         self._action_min = np.array([0])

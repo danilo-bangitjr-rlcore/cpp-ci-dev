@@ -4,6 +4,7 @@ from corerl.alerts.base import BaseAlert
 from corerl.alerts.factory import init_alert
 from corerl.data import Transition
 
+
 class CompositeAlert(BaseAlert):
     def __init__(self, cfg: DictConfig, alert_args: dict):
         self.alerts = []
@@ -40,7 +41,7 @@ class CompositeAlert(BaseAlert):
         dim = 0
         for alert in self.alerts:
             dim += alert.get_dim()
-        
+
         return dim
 
     def get_discount_factors(self) -> list[float]:
@@ -65,4 +66,3 @@ class CompositeAlert(BaseAlert):
                 trace_threshes[key] = alert_trace_threshes[key]
 
         return trace_threshes
-

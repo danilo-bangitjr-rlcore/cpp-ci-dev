@@ -62,8 +62,8 @@ class NormalizerInteraction(BaseInteraction):
             normalized_next_obs,
             next_state,
             reward,
-            normalized_next_obs,  # the obs for boot strapping is the same as the next obs here
-            next_state,  # the state for boot strapping is the same as the next state here
+            normalized_next_obs,  # the obs for bootstrapping is the same as the next obs here
+            next_state,  # the state for bootstrapping is the same as the next state here
             terminated,
             truncate,
             True,  # always a decision point
@@ -145,7 +145,7 @@ class NormalizerInteraction(BaseInteraction):
 
     def get_agent_train_transitions(self, new_agent_transitions, alert_info_list) -> list[Transition]:
         """
-        Filter out transitions that triggered an alert
+        Filter out agent transitions that triggered an alert
         """
         if self.alerts.get_dim() > 0:
             agent_train_transitions = []
@@ -162,7 +162,7 @@ class NormalizerInteraction(BaseInteraction):
 
     def get_alert_train_transitions(self, new_alert_transitions, alert_info_list) -> list[Transition]:
         """
-        Filter out transitions that triggered an alert
+        Filter out alert transitions that triggered an alert
         """
         if self.alerts.get_dim() > 0:
             alert_train_transitions = []

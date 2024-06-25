@@ -30,5 +30,7 @@ experiment:
   param_from_hash : True
   gamma : 0.9
   train_split : 0.9
-  test_epochs : [9999, 19999]
+  test_epochs : null # If you want to test at certain epochs, specify a list here
+  offline_stat_keys: []
+  online_stat_keys: []
 

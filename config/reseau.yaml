@@ -4,7 +4,7 @@ defaults:
   - override env: reseau
   - override data_loader: direct_action
   - override interaction: offline_anytime
-  - override calibration_model : one_step
+  - override calibration_model : anytime
   - override state_constructor: reseau_anytime
   - override interaction/action_normalizer: scale
   - override interaction/reward_normalizer: scale
@@ -13,7 +13,9 @@ defaults:
 
 # values may be overridden outside of the defaults list
 
-offline_data_output_path : offline_data/reseau
+offline_data:
+  load_from : csv # alternatively, use "transition"
+  output_path : offline_data/reseau
 
 experiment :
   exp_name : "GVF_Alert_Sweep_Rosie_2_Eval"
@@ -22,7 +24,9 @@ experiment :
   set_env_obs_space : True
   gamma : 0.95
   train_split : 0.995
-  test_epochs : [9999, 19999]
+  test_epochs : [0, 999, 9999, 19999]
+  offline_stat_keys : []
+  online_stat_keys : []
 
 env:
   opc : null

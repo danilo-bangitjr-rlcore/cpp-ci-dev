@@ -98,7 +98,7 @@ class AvgNanNorm(BaseNormalizer):
 
     def __call__(self, x: float | np.ndarray) -> np.float64 | np.ndarray:
         x = self.handle_nan(x)
-        x = self.average(x)
+        # x = self.average(x)
         return self.normalize(x)
 
     def normalize(self, x: float | np.ndarray) -> float | np.ndarray:

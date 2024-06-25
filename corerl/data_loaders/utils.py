@@ -41,15 +41,15 @@ def _normalize(obs_transition, interaction):
 
     return obs_transition
 
-def get_new_anytime_transitions(curr_decision_transitions, states, interaction, alerts):
+def get_new_anytime_transitions(curr_decision_obs_transitions, states, interaction, alerts):
     """
     Produce the agent and alert state transitions using the observation transitions that occur between two decision points
     """
     # Alerts can use different discount factors than the agent's value functions
     alert_gammas = np.array(alerts.get_discount_factors())
 
-    rewards = [curr_obs_transition.reward for curr_obs_transition in curr_decision_transitions]
-    next_obs_list = [curr_obs_transition.next_obs for curr_obs_transition in curr_decision_transitions]
+    rewards = [curr_obs_transition.reward for curr_obs_transition in curr_decision_obs_transitions]
+    next_obs_list = [curr_obs_transition.next_obs for curr_obs_transition in curr_decision_obs_transitions]
 
     cumulants = []
     for i in range(len(rewards)):
@@ -73,21 +73,21 @@ def get_new_anytime_transitions(curr_decision_transitions, states, interaction, 
         boot_obs_queue = deque([], interaction.n_step)
 
     boot_state_queue.appendleft(states[-1])
-    boot_obs_queue.appendleft(curr_decision_transitions[-1].next_obs)
+    boot_obs_queue.appendleft(curr_decision_obs_transitions[-1].next_obs)
 
     dp_counter = 1
     # Iteratively create the agent and alert transitions
-    for i in range(len(curr_decision_transitions) - 1, -1, -1):
-        obs = curr_decision_transitions[i].obs
+    for i in range(len(curr_decision_obs_transitions) - 1, -1, -1):
+        obs = curr_decision_obs_transitions[i].obs
         state = states[i]
-        action = curr_decision_transitions[i].action
-        reward = curr_decision_transitions[i].reward
-        s_dp = curr_decision_transitions[i].obs_dp
-        next_obs = curr_decision_transitions[i].next_obs
+        action = curr_decision_obs_transitions[i].action
+        reward = curr_decision_obs_transitions[i].reward
+        s_dp = curr_decision_obs_transitions[i].obs_dp
+        next_obs = curr_decision_obs_transitions[i].next_obs
         next_state = states[i+1]
         cumulant = cumulants[i]
-        term = curr_decision_transitions[i].terminated
-        trunc = curr_decision_transitions[i].truncate
+        term = curr_decision_obs_transitions[i].terminated
+        trunc = curr_decision_obs_transitions[i].truncate
 
         # Create Agent Transition
         np_n_step_rewards = interaction.update_n_step_cumulants(n_step_rewards, np.array([reward]), interaction.gamma)
@@ -129,7 +129,7 @@ def get_new_anytime_transitions(curr_decision_transitions, states, interaction, 
                     action,
                     next_obs,  # the immediate next obs
                     next_state,  # the immediate next state
-                    np_n_step_cumulants[-1][alert_start_ind : alert_end_ind].item(),
+                    np_n_step_cumulants[-1][alert_start_ind: alert_end_ind].item(),
                     boot_obs_queue[-1],  # the obs we bootstrap off
                     boot_state_queue[-1],  # the state we bootstrap off
                     term,
@@ -176,10 +176,11 @@ def make_anytime_transitions_for_chunk(curr_chunk_obs_transitions, interaction, 
                initial_state=True,
                decision_point=first_obs_transition.obs_dp,
                steps_since_decision=first_obs_transition.obs_steps_since_decision)
-    states = [state]
 
+    states = [state]
     # Produce remaining states and create list of transitions when decision points are encountered
     curr_decision_obs_transitions = []
+
     for obs_transition in curr_chunk_obs_transitions:
         obs_transition = _normalize(obs_transition, interaction)
 
@@ -188,6 +189,7 @@ def make_anytime_transitions_for_chunk(curr_chunk_obs_transitions, interaction, 
                         initial_state=False,
                         decision_point=obs_transition.next_obs_dp,
                         steps_since_decision=obs_transition.next_obs_steps_since_decision)
+
         states.append(next_state)
         curr_decision_obs_transitions.append(obs_transition)
 
@@ -207,8 +209,6 @@ def make_anytime_transitions_for_chunk(curr_chunk_obs_transitions, interaction, 
 
             curr_decision_obs_transitions = []
             states = [next_state]
-
-        state = next_state
 
     # Remove the transitions that were created during the state constructor warmup period
     curr_chunk_agent_transitions = curr_chunk_agent_transitions[sc_warmup:]
@@ -251,8 +251,13 @@ def make_anytime_transitions(
             done = transition_idx == len(obs_transitions)
             pbar.update(1)
 
-        new_agent_transitions, new_alert_transitions, new_scs = make_anytime_transitions_for_chunk(curr_chunk_obs_transitions, interaction, alerts,
-                                                                                                   steps_per_decision, return_scs, gamma, sc_warmup)
+        new_agent_transitions, new_alert_transitions, new_scs = make_anytime_transitions_for_chunk(curr_chunk_obs_transitions,
+                                                                                                   interaction,
+                                                                                                   alerts,
+                                                                                                   steps_per_decision,
+                                                                                                   return_scs,
+                                                                                                   gamma,
+                                                                                                   sc_warmup)
 
         agent_transitions += new_agent_transitions
         alert_transitions += new_alert_transitions
@@ -286,18 +291,24 @@ def make_anytime_trajectories(
             curr_chunk_obs_transitions.append(obs_transition)
             gap = obs_transition.gap
             transition_idx += 1
-            done = (transition_idx == len(obs_transitions) - 1)
+            done = transition_idx == len(obs_transitions)
             pbar.update(1)
 
-        # we will store all
-        new_agent_transitions, new_alert_transitions, new_scs = make_anytime_transitions_for_chunk(curr_chunk_obs_transitions, interaction, alerts,
-                                                                                                   steps_per_decision, return_scs, gamma, sc_warmup)
+        new_agent_transitions, new_alert_transitions, new_scs = make_anytime_transitions_for_chunk(curr_chunk_obs_transitions,
+                                                                                                   interaction,
+                                                                                                   alerts,
+                                                                                                   steps_per_decision,
+                                                                                                   return_scs,
+                                                                                                   gamma,
+                                                                                                   sc_warmup)
         alert_transitions += new_alert_transitions
 
         new_traj = Trajectory()
-        for transition in new_agent_transitions:
-            new_traj.add_transition(transition)
-            new_traj.add_start_sc(new_scs[0])
+        for i in range(len(new_agent_transitions)):
+            new_traj.add_transition(new_agent_transitions[i])
+            if return_scs:
+                new_traj.add_sc(new_scs[i])
+
         trajectories.append(new_traj)
 
     return trajectories, alert_transitions, scs

@@ -32,7 +32,7 @@ optimizer:
   weight_decay: 0.0
   name: adam
 
-max_rollout_len : 400
+max_rollout_len : 180
 steps_per_decision : ${interaction.steps_per_decision}
 interpolation : model
 num_test_rollouts : 20

@@ -220,7 +220,7 @@ def plot_action_value_alert(plot_info, alert_thresholds, path):
     fig.savefig(path / "Composite_Alert_Summary_Plot.png")
     plt.close()
 
-def visualize_actor_critic(states, actions, q_values, actor_params, env, path, prefix, epoch):
+def visualize_actor_critic(states, actions, q_values, actor_params, env, path, prefix, epoch, skip=100):
     # Currently assuming 'ReseauAnytime' state constructor
     obs_space_low = env.observation_space.low
     obs_space_high = env.observation_space.high
@@ -229,7 +229,7 @@ def visualize_actor_critic(states, actions, q_values, actor_params, env, path, p
     mins = [0, action_space_low[0], obs_space_low[0], obs_space_low[1], action_space_low[0], action_space_low[0], action_space_low[0], action_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[1], obs_space_low[1], obs_space_low[1], obs_space_low[1], 0, 0]
     maxs = [1, action_space_high[0], obs_space_high[0], obs_space_high[1], action_space_high[0], action_space_high[0], action_space_high[0], action_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[1], obs_space_high[1], obs_space_high[1], obs_space_high[1], 1, 1]
 
-    for i in range(len(states)):
+    for i in range(0, len(states), skip ):
         curr_state = states[i]
         curr_alpha = actor_params[i][0]
         curr_beta = actor_params[i][1]
