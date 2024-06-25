@@ -8,7 +8,8 @@ from corerl.interaction.base import BaseInteraction
 from corerl.interaction.normalizer_utils import init_action_normalizer, init_reward_normalizer, init_obs_normalizer
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.data import Transition
+from corerl.data.data import Transition, ObsTransition
+from corerl.data.transition_creator import AnytimeTransitionCreator
 
 
 class NormalizerInteraction(BaseInteraction):
@@ -17,23 +18,25 @@ class NormalizerInteraction(BaseInteraction):
             cfg: DictConfig,
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
-            alerts: CompositeAlert
+            alerts: CompositeAlert,
+            transition_creator: AnytimeTransitionCreator
     ):
         super().__init__(cfg, env, state_constructor, alerts)
         self.action_normalizer = init_action_normalizer(cfg.action_normalizer, self.env)
         self.reward_normalizer = init_reward_normalizer(cfg.reward_normalizer)
         self.obs_normalizer = init_obs_normalizer(cfg.obs_normalizer, env)
+        self.transition_creator = transition_creator
         self.gamma = cfg.gamma
         self.last_state = None
-        self.last_obs = None
+        self.raw_last_obs = None
+        self.raw_last_action = None
         self.action_dim = flatdim(env.action_space)
 
         # Alerts for a given transition only triggered in the future. Need to store transitions until then
-        self.agent_transition_queue = deque([])
+        self.transition_queue = deque([])
         self.alert_transition_queue = deque([])
 
-    def step(self, action: np.ndarray) -> tuple[
-        list[Transition], list[Transition], list[Transition], list[dict], list[dict]]:
+    def step(self, action: np.ndarray) -> tuple[list[Transition], list[Transition], list[dict], list[dict]]:
         """
         Execute the action in the environment and transition to the next decision point.
         Not 'Anytime' - Single observation/state per decision
@@ -44,95 +47,81 @@ class NormalizerInteraction(BaseInteraction):
         - alert_info_list: List of dictionaries describing which types of alerts were/weren't triggered
         - env_info_list: List of dictionaries describing env info
         """
-        denormalized_action = self.action_normalizer.denormalize(action)
+        raw_action = self.action_normalizer.denormalize(action)
 
         # Take step in the environment
-        next_obs, raw_reward, terminated, env_truncate, env_info = self.env.step(denormalized_action)
-        normalized_next_obs = self.obs_normalizer(next_obs)
-        next_state = self.state_constructor(normalized_next_obs, action)
-        reward = self.reward_normalizer(raw_reward)
+        raw_next_obs, raw_reward, terminated, env_truncate, env_info = self.env.step(raw_action)
+        # next_obs = self.obs_normalizer(raw_next_obs)
+        # reward = self.reward_normalizer(raw_reward)
         truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
-        gamma_exponent = 1
+        # gamma_exponent = 1
         env_info_list = [env_info]
 
-        # Create agent transition
-        agent_transition = Transition(
-            self.last_obs,
-            self.last_state,
+        obs_transition = ObsTransition(
+            self.raw_last_action,  # TODO if None do something
+            self.raw_last_obs,
+            0,
+            True,
             action,
-            normalized_next_obs,
-            next_state,
-            reward,
-            normalized_next_obs,  # the obs for bootstrapping is the same as the next obs here
-            next_state,  # the state for bootstrapping is the same as the next state here
-            terminated,
-            truncate,
-            True,  # always a decision point
-            True,  # always a decision point
-            gamma_exponent)
+            raw_reward,
+            raw_next_obs,
+            0,
+            True,
+            False,  # assume a continuing env
+            truncate,  # assume a continuing env
+            gap=False  # no data gap
+        )
 
-        new_agent_transitions = [agent_transition]
-
-        # Create alert transition(s)
-        if self.alerts.get_dim() > 0:
-            curr_cumulants = self.get_cumulants(reward, normalized_next_obs)
-
-            step_alert_transitions = []
-            alert_start_ind = 0
-            for alert in self.alerts.alerts:
-                alert_end_ind = alert_start_ind + alert.get_dim()
-
-                alert_transition = Transition(
-                    self.last_obs,
-                    self.last_state,
-                    action,
-                    normalized_next_obs,
-                    next_state,
-                    curr_cumulants[alert_start_ind: alert_end_ind].item(),
-                    normalized_next_obs,  # the obs for bootstrapping is the same as the next obs here
-                    next_state,  # the state for bootstrapping is the same as the next state here
-                    terminated,
-                    truncate,
-                    True,  # always a decision point
-                    True,  # always a decision point
-                    gamma_exponent)
-
-                step_alert_transitions.append(alert_transition)
-                alert_start_ind = alert_end_ind
-
-            new_alert_transitions = [step_alert_transitions]
-        else:
-            new_alert_transitions = []
+        transitions = self.transition_creator.make_transitions_for_chunk([obs_transition],
+                                                                         self.state_constructor, return_scs=False)
 
         # Check to see if alerts should be triggered
-        alert_info = self.get_step_alerts(denormalized_action, action, self.last_state, normalized_next_obs, reward)
+        alert_info = self.get_step_alerts(raw_action, action, self.last_state, next_obs, reward)
         alert_info_list = [alert_info]
 
         # Only train on transitions where there weren't any alerts
-        agent_train_transitions = self.get_agent_train_transitions(new_agent_transitions, alert_info_list)
-        alert_train_transitions = self.get_alert_train_transitions(new_alert_transitions, alert_info_list)
+        train_transitions = self.get_train_transitions(transitions, alert_info_list)
 
-        self.last_state = next_state
-        self.last_obs = next_obs
+        assert len(transitions) == 1
+        self.last_state = transitions[0].next_state
+        self.raw_last_obs = raw_next_obs
+        self.raw_last_action = raw_action
 
-        return new_agent_transitions, agent_train_transitions, alert_train_transitions, alert_info_list, env_info_list
+        return transitions, train_transitions, alert_info_list, env_info_list
+
+    def get_step_alerts(self, raw_action, action, state, next_obs, reward) -> dict:
+        """
+        Determine if there is an alert triggered at the given state-action pair.
+        Currently passes the information required for Action-Value and GVF alerts.
+        """
+        alert_info = {}
+        alert_info["raw_action"] = [raw_action]
+        alert_info["action"] = [action]
+        alert_info["state"] = [state]
+        alert_info["next_obs"] = [next_obs]
+        alert_info["reward"] = [reward]
+
+        step_alert_info = self.alerts.evaluate(**alert_info)
+        for key in step_alert_info:
+            alert_info[key] = step_alert_info[key]
+
+        return alert_info
 
     def reset(self) -> (np.ndarray, dict):
         """
         Reset the environment and the state constructor
         """
-        self.agent_transition_queue = deque([])
-        self.alert_transition_queue = deque([])
-
-        observation, info = self.env.reset()
+        self.transition_queue = deque([])
+        raw_obs, info = self.env.reset()
         self.state_constructor.reset()
 
-        normalized_observation = self.obs_normalizer(observation)
+        obs = self.obs_normalizer(raw_obs)
         dummy_action = np.zeros(self.action_dim)
-        state = self.state_constructor(normalized_observation, dummy_action, initial_state=True, decision_point=True)
+        state = self.state_constructor(obs, dummy_action, initial_state=True, decision_point=True)
 
-        self.last_obs = normalized_observation
+        self.raw_last_obs = raw_obs
         self.last_state = state
+        self.raw_last_action = None
 
         return state, info
 
@@ -144,37 +133,20 @@ class NormalizerInteraction(BaseInteraction):
         """
         pass
 
-    def get_agent_train_transitions(self, new_agent_transitions, alert_info_list) -> list[Transition]:
+    def get_train_transitions(self, new_transitions, alert_info_list) -> list[Transition]:
         """
-        Filter out agent transitions that triggered an alert
-        """
-        if self.alerts.get_dim() > 0:
-            agent_train_transitions = []
-            for j in range(len(new_agent_transitions)):
-                self.agent_transition_queue.appendleft(new_agent_transitions[j])
-                if len(alert_info_list[j]["alert"].keys()) > 0:
-                    agent_transition = self.agent_transition_queue.pop()
-                    if alert_info_list[j]["composite_alert"] == [False]:
-                        agent_train_transitions.append(agent_transition)
-
-            return agent_train_transitions
-        else:
-            return new_agent_transitions
-
-    def get_alert_train_transitions(self, new_alert_transitions, alert_info_list) -> list[Transition]:
-        """
-        Filter out alert transitions that triggered an alert
+        Filter out agent transitions that triggered an alert.
         """
         if self.alerts.get_dim() > 0:
-            alert_train_transitions = []
-            for j in range(len(new_alert_transitions)):
-                self.alert_transition_queue.appendleft(new_alert_transitions[j])
+            train_transitions = []
+            for j in range(len(new_transitions)):
+                self.transition_queue.appendleft(new_transitions[j])
                 if len(alert_info_list[j]["alert"].keys()) > 0:
-                    alert_transition = self.alert_transition_queue.pop()
+                    transition = self.transition_queue.pop()
                     if alert_info_list[j]["composite_alert"] == [False]:
-                        alert_train_transitions.append(alert_transition)
+                        train_transitions.append(transition)
 
-            return alert_train_transitions
+            return train_transitions
         else:
-            return new_alert_transitions
+            return new_transitions
 

@@ -4,12 +4,12 @@ from pathlib import Path
 from datetime import timedelta
 import pandas as pd
 import numpy as np
-import pickle as pkl
 from tqdm import tqdm
 
 from corerl.environment.reward.base import BaseReward
 from corerl.data_loaders.base import BaseDataLoader
-from corerl.data import ObsTransition
+from corerl.data.data import ObsTransition
+from corerl.interaction.normalizer import NormalizerInteraction
 
 
 class DirectActionDataLoader(BaseDataLoader):
@@ -97,6 +97,7 @@ class DirectActionDataLoader(BaseDataLoader):
         data_gap = False
         prev_date = start_ind
         curr_action = action_df.loc[start_ind].to_numpy()
+        curr_date = None
         for curr_date, row in action_df.loc[start_ind:].iterrows():
             date_diff = curr_date - prev_date
             # Is there a large gap in time between consecutive rows in the df?
@@ -130,11 +131,15 @@ class DirectActionDataLoader(BaseDataLoader):
 
         return curr_action_steps, step_start
 
-    def create_obs_transitions(self, df: pd.DataFrame, reward_function: BaseReward, *args) -> list[ObsTransition]:
+    def create_obs_transitions(self, df: pd.DataFrame,
+                               interaction:  NormalizerInteraction,
+                               reward_function: BaseReward, *args) -> list[ObsTransition]:
         """
         Iterate through the df and produce transitions using the "Anytime" paradigm.
         Take into account discontinuities in the dataframe (large gaps in time between consecutive rows)
         Creates fixed n-step transitions or variable n-step transitions that always bootstrap off the state at the next decision point
+
+        Will also normalize the observation transitions using the interaction
         """
         obs_transitions = []
 
@@ -174,7 +179,7 @@ class DirectActionDataLoader(BaseDataLoader):
                     reward = reward_function(next_obs, **reward_info)
 
                     if obs.any():
-                        transition = ObsTransition(
+                        obs_transition = ObsTransition(
                             prev_action,
                             obs,
                             prev_steps_since_decision,
@@ -188,7 +193,9 @@ class DirectActionDataLoader(BaseDataLoader):
                             False,  # assume a continuing env
                             gap=(step == curr_action_steps - 1) and data_gap  # if the last step and there is a data gap
                         )
-                        obs_transitions.append(transition)
+
+                        obs_transition = _normalize(obs_transition, interaction)
+                        obs_transitions.append(obs_transition)
 
                     prev_action = curr_action
                     step_start = step_start + timedelta(seconds=self.obs_length)
@@ -208,3 +215,13 @@ class DirectActionDataLoader(BaseDataLoader):
         print("Number of observation transitions: {}".format(len(obs_transitions)))
 
         return obs_transitions
+
+
+def _normalize(obs_transition, interaction):
+    obs_transition.prev_action = interaction.action_normalizer(obs_transition.prev_action)
+    obs_transition.obs = interaction.obs_normalizer(obs_transition.obs)
+    obs_transition.action = interaction.action_normalizer(obs_transition.action)
+    obs_transition.next_obs = interaction.obs_normalizer(obs_transition.next_obs)
+    obs_transition.reward = interaction.reward_normalizer(obs_transition.reward)
+
+    return obs_transition

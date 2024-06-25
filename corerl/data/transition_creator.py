@@ -5,22 +5,23 @@ from collections import deque
 from copy import deepcopy
 
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.interaction.normalizer import NormalizerInteraction
 from corerl.data.data import ObsTransition, Transition
 from corerl.state_constructor.base import BaseStateConstructor
 
 
 class AnytimeTransitionCreator(object):
-    def __init__(self, cfg, interaction: NormalizerInteraction, alerts: CompositeAlert):
+    def __init__(self, cfg, alerts: CompositeAlert):
         self.gamma = cfg.gamma  # gamma for the agent
         self.steps_per_decision = cfg.steps_per_decision
         self.n_step = cfg.n_step
         self.sc_warmup = cfg.sc_warmup
-        self.interaction = interaction
         self.alerts = alerts
         self.alert_gammas = np.array(self.alerts.get_discount_factors())
 
-    def make_offline_transitions(self, obs_transitions: list[ObsTransition], return_scs: bool = False):
+    def make_offline_transitions(self,
+                                 obs_transitions: list[ObsTransition],
+                                 sc: BaseStateConstructor,
+                                 return_scs: bool = False):
         """
         Given a dataset of offline observation transitions, make the anytime transitions.
         """
@@ -43,7 +44,7 @@ class AnytimeTransitionCreator(object):
                 # pbar.update(1)
 
             new_agent_transitions, new_alert_transitions, new_scs = self._make_offline_transitions_for_chunk(
-                curr_chunk_obs_transitions, return_scs)
+                curr_chunk_obs_transitions, sc, return_scs)
 
             agent_transitions += new_agent_transitions
             alert_transitions += new_alert_transitions
@@ -51,28 +52,26 @@ class AnytimeTransitionCreator(object):
 
         return agent_transitions, alert_transitions, scs
 
-    def _make_offline_transitions_for_chunk(self, curr_chunk_obs_transitions: list[ObsTransition],
+    def _make_offline_transitions_for_chunk(self,
+                                            curr_chunk_obs_transitions: list[ObsTransition],
+                                            sc: BaseStateConstructor,
                                             return_scs: bool = False):
         """
         Produce Anytime transitions for a continuous chunk of observation transitions (no data gaps) from an offline dataset
         """
-        sc = self.interaction.state_constructor
         sc.reset()
-
-        curr_chunk_agent_transitions, curr_chunk_alert_transitions, new_scs = self.make_transitions_for_chunk(
-            curr_chunk_obs_transitions, sc, return_scs)
+        curr_chunk_transitions,  new_scs = self.make_transitions_for_chunk(curr_chunk_obs_transitions, sc, return_scs)
 
         # Remove the transitions that were created during the state constructor warmup period
-        curr_chunk_agent_transitions = curr_chunk_agent_transitions[self.sc_warmup:]
-        curr_chunk_alert_transitions = curr_chunk_alert_transitions[self.sc_warmup:]
+        curr_chunk_transitions = curr_chunk_transitions[self.sc_warmup:]
 
-        assert len(curr_chunk_obs_transitions) == len(curr_chunk_agent_transitions) + self.sc_warmup
+        assert len(curr_chunk_obs_transitions) == len(curr_chunk_transitions) + self.sc_warmup
 
         if return_scs:
             new_scs = new_scs[self.sc_warmup:]
-            assert len(new_scs) == len(curr_chunk_agent_transitions)
+            assert len(new_scs) == len(curr_chunk_transitions)
 
-        return curr_chunk_agent_transitions, curr_chunk_alert_transitions, new_scs
+        return curr_chunk_transitions, new_scs
 
     def make_transitions_for_chunk(self,
                                    curr_chunk_obs_transitions: list[ObsTransition],
@@ -81,13 +80,11 @@ class AnytimeTransitionCreator(object):
         """
         Produce Anytime transitions for a continuous chunk of observation transitions (no data gaps)
         """
-        curr_chunk_agent_transitions = []
-        curr_chunk_alert_transitions = []
+        curr_chunk_transitions = []
         new_scs = []
 
         # Using ObsTransition.next_obs to create remaining states so creating first state with ObsTransition.obs
         first_obs_transition = deepcopy(curr_chunk_obs_transitions[0])
-        first_obs_transition = _normalize(first_obs_transition, self.interaction)
         state = sc(first_obs_transition.obs,
                    first_obs_transition.prev_action,
                    initial_state=True,
@@ -99,7 +96,7 @@ class AnytimeTransitionCreator(object):
         curr_decision_obs_transitions = []
 
         for obs_transition in curr_chunk_obs_transitions:
-            obs_transition = _normalize(obs_transition, self.interaction)
+            # assume observation transitions are normalized
             next_state = sc(obs_transition.next_obs,
                             obs_transition.action,
                             initial_state=False,
@@ -120,13 +117,12 @@ class AnytimeTransitionCreator(object):
                 new_agent_transitions, new_alert_transitions = self._make_decision_window_transitions(
                     curr_decision_obs_transitions, states)
 
-                curr_chunk_agent_transitions += new_agent_transitions
-                curr_chunk_alert_transitions += new_alert_transitions
+                curr_chunk_transitions += new_agent_transitions
 
                 curr_decision_obs_transitions = []
                 states = [next_state]
 
-        return curr_chunk_agent_transitions, curr_chunk_alert_transitions, new_scs
+        return curr_chunk_transitions, new_scs
 
     def get_cumulants(self, reward, next_obs) -> np.ndarray:
         """
@@ -141,23 +137,6 @@ class AnytimeTransitionCreator(object):
 
         return curr_cumulants
 
-    def get_step_alerts(self, raw_action, action, state, next_obs, reward) -> dict:
-        """
-        Determine if there is an alert triggered at the given state-action pair.
-        Currently passes the information required for Action-Value and GVF alerts.
-        """
-        alert_info = {}
-        alert_info["raw_action"] = [raw_action]
-        alert_info["action"] = [action]
-        alert_info["state"] = [state]
-        alert_info["next_obs"] = [next_obs]
-        alert_info["reward"] = [reward]
-
-        step_alert_info = self.alerts.evaluate(**alert_info)
-        for key in step_alert_info:
-            alert_info[key] = step_alert_info[key]
-
-        return alert_info
 
     def update_n_step_cumulants(self, n_step_cumulant_q, new_cumulant, gammas) -> np.ndarray:
         """
@@ -258,13 +237,3 @@ class AnytimeTransitionCreator(object):
         new_transitions.reverse()
 
         return new_transitions
-
-
-def _normalize(obs_transition, interaction):
-    obs_transition.prev_action = interaction.action_normalizer(obs_transition.prev_action)
-    obs_transition.obs = interaction.obs_normalizer(obs_transition.obs)
-    obs_transition.action = interaction.action_normalizer(obs_transition.action)
-    obs_transition.next_obs = interaction.obs_normalizer(obs_transition.next_obs)
-    obs_transition.reward = interaction.reward_normalizer(obs_transition.reward)
-
-    return obs_transition

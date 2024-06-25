@@ -6,12 +6,17 @@ import gymnasium
 
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.data import Transition
+from corerl.data.data import Transition
 
 
 class BaseInteraction(ABC):
     @abstractmethod
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env, state_constructor: BaseStateConstructor, alerts: CompositeAlert, **kwargs):
+    def __init__(self,
+                 cfg: DictConfig,
+                 env: gymnasium.Env,
+                 state_constructor: BaseStateConstructor,
+                 alerts: CompositeAlert, **kwargs):
+
         self.env = env
         self.state_constructor = state_constructor
         self.timeout = cfg.timeout  # When timeout is set to 0, there is no timeout.

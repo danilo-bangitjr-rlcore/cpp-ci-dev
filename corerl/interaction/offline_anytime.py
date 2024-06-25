@@ -181,7 +181,7 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
                                                                                       trunc)
 
         # Only train on transitions where there weren't any alerts
-        agent_train_transitions = self.get_agent_train_transitions(new_agent_transitions, alert_info_list)
+        agent_train_transitions = self.get_train_transitions(new_agent_transitions, alert_info_list)
         alert_train_transitions = self.get_alert_train_transitions(new_alert_transitions, alert_info_list)
 
         return (new_agent_transitions, agent_train_transitions, alert_train_transitions, alert_info_list, [{}])
