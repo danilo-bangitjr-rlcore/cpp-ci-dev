@@ -5,11 +5,12 @@ from gymnasium.spaces.utils import flatdim
 from collections import deque
 
 from corerl.interaction.base import BaseInteraction
-from corerl.interaction.normalizer_utils import init_action_normalizer, init_reward_normalizer, init_obs_normalizer
+
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.data import Transition, ObsTransition
 from corerl.data.transition_creator import AnytimeTransitionCreator
+from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
 
 class NormalizerInteraction(BaseInteraction):
@@ -19,13 +20,13 @@ class NormalizerInteraction(BaseInteraction):
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
             alerts: CompositeAlert,
-            transition_creator: AnytimeTransitionCreator
+            transition_creator: AnytimeTransitionCreator,
+            normalizer: ObsTransitionNormalizer
     ):
         super().__init__(cfg, env, state_constructor, alerts)
-        self.action_normalizer = init_action_normalizer(cfg.action_normalizer, self.env)
-        self.reward_normalizer = init_reward_normalizer(cfg.reward_normalizer)
-        self.obs_normalizer = init_obs_normalizer(cfg.obs_normalizer, env)
+
         self.transition_creator = transition_creator
+        self.normalizer = normalizer  # will be used for normalizing observation transitions
         self.gamma = cfg.gamma
         self.last_state = None
         self.raw_last_obs = None
@@ -41,14 +42,12 @@ class NormalizerInteraction(BaseInteraction):
         Execute the action in the environment and transition to the next decision point.
         Not 'Anytime' - Single observation/state per decision
         Returns:
-        - new_agent_transitions: List of all produced agent transitions
-        - agent_train_transitions: List of Agent transitions that didn't trigger an alert
-        - alert_train_transitions: List of Alert transitions that didn't trigger an alert
+        - transitions: List of all produced agent transitions
+        - train_transitions: List of Agent transitions that didn't trigger an alert
         - alert_info_list: List of dictionaries describing which types of alerts were/weren't triggered
         - env_info_list: List of dictionaries describing env info
         """
-        raw_action = self.action_normalizer.denormalize(action)
-
+        raw_action = self.normalizer.action_normalizer.denormalize(action)
         # Take step in the environment
         raw_next_obs, raw_reward, terminated, env_truncate, env_info = self.env.step(raw_action)
         truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
@@ -69,18 +68,24 @@ class NormalizerInteraction(BaseInteraction):
             gap=False  # no data gap
         )
 
-        # next, use the tranition creator to make the SINGLE transition for obs transition
+        # next, use the transition creator to make the SINGLE transition for obs transition
+        obs_transition = self.normalizer.normalize(obs_transition)
         obs_transitions = [obs_transition]
-        transitions = self.transition_creator.make_transitions_for_chunk(obs_transitions,
+        transitions, _ = self.transition_creator.make_transitions_for_chunk(obs_transitions,
                                                                          self.state_constructor,
                                                                          return_scs=False)
 
         # Check to see if alerts should be triggered
-        alert_info = self.get_step_alerts(raw_action, action, self.last_state, next_obs, reward) # TODO: should this be normalized?
+        # TODO: should this be normalized?
+        alert_info = self.get_step_alerts(raw_action, action, self.last_state,
+                                          obs_transition.next_obs, obs_transition.reward)
         alert_info_list = [alert_info]
 
         # Only train on transitions where there weren't any alerts
-        train_transitions = self.get_train_transitions(transitions, alert_info_list)
+
+        # TODO: add this back
+        #train_transitions = self.get_train_transitions(transitions, alert_info_list)
+        train_transitions = transitions
 
         assert len(transitions) == 1
         self.last_state = transitions[0].next_state
@@ -92,7 +97,7 @@ class NormalizerInteraction(BaseInteraction):
     def get_step_alerts(self, raw_action, action, state, next_obs, reward) -> dict:
         """
         Determine if there is an alert triggered at the given state-action pair.
-        Currently passes the information required for Action-Value and GVF alerts.
+        Currently, passes the information required for Action-Value and GVF alerts.
         """
         alert_info = {}
         alert_info["raw_action"] = [raw_action]
@@ -115,13 +120,13 @@ class NormalizerInteraction(BaseInteraction):
         raw_obs, info = self.env.reset()
         self.state_constructor.reset()
 
-        obs = self.obs_normalizer(raw_obs)
+        obs = self.normalizer.obs_normalizer(raw_obs)
         dummy_action = np.zeros(self.action_dim)
         state = self.state_constructor(obs, dummy_action, initial_state=True, decision_point=True)
 
         self.raw_last_obs = raw_obs
         self.last_state = state
-        self.raw_last_action = None
+        self.raw_last_action = dummy_action  # TODO: does this make any sense here?
 
         return state, info
 
@@ -149,4 +154,3 @@ class NormalizerInteraction(BaseInteraction):
             return train_transitions
         else:
             return new_transitions
-

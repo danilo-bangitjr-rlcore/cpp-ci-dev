@@ -6,8 +6,6 @@ from abc import ABC, abstractmethod
 import numpy as np
 import gymnasium
 
-import corerl.state_constructor.components as sc
-
 
 class BaseNormalizer(ABC):
     @abstractmethod
@@ -161,7 +159,7 @@ def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> BaseNormalize
             scale = (action_max - action_min)
             bias = action_min
 
-            print(f"Using scale = {scale} and bias = {bias}")
+            print(f"Initializing action normalizer using scale = {scale} and bias = {bias}")
 
             return Scale(scale, bias)
 
@@ -180,6 +178,9 @@ def init_reward_normalizer(cfg: DictConfig) -> BaseNormalizer:
         reward_low = float(cfg.reward_low)
         scale = reward_high - reward_low
         bias = float(cfg.reward_bias)
+
+        print(f"Initializing reward normalizer using scale = {scale} and bias = {bias}")
+
         return Scale(scale, bias)
     elif name == "clip":
         return Clip(cfg.clip_min, cfg.clip_max)

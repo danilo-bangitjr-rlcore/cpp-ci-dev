@@ -9,7 +9,7 @@ from tqdm import tqdm
 from corerl.environment.reward.base import BaseReward
 from corerl.data_loaders.base import BaseDataLoader
 from corerl.data.data import ObsTransition
-from corerl.interaction.normalizer import NormalizerInteraction
+from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
 
 class DirectActionDataLoader(BaseDataLoader):
@@ -132,14 +132,14 @@ class DirectActionDataLoader(BaseDataLoader):
         return curr_action_steps, step_start
 
     def create_obs_transitions(self, df: pd.DataFrame,
-                               interaction:  NormalizerInteraction,
+                               normalizer:  ObsTransitionNormalizer,
                                reward_function: BaseReward, *args) -> list[ObsTransition]:
         """
         Iterate through the df and produce transitions using the "Anytime" paradigm.
         Take into account discontinuities in the dataframe (large gaps in time between consecutive rows)
         Creates fixed n-step transitions or variable n-step transitions that always bootstrap off the state at the next decision point
 
-        Will also normalize the observation transitions using the interaction
+        Will also normalize the observation transitions using the normalizer
         """
         obs_transitions = []
 
@@ -193,8 +193,7 @@ class DirectActionDataLoader(BaseDataLoader):
                             False,  # assume a continuing env
                             gap=(step == curr_action_steps - 1) and data_gap  # if the last step and there is a data gap
                         )
-
-                        obs_transition = _normalize(obs_transition, interaction)
+                        obs_transition = normalizer.normalize(obs_transition)
                         obs_transitions.append(obs_transition)
 
                     prev_action = curr_action
@@ -215,13 +214,3 @@ class DirectActionDataLoader(BaseDataLoader):
         print("Number of observation transitions: {}".format(len(obs_transitions)))
 
         return obs_transitions
-
-
-def _normalize(obs_transition, interaction):
-    obs_transition.prev_action = interaction.action_normalizer(obs_transition.prev_action)
-    obs_transition.obs = interaction.obs_normalizer(obs_transition.obs)
-    obs_transition.action = interaction.action_normalizer(obs_transition.action)
-    obs_transition.next_obs = interaction.obs_normalizer(obs_transition.next_obs)
-    obs_transition.reward = interaction.reward_normalizer(obs_transition.reward)
-
-    return obs_transition

@@ -3,12 +3,9 @@ defaults:
   - override agent: greedy_ac
   - override env: saturation
   - override data_loader: direct_action
-  - override interaction: normalizer
+  - override interaction: anytime
   - override calibration_model : one_step
   - override state_constructor: multi_trace
-  - override interaction/action_normalizer: scale
-  - override interaction/reward_normalizer: identity
-  - override interaction/obs_normalizer: identity
   - _self_
 
 offline_data:

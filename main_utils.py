@@ -3,6 +3,7 @@ import hashlib
 import copy
 import pickle as pkl
 
+import pandas as pd
 from tqdm import tqdm
 from omegaconf import OmegaConf, DictConfig
 from gymnasium.spaces.utils import flatdim
@@ -14,15 +15,16 @@ from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.eval.composite_eval import CompositeEval
 from corerl.interaction.factory import init_interaction
-from corerl.data_loaders.factory import init_data_loader
 from corerl.data_loaders.base import BaseDataLoader
 from corerl.environment.reward.factory import init_reward_function
-from corerl.data_loaders.utils import make_anytime_transitions, train_test_split, make_anytime_trajectories
+from corerl.data_loaders.utils import train_test_split
 from corerl.agent.utils import get_test_state_qs_and_policy_params
 from corerl.utils.plotting import visualize_actor_critic, plot_action_value_alert
 from corerl.data.data import Transition, ObsTransition, Trajectory
 from corerl.interaction.base import BaseInteraction
+from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.alerts.composite_alert import CompositeAlert
+from corerl.data.transition_creator import AnytimeTransitionCreator
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.agent.base import BaseAgent
 
@@ -125,93 +127,116 @@ def load_or_create(root: Path, cfgs: list[DictConfig], prefix: str, create_func:
     return obj
 
 
-def load_offline_obs_from_csv(cfg: DictConfig, env: Env) -> tuple[
-    Env, BaseDataLoader, list[ObsTransition], Optional[list[ObsTransition]]]:
-    """
-    Loads offline observation transitions (transitions without states) from an offline dataset.
+def set_env_obs_space(env: Env, df: pd.DataFrame, dl: BaseDataLoader):
+    obs_bounds = dl.get_obs_max_min(df)
+    env.observation_space = spaces.Box(low=obs_bounds[0], high=obs_bounds[1], dtype=np.float32)
+    print("Updated env observation space:", env.observation_space)
+    return env
 
-    As a side effect, will update an environments observation space to match the offline dataset
-    """
 
-    dl = init_data_loader(cfg.data_loader)
-
+def load_df_from_csv(cfg: DictConfig, dl: BaseDataLoader) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     output_path = Path(cfg.offline_data.output_path)
 
-    create_df = lambda dl_, filenames: dl_.load_data(filenames)
-    all_data_df = load_or_create(output_path, [cfg.data_loader],
-                                 'all_data_df', create_df, [dl, dl.all_filenames])
-    train_data_df = load_or_create(output_path, [cfg.data_loader],
-                                   'train_data_df', create_df, [dl, dl.train_filenames])
-    test_data_df = load_or_create(output_path, [cfg.data_loader],
-                                  'test_data_df', create_df, [dl, dl.test_filenames])
+    def _create_df(filenames):
+        return dl.load_data(filenames)
+
+    all_data_df = load_or_create(root=output_path,
+                                 cfgs=[cfg.data_loader],
+                                 prefix='all_data_df',
+                                 create_func=_create_df,
+                                 args=[dl, dl.all_filenames])
+
+    train_data_df = load_or_create(root=output_path,
+                                   cfgs=[cfg.data_loader],
+                                   prefix='train_data_df',
+                                   create_func=_create_df,
+                                   args=[dl.train_filenames])
+
+    test_data_df = load_or_create(root=output_path,
+                                  cfgs=[cfg.data_loader],
+                                  prefix='test_data_df',
+                                  create_func=_create_df,
+                                  args=[dl.test_filenames])
 
     assert not all_data_df.isnull().values.any()
     assert not train_data_df.isnull().values.any()
     assert not test_data_df.isnull().values.any()
-    assert np.isnan(all_data_df.to_numpy()).any() == False
+    assert not np.isnan(all_data_df.to_numpy()).any()
 
-    create_bounds = lambda dl_, df: dl_.get_obs_max_min(df)
-    obs_bounds = load_or_create(output_path, [cfg.data_loader],
-                                'obs_bounds', create_bounds, [dl, all_data_df])
-
-    env.observation_space = spaces.Box(low=obs_bounds[0], high=obs_bounds[1], dtype=np.float32)
+    return all_data_df, train_data_df, test_data_df
 
 
+def get_offline_obs_transitions(cfg: DictConfig,
+                                train_data_df: pd.DataFrame,
+                                test_data_df: pd.DataFrame,
+                                dl: BaseDataLoader,
+                                normalizer: ObsTransitionNormalizer) -> tuple[
+    list[ObsTransition], Optional[list[ObsTransition]]]:
+    """
+    Loads offline observation transitions (transitions without states) from an offline dataset.
+    """
 
-    print("Updated Env Observation Space:", env.observation_space)
-
+    output_path = Path(cfg.offline_data.output_path)
     reward_func = init_reward_function(cfg.env.reward)
-    create_obs_transitions = lambda dl_, r_func, df: dl_.create_obs_transitions(df, reward_func)
-    train_obs_transitions = load_or_create(output_path, [cfg.data_loader],
-                                           'train_obs_transitions', create_obs_transitions,
-                                           [dl, reward_func, train_data_df])
+
+    def _create_obs_transitions(df):
+        return dl.create_obs_transitions(df, normalizer, reward_func)
+
+    train_obs_transitions = load_or_create(root=output_path,
+                                           cfgs=[cfg.data_loader],
+                                           prefix='train_obs_transitions',
+                                           create_func=_create_obs_transitions,
+                                           args=[train_data_df])
 
     if test_data_df is not None:
-        test_obs_transitions = load_or_create(output_path, [cfg.data_loader],
-                                              'test_obs_transitions', create_obs_transitions,
-                                              [dl, reward_func, test_data_df])
+        test_obs_transitions = load_or_create(root=output_path,
+                                              cfgs=[cfg.data_loader],
+                                              prefix='test_obs_transitions',
+                                              create_func=_create_obs_transitions,
+                                              args=[test_data_df])
     else:
         test_obs_transitions = None
 
-    return env, dl, train_obs_transitions, test_obs_transitions
+    print(f"Loaded {len(train_obs_transitions)} train and {len(test_obs_transitions)} test obs transitions. ")
+
+    return train_obs_transitions, test_obs_transitions
 
 
 def get_offline_transitions(cfg: DictConfig,
                             train_obs_transitions: list[ObsTransition],
                             test_obs_transitions: list[ObsTransition],
-                            interaction: BaseInteraction,
-                            alerts: CompositeAlert) -> tuple[list[Transition], list[Transition],  list[BaseStateConstructor]]:
+                            sc: BaseStateConstructor,
+                            transition_creator: AnytimeTransitionCreator,
+                            return_train_scs: bool = False,
+                            return_test_scs: bool = False) -> tuple[list[Transition], list[Transition], list[BaseStateConstructor]]:
     """
     Takes observation transitions and produces offline transitions (including state) using the interactions's state
     constructor=
     """
     output_path = Path(cfg.offline_data.output_path)
-    # change this to using a transition creator
 
-    sc = interaction.state_constructor
-    transition_creator = interaction.transition_creator
-
-    def create_transitions(obs_transitions, return_scs, use_pbar):
-        return transition_creator.make_offline_transitions(obs_transitions, return_scs, use_pbar)
+    def create_transitions(obs_transitions, return_scs):
+        return transition_creator.make_offline_transitions(obs_transitions, sc, return_scs, use_pbar=True)
 
     train_transitions, _ = load_or_create(root=output_path,
-                                          cfgs=[cfg.data_loader, cfg.state_constructor, cfg.interaction, cfg.alerts],
+                                          cfgs=[cfg.data_loader, cfg.state_constructor, cfg.transition_creator, cfg.alerts],
                                           prefix='train_transitions',
                                           create_func=create_transitions,
-                                          args=[train_obs_transitions, False, True])
+                                          args=[train_obs_transitions, return_train_scs])
 
     if test_obs_transitions is not None:
         test_transitions, test_scs = load_or_create(root=output_path,
-                                                    cfgs=[cfg.data_loader, cfg.state_constructor, cfg.interaction,
+                                                    cfgs=[cfg.data_loader, cfg.state_constructor, cfg.transition_creator,
                                                           cfg.alerts],
                                                     prefix='test_transitions',
                                                     create_func=create_transitions,
-                                                    args=[test_obs_transitions, True, True])
+                                                    args=[test_obs_transitions, return_test_scs])
 
     else:
         test_transitions = None
         test_scs = None
 
+    print(f"Loaded {len(train_transitions)} train and {len(test_transitions)} test transitions. ")
     return train_transitions, test_transitions, test_scs
 
 
@@ -321,11 +346,14 @@ def get_state_action_dim(env: Env, sc: BaseStateConstructor) -> tuple[int, int]:
 
 
 def offline_alert_training(cfg: DictConfig, alerts: CompositeAlert, alert_train_transitions: list[Transition]) -> None:
+
     print('Starting offline alert training...')
     print("Num alert train transitions:", len(alert_train_transitions))
-    for transition_tup in alert_train_transitions:
-        alerts.update_buffer(transition_tup)
+    # for transition_tup in alert_train_transitions:
+    #     alerts.update_buffer(transition_tup)
+    # TODO: verify with Alex this is correct
 
+    alerts.update_buffer(alert_train_transitions)
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
     for i in pbar:
@@ -399,15 +427,15 @@ def online_deployment(cfg: DictConfig,
     print('Starting online training...')
     for j in pbar:
         action = agent.get_action(state)
-        agent_transitions, agent_train_transitions, alert_train_transitions, alert_info_list, env_info_list = interaction.step(
-            action)
+        transitions, train_transitions, alert_info_list, env_info_list = interaction.step(action)
 
         # TODO: add this back
-        for transition in agent_transitions:  # agent_train_transitions:
+        for transition in transitions:  # agent_train_transitions:
             agent.update_buffer(transition)
 
-        for transition_tup in alert_train_transitions:
-            alerts.update_buffer(transition_tup)
+        # TODO: add this back
+        # for transition_tup in train_transitions:
+        #     alerts.update_buffer(transition_tup)
 
         agent.update()
         # alerts.update() # TODO: add this back
@@ -417,7 +445,7 @@ def online_deployment(cfg: DictConfig,
         online_eval_args = {
             'agent': agent,
             'env': env,
-            'transitions': agent_transitions
+            'transitions': transitions
         }
 
         online_eval.do_eval(**online_eval_args)
@@ -433,12 +461,12 @@ def online_deployment(cfg: DictConfig,
             visualize_actor_critic(test_states, test_actions, test_q_values, actor_params, env, save_path,
                                    "Online_Deployment", j)
 
-        terminated = agent_transitions[-1].terminated
-        truncated = agent_transitions[-1].truncate
+        terminated = transitions[-1].terminated
+        truncated = transitions[-1].truncate
         if terminated or truncated:
             state, _ = interaction.reset()
         else:
-            state = agent_transitions[-1].next_state
+            state = transitions[-1].next_state
 
     # Make Alerts Plot
     alert_trace_thresholds = alerts.get_trace_thresh()

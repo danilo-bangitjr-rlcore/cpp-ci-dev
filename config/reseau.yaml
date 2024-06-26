@@ -3,12 +3,9 @@ defaults:
   - override agent: greedy_ac
   - override env: reseau
   - override data_loader: direct_action
-  - override interaction: offline_anytime
+  - override interaction: anytime #offline_anytime
   - override calibration_model : anytime
   - override state_constructor: reseau_anytime
-  - override interaction/action_normalizer: scale
-  - override interaction/reward_normalizer: scale
-  - override interaction/obs_normalizer: maxmin
   - _self_
 
 # values may be overridden outside of the defaults list

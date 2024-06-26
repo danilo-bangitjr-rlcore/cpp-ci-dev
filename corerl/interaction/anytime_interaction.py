@@ -1,19 +1,19 @@
 import numpy as np
 import gymnasium
-import time
-from copy import deepcopy
+
+from gymnasium.spaces.utils import flatdim
 from collections import deque
 
 from omegaconf import DictConfig
 from corerl.state_constructor.base import BaseStateConstructor
-from corerl.interaction.normalizer import NormalizerInteraction
+from corerl.interaction.base import BaseInteraction
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.data import Transition, ObsTransition
 from corerl.data.transition_creator import AnytimeTransitionCreator
-from corerl.data_loaders.utils import _normalize
+from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
 
-class AnytimeInteraction(NormalizerInteraction):
+class AnytimeInteraction(BaseInteraction):
     """
     Interaction that will repeat an action for some length of time, while the
     observation is still updated more frequently
@@ -25,9 +25,22 @@ class AnytimeInteraction(NormalizerInteraction):
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
             alerts: CompositeAlert,
-            transition_creator: AnytimeTransitionCreator
-    ):
-        super().__init__(cfg, env, state_constructor, alerts, transition_creator)
+            transition_creator: AnytimeTransitionCreator,
+            normalizer: ObsTransitionNormalizer):
+        super().__init__(cfg, env, state_constructor, alerts)
+
+        self.transition_creator = transition_creator
+        self.normalizer = normalizer  # will be used for normalizing observation transitions
+        self.gamma = cfg.gamma
+        self.last_state = None
+        self.raw_last_obs = None
+        self.raw_last_action = None
+        self.action_dim = flatdim(env.action_space)
+
+        # Alerts for a given transition only triggered in the future. Need to store transitions until then
+        self.transition_queue = deque([])
+        self.alert_transition_queue = deque([])
+
         self.n_step = cfg.n_step
         self.warmup_steps = cfg.warmup_steps
 
@@ -46,7 +59,7 @@ class AnytimeInteraction(NormalizerInteraction):
         alert_info_list = []
         env_info_list = []
 
-        raw_action = self.action_normalizer.denormalize(action)
+        raw_action = self.normalizer.action_normalizer.denormalize(action)
 
         trunc = False
         prev_decision_point = True
@@ -78,10 +91,11 @@ class AnytimeInteraction(NormalizerInteraction):
                 gap=False  # assume no data gap
             )
 
-            obs_transition = _normalize(obs_transition, self)  # TODO: does this work?
+            obs_transition = self.normalizer.normalize(obs_transition)
             obs_transitions.append(obs_transition)
 
             reward = obs_transition.reward  # normalized reward
+            # TODO: should this be normalized?
             alert_info = self.get_step_alerts(raw_action, action, self.last_state, raw_next_obs, reward)
             alert_info_list.append(alert_info)
 
@@ -93,11 +107,79 @@ class AnytimeInteraction(NormalizerInteraction):
                 break
 
         # Create transitions
-        transitions = self.transition_creator.make_transitions_for_chunk(obs_transitions, self.state_constructor,
-                                                                         return_scs=False)
+        transitions, _ = self.transition_creator.make_transitions_for_chunk(obs_transitions,
+                                                                            self.state_constructor,
+                                                                            return_scs=False,
+                                                                            start_state=self.last_state
+                                                                            )
+
+        # print('len_transitions', len(transitions))
+        # print(transitions[-1])
+
         self.last_state = transitions[-1].next_state
 
         # Only train on transitions where there weren't any alerts
         train_transitions = self.get_train_transitions(transitions, alert_info_list)
 
         return transitions, train_transitions, alert_info_list, env_info_list
+
+    def get_step_alerts(self, raw_action, action, state, next_obs, reward) -> dict:
+        """
+        Determine if there is an alert triggered at the given state-action pair.
+        Currently, passes the information required for Action-Value and GVF alerts.
+        """
+        alert_info = {}
+        alert_info["raw_action"] = [raw_action]
+        alert_info["action"] = [action]
+        alert_info["state"] = [state]
+        alert_info["next_obs"] = [next_obs]
+        alert_info["reward"] = [reward]
+
+        step_alert_info = self.alerts.evaluate(**alert_info)
+        for key in step_alert_info:
+            alert_info[key] = step_alert_info[key]
+
+        return alert_info
+
+    def reset(self) -> (np.ndarray, dict):
+        """
+        Reset the environment and the state constructor
+        """
+        self.transition_queue = deque([])
+        raw_obs, info = self.env.reset()
+        self.state_constructor.reset()
+
+        obs = self.normalizer.obs_normalizer(raw_obs)
+        dummy_action = np.zeros(self.action_dim)
+        state = self.state_constructor(obs, dummy_action, initial_state=True, decision_point=True)
+
+        self.raw_last_obs = raw_obs
+        self.last_state = state
+        self.raw_last_action = dummy_action  # TODO: does this make any sense here?
+
+        return state, info
+
+    def warmup_sc(self) -> None:
+        """
+        The state constructor warmup will be project specific.
+        It will depend upon whether the environment is episodic/continuing.
+        You might pass the recent history to the function and then loop self.state_constructor(obs)
+        """
+        pass
+
+    def get_train_transitions(self, new_transitions, alert_info_list) -> list[Transition]:
+        """
+        Filter out agent transitions that triggered an alert.
+        """
+        if self.alerts.get_dim() > 0:
+            train_transitions = []
+            for j in range(len(new_transitions)):
+                self.transition_queue.appendleft(new_transitions[j])
+                if len(alert_info_list[j]["alert"].keys()) > 0:
+                    transition = self.transition_queue.pop()
+                    if alert_info_list[j]["composite_alert"] == [False]:
+                        train_transitions.append(transition)
+
+            return train_transitions
+        else:
+            return new_transitions

@@ -29,13 +29,12 @@ class BaseInteraction(ABC):
 
     @abstractmethod
     # step returns a list of transitions and a list of environment infos
-    def step(self, action: np.ndarray) -> tuple[list[Transition], list[Transition], list[Transition], list[dict], list[dict]]:
+    def step(self, action: np.ndarray) -> tuple[list[Transition], list[Transition], list[dict], list[dict]]:
         """
         Execute the action in the environment and transition to the next decision point
         Returns:
-        - new_agent_transitions: List of all produced agent transitions
-        - agent_train_transitions: List of Agent transitions that didn't trigger an alert
-        - alert_train_transitions: List of Alert transitions that didn't trigger an alert
+        - transitions: List of all produced agent transitions
+        - train_transitions: List of Agent transitions that didn't trigger an alert
         - alert_info_list: List of dictionaries describing which types of alerts were/weren't triggered
         - env_info_list: List of dictionaries describing env info
         """

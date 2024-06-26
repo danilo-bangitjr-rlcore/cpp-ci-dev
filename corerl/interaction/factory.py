@@ -8,6 +8,7 @@ from corerl.interaction.offline_anytime import OfflineAnytimeInteraction
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.transition_creator import AnytimeTransitionCreator
+from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
 
 def init_interaction(cfg: DictConfig,
@@ -15,12 +16,13 @@ def init_interaction(cfg: DictConfig,
                      sc: BaseStateConstructor,
                      alerts: CompositeAlert,
                      transition_creator: AnytimeTransitionCreator,
+                     normalizer:  ObsTransitionNormalizer,
                      **kwargs) -> BaseInteraction:
     name = cfg.name
     if name == "normalizer":
-        return NormalizerInteraction(cfg, env, sc, alerts, transition_creator)
+        return NormalizerInteraction(cfg, env, sc, alerts, transition_creator, normalizer)
     if name == 'anytime':
-        return AnytimeInteraction(cfg, env, sc, alerts, transition_creator)
+        return AnytimeInteraction(cfg, env, sc, alerts, transition_creator, normalizer)
     if name == 'offline_anytime':
         data_loader = kwargs["data_loader"]
         # TODO: add transition_creator here
