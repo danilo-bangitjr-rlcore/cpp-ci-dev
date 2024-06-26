@@ -12,7 +12,7 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, ensemble_mse
 from corerl.component.exploration.factory import init_exploration_module
 from corerl.utils.device import device
-from corerl.data import TransitionBatch, Transition
+from corerl.data.data import TransitionBatch, Transition
 import corerl.agent.utils as utils
 import corerl.utils.freezer as fr
 

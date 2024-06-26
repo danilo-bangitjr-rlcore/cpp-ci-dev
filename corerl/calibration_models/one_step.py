@@ -14,7 +14,7 @@ from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.network.utils import tensor, to_np
 from corerl.calibration_models.base import NNCalibrationModel
-from corerl.data import Trajectory
+from corerl.data.data import Trajectory
 from corerl.state_constructor.base import BaseStateConstructor
 import corerl.calibration_models.utils as utils
 

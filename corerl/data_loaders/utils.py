@@ -4,8 +4,8 @@ from tqdm import tqdm
 from collections import deque
 
 from corerl.interaction.normalizer import NormalizerInteraction
-from corerl.data import ObsTransition
-from corerl.data import Transition, Trajectory
+from corerl.data.data import ObsTransition
+from corerl.data.data import Transition, Trajectory
 from corerl.alerts.composite_alert import CompositeAlert
 
 

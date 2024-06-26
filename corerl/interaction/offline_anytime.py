@@ -10,7 +10,7 @@ from corerl.interaction.normalizer import NormalizerInteraction
 from corerl.interaction.anytime_interaction import AnytimeInteraction
 from corerl.data_loaders.base import BaseDataLoader
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.data import TransitionBatch, Transition
+from corerl.data.data import TransitionBatch, Transition
 
 
 class OfflineAnytimeInteraction(AnytimeInteraction):

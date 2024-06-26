@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 import numpy
 
-from corerl.data import Transition
+from corerl.data.data import Transition
 
 
 class BaseAgent(ABC):

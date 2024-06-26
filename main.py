@@ -11,6 +11,7 @@ from corerl.state_constructor.factory import init_state_constructor
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.interaction.factory import init_interaction
 from corerl.utils.device import init_device
+from corerl.data.transition_creator import AnytimeTransitionCreator
 import corerl.utils.freezer as fr
 import main_utils as utils
 
@@ -21,7 +22,6 @@ def main(cfg: DictConfig) -> dict:
     fr.init_freezer(save_path / 'logs')
 
     test_epochs = cfg.experiment.test_epochs
-
     init_device(cfg.experiment.device)
 
     # set the random seeds
@@ -31,21 +31,9 @@ def main(cfg: DictConfig) -> dict:
     torch.manual_seed(seed)
 
     env = init_environment(cfg.env)
-    dl = None
-    train_obs_transitions = None
-    test_obs_transitions = None
-    agent_test_transitions = None
-
-    do_offline_training = cfg.experiment.offline_steps > 0
-    if do_offline_training:
-        print('Loading offline observations...')
-        # pass in env because load_offline_obs_from_csv updates env's observation space
-        env, dl, train_obs_transitions, test_obs_transitions = utils.load_offline_obs_from_csv(cfg, env)
-
     sc = init_state_constructor(cfg.state_constructor, env)
     state_dim, action_dim = utils.get_state_action_dim(env, sc)
-    print("State Dim:", state_dim)
-    print("Action Dim:", action_dim)
+    print("State Dim: {}, action dim: {}".format(state_dim, action_dim))
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
     alert_args = {
@@ -55,25 +43,35 @@ def main(cfg: DictConfig) -> dict:
         'input_dim': state_dim,
     }
     composite_alert = CompositeAlert(cfg.alerts, alert_args)
+    transition_creator = AnytimeTransitionCreator(cfg.transition_creator, composite_alert)
+    interaction = init_interaction(cfg.interaction, env, sc, composite_alert, transition_creator)  # , data_loader=dl)
 
-    # the dataloader is optionally needed for interactions that read from the dataset. It is defaulted to None
-    # if we do not load any offline data
-    interaction = init_interaction(cfg.interaction, env, sc, composite_alert, data_loader=dl)
+    # dl = None
+    train_obs_transitions = None
+    test_obs_transitions = None
+    agent_test_transitions = None
+
+    do_offline_training = cfg.experiment.offline_steps > 0
+    if do_offline_training:
+        print('Loading offline observations...')
+        # pass in env because load_offline_obs_from_csv updates env's observation space
+        # train and test obs_transitions are of lists of ObsTransitions, which do not have states.
+        env, dl, train_obs_transitions, test_obs_transitions = utils.load_offline_obs_from_csv(cfg, env)
 
     if do_offline_training:
         print('Loading offline transitions...')
-        agent_train_transitions, alert_train_transitions, agent_test_transitions, alert_test_transitions, _ = utils.get_offline_transitions(cfg,
-                                                                                                                                            train_obs_transitions,
-                                                                                                                                            test_obs_transitions,
-                                                                                                                                            interaction,
-                                                                                                                                            composite_alert)
+        train_transitions, test_transitions, _ = utils.get_offline_transitions(cfg,
+                                                                               train_obs_transitions,
+                                                                               test_obs_transitions,
+                                                                               interaction,
+                                                                               composite_alert)
 
-        utils.offline_alert_training(cfg, composite_alert, alert_train_transitions)
+        utils.offline_alert_training(cfg, composite_alert, train_transitions)
         offline_eval = utils.offline_training(cfg,
                                               env,
                                               agent,
-                                              agent_train_transitions,
-                                              agent_test_transitions,
+                                              train_transitions,
+                                              test_transitions,
                                               save_path,
                                               test_epochs)
 
@@ -99,7 +97,6 @@ def main(cfg: DictConfig) -> dict:
                                               agent_test_transitions,
                                               test_epochs)
         online_eval.output(save_path / 'stats.json')
-
 
     # env.plot()
     # need to update make_plots here

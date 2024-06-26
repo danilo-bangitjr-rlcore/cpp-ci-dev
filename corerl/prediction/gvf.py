@@ -4,7 +4,7 @@ import torch.nn as nn
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.critic.factory import init_q_critic, init_v_critic
 from corerl.component.network.utils import ensemble_mse
-from corerl.data import TransitionBatch, Transition
+from corerl.data.data import TransitionBatch, Transition
 from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 

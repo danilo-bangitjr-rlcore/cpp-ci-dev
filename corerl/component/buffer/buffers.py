@@ -4,7 +4,7 @@ from warnings import warn
 import numpy as np
 import torch
 
-from corerl.data import Transition, TransitionBatch
+from corerl.data.data import Transition, TransitionBatch
 
 
 class UniformBuffer:

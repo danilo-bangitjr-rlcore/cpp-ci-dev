@@ -3,7 +3,7 @@ import torch
 from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 
-from corerl.data import Trajectory
+from corerl.data.data import Trajectory
 from corerl.agent.base import BaseAgent
 
 

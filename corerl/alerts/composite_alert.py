@@ -2,7 +2,7 @@ from omegaconf import DictConfig
 
 from corerl.alerts.base import BaseAlert
 from corerl.alerts.factory import init_alert
-from corerl.data import Transition
+from corerl.data.data import Transition
 
 
 class CompositeAlert(BaseAlert):

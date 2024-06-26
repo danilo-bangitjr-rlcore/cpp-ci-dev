@@ -51,10 +51,7 @@ class NormalizerInteraction(BaseInteraction):
 
         # Take step in the environment
         raw_next_obs, raw_reward, terminated, env_truncate, env_info = self.env.step(raw_action)
-        # next_obs = self.obs_normalizer(raw_next_obs)
-        # reward = self.reward_normalizer(raw_reward)
         truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
-        # gamma_exponent = 1
         env_info_list = [env_info]
 
         obs_transition = ObsTransition(
@@ -72,11 +69,14 @@ class NormalizerInteraction(BaseInteraction):
             gap=False  # no data gap
         )
 
-        transitions = self.transition_creator.make_transitions_for_chunk([obs_transition],
-                                                                         self.state_constructor, return_scs=False)
+        # next, use the tranition creator to make the SINGLE transition for obs transition
+        obs_transitions = [obs_transition]
+        transitions = self.transition_creator.make_transitions_for_chunk(obs_transitions,
+                                                                         self.state_constructor,
+                                                                         return_scs=False)
 
         # Check to see if alerts should be triggered
-        alert_info = self.get_step_alerts(raw_action, action, self.last_state, next_obs, reward)
+        alert_info = self.get_step_alerts(raw_action, action, self.last_state, next_obs, reward) # TODO: should this be normalized?
         alert_info_list = [alert_info]
 
         # Only train on transitions where there weren't any alerts

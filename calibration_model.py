@@ -7,7 +7,7 @@ from omegaconf import DictConfig
 
 from corerl.data_loaders.utils import make_anytime_trajectories
 from corerl.calibration_models.factory import init_calibration_model
-from corerl.data import Transition, Trajectory
+from corerl.data.data import Transition, Trajectory
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor

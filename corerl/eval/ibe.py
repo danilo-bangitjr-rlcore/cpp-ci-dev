@@ -9,7 +9,7 @@ from omegaconf import DictConfig
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.eval.base_eval import BaseEval
-from corerl.data import TransitionBatch, Transition
+from corerl.data.data import TransitionBatch, Transition
 
 
 class IBE(BaseEval):
