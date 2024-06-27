@@ -198,7 +198,7 @@ class OneStep(NNCalibrationModel):
 
         steps_until_decision_point = None
         action = transitions_cm[0].action  # the initial agent's action
-        decision_point = transitions_cm[0].decision_point
+        decision_point = transitions_cm[0].state_dp
         for step in range(rollout_len):
             transition_step = transitions_cm[step]
             if steps_until_decision_point == None:

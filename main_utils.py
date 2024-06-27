@@ -42,6 +42,7 @@ def prepare_save_dir(cfg: DictConfig):
             (f'param-{cfg.experiment.param}') /
             (f'seed-{cfg.experiment.seed}')
     )
+
     save_path.mkdir(parents=True, exist_ok=True)
     with open(save_path / "config.yaml", "w") as f:
         OmegaConf.save(cfg, f)
@@ -208,7 +209,8 @@ def get_offline_transitions(cfg: DictConfig,
                             sc: BaseStateConstructor,
                             transition_creator: AnytimeTransitionCreator,
                             return_train_scs: bool = False,
-                            return_test_scs: bool = False) -> tuple[list[Transition], list[Transition], list[BaseStateConstructor]]:
+                            return_test_scs: bool = False) -> tuple[
+    list[Transition], list[Transition], list[BaseStateConstructor]]:
     """
     Takes observation transitions and produces offline transitions (including state) using the interactions's state
     constructor=
@@ -219,14 +221,16 @@ def get_offline_transitions(cfg: DictConfig,
         return transition_creator.make_offline_transitions(obs_transitions, sc, return_scs, use_pbar=True)
 
     train_transitions, _ = load_or_create(root=output_path,
-                                          cfgs=[cfg.data_loader, cfg.state_constructor, cfg.transition_creator, cfg.alerts],
+                                          cfgs=[cfg.data_loader, cfg.state_constructor, cfg.transition_creator,
+                                                cfg.alerts],
                                           prefix='train_transitions',
                                           create_func=create_transitions,
                                           args=[train_obs_transitions, return_train_scs])
 
     if test_obs_transitions is not None:
         test_transitions, test_scs = load_or_create(root=output_path,
-                                                    cfgs=[cfg.data_loader, cfg.state_constructor, cfg.transition_creator,
+                                                    cfgs=[cfg.data_loader, cfg.state_constructor,
+                                                          cfg.transition_creator,
                                                           cfg.alerts],
                                                     prefix='test_transitions',
                                                     create_func=create_transitions,
@@ -240,7 +244,7 @@ def get_offline_transitions(cfg: DictConfig,
     return train_transitions, test_transitions, test_scs
 
 
-def get_offline_trajectories(cfg: DictConfig,
+def get_offline_trajectories(cfg: DictConfig,  # TODO: update
                              hash_cfgs: list[DictConfig],
                              train_obs_transitions: list[ObsTransition],
                              test_obs_transitions: list[ObsTransition],
@@ -292,7 +296,7 @@ def get_offline_trajectories(cfg: DictConfig,
     return train_trajectories, alert_train_transitions, test_trajectories, alert_test_transitions
 
 
-def load_offline_data_from_transitions(cfg):  # TODO: test this out when I test saturation
+def load_offline_data_from_transitions(cfg):  # TODO: update
     output_path = Path(cfg.offline_data.output_path)
 
     # We assume that transitions have been created with make_offline_transitions.py
@@ -345,26 +349,25 @@ def get_state_action_dim(env: Env, sc: BaseStateConstructor) -> tuple[int, int]:
     return state_dim, action_dim
 
 
-def offline_alert_training(cfg: DictConfig, alerts: CompositeAlert, alert_train_transitions: list[Transition]) -> None:
-
+def offline_alert_training(cfg: DictConfig, alerts: CompositeAlert, train_transitions: list[Transition]) -> None:
     print('Starting offline alert training...')
-    print("Num alert train transitions:", len(alert_train_transitions))
+    print("Num alert train transitions:", len(train_transitions))
     # for transition_tup in alert_train_transitions:
     #     alerts.update_buffer(transition_tup)
     # TODO: verify with Alex this is correct
 
-    alerts.update_buffer(alert_train_transitions)
+    alerts.update_buffer(train_transitions)
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
-    for i in pbar:
+    for _ in pbar:
         alerts.update()
 
 
 def offline_training(cfg: DictConfig,
                      env: Env,
                      agent: BaseAgent,
-                     agent_train_transitions: list[Transition],
-                     agent_test_transitions: list[Transition],
+                     train_transitions: list[Transition],
+                     test_transitions: list[Transition],
                      save_path: Path,
                      test_epochs: Optional[list[int]] = None) -> CompositeEval:
     if test_epochs is None:
@@ -376,12 +379,12 @@ def offline_training(cfg: DictConfig,
     }
     offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
 
-    if agent_test_transitions is None:
-        split = train_test_split(agent_train_transitions, train_split=cfg.experiment.train_split)
-        agent_train_transitions, agent_test_transitions = split[0][0], split[0][1]
+    if test_transitions is None:
+        split = train_test_split(train_transitions, train_split=cfg.experiment.train_split)
+        train_transitions, test_transitions = split[0][0], split[0][1]
 
-    print("Num agent train transitions:", len(agent_train_transitions))
-    for transition in agent_train_transitions:
+    print("Num agent train transitions:", len(train_transitions))
+    for transition in train_transitions:
         agent.update_buffer(transition)
 
     offline_steps = cfg.experiment.offline_steps
@@ -393,7 +396,7 @@ def offline_training(cfg: DictConfig,
 
         if i in test_epochs:
             test_states, test_actions, test_q_values, actor_params = get_test_state_qs_and_policy_params(agent,
-                                                                                                         agent_test_transitions)
+                                                                                                         test_transitions)
             visualize_actor_critic(test_states, test_actions, test_q_values, actor_params, env, save_path,
                                    "Offline_Training", i)
 
@@ -408,7 +411,7 @@ def online_deployment(cfg: DictConfig,
                       env: Env,
                       alerts: CompositeAlert,
                       save_path: Path,
-                      agent_test_transitions: Optional[list[Transition]] = None,
+                      plot_transitions: Optional[list[Transition]] = None,
                       test_epochs: Optional[list[Transition]] = None):
     if test_epochs is None:
         test_epochs = []
@@ -423,54 +426,58 @@ def online_deployment(cfg: DictConfig,
     pbar = tqdm(range(max_steps))
     alerts_plot_info = {}
     state, info = interaction.reset()
+    action = agent.get_action(state)  # initial action
     # State Warmup Here?
     print('Starting online training...')
     for j in pbar:
-        action = agent.get_action(state)
         transitions, train_transitions, alert_info_list, env_info_list = interaction.step(action)
 
-        # TODO: add this back
         for transition in transitions:  # agent_train_transitions:
             agent.update_buffer(transition)
 
-        # TODO: add this back
-        # for transition_tup in train_transitions:
-        #     alerts.update_buffer(transition_tup)
+        if agent.buffer.size > 0:
+            agent.update()
 
-        agent.update()
-        # alerts.update() # TODO: add this back
+        if len(transitions) > 0:
+            # for transition_tup in train_transitions:
+            #     alerts.update_buffer(transition_tup)
 
-        # logging + evaluation
-        # union of the information needed by all evaluators
-        online_eval_args = {
-            'agent': agent,
-            'env': env,
-            'transitions': transitions
-        }
+            # alerts.update() # TODO: add this back
 
-        online_eval.do_eval(**online_eval_args)
-        stats = online_eval.get_stats()
-        update_pbar(pbar, stats, cfg.experiment.online_stat_keys)
+            # logging + evaluation
+            # union of the information needed by all evaluators
+            # online_eval_args = {
+            #     'agent': agent,
+            #     'env': env,
+            #     'transitions': transitions
+            # }
+            #
+            # online_eval.do_eval(**online_eval_args)
+            # stats = online_eval.get_stats()
+            stats = {}
+            update_pbar(pbar, stats, cfg.experiment.online_stat_keys)
 
-        for i in range(len(alert_info_list)):
-            alerts_plot_info = merge_dictionaries(alerts_plot_info, alert_info_list[i])
+            # for i in range(len(alert_info_list)):
+            #     alerts_plot_info = merge_dictionaries(alerts_plot_info, alert_info_list[i])
+
+            terminated = transitions[-1].terminated
+            truncated = transitions[-1].truncate
+            if terminated or truncated:
+                state, _ = interaction.reset()
+            else:
+                state = transitions[-1].next_state
+
+            action = agent.get_action(state)
 
         if j in test_epochs:
             test_states, test_actions, test_q_values, actor_params = get_test_state_qs_and_policy_params(agent,
-                                                                                                         agent_test_transitions)
+                                                                                                         plot_transitions)
             visualize_actor_critic(test_states, test_actions, test_q_values, actor_params, env, save_path,
                                    "Online_Deployment", j)
 
-        terminated = transitions[-1].terminated
-        truncated = transitions[-1].truncate
-        if terminated or truncated:
-            state, _ = interaction.reset()
-        else:
-            state = transitions[-1].next_state
-
     # Make Alerts Plot
-    alert_trace_thresholds = alerts.get_trace_thresh()
-    plot_action_value_alert(alerts_plot_info, alert_trace_thresholds, save_path)
+    # alert_trace_thresholds = alerts.get_trace_thresh()
+    # plot_action_value_alert(alerts_plot_info, alert_trace_thresholds, save_path)
 
     return online_eval
 
@@ -481,7 +488,7 @@ def offline_anytime_deployment(cfg: DictConfig,
                                env: Env,
                                alerts: CompositeAlert,
                                save_path: Path,
-                               agent_test_transitions: Optional[list[Transition]] = None,
+                               plot_transitions: Optional[list[Transition]] = None,
                                test_epochs: Optional[list[int]] = None) -> CompositeEval:
     # Online Deployment
     # Instantiate online evaluators
@@ -496,12 +503,15 @@ def offline_anytime_deployment(cfg: DictConfig,
     pbar = tqdm(range(max_steps))
     print('Starting online anytime training with offline dataset...')
     for j in pbar:
-        agent_transitions, agent_train_transitions, alert_train_transitions, alert_info_list, _ = interaction.step()
-        for transition in agent_train_transitions:
-            agent.update_buffer(transition)
+        transitions, train_transitions, alert_info, _ = interaction.step()  # does not need an action from the agent
 
-        for transition_tup in alert_train_transitions:
-            alerts.update_buffer(transition_tup)
+        if transitions is None:
+            print("Reached End Of Offline Eval Data")
+            break
+
+        for transition in train_transitions:
+            agent.update_buffer(transition)
+            alerts.update_buffer(transition)
 
         agent.update()
         alerts.update()
@@ -511,7 +521,7 @@ def offline_anytime_deployment(cfg: DictConfig,
         online_eval_args = {
             'agent': agent,
             'env': env,
-            'transitions': agent_transitions
+            'transitions': transitions
         }
 
         online_eval.do_eval(**online_eval_args)
@@ -519,18 +529,14 @@ def offline_anytime_deployment(cfg: DictConfig,
 
         if j in test_epochs:
             test_states, test_actions, test_q_values, actor_params = get_test_state_qs_and_policy_params(agent,
-                                                                                                         agent_test_transitions)
+                                                                                                         plot_transitions)
             visualize_actor_critic(test_states, test_actions, test_q_values, actor_params, env, save_path,
                                    "Online_Interaction_Offline_Data", j)
 
-        for i in range(len(alert_info_list)):
-            alerts_plot_info = merge_dictionaries(alerts_plot_info, alert_info_list[i])
+        # TODO fix this
+        alerts_plot_info = merge_dictionaries(alerts_plot_info, alert_info)
 
         update_pbar(pbar, stats, cfg.experiment.online_stat_keys)
-
-        if agent_transitions[-1].truncate:
-            print("Reached End Of Offline Eval Data")
-            break
 
     # Make Alerts Plot
     alert_trace_thresholds = alerts.get_trace_thresh()

@@ -90,7 +90,10 @@ class UniformBuffer:
 
     @property
     def size(self) -> int:
-        return len(self.data)
+        if self.data is None:
+            return 0
+        else:
+            return len(self.data)
 
     def reset(self) -> None:
         self.data = []

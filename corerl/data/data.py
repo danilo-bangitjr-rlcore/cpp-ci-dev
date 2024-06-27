@@ -28,6 +28,12 @@ class ObsTransition:
     def field_names(self):
         return [field.name for field in fields(self)]
 
+    def __str__(self):
+        string = ''
+        for field in fields(self):
+            string += f"{field.name}: {getattr(self, field.name)}\n"
+        return string
+
 
 @dataclass
 class Transition:
@@ -39,16 +45,18 @@ class Transition:
     # NOTE: we distinguish between the next state and the next state which we bootstrap off of. All following
     # attributes are defined w.r.t. the boot strap state.
     reward: float
-    n_step_cumulants: np.array
+    n_step_cumulants: np.array  #
     # the state which we bootstrap off of, which is not necesssarily the next state
     # in the MDP
     boot_obs: np.array  # the raw observation of next_state
     boot_state: np.array
     terminated: bool
     truncate: bool
-    decision_point: bool  # whether state is a decision point
-    boot_decision_point: bool  # whether next_state is a decision point
+    state_dp: bool  # whether state is a decision point
+    next_state_dp: bool  # Whether 'next_obs' is at a decision point
+    boot_state_dp: bool  # whether next_state is a decision point
     gamma_exponent: int  # the exponent of gamma used for bootstrapping
+    gap: bool  # whether there is a gap in the dataset following next_obs, always false online
 
     def __iter__(self):
         for field in fields(self):
@@ -111,9 +119,11 @@ class TransitionBatch:
     boot_state: Tensor
     terminated: Tensor
     truncate: Tensor
-    decision_point: Tensor
-    boot_decision_point: Tensor
+    state_dp: Tensor
+    next_state_dp: Tensor
+    boot_state_dp: Tensor
     gamma_exponent: Tensor
+    gap: Tensor
 
     def __post_init__(self):
         # ensure all the attributes have the same dimension

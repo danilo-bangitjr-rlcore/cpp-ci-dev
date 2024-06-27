@@ -50,7 +50,7 @@ class ActionValueAlert(BaseAlert):
         next_state_batch = batch.boot_state
         mask_batch = 1 - batch.terminated
         gamma_exp_batch = batch.gamma_exponent
-        dp_mask = batch.boot_decision_point
+        dp_mask = batch.boot_state_dp
 
         next_actions, _ = self.agent.actor.get_action(next_state_batch, with_grad=False)
         with torch.no_grad():

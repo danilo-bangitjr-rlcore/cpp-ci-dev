@@ -139,7 +139,7 @@ class GreedyAC(BaseAC):
         next_state_batch = batch.boot_state
         mask_batch = 1 - batch.terminated
         gamma_exp_batch = batch.gamma_exponent
-        dp_mask = batch.boot_decision_point
+        dp_mask = batch.boot_state_dp
 
         next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
         # For the 'Anytime' paradigm, only states at decision points can sample next_actions

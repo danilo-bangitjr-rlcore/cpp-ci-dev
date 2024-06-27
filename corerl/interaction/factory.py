@@ -24,8 +24,8 @@ def init_interaction(cfg: DictConfig,
     if name == 'anytime':
         return AnytimeInteraction(cfg, env, sc, alerts, transition_creator, normalizer)
     if name == 'offline_anytime':
-        data_loader = kwargs["data_loader"]
-        # TODO: add transition_creator here
-        return OfflineAnytimeInteraction(cfg, env, sc, alerts, data_loader=data_loader)
+        transitions = kwargs["transitions"]
+        return OfflineAnytimeInteraction(cfg, env, sc, alerts,
+                                         transition_creator, normalizer, transitions=transitions)
     else:
         raise NotImplementedError

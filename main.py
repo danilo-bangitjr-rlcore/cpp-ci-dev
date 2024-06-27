@@ -14,8 +14,7 @@ from corerl.utils.device import init_device
 from corerl.data_loaders.factory import init_data_loader
 from corerl.data.transition_creator import AnytimeTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
-from corerl.utils.plotting import make_plots
-
+from corerl.data_loaders.utils import train_test_split
 
 import corerl.utils.freezer as fr
 import main_utils as utils
@@ -76,6 +75,10 @@ def main(cfg: DictConfig) -> dict:
                                                                                test_obs_transitions, sc,
                                                                                transition_creator)
 
+        all_transitions = train_transitions + test_transitions
+        split = train_test_split(all_transitions, train_split=cfg.experiment.plot_split)
+        plot_transitions = split[0][1]
+
         # TODO: what should now happen here?
         # utils.offline_alert_training(cfg, composite_alert, train_transitions)
 
@@ -83,14 +86,16 @@ def main(cfg: DictConfig) -> dict:
                                               env,
                                               agent,
                                               train_transitions,
-                                              test_transitions,
+                                              plot_transitions,
                                               save_path,
                                               test_epochs)
 
     if not (test_epochs is None):
         assert not (test_transitions is None), "Must include test transitions if test_epochs is not None"
 
-    interaction = init_interaction(cfg.interaction, env, sc, composite_alert, transition_creator, normalizer)
+    interaction = init_interaction(cfg.interaction, env, sc, composite_alert,
+                                   transition_creator, normalizer,
+                                   transitions=test_transitions)
 
     if cfg.interaction.name == "offline_anytime":  # simulating online experience from an offline dataset
         online_eval = utils.offline_anytime_deployment(cfg,
@@ -99,7 +104,7 @@ def main(cfg: DictConfig) -> dict:
                                                        env,
                                                        composite_alert,
                                                        save_path,
-                                                       test_transitions,
+                                                       plot_transitions,
                                                        test_epochs)
         online_eval.output(save_path / 'stats.json')
     else:
@@ -108,19 +113,19 @@ def main(cfg: DictConfig) -> dict:
                                               interaction,
                                               env, composite_alert,
                                               save_path,
-                                              test_transitions,
+                                              plot_transitions,
                                               test_epochs)
-        online_eval.output(save_path / 'stats.json')
+        # online_eval.output(save_path / 'stats.json')
 
     env.plot()
     # need to update make_plots here
-    stats = online_eval.get_stats()
-    make_plots(fr.freezer, stats, save_path / 'plots')
+    # stats = online_eval.get_stats()
+    # make_plots(fr.freezer, stats, save_path / 'plots')
 
     agent.save(save_path / 'agent')
     agent.load(save_path / 'agent')
 
-    return stats
+    # return stats
 
 
 if __name__ == "__main__":

@@ -24,3 +24,7 @@ action_high : 300
 obs_space_low :  [297, -1.8084491e-02]
 obs_space_high :  [470,  80]
 discrete_control : False
+
+reward_high : 4
+reward_low : -9
+reward_bias : 4

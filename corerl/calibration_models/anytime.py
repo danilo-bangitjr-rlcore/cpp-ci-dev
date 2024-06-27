@@ -261,7 +261,7 @@ class AnytimeCalibrationModel(NNCalibrationModel):
 
         steps_until_decision_point = None
         action = transitions_cm[0].action  # the initial agent's action
-        decision_point = transitions_cm[0].decision_point
+        decision_point = transitions_cm[0].state_dp
         while not done:
             # if it is time for a decision, sample an action from the agent
             if steps_until_decision_point == None:

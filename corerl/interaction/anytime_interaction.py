@@ -44,84 +44,81 @@ class AnytimeInteraction(BaseInteraction):
         self.n_step = cfg.n_step
         self.warmup_steps = cfg.warmup_steps
 
-    def step(self, action: np.ndarray) -> tuple[list[Transition], list[Transition], list[dict], list[dict]]:
+        self.alert_info_list = []
+        self.curr_decision_obs_transitions = []
+        self.curr_decision_states = []
+        self.prev_decision_point = True
+        self.prev_steps_since_decision = 0
+        self.steps_since_decision = 1
+
+    def step(self, action: np.ndarray) -> tuple[list[Transition], list[Transition], dict, dict]:
         """
         Execute 'action' in the environment for a duration of self.steps_per_decision * self.obs_length
         A new obs/state is created every self.obs_length seconds
         Returns:
-        - new_agent_transitions: List of all produced agent transitions
-        - agent_train_transitions: List of Agent transitions that didn't trigger an alert
-        - alert_train_transitions: List of Alert transitions that didn't trigger an alert
-        - alert_info_list: List of dictionaries describing which types of alerts were/weren't triggered
-        - env_info_list: List of dictionaries describing env info
+        - transitions: List of all produced agent transitions
+        - train_transitions: List of Agent transitions that didn't trigger an alert
+        - alert_info: Dictionary describing which types of alerts were/weren't triggered
+        - env_info: Dictionary describing env info
         """
-        obs_transitions = []
-        alert_info_list = []
-        env_info_list = []
 
         raw_action = self.normalizer.action_normalizer.denormalize(action)
+        out = self.env.step(raw_action)  # env.step() already ensures self.obs_length has elapsed
+        raw_next_obs, raw_reward, term, env_trunc, env_info = out
+        truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
+        decision_point = (self.steps_since_decision == 0)
 
-        trunc = False
-        prev_decision_point = True
-        # Execute 'action' for self.steps_per_decision steps
-        for obs_step in range(self.steps_per_decision):
-            out = self.env.step(raw_action)  # env.step() already ensures self.obs_length has elapsed
-            raw_next_obs, raw_reward, term, env_trunc, env_info = out
-            env_info_list.append(env_info)
-            truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
-            decision_point = (obs_step == self.steps_per_decision - 1)
+        obs_transition = ObsTransition(
+            self.raw_last_action,
+            self.raw_last_obs,
+            self.prev_steps_since_decision,
+            self.prev_decision_point,
+            raw_action,
+            raw_reward,
+            raw_next_obs,
+            self.steps_since_decision,
+            decision_point,
+            term,
+            truncate,
+            gap=False  # assume no data gap
+        )
+        obs_transition = self.normalizer.normalize(obs_transition)
 
-            if obs_step == self.steps_per_decision - 1:
-                next_obs_step = 0
-            else:
-                next_obs_step = obs_step + 1
+        next_state = self.state_constructor(obs_transition.next_obs,
+                                            obs_transition.action,
+                                            initial_state=False,  # we are not in reset(), so never an initial state
+                                            decision_point=obs_transition.next_obs_dp,
+                                            steps_since_decision=obs_transition.next_obs_steps_since_decision)
 
-            obs_transition = ObsTransition(
-                self.raw_last_action,
-                self.raw_last_obs,
-                obs_step,
-                prev_decision_point,
-                raw_action,
-                raw_reward,
-                raw_next_obs,
-                next_obs_step,
-                decision_point,
-                term,
-                truncate,
-                gap=False  # assume no data gap
-            )
+        self.curr_decision_obs_transitions.append(obs_transition)
+        self.curr_decision_states.append(next_state)
 
-            obs_transition = self.normalizer.normalize(obs_transition)
-            obs_transitions.append(obs_transition)
+        reward = obs_transition.reward  # normalized reward
+        next_obs = obs_transition.next_obs  # normalized next_obs
+        alert_info = self.get_step_alerts(raw_action, action, self.last_state, next_obs, reward)
+        self.alert_info_list.append(alert_info)
 
-            reward = obs_transition.reward  # normalized reward
-            # TODO: should this be normalized?
-            alert_info = self.get_step_alerts(raw_action, action, self.last_state, raw_next_obs, reward)
-            alert_info_list.append(alert_info)
+        self.prev_decision_point = decision_point
+        self.prev_steps_since_decision = self.steps_since_decision
+        self.steps_since_decision = (self.steps_since_decision + 1) % self.steps_per_decision
 
-            prev_decision_point = decision_point
-            self.raw_last_obs = raw_next_obs
-            self.raw_last_action = action
-
-            if term or trunc:
-                break
+        self.raw_last_obs = raw_next_obs
+        self.raw_last_action = action
+        self.last_state = next_state
 
         # Create transitions
-        transitions, _ = self.transition_creator.make_transitions_for_chunk(obs_transitions,
-                                                                            self.state_constructor,
-                                                                            return_scs=False,
-                                                                            start_state=self.last_state
-                                                                            )
+        transitions, train_transitions = [], []  # NOTE: these lists may sometimes be empty if we are not at a decision point
+        if decision_point:
+            transitions = self.transition_creator.make_online_transitions(self.curr_decision_obs_transitions,
+                                                                          self.curr_decision_states)
+            # Only train on transitions where there weren't any alerts
+            train_transitions = self.get_train_transitions(transitions, self.alert_info_list)
 
-        # print('len_transitions', len(transitions))
-        # print(transitions[-1])
+            self.curr_decision_obs_transitions = []
+            self.curr_decision_states = [self.last_state]
+            self.alert_info_list = []
 
-        self.last_state = transitions[-1].next_state
-
-        # Only train on transitions where there weren't any alerts
-        train_transitions = self.get_train_transitions(transitions, alert_info_list)
-
-        return transitions, train_transitions, alert_info_list, env_info_list
+        return transitions, train_transitions, alert_info, env_info
 
     def get_step_alerts(self, raw_action, action, state, next_obs, reward) -> dict:
         """
@@ -155,7 +152,14 @@ class AnytimeInteraction(BaseInteraction):
 
         self.raw_last_obs = raw_obs
         self.last_state = state
-        self.raw_last_action = dummy_action  # TODO: does this make any sense here?
+        # Just set the first action to a dummy action
+        # if you want, use warmup_sc() to set this to something else
+        self.raw_last_action = dummy_action
+
+        self.prev_decision_point = True
+        self.prev_steps_since_decision = 0
+        self.steps_since_decision = 1
+        self.curr_decision_states = [state]
 
         return state, info
 
