@@ -1,21 +1,25 @@
 name: ibe
 gamma: ${agent.gamma}
-n_updates: 100
+n_updates: 1
 
 optimizer:
   name: adam
   lr: 0.0001
   weight_decay: 0.0
 
+
 network:
-  layer_norm : 0
-  arch : [256, 256]
-  init_args : ReLU
-  head_activation : ReLU
-  activation : ReLU
-  layer_init : Xavier
-  bias : True
-  name: fc
+  name: ensemble_fc
+  ensemble : ${agent.critic.critic_network.ensemble}
+  base:
+    layer_norm : 0
+    arch : [256, 256]
+    init_args : ReLU
+    head_activation : ReLU
+    activation : ReLU
+    layer_init : Xavier
+    bias : True
+    name: fc
 
 offline_eval : True
 online_eval : True

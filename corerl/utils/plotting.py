@@ -108,7 +108,6 @@ def make_bellman_error_plot(stats, save_path):
         return
 
     bes = stats['bellman_error']
-
     fig, ax = plt.subplots()
     ax.plot(bes)
     remove_spines(ax, has_subplots=False)

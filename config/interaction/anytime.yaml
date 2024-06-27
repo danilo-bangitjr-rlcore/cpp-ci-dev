@@ -1,7 +1,6 @@
-defaults:
-  - normalizer
-
 name: anytime
+timeout: ${experiment.timeout}
+gamma : ${experiment.gamma}
 steps_per_decision : 1
 obs_length : 0 # 60 seconds
 n_step : 1 # 0 indicates a variable n-step update where the bootstrap state is always the state at the next decision point. n_step > 0 indicates a normal fixed n-step update that doesn't cross action boundaries.

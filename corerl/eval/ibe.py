@@ -2,6 +2,7 @@
 Implements Identifiable BE Selection (without the selection) from
 https://drive.google.com/drive/u/1/folders/1tJo78FvsWfWaPncJNNyI9IO1f7UbxCFR
 """
+import numpy as np
 import torch
 from torch.nn.functional import mse_loss
 from omegaconf import DictConfig
@@ -9,7 +10,8 @@ from omegaconf import DictConfig
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.eval.base_eval import BaseEval
-from corerl.data.data import TransitionBatch, Transition
+from corerl.data.data import TransitionBatch
+from corerl.component.network.utils import ensemble_mse, to_np
 
 
 class IBE(BaseEval):
@@ -24,23 +26,41 @@ class IBE(BaseEval):
         self.gamma = cfg.gamma
         self.model = init_custom_network(cfg.network, state_dim + action_dim, output_dim=1)
         self.optimizer = init_optimizer(cfg.optimizer, param=self.model.parameters(), ensemble=False)
+        self.optimizer = init_optimizer(cfg.optimizer, list(self.model.parameters(independent=True)),
+                                        ensemble=True)
+
         self.losses = []
         self.bes = []  # the bellman errors
 
     def get_delta(self, batch: TransitionBatch) -> torch.Tensor:
-        # TODO: this does not work with anytime. Need to update
         state_batch = batch.state
         action_batch = batch.action
         reward_batch = batch.reward
         next_state_batch = batch.boot_state
         mask_batch = 1 - batch.terminated
+        gamma_exp_batch = batch.gamma_exponent
+        dp_mask = batch.boot_state_dp
 
-        q = self.agent.q_critic.get_q(state_batch, action_batch, with_grad=False)
         next_actions, _ = self.agent.actor.get_action(next_state_batch, with_grad=False)
-        next_q = self.agent.q_critic.get_q(next_state_batch, next_actions,
-                                           with_grad=False)  # TODO: what if the agent does not have a q_critic?
-        bootstrapped_return = reward_batch + mask_batch * self.gamma * next_q  # the target of the return
-        delta = bootstrapped_return - q
+        # For the 'Anytime' paradigm, only states at decision points can sample next_actions
+        # If a state isn't at a decision point, its next_action is set to the current action
+        with torch.no_grad():
+            next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
+
+        if self.agent.ensemble_targets:
+            _, next_q = self.agent.q_critic.get_qs_target(
+                next_state_batch, next_actions,
+            )
+        else:
+            next_q = self.agent.q_critic.get_q_target(next_state_batch, next_actions)
+
+        # N-Step SARSA update with variable 'N', thus 'reward_batch' is an n_step reward
+        # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
+        target = reward_batch + mask_batch * (self.gamma ** gamma_exp_batch) * next_q
+        _, q_ens = self.agent.q_critic.get_qs(state_batch, action_batch, with_grad=True)
+
+        delta = target - q_ens
+
         return delta
 
     def get_loss(self, batch: TransitionBatch) -> torch.Tensor:
@@ -49,7 +69,8 @@ class IBE(BaseEval):
         action_batch = batch.action
         sa = torch.concatenate((state_batch, action_batch), dim=1)
         predictions = self.model(sa)
-        loss = mse_loss(delta, predictions)
+
+        loss = ensemble_mse(delta, predictions)
         return loss
 
     def do_eval(self, **kwargs) -> None:
@@ -57,10 +78,13 @@ class IBE(BaseEval):
         for _ in range(self.n_updates):
             batch = self.agent.buffer.sample()
             loss = self.get_loss(batch)
+
             self.optimizer.zero_grad()
-            loss.backward()
+            for i in range(len(loss)):
+                loss[i].backward(inputs=list(self.model.parameters(independent=True)[i]))
+
             self.optimizer.step()
-            loss = loss.detach().item()
+            loss = [l.detach().item() for l in loss]
             self.losses.append(loss)
 
         # estimate the bellman error on a batch
@@ -68,7 +92,7 @@ class IBE(BaseEval):
         be = self.estimate_be(batch)
         self.bes.append(be)
 
-    def estimate_be(self, batch: TransitionBatch) -> torch.Tensor:
+    def estimate_be(self, batch: TransitionBatch) -> np.ndarray:
         state_batch = batch.state
         action_batch = batch.action
 
@@ -77,8 +101,9 @@ class IBE(BaseEval):
         delta = self.get_delta(batch)
 
         be_batch = 2 * predictions * delta - torch.square(delta)
-        mean_be = torch.mean(be_batch)
-        return mean_be.detach().item()
+        mean_be = torch.squeeze(torch.mean(be_batch, axis=1))
+
+        return to_np(mean_be).tolist()
 
     def get_stats(self) -> dict:
         stats = {
