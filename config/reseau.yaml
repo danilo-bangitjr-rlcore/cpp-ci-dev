@@ -56,12 +56,11 @@ agent:
     actor_optimizer:
       lr : 0.001
 
-
 data_loader:
   offline_data_path : offline_data/reseau/csv
   train_filenames: ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv",
-                       "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie.csv"]
-  test_filenames: ["rosie_2.csv"]
+                       "m_b_2.csv", "m_3.csv", "rosie.csv", "rosie_2.csv"]
+  test_filenames: ["m_2.csv"]
   skip_rows : 3
   header : 0
   df_col_names : ["Blank", "Result", "Table", "Date", "ait101_pv", "ait301_pv", "ait401_pv",

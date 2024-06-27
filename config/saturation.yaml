@@ -14,17 +14,18 @@ offline_data:
 
 experiment :
   exp_name : "saturation"
-  max_steps : 5000
-  offline_steps : 0
-  set_env_obs_space : True
+  max_steps : 500
+  offline_steps : 10
+  set_env_obs_space : False
   timeout: 0
-
 
 env:
   opc : null
   db : null
 
 interaction :
+  obs_length: 1
+  steps_per_decision: 1
   action_normalizer:
     use_cfg_values : False
 
@@ -54,3 +55,15 @@ alerts:
     ret_perc : 0.1
     trace_decay : 0.995
     trace_thresh : 0.1
+
+
+data_loader:
+  offline_data_path: offline_data/saturation/csv
+  train_filenames: ["data.csv"]
+  test_filenames: ["data.csv"]
+  skip_rows: 0
+  header: 0
+  df_col_names: ["index", "saturation", "action", "time"]
+  date_col_name : "time"
+  action_col_names: ["action"]
+  obs_col_names: ["saturation"]

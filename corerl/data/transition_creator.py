@@ -20,17 +20,17 @@ class AnytimeTransitionCreator(object):
     def make_offline_trajectories(self,
                                   obs_transitions: list[ObsTransition],
                                   sc: BaseStateConstructor,
+                                  return_scs: bool = False,
                                   warmup: int = 0,
                                   use_pbar: bool = False) -> list[Trajectory]:
 
-        return_scs = False
         obs_transitions = deepcopy(obs_transitions)
         trajectories = []
         done = False
         transition_idx = 0
         if use_pbar:
             pbar = tqdm(total=len(obs_transitions))
-        scs = []
+
         while not done:  # first, get transitions until a data gap
             curr_chunk_obs_transitions = []
             gap = False
@@ -49,6 +49,8 @@ class AnytimeTransitionCreator(object):
             new_traj = Trajectory()
             for i in range(len(curr_chunk_transitions)):
                 new_traj.add_transition(curr_chunk_transitions[i])
+                if return_scs:
+                    new_traj.add_sc(new_scs[i])
 
             trajectories.append(new_traj)
 
@@ -71,6 +73,8 @@ class AnytimeTransitionCreator(object):
         if use_pbar:
             pbar = tqdm(total=len(obs_transitions))
         scs = []
+
+        # print("num", len(obs_transitions))
         while not done:  # first, get transitions until a data gap
             curr_chunk_obs_transitions = []
             gap = False

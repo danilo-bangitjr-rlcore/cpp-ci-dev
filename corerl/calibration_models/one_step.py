@@ -26,7 +26,7 @@ class OneStep(NNCalibrationModel):
         self.test_trajectories = train_info['test_trajectories_cm']
         train_transitions = train_info['train_transitions_cm']
         self.reward_func = train_info['reward_func']
-        self.interaction = train_info['interaction_cm']
+        self.normalizer = train_info['normalizer']
 
         self.buffer = init_buffer(cfg.buffer)
         self.test_buffer = init_buffer(cfg.buffer)
@@ -242,9 +242,9 @@ class OneStep(NNCalibrationModel):
             reward_info['curr_action'] = action
 
             # NOTE: Not sure if this denormalizer should be here.
-            denormalized_obs = self.interaction.obs_normalizer.denormalize(new_fictitious_obs)
+            denormalized_obs = self.normalizer.obs_normalizer.denormalize(new_fictitious_obs)
             r = self.reward_func(denormalized_obs, **reward_info)
-            r_norm = self.interaction.reward_normalizer(r)
+            r_norm = self.normalizer.reward_normalizer(r)
             g += gamma ** step * r_norm
             prev_action = action
 
