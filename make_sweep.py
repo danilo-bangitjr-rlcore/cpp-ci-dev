@@ -24,7 +24,7 @@ def main():
             write_str = '{} {} '.format(cfg.cmd, cfg.run_file)
 
             for k, v in run.items():
-                write_str += "{}='{}' ".format(k, v)
+                write_str += "{}={} ".format(k, v)
             f.write(write_str + '\n')
 
     # make the .sh executeable

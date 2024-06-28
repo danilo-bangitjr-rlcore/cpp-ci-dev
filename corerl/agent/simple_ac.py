@@ -34,7 +34,7 @@ class SimpleAC(BaseAC):
         states = batch.state
         actions = batch.action
         next_states = batch.boot_state
-        rewards = batch.reward
+        rewards = batch.n_step_reward
         dones = batch.terminated
         gamma_exps = batch.gamma_exponent
 
@@ -55,7 +55,7 @@ class SimpleAC(BaseAC):
     def compute_critic_loss(self, batch:dict) -> torch.Tensor:
         states = batch.state
         next_states = batch.next_state
-        rewards = batch.reward
+        rewards = batch.n_step_reward
         dones = batch.terminated
         gamma_exps = batch.gamma_exponent
 

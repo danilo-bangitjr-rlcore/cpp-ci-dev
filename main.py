@@ -119,7 +119,7 @@ def main(cfg: DictConfig) -> dict:
                                               test_epochs)
         online_eval.output(save_path / 'stats.json')
 
-    # env.plot()
+    env.plot(save_path / 'plots')
     # need to update make_plots here
     stats = online_eval.get_stats()
     make_plots(fr.freezer, stats, save_path / 'plots')

@@ -59,6 +59,7 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
             next_obs = transition.next_obs
             reward = transition.reward
 
+            # TODO: should this be n step??
             alert_info = self.get_step_alerts(raw_action, action, state, next_obs, reward)
             self.alert_info_list.append(alert_info)
 

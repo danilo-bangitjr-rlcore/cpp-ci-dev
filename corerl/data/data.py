@@ -45,6 +45,7 @@ class Transition:
     # NOTE: we distinguish between the next state and the next state which we bootstrap off of. All following
     # attributes are defined w.r.t. the boot strap state.
     reward: float
+    n_step_reward: float
     n_step_cumulants: np.array  #
     # the state which we bootstrap off of, which is not necesssarily the next state
     # in the MDP
@@ -85,17 +86,6 @@ class Transition:
 
         return True
 
-    def to_obs_transition(self):
-        obs_transition = ObsTransition(
-            self.obs,
-            self.action,
-            self.reward,
-            self.next_obs,
-            self.terminated,
-            self.truncate,
-            False)  # assume there is no gap in the dataset
-        return obs_transition
-
     def __str__(self):
         string = ''
         for field in fields(self):
@@ -114,6 +104,7 @@ class TransitionBatch:
     next_obs: Tensor
     next_state: Tensor
     reward: Tensor
+    n_step_reward: Tensor
     n_step_cumulants: Tensor
     boot_obs: Tensor
     boot_state: Tensor

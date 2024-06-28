@@ -258,6 +258,7 @@ class AnytimeTransitionCreator(object):
                 action,
                 next_obs,  # the immediate next obs
                 next_state,  # the immediate next state
+                reward,  # the reward
                 np_n_step_rewards[-1].item(),
                 np_n_step_cumulants[-1],  # the array of cumulants
                 boot_obs_queue[-1],  # the obs we bootstrap off

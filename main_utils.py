@@ -142,19 +142,19 @@ def load_df_from_csv(cfg: DictConfig, dl: BaseDataLoader) -> tuple[pd.DataFrame,
         return dl.load_data(filenames)
 
     all_data_df = load_or_create(root=output_path,
-                                 cfgs=[cfg.data_loader],
+                                 cfgs=[cfg.data_loader, cfg.env],
                                  prefix='all_data_df',
                                  create_func=_create_df,
                                  args=[dl.all_filenames])
 
     train_data_df = load_or_create(root=output_path,
-                                   cfgs=[cfg.data_loader],
+                                   cfgs=[cfg.data_loader, cfg.env],
                                    prefix='train_data_df',
                                    create_func=_create_df,
                                    args=[dl.train_filenames])
 
     test_data_df = load_or_create(root=output_path,
-                                  cfgs=[cfg.data_loader],
+                                  cfgs=[cfg.data_loader, cfg.env],
                                   prefix='test_data_df',
                                   create_func=_create_df,
                                   args=[dl.test_filenames])
@@ -178,20 +178,20 @@ def get_offline_obs_transitions(cfg: DictConfig,
     """
 
     output_path = Path(cfg.offline_data.output_path)
-    reward_func = init_reward_function(cfg.env.reward)
+    reward_func = init_reward_function(cfg.env.n_step_reward)
 
     def _create_obs_transitions(df):
         return dl.create_obs_transitions(df, normalizer, reward_func)
 
     train_obs_transitions = load_or_create(root=output_path,
-                                           cfgs=[cfg.data_loader],
+                                           cfgs=[cfg.data_loader, cfg.env],
                                            prefix='train_obs_transitions',
                                            create_func=_create_obs_transitions,
                                            args=[train_data_df])
 
     if test_data_df is not None:
         test_obs_transitions = load_or_create(root=output_path,
-                                              cfgs=[cfg.data_loader],
+                                              cfgs=[cfg.data_loader, cfg.env],
                                               prefix='test_obs_transitions',
                                               create_func=_create_obs_transitions,
                                               args=[test_data_df])
@@ -225,7 +225,7 @@ def get_offline_transitions(cfg: DictConfig,
 
     train_transitions, _ = load_or_create(root=output_path,
                                           cfgs=[cfg.data_loader, cfg.state_constructor, cfg.transition_creator,
-                                                cfg.alerts],
+                                                cfg.alerts, cfg.env],
                                           prefix='train_transitions',
                                           create_func=create_transitions,
                                           args=[train_obs_transitions, return_train_scs])
@@ -234,7 +234,7 @@ def get_offline_transitions(cfg: DictConfig,
         test_transitions, test_scs = load_or_create(root=output_path,
                                                     cfgs=[cfg.data_loader, cfg.state_constructor,
                                                           cfg.transition_creator,
-                                                          cfg.alerts],
+                                                          cfg.alerts, cfg.env],
                                                     prefix='test_transitions',
                                                     create_func=create_transitions,
                                                     args=[test_obs_transitions, return_test_scs])
@@ -413,8 +413,7 @@ def online_deployment(cfg: DictConfig,
             action = agent.get_action(state)
 
         if j in test_epochs:
-            test_states, test_actions, test_q_values, actor_params = get_test_state_qs_and_policy_params(agent,
-                                                                                                         plot_transitions)
+            test_states, test_actions, test_q_values, actor_params = get_test_state_qs_and_policy_params(agent, plot_transitions)
             visualize_actor_critic(test_states, test_actions, test_q_values, actor_params, env, save_path,
                                    "Online_Deployment", j)
 

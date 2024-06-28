@@ -102,7 +102,7 @@ def main(cfg: DictConfig) -> dict:
         # 'test_transitions_agent': trajectories_to_transitions(test_trajectories_agent)
     }
 
-    reward_func = init_reward_function(cfg.env.reward)
+    reward_func = init_reward_function(cfg.env.n_step_reward)
     train_info["reward_func"] = reward_func
 
     cm = init_calibration_model(cfg.calibration_model, train_info)
