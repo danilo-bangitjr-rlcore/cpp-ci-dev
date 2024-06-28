@@ -51,6 +51,7 @@ def make_action_mean_variance_plot(freezer, save_path):
 
     remove_spines(axs)
     plt.savefig(save_path / 'action_mean_variance.png', bbox_inches='tight')
+    plt.close()
 
 
 def make_param_plot(freezer, save_path):
@@ -88,6 +89,7 @@ def make_param_plot(freezer, save_path):
 
     remove_spines(axs)
     plt.savefig(save_path / 'action_params.png', bbox_inches='tight')
+    plt.close()
 
 
 def make_action_gap_plot(stats, save_path):
@@ -101,6 +103,7 @@ def make_action_gap_plot(stats, save_path):
     ax.set_xlabel('Step')
     ax.set_ylabel('Action gap')
     plt.savefig(save_path / 'action_gap.png', bbox_inches='tight')
+    plt.close()
 
 
 def make_bellman_error_plot(stats, save_path):
@@ -114,6 +117,7 @@ def make_bellman_error_plot(stats, save_path):
     ax.set_xlabel('Step')
     ax.set_ylabel('BE')
     plt.savefig(save_path / 'bellman_error.png', bbox_inches='tight')
+    plt.close()
 
 
 def make_reward_plot(stats, save_path):
@@ -128,6 +132,7 @@ def make_reward_plot(stats, save_path):
     ax.set_xlabel('Step')
     ax.set_ylabel('Reward')
     plt.savefig(save_path / 'rewards.png', bbox_inches='tight')
+    plt.close()
 
 
 def make_plots(freezer, stats, save_path):
