@@ -16,8 +16,8 @@ offline_data:
 
 experiment :
   exp_name : "Merge_Party_Alerts_Test"
-  max_steps : 50000
-  offline_steps : 20000
+  max_steps : 20
+  offline_steps : 20 #20000
   load_env_obs_space_from_data : True
   gamma : 0.95
   train_split : 0.995

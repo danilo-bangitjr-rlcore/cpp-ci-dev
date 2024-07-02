@@ -12,4 +12,7 @@ reward_high : 0
 reward_low : -0.5
 
 obs_names : ['saturation']
+endo_obs_names : ['saturation']
 action_names : ['action']
+
+endo_inds : [0]

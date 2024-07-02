@@ -36,7 +36,7 @@ class EnsembleQCritic(BaseQ):
         actions: torch.Tensor,
         with_grad: bool = False,
     ) -> (torch.Tensor, torch.Tensor):
-        # Assumes
+
         state_actions = torch.concat((states, actions), dim=1)
         if with_grad:
             q, qs = self.model(state_actions)

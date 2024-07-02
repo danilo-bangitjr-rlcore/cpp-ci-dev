@@ -11,6 +11,7 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import ensemble_mse
 from corerl.data.data import TransitionBatch, Transition
 
+
 class ActionValueAlert(BaseAlert):
     def __init__(self, cfg: DictConfig, cumulant_start_ind: int, **kwargs):
         if 'agent' not in kwargs:
@@ -34,7 +35,7 @@ class ActionValueAlert(BaseAlert):
         self.buffer = init_buffer(cfg.buffer)
 
         self.gamma = cfg.gamma
-        self.ret_perc = cfg.ret_perc # Percentage of the full return being neglected in the observed partial return
+        self.ret_perc = cfg.ret_perc  # Percentage of the full return being neglected in the observed partial return
         self.return_steps = int(np.ceil(np.log(self.ret_perc) / np.log(self.gamma)))
         self.trace_decay = cfg.trace_decay
         self.trace_thresh = cfg.trace_thresh
@@ -89,6 +90,9 @@ class ActionValueAlert(BaseAlert):
         action = kwargs['action']
         reward = kwargs['reward']
 
+        state = np.expand_dims(state, 0)
+        action = np.expand_dims(action, 0)
+
         # Get action-value estimate for the given state-action pair
         state = utils.tensor(state, device)
         action = utils.tensor(action, device)
@@ -117,10 +121,11 @@ class ActionValueAlert(BaseAlert):
             self.alert_trace = ((1.0 - self.trace_decay) * abs_diff) + (self.trace_decay * self.alert_trace)
 
             for cumulant_name in self.get_cumulant_names():
-                info["alert_trace"][self.alert_type()][cumulant_name].append(self.alert_trace.squeeze().astype(float))
-                info["alert"][self.alert_type()][cumulant_name].append((self.alert_trace > self.trace_thresh).squeeze())
-                info["value"][self.alert_type()][cumulant_name].append(self.values[-1].squeeze().astype(float))
-                info["return"][self.alert_type()][cumulant_name].append(self.partial_returns[-1].squeeze().astype(float))
+                info["alert_trace"][self.alert_type()][cumulant_name].append(self.alert_trace.squeeze().astype(float).item())
+                info["alert"][self.alert_type()][cumulant_name].append(bool((self.alert_trace > self.trace_thresh).squeeze()))
+                info["value"][self.alert_type()][cumulant_name].append(self.values[-1].squeeze().astype(float).item())
+                info["return"][self.alert_type()][cumulant_name].append(
+                    self.partial_returns[-1].squeeze().astype(float).item())
 
         return info
 

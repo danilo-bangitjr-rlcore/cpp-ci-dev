@@ -1,5 +1,5 @@
 name : gvf
-endo_obs_col_names: ${env.endo_obs_col_names}
+endo_obs_names: ${env.endo_obs_names}
 endo_inds : ${env.endo_inds}
 gamma : 0.8
 ret_perc : 0.1 # Percentage of observed return not used to compute the observed partial return

@@ -21,7 +21,7 @@ class BaseGVF(ABC):
         self.input_dim = input_dim
         self.action_dim = action_dim
 
-        self.endo_obs_col_names = cfg.endo_obs_col_names
+        self.endo_obs_names = cfg.endo_obs_names
         self.endo_inds = cfg.endo_inds
         self.num_gvfs = len(self.endo_inds)
 

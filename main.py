@@ -110,7 +110,7 @@ def main(cfg: DictConfig) -> dict:
                                                        save_path,
                                                        plot_transitions,
                                                        test_epochs)
-        #online_eval.output(save_path / 'stats.json')
+        online_eval.output(save_path / 'stats.json')
     else:
         online_eval = utils.online_deployment(cfg,
                                               agent,
@@ -131,7 +131,7 @@ def main(cfg: DictConfig) -> dict:
     agent.save(save_path / 'agent')
     agent.load(save_path / 'agent')
 
-    return stats
+    # return stats
 
 
 if __name__ == "__main__":

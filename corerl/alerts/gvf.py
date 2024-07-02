@@ -23,8 +23,8 @@ class GVFAlert(BaseAlert):
         self.agent = kwargs["agent"]
         self.input_dim = kwargs["input_dim"]
         self.action_dim = kwargs["action_dim"]
-        
-        self.endo_obs_col_names = cfg.endo_obs_col_names
+
+        self.endo_obs_names = cfg.endo_obs_names
         self.endo_inds = cfg.endo_inds
 
         self.gvfs = QGVF(cfg, self.input_dim, self.action_dim, agent=self.agent)
@@ -59,7 +59,10 @@ class GVFAlert(BaseAlert):
 
         state = kwargs['state']
         action = kwargs['action']
-        next_obs = kwargs['next_obs'][0]
+        next_obs = kwargs['next_obs']
+
+        state = np.expand_dims(state, axis=0)
+        action = np.expand_dims(action, axis=0)
 
         # GVF Predictions
         state = utils.tensor(state, device)
@@ -86,14 +89,16 @@ class GVFAlert(BaseAlert):
         if len(self.partial_returns) == self.return_steps:
             abs_diffs = abs(self.partial_returns[-1] - self.values[-1])
             self.alert_trace = ((1.0 - self.trace_decay) * abs_diffs) + (self.trace_decay * self.alert_trace)
-            individual_alerts = self.alert_trace > self.trace_thresh
+            individual_alerts = (self.alert_trace > self.trace_thresh).tolist()
 
-            for i in range(len(self.endo_obs_col_names)):
-                cumulant_name = self.endo_obs_col_names[i]
-                info["alert_trace"][self.alert_type()][cumulant_name].append(self.alert_trace[i].squeeze().astype(float))
-                info["alert"][self.alert_type()][cumulant_name].append(individual_alerts[i].squeeze())
-                info["value"][self.alert_type()][cumulant_name].append(self.values[-1][i].squeeze().astype(float))
-                info["return"][self.alert_type()][cumulant_name].append(self.partial_returns[-1][i].squeeze().astype(float))
+            for i in range(len(self.endo_obs_names)):
+                cumulant_name = self.endo_obs_names[i]
+                info["alert_trace"][self.alert_type()][cumulant_name].append(
+                    self.alert_trace[i].squeeze().astype(float).item())
+                info["alert"][self.alert_type()][cumulant_name].append(individual_alerts[i])
+                info["value"][self.alert_type()][cumulant_name].append(self.values[-1][i].squeeze().astype(float).item())
+                info["return"][self.alert_type()][cumulant_name].append(
+                    self.partial_returns[-1][i].squeeze().astype(float).item())
 
         return info
 
@@ -107,7 +112,7 @@ class GVFAlert(BaseAlert):
         return "gvf"
 
     def get_cumulant_names(self) -> list[str]:
-        return self.endo_obs_col_names
+        return self.endo_obs_names
 
     def get_cumulants(self, **kwargs) -> list[float]:
         if 'obs' not in kwargs:

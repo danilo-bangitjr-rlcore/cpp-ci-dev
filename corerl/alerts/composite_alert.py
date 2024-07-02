@@ -39,7 +39,7 @@ class CompositeAlert(BaseAlert):
                             alerts_info[field][alert_type][cumulant_name] = {}
                         alerts_info[field][alert_type][cumulant_name] = alert_info[field][alert_type][cumulant_name]
                         if field == "alert" and len(alert_info[field][alert_type][cumulant_name]) == 1:
-                            alerts_info["composite_alert"][0] |= alert_info[field][alert_type][cumulant_name][0]
+                            alerts_info["composite_alert"][0] |= bool(alert_info[field][alert_type][cumulant_name][0])
 
         return alerts_info
 

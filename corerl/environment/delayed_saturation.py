@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 
 class DelayedSaturation(gym.Env):
-    def __init__(self, seed, trace_val):
+    def __init__(self, seed, cfg):
         self._random = np.random.default_rng(seed)
         self.observation_dim = 1
         self._obs_min = np.array([0.])
@@ -26,7 +26,11 @@ class DelayedSaturation(gym.Env):
         self.actions = []
         self.raw_actions = []
         self.action_trace = np.array([0])
-        self.trace_val = trace_val
+        self.trace_val = cfg.trace_val
+
+        self.action_names = cfg.action_names
+        self.endo_inds = cfg.endo_inds
+        self.endo_obs_names = cfg.endo_obs_names
 
     def seed(self, seed):
         self._random = np.random.default_rng(seed)

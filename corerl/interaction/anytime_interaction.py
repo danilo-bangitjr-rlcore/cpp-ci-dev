@@ -126,10 +126,10 @@ class AnytimeInteraction(BaseInteraction):
         Currently, passes the information required for Action-Value and GVF alerts.
         """
         alert_info = {}
-        alert_info["action"] = [action]
-        alert_info["state"] = [state]
-        alert_info["next_obs"] = [next_obs]
-        alert_info["reward"] = [reward]
+        alert_info["action"] = action
+        alert_info["state"] = state
+        alert_info["next_obs"] = next_obs
+        alert_info["reward"] = reward
 
         step_alert_info = self.alerts.evaluate(**alert_info)
 

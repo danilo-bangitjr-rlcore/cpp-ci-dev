@@ -27,13 +27,11 @@ class ActionEval(BaseEval):
             transition_copy = self.transition_normalizer.denormalize(transition)
             action = transition_copy.action
             for i in range(len(action)):
-                self.actions[self.action_names[i]].append(action[i])
+                self.actions[self.action_names[i]].append(action[i].item())
 
     def get_stats(self):
         stats = {}
-
         stats["raw_actions"] = self.actions
-
         return stats
 
     def output(self, path: Path):
