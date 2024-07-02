@@ -1,10 +1,10 @@
 defaults:
   - agent: greedy_ac
   - env : three_tanks
-  - interaction : normalizer
+  - interaction : anytime
   - data_loader : direct_action
   - state_constructor : identity
-  - calibration_model : simple
+  - calibration_model : anytime
   - normalizer : normalizer
   - alerts@alerts.action_value : action_value
   - alerts@alerts.gvf : gvf
