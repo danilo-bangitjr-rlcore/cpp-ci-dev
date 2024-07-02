@@ -11,7 +11,7 @@ from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, Float, ensemble_mse
 from corerl.utils.device import device
-from corerl.data import TransitionBatch, Transition
+from corerl.data.data import TransitionBatch, Transition
 
 class SAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -44,7 +44,7 @@ class SAC(BaseAC):
     def compute_q_loss(self, batch: TransitionBatch) -> (list, torch.Tensor):
         state_batch = batch.state
         action_batch = batch.action
-        reward_batch = batch.reward
+        reward_batch = batch.n_step_reward
         next_state_batch = batch.boot_state
         mask_batch = 1 - batch.terminated
         gamma_exp_batch = batch.gamma_exponent

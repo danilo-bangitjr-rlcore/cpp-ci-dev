@@ -11,7 +11,7 @@ from corerl.component.critic.factory import init_v_critic, init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, ensemble_expectile_loss, ensemble_mse
 from corerl.utils.device import device
-from corerl.data import TransitionBatch, Transition
+from corerl.data.data import TransitionBatch, Transition
 
 
 class IQL(BaseAC):
@@ -54,7 +54,7 @@ class IQL(BaseAC):
 
     def compute_q_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states, actions, rewards, next_states, dones, gamma_exps = (batch.state, batch.action,
-                                                                    batch.reward, batch.boot_state,
+                                                                    batch.n_step_reward, batch.boot_state,
                                                                     batch.terminated, batch.gamma_exponent)
 
         next_v = self.v_critic.get_v_target(next_states)

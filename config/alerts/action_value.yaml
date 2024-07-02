@@ -1,0 +1,8 @@
+name : action_value
+gamma : 0.8
+ret_perc : 0.1 # Percentage of observed return not used to compute the observed partial return
+trace_decay : 0.995
+trace_thresh : 0.1
+critic : ${agent.critic}
+buffer : ${agent.buffer}
+ensemble_targets : False

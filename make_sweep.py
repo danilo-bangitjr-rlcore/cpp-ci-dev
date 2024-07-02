@@ -9,6 +9,7 @@ def main():
     parser = argparse.ArgumentParser(description="sweep maker")
     parser.add_argument('--path', default='sweep/configs', type=str)
     parser.add_argument('--cfg_name', default="sweep_example", type=str)
+    parser.add_argument('--cfg_file', default="", type=str)
     parser.add_argument('--run_file', default='main.py', type=str)
     parser.add_argument('--cmd', default='python3', type=str)
     parser.add_argument('--save_file', default='runs.sh', type=str)
@@ -25,6 +26,10 @@ def main():
 
             for k, v in run.items():
                 write_str += "{}='{}' ".format(k, v)
+
+            if cfg.cfg_file != "":
+                write_str += "--config-name={}".format(cfg.cfg_file)
+
             f.write(write_str + '\n')
 
     # make the .sh executeable

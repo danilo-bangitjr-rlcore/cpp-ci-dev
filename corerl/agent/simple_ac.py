@@ -11,7 +11,7 @@ from corerl.component.critic.factory import init_v_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, ensemble_mse
 from corerl.utils.device import device
-from corerl.data import TransitionBatch, Transition
+from corerl.data.data import TransitionBatch, Transition
 
 class SimpleAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -34,7 +34,7 @@ class SimpleAC(BaseAC):
         states = batch.state
         actions = batch.action
         next_states = batch.boot_state
-        rewards = batch.reward
+        rewards = batch.n_step_reward
         dones = batch.terminated
         gamma_exps = batch.gamma_exponent
 
@@ -52,10 +52,10 @@ class SimpleAC(BaseAC):
             loss_actor = self.compute_actor_loss(batch)
             self.actor.update(loss_actor)
 
-    def compute_critic_loss(self, batch:dict) -> torch.Tensor:
+    def compute_critic_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states = batch.state
         next_states = batch.next_state
-        rewards = batch.reward
+        rewards = batch.n_step_reward
         dones = batch.terminated
         gamma_exps = batch.gamma_exponent
 

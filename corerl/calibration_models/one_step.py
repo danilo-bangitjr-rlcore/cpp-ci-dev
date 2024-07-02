@@ -14,7 +14,7 @@ from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.network.utils import tensor, to_np
 from corerl.calibration_models.base import NNCalibrationModel
-from corerl.data import Trajectory
+from corerl.data.data import Trajectory
 from corerl.state_constructor.base import BaseStateConstructor
 import corerl.calibration_models.utils as utils
 
@@ -26,7 +26,7 @@ class OneStep(NNCalibrationModel):
         self.test_trajectories = train_info['test_trajectories_cm']
         train_transitions = train_info['train_transitions_cm']
         self.reward_func = train_info['reward_func']
-        self.interaction = train_info['interaction_cm']
+        self.normalizer = train_info['normalizer']
 
         self.buffer = init_buffer(cfg.buffer)
         self.test_buffer = init_buffer(cfg.buffer)
@@ -72,8 +72,7 @@ class OneStep(NNCalibrationModel):
             self.update()
             pbar.set_description("train loss: {:7.6f}".format(self.train_losses[-1]))
 
-        self.do_test_rollouts()
-        return self.train_losses, self.test_losses
+        return self.train_losses
 
     def get_prediction(self, state: torch.Tensor, action: torch.Tensor, with_grad: bool = False):
         x = torch.concat((state, action), dim=1)
@@ -84,16 +83,19 @@ class OneStep(NNCalibrationModel):
                 y = self.model(x)
         return y
 
-    def do_test_rollouts(self):
+    def do_test_rollouts(self, plot_save_path=None):
         for n, test_traj in enumerate(self.test_trajectories):
             last = test_traj.num_transitions - self.max_rollout_len
             increase_idx = last // self.num_test_rollouts
             start_idx = 0
             for start in range(self.num_test_rollouts):
-                self.do_test_rollout(test_traj, start_idx=start_idx, plot=True)
+                self.do_test_rollout(test_traj, start_idx=start_idx, plot=True, plot_save_path=plot_save_path)
                 start_idx += increase_idx
 
-    def do_test_rollout(self, traj: Trajectory, start_idx: Optional[int] = None, plot=False) -> list[float]:
+    def do_test_rollout(self, traj: Trajectory,
+                        start_idx: Optional[int] = None,
+                        plot=False,
+                        plot_save_path=None) -> list[float]:
         if start_idx is None:
             start_idx = random.randint(0, traj.num_transitions - self.max_rollout_len - 1)
 
@@ -112,6 +114,7 @@ class OneStep(NNCalibrationModel):
             transition_step = transitions[step]
             if steps_until_decision_point == None:
                 assert step == 0
+                # on the first iteration, start from the right number of actions remaining
                 steps_until_decision_point = transition_step.gamma_exponent
             elif steps_until_decision_point == 0:
                 steps_until_decision_point = self.steps_per_decision
@@ -152,7 +155,7 @@ class OneStep(NNCalibrationModel):
             plt.legend()
 
             plt.xlabel("Rollout Step")
-            plt.savefig(f"test_{start_idx}.png", bbox_inches='tight')
+            plt.savefig(plot_save_path / f"test_{start_idx}.png", bbox_inches='tight')
             plt.clf()
 
         return losses
@@ -162,7 +165,9 @@ class OneStep(NNCalibrationModel):
                          traj_agent: Trajectory,
                          agent: BaseAgent,
                          start_idx: Optional[int] = None,
-                         plot=False) -> float:
+                         plot=None,
+                         plot_save_path=None,
+                         ) -> float:
 
         if start_idx is None:
             start_idx = random.randint(0, traj_cm.num_transitions - self.max_rollout_len - 1)
@@ -176,6 +181,11 @@ class OneStep(NNCalibrationModel):
         state_cm = transitions_cm[0].state
         state_agent = transitions_agent[0].state
 
+        for i in range(len(transitions_cm)):
+            assert np.array_equal(transitions_cm[i].obs, transitions_agent[i].obs)
+            assert np.array_equal(transitions_cm[i].action, transitions_agent[i].action)
+            assert np.array_equal(transitions_cm[i].next_obs, transitions_agent[i].next_obs)
+
         gamma = agent.gamma
         g = 0  # the return
         prev_action = None
@@ -188,7 +198,7 @@ class OneStep(NNCalibrationModel):
 
         steps_until_decision_point = None
         action = transitions_cm[0].action  # the initial agent's action
-        decision_point = transitions_cm[0].decision_point
+        decision_point = transitions_cm[0].state_dp
         for step in range(rollout_len):
             transition_step = transitions_cm[step]
             if steps_until_decision_point == None:
@@ -232,10 +242,10 @@ class OneStep(NNCalibrationModel):
             reward_info['curr_action'] = action
 
             # NOTE: Not sure if this denormalizer should be here.
-            denormalized_obs = self.interaction.obs_normalizer.denormalize(new_fictitious_obs)
+            denormalized_obs = self.normalizer.obs_normalizer.denormalize(new_fictitious_obs)
             r = self.reward_func(denormalized_obs, **reward_info)
-            r_norm = self.interaction.reward_normalizer(r)
-            g += gamma**step * r_norm
+            r_norm = self.normalizer.reward_normalizer(r)
+            g += gamma ** step * r_norm
             prev_action = action
 
             # log stuff
@@ -243,7 +253,7 @@ class OneStep(NNCalibrationModel):
             endo_obss.append(next_obs[0])
             predicted_endo_obss.append(predicted_next_endo_obs)
 
-        if plot:
+        if plot is not None:
             plt.plot(endo_obss, label='endo obs.')
             plt.plot(actions, label='actions')
 
@@ -252,17 +262,26 @@ class OneStep(NNCalibrationModel):
             plt.legend()
 
             plt.xlabel("Rollout Step")
-            plt.savefig(f"test_{start_idx}.png", bbox_inches='tight')
+            plt.savefig(plot_save_path / f"rollout_{plot}_{start_idx}.png", bbox_inches='tight')
             plt.clf()
 
         return g
 
-    def do_agent_rollouts(self, agent: BaseAgent, trajectories_agent: list[Trajectory], plot=False):
+    def do_agent_rollouts(self, agent: BaseAgent, trajectories_agent: list[Trajectory], plot=None, plot_save_path=None):
         returns = []
         assert len(trajectories_agent) == len(self.test_trajectories)
-        for traj_i in range(len(trajectories_agent)):
+        for traj_i, _ in enumerate(self.test_trajectories):
             traj_cm = self.test_trajectories[traj_i]
-            traj_agent = self.test_trajectories[traj_i]
-            return_ = self.do_agent_rollout(traj_cm, traj_agent, agent, start_idx=1000, plot=True)
-            returns.append(return_)
+            traj_agent = trajectories_agent[traj_i]
+
+            assert traj_cm.num_transitions == traj_agent.num_transitions
+
+            last = traj_cm.num_transitions - self.max_rollout_len
+            increase_idx = last // self.num_test_rollouts
+            start_idx = 0
+            for start in range(self.num_test_rollouts):
+                return_ = self.do_agent_rollout(traj_cm, traj_agent, agent, start_idx=start_idx, plot=plot,
+                                                plot_save_path=plot_save_path)
+                start_idx += increase_idx
+                returns.append(return_)
         return returns

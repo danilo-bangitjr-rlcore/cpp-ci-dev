@@ -39,7 +39,7 @@ class AnytimeMultiTrace(CompositeStateConstructor):
             trace_sc = comp.MemoryTrace(trace_value, parents=[start_sc])
             trace_components.append(trace_sc)
 
-        anytime_sc = comp.Anytime(cfg.decision_steps, parents=[start_sc])
+        anytime_sc = comp.Anytime(cfg.steps_per_decision, parents=[start_sc])
 
         # finally, we will concatenate all the traces and normalized values together
         concat_parents = [start_sc] + trace_components + [
@@ -63,7 +63,7 @@ class Normalize(CompositeStateConstructor):
 class SimpleReseauAnytime(CompositeStateConstructor):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         identity_sc = comp.Identity()
-        anytime_sc = comp.Anytime(cfg.decision_steps, parents=[identity_sc])
+        anytime_sc = comp.Anytime(cfg.steps_per_decision, parents=[identity_sc])
         concat_sc = comp.Concatenate(parents=[identity_sc, anytime_sc])
         self.sc = concat_sc
 
@@ -91,7 +91,7 @@ class ReseauAnytime(CompositeStateConstructor):
         for horizon in cfg.memory:
             flow_diffs.append(comp.Difference(horizon, parents=[col_sc_2]))
 
-        anytime_sc = comp.Anytime(cfg.decision_steps, parents=[identity_sc])
+        anytime_sc = comp.Anytime(cfg.steps_per_decision, parents=[identity_sc])
         concat_parents = [identity_sc] + fpm_avgs + orp_diffs + flow_diffs + [anytime_sc]
         concat_sc = comp.Concatenate(parents=concat_parents)
         self.sc = concat_sc

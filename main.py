@@ -2,292 +2,32 @@ import hydra
 import numpy as np
 import torch
 import random
-import time
-import hashlib
-import copy
-import pickle as pkl
 
-from tqdm import tqdm
-from omegaconf import DictConfig, OmegaConf
-from gymnasium.spaces.utils import flatdim
-from gymnasium import spaces
-from pathlib import Path
+from omegaconf import DictConfig
 
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
-from corerl.eval.composite_eval import CompositeEval
+from corerl.alerts.composite_alert import CompositeAlert
 from corerl.interaction.factory import init_interaction
 from corerl.utils.device import init_device
 from corerl.data_loaders.factory import init_data_loader
-from corerl.environment.reward.factory import init_reward_function
+from corerl.data.transition_creator import AnytimeTransitionCreator
+from corerl.data.obs_normalizer import ObsTransitionNormalizer
+from corerl.data.transition_normalizer import TransitionNormalizer
+from corerl.data_loaders.utils import train_test_split
 from corerl.utils.plotting import make_plots
-from corerl.data_loaders.utils import make_anytime_transitions, train_test_split
+
 import corerl.utils.freezer as fr
-
-
-def prepare_save_dir(cfg):
-    if cfg.experiment.param_from_hash:
-        cfg_copy = copy.deepcopy(cfg)
-        del cfg_copy.experiment.seed
-        cfg_hash = hashlib.sha1(str(cfg_copy).encode("utf-8")).hexdigest()
-        print("Creating experiment param from hash:", cfg_hash)
-        cfg.experiment.param = cfg_hash
-    save_path = (
-            Path(cfg.experiment.save_path) /
-            cfg.experiment.exp_name /
-            (f'param-{cfg.experiment.param}') /
-            (f'seed-{cfg.experiment.seed}')
-    )
-    save_path.mkdir(parents=True, exist_ok=True)
-    with open(save_path / "config.yaml", "w") as f:
-        OmegaConf.save(cfg, f)
-
-    return save_path
-
-
-def update_pbar(pbar, stats):
-    keys = ['last_bellman_error', 'avg_reward']  # which information to display
-    pbar_str = ''
-    for k, v in stats.items():
-        if k in keys:
-            if isinstance(v, float):
-                pbar_str += '{key} : {val:.1f}, '.format(key=k, val=v)
-            else:
-                pbar_str += '{key} : {val} '.format(key=k, val=v)
-    pbar.set_description(pbar_str)
-
-
-def check_exists(save_path):
-    if save_path.exists():
-        with open(save_path, 'rb') as f:
-            return pkl.load(f)
-    else:
-        return None
-
-
-def load_or_create(root, cfgs, prefix, create_func, args):
-    cfg_str = ''
-    for cfg in cfgs:
-        cfg_copy = OmegaConf.to_container(copy.deepcopy(cfg), resolve=True)
-        cfg_str += str(cfg_copy)
-
-    cfg_hash = hashlib.sha1(cfg_str.encode("utf-8")).hexdigest()
-    save_path = root / cfg_hash / f"{prefix}-{cfg_hash}.pkl"
-    obj = check_exists(save_path)
-
-    if obj is None:
-        print(f"Generating {prefix}...")
-        obj = create_func(*args)  # loads the entire dataset
-
-        save_path = root / cfg_hash
-        save_path.mkdir(parents=True, exist_ok=True)
-
-        with open(save_path / "config.yaml", "w") as f:
-            OmegaConf.save(cfg, f)
-
-        with open(save_path / f"{prefix}-{cfg_hash}.pkl", 'wb') as f:
-            pkl.dump(obj, f)
-
-        print(f"Saved {prefix} to {save_path}.")
-    else:
-        print(f"Loaded {prefix} from {save_path}.")
-
-    return obj
-
-
-def load_offline_data_from_csv(cfg):
-    env = init_environment(cfg.env)
-    dl = init_data_loader(cfg.data_loader)
-
-    output_path = Path(cfg.offline_data.output_path)
-
-    create_df = lambda dl_, filenames: dl_.load_data(filenames)
-    all_data_df = load_or_create(output_path, [cfg.data_loader],
-                                 'all_data_df', create_df, [dl, dl.all_filenames])
-    train_data_df = load_or_create(output_path, [cfg.data_loader],
-                                   'train_data_df', create_df, [dl, dl.train_filenames])
-    test_data_df = load_or_create(output_path, [cfg.data_loader],
-                                  'test_data_df', create_df, [dl, dl.test_filenames])
-
-    assert not all_data_df.isnull().values.any()
-    assert not train_data_df.isnull().values.any()
-    assert not test_data_df.isnull().values.any()
-
-    create_bounds = lambda dl_, df: dl.get_obs_max_min(df)
-    obs_bounds = load_or_create(output_path, [cfg.data_loader],
-                                'obs_bounds', create_bounds, [dl, all_data_df])
-
-    env.observation_space = spaces.Box(low=obs_bounds[0], high=obs_bounds[1], dtype=np.float32)
-    sc = init_state_constructor(cfg.state_constructor, env)
-
-    reward_func = init_reward_function(cfg.env.reward)
-    create_obs_transitions = lambda dl_, r_func, df: dl_.create_obs_transitions(df, reward_func)
-    train_obs_transitions = load_or_create(output_path, [cfg.data_loader],
-                                           'train_obs_transitions', create_obs_transitions,
-                                           [dl, reward_func, train_data_df])
-
-    if test_data_df is not None:
-        test_obs_transitions = load_or_create(output_path, [cfg.data_loader],
-                                              'test_obs_transitions', create_obs_transitions,
-                                              [dl, reward_func, test_data_df])
-    else:
-        test_obs_transitions = None
-
-    interaction = init_interaction(cfg.interaction, env, sc)
-    create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_anytime_transitions(
-        obs_transitions,
-        interaction_,
-        sc_warmup=cfg.state_constructor.warmup,
-        steps_per_decision=cfg.interaction.steps_per_decision,
-        gamma=cfg.experiment.gamma,
-        return_scs=return_scs
-    )
-    train_transitions, _ = load_or_create(output_path,
-                                            [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-                                            'train_transitions', create_transitions,
-                                            [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
-
-    if test_obs_transitions is not None:
-        test_transitions, test_scs = load_or_create(output_path,
-                                                    [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-                                                    'test_transitions', create_transitions,
-                                                    [test_obs_transitions, interaction, cfg.state_constructor.warmup,
-                                                     True])
-    else:
-        test_transitions = None
-        test_scs = None
-
-    return env, sc, interaction, train_transitions, test_transitions, test_scs
-
-
-def load_offline_data_from_transitions(cfg):
-    output_path = Path(cfg.offline_data.output_path)
-
-    # We assume that transitions have been created with make_offline_transitions.py
-    nothing_fn = lambda *args: None
-
-    train_obs_transitions = load_or_create(output_path,
-                                           [cfg.env, cfg.state_constructor, cfg.interaction, cfg.agent],
-                                           'obs_transitions', nothing_fn,
-                                           [])
-
-
-    # TODO make this actually return something
-    test_obs_transitions = None
-
-    env = init_environment(cfg.env)
-    sc = init_state_constructor(cfg.state_constructor, env)
-    interaction = init_interaction(cfg.interaction, env, sc)
-
-    create_transitions = lambda obs_transitions, interaction_, warmup, return_scs: make_anytime_transitions(
-        obs_transitions,
-        interaction_,
-        sc_warmup=cfg.state_constructor.warmup,
-        steps_per_decision=cfg.interaction.steps_per_decision,
-        gamma=cfg.experiment.gamma,
-        return_scs=return_scs
-    )
-    train_transitions, _ = load_or_create(output_path,
-                                            [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-                                            'train_transitions', create_transitions,
-                                            [train_obs_transitions, interaction, cfg.state_constructor.warmup, False])
-
-    if test_obs_transitions is not None:
-        test_transitions, test_scs = load_or_create(output_path,
-                                                    [cfg.data_loader, cfg.state_constructor, cfg.interaction],
-                                                    'test_transitions', create_transitions,
-                                                    [test_obs_transitions, interaction, cfg.state_constructor.warmup,
-                                                     True])
-    else:
-        test_transitions = None
-        test_scs = None
-
-    return env, sc, interaction, train_transitions, test_transitions, test_scs
-
-def get_state_action_dim(env, sc):
-    obs_shape = (flatdim(env.observation_space),)
-    dummy_obs = np.ones(obs_shape)
-    action_shape = (flatdim(env.action_space),)
-    dummy_action = np.ones(action_shape)
-    state_dim = sc.get_state_dim(dummy_obs, dummy_action)  # gets state_dim dynamically
-    action_dim = flatdim(env.action_space)
-    return state_dim, action_dim
-
-
-def offline_training(cfg, agent, train_transitions, test_transitions):
-    print('Starting offline training...')
-    offline_eval_args = {
-        'agent': agent
-    }
-    offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
-
-    if test_transitions is None:
-        split = train_test_split(train_transitions, train_split=cfg.experiment.train_split)
-        train_transitions, test_transitions = split[0][0], split[0][1]
-
-    for transition in train_transitions:
-        agent.update_buffer(transition)
-
-    offline_steps = cfg.experiment.offline_steps
-    pbar = tqdm(range(offline_steps))
-    for _ in pbar:
-        agent.update()
-        offline_eval.do_eval(**offline_eval_args)  # run all evaluators
-        stats = offline_eval.get_stats()
-        update_pbar(pbar, stats)
-
-    return offline_eval
-
-
-def online_deployment(cfg, agent, interaction, env):
-    # Online Deployment
-    # Instantiate online evaluators
-    online_eval_args = {
-        'agent': agent
-    }
-    online_eval = CompositeEval(cfg.eval, online_eval_args, online=True)
-
-    max_steps = cfg.experiment.max_steps
-    pbar = tqdm(range(max_steps))
-    state, info = interaction.reset()
-    print('Starting online training...')
-    for itr in pbar:
-        action = agent.get_action(state)
-        transitions, _ = interaction.step(action)
-
-        for transition in transitions:
-            agent.update_buffer(transition)
-
-        agent.update()
-
-        # logging + evaluation
-        # union of the information needed by all evaluators
-        online_eval_args = {
-            'agent': agent,
-            'env': env,
-            'transitions': transitions
-        }
-
-        online_eval.do_eval(**online_eval_args)
-        stats = online_eval.get_stats()
-        update_pbar(pbar, stats)
-
-        terminated = transitions[-1].terminated
-        truncated = transitions[-1].truncate
-        if terminated or truncated:
-            state, _ = interaction.reset()
-        else:
-            state = transitions[-1].boot_state
-
-    return online_eval
+import main_utils as utils
 
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
 def main(cfg: DictConfig) -> dict:
-    save_path = prepare_save_dir(cfg)
+    save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
 
+    test_epochs = cfg.experiment.test_epochs
     init_device(cfg.experiment.device)
 
     # set the random seeds
@@ -296,38 +36,102 @@ def main(cfg: DictConfig) -> dict:
     random.seed(seed)
     torch.manual_seed(seed)
 
+    env = init_environment(cfg.env)
+
     do_offline_training = cfg.experiment.offline_steps > 0
-
+    # first, load the data and potentially update the bounds of the obs space of the environment
+    # it's important this happens before we create the state constructor and interaction since normalization
+    # depends on these values
     if do_offline_training:
-        print('Loading offline transitions...')
-        if cfg.offline_data.load_from == 'csv':
-            env, sc, interaction, train_transitions, test_transitions, _ = load_offline_data_from_csv(cfg)
-        elif cfg.offline_data.load_from == 'transition':
-            env, sc, interaction, train_transitions, test_transitions, test_scs = load_offline_data_from_transitions(cfg)
-    else:
-        env = init_environment(cfg.env)
-        sc = init_state_constructor(cfg.state_constructor, env)
-        interaction = init_interaction(cfg.interaction, env, sc)
+        dl = init_data_loader(cfg.data_loader)
+        all_data_df, train_data_df, test_data_df = utils.load_df_from_csv(cfg, dl)
+        if cfg.experiment.load_env_obs_space_from_data:
+            env = utils.set_env_obs_space(env, all_data_df, dl)
 
-    state_dim, action_dim = get_state_action_dim(env, sc)
+    # the next part of instantiates objects. It is shared between online and offline training
+    sc = init_state_constructor(cfg.state_constructor, env)
+    state_dim, action_dim = utils.get_state_action_dim(env, sc)
+    print("State Dim: {}, action dim: {}".format(state_dim, action_dim))
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
+    alert_args = {
+        'agent': agent,
+        'state_dim': state_dim,
+        'action_dim': action_dim,
+        'input_dim': state_dim,
+    }
+
+    obs_normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
+    transition_normalizer = TransitionNormalizer(cfg.normalizer, env)
+    composite_alert = CompositeAlert(cfg.alerts, alert_args)
+    transition_creator = AnytimeTransitionCreator(cfg.transition_creator, composite_alert)
+    test_transitions = None
+    plot_transitions = None
+
     if do_offline_training:
-        offline_eval = offline_training(cfg, agent, train_transitions, test_transitions)
+        print('Loading offline observations...')
+        train_obs_transitions, test_obs_transitions = utils.get_offline_obs_transitions(cfg,
+                                                                                        train_data_df,
+                                                                                        test_data_df,
+                                                                                        dl, obs_normalizer)
+        print('Loading offline transitions...')
+        train_transitions, test_transitions, _ = utils.get_offline_transitions(cfg, train_obs_transitions,
+                                                                               test_obs_transitions, sc,
+                                                                               transition_creator)
 
-    online_eval = online_deployment(cfg, agent, interaction, env)
-    online_eval.output(save_path / 'stats.json')\
+        all_transitions = train_transitions + test_transitions
+        split = train_test_split(all_transitions, train_split=cfg.experiment.plot_split)
+        plot_transitions = split[0][1]
 
-    # env.plot()
+        utils.offline_alert_training(cfg, composite_alert, train_transitions)
+
+        offline_eval = utils.offline_training(cfg,
+                                              env,
+                                              agent,
+                                              train_transitions,
+                                              plot_transitions,
+                                              save_path,
+                                              test_epochs)
+
+    if not (test_epochs is None):
+        assert not (test_transitions is None), "Must include test transitions if test_epochs is not None"
+
+    interaction = init_interaction(cfg.interaction, env, sc, composite_alert,
+                                   transition_creator, obs_normalizer,
+                                   transitions=test_transitions)
+
+    if cfg.interaction.name == "offline_anytime":  # simulating online experience from an offline dataset
+        online_eval = utils.offline_anytime_deployment(cfg,
+                                                       agent,
+                                                       interaction,
+                                                       env,
+                                                       composite_alert,
+                                                       transition_normalizer,
+                                                       save_path,
+                                                       plot_transitions,
+                                                       test_epochs)
+        online_eval.output(save_path / 'stats.json')
+    else:
+        online_eval = utils.online_deployment(cfg,
+                                              agent,
+                                              interaction,
+                                              env,
+                                              composite_alert,
+                                              transition_normalizer,
+                                              save_path,
+                                              plot_transitions,
+                                              test_epochs)
+        online_eval.output(save_path / 'stats.json')
 
     # need to update make_plots here
     stats = online_eval.get_stats()
     make_plots(fr.freezer, stats, save_path / 'plots')
+    env.plot(save_path / 'plots')
 
     agent.save(save_path / 'agent')
     agent.load(save_path / 'agent')
 
-    return stats
+    # return stats
 
 
 if __name__ == "__main__":

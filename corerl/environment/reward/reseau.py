@@ -9,7 +9,6 @@ from corerl.environment.reward.base import BaseReward
 class ReseauReward(BaseReward):
     def __init__(self, cfg: DictConfig):
         self.orp_sp = cfg.orp_sp
-        self.orp_col_name = cfg.orp_col_name
         self.orp_col = cfg.orp_col
         self.penalty_weight = cfg.penalty_weight
         self.action_scale = cfg.action_scale

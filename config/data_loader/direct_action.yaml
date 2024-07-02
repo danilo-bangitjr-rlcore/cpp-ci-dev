@@ -5,9 +5,9 @@ test_filenames : []
 skip_rows : 1 # Number of lines to skip at the top of the csv file
 header : 0 # df_col_names replaces the column names in the csv file
 df_col_names : []
-obs_col_names: []
-action_col_names : []
+obs_col_names: ${env.obs_col_names}
+action_col_names : ${env.action_names}
 date_col_name : Date
-max_time_delta: 10 # In seconds
-obs_length : 60
-
+max_time_delta: 10 # Maximum allowable time between consecutive rows in a DF. If this threshold is exceeded, data_gap = True
+obs_length : ${interaction.obs_length}
+steps_per_decision : ${interaction.steps_per_decision}

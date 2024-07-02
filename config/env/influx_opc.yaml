@@ -1,0 +1,18 @@
+defaults:
+  -base_env.yaml
+  -_self_
+
+opc:
+  ip_address : "localhost"
+  port : "49320"
+  conn_stats : False
+
+db:
+  bucket : "rlcore-bucket"
+  org : "rlcore"
+  url :  "http://localhost:8086"
+  token : "placeholder_token"
+
+control_tags : ['control_tag_placeholder']
+obs_length : 60
+col_names : ['test_col_names']

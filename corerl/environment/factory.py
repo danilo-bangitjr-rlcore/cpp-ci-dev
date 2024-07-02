@@ -17,6 +17,7 @@ from corerl.environment.wrapper.d4rl import D4RLWrapper
 from corerl.environment.pendulum_env import PendulumEnv
 from corerl.environment.wrapper.one_hot_wrapper import OneHotWrapper
 from corerl.environment.saturation import Saturation
+from corerl.environment.delayed_saturation import DelayedSaturation
 
 
 def init_environment(cfg: DictConfig) -> gym.Env:
@@ -135,6 +136,8 @@ def init_environment(cfg: DictConfig) -> gym.Env:
         env = ReseauEnv(cfg)
     elif name == 'saturation':
         env = Saturation(seed)
+    elif name == 'delayed_saturation':
+        env = DelayedSaturation(seed, cfg)
     else:
         raise NotImplementedError
 

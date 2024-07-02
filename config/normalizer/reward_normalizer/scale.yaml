@@ -1,0 +1,4 @@
+name : scale
+reward_high : ${env.reward_high}
+reward_low :  ${env.reward_low}
+reward_bias : 0

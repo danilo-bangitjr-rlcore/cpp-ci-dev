@@ -20,5 +20,8 @@ class BaseEval(ABC):
 
     def output(self, path: Path) -> None:
         stats = self.get_stats()
+
+        print(stats)
+
         with open(path, 'w') as f:
             json.dump(stats, f)

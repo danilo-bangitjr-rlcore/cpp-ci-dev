@@ -12,7 +12,7 @@ from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, ensemble_mse
 from corerl.utils.device import device
-from corerl.data import TransitionBatch, Transition
+from corerl.data.data import TransitionBatch, Transition
 
 class EpsilonGreedySarsa(BaseAgent):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -53,7 +53,7 @@ class EpsilonGreedySarsa(BaseAgent):
 
     def compute_q_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states, actions, rewards, next_states, dones, gamma_exps, dp_mask = (batch.state, batch.action,
-                                                                             batch.reward, batch.boot_state, batch.terminated,
+                                                                             batch.n_step_reward, batch.boot_state, batch.terminated,
                                                                              batch.gamma_exponent, batch.next_decision_point)
         next_actions = self._get_action(next_states)
         with torch.no_grad():

@@ -1,0 +1,283 @@
+import numpy as np
+from tqdm import tqdm
+from collections import deque
+from copy import deepcopy
+from typing import Optional
+
+from corerl.alerts.composite_alert import CompositeAlert
+from corerl.data.data import ObsTransition, Transition, Trajectory
+from corerl.state_constructor.base import BaseStateConstructor
+
+
+class AnytimeTransitionCreator(object):
+    def __init__(self, cfg, alerts: CompositeAlert):
+        self.gamma = cfg.gamma  # gamma for the agent
+        self.steps_per_decision = cfg.steps_per_decision
+        self.n_step = cfg.n_step
+        self.alerts = alerts
+        self.alert_gammas = np.array(self.alerts.get_discount_factors())
+
+    def make_offline_trajectories(self,
+                                  obs_transitions: list[ObsTransition],
+                                  sc: BaseStateConstructor,
+                                  return_scs: bool = False,
+                                  warmup: int = 0,
+                                  use_pbar: bool = False) -> list[Trajectory]:
+
+        obs_transitions = deepcopy(obs_transitions)
+        trajectories = []
+        done = False
+        transition_idx = 0
+        if use_pbar:
+            pbar = tqdm(total=len(obs_transitions))
+
+        while not done:  # first, get transitions until a data gap
+            curr_chunk_obs_transitions = []
+            gap = False
+            while not (gap or done):
+                obs_transition = obs_transitions[transition_idx]
+                curr_chunk_obs_transitions.append(obs_transition)
+                gap = obs_transition.gap
+                transition_idx += 1
+                done = transition_idx == len(obs_transitions)
+                if use_pbar:
+                    pbar.update(1)
+
+            curr_chunk_transitions, new_scs = self._make_offline_transitions_for_chunk(curr_chunk_obs_transitions,
+                                                                                       sc, return_scs, warmup)
+
+            new_traj = Trajectory()
+            for i in range(len(curr_chunk_transitions)):
+                new_traj.add_transition(curr_chunk_transitions[i])
+                if return_scs:
+                    new_traj.add_sc(new_scs[i])
+
+            trajectories.append(new_traj)
+
+        return trajectories
+
+    def make_offline_transitions(self,
+                                 obs_transitions: list[ObsTransition],
+                                 sc: BaseStateConstructor,
+                                 return_scs: bool = False,
+                                 warmup: int = 0,
+                                 use_pbar: bool = False) -> tuple[
+        list[Trajectory], Optional[list[BaseStateConstructor]]]:
+        """
+        Given a dataset of offline observation transitions, make the anytime transitions.
+        """
+        obs_transitions = deepcopy(obs_transitions)
+        transitions = []
+        done = False
+        transition_idx = 0
+        if use_pbar:
+            pbar = tqdm(total=len(obs_transitions))
+        scs = []
+        while not done:  # first, get transitions until a data gap
+            curr_chunk_obs_transitions = []
+            gap = False
+            while not (gap or done):
+                obs_transition = obs_transitions[transition_idx]
+                curr_chunk_obs_transitions.append(obs_transition)
+                gap = obs_transition.gap
+                transition_idx += 1
+                done = transition_idx == len(obs_transitions)
+                if use_pbar:
+                    pbar.update(1)
+
+            curr_chunk_transitions, new_scs = self._make_offline_transitions_for_chunk(curr_chunk_obs_transitions,
+                                                                                       sc, return_scs, warmup)
+            transitions += curr_chunk_transitions
+            scs += new_scs
+
+        return transitions, scs
+
+    def _make_offline_transitions_for_chunk(self,
+                                            curr_chunk_obs_transitions: list[ObsTransition],
+                                            sc: BaseStateConstructor,
+                                            return_scs: bool = False,
+                                            warmup: int = 0):
+        """
+        Produce Anytime transitions for a continuous chunk of observation transitions (no data gaps) from an offline dataset
+        """
+        sc.reset()
+        curr_chunk_transitions = []
+        new_scs = []
+
+        # Using ObsTransition.next_obs to create remaining states so creating first state with ObsTransition.obs
+        first_obs_transition = deepcopy(curr_chunk_obs_transitions[0])
+        start_state = sc(first_obs_transition.obs,
+                         first_obs_transition.prev_action,
+                         initial_state=True,
+                         decision_point=first_obs_transition.obs_dp,
+                         steps_since_decision=first_obs_transition.obs_steps_since_decision)
+
+        states = [start_state]
+        # Produce remaining states and create list of transitions when decision points are encountered
+        curr_decision_obs_transitions = []
+
+        for obs_transition in curr_chunk_obs_transitions:
+            # assume observation transitions are normalized
+            next_state = sc(obs_transition.next_obs,
+                            obs_transition.action,
+                            initial_state=False,
+                            decision_point=obs_transition.next_obs_dp,
+                            steps_since_decision=obs_transition.next_obs_steps_since_decision)
+
+            states.append(next_state)
+            curr_decision_obs_transitions.append(obs_transition)
+
+            if return_scs:
+                new_scs.append(deepcopy(sc))
+
+            # If at a decision point, create list of transitions for the states observed since the last decision point
+            # if steps_per_decision is 1, curr_decision_obs_transitions could be empty
+            if obs_transition.next_obs_dp and len(curr_decision_obs_transitions):
+                assert len(states) == len(curr_decision_obs_transitions) + 1
+
+                new_transitions = self._make_decision_window_transitions(curr_decision_obs_transitions, states)
+
+                curr_chunk_transitions += new_transitions
+                curr_decision_obs_transitions = []
+                states = [next_state]
+
+        # Remove the transitions that were created during the state constructor warmup period
+        curr_chunk_transitions = curr_chunk_transitions[warmup:]
+
+        assert len(curr_chunk_obs_transitions) == len(curr_chunk_transitions) + warmup
+
+        if return_scs:
+            new_scs = new_scs[warmup:]
+            assert len(new_scs) == len(curr_chunk_transitions)
+
+        return curr_chunk_transitions, new_scs
+
+    def make_online_transitions(self, curr_decision_obs_transitions: list[ObsTransition],
+                                curr_decision_states: list[np.ndarray]):
+
+        assert len(curr_decision_states) == len(curr_decision_obs_transitions) + 1
+        action = curr_decision_obs_transitions[0].action
+        for obs_transition in curr_decision_obs_transitions:
+            assert obs_transition.action == action
+
+        new_transitions = self._make_decision_window_transitions(curr_decision_obs_transitions, curr_decision_states)
+
+        return new_transitions
+
+    def get_cumulants(self, reward, next_obs) -> np.ndarray:
+        """
+        Get cumulants used to train alert value functions
+        Currently passes the information required for Action-Value and GVF alerts.
+        """
+        cumulant_args = {}
+        cumulant_args["reward"] = reward
+        cumulant_args["obs"] = next_obs
+        curr_cumulants = self.alerts.get_cumulants(**cumulant_args)
+        curr_cumulants = np.array(curr_cumulants)
+
+        return curr_cumulants
+
+    def update_n_step_cumulants(self, n_step_cumulant_q, new_cumulant, gammas) -> np.ndarray:
+        """
+        Recursively updating n-step cumulant
+        """
+        num_cumulants = len(new_cumulant)
+        n_step_cumulant_q.appendleft([0.0 for _ in range(num_cumulants)])
+        np_n_step_cumulants = np.array(n_step_cumulant_q)
+        np_new_cumulant = np.array([new_cumulant for _ in range(len(n_step_cumulant_q))])
+        np_n_step_cumulants = np_new_cumulant + (gammas * np_n_step_cumulants)
+
+        return np_n_step_cumulants
+
+    def _make_decision_window_transitions(self, curr_decision_obs_transitions, states):
+        """
+        Produce the agent and alert state transitions using the observation transitions that occur between two decision points
+        """
+        # Alerts can use different discount factors than the agent's value functions
+
+        rewards = [curr_obs_transition.reward for curr_obs_transition in curr_decision_obs_transitions]
+        next_obs_list = [curr_obs_transition.next_obs for curr_obs_transition in curr_decision_obs_transitions]
+
+        cumulants = []
+        for i in range(len(rewards)):
+            curr_cumulants = self.get_cumulants(rewards[i], next_obs_list[i])
+            cumulants.append(curr_cumulants)
+
+        new_transitions = []
+
+        # n_step = 0: bootstrap off state at next decision point
+        # n_step > 0: bootstrap off state n steps into the future without crossing decision boundary
+        if self.n_step == 0 or self.n_step >= self.steps_per_decision:
+            n_step_rewards = deque([], self.steps_per_decision)
+            n_step_cumulants = deque([], self.steps_per_decision)
+            boot_state_queue = deque([], self.steps_per_decision)
+            boot_obs_queue = deque([], self.steps_per_decision)
+        else:
+            n_step_rewards = deque([], self.n_step)
+            n_step_cumulants = deque([], self.n_step)
+            boot_state_queue = deque([], self.n_step)
+            boot_obs_queue = deque([], self.n_step)
+
+        boot_state_queue.appendleft(states[-1])
+        boot_obs_queue.appendleft(curr_decision_obs_transitions[-1].next_obs)
+
+        dp_counter = 1
+        # Iteratively create the transitions by working backwards from the decision point
+        for i in range(len(curr_decision_obs_transitions) - 1, -1, -1):
+            curr_obs_transition = curr_decision_obs_transitions[i]
+            obs = curr_obs_transition.obs
+            state = states[i]
+            action = curr_obs_transition.action
+            reward = curr_obs_transition.reward
+            state_dp = curr_obs_transition.obs_dp
+            next_obs = curr_obs_transition.next_obs
+            next_state = states[i + 1]
+            next_state_dp = curr_obs_transition.next_obs_dp
+            cumulant = cumulants[i]
+            term = curr_obs_transition.terminated
+            trunc = curr_obs_transition.truncate
+            gap = curr_obs_transition.gap
+
+            # Create Agent Transition
+            np_n_step_rewards = self.update_n_step_cumulants(n_step_rewards, np.array([reward]), self.gamma)
+
+            # Shared amongst agent and alert transitions
+            gamma_exp = len(np_n_step_rewards)
+            boot_state_dp = dp_counter <= boot_state_queue.maxlen
+
+            if self.alerts.get_dim() > 0:
+                np_n_step_cumulants = self.update_n_step_cumulants(n_step_cumulants, cumulant, self.alert_gammas)
+            else:
+                np_n_step_cumulants = np.zeros(0)
+
+            transition = Transition(
+                obs,
+                state,
+                action,
+                next_obs,  # the immediate next obs
+                next_state,  # the immediate next state
+                reward,  # the reward
+                np_n_step_rewards[-1].item(),
+                np_n_step_cumulants[-1],  # the array of cumulants
+                boot_obs_queue[-1],  # the obs we bootstrap off
+                boot_state_queue[-1],  # the state we bootstrap off
+                term,
+                trunc,
+                state_dp,
+                next_state_dp,
+                boot_state_dp,
+                gamma_exp,
+                gap)
+
+            new_transitions.append(transition)
+
+            # Update queues and counters
+            dp_counter += 1
+            boot_state_queue.appendleft(state)
+            boot_obs_queue.appendleft(obs)
+            n_step_rewards = deque(np_n_step_rewards, n_step_rewards.maxlen)
+            n_step_cumulants = deque(np_n_step_cumulants, n_step_cumulants.maxlen)
+
+        new_transitions.reverse()
+
+        return new_transitions

@@ -147,6 +147,13 @@ def layer_init_uniform(layer: nn.Module, low: float = -0.003, high: float = 0.00
 
 
 def tensor(x: float | numpy.ndarray | torch.Tensor, device: Optional[str] = None) -> torch.Tensor:
+    if type(x) is list:
+        print(x)
+        print("len", len(x))
+        print('shape', x[0].shape)
+
+        print("\n")
+
     if isinstance(x, torch.Tensor):
         return x
     if device is not None:

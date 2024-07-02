@@ -1,9 +1,0 @@
-defaults:
-  - action_normalizer: scale
-  - reward_normalizer: scale
-  - obs_normalizer: maxmin
-
-name: normalizer
-timeout: ${experiment.timeout}
-gamma : ${experiment.gamma}
-steps_per_decision : 1

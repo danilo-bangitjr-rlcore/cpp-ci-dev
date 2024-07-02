@@ -26,7 +26,6 @@ class BaseDataLoader(ABC):
 
         self.all_filenames = self.train_filenames + self.test_filenames
 
-
         raise NotImplementedError
 
     @abstractmethod
@@ -39,6 +38,7 @@ class BaseDataLoader(ABC):
     @abstractmethod
     def create_obs_transitions(self,
                                df: pd.DataFrame,
+                               interaction: BaseInteraction,
                                reward_function: BaseReward, *args) -> dict:
         raise NotImplementedError
 
