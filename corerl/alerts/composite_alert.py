@@ -9,14 +9,15 @@ class CompositeAlert(BaseAlert):
     def __init__(self, cfg: DictConfig, alert_args: dict):
         self.alerts = []
         if cfg:
+            cumulant_start_ind = 0
             for alert_type in cfg.keys():
                 alert_type_cfg = cfg[alert_type]
-                self.alerts.append(init_alert(alert_type_cfg, alert_args))
+                self.alerts.append(init_alert(alert_type_cfg, cumulant_start_ind, alert_args))
+                cumulant_start_ind += self.alerts[-1].get_dim()
 
-    def update_buffer(self, transitions: list[Transition]) -> None:
-        assert len(transitions) == len(self.alerts), "Need a new transition for each type of alert"
-        for i in range(len(transitions)):
-            self.alerts[i].update_buffer(transitions[i])
+    def update_buffer(self, transition: Transition) -> None:
+        for alert in self.alerts:
+            alert.update_buffer(transition)
 
     def update(self) -> None:
         for alert in self.alerts:
@@ -27,13 +28,18 @@ class CompositeAlert(BaseAlert):
         alerts_info["composite_alert"] = [False]
         for alert in self.alerts:
             alert_info = alert.evaluate(**kwargs)
-            for key in alert_info:
-                if key not in alerts_info:
-                    alerts_info[key] = {}
-                for sensor_name in alert_info[key]:
-                    alerts_info[key][sensor_name] = alert_info[key][sensor_name]
-                    if key == "alert":
-                        alerts_info["composite_alert"][0] |= alert_info[key][sensor_name][0]
+            for field in alert_info:
+                if field not in alerts_info:
+                    alerts_info[field] = {}
+                for alert_type in alert_info[field]:
+                    if alert_type not in alerts_info[field]:
+                        alerts_info[field][alert_type] = {}
+                    for cumulant_name in alert_info[field][alert_type]:
+                        if cumulant_name not in alerts_info[field][alert_type]:
+                            alerts_info[field][alert_type][cumulant_name] = {}
+                        alerts_info[field][alert_type][cumulant_name] = alert_info[field][alert_type][cumulant_name]
+                        if field == "alert" and len(alert_info[field][alert_type][cumulant_name]) == 1:
+                            alerts_info["composite_alert"][0] |= alert_info[field][alert_type][cumulant_name][0]
 
         return alerts_info
 
@@ -62,7 +68,12 @@ class CompositeAlert(BaseAlert):
         trace_threshes = {}
         for alert in self.alerts:
             alert_trace_threshes = alert.get_trace_thresh()
-            for key in alert_trace_threshes:
-                trace_threshes[key] = alert_trace_threshes[key]
+            alert_type = alert.alert_type()
+            trace_threshes[alert_type] = {}
+            for cumulant_name in alert_trace_threshes[alert_type]:
+                trace_threshes[alert_type][cumulant_name] = alert_trace_threshes[alert_type][cumulant_name]
 
         return trace_threshes
+
+    def get_alerts(self) -> list[BaseAlert]:
+        return self.alerts

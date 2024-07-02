@@ -9,8 +9,11 @@ defaults:
   - alerts@alerts.action_value : action_value
   - alerts@alerts.gvf : gvf
 #  - eval@eval.ibe : ibe # this lets us have multiple subconfigs rooted at eval
-  - eval@eval.reward : reward
+#  - eval@eval.reward : reward
 #  - eval@eval.action_gap : action_gap
+  - eval@eval.alerts : alerts
+  - eval@eval.actions : actions
+  - eval@eval.endo_obs : endo_obs
   - _self_
 
 experiment:
@@ -26,7 +29,7 @@ experiment:
   render : 0
   save_path : output
   load_env_obs_space_from_data : False
-  param_from_hash : True
+  param_from_hash : False
   gamma : 0.9
   train_split : 0.9
   plot_split : 0.999

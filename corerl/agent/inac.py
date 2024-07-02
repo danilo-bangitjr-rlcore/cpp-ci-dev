@@ -59,7 +59,7 @@ class InAC(BaseAC):
         return value_loss
 
     def compute_q_loss(self, batch):
-        states, actions, rewards, next_states, dones, dp_mask, gamma_exps = (batch.state, batch.action, batch.reward,
+        states, actions, rewards, next_states, dones, dp_mask, gamma_exps = (batch.state, batch.action, batch.n_step_reward,
                                                                              batch.boot_state, batch.terminated,
                                                                              batch.boot_state_dp, batch.gamma_exponent)
 

@@ -10,7 +10,7 @@ from corerl.data.data import Transition
 
 
 class GVFAlert(BaseAlert):
-    def __init__(self, cfg: DictConfig, **kwargs):
+    def __init__(self, cfg: DictConfig, cumulant_start_ind: int, **kwargs):
         if 'agent' not in kwargs:
             raise KeyError("Missing required argument: 'agent'")
         if 'input_dim' not in kwargs:
@@ -18,17 +18,21 @@ class GVFAlert(BaseAlert):
         if 'action_dim' not in kwargs:
             raise KeyError("Missing required argument: 'action_dim'")
 
+        super().__init__(cfg, cumulant_start_ind, **kwargs)
+
         self.agent = kwargs["agent"]
         self.input_dim = kwargs["input_dim"]
         self.action_dim = kwargs["action_dim"]
-
-        # Assuming that endogenous variables are always at the beginning of an observation (what's currently done in the dataloader)
+        
         self.endo_obs_col_names = cfg.endo_obs_col_names
-        self.endo_inds = list(range(len(self.endo_obs_col_names)))
+        self.endo_inds = cfg.endo_inds
 
         self.gvfs = QGVF(cfg, self.input_dim, self.action_dim, agent=self.agent)
         self.num_gvfs = self.gvfs.get_num_gvfs()
         self.gamma = cfg.gamma
+
+        self.cumulant_end_ind = self.cumulant_start_ind + self.get_dim()
+        self.cumulant_inds = list(range(self.cumulant_start_ind, self.cumulant_end_ind))
 
         self.ret_perc = cfg.ret_perc  # Percentage of the full return being neglected in the observed partial return
         self.return_steps = int(np.ceil(np.log(self.ret_perc) / np.log(self.gamma)))
@@ -43,7 +47,7 @@ class GVFAlert(BaseAlert):
         self.gvfs.update_train_buffer(transition)
 
     def update(self) -> None:
-        self.gvfs.update()
+        self.gvfs.update(self.cumulant_inds)
 
     def evaluate(self, **kwargs) -> dict:
         if 'state' not in kwargs:
@@ -52,8 +56,6 @@ class GVFAlert(BaseAlert):
             raise KeyError("Missing required argument: 'action'")
         if 'next_obs' not in kwargs:
             raise KeyError("Missing required argument: 'next_obs'")
-
-        info = {}
 
         state = kwargs['state']
         action = kwargs['action']
@@ -80,20 +82,18 @@ class GVFAlert(BaseAlert):
         self.partial_returns = deque(np_partial_returns, self.return_steps)
 
         # Detect alerts
-        info["value"] = {}
-        info["return"] = {}
-        info["alert_trace"] = {}
-        info["alert"] = {}
+        info = self.initialize_alert_info()
         if len(self.partial_returns) == self.return_steps:
             abs_diffs = abs(self.partial_returns[-1] - self.values[-1])
             self.alert_trace = ((1.0 - self.trace_decay) * abs_diffs) + (self.trace_decay * self.alert_trace)
             individual_alerts = self.alert_trace > self.trace_thresh
+
             for i in range(len(self.endo_obs_col_names)):
-                sensor_name = self.endo_obs_col_names[i]
-                info["value"][sensor_name] = [self.values[-1][i].squeeze().astype(float)]
-                info["return"][sensor_name] = [self.partial_returns[-1][i].squeeze().astype(float)]
-                info["alert_trace"][sensor_name] = [self.alert_trace[i].squeeze().astype(float)]
-                info["alert"][sensor_name] = [individual_alerts[i].squeeze()]
+                cumulant_name = self.endo_obs_col_names[i]
+                info["alert_trace"][self.alert_type()][cumulant_name].append(self.alert_trace[i].squeeze().astype(float))
+                info["alert"][self.alert_type()][cumulant_name].append(individual_alerts[i].squeeze())
+                info["value"][self.alert_type()][cumulant_name].append(self.values[-1][i].squeeze().astype(float))
+                info["return"][self.alert_type()][cumulant_name].append(self.partial_returns[-1][i].squeeze().astype(float))
 
         return info
 
@@ -106,6 +106,9 @@ class GVFAlert(BaseAlert):
     def alert_type(self) -> str:
         return "gvf"
 
+    def get_cumulant_names(self) -> list[str]:
+        return self.endo_obs_col_names
+
     def get_cumulants(self, **kwargs) -> list[float]:
         if 'obs' not in kwargs:
             raise KeyError("Missing required argument: 'obs'")
@@ -114,7 +117,23 @@ class GVFAlert(BaseAlert):
 
     def get_trace_thresh(self) -> dict:
         trace_threshes = {}
-        for sensor_name in self.endo_obs_col_names:
-            trace_threshes[sensor_name] = self.trace_thresh
+        trace_threshes[self.alert_type()] = {}
+        for cumulant_name in self.get_cumulant_names():
+            trace_threshes[self.alert_type()][cumulant_name] = self.trace_thresh
 
         return trace_threshes
+
+    def initialize_alert_info(self) -> dict:
+        info = {}
+
+        info["value"] = {}
+        info["return"] = {}
+        info["alert_trace"] = {}
+        info["alert"] = {}
+
+        for key in info:
+            info[key][self.alert_type()] = {}
+            for cumulant_name in self.get_cumulant_names():
+                info[key][self.alert_type()][cumulant_name] = []
+
+        return info

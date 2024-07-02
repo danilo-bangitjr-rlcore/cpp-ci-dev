@@ -95,7 +95,7 @@ class AnytimeInteraction(BaseInteraction):
 
         reward = obs_transition.reward  # normalized reward
         next_obs = obs_transition.next_obs  # normalized next_obs
-        alert_info = self.get_step_alerts(raw_action, action, self.last_state, next_obs, reward)
+        alert_info = self.get_step_alerts(action, self.last_state, next_obs, reward)
         self.alert_info_list.append(alert_info)
 
         self.prev_decision_point = decision_point
@@ -120,23 +120,20 @@ class AnytimeInteraction(BaseInteraction):
 
         return transitions, train_transitions, alert_info, env_info
 
-    def get_step_alerts(self, raw_action, action, state, next_obs, reward) -> dict:
+    def get_step_alerts(self, action, state, next_obs, reward) -> dict:
         """
         Determine if there is an alert triggered at the given state-action pair.
         Currently, passes the information required for Action-Value and GVF alerts.
         """
         alert_info = {}
-        alert_info["raw_action"] = [raw_action]
         alert_info["action"] = [action]
         alert_info["state"] = [state]
         alert_info["next_obs"] = [next_obs]
         alert_info["reward"] = [reward]
 
         step_alert_info = self.alerts.evaluate(**alert_info)
-        for key in step_alert_info:
-            alert_info[key] = step_alert_info[key]
 
-        return alert_info
+        return step_alert_info
 
     def reset(self) -> (np.ndarray, dict):
         """

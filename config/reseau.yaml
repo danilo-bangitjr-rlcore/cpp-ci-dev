@@ -3,7 +3,7 @@ defaults:
   - override agent: greedy_ac
   - override env: reseau
   - override data_loader: direct_action
-  - override interaction: anytime #offline_anytime
+  - override interaction: offline_anytime
   - override calibration_model : anytime
   - override state_constructor: reseau_anytime
   - _self_
@@ -15,13 +15,14 @@ offline_data:
   output_path : offline_data/reseau
 
 experiment :
-  exp_name : "GVF_Alert_Sweep_Rosie_2_Eval"
+  exp_name : "Merge_Party_Alerts_Test"
   max_steps : 50000
   offline_steps : 20000
-  set_env_obs_space : True
+  load_env_obs_space_from_data : True
   gamma : 0.95
   train_split : 0.995
-  test_epochs : [0, 999, 9999, 19999]
+  plot_split : 0.999
+  test_epochs : [999, 9999, 19999]
   offline_stat_keys : []
   online_stat_keys : []
 
@@ -32,8 +33,8 @@ env:
 interaction :
   obs_length : 60
   steps_per_decision : 30
-  signal_col_names : ["ait301_pv"]
-  signal_inds : [0]
+
+normalizer:
   action_normalizer:
     action_high : 300
     action_low:  0
@@ -61,14 +62,12 @@ data_loader:
   offline_data_path : offline_data/reseau/csv
   train_filenames: ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv",
                        "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie.csv"]
-  test_filenames: ["rosie_2.csv"]
+  test_filenames: ["rosie_2_alert.csv"]
   skip_rows : 3
   header : 0
   df_col_names : ["Blank", "Result", "Table", "Date", "ait101_pv", "ait301_pv", "ait401_pv",
                   "fit101_pv", "fit210_pv", "fit230_pv", "fit250_pv", "fit401_pv", "p250_fp",
                   "pt100_pv", "pt101_pv", "pt161_pv", "pt171_pv", "pt302_pv"]
-  action_col_names: ["p250_fp"]
-  obs_col_names: ["ait301_pv", "fit250_pv"]
 
 alerts:
   action_value:
@@ -77,7 +76,6 @@ alerts:
     trace_decay : 0.995
     trace_thresh : 0.1
   gvf:
-    endo_obs_col_names: ["ait301_pv"]
     gamma : 0.8
     ret_perc : 0.1
     trace_decay : 0.995

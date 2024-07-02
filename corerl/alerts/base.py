@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 
 class BaseAlert(ABC):
     @abstractmethod
-    def __init__(self, cfg: DictConfig, **kwargs):
-        raise NotImplementedError
+    def __init__(self, cfg: DictConfig, cumulant_start_ind: int, **kwargs):
+        self.cumulant_start_ind = cumulant_start_ind
 
     @abstractmethod
     def evaluate(self, **kwargs) -> dict:

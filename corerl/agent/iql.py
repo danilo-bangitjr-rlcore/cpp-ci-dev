@@ -54,7 +54,7 @@ class IQL(BaseAC):
 
     def compute_q_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states, actions, rewards, next_states, dones, gamma_exps = (batch.state, batch.action,
-                                                                    batch.reward, batch.boot_state,
+                                                                    batch.n_step_reward, batch.boot_state,
                                                                     batch.terminated, batch.gamma_exponent)
 
         next_v = self.v_critic.get_v_target(next_states)

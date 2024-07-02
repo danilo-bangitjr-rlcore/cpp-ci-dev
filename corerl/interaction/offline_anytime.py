@@ -54,12 +54,11 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
             self.curr_decision_transitions.append(transition)
 
             action = transition.action
-            raw_action = self.normalizer.action_normalizer.denormalize(action)
             state = transition.state
             next_obs = transition.next_obs
             reward = transition.reward
 
-            alert_info = self.get_step_alerts(raw_action, action, state, next_obs, reward)
+            alert_info = self.get_step_alerts(action, state, next_obs, reward)
             self.alert_info_list.append(alert_info)
 
             # Filter transitions with alerts
@@ -67,6 +66,7 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
             if transition.next_state_dp:
                 # Only train on transitions where there weren't any alerts
                 train_transitions = self.get_train_transitions(self.curr_decision_transitions, self.alert_info_list)
+                transitions = self.curr_decision_transitions
 
                 self.curr_decision_transitions = []
                 self.alert_info_list = []

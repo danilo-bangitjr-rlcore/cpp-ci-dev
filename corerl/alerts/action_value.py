@@ -12,14 +12,18 @@ from corerl.component.network.utils import ensemble_mse
 from corerl.data.data import TransitionBatch, Transition
 
 class ActionValueAlert(BaseAlert):
-    def __init__(self, cfg: DictConfig, **kwargs):
+    def __init__(self, cfg: DictConfig, cumulant_start_ind: int, **kwargs):
         if 'agent' not in kwargs:
             raise KeyError("Missing required argument: 'agent'")
         if 'state_dim' not in kwargs:
             raise KeyError("Missing required argument: 'state_dim'")
         if 'action_dim' not in kwargs:
             raise KeyError("Missing required argument: 'action_dim'")
-        
+
+        super().__init__(cfg, cumulant_start_ind, **kwargs)
+        self.cumulant_end_ind = self.cumulant_start_ind + self.get_dim()
+        self.cumulant_inds = list(range(self.cumulant_start_ind, self.cumulant_end_ind))
+
         # Even though we're not using the agent's critic for the alert, we still need the agent's actor to update the alert's critic
         self.agent = kwargs['agent']
 
@@ -46,7 +50,8 @@ class ActionValueAlert(BaseAlert):
     def compute_critic_loss(self, batch: TransitionBatch) -> torch.Tensor:
         state_batch = batch.state
         action_batch = batch.action
-        reward_batch = batch.reward
+        reward_batch = batch.n_step_cumulants
+        reward_batch = reward_batch[:, self.cumulant_inds]
         next_state_batch = batch.boot_state
         mask_batch = 1 - batch.terminated
         gamma_exp_batch = batch.gamma_exponent
@@ -80,8 +85,6 @@ class ActionValueAlert(BaseAlert):
         if 'reward' not in kwargs:
             raise KeyError("Missing required argument: 'reward'")
 
-        info = {}
-
         state = kwargs['state']
         action = kwargs['action']
         reward = kwargs['reward']
@@ -105,20 +108,19 @@ class ActionValueAlert(BaseAlert):
         self.partial_returns = deque(np_partial_returns, self.return_steps)
 
         # Only check for an alert if at least self.return_steps have elapsed
-        info["value"] = {}
-        info["return"] = {}
-        info["alert_trace"] = {}
-        info["alert"] = {}
+        info = self.initialize_alert_info()
         if len(self.partial_returns) == self.return_steps:
             abs_diff = abs(self.partial_returns[-1] - self.values[-1])
             # If the Observed Partial Return is greater than Q(s,a), the agent is performing the task even better than expected so set the absolute difference to 0
             if self.partial_returns[-1] > self.values[-1]:
                 abs_diff = np.array(0.0)
             self.alert_trace = ((1.0 - self.trace_decay) * abs_diff) + (self.trace_decay * self.alert_trace)
-            info["alert_trace"]["Action-Value"] = [self.alert_trace.squeeze().astype(float)]
-            info["alert"]["Action-Value"] = [(self.alert_trace > self.trace_thresh).squeeze()]
-            info["value"]["Action-Value"] = [self.values[-1].squeeze().astype(float)]
-            info["return"]["Action-Value"] = [self.partial_returns[-1].squeeze().astype(float)]
+
+            for cumulant_name in self.get_cumulant_names():
+                info["alert_trace"][self.alert_type()][cumulant_name].append(self.alert_trace.squeeze().astype(float))
+                info["alert"][self.alert_type()][cumulant_name].append((self.alert_trace > self.trace_thresh).squeeze())
+                info["value"][self.alert_type()][cumulant_name].append(self.values[-1].squeeze().astype(float))
+                info["return"][self.alert_type()][cumulant_name].append(self.partial_returns[-1].squeeze().astype(float))
 
         return info
 
@@ -131,6 +133,9 @@ class ActionValueAlert(BaseAlert):
     def alert_type(self) -> str:
         return "action_value"
 
+    def get_cumulant_names(self) -> list[str]:
+        return ["Reward"]
+
     def get_cumulants(self, **kwargs) -> list[float]:
         if 'reward' not in kwargs:
             raise KeyError("Missing required argument: 'reward'")
@@ -138,7 +143,24 @@ class ActionValueAlert(BaseAlert):
         return [kwargs['reward']]
 
     def get_trace_thresh(self) -> dict:
-        trace_thresh = {}
-        trace_thresh["Action-Value"] = self.trace_thresh
+        trace_threshes = {}
+        trace_threshes[self.alert_type()] = {}
+        for cumulant_name in self.get_cumulant_names():
+            trace_threshes[self.alert_type()][cumulant_name] = self.trace_thresh
 
-        return trace_thresh
+        return trace_threshes
+
+    def initialize_alert_info(self) -> dict:
+        info = {}
+
+        info["value"] = {}
+        info["return"] = {}
+        info["alert_trace"] = {}
+        info["alert"] = {}
+
+        for key in info:
+            info[key][self.alert_type()] = {}
+            for cumulant_name in self.get_cumulant_names():
+                info[key][self.alert_type()][cumulant_name] = []
+
+        return info

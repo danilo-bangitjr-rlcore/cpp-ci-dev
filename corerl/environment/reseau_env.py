@@ -14,10 +14,11 @@ class ReseauEnv(InfluxOPCEnv):
         self.prev_action = None
         self.action_space = Box(low=cfg.action_low, high=cfg.action_high, shape=(1,))
         self.observation_space = Box(low=np.array(cfg.obs_space_low), high=np.array(cfg.obs_space_high))
-
-
-
-
+        self.col_names = cfg.col_names
+        self.action_names = cfg.action_names
+        self.obs_col_names = cfg.obs_col_names
+        self.endo_obs_col_names = cfg.endo_obs_col_names
+        self.endo_inds = cfg.endo_inds
 
     def _get_reward(self, obs: np.ndarray, a: np.ndarray):
         if self.prev_action is None:

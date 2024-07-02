@@ -135,7 +135,7 @@ class GreedyAC(BaseAC):
     def compute_critic_loss(self, batch: TransitionBatch) -> torch.Tensor:
         state_batch = batch.state
         action_batch = batch.action
-        reward_batch = batch.reward
+        reward_batch = batch.n_step_reward
         next_state_batch = batch.boot_state
         mask_batch = 1 - batch.terminated
         gamma_exp_batch = batch.gamma_exponent

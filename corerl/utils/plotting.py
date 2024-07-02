@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import beta
 
+from corerl.agent.utils import get_test_state_qs_and_policy_params
 
 def remove_spines(axs, spines=["top", "right"], has_subplots=True):
     def _remove_spines(ax, spines):
@@ -130,89 +131,103 @@ def make_reward_plot(stats, save_path):
     ax.set_ylabel('Reward')
     plt.savefig(save_path / 'rewards.png', bbox_inches='tight')
 
+def make_alerts_plots(stats, path):
+    actions_taken = stats["raw_actions"]
+    endo_obs = stats["raw_endo_obs"]
 
-def make_plots(freezer, stats, save_path):
-    save_path.mkdir(parents=True, exist_ok=True)
-    make_action_mean_variance_plot(freezer, save_path)
-    make_param_plot(freezer, save_path)
-    make_action_gap_plot(stats, save_path)
-    make_bellman_error_plot(stats, save_path)
-    make_reward_plot(stats, save_path)
+    composite_alerts = stats["composite_alerts"]
+    individual_alerts = stats["individual_alerts"]
+    alert_traces = stats["alert_traces"]
+    values = stats["alert_values"]
+    returns = stats["alert_returns"]
+    trace_thresholds = stats["alert_trace_thresholds"]
 
-def plot_action_value_alert(plot_info, alert_thresholds, path):
-    composite_alerts = plot_info["composite_alert"]
-    signal_names = [col_name for col_name in list(plot_info) if col_name not in ["state", "action", "reward", "next_obs", "value", "return", "alert", "alert_trace", "composite_alert"]]
-    sensor_names = plot_info["alert"].keys()
+    min_steps = float('inf')
+    min_steps = min(min_steps, len(composite_alerts))
+    for action_name in actions_taken:
+        min_steps = min(min_steps, len(actions_taken[action_name]))
+    for alert_type in individual_alerts:
+        for cumulant_name in individual_alerts[alert_type]:
+            min_steps = min(min_steps, len(individual_alerts[alert_type][cumulant_name]))
+            min_steps = min(min_steps, len(alert_traces[alert_type][cumulant_name]))
+            min_steps = min(min_steps, len(values[alert_type][cumulant_name]))
+            min_steps = min(min_steps, len(returns[alert_type][cumulant_name]))
+    time_steps = list(range(min_steps))
 
-    min_range = float('inf')
     # Plot Inidividual Sensor Alerts
-    for sensor_name in sensor_names:
-        values = plot_info["value"][sensor_name]
-        returns = plot_info["return"][sensor_name]
-        alerts = plot_info["alert"][sensor_name]
-        alert_traces = plot_info["alert_trace"][sensor_name]
-        x_indices = list(range(len(values)))
-        min_range = min(min_range, len(x_indices))
+    # Top subplot: Actions and Endogenous Variables over time
+    # Middle subplot: GVF for a given endogenous variable vs. Observed partial returns for the given endogenous variable
+    # Bottom subplot: Trace of absolute difference between GVF and partial return
+    for alert_type in individual_alerts:
+        for cumulant_name in individual_alerts[alert_type]:
+            fig, ax = plt.subplots(3, 1, sharex=True, figsize=(12, 12))
 
-        fig, ax = plt.subplots(3, 1, sharex=True, figsize=(12, 12))
+            # Individual Alerts - Plot vertical red lines in each subplot at time steps where there are alerts for the given cumulant
+            for step in time_steps:
+                if individual_alerts[alert_type][cumulant_name][step]:
+                    ax[0].axvline(x=step, color='r', alpha=0.2)
+                    ax[1].axvline(x=step, color='r', alpha=0.2)
+                    ax[2].axvline(x=step, color='r', alpha=0.2)
 
-        # Alerts
-        for idx in x_indices:
-            if alerts[idx]:
-                ax[0].axvline(x=idx, color='r', alpha=0.2)
-                ax[1].axvline(x=idx, color='r', alpha=0.2)
-                ax[2].axvline(x=idx, color='r', alpha=0.2)
+            # Plot actions and endogenous variables
+            for action_name in actions_taken:
+                action_type_actions = actions_taken[action_name][:min_steps]
+                ax[0].plot(time_steps, action_type_actions, label=action_name, alpha=1.0)
+            for endo_obs_name in endo_obs:
+                obs_type_observations = endo_obs[endo_obs_name][:min_steps]
+                ax[0].plot(time_steps, obs_type_observations, label=endo_obs_name, alpha=1.0)
+            ax[0].set_title("Actions and Endogenous Variables", pad=0)
 
-        for signal_name in signal_names:
-            plot_info[signal_name] = plot_info[signal_name][-len(returns):]
-            ax[0].plot(x_indices, plot_info[signal_name], label=signal_name, alpha=1.0)
-        setpoint = [350 for i in x_indices]
-        ax[0].plot(x_indices, setpoint, c="k", label="Setpoint", alpha=1.0)
-        ax[0].set_title("Signals", pad=0)
+            # Plot GVF and Partial Return of cumulant_name
+            cumulant_name_values = values[alert_type][cumulant_name][:min_steps]
+            cumulant_name_returns = returns[alert_type][cumulant_name][:min_steps]
+            ax[1].plot(time_steps, cumulant_name_values, label="{} Q(s,a)".format(cumulant_name), c="b", alpha=1.0)
+            ax[1].plot(time_steps, cumulant_name_returns, label="Partial Return", c="g", alpha=1.0)
+            ax[1].set_title("{} Q(s,a) vs. Observed Partial Returns".format(cumulant_name), pad=0)
 
-        ax[1].plot(x_indices, values, label="{} Q(s,a)".format(sensor_name), c="b", alpha=1.0)
-        ax[1].plot(x_indices, returns, label="Observed Return", c="g", alpha=1.0)
-        ax[1].set_title("{} Q(s,a) vs. Observed Partial Returns".format(sensor_name), pad=0)
+            # Plot alert trace
+            cumulant_name_traces = alert_traces[alert_type][cumulant_name][:min_steps]
+            thresh_list = [trace_thresholds[alert_type][cumulant_name] for _ in range(min_steps)]
+            ax[2].plot(time_steps, thresh_list, c="k", label="Trace Threshold", alpha=1.0)
+            ax[2].plot(time_steps, cumulant_name_traces, label="{} Trace".format(cumulant_name), c="m", alpha=1.0)
+            ax[2].set_title("{} Q(s,a) vs. Observed Partial Returns Absolute Difference Trace".format(cumulant_name), pad=0)
 
-        alert_thresh = [alert_thresholds[sensor_name] for i in x_indices]
-        ax[2].plot(x_indices, alert_thresh, c="k", label="Alert Threshold", alpha=1.0)
-        ax[2].plot(x_indices, alert_traces, label="{} Trace".format(sensor_name), c="m", alpha=1.0)
-        ax[2].set_title("{} Q(s,a) vs. Observed Partial Returns Percentage Difference Trace".format(sensor_name), pad=0)
-
-        ax[0].legend()
-        ax[1].legend()
-        ax[2].legend()
-        plt.xlabel("Time Step")
-        fig.savefig(path / "{}_Alerts_Summary_Plot.png".format(sensor_name))
-        plt.close()
+            ax[0].legend()
+            ax[1].legend()
+            ax[2].legend()
+            plt.xlabel("Time Step")
+            fig.savefig(path / "{}_Alerts_Summary_Plot.png".format(cumulant_name))
+            plt.close()
 
     # Plot Composite Alert
-    x_indices = list(range(min_range))
-    composite_alerts = composite_alerts[-min_range:]
-
     fig, ax = plt.subplots(2, 1, sharex=True, figsize=(12, 12))
 
     # Alerts
-    for idx in x_indices:
-        if composite_alerts[idx]:
-            ax[0].axvline(x=idx, color='r', alpha=0.2)
-            ax[1].axvline(x=idx, color='r', alpha=0.2)
+    for step in time_steps:
+        if composite_alerts[step]:
+            ax[0].axvline(x=step, color='r', alpha=0.2)
+            ax[1].axvline(x=step, color='r', alpha=0.2)
 
-    for signal_name in signal_names:
-        plot_info[signal_name] = plot_info[signal_name][-min_range:]
-        ax[0].plot(x_indices, plot_info[signal_name], label=signal_name, alpha=1.0)
-    setpoint = [350 for i in x_indices]
-    ax[0].plot(x_indices, setpoint, c="k", label="Setpoint", alpha=1.0)
-    ax[0].set_title("Signals", pad=0)
+    # Plot actions and endogenous variables
+    for action_name in actions_taken:
+        action_type_actions = actions_taken[action_name][:min_steps]
+        ax[0].plot(time_steps, action_type_actions, label=action_name, alpha=1.0)
+    for endo_obs_name in endo_obs:
+        obs_type_observations = endo_obs[endo_obs_name][:min_steps]
+        ax[0].plot(time_steps, obs_type_observations, label=endo_obs_name, alpha=1.0)
+    ax[0].set_title("Actions and Endogenous Variables", pad=0)
 
+    # Plot all traces and thresholds
     colors = ["purple", "green", "grey", "dodgerblue", "lawngreen", "fuchsia", "olive", "teal"]
     counter = 0
-    for sensor_name in sensor_names:
-        alert_thresh = [alert_thresholds[sensor_name] for i in x_indices]
-        ax[1].plot(x_indices, alert_thresh, c=colors[counter], linestyle="dashed", label="{} Alert Threshold".format(sensor_name), alpha=1.0)
-        ax[1].plot(x_indices, plot_info["alert_trace"][sensor_name][-min_range:], c=colors[counter], linestyle="solid", label="{} Trace".format(sensor_name), alpha=1.0)
-        ax[1].set_title("{} Q(s,a) vs. Observed Partial Returns Percentage Difference Trace".format(sensor_name), pad=0)
-        counter += 1
+    for alert_type in individual_alerts:
+        for cumulant_name in individual_alerts[alert_type]:
+            thresh_list = [trace_thresholds[alert_type][cumulant_name] for _ in range(min_steps)]
+            cumulant_name_traces = alert_traces[alert_type][cumulant_name][:min_steps]
+            ax[1].plot(time_steps, thresh_list, c=colors[counter], linestyle="dashed", label="{} Threshold".format(cumulant_name), alpha=1.0)
+            ax[1].plot(time_steps, cumulant_name_traces, c=colors[counter], linestyle="solid", label="{} Trace".format(cumulant_name), alpha=1.0)
+            counter += 1
+    ax[1].set_title("All Alert Traces and Thresholds", pad=0)
 
     ax[0].legend()
     ax[1].legend()
@@ -220,7 +235,7 @@ def plot_action_value_alert(plot_info, alert_thresholds, path):
     fig.savefig(path / "Composite_Alert_Summary_Plot.png")
     plt.close()
 
-def visualize_actor_critic(states, actions, q_values, actor_params, env, path, prefix, epoch, skip=100):
+def make_reseau_actor_critic_plot(states, actions, q_values, actor_params, env, path, prefix, epoch):
     # Currently assuming 'ReseauAnytime' state constructor
     obs_space_low = env.observation_space.low
     obs_space_high = env.observation_space.high
@@ -229,7 +244,7 @@ def visualize_actor_critic(states, actions, q_values, actor_params, env, path, p
     mins = [0, action_space_low[0], obs_space_low[0], obs_space_low[1], action_space_low[0], action_space_low[0], action_space_low[0], action_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[1], obs_space_low[1], obs_space_low[1], obs_space_low[1], 0, 0]
     maxs = [1, action_space_high[0], obs_space_high[0], obs_space_high[1], action_space_high[0], action_space_high[0], action_space_high[0], action_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[1], obs_space_high[1], obs_space_high[1], obs_space_high[1], 1, 1]
 
-    for i in range(0, len(states), skip ):
+    for i in range(0, len(states)):
         curr_state = states[i]
         curr_alpha = actor_params[i][0]
         curr_beta = actor_params[i][1]
@@ -271,5 +286,18 @@ def visualize_actor_critic(states, actions, q_values, actor_params, env, path, p
         # ax.legend()
         fig.savefig(path / "{}_epoch_{}_test_state_{}_Summary_Plots.png".format(prefix, epoch, i))
         plt.close()
+
+def make_plots(freezer, stats, save_path):
+    save_path.mkdir(parents=True, exist_ok=True)
+    make_alerts_plots(stats, save_path)
+    make_action_mean_variance_plot(freezer, save_path)
+    make_param_plot(freezer, save_path)
+    make_action_gap_plot(stats, save_path)
+    make_bellman_error_plot(stats, save_path)
+    make_reward_plot(stats, save_path)
+
+def make_actor_critic_plots(agent, env, plot_transitions, prefix, iteration, save_path):
+    test_states, test_actions, test_q_values, actor_params = get_test_state_qs_and_policy_params(agent, plot_transitions)
+    make_reseau_actor_critic_plot(test_states, test_actions, test_q_values, actor_params, env, save_path, prefix, iteration)
 
 

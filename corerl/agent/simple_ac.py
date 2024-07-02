@@ -34,7 +34,7 @@ class SimpleAC(BaseAC):
         states = batch.state
         actions = batch.action
         next_states = batch.boot_state
-        rewards = batch.reward
+        rewards = batch.n_step_reward
         dones = batch.terminated
         gamma_exps = batch.gamma_exponent
 
