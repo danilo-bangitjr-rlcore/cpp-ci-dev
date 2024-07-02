@@ -25,7 +25,7 @@ class AnytimeCalibrationModel(NNCalibrationModel):
         train_transitions = train_info['train_transitions_cm']
         test_transitions = train_info['test_transitions_cm']
         self.reward_func = train_info['reward_func']
-        self.interaction = train_info['interaction_cm']
+        self.normalizer = train_info['normalizer']
 
         self.buffer = init_buffer(cfg.buffer)
         self.test_buffer = init_buffer(cfg.buffer)
@@ -314,9 +314,9 @@ class AnytimeCalibrationModel(NNCalibrationModel):
                 reward_info['curr_action'] = action
 
                 # Not sure if this denormalizer should be here.
-                denormalized_obs = self.interaction.obs_normalizer.denormalize(fictitious_obs)
+                denormalized_obs = self.normalizer.obs_normalizer.denormalize(fictitious_obs)
                 r = self.reward_func(denormalized_obs, **reward_info)
-                r_norm = self.interaction.reward_normalizer(r)
+                r_norm = self.normalizer.reward_normalizer(r)
                 g += gamma ** (step + inter_step - 1) * r_norm  # TODO: double check this is right .
                 prev_action = action
 
@@ -356,6 +356,8 @@ class AnytimeCalibrationModel(NNCalibrationModel):
         for traj_i, _ in enumerate(self.test_trajectories):
             traj_cm = self.test_trajectories[traj_i]
             traj_agent = trajectories_agent[traj_i]
+
+
 
             assert traj_cm.num_transitions == traj_agent.num_transitions
 

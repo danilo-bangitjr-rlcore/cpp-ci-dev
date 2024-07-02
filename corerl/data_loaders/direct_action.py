@@ -49,8 +49,12 @@ class DirectActionDataLoader(BaseDataLoader):
         if len(filenames) != 0:
             dfs = []
             for file in filenames:
-                df = pd.read_csv(file, dtype=np.float32, skiprows=self.skip_rows, header=self.header,
-                                 names=self.df_col_names, index_col=self.date_col_name, parse_dates=True)
+                df = pd.read_csv(file,
+                                 dtype=np.float32,
+                                 skiprows=self.skip_rows,
+                                 header=self.header,
+                                 names=self.df_col_names,
+                                 index_col=self.date_col_name, parse_dates=True)
                 dfs.append(df)
 
             concat_df = pd.concat(dfs)
@@ -160,8 +164,11 @@ class DirectActionDataLoader(BaseDataLoader):
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df, action_start)
 
-                # Align time steps within action window
-                curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
+                if data_gap:
+                    curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
+                else:
+                    curr_action_steps, step_start = self.get_curr_action_steps(action_start, next_action_start)
+
                 step_remainder = curr_action_steps % self.steps_per_decision
                 steps_since_decision = ((self.steps_per_decision - step_remainder) + 1) % self.steps_per_decision
 
@@ -171,6 +178,7 @@ class DirectActionDataLoader(BaseDataLoader):
                     
                     step_end = step_start + timedelta(seconds=self.obs_length)
                     next_obs = self.get_obs(obs_df, step_start, step_end)
+
 
                     # Any way to make the creation of reward_info more universal?
                     reward_info = {}

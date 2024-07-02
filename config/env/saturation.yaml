@@ -1,0 +1,15 @@
+defaults:
+  - base_env
+  - reward: saturation
+  - _self_
+
+name : saturation
+discrete_control : False
+action_low : 0
+action_high : 1
+
+reward_high : 0
+reward_low : -0.5
+
+obs_names : ['saturation']
+action_names : ['action']

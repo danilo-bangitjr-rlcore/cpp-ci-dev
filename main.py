@@ -51,7 +51,7 @@ def main(cfg: DictConfig) -> dict:
     # the next part of instantiates objects. It is shared between online and offline training
     sc = init_state_constructor(cfg.state_constructor, env)
     state_dim, action_dim = utils.get_state_action_dim(env, sc)
-    print("State Dim: {}, Action dim: {}".format(state_dim, action_dim))
+    print("State Dim: {}, action dim: {}".format(state_dim, action_dim))
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
     alert_args = {
@@ -66,6 +66,7 @@ def main(cfg: DictConfig) -> dict:
     composite_alert = CompositeAlert(cfg.alerts, alert_args)
     transition_creator = AnytimeTransitionCreator(cfg.transition_creator, composite_alert)
     test_transitions = None
+    plot_transitions = None
 
     if do_offline_training:
         print('Loading offline observations...')
@@ -120,16 +121,17 @@ def main(cfg: DictConfig) -> dict:
                                               save_path,
                                               plot_transitions,
                                               test_epochs)
-        #online_eval.output(save_path / 'stats.json')
+        online_eval.output(save_path / 'stats.json')
 
-    # env.plot()
+    # need to update make_plots here
     stats = online_eval.get_stats()
     make_plots(fr.freezer, stats, save_path / 'plots')
+    env.plot(save_path / 'plots')
 
     agent.save(save_path / 'agent')
     agent.load(save_path / 'agent')
 
-    # return stats
+    return stats
 
 
 if __name__ == "__main__":

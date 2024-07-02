@@ -86,17 +86,6 @@ class Transition:
 
         return True
 
-    def to_obs_transition(self):
-        obs_transition = ObsTransition(
-            self.obs,
-            self.action,
-            self.reward,
-            self.next_obs,
-            self.terminated,
-            self.truncate,
-            False)  # assume there is no gap in the dataset
-        return obs_transition
-
     def __str__(self):
         string = ''
         for field in fields(self):

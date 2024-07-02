@@ -2,6 +2,6 @@ defaults:
   - base: fc
   - _self_
 
-ensemble : 1
+ensemble : 2
 name : ensemble
 reduct : min

@@ -73,6 +73,7 @@ class SimpleGVF(BaseGVF):
         def _compute_gvf_loss(cumulant_inds: Optional[list[int]] = None):
             state_batch = batch.state
             action_batch = batch.action
+            cumulant_batch = batch.n_step_reward
             next_state_batch = batch.boot_state
             mask_batch = 1 - batch.terminated
             gamma_exp_batch = batch.gamma_exponent

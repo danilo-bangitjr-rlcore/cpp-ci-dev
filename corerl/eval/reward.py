@@ -16,6 +16,7 @@ class RewardEval(BaseEval):
     def do_eval(self, **kwargs) -> None:
         if 'transitions' not in kwargs:
             raise KeyError("Missing required argument: 'transitions'")
+
         transitions = kwargs['transitions']
         for transition in transitions:
             reward = transition.reward
@@ -30,9 +31,11 @@ class RewardEval(BaseEval):
                 self.episode_steps += 1
 
     def get_stats(self):
-        stats = {'num_episodes': len(self.returns),
-                 'avg_reward': sum(self.rewards) / len(self.rewards),
-                 }
+        stats = {'num_episodes': len(self.returns)}
+        if len(self.rewards) > 0:
+            stats['avg_reward'] = sum(self.rewards) / len(self.rewards)
+        else:
+            stats['avg_reward'] = 'n/a'
 
         if len(self.returns) > 0:
             stats['avg_return'] = sum(self.returns) / len(self.returns)

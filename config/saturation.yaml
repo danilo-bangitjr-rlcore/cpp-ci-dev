@@ -1,11 +1,12 @@
 defaults:
   - config
   - override agent: greedy_ac
-  - override env: saturation
+  - override env: delayed_saturation
   - override data_loader: direct_action
   - override interaction: anytime
   - override calibration_model : one_step
   - override state_constructor: multi_trace
+  - override hydra/launcher: joblib
   - _self_
 
 offline_data:
@@ -13,18 +14,20 @@ offline_data:
   output_path : offline_data/saturation
 
 experiment :
-  exp_name : "saturation"
-  max_steps : 5000
+  exp_name : "delayed_saturation"
+  max_steps : 2500
   offline_steps : 0
-  set_env_obs_space : True
+  set_env_obs_space : False
   timeout: 0
-
 
 env:
   opc : null
   db : null
 
 interaction :
+  obs_length: 1
+  steps_per_decision: 1
+  n_step : 0
   action_normalizer:
     use_cfg_values : False
 
@@ -41,6 +44,8 @@ agent:
   actor:
     actor_optimizer:
       lr : 0.001
+  buffer:
+      batch_size : 64
 
 alerts:
   action_value:
@@ -54,3 +59,14 @@ alerts:
     ret_perc : 0.1
     trace_decay : 0.995
     trace_thresh : 0.1
+
+data_loader:
+  offline_data_path: offline_data/saturation/csv
+  train_filenames: ["data.csv"]
+  test_filenames: ["data.csv"]
+  skip_rows: 0
+  header: 0
+  df_col_names: ["index", "saturation", "action", "time"]
+  date_col_name : "time"
+  action_col_names: ["action"]
+  obs_col_names: ["saturation"]

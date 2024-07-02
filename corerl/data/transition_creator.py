@@ -30,7 +30,7 @@ class AnytimeTransitionCreator(object):
         transition_idx = 0
         if use_pbar:
             pbar = tqdm(total=len(obs_transitions))
-        scs = []
+
         while not done:  # first, get transitions until a data gap
             curr_chunk_obs_transitions = []
             gap = False
@@ -256,7 +256,7 @@ class AnytimeTransitionCreator(object):
                 action,
                 next_obs,  # the immediate next obs
                 next_state,  # the immediate next state
-                reward,
+                reward,  # the reward
                 np_n_step_rewards[-1].item(),
                 np_n_step_cumulants[-1],  # the array of cumulants
                 boot_obs_queue[-1],  # the obs we bootstrap off

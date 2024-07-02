@@ -39,7 +39,7 @@ class AnytimeMultiTrace(CompositeStateConstructor):
             trace_sc = comp.MemoryTrace(trace_value, parents=[start_sc])
             trace_components.append(trace_sc)
 
-        anytime_sc = comp.Anytime(cfg.decision_steps, parents=[start_sc])
+        anytime_sc = comp.Anytime(cfg.steps_per_decision, parents=[start_sc])
 
         # finally, we will concatenate all the traces and normalized values together
         concat_parents = [start_sc] + trace_components + [

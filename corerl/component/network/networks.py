@@ -100,6 +100,43 @@ class FC(nn.Module):
         return out
 
 
+class EnsembleFC(nn.Module):
+    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
+        super(EnsembleFC, self).__init__()
+        self.ensemble = cfg.ensemble
+        self.subnetworks = [
+            create_base(cfg.base, input_dim, output_dim)
+            for _ in range(self.ensemble)
+        ]
+        self.to(device)
+
+    def forward(self, input_tensor: torch.Tensor, ) -> (torch.Tensor, torch.Tensor):
+        outs = [net(input_tensor) for net in self.subnetworks]
+        for i in range(self.ensemble):
+            outs[i] = torch.unsqueeze(outs[i], 0)
+        outs = torch.cat(outs, dim=0)
+        return outs
+
+    def state_dict(self) -> list:
+        sd = [net.state_dict() for net in self.subnetworks]
+        return sd
+
+    def load_state_dict(self, state_dict_list: list) -> None:
+        for i in range(self.ensemble):
+            self.subnetworks[i].load_state_dict(state_dict_list[i])
+        return
+
+    def parameters(self, independent: bool = False) -> list:
+        param_list = []
+        if independent:
+            for i in range(self.ensemble):
+                param_list.append(self.subnetworks[i].parameters())
+        else:
+            for i in range(self.ensemble):
+                param_list += list(self.subnetworks[i].parameters())
+        return param_list
+
+
 class EnsembleCritic(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(EnsembleCritic, self).__init__()
