@@ -14,6 +14,7 @@ from corerl.component.network.utils import to_np, state_to_tensor, ensemble_mse
 from corerl.utils.device import device
 from corerl.data.data import TransitionBatch, Transition
 
+
 class InAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
@@ -26,10 +27,9 @@ class InAC(BaseAC):
         self.behaviour = init_actor(cfg.actor, state_dim, action_dim)
         self.buffer = init_buffer(cfg.buffer)
 
-
     def update_buffer(self, transition: Transition) -> None:
         self.buffer.feed(transition)
-    
+
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
@@ -59,9 +59,10 @@ class InAC(BaseAC):
         return value_loss
 
     def compute_q_loss(self, batch):
-        states, actions, rewards, next_states, dones, dp_mask, gamma_exps = (batch.state, batch.action, batch.n_step_reward,
-                                                                             batch.boot_state, batch.terminated,
-                                                                             batch.boot_state_dp, batch.gamma_exponent)
+        states, actions, rewards, next_states, dones, dp_mask, gamma_exps = (
+        batch.state, batch.action, batch.n_step_reward,
+        batch.boot_state, batch.terminated,
+        batch.boot_state_dp, batch.gamma_exponent)
 
         _, q_ens = self.q_critic.get_qs(states, actions, with_grad=True)
         next_actions, _ = self.actor.get_action(next_states, with_grad=False)

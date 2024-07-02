@@ -52,7 +52,7 @@ class SimpleAC(BaseAC):
             loss_actor = self.compute_actor_loss(batch)
             self.actor.update(loss_actor)
 
-    def compute_critic_loss(self, batch:dict) -> torch.Tensor:
+    def compute_critic_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states = batch.state
         next_states = batch.next_state
         rewards = batch.n_step_reward
