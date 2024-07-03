@@ -39,12 +39,12 @@ class AnytimeInteraction(BaseInteraction):
 
         # Alerts for a given transition only triggered in the future. Need to store transitions until then
         self.transition_queue = deque([])
-        self.alert_transition_queue = deque([])
 
         self.n_step = cfg.n_step
         self.warmup_steps = cfg.warmup_steps
 
         self.alert_info_list = []
+        self.only_dp_transitions = cfg.only_dp_transitions
         self.curr_decision_obs_transitions = []
         self.curr_decision_states = []
         self.prev_decision_point = True
@@ -90,9 +90,13 @@ class AnytimeInteraction(BaseInteraction):
                                             decision_point=obs_transition.next_obs_dp,
                                             steps_since_decision=obs_transition.next_obs_steps_since_decision)
 
-        self.curr_decision_obs_transitions.append(obs_transition)
-        self.curr_decision_states.append(next_state)
+        # If only training on transtions at decision points, only include ObsTransitions at decision points
+        # If training on all transitions, include every ObsTransition
+        if (self.only_dp_transitions and decision_point) or (not self.only_dp_transitions):
+            self.curr_decision_obs_transitions.append(obs_transition)
+            self.curr_decision_states.append(next_state)
 
+        # Still want to evaluate alerts each observation step
         reward = obs_transition.reward  # normalized reward
         next_obs = obs_transition.next_obs  # normalized next_obs
         alert_info = self.get_step_alerts(action, self.last_state, next_obs, reward)

@@ -48,7 +48,9 @@ class GreedyAC(BaseAC):
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
         self.sampler = init_actor(cfg.actor, state_dim, action_dim, initializer=self.actor)
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
-        self.buffer = init_buffer(cfg.buffer)
+        # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
+        self.critic_buffer = init_buffer(cfg.buffer)
+        self.policy_buffer = init_buffer(cfg.buffer)
 
         self.sample_all_discrete_actions = False
         if self.discrete_control:
@@ -66,7 +68,10 @@ class GreedyAC(BaseAC):
         return action
 
     def update_buffer(self, transition: Transition) -> None:
-        self.buffer.feed(transition)
+        self.critic_buffer.feed(transition)
+        # Only train policy on states at decision points
+        if transition.state_dp:
+            self.policy_buffer.feed(transition)
 
     def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
                      batch_size: int) -> Float[torch.Tensor, 'batch_size num_samples']:
@@ -215,14 +220,14 @@ class GreedyAC(BaseAC):
 
     def update_critic(self) -> None:
         for _ in range(self.n_critic_updates):
-            batch = self.buffer.sample()
+            batch = self.critic_buffer.sample()
             q_loss = self.compute_critic_loss(batch)
             self.q_critic.update(q_loss)
 
     def update_actor(self) -> None:
         update_infos = []
         for _ in range(self.n_actor_updates):
-            batch = self.buffer.sample()
+            batch = self.policy_buffer.sample()
             update_info = self.get_policy_update_info(batch.state)
             actor_loss = self.compute_actor_loss(update_info)
             self.actor.update(actor_loss)
@@ -236,7 +241,7 @@ class GreedyAC(BaseAC):
                 self.sampler.update(sampler_loss)
         else:
             for i in range(self.n_sampler_updates):
-                batch = self.buffer.sample()
+                batch = self.policy_buffer.sample()
                 update_info = self.get_policy_update_info(batch.state)
                 sampler_loss = self.compute_sampler_loss(update_info)
                 self.sampler.update(sampler_loss)
@@ -262,9 +267,13 @@ class GreedyAC(BaseAC):
         q_critic_path = path / "q_critic"
         self.q_critic.save(q_critic_path)
 
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "wb") as f:
-            pkl.dump(self.buffer, f)
+        critic_buffer_path = path / "critic_buffer.pkl"
+        with open(critic_buffer_path, "wb") as f:
+            pkl.dump(self.critic_buffer, f)
+
+        policy_buffer_path = path / "policy_buffer.pkl"
+        with open(policy_buffer_path, "wb") as f:
+            pkl.dump(self.policy_buffer, f)
 
     def load(self, path: Path) -> None:
         actor_path = path / "actor"
@@ -276,18 +285,22 @@ class GreedyAC(BaseAC):
         q_critic_path = path / "q_critic"
         self.q_critic.load(q_critic_path)
 
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "rb") as f:
-            self.buffer = pkl.load(f)
+        critic_buffer_path = path / "critic_buffer.pkl"
+        with open(critic_buffer_path, "rb") as f:
+            self.critic_buffer = pkl.load(f)
+
+        policy_buffer_path = path / "policy_buffer.pkl"
+        with open(policy_buffer_path, "rb") as f:
+            self.policy_buffer = pkl.load(f)
 
 
 class GreedyACLineSearch(GreedyAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
 
-        self.actor.set_parameters(id(self.buffer), eval_error_fn=self.actor_eval_error_fn)
-        self.sampler.set_parameters(id(self.buffer), eval_error_fn=self.sampler_eval_error_fn)
-        self.q_critic.set_parameters(id(self.buffer), eval_error_fn=self.critic_eval_error_fn)
+        self.actor.set_parameters(id(self.policy_buffer), eval_error_fn=self.actor_eval_error_fn)
+        self.sampler.set_parameters(id(self.policy_buffer), eval_error_fn=self.sampler_eval_error_fn)
+        self.q_critic.set_parameters(id(self.critic_buffer), eval_error_fn=self.critic_eval_error_fn)
 
     def critic_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = args
@@ -316,7 +329,7 @@ class ExploreLSGAC(GreedyACLineSearch):
         super().__init__(cfg, state_dim, action_dim)
         # initialize exploration module
         self.exploration = init_exploration_module(cfg.exploration, state_dim, action_dim)
-        self.exploration.set_parameters(id(self.buffer))
+        self.exploration.set_parameters(id(self.critic_buffer))
         self.exploration_weight = cfg.exploration_weight
 
     def update(self) -> None:

@@ -21,10 +21,10 @@ class EpsilonGreedySarsa(BaseAgent):
         self.epsilon = cfg.samples
         self.action_dim = action_dim
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
-        self.buffer = init_buffer(cfg.buffer)
+        self.critic_buffer = init_buffer(cfg.buffer)
 
     def update_buffer(self, transition: Transition) -> None:
-        self.buffer.feed(transition)
+        self.critic_buffer.feed(transition)
 
     def get_action(self, state: torch.Tensor, with_grad=False) -> numpy.ndarray:
         action_np = np.squeeze(to_np(self._get_action(state)))
@@ -66,7 +66,7 @@ class EpsilonGreedySarsa(BaseAgent):
 
     def update(self) -> None:
         for _ in range(self.n_updates):
-            batch = self.buffer.sample()
+            batch = self.critic_buffer.sample()
             q_loss = self.compute_q_loss(batch)
             self.q_critic.update(q_loss)
 
@@ -76,14 +76,14 @@ class EpsilonGreedySarsa(BaseAgent):
         critic_path = path / "critic"
         self.q_critic.save(critic_path)
 
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "wb") as f:
-            pkl.dump(self.buffer, f)
+        critic_buffer_path = path / "critic_buffer.pkl"
+        with open(critic_buffer_path, "wb") as f:
+            pkl.dump(self.critic_buffer, f)
 
     def load(self, path: Path) -> None:
         critic_path = path / "critic"
         self.q_critic.load(critic_path)
 
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "rb") as f:
-            self.buffer = pkl.load(f)
+        critic_buffer_path = path / "critic_buffer.pkl"
+        with open(critic_buffer_path, "rb") as f:
+            self.critic_buffer = pkl.load(f)

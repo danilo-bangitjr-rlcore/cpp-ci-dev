@@ -19,7 +19,9 @@ class SimpleAC(BaseAC):
         self.tau = cfg.tau
         self.critic = init_v_critic(cfg.critic, state_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
-        self.buffer = init_buffer(cfg.buffer)
+        # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
+        self.critic_buffer = init_buffer(cfg.buffer)
+        self.policy_buffer = init_buffer(cfg.buffer)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device)
@@ -28,7 +30,10 @@ class SimpleAC(BaseAC):
         return action
 
     def update_buffer(self, transition: Transition) -> None:
-        self.buffer.feed(transition)
+        self.critic_buffer.feed(transition)
+        # Only train policy on states at decision points
+        if transition.state_dp:
+            self.policy_buffer.feed(transition)
 
     def compute_actor_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states = batch.state
@@ -48,7 +53,7 @@ class SimpleAC(BaseAC):
 
     def update_actor(self) -> None:
         for _ in range(self.n_actor_updates):
-            batch = self.buffer.sample()
+            batch = self.policy_buffer.sample()
             loss_actor = self.compute_actor_loss(batch)
             self.actor.update(loss_actor)
 
@@ -68,7 +73,7 @@ class SimpleAC(BaseAC):
 
     def update_critic(self) -> None:
         for _ in range(self.n_critic_updates):
-            batch = self.buffer.sample()
+            batch = self.critic_buffer.sample()
             loss_critic = self.compute_critic_loss(batch)
             self.critic.update(loss_critic)
 
@@ -85,9 +90,13 @@ class SimpleAC(BaseAC):
         critic_path = path / "critic"
         self.critic.save(critic_path)
 
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "wb") as f:
-            pkl.dump(self.buffer, f)
+        critic_buffer_path = path / "critic_buffer.pkl"
+        with open(critic_buffer_path, "wb") as f:
+            pkl.dump(self.critic_buffer, f)
+
+        policy_buffer_path = path / "policy_buffer.pkl"
+        with open(policy_buffer_path, "wb") as f:
+            pkl.dump(self.policy_buffer, f)
 
     def load(self, path: Path) -> None:
         actor_path = path / "actor"
@@ -96,6 +105,10 @@ class SimpleAC(BaseAC):
         critic_path = path / "critic"
         self.critic.load(critic_path)
 
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "rb") as f:
-            self.buffer = pkl.load(f)
+        critic_buffer_path = path / "critic_buffer.pkl"
+        with open(critic_buffer_path, "rb") as f:
+            self.critic_buffer = pkl.load(f)
+
+        policy_buffer_path = path / "policy_buffer.pkl"
+        with open(policy_buffer_path, "rb") as f:
+            self.policy_buffer = pkl.load(f)

@@ -5,3 +5,4 @@ steps_per_decision : 1
 obs_length : 0 # 60 seconds
 n_step : 1 # 0 indicates a variable n-step update where the bootstrap state is always the state at the next decision point. n_step > 0 indicates a normal fixed n-step update that doesn't cross action boundaries.
 warmup_steps : ${state_constructor.warmup}
+only_dp_transitions : True # If set to True, only creates/trains on transitions with states at decision points (no transitions with intermediate states between decision points)

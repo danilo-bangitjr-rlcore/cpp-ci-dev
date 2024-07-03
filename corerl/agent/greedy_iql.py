@@ -37,9 +37,13 @@ class GreedyIQL(GreedyAC, IQL):
         v_critic_path = path / "v_critic"
         self.v_critic.save(v_critic_path)
 
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "wb") as f:
-            pkl.dump(self.buffer, f)
+        critic_buffer_path = path / "critic_buffer.pkl"
+        with open(critic_buffer_path, "wb") as f:
+            pkl.dump(self.critic_buffer, f)
+
+        policy_buffer_path = path / "policy_buffer.pkl"
+        with open(policy_buffer_path, "wb") as f:
+            pkl.dump(self.policy_buffer, f)
 
     def load(self, path: Path) -> None:
         actor_path = path / "actor"
@@ -54,6 +58,10 @@ class GreedyIQL(GreedyAC, IQL):
         v_critic_path = path / "v_critic"
         self.v_critic.load(v_critic_path)
 
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "rb") as f:
-            self.buffer = pkl.load(f)
+        critic_buffer_path = path / "critic_buffer.pkl"
+        with open(critic_buffer_path, "rb") as f:
+            self.critic_buffer = pkl.load(f)
+
+        policy_buffer_path = path / "policy_buffer.pkl"
+        with open(policy_buffer_path, "rb") as f:
+            self.policy_buffer = pkl.load(f)

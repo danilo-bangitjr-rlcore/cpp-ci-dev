@@ -19,7 +19,9 @@ class SAC(BaseAC):
         # self.v_critic = init_v_critic(cfg.critic, state_dim) # Paper has V and Q...
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
-        self.buffer = init_buffer(cfg.buffer)
+        # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
+        self.critic_buffer = init_buffer(cfg.buffer)
+        self.policy_buffer = init_buffer(cfg.buffer)
         self.n_entropy_updates = cfg.n_entropy_updates
         
         # Entropy
@@ -39,7 +41,10 @@ class SAC(BaseAC):
         return action
 
     def update_buffer(self, transition: Transition) -> None:
-        self.buffer.feed(transition)
+        self.critic_buffer.feed(transition)
+        # Only train policy on states at decision points
+        if transition.state_dp:
+            self.policy_buffer.feed(transition)
 
     def compute_q_loss(self, batch: TransitionBatch) -> (list, torch.Tensor):
         state_batch = batch.state
@@ -101,7 +106,7 @@ class SAC(BaseAC):
 
     def update_entropy(self):
         for _ in range(self.n_entropy_updates):
-            batch = self.buffer.sample()
+            batch = self.policy_buffer.sample()
             state_batch = batch.state
             action_batch = batch.action
             dp_mask = batch['state_decision_points']
@@ -122,13 +127,13 @@ class SAC(BaseAC):
 
     def update_critic(self) -> None:
         for _ in range(self.n_critic_updates):
-            batch = self.buffer.sample()
+            batch = self.critic_buffer.sample()
             q_loss = self.compute_q_loss(batch)
             self.q_critic.update(q_loss)
 
     def update_actor(self) -> None:
         for _ in range(self.n_actor_updates):
-            batch = self.buffer.sample()
+            batch = self.policy_buffer.sample()
             actor_loss = self.compute_actor_loss(batch)
             self.actor.update(actor_loss)
 
@@ -159,9 +164,13 @@ class SAC(BaseAC):
         alpha_opt_path = path / "alpha_opt"
         torch.save(self.alpha_optimizer.state_dict(), alpha_opt_path)
 
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "wb") as f:
-            pkl.dump(self.buffer, f)
+        critic_buffer_path = path / "critic_buffer.pkl"
+        with open(critic_buffer_path, "wb") as f:
+            pkl.dump(self.critic_buffer, f)
+
+        policy_buffer_path = path / "policy_buffer.pkl"
+        with open(policy_buffer_path, "wb") as f:
+            pkl.dump(self.policy_buffer, f)
 
     def load(self, path: Path) -> None:
         actor_path = path / "actor"
@@ -181,6 +190,10 @@ class SAC(BaseAC):
         alpha_opt_path = path / "alpha_opt"
         self.alpha_optimizer.load_state_dict(torch.load(alpha_opt_path, map_location=device))
 
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "rb") as f:
-            self.buffer = pkl.load(f)
+        critic_buffer_path = path / "critic_buffer.pkl"
+        with open(critic_buffer_path, "rb") as f:
+            self.critic_buffer = pkl.load(f)
+
+        policy_buffer_path = path / "policy_buffer.pkl"
+        with open(policy_buffer_path, "rb") as f:
+            self.policy_buffer = pkl.load(f)
