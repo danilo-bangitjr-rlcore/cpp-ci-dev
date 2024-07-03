@@ -75,20 +75,21 @@ def main(cfg: DictConfig) -> dict:
                                                                                         test_data_df,
                                                                                         dl, obs_normalizer)
         print('Loading offline transitions...')
-        train_transitions, test_transitions, _ = utils.get_offline_transitions(cfg, train_obs_transitions,
-                                                                               test_obs_transitions, sc,
-                                                                               transition_creator)
+        agent_train_transitions, agent_test_transitions, alert_train_transitions, alert_test_transitions, _ = utils.get_offline_transitions(
+            cfg, train_obs_transitions,
+            test_obs_transitions, sc,
+            transition_creator)
 
-        all_transitions = train_transitions + test_transitions
-        split = train_test_split(all_transitions, train_split=cfg.experiment.plot_split)
+        all_agent_transitions = agent_train_transitions + agent_test_transitions
+        split = train_test_split(all_agent_transitions, train_split=cfg.experiment.plot_split)
         plot_transitions = split[0][1]
 
-        utils.offline_alert_training(cfg, composite_alert, train_transitions)
+        utils.offline_alert_training(cfg, composite_alert, alert_train_transitions)
 
         offline_eval = utils.offline_training(cfg,
                                               env,
                                               agent,
-                                              train_transitions,
+                                              agent_train_transitions,
                                               plot_transitions,
                                               save_path,
                                               test_epochs)

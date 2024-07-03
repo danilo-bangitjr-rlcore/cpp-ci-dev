@@ -1,4 +1,5 @@
 from typing import Optional
+from copy import deepcopy
 import gymnasium
 
 from omegaconf import DictConfig
@@ -38,7 +39,7 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
         self.curr_decision_transitions = []
         self.alert_info_list = []
 
-    def step(self) -> tuple[Optional[list[Transition]], Optional[list[Transition]], dict, dict]:
+    def step(self) -> tuple[Optional[list[Transition]], Optional[list[Transition]], Optional[list[Transition]], dict, dict]:
         """
         Process the offline data, as if it were encountered online, until the next decision point is reached.
         Returns:
@@ -58,20 +59,39 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
             next_obs = transition.next_obs
             reward = transition.reward
 
+            self.reward_sum += reward
+
             alert_info = self.get_step_alerts(action, state, next_obs, reward)
             self.alert_info_list.append(alert_info)
 
             # Filter transitions with alerts
             transitions, train_transitions = [], []  # NOTE: these lists may sometimes be empty if we are not at a decision point
+            agent_train_transitions = []
             if transition.next_state_dp:
                 # Only train on transitions where there weren't any alerts
-                train_transitions = self.get_train_transitions(self.curr_decision_transitions, self.alert_info_list)
                 transitions = self.curr_decision_transitions
+                train_transitions = self.get_train_transitions(transitions, self.alert_info_list)
 
+                # if we are only returning dp transitions, we need to update the transition we are returning
+                # we take the first transition, since it starts at the last decision point and goes to the next
+                if self.only_dp_transitions:
+                    # the first transition could have been filtered out by self.get_train_transitions(), so
+                    # transitions[0].state_dp checks if it was that original first transition returned by
+                    # self.transition_creator.make_online_transitions()
+                    if train_transitions[0].state_dp:
+                        transition = deepcopy(train_transitions[0])
+                        transition.gamma_exponent = 1
+                        transition.next_obs = transition.boot_obs
+                        transition.next_state = transition.boot_state
+                        transition.reward = self.reward_sum / self.steps_per_decision
+                        agent_train_transitions = [transition]
+                else:
+                    agent_train_transitions = train_transitions
+                self.reward_sum = 0
                 self.curr_decision_transitions = []
                 self.alert_info_list = []
 
             self.transition_ind += 1
 
-            return transitions, train_transitions, alert_info, {}
-
+            alert_train_transitions = train_transitions
+            return transitions, agent_train_transitions, alert_train_transitions, alert_info, {}
