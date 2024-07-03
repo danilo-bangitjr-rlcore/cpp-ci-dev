@@ -78,7 +78,9 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
                     # the first transition could have been filtered out by self.get_train_transitions(), so
                     # transitions[0].state_dp checks if it was that original first transition returned by
                     # self.transition_creator.make_online_transitions()
-                    if train_transitions[0].state_dp:
+                    if len(train_transitions) == 0:
+                        agent_train_transitions = []
+                    elif train_transitions[0].state_dp:
                         transition = deepcopy(train_transitions[0])
                         transition.gamma_exponent = 1
                         transition.next_obs = transition.boot_obs

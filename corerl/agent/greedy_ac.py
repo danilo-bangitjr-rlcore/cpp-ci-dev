@@ -248,13 +248,16 @@ class GreedyAC(BaseAC):
 
     def update(self) -> None:
         # share_batch ensures that update_actor and update_sampler use the same batch
-        self.update_critic()
-        update_infos = self.update_actor()
-        if not self.uniform_proposal:
-            if self.share_batch:
-                self.update_sampler(update_infos=update_infos)
-            else:
-                self.update_sampler(update_infos=None)
+        if self.critic_buffer.size > 0:
+            self.update_critic()
+
+        if self.policy_buffer.size > 0:
+            update_infos = self.update_actor()
+            if not self.uniform_proposal:
+                if self.share_batch:
+                    self.update_sampler(update_infos=update_infos)
+                else:
+                    self.update_sampler(update_infos=None)
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

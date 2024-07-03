@@ -74,9 +74,10 @@ class ActionValueAlert(BaseAlert):
         return ensemble_mse(target, q_ens)
 
     def update(self) -> None:
-        batch = self.buffer.sample()
-        q_loss = self.compute_critic_loss(batch)
-        self.q_critic.update(q_loss)
+        if self.buffer.size > 0:
+            batch = self.buffer.sample()
+            q_loss = self.compute_critic_loss(batch)
+            self.q_critic.update(q_loss)
 
     def evaluate(self, **kwargs) -> dict:
         if 'state' not in kwargs:

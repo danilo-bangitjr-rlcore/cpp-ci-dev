@@ -65,8 +65,9 @@ def main(cfg: DictConfig) -> dict:
     transition_normalizer = TransitionNormalizer(cfg.normalizer, env)
     composite_alert = CompositeAlert(cfg.alerts, alert_args)
     transition_creator = AnytimeTransitionCreator(cfg.transition_creator, composite_alert)
-    test_transitions = None
+
     plot_transitions = None
+    agent_test_transitions = None
 
     if do_offline_training:
         print('Loading offline observations...')
@@ -95,11 +96,11 @@ def main(cfg: DictConfig) -> dict:
                                               test_epochs)
 
     if not (test_epochs is None):
-        assert not (test_transitions is None), "Must include test transitions if test_epochs is not None"
+        assert not (plot_transitions is None), "Must include test transitions if test_epochs is not None"
 
     interaction = init_interaction(cfg.interaction, env, sc, composite_alert,
                                    transition_creator, obs_normalizer,
-                                   transitions=test_transitions)
+                                   transitions=agent_test_transitions)
 
     if cfg.interaction.name == "offline_anytime":  # simulating online experience from an offline dataset
         online_eval = utils.offline_anytime_deployment(cfg,

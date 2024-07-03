@@ -375,15 +375,16 @@ def online_deployment(cfg: DictConfig,
     action = agent.get_action(state)  # initial action
     print('Starting online training...')
     for j in pbar:
-        transitions, train_transitions, alert_info, env_info = interaction.step(action)
+        transitions, agent_train_transitions, alert_train_transitions, alert_info, env_info = interaction.step(action)
 
-        for transition in train_transitions:
+        for transition in agent_train_transitions:
             agent.update_buffer(transition)
+
+        for transition in alert_train_transitions:
             alerts.update_buffer(transition)
 
-        if agent.buffer.size > 0:
-            agent.update()
-            alerts.update()
+        agent.update()
+        alerts.update()
 
         alert_info_list.append(alert_info)
 
@@ -445,20 +446,23 @@ def offline_anytime_deployment(cfg: DictConfig,
     pbar = tqdm(range(max_steps))
     alert_info_list = []
     print('Starting online anytime training with offline dataset...')
+
+
     for j in pbar:
-        transitions, train_transitions, alert_info, _ = interaction.step()  # does not need an action from the agent
+        transitions, agent_train_transitions, alert_train_transitions, alert_info, _ = interaction.step()  # does not need an action from the agent
 
         if transitions is None:
             print("Reached End Of Offline Eval Data")
             break
 
-        for transition in train_transitions:
+        for transition in agent_train_transitions:
             agent.update_buffer(transition)
+
+        for transition in alert_train_transitions:
             alerts.update_buffer(transition)
 
-        if agent.buffer.size > 0:
-            agent.update()
-            alerts.update()
+        agent.update()
+        alerts.update()
 
         alert_info_list.append(alert_info)
 

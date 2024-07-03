@@ -138,8 +138,11 @@ class SAC(BaseAC):
             self.actor.update(actor_loss)
 
     def update(self) -> None:
-        self.update_critic()
-        self.update_actor()
+        if self.critic_buffer.size > 0:
+            self.update_critic()
+
+        if self.policy_buffer.size > 0:
+            self.update_actor()
 
         if self.automatic_entropy_tuning:
             self.update_entropy()

@@ -86,8 +86,10 @@ class IQL(BaseAC):
             self.actor.update(actor_loss)
 
     def update(self) -> None:
-        self.update_critic()
-        self.update_actor()
+        if self.critic_buffer.size > 0:
+            self.update_critic()
+        if self.policy_buffer.size > 0:
+            self.update_actor()
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

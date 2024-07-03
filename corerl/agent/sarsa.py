@@ -65,10 +65,11 @@ class EpsilonGreedySarsa(BaseAgent):
         return q_loss
 
     def update(self) -> None:
-        for _ in range(self.n_updates):
-            batch = self.critic_buffer.sample()
-            q_loss = self.compute_q_loss(batch)
-            self.q_critic.update(q_loss)
+        if self.critic_buffer.size > 0:
+            for _ in range(self.n_updates):
+                batch = self.critic_buffer.sample()
+                q_loss = self.compute_q_loss(batch)
+                self.q_critic.update(q_loss)
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
