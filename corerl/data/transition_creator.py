@@ -180,7 +180,7 @@ class AnytimeTransitionCreator(object):
         assert len(curr_decision_states) == len(curr_decision_obs_transitions) + 1
         action = curr_decision_obs_transitions[0].action
         for obs_transition in curr_decision_obs_transitions:
-            assert obs_transition.action == action
+            assert np.isclose(obs_transition.action, action)
 
         new_transitions = self._make_decision_window_transitions(curr_decision_obs_transitions, curr_decision_states)
 
