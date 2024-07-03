@@ -5,3 +5,4 @@ defaults:
 
 name : delayed_saturation
 trace_val : 0.9
+delay : 10

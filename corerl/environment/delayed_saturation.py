@@ -1,6 +1,7 @@
 import gymnasium as gym
 import numpy as np
 
+
 class DelayedSaturation(gym.Env):
     def __init__(self, seed, cfg):
         self._random = np.random.default_rng(seed)
@@ -46,10 +47,10 @@ class DelayedSaturation(gym.Env):
     def step(self, action):
         self.time_step += 1
 
-        self.action_trace = self.trace_val*self.action_trace + (1-self.trace_val)*action
+        self.action_trace = self.trace_val * self.action_trace + (1 - self.trace_val) * action
         self.saturation = self.saturation * self.decay
         effect = 0.15 * np.cos(self.time_step * np.pi * (2 / self.effect_period)) + 0.75
-        self.saturation = self.action_trace*effect
+        self.saturation = self.action_trace * effect
         self.saturation = np.clip(self.saturation, 0, 1)
         reward = -np.abs(self.saturation - self.saturation_sp).item()
 
@@ -67,7 +68,7 @@ class DelayedSaturation(gym.Env):
         plt.plot(self.saturations, label="saturation")
         plt.plot(self.effects, label="effects")
         plt.legend()
-        plt.savefig(save_path/'env.png', bbox_inches='tight')
+        plt.savefig(save_path / 'env.png', bbox_inches='tight')
         # plt.show()
 
     def reset(self):
