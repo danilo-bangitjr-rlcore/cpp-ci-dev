@@ -42,7 +42,7 @@ class AnytimeMultiTrace(CompositeStateConstructor):
         if cfg.representation == 'countdown':
             anytime_sc = comp.AnytimeCountDown(cfg.steps_per_decision, parents=[start_sc])
         elif cfg.representation == 'one_hot':
-            anytime_sc = comp.AnytimeCountDown(cfg.steps_per_decision, parents=[start_sc])
+            anytime_sc = comp.AnytimeOneHot(cfg.steps_per_decision, parents=[start_sc])
         else:
             raise ValueError
 
