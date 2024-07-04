@@ -22,35 +22,73 @@ def flatten_list(nd_list: list) -> list:
     return flat_list
 
 
+def add_key_to_run(run, key, values):
+    run_list = []
+    for value in values:
+        run_ = run.copy()
+        run_[key] = value
+        run_list.append(run_)
+    return run_list
+
+
 def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[list[Callable]]]:
-    keys, values = zip(*params['independent'].items())
-    runs_ = [dict(zip(keys, v)) for v in itertools.product(*values)]
-
     runs = []
-    for run in runs_:
-        for cond_key, cond_fn in params['conditional'].items():
-            cond_value = cond_fn(run)
-            if cond_value is not None:
-                run[cond_key] = cond_value
+    for new_key, new_values in params.items():
+        new_runs = []
+        if len(runs) == 0:
+            for v in new_values:
+                run_ = {new_key: v}
+                new_runs.append(run_)
 
-        for k in run.keys():
-            if not isinstance(run[k], list):
-                run[k] = [run[k]]
+        else:
+            for run in runs:
+                if isinstance(new_values, list): # add to all runs
+                    new_runs += add_key_to_run(run, new_key, new_values)
+                elif isinstance(new_values, Callable):
+                    if new_values(run) is not None:
+                        new_values = new_values(run)
+                        new_runs += add_key_to_run(run, new_key, new_values)
+                    else:
+                        new_runs.append(run)
 
-        keys, values = zip(*run.items())
-        run = [dict(zip(keys, v)) for v in itertools.product(*values)]
-        runs.append(run)
+        runs = new_runs
 
-    runs = flatten_list(runs)
-    for i in range(len(runs)):
-        runs[i]['experiment.param'] = i
-
-    runs = flatten_list(runs)
     if 'tests' in params.keys():
         expected_results = [params['tests'] for i in range(len(runs))]
         return runs, expected_results
     else:
         return runs
+
+
+# def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[list[Callable]]]:
+#     keys, values = zip(*params['independent'].items())
+#     runs_ = [dict(zip(keys, v)) for v in itertools.product(*values)]
+#
+#     runs = []
+#     for run in runs_:
+#         for cond_key, cond_fn in params['conditional'].items():
+#             cond_value = cond_fn(run)
+#             if cond_value is not None:
+#                 run[cond_key] = cond_value
+#
+#         for k in run.keys():
+#             if not isinstance(run[k], list):
+#                 run[k] = [run[k]]
+#
+#         keys, values = zip(*run.items())
+#         run = [dict(zip(keys, v)) for v in itertools.product(*values)]
+#         runs.append(run)
+#
+#     runs = flatten_list(runs)
+#     for i in range(len(runs)):
+#         runs[i]['experiment.param'] = i
+#
+#     runs = flatten_list(runs)
+#     if 'tests' in params.keys():
+#         expected_results = [params['tests'] for i in range(len(runs))]
+#         return runs, expected_results
+#     else:
+#         return runs
 
 
 def get_sweep_params(name: str, path: Path) -> list[dict]:

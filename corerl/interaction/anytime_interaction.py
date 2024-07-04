@@ -68,12 +68,14 @@ class AnytimeInteraction(BaseInteraction):
         out = self.env.step(raw_action)  # env.step() already ensures self.obs_length has elapsed
         raw_next_obs, raw_reward, term, env_trunc, env_info = out
         truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
+
+        self.steps_since_decision = (self.steps_since_decision + 1) % self.steps_per_decision
         decision_point = (self.steps_since_decision == 0)
 
         obs_transition = ObsTransition(
             self.raw_last_action,
             self.raw_last_obs,
-            self.prev_steps_since_decision,
+            self.prev_steps_since_decision,  # I don't think this variable is actually used
             self.prev_decision_point,
             raw_action,
             raw_reward,
@@ -107,7 +109,6 @@ class AnytimeInteraction(BaseInteraction):
 
         self.prev_decision_point = decision_point
         self.prev_steps_since_decision = self.steps_since_decision
-        self.steps_since_decision = (self.steps_since_decision + 1) % self.steps_per_decision
 
         self.raw_last_obs = raw_next_obs
         self.raw_last_action = action
@@ -136,7 +137,9 @@ class AnytimeInteraction(BaseInteraction):
                     transition.gamma_exponent = 1
                     transition.next_obs = transition.boot_obs
                     transition.next_state = transition.boot_state
+
                     transition.reward = self.reward_sum/self.steps_per_decision
+                    transition.n_step_reward = transition.reward
                     agent_train_transitions = [transition]
             else:
                 agent_train_transitions = train_transitions
@@ -185,7 +188,7 @@ class AnytimeInteraction(BaseInteraction):
         self.reward_sum = 0
         self.prev_decision_point = True
         self.prev_steps_since_decision = 0
-        self.steps_since_decision = 1
+        self.steps_since_decision = 0
         self.curr_decision_states = [state]
 
         return state, info

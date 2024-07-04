@@ -30,6 +30,7 @@ def make_action_mean_variance_plot(freezer, save_path):
     mean = np.array(mean).squeeze().T
     variance = np.array(variance).squeeze().T
 
+
     assert mean.shape[0] == variance.shape[0]
 
     fig, axs = plt.subplots(2, sharex=True)
@@ -136,6 +137,9 @@ def make_reward_plot(stats, save_path):
     plt.close()
 
 def make_alerts_plots(stats, path):
+    if 'raw_actions' not in stats:
+        return
+
     actions_taken = stats["raw_actions"]
     endo_obs = stats["raw_endo_obs"]
 

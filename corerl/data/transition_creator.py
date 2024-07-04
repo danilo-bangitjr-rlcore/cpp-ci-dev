@@ -269,8 +269,10 @@ class AnytimeTransitionCreator(object):
 
             if self.alerts.get_dim() > 0:
                 np_n_step_cumulants = self.update_n_step_cumulants(n_step_cumulants, cumulant, self.alert_gammas)
+                cumulant_i = np_n_step_cumulants[-1]
             else:
                 np_n_step_cumulants = np.zeros(0)
+                cumulant_i = np_n_step_cumulants
 
             transition = Transition(
                 obs,
@@ -280,7 +282,7 @@ class AnytimeTransitionCreator(object):
                 next_state,  # the immediate next state
                 reward,  # the reward
                 np_n_step_rewards[-1].item(),
-                np_n_step_cumulants[-1],  # the array of cumulants
+                cumulant_i,  # the array of cumulants
                 boot_obs_queue[-1],  # the obs we bootstrap off
                 boot_state_queue[-1],  # the state we bootstrap off
                 term,

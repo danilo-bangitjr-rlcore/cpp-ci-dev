@@ -26,7 +26,8 @@ env:
 
 interaction :
   obs_length: 1
-  steps_per_decision: 1
+  only_dp_transitions : True
+  steps_per_decision: 5
   n_step : 0
   action_normalizer:
     use_cfg_values : False
@@ -48,17 +49,8 @@ agent:
       batch_size : 64
 
 alerts:
-  action_value:
-    gamma : 0.8
-    ret_perc : 0.1
-    trace_decay : 0.995
-    trace_thresh : 0.1
-  gvf:
-    endo_obs_names: ["saturation"]
-    gamma : 0.8
-    ret_perc : 0.1
-    trace_decay : 0.995
-    trace_thresh : 0.1
+
+eval:
 
 data_loader:
   offline_data_path: offline_data/saturation/csv
