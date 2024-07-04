@@ -25,7 +25,7 @@ def main():
             write_str = '{} {} '.format(cfg.cmd, cfg.run_file)
 
             for k, v in run.items():
-                write_str += "{}='{}' ".format(k, v)
+                write_str += "{}={} ".format(k, v)
 
             if cfg.cfg_file != "":
                 write_str += "--config-name={}".format(cfg.cfg_file)

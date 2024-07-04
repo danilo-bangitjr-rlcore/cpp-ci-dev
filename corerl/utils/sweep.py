@@ -34,6 +34,7 @@ def add_key_to_run(run, key, values):
 def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[list[Callable]]]:
     runs = []
     for new_key, new_values in params.items():
+
         new_runs = []
         if len(runs) == 0:
             for v in new_values:
@@ -42,16 +43,19 @@ def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[list[Cal
 
         else:
             for run in runs:
-                if isinstance(new_values, list): # add to all runs
+                if isinstance(new_values, list):  # add to all runs
                     new_runs += add_key_to_run(run, new_key, new_values)
                 elif isinstance(new_values, Callable):
                     if new_values(run) is not None:
-                        new_values = new_values(run)
-                        new_runs += add_key_to_run(run, new_key, new_values)
+                        new_values_ = new_values(run)
+                        new_runs += add_key_to_run(run, new_key, new_values_)
                     else:
                         new_runs.append(run)
 
         runs = new_runs
+
+    for i in range(len(runs)):
+        runs[i]['experiment.param'] = i
 
     if 'tests' in params.keys():
         expected_results = [params['tests'] for i in range(len(runs))]
