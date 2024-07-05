@@ -5,4 +5,6 @@ defaults:
 
 name : delayed_saturation
 trace_val : 0.9
-delay : 10
+effect_period : 500
+decay : 0.75
+

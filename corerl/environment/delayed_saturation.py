@@ -12,7 +12,7 @@ class DelayedSaturation(gym.Env):
 
         self.saturation = np.array([0.])
         self.saturation_sp = np.array([0.5])
-        self.effect_period = 500
+        self.effect_period = cfg.effect_period
 
         self._action_dim = 1
         self._action_min = np.array([0])
@@ -20,7 +20,7 @@ class DelayedSaturation(gym.Env):
         self._action_space = gym.spaces.Box(self._action_min, self._action_max)
 
         self.time_step = 0
-        self.decay = 0.75
+        self.decay = cfg.decay
 
         self.saturations = []
         self.effects = []
