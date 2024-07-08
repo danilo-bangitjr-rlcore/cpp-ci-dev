@@ -23,6 +23,9 @@ class BaseGVF(ABC):
 
         self.endo_obs_names = cfg.endo_obs_names
         self.endo_inds = cfg.endo_inds
+        assert len(self.endo_obs_names) > 0, "In config/env/<env_name>.yaml, define 'endo_obs_names' to be a list of the names of the endogenous variables in the observation"
+        assert len(self.endo_inds) > 0, "In config/env/<env_name>.yaml, define 'endo_inds' to be a list of the indices of the endogenous variables within the environment's observation vector"
+        assert len(self.endo_obs_names) == len(self.endo_inds), "The length of self.endo_obs_names and self.endo_inds should be the same and the ordering of the indices should correspond to the ordering of the variable names"
         self.num_gvfs = len(self.endo_inds)
 
         self.train_losses = []
