@@ -16,6 +16,7 @@ class DirectActionDataLoader(BaseDataLoader):
     """
     This class takes a dataset consisting of a group of CSV files and produces a list of observation transitions
     """
+
     def __init__(self, cfg: DictConfig):
         self.offline_data_path = Path(cfg.offline_data_path)
 
@@ -34,11 +35,14 @@ class DirectActionDataLoader(BaseDataLoader):
         self.header = cfg.header
         # not sure if OmegaConf.to_object is necessary anymore?
         self.df_col_names = OmegaConf.to_object(cfg.df_col_names)
-        assert len(self.df_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'df_col_names', a list of names you'd like to give the columns in your dataframe"
+        assert len(
+            self.df_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'df_col_names', a list of names you'd like to give the columns in your dataframe"
         self.obs_col_names = cfg.obs_col_names
-        assert len(self.obs_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'obs_col_names', a sublist of the column names in self.df_col_names that you'd like to be included in observations"
+        assert len(
+            self.obs_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'obs_col_names', a sublist of the column names in self.df_col_names that you'd like to be included in observations"
         self.action_col_names = OmegaConf.to_object(cfg.action_col_names)
-        assert len(self.action_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'action_names', a sublist of the column names in self.df_col_names that correspond to the dimensions of the action space"
+        assert len(
+            self.action_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'action_names', a sublist of the column names in self.df_col_names that correspond to the dimensions of the action space"
         self.date_col_name = cfg.date_col_name
         self.max_time_delta = cfg.max_time_delta
         self.time_thresh = pd.Timedelta(self.max_time_delta, "s")
@@ -139,7 +143,7 @@ class DirectActionDataLoader(BaseDataLoader):
         return curr_action_steps, step_start
 
     def create_obs_transitions(self, df: pd.DataFrame,
-                               normalizer:  ObsTransitionNormalizer,
+                               normalizer: ObsTransitionNormalizer,
                                reward_function: BaseReward, *args) -> list[ObsTransition]:
         """
         Iterate through the df and produce transitions using the "Anytime" paradigm.
@@ -165,7 +169,8 @@ class DirectActionDataLoader(BaseDataLoader):
             prev_decision_point = None
             prev_steps_since_decision = None
             while not data_gap and action_start < df_end:
-                curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df, action_start)
+                curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
+                                                                                                              action_start)
 
                 if data_gap:
                     curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
@@ -178,10 +183,9 @@ class DirectActionDataLoader(BaseDataLoader):
                 # Next, iterate over current action time steps and produce obs transitions
                 for step in range(curr_action_steps):
                     decision_point = steps_since_decision == 0
-                    
+
                     step_end = step_start + timedelta(seconds=self.obs_length)
                     next_obs = self.get_obs(obs_df, step_start, step_end)
-
 
                     # Any way to make the creation of reward_info more universal?
                     reward_info = {}

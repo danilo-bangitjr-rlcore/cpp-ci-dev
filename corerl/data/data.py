@@ -46,7 +46,7 @@ class Transition:
     # attributes are defined w.r.t. the boot strap state.
     reward: float # one-step reward
     n_step_reward: float
-    n_step_cumulants: np.array  #
+    n_step_cumulants: np.array
     # the state which we bootstrap off of, which is not necesssarily the next state
     # in the MDP
     boot_obs: np.array  # the raw observation of next_state

@@ -18,7 +18,6 @@ from typing import Callable
 from corerl.utils.opc_connection import OpcConnection
 
 
-
 class DBClientWrapper:
     def __init__(self, cfg, date_fn: Callable = None):
         self.bucket = cfg.bucket
