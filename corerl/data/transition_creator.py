@@ -248,7 +248,7 @@ class AnytimeTransitionCreator(object):
             if self.alerts.get_dim() > 0:
                 np_n_step_cumulants = self.update_n_step_cumulants(n_step_cumulants, cumulant, self.alert_gammas)
             else:
-                np_n_step_cumulants = np.zeros(0)
+                np_n_step_cumulants = np.zeros(1)
 
             transition = Transition(
                 obs,

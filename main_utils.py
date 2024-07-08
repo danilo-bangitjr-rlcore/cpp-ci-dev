@@ -102,8 +102,9 @@ def load_or_create(root: Path, cfgs: list[DictConfig], prefix: str, create_func:
 
     cfg_str = ''
     for cfg in cfgs:
-        cfg_copy = OmegaConf.to_container(copy.deepcopy(cfg), resolve=True)
-        cfg_str += str(cfg_copy)
+        if cfg:
+            cfg_copy = OmegaConf.to_container(copy.deepcopy(cfg), resolve=True)
+            cfg_str += str(cfg_copy)
 
     cfg_hash = hashlib.sha1(cfg_str.encode("utf-8")).hexdigest()
     save_path = root / cfg_hash / f"{prefix}-{cfg_hash}.pkl"

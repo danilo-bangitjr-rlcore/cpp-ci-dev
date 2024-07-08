@@ -30,10 +30,11 @@ class CompositeEval(BaseEval):
 def _instantiate_evaluators(eval_cfg, eval_args, online=False, offline=False) -> list[BaseEval]:
     assert online != offline, "Set either online or offline arg to True"
     evaluators = []
-    for eval_type in eval_cfg.keys():
-        eval_type_cfg = eval_cfg[eval_type]
-        # check if the mode of running for the evaluator matches the offline/online flag
-        if (online and eval_cfg[eval_type].online_eval) or (offline and eval_cfg[eval_type].offline_eval):
-            evaluators.append(init_single_evaluator(eval_type_cfg, eval_args))
+    if eval_cfg:
+        for eval_type in eval_cfg.keys():
+            eval_type_cfg = eval_cfg[eval_type]
+            # check if the mode of running for the evaluator matches the offline/online flag
+            if (online and eval_cfg[eval_type].online_eval) or (offline and eval_cfg[eval_type].offline_eval):
+                evaluators.append(init_single_evaluator(eval_type_cfg, eval_args))
 
     return evaluators
