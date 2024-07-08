@@ -3,18 +3,17 @@ defaults:
   - base
   - _self_
 
-name : one_step
+name : knn
 
 buffer:
-  batch_size: 64
+  batch_size: 256
   memory: 100000
   name: uniform
   device: cpu
   seed: ${experiment.seed}
 
-
-train_itr: 10000
-batch_size : 64
+train_itr: 1000
+batch_size : 256
 
 endo_inds : [0] # indices of endogenous variables within the observation
 exo_inds : [1] # indices of exogenous variables within the observation
@@ -37,3 +36,9 @@ optimizer:
 max_rollout_len : 180
 steps_per_decision : ${interaction.steps_per_decision}
 num_test_rollouts : 20
+learn_metric : True
+include_actions : False
+output_dim : 10
+num_neighbors : 3
+beta : 0.5
+zeta : 0.5

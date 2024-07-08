@@ -4,7 +4,7 @@ defaults:
   - override env: reseau
   - override data_loader: direct_action
   - override interaction: offline_anytime
-  - override calibration_model : anytime
+  - override calibration_model : one_step
   - override state_constructor: reseau_anytime
   - _self_
 
@@ -15,7 +15,7 @@ offline_data:
   output_path : offline_data/reseau
 
 experiment :
-  exp_name : "Merge_Party_Alerts_Test"
+  exp_name : "cm"
   max_steps : 20
   offline_steps : 20 #20000
   load_env_obs_space_from_data : True
@@ -70,14 +70,16 @@ data_loader:
                   "pt100_pv", "pt101_pv", "pt161_pv", "pt171_pv", "pt302_pv"]
 
 alerts:
-  action_value:
-    gamma : 0.8
-    ret_perc : 0.1
-    trace_decay : 0.995
-    trace_thresh : 0.1
-  gvf:
-    gamma : 0.8
-    ret_perc : 0.1
-    trace_decay : 0.995
-    trace_thresh : 0.1
+
+eval :
+#  action_value:
+#    gamma : 0.8
+#    ret_perc : 0.1
+#    trace_decay : 0.995
+#    trace_thresh : 0.1
+#  gvf:
+#    gamma : 0.8
+#    ret_perc : 0.1
+#    trace_decay : 0.995
+#    trace_thresh : 0.1
 

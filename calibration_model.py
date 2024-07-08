@@ -102,18 +102,18 @@ def main(cfg: DictConfig) -> dict:
         # 'test_transitions_agent': trajectories_to_transitions(test_trajectories_agent)
     }
 
-    reward_func = init_reward_function(cfg.env.n_step_reward)
+    reward_func = init_reward_function(cfg.env.reward)
     train_info["reward_func"] = reward_func
 
     cm = init_calibration_model(cfg.calibration_model, train_info)
     cm.train()
 
     # agent should be pretty bad here
+    cm.do_test_rollouts(save_path)
     returns = cm.do_agent_rollouts(agent, test_trajectories_agent, plot='pre_training',
                                    plot_save_path=save_path)
-    cm.do_test_rollouts(save_path)
     print("returns", returns)
-    print("mean return pre-training:", np.mean(returns))
+    print("mean return pre-training: ", np.mean(returns))
 
     # now, train the agent, is it better?
     test_epochs = cfg.experiment.test_epochs
@@ -130,7 +130,7 @@ def main(cfg: DictConfig) -> dict:
                                    plot='post_training',
                                    plot_save_path=save_path)
     print("returns", returns)
-    print("mean return post-training:", np.mean(returns))
+    print("mean return post-training: ", np.mean(returns))
 
 
 if __name__ == "__main__":

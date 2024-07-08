@@ -13,13 +13,13 @@ import corerl.calibration_models.utils as utils
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
-from corerl.calibration_models.base import NNCalibrationModel
+from corerl.calibration_models.base import BaseCalibrationModel
 from corerl.component.network.utils import tensor, to_np
 from corerl.data.data import Trajectory
 from corerl.agent.base import BaseAgent
 
 
-class AnytimeCalibrationModel(NNCalibrationModel):
+class AnytimeCalibrationModel(BaseCalibrationModel):
     def __init__(self, cfg: DictConfig, train_info):
         self.test_trajectories = train_info['test_trajectories_cm']
         train_transitions = train_info['train_transitions_cm']
@@ -217,14 +217,14 @@ class AnytimeCalibrationModel(NNCalibrationModel):
                 self.do_test_rollout(test_traj, start_idx=start_idx, plot=True, plot_save_path=plot_save_path)
                 start_idx += increase_idx
 
-    def do_agent_rollout(self,
-                         traj_cm: Trajectory,
-                         traj_agent: Trajectory,
-                         agent: BaseAgent,
-                         start_idx: Optional[int] = None,
-                         plot=None,
-                         plot_save_path=None,
-                         ) -> float:
+    def _do_rollout(self,
+                    traj_cm: Trajectory,
+                    traj_agent: Trajectory,
+                    agent: BaseAgent,
+                    start_idx: Optional[int] = None,
+                    plot=None,
+                    plot_save_path=None,
+                    ) -> float:
 
         if start_idx is None:
             start_idx = random.randint(0, traj_cm.num_transitions - self.max_rollout_len - 1)
@@ -365,8 +365,8 @@ class AnytimeCalibrationModel(NNCalibrationModel):
             increase_idx = last // self.num_test_rollouts
             start_idx = 0
             for start in range(self.num_test_rollouts):
-                return_ = self.do_agent_rollout(traj_cm, traj_agent, agent, start_idx=start_idx, plot=plot,
-                                                plot_save_path=plot_save_path)
+                return_ = self._do_rollout(traj_cm, traj_agent, agent, start_idx=start_idx, plot=plot,
+                                           plot_save_path=plot_save_path)
                 start_idx += increase_idx
                 returns.append(return_)
         return returns

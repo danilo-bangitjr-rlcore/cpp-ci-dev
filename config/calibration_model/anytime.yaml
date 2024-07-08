@@ -1,5 +1,6 @@
 defaults:
   - /state_constructor: multi_trace
+  - base
   - _self_
 
 name : anytime

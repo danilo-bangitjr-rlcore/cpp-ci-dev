@@ -1,6 +1,6 @@
 from corerl.calibration_models.one_step import OneStep
 from corerl.calibration_models.anytime import AnytimeCalibrationModel
-
+from corerl.calibration_models.knn import KNNCalibrationModel
 
 def init_calibration_model(cfg, train_info):
     name = cfg.name
@@ -8,6 +8,8 @@ def init_calibration_model(cfg, train_info):
         cm = OneStep(cfg, train_info)
     elif name == 'anytime':
         cm = AnytimeCalibrationModel(cfg, train_info)
+    elif name == 'knn':
+        cm = KNNCalibrationModel(cfg, train_info)
     else:
         raise NotImplementedError
 

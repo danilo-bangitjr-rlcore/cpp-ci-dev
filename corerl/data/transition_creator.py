@@ -169,7 +169,11 @@ class AnytimeTransitionCreator(object):
         curr_chunk_alert_transitions = curr_chunk_alert_transitions[warmup:]
 
         if return_scs:
+            # todo: scs need to match the states here
             new_scs = new_scs[agent_warmup:]
+
+            print(len(new_scs))
+            print(len(curr_chunk_agent_transitions))
             assert len(new_scs) == len(curr_chunk_agent_transitions)
 
         return curr_chunk_agent_transitions, curr_chunk_alert_transitions, new_scs
