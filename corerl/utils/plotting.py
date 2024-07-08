@@ -272,8 +272,8 @@ def make_reseau_actor_critic_plot(states, actions, q_values, actor_params, env, 
         for j in [3, 12, 13, 14, 15]:
             ax_title += "{:.3e} ".format(curr_state[j])
 
-        ax_title += '\nCountdown: {}'.format(curr_state[16])
-        ax_title += '\nDecision Step: {}'.format(curr_state[17])
+        #ax_title += '\nCountdown: {}'.format(curr_state[16])
+        #ax_title += '\nDecision Step: {}'.format(curr_state[17])
 
         fig, ax = plt.subplots(2, 1, sharex=True, figsize=(6, 12))
         ax[0].plot(
@@ -293,12 +293,12 @@ def make_reseau_actor_critic_plot(states, actions, q_values, actor_params, env, 
 
 def make_plots(freezer, stats, save_path):
     save_path.mkdir(parents=True, exist_ok=True)
-    make_alerts_plots(stats, save_path)
-    make_action_mean_variance_plot(freezer, save_path)
-    make_param_plot(freezer, save_path)
-    make_action_gap_plot(stats, save_path)
-    make_bellman_error_plot(stats, save_path)
-    make_reward_plot(stats, save_path)
+    #make_alerts_plots(stats, save_path)
+    #make_action_mean_variance_plot(freezer, save_path)
+    #make_param_plot(freezer, save_path)
+    #make_action_gap_plot(stats, save_path)
+    #make_bellman_error_plot(stats, save_path)
+    #make_reward_plot(stats, save_path)
 
 def make_actor_critic_plots(agent, env, plot_transitions, prefix, iteration, save_path):
     test_states, test_actions, test_q_values, actor_params = get_test_state_qs_and_policy_params(agent, plot_transitions)
