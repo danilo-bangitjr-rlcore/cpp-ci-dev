@@ -1,4 +1,5 @@
 defaults:
+  - _self_
   - agent: greedy_ac
   - env : three_tanks
   - interaction : anytime
@@ -9,12 +10,12 @@ defaults:
 #  - alerts@alerts.action_value : action_value
 #  - alerts@alerts.gvf : gvf
 #  - eval@eval.ibe : ibe # this lets us have multiple subconfigs rooted at eval
-#  - eval@eval.reward : reward
+  - eval@eval.reward : reward
 #  - eval@eval.action_gap : action_gap
 #  - eval@eval.alerts : alerts
 #  - eval@eval.actions : actions
 #  - eval@eval.endo_obs : endo_obs
-  - _self_
+
 
 experiment:
   exp_name : experiment
@@ -43,3 +44,6 @@ transition_creator:
   n_step : ${interaction.n_step}
   only_dp_transitions :  ${interaction.only_dp_transitions}
 
+alerts:
+
+eval:

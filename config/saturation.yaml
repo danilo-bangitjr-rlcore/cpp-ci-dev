@@ -48,10 +48,6 @@ agent:
   buffer:
       batch_size : 64
 
-alerts:
-
-eval:
-
 data_loader:
   offline_data_path: offline_data/saturation/csv
   train_filenames: ["data.csv"]
