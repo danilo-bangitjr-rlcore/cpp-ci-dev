@@ -66,7 +66,7 @@ class OneStep(BaseCalibrationModel):
                 y = self.model(x)
         return y
 
-    def _get_next_obs(self, state, action, kwargs):
+    def _get_next_endo_obs(self, state, action, kwargs):
         state_tensor = tensor(state).reshape((1, -1))
         action_tensor = tensor(action).reshape((1, -1))
         return self.get_prediction(state_tensor, action_tensor)

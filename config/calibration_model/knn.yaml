@@ -1,6 +1,6 @@
 defaults:
-  - /state_constructor: multi_trace
   - base
+  - override /state_constructor: multi_trace
   - _self_
 
 name : knn
@@ -12,11 +12,8 @@ buffer:
   device: cpu
   seed: ${experiment.seed}
 
-train_itr: 1000
+train_itr: 100000
 batch_size : 256
-
-endo_inds : [0] # indices of endogenous variables within the observation
-exo_inds : [1] # indices of exogenous variables within the observation
 
 model:
   layer_norm: 0
@@ -33,9 +30,6 @@ optimizer:
   weight_decay: 0.0
   name: adam
 
-max_rollout_len : 180
-steps_per_decision : ${interaction.steps_per_decision}
-num_test_rollouts : 20
 learn_metric : True
 include_actions : False
 output_dim : 10

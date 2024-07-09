@@ -104,7 +104,7 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                 y = self.model(x)
         return y
 
-    def _get_next_obs(self, state, action, kwargs):
+    def _get_next_endo_obs(self, state, action, kwargs):
         pass
 
     def linear_interpolation(self, inter_step, duration_int, curr_obs, predicted_next_endo_obs):

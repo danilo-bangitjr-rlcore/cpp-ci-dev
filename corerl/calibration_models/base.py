@@ -132,7 +132,7 @@ class BaseCalibrationModel(ABC):
             action_duration = steps_until_decision_point / self.steps_per_decision
 
             kwargs = {'duration': action_duration}
-            predicted_next_endo_obs = self._get_next_obs(state_cm, action, kwargs)
+            predicted_next_endo_obs = self._get_next_endo_obs(state_cm, action, kwargs)
 
             # log the loss
             loss_step = np.mean(np.abs(next_endo_obs - to_np(predicted_next_endo_obs)))
@@ -185,7 +185,7 @@ class BaseCalibrationModel(ABC):
         return g
 
     @abstractmethod
-    def _get_next_obs(self, state, action, kwargs):
+    def _get_next_endo_obs(self, state, action, kwargs):
         raise NotImplementedError
 
     def _get_action(self, prev_action, transition, decision_point, use_agent=False, agent=None, state_agent=None):

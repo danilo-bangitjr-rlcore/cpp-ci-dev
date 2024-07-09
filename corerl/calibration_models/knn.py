@@ -1,34 +1,23 @@
 import torch
-import torch.nn as nn
 import numpy as np
-import random
 import sklearn.neighbors as skn
 
 from tqdm import tqdm
-from copy import deepcopy
 from omegaconf import DictConfig
-from typing import Optional
 
-from corerl.agent.base import BaseAgent
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
-from corerl.component.network.utils import tensor, to_np
+from corerl.component.network.utils import to_np
 from corerl.calibration_models.base import BaseCalibrationModel
-from corerl.data.data import Trajectory, Transition, TransitionBatch
-from corerl.state_constructor.base import BaseStateConstructor
-import corerl.calibration_models.utils as utils
-
-import matplotlib.pyplot as plt
+from corerl.data.data import Transition, TransitionBatch
 
 
 class KNNCalibrationModel(BaseCalibrationModel):
-    def __init__(self, cfg: DictConfig, train_info):
-        self.test_trajectories = train_info['test_trajectories_cm']
+    def __init__(self, cfg: DictConfig, train_info: dict):
+        super().__init__(cfg, train_info)
         self.train_transitions = train_info['train_transitions_cm']
         test_transitions = train_info['test_transitions_cm']
-        self.reward_func = train_info['reward_func']
-        self.normalizer = train_info['normalizer']
 
         self.buffer = init_buffer(cfg.buffer)
         self.test_buffer = init_buffer(cfg.buffer)
@@ -37,9 +26,6 @@ class KNNCalibrationModel(BaseCalibrationModel):
 
         self.buffer.load(self.train_transitions)
         self.test_buffer.load(test_transitions)
-
-        self.endo_inds = cfg.endo_inds
-        self.exo_inds = cfg.exo_inds
 
         self.state_dim = len(self.train_transitions[0].state)
         self.action_dim = len(self.train_transitions[0].action)
@@ -55,31 +41,9 @@ class KNNCalibrationModel(BaseCalibrationModel):
         self.num_neighbors = cfg.num_neighbors
         self.train_itr = cfg.train_itr
 
-        self.max_rollout_len = cfg.max_rollout_len
-        self.steps_per_decision = cfg.steps_per_decision
-        self.num_test_rollouts = cfg.num_test_rollouts
-
         self._init_metric(cfg)
 
-    # def _norm(self, a: np.ndarray | torch.Tensor) -> torch:
-    #     if isinstance(a, torch.Tensor):
-    #         return torch.norm(a, p=2, dim=1)
-    #     elif isinstance(a, np.ndarray):
-    #         return np.linalg.norm(a)
-    #     else:
-    #         raise TypeError('Must be a Tensor or numpy array')
-    #
-    # def _euclidean_distance(self, a: np.ndarray | torch.Tensor, b: np.ndarray | torch.Tensor) -> float:
-    #     if isinstance(a, torch.Tensor):
-    #         assert isinstance(b, torch.Tensor)
-    #     elif isinstance(a, np.ndarray):
-    #         pass
-    #     return np.linalg.norm(a - b)
-    #
-    # def _model_metric(self, a: np.ndarray | torch.Tensor, b: np.ndarray | torch.Tensor) -> float:
-    #     return self._euclidean_distance(self.model(a), self.model(b))
-
-    def _init_metric(self, cfg) -> None:
+    def _init_metric(self, cfg: DictConfig) -> None:
         if self.learn_metric:  # learn a laplacian
             print("Learning Laplacian representation...")
             if self.include_actions:
@@ -89,23 +53,18 @@ class KNNCalibrationModel(BaseCalibrationModel):
 
             self.model = init_custom_network(cfg.model, input_dim=input_dim, output_dim=self.output_dim)
             self.optimizer = init_optimizer(cfg.optimizer, list(self.model.parameters()))
-        #     self.metric = self._model_metric
-        # else:
-        #     self.metric = self._euclidean_distance
 
     def _get_rep(self, state: np.ndarray) -> np.ndarray:
         if self.learn_metric:
             state_tensor = torch.from_numpy(state)
             with torch.no_grad():
-
                 rep_tensor = self.model(state_tensor)
-
             rep = to_np(rep_tensor)
             return rep
         else:
             return state
 
-    def train(self):
+    def train(self) -> None:
         if self.learn_metric:
             print("Learning Laplacian representation...")
             losses = []
@@ -124,14 +83,13 @@ class KNNCalibrationModel(BaseCalibrationModel):
 
                 self.optimizer.step()
 
-        print("Contructing lookup...")
+        print("Constructing lookup...")
         self._construct_lookup_continuous(self.train_transitions)
 
-    def _laplacian_loss(self, batch: TransitionBatch):
+    def _laplacian_loss(self, batch: TransitionBatch) -> torch.Tensor:
         """
         TODO: have this include actions in representations. Will need to modify Transition class to save the next transition.
         """
-        # leaving for when I'm fresh
         state_batch = batch.state
         next_state_batch = batch.next_state
 
@@ -158,26 +116,31 @@ class KNNCalibrationModel(BaseCalibrationModel):
 
         return loss
 
-    def _construct_lookup_discrete(self, transitions: list[Transition]):
+    def _construct_lookup_discrete(self, transitions: list[Transition]) -> None:
+        """
+        This function would be used to cache nearest neighbours in discrete action settings
+        """
         raise NotImplementedError
 
-    def _construct_lookup_continuous(self, transitions: list[Transition]):
-        if self.learn_metric:
-            states_np = [t.state for t in transitions]
-            states_np = np.array(states_np)
-            state_tensor = torch.from_numpy(states_np)
-            with torch.no_grad():
-                reps = self.model(state_tensor)
-            reps = to_np(reps)
-        else:
-            reps = [t.state for t in transitions]
-            reps = np.array(reps)
-
+    def _construct_lookup_continuous(self, transitions: list[Transition]) -> None:
+        state_reps = [self._get_rep(t.state) for t in transitions]
+        state_reps = np.array(state_reps)
+        actions = [t.action for t in transitions]
+        actions = np.array(actions)
+        reps = np.concatenate((state_reps, actions), axis=1)
         self.tree = skn.KDTree(reps)
 
+    def _get_next_endo_obs(self, state: np.ndarray, action: np.ndarray, kwargs: dict) -> np.ndarray:
+        state_rep = self._get_rep(state)
+        rep = np.concatenate((state_rep, action))
+        distances, indices = self.tree.query([rep], k=self.num_neighbors)
+        distances = np.squeeze(distances)
+        indices = np.squeeze(indices)
+        probs = 1 - (distances / np.sum(distances))
+        probs = probs / np.sum(probs)
+        sampled_idx = np.random.choice(indices, p=probs)
+        sampled_transition = self.train_transitions[sampled_idx]
+        next_obs = sampled_transition.next_obs[self.endo_inds]        # only need to return endogenous part of observation
+        next_obs = np.expand_dims(next_obs, 0)
 
-    def do_test_rollouts(self):
-        pass
-
-    def do_test_rollout(self):
-        pass
+        return next_obs
