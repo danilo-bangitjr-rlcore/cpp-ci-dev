@@ -110,25 +110,25 @@ def main(cfg: DictConfig) -> dict:
 
     # agent should be pretty bad here
     cm.do_test_rollouts(save_path)
-    returns = cm.do_agent_rollouts(agent, test_trajectories_agent, plot='pre_training',
-                                   plot_save_path=save_path)
-    print("returns", returns)
-    print("mean return pre-training: ", np.mean(returns))
-
-    # now, train the agent, is it better?
-    test_epochs = cfg.experiment.test_epochs
-    utils.offline_training(cfg,
-                           env,
-                           agent,
-                           trajectories_to_transitions(train_trajectories_agent),
-                           trajectories_to_transitions(test_trajectories_agent),
-                           save_path,
-                           test_epochs)
-
-    # evaluate the agent
-    returns = cm.do_agent_rollouts(agent, test_trajectories_agent,
-                                   plot='post_training',
-                                   plot_save_path=save_path)
+    # returns = cm.do_agent_rollouts(agent, test_trajectories_agent, plot='pre_training',
+    #                                plot_save_path=save_path)
+    # print("returns", returns)
+    # print("mean return pre-training: ", np.mean(returns))
+    #
+    # # now, train the agent, is it better?
+    # test_epochs = cfg.experiment.test_epochs
+    # utils.offline_training(cfg,
+    #                        env,
+    #                        agent,
+    #                        trajectories_to_transitions(train_trajectories_agent),
+    #                        trajectories_to_transitions(test_trajectories_agent),
+    #                        save_path,
+    #                        test_epochs)
+    #
+    # # evaluate the agent
+    # returns = cm.do_agent_rollouts(agent, test_trajectories_agent,
+    #                                plot='post_training',
+    #                                plot_save_path=save_path)
     print("returns", returns)
     print("mean return post-training: ", np.mean(returns))
 

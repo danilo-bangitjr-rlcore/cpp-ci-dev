@@ -1,24 +1,14 @@
 import torch
 import torch.nn as nn
-import numpy as np
-import random
 
 from tqdm import tqdm
-from copy import deepcopy
 from omegaconf import DictConfig
-from typing import Optional
 
-from corerl.agent.base import BaseAgent
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
-from corerl.component.network.utils import tensor, to_np
+from corerl.component.network.utils import tensor
 from corerl.calibration_models.base import BaseCalibrationModel
-from corerl.data.data import Trajectory
-from corerl.state_constructor.base import BaseStateConstructor
-import corerl.calibration_models.utils as utils
-
-import matplotlib.pyplot as plt
 
 
 class OneStep(BaseCalibrationModel):
@@ -44,7 +34,7 @@ class OneStep(BaseCalibrationModel):
         self.test_losses = []
 
 
-    def update(self):
+    def _update(self):
         batch = self.buffer.sample_mini_batch(self.batch_size)
         state_batch, action_batch, next_obs_batch = batch.state, batch.action, batch.next_obs
         # we only predict the next endogenous component of the observation
@@ -62,7 +52,7 @@ class OneStep(BaseCalibrationModel):
         print('Training model...')
         pbar = tqdm(range(self.train_itr))
         for _ in pbar:
-            self.update()
+            self._update()
             pbar.set_description("train loss: {:7.6f}".format(self.train_losses[-1]))
 
         return self.train_losses
@@ -76,87 +66,7 @@ class OneStep(BaseCalibrationModel):
                 y = self.model(x)
         return y
 
-    def do_test_rollouts(self, plot_save_path=None):
-        for n, test_traj in enumerate(self.test_trajectories):
-            last = test_traj.num_transitions - self.max_rollout_len
-            increase_idx = last // self.num_test_rollouts
-            start_idx = 0
-            for start in range(self.num_test_rollouts):
-                self.do_test_rollout(test_traj, start_idx=start_idx, plot=True, plot_save_path=plot_save_path)
-                start_idx += increase_idx
-
-    def _get_next_obs(self, state, action):
-        state_cm_tensor = tensor(state).reshape((1, -1))
+    def _get_next_obs(self, state, action, kwargs):
+        state_tensor = tensor(state).reshape((1, -1))
         action_tensor = tensor(action).reshape((1, -1))
-        return self.get_prediction(state_cm_tensor, action_tensor)
-
-
-    def do_test_rollout(self, traj: Trajectory,
-                        start_idx: Optional[int] = None,
-                        plot=False,
-                        plot_save_path=None) -> list[float]:
-        if start_idx is None:
-            start_idx = random.randint(0, traj.num_transitions - self.max_rollout_len - 1)
-
-        transitions = traj.transitions[start_idx:]
-        sc = deepcopy(traj.scs[start_idx])
-        state = transitions[0].state
-
-        losses = []
-        endo_obss = []  # the true endogenous observations
-        predicted_endo_obss = []  # the predicted endogenous observations
-        actions = []
-        rollout_len = min(len(transitions), self.max_rollout_len)
-
-        steps_until_decision_point = None
-        for step in range(rollout_len):
-            transition_step = transitions[step]
-            if steps_until_decision_point == None:
-                assert step == 0
-                # on the first iteration, start from the right number of actions remaining
-                steps_until_decision_point = transition_step.gamma_exponent
-            elif steps_until_decision_point == 0:
-                steps_until_decision_point = self.steps_per_decision
-
-            action = transition_step.action
-            next_obs = transition_step.next_obs
-            next_endo_obs = next_obs[self.endo_inds]
-
-            state_tensor = tensor(state).reshape((1, -1))
-            action_tensor = tensor(action).reshape((1, -1))
-
-            predicted_next_endo_obs = self.get_prediction(state_tensor, action_tensor)
-
-            # log the loss
-            loss_step = np.mean(np.abs(next_endo_obs - to_np(predicted_next_endo_obs)))
-            losses.append(loss_step)
-
-            # construct a fictitious observation using the predicted endogenous variables and the actual
-            # exogenous variables
-            new_fictitious_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
-
-            # update the state constructor
-            steps_until_decision_point -= 1
-            decision_point = steps_until_decision_point == 0
-            state = sc(new_fictitious_obs, action, decision_point=decision_point)
-
-            # log stuff
-            actions.append(action)
-            endo_obss.append(next_obs[0])
-            predicted_endo_obss.append(predicted_next_endo_obs)
-
-        if plot:
-            plt.plot(endo_obss, label='endo obs.')
-            plt.plot(actions, label='actions')
-
-            predicted_endo_obss = [np.squeeze(to_np(p)) for p in predicted_endo_obss]
-            plt.plot(predicted_endo_obss, label='predicted endo obs.')
-            plt.legend()
-
-            plt.xlabel("Rollout Step")
-            plt.savefig(plot_save_path / f"test_{start_idx}.png", bbox_inches='tight')
-            plt.clf()
-
-        return losses
-
-
+        return self.get_prediction(state_tensor, action_tensor)

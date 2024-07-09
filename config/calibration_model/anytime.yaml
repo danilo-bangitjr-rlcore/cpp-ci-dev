@@ -1,6 +1,6 @@
 defaults:
-  - /state_constructor: multi_trace
   - base
+  - override /state_constructor: multi_trace
   - _self_
 
 name : anytime
@@ -14,9 +14,6 @@ buffer:
 
 train_itr: 10000
 batch_size : 256
-
-endo_inds : [0] # indices of endogenous variables within the observation
-exo_inds : [1] # indices of exogenous variables within the observation
 
 model:
   layer_norm: 0
@@ -32,8 +29,3 @@ optimizer:
   lr: 0.0001
   weight_decay: 0.0
   name: adam
-
-max_rollout_len : 180
-steps_per_decision : ${interaction.steps_per_decision}
-interpolation : model
-num_test_rollouts : 20

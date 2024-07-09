@@ -1,22 +1,14 @@
-import torch
-import torch.nn as nn
 import numpy as np
 import random
 import matplotlib.pyplot as plt
 
-from tqdm import tqdm
 from copy import deepcopy
-from omegaconf import DictConfig
 from typing import Optional
-
-from corerl.component.network.utils import tensor, to_np
-from corerl.data.data import Trajectory
-from corerl.state_constructor.base import BaseStateConstructor
-import corerl.calibration_models.utils as utils
-
 from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 
+import corerl.calibration_models.utils as utils
+from corerl.component.network.utils import to_np
 from corerl.data.data import Trajectory
 from corerl.agent.base import BaseAgent
 
@@ -46,7 +38,7 @@ class BaseCalibrationModel(ABC):
             increase_idx = last // self.num_test_rollouts
             start_idx = 0
             for start in range(self.num_test_rollouts):
-                self._do_rollout(test_traj, start_idx=start_idx, plot=True, plot_save_path=plot_save_path)
+                self._do_rollout(test_traj, start_idx=start_idx, plot='test', plot_save_path=plot_save_path)
                 start_idx += increase_idx
 
     def do_agent_rollouts(self, agent: BaseAgent, trajectories_agent: list[Trajectory], plot=None, plot_save_path=None):
@@ -80,6 +72,16 @@ class BaseCalibrationModel(ABC):
                     plot=None,
                     plot_save_path=None,
                     ) -> float:
+
+        """
+        This is a possibly general version of doing a rollout with the calibration model. You
+        may use this version by implementing _get_next_obs() in subclasses of BaseCalibrationModel.
+        However, you may also wish to override this method in subclasses if the rollout does not fit
+        this template.
+
+        This method can be used with or without an agent. If no agent is given, actions are selected
+        according to the traj_cm.
+        """
 
         if start_idx is None:
             start_idx = random.randint(0, traj_cm.num_transitions - self.max_rollout_len - 1)
@@ -117,8 +119,7 @@ class BaseCalibrationModel(ABC):
 
         for step in range(rollout_len):
             transition_step = transitions_cm[step]
-            if steps_until_decision_point == None:
-                assert step == 0
+            if steps_until_decision_point is None or not use_agent:
                 steps_until_decision_point = transition_step.gamma_exponent
             elif steps_until_decision_point == 0:
                 steps_until_decision_point = self.steps_per_decision
@@ -128,7 +129,10 @@ class BaseCalibrationModel(ABC):
 
             next_obs = transition_step.next_obs  # the true next observation
             next_endo_obs = next_obs[self.endo_inds]  # the endogenous component of the true next observation
-            predicted_next_endo_obs = self._get_next_obs(state_cm, action)
+            action_duration = steps_until_decision_point / self.steps_per_decision
+
+            kwargs = {'duration': action_duration}
+            predicted_next_endo_obs = self._get_next_obs(state_cm, action, kwargs)
 
             # log the loss
             loss_step = np.mean(np.abs(next_endo_obs - to_np(predicted_next_endo_obs)))
@@ -136,15 +140,15 @@ class BaseCalibrationModel(ABC):
 
             # construct a fictitious observation using the predicted endogenous variables and the actual
             # exogenous variables
-            new_fictitious_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
+            fictitious_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
 
             # update the state constructors
             steps_until_decision_point -= 1
             decision_point = steps_until_decision_point == 0
-            state_cm = sc_cm(new_fictitious_obs, action, decision_point=decision_point)
+            state_cm = sc_cm(fictitious_obs, action, decision_point=decision_point)
 
             if use_agent:
-                state_agent = sc_agent(new_fictitious_obs, action, decision_point=decision_point)
+                state_agent = sc_agent(fictitious_obs, action, decision_point=decision_point)
 
             reward_info = {}
             if prev_action is None:
@@ -155,7 +159,7 @@ class BaseCalibrationModel(ABC):
 
             # NOTE: Not sure if this denormalizer should be here.
             # TODO: make this return "regular RL" reward if desired
-            denormalized_obs = self.normalizer.obs_normalizer.denormalize(new_fictitious_obs)
+            denormalized_obs = self.normalizer.obs_normalizer.denormalize(fictitious_obs)
             r = self.reward_func(denormalized_obs, **reward_info)
             r_norm = self.normalizer.reward_normalizer(r)
             g += self.gamma ** step * r_norm
@@ -181,7 +185,7 @@ class BaseCalibrationModel(ABC):
         return g
 
     @abstractmethod
-    def _get_next_obs(self, state, action):
+    def _get_next_obs(self, state, action, kwargs):
         raise NotImplementedError
 
     def _get_action(self, prev_action, transition, decision_point, use_agent=False, agent=None, state_agent=None):
