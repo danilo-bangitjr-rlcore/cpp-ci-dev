@@ -12,7 +12,7 @@ buffer:
   device: cpu
   seed: ${experiment.seed}
 
-train_itr: 100000
+train_itr: 10000
 batch_size : 256
 
 model:
@@ -30,7 +30,7 @@ optimizer:
   weight_decay: 0.0
   name: adam
 
-learn_metric : True
+learn_metric : False
 include_actions : False
 output_dim : 10
 num_neighbors : 3
