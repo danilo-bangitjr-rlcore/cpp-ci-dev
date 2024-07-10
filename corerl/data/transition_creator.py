@@ -157,9 +157,6 @@ class AnytimeTransitionCreator(object):
                         transition.reward = reward_sum / self.steps_per_decision
                         transition.n_step_reward = transition.reward
                         curr_chunk_agent_transitions += [transition]
-
-                        print(transition)
-                        print(new_transitions[0])
                 else:
                     curr_chunk_agent_transitions += new_transitions
 
