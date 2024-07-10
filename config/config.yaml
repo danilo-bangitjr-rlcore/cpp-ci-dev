@@ -41,6 +41,7 @@ transition_creator:
   gamma : ${experiment.gamma}
   steps_per_decision : ${interaction.steps_per_decision}
   n_step : ${interaction.n_step}
+  only_dp_transitions :  ${interaction.only_dp_transitions}
 
 # Uncomment the alerts or evals you'd like to use in the defaults list above
 alerts:

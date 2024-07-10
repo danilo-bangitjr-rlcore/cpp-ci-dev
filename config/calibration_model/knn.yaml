@@ -3,18 +3,17 @@ defaults:
   - override /state_constructor: multi_trace
   - _self_
 
-name : one_step
+name : knn
 
 buffer:
-  batch_size: 64
+  batch_size: 256
   memory: 100000
   name: uniform
   device: cpu
   seed: ${experiment.seed}
 
-
 train_itr: 10000
-batch_size : 64
+batch_size : 256
 
 model:
   layer_norm: 0
@@ -30,3 +29,10 @@ optimizer:
   lr: 0.0001
   weight_decay: 0.0
   name: adam
+
+learn_metric : False
+include_actions : False
+output_dim : 10
+num_neighbors : 3
+beta : 0.5
+zeta : 0.5

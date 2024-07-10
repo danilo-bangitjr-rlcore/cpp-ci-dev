@@ -23,7 +23,9 @@ class IQL(BaseAC):
         self.v_critic = init_v_critic(cfg.critic, state_dim)
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
-        self.buffer = init_buffer(cfg.buffer)
+        # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
+        self.critic_buffer = init_buffer(cfg.buffer)
+        self.policy_buffer = init_buffer(cfg.buffer)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device)
@@ -32,7 +34,10 @@ class IQL(BaseAC):
         return action
 
     def update_buffer(self, transition: Transition) -> None:
-        self.buffer.feed(transition)
+        self.critic_buffer.feed(transition)
+        # Only train policy on states at decision points
+        if transition.state_dp:
+            self.policy_buffer.feed(transition)
 
     def compute_actor_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states = batch.state
@@ -66,7 +71,7 @@ class IQL(BaseAC):
 
     def update_critic(self) -> None:
         for _ in range(self.n_critic_updates):
-            batch = self.buffer.sample()
+            batch = self.critic_buffer.sample()
 
             v_loss = self.compute_v_loss(batch)
             self.v_critic.update(v_loss)
@@ -76,13 +81,15 @@ class IQL(BaseAC):
 
     def update_actor(self) -> None:
         for _ in range(self.n_actor_updates):
-            batch = self.buffer.sample()
+            batch = self.policy_buffer.sample()
             actor_loss = self.compute_actor_loss(batch)
             self.actor.update(actor_loss)
 
     def update(self) -> None:
-        self.update_critic()
-        self.update_actor()
+        if self.critic_buffer.size > 0:
+            self.update_critic()
+        if self.policy_buffer.size > 0:
+            self.update_actor()
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
@@ -96,9 +103,13 @@ class IQL(BaseAC):
         q_critic_path = path / "q_critic"
         self.q_critic.save(q_critic_path)
 
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "wb") as f:
-            pkl.dump(self.buffer, f)
+        critic_buffer_path = path / "critic_buffer.pkl"
+        with open(critic_buffer_path, "wb") as f:
+            pkl.dump(self.critic_buffer, f)
+
+        policy_buffer_path = path / "policy_buffer.pkl"
+        with open(policy_buffer_path, "wb") as f:
+            pkl.dump(self.policy_buffer, f)
 
     def load(self, path: Path) -> None:
         actor_path = path / "actor"
@@ -110,6 +121,10 @@ class IQL(BaseAC):
         q_critic_path = path / "q_critic"
         self.q_critic.load(q_critic_path)
 
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "rb") as f:
-            self.buffer = pkl.load(f)
+        critic_buffer_path = path / "critic_buffer.pkl"
+        with open(critic_buffer_path, "rb") as f:
+            self.critic_buffer = pkl.load(f)
+
+        policy_buffer_path = path / "policy_buffer.pkl"
+        with open(policy_buffer_path, "rb") as f:
+            self.policy_buffer = pkl.load(f)

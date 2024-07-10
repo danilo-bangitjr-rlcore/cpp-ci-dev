@@ -48,8 +48,8 @@ class CompositeStateConstructor(BaseStateConstructor):
         self.sc = None  # a placeholder for the final component in the graph
         raise NotImplementedError
 
-    def __call__(self, obs: np.ndarray | torch.Tensor, action: np.ndarray | torch.Tensor, initial_state=False,
-                 **kwargs) -> np.ndarray | torch.Tensor:
+    def __call__(self, obs: np.ndarray | torch.Tensor, action: np.ndarray | torch.Tensor,
+                 initial_state=False, get_state_dim=False, **kwargs) -> np.ndarray | torch.Tensor:
 
         if isinstance(obs, np.ndarray):
             assert isinstance(action, np.ndarray), 'obs and action must have the same type'
@@ -61,7 +61,7 @@ class CompositeStateConstructor(BaseStateConstructor):
             zero_fn = torch.zeros
 
         a_obs = concat_fn([action, obs])  # convention: action goes first in the state array
-        state = self._call_graph(a_obs, **kwargs)
+        state = self._call_graph(a_obs, get_state_dim=get_state_dim, **kwargs)  # get_state_dim is a flag whether we are calling just for the purpose of getting the state dim
         self._reset_graph_call()
         init_array = zero_fn(1, dtype=bool)  # whether this is an initial state
         init_array[0] = initial_state
@@ -69,7 +69,7 @@ class CompositeStateConstructor(BaseStateConstructor):
         return state
 
     def get_state_dim(self, obs: np.ndarray, action: np.ndarray) -> int:
-        state = self(obs, action)
+        state = self(obs, action, get_state_dim=True)
         assert len(state.shape)  # not sure if this will always be necessary or desired. But we are assuming that
         state_dim = state.shape[0]
         self._reset_graph_state()

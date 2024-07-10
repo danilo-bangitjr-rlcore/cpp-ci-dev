@@ -7,6 +7,8 @@ def init_alert(cfg: DictConfig, cumulant_start_ind: int, alert_args: dict) -> Ba
     """
     config files: corerl/config/alerts
     """
+
+    print(cfg)
     name = cfg.name
 
     if name == "action_value":

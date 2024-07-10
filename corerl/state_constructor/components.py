@@ -223,13 +223,13 @@ class ErrorIntegral(BaseStateConstructorComponent):
         self.queue = deque([], self.memory)
 
 
-class Anytime(BaseStateConstructorComponent):
+class AnytimeCountDown(BaseStateConstructorComponent):
     def __init__(self, steps_per_decision: int, parents: list | None = None):
         super().__init__(parents=parents)
         self.steps_per_decision = steps_per_decision
         self.steps_since_decision = 0
 
-    def process_observation(self, obs_parents: list, decision_point=False, steps_since_decision=-1) -> np.ndarray:
+    def process_observation(self, obs_parents: list, decision_point=False, steps_since_decision=-1, **kwargs) -> np.ndarray:
         if steps_since_decision >= 0:
             self.steps_since_decision = steps_since_decision
         elif decision_point:
@@ -237,10 +237,34 @@ class Anytime(BaseStateConstructorComponent):
         else:
             self.steps_since_decision += 1
 
-        countdown = 1 - self.steps_since_decision/self.steps_per_decision
+        countdown = 1 - self.steps_since_decision / self.steps_per_decision
         assert 1 >= countdown >= 0, 'countdown must be between 0 and 1'
-        indicator = 1 if decision_point else 0
-        return np.array([countdown])  # np.array([countdown, indicator])
+        return np.array([countdown])
+
+    def _clear_state(self) -> None:
+        self.steps_since_decision = 0
+
+
+class AnytimeOneHot(BaseStateConstructorComponent):
+    def __init__(self, steps_per_decision: int, parents: list | None = None):
+        super().__init__(parents=parents)
+        self.steps_per_decision = steps_per_decision
+        self.steps_since_decision = 0
+
+    def process_observation(self, obs_parents: list, decision_point=False, steps_since_decision=-1, get_state_dim=False, **kwargs) -> np.ndarray:
+        one_hot = np.zeros(self.steps_per_decision)
+        if get_state_dim:
+            return one_hot
+
+        if steps_since_decision >= 0:
+            self.steps_since_decision = steps_since_decision
+        elif decision_point:
+            self.steps_since_decision = 0
+        else:
+            self.steps_since_decision += 1
+
+        one_hot[self.steps_since_decision] = 1
+        return one_hot
 
     def _clear_state(self) -> None:
         self.steps_since_decision = 0
