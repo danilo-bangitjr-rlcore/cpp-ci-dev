@@ -142,15 +142,24 @@ class AnytimeTransitionCreator(object):
                 new_transitions = self._make_decision_window_transitions(curr_decision_obs_transitions, states)
 
                 if self.only_dp_transitions:
-                    transition = deepcopy(new_transitions[0])
-                    transition.gamma_exponent = 1
-                    transition.next_obs = transition.boot_obs
-                    transition.next_state = transition.boot_state
+                    # the first transition could have been filtered out by self.get_train_transitions(), so
+                    # transitions[0].state_dp checks if it was that original first transition returned by
+                    # self.transition_creator.make_online_transitions()
+                    if new_transitions[0].state_dp:
+                        transition = deepcopy(new_transitions[0])
+                        transition.gamma_exponent = 1
+                        transition.next_obs = transition.boot_obs
+                        transition.next_state_dp = transition.boot_state_dp
+                        transition.next_state = transition.boot_state
 
-                    reward_sum = sum([t.reward for t in new_transitions])
+                        reward_sum = sum([t.reward for t in new_transitions])
 
-                    transition.reward = reward_sum / self.steps_per_decision
-                    curr_chunk_agent_transitions += [transition]
+                        transition.reward = reward_sum / self.steps_per_decision
+                        transition.n_step_reward = transition.reward
+                        curr_chunk_agent_transitions += [transition]
+
+                        print(transition)
+                        print(new_transitions[0])
                 else:
                     curr_chunk_agent_transitions += new_transitions
 
@@ -169,12 +178,13 @@ class AnytimeTransitionCreator(object):
         curr_chunk_alert_transitions = curr_chunk_alert_transitions[warmup:]
 
         if return_scs:
-            # todo: scs need to match the states here
-            new_scs = new_scs[agent_warmup:]
-
-            print(len(new_scs))
-            print(len(curr_chunk_agent_transitions))
-            assert len(new_scs) == len(curr_chunk_agent_transitions)
+            """
+              TODO: scs need to match the states here. There is currently a state for each observation, not each state,
+              but there should be for each state.  
+              """
+            raise NotImplementedError
+            # new_scs = new_scs[agent_warmup:]
+            # assert len(new_scs) == len(curr_chunk_agent_transitions)
 
         return curr_chunk_agent_transitions, curr_chunk_alert_transitions, new_scs
 
