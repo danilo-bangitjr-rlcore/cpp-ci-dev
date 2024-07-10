@@ -229,7 +229,7 @@ class AnytimeCountDown(BaseStateConstructorComponent):
         self.steps_per_decision = steps_per_decision
         self.steps_since_decision = 0
 
-    def process_observation(self, obs_parents: list, decision_point=False, steps_since_decision=-1) -> np.ndarray:
+    def process_observation(self, obs_parents: list, decision_point=False, steps_since_decision=-1, **kwargs) -> np.ndarray:
         if steps_since_decision >= 0:
             self.steps_since_decision = steps_since_decision
         elif decision_point:
@@ -251,7 +251,7 @@ class AnytimeOneHot(BaseStateConstructorComponent):
         self.steps_per_decision = steps_per_decision
         self.steps_since_decision = 0
 
-    def process_observation(self, obs_parents: list, decision_point=False, steps_since_decision=-1, get_state_dim=False) -> np.ndarray:
+    def process_observation(self, obs_parents: list, decision_point=False, steps_since_decision=-1, get_state_dim=False, **kwargs) -> np.ndarray:
         one_hot = np.zeros(self.steps_per_decision)
         if get_state_dim:
             return one_hot
