@@ -140,7 +140,6 @@ def set_env_obs_space(env: Env, df: pd.DataFrame, dl: BaseDataLoader):
 def load_df_from_csv(cfg: DictConfig, dl: BaseDataLoader) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     output_path = Path(cfg.offline_data.output_path)
 
-    # TODO test this
     def _create_df(dl_, filenames):
         return dl_.load_data(filenames)
 
@@ -213,7 +212,7 @@ def get_offline_transitions(cfg: DictConfig,
                             transition_creator: AnytimeTransitionCreator,
                             return_train_scs: bool = False,
                             return_test_scs: bool = False) -> tuple[
-    list[Transition], list[Transition], list[BaseStateConstructor]]:
+    list[Transition], list[Transition],  list[Transition], list[Transition], list[BaseStateConstructor]]:
     """
     Takes observation transitions and produces offline transitions (including state) using the interaction's state
     constructor=
@@ -223,7 +222,7 @@ def get_offline_transitions(cfg: DictConfig,
     def create_transitions(obs_transitions, return_scs):
         return transition_creator.make_offline_transitions(obs_transitions, sc, return_scs, use_pbar=True)
 
-    train_transitions, _ = load_or_create(root=output_path,
+    agent_train_transitions, alert_train_transitions, _ = load_or_create(root=output_path,
                                           cfgs=[cfg.data_loader, cfg.state_constructor, cfg.transition_creator,
                                                 cfg.alerts, cfg.env],
                                           prefix='train_transitions',
@@ -231,7 +230,7 @@ def get_offline_transitions(cfg: DictConfig,
                                           args=[train_obs_transitions, return_train_scs])
 
     if test_obs_transitions is not None:
-        test_transitions, test_scs = load_or_create(root=output_path,
+        agent_test_transitions, alert_test_transitions, test_scs = load_or_create(root=output_path,
                                                     cfgs=[cfg.data_loader, cfg.state_constructor,
                                                           cfg.transition_creator,
                                                           cfg.alerts, cfg.env],
@@ -240,11 +239,13 @@ def get_offline_transitions(cfg: DictConfig,
                                                     args=[test_obs_transitions, return_test_scs])
 
     else:
-        test_transitions = None
+        agent_test_transitions = None
+        alert_test_transitions = None
         test_scs = None
 
-    print(f"Loaded {len(train_transitions)} train and {len(test_transitions)} test transitions. ")
-    return train_transitions, test_transitions, test_scs
+    print(f"Loaded {len(agent_train_transitions)} agent train and {len(agent_test_transitions)} agent test transitions. ")
+    print(f"Loaded {len(alert_train_transitions)} alert train and {len(alert_test_transitions)} alert test transitions. ")
+    return agent_train_transitions, agent_test_transitions, alert_train_transitions, alert_test_transitions, test_scs
 
 
 def get_offline_trajectories(cfg: DictConfig,
@@ -375,15 +376,16 @@ def online_deployment(cfg: DictConfig,
     action = agent.get_action(state)  # initial action
     print('Starting online training...')
     for j in pbar:
-        transitions, train_transitions, alert_info, env_info = interaction.step(action)
+        transitions, agent_train_transitions, alert_train_transitions, alert_info, env_info = interaction.step(action)
 
-        for transition in train_transitions:
+        for transition in agent_train_transitions:
             agent.update_buffer(transition)
+
+        for transition in alert_train_transitions:
             alerts.update_buffer(transition)
 
-        if agent.buffer.size > 0:
-            agent.update()
-            alerts.update()
+        agent.update()
+        alerts.update()
 
         alert_info_list.append(alert_info)
 
@@ -445,20 +447,23 @@ def offline_anytime_deployment(cfg: DictConfig,
     pbar = tqdm(range(max_steps))
     alert_info_list = []
     print('Starting online anytime training with offline dataset...')
+
+
     for j in pbar:
-        transitions, train_transitions, alert_info, _ = interaction.step()  # does not need an action from the agent
+        transitions, agent_train_transitions, alert_train_transitions, alert_info, _ = interaction.step()  # does not need an action from the agent
 
         if transitions is None:
             print("Reached End Of Offline Eval Data")
             break
 
-        for transition in train_transitions:
+        for transition in agent_train_transitions:
             agent.update_buffer(transition)
+
+        for transition in alert_train_transitions:
             alerts.update_buffer(transition)
 
-        if agent.buffer.size > 0:
-            agent.update()
-            alerts.update()
+        agent.update()
+        alerts.update()
 
         alert_info_list.append(alert_info)
 

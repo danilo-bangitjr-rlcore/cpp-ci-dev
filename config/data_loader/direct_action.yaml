@@ -11,3 +11,4 @@ date_col_name : Date
 max_time_delta: 10 # Maximum allowable time between consecutive rows in a DF. If this threshold is exceeded, data_gap = True
 obs_length : ${interaction.obs_length}
 steps_per_decision : ${interaction.steps_per_decision}
+only_dp_transitions :  ${interaction.only_dp_transitions}

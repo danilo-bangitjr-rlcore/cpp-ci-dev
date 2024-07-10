@@ -1,4 +1,6 @@
+defaults:
+   - multi_trace
+
 name: anytime_multi_trace
-trace_values: [] #[0.995, 0.99, 0.95, 0.9, .8, .7]
-warmup : 300
+representation : countdown # alternativly, one_hot
 steps_per_decision : ${interaction.steps_per_decision}

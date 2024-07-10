@@ -26,6 +26,7 @@ env:
 
 interaction :
   obs_length: 1
+  only_dp_transitions : True
   steps_per_decision: 5
   n_step : 0
   action_normalizer:
@@ -46,8 +47,6 @@ agent:
       lr : 0.001
   buffer:
       batch_size : 64
-
-alerts:
 
 data_loader:
   offline_data_path: offline_data/saturation/csv

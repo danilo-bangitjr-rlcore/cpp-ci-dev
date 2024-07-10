@@ -16,6 +16,7 @@ class BaseAgent(ABC):
         self.seed = cfg.seed
         self.n_updates = cfg.n_updates  # how many updates to apply each time update() is called
         self.freezer_freq = cfg.freezer_freq  # how often to save to freezer. This counter is not used currently.
+        self.critic_buffer = None
 
     @abstractmethod
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:  # must return a numpy array, not a tensor.

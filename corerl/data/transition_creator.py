@@ -16,6 +16,7 @@ class AnytimeTransitionCreator(object):
         self.n_step = cfg.n_step
         self.alerts = alerts
         self.alert_gammas = np.array(self.alerts.get_discount_factors())
+        self.only_dp_transitions = cfg.only_dp_transitions
 
     def make_offline_trajectories(self,
                                   obs_transitions: list[ObsTransition],
@@ -43,7 +44,7 @@ class AnytimeTransitionCreator(object):
                 if use_pbar:
                     pbar.update(1)
 
-            curr_chunk_transitions, new_scs = self._make_offline_transitions_for_chunk(curr_chunk_obs_transitions,
+            curr_chunk_transitions, _, new_scs = self._make_offline_transitions_for_chunk(curr_chunk_obs_transitions,
                                                                                        sc, return_scs, warmup)
 
             new_traj = Trajectory()
@@ -62,12 +63,13 @@ class AnytimeTransitionCreator(object):
                                  return_scs: bool = False,
                                  warmup: int = 0,
                                  use_pbar: bool = False) -> tuple[
-        list[Trajectory], Optional[list[BaseStateConstructor]]]:
+        list[Transition], list[Transition], Optional[list[BaseStateConstructor]]]:
         """
         Given a dataset of offline observation transitions, make the anytime transitions.
         """
         obs_transitions = deepcopy(obs_transitions)
-        transitions = []
+        agent_transitions = []
+        alert_transitions = []
         done = False
         transition_idx = 0
         if use_pbar:
@@ -85,12 +87,13 @@ class AnytimeTransitionCreator(object):
                 if use_pbar:
                     pbar.update(1)
 
-            curr_chunk_transitions, new_scs = self._make_offline_transitions_for_chunk(curr_chunk_obs_transitions,
+            curr_chunk_agent_transitions, curr_chunk_alert_transitions, new_scs = self._make_offline_transitions_for_chunk(curr_chunk_obs_transitions,
                                                                                        sc, return_scs, warmup)
-            transitions += curr_chunk_transitions
+            agent_transitions += curr_chunk_agent_transitions
+            alert_transitions += curr_chunk_alert_transitions
             scs += new_scs
 
-        return transitions, scs
+        return agent_transitions, alert_transitions, scs
 
     def _make_offline_transitions_for_chunk(self,
                                             curr_chunk_obs_transitions: list[ObsTransition],
@@ -101,7 +104,8 @@ class AnytimeTransitionCreator(object):
         Produce Anytime transitions for a continuous chunk of observation transitions (no data gaps) from an offline dataset
         """
         sc.reset()
-        curr_chunk_transitions = []
+        curr_chunk_agent_transitions = []
+        curr_chunk_alert_transitions = []
         new_scs = []
 
         # Using ObsTransition.next_obs to create remaining states so creating first state with ObsTransition.obs
@@ -137,20 +141,51 @@ class AnytimeTransitionCreator(object):
 
                 new_transitions = self._make_decision_window_transitions(curr_decision_obs_transitions, states)
 
-                curr_chunk_transitions += new_transitions
+                if self.only_dp_transitions:
+                    # the first transition could have been filtered out by self.get_train_transitions(), so
+                    # transitions[0].state_dp checks if it was that original first transition returned by
+                    # self.transition_creator.make_online_transitions()
+                    # unlike in anytime_interaction, we are not filtering transitions, so no need to check if it's
+                    # length is greater than 0
+                    if new_transitions[0].state_dp:
+                        transition = deepcopy(new_transitions[0])
+                        transition.gamma_exponent = 1
+                        transition.next_obs = transition.boot_obs
+                        transition.next_state_dp = transition.boot_state_dp
+                        transition.next_state = transition.boot_state
+
+                        reward_sum = sum([t.reward for t in new_transitions])
+
+                        transition.reward = reward_sum / self.steps_per_decision
+                        transition.n_step_reward = transition.reward
+                        curr_chunk_agent_transitions += [transition]
+                else:
+                    curr_chunk_agent_transitions += new_transitions
+
+                curr_chunk_alert_transitions += new_transitions
                 curr_decision_obs_transitions = []
                 states = [next_state]
 
         # Remove the transitions that were created during the state constructor warmup period
-        curr_chunk_transitions = curr_chunk_transitions[warmup:]
 
-        assert len(curr_chunk_obs_transitions) == len(curr_chunk_transitions) + warmup
+        if self.only_dp_transitions:
+            agent_warmup = warmup // self.steps_per_decision
+        else:
+            agent_warmup = warmup
+
+        curr_chunk_agent_transitions = curr_chunk_agent_transitions[agent_warmup:]
+        curr_chunk_alert_transitions = curr_chunk_alert_transitions[warmup:]
 
         if return_scs:
-            new_scs = new_scs[warmup:]
-            assert len(new_scs) == len(curr_chunk_transitions)
+            """
+              TODO: scs need to match the states here. There is currently a state for each observation, not each state,
+              but there should be for each state.  
+              """
+            raise NotImplementedError
+            # new_scs = new_scs[agent_warmup:]
+            # assert len(new_scs) == len(curr_chunk_agent_transitions)
 
-        return curr_chunk_transitions, new_scs
+        return curr_chunk_agent_transitions, curr_chunk_alert_transitions, new_scs
 
     def make_online_transitions(self, curr_decision_obs_transitions: list[ObsTransition],
                                 curr_decision_states: list[np.ndarray]):
@@ -158,7 +193,7 @@ class AnytimeTransitionCreator(object):
         assert len(curr_decision_states) == len(curr_decision_obs_transitions) + 1
         action = curr_decision_obs_transitions[0].action
         for obs_transition in curr_decision_obs_transitions:
-            assert obs_transition.action == action
+            assert np.isclose(obs_transition.action, action)
 
         new_transitions = self._make_decision_window_transitions(curr_decision_obs_transitions, curr_decision_states)
 
@@ -247,8 +282,10 @@ class AnytimeTransitionCreator(object):
 
             if self.alerts.get_dim() > 0:
                 np_n_step_cumulants = self.update_n_step_cumulants(n_step_cumulants, cumulant, self.alert_gammas)
+                cumulant_i = np_n_step_cumulants[-1]
             else:
-                np_n_step_cumulants = np.zeros(1)
+                np_n_step_cumulants = np.zeros(0)
+                cumulant_i = np_n_step_cumulants
 
             transition = Transition(
                 obs,
@@ -258,7 +295,7 @@ class AnytimeTransitionCreator(object):
                 next_state,  # the immediate next state
                 reward,  # the reward
                 np_n_step_rewards[-1].item(),
-                np_n_step_cumulants[-1],  # the array of cumulants
+                cumulant_i,  # the array of cumulants
                 boot_obs_queue[-1],  # the obs we bootstrap off
                 boot_state_queue[-1],  # the state we bootstrap off
                 term,
