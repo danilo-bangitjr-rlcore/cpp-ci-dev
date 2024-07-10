@@ -145,6 +145,8 @@ class AnytimeTransitionCreator(object):
                     # the first transition could have been filtered out by self.get_train_transitions(), so
                     # transitions[0].state_dp checks if it was that original first transition returned by
                     # self.transition_creator.make_online_transitions()
+                    # unlike in anytime_interaction, we are not filtering transitions, so no need to check if it's
+                    # length is greater than 0
                     if new_transitions[0].state_dp:
                         transition = deepcopy(new_transitions[0])
                         transition.gamma_exponent = 1
