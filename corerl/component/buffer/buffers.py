@@ -25,7 +25,7 @@ class UniformBuffer:
 
     def feed(self, experience: Transition) -> None:
         if self.data is None:
-            # Lazy instatiation
+            # Lazy instantiation
             data_size = _get_size(experience)
             self.data = tuple([
                 torch.empty(
@@ -36,20 +36,18 @@ class UniformBuffer:
         for i, elem in enumerate(experience):
             self.data[i][self.pos] = _to_tensor(elem)
 
-        self.pos = (self.pos + 1) % self.memory
-
+        self.pos += 1
         if not self.full and self.pos == self.memory:
             self.full = True
+        self.pos %= self.memory
 
     def sample_mini_batch(self, batch_size: int = None) -> TransitionBatch:
-        if self.data is None or len(self.data) == 0:
+        if self.size == 0:
             return None
         if batch_size is None:
             batch_size = self.batch_size
 
-        sampled_indices = self.rng.randint(
-            0, len(self.data) if self.full else self.pos, batch_size,
-        )
+        sampled_indices = self.rng.randint(0, self.size, batch_size)
 
         sampled_data = [
             self.data[i][sampled_indices] for i in range(len(self.data))
@@ -58,7 +56,7 @@ class UniformBuffer:
         return self._prepare(sampled_data)
 
     def sample_batch(self) -> TransitionBatch:
-        if len(self.data) == 0 or self.data is None:
+        if self.size == 0:
             return None
 
         if self.full:
@@ -90,14 +88,11 @@ class UniformBuffer:
 
     @property
     def size(self) -> int:
-        if self.data is None:
-            return 0
-        else:
-            return len(self.data)
+        return self.memory if self.full else self.pos
 
     def reset(self) -> None:
-        self.data = []
         self.pos = 0
+        self.full = False
 
     def get_all_data(self) -> list:
         return self.data
