@@ -6,7 +6,8 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
-from sqlalchemy.types import JSON, PickleType, DateTime
+from sqlalchemy.types import JSON, PickleType, DateTime, LargeBinary
+from sqlalchemy.dialects.mysql import LONGBLOB
 from typing import Any
 from torch import Tensor
 from datetime import datetime
@@ -58,7 +59,8 @@ class Base(DeclarativeBase):
     type_annotation_map = {
         Transition: PickleType, # -> backend datatype can vary
         list: JSON,
-        dict: PickleType,
+        dict: PickleType(impl=LONGBLOB), # to store large network statedicts
+        # dict: LargeBinary(length=16777216)
     }
 
 class SQLTransition(Base):

@@ -47,7 +47,7 @@ def get_transition():
 
 def init_critic():
     with initialize(version_base=None, config_path="../config/agent/critic/critic_network"):
-        critic_cfg = compose(config_name="ensemble", overrides=["base.arch=[16,16]", "ensemble=1"])
+        critic_cfg = compose(config_name="ensemble", overrides=["base.arch=[256,256]", "ensemble=1"])
 
     critic = init_critic_network(cfg=critic_cfg, input_dim=21, output_dim=1)
         

@@ -19,6 +19,7 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 from sqlalchemy.types import JSON, PickleType, DateTime
+from sqlalchemy.dialects.mysql import LONGBLOB
 from typing import Any
 from torch import Tensor
 from datetime import datetime
@@ -68,7 +69,7 @@ class Base(DeclarativeBase):
     type_annotation_map = {
         Transition: PickleType, # -> backend datatype can vary
         list: JSON,
-        dict: PickleType,
+        dict: PickleType(impl=LONGBLOB), # to store large network statedicts
     }
 
 class SQLTransition(Base):
@@ -122,7 +123,7 @@ def get_transition():
 
 def init_critic():
     with initialize(version_base=None, config_path="../../config/agent/critic/critic_network"):
-        critic_cfg = compose(config_name="ensemble", overrides=["base.arch=[16,16]", "ensemble=1"])
+        critic_cfg = compose(config_name="ensemble", overrides=["base.arch=[256,256]", "ensemble=1"])
 
     critic = init_critic_network(cfg=critic_cfg, input_dim=21, output_dim=1)
         
@@ -134,8 +135,12 @@ def get_run_id(engine):
         con=engine,
     )
 
-    run_id = df["run"].iloc[0]
-    new_run_id = run_id + 1
+    if len(df) == 0:
+        # first entry
+        new_run_id = 0
+    else:
+        run_id = df["run"].iloc[0]
+        new_run_id = run_id + 1
 
     return new_run_id
 
