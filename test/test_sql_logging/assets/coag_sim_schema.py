@@ -51,6 +51,10 @@ class Transition:
 
 
 class Base(DeclarativeBase):
+    """
+    This base class tells SQLAlchemy to create SQL tables 
+    for each class that inherits from it.
+    """
     type_annotation_map = {
         Transition: PickleType, # -> backend datatype can vary
         list: JSON,
@@ -72,8 +76,8 @@ class SQLTransition(Base):
     transition: Mapped[Transition]
     exclude: Mapped[bool] = mapped_column(default=False)
     raw_transition_info: Mapped["RawTransition"] = relationship(back_populates="transitions")
-    run: Mapped[int] #= mapped_column(ForeignKey("raw_transition_info.run"))
-    step: Mapped[int] # = mapped_column(ForeignKey("raw_transition_info.step"))
+    run: Mapped[int]
+    step: Mapped[int]
     __table_args__ = (
         ForeignKeyConstraint(
             ["run", "step"], ["raw_transition_info.run", "raw_transition_info.step"]
@@ -90,11 +94,6 @@ class RawTransition(Base):
     target_uvt: Mapped[float]
     dose: Mapped[float]
     transitions: Mapped[List["SQLTransition"]] = relationship(back_populates="raw_transition_info")
-
-class Runs(Base):
-    __tablename__ = "runs"
-    run: Mapped[int] = mapped_column(primary_key=True)
-
 
 class CriticWeights(Base):
     __tablename__ = "critic_weights"

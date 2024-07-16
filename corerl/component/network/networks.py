@@ -202,7 +202,7 @@ class SquashedGaussian(nn.Module):
         return -1, 1
 
     # TODO: include n samples
-    def forward(self, state: torch.Tensor) -> (torch.Tensor, dict):
+    def forward(self, state: torch.Tensor) -> tuple[torch.Tensor, dict]:
         base = self.base_network(state)
         mean = self.mean_head(base)
         log_std = torch.clamp(self.logstd_head(base), min=-20, max=2)
