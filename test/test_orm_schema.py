@@ -45,13 +45,12 @@ def get_transition():
     transition = Transition(state, action, reward, state_next, False, False)
     return transition
 
-def load_critic(critic_weights):
-    with initialize(version_base=None, config_path="../../config/agent/critic/critic_network"):
+def init_critic():
+    with initialize(version_base=None, config_path="../config/agent/critic/critic_network"):
         critic_cfg = compose(config_name="ensemble", overrides=["base.arch=[16,16]", "ensemble=1"])
 
     critic = init_critic_network(cfg=critic_cfg, input_dim=21, output_dim=1)
-    critic.load_state_dict(critic_weights)
-    
+        
     return critic
 
     
@@ -72,10 +71,9 @@ class TestORMSchema(unittest.TestCase):
         Base.metadata.create_all(cls.engine)
     
     def test_critic_weight_logging(self):
-        test_weights = torch.load('test/test_sql_logging/assets/test_critic_weights.th')
-        critic_before_db = load_critic(test_weights)
+        critic_before_db = init_critic()
 
-        critic_weights = CriticWeights(critic_weights=test_weights[0])
+        critic_weights = CriticWeights(critic_weights=critic_before_db.state_dict())
         with Session(self.engine) as session:
             session.add(critic_weights)
             session.commit()
@@ -85,22 +83,11 @@ class TestORMSchema(unittest.TestCase):
     
         loaded_stated_dict = df["critic_weights"].iloc[0]
 
-        critic_after_db = load_critic([loaded_stated_dict])
+        critic_after_db = init_critic()
+        critic_after_db.load_state_dict(loaded_stated_dict)
         
-        # test that critic before and after db give the same action values
-        offline_dset_path = 'test/test_sql_logging/assets/small_transition_dset.pt'
-        offline_dset = torch.load(offline_dset_path)
-
-        n_states = offline_dset[0].shape[0]
-        for i in range(n_states-10, n_states):
-            state = torch.tensor(offline_dset[0][i], dtype=torch.float).unsqueeze(0)
-            action = torch.tensor([[0.5]], dtype=torch.float)
-            x = torch.concat((state, action), dim=1)
-            with torch.no_grad():
-                q_before, _ = critic_before_db(x)
-                q_after, _ = critic_after_db(x)
-            
-            self.assertTrue(torch.isclose(q_after, q_before))
+        test_input = torch.rand((1,21))
+        self.assertTrue(torch.isclose(critic_after_db(test_input)[0], critic_before_db(test_input)[0]))
 
     def test_raw_transition_info(self):
         
