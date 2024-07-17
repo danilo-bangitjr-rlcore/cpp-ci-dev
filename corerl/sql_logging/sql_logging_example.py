@@ -14,13 +14,13 @@ import torch
 import pandas as pd
 
 # NOTE: import of base schema objects
-from corerl.sql_logging.alt_base_schema import (
+from corerl.sql_logging.base_schema import (
     SQLTransition,
     TransitionInfo,
     Base,
     Run,
     HParam,
-    NetworkWeights
+    NetworkWeights,
 )
 
 from corerl.component.buffer.buffers import SQLBuffer
@@ -29,6 +29,8 @@ from corerl.component.buffer.buffers import SQLBuffer
 Definition of custom subclasses to store env-specific observation data.
 See section "OPTIONAL: storing additional transition info" in main()
 """
+
+
 class RawCoagTransitionInfo(TransitionInfo):
 
     # add the addition info you want to store here
@@ -41,10 +43,12 @@ class RawCoagTransitionInfo(TransitionInfo):
         "polymorphic_identity": "raw",  # NOTE: this will appear in the "type" column
     }
 
+
 class CoagTransitionInfo(RawCoagTransitionInfo):
     __mapper_args__ = {
         "polymorphic_identity": "normalized",  # NOTE: here we just give a name to distinguish
     }
+
 
 def init_critic():
     with initialize(
@@ -68,8 +72,9 @@ def main():
     # being forced to add any additional logging
 
     # first read the sql credentials and create the test database
+    test_db_name = "orm_test_db"
     con_cfg = OmegaConf.load("config/db/sql/credentials_vpn.yaml")
-    engine = sql_logging.get_sql_engine(con_cfg, db_name="orm_test_db")
+    engine = sql_logging.get_sql_engine(con_cfg, db_name=test_db_name)
 
     # here we remove the test_db if it already exists
     # to ensure repeatability
@@ -193,6 +198,7 @@ def main():
     Instead call buffer.update_data() with no args
     """
     buffer_cfg = OmegaConf.load("config/agent/buffer/sql_buffer.yaml")
+    buffer_cfg["db_name"] = test_db_name  # NOTE: adding this outside of yaml file
     buffer = SQLBuffer(buffer_cfg)
     buffer.update_data()  # we already have a few transitions in the db
 
@@ -215,26 +221,33 @@ def main():
     """
     OPTIONAL: Network weight logging
     """
-    critic_before_db = init_critic() # initialize random critic
+    critic_before_db = init_critic()  # initialize random critic
 
     # create row in network_weights table
-    critic_weights = NetworkWeights(state_dict=critic_before_db.state_dict(), type="critic")
-    
+    critic_weights = NetworkWeights(
+        state_dict=critic_before_db.state_dict(), type="critic"
+    )
+
     # save weights to db
     session.add(critic_weights)
-    session.commit() 
+    session.commit()
 
     # fetch weights with sql query
-    df = pd.read_sql(select(NetworkWeights).order_by(NetworkWeights.ts.desc()).limit(1), con=engine)
+    df = pd.read_sql(
+        select(NetworkWeights).order_by(NetworkWeights.ts.desc()).limit(1), con=engine
+    )
 
     loaded_stated_dict = df["state_dict"].iloc[0]
 
     # load weights and confirm we get the same output
     critic_after_db = init_critic()
     critic_after_db.load_state_dict(loaded_stated_dict)
-    
-    test_input = torch.rand((1,21))
-    assert torch.isclose(critic_after_db(test_input)[0], critic_before_db(test_input)[0])
+
+    test_input = torch.rand((1, 21))
+    assert torch.isclose(
+        critic_after_db(test_input)[0], critic_before_db(test_input)[0]
+    )
+
 
 def remove_ids(exclusion_ids, session):
     excluded_transitions = session.execute(

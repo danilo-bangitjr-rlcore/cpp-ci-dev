@@ -15,7 +15,7 @@ from typing_extensions import Annotated
 from sqlalchemy.sql import func
 from sqlalchemy.orm import mapped_column
 from sqlalchemy import ForeignKeyConstraint
-
+from sqlalchemy.dialects.mysql import LONGBLOB
 
 timestamp = Annotated[
     datetime,
@@ -24,12 +24,12 @@ timestamp = Annotated[
     ),
 ]
 
+
 class Base(DeclarativeBase):
-    # type_annotation_map = {
-    #     list: JSON,
-    #     dict: PickleType,
-    # }
-    pass
+    # can define type_annotation_map here
+    type_annotation_map = {
+        dict: JSON,
+    }
 
 
 class Run(Base):
@@ -39,7 +39,7 @@ class Run(Base):
     hparams: Mapped[List["HParam"]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
     )
-    raw_transition_info: Mapped[List["RawTransitionInfo"]] = relationship(
+    transition_info: Mapped[List["TransitionInfo"]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
     )
 
@@ -66,94 +66,37 @@ class SQLTransition(Base):
     # transition: Mapped[Transition]
     exclude: Mapped[bool] = mapped_column(default=False)
 
-    # Foreign Keys
-    run_id: Mapped[int]
-    step: Mapped[int]
-
     # Object relationship
-    transition_info: Mapped["TransitionInfo"] = relationship(
+    transition_info: Mapped[List["TransitionInfo"]] = relationship(
         back_populates="transition",
-    )
-
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["run_id", "step"], ["transition_info.run_id", "transition_info.step"]
-        ),
     )
 
 
 class TransitionInfo(Base):
     __tablename__ = "transition_info"
     id: Mapped[int] = mapped_column(primary_key=True)
-    ts: Mapped[timestamp]
-
-    # Data
-    """
-    Inherit from this class and add your data here.
-    For example:
-
-    prev_uvt: Mapped[float]
-    new_uvt: Mapped[float]
-    target_uvt: Mapped[float]
-    dose: Mapped[float]
-    """
-
-    # relationships
-    raw_transition_info: Mapped["RawTransitionInfo"] = relationship(
-        back_populates="transition_info"
-    )
-    run_id: Mapped[int]  # = mapped_column(ForeignKey("raw_transition_info.run_id"))
-    step: Mapped[int]  # = mapped_column(ForeignKey("raw_transition_info.step"))
-
+    run_id: Mapped[int] = mapped_column(ForeignKey("runs.run_id"))
+    step: Mapped[int]
+    insert_ts: Mapped[timestamp]
     type: Mapped[str] = mapped_column(String(100))
 
+    trans_id: Mapped[int] = mapped_column(ForeignKey("transitions.id"))
+    trans_ts: Mapped[timestamp]
+
+    # Relationships
     transition: Mapped["SQLTransition"] = relationship(back_populates="transition_info")
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["run_id", "step"],
-            ["raw_transition_info.run_id", "raw_transition_info.step"],
-        ),
-    )
+
+    run: Mapped["Run"] = relationship(back_populates="transition_info")
 
     __mapper_args__ = {
         "polymorphic_identity": "transition_info",
         "polymorphic_on": "type",
     }
 
-class RawTransitionInfo(Base):
-    # __abstract__ = True
-    __tablename__ = "raw_transition_info"
-    run_id: Mapped[int] = mapped_column(ForeignKey("runs.run_id"), primary_key=True)
-    step: Mapped[int] = mapped_column(primary_key=True)
-    ts: Mapped[timestamp]
 
-    type: Mapped[str] = mapped_column(String(100))
-    # Data
-    """
-    Inherit from this class and add your data here.
-    For example:
-    
-    prev_uvt: Mapped[float]
-    new_uvt: Mapped[float]
-    target_uvt: Mapped[float]
-    dose: Mapped[float]
-    """
-
-    # Relationships
-    transition_info: Mapped[List["TransitionInfo"]] = relationship(
-        back_populates="raw_transition_info"
-    )
-
-    run: Mapped["Run"] = relationship(back_populates="raw_transition_info")
-
-    __mapper_args__ = {
-        "polymorphic_identity": "raw_transition_info",
-        "polymorphic_on": "type",
-    }
-
-
-class CriticWeights(Base):
-    __tablename__ = "critic_weights"
+class NetworkWeights(Base):
+    __tablename__ = "network_weights"
     id: Mapped[int] = mapped_column(primary_key=True)
     ts: Mapped[timestamp]
-    critic_weights = mapped_column(PickleType)
+    type: Mapped[str] = mapped_column(String(100))
+    state_dict = mapped_column(PickleType(impl=LONGBLOB))

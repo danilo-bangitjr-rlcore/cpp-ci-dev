@@ -7,7 +7,7 @@ import torch
 from corerl.data.data import Transition, TransitionBatch
 import pandas as pd
 from corerl.sql_logging import sql_logging
-from corerl.sql_logging.alt_base_schema import SQLTransition
+from corerl.sql_logging.base_schema import SQLTransition
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from omegaconf import DictConfig, OmegaConf
@@ -189,19 +189,18 @@ class SQLBuffer(UniformBuffer):
 
         # Temp for debugging: TODO get from buffer cfg
         con_cfg = cfg.con_cfg
-        self.engine = sql_logging.get_sql_engine(con_cfg, db_name="orm_test_db")
+        self.engine = sql_logging.get_sql_engine(con_cfg, db_name=cfg["db_name"])
 
         self.session = Session(self.engine)
-        # self.transition_ids = set() # empty set
         self.transition_ids = []
-        # self.transition_id_map = [] # list of transition ids corresponding to self.data
-        # self.free_positions = []
 
     def feed(self, experience: Transition) -> None:
-        raise Exception("Do not call directly for SQL buffer. Instead call buffer.update_data() with no args.")
+        raise Exception(
+            "Do not call directly for SQL buffer. Instead call buffer.update_data() with no args."
+        )
         # logger.warning("Do not call directly for SQL buffer. Instead")
         # return super().feed(experience)
-    
+
     def _feed(self, experience: Transition) -> None:
         return super().feed(experience)
 
@@ -252,15 +251,14 @@ class SQLBuffer(UniformBuffer):
         If there is a difference, updates self.transition_ids to
         reflect new state of the table.
         """
-        if self.full:
-            # didn't deal with this case yet
-            logger.warning(f"Undefined behavior when buffer is full!")
 
+        # get ids of active transitions in sql table
         df = pd.read_sql(
             select(SQLTransition.id).where(SQLTransition.exclude == False),
             con=self.engine,
         )
 
+        # resolve differences
         table_ids = set(df["id"])
         tid_set = set(self.transition_ids)
         if tid_set != table_ids:
@@ -269,7 +267,7 @@ class SQLBuffer(UniformBuffer):
             if len(remove_ids) > 0:
                 self.remove_transitions(remove_ids)
                 tid_set = set(self.transition_ids)  # recompute tid set after removal
-            
+
             add_ids = table_ids - tid_set  # ids from table that arent in transition_ids
             if len(add_ids) > 0:
                 self.add_transitions(add_ids)
