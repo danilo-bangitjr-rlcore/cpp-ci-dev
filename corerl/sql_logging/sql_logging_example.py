@@ -1,203 +1,252 @@
-import unittest
 from corerl.sql_logging import sql_logging
 from omegaconf import OmegaConf
 from sqlalchemy_utils import database_exists, drop_database, create_database
-from sqlalchemy import MetaData, select, ForeignKeyConstraint
-import sqlalchemy
+from sqlalchemy import select
 from corerl.component.network.factory import init_critic_network
-import torch
-import pandas as pd
-from dataclasses import dataclass
 from sqlalchemy.orm import Session
 from hydra import compose, initialize
-from typing import List
-from typing import Optional
-from sqlalchemy import ForeignKey
-from sqlalchemy import String
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
-from sqlalchemy.types import JSON, PickleType, DateTime
-from sqlalchemy.dialects.mysql import LONGBLOB
-from typing import Any
-from torch import Tensor
-from datetime import datetime
-import torch
-import pandas as pd
-from dataclasses import dataclass
+from sqlalchemy.orm import mapped_column, Mapped
 from corerl.component.network.factory import init_critic_network
 
-from typing_extensions import Annotated
-
-from sqlalchemy.sql import func
 from sqlalchemy.orm import mapped_column
-from sqlalchemy import ForeignKeyConstraint
+import numpy as np
+import torch
+import pandas as pd
 
-timestamp = Annotated[
-    datetime,
-    mapped_column(
-      DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-]
+# NOTE: import of base schema objects
+from corerl.sql_logging.alt_base_schema import (
+    SQLTransition,
+    TransitionInfo,
+    Base,
+    Run,
+    HParam,
+    NetworkWeights
+)
 
-@dataclass
-class Transition:
-    s: torch.Tensor
-    a: torch.Tensor
-    r: torch.Tensor
-    s_next: torch.Tensor
-    done: torch.Tensor
-    terminate: torch.Tensor
+from corerl.component.buffer.buffers import SQLBuffer
 
-    def to_numpy(self):
-        numpy_transition = [
-            self.s.numpy(),
-            self.a.numpy(),
-            float(self.r),
-            self.s_next.numpy(),
-            int(self.done),
-            int(self.terminate),
-        ]
-        return numpy_transition
+"""
+Definition of custom subclasses to store env-specific observation data.
+See section "OPTIONAL: storing additional transition info" in main()
+"""
+class RawCoagTransitionInfo(TransitionInfo):
 
+    # add the addition info you want to store here
+    prev_uvt: Mapped[float] = mapped_column(nullable=True)
+    new_uvt: Mapped[float] = mapped_column(nullable=True)
+    target_uvt: Mapped[float] = mapped_column(nullable=True)
+    dose: Mapped[float] = mapped_column(nullable=True)
 
-class Base(DeclarativeBase):
-    """
-    This base class tells SQLAlchemy to create SQL tables 
-    for each class that inherits from it.
-    """
-    type_annotation_map = {
-        Transition: PickleType, # -> backend datatype can vary
-        list: JSON,
-        dict: PickleType(impl=LONGBLOB), # to store large network statedicts
+    __mapper_args__ = {
+        "polymorphic_identity": "raw",  # NOTE: this will appear in the "type" column
     }
 
-class SQLTransition(Base):
-    __tablename__ = "transitions"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    ts: Mapped[timestamp]
-    prev_uvt: Mapped[float]
-    new_uvt: Mapped[float]
-    target_uvt: Mapped[float]
-    dose: Mapped[float]
-    state: Mapped[list]
-    action: Mapped[list]
-    reward: Mapped[list]
-    next_state: Mapped[list] = mapped_column(nullable=True)
-    transition: Mapped[Transition]
-    exclude: Mapped[bool] = mapped_column(default=False)
-    raw_transition_info: Mapped["RawTransition"] = relationship(back_populates="transitions")
-    run: Mapped[int]
-    step: Mapped[int]
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["run", "step"], ["raw_transition_info.run", "raw_transition_info.step"]
-        ),
-    )
-
-class RawTransition(Base):
-    __tablename__ = "raw_transition_info"
-    run: Mapped[int] = mapped_column(primary_key=True)
-    step: Mapped[int] = mapped_column(primary_key=True)
-    ts: Mapped[timestamp]
-    prev_uvt: Mapped[float]
-    new_uvt: Mapped[float]
-    target_uvt: Mapped[float]
-    dose: Mapped[float]
-    transitions: Mapped[List["SQLTransition"]] = relationship(back_populates="raw_transition_info")
-
-class CriticWeights(Base):
-    __tablename__ = "critic_weights"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    ts: Mapped[timestamp]
-    critic_weights: Mapped[dict] # can do pickletype
-
-def get_transition():
-    state = torch.tensor([1, 2], dtype=torch.float)
-    action = torch.tensor(0.5, dtype=torch.float)
-    reward = torch.tensor(-1.0, dtype=torch.float)
-    state_next = torch.tensor([1, 2], dtype=torch.float)
-
-    transition = Transition(state, action, reward, state_next, False, False)
-    return transition
+class CoagTransitionInfo(RawCoagTransitionInfo):
+    __mapper_args__ = {
+        "polymorphic_identity": "normalized",  # NOTE: here we just give a name to distinguish
+    }
 
 def init_critic():
-    with initialize(version_base=None, config_path="../../config/agent/critic/critic_network"):
-        critic_cfg = compose(config_name="ensemble", overrides=["base.arch=[256,256]", "ensemble=1"])
+    with initialize(
+        version_base=None, config_path="../../config/agent/critic/critic_network"
+    ):
+        critic_cfg = compose(
+            config_name="ensemble", overrides=["base.arch=[256,256]", "ensemble=1"]
+        )
 
     critic = init_critic_network(cfg=critic_cfg, input_dim=21, output_dim=1)
-        
+
     return critic
 
-def get_run_id(engine):
-    df = pd.read_sql(
-        select(RawTransition.run).order_by(RawTransition.run.desc()).limit(1),
-        con=engine,
-    )
-
-    if len(df) == 0:
-        # first entry
-        new_run_id = 0
-    else:
-        run_id = df["run"].iloc[0]
-        new_run_id = run_id + 1
-
-    return new_run_id
 
 def main():
-    con_cfg = OmegaConf.load('config/db/sql/credentials_vpn.yaml') # add your own credentials at this path
-    engine = sql_logging.get_sql_engine(con_cfg, db_name='orm_test_db')
+    """
+    Basics: connecting to db and storing transitions
+    """
+    # Transitions are considered a fundamental object in this schema.
+    # This means you can write simple transitions to an sql database without
+    # being forced to add any additional logging
 
-    if not database_exists(engine.url):
-        create_database(engine.url)
-    Base.metadata.create_all(engine)
+    # first read the sql credentials and create the test database
+    con_cfg = OmegaConf.load("config/db/sql/credentials_vpn.yaml")
+    engine = sql_logging.get_sql_engine(con_cfg, db_name="orm_test_db")
 
-    # example of writing transitions to db
-    raw_transition = RawTransition(
-        run=get_run_id(engine), 
-        step=0, 
-        prev_uvt=89, 
-        new_uvt=91, 
-        target_uvt=90, 
-        dose=6
+    # here we remove the test_db if it already exists
+    # to ensure repeatability
+    if database_exists(engine.url):
+        drop_database(engine.url)
+
+    create_database(engine.url)  # creates database
+    Base.metadata.create_all(
+        engine
+    )  # creates empty tables corresponding to the base schema
+
+    # the session object enables writing/reading from the database
+    session = Session(engine)
+
+    # now you can add transitions!
+    new_transition = SQLTransition(
+        state=list(np.random.random(size=(2,))),  # NOTE: arrays converted to list here
+        action=np.random.random(),
+        next_state=list(np.random.random(size=(2,))),
+        reward=np.random.random(),
     )
-    
-    new_transition = SQLTransition( 
-        prev_uvt=raw_transition.prev_uvt/100,
-        new_uvt=raw_transition.new_uvt/100,
-        target_uvt=raw_transition.target_uvt/100,
-        dose=raw_transition.dose/15
+    # Arrays are converted to lists in the table for readability in SQL
+    # You can directly give numpy arrays (it's up to you!), but then your tables won't be human readable.
+
+    # write the transition to the db
+    session.add(new_transition)
+    session.commit()  # NOTE: you have to commit after adding!
+
+    # We could add two transitions and then commit both:
+    for _ in range(2):
+        new_transition = SQLTransition(
+            state=list(
+                np.random.random(size=(2,))
+            ),  # NOTE: arrays converted to list here
+            action=np.random.random(),
+            next_state=list(np.random.random(size=(2,))),
+            reward=np.random.random(),
+        )
+        session.add(new_transition)  # doesn't write yet
+
+    session.commit()  # writes two rows to the db
+
+    """
+    OPTIONAL: experiment tracking
+    """
+
+    # first write to the run table to keep track of this experiment
+    # while we're at it, let's track the hyperparameters
+    my_hparams = {
+        "step_size": 0.001,
+        "arch": [256, 256],  # architecture
+        "agent_name": "Billy",
+    }  # this dict might come from a config in practice
+
+    run = Run(hparams=[HParam(name=name, val=val) for name, val in my_hparams.items()])
+    session.add(run)
+    session.commit()  # since hparams belong to the run, we only needed to add run
+
+    """
+    OPTIONAL: storing additional transition info (such as raw observations)
+    NOTE: depends on experiment tracking at the moment (connected to run table)
+    """
+    # You can attach info to your transitions
+    # the info will appear in another table "transition_info"
+    # you could for example include raw observations
+
+    # let's say we are doing coag dosing at Drayton Valley
+    # we want to store uvt before and after the transition,
+    # along with the coag dosing rate and target uvt
+
+    # we defined subclasses of TransitionInfo at the top of this file
+    # NOTE: you will need to make sure these class definitions are in scope
+    # before you call Base.metadata.create_all() (which creates the tables).
+
+    # create instances of the transition info classes
+    # raw observations
+    raw_tinfo = RawCoagTransitionInfo(
+        step=0,  # interaction step
+        prev_uvt=89,
+        new_uvt=91,
+        target_uvt=92,
+        dose=10,
+        run=run,  # NOTE: this connects the transitioninfo to the run table
     )
 
-    raw_transition.transitions.append(new_transition)
+    # normalized observations
+    norm_tinfo = CoagTransitionInfo(
+        step=0,
+        prev_uvt=raw_tinfo.prev_uvt / 100,
+        new_uvt=raw_tinfo.new_uvt / 100,
+        target_uvt=raw_tinfo.target_uvt / 100,
+        dose=raw_tinfo.dose / 15,
+        run=run,  # NOTE: this connects the transitioninfo to the run table
+    )
 
-    new_transition.action = new_transition.dose
-    new_transition.state = [new_transition.prev_uvt, new_transition.target_uvt]
-    new_transition.reward = abs(raw_transition.new_uvt - raw_transition.target_uvt)
-    new_transition.transition = get_transition()
+    # create a new transition
+    # let's make sure we use the norm_tinfo data for consistency
+    # (but you could add anything to state, action, etc.)
+    new_transition = SQLTransition(
+        state=[norm_tinfo.prev_uvt, norm_tinfo.target_uvt],  #
+        action=norm_tinfo.dose,
+        next_state=[norm_tinfo.new_uvt, norm_tinfo.target_uvt],
+        reward=abs(norm_tinfo.target_uvt - norm_tinfo.new_uvt),
+    )
+
+    # attach the raw and normalized observations to this transition
+    new_transition.transition_info.extend(
+        [raw_tinfo, norm_tinfo]
+    )  # we are just extending a list here
+    session.add(new_transition)  # doesn't write yet
+    session.commit()  # this writes the transition and the transition info!
+
+    """
+    OPTIONAL: The SQLBuffer
     
-    with Session(engine) as session:
-        session.add(raw_transition)
-        session.commit()
+    There is an SQLBuffer that will automatically sync to the transition table.
+    The primary use case here is if you want to mark transitions to be ignored online.
+    It can also be useful if you want to relabel (e.g., renormalize) or alter transitions in the buffer online.
 
-    # example of storing critic weights to db
-    critic_before_db = init_critic()
+    WARNING: You will need to modify your code to avoid calling buffer.feed().
+    Instead call buffer.update_data() with no args
+    """
+    buffer_cfg = OmegaConf.load("config/agent/buffer/sql_buffer.yaml")
+    buffer = SQLBuffer(buffer_cfg)
+    buffer.update_data()  # we already have a few transitions in the db
 
-    critic_weights = CriticWeights(critic_weights=critic_before_db.state_dict())
-    with Session(engine) as session:
-        session.add(critic_weights)
-        session.commit()
+    # get a batch
+    batch = buffer.sample_batch()
+    print(batch.state)
+
+    # mark a transition to be ignored
+    # NOTE: we can do this from a different process (or manually),
+    # which could be handy online
+    exclusion_ids = [2]
+    remove_ids(exclusion_ids, session)
+
+    # now update the buffer to remove the excluded transition,
+    # and confirm it doesn't exist in a new batch
+    buffer.update_data()
+    batch = buffer.sample_batch()
+    print(batch.state)
+
+    """
+    OPTIONAL: Network weight logging
+    """
+    critic_before_db = init_critic() # initialize random critic
+
+    # create row in network_weights table
+    critic_weights = NetworkWeights(state_dict=critic_before_db.state_dict(), type="critic")
+    
+    # save weights to db
+    session.add(critic_weights)
+    session.commit() 
 
     # fetch weights with sql query
-    df = pd.read_sql(select(CriticWeights).order_by(CriticWeights.ts.desc()).limit(1), con=engine)
+    df = pd.read_sql(select(NetworkWeights).order_by(NetworkWeights.ts.desc()).limit(1), con=engine)
 
-    loaded_stated_dict = df["critic_weights"].iloc[0]
+    loaded_stated_dict = df["state_dict"].iloc[0]
 
+    # load weights and confirm we get the same output
     critic_after_db = init_critic()
     critic_after_db.load_state_dict(loaded_stated_dict)
     
     test_input = torch.rand((1,21))
     assert torch.isclose(critic_after_db(test_input)[0], critic_before_db(test_input)[0])
+
+def remove_ids(exclusion_ids, session):
+    excluded_transitions = session.execute(
+        select(SQLTransition).filter(SQLTransition.id.in_(exclusion_ids)),
+    )
+
+    for (transition,) in excluded_transitions:
+        transition.exclude = True
+        session.add(transition)
+
+    session.commit()
+
 
 if __name__ == "__main__":
     main()

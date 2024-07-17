@@ -5,6 +5,15 @@ import numpy as np
 import torch
 
 from corerl.data.data import Transition, TransitionBatch
+import pandas as pd
+from corerl.sql_logging import sql_logging
+from corerl.sql_logging.alt_base_schema import SQLTransition
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+from omegaconf import DictConfig, OmegaConf
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class UniformBuffer:
@@ -27,11 +36,15 @@ class UniformBuffer:
         if self.data is None:
             # Lazy instantiation
             data_size = _get_size(experience)
-            self.data = tuple([
-                torch.empty(
-                    (self.memory, *s), device=self.device,
-                ) for s in data_size
-            ])
+            self.data = tuple(
+                [
+                    torch.empty(
+                        (self.memory, *s),
+                        device=self.device,
+                    )
+                    for s in data_size
+                ]
+            )
 
         for i, elem in enumerate(experience):
             self.data[i][self.pos] = _to_tensor(elem)
@@ -49,9 +62,7 @@ class UniformBuffer:
 
         sampled_indices = self.rng.randint(0, self.size, batch_size)
 
-        sampled_data = [
-            self.data[i][sampled_indices] for i in range(len(self.data))
-        ]
+        sampled_data = [self.data[i][sampled_indices] for i in range(len(self.data))]
 
         return self._prepare(sampled_data)
 
@@ -62,9 +73,7 @@ class UniformBuffer:
         if self.full:
             sampled_data = self.data
         else:
-            sampled_data = (
-                self.data[i][:self.pos] for i in range(len(self.data))
-            )
+            sampled_data = (self.data[i][: self.pos] for i in range(len(self.data)))
 
         return self._prepare(sampled_data)
 
@@ -118,7 +127,7 @@ class PriorityBuffer(UniformBuffer):
         if self.full:
             scale = self.priority.sum()
         else:
-            scale = self.priority[:self.pos].sum()
+            scale = self.priority[: self.pos].sum()
 
         self.priority /= scale
 
@@ -128,13 +137,13 @@ class PriorityBuffer(UniformBuffer):
         if batch_size is None:
             batch_size = self.batch_size
         sampled_indices = self.rng.choice(
-            self.size, batch_size, replace=False,
-            p=(self.priority if self.full else self.priority[:self.pos]),
+            self.size,
+            batch_size,
+            replace=False,
+            p=(self.priority if self.full else self.priority[: self.pos]),
         )
 
-        sampled_data = [
-            self.data[i][sampled_indices] for i in range(len(self.data))
-        ]
+        sampled_data = [self.data[i][sampled_indices] for i in range(len(self.data))]
 
         return self._prepare(sampled_data)
 
@@ -148,11 +157,13 @@ class PriorityBuffer(UniformBuffer):
 
 def _to_tensor(elem):
     if (
-        isinstance(elem, torch.Tensor) or
-        isinstance(elem, np.ndarray) or
-        isinstance(elem, list)
+        isinstance(elem, torch.Tensor)
+        or isinstance(elem, np.ndarray)
+        or isinstance(elem, list)
     ):
         return torch.Tensor(elem)
+    elif elem is None:
+        return torch.empty((1, 0))
     else:
         return torch.Tensor([elem])
 
@@ -162,13 +173,107 @@ def _get_size(experience: Transition) -> list[tuple]:
     for elem in experience:
         if isinstance(elem, np.ndarray):
             size.append(elem.shape)
-        elif (
-                isinstance(elem, int) or
-                isinstance(elem, float) or
-                isinstance(elem, bool)
-        ):
+        elif elem is None:
+            size.append((0,))
+        elif isinstance(elem, int) or isinstance(elem, float) or isinstance(elem, bool):
             size.append((1,))
         else:
             raise TypeError(f"unknown type {type(elem)}")
 
     return size
+
+
+class SQLBuffer(UniformBuffer):
+    def __init__(self, cfg: DictConfig):
+        super(SQLBuffer, self).__init__(cfg)
+
+        # Temp for debugging: TODO get from buffer cfg
+        con_cfg = cfg.con_cfg
+        self.engine = sql_logging.get_sql_engine(con_cfg, db_name="orm_test_db")
+
+        self.session = Session(self.engine)
+        # self.transition_ids = set() # empty set
+        self.transition_ids = []
+        # self.transition_id_map = [] # list of transition ids corresponding to self.data
+        # self.free_positions = []
+
+    def feed(self, experience: Transition) -> None:
+        raise Exception("Do not call directly for SQL buffer. Instead call buffer.update_data() with no args.")
+        # logger.warning("Do not call directly for SQL buffer. Instead")
+        # return super().feed(experience)
+    
+    def _feed(self, experience: Transition) -> None:
+        return super().feed(experience)
+
+    def row_to_transition(self, row: pd.DataFrame) -> Transition:
+        transition = Transition(
+            obs=None,
+            state=np.array(row.state.item()),
+            action=np.array(row.action.item()),
+            reward=np.array(row.reward.item()),
+            next_state=np.array(row.next_state.item()),
+            next_obs=None,
+        )
+        return transition
+
+    def add_transitions(self, add_ids):
+        add_df = pd.read_sql(
+            select(SQLTransition).filter(SQLTransition.id.in_(add_ids)),
+            con=self.engine,
+        )
+
+        for id in add_ids:
+            row = add_df[add_df.id == id]
+            if len(self.transition_ids) == self.memory:
+                self.transition_ids[self.pos] = id
+            else:
+                self.transition_ids.append(id)
+
+            self._feed(self.row_to_transition(row))
+
+    def remove_transitions(self, remove_ids):
+        keep_positions = []
+        # TODO: Find a way to make this more efficient
+        for pos, id in enumerate(self.transition_ids):
+            if id not in remove_ids:
+                keep_positions.append(pos)
+
+        self.transition_ids = [self.transition_ids[pos] for pos in keep_positions]
+        self.pos = len(keep_positions)
+        for i in range(len(self.data)):
+            self.data[i][: self.pos] = self.data[i][keep_positions]
+
+    # def update_transition_ids(self):
+    def update_data(self):
+        """
+        Queries transitions table to see if active trans_ids
+        is different from self.transition_ids.
+
+        If there is a difference, updates self.transition_ids to
+        reflect new state of the table.
+        """
+        if self.full:
+            # didn't deal with this case yet
+            logger.warning(f"Undefined behavior when buffer is full!")
+
+        df = pd.read_sql(
+            select(SQLTransition.id).where(SQLTransition.exclude == False),
+            con=self.engine,
+        )
+
+        table_ids = set(df["id"])
+        tid_set = set(self.transition_ids)
+        if tid_set != table_ids:
+            remove_ids = tid_set - table_ids  # ids that should be removed from buffer
+
+            if len(remove_ids) > 0:
+                self.remove_transitions(remove_ids)
+                tid_set = set(self.transition_ids)  # recompute tid set after removal
+            
+            add_ids = table_ids - tid_set  # ids from table that arent in transition_ids
+            if len(add_ids) > 0:
+                self.add_transitions(add_ids)
+
+    def load(self, transitions: list) -> None:
+        for transition in transitions:
+            self._feed(transition)
