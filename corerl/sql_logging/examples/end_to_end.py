@@ -2,25 +2,16 @@ import torch
 import numpy as np
 import logging
 import numpy as np
-from collections.abc import MutableMapping
-
 import hydra
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 from corerl.sql_logging.examples.example_env import CoagBanditSimEnv
-
 from corerl.sql_logging.base_schema import (
-    Base,
-    Run,
-    HParam,
     NetworkWeights,
     Loss,
     GradInfo,
 )
-from corerl.sql_logging import sql_logging
+from corerl.sql_logging.sql_logging import setup_sql_logging
 
-from sqlalchemy.orm import Session
-from sqlalchemy_utils import database_exists, drop_database, create_database
-from sqlalchemy import select
 from corerl.agent.factory import init_agent
 import corerl.sql_logging.base_schema as sql
 
@@ -38,13 +29,11 @@ def main(cfg: DictConfig) -> None:
     logger.info(
         f"Output dir: {(out := hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)}"
     )
+    run_agent(cfg)
 
+
+def run_agent(cfg: DictConfig) -> None:
     session, run = setup_sql_logging(cfg)
-    run_agent(cfg, run, session)
-
-
-def run_agent(cfg: DictConfig, run, session) -> None:
-
     sql.init_stepper(run)
 
     # setup env
@@ -116,34 +105,6 @@ def run_agent(cfg: DictConfig, run, session) -> None:
         sql.stepper.increment_step()
 
 
-# utils
-def setup_sql_logging(cfg):
-    """
-    This could live in a util file
-    """
-
-    con_cfg = cfg.agent.buffer.con_cfg
-    flattened_cfg = prep_cfg_for_db(OmegaConf.to_container(cfg), to_remove=[])
-    engine = sql_logging.get_sql_engine(con_cfg, db_name=cfg.agent.buffer.db_name)
-
-    if database_exists(engine.url):
-        drop_database(engine.url)
-
-    create_database(engine.url)
-    Base.metadata.create_all(engine)
-    with Session(engine) as session:
-        run = Run(
-            hparams=[HParam(name=name, val=val) for name, val in flattened_cfg.items()]
-        )
-        session.add(run)
-        session.commit()
-
-        run_id = session.scalar(select(Run.run_id).order_by(Run.run_id.desc()))
-        logger.info(f"{run_id=}")
-
-        return session, run
-
-
 def get_ensemble_grad(agent):
     batch = agent.critic_buffer.sample_batch()
     if batch is not None:
@@ -158,23 +119,6 @@ def get_ensemble_grad(agent):
         grads = None
 
     return grads
-
-
-def flatten_dict(dictionary: dict, parent_key: str = "", separator: str = "_") -> dict:
-    items = []
-    for key, value in dictionary.items():
-        new_key = parent_key + separator + key if parent_key else key
-        if isinstance(value, MutableMapping):
-            items.extend(flatten_dict(value, new_key, separator=separator).items())
-        else:
-            items.append((new_key, value))
-    return dict(items)
-
-
-def prep_cfg_for_db(cfg: dict, to_remove: list[str]) -> dict:
-    for key in to_remove:
-        del cfg[key]
-    return flatten_dict(cfg)
 
 
 if __name__ == "__main__":
