@@ -42,6 +42,9 @@ class Run(Base):
     transition_info: Mapped[List["TransitionInfo"]] = relationship(
         back_populates="run", cascade="all, delete-orphan"
     )
+    transitions: Mapped[List["SQLTransition"]] = relationship(
+        back_populates="run", cascade="all, delete-orphan"
+    )
 
 
 class HParam(Base):
@@ -65,11 +68,14 @@ class SQLTransition(Base):
     next_state = mapped_column(JSON, nullable=True)
     # transition: Mapped[Transition]
     exclude: Mapped[bool] = mapped_column(default=False)
+    run_id: Mapped[int] = mapped_column(ForeignKey("runs.run_id"), nullable=True)
 
     # Object relationship
     transition_info: Mapped[List["TransitionInfo"]] = relationship(
         back_populates="transition",
     )
+
+    run: Mapped["Run"] = relationship(back_populates="transitions")
 
 
 class TransitionInfo(Base):

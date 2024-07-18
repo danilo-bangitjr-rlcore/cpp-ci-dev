@@ -1,0 +1,50 @@
+defaults:
+  - _self_
+  - agent: epsilon_greedy_sarsa
+  - env : three_tanks
+  - interaction : anytime
+  - data_loader : direct_action
+  - state_constructor : identity
+  - calibration_model : anytime
+  - normalizer : normalizer
+#  - alerts@alerts.action_value : action_value
+#  - alerts@alerts.gvf : gvf
+#  - eval@eval.ibe : ibe # this lets us have multiple subconfigs rooted at eval
+#  - eval@eval.reward : reward
+#  - eval@eval.action_gap : action_gap
+#  - eval@eval.alerts : alerts
+#  - eval@eval.actions : actions
+#  - eval@eval.endo_obs : endo_obs
+
+experiment:
+  exp_name : experiment
+  exp_info : experiment
+  debug : 0
+  seed : 0
+  param : 0
+  device : cpu
+  timeout : 1
+  offline_steps : 0
+  max_steps : 200
+  render : 0
+  save_path : output
+  load_env_obs_space_from_data : False
+  param_from_hash : False
+  gamma : 0.0
+  train_split : 0.9
+  plot_split : 0.999
+  test_epochs : null # If you want to test at certain epochs, specify a list here
+  offline_stat_keys: []
+  online_stat_keys: []
+
+transition_creator:
+  gamma : ${experiment.gamma}
+  steps_per_decision : ${interaction.steps_per_decision}
+  n_step : ${interaction.n_step}
+  only_dp_transitions :  ${interaction.only_dp_transitions}
+
+# Uncomment the alerts or evals you'd like to use in the defaults list above
+alerts:
+
+eval:
+

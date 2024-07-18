@@ -197,7 +197,13 @@ def main():
     WARNING: You will need to modify your code to avoid calling buffer.feed().
     Instead call buffer.update_data() with no args
     """
-    buffer_cfg = OmegaConf.load("config/agent/buffer/sql_buffer.yaml")
+    with initialize(version_base=None, config_path="../../config/"):
+        cfg = compose(
+            config_name="bandit_config",
+            overrides=["agent/buffer=sql_buffer", "agent.buffer.only_new_transitions=False"],
+        )
+    # buffer_cfg = OmegaConf.load("config/agent/buffer/sql_buffer.yaml")
+    buffer_cfg = cfg.agent.buffer
     buffer_cfg["db_name"] = test_db_name  # NOTE: adding this outside of yaml file
     buffer = SQLBuffer(buffer_cfg)
     buffer.update_data()  # we already have a few transitions in the db

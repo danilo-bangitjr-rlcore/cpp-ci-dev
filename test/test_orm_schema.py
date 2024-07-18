@@ -128,11 +128,26 @@ class TestSQLBuffer(unittest.TestCase):
         create_database(cls.engine.url)
         Base.metadata.create_all(cls.engine)
 
+
+        with initialize(version_base=None, config_path="../config/"):
+            cfg = compose(
+                config_name="bandit_config",
+                overrides=[
+                    "agent/buffer=sql_buffer",
+                    "agent.buffer.only_new_transitions=False",
+                    f"agent.buffer.db_name={cls.test_db_name}"
+                ],
+            )
+        # buffer_cfg = OmegaConf.load("config/agent/buffer/sql_buffer.yaml")
+        buffer_cfg = cfg.agent.buffer
+        buffer_cfg["db_name"] = ( # NOTE: adding this outside of yaml file
+            cls.test_db_name
+        )  
+        cls.buffer_cfg = buffer_cfg
+
     def test_update_data(self):
 
-        buffer_cfg = OmegaConf.load("config/agent/buffer/sql_buffer.yaml")
-        buffer_cfg["db_name"] = self.test_db_name
-        buffer = SQLBuffer(buffer_cfg)
+        buffer = SQLBuffer(self.buffer_cfg)
         buffer.update_data()
         batch = buffer.sample_batch()
         self.assertTrue(len(batch.state) == 5)
@@ -140,9 +155,7 @@ class TestSQLBuffer(unittest.TestCase):
 
     def test_remove_data(self):
         base_idx = self.get_base_idx()
-        buffer_cfg = OmegaConf.load("config/agent/buffer/sql_buffer.yaml")
-        buffer_cfg["db_name"] = self.test_db_name
-        buffer = SQLBuffer(buffer_cfg)
+        buffer = SQLBuffer(self.buffer_cfg)
         buffer.update_data()
         batch = buffer.sample_batch()
         self.assertTrue(len(batch.state) == 5)
@@ -168,9 +181,7 @@ class TestSQLBuffer(unittest.TestCase):
     def test_remove_add_remove_add(self):
 
         base_idx = self.get_base_idx()
-        buffer_cfg = OmegaConf.load("config/agent/buffer/sql_buffer.yaml")
-        buffer_cfg["db_name"] = self.test_db_name
-        buffer = SQLBuffer(buffer_cfg)
+        buffer = SQLBuffer(self.buffer_cfg)
         buffer.update_data()
         batch = buffer.sample_batch()
         self.assertTrue(len(batch.state) == 5)
@@ -218,9 +229,7 @@ class TestSQLBuffer(unittest.TestCase):
 
     def test_full_buffer(self):
         base_idx = self.get_base_idx()
-        buffer_cfg = OmegaConf.load("config/agent/buffer/sql_buffer.yaml")
-        buffer_cfg["db_name"] = self.test_db_name
-        buffer = SQLBuffer(buffer_cfg)
+        buffer = SQLBuffer(self.buffer_cfg)
         memory = 10
         buffer.memory = memory
         buffer.update_data()

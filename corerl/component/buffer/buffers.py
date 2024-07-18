@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from omegaconf import DictConfig, OmegaConf
 import logging
+from typing import List
+from corerl.sql_logging.base_schema import TransitionInfo
 
 logger = logging.getLogger(__name__)
 
@@ -195,24 +197,58 @@ class SQLBuffer(UniformBuffer):
 
         self.session = Session(self.engine)
         self.transition_ids = []
-        self.initial_idx = self.get_initial_idx()
+        self._initial_idx = None
+        self.only_new_transitions = cfg.only_new_transitions
 
+    @property
+    def initial_idx(self):
+        if not self.only_new_transitions:
+            initial_idx = 0
+        else:
+            if self._initial_idx is None:
+                initial_idx = self.get_initial_idx()
+            else:
+                initial_idx = self._initial_idx
+        return initial_idx
+    
     def get_initial_idx(self):
         idx = self.session.scalar(
             select(SQLTransition.id).order_by(SQLTransition.id.desc())
         )
+        if idx is None:
+            idx = 0
         return idx
 
-    def feed(self, experience: Transition) -> None:
+    def _transition_feed(self, experience: Transition, transition_infos: List[TransitionInfo]=None) -> None:
         sql_transition = SQLTransition(
             state=list(experience.state),
             action=list(experience.action),
             reward=experience.reward,
-            next_state=list(experience.next_state)
+            next_state=list(experience.next_state),
         )
-        self.session.add(sql_transition)
+        if transition_infos is not None:
+            sql_transition.transition_info.extend(transition_infos)
+            sql_transition = self.session.merge(sql_transition)
+        else:
+            self.session.add(sql_transition)
+    
         self.session.commit()
         self.update_data()
+    
+    def _sql_transition_feed(self, experience: SQLTransition):
+        
+        self.session.add(experience)
+        self.session.commit()
+        self.update_data()
+
+    def feed(self, experience: Transition, transition_infos: List[TransitionInfo]=None) -> None:
+        if isinstance(experience, Transition):
+            self._transition_feed(experience, transition_infos)
+        elif isinstance(experience, SQLTransition):
+            self._sql_transition_feed(experience)
+        else:
+            raise TypeError
+
 
     def _feed(self, experience: Transition) -> None:
         return super().feed(experience)

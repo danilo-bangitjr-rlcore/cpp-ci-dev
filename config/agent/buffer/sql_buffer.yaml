@@ -4,6 +4,7 @@
   device : cpu
   seed : ${experiment.seed}
   db_name: test_db
+  only_new_transitions: True
   con_cfg:  
     username: "eng"
     password: "rlcore"
