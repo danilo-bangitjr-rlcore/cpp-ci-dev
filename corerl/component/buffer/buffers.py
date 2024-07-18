@@ -195,13 +195,24 @@ class SQLBuffer(UniformBuffer):
 
         self.session = Session(self.engine)
         self.transition_ids = []
+        self.initial_idx = self.get_initial_idx()
+
+    def get_initial_idx(self):
+        idx = self.session.scalar(
+            select(SQLTransition.id).order_by(SQLTransition.id.desc())
+        )
+        return idx
 
     def feed(self, experience: Transition) -> None:
-        raise Exception(
-            "Do not call directly for SQL buffer. Instead call buffer.update_data() with no args."
+        sql_transition = SQLTransition(
+            state=list(experience.state),
+            action=list(experience.action),
+            reward=experience.reward,
+            next_state=list(experience.next_state)
         )
-        # logger.warning("Do not call directly for SQL buffer. Instead")
-        # return super().feed(experience)
+        self.session.add(sql_transition)
+        self.session.commit()
+        self.update_data()
 
     def _feed(self, experience: Transition) -> None:
         return super().feed(experience)
@@ -212,7 +223,9 @@ class SQLBuffer(UniformBuffer):
             state=row.state.item(),
             action=row.action.item(),
             reward=row.reward.item(),
+            n_step_reward=row.reward.item(),
             next_state=row.next_state.item(),
+            boot_state=row.next_state.item(), # WARNING: sql buffer only supports 1 step
             next_obs=None,
         )
         return transition
@@ -261,7 +274,7 @@ class SQLBuffer(UniformBuffer):
         )
 
         # resolve differences
-        table_ids = set(df["id"])
+        table_ids = set(df[df["id"] > self.initial_idx]["id"])
         tid_set = set(self.transition_ids)
         if tid_set != table_ids:
             remove_ids = tid_set - table_ids  # ids that should be removed from buffer

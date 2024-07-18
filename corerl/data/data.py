@@ -56,7 +56,7 @@ class Transition:
     state_dp: bool = True # whether state is a decision point
     next_state_dp: bool = True # Whether 'next_obs' is at a decision point
     boot_state_dp: bool = True # whether next_state is a decision point
-    gamma_exponent: int = 0 # the exponent of gamma used for bootstrapping
+    gamma_exponent: int = 1 # the exponent of gamma used for bootstrapping
     gap: bool = False  # whether there is a gap in the dataset following next_obs, always false online
 
     def __iter__(self):
