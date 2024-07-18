@@ -207,6 +207,7 @@ class SQLBuffer(UniformBuffer):
         else:
             if self._initial_idx is None:
                 initial_idx = self.get_initial_idx()
+                self._initial_idx = initial_idx
             else:
                 initial_idx = self._initial_idx
         return initial_idx
