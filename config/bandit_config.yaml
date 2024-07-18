@@ -1,5 +1,5 @@
 defaults:
-  - _self_
+  # - _self_
   - agent: epsilon_greedy_sarsa
   - env : three_tanks
   - interaction : anytime
@@ -7,6 +7,8 @@ defaults:
   - state_constructor : identity
   - calibration_model : anytime
   - normalizer : normalizer
+  - override agent/buffer: sql_buffer
+  # - override agent.buffer.db_name=e2e_test_db
 #  - alerts@alerts.action_value : action_value
 #  - alerts@alerts.gvf : gvf
 #  - eval@eval.ibe : ibe # this lets us have multiple subconfigs rooted at eval
@@ -15,6 +17,10 @@ defaults:
 #  - eval@eval.alerts : alerts
 #  - eval@eval.actions : actions
 #  - eval@eval.endo_obs : endo_obs
+
+agent:
+  buffer:
+    db_name: e2e_test_db
 
 experiment:
   exp_name : experiment
