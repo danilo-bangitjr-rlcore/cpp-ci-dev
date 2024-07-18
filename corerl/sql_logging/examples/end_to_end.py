@@ -14,23 +14,24 @@ from corerl.sql_logging.base_schema import (
     HParam,
     NetworkWeights,
     Loss,
-    GradInfo
+    GradInfo,
 )
 from corerl.sql_logging import sql_logging
 
 from sqlalchemy.orm import Session
 from sqlalchemy_utils import database_exists, drop_database, create_database
 from sqlalchemy import select
-import corerl.utils.freezer as fr
-from pathlib import Path
 from corerl.agent.factory import init_agent
+import corerl.sql_logging.base_schema as sql
 
 logger = logging.getLogger(__name__)
 logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
 
 @hydra.main(
-    version_base="1.3", config_path="../../../config/", config_name="bandit_config",
+    version_base="1.3",
+    config_path="../../../config/",
+    config_name="bandit_config",
 )
 def main(cfg: DictConfig) -> None:
 
@@ -41,15 +42,17 @@ def main(cfg: DictConfig) -> None:
     session, run = setup_sql_logging(cfg)
     run_agent(cfg, run, session)
 
+
 def run_agent(cfg: DictConfig, run, session) -> None:
+
+    sql.init_stepper(run)
 
     # setup env
     env = CoagBanditSimEnv()
-    env.register_run(run)
 
     # setup agent
     agent = init_agent(cfg.agent, state_dim=2, action_dim=1)
-    agent.critic_buffer.session = session  # override session (chane to register fn)
+    agent.critic_buffer.session = session  # override session (change to register fn)
 
     # get initial state and action
     state, info = env.reset()
@@ -76,16 +79,15 @@ def run_agent(cfg: DictConfig, run, session) -> None:
             env.start_step(action)
 
             agent.update_buffer(transition)
-            step_num = transition.step.step_num
+            step_num = sql.stepper.step_num
 
         if do_update:
             agent.update()
-            
-            # log loss (here we just use random, will rely on hooks)
-            transition.step.losses.append(
-                Loss(loss=float(np.random.random()), step=transition.step, type="train")
-            )
 
+            # log loss (here we just use random, will rely on hooks)
+            sql.stepper.step.losses.append(
+                Loss(loss=float(np.random.random()), type="train")
+            )
 
         # here the logging of critic weights and grads is included for completeness
         # however, these would best be handled inside the critic itself (e.g., with hooks)
@@ -95,21 +97,23 @@ def run_agent(cfg: DictConfig, run, session) -> None:
             log_critic_weights = False
 
         if log_critic_weights:
-            
+
             critic_weights = NetworkWeights(
                 state_dict=agent.q_critic.model.state_dict(),
                 type="critic",
-                step=transition.step,
+                step=sql.stepper.step,
             )
-            
+
             session.add(critic_weights)
-        
+
             grads = get_ensemble_grad(agent)
             if grads is not None:
-                grad_info = GradInfo(type='grad', data=grads, step=transition.step)
+                grad_info = GradInfo(type="grad", data=grads, step=sql.stepper.step)
                 session.add(grad_info)
 
             session.commit()
+
+        sql.stepper.increment_step()
 
 
 # utils
@@ -117,7 +121,7 @@ def setup_sql_logging(cfg):
     """
     This could live in a util file
     """
-    
+
     con_cfg = cfg.agent.buffer.con_cfg
     flattened_cfg = prep_cfg_for_db(OmegaConf.to_container(cfg), to_remove=[])
     engine = sql_logging.get_sql_engine(con_cfg, db_name=cfg.agent.buffer.db_name)
@@ -139,6 +143,7 @@ def setup_sql_logging(cfg):
 
         return session, run
 
+
 def get_ensemble_grad(agent):
     batch = agent.critic_buffer.sample_batch()
     if batch is not None:
@@ -154,7 +159,8 @@ def get_ensemble_grad(agent):
 
     return grads
 
-def flatten_dict(dictionary: dict, parent_key: str='', separator: str='_') -> dict:
+
+def flatten_dict(dictionary: dict, parent_key: str = "", separator: str = "_") -> dict:
     items = []
     for key, value in dictionary.items():
         new_key = parent_key + separator + key if parent_key else key
@@ -169,6 +175,7 @@ def prep_cfg_for_db(cfg: dict, to_remove: list[str]) -> dict:
     for key in to_remove:
         del cfg[key]
     return flatten_dict(cfg)
+
 
 if __name__ == "__main__":
     main()
