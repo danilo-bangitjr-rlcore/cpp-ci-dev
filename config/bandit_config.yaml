@@ -1,5 +1,4 @@
 defaults:
-  # - _self_
   - agent: epsilon_greedy_sarsa
   - env : three_tanks
   - interaction : anytime
@@ -8,19 +7,11 @@ defaults:
   - calibration_model : anytime
   - normalizer : normalizer
   - override agent/buffer: sql_buffer
-  # - override agent.buffer.db_name=e2e_test_db
-#  - alerts@alerts.action_value : action_value
-#  - alerts@alerts.gvf : gvf
-#  - eval@eval.ibe : ibe # this lets us have multiple subconfigs rooted at eval
-#  - eval@eval.reward : reward
-#  - eval@eval.action_gap : action_gap
-#  - eval@eval.alerts : alerts
-#  - eval@eval.actions : actions
-#  - eval@eval.endo_obs : endo_obs
 
 agent:
   buffer:
-    db_name: e2e_test_db
+    db_name: e2e_test
+  samples: 100
 
 experiment:
   exp_name : experiment
@@ -42,15 +33,3 @@ experiment:
   test_epochs : null # If you want to test at certain epochs, specify a list here
   offline_stat_keys: []
   online_stat_keys: []
-
-transition_creator:
-  gamma : ${experiment.gamma}
-  steps_per_decision : ${interaction.steps_per_decision}
-  n_step : ${interaction.n_step}
-  only_dp_transitions :  ${interaction.only_dp_transitions}
-
-# Uncomment the alerts or evals you'd like to use in the defaults list above
-alerts:
-
-eval:
-
