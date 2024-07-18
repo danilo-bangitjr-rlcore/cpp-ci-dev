@@ -2,8 +2,8 @@
   memory: 100000
   name: sql_buffer
   device : cpu
-  # seed : ${experiment.seed}
-  seed : 0
+  seed : ${experiment.seed}
+  db_name: test_db
   con_cfg:  
     username: "eng"
     password: "rlcore"

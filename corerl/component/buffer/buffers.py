@@ -177,6 +177,8 @@ def _get_size(experience: Transition) -> list[tuple]:
             size.append((0,))
         elif isinstance(elem, int) or isinstance(elem, float) or isinstance(elem, bool):
             size.append((1,))
+        elif isinstance(elem, list):
+            size.append((len(elem),))
         else:
             raise TypeError(f"unknown type {type(elem)}")
 
@@ -207,10 +209,10 @@ class SQLBuffer(UniformBuffer):
     def row_to_transition(self, row: pd.DataFrame) -> Transition:
         transition = Transition(
             obs=None,
-            state=np.array(row.state.item()),
-            action=np.array(row.action.item()),
-            reward=np.array(row.reward.item()),
-            next_state=np.array(row.next_state.item()),
+            state=row.state.item(),
+            action=row.action.item(),
+            reward=row.reward.item(),
+            next_state=row.next_state.item(),
             next_obs=None,
         )
         return transition
