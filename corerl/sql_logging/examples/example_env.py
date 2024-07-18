@@ -1,18 +1,15 @@
 from line_profiler import profile
 import numpy as np
 import numpy as np
-from corerl.sql_logging.base_schema import (
-    Run,
-    TransitionInfo,
-    SQLTransition,
-    Step
-)
+from corerl.sql_logging.base_schema import TransitionInfo, SQLTransition
 
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 import logging
+import corerl.sql_logging.base_schema as sql
 
 logger = logging.getLogger(__name__)
+
 
 class CoagTransitionInfo(TransitionInfo):
 
@@ -25,11 +22,13 @@ class CoagTransitionInfo(TransitionInfo):
         "polymorphic_identity": "normalized",
     }
 
+
 class RawCoagTransitionInfo(CoagTransitionInfo):
 
     __mapper_args__ = {
         "polymorphic_identity": "raw",
     }
+
 
 class CoagBanditSimEnv:
     """
@@ -41,13 +40,6 @@ class CoagBanditSimEnv:
         self.step_num = 0
         self.last_action = None
         self.uvt = 89
-
-    def register_run(self, run: Run):
-        self.run = run
-
-    def get_step(self):
-        step = Step(step_num=self.step_num, run=self.run)
-        return step
 
     def reset(self):
         self.state = [0.89, 0.95]
@@ -65,7 +57,6 @@ class CoagBanditSimEnv:
         self.last_action = action
         # do something to the real world here
 
-
     def finish_step(self):
         """
         Here we've waited for the real world to respond to our action
@@ -73,29 +64,27 @@ class CoagBanditSimEnv:
         action = self.last_action
         new_uvt = action[0] * (95 - 89) + 89
 
-        step = self.get_step() # this is a reference to an sql row TODO: test what happens if this gets called multiple times
-
         # log raw observations
         raw_tinfo = RawCoagTransitionInfo(
-            step=step,
+            step=sql.stepper.step,
             prev_uvt=self.uvt,
             new_uvt=new_uvt,
             target_uvt=95,
-            dose=action[0] * 15
+            dose=action[0] * 15,
         )
 
         # normalize raw observations
         norm_tinfo = CoagTransitionInfo(
-            step=step,
+            step=sql.stepper.step,
             prev_uvt=raw_tinfo.prev_uvt / 100,
             new_uvt=raw_tinfo.new_uvt / 100,
             target_uvt=raw_tinfo.target_uvt / 100,
-            dose=raw_tinfo.dose / 15
+            dose=raw_tinfo.dose / 15,
         )
 
         # next state is based on normalized observations
         state = self.state
-        action = action.tolist() # list to make human readable in sql
+        action = action.tolist()  # list to make human readable in sql
         reward = -abs(norm_tinfo.target_uvt - norm_tinfo.new_uvt)
         next_state = [norm_tinfo.prev_uvt, norm_tinfo.target_uvt]
 
@@ -104,11 +93,8 @@ class CoagBanditSimEnv:
             action=action,
             reward=reward,
             next_state=next_state,
-            transition_info=[
-                norm_tinfo,
-                raw_tinfo
-            ],
-            step=step
+            transition_info=[norm_tinfo, raw_tinfo],
+            step=sql.stepper.step,
         )
 
         self.step_num += 1
