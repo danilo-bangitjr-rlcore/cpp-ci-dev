@@ -1,6 +1,8 @@
 from omegaconf import DictConfig
 from pathlib import Path
 
+from corerl.utils.hooks import When
+
 import torch
 import numpy
 import pickle as pkl
@@ -59,19 +61,41 @@ class GreedyAC(BaseAC):
                 self.num_samples = self.action_dim
                 self.top_actions_proposal = self.action_dim
 
+        self._hooks(When.AfterCreate, self)
+
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device)
-        tensor_action, action_info = self.actor.get_action(tensor_state, with_grad=False)
+
+        args, _ = self._hooks(When.BeforeGetAction, self, tensor_state)
+        tensor_state = args[1]
+        tensor_action, action_info = self.actor.get_action(
+            tensor_state, with_grad=False,
+        )
+
+        args, _ = self._hooks(
+            When.AfterGetAction, self, tensor_state, tensor_action,
+        )
+        tensor_state, tensor_action = args[1:]
         action = to_np(tensor_action)[0]
+
         # log the action_info to the freezer
         fr.freezer.store('action_info', action_info)
         return action
 
     def update_buffer(self, transition: Transition) -> None:
-        self.critic_buffer.feed(transition)
+        args, _ = self._hooks(
+            When.BeforeUpdateCriticBuffer, self, transition,
+        )
+        critic_transition = args[1]
+        self.critic_buffer.feed(critic_transition)
+
         # Only train policy on states at decision points
         if transition.state_dp:
-            self.policy_buffer.feed(transition)
+            args, _ = self._hooks(
+                When.BeforeUpdateActorBuffer, self, transition,
+            )
+            actor_transition = args[1]
+            self.policy_buffer.feed(actor_transition)
 
     def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
                      batch_size: int) -> Float[torch.Tensor, 'batch_size num_samples']:
@@ -163,6 +187,12 @@ class GreedyAC(BaseAC):
         # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
         target = reward_batch + mask_batch * (self.gamma ** gamma_exp_batch) * next_q
         _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)
+
+        args, _ = self._hooks(
+            When.BeforeCriticLossComputed, self, batch, target, q_ens,
+        )
+        batch, target, q_ens = args[1:]
+
         return ensemble_mse(target, q_ens)
 
     def compute_sampler_entropy_loss(self, update_info: tuple) -> torch.Tensor:
@@ -221,17 +251,53 @@ class GreedyAC(BaseAC):
     def update_critic(self) -> None:
         for _ in range(self.n_critic_updates):
             batch = self.critic_buffer.sample()
+            args, _ = self._hooks(
+                When.AfterCriticBufferSample, self, batch,
+            )
+            batch = args[1]
+
             q_loss = self.compute_critic_loss(batch)
+            args, _ = self._hooks(
+                When.AfterCriticLossComputed, self, batch, q_loss,
+            )
+            batch, q_loss = args[1:]
+
             self.q_critic.update(q_loss)
+
+            args, _ = self._hooks(
+                When.AfterCriticUpdate, self, batch, q_loss,
+            )
+            batch, q_loss = args[1:]
 
     def update_actor(self) -> None:
         update_infos = []
         for _ in range(self.n_actor_updates):
             batch = self.policy_buffer.sample()
+            args, _ = self._hooks(
+                When.AfterActorBufferSample, self, batch,
+            )
+            batch = args[1]
+
             update_info = self.get_policy_update_info(batch.state)
+            args, _ = self._hooks(
+                When.BeforeActorLossComputed, self, update_info,
+            )
+            update_info = args[1]
+
             actor_loss = self.compute_actor_loss(update_info)
+            args, _ = self._hooks(
+                When.AfterActorLossComputed, self, batch, update_info,
+                actor_loss,
+            )
+            batch, update_info, actor_loss = args[1:]
+
             self.actor.update(actor_loss)
             update_infos.append(update_info)
+            args, _ = self._hooks(
+                When.AfterActorUpdate, self, batch, actor_loss,
+            )
+            actor_loss = args[1]
+
         return update_infos
 
     def update_sampler(self, update_infos: Optional[list[tuple]]) -> None:

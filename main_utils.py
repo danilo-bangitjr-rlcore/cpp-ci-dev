@@ -1,3 +1,4 @@
+from corerl.utils.hooks import When
 import numpy as np
 import hashlib
 import copy
@@ -367,6 +368,11 @@ def online_deployment(cfg: DictConfig,
         'transition_normalizer': transition_normalizer
     }
     online_eval = CompositeEval(cfg.eval, online_eval_args, online=True)
+
+    # An example hook, which does nothing
+    def hook1(*args, **kwargs):
+        return args, kwargs
+    agent.register_hook(hook1, When.AfterCriticLossComputed)
 
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(range(max_steps))
