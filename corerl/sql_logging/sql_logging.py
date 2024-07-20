@@ -94,19 +94,18 @@ def create_tables(metadata: MetaData, engine: Engine, schemas: dict) -> None:
 
 
 # utils
-def setup_sql_logging(cfg):
-    """
-    This could live in a util file
-    """
+def setup_sql_logging(cfg, restart_db=False):
+    logger.info("Setting up sql db...")
 
     con_cfg = cfg.agent.buffer.con_cfg
     flattened_cfg = prep_cfg_for_db(OmegaConf.to_container(cfg), to_remove=[])
     engine = get_sql_engine(con_cfg, db_name=cfg.agent.buffer.db_name)
 
-    if database_exists(engine.url):
-        drop_database(engine.url)
+    if restart_db:
+        if database_exists(engine.url):
+            drop_database(engine.url)
 
-    create_database(engine.url)
+        create_database(engine.url)
     Base.metadata.create_all(engine)
     with Session(engine) as session:
         run = Run(
