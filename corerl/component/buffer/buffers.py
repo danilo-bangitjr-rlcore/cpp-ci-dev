@@ -200,6 +200,13 @@ class SQLBuffer(UniformBuffer):
         self._initial_idx = None
         self.only_new_transitions = cfg.only_new_transitions
 
+    def register_session(self, session: Session):
+        """
+        Can be called if we need to override session
+        """
+        self.session = session
+        self.engine = session.get_bind().engine
+
     @property
     def initial_idx(self):
         if not self.only_new_transitions:
