@@ -206,6 +206,7 @@ class SQLBuffer(UniformBuffer):
         """
         self.session = session
         self.engine = session.get_bind().engine
+        self._initial_idx = self.get_initial_idx()
 
     @property
     def initial_idx(self):
@@ -238,6 +239,7 @@ class SQLBuffer(UniformBuffer):
             sql_transition.transition_info.extend(transition_infos)
             sql_transition = self.session.merge(sql_transition)
         else:
+            sql_transition = self.session.merge(sql_transition)
             self.session.add(sql_transition)
     
         self.session.commit()
@@ -245,6 +247,7 @@ class SQLBuffer(UniformBuffer):
     
     def _sql_transition_feed(self, experience: SQLTransition):
         
+        # experience = self.session.merge(experience)
         self.session.add(experience)
         self.session.commit()
         self.update_data()

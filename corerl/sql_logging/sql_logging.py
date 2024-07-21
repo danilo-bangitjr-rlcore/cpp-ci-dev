@@ -17,7 +17,6 @@ from sqlalchemy.orm import Session
 import logging
 from sqlalchemy import inspect
 # from sqlalchemy.ext.declarative.clsregistry import _ModuleMarker
-from sqlalchemy.orm import RelationshipProperty
 
 logger = logging.getLogger(__name__)
 
@@ -146,14 +145,14 @@ def setup_sql_logging(cfg, restart_db=False):
     flattened_cfg = prep_cfg_for_db(OmegaConf.to_container(cfg), to_remove=[])
     db_name = cfg.agent.buffer.db_name
     engine = get_sql_engine(con_cfg, db_name=db_name)
-
-    if restart_db:
-        if database_exists(engine.url):
-            drop_database(engine.url)
-
-        create_database(engine.url)    
-        Base.metadata.create_all(engine)
     
+    if restart_db:
+        drop_database(engine.url)
+        create_database(engine.url)    
+        
+    Base.metadata.create_all(engine) # create tables
+
+    # check if there is a problem with an existing db schema    
     while not is_sane_database(engine):
         try:
             db_version = int(db_name.split('_v')[-1]) + 1
@@ -166,6 +165,7 @@ def setup_sql_logging(cfg, restart_db=False):
         logger.warning(f'Trying db with name {db_name}...')
         logger.warning(f'To avoid this change the db_name in your config!')
         engine = get_sql_engine(con_cfg, db_name=db_name)
+
         Base.metadata.create_all(engine)
         
     with Session(engine) as session:
