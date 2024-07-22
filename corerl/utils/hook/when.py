@@ -40,8 +40,10 @@ class Agent(StrEnum):
         f(agent, batch) -> batch
     - BeforeActorLossComputed = "before_actor_loss_computed":
         f(agent, update_info) -> update_info
+    where `update_info` are algorithm-specific
     - AfterActorLossComputed = "after_actor_loss_computed":
         f(agent, batch, update_info, loss) -> batch, update_info, loss
+    where `update_info` are algorithm-specific
     - AfterActorUpdate = "after_actor_update":
         f(agent, batch, prev_loss)
     """
@@ -130,8 +132,9 @@ class Env(StrEnum):
         f(env, state, action) -> env, state, action
     - AfterStep = "after_step":
         f(
-            env, state, action, reward, next_state, term, trunc
-        ) -> env, state, action, reward, next_state, term, trunc
+            env, state, action, reward, next_state, term, trunc, **kwargs
+        ) -> env, state, action, reward, next_state, term, trunc, **kwargs
+    where kwargs are environment-specific keyword arguments
     """
     AfterCreate = "after_create"
     BeforeReset = "before_reset"
