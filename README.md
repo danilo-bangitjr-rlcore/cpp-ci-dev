@@ -5,7 +5,7 @@ This is the main repo containing code for our agents, environments, state constr
 ## Installation
 Clone this repo, then run 
 ```
-pip3 -e .
+pip3 install -e .
 ```
 inside `corerl/`.
 
