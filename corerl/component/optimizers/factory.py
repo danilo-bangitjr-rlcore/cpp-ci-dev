@@ -87,40 +87,22 @@ def lso_kwargs(cfg):
 
 
 def construct_lso_init(cfg):
-    type_ = cfg.name.lower()
-    if type_ == "identity":
-        return lso.init.Identity()
-    elif type_ == "to":
-        return lso.init.To(cfg.stepsize)
-    elif type_ == "multiply":
-        return lso.init.Multiply(cfg.factor)
-    elif type_ == "power":
-        return lso.init.Power(cfg.degree)
-    elif type_ == "maxprevious":
-        return lso.init.MaxPrevious(cfg.init_stepsize)
-    elif type_ == "simplequeue":
-        return lso.init.SimpleQueue(cfg.init_stepsizes)
-    elif type_ == "priorityqueue":
-        return lso.init.PriorityQueue(cfg.init_stepsizes, cfg.max)
-    else:
-        raise ValueError(f"unknown initializer {type_}")
+    type_ = cfg.name
+    args = cfg.get("args", tuple())
+    kwargs = cfg.get("kwargs", dict())
+    return getattr(lso.init, type_)(*args, **kwargs)
 
 
 def construct_lso_search_condition(cfg):
-    type_ = cfg.name.lower()
-    min_stepsize = cfg.get("min_step_size", 0)
-    max_stepsize = cfg.get("max_step_size", torch.inf)
+    type_ = cfg.name
+    args = cfg.get("args", tuple())
+    kwargs = cfg.get("kwargs", dict())
 
-    if type_ == "armijo":
-        return lso.search.Armijo(
-            cfg["c"], cfg["beta"], min_stepsize, max_stepsize,
-        )
-    elif type_ == "goldstein":
-        return lso.search.Goldstein(
-            cfg["c"], cfg["beta_b"], cfg["beta_f"], min_stepsize, max_stepsize,
-        )
-    else:
-        raise ValueError(f"unknown search condition {type_}")
+    # Set default (min, max) stepsize to be (0, ∞)
+    kwargs["min_step_size"] = kwargs.get("min_step_size", 0)
+    kwargs["max_step_size"] = kwargs.get("max_step_size", torch.inf)
+
+    return getattr(lso.search, type_)(*args, **kwargs)
 
 
 def get_optim_type(name):

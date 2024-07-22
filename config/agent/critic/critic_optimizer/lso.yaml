@@ -3,18 +3,44 @@ init_step_size : 0.1
 max_backtracking_steps: 30
 unit_norm_direction: False
 fallback_step_size: 0.0001
+
+# Configuration for the internal optimizer used by the line search
 optim:
+  # The type of optimizer to perform a line search on -- must be defined in
+  # torch.optim
   name: "Adam"
+
+  # Arguments to the optimizer constructor corresponding to `name` above
   args: []
+
+  # Keyword arguments to the optimizer constructor corresponding to `name`
+  # above
   kwargs: {}
 
+# Configuration for the line search initializer
 init:
+  # The type of initializer to use -- must be defined in linesearchopt.init
   name: "To"
-  stepsize: 0.001
+
+  # Arguments to the initializer constructor corresponding to `name` above
+  args: [0.1]
+
+  # Keyword arguments to the initializer constructor corresponding to `name`
+  # above
+  kwargs: {}
 
 search_condition:
+  # The type of search to use -- must be defined in linesearchopt.search
   name: "Armijo"
-  c: 0.1
-  beta: 0.9
-  min_step_size: 0
-  max_step_size: 1
+
+  # Arguments to the search condition constructor corresponding to `name` above
+  args: []
+
+  # Keyword arguments to the search condition constructor corresponding to
+  # `name` above
+  kwargs:
+    c: 0.1
+    beta: 0.9
+    min_step_size: 0
+    max_step_size: 1
+
