@@ -123,15 +123,15 @@ class Env(StrEnum):
     - AfterCreate = "after_create":
         f(env) -> env
     - BeforeReset = "before_reset":
-        f(env) -> env
+        f(env, state) -> env, state
     - AfterReset = "after_reset":
-        f(env) -> env
+        f(env, state) -> env, state
     - BeforeStep = "before_step":
         f(env, state, action) -> env, state, action
     - AfterStep = "after_step":
         f(
-            env, state, action, reward, next_state
-        ) -> env, state, action, reward, next_state
+            env, state, action, reward, next_state, term, trunc
+        ) -> env, state, action, reward, next_state, term, trunc
     """
     AfterCreate = "after_create"
     BeforeReset = "before_reset"
