@@ -1,7 +1,7 @@
 from omegaconf import DictConfig
 from pathlib import Path
 
-from corerl.utils.hooks import When
+from corerl.utils.hook import when
 
 import torch
 import numpy
@@ -61,19 +61,19 @@ class GreedyAC(BaseAC):
                 self.num_samples = self.action_dim
                 self.top_actions_proposal = self.action_dim
 
-        self._hooks(When.AfterCreate, self)
+        self._hooks(when.Agent.AfterCreate, self)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device)
 
-        args, _ = self._hooks(When.BeforeGetAction, self, tensor_state)
+        args, _ = self._hooks(when.Agent.BeforeGetAction, self, tensor_state)
         tensor_state = args[1]
         tensor_action, action_info = self.actor.get_action(
             tensor_state, with_grad=False,
         )
 
         args, _ = self._hooks(
-            When.AfterGetAction, self, tensor_state, tensor_action,
+            when.Agent.AfterGetAction, self, tensor_state, tensor_action,
         )
         tensor_state, tensor_action = args[1:]
         action = to_np(tensor_action)[0]
@@ -84,7 +84,7 @@ class GreedyAC(BaseAC):
 
     def update_buffer(self, transition: Transition) -> None:
         args, _ = self._hooks(
-            When.BeforeUpdateCriticBuffer, self, transition,
+            when.Agent.BeforeUpdateCriticBuffer, self, transition,
         )
         critic_transition = args[1]
         self.critic_buffer.feed(critic_transition)
@@ -92,7 +92,7 @@ class GreedyAC(BaseAC):
         # Only train policy on states at decision points
         if transition.state_dp:
             args, _ = self._hooks(
-                When.BeforeUpdateActorBuffer, self, transition,
+                when.Agent.BeforeUpdateActorBuffer, self, transition,
             )
             actor_transition = args[1]
             self.policy_buffer.feed(actor_transition)
@@ -189,7 +189,7 @@ class GreedyAC(BaseAC):
         _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)
 
         args, _ = self._hooks(
-            When.BeforeCriticLossComputed, self, batch, target, q_ens,
+            when.Agent.BeforeCriticLossComputed, self, batch, target, q_ens,
         )
         batch, target, q_ens = args[1:]
 
@@ -252,20 +252,20 @@ class GreedyAC(BaseAC):
         for _ in range(self.n_critic_updates):
             batch = self.critic_buffer.sample()
             args, _ = self._hooks(
-                When.AfterCriticBufferSample, self, batch,
+                when.Agent.AfterCriticBufferSample, self, batch,
             )
             batch = args[1]
 
             q_loss = self.compute_critic_loss(batch)
             args, _ = self._hooks(
-                When.AfterCriticLossComputed, self, batch, q_loss,
+                when.Agent.AfterCriticLossComputed, self, batch, q_loss,
             )
             batch, q_loss = args[1:]
 
             self.q_critic.update(q_loss)
 
             args, _ = self._hooks(
-                When.AfterCriticUpdate, self, batch, q_loss,
+                when.Agent.AfterCriticUpdate, self, batch, q_loss,
             )
             batch, q_loss = args[1:]
 
@@ -274,19 +274,19 @@ class GreedyAC(BaseAC):
         for _ in range(self.n_actor_updates):
             batch = self.policy_buffer.sample()
             args, _ = self._hooks(
-                When.AfterActorBufferSample, self, batch,
+                when.Agent.AfterActorBufferSample, self, batch,
             )
             batch = args[1]
 
             update_info = self.get_policy_update_info(batch.state)
             args, _ = self._hooks(
-                When.BeforeActorLossComputed, self, update_info,
+                when.Agent.BeforeActorLossComputed, self, update_info,
             )
             update_info = args[1]
 
             actor_loss = self.compute_actor_loss(update_info)
             args, _ = self._hooks(
-                When.AfterActorLossComputed, self, batch, update_info,
+                when.Agent.AfterActorLossComputed, self, batch, update_info,
                 actor_loss,
             )
             batch, update_info, actor_loss = args[1:]
@@ -294,7 +294,7 @@ class GreedyAC(BaseAC):
             self.actor.update(actor_loss)
             update_infos.append(update_info)
             args, _ = self._hooks(
-                When.AfterActorUpdate, self, batch, actor_loss,
+                when.Agent.AfterActorUpdate, self, batch, actor_loss,
             )
             actor_loss = args[1]
 

@@ -1,4 +1,4 @@
-from corerl.utils.hooks import When
+from corerl.utils.hook import when
 import numpy as np
 import hashlib
 import copy
@@ -372,7 +372,7 @@ def online_deployment(cfg: DictConfig,
     # An example hook, which does nothing
     def hook1(*args, **kwargs):
         return args, kwargs
-    agent.register_hook(hook1, When.AfterCriticLossComputed)
+    agent.register_hook(hook1, when.Agent.AfterCriticLossComputed)
 
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(range(max_steps))

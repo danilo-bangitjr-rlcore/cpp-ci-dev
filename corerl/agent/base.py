@@ -3,12 +3,12 @@ from omegaconf import DictConfig
 import numpy
 
 from corerl.data.data import Transition
-from corerl.utils.hooks import Hook, Hooks, When
+from corerl.utils.hook import Hooks, when
 
 
 class BaseAgent(ABC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
-        self._hooks = Hooks(keys=[e.value for e in When])
+        self._hooks = Hooks(keys=[e.value for e in when.Agent])
         self.replay_ratio = cfg.replay_ratio
         self.update_freq = cfg.update_freq
         self.state_dim = state_dim
@@ -47,7 +47,7 @@ class BaseAgent(ABC):
     def add_to_freezer(self) -> None:
         pass
 
-    def register_hook(self, hook, when: When):
+    def register_hook(self, hook, when: when.Agent):
         self._hooks.register(hook, when)
 
 
