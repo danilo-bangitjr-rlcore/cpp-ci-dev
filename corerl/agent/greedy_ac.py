@@ -303,14 +303,49 @@ class GreedyAC(BaseAC):
     def update_sampler(self, update_infos: Optional[list[tuple]]) -> None:
         if update_infos is not None:
             for update_info in update_infos:
+                args, _ = self._hooks(
+                    when.Agent.BeforeProposalLossComputed, self, update_info,
+                )
+                update_info = args[1]
+
                 sampler_loss = self.compute_sampler_loss(update_info)
+                args, _ = self._hooks(
+                    when.Agent.AfterProposalLossComputed, self, None,
+                    update_info, sampler_loss,
+                )
+                batch, update_info, sampler_loss = args[1:]
+
                 self.sampler.update(sampler_loss)
+
+                self._hooks(
+                    when.Agent.AfterProposalUpdate, self, batch, sampler_loss,
+                )
         else:
             for i in range(self.n_sampler_updates):
                 batch = self.policy_buffer.sample()
+                args, _ = self._hooks(
+                    when.Agent.AfterProposalBufferSample, self, batch,
+                )
+                batch = args[1]
+
                 update_info = self.get_policy_update_info(batch.state)
+                args, _ = self._hooks(
+                    when.Agent.BeforeProposalLossComputed, self, update_info,
+                )
+                update_info = args[1]
+
                 sampler_loss = self.compute_sampler_loss(update_info)
+                args, _ = self._hooks(
+                    when.Agent.AfterProposalLossComputed, self, batch,
+                    update_info, sampler_loss,
+                )
+                batch, update_info, sampler_loss = args[1:]
+
                 self.sampler.update(sampler_loss)
+
+                self._hooks(
+                    when.Agent.AfterProposalUpdate, self, batch, sampler_loss,
+                )
 
     def update(self) -> None:
         # share_batch ensures that update_actor and update_sampler use the same batch
