@@ -1,3 +1,4 @@
+from typing import Union
 import torch
 from pathlib import Path
 from omegaconf import DictConfig
@@ -67,10 +68,18 @@ class EnsembleQCritic(BaseQ):
         q, qs = self.get_qs_target(states, actions)
         return q
 
-    def update(self, loss: torch.Tensor) -> None:
+    def update(
+        self, loss: torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
+    ) -> None:
         self.optimizer.zero_grad()
-        self.ensemble_backward(loss)
-        self.optimizer.step()
+
+        if isinstance(loss, Union[list, tuple]):
+            self.ensemble_backward(loss)
+        else:
+            loss.backward()
+
+        self.optimizer.step(*opt_args, **opt_kwargs)
+
         if self.target_sync_counter % self.target_sync_freq == 0:
             self.sync_target()
             self.target_sync_counter = 0

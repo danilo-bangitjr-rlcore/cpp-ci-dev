@@ -221,16 +221,29 @@ class GreedyAC(BaseAC):
     def update_critic(self) -> None:
         for _ in range(self.n_critic_updates):
             batch = self.critic_buffer.sample()
-            q_loss = self.compute_critic_loss(batch)
-            self.q_critic.update(q_loss)
+
+            def closure():
+                return sum(self.compute_critic_loss(batch))
+            q_loss = closure()
+
+            self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
 
     def update_actor(self) -> None:
         update_infos = []
         for _ in range(self.n_actor_updates):
             batch = self.policy_buffer.sample()
             update_info = self.get_policy_update_info(batch.state)
+
             actor_loss = self.compute_actor_loss(update_info)
-            self.actor.update(actor_loss)
+
+            self.actor.update(
+                actor_loss,
+                opt_kwargs={
+                    "closure": lambda: self.actor_err(batch.state),
+                },
+            )
+            update_infos.append(update_info)
+
             update_infos.append(update_info)
         return update_infos
 
@@ -238,13 +251,44 @@ class GreedyAC(BaseAC):
         if update_infos is not None:
             for update_info in update_infos:
                 sampler_loss = self.compute_sampler_loss(update_info)
-                self.sampler.update(sampler_loss)
+                state_batch = update_info[0]
+                self.sampler.update(
+                    sampler_loss,
+                    opt_kwargs={
+                        "closure": lambda: self.sampler_err(state_batch),
+                    },
+                )
         else:
             for i in range(self.n_sampler_updates):
                 batch = self.policy_buffer.sample()
                 update_info = self.get_policy_update_info(batch.state)
                 sampler_loss = self.compute_sampler_loss(update_info)
-                self.sampler.update(sampler_loss)
+                self.sampler.update(
+                    sampler_loss,
+                    opt_kwargs={
+                        "closure": lambda: self.sampler_err(batch.state),
+                    },
+                )
+
+    def actor_err(self, state_batch) -> torch.Tensor:
+        out = self.get_policy_update_info(state_batch)
+        _, _, _, _, stacked_s_batch, best_actions, _ = out
+        logp, _ = self.actor.get_log_prob(
+            stacked_s_batch,
+            best_actions,
+            with_grad=True,
+        )
+        return -logp.mean()
+
+    def sampler_err(self, state_batch) -> torch.Tensor:
+        out = self.get_policy_update_info(state_batch)
+        _, _, _, _, stacked_s_batch, best_actions, _ = out
+        logp, _ = self.sampler.get_log_prob(
+            stacked_s_batch,
+            best_actions,
+            with_grad=True,
+        )
+        return -logp.mean()
 
     def update(self) -> None:
         # share_batch ensures that update_actor and update_sampler use the same batch

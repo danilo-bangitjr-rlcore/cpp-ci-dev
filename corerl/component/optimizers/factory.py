@@ -1,4 +1,5 @@
 from omegaconf import DictConfig
+import linesearchopt as lso
 from typing import Optional
 import torch
 from omegaconf import DictConfig
@@ -12,22 +13,27 @@ def init_optimizer(cfg: DictConfig, param: list | dict | Iterator, ensemble: Opt
     config files: root/config/agent/critic/critic_optimizer or root/config/agent/actor/actor_optimizer
     """
     name = cfg.name
-    lr = cfg.lr
-    weight_decay = cfg.weight_decay
+    if "lr" in cfg.keys():
+        lr = cfg.lr
+    if "weight_decay" in cfg.keys():
+        weight_decay = cfg.weight_decay
 
     # TODO: Han can you make sure this file is ok?
     if ensemble:
-        kwargs = {
-            'weight_decay': cfg.weight_decay
-        }
+        if name != "lso":
+            kwargs = {'weight_decay': cfg.weight_decay, 'lr': cfg.lr}
+
         if name == "rms_prop":
-            return EnsembleOptimizer(torch.optim.RMSprop, param, lr=lr, kwargs=kwargs)
+            return EnsembleOptimizer(torch.optim.RMSprop, param, kwargs=kwargs)
         elif name == 'adam':
-            return EnsembleOptimizer(torch.optim.Adam, param, lr=lr, kwargs=kwargs)
+            return EnsembleOptimizer(torch.optim.Adam, param, kwargs=kwargs)
         elif name == 'custom_adam':
-            return EnsembleOptimizer(CustomAdam, param, lr=lr, kwargs=kwargs)
+            return EnsembleOptimizer(CustomAdam, param, kwargs=kwargs)
         elif name == "sgd":
-            return EnsembleOptimizer(torch.optim.SGD, param, lr=lr, kwargs=kwargs)
+            return EnsembleOptimizer(torch.optim.SGD, param, kwargs=kwargs)
+        elif name == "lso":
+            kwargs = lso_kwargs(cfg)
+            return EnsembleOptimizer(lso.Optimizer, param, kwargs=kwargs)
         else:
             raise NotImplementedError
     else:
@@ -39,5 +45,86 @@ def init_optimizer(cfg: DictConfig, param: list | dict | Iterator, ensemble: Opt
             return CustomAdam(param, lr, weight_decay=weight_decay)
         elif name == "sgd":
             return torch.optim.SGD(param, lr, weight_decay=weight_decay)
+        elif name == "lso":
+            return construct_lso(param, cfg)
         else:
             raise NotImplementedError
+
+
+def construct_lso(param, cfg):
+    kwargs = lso_kwargs(cfg)
+    optim = lso.Optimizer(param, **kwargs)
+    return optim
+
+
+def lso_kwargs(cfg):
+    kwargs = {}
+    init_cfg = cfg.init
+    init = construct_lso_init(init_cfg)
+    kwargs["init"] = init
+
+    search_cfg = cfg.search_condition
+    search_condition = construct_lso_search_condition(search_cfg)
+    kwargs["search_condition"] = search_condition
+
+    kwargs["init_step_size"] = cfg["init_step_size"]
+    kwargs["max_backtracking_steps"] = cfg["max_backtracking_steps"]
+
+    kwargs["unit_norm_direction"] = cfg.get("unit_norm_direction", False)
+
+    if "fallback_step_size" in cfg.keys():
+        kwargs["fallback_step_size"] = cfg["fallback_step_size"]
+    else:
+        kwargs["fallback_step_size"] = init_step_size
+
+    kwargs["optim"] = get_optim_type(cfg.optim.name)
+
+    # Arguments and keywords for the internal torch optimizer
+    kwargs["optim_args"] = cfg["optim"].get("args", tuple())
+    kwargs["optim_kwargs"] = cfg["optim"].get("kwargs", dict())
+
+    return kwargs
+
+
+def construct_lso_init(cfg):
+    type_ = cfg.name.lower()
+    if type_ == "identity":
+        return lso.init.Identity()
+    elif type_ == "to":
+        return lso.init.To(cfg.stepsize)
+    elif type_ == "multiply":
+        return lso.init.Multiply(cfg.factor)
+    elif type_ == "power":
+        return lso.init.Power(cfg.degree)
+    elif type_ == "maxprevious":
+        return lso.init.MaxPrevious(cfg.init_stepsize)
+    elif type_ == "simplequeue":
+        return lso.init.SimpleQueue(cfg.init_stepsizes)
+    elif type_ == "priorityqueue":
+        return lso.init.PriorityQueue(cfg.init_stepsizes, cfg.max)
+    else:
+        raise ValueError(f"unknown initializer {type_}")
+
+
+def construct_lso_search_condition(cfg):
+    type_ = cfg.name.lower()
+    min_stepsize = cfg.get("min_step_size", 0)
+    max_stepsize = cfg.get("max_step_size", torch.inf)
+
+    if type_ == "armijo":
+        return lso.search.Armijo(
+            cfg["c"], cfg["beta"], min_stepsize, max_stepsize,
+        )
+    elif type_ == "goldstein":
+        return lso.search.Goldstein(
+            cfg["c"], cfg["beta_b"], cfg["beta_f"], min_stepsize, max_stepsize,
+        )
+    else:
+        raise ValueError(f"unknown search condition {type_}")
+
+
+def get_optim_type(name):
+    if name.lower() in ("customadam", "custom_adam"):
+        return CustomAdam
+    else:
+        return getattr(torch.optim, name)

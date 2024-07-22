@@ -1,3 +1,4 @@
+import linesearchopt as lso
 import torch
 from pathlib import Path
 from omegaconf import DictConfig
@@ -20,10 +21,12 @@ class NetworkActor(BaseActor):
     def distribution_bounds(self):
         return self.model.distribution_bounds()
 
-    def update(self, loss: torch.Tensor) -> None:
+    def update(
+        self, loss: torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
+    ) -> None:
         self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
+        type(self.optimizer) is not lso.Optimizer and loss.backward()
+        self.optimizer.step(*opt_args, **opt_kwargs)
 
     def get_action(self, state: torch.Tensor, with_grad=False) -> (torch.Tensor, dict):
         if with_grad:

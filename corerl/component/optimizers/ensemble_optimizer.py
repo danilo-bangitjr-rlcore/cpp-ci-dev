@@ -1,22 +1,23 @@
-import torch
-
 from typing import Optional, Callable
 
 
 class EnsembleOptimizer:
-    def __init__(self, individual_optim: Callable, param: list[dict], lr: float, kwargs: Optional):
-        self.optim = [
-            individual_optim(list(p), lr, **kwargs) for p in param
-        ]
+    def __init__(
+        self,
+        individual_optim: Callable,
+        param: list[dict],
+        kwargs: Optional,
+    ):
+        self.optim = [individual_optim(list(p), **kwargs) for p in param]
 
     def zero_grad(self) -> None:
         for opt in self.optim:
             opt.zero_grad()
         return
 
-    def step(self) -> None:
+    def step(self, *args, **kwargs) -> None:
         for opt in self.optim:
-            opt.step()
+            opt.step(*args, **kwargs)
         return
 
     def state_dict(self) -> list[dict]:
