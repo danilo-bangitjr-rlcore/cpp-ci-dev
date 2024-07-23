@@ -1,4 +1,3 @@
-import linesearchopt as lso
 import torch
 from pathlib import Path
 from omegaconf import DictConfig
@@ -25,7 +24,7 @@ class NetworkActor(BaseActor):
         self, loss: torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
     ) -> None:
         self.optimizer.zero_grad()
-        type(self.optimizer) is not lso.Optimizer and loss.backward()
+        loss.backward()
         self.optimizer.step(*opt_args, **opt_kwargs)
 
     def get_action(self, state: torch.Tensor, with_grad=False) -> (torch.Tensor, dict):
