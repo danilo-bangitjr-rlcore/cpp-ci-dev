@@ -64,7 +64,7 @@ class KNNCalibrationModel(BaseCalibrationModel):
         else:
             return state
 
-    def train(self) -> None:
+    def train(self, loss_avg=100) -> None:
         if self.learn_metric:
             print("Learning Laplacian representation...")
             losses = []
@@ -77,9 +77,9 @@ class KNNCalibrationModel(BaseCalibrationModel):
 
                 loss = loss.detach().item()
                 losses.append(loss)
-                if len(losses) > 100:
-                    avg_loss = sum(losses[-100:]) / 100
-                    pbar.set_description(f"Loss: {avg_loss:.4f}")
+                if len(losses) > loss_avg:
+                    avg_loss = sum(losses[-loss_avg:]) / loss_avg
+                    pbar.set_description(f"Avg loss over last {loss_avg} iterations:: {avg_loss:.4f}")
 
                 self.optimizer.step()
 

@@ -33,6 +33,9 @@ class BaseCalibrationModel(ABC):
         raise NotImplementedError
 
     def do_test_rollouts(self, plot_save_path=None):
+        if plot_save_path is not None:
+            plot_save_path.mkdir(parents=True, exist_ok=True)
+
         for n, test_traj in enumerate(self.test_trajectories):
             last = test_traj.num_transitions - self.max_rollout_len
             increase_idx = last // self.num_test_rollouts
@@ -44,6 +47,9 @@ class BaseCalibrationModel(ABC):
     def do_agent_rollouts(self, agent: BaseAgent, trajectories_agent: list[Trajectory], plot=None, plot_save_path=None):
         returns = []
         assert len(trajectories_agent) == len(self.test_trajectories)
+        if plot_save_path is not None:
+            plot_save_path.mkdir(parents=True, exist_ok=True)
+
         for traj_i, _ in enumerate(self.test_trajectories):
             traj_cm = self.test_trajectories[traj_i]
             traj_agent = trajectories_agent[traj_i]
@@ -81,10 +87,13 @@ class BaseCalibrationModel(ABC):
 
         This method can be used with or without an agent. If no agent is given, actions are selected
         according to the traj_cm.
+
+        NOTE that the transitions in trajectories here must have the same frequency as the agent expects with its state constructor
         """
 
         if start_idx is None:
             start_idx = random.randint(0, traj_cm.num_transitions - self.max_rollout_len - 1)
+
         transitions_cm = traj_cm.transitions[start_idx:]
         sc_cm = deepcopy(traj_cm.scs[start_idx])  # state constructor for the model
         state_cm = transitions_cm[0].state  # initial state for the model
@@ -114,6 +123,7 @@ class BaseCalibrationModel(ABC):
         rollout_len = min(len(transitions_cm), self.max_rollout_len)
 
         steps_until_decision_point = None
+        steps_since_decision_point = transitions_cm[0].steps_since_decision  # how long since the last decision
         action = transitions_cm[0].action  # the initial agent's action
         decision_point = transitions_cm[0].state_dp
 
@@ -129,9 +139,8 @@ class BaseCalibrationModel(ABC):
 
             next_obs = transition_step.next_obs  # the true next observation
             next_endo_obs = next_obs[self.endo_inds]  # the endogenous component of the true next observation
-            action_duration = steps_until_decision_point / self.steps_per_decision
 
-            kwargs = {'duration': action_duration}
+            kwargs = {}  # add kwargs to _get_next_endo_obs here
             predicted_next_endo_obs = self._get_next_endo_obs(state_cm, action, kwargs)
 
             # log the loss
@@ -141,14 +150,22 @@ class BaseCalibrationModel(ABC):
             # construct a fictitious observation using the predicted endogenous variables and the actual
             # exogenous variables
             fictitious_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
-
             # update the state constructors
             steps_until_decision_point -= 1
+            steps_since_decision_point += 1
             decision_point = steps_until_decision_point == 0
-            state_cm = sc_cm(fictitious_obs, action, decision_point=decision_point)
+
+            if decision_point:
+                steps_since_decision_point = 0
+
+            state_cm = sc_cm(fictitious_obs, action,
+                             decision_point=decision_point,
+                             steps_since_decision=steps_since_decision_point)
 
             if use_agent:
-                state_agent = sc_agent(fictitious_obs, action, decision_point=decision_point)
+                state_agent = sc_agent(fictitious_obs, action,
+                                       decision_point=decision_point,
+                                       steps_since_decision=steps_since_decision_point)
 
             reward_info = {}
             if prev_action is None:
