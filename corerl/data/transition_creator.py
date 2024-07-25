@@ -154,7 +154,6 @@ class AnytimeTransitionCreator(object):
                         transition.next_obs = transition.boot_obs
                         transition.next_state_dp = transition.boot_state_dp
                         transition.next_state = transition.boot_state
-                        # TODO verify this will Alex
                         transition.steps_since_decision = 1
                         transition.next_steps_since_decision = 1
 
