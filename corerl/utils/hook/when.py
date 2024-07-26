@@ -9,12 +9,21 @@ class Agent(StrEnum):
     Each hook at a different time point is passed different arguments and
     keyword arguments. The hooks are required to return their (possibly
     modified) arguments and keyword arguments. The agent can then re-assign
-    these returned values as it sees fit.
+    these returned values as it sees fit. The easiest way to do this is to use
+    a function of the following form for a hook
+
+        def fn(*args, **kwargs):
+            # Do some stuff with args and kwargs. You should know the exact
+            # order of arguments and the exact keyword arguments to the hook
+            # function based on when the function is registered with the agent
+            # (see below).
+
+            return args, kwargs
 
     Below, we list the times at which hooks are called as well as the
     functional form that the hook function should satisfy using the notation:
 
-        f(arguments; keyword arguments) -> returned value
+        f(arguments; keyword arguments) -> return value
 
     where `f` is the hook function being registered.
 
@@ -69,9 +78,8 @@ class Agent(StrEnum):
     AfterCriticLossComputed = "after_critic_loss_computed"
 
     # Ideally we would also have: AfterCriticBackward and AfterCriticOptStep,
-    # but there is a separate class that takes care of the backward pass and
-    # optimizer step outside of the agent, which complicates these two callback
-    # times
+    # but there is a separate class which takes care of the backward pass and
+    # optimizer step outside of the agent, which complicates this
 
     # <- f(agent, batch, prev_loss)
     # After the backward pass and optimizer step
@@ -95,9 +103,8 @@ class Agent(StrEnum):
     AfterProposalLossComputed = "after_proposal_loss_computed"
 
     # Ideally we would also have: AfterActorBackward and AfterActorOptStep,
-    # but there is a separate class that takes care of the backward pass and
-    # optimizer step outside of the agent, which complicates these two callback
-    # times
+    # but there is a separate class which takes care of the backward pass and
+    # optimizer step outside of the agent, which complicates this
 
     # <- f(agent, batch, prev_loss)
     # After the backward pass and optimizer step
@@ -118,7 +125,7 @@ class Env(StrEnum):
     Below, we list the times at which hooks are called as well as the
     functional form that the hook function should satisfy using the notation:
 
-        f(arguments; keyword arguments) -> returned value
+        f(arguments; keyword arguments) -> return value
 
     where `f` is the hook function being registered.
 
