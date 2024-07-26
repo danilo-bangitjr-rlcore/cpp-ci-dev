@@ -93,7 +93,6 @@ def main(cfg: DictConfig) -> dict:
                                                                                  sc_cm,
                                                                                  transition_creator,
                                                                                  warmup)
-
     train_info = {
         'normalizer': normalizer,
         'train_trajectories_cm': train_trajectories_cm,

@@ -168,9 +168,12 @@ class DirectActionDataLoader(BaseDataLoader):
             obs = np.empty(0)
             prev_decision_point = None
             prev_steps_since_decision = None
+            added_transition = False
+
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
                                                                                                               action_start)
+                action_transitions = []
 
                 if data_gap:
                     curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
@@ -181,9 +184,11 @@ class DirectActionDataLoader(BaseDataLoader):
                 steps_since_decision = ((self.steps_per_decision - step_remainder) + 1) % self.steps_per_decision
 
                 # Next, iterate over current action time steps and produce obs transitions
+                if curr_action_steps == 0 and data_gap and len(obs_transitions) > 0:
+                    obs_transitions[-1].gap = True
+
                 for step in range(curr_action_steps):
                     decision_point = steps_since_decision == 0
-
                     step_end = step_start + timedelta(seconds=self.obs_length)
                     next_obs = self.get_obs(obs_df, step_start, step_end)
 
@@ -208,8 +213,18 @@ class DirectActionDataLoader(BaseDataLoader):
                             False,  # assume a continuing env
                             gap=(step == curr_action_steps - 1) and data_gap  # if the last step and there is a data gap
                         )
+
+                        if not added_transition:
+                            obs_transition.obs_dp = True
+                            added_transition = True
+
                         obs_transition = normalizer.normalize(obs_transition)
+
+                        if len(obs_transitions) > 0 and not obs_transitions[-1].gap:
+                            assert np.allclose(obs_transition.obs, obs_transitions[-1].next_obs)
+
                         obs_transitions.append(obs_transition)
+                        action_transitions.append(obs_transition)
 
                     prev_action = curr_action
                     step_start = step_start + timedelta(seconds=self.obs_length)
@@ -224,6 +239,8 @@ class DirectActionDataLoader(BaseDataLoader):
                     except:
                         pass
 
+                if len(action_transitions) > 0:
+                    assert action_transitions[0].obs_dp
                 action_start = next_action_start
 
         print("Number of observation transitions: {}".format(len(obs_transitions)))

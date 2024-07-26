@@ -34,7 +34,8 @@ env:
 interaction :
   obs_length : 60
   steps_per_decision : 30
-  only_dp_transitions : False
+  only_dp_transitions : True
+  n_step : 0
 
 normalizer:
   action_normalizer:

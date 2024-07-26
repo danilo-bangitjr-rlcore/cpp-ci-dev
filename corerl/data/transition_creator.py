@@ -68,6 +68,7 @@ class AnytimeTransitionCreator(object):
         Given a dataset of offline observation transitions, make the anytime transitions.
         """
         obs_transitions = deepcopy(obs_transitions)
+
         agent_transitions = []
         alert_transitions = []
         done = False
@@ -104,6 +105,11 @@ class AnytimeTransitionCreator(object):
         """
         Produce Anytime transitions for a continuous chunk of observation transitions (no data gaps) from an offline dataset
         """
+        for i in range(len(curr_chunk_obs_transitions)-1):
+            if not np.allclose(curr_chunk_obs_transitions[i].next_obs, curr_chunk_obs_transitions[i+1].obs):
+                assert False
+            assert not curr_chunk_obs_transitions[i].gap
+
         sc.reset()
         curr_chunk_agent_transitions = []
         curr_chunk_alert_transitions = []
@@ -139,31 +145,25 @@ class AnytimeTransitionCreator(object):
             # If steps_per_decision is 1, curr_decision_obs_transitions could be empty
             if obs_transition.next_obs_dp and len(curr_decision_obs_transitions):
                 assert len(states) == len(curr_decision_obs_transitions) + 1
-
                 new_transitions = self._make_decision_window_transitions(curr_decision_obs_transitions, states)
 
                 if self.only_dp_transitions:
-                    # the first transition could have been filtered out by self.get_train_transitions(), so
-                    # transitions[0].state_dp checks if it was that original first transition returned by
-                    # self.transition_creator.make_online_transitions()
-                    # unlike in anytime_interaction, we are not filtering transitions, so no need to check if it's
-                    # length is greater than 0
-                    if new_transitions[0].state_dp:
-                        transition = deepcopy(new_transitions[0])
-                        transition.gamma_exponent = 1
-                        transition.next_obs = transition.boot_obs
-                        transition.next_state_dp = transition.boot_state_dp
-                        transition.next_state = transition.boot_state
-                        transition.steps_since_decision = 1
-                        transition.next_steps_since_decision = 1
+                    assert new_transitions[0].state_dp
+                    transition = deepcopy(new_transitions[0])
+                    transition.gamma_exponent = 1
+                    transition.next_obs = transition.boot_obs
+                    transition.next_state_dp = transition.boot_state_dp
+                    transition.next_state = transition.boot_state
+                    transition.steps_since_decision = 1
+                    transition.next_steps_since_decision = 1
 
-                        reward_sum = sum([t.reward for t in new_transitions])
-                        transition.reward = reward_sum / self.steps_per_decision
-                        transition.n_step_reward = transition.reward
+                    reward_sum = sum([t.reward for t in new_transitions])
+                    transition.reward = reward_sum / self.steps_per_decision
+                    transition.n_step_reward = transition.reward
 
-                        curr_chunk_agent_transitions += [transition]
-                        if return_scs:
-                            new_scs.append(deepcopy(sc))
+                    curr_chunk_agent_transitions += [transition]
+                    if return_scs:
+                        new_scs.append(deepcopy(sc))
                 else:
                     curr_chunk_agent_transitions += new_transitions
 
@@ -183,6 +183,7 @@ class AnytimeTransitionCreator(object):
         if return_scs:
             new_scs = new_scs[agent_warmup:-1]
             assert len(new_scs) == len(curr_chunk_agent_transitions)
+            # check to see if scs are lined up to transitions
             for i in range(len(curr_chunk_agent_transitions)):
                 assert np.allclose(curr_chunk_agent_transitions[i].state, new_scs[i].get_current_state())
 
