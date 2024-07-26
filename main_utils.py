@@ -373,6 +373,12 @@ def online_deployment(cfg: DictConfig,
     #      return args, kwargs
     # agent.register_hook(hook_fn, when.Agent.AfterCriticLossComputed)
 
+    # An example hook, which prints the current environment state
+    # def hook_fn(*args, **kwargs):
+    #     print(args[1])
+    #     return args, kwargs
+    # env.register_hook(hook_fn, when.Env.BeforeStep)
+
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(range(max_steps))
     # State Warmup Here?
