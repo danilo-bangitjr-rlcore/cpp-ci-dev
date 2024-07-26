@@ -150,16 +150,14 @@ class AnytimeTransitionCreator(object):
                 if self.only_dp_transitions:
                     assert new_transitions[0].state_dp
                     transition = deepcopy(new_transitions[0])
-                    transition.gamma_exponent = 1
+                    # transition.gamma_exponent = 1 # commented to make regular rl work with discounting at the
+                    # frequency of observations
                     transition.next_obs = transition.boot_obs
                     transition.next_state_dp = transition.boot_state_dp
                     transition.next_state = transition.boot_state
                     transition.steps_since_decision = 1
                     transition.next_steps_since_decision = 1
-
-                    reward_sum = sum([t.reward for t in new_transitions])
-                    transition.reward = reward_sum / self.steps_per_decision
-                    transition.n_step_reward = transition.reward
+                    transition.reward = transition.n_step_reward
 
                     curr_chunk_agent_transitions += [transition]
                     if return_scs:
