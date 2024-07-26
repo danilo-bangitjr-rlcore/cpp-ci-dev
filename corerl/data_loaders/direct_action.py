@@ -168,6 +168,7 @@ class DirectActionDataLoader(BaseDataLoader):
             obs = np.empty(0)
             prev_decision_point = None
             prev_steps_since_decision = None
+            transition_added = False
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
                                                                                                               action_start)
@@ -180,6 +181,10 @@ class DirectActionDataLoader(BaseDataLoader):
                 step_remainder = curr_action_steps % self.steps_per_decision
                 steps_since_decision = ((self.steps_per_decision - step_remainder) + 1) % self.steps_per_decision
 
+                # Ensuring last ObsTransition right before data gap has gap attribute set to True
+                if curr_action_steps == 0 and data_gap and len(obs_transitions) > 0:
+                    obs_transitions[-1].gap = True
+                
                 # Next, iterate over current action time steps and produce obs transitions
                 for step in range(curr_action_steps):
                     decision_point = steps_since_decision == 0
@@ -209,6 +214,11 @@ class DirectActionDataLoader(BaseDataLoader):
                             gap=(step == curr_action_steps - 1) and data_gap  # if the last step and there is a data gap
                         )
                         obs_transition = normalizer.normalize(obs_transition)
+
+                        if not transition_added:
+                            obs_transition.obs_dp = True
+                            transition_added = True
+
                         obs_transitions.append(obs_transition)
 
                     prev_action = curr_action

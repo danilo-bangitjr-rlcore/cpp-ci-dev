@@ -18,6 +18,7 @@ from corerl.data.data import TransitionBatch, Transition
 class InAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
+        self.ensemble_targets = cfg.ensemble_targets
         self.temp = cfg.temp
         self.eps = cfg.eps
         self.exp_threshold = cfg.exp_threshold
@@ -26,8 +27,8 @@ class InAC(BaseAC):
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
         self.behaviour = init_actor(cfg.actor, state_dim, action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
-        self.critic_buffer = init_buffer(cfg.buffer)
-        self.policy_buffer = init_buffer(cfg.buffer)
+        self.critic_buffer = init_buffer(cfg.critic.buffer)
+        self.policy_buffer = init_buffer(cfg.actor.buffer)
 
     def update_buffer(self, transition: Transition) -> None:
         self.critic_buffer.feed(transition)
@@ -47,45 +48,114 @@ class InAC(BaseAC):
         beh_loss = -beh_log_probs.mean()
         return beh_loss
 
-    def compute_v_loss(self, data: dict) -> torch.Tensor:
-        states = data['states']
-        observed_actions = data['actions']
-        dp_mask = data['state_decision_points']
+    def compute_v_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+        ensemble = len(ensemble_batch)
+        state_batches = []
+        action_batches = []
+        log_probs_batches = []
+        qs = []
+        for batch in ensemble_batch:
+            state_batch = batch.state
+            action_batch = batch.action
+            dp_mask = batch.boot_state_dp
 
-        v_phi = self.v_critic.get_v(states, with_grad=True)
-        sampled_actions, _ = self.actor.get_action(states, with_grad=False)
-        # Is this what we should be doing for InAC?
-        with torch.no_grad():
-            actions = (dp_mask * sampled_actions) + ((1.0 - dp_mask) * observed_actions)
-        log_probs, _ = self.actor.get_log_prob(states, actions)
-        q = self.q_critic.get_q_target(states, actions)
-        target = q - self.temp * log_probs
-        value_loss = (0.5 * (v_phi - target) ** 2).mean()
-        return value_loss
+            sampled_actions, _ = self.actor.get_action(state_batch, with_grad=False)
+            # Is this what we should be doing for InAC?
+            with torch.no_grad():
+                actions = (dp_mask * sampled_actions) + ((1.0 - dp_mask) * action_batch)
 
-    def compute_q_loss(self, batch):
-        states, actions, rewards, next_states, dones, dp_mask, gamma_exps = (
-        batch.state, batch.action, batch.n_step_reward,
-        batch.boot_state, batch.terminated,
-        batch.boot_state_dp, batch.gamma_exponent)
+            log_probs, _ = self.actor.get_log_prob(state_batch, actions)
 
-        _, q_ens = self.q_critic.get_qs(states, actions, with_grad=True)
-        next_actions, _ = self.actor.get_action(next_states, with_grad=False)
-        with torch.no_grad():
-            next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * actions)
-        next_log_probs, _ = self.actor.get_log_prob(next_states, next_actions,
-                                                    with_grad=False)
+            # Option 1: Using the reduction of the ensemble in the update target
+            if not self.ensemble_targets:
+                q = self.q_critic.get_q_target([state_batch], [actions])
+                qs.append(q)
 
-        q_pi_target = self.q_critic.get_q_target(next_states, next_actions) - self.temp * next_log_probs
-        target = rewards + (self.gamma ** gamma_exps) * (1 - dones) * q_pi_target
-        q_loss = ensemble_mse(target, q_ens)
-        return q_loss
+            state_batches.append(state_batch)
+            action_batches.append(actions)
+            log_probs_batches.append(log_probs)
+
+        # Option 2: Using the corresponding target function in the ensemble in the update target
+        if self.ensemble_targets:
+            _, qs = self.q_critic.get_qs_target(state_batches, action_batches)
+        else:
+            for i in range(ensemble):
+                qs[i] = torch.unsqueeze(qs[i], 0)
+            qs = torch.cat(qs, dim=0)
+
+        _, v_phis = self.v_critic.get_vs(state_batches, with_grad=True)
+        losses = []
+        for i in range(ensemble):
+            target = qs[i] - self.temp * log_probs_batches[i]
+            value_loss = (0.5 * (v_phis[i] - target) ** 2).mean()
+            losses.append(value_loss)
+        
+        return losses
+
+
+    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+        ensemble = len(ensemble_batch)
+        state_batches = []
+        action_batches = []
+        reward_batches = []
+        next_state_batches = []
+        next_action_batches = []
+        next_log_probs_batches = []
+        mask_batches = []
+        gamma_exp_batches = []
+        next_qs = []
+        for batch in ensemble_batch:
+            state_batch = batch.state
+            action_batch = batch.action
+            reward_batch = batch.n_step_reward
+            next_state_batch = batch.boot_state
+            mask_batch = 1 - batch.terminated
+            gamma_exp_batch = batch.gamma_exponent
+            dp_mask = batch.boot_state_dp
+
+            next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
+            with torch.no_grad():
+                next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
+            
+            next_log_probs, _ = self.actor.get_log_prob(next_state_batch, next_actions,
+                                                        with_grad=False)
+
+            # Option 1: Using the reduction of the ensemble in the update target
+            if not self.ensemble_targets:
+                next_q = self.q_critic.get_q_target([next_state_batch], [next_actions])
+                next_qs.append(next_q)
+
+            state_batches.append(state_batch)
+            action_batches.append(action_batch)
+            reward_batches.append(reward_batch)
+            next_state_batches.append(next_state_batch)
+            next_action_batches.append(next_actions)
+            next_log_probs_batches.append(next_log_probs)
+            mask_batches.append(mask_batch)
+            gamma_exp_batches.append(gamma_exp_batch)
+
+        # Option 2: Using the corresponding target function in the ensemble in the update target
+        if self.ensemble_targets:
+            _, next_qs = self.q_critic.get_qs_target(next_state_batches, next_action_batches)
+        else:
+            for i in range(ensemble):
+                next_qs[i] = torch.unsqueeze(next_qs[i], 0)
+            next_qs = torch.cat(next_qs, dim=0)
+
+        _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
+        losses = []
+        for i in range(ensemble):
+            q_pi_target = next_qs[i] - self.temp * next_log_probs_batches[i]
+            target = reward_batches[i] + mask_batches[i] * (self.gamma ** gamma_exp_batches[i]) * q_pi_target
+            losses.append(nn.functional.mse_loss(target, qs[i]))
+
+        return losses
 
     def compute_actor_loss(self, batch):
         states, actions = batch.state, batch.action
         log_probs, _ = self.actor.get_log_prob(states, actions, with_grad=True)
-        q = self.q_critic.get_q(states, actions, with_grad=False)
-        v = self.v_critic.get_v(states, with_grad=False)
+        q = self.q_critic.get_q([states], [actions], with_grad=False)
+        v = self.v_critic.get_v([states], with_grad=False)
         beh_log_prob, _ = self.behaviour.get_log_prob(states, actions, with_grad=False)
         clipped = torch.clip(torch.exp((q - v) / self.temp - beh_log_prob), self.eps, self.exp_threshold)
         pi_loss = -(clipped * log_probs).mean()
@@ -93,30 +163,36 @@ class InAC(BaseAC):
 
     def update_critic(self) -> None:
         for _ in range(self.n_critic_updates):
-            batch = self.critic_buffer.sample()
+            batches = self.critic_buffer.sample()
 
-            v_loss = self.compute_v_loss(batch)
+            v_loss = self.compute_v_loss(batches)
             self.v_critic.update(v_loss)
 
-            q_loss = self.compute_q_loss(batch)
+            q_loss = self.compute_q_loss(batches)
             self.q_critic.update(q_loss)
 
     def update_actor(self) -> None:
         for _ in range(self.n_actor_updates):
-            batch = self.policy_buffer.sample()
+            batches = self.policy_buffer.sample()
+            # Assuming we don't have an ensemble of policies
+            assert len(batches) == 1
+            batch = batches[0]
             actor_loss = self.compute_actor_loss(batch)
             self.actor.update(actor_loss)
 
     def update_beh(self) -> None:
-        batch = self.policy_buffer.sample()
+        batches = self.policy_buffer.sample()
+        # Assuming we don't have an ensemble of policies
+        assert len(batches) == 1
+        batch = batches[0]
         beh_loss = self.compute_beh_loss(batch)
         self.behaviour.update(beh_loss)
 
     def update(self) -> None:
-        if self.critic_buffer.size > 0:
+        if min(self.critic_buffer.size) > 0:
             self.update_critic()
 
-        if self.policy_buffer.size > 0:
+        if min(self.policy_buffer.size) > 0:
             self.update_actor()
         # unsure if beh updates should go here. Han please advise.
 

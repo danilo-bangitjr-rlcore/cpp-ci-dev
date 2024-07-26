@@ -49,8 +49,8 @@ class GreedyAC(BaseAC):
         self.sampler = init_actor(cfg.actor, state_dim, action_dim, initializer=self.actor)
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
-        self.critic_buffer = init_buffer(cfg.buffer)
-        self.policy_buffer = init_buffer(cfg.buffer)
+        self.critic_buffer = init_buffer(cfg.critic.buffer)
+        self.policy_buffer = init_buffer(cfg.actor.buffer)
 
         self.sample_all_discrete_actions = False
         if self.discrete_control:
@@ -78,7 +78,7 @@ class GreedyAC(BaseAC):
         # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
 
         q_values: Float[torch.Tensor, 'batch_size*num_samples 1']
-        q_values = self.q_critic.get_q(repeated_states, sample_actions, with_grad=False)
+        q_values = self.q_critic.get_q([repeated_states], [sample_actions], with_grad=False)
         q_values: Float[torch.Tensor, 'batch_size num_samples 1']
         q_values = q_values.reshape(batch_size, self.num_samples, 1)
         sorted_q_inds: Float[torch.Tensor, 'batch_size num_samples 1']
@@ -137,33 +137,61 @@ class GreedyAC(BaseAC):
 
         return state_batch, repeated_states, sample_actions, sorted_q_inds, stacked_s_batch, best_actions, batch_size
 
-    def compute_critic_loss(self, batch: TransitionBatch) -> torch.Tensor:
-        state_batch = batch.state
-        action_batch = batch.action
-        reward_batch = batch.n_step_reward
-        next_state_batch = batch.boot_state
-        mask_batch = 1 - batch.terminated
-        gamma_exp_batch = batch.gamma_exponent
-        dp_mask = batch.boot_state_dp
+    def compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+        ensemble = len(ensemble_batch)
+        state_batches = []
+        action_batches = []
+        reward_batches = []
+        next_state_batches = []
+        next_action_batches = []
+        mask_batches = []
+        gamma_exp_batches = []
+        next_qs = []
+        for batch in ensemble_batch:
+            state_batch = batch.state
+            action_batch = batch.action
+            reward_batch = batch.n_step_reward
+            next_state_batch = batch.boot_state
+            mask_batch = 1 - batch.terminated
+            gamma_exp_batch = batch.gamma_exponent
+            dp_mask = batch.boot_state_dp
 
-        next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
-        # For the 'Anytime' paradigm, only states at decision points can sample next_actions
-        # If a state isn't at a decision point, its next_action is set to the current action
-        with torch.no_grad():
-            next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
+            next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
+            # For the 'Anytime' paradigm, only states at decision points can sample next_actions
+            # If a state isn't at a decision point, its next_action is set to the current action
+            with torch.no_grad():
+                next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
 
+            # Option 1: Using the reduction of the ensemble in the update target
+            if not self.ensemble_targets:
+                next_q = self.q_critic.get_q_target([next_state_batch], [next_actions])
+                next_qs.append(next_q)
+
+            state_batches.append(state_batch)
+            action_batches.append(action_batch)
+            reward_batches.append(reward_batch)
+            next_state_batches.append(next_state_batch)
+            next_action_batches.append(next_actions)
+            mask_batches.append(mask_batch)
+            gamma_exp_batches.append(gamma_exp_batch)
+
+        # Option 2: Using the corresponding target function in the ensemble in the update target
         if self.ensemble_targets:
-            _, next_q = self.q_critic.get_qs_target(
-                next_state_batch, next_actions,
-            )
+            _, next_qs = self.q_critic.get_qs_target(next_state_batches, next_action_batches)
         else:
-            next_q = self.q_critic.get_q_target(next_state_batch, next_actions)
+            for i in range(ensemble):
+                next_qs[i] = torch.unsqueeze(next_qs[i], 0)
+            next_qs = torch.cat(next_qs, dim=0)
 
-        # N-Step SARSA update with variable 'N', thus 'reward_batch' is an n_step reward
-        # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
-        target = reward_batch + mask_batch * (self.gamma ** gamma_exp_batch) * next_q
-        _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)
-        return ensemble_mse(target, q_ens)
+        _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
+        losses = []
+        for i in range(ensemble):
+            # N-Step SARSA update with variable 'N', thus 'reward_batch' is an n_step reward
+            # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
+            target = reward_batches[i] + mask_batches[i] * (self.gamma ** gamma_exp_batches[i]) * next_qs[i]
+            losses.append(torch.nn.functional.mse_loss(target, qs[i]))
+
+        return losses
 
     def compute_sampler_entropy_loss(self, update_info: tuple) -> torch.Tensor:
         (_, repeated_states, sample_actions, _, stacked_s_batch, best_actions, batch_size) = update_info
@@ -220,10 +248,10 @@ class GreedyAC(BaseAC):
 
     def update_critic(self) -> None:
         for _ in range(self.n_critic_updates):
-            batch = self.critic_buffer.sample()
+            batches = self.critic_buffer.sample()
 
             def closure():
-                return sum(self.compute_critic_loss(batch))
+                return sum(self.compute_critic_loss(batches))
             q_loss = closure()
 
             self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
@@ -231,7 +259,10 @@ class GreedyAC(BaseAC):
     def update_actor(self) -> None:
         update_infos = []
         for _ in range(self.n_actor_updates):
-            batch = self.policy_buffer.sample()
+            batches = self.policy_buffer.sample()
+            # Assuming we don't have an ensemble of policies
+            assert len(batches) == 1
+            batch = batches[0]
             update_info = self.get_policy_update_info(batch.state)
 
             actor_loss = self.compute_actor_loss(update_info)
@@ -242,7 +273,7 @@ class GreedyAC(BaseAC):
                     "closure": lambda: self.actor_err(batch.state),
                 },
             )
-            update_infos.append(update_info)
+            update_infos.append(update_info) # One of these should be removed right?
 
             update_infos.append(update_info)
         return update_infos
@@ -260,7 +291,9 @@ class GreedyAC(BaseAC):
                 )
         else:
             for i in range(self.n_sampler_updates):
-                batch = self.policy_buffer.sample()
+                batches = self.policy_buffer.sample()
+                assert len(batches) == 1
+                batch = batches[0]
                 update_info = self.get_policy_update_info(batch.state)
                 sampler_loss = self.compute_sampler_loss(update_info)
                 self.sampler.update(
@@ -292,10 +325,10 @@ class GreedyAC(BaseAC):
 
     def update(self) -> None:
         # share_batch ensures that update_actor and update_sampler use the same batch
-        if self.critic_buffer.size > 0:
+        if min(self.critic_buffer.size) > 0:
             self.update_critic()
 
-        if self.policy_buffer.size > 0:
+        if min(self.policy_buffer.size) > 0:
             update_infos = self.update_actor()
             if not self.uniform_proposal:
                 if self.share_batch:
@@ -351,9 +384,9 @@ class GreedyACLineSearch(GreedyAC):
 
     def critic_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = args
-        q = self.q_critic.get_q(state_batch, action_batch, with_grad=False)
+        q = self.q_critic.get_q([state_batch], [action_batch], with_grad=False)
         next_action, _ = self.actor.get_action(next_state_batch, with_grad=False)
-        next_q = self.q_critic.get_q_target(next_state_batch, next_action)
+        next_q = self.q_critic.get_q_target([next_state_batch], [next_action])
         target = reward_batch + mask_batch * self.gamma * next_q
         error = torch.nn.functional.mse_loss(q.detach(), target.detach())
         return error
@@ -386,7 +419,7 @@ class ExploreLSGAC(GreedyACLineSearch):
 
     def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
                      batch_size: int) -> torch.Tensor:
-        q_values = self.q_critic.get_q(repeated_states, sample_actions, with_grad=False)
+        q_values = self.q_critic.get_q([repeated_states], [sample_actions], with_grad=False)
 
         # query the exploration bonus
         exp_b = self.exploration.get_exploration_bonus(repeated_states, sample_actions)

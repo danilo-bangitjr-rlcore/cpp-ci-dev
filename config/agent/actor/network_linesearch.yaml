@@ -1,6 +1,7 @@
 defaults:
   - actor_network: beta
   - actor_optimizer : sgd
+  - buffer: ensemble_uniform
   -  _self_
 
 name : "network_linesearch"

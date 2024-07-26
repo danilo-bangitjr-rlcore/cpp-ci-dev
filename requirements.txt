@@ -21,4 +21,4 @@ setuptools==69.2.0
 sympy==1.12
 torch==2.2.1
 tqdm==4.66.2
-
+git+ssh://git@github.com/rlcoretech/linesearchopt.git#egg=linesearchopt

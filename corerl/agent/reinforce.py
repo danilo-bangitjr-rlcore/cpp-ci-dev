@@ -14,6 +14,7 @@ from corerl.data.data import TransitionBatch, Transition
 class Reinforce(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
+        self.ensemble_targets = cfg.ensemble_targets
         self.v_critic = init_v_critic(cfg.critic, state_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
 
@@ -45,7 +46,10 @@ class Reinforce(BaseAC):
         # If the episode is truncated, returns bootstrap the final state
         if self.trunc:
             tensor_state = state_to_tensor(self.ep_states[ep_t], device)
-            v_boot = self.v_critic.get_v(tensor_state, with_grad=False)
+            if self.ensemble_targets:
+                v_boot = self.v_critic.get_vs([tensor_state], with_grad=False)
+            else:
+                v_boot = self.v_critic.get_v([tensor_state], with_grad=False)
             curr_return = v_boot
 
         self.returns = np.zeros(ep_t)
@@ -63,7 +67,7 @@ class Reinforce(BaseAC):
         self.ep_actions = tensor(self.ep_actions, device)
 
     def compute_v_loss(self) -> torch.Tensor:
-        _, v_ens = self.v_critic.get_vs(self.ep_states, with_grad=True)
+        _, v_ens = self.v_critic.get_vs([self.ep_states], with_grad=True)
         v_base_loss = ensemble_mse(self.returns, v_ens)
 
         return v_base_loss
@@ -74,7 +78,7 @@ class Reinforce(BaseAC):
             self.v_critic.update(v_loss)
 
     def compute_actor_loss(self) -> torch.Tensor:
-        v_base = self.v_critic.get_v(self.ep_states, with_grad=False)
+        v_base = self.v_critic.get_v([self.ep_states], with_grad=False)
         with torch.no_grad():
             delta = self.returns - v_base
         log_prob, _ = self.actor.get_log_prob(self.ep_states, self.ep_actions)

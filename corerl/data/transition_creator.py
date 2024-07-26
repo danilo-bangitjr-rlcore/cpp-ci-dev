@@ -141,6 +141,10 @@ class AnytimeTransitionCreator(object):
 
                 new_transitions = self._make_decision_window_transitions(curr_decision_obs_transitions, states)
 
+                if new_transitions[0].state_dp == False:
+                    print("First Transition In Decision Window Not A Decision Point:")
+                    print(new_transitions[0])
+
                 if self.only_dp_transitions:
                     # the first transition could have been filtered out by self.get_train_transitions(), so
                     # transitions[0].state_dp checks if it was that original first transition returned by
