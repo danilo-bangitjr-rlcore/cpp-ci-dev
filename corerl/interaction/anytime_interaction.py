@@ -138,6 +138,8 @@ class AnytimeInteraction(BaseInteraction):
                     transition.next_obs = transition.boot_obs
                     transition.next_state_dp = transition.boot_state_dp
                     transition.next_state = transition.boot_state
+                    transition.steps_since_decision = 1
+                    transition.next_steps_since_decision = 1
 
                     transition.reward = self.reward_sum/self.steps_per_decision
                     transition.n_step_reward = transition.reward

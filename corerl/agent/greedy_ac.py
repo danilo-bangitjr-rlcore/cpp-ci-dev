@@ -256,13 +256,16 @@ class GreedyAC(BaseAC):
             )
             batch = args[1]
 
-            q_loss = self.compute_critic_loss(batch)
+            def closure():
+                return sum(self.compute_critic_loss(batch))
+            q_loss = closure()
+
             args, _ = self._hooks(
                 when.Agent.AfterCriticLossComputed, self, batch, q_loss,
             )
             batch, q_loss = args[1:]
 
-            self.q_critic.update(q_loss)
+            self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
 
             args, _ = self._hooks(
                 when.Agent.AfterCriticUpdate, self, batch, q_loss,
@@ -291,8 +294,14 @@ class GreedyAC(BaseAC):
             )
             batch, update_info, actor_loss = args[1:]
 
-            self.actor.update(actor_loss)
+            self.actor.update(
+                actor_loss,
+                opt_kwargs={
+                    "closure": lambda: self.actor_err(batch.state),
+                },
+            )
             update_infos.append(update_info)
+
             args, _ = self._hooks(
                 when.Agent.AfterActorUpdate, self, batch, actor_loss,
             )
@@ -315,7 +324,13 @@ class GreedyAC(BaseAC):
                 )
                 batch, update_info, sampler_loss = args[1:]
 
-                self.sampler.update(sampler_loss)
+                state_batch = update_info[0]
+                self.sampler.update(
+                    sampler_loss,
+                    opt_kwargs={
+                        "closure": lambda: self.sampler_err(state_batch),
+                    },
+                )
 
                 self._hooks(
                     when.Agent.AfterProposalUpdate, self, batch, sampler_loss,
@@ -341,11 +356,36 @@ class GreedyAC(BaseAC):
                 )
                 batch, update_info, sampler_loss = args[1:]
 
-                self.sampler.update(sampler_loss)
+                self.sampler.update(
+                    sampler_loss,
+                    opt_kwargs={
+                        "closure": lambda: self.sampler_err(batch.state),
+                    },
+                )
 
                 self._hooks(
                     when.Agent.AfterProposalUpdate, self, batch, sampler_loss,
                 )
+
+    def actor_err(self, state_batch) -> torch.Tensor:
+        out = self.get_policy_update_info(state_batch)
+        _, _, _, _, stacked_s_batch, best_actions, _ = out
+        logp, _ = self.actor.get_log_prob(
+            stacked_s_batch,
+            best_actions,
+            with_grad=True,
+        )
+        return -logp.mean()
+
+    def sampler_err(self, state_batch) -> torch.Tensor:
+        out = self.get_policy_update_info(state_batch)
+        _, _, _, _, stacked_s_batch, best_actions, _ = out
+        logp, _ = self.sampler.get_log_prob(
+            stacked_s_batch,
+            best_actions,
+            with_grad=True,
+        )
+        return -logp.mean()
 
     def update(self) -> None:
         # share_batch ensures that update_actor and update_sampler use the same batch

@@ -12,10 +12,7 @@ from gymnasium import spaces, Env
 from pathlib import Path
 from typing import Optional
 
-from corerl.environment.factory import init_environment
-from corerl.state_constructor.factory import init_state_constructor
 from corerl.eval.composite_eval import CompositeEval
-from corerl.interaction.factory import init_interaction
 from corerl.data_loaders.base import BaseDataLoader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.data_loaders.utils import train_test_split
