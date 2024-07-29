@@ -54,7 +54,12 @@ class BaseCalibrationModel(ABC):
             traj_cm = self.test_trajectories[traj_i]
             traj_agent = trajectories_agent[traj_i]
 
+            # verify that transitions for the agent and the model are over the same sequence of observations
             assert traj_cm.num_transitions == traj_agent.num_transitions
+            for i in range(traj_cm.num_transitions):
+                assert np.allclose(traj_cm.transitions[i].obs, traj_agent.transitions[i].obs)
+                assert np.allclose(traj_cm.transitions[i].next_obs, traj_agent.transitions[i].next_obs)
+                assert np.allclose(traj_cm.transitions[i].action, traj_agent.transitions[i].action)
 
             last = traj_cm.num_transitions - self.max_rollout_len
             increase_idx = last // self.num_test_rollouts
@@ -175,11 +180,10 @@ class BaseCalibrationModel(ABC):
             reward_info['curr_action'] = action
 
             # NOTE: Not sure if this denormalizer should be here.
-            # TODO: make this return "regular RL" reward if desired
             denormalized_obs = self.normalizer.obs_normalizer.denormalize(fictitious_obs)
             r = self.reward_func(denormalized_obs, **reward_info)
             r_norm = self.normalizer.reward_normalizer(r)
-            g += self.gamma ** step * r_norm
+            g += (self.gamma ** step) * r_norm
             prev_action = action
 
             # log stuff

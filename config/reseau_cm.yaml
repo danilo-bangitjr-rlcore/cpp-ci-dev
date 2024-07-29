@@ -4,7 +4,7 @@ defaults:
   - override env: reseau
   - override data_loader: direct_action
   - override interaction: offline_anytime
-  - override calibration_model : knn #anytime
+  - override calibration_model : knn
   - override state_constructor: anytime_multi_trace # reseau_anytime
   - _self_
 
@@ -15,7 +15,7 @@ offline_data:
   output_path : offline_data/reseau
 
 experiment :
-  exp_name : "cm_reseau"
+  exp_name : "cm_reseau_knn"
   max_steps : 20
   offline_steps : 1000 #20000
   load_env_obs_space_from_data : True
@@ -64,9 +64,9 @@ agent:
 data_loader:
   offline_data_path : offline_data/reseau/csv
   train_filenames: ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv",
-                       "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie.csv", "rosie_2_alert.csv"]
+                       "m_b_2.csv", "m_3.csv", "rosie.csv", "rosie_2_alert.csv"]
 
-  test_filenames: ["rosie.csv"]
+  test_filenames: ["m_2.csv"]
 
   skip_rows : 3
   header : 0
