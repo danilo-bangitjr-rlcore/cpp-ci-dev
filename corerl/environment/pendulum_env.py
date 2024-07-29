@@ -5,6 +5,7 @@
 from os import path
 from typing import Optional
 
+from corerl.utils.hook import Hooks, when
 import numpy as np
 
 import gymnasium as gym
@@ -73,6 +74,7 @@ class PendulumEnv(gym.Env):
             The seed with which to seed the environment, by default None
 
         """
+        self._hooks = Hooks(keys=[e.value for e in when.Env])
         self.max_speed = 8
         self.max_torque = 2.
         self.dt = .05
@@ -119,6 +121,13 @@ class PendulumEnv(gym.Env):
                 dtype=np.float32
             )
 
+        state = np.array([np.pi, 0.])
+        self.state = angle_normalize(state)
+
+        self._hooks(when.Env.AfterCreate, self)
+
+    def register_hook(self, hook, when: when.Env):
+        self._hooks.register(hook, when)
 
     def step(self, u):
         """
@@ -135,6 +144,9 @@ class PendulumEnv(gym.Env):
             The state observation, the reward, the done flag (always False),
             and some info about the step
         """
+        args, _ = self._hooks(when.Env.BeforeStep, self, self.state, u)
+        self.state, u = args[1:]
+
         th, thdot = self.state  # th := theta
 
         g = self.g
@@ -152,7 +164,7 @@ class PendulumEnv(gym.Env):
 
         self.last_u = u  # for rendering
 
-        # NOTE: Difference from gymnasium - 3 at the beginning of the below expression is 
+        # NOTE: Difference from gymnasium - 3 at the beginning of the below expression is
         # negated. This is corrected by the addition of pi in the argument of the sine term.
         # This quirk was present in Neumann's GAC repo; keeping it as is.
         newthdot = thdot + (-3 * g / (2 * length) * np.sin(th + np.pi) + 3. /
@@ -167,6 +179,13 @@ class PendulumEnv(gym.Env):
             # States are encoded as [cos(θ), sin(θ), ω]
             return self._get_obs(), reward, False, False, {}
 
+        args, _ = self._hooks(
+            when.Env.AfterStep,
+            self, np.array([th, thdot]), u, reward, self.state,
+            False, False,
+        )
+        reward, self.state = args[3:5]
+
         # States are encoded as [θ, ω]
         return self.state, reward, False, False, {}
 
@@ -179,6 +198,9 @@ class PendulumEnv(gym.Env):
         array_like of float
             The starting state feature representation
         """
+        args, _ = self._hooks(when.Env.BeforeReset, self, self.state)
+        self.state = args[1]
+
         super().reset(seed=seed)
         # Note, gymnasium version of pendulum randomly samples the initial state.
         # This version (adapted from GAC paper) uses a fixed initial state.
@@ -189,6 +211,9 @@ class PendulumEnv(gym.Env):
         if self.trig_features:
             # States are encoded as [cos(θ), sin(θ), ω]
             return self._get_obs(), {}
+
+        args, _ = self._hooks(when.Env.AfterReset, self, self.state)
+        self.state = args[1]
 
         # States are encoded as [θ, ω]
         return self.state, {}

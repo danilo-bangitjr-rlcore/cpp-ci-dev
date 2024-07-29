@@ -1,3 +1,4 @@
+from corerl.utils.hook import when
 import numpy as np
 import hashlib
 import copy
@@ -364,6 +365,19 @@ def online_deployment(cfg: DictConfig,
         'transition_normalizer': transition_normalizer
     }
     online_eval = CompositeEval(cfg.eval, online_eval_args, online=True)
+
+    # An example hook, which adds 1 to the critic loss:
+    #  def hook_fn(*args, **kwargs):
+    #      loss = args[1]
+    #      loss += 1  # since loss is a tensor, this is a mutating operation
+    #      return args, kwargs
+    # agent.register_hook(hook_fn, when.Agent.AfterCriticLossComputed)
+
+    # An example hook, which prints the current environment state
+    # def hook_fn(*args, **kwargs):
+    #     print(args[1])
+    #     return args, kwargs
+    # env.register_hook(hook_fn, when.Env.BeforeStep)
 
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(range(max_steps))
