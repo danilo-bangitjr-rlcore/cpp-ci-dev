@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 import numpy
-
+from corerl.component.buffer.buffers import UniformBuffer
 from corerl.data.data import Transition
 from corerl.utils.hook import Hooks, when
-
+from corerl.component.critic.ensemble_critic import BaseQ
 
 class BaseAgent(ABC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -18,7 +18,8 @@ class BaseAgent(ABC):
         self.seed = cfg.seed
         self.n_updates = cfg.n_updates  # how many updates to apply each time update() is called
         self.freezer_freq = cfg.freezer_freq  # how often to save to freezer. This counter is not used currently.
-        self.critic_buffer = None
+        self.critic_buffer: UniformBuffer = None
+        self.q_critic: BaseQ = None
 
     @abstractmethod
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:  # must return a numpy array, not a tensor.

@@ -9,6 +9,7 @@ _logger = logging.getLogger(__name__)
 
 PREFIX = "opctest"
 
+
 class OpcConnection:
     """Wrapper class around the asyncua library to make life easier for the rlai group"""
 
@@ -18,6 +19,7 @@ class OpcConnection:
         self.conn_attempts = 0
         self.values_read = 0
         self.conn_stats = cfg.conn_stats
+        self.vendor = cfg.vendor if hasattr(cfg, "vendor") else "kepware"
 
     async def connect(self) -> None:
         """Connects to the OPC server and opens any log files"""
@@ -31,8 +33,14 @@ class OpcConnection:
                 _logger.error("Shutting down")
                 raise err
 
+        if self.vendor == "kepware":
+            opc_url=f"opc.tcp://{self.ip_address}:{self.port}/PTC/ThingWorxKepwareServer/",
+        elif self.vendor == "ignition":
+            opc_url = f"opc.tcp://{self.ip_address}:{self.port}"
+        else:
+            raise NotImplementedError
         self.client = Client(
-            url=f"opc.tcp://{self.ip_address}:{self.port}/PTC/ThingWorxKepwareServer/",
+            url=opc_url,
             timeout=20,
             watchdog_intervall=30,
         )
@@ -42,14 +50,19 @@ class OpcConnection:
         """Returns an array of OPC nodes corresponding to the string addresses"""
         while True:
             try:
+                if self.vendor == "kepware":
+                    ns = 2
+                else:
+                    ns = 1
                 nodes = [
-                    self.client.get_node(f"ns=2;s={address}") for address in addresses
+                    self.client.get_node(f"ns={ns};s={address}") for address in addresses
                 ]
                 return nodes
             except (ConnectionError, ua.UaError, TimeoutError):
                 _logger.warning("READ: Reconnecting in 2 seconds")
                 self.update_stats()
                 await asyncio.sleep(2)
+                await self.reconnect()
 
     async def read_values(self, nodes: list[Node]) -> list[any]:
         """Reads the values of an array of OPC nodes and returns those values"""
@@ -60,6 +73,7 @@ class OpcConnection:
                 _logger.warning("READ: Reconnecting in 2 seconds")
                 self.update_stats()
                 await asyncio.sleep(2)
+                await self.reconnect()
 
     async def read_variant_types(self, nodes: list[Node]) -> list[ua.VariantType]:
         """Determines the VariantType of the Values of the list of Nodes"""
@@ -74,6 +88,7 @@ class OpcConnection:
                 _logger.warning("READ: Reconnecting in 2 seconds")
                 self.update_stats()
                 await asyncio.sleep(2)
+                await self.reconnect()
 
     async def read_attributes(
         self, nodes: list[Node], attr: ua.AttributeIds
@@ -89,7 +104,10 @@ class OpcConnection:
                 await asyncio.sleep(2)
 
     async def write_values(
-        self, nodes: list[Node], variants: list[ua.VariantType], values: list[any] | np.ndarray
+        self,
+        nodes: list[Node],
+        variants: list[ua.VariantType],
+        values: list[any] | np.ndarray,
     ) -> None:
         """Writes the Values with corresponding VariantTypes to the list of Nodes"""
         while True:
@@ -103,10 +121,11 @@ class OpcConnection:
                 await self.client.write_values(nodes, data_values)
                 return
             except (ConnectionError, ua.UaError, TimeoutError) as err:
-                _logger(f"{err}")
+                _logger.warning(f"{err}")
                 _logger.warning("WRITE: Reconnecting in 2 seconds")
                 self.update_stats()
                 await asyncio.sleep(2)
+                await self.reconnect()
 
     async def disconnect(self) -> None:
         """Disconnects from the OPC server and closes any log files"""
@@ -118,6 +137,10 @@ class OpcConnection:
                 _logger.error("Could not close stats file")
 
         await self.client.disconnect()
+
+    async def reconnect(self) -> None:
+        # await self.disconnect()
+        await self.connect()
 
     def update_stats(self) -> None:
         if self.conn_stats:
