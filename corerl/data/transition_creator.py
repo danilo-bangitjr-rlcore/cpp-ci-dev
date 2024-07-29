@@ -109,11 +109,7 @@ class AnytimeTransitionCreator(object):
         Produce Anytime transitions for a continuous chunk of observation transitions (no data gaps) from an offline dataset
         """
         for i in range(len(curr_chunk_obs_transitions) - 1):
-            if not np.allclose(curr_chunk_obs_transitions[i].next_obs, curr_chunk_obs_transitions[i + 1].obs):
-                print(curr_chunk_obs_transitions[i])
-                print(curr_chunk_obs_transitions[i + 1])
-
-                assert False
+            assert np.allclose(curr_chunk_obs_transitions[i].next_obs, curr_chunk_obs_transitions[i + 1].obs)
             assert not curr_chunk_obs_transitions[i].gap
 
         sc.reset()
