@@ -132,6 +132,7 @@ class AnytimeInteraction(BaseInteraction):
                 # self.transition_creator.make_online_transitions()
                 if len(train_transitions) == 0:
                     agent_train_transitions = []
+
                 elif train_transitions[0].state_dp:
                     transition = deepcopy(train_transitions[0])
                     # transition.gamma_exponent = 1
@@ -141,6 +142,7 @@ class AnytimeInteraction(BaseInteraction):
                     transition.steps_since_decision = 1
                     transition.next_steps_since_decision = 1
                     transition.reward = transition.n_step_reward
+                    agent_train_transitions = [transition]
             else:
                 agent_train_transitions = train_transitions
 

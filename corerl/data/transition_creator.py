@@ -18,6 +18,9 @@ class AnytimeTransitionCreator(object):
         self.alert_gammas = np.array(self.alerts.get_discount_factors())
         self.only_dp_transitions = cfg.only_dp_transitions
 
+    def set_only_dp_transitions(self, only_dp_transitions: bool) -> None:
+        self.only_dp_transitions = only_dp_transitions
+
     def make_offline_trajectories(self,
                                   obs_transitions: list[ObsTransition],
                                   sc: BaseStateConstructor,
@@ -105,8 +108,11 @@ class AnytimeTransitionCreator(object):
         """
         Produce Anytime transitions for a continuous chunk of observation transitions (no data gaps) from an offline dataset
         """
-        for i in range(len(curr_chunk_obs_transitions)-1):
-            if not np.allclose(curr_chunk_obs_transitions[i].next_obs, curr_chunk_obs_transitions[i+1].obs):
+        for i in range(len(curr_chunk_obs_transitions) - 1):
+            if not np.allclose(curr_chunk_obs_transitions[i].next_obs, curr_chunk_obs_transitions[i + 1].obs):
+                print(curr_chunk_obs_transitions[i])
+                print(curr_chunk_obs_transitions[i + 1])
+
                 assert False
             assert not curr_chunk_obs_transitions[i].gap
 
