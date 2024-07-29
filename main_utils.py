@@ -150,6 +150,14 @@ def load_df_from_csv(cfg: DictConfig, dl: BaseDataLoader) -> tuple[pd.DataFrame,
 
     return all_data_df, train_data_df, test_data_df
 
+def get_dp_transitions(transitions: list[Transition]) -> list[Transition]:
+    dp_transitions = []
+    for transition in transitions:
+        if transition.state_dp:
+            dp_transitions.append(transition)
+
+    return dp_transitions
+
 
 def get_offline_obs_transitions(cfg: DictConfig,
                                 train_data_df: pd.DataFrame,

@@ -114,7 +114,8 @@ def main(cfg: DictConfig) -> dict:
 
         split_start = time.time()
         all_agent_transitions = agent_train_transitions + agent_test_transitions
-        split = train_test_split(all_agent_transitions, train_split=cfg.experiment.plot_split)
+        dp_transitions = utils.get_dp_transitions(all_agent_transitions)
+        split = train_test_split(dp_transitions, train_split=cfg.experiment.plot_split)
         plot_transitions = split[0][1]
         split_end = time.time()
         print("State Transition Split Duration:", split_end - split_start)
