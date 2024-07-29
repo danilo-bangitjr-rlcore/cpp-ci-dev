@@ -134,16 +134,13 @@ class AnytimeInteraction(BaseInteraction):
                     agent_train_transitions = []
                 elif train_transitions[0].state_dp:
                     transition = deepcopy(train_transitions[0])
-                    transition.gamma_exponent = 1
+                    # transition.gamma_exponent = 1
                     transition.next_obs = transition.boot_obs
                     transition.next_state_dp = transition.boot_state_dp
                     transition.next_state = transition.boot_state
                     transition.steps_since_decision = 1
                     transition.next_steps_since_decision = 1
-
-                    transition.reward = self.reward_sum/self.steps_per_decision
-                    transition.n_step_reward = transition.reward
-                    agent_train_transitions = [transition]
+                    transition.reward = transition.n_step_reward
             else:
                 agent_train_transitions = train_transitions
 
