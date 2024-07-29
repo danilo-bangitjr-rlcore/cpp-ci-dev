@@ -128,7 +128,7 @@ def main(cfg: DictConfig) -> dict:
     # need to update make_plots here
     stats = online_eval.get_stats()
     make_plots(fr.freezer, stats, save_path / 'plots')
-    env.plot(save_path / 'plots')
+    # env.plot(save_path / 'plots')
 
     agent.save(save_path / 'agent')
     agent.load(save_path / 'agent')
