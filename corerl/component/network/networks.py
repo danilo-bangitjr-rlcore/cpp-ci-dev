@@ -199,7 +199,7 @@ class SquashedGaussian(nn.Module):
         self.to(device)
 
     def distribution_bounds(self):
-        return -1, 1
+        return 0, 1
 
     # TODO: include n samples
     def forward(self, state: torch.Tensor) -> tuple[torch.Tensor, dict]:
