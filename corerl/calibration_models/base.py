@@ -32,25 +32,39 @@ class BaseCalibrationModel(ABC):
         # You can make this method pass if you do not need to train a model
         raise NotImplementedError
 
-    def do_test_rollouts(self, plot_save_path=None):
+    def do_test_rollouts(self, plot_save_path=None) -> list[list[float]]:
         if plot_save_path is not None:
             plot_save_path.mkdir(parents=True, exist_ok=True)
+
+        losses = []
 
         for n, test_traj in enumerate(self.test_trajectories):
             last = test_traj.num_transitions - self.max_rollout_len
             increase_idx = last // self.num_test_rollouts
             start_idx = 0
             for start in range(self.num_test_rollouts):
-                self._do_rollout(test_traj, start_idx=start_idx, plot='test', plot_save_path=plot_save_path)
+                _, traj_losses = self._do_rollout(test_traj, start_idx=start_idx, plot='test',
+                                                  plot_save_path=plot_save_path)
                 start_idx += increase_idx
+                losses.append(traj_losses)
 
-    def do_agent_rollouts(self, agent: BaseAgent, trajectories_agent: list[Trajectory], plot=None, plot_save_path=None):
-        returns = []
+        return losses
+
+    def do_agent_rollouts(self, agent: BaseAgent, trajectories_agent: list[Trajectory],
+                          plot=None, plot_save_path=None) -> list[float]:
+
         assert len(trajectories_agent) == len(self.test_trajectories)
         if plot_save_path is not None:
             plot_save_path.mkdir(parents=True, exist_ok=True)
 
-        for traj_i, _ in enumerate(self.test_trajectories):
+        returns = []
+
+        num_transitions = np.array([traj.num_transitions for traj in self.test_trajectories])
+        sample_probs = num_transitions / np.sum(num_transitions)
+        num_completed_rollouts = 0
+        traj_indices = list(range(len(self.test_trajectories)))
+        while num_completed_rollouts < self.num_test_rollouts:
+            traj_i = np.random.choice(traj_indices, p=sample_probs)
             traj_cm = self.test_trajectories[traj_i]
             traj_agent = trajectories_agent[traj_i]
 
@@ -61,18 +75,17 @@ class BaseCalibrationModel(ABC):
                 assert np.allclose(traj_cm.transitions[i].next_obs, traj_agent.transitions[i].next_obs)
                 assert np.allclose(traj_cm.transitions[i].action, traj_agent.transitions[i].action)
 
-            last = traj_cm.num_transitions - self.max_rollout_len
-            increase_idx = last // self.num_test_rollouts
-            start_idx = 0
-            for start in range(self.num_test_rollouts):
-                return_ = self._do_rollout(traj_cm,
-                                           agent=agent,
-                                           traj_agent=traj_agent,
-                                           start_idx=start_idx,
-                                           plot=plot,
-                                           plot_save_path=plot_save_path)
-                start_idx += increase_idx
+            if traj_agent.num_transitions >= self.max_rollout_len:
+                start_idx = random.choice(list(range(traj_cm.num_transitions - self.max_rollout_len)))
+                return_, _ = self._do_rollout(traj_cm,
+                                              agent=agent,
+                                              traj_agent=traj_agent,
+                                              start_idx=start_idx,
+                                              plot=plot,
+                                              plot_save_path=plot_save_path)
                 returns.append(return_)
+                num_completed_rollouts += 1
+
         return returns
 
     def _do_rollout(self,
@@ -82,7 +95,7 @@ class BaseCalibrationModel(ABC):
                     start_idx: Optional[int] = None,
                     plot=None,
                     plot_save_path=None,
-                    ) -> float:
+                    ) -> tuple[float, list[float]]:
 
         """
         This is a possibly general version of doing a rollout with the calibration model. You
@@ -203,7 +216,7 @@ class BaseCalibrationModel(ABC):
             plt.savefig(plot_save_path / f"rollout_{plot}_{start_idx}.png", bbox_inches='tight')
             plt.clf()
 
-        return g
+        return g, losses
 
     @abstractmethod
     def _get_next_endo_obs(self, state, action, kwargs):

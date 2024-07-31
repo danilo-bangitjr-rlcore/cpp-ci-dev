@@ -55,7 +55,6 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
         # gamma_exponents double as the durations of actions
         state_batch, action_batch, next_obs_batch, duration = batch.state, batch.action, batch.boot_obs, batch.gamma_exponent
         endo_next_obs_batch = next_obs_batch[:, self.endo_inds]
-
         duration /= self.max_action_duration
         prediction = self.get_prediction(state_batch, action_batch, duration, with_grad=with_grad)
         loss = nn.functional.mse_loss(prediction, endo_next_obs_batch)
@@ -119,7 +118,7 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                     start_idx: Optional[int] = None,
                     plot=None,
                     plot_save_path=None,
-                    ) -> float:
+                    ) -> tuple[float, list[float]]:
 
         # I would like to unify this with _do
         if start_idx is None:
@@ -224,7 +223,6 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                 reward_info['curr_action'] = action
 
                 # Not sure if this denormalizer should be here.
-                # TODO: make this return "regular RL" reward if desired
                 denormalized_obs = self.normalizer.obs_normalizer.denormalize(fictitious_obs)
                 r = self.reward_func(denormalized_obs, **reward_info)
                 r_norm = self.normalizer.reward_normalizer(r)
@@ -257,4 +255,4 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
             plt.savefig(plot_save_path / f"rollout_{plot}_{start_idx}.png", bbox_inches='tight')
             plt.clf()
 
-        return g
+        return g, losses

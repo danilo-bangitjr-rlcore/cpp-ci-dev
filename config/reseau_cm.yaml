@@ -15,9 +15,9 @@ offline_data:
   output_path : offline_data/reseau
 
 experiment :
-  exp_name : "cm_reseau_knn"
+  exp_name : "cm_reseau"
   max_steps : 20
-  offline_steps : 1000 #20000
+  offline_steps : 100 #20000
   load_env_obs_space_from_data : True
   gamma : 0.95
   train_split : 0.995

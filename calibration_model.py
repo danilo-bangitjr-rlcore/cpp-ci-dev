@@ -2,6 +2,7 @@ import hydra
 import numpy as np
 import torch
 import random
+import pickle
 
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
@@ -132,7 +133,10 @@ def main(cfg: DictConfig) -> dict:
     cm.train()
 
     print("Doing test rollouts...")
-    cm.do_test_rollouts(save_path / 'test_rollouts')
+    losses = cm.do_test_rollouts(save_path / 'test_rollouts')
+
+    with open(save_path / 'test_rollout_losses.pkl', 'wb') as f:
+        pickle.dump(losses, f)
 
     # perform offline training on agent
     test_epochs = cfg.experiment.test_epochs
@@ -155,6 +159,7 @@ def main(cfg: DictConfig) -> dict:
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
     cm_eval_freq = cfg.experiment.cm_eval_freq
+    all_returns = []
     for i in pbar:
         agent.update()
         offline_eval.do_eval(**offline_eval_args)  # run all evaluators
@@ -170,6 +175,12 @@ def main(cfg: DictConfig) -> dict:
                                            plot_save_path=save_path / 'agent_rollouts' / str(i))
 
             print(f"Mean return post-training at iteration {i}: {np.mean(returns)}")
+            all_returns.append(returns)
+            print(len(returns))
+
+    with open(save_path / 'returns.pkl', 'wb') as f:
+        pickle.dump(all_returns, f)
+
 
 
 if __name__ == "__main__":
