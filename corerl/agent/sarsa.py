@@ -10,16 +10,17 @@ import pickle as pkl
 from corerl.agent.base import BaseAgent
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, ensemble_mse
+from corerl.component.network.utils import to_np, ensemble_mse, state_to_tensor
 from corerl.utils.device import device
 from corerl.data.data import TransitionBatch, Transition
+
 
 class EpsilonGreedySarsa(BaseAgent):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         self.ensemble_targets = cfg.ensemble_targets
         self.samples = cfg.samples
-        self.epsilon = cfg.samples
+        self.epsilon = cfg.epsilon
         self.action_dim = action_dim
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.critic_buffer = init_buffer(cfg.critic.buffer)
@@ -27,8 +28,9 @@ class EpsilonGreedySarsa(BaseAgent):
     def update_buffer(self, transition: Transition) -> None:
         self.critic_buffer.feed(transition)
 
-    def get_action(self, state: torch.Tensor, with_grad=False) -> numpy.ndarray:
-        action_np = np.squeeze(to_np(self._get_action(state)))
+    def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
+        tensor_state = state_to_tensor(state, device)
+        action_np = to_np(self._get_action(tensor_state))[0]
         return action_np
 
     def _get_action(self, state: torch.Tensor) -> torch.Tensor:
@@ -45,7 +47,7 @@ class EpsilonGreedySarsa(BaseAgent):
 
     def get_greedy_action(self, state: torch.Tensor) -> torch.Tensor:
         state = torch.unsqueeze(state, dim=0)
-        state_repeated = torch.repeat_interleave(state, self.samples)
+        state_repeated = torch.repeat_interleave(state, self.samples, dim=0)
         action_samples = torch.rand((self.samples, self.action_dim))
         q = self.q_critic.get_q([state_repeated], [action_samples], with_grad=False)
         max_q_idx = torch.argmax(q)
@@ -104,12 +106,15 @@ class EpsilonGreedySarsa(BaseAgent):
         
         return losses
 
+    def atomic_critic_update(self) -> None:
+        batches = self.critic_buffer.sample()
+        q_loss = self.compute_q_loss(batches)
+        self.q_critic.update(q_loss)
+
     def update(self) -> None:
         if min(self.critic_buffer.size) > 0:
             for _ in range(self.n_updates):
-                batches = self.critic_buffer.sample()
-                q_loss = self.compute_q_loss(batches)
-                self.q_critic.update(q_loss)
+                self.atomic_critic_update()
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

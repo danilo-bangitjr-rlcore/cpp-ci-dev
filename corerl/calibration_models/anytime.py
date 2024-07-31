@@ -153,20 +153,19 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
         rollout_len = min(len(transitions_cm), self.max_rollout_len)
 
         steps_until_decision_point = None
+        steps_since_decision_point = transitions_cm[0].steps_since_decision  # how long since the last decision
         action = transitions_cm[0].action  # the initial agent's action
         decision_point = transitions_cm[0].state_dp
 
-        step = 0
+        outer_step = 0
         done = False
         num_predictions = 0
         curr_obs = transitions_cm[0].obs
 
         while not done:
-            transition_step = transitions_cm[step]
+            transition_step = transitions_cm[outer_step]
             if steps_until_decision_point is None or not use_agent:
-
                 steps_until_decision_point = transition_step.gamma_exponent
-                print(steps_until_decision_point)
             elif steps_until_decision_point == 0:
                 steps_until_decision_point = self.steps_per_decision
 
@@ -181,8 +180,8 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
             duration_tensor = tensor(duration).reshape((1, -1))
 
             predicted_next_endo_obs = to_np(self.get_prediction(state_cm_tensor, action_tensor, duration_tensor))
-            for inter_step in range(1, duration_int + 1):
-                inter_step_transition = transitions_cm[step + inter_step]
+            for inter_step in range(0, duration_int):
+                inter_step_transition = transitions_cm[outer_step + inter_step]
                 inter_step_obs = inter_step_transition.obs
                 inter_next_obs = inter_step_transition.next_obs
 
@@ -192,22 +191,30 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                 else:  # use the model to interpolate
                     inter_step_duration = inter_step / self.max_action_duration
                     inter_duration_tensor = tensor(inter_step_duration).reshape((1, -1))
-
                     predicted_inter_endo_obs = to_np(
                         self.get_prediction(state_cm_tensor, action_tensor, inter_duration_tensor))
 
-                loss_step = np.mean(np.abs(inter_step_obs[self.endo_inds] - to_np(predicted_inter_endo_obs)))
+                loss_step = np.mean(np.abs(inter_next_obs[self.endo_inds] - to_np(predicted_inter_endo_obs)))
                 losses.append(loss_step)
 
                 fictitious_obs = utils.new_fictitious_obs(predicted_inter_endo_obs, inter_next_obs, self.endo_inds)
 
                 # update the state constructors
                 steps_until_decision_point -= 1
+                steps_since_decision_point += 1
                 decision_point = steps_until_decision_point == 0
-                state_cm = sc_cm(fictitious_obs, action, decision_point=decision_point)
+
+                if decision_point:
+                    steps_since_decision_point = 0
+
+                state_cm = sc_cm(fictitious_obs, action,
+                                 decision_point=decision_point,
+                                 steps_since_decision=steps_since_decision_point)
 
                 if use_agent:
-                    state_agent = sc_agent(fictitious_obs, action, decision_point=decision_point)
+                    state_agent = sc_agent(fictitious_obs, action,
+                                           decision_point=decision_point,
+                                           steps_since_decision=steps_since_decision_point)
 
                 reward_info = {}
                 if prev_action is None:
@@ -221,18 +228,18 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                 denormalized_obs = self.normalizer.obs_normalizer.denormalize(fictitious_obs)
                 r = self.reward_func(denormalized_obs, **reward_info)
                 r_norm = self.normalizer.reward_normalizer(r)
-                g += self.gamma ** (step + inter_step - 1) * r_norm
+                g += self.gamma ** (outer_step + inter_step - 1) * r_norm
                 prev_action = action
 
                 actions.append(action)
                 endo_obss.append(inter_step_obs[0])
                 predicted_endo_obss.append(predicted_inter_endo_obs)
-                step += 1
 
-                if step + inter_step > rollout_len:
+                if outer_step + inter_step > rollout_len:
                     done = True
                     break
 
+            outer_step += duration_int
             num_predictions += 1
 
             # log the loss

@@ -15,6 +15,8 @@ def init_buffer(cfg: DictConfig) -> buffers.UniformBuffer:
         buffer = buffers.UniformBuffer(cfg)
     elif name == 'ensemble_uniform':
         buffer = buffers.EnsembleUniformBuffer(cfg)
+    elif name == 'sql_buffer':
+        buffer = buffers.SQLBuffer(cfg)
     else:
         raise NotImplementedError
 

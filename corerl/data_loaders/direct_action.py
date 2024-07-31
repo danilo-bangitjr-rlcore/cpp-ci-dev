@@ -170,9 +170,11 @@ class DirectActionDataLoader(BaseDataLoader):
             prev_steps_until_decision = None
             transition_added = False
             prev_obs_transition = None
+      
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
                                                                                                               action_start)
+                action_transitions = []
 
                 if data_gap:
                     curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)
@@ -229,12 +231,16 @@ class DirectActionDataLoader(BaseDataLoader):
 
                         if step < (curr_action_steps - 1):
                             obs_transitions.append(obs_transition)
+                            action_transitions.append(obs_transition)
                         else:
                             prev_obs_transition = obs_transition
 
                         if not transition_added:
                             obs_transition.obs_dp = True
                             transition_added = True
+                        
+                        if len(obs_transitions) > 0 and not obs_transitions[-1].gap:
+                            assert np.allclose(obs_transition.obs, obs_transitions[-1].next_obs)
 
                     prev_action = curr_action
                     step_start = step_start + timedelta(seconds=self.obs_length)
@@ -251,6 +257,8 @@ class DirectActionDataLoader(BaseDataLoader):
                     except:
                         pass
 
+                if len(action_transitions) > 0:
+                    assert action_transitions[0].obs_dp
                 action_start = next_action_start
 
         print("Number of observation transitions: {}".format(len(obs_transitions)))

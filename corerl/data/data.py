@@ -45,19 +45,21 @@ class Transition:
     # NOTE: we distinguish between the next state and the next state which we bootstrap off of. All following
     # attributes are defined w.r.t. the boot strap state.
     reward: float # one-step reward
-    n_step_reward: float
-    n_step_cumulants: np.array
+    n_step_reward: float 
+    n_step_cumulants: np.array = None
     # the state which we bootstrap off of, which is not necesssarily the next state
     # in the MDP
-    boot_obs: np.array  # the raw observation of next_state
-    boot_state: np.array
-    terminated: bool
-    truncate: bool
-    state_dp: bool  # whether state is a decision point
-    next_state_dp: bool  # Whether 'next_obs' is at a decision point
-    boot_state_dp: bool  # whether next_state is a decision point
-    gamma_exponent: int  # the exponent of gamma used for bootstrapping
-    gap: bool  # whether there is a gap in the dataset following next_obs, always false online
+    boot_obs: np.array = None  # the raw observation of next_state
+    boot_state: np.array = None
+    terminated: bool = False
+    truncate: bool = False
+    state_dp: bool = True # whether state is a decision point
+    next_state_dp: bool = True # Whether 'next_obs' is at a decision point
+    boot_state_dp: bool = True # whether next_state is a decision point
+    gamma_exponent: int = 1 # the exponent of gamma used for bootstrapping
+    gap: bool = False  # whether there is a gap in the dataset following next_obs, always false online
+    steps_since_decision: int = 1
+    next_steps_since_decision: int = 1
 
     def __iter__(self):
         for field in fields(self):
@@ -115,6 +117,8 @@ class TransitionBatch:
     boot_state_dp: Tensor
     gamma_exponent: Tensor
     gap: Tensor
+    steps_since_decision: Tensor
+    next_steps_since_decision: Tensor
 
     def __post_init__(self):
         # ensure all the attributes have the same dimension

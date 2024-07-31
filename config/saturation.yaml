@@ -14,8 +14,8 @@ offline_data:
   output_path : offline_data/saturation
 
 experiment :
-  exp_name : "delayed_saturation"
-  max_steps : 2500
+  exp_name : "delayed_saturation_debug"
+  max_steps : 10000
   offline_steps : 0
   set_env_obs_space : False
   timeout: 0

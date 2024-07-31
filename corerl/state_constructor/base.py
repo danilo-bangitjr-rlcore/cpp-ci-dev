@@ -17,6 +17,7 @@ class BaseStateConstructor(ABC):
 
     @abstractmethod
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
+        self.state = None
         raise NotImplementedError
 
     def __call__(self, obs: np.ndarray, action: np.ndarray, initial_state=False, **kwargs) -> np.ndarray:
@@ -66,13 +67,14 @@ class CompositeStateConstructor(BaseStateConstructor):
         init_array = zero_fn(1, dtype=bool)  # whether this is an initial state
         init_array[0] = initial_state
         state = concat_fn([init_array, state])
+        self.state = state
         return state
 
     def get_state_dim(self, obs: np.ndarray, action: np.ndarray) -> int:
         state = self(obs, action, get_state_dim=True)
         assert len(state.shape)  # not sure if this will always be necessary or desired. But we are assuming that
         state_dim = state.shape[0]
-        self._reset_graph_state()
+        self.reset()
         return state_dim
 
     def _call_graph(self, obs: np.ndarray, **kwargs) -> np.ndarray:
@@ -91,4 +93,5 @@ class CompositeStateConstructor(BaseStateConstructor):
         self.sc.clear_state()
 
     def reset(self) -> None:
+        self.state = None
         self._reset_graph_state()
