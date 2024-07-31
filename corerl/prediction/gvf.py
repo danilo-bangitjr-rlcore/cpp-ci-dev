@@ -85,9 +85,9 @@ class SimpleGVF(BaseGVF):
             if cumulant_inds:
                 cumulant_batch = cumulant_batch[:, cumulant_inds]
 
-            next_v = self.gvf.get_v_target(next_state_batch)
+            next_v = self.gvf.get_v_target([next_state_batch])
             target = cumulant_batch + (mask_batch * (self.gamma ** gamma_exp_batch) * next_v)
-            _, v_ens = self.gvf.get_vs(state_batch, action_batch, with_grad=True)
+            _, v_ens = self.gvf.get_vs([state_batch], [action_batch], with_grad=True)
             loss = ensemble_mse(target, v_ens)
             return loss
 
@@ -122,9 +122,9 @@ class QGVF(BaseGVF):
             next_actions, _ = self.agent.actor.get_action(next_state_batch, with_grad=False)
             with torch.no_grad():
                 next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
-            next_q = self.gvf.get_q_target(next_state_batch, next_actions)
+            next_q = self.gvf.get_q_target([next_state_batch], [next_actions])
             target = cumulant_batch + (mask_batch * (self.gamma ** gamma_exp_batch) * next_q)
-            _, q_ens = self.gvf.get_qs(state_batch, action_batch, with_grad=True)
+            _, q_ens = self.gvf.get_qs([state_batch], [action_batch], with_grad=True)
             loss = ensemble_mse(target, q_ens)
             return loss
 

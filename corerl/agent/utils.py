@@ -27,9 +27,9 @@ def get_batch_actions_discrete(state_batch: Float[torch.Tensor, "batch_size stat
 def get_top_action(func, states, actions, action_dim, batch_size, n_actions, return_idx=None):
 
     if return_idx is None:
-        x = func(states, actions)
+        x = func([states], [actions])
     else:  # in func returns a tuple
-        x = func(states, actions)[0]
+        x = func([states], [actions])[0]
 
     x = x.reshape((batch_size, n_actions, 1))
     sorted_q_inds = torch.argsort(x, dim=1, descending=True)

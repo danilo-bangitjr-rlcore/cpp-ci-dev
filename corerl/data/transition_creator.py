@@ -114,7 +114,7 @@ class AnytimeTransitionCreator(object):
                          first_obs_transition.prev_action,
                          initial_state=True,
                          decision_point=first_obs_transition.obs_dp,
-                         steps_since_decision=first_obs_transition.obs_steps_since_decision)
+                         steps_until_decision=first_obs_transition.obs_steps_until_decision)
 
         states = [start_state]
         # Produce remaining states and create list of transitions when decision points are encountered
@@ -126,7 +126,7 @@ class AnytimeTransitionCreator(object):
                             obs_transition.action,
                             initial_state=False,
                             decision_point=obs_transition.next_obs_dp,
-                            steps_since_decision=obs_transition.next_obs_steps_since_decision)
+                            steps_until_decision=obs_transition.next_obs_steps_until_decision)
 
             states.append(next_state)
             curr_decision_obs_transitions.append(obs_transition)
@@ -140,10 +140,6 @@ class AnytimeTransitionCreator(object):
                 assert len(states) == len(curr_decision_obs_transitions) + 1
 
                 new_transitions = self._make_decision_window_transitions(curr_decision_obs_transitions, states)
-
-                if new_transitions[0].state_dp == False:
-                    print("First Transition In Decision Window Not A Decision Point:")
-                    print(new_transitions[0])
 
                 if self.only_dp_transitions:
                     # the first transition could have been filtered out by self.get_train_transitions(), so
@@ -171,9 +167,8 @@ class AnytimeTransitionCreator(object):
                 states = [next_state]
 
         # Remove the transitions that were created during the state constructor warmup period
-
         if self.only_dp_transitions:
-            agent_warmup = warmup // self.steps_per_decision
+            agent_warmup = warmup // self.steps_per_decision # TODO: This doesn't account for "remainder" transitions
         else:
             agent_warmup = warmup
 

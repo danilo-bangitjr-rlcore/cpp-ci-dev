@@ -49,15 +49,15 @@ class IBE(BaseEval):
 
         if self.agent.ensemble_targets:
             _, next_q = self.agent.q_critic.get_qs_target(
-                next_state_batch, next_actions,
+                [next_state_batch], [next_actions],
             )
         else:
-            next_q = self.agent.q_critic.get_q_target(next_state_batch, next_actions)
+            next_q = self.agent.q_critic.get_q_target([next_state_batch], [next_actions])
 
         # N-Step SARSA update with variable 'N', thus 'reward_batch' is an n_step reward
         # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
         target = reward_batch + mask_batch * (self.gamma ** gamma_exp_batch) * next_q
-        _, q_ens = self.agent.q_critic.get_qs(state_batch, action_batch, with_grad=True)
+        _, q_ens = self.agent.q_critic.get_qs([state_batch], [action_batch], with_grad=True)
 
         delta = target - q_ens
 

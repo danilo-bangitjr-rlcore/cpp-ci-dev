@@ -2,7 +2,6 @@ import numpy as np
 import hashlib
 import copy
 import pickle as pkl
-import time
 
 import pandas as pd
 from tqdm import tqdm
@@ -287,22 +286,13 @@ def get_state_action_dim(env: Env, sc: BaseStateConstructor) -> tuple[int, int]:
 def offline_alert_training(cfg: DictConfig, alerts: CompositeAlert, train_transitions: list[Transition]) -> None:
     print('Starting offline alert training...')
     print("Num alert train transitions:", len(train_transitions))
-    buffer_start = time.time()
     for transition in train_transitions:
         alerts.update_buffer(transition)
-    buffer_end = time.time()
-    print("Alerts Buffer Load Duration:", buffer_end - buffer_start)
 
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
-    alert_start = time.time()
     for _ in pbar:
-        update_start = time.time()
         alerts.update()
-        update_end = time.time()
-        print("Single Alert Update Duration:", update_end - update_start)
-    alert_end = time.time()
-    print("Alerts Offline Training Total Update Duration:", alert_end - alert_start)
 
 
 def offline_training(cfg: DictConfig,
@@ -326,11 +316,8 @@ def offline_training(cfg: DictConfig,
         train_transitions, plot_transitions = split[0][0], split[0][1]
 
     print("Num agent train transitions:", len(train_transitions))
-    buffer_start = time.time()
     for transition in train_transitions:
         agent.update_buffer(transition)
-    buffer_end = time.time()
-    print("Offline Agent Training Buffer Load Duration:", buffer_end - buffer_start)
 
     print("Agent Critic Buffer Size(s):", agent.critic_buffer.size)
     print("Agent Policy Buffer Size(s):", agent.policy_buffer.size)

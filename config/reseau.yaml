@@ -15,14 +15,14 @@ offline_data:
   output_path : offline_data/reseau
 
 experiment :
-  exp_name : "Ensemble_Buffer_Test"
+  exp_name : "Ensemble_Buffer_Steps_Until_Decision_Test"
   max_steps : 10000
   offline_steps : 10000
   load_env_obs_space_from_data : True
   gamma : 0.95
   train_split : 0.995
-  plot_split : 0.999
-  test_epochs : [10, 100, 999, 1999, 4999, 9999, 19999]
+  plot_split : 0.98
+  test_epochs : [0, 10, 100, 999, 1999, 4999, 9999, 19999]
   offline_stat_keys : []
   online_stat_keys : []
 

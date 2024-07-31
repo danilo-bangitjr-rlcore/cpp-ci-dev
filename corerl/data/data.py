@@ -9,12 +9,12 @@ from corerl.state_constructor.base import BaseStateConstructor
 class ObsTransition:
     prev_action: np.array  # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
     obs: np.array  # the raw observation of state
-    obs_steps_since_decision: int
+    obs_steps_until_decision: int
     obs_dp: bool  # Whether 'obs' is at a decision point
     action: np.array  # the action taken after 'obs' that occurs concurrently with 'next_obs'
     reward: float
     next_obs: np.array  # the immediate next observation
-    next_obs_steps_since_decision: int
+    next_obs_steps_until_decision: int
     next_obs_dp: bool  # Whether 'next_obs' is at a decision point
     terminated: bool
     truncate: bool
