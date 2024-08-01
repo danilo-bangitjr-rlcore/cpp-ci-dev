@@ -9,6 +9,8 @@ from omegaconf import DictConfig
 
 import corerl.calibration_models.utils as utils
 from corerl.component.network.utils import to_np
+from corerl.data.data import Transition, ObsTransition
+from corerl.data.transition_creator import AnytimeTransitionCreator
 from corerl.data.data import Trajectory
 from corerl.agent.base import BaseAgent
 
@@ -18,6 +20,7 @@ class BaseCalibrationModel(ABC):
         self.test_trajectories = train_info['test_trajectories_cm']
         self.reward_func = train_info['reward_func']
         self.normalizer = train_info['normalizer']
+        self.transition_creator = train_info['transition_creator']
 
         self.endo_inds = cfg.endo_inds
         self.exo_inds = cfg.exo_inds
@@ -132,7 +135,6 @@ class BaseCalibrationModel(ABC):
             use_agent = True
 
         g = 0  # the return
-        prev_action = None
 
         losses = []
         endo_obss = []
@@ -144,6 +146,14 @@ class BaseCalibrationModel(ABC):
         steps_since_decision_point = transitions_cm[0].steps_since_decision  # how long since the last decision
         action = transitions_cm[0].action  # the initial agent's action
         decision_point = transitions_cm[0].state_dp
+        curr_decision_obs_transitions = []
+        curr_decision_states = [transitions_cm[0]]
+
+        # we need the following variables for constructing observation transitions
+        prev_action = None
+        prev_obs = transitions_cm[0].obs
+        prev_steps_since_decision_point = steps_since_decision_point  # this will get incremented immediately
+        prev_decision_point = decision_point
 
         for step in range(rollout_len):
             transition_step = transitions_cm[step]
@@ -180,11 +190,6 @@ class BaseCalibrationModel(ABC):
                              decision_point=decision_point,
                              steps_since_decision=steps_since_decision_point)
 
-            if use_agent:
-                state_agent = sc_agent(fictitious_obs, action,
-                                       decision_point=decision_point,
-                                       steps_since_decision=steps_since_decision_point)
-
             reward_info = {}
             if prev_action is None:
                 reward_info['prev_action'] = action
@@ -197,7 +202,43 @@ class BaseCalibrationModel(ABC):
             r = self.reward_func(denormalized_obs, **reward_info)
             r_norm = self.normalizer.reward_normalizer(r)
             g += (self.gamma ** step) * r_norm
+
+            if use_agent:
+                state_agent = sc_agent(fictitious_obs, action,
+                                       decision_point=decision_point,
+                                       steps_since_decision=steps_since_decision_point)
+
+                curr_decision_states.append(state_agent)
+
+                obs_transition = ObsTransition(
+                    prev_action,
+                    prev_obs,
+                    prev_steps_since_decision_point,  # I don't think this variable is actually used
+                    prev_decision_point,
+                    action,
+                    r_norm,
+                    fictitious_obs,
+                    steps_since_decision_point,
+                    decision_point,
+                    False,  # termination false
+                    False,  # truncation false
+                    gap=False)  # assume no data gap
+
+                curr_decision_obs_transitions.append(obs_transition)
+
+                if decision_point:
+                    _, _, agent_transitions = self.transition_creator.make_decision_window_transitions(
+                        curr_decision_obs_transitions, curr_decision_states)
+                    curr_decision_obs_transitions = []
+                    curr_decision_states = [state_agent]
+
+                    for transition in agent_transitions:
+                        agent.update_buffer(transition)
+
+                agent.update()
+
             prev_action = action
+            prev_obs = fictitious_obs
 
             # log stuff
             actions.append(action)
