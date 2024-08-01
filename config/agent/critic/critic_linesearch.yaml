@@ -1,6 +1,7 @@
 defaults:
   - critic_network: ensemble
   - critic_optimizer : sgd
+  - buffer: ensemble_uniform
   -  _self_
 
 name : ${agent.critic.critic_network.name}_linesearch # Revan: this works for getting the networks name, but isn't the fanciest

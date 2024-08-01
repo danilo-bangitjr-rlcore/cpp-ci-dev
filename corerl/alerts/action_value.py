@@ -64,13 +64,13 @@ class ActionValueAlert(BaseAlert):
 
         if self.ensemble_targets:
             _, next_q = self.q_critic.get_qs_target(
-                next_state_batch, next_actions,
+                [next_state_batch], [next_actions],
             )
         else:
-            next_q = self.q_critic.get_q_target(next_state_batch, next_actions)
+            next_q = self.q_critic.get_q_target([next_state_batch], [next_actions])
 
         target = reward_batch + mask_batch * (self.gamma ** gamma_exp_batch) * next_q
-        _, q_ens = self.q_critic.get_qs(state_batch, action_batch, with_grad=True)
+        _, q_ens = self.q_critic.get_qs([state_batch], [action_batch], with_grad=True)
         return ensemble_mse(target, q_ens)
 
     def update(self) -> None:
@@ -97,7 +97,7 @@ class ActionValueAlert(BaseAlert):
         # Get action-value estimate for the given state-action pair
         state = utils.tensor(state, device)
         action = utils.tensor(action, device)
-        value = self.q_critic.get_q(state, action, with_grad=False)
+        value = self.q_critic.get_q([state], [action], with_grad=False)
         value = utils.to_np(value)
         # The critic predicts the expected full return. Need to take into account that we're neglecting some percentage of the return.
         corrected_value = value * (1.0 - self.ret_perc)

@@ -110,7 +110,7 @@ class EnsembleFC(nn.Module):
         ]
         self.to(device)
 
-    def forward(self, input_tensor: torch.Tensor, ) -> (torch.Tensor, torch.Tensor):
+    def forward(self, input_tensor: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         outs = [net(input_tensor) for net in self.subnetworks]
         for i in range(self.ensemble):
             outs[i] = torch.unsqueeze(outs[i], 0)
@@ -149,9 +149,19 @@ class EnsembleCritic(nn.Module):
         self.to(device)
 
     def forward(
-            self, input_tensor: torch.Tensor,
+            self, input_tensor: list[torch.Tensor],
     ) -> (torch.Tensor, torch.Tensor):
-        qs = [net(input_tensor) for net in self.subnetworks]
+        if len(input_tensor) == self.ensemble:
+            # Each element of the 'input_tensor' list is evaluated by the corresponding member of the ensemble
+            # Used in critic updates
+            qs = [self.subnetworks[i](input_tensor[i]) for i in range(self.ensemble)]
+        else:
+            # Each member of the ensemble evaluates the same state-action pairs
+            # Used in policy updates and when evaluating alerts
+            assert len(input_tensor) == 1
+            input_tensor = input_tensor[0]
+            qs = [net(input_tensor) for net in self.subnetworks]
+        
         for i in range(self.ensemble):
             qs[i] = torch.unsqueeze(qs[i], 0)
         qs = torch.cat(qs, dim=0)

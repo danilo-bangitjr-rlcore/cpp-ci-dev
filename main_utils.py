@@ -73,25 +73,6 @@ def check_exists(save_path):
         return None
 
 
-def merge_dictionaries(dict_1: dict, dict_2: dict) -> dict:
-    """
-    Merging Alert info dictionaries which are ultimately used for plotting
-    """
-    for key in dict_2:
-        if type(dict_2[key]) == type([]):
-            if key not in dict_1:
-                dict_1[key] = dict_2[key]
-            else:
-                dict_1[key] += dict_2[key]
-        elif type(dict_2[key]) == type({}):
-            if key not in dict_1:
-                dict_1[key] = dict_2[key]
-            else:
-                dict_1[key] = merge_dictionaries(dict_1[key], dict_2[key])
-
-    return dict_1
-
-
 def load_or_create(root: Path, cfgs: list[DictConfig], prefix: str, create_func: callable, args: list) -> object:
     """
     Will either load an object or create a new one using create func. Objects are saved at root using a hash determined
@@ -165,6 +146,14 @@ def load_df_from_csv(cfg: DictConfig, dl: BaseDataLoader) -> tuple[pd.DataFrame,
     assert not np.isnan(all_data_df.to_numpy()).any()
 
     return all_data_df, train_data_df, test_data_df
+
+def get_dp_transitions(transitions: list[Transition]) -> list[Transition]:
+    dp_transitions = []
+    for transition in transitions:
+        if transition.state_dp:
+            dp_transitions.append(transition)
+
+    return dp_transitions
 
 
 def get_offline_obs_transitions(cfg: DictConfig,
@@ -337,6 +326,9 @@ def offline_training(cfg: DictConfig,
     print("Num agent train transitions:", len(train_transitions))
     for transition in train_transitions:
         agent.update_buffer(transition)
+
+    print("Agent Critic Buffer Size(s):", agent.critic_buffer.size)
+    print("Agent Policy Buffer Size(s):", agent.policy_buffer.size)
 
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))

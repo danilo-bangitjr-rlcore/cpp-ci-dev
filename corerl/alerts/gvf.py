@@ -70,7 +70,7 @@ class GVFAlert(BaseAlert):
         # GVF Predictions
         state = utils.tensor(state, device)
         action = utils.tensor(action, device)
-        curr_values = self.gvfs.gvf.get_q(state, action, with_grad=False)
+        curr_values = self.gvfs.gvf.get_q([state], [action], with_grad=False)
         curr_values = utils.to_np(curr_values)
         # The GVF predicts the expected full return. Need to take into account that we're neglecting some percentage of the return.
         corrected_values = curr_values * (1.0 - self.ret_perc)

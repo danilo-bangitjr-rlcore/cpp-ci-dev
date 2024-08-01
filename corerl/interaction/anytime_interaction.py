@@ -50,8 +50,8 @@ class AnytimeInteraction(BaseInteraction):
         self.reward_sum = 0
         self.curr_decision_states = []
         self.prev_decision_point = True
-        self.prev_steps_since_decision = 0
-        self.steps_since_decision = 1
+        self.prev_steps_until_decision = self.steps_per_decision
+        self.steps_until_decision = self.steps_per_decision - 1
 
     def step(self, action: np.ndarray) -> tuple[list[Transition], list[Transition], list[Transition], dict, dict]:
         """
@@ -68,19 +68,17 @@ class AnytimeInteraction(BaseInteraction):
         out = self.env.step(raw_action)  # env.step() already ensures self.obs_length has elapsed
         raw_next_obs, raw_reward, term, env_trunc, env_info = out
         truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
-
-        self.steps_since_decision = (self.steps_since_decision + 1) % self.steps_per_decision
-        decision_point = (self.steps_since_decision == 0)
+        decision_point = (self.steps_until_decision == self.steps_per_decision)
 
         obs_transition = ObsTransition(
             self.raw_last_action,
             self.raw_last_obs,
-            self.prev_steps_since_decision,  # I don't think this variable is actually used
+            self.prev_steps_until_decision,  # I don't think this variable is actually used
             self.prev_decision_point,
             raw_action,
             raw_reward,
             raw_next_obs,
-            self.steps_since_decision,
+            self.steps_until_decision,
             decision_point,
             term,
             truncate,
@@ -93,10 +91,8 @@ class AnytimeInteraction(BaseInteraction):
                                             obs_transition.action,
                                             initial_state=False,  # we are not in reset(), so never an initial state
                                             decision_point=obs_transition.next_obs_dp,
-                                            steps_since_decision=obs_transition.next_obs_steps_since_decision)
+                                            steps_until_decision=obs_transition.next_obs_steps_until_decision)
 
-        # If only training on transitions at decision points, only include ObsTransitions at decision points
-        # If training on all transitions, include every ObsTransition
         # if (self.only_dp_transitions and decision_point) or (not self.only_dp_transitions):
         self.curr_decision_obs_transitions.append(obs_transition)
         self.curr_decision_states.append(next_state)
@@ -108,7 +104,10 @@ class AnytimeInteraction(BaseInteraction):
         self.alert_info_list.append(alert_info)
 
         self.prev_decision_point = decision_point
-        self.prev_steps_since_decision = self.steps_since_decision
+        self.prev_steps_until_decision = self.steps_until_decision
+        self.steps_until_decision -= 1
+        if self.steps_until_decision == 0:
+            self.steps_until_decision = self.steps_per_decision
 
         self.raw_last_obs = raw_next_obs
         self.raw_last_action = action
@@ -139,8 +138,8 @@ class AnytimeInteraction(BaseInteraction):
                     transition.next_obs = transition.boot_obs
                     transition.next_state_dp = transition.boot_state_dp
                     transition.next_state = transition.boot_state
-                    transition.steps_since_decision = 1
-                    transition.next_steps_since_decision = 1
+                    transition.steps_until_decision = 1
+                    transition.next_steps_until_decision = 1
                     transition.reward = transition.n_step_reward
                     agent_train_transitions = [transition]
             else:
@@ -189,8 +188,8 @@ class AnytimeInteraction(BaseInteraction):
 
         self.reward_sum = 0
         self.prev_decision_point = True
-        self.prev_steps_since_decision = 0
-        self.steps_since_decision = 0
+        self.prev_steps_until_decision = self.steps_per_decision
+        self.steps_until_decision = self.steps_per_decision - 1
         self.curr_decision_states = [state]
 
         return state, info

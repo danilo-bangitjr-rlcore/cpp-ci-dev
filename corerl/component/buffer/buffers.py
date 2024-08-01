@@ -56,7 +56,7 @@ class UniformBuffer:
             self.full = True
         self.pos %= self.memory
 
-    def sample_mini_batch(self, batch_size: int = None) -> TransitionBatch:
+    def sample_mini_batch(self, batch_size: int = None) -> list[TransitionBatch]:
         if self.size == 0:
             return None
         if batch_size is None:
@@ -66,9 +66,9 @@ class UniformBuffer:
 
         sampled_data = [self.data[i][sampled_indices] for i in range(len(self.data))]
 
-        return self._prepare(sampled_data)
+        return [self._prepare(sampled_data)]
 
-    def sample_batch(self) -> TransitionBatch:
+    def sample_batch(self) -> list[TransitionBatch]:
         if self.size == 0:
             return None
 
@@ -77,7 +77,7 @@ class UniformBuffer:
         else:
             sampled_data = (self.data[i][: self.pos] for i in range(len(self.data)))
 
-        return self._prepare(sampled_data)
+        return [self._prepare(sampled_data)]
 
     """
     def load(
@@ -98,8 +98,8 @@ class UniformBuffer:
             self.feed(transition)
 
     @property
-    def size(self) -> int:
-        return self.memory if self.full else self.pos
+    def size(self) -> list[int]:
+        return [self.memory if self.full else self.pos]
 
     def reset(self) -> None:
         self.pos = 0
@@ -133,7 +133,7 @@ class PriorityBuffer(UniformBuffer):
 
         self.priority /= scale
 
-    def sample_mini_batch(self, batch_size: int = None) -> TransitionBatch:
+    def sample_mini_batch(self, batch_size: int = None) -> list[TransitionBatch]:
         if len(self.data) == 0:
             return None
         if batch_size is None:
@@ -147,7 +147,7 @@ class PriorityBuffer(UniformBuffer):
 
         sampled_data = [self.data[i][sampled_indices] for i in range(len(self.data))]
 
-        return self._prepare(sampled_data)
+        return [self._prepare(sampled_data)]
 
     def update_priorities(self, priority=None):
         if priority is None:
@@ -155,6 +155,54 @@ class PriorityBuffer(UniformBuffer):
         else:
             assert priority.shape == self.priority.shape
             self.priority = torch.Tensor(priority)
+
+
+class EnsembleUniformBuffer:
+    def __init__(self, cfg: DictConfig):
+        print("Creating Ensemble Uniform Buffer")
+        self.seed = cfg.seed
+        self.rng = np.random.RandomState(self.seed)
+        self.batch_size = cfg.batch_size
+        self.ensemble = cfg.ensemble # Size of the ensemble
+        self.data_subset = cfg.data_subset # Percentage of all transitions added to a given buffer in the ensemble
+
+        self.buffer_ensemble = [UniformBuffer(cfg) for _ in range(self.ensemble)]
+
+        if self.batch_size == 0:
+            self.sample = self.sample_batch
+        else:
+            self.sample = self.sample_mini_batch
+
+    def feed(self, experience: Transition) -> None:
+        for i in range(self.ensemble):
+            if self.rng.rand() < self.data_subset:
+                self.buffer_ensemble[i].feed(experience)
+
+    def sample_mini_batch(self, batch_size: int = None) -> list[TransitionBatch]:
+        ensemble_batch = []
+        for i in range(self.ensemble):
+            ensemble_batch += self.buffer_ensemble[i].sample_mini_batch(batch_size)
+
+        return ensemble_batch
+
+    def sample_batch(self) -> list[TransitionBatch]:
+        ensemble_batch = []
+        for i in range(self.ensemble):
+            ensemble_batch += self.buffer_ensemble[i].sample_batch()
+
+        return ensemble_batch
+
+    def load(self, transitions: list) -> None:
+        for transition in transitions:
+            self.feed(transition)
+
+    @property
+    def size(self) -> list[int]:
+        return [self.buffer_ensemble[i].size[0] for i in range(self.ensemble)]
+
+    def reset(self) -> None:
+        for i in range(self.ensemble):
+            self.buffer_ensemble[i].reset()
 
 
 def _to_tensor(elem):

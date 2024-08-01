@@ -162,14 +162,15 @@ class DirectActionDataLoader(BaseDataLoader):
         action_df = df[self.action_col_names]
         obs_df = df[self.obs_col_names]
 
+        prev_obs_transition = None
         while action_start < df_end:
             data_gap = False  # Indicates a discontinuity in the df
             prev_action = None
             obs = np.empty(0)
             prev_decision_point = None
-            prev_steps_since_decision = None
-            added_transition = False
-
+            prev_steps_until_decision = None
+            transition_added = False
+      
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
                                                                                                               action_start)
@@ -181,14 +182,30 @@ class DirectActionDataLoader(BaseDataLoader):
                     curr_action_steps, step_start = self.get_curr_action_steps(action_start, next_action_start)
 
                 step_remainder = curr_action_steps % self.steps_per_decision
-                steps_since_decision = ((self.steps_per_decision - step_remainder) + 1) % self.steps_per_decision
+                steps_until_decision = (step_remainder - 1) % self.steps_per_decision
+                if steps_until_decision == 0:
+                    steps_until_decision = self.steps_per_decision
 
-                # Next, iterate over current action time steps and produce obs transitions
+                # Adjust the steps_until_decision for the state on the boundary between two different actions
+                if prev_obs_transition and curr_action_steps > 0:
+                    prev_steps_until_decision = step_remainder
+                    if prev_steps_until_decision == 0:
+                        prev_steps_until_decision = self.steps_per_decision
+                    prev_obs_transition.next_obs_steps_until_decision = prev_steps_until_decision
+                    obs_transitions.append(prev_obs_transition)
+                    prev_obs_transition = None
+
+                # Ensuring last ObsTransition right before data gap has gap attribute set to True
                 if curr_action_steps == 0 and data_gap and len(obs_transitions) > 0:
+                    if prev_obs_transition:
+                        obs_transitions.append(prev_obs_transition)
+                        prev_obs_transition = None
                     obs_transitions[-1].gap = True
-
+                
+                # Next, iterate over current action time steps and produce obs transitions
                 for step in range(curr_action_steps):
-                    decision_point = steps_since_decision == 0
+                    decision_point = steps_until_decision == self.steps_per_decision
+
                     step_end = step_start + timedelta(seconds=self.obs_length)
                     next_obs = self.get_obs(obs_df, step_start, step_end)
 
@@ -202,36 +219,41 @@ class DirectActionDataLoader(BaseDataLoader):
                         obs_transition = ObsTransition(
                             prev_action,
                             obs,
-                            prev_steps_since_decision,
+                            prev_steps_until_decision,
                             prev_decision_point,
                             curr_action,
                             reward,
                             next_obs,
-                            steps_since_decision,
+                            steps_until_decision,
                             decision_point,
                             False,  # assume a continuing env
                             False,  # assume a continuing env
                             gap=(step == curr_action_steps - 1) and data_gap  # if the last step and there is a data gap
                         )
-
-                        if not added_transition:
-                            obs_transition.obs_dp = True
-                            added_transition = True
-
                         obs_transition = normalizer.normalize(obs_transition)
+
+                        # Make first obs in chunk a decision point
+                        if not transition_added:
+                            obs_transition.obs_dp = True
+                            transition_added = True
 
                         if len(obs_transitions) > 0 and not obs_transitions[-1].gap:
                             assert np.allclose(obs_transition.obs, obs_transitions[-1].next_obs)
 
-                        obs_transitions.append(obs_transition)
-                        action_transitions.append(obs_transition)
+                        if step < (curr_action_steps - 1):
+                            obs_transitions.append(obs_transition)
+                            action_transitions.append(obs_transition)
+                        else:
+                            prev_obs_transition = obs_transition
 
                     prev_action = curr_action
                     step_start = step_start + timedelta(seconds=self.obs_length)
                     obs = next_obs
                     prev_decision_point = decision_point
-                    prev_steps_since_decision = steps_since_decision
-                    steps_since_decision = (steps_since_decision + 1) % self.steps_per_decision
+                    prev_steps_until_decision = steps_until_decision
+                    steps_until_decision -= 1
+                    if steps_until_decision == 0:
+                        steps_until_decision = self.steps_per_decision
 
                     try:
                         pbar.n = df.index.get_loc(step_start)

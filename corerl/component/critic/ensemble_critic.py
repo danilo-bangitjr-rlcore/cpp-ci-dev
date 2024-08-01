@@ -33,12 +33,12 @@ class EnsembleQCritic(BaseQ):
 
     def get_qs(
         self,
-        states: torch.Tensor,
-        actions: torch.Tensor,
+        states: list[torch.Tensor],
+        actions: list[torch.Tensor],
         with_grad: bool = False,
     ) -> (torch.Tensor, torch.Tensor):
 
-        state_actions = torch.concat((states, actions), dim=1)
+        state_actions = [torch.concat((states[i], actions[i]), dim=1) for i in range(len(states))]
         if with_grad:
             q, qs = self.model(state_actions)
         else:
@@ -48,22 +48,22 @@ class EnsembleQCritic(BaseQ):
 
     def get_q(
         self,
-        states: torch.Tensor,
-        actions: torch.Tensor,
+        states: list[torch.Tensor],
+        actions: list[torch.Tensor],
         with_grad: bool = False,
     ) -> torch.Tensor:
         q, qs = self.get_qs(states, actions, with_grad=with_grad)
         return q
 
     def get_qs_target(
-        self, states: torch.Tensor, actions: torch.Tensor,
+        self, states: list[torch.Tensor], actions: list[torch.Tensor],
     ) -> (torch.Tensor, torch.Tensor):
-        state_actions = torch.concat((states, actions), dim=1)
+        state_actions = [torch.concat((states[i], actions[i]), dim=1) for i in range(len(states))]
         with torch.no_grad():
             return self.target(state_actions)
 
     def get_q_target(
-        self, states: torch.Tensor, actions: torch.Tensor,
+        self, states: list[torch.Tensor], actions: list[torch.Tensor],
     ) -> torch.Tensor:
         q, qs = self.get_qs_target(states, actions)
         return q
@@ -147,7 +147,7 @@ class EnsembleVCritic(BaseV):
         self.target_sync_counter = 0
 
     def get_vs(
-        self, states: torch.Tensor, with_grad: bool = False,
+        self, states: list[torch.Tensor], with_grad: bool = False,
     ) -> (torch.Tensor, torch.Tensor):
         if with_grad:
             v, vs = self.model(states)
@@ -164,18 +164,18 @@ class EnsembleVCritic(BaseV):
         return
 
     def get_v(
-        self, states: torch.Tensor, with_grad: bool = False,
+        self, states: list[torch.Tensor], with_grad: bool = False,
     ) -> torch.Tensor:
         v, vs = self.get_vs(states, with_grad=with_grad)
         return v
 
     def get_vs_target(
-        self, states: torch.Tensor,
+        self, states: list[torch.Tensor],
     ) -> (torch.Tensor, torch.Tensor):
         with torch.no_grad():
             return self.target(states)
 
-    def get_v_target(self, states: torch.Tensor) -> torch.Tensor:
+    def get_v_target(self, states: list[torch.Tensor]) -> torch.Tensor:
         v, vs = self.get_vs_target(states)
         return v
 

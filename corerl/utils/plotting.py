@@ -243,7 +243,7 @@ def make_alerts_plots(stats, path):
     fig.savefig(path / "Composite_Alert_Summary_Plot.png")
     plt.close()
 
-def make_reseau_actor_critic_plot(states, actions, q_values, actor_params, env, path, prefix, epoch):
+def make_reseau_actor_critic_plot(states, actions, q_values, ensemble_q_values, actor_params, env, path, prefix, epoch):
     # Currently assuming 'ReseauAnytime' state constructor
     obs_space_low = env.observation_space.low
     obs_space_high = env.observation_space.high
@@ -251,7 +251,7 @@ def make_reseau_actor_critic_plot(states, actions, q_values, actor_params, env, 
     action_space_high = env.action_space.high
     mins = [0, action_space_low[0], obs_space_low[0], obs_space_low[1], action_space_low[0], action_space_low[0], action_space_low[0], action_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[1], obs_space_low[1], obs_space_low[1], obs_space_low[1], 0, 0]
     maxs = [1, action_space_high[0], obs_space_high[0], obs_space_high[1], action_space_high[0], action_space_high[0], action_space_high[0], action_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[1], obs_space_high[1], obs_space_high[1], obs_space_high[1], 1, 1]
-
+    ensemble = len(ensemble_q_values)
     for i in range(0, len(states)):
         curr_state = states[i]
         curr_alpha = actor_params[i][0]
@@ -276,10 +276,12 @@ def make_reseau_actor_critic_plot(states, actions, q_values, actor_params, env, 
         for j in [3, 12, 13, 14, 15]:
             ax_title += "{:.3e} ".format(curr_state[j])
 
-        #ax_title += '\nCountdown: {}'.format(curr_state[16])
-        #ax_title += '\nDecision Step: {}'.format(curr_state[17])
+        # ax_title += '\nCountdown: {}'.format(curr_state[16])
+        # ax_title += '\nDecision Step: {}'.format(curr_state[17])
 
         fig, ax = plt.subplots(2, 1, sharex=True, figsize=(6, 12))
+
+        # Plot Actor Policy
         ax[0].plot(
                 actions,
                 beta.pdf(actions, curr_alpha, curr_beta),
@@ -287,7 +289,12 @@ def make_reseau_actor_critic_plot(states, actions, q_values, actor_params, env, 
                 c="r",
             )
         ax[0].set_title("Actor Policy", pad=0)
+
+        # Plot each critic in the ensemble
         ax[1].plot(actions, q_values[i], label="Q Function", c="b", alpha=1.0)
+        for j in range(ensemble):
+            ax[1].plot(actions, ensemble_q_values[j][i], alpha=0.2)
+
         ax[1].set_title("Q-Function", pad=20)
         plt.xlabel("Action Space")
         fig.suptitle(ax_title)
@@ -305,7 +312,6 @@ def make_plots(freezer, stats, save_path):
     #make_reward_plot(stats, save_path)
 
 def make_actor_critic_plots(agent, env, plot_transitions, prefix, iteration, save_path):
-    test_states, test_actions, test_q_values, actor_params = get_test_state_qs_and_policy_params(agent, plot_transitions)
-    make_reseau_actor_critic_plot(test_states, test_actions, test_q_values, actor_params, env, save_path, prefix, iteration)
-
+    test_states, test_actions, q_values, ensemble_q_values, actor_params = get_test_state_qs_and_policy_params(agent, plot_transitions)
+    make_reseau_actor_critic_plot(test_states, test_actions, q_values, ensemble_q_values, actor_params, env, save_path, prefix, iteration)
 

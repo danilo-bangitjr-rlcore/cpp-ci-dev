@@ -122,7 +122,7 @@ class AnytimeTransitionCreator(object):
                          first_obs_transition.prev_action,
                          initial_state=True,
                          decision_point=first_obs_transition.obs_dp,
-                         steps_since_decision=first_obs_transition.obs_steps_since_decision)
+                         steps_until_decision=first_obs_transition.obs_steps_until_decision)
 
         new_scs = [deepcopy(sc)]
         states = [start_state]
@@ -135,7 +135,7 @@ class AnytimeTransitionCreator(object):
                             obs_transition.action,
                             initial_state=False,
                             decision_point=obs_transition.next_obs_dp,
-                            steps_since_decision=obs_transition.next_obs_steps_since_decision)
+                            steps_until_decision=obs_transition.next_obs_steps_until_decision)
 
             states.append(next_state)
             curr_decision_obs_transitions.append(obs_transition)
@@ -157,8 +157,8 @@ class AnytimeTransitionCreator(object):
                     transition.next_obs = transition.boot_obs
                     transition.next_state_dp = transition.boot_state_dp
                     transition.next_state = transition.boot_state
-                    transition.steps_since_decision = 1
-                    transition.next_steps_since_decision = 1
+                    transition.steps_until_decision = 1
+                    transition.next_steps_until_decision = 1
                     transition.reward = transition.n_step_reward
 
                     curr_chunk_agent_transitions += [transition]
@@ -173,7 +173,7 @@ class AnytimeTransitionCreator(object):
 
         # Remove the transitions that were created during the state constructor warmup period
         if self.only_dp_transitions:
-            agent_warmup = warmup // self.steps_per_decision
+            agent_warmup = warmup // self.steps_per_decision # TODO: This doesn't account for "remainder" transitions
         else:
             agent_warmup = warmup
 
@@ -274,8 +274,8 @@ class AnytimeTransitionCreator(object):
             term = curr_obs_transition.terminated
             trunc = curr_obs_transition.truncate
             gap = curr_obs_transition.gap
-            steps_since_decision = curr_obs_transition.obs_steps_since_decision
-            next_steps_since_decision = curr_obs_transition.next_obs_steps_since_decision
+            steps_until_decision = curr_obs_transition.obs_steps_until_decision
+            next_steps_until_decision = curr_obs_transition.next_obs_steps_until_decision
 
             # Create Agent Transition
             np_n_step_rewards = self.update_n_step_cumulants(n_step_rewards, np.array([reward]), self.gamma)
@@ -309,8 +309,8 @@ class AnytimeTransitionCreator(object):
                 boot_state_dp,
                 gamma_exp,
                 gap,
-                steps_since_decision,
-                next_steps_since_decision
+                steps_until_decision,
+                next_steps_until_decision
             )
 
             new_transitions.append(transition)
