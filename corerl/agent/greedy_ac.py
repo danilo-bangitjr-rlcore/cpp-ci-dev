@@ -4,6 +4,7 @@ from pathlib import Path
 from corerl.utils.hook import when
 
 import torch
+torch.autograd.set_detect_anomaly(True)
 import numpy
 import pickle as pkl
 
@@ -213,11 +214,12 @@ class GreedyAC(BaseAC):
             # N-Step SARSA update with variable 'N', thus 'reward_batch' is an n_step reward
             # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
             target = reward_batches[i] + mask_batches[i] * (self.gamma ** gamma_exp_batches[i]) * next_qs[i]
-            
+
             args, _ = self._hooks(
-              when.Agent.BeforeCriticLossComputed, self, ensemble_batch[i], target, qs[i], i,
+              when.Agent.BeforeCriticLossComputed, self, ensemble_batch[i], target, qs[i], i
             )
-            ensemble_batch[i], target, qs[i] = args[1:]
+            # Producing errors when gradient is computed
+            #ensemble_batch[i], target, qs[i], _ = args[1:]
             
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
 
@@ -287,7 +289,7 @@ class GreedyAC(BaseAC):
             def closure():
                 return sum(self.compute_critic_loss(batches))
             q_loss = closure()
-
+            
             args, _ = self._hooks(
                 when.Agent.AfterCriticLossComputed, self, batches, q_loss,
             )

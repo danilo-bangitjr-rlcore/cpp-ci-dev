@@ -58,8 +58,8 @@ class Transition:
     boot_state_dp: bool = True # whether next_state is a decision point
     gamma_exponent: int = 1 # the exponent of gamma used for bootstrapping
     gap: bool = False  # whether there is a gap in the dataset following next_obs, always false online
-    steps_since_decision: int = 1
-    next_steps_since_decision: int = 1
+    steps_until_decision: int = 1
+    next_steps_until_decision: int = 1
 
     def __iter__(self):
         for field in fields(self):
@@ -117,8 +117,8 @@ class TransitionBatch:
     boot_state_dp: Tensor
     gamma_exponent: Tensor
     gap: Tensor
-    steps_since_decision: Tensor
-    next_steps_since_decision: Tensor
+    steps_until_decision: Tensor
+    next_steps_until_decision: Tensor
 
     def __post_init__(self):
         # ensure all the attributes have the same dimension

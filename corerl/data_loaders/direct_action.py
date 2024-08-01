@@ -162,6 +162,7 @@ class DirectActionDataLoader(BaseDataLoader):
         action_df = df[self.action_col_names]
         obs_df = df[self.obs_col_names]
 
+        prev_obs_transition = None
         while action_start < df_end:
             data_gap = False  # Indicates a discontinuity in the df
             prev_action = None
@@ -169,7 +170,6 @@ class DirectActionDataLoader(BaseDataLoader):
             prev_decision_point = None
             prev_steps_until_decision = None
             transition_added = False
-            prev_obs_transition = None
       
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
@@ -197,6 +197,9 @@ class DirectActionDataLoader(BaseDataLoader):
 
                 # Ensuring last ObsTransition right before data gap has gap attribute set to True
                 if curr_action_steps == 0 and data_gap and len(obs_transitions) > 0:
+                    if prev_obs_transition:
+                        obs_transitions.append(prev_obs_transition)
+                        prev_obs_transition = None
                     obs_transitions[-1].gap = True
                 
                 # Next, iterate over current action time steps and produce obs transitions
@@ -229,18 +232,19 @@ class DirectActionDataLoader(BaseDataLoader):
                         )
                         obs_transition = normalizer.normalize(obs_transition)
 
+                        # Make first obs in chunk a decision point
+                        if not transition_added:
+                            obs_transition.obs_dp = True
+                            transition_added = True
+
+                        if len(obs_transitions) > 0 and not obs_transitions[-1].gap:
+                            assert np.allclose(obs_transition.obs, obs_transitions[-1].next_obs)
+
                         if step < (curr_action_steps - 1):
                             obs_transitions.append(obs_transition)
                             action_transitions.append(obs_transition)
                         else:
                             prev_obs_transition = obs_transition
-
-                        if not transition_added:
-                            obs_transition.obs_dp = True
-                            transition_added = True
-                        
-                        if len(obs_transitions) > 0 and not obs_transitions[-1].gap:
-                            assert np.allclose(obs_transition.obs, obs_transitions[-1].next_obs)
 
                     prev_action = curr_action
                     step_start = step_start + timedelta(seconds=self.obs_length)

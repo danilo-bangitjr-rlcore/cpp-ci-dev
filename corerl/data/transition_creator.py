@@ -157,8 +157,8 @@ class AnytimeTransitionCreator(object):
                     transition.next_obs = transition.boot_obs
                     transition.next_state_dp = transition.boot_state_dp
                     transition.next_state = transition.boot_state
-                    transition.steps_since_decision = 1
-                    transition.next_steps_since_decision = 1
+                    transition.steps_until_decision = 1
+                    transition.next_steps_until_decision = 1
                     transition.reward = transition.n_step_reward
 
                     curr_chunk_agent_transitions += [transition]
@@ -274,8 +274,8 @@ class AnytimeTransitionCreator(object):
             term = curr_obs_transition.terminated
             trunc = curr_obs_transition.truncate
             gap = curr_obs_transition.gap
-            steps_since_decision = curr_obs_transition.obs_steps_since_decision
-            next_steps_since_decision = curr_obs_transition.next_obs_steps_since_decision
+            steps_until_decision = curr_obs_transition.obs_steps_until_decision
+            next_steps_until_decision = curr_obs_transition.next_obs_steps_until_decision
 
             # Create Agent Transition
             np_n_step_rewards = self.update_n_step_cumulants(n_step_rewards, np.array([reward]), self.gamma)
@@ -309,8 +309,8 @@ class AnytimeTransitionCreator(object):
                 boot_state_dp,
                 gamma_exp,
                 gap,
-                steps_since_decision,
-                next_steps_since_decision
+                steps_until_decision,
+                next_steps_until_decision
             )
 
             new_transitions.append(transition)
