@@ -218,6 +218,8 @@ class AnytimeTransitionCreator(object):
                 transition.steps_since_decision = 1
                 transition.next_steps_since_decision = 1
                 transition.reward = transition.n_step_reward
+                assert len(transition.boot_state) == len(transition.state)
+
                 agent_transitions = [transition]
             # we filtered out the transition that starts at a decision point. return an emtpy list in this case
             else:

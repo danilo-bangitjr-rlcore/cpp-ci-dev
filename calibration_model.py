@@ -92,7 +92,7 @@ def main(cfg: DictConfig) -> dict:
     print("loading trajectories for the model")
     sc_cm = init_state_constructor(cfg.calibration_model.state_constructor, env)
 
-    OmegaConf.update(cfg, "interaction.only_dp_transitions", False)
+    # the models need all transitions, not just DP transitions
     transition_creator.set_only_dp_transitions(False)
     cm_hash_cfgs = [cfg.data_loader, cfg.calibration_model.state_constructor, cfg.interaction]
 
@@ -124,7 +124,11 @@ def main(cfg: DictConfig) -> dict:
         'test_trajectories_cm': test_trajectories_cm,
         'train_transitions_cm': trajectories_to_transitions(train_trajectories_cm),
         'test_transitions_cm': trajectories_to_transitions(test_trajectories_cm),
+        'transition_creator': transition_creator
     }
+
+    # reset the transition creator to use whather the interactions settings are for dp transitions
+    transition_creator.set_only_dp_transitions(cfg.interaction.only_dp_transitions)
 
     reward_func = init_reward_function(cfg.env.reward)
     train_info["reward_func"] = reward_func

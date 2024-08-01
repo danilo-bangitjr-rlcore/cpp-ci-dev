@@ -14,6 +14,7 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.calibration_models.base import BaseCalibrationModel
+from corerl.data.data import Transition, ObsTransition
 from corerl.component.network.utils import tensor, to_np
 from corerl.data.data import Trajectory
 from corerl.agent.base import BaseAgent
@@ -107,7 +108,7 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
         pass
 
     def linear_interpolation(self, inter_step, duration_int, curr_obs, predicted_next_endo_obs):
-        w = (inter_step) / duration_int
+        w = inter_step / duration_int
         fictitious_endo_obs = (1 - w) * curr_obs[self.endo_inds] + w * predicted_next_endo_obs
         return fictitious_endo_obs
 
@@ -143,7 +144,6 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
             use_agent = True
 
         g = 0  # the return
-        prev_action = None
 
         losses = []
         endo_obss = []
@@ -155,6 +155,16 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
         steps_since_decision_point = transitions_cm[0].steps_since_decision  # how long since the last decision
         action = transitions_cm[0].action  # the initial agent's action
         decision_point = transitions_cm[0].state_dp
+
+        # we need the following variables for constructing observation transitions
+        prev_action = None
+        prev_obs = transitions_cm[0].obs
+        prev_steps_since_decision_point = steps_since_decision_point  # this will get incremented immediately
+        prev_decision_point = decision_point
+
+        if use_agent:
+            curr_decision_obs_transitions = []
+            curr_decision_states = [state_agent]
 
         outer_step = 0
         done = False
@@ -210,11 +220,6 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                                  decision_point=decision_point,
                                  steps_since_decision=steps_since_decision_point)
 
-                if use_agent:
-                    state_agent = sc_agent(fictitious_obs, action,
-                                           decision_point=decision_point,
-                                           steps_since_decision=steps_since_decision_point)
-
                 reward_info = {}
                 if prev_action is None:
                     reward_info['prev_action'] = action
@@ -232,6 +237,46 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                 actions.append(action)
                 endo_obss.append(inter_step_obs[0])
                 predicted_endo_obss.append(predicted_inter_endo_obs)
+
+                if use_agent:
+                    state_agent = sc_agent(fictitious_obs, action,
+                                           decision_point=decision_point,
+                                           steps_since_decision=steps_since_decision_point)
+
+                    curr_decision_states.append(state_agent)
+
+                    obs_transition = ObsTransition(
+                        prev_action,
+                        prev_obs,
+                        prev_steps_since_decision_point,  # I don't think this variable is actually used
+                        prev_decision_point,
+                        action,
+                        r_norm,
+                        fictitious_obs,
+                        steps_since_decision_point,
+                        decision_point,
+                        False,  # termination false
+                        False,  # truncation false
+                        gap=False)  # assume no data gap
+
+                    curr_decision_obs_transitions.append(obs_transition)
+
+                    if decision_point:
+                        _, _, agent_transitions = self.transition_creator.make_decision_window_transitions(
+                            curr_decision_obs_transitions, curr_decision_states)
+                        curr_decision_obs_transitions = []
+                        curr_decision_states = [state_agent]
+
+                        for transition in agent_transitions:
+                            agent.update_buffer(transition)
+
+                    agent.update()
+
+                prev_action = action
+                prev_obs = fictitious_obs
+                prev_steps_since_decision_point = steps_since_decision_point
+                prev_decision_point = decision_point
+
 
                 if outer_step + inter_step > rollout_len:
                     done = True

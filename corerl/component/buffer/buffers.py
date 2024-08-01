@@ -49,7 +49,14 @@ class UniformBuffer:
             )
 
         for i, elem in enumerate(experience):
-            self.data[i][self.pos] = _to_tensor(elem)
+            try:
+                self.data[i][self.pos] = _to_tensor(elem)
+            except:
+                print(self.data[i][self.pos-2])
+                print(self.data[i][self.pos-1])
+                print(_to_tensor(elem))
+                assert False
+
 
         self.pos += 1
         if not self.full and self.pos == self.memory:
@@ -167,6 +174,8 @@ def _to_tensor(elem):
     elif elem is None:
         return torch.empty((1, 0))
     else:
+        if isinstance(elem, Transition):
+            print(elem)
         return torch.Tensor([elem])
 
 

@@ -146,14 +146,15 @@ class BaseCalibrationModel(ABC):
         steps_since_decision_point = transitions_cm[0].steps_since_decision  # how long since the last decision
         action = transitions_cm[0].action  # the initial agent's action
         decision_point = transitions_cm[0].state_dp
-        curr_decision_obs_transitions = []
-        curr_decision_states = [transitions_cm[0]]
 
-        # we need the following variables for constructing observation transitions
         prev_action = None
         prev_obs = transitions_cm[0].obs
         prev_steps_since_decision_point = steps_since_decision_point  # this will get incremented immediately
         prev_decision_point = decision_point
+
+        if use_agent:
+            curr_decision_obs_transitions = []
+            curr_decision_states = [state_agent]
 
         for step in range(rollout_len):
             transition_step = transitions_cm[step]
@@ -227,18 +228,21 @@ class BaseCalibrationModel(ABC):
                 curr_decision_obs_transitions.append(obs_transition)
 
                 if decision_point:
-                    _, _, agent_transitions = self.transition_creator.make_decision_window_transitions(
+                    t, _, agent_transitions = self.transition_creator.make_decision_window_transitions(
                         curr_decision_obs_transitions, curr_decision_states)
+
                     curr_decision_obs_transitions = []
                     curr_decision_states = [state_agent]
 
                     for transition in agent_transitions:
                         agent.update_buffer(transition)
 
-                agent.update()
+                # agent.update()
 
             prev_action = action
             prev_obs = fictitious_obs
+            prev_steps_since_decision_point = steps_since_decision_point
+            prev_decision_point = decision_point
 
             # log stuff
             actions.append(action)
