@@ -12,8 +12,9 @@ buffer:
   device: cpu
   seed: ${experiment.seed}
 
-train_itr: 10000
+train_itr: 1000
 batch_size : 256
+interpolation : linear
 
 model:
   layer_norm: 0

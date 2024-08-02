@@ -126,9 +126,10 @@ class AnytimeTransitionCreator(object):
                          decision_point=first_obs_transition.obs_dp,
                          steps_until_decision=first_obs_transition.obs_steps_until_decision)
 
-        new_scs = [deepcopy(sc)]
+        curr_chunk_scs = []
         states = [start_state]
         curr_decision_obs_transitions = []
+        new_scs = [deepcopy(sc)]
 
         # Produce remaining states and create list of transitions when decision points are encountered
         for idx, obs_transition in enumerate(curr_chunk_obs_transitions):
@@ -159,6 +160,8 @@ class AnytimeTransitionCreator(object):
 
                 curr_chunk_agent_transitions += agent_transitions
                 curr_chunk_alert_transitions += transitions
+                curr_chunk_scs += new_scs
+                new_scs = []
                 curr_decision_obs_transitions = []
                 states = [next_state]
 
@@ -172,13 +175,13 @@ class AnytimeTransitionCreator(object):
         curr_chunk_alert_transitions = curr_chunk_alert_transitions[warmup:]
 
         if return_scs:
-            new_scs = new_scs[agent_warmup:-1]
-            assert len(new_scs) == len(curr_chunk_agent_transitions)
+            curr_chunk_scs = curr_chunk_scs[agent_warmup:-1]
+            assert len(curr_chunk_scs) == len(curr_chunk_agent_transitions)
             # check to see if scs are lined up to transitions
             for i in range(len(curr_chunk_agent_transitions)):
-                assert np.allclose(curr_chunk_agent_transitions[i].state, new_scs[i].get_current_state())
+                assert np.allclose(curr_chunk_agent_transitions[i].state, curr_chunk_scs[i].get_current_state())
 
-        return curr_chunk_agent_transitions, curr_chunk_alert_transitions, new_scs
+        return curr_chunk_agent_transitions, curr_chunk_alert_transitions, curr_chunk_scs
 
     def make_decision_window_transitions(self,
                                          curr_decision_obs_transitions: list[ObsTransition],

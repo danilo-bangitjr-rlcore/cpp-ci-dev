@@ -33,9 +33,8 @@ class OneStep(BaseCalibrationModel):
         self.train_losses = []
         self.test_losses = []
 
-
     def _update(self):
-        batch = self.buffer.sample_mini_batch(self.batch_size)
+        batch = self.buffer.sample_mini_batch(self.batch_size)[0]
         state_batch, action_batch, next_obs_batch = batch.state, batch.action, batch.next_obs
         # we only predict the next endogenous component of the observation
         endo_next_obs_batch = next_obs_batch[:, self.endo_inds]

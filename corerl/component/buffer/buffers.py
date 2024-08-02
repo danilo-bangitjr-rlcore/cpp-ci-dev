@@ -159,12 +159,11 @@ class PriorityBuffer(UniformBuffer):
 
 class EnsembleUniformBuffer:
     def __init__(self, cfg: DictConfig):
-        print("Creating Ensemble Uniform Buffer")
         self.seed = cfg.seed
         self.rng = np.random.RandomState(self.seed)
         self.batch_size = cfg.batch_size
-        self.ensemble = cfg.ensemble # Size of the ensemble
-        self.data_subset = cfg.data_subset # Percentage of all transitions added to a given buffer in the ensemble
+        self.ensemble = cfg.ensemble  # Size of the ensemble
+        self.data_subset = cfg.data_subset  # Percentage of all transitions added to a given buffer in the ensemble
 
         self.buffer_ensemble = [UniformBuffer(cfg) for _ in range(self.ensemble)]
 
@@ -207,9 +206,9 @@ class EnsembleUniformBuffer:
 
 def _to_tensor(elem):
     if (
-        isinstance(elem, torch.Tensor)
-        or isinstance(elem, np.ndarray)
-        or isinstance(elem, list)
+            isinstance(elem, torch.Tensor)
+            or isinstance(elem, np.ndarray)
+            or isinstance(elem, list)
     ):
         return torch.Tensor(elem)
     elif elem is None:
@@ -269,7 +268,7 @@ class SQLBuffer(UniformBuffer):
             else:
                 initial_idx = self._initial_idx
         return initial_idx
-    
+
     def get_initial_idx(self):
         idx = self.session.scalar(
             select(SQLTransition.id).order_by(SQLTransition.id.desc())
@@ -278,7 +277,7 @@ class SQLBuffer(UniformBuffer):
             idx = 0
         return idx
 
-    def _transition_feed(self, experience: Transition, transition_infos: List[TransitionInfo]=None) -> None:
+    def _transition_feed(self, experience: Transition, transition_infos: List[TransitionInfo] = None) -> None:
         sql_transition = SQLTransition(
             state=list(experience.state),
             action=list(experience.action),
@@ -291,25 +290,24 @@ class SQLBuffer(UniformBuffer):
         else:
             sql_transition = self.session.merge(sql_transition)
             self.session.add(sql_transition)
-    
+
         self.session.commit()
         self.update_data()
-    
+
     def _sql_transition_feed(self, experience: SQLTransition):
-        
+
         # experience = self.session.merge(experience)
         self.session.add(experience)
         self.session.commit()
         self.update_data()
 
-    def feed(self, experience: Transition, transition_infos: List[TransitionInfo]=None) -> None:
+    def feed(self, experience: Transition, transition_infos: List[TransitionInfo] = None) -> None:
         if isinstance(experience, Transition):
             self._transition_feed(experience, transition_infos)
         elif isinstance(experience, SQLTransition):
             self._sql_transition_feed(experience)
         else:
             raise TypeError
-
 
     def _feed(self, experience: Transition) -> None:
         return super().feed(experience)
@@ -322,7 +320,7 @@ class SQLBuffer(UniformBuffer):
             reward=row.reward.item(),
             n_step_reward=row.reward.item(),
             next_state=row.next_state.item(),
-            boot_state=row.next_state.item(), # WARNING: sql buffer only supports 1 step
+            boot_state=row.next_state.item(),  # WARNING: sql buffer only supports 1 step
             next_obs=None,
         )
         return transition

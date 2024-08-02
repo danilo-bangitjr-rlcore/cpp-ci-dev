@@ -85,8 +85,12 @@ def main(cfg: DictConfig) -> dict:
                                                                                        transition_creator,
                                                                                        warmup,
                                                                                        prefix='agent_train')
+
     train_transitions = trajectories_to_transitions(train_trajectories_agent)
     plot_transitions = trajectories_to_transitions(test_trajectories_agent)
+
+    for t in train_transitions:
+        assert len(t.state) == 24
 
     # load trajectories for the model
     print("loading trajectories for the model")
@@ -94,6 +98,7 @@ def main(cfg: DictConfig) -> dict:
 
     # the models need all transitions, not just DP transitions
     transition_creator.set_only_dp_transitions(False)
+    OmegaConf.update(cfg, "interaction.only_dp_transitions", False)
     cm_hash_cfgs = [cfg.data_loader, cfg.calibration_model.state_constructor, cfg.interaction]
 
     # load the transition
@@ -118,6 +123,11 @@ def main(cfg: DictConfig) -> dict:
                                                                    warmup,
                                                                    prefix='agent_rollout')
 
+    for i, t in enumerate(trajectories_to_transitions(rollout_trajectories_agent)):
+        if len(t.state) != 24:
+            print(i)
+            assert False
+
     train_info = {
         'normalizer': normalizer,
         'train_trajectories_cm': train_trajectories_cm,
@@ -127,7 +137,7 @@ def main(cfg: DictConfig) -> dict:
         'transition_creator': transition_creator
     }
 
-    # reset the transition creator to use whather the interactions settings are for dp transitions
+    # reset the transition creator to use whether the interactions settings are for dp transitions
     transition_creator.set_only_dp_transitions(cfg.interaction.only_dp_transitions)
 
     reward_func = init_reward_function(cfg.env.reward)
@@ -184,7 +194,6 @@ def main(cfg: DictConfig) -> dict:
 
     with open(save_path / 'returns.pkl', 'wb') as f:
         pickle.dump(all_returns, f)
-
 
 
 if __name__ == "__main__":

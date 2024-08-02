@@ -6,8 +6,6 @@ def init_buffer(cfg: DictConfig) -> buffers.UniformBuffer:
     """
     corresponding configs: part of config/agent
     """
-    print("Buffer CFG:")
-    print(cfg)
     name = cfg.name
     if name == 'prioritized':
         buffer = buffers.PriorityBuffer(cfg)

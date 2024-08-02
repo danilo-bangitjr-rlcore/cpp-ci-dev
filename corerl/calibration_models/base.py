@@ -172,6 +172,8 @@ class BaseCalibrationModel(ABC):
             curr_decision_obs_transitions = []
             curr_decision_states = [state_agent]  # initialize this list with the first state that the agent sees
 
+
+
         for step in range(rollout_len):
             transition_step = transitions_cm[step]
             if steps_until_decision is None or not use_agent:
