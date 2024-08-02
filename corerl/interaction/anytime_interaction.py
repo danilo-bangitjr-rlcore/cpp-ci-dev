@@ -10,9 +10,12 @@ from corerl.state_constructor.base import BaseStateConstructor
 from corerl.interaction.base import BaseInteraction
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.data import Transition, ObsTransition
-from corerl.data.transition_creator import AnytimeTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
+# this is to avoid circular imports for type checking
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from corerl.data.transition_creator import AnytimeTransitionCreator
 
 class AnytimeInteraction(BaseInteraction):
     """
@@ -26,7 +29,7 @@ class AnytimeInteraction(BaseInteraction):
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
             alerts: CompositeAlert,
-            transition_creator: AnytimeTransitionCreator,
+            transition_creator: "AnytimeTransitionCreator", # this is to avoid circular imports for type checking
             normalizer: ObsTransitionNormalizer):
         super().__init__(cfg, env, state_constructor, alerts)
 
@@ -47,7 +50,6 @@ class AnytimeInteraction(BaseInteraction):
         self.alert_info_list = []
         self.only_dp_transitions = cfg.only_dp_transitions
         self.curr_decision_obs_transitions = []
-        self.reward_sum = 0
         self.curr_decision_states = []
         self.prev_decision_point = True
         self.prev_steps_until_decision = self.steps_per_decision
@@ -86,7 +88,6 @@ class AnytimeInteraction(BaseInteraction):
         )
         obs_transition = self.normalizer.normalize(obs_transition)
 
-        self.reward_sum += obs_transition.reward
         next_state = self.state_constructor(obs_transition.next_obs,
                                             obs_transition.action,
                                             initial_state=False,  # we are not in reset(), so never an initial state
@@ -114,44 +115,20 @@ class AnytimeInteraction(BaseInteraction):
         self.last_state = next_state
 
         # Create transitions
-        transitions, train_transitions = [], []  # NOTE: these lists may sometimes be empty if we are not at a decision point
-        agent_train_transitions = []
         if decision_point:
-            transitions = self.transition_creator.make_online_transitions(
-                self.curr_decision_obs_transitions, self.curr_decision_states,
-            )
-
-            # Only train on transitions where there weren't any alerts
-            train_transitions = self.get_train_transitions(transitions, self.alert_info_list)
-
-            # if we are only returning dp transitions, we need to update the transition we are returning
-            # we take the first transition, since it starts at the last decision point and goes to the next
-            if self.only_dp_transitions:
-                # the first transition could have been filtered out by self.get_train_transitions(), so
-                # transitions[0].state_dp checks if it was that original first transition returned by
-                # self.transition_creator.make_online_transitions()
-                if len(train_transitions) == 0:
-                    agent_train_transitions = []
-
-                elif train_transitions[0].state_dp:
-                    transition = deepcopy(train_transitions[0])
-                    # transition.gamma_exponent = 1
-                    transition.next_obs = transition.boot_obs
-                    transition.next_state_dp = transition.boot_state_dp
-                    transition.next_state = transition.boot_state
-                    transition.steps_until_decision = 1
-                    transition.next_steps_until_decision = 1
-                    transition.reward = transition.n_step_reward
-                    agent_train_transitions = [transition]
-            else:
-                agent_train_transitions = train_transitions
+            transitions, alert_train_transitions, agent_train_transitions = self.transition_creator.make_decision_window_transitions(
+                self.curr_decision_obs_transitions,
+                self.curr_decision_states,
+                filter_with_alerts=True,
+                interaction=self)
 
             self.curr_decision_obs_transitions = []
-            self.reward_sum = 0
             self.curr_decision_states = [self.last_state]
             self.alert_info_list = []
+        else:
+            # NOTE: these lists may sometimes be empty if we are not at a decision point
+            transitions, alert_train_transitions, agent_train_transitions = [], [], []
 
-        alert_train_transitions = train_transitions
         return transitions, agent_train_transitions, alert_train_transitions, alert_info, env_info
 
     def get_step_alerts(self, action, state, next_obs, reward) -> dict:
@@ -187,7 +164,6 @@ class AnytimeInteraction(BaseInteraction):
         # if you want, use warmup_sc() to set this to something else
         self.raw_last_action = dummy_action
 
-        self.reward_sum = 0
         self.prev_decision_point = True
         self.prev_steps_until_decision = self.steps_per_decision
         self.steps_until_decision = self.steps_per_decision - 1

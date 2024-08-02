@@ -9,6 +9,8 @@ from omegaconf import DictConfig
 
 import corerl.calibration_models.utils as utils
 from corerl.component.network.utils import to_np
+from corerl.data.data import Transition, ObsTransition
+from corerl.data.transition_creator import AnytimeTransitionCreator
 from corerl.data.data import Trajectory
 from corerl.agent.base import BaseAgent
 
@@ -18,6 +20,7 @@ class BaseCalibrationModel(ABC):
         self.test_trajectories = train_info['test_trajectories_cm']
         self.reward_func = train_info['reward_func']
         self.normalizer = train_info['normalizer']
+        self.transition_creator = train_info['transition_creator']
 
         self.endo_inds = cfg.endo_inds
         self.exo_inds = cfg.exo_inds
@@ -32,25 +35,39 @@ class BaseCalibrationModel(ABC):
         # You can make this method pass if you do not need to train a model
         raise NotImplementedError
 
-    def do_test_rollouts(self, plot_save_path=None):
+    def do_test_rollouts(self, plot_save_path=None) -> list[list[float]]:
         if plot_save_path is not None:
             plot_save_path.mkdir(parents=True, exist_ok=True)
+
+        losses = []
 
         for n, test_traj in enumerate(self.test_trajectories):
             last = test_traj.num_transitions - self.max_rollout_len
             increase_idx = last // self.num_test_rollouts
             start_idx = 0
             for start in range(self.num_test_rollouts):
-                self._do_rollout(test_traj, start_idx=start_idx, plot='test', plot_save_path=plot_save_path)
+                _, traj_losses = self._do_rollout(test_traj, start_idx=start_idx, plot='test',
+                                                  plot_save_path=plot_save_path)
                 start_idx += increase_idx
+                losses.append(traj_losses)
 
-    def do_agent_rollouts(self, agent: BaseAgent, trajectories_agent: list[Trajectory], plot=None, plot_save_path=None):
-        returns = []
+        return losses
+
+    def do_agent_rollouts(self, agent: BaseAgent, trajectories_agent: list[Trajectory],
+                          plot=None, plot_save_path=None) -> list[float]:
+
         assert len(trajectories_agent) == len(self.test_trajectories)
         if plot_save_path is not None:
             plot_save_path.mkdir(parents=True, exist_ok=True)
 
-        for traj_i, _ in enumerate(self.test_trajectories):
+        returns = []
+
+        num_transitions = np.array([traj.num_transitions for traj in self.test_trajectories])
+        sample_probs = num_transitions / np.sum(num_transitions)
+        num_completed_rollouts = 0
+        traj_indices = list(range(len(self.test_trajectories)))
+        while num_completed_rollouts < self.num_test_rollouts:
+            traj_i = np.random.choice(traj_indices, p=sample_probs)
             traj_cm = self.test_trajectories[traj_i]
             traj_agent = trajectories_agent[traj_i]
 
@@ -61,19 +78,32 @@ class BaseCalibrationModel(ABC):
                 assert np.allclose(traj_cm.transitions[i].next_obs, traj_agent.transitions[i].next_obs)
                 assert np.allclose(traj_cm.transitions[i].action, traj_agent.transitions[i].action)
 
-            last = traj_cm.num_transitions - self.max_rollout_len
-            increase_idx = last // self.num_test_rollouts
-            start_idx = 0
-            for start in range(self.num_test_rollouts):
-                return_ = self._do_rollout(traj_cm,
-                                           agent=agent,
-                                           traj_agent=traj_agent,
-                                           start_idx=start_idx,
-                                           plot=plot,
-                                           plot_save_path=plot_save_path)
-                start_idx += increase_idx
+            if traj_agent.num_transitions >= self.max_rollout_len:
+                start_idx = random.choice(list(range(traj_cm.num_transitions - self.max_rollout_len)))
+                return_, _ = self._do_rollout(traj_cm,
+                                              agent=agent,
+                                              traj_agent=traj_agent,
+                                              start_idx=start_idx,
+                                              plot=plot,
+                                              plot_save_path=plot_save_path)
                 returns.append(return_)
+                num_completed_rollouts += 1
+
         return returns
+
+    def _get_reward(self, prev_action: np.ndarray, curr_action: np.ndarray, obs: np.ndarray) -> float:
+        reward_info = {}
+        if prev_action is None:
+            reward_info['prev_action'] = curr_action
+        else:
+            reward_info['prev_action'] = prev_action
+        reward_info['curr_action'] = curr_action
+
+        # NOTE: Not sure if this denormalizer should be here.
+        denormalized_obs = self.normalizer.obs_normalizer.denormalize(obs)
+        r = self.reward_func(denormalized_obs, **reward_info)
+        r_norm = self.normalizer.reward_normalizer(r)
+        return r_norm
 
     def _do_rollout(self,
                     traj_cm: Trajectory,
@@ -82,7 +112,7 @@ class BaseCalibrationModel(ABC):
                     start_idx: Optional[int] = None,
                     plot=None,
                     plot_save_path=None,
-                    ) -> float:
+                    ) -> tuple[float, list[float]]:
 
         """
         This is a possibly general version of doing a rollout with the calibration model. You
@@ -102,7 +132,8 @@ class BaseCalibrationModel(ABC):
         transitions_cm = traj_cm.transitions[start_idx:]
         sc_cm = deepcopy(traj_cm.scs[start_idx])  # state constructor for the model
         state_cm = transitions_cm[0].state  # initial state for the model
-        state_agent = None
+
+        state_agent = None  # the state for the agent is not used unless we pass in an agent
         sc_agent = None
         use_agent = False
 
@@ -119,7 +150,6 @@ class BaseCalibrationModel(ABC):
             use_agent = True
 
         g = 0  # the return
-        prev_action = None
 
         losses = []
         endo_obss = []
@@ -132,6 +162,17 @@ class BaseCalibrationModel(ABC):
         action = transitions_cm[0].action  # the initial agent's action
         decision_point = transitions_cm[0].state_dp
 
+        # we need the following variables for constructing observation transitions
+        prev_action = None
+        prev_obs = transitions_cm[0].obs
+        prev_steps_since_decision_point = steps_since_decision_point  # this will get incremented immediately
+        prev_decision_point = decision_point
+
+        if use_agent:
+            # these lists are used to construct transitions.
+            curr_decision_obs_transitions = []
+            curr_decision_states = [state_agent] # initialize this list with the first state that the agent sees
+
         for step in range(rollout_len):
             transition_step = transitions_cm[step]
             if steps_until_decision_point is None or not use_agent:
@@ -142,19 +183,19 @@ class BaseCalibrationModel(ABC):
             action = self._get_action(action, transition_step, decision_point,
                                       use_agent=use_agent, agent=agent, state_agent=state_agent)
 
-            next_obs = transition_step.next_obs  # the true next observation
+            next_obs = transition_step.next_obs  # the TRUE next observation
             next_endo_obs = next_obs[self.endo_inds]  # the endogenous component of the true next observation
 
             kwargs = {}  # add kwargs to _get_next_endo_obs here
             predicted_next_endo_obs = self._get_next_endo_obs(state_cm, action, kwargs)
 
-            # log the loss
+            # log the loss. Note this loss is not meaning if we are using an agent
             loss_step = np.mean(np.abs(next_endo_obs - to_np(predicted_next_endo_obs)))
             losses.append(loss_step)
 
             # construct a fictitious observation using the predicted endogenous variables and the actual
             # exogenous variables
-            fictitious_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
+            fictitious_next_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
             # update the state constructors
             steps_until_decision_point -= 1
             steps_since_decision_point += 1
@@ -163,28 +204,51 @@ class BaseCalibrationModel(ABC):
             if decision_point:
                 steps_since_decision_point = 0
 
-            state_cm = sc_cm(fictitious_obs, action,
+            state_cm = sc_cm(fictitious_next_obs, action,
                              decision_point=decision_point,
                              steps_since_decision=steps_since_decision_point)
 
+            r = self._get_reward(prev_action, action, fictitious_next_obs)
+            g += (self.gamma ** step) * r
+
             if use_agent:
-                state_agent = sc_agent(fictitious_obs, action,
+                state_agent = sc_agent(fictitious_next_obs, action,
                                        decision_point=decision_point,
                                        steps_since_decision=steps_since_decision_point)
 
-            reward_info = {}
-            if prev_action is None:
-                reward_info['prev_action'] = action
-            else:
-                reward_info['prev_action'] = prev_action
-            reward_info['curr_action'] = action
+                obs_transition = ObsTransition(
+                    prev_action,
+                    prev_obs,
+                    prev_steps_since_decision_point,  # I don't think this variable is actually used
+                    prev_decision_point,
+                    action,
+                    r,
+                    fictitious_next_obs,
+                    steps_since_decision_point,
+                    decision_point,
+                    False,  # termination false
+                    False,  # truncation false
+                    gap=False)  # assume no data gap
 
-            # NOTE: Not sure if this denormalizer should be here.
-            denormalized_obs = self.normalizer.obs_normalizer.denormalize(fictitious_obs)
-            r = self.reward_func(denormalized_obs, **reward_info)
-            r_norm = self.normalizer.reward_normalizer(r)
-            g += (self.gamma ** step) * r_norm
+                curr_decision_states.append(state_agent)
+                curr_decision_obs_transitions.append(obs_transition)
+
+                if decision_point:
+                    _, _, agent_transitions = self.transition_creator.make_decision_window_transitions(
+                        curr_decision_obs_transitions, curr_decision_states)
+
+                    curr_decision_obs_transitions = []
+                    curr_decision_states = [state_agent]
+
+                    for transition in agent_transitions:
+                        agent.update_buffer(transition)
+
+                agent.update()
+
             prev_action = action
+            prev_obs = fictitious_next_obs
+            prev_steps_since_decision_point = steps_since_decision_point
+            prev_decision_point = decision_point
 
             # log stuff
             actions.append(action)
@@ -203,7 +267,7 @@ class BaseCalibrationModel(ABC):
             plt.savefig(plot_save_path / f"rollout_{plot}_{start_idx}.png", bbox_inches='tight')
             plt.clf()
 
-        return g
+        return g, losses
 
     @abstractmethod
     def _get_next_endo_obs(self, state, action, kwargs):

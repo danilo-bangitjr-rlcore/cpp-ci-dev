@@ -215,6 +215,8 @@ def _to_tensor(elem):
     elif elem is None:
         return torch.empty((1, 0))
     else:
+        if isinstance(elem, Transition):
+            print(elem)
         return torch.Tensor([elem])
 
 

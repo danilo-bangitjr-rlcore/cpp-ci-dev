@@ -14,6 +14,7 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.calibration_models.base import BaseCalibrationModel
+from corerl.data.data import Transition, ObsTransition
 from corerl.component.network.utils import tensor, to_np
 from corerl.data.data import Trajectory
 from corerl.agent.base import BaseAgent
@@ -55,7 +56,6 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
         # gamma_exponents double as the durations of actions
         state_batch, action_batch, next_obs_batch, duration = batch.state, batch.action, batch.boot_obs, batch.gamma_exponent
         endo_next_obs_batch = next_obs_batch[:, self.endo_inds]
-
         duration /= self.max_action_duration
         prediction = self.get_prediction(state_batch, action_batch, duration, with_grad=with_grad)
         loss = nn.functional.mse_loss(prediction, endo_next_obs_batch)
@@ -108,7 +108,7 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
         pass
 
     def linear_interpolation(self, inter_step, duration_int, curr_obs, predicted_next_endo_obs):
-        w = (inter_step) / duration_int
+        w = inter_step / duration_int
         fictitious_endo_obs = (1 - w) * curr_obs[self.endo_inds] + w * predicted_next_endo_obs
         return fictitious_endo_obs
 
@@ -119,7 +119,7 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                     start_idx: Optional[int] = None,
                     plot=None,
                     plot_save_path=None,
-                    ) -> float:
+                    ) -> tuple[float, list[float]]:
 
         # I would like to unify this with _do
         if start_idx is None:
@@ -144,7 +144,6 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
             use_agent = True
 
         g = 0  # the return
-        prev_action = None
 
         losses = []
         endo_obss = []
@@ -156,6 +155,17 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
         steps_since_decision_point = transitions_cm[0].steps_since_decision  # how long since the last decision
         action = transitions_cm[0].action  # the initial agent's action
         decision_point = transitions_cm[0].state_dp
+
+        # we need the following variables for constructing observation transitions
+        prev_action = None
+        prev_obs = transitions_cm[0].obs
+        prev_steps_since_decision_point = steps_since_decision_point
+        prev_decision_point = decision_point
+
+        if use_agent:
+            # these lists are used to construct transitions.
+            curr_decision_obs_transitions = []
+            curr_decision_states = [state_agent]  # initialize this list with the first state that the agent sees
 
         outer_step = 0
         done = False
@@ -197,7 +207,7 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                 loss_step = np.mean(np.abs(inter_next_obs[self.endo_inds] - to_np(predicted_inter_endo_obs)))
                 losses.append(loss_step)
 
-                fictitious_obs = utils.new_fictitious_obs(predicted_inter_endo_obs, inter_next_obs, self.endo_inds)
+                fictitious_next_obs = utils.new_fictitious_obs(predicted_inter_endo_obs, inter_next_obs, self.endo_inds)
 
                 # update the state constructors
                 steps_until_decision_point -= 1
@@ -207,29 +217,50 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                 if decision_point:
                     steps_since_decision_point = 0
 
-                state_cm = sc_cm(fictitious_obs, action,
+                state_cm = sc_cm(fictitious_next_obs, action,
                                  decision_point=decision_point,
                                  steps_since_decision=steps_since_decision_point)
 
+                r = self._get_reward(prev_action, action, fictitious_next_obs)
+                g += self.gamma ** (outer_step + inter_step) * r
+
                 if use_agent:
-                    state_agent = sc_agent(fictitious_obs, action,
+                    state_agent = sc_agent(fictitious_next_obs, action,
                                            decision_point=decision_point,
                                            steps_since_decision=steps_since_decision_point)
 
-                reward_info = {}
-                if prev_action is None:
-                    reward_info['prev_action'] = action
-                else:
-                    reward_info['prev_action'] = prev_action
-                reward_info['curr_action'] = action
+                    obs_transition = ObsTransition(
+                        prev_action,
+                        prev_obs,
+                        prev_steps_since_decision_point,  # I don't think this variable is actually used
+                        prev_decision_point,
+                        action,
+                        r,
+                        fictitious_next_obs,
+                        steps_since_decision_point,
+                        decision_point,
+                        False,  # termination false
+                        False,  # truncation false
+                        gap=False)  # assume no data gap
 
-                # Not sure if this denormalizer should be here.
-                # TODO: make this return "regular RL" reward if desired
-                denormalized_obs = self.normalizer.obs_normalizer.denormalize(fictitious_obs)
-                r = self.reward_func(denormalized_obs, **reward_info)
-                r_norm = self.normalizer.reward_normalizer(r)
-                g += self.gamma ** (outer_step + inter_step - 1) * r_norm
+                    curr_decision_obs_transitions.append(obs_transition)
+                    curr_decision_states.append(state_agent)
+
+                    if decision_point:
+                        _, _, agent_transitions = self.transition_creator.make_decision_window_transitions(
+                            curr_decision_obs_transitions, curr_decision_states)
+                        curr_decision_obs_transitions = []
+                        curr_decision_states = [state_agent]
+
+                        for transition in agent_transitions:
+                            agent.update_buffer(transition)
+
+                    agent.update()
+
                 prev_action = action
+                prev_obs = fictitious_next_obs
+                prev_steps_since_decision_point = steps_since_decision_point
+                prev_decision_point = decision_point
 
                 actions.append(action)
                 endo_obss.append(inter_step_obs[0])
@@ -243,7 +274,7 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
             num_predictions += 1
 
             # log the loss
-            curr_obs = fictitious_obs
+            curr_obs = fictitious_next_obs
 
         if plot is not None:
             plt.plot(endo_obss, label='endo obs.')
@@ -257,4 +288,4 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
             plt.savefig(plot_save_path / f"rollout_{plot}_{start_idx}.png", bbox_inches='tight')
             plt.clf()
 
-        return g
+        return g, losses
