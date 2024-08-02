@@ -1,26 +1,23 @@
 from omegaconf import DictConfig
 from pathlib import Path
-
 from corerl.utils.hook import when
-
 import torch
-torch.autograd.set_detect_anomaly(True)
 import numpy
 import pickle as pkl
-
 from corerl.agent.base import BaseAC
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, state_to_tensor, ensemble_mse
+from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.component.exploration.factory import init_exploration_module
 from corerl.utils.device import device
 from corerl.data.data import TransitionBatch, Transition
 import corerl.agent.utils as utils
 import corerl.utils.freezer as fr
-
 from jaxtyping import Float
 from typing import Optional
+
+torch.autograd.set_detect_anomaly(True)
 
 
 class GreedyAC(BaseAC):
@@ -220,7 +217,7 @@ class GreedyAC(BaseAC):
             )
             # Producing errors when gradient is computed
             #ensemble_batch[i], target, qs[i], _ = args[1:]
-            
+
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
 
         return losses
@@ -289,7 +286,7 @@ class GreedyAC(BaseAC):
             def closure():
                 return sum(self.compute_critic_loss(batches))
             q_loss = closure()
-            
+
             args, _ = self._hooks(
                 when.Agent.AfterCriticLossComputed, self, batches, q_loss,
             )
@@ -309,7 +306,7 @@ class GreedyAC(BaseAC):
             # Assuming we don't have an ensemble of policies
             assert len(batches) == 1
             batch = batches[0]
-            
+
             args, _ = self._hooks(
                 when.Agent.AfterActorBufferSample, self, batch,
             )
@@ -328,10 +325,14 @@ class GreedyAC(BaseAC):
             )
             batch, update_info, actor_loss = args[1:]
 
+            stacked_s_batch = update_info[4]
+            best_actions = update_info[5]
             self.actor.update(
                 actor_loss,
                 opt_kwargs={
-                    "closure": lambda: self.actor_err(batch.state),
+                    "closure": lambda: self.actor_err(
+                        stacked_s_batch, best_actions,
+                    ),
                 },
             )
             update_infos.append(update_info)
@@ -358,11 +359,14 @@ class GreedyAC(BaseAC):
                 )
                 batch, update_info, sampler_loss = args[1:]
 
-                state_batch = update_info[0]
+                stacked_s_batch = update_info[4]
+                best_actions = update_info[5]
                 self.sampler.update(
                     sampler_loss,
                     opt_kwargs={
-                        "closure": lambda: self.sampler_err(state_batch),
+                        "closure": lambda: self.sampler_err(
+                            stacked_s_batch, best_actions,
+                        ),
                     },
                 )
 
@@ -374,12 +378,12 @@ class GreedyAC(BaseAC):
                 batches = self.policy_buffer.sample()
                 assert len(batches) == 1
                 batch = batches[0]
-                
+
                 args, _ = self._hooks(
                     when.Agent.AfterProposalBufferSample, self, batch,
                 )
                 batch = args[1]
-                
+
                 update_info = self.get_policy_update_info(batch.state)
                 args, _ = self._hooks(
                     when.Agent.BeforeProposalLossComputed, self, update_info,
@@ -393,10 +397,14 @@ class GreedyAC(BaseAC):
                 )
                 batch, update_info, sampler_loss = args[1:]
 
+                stacked_s_batch = update_info[4]
+                best_actions = update_info[5]
                 self.sampler.update(
                     sampler_loss,
                     opt_kwargs={
-                        "closure": lambda: self.sampler_err(batch.state),
+                        "closure": lambda: self.sampler_err(
+                            stacked_s_batch, best_actions,
+                        ),
                     },
                 )
 
@@ -404,23 +412,15 @@ class GreedyAC(BaseAC):
                     when.Agent.AfterProposalUpdate, self, batch, sampler_loss,
                 )
 
-    def actor_err(self, state_batch) -> torch.Tensor:
-        out = self.get_policy_update_info(state_batch)
-        _, _, _, _, stacked_s_batch, best_actions, _ = out
+    def actor_err(self, stacked_s_batch, best_actions) -> torch.Tensor:
         logp, _ = self.actor.get_log_prob(
-            stacked_s_batch,
-            best_actions,
-            with_grad=True,
+            stacked_s_batch, best_actions, with_grad=True,
         )
         return -logp.mean()
 
-    def sampler_err(self, state_batch) -> torch.Tensor:
-        out = self.get_policy_update_info(state_batch)
-        _, _, _, _, stacked_s_batch, best_actions, _ = out
+    def sampler_err(self, stacked_s_batch, best_actions) -> torch.Tensor:
         logp, _ = self.sampler.get_log_prob(
-            stacked_s_batch,
-            best_actions,
-            with_grad=True,
+            stacked_s_batch, best_actions, with_grad=True,
         )
         return -logp.mean()
 
