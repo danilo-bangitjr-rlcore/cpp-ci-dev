@@ -157,28 +157,30 @@ class BaseCalibrationModel(ABC):
         actions = []
         rollout_len = min(len(transitions_cm), self.max_rollout_len)
 
-        steps_until_decision_point = None
-        steps_since_decision_point = transitions_cm[0].steps_since_decision  # how long since the last decision
+        steps_until_decision = None
         action = transitions_cm[0].action  # the initial agent's action
         decision_point = transitions_cm[0].state_dp
 
         # we need the following variables for constructing observation transitions
         prev_action = None
         prev_obs = transitions_cm[0].obs
-        prev_steps_since_decision_point = steps_since_decision_point  # this will get incremented immediately
+        prev_steps_until_decision = None
         prev_decision_point = decision_point
 
         if use_agent:
             # these lists are used to construct transitions.
             curr_decision_obs_transitions = []
-            curr_decision_states = [state_agent] # initialize this list with the first state that the agent sees
+            curr_decision_states = [state_agent]  # initialize this list with the first state that the agent sees
 
         for step in range(rollout_len):
             transition_step = transitions_cm[step]
-            if steps_until_decision_point is None or not use_agent:
-                steps_until_decision_point = transition_step.gamma_exponent
-            elif steps_until_decision_point == 0:
-                steps_until_decision_point = self.steps_per_decision
+            if steps_until_decision is None or not use_agent:
+                steps_until_decision = transition_step.gamma_exponent
+            elif steps_until_decision == 0:
+                steps_until_decision = self.steps_per_decision
+
+            if prev_steps_until_decision is None:
+                prev_steps_until_decision = steps_until_decision
 
             action = self._get_action(action, transition_step, decision_point,
                                       use_agent=use_agent, agent=agent, state_agent=state_agent)
@@ -197,16 +199,12 @@ class BaseCalibrationModel(ABC):
             # exogenous variables
             fictitious_next_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
             # update the state constructors
-            steps_until_decision_point -= 1
-            steps_since_decision_point += 1
-            decision_point = steps_until_decision_point == 0
-
-            if decision_point:
-                steps_since_decision_point = 0
+            steps_until_decision -= 1
+            decision_point = steps_until_decision == 0
 
             state_cm = sc_cm(fictitious_next_obs, action,
                              decision_point=decision_point,
-                             steps_since_decision=steps_since_decision_point)
+                             steps_until_decision=steps_until_decision)
 
             r = self._get_reward(prev_action, action, fictitious_next_obs)
             g += (self.gamma ** step) * r
@@ -214,17 +212,17 @@ class BaseCalibrationModel(ABC):
             if use_agent:
                 state_agent = sc_agent(fictitious_next_obs, action,
                                        decision_point=decision_point,
-                                       steps_since_decision=steps_since_decision_point)
+                                       steps_until_decision=steps_until_decision)
 
                 obs_transition = ObsTransition(
                     prev_action,
                     prev_obs,
-                    prev_steps_since_decision_point,  # I don't think this variable is actually used
+                    prev_steps_until_decision,
                     prev_decision_point,
                     action,
                     r,
                     fictitious_next_obs,
-                    steps_since_decision_point,
+                    steps_until_decision,
                     decision_point,
                     False,  # termination false
                     False,  # truncation false
@@ -233,21 +231,14 @@ class BaseCalibrationModel(ABC):
                 curr_decision_states.append(state_agent)
                 curr_decision_obs_transitions.append(obs_transition)
 
-                if decision_point:
-                    _, _, agent_transitions = self.transition_creator.make_decision_window_transitions(
-                        curr_decision_obs_transitions, curr_decision_states)
-
-                    curr_decision_obs_transitions = []
-                    curr_decision_states = [state_agent]
-
-                    for transition in agent_transitions:
-                        agent.update_buffer(transition)
-
-                agent.update()
+                curr_decision_obs_transitions, curr_decision_states = self._make_transitions_and_update(agent,
+                                                                                                        decision_point,
+                                                                                                        curr_decision_obs_transitions,
+                                                                                                        curr_decision_states)
 
             prev_action = action
             prev_obs = fictitious_next_obs
-            prev_steps_since_decision_point = steps_since_decision_point
+            prev_steps_until_decision = steps_until_decision
             prev_decision_point = decision_point
 
             # log stuff
@@ -256,18 +247,36 @@ class BaseCalibrationModel(ABC):
             predicted_endo_obss.append(predicted_next_endo_obs)
 
         if plot is not None:
-            plt.plot(endo_obss, label='endo obs.')
-            plt.plot(actions, label='actions')
-
-            predicted_endo_obss = [np.squeeze(to_np(p)) for p in predicted_endo_obss]
-            plt.plot(predicted_endo_obss, label='predicted endo obs.')
-            plt.legend()
-
-            plt.xlabel("Rollout Step")
-            plt.savefig(plot_save_path / f"rollout_{plot}_{start_idx}.png", bbox_inches='tight')
-            plt.clf()
+            self._plot(endo_obss, actions, predicted_endo_obss, plot_save_path, plot, start_idx)
 
         return g, losses
+
+    def _make_transitions_and_update(self, agent, decision_point, curr_decision_obs_transitions, curr_decision_states):
+        if decision_point:
+            _, _, agent_transitions = self.transition_creator.make_decision_window_transitions(
+                curr_decision_obs_transitions, curr_decision_states)
+
+            for transition in agent_transitions:
+                agent.update_buffer(transition)
+
+            curr_decision_obs_transitions = []
+            curr_decision_states = [curr_decision_states[-1]]
+
+        agent.update()
+
+        return curr_decision_obs_transitions, curr_decision_states
+
+    def _plot(self, endo_obss, actions, predicted_endo_obss, plot_save_path, plot, start_idx):
+        plt.plot(endo_obss, label='endo obs.')
+        plt.plot(actions, label='actions')
+
+        predicted_endo_obss = [np.squeeze(to_np(p)) for p in predicted_endo_obss]
+        plt.plot(predicted_endo_obss, label='predicted endo obs.')
+        plt.legend()
+
+        plt.xlabel("Rollout Step")
+        plt.savefig(plot_save_path / f"rollout_{plot}_{start_idx}.png", bbox_inches='tight')
+        plt.clf()
 
     @abstractmethod
     def _get_next_endo_obs(self, state, action, kwargs):

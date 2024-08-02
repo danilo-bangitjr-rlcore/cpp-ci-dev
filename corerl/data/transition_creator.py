@@ -230,8 +230,6 @@ class AnytimeTransitionCreator(object):
         # typically we will use transitions for logging, filtered_transitions for alerts, and agent_transitions for training
         return transitions, filtered_transitions, agent_transitions
 
-
-
     def get_cumulants(self, reward: float, next_obs: np.ndarray) -> np.ndarray:
         """
         Get cumulants used to train alert value functions
