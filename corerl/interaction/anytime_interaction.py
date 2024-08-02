@@ -117,8 +117,9 @@ class AnytimeInteraction(BaseInteraction):
         transitions, train_transitions = [], []  # NOTE: these lists may sometimes be empty if we are not at a decision point
         agent_train_transitions = []
         if decision_point:
-            transitions = self.transition_creator.make_online_transitions(self.curr_decision_obs_transitions,
-                                                                          self.curr_decision_states)
+            transitions = self.transition_creator.make_online_transitions(
+                self.curr_decision_obs_transitions, self.curr_decision_states,
+            )
 
             # Only train on transitions where there weren't any alerts
             train_transitions = self.get_train_transitions(transitions, self.alert_info_list)
@@ -190,6 +191,8 @@ class AnytimeInteraction(BaseInteraction):
         self.prev_decision_point = True
         self.prev_steps_until_decision = self.steps_per_decision
         self.steps_until_decision = self.steps_per_decision - 1
+        if self.steps_until_decision == 0:
+            self.steps_until_decision = self.steps_per_decision
         self.curr_decision_states = [state]
 
         return state, info
