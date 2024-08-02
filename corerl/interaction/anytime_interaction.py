@@ -94,7 +94,6 @@ class AnytimeInteraction(BaseInteraction):
                                             decision_point=obs_transition.next_obs_dp,
                                             steps_until_decision=obs_transition.next_obs_steps_until_decision)
 
-        # if (self.only_dp_transitions and decision_point) or (not self.only_dp_transitions):
         self.curr_decision_obs_transitions.append(obs_transition)
         self.curr_decision_states.append(next_state)
 
@@ -116,7 +115,7 @@ class AnytimeInteraction(BaseInteraction):
 
         # Create transitions
         if decision_point:
-            transitions, alert_train_transitions, agent_train_transitions = self.transition_creator.make_decision_window_transitions(
+            transitions, alert_transitions, agent_transitions = self.transition_creator.make_decision_window_transitions(
                 self.curr_decision_obs_transitions,
                 self.curr_decision_states,
                 filter_with_alerts=True,
@@ -127,9 +126,9 @@ class AnytimeInteraction(BaseInteraction):
             self.alert_info_list = []
         else:
             # NOTE: these lists may sometimes be empty if we are not at a decision point
-            transitions, alert_train_transitions, agent_train_transitions = [], [], []
+            transitions, alert_transitions, agent_transitions = [], [], []
 
-        return transitions, agent_train_transitions, alert_train_transitions, alert_info, env_info
+        return transitions, agent_transitions, alert_transitions, alert_info, env_info
 
     def get_step_alerts(self, action, state, next_obs, reward) -> dict:
         """
