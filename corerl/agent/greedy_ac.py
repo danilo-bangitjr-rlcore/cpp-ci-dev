@@ -1,26 +1,23 @@
 from omegaconf import DictConfig
 from pathlib import Path
-
 from corerl.utils.hook import when
-
 import torch
-torch.autograd.set_detect_anomaly(True)
 import numpy
 import pickle as pkl
-
 from corerl.agent.base import BaseAC
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, state_to_tensor, ensemble_mse
+from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.component.exploration.factory import init_exploration_module
 from corerl.utils.device import device
 from corerl.data.data import TransitionBatch, Transition
 import corerl.agent.utils as utils
 import corerl.utils.freezer as fr
-
 from jaxtyping import Float
 from typing import Optional
+
+torch.autograd.set_detect_anomaly(True)
 
 
 class GreedyAC(BaseAC):
