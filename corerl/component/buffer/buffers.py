@@ -49,14 +49,7 @@ class UniformBuffer:
             )
 
         for i, elem in enumerate(experience):
-            try:
-                self.data[i][self.pos] = _to_tensor(elem)
-            except:
-                print(self.data[i][self.pos-2])
-                print(self.data[i][self.pos-1])
-                print(_to_tensor(elem))
-                assert False
-
+            self.data[i][self.pos] = _to_tensor(elem)
 
         self.pos += 1
         if not self.full and self.pos == self.memory:

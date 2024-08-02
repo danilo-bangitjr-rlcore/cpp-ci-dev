@@ -12,6 +12,8 @@ from corerl.interaction.anytime_interaction import AnytimeInteraction
 
 class AnytimeTransitionCreator(object):
     def __init__(self, cfg, alerts: CompositeAlert):
+        self.curr_decision_states = None
+        self.curr_decision_obs_transitions = None
         self.gamma = cfg.gamma  # gamma for the agent
         self.steps_per_decision = cfg.steps_per_decision
         self.n_step = cfg.n_step
@@ -21,6 +23,14 @@ class AnytimeTransitionCreator(object):
 
     def set_only_dp_transitions(self, only_dp_transitions: bool) -> None:
         self.only_dp_transitions = only_dp_transitions
+
+    def begin_new_window(self, initial_state: np.array) -> None:
+        self.curr_decision_obs_transitions = []
+        self.curr_decision_states = [initial_state]  # initialize this list with the first state that the agent sees
+
+    def add_obs_state(self, obs_transition: ObsTransition, state: np.ndarray) -> None:
+        self.curr_decision_states.append(state)
+        self.curr_decision_obs_transitions.append(obs_transition)
 
     def make_offline_trajectories(self,
                                   obs_transitions: list[ObsTransition],
@@ -227,8 +237,10 @@ class AnytimeTransitionCreator(object):
         else:
             agent_transitions = filtered_transitions
 
-        # typically we will use transitions for loggins, filtered_transitions for alerts, and agent_transitions for training
+        # typically we will use transitions for logging, filtered_transitions for alerts, and agent_transitions for training
         return transitions, filtered_transitions, agent_transitions
+
+
 
     def get_cumulants(self, reward: float, next_obs: np.ndarray) -> np.ndarray:
         """

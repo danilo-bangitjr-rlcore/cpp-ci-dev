@@ -91,6 +91,20 @@ class BaseCalibrationModel(ABC):
 
         return returns
 
+    def _get_reward(self, prev_action: np.ndarray, curr_action: np.ndarray, obs: np.ndarray) -> float:
+        reward_info = {}
+        if prev_action is None:
+            reward_info['prev_action'] = curr_action
+        else:
+            reward_info['prev_action'] = prev_action
+        reward_info['curr_action'] = curr_action
+
+        # NOTE: Not sure if this denormalizer should be here.
+        denormalized_obs = self.normalizer.obs_normalizer.denormalize(obs)
+        r = self.reward_func(denormalized_obs, **reward_info)
+        r_norm = self.normalizer.reward_normalizer(r)
+        return r_norm
+
     def _do_rollout(self,
                     traj_cm: Trajectory,
                     agent: Optional[BaseAgent] = None,
@@ -118,7 +132,8 @@ class BaseCalibrationModel(ABC):
         transitions_cm = traj_cm.transitions[start_idx:]
         sc_cm = deepcopy(traj_cm.scs[start_idx])  # state constructor for the model
         state_cm = transitions_cm[0].state  # initial state for the model
-        state_agent = None
+
+        state_agent = None  # the state for the agent is not used unless we pass in an agent
         sc_agent = None
         use_agent = False
 
@@ -147,14 +162,16 @@ class BaseCalibrationModel(ABC):
         action = transitions_cm[0].action  # the initial agent's action
         decision_point = transitions_cm[0].state_dp
 
+        # we need the following variables for constructing observation transitions
         prev_action = None
         prev_obs = transitions_cm[0].obs
         prev_steps_since_decision_point = steps_since_decision_point  # this will get incremented immediately
         prev_decision_point = decision_point
 
         if use_agent:
+            # these lists are used to construct transitions.
             curr_decision_obs_transitions = []
-            curr_decision_states = [state_agent]
+            curr_decision_states = [state_agent] # initialize this list with the first state that the agent sees
 
         for step in range(rollout_len):
             transition_step = transitions_cm[step]
@@ -166,19 +183,19 @@ class BaseCalibrationModel(ABC):
             action = self._get_action(action, transition_step, decision_point,
                                       use_agent=use_agent, agent=agent, state_agent=state_agent)
 
-            next_obs = transition_step.next_obs  # the true next observation
+            next_obs = transition_step.next_obs  # the TRUE next observation
             next_endo_obs = next_obs[self.endo_inds]  # the endogenous component of the true next observation
 
             kwargs = {}  # add kwargs to _get_next_endo_obs here
             predicted_next_endo_obs = self._get_next_endo_obs(state_cm, action, kwargs)
 
-            # log the loss
+            # log the loss. Note this loss is not meaning if we are using an agent
             loss_step = np.mean(np.abs(next_endo_obs - to_np(predicted_next_endo_obs)))
             losses.append(loss_step)
 
             # construct a fictitious observation using the predicted endogenous variables and the actual
             # exogenous variables
-            fictitious_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
+            fictitious_next_obs = utils.new_fictitious_obs(predicted_next_endo_obs, next_obs, self.endo_inds)
             # update the state constructors
             steps_until_decision_point -= 1
             steps_since_decision_point += 1
@@ -187,29 +204,17 @@ class BaseCalibrationModel(ABC):
             if decision_point:
                 steps_since_decision_point = 0
 
-            state_cm = sc_cm(fictitious_obs, action,
+            state_cm = sc_cm(fictitious_next_obs, action,
                              decision_point=decision_point,
                              steps_since_decision=steps_since_decision_point)
 
-            reward_info = {}
-            if prev_action is None:
-                reward_info['prev_action'] = action
-            else:
-                reward_info['prev_action'] = prev_action
-            reward_info['curr_action'] = action
-
-            # NOTE: Not sure if this denormalizer should be here.
-            denormalized_obs = self.normalizer.obs_normalizer.denormalize(fictitious_obs)
-            r = self.reward_func(denormalized_obs, **reward_info)
-            r_norm = self.normalizer.reward_normalizer(r)
-            g += (self.gamma ** step) * r_norm
+            r = self._get_reward(prev_action, action, fictitious_next_obs)
+            g += (self.gamma ** step) * r
 
             if use_agent:
-                state_agent = sc_agent(fictitious_obs, action,
+                state_agent = sc_agent(fictitious_next_obs, action,
                                        decision_point=decision_point,
                                        steps_since_decision=steps_since_decision_point)
-
-                curr_decision_states.append(state_agent)
 
                 obs_transition = ObsTransition(
                     prev_action,
@@ -217,18 +222,19 @@ class BaseCalibrationModel(ABC):
                     prev_steps_since_decision_point,  # I don't think this variable is actually used
                     prev_decision_point,
                     action,
-                    r_norm,
-                    fictitious_obs,
+                    r,
+                    fictitious_next_obs,
                     steps_since_decision_point,
                     decision_point,
                     False,  # termination false
                     False,  # truncation false
                     gap=False)  # assume no data gap
 
+                curr_decision_states.append(state_agent)
                 curr_decision_obs_transitions.append(obs_transition)
 
                 if decision_point:
-                    t, _, agent_transitions = self.transition_creator.make_decision_window_transitions(
+                    _, _, agent_transitions = self.transition_creator.make_decision_window_transitions(
                         curr_decision_obs_transitions, curr_decision_states)
 
                     curr_decision_obs_transitions = []
@@ -237,10 +243,10 @@ class BaseCalibrationModel(ABC):
                     for transition in agent_transitions:
                         agent.update_buffer(transition)
 
-                # agent.update()
+                agent.update()
 
             prev_action = action
-            prev_obs = fictitious_obs
+            prev_obs = fictitious_next_obs
             prev_steps_since_decision_point = steps_since_decision_point
             prev_decision_point = decision_point
 
