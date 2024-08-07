@@ -2,6 +2,7 @@ import hydra
 import numpy as np
 import torch
 import random
+import time
 
 from omegaconf import DictConfig
 
@@ -24,6 +25,7 @@ import main_utils as utils
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
 def main(cfg: DictConfig) -> dict:
+    run_start = time.time()
     save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
 
@@ -38,6 +40,7 @@ def main(cfg: DictConfig) -> dict:
 
     env = init_environment(cfg.env)
 
+    data_load_start = time.time()
     do_offline_training = cfg.experiment.offline_steps > 0
     # first, load the data and potentially update the bounds of the obs space of the environment
     # it's important this happens before we create the state constructor and interaction since normalization
@@ -86,7 +89,10 @@ def main(cfg: DictConfig) -> dict:
         dp_transitions = utils.get_dp_transitions(all_agent_transitions)
         split = train_test_split(dp_transitions, train_split=cfg.experiment.plot_split)
         plot_transitions = split[0][1]
+        data_load_end = time.time()
+        print("Data Loading Time:", data_load_end - data_load_start)
 
+        offline_start = time.time()
         offline_eval = utils.offline_training(cfg,
                                               env,
                                               agent,
@@ -94,8 +100,13 @@ def main(cfg: DictConfig) -> dict:
                                               plot_transitions,
                                               save_path,
                                               test_epochs)
+        offline_end = time.time()
+        print("Offline Training Time:", offline_end - offline_start)
 
+        alert_start = time.time()
         utils.offline_alert_training(cfg, composite_alert, alert_train_transitions)
+        alert_end = time.time()
+        print("Offline Alert Training Time:", alert_end - alert_start)
 
     if not (test_epochs is None):
         assert not (plot_transitions is None), "Must include test transitions if test_epochs is not None"
@@ -105,6 +116,7 @@ def main(cfg: DictConfig) -> dict:
                                    transitions=agent_test_transitions)
 
     if cfg.interaction.name == "offline_anytime":  # simulating online experience from an offline dataset
+        offline_anytime_start = time.time()
         online_eval = utils.offline_anytime_deployment(cfg,
                                                        agent,
                                                        interaction,
@@ -114,7 +126,9 @@ def main(cfg: DictConfig) -> dict:
                                                        save_path,
                                                        plot_transitions,
                                                        test_epochs)
-        online_eval.output(save_path / 'stats.json')
+        offline_anytime_end = time.time()
+        print("Offline Anytime Duration:", offline_anytime_end - offline_anytime_start)
+        #online_eval.output(save_path / 'stats.json')
     else:
         online_eval = utils.online_deployment(cfg,
                                               agent,
@@ -125,7 +139,7 @@ def main(cfg: DictConfig) -> dict:
                                               save_path,
                                               plot_transitions,
                                               test_epochs)
-        online_eval.output(save_path / 'stats.json')
+        #online_eval.output(save_path / 'stats.json')
 
     # need to update make_plots here
     stats = online_eval.get_stats()
@@ -134,6 +148,9 @@ def main(cfg: DictConfig) -> dict:
 
     agent.save(save_path / 'agent')
     agent.load(save_path / 'agent')
+
+    run_end = time.time()
+    print("Total Run Time:", run_end - run_start)
 
     # return stats
 

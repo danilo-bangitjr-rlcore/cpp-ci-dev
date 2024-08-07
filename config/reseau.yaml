@@ -15,14 +15,15 @@ offline_data:
   output_path : offline_data/reseau
 
 experiment :
-  exp_name : "Ensemble_Buffer_Steps_Until_Decision_Test"
-  max_steps : 10000
-  offline_steps : 10000
+  exp_name : "No_VMap_Test"
+  device : cpu
+  #max_steps : 10000
+  #offline_steps : 10000
   load_env_obs_space_from_data : True
   gamma : 0.95
   train_split : 0.995
   plot_split : 0.98
-  test_epochs : [0, 10, 100, 999, 1999, 4999, 9999, 19999]
+  test_epochs : [0, 10, 100, 999, 1999, 2999, 3999, 4999, 5999, 6999, 7999, 8999, 9999, 14999, 19999]
   offline_stat_keys : []
   online_stat_keys : []
 
@@ -33,6 +34,7 @@ env:
 interaction :
   obs_length : 60
   steps_per_decision : 30
+  only_dp_transitions : False
 
 normalizer:
   action_normalizer:
@@ -46,7 +48,7 @@ normalizer:
 agent:
   tau : 0
   rho : 0.04
-  num_samples: 500
+  #num_samples: 500
   uniform_proposal : True
   critic:
     polyak: 0.995
@@ -56,10 +58,14 @@ agent:
     critic_network:
       ensemble : 10
       reduct : min
+    buffer:
+      #batch_size : 512
   actor:
     actor_optimizer:
       lr : 0.001
-  buffer: ensemble_uniform
+    buffer:
+      #batch_size : 512
+  # buffer: ensemble_uniform
 
 
 data_loader:

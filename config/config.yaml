@@ -10,7 +10,7 @@ defaults:
 #  - alerts@alerts.action_value : action_value
 #  - alerts@alerts.gvf : gvf
 #  - eval@eval.ibe : ibe # this lets us have multiple subconfigs rooted at eval
-  - eval@eval.reward : reward
+#  - eval@eval.reward : reward
 #  - eval@eval.action_gap : action_gap
 #  - eval@eval.alerts : alerts
 #  - eval@eval.actions : actions

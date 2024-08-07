@@ -4,6 +4,7 @@ from corerl.utils.hook import when
 import torch
 import numpy
 import pickle as pkl
+import time
 from corerl.agent.base import BaseAC
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
@@ -100,7 +101,10 @@ class GreedyAC(BaseAC):
         # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
 
         q_values: Float[torch.Tensor, 'batch_size*num_samples 1']
+        get_q_start = time.time()
         q_values = self.q_critic.get_q([repeated_states], [sample_actions], with_grad=False)
+        get_q_end = time.time()
+        print("Sort Q Get Q Duration:", get_q_end - get_q_start)
         q_values: Float[torch.Tensor, 'batch_size num_samples 1']
         q_values = q_values.reshape(batch_size, self.num_samples, 1)
         sorted_q_inds: Float[torch.Tensor, 'batch_size num_samples 1']
@@ -426,16 +430,25 @@ class GreedyAC(BaseAC):
 
     def update(self) -> None:
         # share_batch ensures that update_actor and update_sampler use the same batch
+        update_start = time.time()
         if min(self.critic_buffer.size) > 0:
+            critic_start = time.time()
             self.update_critic()
+            critic_end = time.time()
+            print("Critic Update Duration:", critic_end - critic_start)
 
         if min(self.policy_buffer.size) > 0:
+            actor_start = time.time()
             update_infos = self.update_actor()
+            actor_end = time.time()
+            print("Actor Update Duration:", actor_end - actor_start)
             if not self.uniform_proposal:
                 if self.share_batch:
                     self.update_sampler(update_infos=update_infos)
                 else:
                     self.update_sampler(update_infos=None)
+        update_end = time.time()
+        print("Single Update Duration:", update_end - update_start)
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
