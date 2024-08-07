@@ -123,11 +123,6 @@ def main(cfg: DictConfig) -> dict:
                                                                    warmup,
                                                                    prefix='agent_rollout')
 
-    for i, t in enumerate(trajectories_to_transitions(rollout_trajectories_agent)):
-        if len(t.state) != 24:
-            print(i)
-            assert False
-
     train_info = {
         'normalizer': normalizer,
         'train_trajectories_cm': train_trajectories_cm,
