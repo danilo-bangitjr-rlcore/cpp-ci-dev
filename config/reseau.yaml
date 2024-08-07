@@ -58,12 +58,12 @@ agent:
     critic_network:
       ensemble : 10
       reduct : min
-    buffer:
+    #buffer:
       #batch_size : 512
   actor:
     actor_optimizer:
       lr : 0.001
-    buffer:
+    #buffer:
       #batch_size : 512
   # buffer: ensemble_uniform
 
