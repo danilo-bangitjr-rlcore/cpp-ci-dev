@@ -23,7 +23,7 @@ experiment :
   gamma : 0.95
   train_split : 0.995
   plot_split : 0.98
-  test_epochs : [0, 10, 100, 999, 1999, 2999, 3999, 4999, 5999, 6999, 7999, 8999, 9999, 14999, 19999]
+  test_epochs : [0, 10, 100, 999, 1999, 4999, 9999, 14999, 19999]
   offline_stat_keys : []
   online_stat_keys : []
 
