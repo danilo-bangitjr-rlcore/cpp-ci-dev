@@ -89,9 +89,6 @@ def main(cfg: DictConfig) -> dict:
     train_transitions = trajectories_to_transitions(train_trajectories_agent)
     plot_transitions = trajectories_to_transitions(test_trajectories_agent)
 
-    for t in train_transitions:
-        assert len(t.state) == 24
-
     # load trajectories for the model
     print("loading trajectories for the model")
     sc_cm = init_state_constructor(cfg.calibration_model.state_constructor, env)
