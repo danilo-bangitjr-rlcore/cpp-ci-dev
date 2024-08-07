@@ -2,6 +2,7 @@ import hydra
 import numpy as np
 import torch
 import random
+import pickle
 
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
@@ -84,6 +85,7 @@ def main(cfg: DictConfig) -> dict:
                                                                                        transition_creator,
                                                                                        warmup,
                                                                                        prefix='agent_train')
+
     train_transitions = trajectories_to_transitions(train_trajectories_agent)
     plot_transitions = trajectories_to_transitions(test_trajectories_agent)
 
@@ -91,8 +93,9 @@ def main(cfg: DictConfig) -> dict:
     print("loading trajectories for the model")
     sc_cm = init_state_constructor(cfg.calibration_model.state_constructor, env)
 
-    OmegaConf.update(cfg, "interaction.only_dp_transitions", False)
+    # the models need all transitions, not just DP transitions
     transition_creator.set_only_dp_transitions(False)
+    OmegaConf.update(cfg, "interaction.only_dp_transitions", False)
     cm_hash_cfgs = [cfg.data_loader, cfg.calibration_model.state_constructor, cfg.interaction]
 
     # load the transition
@@ -123,7 +126,11 @@ def main(cfg: DictConfig) -> dict:
         'test_trajectories_cm': test_trajectories_cm,
         'train_transitions_cm': trajectories_to_transitions(train_trajectories_cm),
         'test_transitions_cm': trajectories_to_transitions(test_trajectories_cm),
+        'transition_creator': transition_creator
     }
+
+    # reset the transition creator to use whether the interactions settings are for dp transitions
+    transition_creator.set_only_dp_transitions(cfg.interaction.only_dp_transitions)
 
     reward_func = init_reward_function(cfg.env.reward)
     train_info["reward_func"] = reward_func
@@ -132,7 +139,10 @@ def main(cfg: DictConfig) -> dict:
     cm.train()
 
     print("Doing test rollouts...")
-    cm.do_test_rollouts(save_path / 'test_rollouts')
+    losses = cm.do_test_rollouts(save_path / 'test_rollouts')
+
+    with open(save_path / 'test_rollout_losses.pkl', 'wb') as f:
+        pickle.dump(losses, f)
 
     # perform offline training on agent
     test_epochs = cfg.experiment.test_epochs
@@ -155,6 +165,7 @@ def main(cfg: DictConfig) -> dict:
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
     cm_eval_freq = cfg.experiment.cm_eval_freq
+    all_returns = []
     for i in pbar:
         agent.update()
         offline_eval.do_eval(**offline_eval_args)  # run all evaluators
@@ -170,6 +181,11 @@ def main(cfg: DictConfig) -> dict:
                                            plot_save_path=save_path / 'agent_rollouts' / str(i))
 
             print(f"Mean return post-training at iteration {i}: {np.mean(returns)}")
+            all_returns.append(returns)
+            print(len(returns))
+
+    with open(save_path / 'returns.pkl', 'wb') as f:
+        pickle.dump(all_returns, f)
 
 
 if __name__ == "__main__":

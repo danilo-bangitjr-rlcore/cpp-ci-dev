@@ -23,4 +23,6 @@ SQLAlchemy-Utils==0.41.2
 sympy==1.12
 torch==2.2.1
 tqdm==4.66.2
+sqlalchemy==2.0.31
+sqlalchemy_utils==0.41.2
 git+ssh://git@github.com/rlcoretech/linesearchopt.git#egg=linesearchopt
