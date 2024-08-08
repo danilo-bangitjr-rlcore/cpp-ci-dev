@@ -5,7 +5,7 @@ defaults:
   - override data_loader: direct_action
   - override interaction: offline_anytime
   - override calibration_model : knn
-  - override state_constructor: anytime_multi_trace # reseau_anytime
+  - override state_constructor: reseau_anytime
   - _self_
 
 # values may be overridden outside of the defaults list
@@ -16,8 +16,8 @@ offline_data:
 
 experiment :
   exp_name : "cm_reseau"
-  max_steps : 20
-  offline_steps : 100 #20000
+  max_steps : 0
+  offline_steps : 5000 #20000
   load_env_obs_space_from_data : True
   gamma : 0.95
   train_split : 0.995
