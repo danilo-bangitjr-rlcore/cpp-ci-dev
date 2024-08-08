@@ -63,7 +63,7 @@ def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[list[Cal
     for i in range(len(runs)):
         for seed in seeds:
             seed_run = runs[i].copy()
-            seed_run['seed'] = seed
+            seed_run['experiment.seed'] = seed
             seed_run['experiment.param'] = i
             runs_with_seeds.append(seed_run)
 

@@ -27,15 +27,18 @@ class EnsembleQCritic(BaseQ):
             list(self.model.parameters(independent=True)),
             ensemble=True,
         )
+
+        self.optimizer_name = cfg.critic_optimizer.name
+
         self.polyak = cfg.polyak
         self.target_sync_freq = cfg.target_sync_freq
         self.target_sync_counter = 0
 
     def get_qs(
-        self,
-        states: list[torch.Tensor],
-        actions: list[torch.Tensor],
-        with_grad: bool = False,
+            self,
+            states: list[torch.Tensor],
+            actions: list[torch.Tensor],
+            with_grad: bool = False,
     ) -> (torch.Tensor, torch.Tensor):
 
         state_actions = [torch.concat((states[i], actions[i]), dim=1) for i in range(len(states))]
@@ -47,29 +50,29 @@ class EnsembleQCritic(BaseQ):
         return q, qs
 
     def get_q(
-        self,
-        states: list[torch.Tensor],
-        actions: list[torch.Tensor],
-        with_grad: bool = False,
+            self,
+            states: list[torch.Tensor],
+            actions: list[torch.Tensor],
+            with_grad: bool = False,
     ) -> torch.Tensor:
         q, qs = self.get_qs(states, actions, with_grad=with_grad)
         return q
 
     def get_qs_target(
-        self, states: list[torch.Tensor], actions: list[torch.Tensor],
+            self, states: list[torch.Tensor], actions: list[torch.Tensor],
     ) -> (torch.Tensor, torch.Tensor):
         state_actions = [torch.concat((states[i], actions[i]), dim=1) for i in range(len(states))]
         with torch.no_grad():
             return self.target(state_actions)
 
     def get_q_target(
-        self, states: list[torch.Tensor], actions: list[torch.Tensor],
+            self, states: list[torch.Tensor], actions: list[torch.Tensor],
     ) -> torch.Tensor:
         q, qs = self.get_qs_target(states, actions)
         return q
 
     def update(
-        self, loss: torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
+            self, loss: torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
     ) -> None:
         self.optimizer.zero_grad()
 
@@ -78,7 +81,10 @@ class EnsembleQCritic(BaseQ):
         else:
             loss.backward()
 
-        self.optimizer.step(*opt_args, **opt_kwargs)
+        if self.optimizer_name != 'lso':
+            self.optimizer.step()
+        else:
+            self.optimizer.step(*opt_args, **opt_kwargs)
 
         if self.target_sync_counter % self.target_sync_freq == 0:
             self.sync_target()
@@ -96,7 +102,7 @@ class EnsembleQCritic(BaseQ):
     def sync_target(self) -> None:
         with torch.no_grad():
             for p, p_targ in zip(
-                self.model.parameters(), self.target.parameters(),
+                    self.model.parameters(), self.target.parameters(),
             ):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
@@ -147,7 +153,7 @@ class EnsembleVCritic(BaseV):
         self.target_sync_counter = 0
 
     def get_vs(
-        self, states: list[torch.Tensor], with_grad: bool = False,
+            self, states: list[torch.Tensor], with_grad: bool = False,
     ) -> (torch.Tensor, torch.Tensor):
         if with_grad:
             v, vs = self.model(states)
@@ -164,13 +170,13 @@ class EnsembleVCritic(BaseV):
         return
 
     def get_v(
-        self, states: list[torch.Tensor], with_grad: bool = False,
+            self, states: list[torch.Tensor], with_grad: bool = False,
     ) -> torch.Tensor:
         v, vs = self.get_vs(states, with_grad=with_grad)
         return v
 
     def get_vs_target(
-        self, states: list[torch.Tensor],
+            self, states: list[torch.Tensor],
     ) -> (torch.Tensor, torch.Tensor):
         with torch.no_grad():
             return self.target(states)
@@ -192,7 +198,7 @@ class EnsembleVCritic(BaseV):
     def sync_target(self) -> None:
         with torch.no_grad():
             for p, p_targ in zip(
-                self.model.parameters(), self.target.parameters(),
+                    self.model.parameters(), self.target.parameters(),
             ):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
@@ -239,9 +245,9 @@ class EnsembleQCriticLineSearch(EnsembleQCritic):
         )
 
     def set_parameters(
-        self,
-        buffer_address: int,
-        eval_error_fn: Optional['Callable'] = None,
+            self,
+            buffer_address: int,
+            eval_error_fn: Optional['Callable'] = None,
     ) -> None:
         self.optimizer.set_params(
             buffer_address, [self.model_copy], eval_error_fn, ensemble=True,
@@ -263,7 +269,7 @@ class EnsembleVCriticLineSearch(EnsembleVCritic):
         )
 
     def set_parameters(
-        self, buffer_address: int, eval_error_fn: Optional['Callable'] = None,
+            self, buffer_address: int, eval_error_fn: Optional['Callable'] = None,
     ) -> None:
         self.optimizer.set_params(
             buffer_address, [self.model_copy], eval_error_fn, ensemble=True,
