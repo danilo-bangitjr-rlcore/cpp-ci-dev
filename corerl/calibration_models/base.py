@@ -29,6 +29,7 @@ class BaseCalibrationModel(ABC):
         self.steps_per_decision = cfg.steps_per_decision
         self.num_test_rollouts = cfg.num_test_rollouts
         self.gamma = cfg.gamma
+        self.allow_learning = cfg.allow_learning
 
     @abstractmethod
     def train(self):
@@ -255,16 +256,18 @@ class BaseCalibrationModel(ABC):
 
     def _make_transitions_and_update(self, agent, decision_point, curr_decision_obs_transitions, curr_decision_states):
         if decision_point:
-            _, _, agent_transitions = self.transition_creator.make_decision_window_transitions(
-                curr_decision_obs_transitions, curr_decision_states)
+            if self.allow_learning:
+                _, _, agent_transitions = self.transition_creator.make_decision_window_transitions(
+                    curr_decision_obs_transitions, curr_decision_states)
 
-            for transition in agent_transitions:
-                agent.update_buffer(transition)
+                for transition in agent_transitions:
+                    agent.update_buffer(transition)
 
             curr_decision_obs_transitions = []
             curr_decision_states = [curr_decision_states[-1]]
 
-        agent.update()
+        if self.allow_learning:
+            agent.update()
 
         return curr_decision_obs_transitions, curr_decision_states
 

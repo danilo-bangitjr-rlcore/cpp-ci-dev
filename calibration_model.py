@@ -182,7 +182,6 @@ def main(cfg: DictConfig) -> dict:
 
             print(f"Mean return post-training at iteration {i}: {np.mean(returns)}")
             all_returns.append(returns)
-            print(len(returns))
 
     with open(save_path / 'returns.pkl', 'wb') as f:
         pickle.dump(all_returns, f)
