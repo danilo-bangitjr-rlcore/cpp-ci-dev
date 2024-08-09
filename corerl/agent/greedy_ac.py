@@ -12,8 +12,6 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.component.exploration.factory import init_exploration_module
 from corerl.utils.device import device
-print("Greedy AC Import Device:")
-print(device.device)
 from corerl.data.data import TransitionBatch, Transition
 import corerl.agent.utils as utils
 import corerl.utils.freezer as fr
@@ -26,7 +24,6 @@ torch.autograd.set_detect_anomaly(True)
 class GreedyAC(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
-        print("Begin GreedyAC Init Device:", device.device)
         self.ensemble_targets = cfg.ensemble_targets
 
         self.action_dim = action_dim
@@ -70,11 +67,9 @@ class GreedyAC(BaseAC):
 
         args, _ = self._hooks(when.Agent.BeforeGetAction, self, tensor_state)
         tensor_state = args[1]
-        print("Get Action Tensor State Device:", tensor_state.device)
         tensor_action, action_info = self.actor.get_action(
             tensor_state, with_grad=False,
         )
-        print("Get Action Tensor Action Device:", tensor_state.device)
 
         args, _ = self._hooks(
             when.Agent.AfterGetAction, self, tensor_state, tensor_action,
@@ -110,13 +105,10 @@ class GreedyAC(BaseAC):
         q_values = self.q_critic.get_q([repeated_states], [sample_actions], with_grad=False)
         get_q_end = time.time()
         print("Sort Q Get Q Duration:", get_q_end - get_q_start)
-        print("Sort Q Q-Values Device:", q_values.device)
         q_values: Float[torch.Tensor, 'batch_size num_samples 1']
         q_values = q_values.reshape(batch_size, self.num_samples, 1)
-        print("Sort Q Reshaped Q-Values Device:", q_values.device)
         sorted_q_inds: Float[torch.Tensor, 'batch_size num_samples 1']
         sorted_q_inds = torch.argsort(q_values, dim=1, descending=True)
-        print("Sort Q Sorted Q-Inds Device:", sorted_q_inds.device)
         return sorted_q_inds
 
     def get_policy_update_info(self, state_batch: Float[torch.Tensor, 'batch_size state_dim']) -> (
@@ -127,13 +119,10 @@ class GreedyAC(BaseAC):
             Float[torch.Tensor, 'batch_size*top_actions state_dim'],
             Float[torch.Tensor, 'batch_size*num_samples action_dim'],
             int):
-        print("Policy Update Info State Batch Device:", state_batch.device)
-
         batch_size = state_batch.shape[0]
         # recall that if self.sample_all_discrete_actions then self.num_samples = self.action_dim
         repeated_states: Float[torch.Tensor, 'batch_size*num_samples state_dim']
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
-        print("Policy Update Info Repeated States Device:", repeated_states.device)
 
         if self.sample_all_discrete_actions:  # if discrete control AND we are sampling all actions
             sample_actions: Float[torch.Tensor, 'batch_size*action_dim action_dim']
@@ -150,8 +139,6 @@ class GreedyAC(BaseAC):
                 sample_actions: Float[torch.Tensor, 'batch_size*action_dim action_dim']
                 sample_actions, _ = self.sampler.get_action(repeated_states, with_grad=False)
 
-        print("Policy Update Info Sample Actions Device:", sample_actions.device)
-
         sorted_q_inds: Float[torch.Tensor, 'batch_size num_samples']
         sorted_q_inds = self.sort_q_value(repeated_states, sample_actions, batch_size)
 
@@ -161,22 +148,17 @@ class GreedyAC(BaseAC):
         best_ind: Float[torch.Tensor, 'batch_size top_actions action_dim']
         best_ind = best_ind.repeat_interleave(self.action_dim, -1)
 
-        print("Policy Update Info Best Ind Device:", best_ind.device)
-
         # recall that if self.sample_all_discrete_actions then self.num_samples = self.action_dim
         sample_actions: Float[torch.Tensor, 'batch_size num_samples action_dim']
         sample_actions = sample_actions.reshape(batch_size, self.num_samples, self.action_dim)
         best_actions = torch.gather(sample_actions, dim=1, index=best_ind)
-        print("Policy Update Info Best Actions Device:", best_actions.device)
 
         # Reshape samples for calculating the loss
         stacked_s_batch: Float[torch.Tensor, 'batch_size*top_actions state_dim']
         stacked_s_batch = state_batch.repeat_interleave(self.top_actions, dim=0)
-        print("Policy Update Info Stacked S Batch Device:", stacked_s_batch.device)
 
         best_actions: Float[torch.Tensor, 'batch_size*num_samples action_dim']
         best_actions = torch.reshape(best_actions, (-1, self.action_dim))
-        print("Policy Update Info Best Actions Device:", best_actions.device)
 
         return state_batch, repeated_states, sample_actions, sorted_q_inds, stacked_s_batch, best_actions, batch_size
 
@@ -199,25 +181,14 @@ class GreedyAC(BaseAC):
             gamma_exp_batch = batch.gamma_exponent
             dp_mask = batch.boot_state_dp
 
-            print("Critic Loss State Batch Device:", state_batch.device)
-            print("Critic Loss Action Batch Device:", action_batch.device)
-            print("Critic Loss Reward Batch Device:", reward_batch.device)
-            print("Critic Loss Next State Batch Device:", next_state_batch.device)
-            print("Critic Loss Mask Batch Device:", mask_batch.device)
-            print("Critic Loss Gamma Exp Batch Device:", gamma_exp_batch.device)
-            print("Critic Loss DP Mask Batch Device:", dp_mask.device)
-
             next_action_start = time.time()
             next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
             next_action_end = time.time()
             print("Critic Loss Next Action Duration:", next_action_end - next_action_start)
-            print("Critic Loss Initial Next Actions Device:", next_actions.device)
             # For the 'Anytime' paradigm, only states at decision points can sample next_actions
             # If a state isn't at a decision point, its next_action is set to the current action
             with torch.no_grad():
                 next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
-
-            print("Critic Loss Final Next Actions Device:", next_actions.device)
 
             # Option 1: Using the reduction of the ensemble in the update target
             if not self.ensemble_targets:
@@ -225,7 +196,6 @@ class GreedyAC(BaseAC):
                 next_q = self.q_critic.get_q_target([next_state_batch], [next_actions])
                 option_1_end = time.time()
                 print("Critic Loss Option 1 Next Q Duration:", option_1_end - option_1_start)
-                print("Critic Loss Option 1 Next Q Device:", next_q.device)
                 next_qs.append(next_q)
 
             state_batches.append(state_batch)
@@ -242,7 +212,6 @@ class GreedyAC(BaseAC):
             _, next_qs = self.q_critic.get_qs_target(next_state_batches, next_action_batches)
             option_2_end = time.time()
             print("Critic Loss Option 2 Next Qs Duration:", option_2_end - option_2_start)
-            print("Critic Loss Option 2 Next Qs Device:", next_qs.device)
         else:
             option_1_start = time.time()
             for i in range(ensemble):
@@ -250,20 +219,17 @@ class GreedyAC(BaseAC):
             next_qs = torch.cat(next_qs, dim=0)
             option_1_end = time.time()
             print("Critic Loss Option 1 Next Qs Duration:", option_1_end - option_1_start)
-            print("Critic Loss Option 1 Next Qs Device:", next_qs.device)
 
         qs_start = time.time()
         _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
         qs_end = time.time()
         print("Critic Loss Qs Duration:", qs_end - qs_start)
-        print("Critic Loss Qs Device:", qs.device)
         losses = []
         mse_start = time.time()
         for i in range(ensemble):
             # N-Step SARSA update with variable 'N', thus 'reward_batch' is an n_step reward
             # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
             target = reward_batches[i] + mask_batches[i] * (self.gamma ** gamma_exp_batches[i]) * next_qs[i]
-            print("Critic Loss Target Device:", target.device)
 
             args, _ = self._hooks(
               when.Agent.BeforeCriticLossComputed, self, ensemble_batch[i], target, qs[i], i
@@ -272,7 +238,6 @@ class GreedyAC(BaseAC):
             #ensemble_batch[i], target, qs[i], _ = args[1:]
 
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
-            print("Critic Loss Current Loss Device:", losses[-1].device)
         mse_end = time.time()
         print("Critic Loss MSE Duration:", mse_end - mse_start)
 
@@ -318,9 +283,7 @@ class GreedyAC(BaseAC):
     def compute_actor_loss(self, update_info) -> (torch.Tensor, tuple):
         _, _, _, _, stacked_s_batch, best_actions, _ = update_info
         logp, _ = self.actor.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
-        print("Actor Loss LogP Device:", logp.device)
         actor_loss = -logp.mean()  # BUG: This is negative?
-        print("Actor Loss Device:", actor_loss.device)
         return actor_loss
 
     def compute_sampler_loss(self, update_info) -> (torch.Tensor, torch.Tensor):
@@ -347,7 +310,6 @@ class GreedyAC(BaseAC):
             q_loss = closure()
             loss_end = time.time()
             print("Critic Loss Duration:", loss_end - loss_start)
-            print("Critic Loss Device:", q_loss.device)
 
             args, _ = self._hooks(
                 when.Agent.AfterCriticLossComputed, self, batches, q_loss,

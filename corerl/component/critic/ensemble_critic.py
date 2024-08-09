@@ -14,7 +14,6 @@ from corerl.utils.device import device
 
 class EnsembleQCritic(BaseQ):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, output_dim: int = 1):
-        print("Begin EnsembleQCritic Init Device:", device.device)
         state_action_dim = state_dim + action_dim
         self.model = init_critic_network(
             cfg.critic_network, input_dim=state_action_dim, output_dim=output_dim,

@@ -90,28 +90,13 @@ class FC(nn.Module):
         last_fc = layer_init(nn.Linear(d, output_dim, bias=cfg.bias))
         modules.append(last_fc)
 
-        print("FC Init Device:", device.device)
-
         self.network = nn.Sequential(*modules).to(device.device)
         self.head_act = utils.init_activation(head_activation)()
         self.to(device.device)
 
-        print("FC self.network Params After .to(device.device) in Init")
-        for param in self.network.parameters():
-            print("FC self.network Param:", param.data.device)
-            #print(param)
-
     def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
-        print("FC forward input_tensor device:", input_tensor.device)
-        print("FC self.network Params Beginning of forward()")
-        for param in self.network.parameters():
-            print("FC self.network Param:", param.data.device)
-            #print(param)
-        
         out = self.network(input_tensor).to(device.device)
-        print("FC Out1 Device:", out.device)
         out = self.head_act(out)
-        print("FC Out2 Device:", out.device)
         return out
 
 
@@ -178,13 +163,9 @@ class EnsembleCritic(nn.Module):
             qs = [net(input_tensor) for net in self.subnetworks]
         
         for i in range(self.ensemble):
-            print("EnsembleCritic Qs {} Device:".format(i), qs[i].device)
             qs[i] = torch.unsqueeze(qs[i], 0)
-            print("EnsembleCritic Qs {} Unsqueeze Device:".format(i), qs[i].device)
         qs = torch.cat(qs, dim=0)
         q = self._reduct(qs, dim=0)
-        print("EnsembleCritic Qs Device:", qs.device)
-        print("EnsembleCritic Q Device:", q.device)
 
         return q, qs
 
@@ -314,7 +295,6 @@ class BetaPolicy(nn.Module):
         self.beta_param_bias = torch.tensor(beta_param_bias)
         self.beta_param_bound = torch.tensor(beta_param_bound)
         self.tanh_shift = cfg.tanh_shift
-        print("Beta Policy Device:", device.device)
         self.to(device.device)
 
     def distribution_bounds(self):
@@ -334,38 +314,25 @@ class BetaPolicy(nn.Module):
     def get_dist_params(
             self, state: torch.Tensor,
     ) -> (torch.Tensor, torch.Tensor):
-        print("BetaPolicy Get Dist Params State Device:", state.device)
         if self.beta_param_bound == 0:
             """ Not using the squash function"""
             base = self.base_network(state)
-            print("BetaPolicy Get Dist Params Base Device:", base.device)
             alpha = self.head_activation_fn(self.alpha_head(base)) + EPSILON
-            print("BetaPolicy Get Dist Params Alpha Initial Device:", alpha.device)
             beta = self.head_activation_fn(self.beta_head(base)) + EPSILON
-            print("BetaPolicy Get Dist Params Beta Initial Device:", beta.device)
             alpha += self.beta_param_bias
-            print("BetaPolicy Get Dist Params Alpha Final Device:", alpha.device)
             beta += self.beta_param_bias
-            print("BetaPolicy Get Dist Params Beta Final Device:", beta.device)
         else:
             base = self.base_network(state)
-            print("BetaPolicy Get Dist Params Base Device:", base.device)
             alpha_head_out = self.alpha_head(base)
-            print("BetaPolicy Get Dist Params Alpha Head Out Device:", alpha_head_out.device)
             beta_head_out = self.beta_head(base)
-            print("BetaPolicy Get Dist Params Beta Head Out Device:", beta_head_out.device)
             low = self.beta_param_bias
             high = self.beta_param_bound
             alpha = self.squash_dist_param(alpha_head_out, low, high)
-            print("BetaPolicy Get Dist Params Alpha Final Device:", alpha.device)
             beta = self.squash_dist_param(beta_head_out, low, high)
-            print("BetaPolicy Get Dist Params Beta Final Device:", beta.device)
         return alpha, beta
 
     def forward(self, state: torch.Tensor) -> (torch.Tensor, dict):
         alpha, beta = self.get_dist_params(state)
-        print("Beta Forward Alpha Device:", alpha.device)
-        print("Beta Forward Beta Device:", beta.device)
         dist = distrib.Beta(alpha, beta)
 
         dist = distrib.Independent(dist, 1)
@@ -375,7 +342,6 @@ class BetaPolicy(nn.Module):
             torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS),
         )
         logp = logp.view((logp.shape[0], 1))
-        print("Beta Forward LogP Device:", logp.device)
         action = out
 
         # see https://en.wikipedia.org/wiki/Beta_distribution
@@ -389,8 +355,6 @@ class BetaPolicy(nn.Module):
             "param1": alpha,
             "param2": beta,
         }
-
-        print("Beta Forward Action Device:", action.device)
 
         return action, info
 
@@ -408,7 +372,6 @@ class BetaPolicy(nn.Module):
             torch.clamp(out, 0 + FLOAT32_EPS, 1 - FLOAT32_EPS),
         )
         logp = logp.view(-1, 1)
-        print("Beta Log Prob LogP Device:", logp.device)
         return logp, {}
 
 

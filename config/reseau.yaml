@@ -17,8 +17,8 @@ offline_data:
 experiment :
   exp_name : "No_VMap_Test"
   device : cpu
-  #max_steps : 10000
-  #offline_steps : 10000
+  max_steps : 10000
+  offline_steps : 10000
   load_env_obs_space_from_data : True
   gamma : 0.95
   train_split : 0.995
@@ -48,7 +48,7 @@ normalizer:
 agent:
   tau : 0
   rho : 0.04
-  #num_samples: 500
+  num_samples: 500
   uniform_proposal : True
   critic:
     polyak: 0.995
@@ -58,13 +58,13 @@ agent:
     critic_network:
       ensemble : 10
       reduct : min
-    #buffer:
-      #batch_size : 512
+    buffer:
+      batch_size : 512
   actor:
     actor_optimizer:
       lr : 0.001
-    #buffer:
-      #batch_size : 512
+    buffer:
+      batch_size : 512
   # buffer: ensemble_uniform
 
 

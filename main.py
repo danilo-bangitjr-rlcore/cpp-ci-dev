@@ -6,44 +6,30 @@ import time
 
 from omegaconf import DictConfig
 
-print("Import Device")
 from corerl.utils.device import device
-print("Import Init Agent")
 from corerl.agent.factory import init_agent
-print("Import Init Environment")
 from corerl.environment.factory import init_environment
-print("Import Init State Constructor")
 from corerl.state_constructor.factory import init_state_constructor
-print("Import Init Alert")
 from corerl.alerts.composite_alert import CompositeAlert
-print("Import Init Interaction")
 from corerl.interaction.factory import init_interaction
-print("Import Init Data Loader")
 from corerl.data_loaders.factory import init_data_loader
-print("Import Init Transition Creator")
 from corerl.data.transition_creator import AnytimeTransitionCreator
-print("Import Init ObsTransitionNormalizer")
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
-print("Import Init TransitionNormalizer")
 from corerl.data.transition_normalizer import TransitionNormalizer
-print("Import Init Train Test Split")
 from corerl.data_loaders.utils import train_test_split
-print("Import Init Make Plots")
 from corerl.utils.plotting import make_plots
 
 import corerl.utils.freezer as fr
 import main_utils as utils
-print("End of main imports")
+
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
 def main(cfg: DictConfig) -> dict:
-    print("Start Main")
     run_start = time.time()
     save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
 
     test_epochs = cfg.experiment.test_epochs
-    print("cfg.experiment.device:", cfg.experiment.device)
     device.update_device(cfg.experiment.device)
 
     # set the random seeds

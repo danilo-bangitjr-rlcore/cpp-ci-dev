@@ -11,7 +11,6 @@ from corerl.utils.device import device
 
 class NetworkActor(BaseActor):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, initializer: Optional['NetworkActor'] = None):
-        print("Begin NetworkActor Init Device:", device.device)
         self.model = init_actor_network(cfg.actor_network, state_dim, action_dim)
         if initializer:
             self.model.load_state_dict(initializer.model.state_dict())
@@ -32,7 +31,6 @@ class NetworkActor(BaseActor):
             self.optimizer.step(*opt_args, **opt_kwargs)
 
     def get_action(self, state: torch.Tensor, with_grad=False) -> (torch.Tensor, dict):
-        print("NetworkActor Get Action State Device:", state.device)
         if with_grad:
             return self.model.forward(state)
         else:
