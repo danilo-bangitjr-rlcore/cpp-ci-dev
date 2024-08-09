@@ -12,7 +12,7 @@ SWEEP_PARAMS = {
     'normalizer.reward_normalizer.reward_high': [4.0],
     'normalizer.reward_normalizer.reward_low': [-9.0],
     'normalizer.reward_normalizer.reward_bias': [4.0],
-    'experiment.device': ["cpu", "cuda"],
+    'experiment.device': ["cpu", "cuda:0"],
     'agent.tau': [0.0],
     'agent.rho': [0.04],
     'agent.num_samples': [128, 256, 512],

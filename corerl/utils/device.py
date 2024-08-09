@@ -3,6 +3,8 @@ import torch
 class Device:
     def __init__(self):
         self.device = torch.device('cpu')
+        print("Device Init Device:")
+        print(self.device)
 
     def update_device(self, device_name=None):
         print("device_name:", device_name)
@@ -14,4 +16,5 @@ class Device:
         print("update_device device:")
         print(self.device)
 
+print("Create Device Global")
 device = Device()
