@@ -224,12 +224,14 @@ class ErrorIntegral(BaseStateConstructorComponent):
 
 
 class AnytimeCountDown(BaseStateConstructorComponent):
-    def __init__(self, steps_per_decision: int, parents: list | None = None):
+    def __init__(self, steps_per_decision: int, parents: list | None = None, use_indicator: bool = True):
         super().__init__(parents=parents)
         self.steps_per_decision = steps_per_decision
         self.steps_until_decision = self.steps_per_decision
+        self.use_indicator = use_indicator
 
-    def process_observation(self, obs_parents: list, decision_point=False, steps_until_decision=-1, **kwargs) -> np.ndarray:
+    def process_observation(self, obs_parents: list, decision_point=False, steps_until_decision=-1,
+                            **kwargs) -> np.ndarray:
         if steps_until_decision >= 0:
             self.steps_until_decision = steps_until_decision
         elif decision_point:
@@ -240,19 +242,24 @@ class AnytimeCountDown(BaseStateConstructorComponent):
         indicator = 1 if decision_point else 0
         countdown = self.steps_until_decision / self.steps_per_decision
         assert 1 >= countdown >= 0, 'countdown must be between 0 and 1'
-        return np.array([indicator, countdown])
+        if self.use_indicator:
+            return np.array([indicator, countdown])
+        else:
+            return np.array([countdown])
 
     def _clear_state(self) -> None:
         self.steps_until_decision = self.steps_per_decision
 
 
 class AnytimeOneHot(BaseStateConstructorComponent):
-    def __init__(self, steps_per_decision: int, parents: list | None = None):
+    def __init__(self, steps_per_decision: int, parents: list | None = None, use_indicator: bool = True):
         super().__init__(parents=parents)
         self.steps_per_decision = steps_per_decision
         self.steps_until_decision = self.steps_per_decision
+        self.use_indicator = use_indicator
 
-    def process_observation(self, obs_parents: list, decision_point=False, steps_until_decision=-1, get_state_dim=False, **kwargs) -> np.ndarray:
+    def process_observation(self, obs_parents: list, decision_point=False, steps_until_decision=-1, get_state_dim=False,
+                            **kwargs) -> np.ndarray:
         if steps_until_decision >= 0:
             self.steps_until_decision = steps_until_decision
         elif decision_point:
@@ -264,7 +271,41 @@ class AnytimeOneHot(BaseStateConstructorComponent):
         one_hot[self.steps_until_decision - 1] = 1
         decision_point = self.steps_until_decision == self.steps_per_decision
         indicator = 1 if decision_point else 0
-        return np.array([indicator] + one_hot)
+        if self.use_indicator:
+            return np.array([indicator] + one_hot)
+        else:
+            return np.array(one_hot)
+
+    def _clear_state(self) -> None:
+        self.steps_until_decision = self.steps_per_decision
+
+
+class AnytimeThermometer(BaseStateConstructorComponent):
+    def __init__(self, steps_per_decision: int, parents: list | None = None, use_indicator: bool = True):
+        super().__init__(parents=parents)
+        self.steps_per_decision = steps_per_decision
+        self.steps_until_decision = self.steps_per_decision
+        self.use_indicator = use_indicator
+
+    def process_observation(self, obs_parents: list, decision_point=False, steps_until_decision=-1,
+                            get_state_dim=False, **kwargs) -> np.ndarray:
+        if steps_until_decision >= 0:
+            self.steps_until_decision = steps_until_decision
+        elif decision_point:
+            self.steps_until_decision = self.steps_per_decision
+        else:
+            self.steps_until_decision -= 1
+
+        one_hot = [0 for _ in range(self.steps_per_decision)]
+        for i in range(self.steps_until_decision):
+            one_hot[i] = 1
+
+        decision_point = self.steps_until_decision == self.steps_per_decision
+        indicator = 1 if decision_point else 0
+        if self.use_indicator:
+            return np.array([indicator] + one_hot)
+        else:
+            return np.array(one_hot)
 
     def _clear_state(self) -> None:
         self.steps_until_decision = self.steps_per_decision

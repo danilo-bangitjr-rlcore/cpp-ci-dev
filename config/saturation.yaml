@@ -5,13 +5,17 @@ defaults:
   - override data_loader: direct_action
   - override interaction: anytime
   - override calibration_model : one_step
-  - override state_constructor: multi_trace
+  - override state_constructor: anytime_multi_trace
   - override hydra/launcher: joblib
   - _self_
 
 offline_data:
   load_from : transition
   output_path : offline_data/saturation
+
+state_constructor:
+  use_indicator : True
+  representation : thermometer
 
 experiment :
   exp_name : "delayed_saturation_debug"

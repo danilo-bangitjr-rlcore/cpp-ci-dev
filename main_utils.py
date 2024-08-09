@@ -391,6 +391,11 @@ def online_deployment(cfg: DictConfig,
     for j in pbar:
         transitions, agent_train_transitions, alert_train_transitions, alert_info, env_info = interaction.step(action)
 
+        # for t in agent_train_transitions:
+        #     print(t)
+        # if len(agent_train_transitions):
+        #     assert False
+
         for transition in agent_train_transitions:
             agent.update_buffer(transition)
 

@@ -40,9 +40,14 @@ class AnytimeMultiTrace(CompositeStateConstructor):
             trace_components.append(trace_sc)
 
         if cfg.representation == 'countdown':
-            anytime_sc = comp.AnytimeCountDown(cfg.steps_per_decision, parents=[start_sc])
+            anytime_sc = comp.AnytimeCountDown(cfg.steps_per_decision, parents=[start_sc],
+                                               use_indicator=cfg.use_indicator)
         elif cfg.representation == 'one_hot':
-            anytime_sc = comp.AnytimeOneHot(cfg.steps_per_decision, parents=[start_sc])
+            anytime_sc = comp.AnytimeOneHot(cfg.steps_per_decision, parents=[start_sc],
+                                            use_indicator=cfg.use_indicator)
+        elif cfg.representation == 'thermometer':
+            anytime_sc = comp.AnytimeThermometer(cfg.steps_per_decision, parents=[start_sc],
+                                            use_indicator=cfg.use_indicator)
         else:
             raise ValueError
 
