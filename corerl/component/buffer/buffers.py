@@ -68,7 +68,7 @@ class UniformBuffer:
             ]
         )
 
-        for transition in transitions
+        for transition in transitions:
             for i, elem in enumerate(transition):
                 self.data[i][self.pos] = _to_tensor(elem)
 
