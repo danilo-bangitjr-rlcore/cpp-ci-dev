@@ -122,11 +122,11 @@ class UniformBuffer:
                     int(dones[i]), int(truncates[i]),
                 ),
             )
-    """
 
     def load(self, transitions: list) -> None:
         for transition in transitions:
             self.feed(transition)
+    """
 
     @property
     def size(self) -> list[int]:
@@ -238,9 +238,11 @@ class EnsembleUniformBuffer:
 
         return ensemble_batch
 
+    """
     def load(self, transitions: list) -> None:
         for transition in transitions:
             self.feed(transition)
+    """
 
     @property
     def size(self) -> list[int]:

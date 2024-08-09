@@ -82,6 +82,7 @@ class GreedyAC(BaseAC):
         return action
 
     def update_buffer(self, transition: Transition) -> None:
+        print("update_buffer()")
         args, _ = self._hooks(
             when.Agent.BeforeUpdateCriticBuffer, self, transition,
         )
