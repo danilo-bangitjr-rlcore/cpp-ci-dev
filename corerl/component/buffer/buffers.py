@@ -3,6 +3,7 @@ from omegaconf import DictConfig
 from warnings import warn
 import numpy as np
 import torch
+import random
 
 from corerl.data.data import Transition, TransitionBatch
 import pandas as pd
@@ -192,6 +193,7 @@ class EnsembleUniformBuffer:
         print("Creating Ensemble Uniform Buffer")
         self.seed = cfg.seed
         self.rng = np.random.RandomState(self.seed)
+        random.seed(self.seed)
         self.batch_size = cfg.batch_size
         self.ensemble = cfg.ensemble # Size of the ensemble
         self.data_subset = cfg.data_subset # Percentage of all transitions added to a given buffer in the ensemble
@@ -207,6 +209,19 @@ class EnsembleUniformBuffer:
         for i in range(self.ensemble):
             if self.rng.rand() < self.data_subset:
                 self.buffer_ensemble[i].feed(experience)
+
+    def load(self, transitions: list[Transition]) -> None:
+        num_transitions = len(transitions)
+        assert num_transitions > 0
+        print("Begin Ensemble Buffer Load")
+
+        subset_size = int(num_transitions * self.data_subset)
+        print("Subset Size:", subset_size)
+        
+        ensemble_transitions = [random.sample(transitions, subset_size) for i in range(self.ensemble)]
+
+        for i in range(self.ensemble):
+            self.buffer_ensemble[i].load(ensemble_transitions[i])
 
     def sample_mini_batch(self, batch_size: int = None) -> list[TransitionBatch]:
         ensemble_batch = []
