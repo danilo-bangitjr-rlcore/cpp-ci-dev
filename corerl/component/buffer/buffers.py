@@ -79,9 +79,7 @@ class UniformBuffer:
                 self.full = True
             self.pos %= self.memory
 
-        print("self.data:")
-        print(self.data)
-
+        print("Device Object Device:", device.device)
         for tensor in self.data:
             print("Current Device:", tensor.device)
             tensor.to(device.device)
@@ -211,10 +209,10 @@ class EnsembleUniformBuffer:
                 self.buffer_ensemble[i].feed(experience)
 
     def load(self, transitions: list[Transition]) -> None:
-        print("Ensemble Buffer Load Before Assert")
         num_transitions = len(transitions)
         assert num_transitions > 0
         print("Begin Ensemble Buffer Load")
+        print("Device Object Device:", device.device)
 
         subset_size = int(num_transitions * self.data_subset)
         print("Subset Size:", subset_size)

@@ -10,4 +10,6 @@ class Device:
         else:
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+        print("Update Device:", self.device)
+
 device = Device()
