@@ -315,18 +315,27 @@ def offline_training(cfg: DictConfig,
         test_epochs = []
 
     print('Starting offline agent training...')
+    eval_init_start = time.time()
     offline_eval_args = {
         'agent': agent
     }
     offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
+    eval_init_end = time.time()
+    print("Eval Init Time:", eval_init_end - eval_init_start)
 
+    plot_transitions_start = time.time()
     if plot_transitions is None:
         split = train_test_split(train_transitions, train_split=cfg.experiment.train_split)
         train_transitions, plot_transitions = split[0][0], split[0][1]
+    plot_transitions_end = time.time()
+    print("Plot Transitions Split Time:", plot_transitions_end - plot_transitions_start)
 
     print("Num agent train transitions:", len(train_transitions))
+    buffer_start = time.time()
     for transition in train_transitions:
         agent.update_buffer(transition)
+    buffer_end = time.time()
+    print("Buffer Load Time:", buffer_end - buffer_start)
 
     print("Agent Critic Buffer Size(s):", agent.critic_buffer.size)
     print("Agent Policy Buffer Size(s):", agent.policy_buffer.size)
