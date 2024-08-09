@@ -50,7 +50,6 @@ class UniformBuffer:
 
     def load(self, transitions: list[Transition]) -> None:
         assert len(transitions) > 0
-        print("Begin Buffer Load")
 
         data_size = _get_size(transitions[0])
         self.data = [torch.empty((self.memory, *s)) for s in data_size]
@@ -65,9 +64,7 @@ class UniformBuffer:
             self.pos %= self.memory
 
         for i in range(len(self.data)):
-            print("Current Device:", self.data[i].device)
             self.data[i] = self.data[i].to(device.device)
-            print("New Device:", self.data[i].device)
 
     def sample_mini_batch(self, batch_size: int = None) -> list[TransitionBatch]:
         if self.size == 0:
@@ -172,7 +169,6 @@ class PriorityBuffer(UniformBuffer):
 
 class EnsembleUniformBuffer:
     def __init__(self, cfg: DictConfig):
-        print("Creating Ensemble Uniform Buffer")
         self.seed = cfg.seed
         self.rng = np.random.RandomState(self.seed)
         random.seed(self.seed)
@@ -195,11 +191,8 @@ class EnsembleUniformBuffer:
     def load(self, transitions: list[Transition]) -> None:
         num_transitions = len(transitions)
         assert num_transitions > 0
-        print("Begin Ensemble Buffer Load")
-        print("Device Object Device:", device.device)
 
         subset_size = int(num_transitions * self.data_subset)
-        print("Subset Size:", subset_size)
 
         ensemble_transitions = [random.sample(transitions, subset_size) for i in range(self.ensemble)]
 

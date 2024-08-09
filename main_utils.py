@@ -315,22 +315,15 @@ def offline_training(cfg: DictConfig,
         test_epochs = []
 
     print('Starting offline agent training...')
-    eval_init_start = time.time()
     offline_eval_args = {
         'agent': agent
     }
     offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
-    eval_init_end = time.time()
-    print("Eval Init Time:", eval_init_end - eval_init_start)
 
-    plot_transitions_start = time.time()
     if plot_transitions is None:
         split = train_test_split(train_transitions, train_split=cfg.experiment.train_split)
         train_transitions, plot_transitions = split[0][0], split[0][1]
-    plot_transitions_end = time.time()
-    print("Plot Transitions Split Time:", plot_transitions_end - plot_transitions_start)
 
-    print("Num agent train transitions:", len(train_transitions))
     buffer_start = time.time()
     """
     for transition in train_transitions:
@@ -349,19 +342,13 @@ def offline_training(cfg: DictConfig,
         iter_start = time.time()
         agent.update()
 
-        eval_start = time.time()
         offline_eval.do_eval(**offline_eval_args)  # run all evaluators
         stats = offline_eval.get_stats()
-        eval_end = time.time()
-        print("Eval Time:", eval_end - eval_start)
 
         # Plot policy and critic at a set of test states
         # Plotting function is likely project specific
         if i in test_epochs:
-            plot_start = time.time()
             make_actor_critic_plots(agent, env, plot_transitions, "Offline_Training", i, save_path)
-            plot_end = time.time()
-            print("Plot Time:", plot_end - plot_start)
 
         update_pbar(pbar, stats, cfg.experiment.offline_stat_keys)
         iter_end = time.time()
