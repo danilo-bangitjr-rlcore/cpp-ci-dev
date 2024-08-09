@@ -55,6 +55,33 @@ class UniformBuffer:
             self.full = True
         self.pos %= self.memory
 
+    def load(self, transitions: list[Transition]) -> None:
+        assert len(transitions) > 0
+
+        data_size = _get_size(transitions[0])
+        self.data = tuple(
+            [
+                torch.empty(
+                    (self.memory, *s),
+                )
+                for s in data_size
+            ]
+        )
+
+        for transition in transitions
+            for i, elem in enumerate(transition):
+                self.data[i][self.pos] = _to_tensor(elem)
+
+            self.pos += 1
+            if not self.full and self.pos == self.memory:
+                self.full = True
+            self.pos %= self.memory
+
+        for tensor in self.data:
+            print("Current Device:", tensor.device)
+            tensor.to(device.device)
+            print("New Device:", tensor.device)
+
     def sample_mini_batch(self, batch_size: int = None) -> list[TransitionBatch]:
         if self.size == 0:
             return None

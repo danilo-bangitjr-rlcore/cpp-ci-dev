@@ -96,6 +96,15 @@ class GreedyAC(BaseAC):
             actor_transition = args[1]
             self.policy_buffer.feed(actor_transition)
 
+    def load_buffer(self, transitions: list[Transition]) -> None:
+        policy_transitions = []
+        for transition in transitions:
+            if transition.state_dp:
+                policy_transitions.append(transition)
+
+        self.policy_buffer.load(policy_transitions)
+        self.critic_buffer.load(transitions)
+
     def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
                      batch_size: int) -> Float[torch.Tensor, 'batch_size num_samples']:
         # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py

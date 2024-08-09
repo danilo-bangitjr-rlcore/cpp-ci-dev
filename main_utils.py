@@ -332,8 +332,11 @@ def offline_training(cfg: DictConfig,
 
     print("Num agent train transitions:", len(train_transitions))
     buffer_start = time.time()
+    """
     for transition in train_transitions:
         agent.update_buffer(transition)
+    """
+    agent.load_buffer(train_transitions)
     buffer_end = time.time()
     print("Buffer Load Time:", buffer_end - buffer_start)
 
