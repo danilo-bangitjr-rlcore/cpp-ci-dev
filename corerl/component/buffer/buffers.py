@@ -210,11 +210,11 @@ def _to_tensor(elem):
         or isinstance(elem, np.ndarray)
         or isinstance(elem, list)
     ):
-        return torch.Tensor(elem)
+        return torch.Tensor(elem, device=device)
     elif elem is None:
-        return torch.empty((1, 0))
+        return torch.empty((1, 0), device=device)
     else:
-        return torch.Tensor([elem])
+        return torch.Tensor([elem], device=device)
 
 
 def _get_size(experience: Transition) -> list[tuple]:
