@@ -211,13 +211,14 @@ class EnsembleUniformBuffer:
                 self.buffer_ensemble[i].feed(experience)
 
     def load(self, transitions: list[Transition]) -> None:
+        print("Ensemble Buffer Load Before Assert")
         num_transitions = len(transitions)
         assert num_transitions > 0
         print("Begin Ensemble Buffer Load")
 
         subset_size = int(num_transitions * self.data_subset)
         print("Subset Size:", subset_size)
-        
+
         ensemble_transitions = [random.sample(transitions, subset_size) for i in range(self.ensemble)]
 
         for i in range(self.ensemble):
