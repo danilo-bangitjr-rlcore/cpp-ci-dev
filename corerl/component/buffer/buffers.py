@@ -38,15 +38,7 @@ class UniformBuffer:
         if self.data is None:
             # Lazy instantiation
             data_size = _get_size(experience)
-            self.data = tuple(
-                [
-                    torch.empty(
-                        (self.memory, *s),
-                        device=device.device,
-                    )
-                    for s in data_size
-                ]
-            )
+            self.data = [torch.empty((self.memory, *s), device=device.device) for s in data_size]
 
         for i, elem in enumerate(experience):
             self.data[i][self.pos] = _to_tensor(elem)
@@ -61,14 +53,7 @@ class UniformBuffer:
         print("Begin Buffer Load")
 
         data_size = _get_size(transitions[0])
-        self.data = tuple(
-            [
-                torch.empty(
-                    (self.memory, *s),
-                )
-                for s in data_size
-            ]
-        )
+        self.data = [torch.empty((self.memory, *s)) for s in data_size]
 
         for transition in transitions:
             for i, elem in enumerate(transition):
@@ -79,11 +64,10 @@ class UniformBuffer:
                 self.full = True
             self.pos %= self.memory
 
-        print("Device Object Device:", device.device)
-        for tensor in self.data:
-            print("Current Device:", tensor.device)
-            tensor.to(device.device)
-            print("New Device:", tensor.device)
+        for i in range(len(self.data)):
+            print("Current Device:", self.data[i].device)
+            self.data[i] = self.data[i].to(device.device)
+            print("New Device:", self.data[i].device)
 
     def sample_mini_batch(self, batch_size: int = None) -> list[TransitionBatch]:
         if self.size == 0:
@@ -183,7 +167,7 @@ class PriorityBuffer(UniformBuffer):
             raise NotImplementedError
         else:
             assert priority.shape == self.priority.shape
-            self.priority = torch.Tensor(priority)
+            self.priority = torch.tensor(priority)
 
 
 class EnsembleUniformBuffer:
@@ -257,11 +241,11 @@ def _to_tensor(elem):
         or isinstance(elem, np.ndarray)
         or isinstance(elem, list)
     ):
-        return torch.Tensor(elem)
+        return torch.tensor(elem)
     elif elem is None:
         return torch.empty((1, 0))
     else:
-        return torch.Tensor([elem])
+        return torch.tensor([elem])
 
 
 def _get_size(experience: Transition) -> list[tuple]:
