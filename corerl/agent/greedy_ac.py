@@ -104,7 +104,7 @@ class GreedyAC(BaseAC):
         get_q_start = time.time()
         q_values = self.q_critic.get_q([repeated_states], [sample_actions], with_grad=False)
         get_q_end = time.time()
-        print("Sort Q Get Q Duration:", get_q_end - get_q_start)
+        #print("Sort Q Get Q Duration:", get_q_end - get_q_start)
         q_values: Float[torch.Tensor, 'batch_size num_samples 1']
         q_values = q_values.reshape(batch_size, self.num_samples, 1)
         sorted_q_inds: Float[torch.Tensor, 'batch_size num_samples 1']
@@ -184,7 +184,7 @@ class GreedyAC(BaseAC):
             next_action_start = time.time()
             next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
             next_action_end = time.time()
-            print("Critic Loss Next Action Duration:", next_action_end - next_action_start)
+            #print("Critic Loss Next Action Duration:", next_action_end - next_action_start)
             # For the 'Anytime' paradigm, only states at decision points can sample next_actions
             # If a state isn't at a decision point, its next_action is set to the current action
             with torch.no_grad():
@@ -195,7 +195,7 @@ class GreedyAC(BaseAC):
                 option_1_start = time.time()
                 next_q = self.q_critic.get_q_target([next_state_batch], [next_actions])
                 option_1_end = time.time()
-                print("Critic Loss Option 1 Next Q Duration:", option_1_end - option_1_start)
+                #print("Critic Loss Option 1 Next Q Duration:", option_1_end - option_1_start)
                 next_qs.append(next_q)
 
             state_batches.append(state_batch)
@@ -211,19 +211,19 @@ class GreedyAC(BaseAC):
             option_2_start = time.time()
             _, next_qs = self.q_critic.get_qs_target(next_state_batches, next_action_batches)
             option_2_end = time.time()
-            print("Critic Loss Option 2 Next Qs Duration:", option_2_end - option_2_start)
+            #print("Critic Loss Option 2 Next Qs Duration:", option_2_end - option_2_start)
         else:
             option_1_start = time.time()
             for i in range(ensemble):
                 next_qs[i] = torch.unsqueeze(next_qs[i], 0)
             next_qs = torch.cat(next_qs, dim=0)
             option_1_end = time.time()
-            print("Critic Loss Option 1 Next Qs Duration:", option_1_end - option_1_start)
+            #print("Critic Loss Option 1 Next Qs Duration:", option_1_end - option_1_start)
 
         qs_start = time.time()
         _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
         qs_end = time.time()
-        print("Critic Loss Qs Duration:", qs_end - qs_start)
+        #print("Critic Loss Qs Duration:", qs_end - qs_start)
         losses = []
         mse_start = time.time()
         for i in range(ensemble):
@@ -239,7 +239,7 @@ class GreedyAC(BaseAC):
 
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
         mse_end = time.time()
-        print("Critic Loss MSE Duration:", mse_end - mse_start)
+        #print("Critic Loss MSE Duration:", mse_end - mse_start)
 
         return losses
 
@@ -309,7 +309,7 @@ class GreedyAC(BaseAC):
             loss_start = time.time()
             q_loss = closure()
             loss_end = time.time()
-            print("Critic Loss Duration:", loss_end - loss_start)
+            #print("Critic Loss Duration:", loss_end - loss_start)
 
             args, _ = self._hooks(
                 when.Agent.AfterCriticLossComputed, self, batches, q_loss,
@@ -318,7 +318,7 @@ class GreedyAC(BaseAC):
             update_start = time.time()
             self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
             update_end = time.time()
-            print("Critic Weight Update Duration:", update_end - update_start)
+            #print("Critic Weight Update Duration:", update_end - update_start)
 
             args, _ = self._hooks(
                 when.Agent.AfterCriticUpdate, self, batches, q_loss,
