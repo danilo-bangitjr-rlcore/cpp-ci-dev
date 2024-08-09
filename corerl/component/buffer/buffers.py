@@ -153,7 +153,7 @@ class PriorityBuffer(UniformBuffer):
             raise NotImplementedError
         else:
             assert priority.shape == self.priority.shape
-            self.priority = torch.Tensor(priority)
+            self.priority = torch.tensor(priority)
 
 
 class EnsembleUniformBuffer:
@@ -210,11 +210,11 @@ def _to_tensor(elem):
         or isinstance(elem, np.ndarray)
         or isinstance(elem, list)
     ):
-        return torch.Tensor(elem, device=device.device)
+        return torch.tensor(elem, device=device.device)
     elif elem is None:
         return torch.empty((1, 0), device=device.device)
     else:
-        return torch.Tensor([elem], device=device.device)
+        return torch.tensor([elem], device=device.device)
 
 
 def _get_size(experience: Transition) -> list[tuple]:
