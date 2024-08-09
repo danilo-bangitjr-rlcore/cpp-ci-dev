@@ -57,6 +57,7 @@ class UniformBuffer:
 
     def load(self, transitions: list[Transition]) -> None:
         assert len(transitions) > 0
+        print("Begin Buffer Load")
 
         data_size = _get_size(transitions[0])
         self.data = tuple(
@@ -76,6 +77,9 @@ class UniformBuffer:
             if not self.full and self.pos == self.memory:
                 self.full = True
             self.pos %= self.memory
+
+        print("self.data:")
+        print(self.data)
 
         for tensor in self.data:
             print("Current Device:", tensor.device)

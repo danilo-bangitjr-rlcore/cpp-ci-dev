@@ -101,8 +101,9 @@ class GreedyAC(BaseAC):
         for transition in transitions:
             if transition.state_dp:
                 policy_transitions.append(transition)
-
+        print("Begin Policy Buffer Load")
         self.policy_buffer.load(policy_transitions)
+        print("Begin Critic Buffer Load")
         self.critic_buffer.load(transitions)
 
     def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
