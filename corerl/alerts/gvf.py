@@ -68,8 +68,8 @@ class GVFAlert(BaseAlert):
         action = np.expand_dims(action, axis=0)
 
         # GVF Predictions
-        state = utils.tensor(state, device)
-        action = utils.tensor(action, device)
+        state = utils.tensor(state, device.device)
+        action = utils.tensor(action, device.device)
         curr_values = self.gvfs.gvf.get_q([state], [action], with_grad=False)
         curr_values = utils.to_np(curr_values)
         # The GVF predicts the expected full return. Need to take into account that we're neglecting some percentage of the return.

@@ -25,7 +25,7 @@ class SimpleAC(BaseAC):
         self.policy_buffer = init_buffer(cfg.actor.buffer)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        tensor_state = state_to_tensor(state, device)
+        tensor_state = state_to_tensor(state, device.device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
         return action

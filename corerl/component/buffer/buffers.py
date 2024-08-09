@@ -1,4 +1,5 @@
 from corerl.utils.device import device
+print("Buffers Imports Device:", device.device)
 from omegaconf import DictConfig
 from warnings import warn
 import numpy as np
@@ -20,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class UniformBuffer:
     def __init__(self, cfg: DictConfig):
+        print("Buffers Init Device:", device.device)
         self.seed = cfg.seed
         self.rng = np.random.RandomState(self.seed)
         self.memory = cfg.memory
@@ -27,7 +29,7 @@ class UniformBuffer:
         self.data = None
         self.pos = 0
         self.full = False
-        self.device = torch.device(cfg.device)
+        #self.device = torch.device(cfg.device)
 
         if self.batch_size == 0:
             self.sample = self.sample_batch
@@ -42,7 +44,7 @@ class UniformBuffer:
                 [
                     torch.empty(
                         (self.memory, *s),
-                        device=self.device,
+                        device=device.device,
                     )
                     for s in data_size
                 ]

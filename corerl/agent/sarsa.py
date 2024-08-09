@@ -29,7 +29,7 @@ class EpsilonGreedySarsa(BaseAgent):
         self.critic_buffer.feed(transition)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        tensor_state = state_to_tensor(state, device)
+        tensor_state = state_to_tensor(state, device.device)
         action_np = to_np(self._get_action(tensor_state))[0]
         return action_np
 
@@ -38,7 +38,7 @@ class EpsilonGreedySarsa(BaseAgent):
         actions = torch.zeros(num_states, self.action_dim)
         for i, o in enumerate(state):
             if random.random() <= self.epsilon:
-                action = torch.rand((1, self.action_dim), device=device)
+                action = torch.rand((1, self.action_dim), device=device.device)
             else:
                 action = self.get_greedy_action(o)
             actions[i, :] = action

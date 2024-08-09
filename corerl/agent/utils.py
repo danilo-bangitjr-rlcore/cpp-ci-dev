@@ -21,7 +21,7 @@ def get_batch_actions_discrete(state_batch: Float[torch.Tensor, "batch_size stat
     a_onehot = torch.FloatTensor(actions.size()[0], action_dim)
     a_onehot.zero_()
     sample_actions = a_onehot.scatter_(1, actions, 1)
-    return sample_actions
+    return sample_actions.to(device.device)
 
 
 def get_top_action(func, states, actions, action_dim, batch_size, n_actions, return_idx=None):
@@ -39,7 +39,7 @@ def get_top_action(func, states, actions, action_dim, batch_size, n_actions, ret
 
     actions = actions.reshape(batch_size, n_actions, action_dim)
     best_actions = torch.gather(actions, dim=1, index=best_inds)
-    return best_actions
+    return best_actions.to(device.device)
 
 
 # def get_max_actions_critic(critic, states, actions, action_dim, batch_size, n_samples):
@@ -77,14 +77,14 @@ def get_test_state_qs_and_policy_params(agent, test_transitions):
         test_states.append(transition.state)
     test_states_np = np.array(test_states, dtype=np.float32)
 
-    test_states = tensor(test_states_np, device)
+    test_states = tensor(test_states_np, device.device)
     actions = np.linspace(np.array([0]), np.array([1]), num=test_actions)
 
     # Q-Values
     repeated_test_states = test_states.repeat_interleave(test_actions, dim=0)
     repeated_actions = [actions for i in range(num_states)]
     repeated_actions = np.concatenate(repeated_actions)
-    repeated_actions = tensor(repeated_actions, device)
+    repeated_actions = tensor(repeated_actions, device.device)
 
     q_values, ensemble_qs = agent.q_critic.get_qs([repeated_test_states], [repeated_actions], with_grad=False)
     q_values = to_np(q_values)

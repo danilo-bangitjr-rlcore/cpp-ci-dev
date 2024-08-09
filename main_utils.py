@@ -13,6 +13,7 @@ from gymnasium import spaces, Env
 from pathlib import Path
 from typing import Optional
 
+from corerl.utils.device import device
 from corerl.eval.composite_eval import CompositeEval
 from corerl.data_loaders.base import BaseDataLoader
 from corerl.environment.reward.factory import init_reward_function
@@ -311,6 +312,7 @@ def offline_training(cfg: DictConfig,
                      plot_transitions: list[Transition],
                      save_path: Path,
                      test_epochs: Optional[list[int]] = None) -> CompositeEval:
+    print("Begin Offline Training Device:", device.device)
     if test_epochs is None:
         test_epochs = []
 

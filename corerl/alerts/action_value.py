@@ -95,8 +95,8 @@ class ActionValueAlert(BaseAlert):
         action = np.expand_dims(action, 0)
 
         # Get action-value estimate for the given state-action pair
-        state = utils.tensor(state, device)
-        action = utils.tensor(action, device)
+        state = utils.tensor(state, device.device)
+        action = utils.tensor(action, device.device)
         value = self.q_critic.get_q([state], [action], with_grad=False)
         value = utils.to_np(value)
         # The critic predicts the expected full return. Need to take into account that we're neglecting some percentage of the return.

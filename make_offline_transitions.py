@@ -13,7 +13,7 @@ from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.interaction.factory import init_interaction
-from corerl.utils.device import init_device
+from corerl.utils.device import device
 from corerl.data_loaders.factory import init_data_loader
 from corerl.data.transition_creator import AnytimeTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
@@ -37,7 +37,7 @@ def main(cfg: DictConfig) -> dict:
     fr.init_freezer(save_path / 'logs')
 
     test_epochs = cfg.experiment.test_epochs
-    init_device(cfg.experiment.device)
+    device.update_device(cfg.experiment.device)
 
     # set the random seeds
     seed = cfg.experiment.seed

@@ -14,6 +14,7 @@ from corerl.utils.device import device
 
 class EnsembleQCritic(BaseQ):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, output_dim: int = 1):
+        print("Begin EnsembleQCritic Init Device:", device.device)
         state_action_dim = state_dim + action_dim
         self.model = init_critic_network(
             cfg.critic_network, input_dim=state_action_dim, output_dim=output_dim,
@@ -30,6 +31,8 @@ class EnsembleQCritic(BaseQ):
         self.polyak = cfg.polyak
         self.target_sync_freq = cfg.target_sync_freq
         self.target_sync_counter = 0
+
+        self.optimizer_name = cfg.critic_optimizer.name
 
     def get_qs(
         self,
@@ -78,7 +81,10 @@ class EnsembleQCritic(BaseQ):
         else:
             loss.backward()
 
-        self.optimizer.step(*opt_args, **opt_kwargs)
+        if self.optimizer_name != "lso":
+            self.optimizer.step()
+        else:
+            self.optimizer.step(*opt_args, **opt_kwargs)
 
         if self.target_sync_counter % self.target_sync_freq == 0:
             self.sync_target()
@@ -115,16 +121,16 @@ class EnsembleQCritic(BaseQ):
 
     def load(self, path: Path) -> None:
         net_path = path / 'critic_net'
-        self.model.load_state_dict(torch.load(net_path, map_location=device))
+        self.model.load_state_dict(torch.load(net_path, map_location=device.device))
 
         target_path = path / 'critic_target'
         self.target.load_state_dict(
-            torch.load(target_path, map_location=device),
+            torch.load(target_path, map_location=device.device),
         )
 
         opt_path = path / 'critic_opt'
         self.optimizer.load_state_dict(
-            torch.load(opt_path, map_location=device),
+            torch.load(opt_path, map_location=device.device),
         )
 
 
@@ -211,16 +217,16 @@ class EnsembleVCritic(BaseV):
 
     def load(self, path: Path) -> None:
         net_path = path / 'critic_net'
-        self.model.load_state_dict(torch.load(net_path, map_location=device))
+        self.model.load_state_dict(torch.load(net_path, map_location=device.device))
 
         target_path = path / 'critic_target'
         self.target.load_state_dict(
-            torch.load(target_path, map_location=device),
+            torch.load(target_path, map_location=device.device),
         )
 
         opt_path = path / 'critic_opt'
         self.optimizer.load_state_dict(
-            torch.load(opt_path, map_location=device),
+            torch.load(opt_path, map_location=device.device),
         )
 
 

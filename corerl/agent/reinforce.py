@@ -31,7 +31,7 @@ class Reinforce(BaseAC):
         self.trunc = trunc
 
     def get_action(self, state: np.ndarray) -> np.ndarray:
-        tensor_state = state_to_tensor(state, device)
+        tensor_state = state_to_tensor(state, device.device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
         return action
@@ -45,7 +45,7 @@ class Reinforce(BaseAC):
 
         # If the episode is truncated, returns bootstrap the final state
         if self.trunc:
-            tensor_state = state_to_tensor(self.ep_states[ep_t], device)
+            tensor_state = state_to_tensor(self.ep_states[ep_t], device.device)
             if self.ensemble_targets:
                 v_boot = self.v_critic.get_vs([tensor_state], with_grad=False)
             else:
@@ -59,12 +59,12 @@ class Reinforce(BaseAC):
             curr_return = self.ep_rewards[t] + self.gamma * curr_return
             self.returns[t] = curr_return
 
-        self.returns = tensor(self.returns, device)
+        self.returns = tensor(self.returns, device.device)
 
         self.ep_states = np.asarray(self.ep_states[:-1])
-        self.ep_states = tensor(self.ep_states, device)
+        self.ep_states = tensor(self.ep_states, device.device)
         self.ep_actions = np.asarray(self.ep_actions)
-        self.ep_actions = tensor(self.ep_actions, device)
+        self.ep_actions = tensor(self.ep_actions, device.device)
 
     def compute_v_loss(self) -> torch.Tensor:
         _, v_ens = self.v_critic.get_vs([self.ep_states], with_grad=True)
