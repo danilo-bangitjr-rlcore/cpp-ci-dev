@@ -33,7 +33,7 @@ from corerl.utils.plotting import make_plots
 
 import corerl.utils.freezer as fr
 import main_utils as utils
-
+print("End of main imports")
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
 def main(cfg: DictConfig) -> dict:
