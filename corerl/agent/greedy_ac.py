@@ -5,6 +5,8 @@ import torch
 import numpy
 import pickle as pkl
 import time
+import logging
+log = logging.getLogger(__name__)
 from corerl.agent.base import BaseAC
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
@@ -467,12 +469,14 @@ class GreedyAC(BaseAC):
             self.update_critic()
             critic_end = time.time()
             print("Critic Update Duration:", critic_end - critic_start)
+            log.info("Critic Update Duration: {}".format(critic_end - critic_start))
 
         if min(self.policy_buffer.size) > 0:
             actor_start = time.time()
             update_infos = self.update_actor()
             actor_end = time.time()
             print("Actor Update Duration:", actor_end - actor_start)
+            log.info("Actor Update Duration: {}".format(actor_end - actor_start))
             if not self.uniform_proposal:
                 if self.share_batch:
                     self.update_sampler(update_infos=update_infos)
@@ -480,6 +484,7 @@ class GreedyAC(BaseAC):
                     self.update_sampler(update_infos=None)
         update_end = time.time()
         print("Single Update Duration:", update_end - update_start)
+        log.info("Single Update Duration: {}".format(update_end - update_start))
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

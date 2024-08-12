@@ -4,6 +4,9 @@ import hashlib
 import copy
 import pickle as pkl
 import time
+import logging
+
+log = logging.getLogger(__name__)
 
 import pandas as pd
 from tqdm import tqdm
@@ -114,6 +117,7 @@ def set_env_obs_space(env: Env, df: pd.DataFrame, dl: BaseDataLoader):
     obs_bounds = dl.get_obs_max_min(df)
     env.observation_space = spaces.Box(low=obs_bounds[0], high=obs_bounds[1], dtype=np.float32)
     print("Updated env observation space:", env.observation_space)
+    log.info("Updated env observation space: {}".format(env.observation_space))
     return env
 
 
@@ -294,7 +298,9 @@ def get_state_action_dim(env: Env, sc: BaseStateConstructor) -> tuple[int, int]:
 
 def offline_alert_training(cfg: DictConfig, alerts: CompositeAlert, train_transitions: list[Transition]) -> None:
     print('Starting offline alert training...')
+    log.info('Starting offline alert training...')
     print("Num alert train transitions:", len(train_transitions))
+    log.info("Num alert train transitions: {}".format(len(train_transitions)))
     for transition in train_transitions:
         alerts.update_buffer(transition)
 
@@ -315,6 +321,7 @@ def offline_training(cfg: DictConfig,
         test_epochs = []
 
     print('Starting offline agent training...')
+    log.info('Starting offline agent training...')
     offline_eval_args = {
         'agent': agent
     }
@@ -332,9 +339,12 @@ def offline_training(cfg: DictConfig,
     agent.load_buffer(train_transitions)
     buffer_end = time.time()
     print("Buffer Load Time:", buffer_end - buffer_start)
+    log.info("Buffer Load Time: {}".format(buffer_end - buffer_start))
 
     print("Agent Critic Buffer Size(s):", agent.critic_buffer.size)
+    log.info("Agent Critic Buffer Size(s): {}".format(agent.critic_buffer.size))
     print("Agent Policy Buffer Size(s):", agent.policy_buffer.size)
+    log.info("Agent Policy Buffer Size(s): {}".format(agent.policy_buffer.size))
 
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
@@ -353,6 +363,7 @@ def offline_training(cfg: DictConfig,
         update_pbar(pbar, stats, cfg.experiment.offline_stat_keys)
         iter_end = time.time()
         print("Iteration {} Time:".format(i), iter_end - iter_start)
+        log.info("Iteration {} Time: {}".format(i, iter_end - iter_start))
 
     return offline_eval
 
@@ -470,12 +481,14 @@ def offline_anytime_deployment(cfg: DictConfig,
     pbar = tqdm(range(max_steps))
     alert_info_list = []
     print('Starting online anytime training with offline dataset...')
+    log.info('Starting online anytime training with offline dataset...')
 
     for j in pbar:
         transitions, agent_train_transitions, alert_train_transitions, alert_info, _ = interaction.step()  # does not need an action from the agent
 
         if transitions is None:
             print("Reached End Of Offline Eval Data")
+            log.info("Reached End Of Offline Eval Data")
             break
 
         for transition in agent_train_transitions:

@@ -1,5 +1,6 @@
 defaults:
   - config
+  - override hydra/job_logging: custom
   - override agent: greedy_ac
   - override env: reseau
   - override data_loader: direct_action

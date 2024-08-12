@@ -1,10 +1,12 @@
+import logging
+from omegaconf import DictConfig
 import hydra
 import numpy as np
 import torch
 import random
 import time
 
-from omegaconf import DictConfig
+log = logging.getLogger(__name__)
 
 from corerl.utils.device import device
 from corerl.agent.factory import init_agent
@@ -55,6 +57,7 @@ def main(cfg: DictConfig) -> dict:
     sc = init_state_constructor(cfg.state_constructor, env)
     state_dim, action_dim = utils.get_state_action_dim(env, sc)
     print("State Dim: {}, action dim: {}".format(state_dim, action_dim))
+    log.info("State Dim: {}, action dim: {}".format(state_dim, action_dim))
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
     alert_args = {
@@ -74,12 +77,14 @@ def main(cfg: DictConfig) -> dict:
 
     if do_offline_training:
         print('Loading offline observations...')
+        log.info('Loading offline observations...')
         train_obs_transitions, test_obs_transitions = utils.get_offline_obs_transitions(cfg,
                                                                                         train_data_df,
                                                                                         test_data_df,
                                                                                         dl, obs_normalizer)
 
         print('Loading offline transitions...')
+        log.info('Loading offline transitions...')
         agent_train_transitions, agent_test_transitions, alert_train_transitions, alert_test_transitions, _ = utils.get_offline_transitions(
             cfg, train_obs_transitions,
             test_obs_transitions, sc,
@@ -91,6 +96,7 @@ def main(cfg: DictConfig) -> dict:
         plot_transitions = split[0][1]
         data_load_end = time.time()
         print("Data Loading Time:", data_load_end - data_load_start)
+        log.info("Data Loading Time: {}".format(data_load_end - data_load_start))
 
         offline_start = time.time()
         offline_eval = utils.offline_training(cfg,
@@ -102,11 +108,13 @@ def main(cfg: DictConfig) -> dict:
                                               test_epochs)
         offline_end = time.time()
         print("Offline Training Time:", offline_end - offline_start)
+        log.info("Offline Training Time: {}".format(offline_end - offline_start))
 
         alert_start = time.time()
         utils.offline_alert_training(cfg, composite_alert, alert_train_transitions)
         alert_end = time.time()
         print("Offline Alert Training Time:", alert_end - alert_start)
+        log.info("Offline Alert Training Time: {}".format(alert_end - alert_start))
 
     if not (test_epochs is None):
         assert not (plot_transitions is None), "Must include test transitions if test_epochs is not None"
@@ -128,6 +136,7 @@ def main(cfg: DictConfig) -> dict:
                                                        test_epochs)
         offline_anytime_end = time.time()
         print("Offline Anytime Duration:", offline_anytime_end - offline_anytime_start)
+        log.info("Offline Anytime Duration: {}".format(offline_anytime_end - offline_anytime_start))
         #online_eval.output(save_path / 'stats.json')
     else:
         online_eval = utils.online_deployment(cfg,
@@ -151,6 +160,7 @@ def main(cfg: DictConfig) -> dict:
 
     run_end = time.time()
     print("Total Run Time:", run_end - run_start)
+    log.info("Total Run Time: {}".format(run_end - run_start))
 
     # return stats
 
