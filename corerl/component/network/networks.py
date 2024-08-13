@@ -1,7 +1,9 @@
+import copy
 import time
 import torch
 import torch.nn as nn
 import torch.distributions as distrib
+from torch.func import stack_module_state, functional_call
 import numpy as np
 import corerl.component.network.utils as utils
 from corerl.utils.device import device
@@ -141,13 +143,57 @@ class EnsembleCritic(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(EnsembleCritic, self).__init__()
         self.ensemble = cfg.ensemble
+        self.vmap = cfg.vmap
         self.subnetworks = [
             create_base(cfg.base, input_dim, output_dim)
             for _ in range(self.ensemble)
         ]
+
+        # Vectorizing the ensemble to use torch.vmap to avoid sequentially querrying the ensemble
+        self.params, self.buffers = stack_module_state(self.subnetworks)
+
+        self.base_model = copy.deepcopy(self.subnetworks[0])
+        self.base_model = self.base_model.to('meta')
+
         self._reduct = _init_ensemble_reduct(cfg)
         self.to(device.device)
 
+    def fmodel(self, params, buffers, x: torch.Tensor):
+        return functional_call(self.base_model, (params, buffers), (x,))
+
+    def forward(
+            self, input_tensor: torch.Tensor,
+    ) -> (torch.Tensor, torch.Tensor):
+        # For ensemble critic updates, expecting a different batch for each member of the ensemble
+        # Therefore, we expect the shape of the input_tensor to be (ensemble_size, batch_size, state-action dim)
+        if len(input_tensor.shape) == 3 and input_tensor.shape[0] == self.ensemble:
+            # Each element of the 'input_tensor' is evaluated by the corresponding member of the ensemble
+            # Used in critic updates
+            if self.vmap:
+                qs = torch.vmap(self.fmodel)(self.params, self.buffers, input_tensor)
+            else:
+                qs = [self.subnetworks[i](input_tensor[i]) for i in range(self.ensemble)]
+                for i in range(self.ensemble):
+                    qs[i] = torch.unsqueeze(qs[i], 0)
+                qs = torch.cat(qs, dim=0)
+        elif len(input_tensor.shape) == 2:
+            # Each member of the ensemble evaluates the same batch of state-action pairs
+            # Used in policy updates and when evaluating alerts
+            if self.vmap:
+                qs = torch.vmap(self.fmodel, in_dims=(0, 0, None))(self.params, self.buffers, input_tensor)
+            else:
+                qs = [net(input_tensor) for net in self.subnetworks]
+                for i in range(self.ensemble):
+                    qs[i] = torch.unsqueeze(qs[i], 0)
+                qs = torch.cat(qs, dim=0)
+        else:
+            raise NotImplementedError
+
+        q = self._reduct(qs, dim=0)
+
+        return q, qs
+
+    """
     def forward(
             self, input_tensor: list[torch.Tensor],
     ) -> (torch.Tensor, torch.Tensor):
@@ -168,6 +214,7 @@ class EnsembleCritic(nn.Module):
         q = self._reduct(qs, dim=0)
 
         return q, qs
+    """
 
     def state_dict(self) -> list:
         sd = [net.state_dict() for net in self.subnetworks]

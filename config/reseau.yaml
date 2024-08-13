@@ -59,6 +59,7 @@ agent:
     critic_network:
       ensemble : 10
       reduct : min
+      vmap : True
     buffer:
       batch_size : 512
   actor:
