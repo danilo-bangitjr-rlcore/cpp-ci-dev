@@ -170,10 +170,8 @@ class EnsembleCritic(nn.Module):
             # Each element of the 'input_tensor' is evaluated by the corresponding member of the ensemble
             # Used in critic updates
             if self.vmap:
-                print("Critic Update VMap")
                 qs = torch.vmap(self.fmodel)(self.params, self.buffers, input_tensor)
             else:
-                print("Critic Update No VMap")
                 qs = [self.subnetworks[i](input_tensor[i]) for i in range(self.ensemble)]
                 for i in range(self.ensemble):
                     qs[i] = torch.unsqueeze(qs[i], 0)
@@ -182,10 +180,8 @@ class EnsembleCritic(nn.Module):
             # Each member of the ensemble evaluates the same batch of state-action pairs
             # Used in policy updates and when evaluating alerts
             if self.vmap:
-                print("Policy Update VMap")
                 qs = torch.vmap(self.fmodel, in_dims=(0, 0, None))(self.params, self.buffers, input_tensor)
             else:
-                print("Policy Update No VMap")
                 qs = [net(input_tensor) for net in self.subnetworks]
                 for i in range(self.ensemble):
                     qs[i] = torch.unsqueeze(qs[i], 0)
