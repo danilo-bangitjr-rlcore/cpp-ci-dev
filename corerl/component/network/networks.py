@@ -153,7 +153,7 @@ class EnsembleCritic(nn.Module):
         self.params, self.buffers = stack_module_state(self.subnetworks)
 
         self.base_model = copy.deepcopy(self.subnetworks[0])
-        self.base_model = self.base_model.to('meta')
+        self.base_model = self.base_model.to(device.device)
 
         self._reduct = _init_ensemble_reduct(cfg)
         self.to(device.device)
