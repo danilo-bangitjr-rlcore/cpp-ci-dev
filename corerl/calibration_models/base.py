@@ -41,16 +41,16 @@ class BaseCalibrationModel(ABC):
             plot_save_path.mkdir(parents=True, exist_ok=True)
 
         losses = []
-
         for n, test_traj in enumerate(self.test_trajectories):
             last = test_traj.num_transitions - self.max_rollout_len
             increase_idx = last // self.num_test_rollouts
             start_idx = 0
-            for start in range(self.num_test_rollouts):
-                _, traj_losses = self._do_rollout(test_traj, start_idx=start_idx, plot='test',
-                                                  plot_save_path=plot_save_path)
-                start_idx += increase_idx
-                losses.append(traj_losses)
+            if test_traj.num_transitions >= self.max_rollout_len:
+                for start in range(self.num_test_rollouts):
+                    _, traj_losses = self._do_rollout(test_traj, start_idx=start_idx, plot='test',
+                                                      plot_save_path=plot_save_path)
+                    start_idx += increase_idx
+                    losses.append(traj_losses)
 
         return losses
 
@@ -130,6 +130,10 @@ class BaseCalibrationModel(ABC):
         if start_idx is None:
             start_idx = random.randint(0, traj_cm.num_transitions - self.max_rollout_len - 1)
 
+        print('start', start_idx)
+        print('transitions', len(traj_cm.transitions))
+        print('scs', len(traj_cm.scs))
+        print("\n")
         transitions_cm = traj_cm.transitions[start_idx:]
         sc_cm = deepcopy(traj_cm.scs[start_idx])  # state constructor for the model
         state_cm = transitions_cm[0].state  # initial state for the model
