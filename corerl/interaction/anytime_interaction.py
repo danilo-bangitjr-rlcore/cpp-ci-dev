@@ -28,8 +28,8 @@ class AnytimeInteraction(BaseInteraction):
             cfg: DictConfig,
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
-            alerts: CompositeAlert,
-            transition_creator: "AnytimeTransitionCreator", # this is to avoid circular imports for type checking
+            alerts: CompositeAlert,  # TODO: can I remove alerts from this?
+            transition_creator: "AnytimeTransitionCreator",  # this is to avoid circular imports for type checking
             normalizer: ObsTransitionNormalizer):
         super().__init__(cfg, env, state_constructor, alerts)
 

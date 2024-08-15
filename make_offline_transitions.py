@@ -59,9 +59,9 @@ def main(cfg: DictConfig) -> dict:
     }
 
     normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
-    composite_alert = CompositeAlert(cfg.alerts, alert_args)
-    transition_creator = AnytimeTransitionCreator(cfg.transition_creator, composite_alert)
-    interaction = init_interaction(cfg.interaction, env, sc, composite_alert,
+    alerts = CompositeAlert(cfg.alerts, alert_args)
+    transition_creator = AnytimeTransitionCreator(cfg.transition_creator, alerts)
+    interaction = init_interaction(cfg.interaction, env, sc, alerts,
                                    transition_creator, normalizer)
 
     # Instantiate online evaluators
@@ -80,26 +80,41 @@ def main(cfg: DictConfig) -> dict:
     actions = []
 
     print('Starting online training...')
-    for _ in pbar:
-        transitions, train_transitions, alert_info_list, env_info_list = interaction.step(action)
+    alert_info_list = []
+    for j in pbar:
+        transitions, agent_train_transitions, alert_train_transitions, alert_info, env_info = interaction.step(action)
 
         for transition in transitions:  # agent_train_transitions:
             agent.update_buffer(transition)
             observations.append(transition.obs)
             actions.append(transition.action)
 
-        if agent.buffer.size > 0:
-            agent.update()
+        for transition in agent_train_transitions:
+            agent.update_buffer(transition)
+
+        for transition in alert_train_transitions:
+            alerts.update_buffer(transition)
+
+        agent.update()
+        alerts.update()
+
+        alert_info_list.append(alert_info)
 
         if len(transitions) > 0:
+            # logging + evaluation
+            # union of the information needed by all evaluators
             online_eval_args = {
                 'agent': agent,
                 'env': env,
-                'transitions': transitions}
+                'transitions': transitions,
+                'alert_info_list': alert_info_list
+            }
 
             online_eval.do_eval(**online_eval_args)
             stats = online_eval.get_stats()
+
             utils.update_pbar(pbar, stats, cfg.experiment.online_stat_keys)
+            alert_info_list = []
 
             terminated = transitions[-1].terminated
             truncated = transitions[-1].truncate
@@ -107,8 +122,10 @@ def main(cfg: DictConfig) -> dict:
                 state, _ = interaction.reset()
             else:
                 state = transitions[-1].next_state
+
             action = agent.get_action(state)
 
+    env.plot(save_path)
     observations = np.array(observations)
     actions = [np.zeros_like(action)] + actions[:-1]
     actions = np.array(actions)

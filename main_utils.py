@@ -390,11 +390,7 @@ def online_deployment(cfg: DictConfig,
     print('Starting online training...')
     for j in pbar:
         transitions, agent_train_transitions, alert_train_transitions, alert_info, env_info = interaction.step(action)
-
-        # for t in agent_train_transitions:
-        #     print(t)
-        # if len(agent_train_transitions):
-        #     assert False
+        # TODO can alerts happen here???? I feel like I should consult Alex about this. before doing something substantial
 
         for transition in agent_train_transitions:
             agent.update_buffer(transition)
