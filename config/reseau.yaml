@@ -19,7 +19,7 @@ experiment :
   exp_name : "Alerts_Reduct_Regularization_Sweep"
   device : cpu
   max_steps : 10000
-  offline_steps : 20000
+  offline_steps : 10000
   load_env_obs_space_from_data : True
   gamma : 0.95
   train_split : 0.995

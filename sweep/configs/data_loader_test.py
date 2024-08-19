@@ -28,7 +28,7 @@ SWEEP_PARAMS = {
     'agent.actor.actor_network.tanh_shift': [-4.0],
     'agent.actor.buffer.batch_size': [128],
     'experiment.max_steps': [10000],
-    'experiment.offline_steps': [20000],
+    'experiment.offline_steps': [10000],
     'experiment.load_env_obs_space_from_data': [True],
     'experiment.gamma': [0.95],
     'experiment.train_split': [0.995],
