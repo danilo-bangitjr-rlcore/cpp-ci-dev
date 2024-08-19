@@ -370,9 +370,12 @@ def offline_training(cfg: DictConfig,
         'agent': agent,
         'eval_transitions': eval_transitions
     }
+    """
     offline_eval_cfg = {'ibe': cfg.eval['ibe'],
                         'train_loss': cfg.eval['train_loss'],
                         'test_loss': cfg.eval['test_loss']}
+    """
+    offline_eval_cfg = {}
     #offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
     offline_eval = CompositeEval(offline_eval_cfg, offline_eval_args, offline=True)
 
