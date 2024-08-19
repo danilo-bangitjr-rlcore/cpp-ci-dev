@@ -24,7 +24,7 @@ class TestLossEval(BaseEval):
     def do_eval(self, **kwargs) -> None:
         batches = self.buffer.sample()
         test_loss = sum(self.agent.compute_critic_loss(batches))
-        self.test_losses.append(test_loss.detach().numpy())
+        self.test_losses.append(test_loss.cpu().detach().numpy())
 
     def get_stats(self):
         stats = {}

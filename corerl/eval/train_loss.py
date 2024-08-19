@@ -13,7 +13,7 @@ class TrainLossEval(BaseEval):
             raise KeyError("Missing required argument: 'train_loss'")
 
         train_loss = kwargs['train_loss']
-        self.train_losses.append(train_loss.detach().numpy())
+        self.train_losses.append(train_loss.cpu().detach().numpy())
 
     def get_stats(self):
         stats = {}
