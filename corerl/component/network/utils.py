@@ -8,7 +8,7 @@ from typing import Optional
 class Float(torch.nn.Module):
     def __init__(self, device: str, init_value: float):
         super().__init__()
-        self.constant = torch.nn.Parameter(torch.tensor(init_value, dtype=torch.float32).to(device))
+        self.constant = torch.nn.Parameter(torch.tensor(init_value, dtype=torch.float32).to(device.device))
 
     def forward(self) -> torch.nn.Parameter:
         return self.constant
@@ -157,14 +157,14 @@ def tensor(x: float | numpy.ndarray | torch.Tensor, device: Optional[str] = None
     if isinstance(x, torch.Tensor):
         return x
     if device is not None:
-        x = torch.tensor(x, dtype=torch.float32).to(device)
+        x = torch.tensor(x, dtype=torch.float32).to(device.device)
     else:
         x = torch.tensor(x, dtype=torch.float32).to(global_device.device)
     return x
 
 
 def state_to_tensor(state: numpy.ndarray,  device: Optional[str] = None) -> torch.Tensor:
-    state = tensor(state.reshape((1, -1)), device)
+    state = tensor(state.reshape((1, -1)), device.device)
     return state
 
 

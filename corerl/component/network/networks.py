@@ -48,6 +48,12 @@ def _init_ensemble_reduct(cfg: DictConfig):
     elif reduct.lower() == "max":
         def _f(x, dim):
             return torch.max(x, dim=dim)[0]
+    elif reduct.lower() == "mean":
+        def _f(x, dim):
+            return torch.mean(x, dim=dim)
+    elif reduct.lower() == "median":
+        def _f(x, dim):
+            return torch.quantile(x, q=0.5, dim=dim)
     elif reduct.lower() == "percentile":
         def _f(x, dim):
             return _percentile_bootstrap(
@@ -92,12 +98,12 @@ class FC(nn.Module):
         last_fc = layer_init(nn.Linear(d, output_dim, bias=cfg.bias))
         modules.append(last_fc)
 
-        self.network = nn.Sequential(*modules).to(device.device)
+        self.network = nn.Sequential(*modules)
         self.head_act = utils.init_activation(head_activation)()
         self.to(device.device)
 
     def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
-        out = self.network(input_tensor).to(device.device)
+        out = self.network(input_tensor)
         out = self.head_act(out)
         return out
 

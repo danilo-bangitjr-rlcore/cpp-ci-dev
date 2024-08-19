@@ -19,7 +19,7 @@ from corerl.data.transition_creator import AnytimeTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
 from corerl.data_loaders.utils import train_test_split
-from corerl.utils.plotting import make_plots
+from corerl.utils.plotting import make_online_plots, make_offline_plots
 
 import corerl.utils.freezer as fr
 import main_utils as utils
@@ -92,8 +92,10 @@ def main(cfg: DictConfig) -> dict:
 
         all_agent_transitions = agent_train_transitions + agent_test_transitions
         dp_transitions = utils.get_dp_transitions(all_agent_transitions)
-        split = train_test_split(dp_transitions, train_split=cfg.experiment.plot_split)
-        plot_transitions = split[0][1]
+        plot_split = train_test_split(dp_transitions, train_split=cfg.experiment.plot_split)
+        plot_transitions = plot_split[0][1]
+        eval_split = train_test_split(agent_test_transitions, train_split=cfg.experiment.train_split)
+        eval_transitions = eval_split[0][1]
         data_load_end = time.time()
         print("Data Loading Time:", data_load_end - data_load_start)
         log.info("Data Loading Time: {}".format(data_load_end - data_load_start))
@@ -103,6 +105,7 @@ def main(cfg: DictConfig) -> dict:
                                               env,
                                               agent,
                                               agent_train_transitions,
+                                              eval_transitions,
                                               plot_transitions,
                                               save_path,
                                               test_epochs)
@@ -110,8 +113,12 @@ def main(cfg: DictConfig) -> dict:
         print("Offline Training Time:", offline_end - offline_start)
         log.info("Offline Training Time: {}".format(offline_end - offline_start))
 
+        stats = offline_eval.get_stats()
+        make_offline_plots(fr.freezer, stats, save_path / 'plots')
+
         alert_start = time.time()
-        utils.offline_alert_training(cfg, composite_alert, alert_train_transitions)
+        # Alert offline training should come after agent offline training since alert value function updates depend upon the agent's policy
+        utils.offline_alert_training(cfg, env, composite_alert, alert_train_transitions, plot_transitions, save_path)
         alert_end = time.time()
         print("Offline Alert Training Time:", alert_end - alert_start)
         log.info("Offline Alert Training Time: {}".format(alert_end - alert_start))
@@ -152,11 +159,11 @@ def main(cfg: DictConfig) -> dict:
 
     # need to update make_plots here
     stats = online_eval.get_stats()
-    make_plots(fr.freezer, stats, save_path / 'plots')
+    make_online_plots(fr.freezer, stats, save_path / 'plots')
     # env.plot(save_path / 'plots')
 
-    agent.save(save_path / 'agent')
-    agent.load(save_path / 'agent')
+    #agent.save(save_path / 'agent')
+    #agent.load(save_path / 'agent')
 
     run_end = time.time()
     print("Total Run Time:", run_end - run_start)

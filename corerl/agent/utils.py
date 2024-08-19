@@ -77,14 +77,14 @@ def get_test_state_qs_and_policy_params(agent, test_transitions):
         test_states.append(transition.state)
     test_states_np = np.array(test_states, dtype=np.float32)
 
-    test_states = tensor(test_states_np, device.device)
+    test_states = tensor(test_states_np, device)
     actions = np.linspace(np.array([0]), np.array([1]), num=test_actions)
 
     # Q-Values
     repeated_test_states = test_states.repeat_interleave(test_actions, dim=0)
     repeated_actions = [actions for i in range(num_states)]
     repeated_actions = np.concatenate(repeated_actions)
-    repeated_actions = tensor(repeated_actions, device.device)
+    repeated_actions = tensor(repeated_actions, device)
 
     q_values, ensemble_qs = agent.q_critic.get_qs([repeated_test_states], [repeated_actions], with_grad=False)
     q_values = to_np(q_values)

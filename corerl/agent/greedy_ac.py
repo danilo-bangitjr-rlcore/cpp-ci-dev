@@ -336,6 +336,8 @@ class GreedyAC(BaseAC):
             )
             batches, q_loss = args[1:]
 
+        return q_loss
+
     def update_actor(self) -> None:
         update_infos = []
         for _ in range(self.n_actor_updates):
@@ -464,9 +466,10 @@ class GreedyAC(BaseAC):
     def update(self) -> None:
         # share_batch ensures that update_actor and update_sampler use the same batch
         update_start = time.time()
+        critic_loss = None
         if min(self.critic_buffer.size) > 0:
             critic_start = time.time()
-            self.update_critic()
+            critic_loss = self.update_critic()
             critic_end = time.time()
             print("Critic Update Duration:", critic_end - critic_start)
             log.info("Critic Update Duration: {}".format(critic_end - critic_start))
@@ -483,8 +486,10 @@ class GreedyAC(BaseAC):
                 else:
                     self.update_sampler(update_infos=None)
         update_end = time.time()
-        print("Single Update Duration:", update_end - update_start)
-        log.info("Single Update Duration: {}".format(update_end - update_start))
+        #print("Single Update Duration:", update_end - update_start)
+        #log.info("Single Update Duration: {}".format(update_end - update_start))
+
+        return critic_loss
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

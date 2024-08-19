@@ -1,5 +1,8 @@
 from omegaconf import DictConfig
 
+import numpy as np
+from corerl.component.network.utils import to_np, tensor
+from corerl.utils.device import device
 from corerl.alerts.base import BaseAlert
 from corerl.alerts.factory import init_alert
 from corerl.data.data import Transition
@@ -19,9 +22,18 @@ class CompositeAlert(BaseAlert):
         for alert in self.alerts:
             alert.update_buffer(transition)
 
-    def update(self) -> None:
+    def load_buffer(self, transitions: list[Transition]) -> None:
         for alert in self.alerts:
-            alert.update()
+            alert.load_buffer(transitions)
+
+    def update(self) -> dict:
+        composite_ensemble_info = {}
+        for alert in self.alerts:
+            alert_ensemble_info = alert.update()
+            for key in alert_ensemble_info:
+                composite_ensemble_info[key] = alert_ensemble_info[key]
+
+        return composite_ensemble_info
 
     def evaluate(self, **kwargs) -> dict:
         alerts_info = {}
@@ -75,5 +87,53 @@ class CompositeAlert(BaseAlert):
 
         return trace_threshes
 
+    def get_std_thresh(self) -> dict:
+        std_threshes = {}
+        for alert in self.alerts:
+            alert_std_threshes = alert.get_std_thresh()
+            alert_type = alert.alert_type()
+            std_threshes[alert_type] = {}
+            for cumulant_name in alert_std_threshes[alert_type]:
+                std_threshes[alert_type][cumulant_name] = alert_std_threshes[alert_type][cumulant_name]
+
+        return std_threshes
+
     def get_alerts(self) -> list[BaseAlert]:
         return self.alerts
+
+    def get_test_state_qs(self, test_transitions):
+        test_actions = 100
+        num_states = len(test_transitions)
+        test_states = []
+        for transition in test_transitions:
+            test_states.append(transition.state)
+        test_states_np = np.array(test_states, dtype=np.float32)
+
+        test_states = tensor(test_states_np, device)
+        actions = np.linspace(np.array([0]), np.array([1]), num=test_actions)
+
+        repeated_test_states = test_states.repeat_interleave(test_actions, dim=0)
+        repeated_actions = [actions for i in range(num_states)]
+        repeated_actions = np.concatenate(repeated_actions)
+        repeated_actions = tensor(repeated_actions, device)
+
+        plot_info = {}
+        plot_info["states"] = test_states_np
+        plot_info["actions"] = actions
+        plot_info["q_values"] = {}
+        plot_info["ensemble_qs"] = {}
+
+        for alert in self.alerts:
+            plot_info = alert.get_test_state_qs(plot_info, repeated_test_states, repeated_actions, num_states, test_actions)
+
+        #print("Alert Test State Qs:")
+        #print(plot_info)
+
+        return plot_info
+
+    def get_buffer_sizes(self):
+        for alert in self.alerts:
+            alert_type = alert.alert_type()
+            print("Get {} Buffer Size(s)".format(alert_type))
+            print("{} Buffer Size(s): {}".format(alert_type, alert.get_buffer_size()))
+
