@@ -1,7 +1,6 @@
 from omegaconf import DictConfig, OmegaConf
 
 import numpy as np
-import time
 from collections import deque
 from corerl.alerts.base import BaseAlert
 import corerl.component.network.utils as utils
@@ -58,7 +57,6 @@ class GVFTraceAlert(BaseAlert):
         return self.gvfs.get_buffer_size()
 
     def update(self) -> dict:
-        update_start = time.time()
         gvf_info = self.gvfs.update(self.cumulant_inds)
 
         ensemble_info = {}
@@ -69,8 +67,6 @@ class GVFTraceAlert(BaseAlert):
             # Probably need to comment out the line below
             # ensemble_info[self.alert_type()][cumulant_name]["std"] = gvf_info["std"][:, ind]
             ind += 1
-        update_end = time.time()
-        print("GVF Alert Update Duration:", update_end - update_start)
 
         return ensemble_info
 
@@ -220,7 +216,6 @@ class GVFUncertaintyAlert(GVFTraceAlert):
         gvf_means = gvf_ens.mean(axis=0)
         self.means.appendleft(gvf_means)
         gvf_stds = gvf_ens.std(axis=0)
-        print("GVF Alert STDs:", gvf_stds)
         self.stds.appendleft(gvf_stds)
         # The critic predicts the expected full return. Need to take into account that we're neglecting some percentage of the return.
         gvf_qs = utils.to_np(gvf_qs)

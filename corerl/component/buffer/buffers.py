@@ -89,24 +89,6 @@ class UniformBuffer:
 
         return [self._prepare(sampled_data)]
 
-    """
-    def load(
-        self, states: list, actions: list, cumulants: list, dones: list,
-        truncates: list,
-        ) -> None:
-        for i in range(len(states) - 1):
-            self.feed(
-                (
-                    states[i], actions[i], cumulants[i], states[i+1],
-                    int(dones[i]), int(truncates[i]),
-                ),
-            )
-
-    def load(self, transitions: list) -> None:
-        for transition in transitions:
-            self.feed(transition)
-    """
-
     @property
     def size(self) -> list[int]:
         return [self.memory if self.full else self.pos]
@@ -212,12 +194,6 @@ class EnsembleUniformBuffer:
             ensemble_batch += self.buffer_ensemble[i].sample_batch()
 
         return ensemble_batch
-
-    """
-    def load(self, transitions: list) -> None:
-        for transition in transitions:
-            self.feed(transition)
-    """
 
     @property
     def size(self) -> list[int]:

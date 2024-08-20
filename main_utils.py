@@ -3,7 +3,6 @@ import numpy as np
 import hashlib
 import copy
 import pickle as pkl
-import time
 import logging
 
 log = logging.getLogger(__name__)
@@ -307,50 +306,33 @@ def offline_alert_training(cfg: DictConfig, env: Env, alerts: CompositeAlert, tr
     print("Num alert train transitions:", len(train_transitions))
     log.info("Num alert train transitions: {}".format(len(train_transitions)))
 
-    """
-    for transition in train_transitions:
-        alerts.update_buffer(transition)
-    """
     alerts.load_buffer(train_transitions)
     alerts.get_buffer_sizes()
 
-    """
     offline_eval_args = {
         'alerts': alerts
     }
-    alert_eval_cfg = {'ensemble': cfg.eval['ensemble']}
+    # alert_eval_cfg = {'ensemble': cfg.eval['ensemble']}
+    alert_eval_cfg = {}
     offline_eval = CompositeEval(alert_eval_cfg, offline_eval_args, offline=True)
-    """
-    test_epochs = [0, 1, 5, 10, 100, 200, 500, 999, 1999, 4999, 9999, 14999, 19999]
 
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
-    alert_start = time.time()
     for i in pbar:
-        update_start = time.time()
         ensemble_info = alerts.update()
-        update_end = time.time()
-        print("Single Alert Update Duration:", update_end - update_start)
 
-        if i in test_epochs:
+        if i in cfg.experiment.test_epochs:
             # make_ensemble_info_step_plot(ensemble_info, i, save_path)
             plot_info = alerts.get_test_state_qs(plot_transitions)
             make_reseau_gvf_critic_plot(plot_info, env, save_path, "Offline_Alert_Training", i)
 
-        """
         offline_eval_args = {
             'ensemble_info': ensemble_info
             }
-
         offline_eval.do_eval(**offline_eval_args)  # run all evaluators
-        """
-    alert_end = time.time()
-    print("Alerts Offline Training Total Update Duration:", alert_end - alert_start)
 
-    """
     stats = offline_eval.get_stats()
-    make_ensemble_info_summary_plots(stats, save_path, "Offline")
-    """
+    # make_ensemble_info_summary_plots(stats, save_path, "Offline")
 
 
 def offline_training(cfg: DictConfig,
@@ -376,7 +358,6 @@ def offline_training(cfg: DictConfig,
                         'test_loss': cfg.eval['test_loss']}
     """
     offline_eval_cfg = {}
-    #offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
     offline_eval = CompositeEval(offline_eval_cfg, offline_eval_args, offline=True)
 
     if plot_transitions is None:
@@ -384,15 +365,7 @@ def offline_training(cfg: DictConfig,
         train_transitions, plot_transitions = split[0][0], split[0][1]
 
     print("Num agent train transitions:", len(train_transitions))
-    buffer_start = time.time()
-    """
-    for transition in train_transitions:
-        agent.update_buffer(transition)
-    """
     agent.load_buffer(train_transitions)
-    buffer_end = time.time()
-    print("Buffer Load Time:", buffer_end - buffer_start)
-    log.info("Buffer Load Time: {}".format(buffer_end - buffer_start))
 
     print("Agent Critic Buffer Size(s):", agent.critic_buffer.size)
     log.info("Agent Critic Buffer Size(s): {}".format(agent.critic_buffer.size))
@@ -402,11 +375,7 @@ def offline_training(cfg: DictConfig,
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
     for i in pbar:
-        iter_start = time.time()
-        update_start = time.time()
         critic_loss = agent.update()
-        update_end = time.time()
-        print("Offline Agent Training Single Update Duration:", update_end - update_start)
 
         offline_eval_args = {
             'train_loss': critic_loss
@@ -420,9 +389,6 @@ def offline_training(cfg: DictConfig,
             make_actor_critic_plots(agent, env, plot_transitions, "Offline_Training", i, save_path)
 
         update_pbar(pbar, stats, cfg.experiment.offline_stat_keys)
-        iter_end = time.time()
-        print("Iteration {} Time:".format(i), iter_end - iter_start)
-        log.info("Iteration {} Time: {}".format(i, iter_end - iter_start))
 
     return offline_eval
 
@@ -556,15 +522,9 @@ def offline_anytime_deployment(cfg: DictConfig,
         for transition in alert_train_transitions:
             alerts.update_buffer(transition)
 
-        agent_start = time.time()
         agent.update()
-        agent_end = time.time()
-        print("Online Agent Training Single Update Duration:", agent_end - agent_start)
 
-        alert_start = time.time()
         ensemble_info = alerts.update()
-        alert_end = time.time()
-        print("Online Alert Training Single Update Duration:", alert_end - alert_start)
 
         alert_info_list.append(alert_info)
 

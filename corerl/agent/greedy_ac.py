@@ -4,7 +4,6 @@ from corerl.utils.hook import when
 import torch
 import numpy
 import pickle as pkl
-import time
 import logging
 log = logging.getLogger(__name__)
 from corerl.agent.base import BaseAC
@@ -112,10 +111,7 @@ class GreedyAC(BaseAC):
         # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
 
         q_values: Float[torch.Tensor, 'batch_size*num_samples 1']
-        get_q_start = time.time()
         q_values = self.q_critic.get_q([repeated_states], [sample_actions], with_grad=False)
-        get_q_end = time.time()
-        #print("Sort Q Get Q Duration:", get_q_end - get_q_start)
         q_values: Float[torch.Tensor, 'batch_size num_samples 1']
         q_values = q_values.reshape(batch_size, self.num_samples, 1)
         sorted_q_inds: Float[torch.Tensor, 'batch_size num_samples 1']
@@ -192,10 +188,7 @@ class GreedyAC(BaseAC):
             gamma_exp_batch = batch.gamma_exponent
             dp_mask = batch.boot_state_dp
 
-            next_action_start = time.time()
             next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
-            next_action_end = time.time()
-            #print("Critic Loss Next Action Duration:", next_action_end - next_action_start)
             # For the 'Anytime' paradigm, only states at decision points can sample next_actions
             # If a state isn't at a decision point, its next_action is set to the current action
             with torch.no_grad():
@@ -203,10 +196,7 @@ class GreedyAC(BaseAC):
 
             # Option 1: Using the reduction of the ensemble in the update target
             if not self.ensemble_targets:
-                option_1_start = time.time()
                 next_q = self.q_critic.get_q_target([next_state_batch], [next_actions])
-                option_1_end = time.time()
-                #print("Critic Loss Option 1 Next Q Duration:", option_1_end - option_1_start)
                 next_qs.append(next_q)
 
             state_batches.append(state_batch)
@@ -219,24 +209,14 @@ class GreedyAC(BaseAC):
 
         # Option 2: Using the corresponding target function in the ensemble in the update target
         if self.ensemble_targets:
-            option_2_start = time.time()
             _, next_qs = self.q_critic.get_qs_target(next_state_batches, next_action_batches)
-            option_2_end = time.time()
-            #print("Critic Loss Option 2 Next Qs Duration:", option_2_end - option_2_start)
         else:
-            option_1_start = time.time()
             for i in range(ensemble):
                 next_qs[i] = torch.unsqueeze(next_qs[i], 0)
             next_qs = torch.cat(next_qs, dim=0)
-            option_1_end = time.time()
-            #print("Critic Loss Option 1 Next Qs Duration:", option_1_end - option_1_start)
 
-        qs_start = time.time()
         _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
-        qs_end = time.time()
-        #print("Critic Loss Qs Duration:", qs_end - qs_start)
         losses = []
-        mse_start = time.time()
         for i in range(ensemble):
             # N-Step SARSA update with variable 'N', thus 'reward_batch' is an n_step reward
             # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
@@ -249,8 +229,6 @@ class GreedyAC(BaseAC):
             #ensemble_batch[i], target, qs[i], _ = args[1:]
 
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
-        mse_end = time.time()
-        #print("Critic Loss MSE Duration:", mse_end - mse_start)
 
         return losses
 
@@ -317,19 +295,13 @@ class GreedyAC(BaseAC):
 
             def closure():
                 return sum(self.compute_critic_loss(batches))
-            loss_start = time.time()
             q_loss = closure()
-            loss_end = time.time()
-            #print("Critic Loss Duration:", loss_end - loss_start)
 
             args, _ = self._hooks(
                 when.Agent.AfterCriticLossComputed, self, batches, q_loss,
             )
             batches, q_loss = args[1:]
-            update_start = time.time()
             self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
-            update_end = time.time()
-            #print("Critic Weight Update Duration:", update_end - update_start)
 
             args, _ = self._hooks(
                 when.Agent.AfterCriticUpdate, self, batches, q_loss,
@@ -465,29 +437,17 @@ class GreedyAC(BaseAC):
 
     def update(self) -> None:
         # share_batch ensures that update_actor and update_sampler use the same batch
-        update_start = time.time()
         critic_loss = None
         if min(self.critic_buffer.size) > 0:
-            critic_start = time.time()
             critic_loss = self.update_critic()
-            critic_end = time.time()
-            print("Critic Update Duration:", critic_end - critic_start)
-            log.info("Critic Update Duration: {}".format(critic_end - critic_start))
 
         if min(self.policy_buffer.size) > 0:
-            actor_start = time.time()
             update_infos = self.update_actor()
-            actor_end = time.time()
-            print("Actor Update Duration:", actor_end - actor_start)
-            log.info("Actor Update Duration: {}".format(actor_end - actor_start))
             if not self.uniform_proposal:
                 if self.share_batch:
                     self.update_sampler(update_infos=update_infos)
                 else:
                     self.update_sampler(update_infos=None)
-        update_end = time.time()
-        #print("Single Update Duration:", update_end - update_start)
-        #log.info("Single Update Duration: {}".format(update_end - update_start))
 
         return critic_loss
 

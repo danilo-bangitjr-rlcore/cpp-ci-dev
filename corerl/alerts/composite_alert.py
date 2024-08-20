@@ -126,9 +126,6 @@ class CompositeAlert(BaseAlert):
         for alert in self.alerts:
             plot_info = alert.get_test_state_qs(plot_info, repeated_test_states, repeated_actions, num_states, test_actions)
 
-        #print("Alert Test State Qs:")
-        #print(plot_info)
-
         return plot_info
 
     def get_buffer_sizes(self):

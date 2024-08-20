@@ -4,7 +4,6 @@ import hydra
 import numpy as np
 import torch
 import random
-import time
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +26,6 @@ import main_utils as utils
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
 def main(cfg: DictConfig) -> dict:
-    run_start = time.time()
     save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
 
@@ -42,7 +40,6 @@ def main(cfg: DictConfig) -> dict:
 
     env = init_environment(cfg.env)
 
-    data_load_start = time.time()
     do_offline_training = cfg.experiment.offline_steps > 0
     # first, load the data and potentially update the bounds of the obs space of the environment
     # it's important this happens before we create the state constructor and interaction since normalization
@@ -96,11 +93,7 @@ def main(cfg: DictConfig) -> dict:
         plot_transitions = plot_split[0][1]
         eval_split = train_test_split(agent_test_transitions, train_split=cfg.experiment.train_split)
         eval_transitions = eval_split[0][1]
-        data_load_end = time.time()
-        print("Data Loading Time:", data_load_end - data_load_start)
-        log.info("Data Loading Time: {}".format(data_load_end - data_load_start))
 
-        offline_start = time.time()
         offline_eval = utils.offline_training(cfg,
                                               env,
                                               agent,
@@ -109,19 +102,12 @@ def main(cfg: DictConfig) -> dict:
                                               plot_transitions,
                                               save_path,
                                               test_epochs)
-        offline_end = time.time()
-        print("Offline Training Time:", offline_end - offline_start)
-        log.info("Offline Training Time: {}".format(offline_end - offline_start))
 
         stats = offline_eval.get_stats()
         make_offline_plots(fr.freezer, stats, save_path / 'plots')
 
-        alert_start = time.time()
         # Alert offline training should come after agent offline training since alert value function updates depend upon the agent's policy
         utils.offline_alert_training(cfg, env, composite_alert, alert_train_transitions, plot_transitions, save_path)
-        alert_end = time.time()
-        print("Offline Alert Training Time:", alert_end - alert_start)
-        log.info("Offline Alert Training Time: {}".format(alert_end - alert_start))
 
     if not (test_epochs is None):
         assert not (plot_transitions is None), "Must include test transitions if test_epochs is not None"
@@ -131,7 +117,6 @@ def main(cfg: DictConfig) -> dict:
                                    transitions=agent_test_transitions)
 
     if cfg.interaction.name == "offline_anytime":  # simulating online experience from an offline dataset
-        offline_anytime_start = time.time()
         online_eval = utils.offline_anytime_deployment(cfg,
                                                        agent,
                                                        interaction,
@@ -141,9 +126,6 @@ def main(cfg: DictConfig) -> dict:
                                                        save_path,
                                                        plot_transitions,
                                                        test_epochs)
-        offline_anytime_end = time.time()
-        print("Offline Anytime Duration:", offline_anytime_end - offline_anytime_start)
-        log.info("Offline Anytime Duration: {}".format(offline_anytime_end - offline_anytime_start))
         #online_eval.output(save_path / 'stats.json')
     else:
         online_eval = utils.online_deployment(cfg,
@@ -162,12 +144,8 @@ def main(cfg: DictConfig) -> dict:
     make_online_plots(fr.freezer, stats, save_path / 'plots')
     # env.plot(save_path / 'plots')
 
-    #agent.save(save_path / 'agent')
-    #agent.load(save_path / 'agent')
-
-    run_end = time.time()
-    print("Total Run Time:", run_end - run_start)
-    log.info("Total Run Time: {}".format(run_end - run_start))
+    agent.save(save_path / 'agent')
+    agent.load(save_path / 'agent')
 
     # return stats
 

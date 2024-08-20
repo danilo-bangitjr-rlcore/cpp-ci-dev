@@ -1,5 +1,4 @@
 import copy
-import time
 import torch
 import torch.nn as nn
 import torch.distributions as distrib
@@ -198,29 +197,6 @@ class EnsembleCritic(nn.Module):
         q = self._reduct(qs, dim=0)
 
         return q, qs
-
-    """
-    def forward(
-            self, input_tensor: list[torch.Tensor],
-    ) -> (torch.Tensor, torch.Tensor):
-        if len(input_tensor) == self.ensemble:
-            # Each element of the 'input_tensor' list is evaluated by the corresponding member of the ensemble
-            # Used in critic updates
-            qs = [self.subnetworks[i](input_tensor[i]) for i in range(self.ensemble)]
-        else:
-            # Each member of the ensemble evaluates the same state-action pairs
-            # Used in policy updates and when evaluating alerts
-            assert len(input_tensor) == 1
-            input_tensor = input_tensor[0]
-            qs = [net(input_tensor) for net in self.subnetworks]
-        
-        for i in range(self.ensemble):
-            qs[i] = torch.unsqueeze(qs[i], 0)
-        qs = torch.cat(qs, dim=0)
-        q = self._reduct(qs, dim=0)
-
-        return q, qs
-    """
 
     def state_dict(self) -> list:
         sd = [net.state_dict() for net in self.subnetworks]

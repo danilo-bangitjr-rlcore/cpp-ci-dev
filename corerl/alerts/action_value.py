@@ -2,7 +2,6 @@ from omegaconf import DictConfig, OmegaConf
 
 import numpy as np
 import torch
-import time
 from collections import deque
 from corerl.alerts.base import BaseAlert
 import corerl.component.network.utils as utils
@@ -23,8 +22,6 @@ class ActionValueTraceAlert(BaseAlert):
             raise KeyError("Missing required argument: 'action_dim'")
 
         super().__init__(cfg, cumulant_start_ind, **kwargs)
-        print("ActionValueTraceAlert CFG:")
-        print(cfg)
         self.cumulant_end_ind = self.cumulant_start_ind + self.get_dim()
         self.cumulant_inds = list(range(self.cumulant_start_ind, self.cumulant_end_ind))
 
@@ -122,7 +119,6 @@ class ActionValueTraceAlert(BaseAlert):
         return losses, ensemble_info
 
     def update(self) -> dict:
-        update_start = time.time()
         batches = self.buffer.sample()
 
         def closure():
@@ -131,8 +127,6 @@ class ActionValueTraceAlert(BaseAlert):
         q_loss, ens_info = closure()
 
         self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
-        update_end = time.time()
-        print("Action-Value Alert Update Duration:", update_end - update_start)
 
         return ens_info
 
@@ -281,7 +275,6 @@ class ActionValueUncertaintyAlert(ActionValueTraceAlert):
         q, q_ens = self.q_critic.get_qs([state], [action], with_grad=False)
         q_ens = utils.to_np(q_ens)
         q_std = q_ens.std()
-        print("Action-Value Alert STD:", q_std)
         self.stds.appendleft(q_std)
         q_mean = q_ens.mean()
         self.means.appendleft(q_mean)
