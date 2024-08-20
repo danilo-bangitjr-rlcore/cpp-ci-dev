@@ -8,18 +8,18 @@ defaults:
   - calibration_model : anytime
   - normalizer : normalizer
 #  - alerts@alerts.action_value_trace : action_value_trace
-  - alerts@alerts.action_value_uncertainty : action_value_uncertainty
+#  - alerts@alerts.action_value_uncertainty : action_value_uncertainty
 #  - alerts@alerts.gvf_trace : gvf_trace
-  - alerts@alerts.gvf_uncertainty : gvf_uncertainty
+#  - alerts@alerts.gvf_uncertainty : gvf_uncertainty
 #  - eval@eval.ibe : ibe # this lets us have multiple subconfigs rooted at eval
 #  - eval@eval.train_loss : train_loss
 #  - eval@eval.test_loss : test_loss
 #  - eval@eval.reward : reward
 #  - eval@eval.action_gap : action_gap
 #  - eval@eval.trace_alerts : trace_alerts
-  - eval@eval.uncertainty_alerts : uncertainty_alerts
-  - eval@eval.actions : actions
-  - eval@eval.endo_obs : endo_obs
+#  - eval@eval.uncertainty_alerts : uncertainty_alerts
+#  - eval@eval.actions : actions
+#  - eval@eval.endo_obs : endo_obs
 #  - eval@eval.ensemble : ensemble
 
 experiment:
