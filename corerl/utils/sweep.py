@@ -25,6 +25,9 @@ def flatten_list(nd_list: list) -> list:
 def add_key_to_run(run, key, values):
     run_list = []
     for value in values:
+        if isinstance(value, list):
+            value = '\\[' + ','.join(value) + '\\]'  # so hydra understands this value as a list
+
         run_ = run.copy()
         run_[key] = value
         run_list.append(run_)
