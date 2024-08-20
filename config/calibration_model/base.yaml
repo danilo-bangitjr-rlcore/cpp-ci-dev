@@ -7,4 +7,5 @@ exo_inds : [1] # indices of exogenous variables within the observation
 max_rollout_len : 180
 steps_per_decision : ${interaction.steps_per_decision}
 num_test_rollouts : 20
+allow_learning : False
 gamma : ${experiment.gamma}
