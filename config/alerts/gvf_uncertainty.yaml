@@ -1,0 +1,6 @@
+defaults:
+  - gvf_trace
+  - _self_
+
+name : gvf_uncertainty
+std_thresh : 0.1

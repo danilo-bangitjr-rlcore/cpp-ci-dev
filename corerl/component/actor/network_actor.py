@@ -15,7 +15,7 @@ class NetworkActor(BaseActor):
         if initializer:
             self.model.load_state_dict(initializer.model.state_dict())
         self.optimizer = init_optimizer(cfg.actor_optimizer, self.model.parameters())
-
+        self.optimizer_name = cfg.actor_optimizer.name
 
     def distribution_bounds(self):
         return self.model.distribution_bounds()
@@ -25,7 +25,10 @@ class NetworkActor(BaseActor):
     ) -> None:
         self.optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step(*opt_args, **opt_kwargs)
+        if self.optimizer_name != "lso":
+            self.optimizer.step()
+        else:
+            self.optimizer.step(*opt_args, **opt_kwargs)
 
     def get_action(self, state: torch.Tensor, with_grad=False) -> (torch.Tensor, dict):
         if with_grad:
@@ -51,10 +54,10 @@ class NetworkActor(BaseActor):
 
     def load(self, path: Path) -> None:
         net_path = path / 'actor_net'
-        self.model.load_state_dict(torch.load(net_path, map_location=device))
+        self.model.load_state_dict(torch.load(net_path, map_location=device.device))
 
         opt_path = path / 'actor_opt'
-        self.optimizer.load_state_dict(torch.load(opt_path, map_location=device))
+        self.optimizer.load_state_dict(torch.load(opt_path, map_location=device.device))
 
 
 class NetworkActorLineSearch(NetworkActor):

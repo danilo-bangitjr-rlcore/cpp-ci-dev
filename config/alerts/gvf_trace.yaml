@@ -1,0 +1,10 @@
+defaults:
+  - base
+  - _self_
+
+name : gvf_trace
+endo_obs_names: ${env.endo_obs_names}
+endo_inds : ${env.endo_inds}
+trace_decay : 0.995
+trace_thresh : 0.1
+train_itr : 1000

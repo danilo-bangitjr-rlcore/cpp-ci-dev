@@ -109,7 +109,7 @@ class MemoryTrace(BaseStateConstructorComponent):
             zeros = np.zeros_like(obs)
         elif isinstance(obs, torch.Tensor):
             zeros = torch.zeros_like(obs)
-            self.trace = tensor(self.trace, device)
+            self.trace = tensor(self.trace, device.device)
 
         if self.trace is None:  # first observation received
             self.trace = (1 - self.trace_decay) * obs + self.trace_decay * zeros

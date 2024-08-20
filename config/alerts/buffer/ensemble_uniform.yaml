@@ -1,0 +1,7 @@
+defaults:
+  - uniform
+  - _self_
+
+name: ensemble_uniform
+ensemble: ${alerts.ensemble}
+data_subset: 0.9 # Percentage of all data stored in each buffer in the ensemble

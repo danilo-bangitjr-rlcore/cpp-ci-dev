@@ -29,14 +29,14 @@ class SAC(BaseAC):
         self.automatic_entropy_tuning = cfg.tau == -1
         if self.automatic_entropy_tuning:
             self.target_entropy = -np.prod(action_dim).item() # If action_dim is an int, is this necessary?
-            self.log_alpha = Float(device, 0.0)
+            self.log_alpha = Float(device.device, 0.0)
         else:
-            self.log_alpha = Float(device, np.log(cfg.tau))
+            self.log_alpha = Float(device.device, np.log(cfg.tau))
         self.alpha = self.log_alpha().exp().detach()
         self.alpha_optimizer = torch.optim.Adam(self.log_alpha.parameters(), lr=cfg.lr_alpha)
 
     def get_action(self, state: np.ndarray) -> np.ndarray:
-        tensor_state = state_to_tensor(state, device)
+        tensor_state = state_to_tensor(state, device.device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
         return action
@@ -225,10 +225,10 @@ class SAC(BaseAC):
         self.q_critic.load(q_critic_path)
 
         log_alpha_path = path / "log_alpha"
-        self.log_alpha.load_state_dict(torch.load(log_alpha_path, map_location=device))
+        self.log_alpha.load_state_dict(torch.load(log_alpha_path, map_location=device.device))
 
         alpha_opt_path = path / "alpha_opt"
-        self.alpha_optimizer.load_state_dict(torch.load(alpha_opt_path, map_location=device))
+        self.alpha_optimizer.load_state_dict(torch.load(alpha_opt_path, map_location=device.device))
 
         critic_buffer_path = path / "critic_buffer.pkl"
         with open(critic_buffer_path, "rb") as f:

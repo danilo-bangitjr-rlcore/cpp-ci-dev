@@ -1,7 +1,8 @@
-import time
+import copy
 import torch
 import torch.nn as nn
 import torch.distributions as distrib
+from torch.func import stack_module_state, functional_call
 import numpy as np
 import corerl.component.network.utils as utils
 from corerl.utils.device import device
@@ -46,6 +47,12 @@ def _init_ensemble_reduct(cfg: DictConfig):
     elif reduct.lower() == "max":
         def _f(x, dim):
             return torch.max(x, dim=dim)[0]
+    elif reduct.lower() == "mean":
+        def _f(x, dim):
+            return torch.mean(x, dim=dim)
+    elif reduct.lower() == "median":
+        def _f(x, dim):
+            return torch.quantile(x, q=0.5, dim=dim)
     elif reduct.lower() == "percentile":
         def _f(x, dim):
             return _percentile_bootstrap(
@@ -70,7 +77,7 @@ def create_base(
 # TODO: here is an example of initializing a network.
 class FC(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
-        super().__init__()
+        super(FC, self).__init__()
         layer_norm = cfg.layer_norm
         arch = cfg.arch
         activation = cfg.activation
@@ -92,7 +99,7 @@ class FC(nn.Module):
 
         self.network = nn.Sequential(*modules)
         self.head_act = utils.init_activation(head_activation)()
-        self.to(device)
+        self.to(device.device)
 
     def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
         out = self.network(input_tensor)
@@ -108,7 +115,7 @@ class EnsembleFC(nn.Module):
             create_base(cfg.base, input_dim, output_dim)
             for _ in range(self.ensemble)
         ]
-        self.to(device)
+        self.to(device.device)
 
     def forward(self, input_tensor: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         outs = [net(input_tensor) for net in self.subnetworks]
@@ -141,30 +148,52 @@ class EnsembleCritic(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(EnsembleCritic, self).__init__()
         self.ensemble = cfg.ensemble
+        self.vmap = cfg.vmap
         self.subnetworks = [
             create_base(cfg.base, input_dim, output_dim)
             for _ in range(self.ensemble)
         ]
+
+        # Vectorizing the ensemble to use torch.vmap to avoid sequentially querrying the ensemble
+        self.params, self.buffers = stack_module_state(self.subnetworks)
+
+        self.base_model = copy.deepcopy(self.subnetworks[0])
+        self.base_model = self.base_model.to(device.device)
+
         self._reduct = _init_ensemble_reduct(cfg)
-        self.to(device)
+        self.to(device.device)
+
+    def fmodel(self, params, buffers, x: torch.Tensor):
+        return functional_call(self.base_model, (params, buffers), (x,))
 
     def forward(
-            self, input_tensor: list[torch.Tensor],
+            self, input_tensor: torch.Tensor,
     ) -> (torch.Tensor, torch.Tensor):
-        if len(input_tensor) == self.ensemble:
-            # Each element of the 'input_tensor' list is evaluated by the corresponding member of the ensemble
+        # For ensemble critic updates, expecting a different batch for each member of the ensemble
+        # Therefore, we expect the shape of the input_tensor to be (ensemble_size, batch_size, state-action dim)
+        if len(input_tensor.shape) == 3 and input_tensor.shape[0] == self.ensemble:
+            # Each element of the 'input_tensor' is evaluated by the corresponding member of the ensemble
             # Used in critic updates
-            qs = [self.subnetworks[i](input_tensor[i]) for i in range(self.ensemble)]
-        else:
-            # Each member of the ensemble evaluates the same state-action pairs
+            if self.vmap:
+                qs = torch.vmap(self.fmodel)(self.params, self.buffers, input_tensor)
+            else:
+                qs = [self.subnetworks[i](input_tensor[i]) for i in range(self.ensemble)]
+                for i in range(self.ensemble):
+                    qs[i] = torch.unsqueeze(qs[i], 0)
+                qs = torch.cat(qs, dim=0)
+        elif len(input_tensor.shape) == 2:
+            # Each member of the ensemble evaluates the same batch of state-action pairs
             # Used in policy updates and when evaluating alerts
-            assert len(input_tensor) == 1
-            input_tensor = input_tensor[0]
-            qs = [net(input_tensor) for net in self.subnetworks]
-        
-        for i in range(self.ensemble):
-            qs[i] = torch.unsqueeze(qs[i], 0)
-        qs = torch.cat(qs, dim=0)
+            if self.vmap:
+                qs = torch.vmap(self.fmodel, in_dims=(0, 0, None))(self.params, self.buffers, input_tensor)
+            else:
+                qs = [net(input_tensor) for net in self.subnetworks]
+                for i in range(self.ensemble):
+                    qs[i] = torch.unsqueeze(qs[i], 0)
+                qs = torch.cat(qs, dim=0)
+        else:
+            raise NotImplementedError
+
         q = self._reduct(qs, dim=0)
 
         return q, qs
@@ -206,7 +235,7 @@ class SquashedGaussian(nn.Module):
         else:
             raise NotImplementedError
 
-        self.to(device)
+        self.to(device.device)
 
     def distribution_bounds(self):
         return -1, 1
@@ -295,7 +324,7 @@ class BetaPolicy(nn.Module):
         self.beta_param_bias = torch.tensor(beta_param_bias)
         self.beta_param_bound = torch.tensor(beta_param_bound)
         self.tanh_shift = cfg.tanh_shift
-        self.to(device)
+        self.to(device.device)
 
     def distribution_bounds(self):
         return 0, 1
@@ -380,7 +409,7 @@ class Softmax(nn.Module):
         super(Softmax, self).__init__()
         self.output_dim = output_dim
         self.base_network = create_base(cfg.base, input_dim, output_dim)
-        self.to(device)
+        self.to(device.device)
 
     def get_probs(self, state: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         x = self.base_network(state)
@@ -425,8 +454,7 @@ class RndLinearUncertainty(nn.Module):
         self.linear_head = layer_init(
             nn.Linear(arch[-1], output_dim, bias=cfg.bias),
         )
-        self.to(cfg.device)
-        self.device = cfg.device
+        self.to(device.device)
 
     def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
@@ -470,11 +498,11 @@ class GRU(nn.Module):
         self.output_net = create_base(cfg.base, self.gru_hidden_dim, output_dim)
         # self.gru = nn.GRU(input_dim, self.gru_hidden_dim, self.num_gru_layers, batch_first=True)
         self.gru = nn.RNN(input_dim, self.gru_hidden_dim, self.num_gru_layers, batch_first=True)
-        self.to(device)
+        self.to(device.device)
 
     def forward(self, x: torch.Tensor, prediction_start=None) -> torch.Tensor:
         batch_size, seq_length, _ = x.size()
-        h = torch.zeros(self.num_gru_layers, batch_size, self.gru_hidden_dim).to(device)
+        h = torch.zeros(self.num_gru_layers, batch_size, self.gru_hidden_dim).to(device.device)
         if prediction_start is None:
             out, _ = self.gru(x, h)
             out = self.output_net(out)

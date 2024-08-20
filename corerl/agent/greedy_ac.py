@@ -4,6 +4,8 @@ from corerl.utils.hook import when
 import torch
 import numpy
 import pickle as pkl
+import logging
+log = logging.getLogger(__name__)
 from corerl.agent.base import BaseAC
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
@@ -62,7 +64,7 @@ class GreedyAC(BaseAC):
         self._hooks(when.Agent.AfterCreate, self)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        tensor_state = state_to_tensor(state, device)
+        tensor_state = state_to_tensor(state, device.device)
 
         args, _ = self._hooks(when.Agent.BeforeGetAction, self, tensor_state)
         tensor_state = args[1]
@@ -95,6 +97,15 @@ class GreedyAC(BaseAC):
             actor_transition = args[1]
             self.policy_buffer.feed(actor_transition)
 
+    def load_buffer(self, transitions: list[Transition]) -> None:
+        policy_transitions = []
+        for transition in transitions:
+            if transition.state_dp:
+                policy_transitions.append(transition)
+        
+        self.policy_buffer.load(policy_transitions)
+        self.critic_buffer.load(transitions)
+
     def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
                      batch_size: int) -> Float[torch.Tensor, 'batch_size num_samples']:
         # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
@@ -115,7 +126,6 @@ class GreedyAC(BaseAC):
             Float[torch.Tensor, 'batch_size*top_actions state_dim'],
             Float[torch.Tensor, 'batch_size*num_samples action_dim'],
             int):
-
         batch_size = state_batch.shape[0]
         # recall that if self.sample_all_discrete_actions then self.num_samples = self.action_dim
         repeated_states: Float[torch.Tensor, 'batch_size*num_samples state_dim']
@@ -131,7 +141,7 @@ class GreedyAC(BaseAC):
                     sample_actions = utils.get_batch_actions_discrete(state_batch, self.action_dim,
                                                                       samples=self.num_samples)
                 else:
-                    sample_actions = torch.rand((self.num_samples * batch_size, self.action_dim))
+                    sample_actions = torch.rand((self.num_samples * batch_size, self.action_dim), device=device.device)
             else:
                 sample_actions: Float[torch.Tensor, 'batch_size*action_dim action_dim']
                 sample_actions, _ = self.sampler.get_action(repeated_states, with_grad=False)
@@ -291,13 +301,14 @@ class GreedyAC(BaseAC):
                 when.Agent.AfterCriticLossComputed, self, batches, q_loss,
             )
             batches, q_loss = args[1:]
-
             self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
 
             args, _ = self._hooks(
                 when.Agent.AfterCriticUpdate, self, batches, q_loss,
             )
             batches, q_loss = args[1:]
+
+        return q_loss
 
     def update_actor(self) -> None:
         update_infos = []
@@ -426,8 +437,9 @@ class GreedyAC(BaseAC):
 
     def update(self) -> None:
         # share_batch ensures that update_actor and update_sampler use the same batch
+        critic_loss = None
         if min(self.critic_buffer.size) > 0:
-            self.update_critic()
+            critic_loss = self.update_critic()
 
         if min(self.policy_buffer.size) > 0:
             update_infos = self.update_actor()
@@ -436,6 +448,8 @@ class GreedyAC(BaseAC):
                     self.update_sampler(update_infos=update_infos)
                 else:
                     self.update_sampler(update_infos=None)
+
+        return critic_loss
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

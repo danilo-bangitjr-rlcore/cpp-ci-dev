@@ -18,7 +18,6 @@ class UniformTrajectoryBuffer:
         self.data = []
         self.pos = 0
         self.full = False
-        self.device = torch.device(cfg.device)
 
         if self.batch_size == 0:
             self.sample = self.sample_batch

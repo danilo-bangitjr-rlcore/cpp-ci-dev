@@ -5,3 +5,4 @@ defaults:
 ensemble : 2
 name : ensemble
 reduct : min
+vmap : False

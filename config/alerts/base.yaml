@@ -1,0 +1,10 @@
+defaults:
+  - _self_
+  - critic: critic
+  - buffer: ensemble_uniform
+
+gamma : 0.95
+ret_perc : 0.1 # Percentage of observed return not used to compute the observed partial return
+ensemble : 10
+reduct : mean
+ensemble_targets : True

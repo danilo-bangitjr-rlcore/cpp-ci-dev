@@ -1,0 +1,8 @@
+defaults:
+  - base: fc
+  - _self_
+
+ensemble : ${alerts.ensemble}
+name : ensemble
+reduct : ${alerts.base.reduct}
+vmap : False

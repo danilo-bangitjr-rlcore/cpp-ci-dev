@@ -3,6 +3,9 @@ import numpy as np
 import hashlib
 import copy
 import pickle as pkl
+import logging
+
+log = logging.getLogger(__name__)
 
 import pandas as pd
 from tqdm import tqdm
@@ -24,7 +27,7 @@ from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.transition_creator import AnytimeTransitionCreator
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.agent.base import BaseAgent
-from corerl.utils.plotting import make_actor_critic_plots
+from corerl.utils.plotting import make_actor_critic_plots, make_ensemble_info_step_plot, make_ensemble_info_summary_plots, make_reseau_gvf_critic_plot
 
 
 def prepare_save_dir(cfg: DictConfig):
@@ -113,6 +116,7 @@ def set_env_obs_space(env: Env, df: pd.DataFrame, dl: BaseDataLoader):
     obs_bounds = dl.get_obs_max_min(df)
     env.observation_space = spaces.Box(low=obs_bounds[0], high=obs_bounds[1], dtype=np.float32)
     print("Updated env observation space:", env.observation_space)
+    log.info("Updated env observation space: {}".format(env.observation_space))
     return env
 
 
@@ -207,7 +211,7 @@ def get_offline_transitions(cfg: DictConfig,
     output_path = Path(cfg.offline_data.output_path)
 
     def create_transitions(obs_transitions, return_scs):
-        return transition_creator.make_offline_transitions(obs_transitions, sc, return_scs, use_pbar=True)
+        return transition_creator.make_offline_transitions(obs_transitions, sc, return_scs, cfg.state_constructor.warmup, use_pbar=True)
 
     agent_train_transitions, alert_train_transitions, _ = load_or_create(root=output_path,
                                                                          cfgs=[cfg.data_loader, cfg.state_constructor,
@@ -291,22 +295,51 @@ def get_state_action_dim(env: Env, sc: BaseStateConstructor) -> tuple[int, int]:
     return state_dim, action_dim
 
 
-def offline_alert_training(cfg: DictConfig, alerts: CompositeAlert, train_transitions: list[Transition]) -> None:
+def offline_alert_training(cfg: DictConfig, env: Env, alerts: CompositeAlert, train_transitions: list[Transition], plot_transitions: list[Transition], save_path: Path) -> CompositeEval:
     print('Starting offline alert training...')
+    log.info('Starting offline alert training...')
+
+    if plot_transitions is None:
+        split = train_test_split(train_transitions, train_split=cfg.experiment.train_split)
+        train_transitions, plot_transitions = split[0][0], split[0][1]
+
     print("Num alert train transitions:", len(train_transitions))
-    for transition in train_transitions:
-        alerts.update_buffer(transition)
+    log.info("Num alert train transitions: {}".format(len(train_transitions)))
+
+    alerts.load_buffer(train_transitions)
+    alerts.get_buffer_sizes()
+
+    offline_eval_args = {
+        'alerts': alerts
+    }
+    # alert_eval_cfg = {'ensemble': cfg.eval['ensemble']}
+    alert_eval_cfg = {}
+    offline_eval = CompositeEval(alert_eval_cfg, offline_eval_args, offline=True)
 
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
-    for _ in pbar:
-        alerts.update()
+    for i in pbar:
+        ensemble_info = alerts.update()
+
+        if i in cfg.experiment.test_epochs:
+            # make_ensemble_info_step_plot(ensemble_info, i, save_path)
+            plot_info = alerts.get_test_state_qs(plot_transitions)
+            make_reseau_gvf_critic_plot(plot_info, env, save_path, "Offline_Alert_Training", i)
+
+        offline_eval_args = {
+            'ensemble_info': ensemble_info
+            }
+        offline_eval.do_eval(**offline_eval_args)  # run all evaluators
+
+    stats = offline_eval.get_stats()
+    # make_ensemble_info_summary_plots(stats, save_path, "Offline")
 
 
 def offline_training(cfg: DictConfig,
                      env: Env,
                      agent: BaseAgent,
                      train_transitions: list[Transition],
+                     eval_transitions: list[Transition],
                      plot_transitions: list[Transition],
                      save_path: Path,
                      test_epochs: Optional[list[int]] = None) -> CompositeEval:
@@ -314,26 +347,39 @@ def offline_training(cfg: DictConfig,
         test_epochs = []
 
     print('Starting offline agent training...')
+    log.info('Starting offline agent training...')
     offline_eval_args = {
-        'agent': agent
+        'agent': agent,
+        'eval_transitions': eval_transitions
     }
-    offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
+    """
+    offline_eval_cfg = {'ibe': cfg.eval['ibe'],
+                        'train_loss': cfg.eval['train_loss'],
+                        'test_loss': cfg.eval['test_loss']}
+    """
+    offline_eval_cfg = {}
+    offline_eval = CompositeEval(offline_eval_cfg, offline_eval_args, offline=True)
 
     if plot_transitions is None:
         split = train_test_split(train_transitions, train_split=cfg.experiment.train_split)
         train_transitions, plot_transitions = split[0][0], split[0][1]
 
     print("Num agent train transitions:", len(train_transitions))
-    for transition in train_transitions:
-        agent.update_buffer(transition)
+    agent.load_buffer(train_transitions)
 
     print("Agent Critic Buffer Size(s):", agent.critic_buffer.size)
+    log.info("Agent Critic Buffer Size(s): {}".format(agent.critic_buffer.size))
     print("Agent Policy Buffer Size(s):", agent.policy_buffer.size)
+    log.info("Agent Policy Buffer Size(s): {}".format(agent.policy_buffer.size))
 
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
     for i in pbar:
-        agent.update()
+        critic_loss = agent.update()
+
+        offline_eval_args = {
+            'train_loss': critic_loss
+        }
         offline_eval.do_eval(**offline_eval_args)  # run all evaluators
         stats = offline_eval.get_stats()
 
@@ -460,12 +506,14 @@ def offline_anytime_deployment(cfg: DictConfig,
     pbar = tqdm(range(max_steps))
     alert_info_list = []
     print('Starting online anytime training with offline dataset...')
+    log.info('Starting online anytime training with offline dataset...')
 
     for j in pbar:
         transitions, agent_train_transitions, alert_train_transitions, alert_info, _ = interaction.step()  # does not need an action from the agent
 
         if transitions is None:
             print("Reached End Of Offline Eval Data")
+            log.info("Reached End Of Offline Eval Data")
             break
 
         for transition in agent_train_transitions:
@@ -475,29 +523,34 @@ def offline_anytime_deployment(cfg: DictConfig,
             alerts.update_buffer(transition)
 
         agent.update()
-        alerts.update()
+
+        ensemble_info = alerts.update()
 
         alert_info_list.append(alert_info)
 
+        online_eval_args = {
+            'agent': agent,
+            'env': env,
+            'transitions': transitions,
+            'alert_info_list': alert_info_list,
+            'ensemble_info': ensemble_info
+        }
+
+        online_eval.do_eval(**online_eval_args)
+        stats = online_eval.get_stats()
+
+        update_pbar(pbar, stats, cfg.experiment.online_stat_keys)
+        alert_info_list = []
+
         if len(transitions) > 0:
-            # logging + evaluation
-            # union of the information needed by all evaluators
-            online_eval_args = {
-                'agent': agent,
-                'env': env,
-                'transitions': transitions,
-                'alert_info_list': alert_info_list
-            }
-
-            online_eval.do_eval(**online_eval_args)
-            stats = online_eval.get_stats()
-
-            update_pbar(pbar, stats, cfg.experiment.online_stat_keys)
-            alert_info_list = []
+            make_actor_critic_plots(agent, env, transitions, "Offline_Anytime_Encountered_States", j, save_path)
+            if alerts.get_dim() > 0:
+                plot_info = alerts.get_test_state_qs(transitions)
+                make_reseau_gvf_critic_plot(plot_info, env, save_path, "Offline_Anytime", j)
 
         # Plot policy and critic at a set of test states
         # Plotting function is likely project specific
         if j in test_epochs:
-            make_actor_critic_plots(agent, env, plot_transitions, "Online_Interaction_Offline_Data", j, save_path)
+            make_actor_critic_plots(agent, env, plot_transitions, "Offline_Anytime_Test_States", j, save_path)
 
     return online_eval
