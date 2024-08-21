@@ -3,3 +3,4 @@ memory: 100000
 name: uniform
 device : ${experiment.device}
 seed : ${experiment.seed}
+combined: true

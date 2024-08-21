@@ -25,6 +25,11 @@ class UniformBuffer:
         self.rng = np.random.RandomState(self.seed)
         self.memory = cfg.memory
         self.batch_size = cfg.batch_size
+
+        # Whether or not to use combined experience replay:
+        #   https://arxiv.org/pdf/1712.01275
+        self.combined = cfg.combined
+
         self.data = None
         self.pos = 0
         self.full = False
@@ -33,6 +38,13 @@ class UniformBuffer:
             self.sample = self.sample_batch
         else:
             self.sample = self.sample_mini_batch
+
+    @property
+    def _last_pos(self):
+        if self.pos == 0 and not self.full:
+            return 0
+        else:
+            return self.pos - 1
 
     def feed(self, experience: Transition) -> None:
         if self.data is None:
@@ -73,6 +85,9 @@ class UniformBuffer:
             batch_size = self.batch_size
 
         sampled_indices = self.rng.randint(0, self.size, batch_size)
+
+        if self.combined:
+            sampled_indices[0] = self._last_pos
 
         sampled_data = [self.data[i][sampled_indices] for i in range(len(self.data))]
 
