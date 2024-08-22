@@ -22,11 +22,10 @@ class BaseStateConstructor(ABC):
 
     def __call__(self, obs: np.ndarray, action: np.ndarray, initial_state=False, **kwargs) -> np.ndarray:
         """
-        We pass in the new observation, the last action, and whether or not this state is an initial state
+        We pass in the new observation, the last action, and whether this state is an initial state
         """
 
-        # TODO: have this include a dummy action
-        init_array = np.zeros(1, dtype=bool)  # whether or not this is an initial state
+        init_array = np.zeros(1, dtype=bool)  # whether this is an initial state
         init_array[0] = initial_state
         state = np.concatenate([init_array, action, obs])  # convention: action goes first in the state array
         raise state

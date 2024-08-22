@@ -113,6 +113,8 @@ def main(cfg: DictConfig) -> dict:
                                                                                  prefix='model',
                                                                                  return_train_scs=True)
 
+    return
+
     # these are the transitions the agents will use for rollouts. The only reason we need these is to get
     # state/state constructors for the agent that are lined up with the calibration model's
     agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.interaction]

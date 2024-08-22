@@ -263,7 +263,7 @@ def get_offline_trajectories(cfg: DictConfig,
 
     def create_trajectories(obs_transitions, return_scs):
         return transition_creator.make_offline_trajectories(obs_transitions, sc,
-                                                            use_pbar=True, warmup=warmup, return_scs=return_scs)
+                                                            use_pbar=True, warmup=warmup, return_all_scs=return_scs)
 
     if prefix != '':
         prefix = prefix + '_'
