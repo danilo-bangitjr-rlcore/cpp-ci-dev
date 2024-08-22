@@ -154,8 +154,6 @@ class Trajectory:
         self.scs = []
         sc = deepcopy(self.start_sc)
         self.scs.append(deepcopy(sc))
-
-
         for transition in self.transitions[:-1]:
             sc(transition.next_obs,
                transition.action,
@@ -164,13 +162,14 @@ class Trajectory:
                steps_until_decision=transition.next_steps_until_decision)
             self.scs.append(deepcopy(sc))
 
-
     def get_sc_at_idx(self, idx: int) -> BaseStateConstructor:
         """
         rolls the initial state constructor forward to
         """
+
         if self.scs is not None:
-            return self.scs[idx]
+            print(len(self.scs))
+            return deepcopy(self.scs[idx])
         else:
             sc = deepcopy(self.start_sc)
             for transition in self.transitions[:idx]:

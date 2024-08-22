@@ -110,10 +110,8 @@ def main(cfg: DictConfig) -> dict:
                                                                                  sc_cm,
                                                                                  transition_creator,
                                                                                  warmup,
-                                                                                 prefix='model',
-                                                                                 return_train_scs=True)
+                                                                                 prefix='model')
 
-    return
 
     # these are the transitions the agents will use for rollouts. The only reason we need these is to get
     # state/state constructors for the agent that are lined up with the calibration model's
@@ -125,19 +123,8 @@ def main(cfg: DictConfig) -> dict:
                                                                                                 sc_agent,
                                                                                                 transition_creator,
                                                                                                 warmup,
-                                                                                                prefix='agent_rollout',
-                                                                                                return_train_scs=True)
+                                                                                                prefix='agent_rollout')
     rollout_trajectories_agent = rollout_trajectories_agent_1 + rollout_trajectories_agent_2
-
-    for i, _ in enumerate(rollout_trajectories_agent):
-        if not rollout_trajectories_agent[i].num_transitions == len(rollout_trajectories_agent[i].scs):
-            print(i)
-            print(rollout_trajectories_agent[i].num_transitions)
-            print(len(rollout_trajectories_agent[i].scs))
-
-    traj = train_trajectories_cm + test_trajectories_cm
-    for i, _ in enumerate( traj):
-        assert traj[i].num_transitions == len(traj[i].scs)
 
     train_info = {
         'normalizer': normalizer,

@@ -19,7 +19,7 @@ class BaseCalibrationModel(ABC):
     def __init__(self, cfg: DictConfig, train_info: dict):
         self.test_trajectories = train_info['test_trajectories_cm']
         self.train_trajectories = train_info['train_trajectories_cm']
-        self.trajectories = self.test_trajectories + self.train_trajectories
+        self.trajectories =  self.train_trajectories + self.test_trajectories
 
         self.reward_func = train_info['reward_func']
         self.normalizer = train_info['normalizer']
@@ -89,8 +89,9 @@ class BaseCalibrationModel(ABC):
             # are lined up for the same observations.
             assert len(trajectories_agent) == len(self.trajectories)
             for traj_idx in range(len(trajectories_agent)):
-                traj_cm = trajectories_agent[traj_idx]
+                traj_cm = self.trajectories[traj_idx]
                 traj_agent = trajectories_agent[traj_idx]
+                assert traj_cm.num_transitions == traj_agent.num_transitions # TODO: bug here
                 for i in range(traj_cm.num_transitions):
                     assert np.allclose(traj_cm.transitions[i].obs, traj_agent.transitions[i].obs)
                     assert np.allclose(traj_cm.transitions[i].next_obs, traj_agent.transitions[i].next_obs)
@@ -151,15 +152,10 @@ class BaseCalibrationModel(ABC):
         if start_idx is None:
             start_idx = random.randint(0, traj_cm.num_transitions - self.max_rollout_len - 1)
 
+
+
         transitions_cm = traj_cm.transitions[start_idx:]
-
-        # oh! I'm not loading start constructors for the train transitions.
-        print((len(transitions_cm )))
-        print(len(traj_cm.scs))
-        print(start_idx)
-        print("\n")
-
-        sc_cm = deepcopy(traj_cm.scs[start_idx])  # state constructor for the model
+        sc_cm = traj_cm.get_sc_at_idx(start_idx)  # state constructor for the model
         state_cm = transitions_cm[0].state  # initial state for the model
 
         state_agent = None  # the state for the agent is not used unless we pass in an agent
@@ -169,7 +165,8 @@ class BaseCalibrationModel(ABC):
         if agent is not None:
             assert traj_agent is not None
             transitions_agent = traj_agent.transitions[start_idx:]
-            sc_agent = deepcopy(traj_agent.scs[start_idx])  # state constructor for the agent
+
+            sc_agent = traj_agent.get_sc_at_idx(start_idx)  # state constructor for the agent
             state_agent = transitions_agent[0].state
             use_agent = True
 
