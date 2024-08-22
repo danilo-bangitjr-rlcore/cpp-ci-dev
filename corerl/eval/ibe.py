@@ -102,7 +102,7 @@ class IBE(BaseEval):
         predictions = self.model(sa)
         delta = self.get_delta(batch)
 
-        be_batch = 2 * predictions * delta - torch.square(delta)
+        be_batch = 2 * predictions * delta - torch.square(predictions)
         mean_be = torch.squeeze(torch.mean(be_batch, axis=1))
 
         return to_np(mean_be).tolist()
