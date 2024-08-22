@@ -68,6 +68,7 @@ def main(cfg: DictConfig) -> dict:
     normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
     composite_alert = CompositeAlert(cfg.alerts, alert_args)
     transition_creator = AnytimeTransitionCreator(cfg.transition_creator, composite_alert)
+    # TODO: refactor so I don't need to have train and test seperate.
     train_obs_transitions, test_obs_transitions = utils.get_offline_obs_transitions(cfg,
                                                                                     train_data_df,
                                                                                     test_data_df,
@@ -86,6 +87,8 @@ def main(cfg: DictConfig) -> dict:
                                                                                        warmup,
                                                                                        prefix='agent_train')
 
+    # TODO: add seperate train/test based on a fraction, not dataset...
+    train_trajectories_agent = train_trajectories_agent + test_trajectories_agent
     train_transitions = trajectories_to_transitions(train_trajectories_agent)
     plot_transitions = trajectories_to_transitions(test_trajectories_agent)
 
@@ -98,7 +101,8 @@ def main(cfg: DictConfig) -> dict:
     OmegaConf.update(cfg, "interaction.only_dp_transitions", False)
     cm_hash_cfgs = [cfg.data_loader, cfg.calibration_model.state_constructor, cfg.interaction]
 
-    # load the transition
+    # load the transitions for the cm
+    # Keeping these separate, they will be combined in the calibraiton model
     train_trajectories_cm, test_trajectories_cm = utils.get_offline_trajectories(cfg,
                                                                                  cm_hash_cfgs,
                                                                                  train_obs_transitions,
@@ -106,19 +110,32 @@ def main(cfg: DictConfig) -> dict:
                                                                                  sc_cm,
                                                                                  transition_creator,
                                                                                  warmup,
-                                                                                 prefix='model')
+                                                                                 prefix='model',
+                                                                                 return_train_scs=True)
 
     # these are the transitions the agents will use for rollouts. The only reason we need these is to get
     # state/state constructors for the agent that are lined up with the calibration model's
     agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.interaction]
-    _, rollout_trajectories_agent = utils.get_offline_trajectories(cfg,
-                                                                   agent_hash_cfgs,
-                                                                   train_obs_transitions,
-                                                                   test_obs_transitions,
-                                                                   sc_agent,
-                                                                   transition_creator,
-                                                                   warmup,
-                                                                   prefix='agent_rollout')
+    rollout_trajectories_agent_1, rollout_trajectories_agent_2 = utils.get_offline_trajectories(cfg,
+                                                                                                agent_hash_cfgs,
+                                                                                                train_obs_transitions,
+                                                                                                test_obs_transitions,
+                                                                                                sc_agent,
+                                                                                                transition_creator,
+                                                                                                warmup,
+                                                                                                prefix='agent_rollout',
+                                                                                                return_train_scs=True)
+    rollout_trajectories_agent = rollout_trajectories_agent_1 + rollout_trajectories_agent_2
+
+    for i, _ in enumerate(rollout_trajectories_agent):
+        if not rollout_trajectories_agent[i].num_transitions == len(rollout_trajectories_agent[i].scs):
+            print(i)
+            print(rollout_trajectories_agent[i].num_transitions)
+            print(len(rollout_trajectories_agent[i].scs))
+
+    traj = train_trajectories_cm + test_trajectories_cm
+    for i, _ in enumerate( traj):
+        assert traj[i].num_transitions == len(traj[i].scs)
 
     train_info = {
         'normalizer': normalizer,

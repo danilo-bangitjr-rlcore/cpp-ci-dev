@@ -81,7 +81,9 @@ def load_or_create(root: Path, cfgs: list[DictConfig], prefix: str, create_func:
 
     cfg_str = ''
     for cfg in cfgs:
-        if cfg:
+        if not isinstance(cfg, DictConfig):
+            cfg_str += str(cfg)
+        else:
             cfg_copy = OmegaConf.to_container(copy.deepcopy(cfg), resolve=True)
             cfg_str += str(cfg_copy)
 
@@ -96,8 +98,9 @@ def load_or_create(root: Path, cfgs: list[DictConfig], prefix: str, create_func:
         save_path = root / cfg_hash
         save_path.mkdir(parents=True, exist_ok=True)
 
-        with open(save_path / "config.yaml", "w") as f:
-            OmegaConf.save(cfg, f)
+        # Revan: I don't understand what the point of this line of code is here.
+        # with open(save_path / "config.yaml", "w") as f:
+        #     OmegaConf.save(cfg, f)
 
         with open(save_path / f"{prefix}-{cfg_hash}.pkl", 'wb') as f:
             pkl.dump(obj, f)
@@ -146,6 +149,7 @@ def load_df_from_csv(cfg: DictConfig, dl: BaseDataLoader) -> tuple[pd.DataFrame,
     assert not np.isnan(all_data_df.to_numpy()).any()
 
     return all_data_df, train_data_df, test_data_df
+
 
 def get_dp_transitions(transitions: list[Transition]) -> list[Transition]:
     dp_transitions = []
@@ -247,7 +251,10 @@ def get_offline_trajectories(cfg: DictConfig,
                              sc: BaseStateConstructor,
                              transition_creator: AnytimeTransitionCreator,
                              warmup=0,
-                             prefix='') -> tuple[list[Trajectory], Optional[list[Trajectory]]]:
+                             prefix='',
+                             return_train_scs: bool = False,
+                             return_test_scs: bool = True
+                             ) -> tuple[list[Trajectory], Optional[list[Trajectory]]]:
     """
     Takes observation transitions and produces offline trajectories (including state) using the interactions's state
     constructor=
@@ -262,17 +269,17 @@ def get_offline_trajectories(cfg: DictConfig,
         prefix = prefix + '_'
 
     train_trajectories = load_or_create(root=output_path,
-                                        cfgs=hash_cfgs,
-                                        prefix=prefix+'train_trajectories',
+                                        cfgs=hash_cfgs + [return_train_scs],
+                                        prefix=prefix + 'train_trajectories',
                                         create_func=create_trajectories,
-                                        args=[train_obs_transitions, False])
+                                        args=[train_obs_transitions,  return_train_scs])
 
     if test_obs_transitions is not None:
         test_trajectories = load_or_create(root=output_path,
-                                           cfgs=hash_cfgs,
-                                           prefix=prefix+'test_trajectories',
+                                           cfgs=hash_cfgs + [return_train_scs],
+                                           prefix=prefix + 'test_trajectories',
                                            create_func=create_trajectories,
-                                           args=[test_obs_transitions, True])
+                                           args=[test_obs_transitions,  return_test_scs])
 
     else:
         test_trajectories = []
