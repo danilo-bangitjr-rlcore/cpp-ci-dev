@@ -49,7 +49,7 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
         - env_info: Dictionary describing env info
         """
         if self.transition_ind >= len(self.offline_transitions):
-            return None, None, {}, {}
+            return None, None, None, {}, {}
         else:
             transition = self.offline_transitions[self.transition_ind]
             self.curr_decision_transitions.append(transition)

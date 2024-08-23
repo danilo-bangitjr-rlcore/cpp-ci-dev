@@ -96,7 +96,7 @@ class ReseauAnytime(CompositeStateConstructor):
         for horizon in cfg.memory:
             flow_diffs.append(comp.Difference(horizon, parents=[col_sc_2]))
 
-        anytime_sc = comp.AnytimeCountDown(cfg.steps_per_decision, parents=[identity_sc])
+        anytime_sc = comp.AnytimeOneHot(cfg.steps_per_decision, parents=[identity_sc])
         concat_parents = [identity_sc] + fpm_avgs + orp_diffs + flow_diffs + [anytime_sc]
         concat_sc = comp.Concatenate(parents=concat_parents)
         self.sc = concat_sc

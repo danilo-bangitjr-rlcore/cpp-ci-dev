@@ -38,7 +38,7 @@ class Agent(StrEnum):
     - AfterCriticBufferSample = "before_critic_buffer_sample":
         f(agent, batch) -> batch
     - BeforeCriticLossComputed = "before_critic_loss_computed":
-        f(agent, batch, target_q, q) -> batch, target_q, q
+        f(agent, batch, target_q, q, ensemble_ind) -> batch, target_q, q
     - AfterCriticLossComputed = "after_critic_loss_computed":
         f(agent, batch, loss) -> batch, loss
     - AfterCriticUpdate = "after_critic_update":
@@ -71,7 +71,7 @@ class Agent(StrEnum):
     # batch <- f(agent, batch)
     AfterCriticBufferSample = "before_critic_buffer_sample"
 
-    # batch, target_q, q <- f(agent, batch, target_q, q)
+    # batch, target_q, q <- f(agent, batch, target_q, q, ensemble_ind)
     BeforeCriticLossComputed = "before_critic_loss_computed"
 
     # batch, loss <- f(agent, batch, loss)

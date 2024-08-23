@@ -109,7 +109,7 @@ class MemoryTrace(BaseStateConstructorComponent):
             zeros = np.zeros_like(obs)
         elif isinstance(obs, torch.Tensor):
             zeros = torch.zeros_like(obs)
-            self.trace = tensor(self.trace, device)
+            self.trace = tensor(self.trace, device.device)
 
         if self.trace is None:  # first observation received
             self.trace = (1 - self.trace_decay) * obs + self.trace_decay * zeros
@@ -227,44 +227,44 @@ class AnytimeCountDown(BaseStateConstructorComponent):
     def __init__(self, steps_per_decision: int, parents: list | None = None):
         super().__init__(parents=parents)
         self.steps_per_decision = steps_per_decision
-        self.steps_since_decision = 0
+        self.steps_until_decision = self.steps_per_decision
 
-    def process_observation(self, obs_parents: list, decision_point=False, steps_since_decision=-1, **kwargs) -> np.ndarray:
-        if steps_since_decision >= 0:
-            self.steps_since_decision = steps_since_decision
+    def process_observation(self, obs_parents: list, decision_point=False, steps_until_decision=-1, **kwargs) -> np.ndarray:
+        if steps_until_decision >= 0:
+            self.steps_until_decision = steps_until_decision
         elif decision_point:
-            self.steps_since_decision = 0
+            self.steps_until_decision = self.steps_per_decision
         else:
-            self.steps_since_decision += 1
+            self.steps_until_decision -= 1
 
-        countdown = 1 - self.steps_since_decision / self.steps_per_decision
+        indicator = 1 if decision_point else 0
+        countdown = self.steps_until_decision / self.steps_per_decision
         assert 1 >= countdown >= 0, 'countdown must be between 0 and 1'
-        return np.array([countdown])
+        return np.array([indicator, countdown])
 
     def _clear_state(self) -> None:
-        self.steps_since_decision = 0
+        self.steps_until_decision = self.steps_per_decision
 
 
 class AnytimeOneHot(BaseStateConstructorComponent):
     def __init__(self, steps_per_decision: int, parents: list | None = None):
         super().__init__(parents=parents)
         self.steps_per_decision = steps_per_decision
-        self.steps_since_decision = 0
+        self.steps_until_decision = self.steps_per_decision
 
-    def process_observation(self, obs_parents: list, decision_point=False, steps_since_decision=-1, get_state_dim=False, **kwargs) -> np.ndarray:
-        one_hot = np.zeros(self.steps_per_decision)
-        if get_state_dim:
-            return one_hot
-
-        if steps_since_decision >= 0:
-            self.steps_since_decision = steps_since_decision
+    def process_observation(self, obs_parents: list, decision_point=False, steps_until_decision=-1, get_state_dim=False, **kwargs) -> np.ndarray:
+        if steps_until_decision >= 0:
+            self.steps_until_decision = steps_until_decision
         elif decision_point:
-            self.steps_since_decision = 0
+            self.steps_until_decision = self.steps_per_decision
         else:
-            self.steps_since_decision += 1
+            self.steps_until_decision -= 1
 
-        one_hot[self.steps_since_decision] = 1
-        return one_hot
+        one_hot = [0 for i in range(self.steps_per_decision)]
+        one_hot[self.steps_until_decision - 1] = 1
+        decision_point = self.steps_until_decision == self.steps_per_decision
+        indicator = 1 if decision_point else 0
+        return np.array([indicator] + one_hot)
 
     def _clear_state(self) -> None:
-        self.steps_since_decision = 0
+        self.steps_until_decision = self.steps_per_decision

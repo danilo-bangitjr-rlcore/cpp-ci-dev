@@ -7,6 +7,7 @@ from typing import Optional
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.data import ObsTransition, Transition, Trajectory
 from corerl.state_constructor.base import BaseStateConstructor
+from corerl.interaction.anytime_interaction import AnytimeInteraction
 
 
 class AnytimeTransitionCreator(object):
@@ -66,7 +67,7 @@ class AnytimeTransitionCreator(object):
                                  return_scs: bool = False,
                                  warmup: int = 0,
                                  use_pbar: bool = False) -> tuple[
-        list[Transition], list[Transition], Optional[list[BaseStateConstructor]]]:
+        list[Transition], list[Transition], list[BaseStateConstructor]]:
         """
         Given a dataset of offline observation transitions, make the anytime transitions.
         """
@@ -104,7 +105,8 @@ class AnytimeTransitionCreator(object):
                                             curr_chunk_obs_transitions: list[ObsTransition],
                                             sc: BaseStateConstructor,
                                             return_scs: bool = False,
-                                            warmup: int = 0):
+                                            warmup: int = 0) -> tuple[
+        list[Transition], list[Transition], list[BaseStateConstructor]]:
         """
         Produce Anytime transitions for a continuous chunk of observation transitions (no data gaps) from an offline dataset
         """
@@ -122,11 +124,12 @@ class AnytimeTransitionCreator(object):
                          first_obs_transition.prev_action,
                          initial_state=True,
                          decision_point=first_obs_transition.obs_dp,
-                         steps_since_decision=first_obs_transition.obs_steps_since_decision)
+                         steps_until_decision=first_obs_transition.obs_steps_until_decision)
 
-        new_scs = [deepcopy(sc)]
+        curr_chunk_scs = []
         states = [start_state]
         curr_decision_obs_transitions = []
+        new_scs = [deepcopy(sc)]
 
         # Produce remaining states and create list of transitions when decision points are encountered
         for idx, obs_transition in enumerate(curr_chunk_obs_transitions):
@@ -135,39 +138,30 @@ class AnytimeTransitionCreator(object):
                             obs_transition.action,
                             initial_state=False,
                             decision_point=obs_transition.next_obs_dp,
-                            steps_since_decision=obs_transition.next_obs_steps_since_decision)
+                            steps_until_decision=obs_transition.next_obs_steps_until_decision)
 
             states.append(next_state)
             curr_decision_obs_transitions.append(obs_transition)
 
-            if return_scs and not self.only_dp_transitions:  # always append the new state constructor
+            # if we are not only returning dp transitions, always append the new state constructor
+            if return_scs and not self.only_dp_transitions:
                 new_scs.append(deepcopy(sc))
 
             # If at a decision point, create list of transitions for the states observed since the last decision point
             # If steps_per_decision is 1, curr_decision_obs_transitions could be empty
             if obs_transition.next_obs_dp and len(curr_decision_obs_transitions):
                 assert len(states) == len(curr_decision_obs_transitions) + 1
-                new_transitions = self._make_decision_window_transitions(curr_decision_obs_transitions, states)
+                transitions, _, agent_transitions = self.make_decision_window_transitions(curr_decision_obs_transitions,
+                                                                                          states)
 
-                if self.only_dp_transitions:
-                    assert new_transitions[0].state_dp
-                    transition = deepcopy(new_transitions[0])
-                    # transition.gamma_exponent = 1 # commented to make regular rl work with discounting at the
-                    # frequency of observations
-                    transition.next_obs = transition.boot_obs
-                    transition.next_state_dp = transition.boot_state_dp
-                    transition.next_state = transition.boot_state
-                    transition.steps_since_decision = 1
-                    transition.next_steps_since_decision = 1
-                    transition.reward = transition.n_step_reward
+                # append the state constructors here if we are only returning dp transitions
+                if return_scs and self.only_dp_transitions:
+                    new_scs.append(deepcopy(sc))
 
-                    curr_chunk_agent_transitions += [transition]
-                    if return_scs:
-                        new_scs.append(deepcopy(sc))
-                else:
-                    curr_chunk_agent_transitions += new_transitions
-
-                curr_chunk_alert_transitions += new_transitions
+                curr_chunk_agent_transitions += agent_transitions
+                curr_chunk_alert_transitions += transitions
+                curr_chunk_scs += new_scs
+                new_scs = []
                 curr_decision_obs_transitions = []
                 states = [next_state]
 
@@ -181,27 +175,65 @@ class AnytimeTransitionCreator(object):
         curr_chunk_alert_transitions = curr_chunk_alert_transitions[warmup:]
 
         if return_scs:
-            new_scs = new_scs[agent_warmup:-1]
-            assert len(new_scs) == len(curr_chunk_agent_transitions)
+            curr_chunk_scs = curr_chunk_scs[agent_warmup:-1]
+            assert len(curr_chunk_scs) == len(curr_chunk_agent_transitions)
             # check to see if scs are lined up to transitions
             for i in range(len(curr_chunk_agent_transitions)):
-                assert np.allclose(curr_chunk_agent_transitions[i].state, new_scs[i].get_current_state())
+                assert np.allclose(curr_chunk_agent_transitions[i].state, curr_chunk_scs[i].get_current_state())
 
-        return curr_chunk_agent_transitions, curr_chunk_alert_transitions, new_scs
+        return curr_chunk_agent_transitions, curr_chunk_alert_transitions, curr_chunk_scs
 
-    def make_online_transitions(self, curr_decision_obs_transitions: list[ObsTransition],
-                                curr_decision_states: list[np.ndarray]):
+    def make_decision_window_transitions(self,
+                                         curr_decision_obs_transitions: list[ObsTransition],
+                                         curr_decision_states: list[np.ndarray],
+                                         filter_with_alerts: bool = False,
+                                         interaction: Optional[AnytimeInteraction] = None
+                                         ) -> tuple[list[Transition], list[Transition], list[Transition]]:
 
         assert len(curr_decision_states) == len(curr_decision_obs_transitions) + 1
         action = curr_decision_obs_transitions[0].action
         for obs_transition in curr_decision_obs_transitions:
             assert np.allclose(obs_transition.action, action)
 
-        new_transitions = self._make_decision_window_transitions(curr_decision_obs_transitions, curr_decision_states)
+        # transitions is a list of ALL transitions
+        transitions = self._make_decision_window_transitions(curr_decision_obs_transitions, curr_decision_states)
 
-        return new_transitions
+        # next, we may remove some transitions that were anomalous/triggered an alert.
+        if filter_with_alerts:
+            assert interaction is not None
+            filtered_transitions = interaction.get_train_transitions(transitions, interaction.alert_info_list)
+        else:
+            filtered_transitions = transitions
 
-    def get_cumulants(self, reward, next_obs) -> np.ndarray:
+        # next, we may modify the transitions depending on whether the agent is only training with decision point transitions
+        # i.e. "regular RL"
+        if self.only_dp_transitions:
+            # we may have filtered out all transitions for the agent, so return an empty list in this case
+            if len(filtered_transitions) == 0:
+                agent_transitions = []
+            # check to see if the first transition starts at a decision point. if so, we will modify this
+            # transition to create our decision point to decision point transition
+            elif filtered_transitions[0].state_dp:
+                transition = deepcopy(filtered_transitions[0])
+                transition.next_obs = transition.boot_obs
+                transition.next_state_dp = transition.boot_state_dp
+                transition.next_state = transition.boot_state
+                transition.steps_until_decision = 1
+                transition.next_steps_until_decision = 1
+                transition.reward = transition.n_step_reward
+                assert len(transition.boot_state) == len(transition.state)
+
+                agent_transitions = [transition]
+            # we filtered out the transition that starts at a decision point. return an emtpy list in this case
+            else:
+                agent_transitions = []
+        else:
+            agent_transitions = filtered_transitions
+
+        # typically we will use transitions for logging, filtered_transitions for alerts, and agent_transitions for training
+        return transitions, filtered_transitions, agent_transitions
+
+    def get_cumulants(self, reward: float, next_obs: np.ndarray) -> np.ndarray:
         """
         Get cumulants used to train alert value functions
         Currently passes the information required for Action-Value and GVF alerts.
@@ -226,7 +258,9 @@ class AnytimeTransitionCreator(object):
 
         return np_n_step_cumulants
 
-    def _make_decision_window_transitions(self, curr_decision_obs_transitions, states):
+    def _make_decision_window_transitions(self,
+                                          curr_decision_obs_transitions: list[ObsTransition],
+                                          states: list[np.ndarray]) -> list[Transition]:
         """
         Produce the agent and alert state transitions using the observation transitions that occur between two decision points
         """
@@ -274,8 +308,8 @@ class AnytimeTransitionCreator(object):
             term = curr_obs_transition.terminated
             trunc = curr_obs_transition.truncate
             gap = curr_obs_transition.gap
-            steps_since_decision = curr_obs_transition.obs_steps_since_decision
-            next_steps_since_decision = curr_obs_transition.next_obs_steps_since_decision
+            steps_until_decision = curr_obs_transition.obs_steps_until_decision
+            next_steps_until_decision = curr_obs_transition.next_obs_steps_until_decision
 
             # Create Agent Transition
             np_n_step_rewards = self.update_n_step_cumulants(n_step_rewards, np.array([reward]), self.gamma)
@@ -309,8 +343,8 @@ class AnytimeTransitionCreator(object):
                 boot_state_dp,
                 gamma_exp,
                 gap,
-                steps_since_decision,
-                next_steps_since_decision
+                steps_until_decision,
+                next_steps_until_decision
             )
 
             new_transitions.append(transition)

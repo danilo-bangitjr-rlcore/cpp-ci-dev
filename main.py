@@ -1,22 +1,24 @@
+import logging
+from omegaconf import DictConfig
 import hydra
 import numpy as np
 import torch
 import random
 
-from omegaconf import DictConfig
+log = logging.getLogger(__name__)
 
+from corerl.utils.device import device
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.interaction.factory import init_interaction
-from corerl.utils.device import init_device
 from corerl.data_loaders.factory import init_data_loader
 from corerl.data.transition_creator import AnytimeTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
 from corerl.data_loaders.utils import train_test_split
-from corerl.utils.plotting import make_plots
+from corerl.utils.plotting import make_online_plots, make_offline_plots
 
 import corerl.utils.freezer as fr
 import main_utils as utils
@@ -28,7 +30,7 @@ def main(cfg: DictConfig) -> dict:
     fr.init_freezer(save_path / 'logs')
 
     test_epochs = cfg.experiment.test_epochs
-    init_device(cfg.experiment.device)
+    device.update_device(cfg.experiment.device)
 
     # set the random seeds
     seed = cfg.experiment.seed
@@ -52,6 +54,7 @@ def main(cfg: DictConfig) -> dict:
     sc = init_state_constructor(cfg.state_constructor, env)
     state_dim, action_dim = utils.get_state_action_dim(env, sc)
     print("State Dim: {}, action dim: {}".format(state_dim, action_dim))
+    log.info("State Dim: {}, action dim: {}".format(state_dim, action_dim))
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
     alert_args = {
@@ -71,29 +74,40 @@ def main(cfg: DictConfig) -> dict:
 
     if do_offline_training:
         print('Loading offline observations...')
+        log.info('Loading offline observations...')
         train_obs_transitions, test_obs_transitions = utils.get_offline_obs_transitions(cfg,
                                                                                         train_data_df,
                                                                                         test_data_df,
                                                                                         dl, obs_normalizer)
+
         print('Loading offline transitions...')
+        log.info('Loading offline transitions...')
         agent_train_transitions, agent_test_transitions, alert_train_transitions, alert_test_transitions, _ = utils.get_offline_transitions(
             cfg, train_obs_transitions,
             test_obs_transitions, sc,
             transition_creator)
 
         all_agent_transitions = agent_train_transitions + agent_test_transitions
-        split = train_test_split(all_agent_transitions, train_split=cfg.experiment.plot_split)
-        plot_transitions = split[0][1]
-
-        utils.offline_alert_training(cfg, composite_alert, alert_train_transitions)
+        dp_transitions = utils.get_dp_transitions(all_agent_transitions)
+        plot_split = train_test_split(dp_transitions, train_split=cfg.experiment.plot_split)
+        plot_transitions = plot_split[0][1]
+        eval_split = train_test_split(agent_test_transitions, train_split=cfg.experiment.train_split)
+        eval_transitions = eval_split[0][1]
 
         offline_eval = utils.offline_training(cfg,
                                               env,
                                               agent,
                                               agent_train_transitions,
+                                              eval_transitions,
                                               plot_transitions,
                                               save_path,
                                               test_epochs)
+
+        stats = offline_eval.get_stats()
+        make_offline_plots(fr.freezer, stats, save_path / 'plots')
+
+        # Alert offline training should come after agent offline training since alert value function updates depend upon the agent's policy
+        utils.offline_alert_training(cfg, env, composite_alert, alert_train_transitions, plot_transitions, save_path)
 
     if not (test_epochs is None):
         assert not (plot_transitions is None), "Must include test transitions if test_epochs is not None"
@@ -112,7 +126,7 @@ def main(cfg: DictConfig) -> dict:
                                                        save_path,
                                                        plot_transitions,
                                                        test_epochs)
-        online_eval.output(save_path / 'stats.json')
+        #online_eval.output(save_path / 'stats.json')
     else:
         online_eval = utils.online_deployment(cfg,
                                               agent,
@@ -123,11 +137,11 @@ def main(cfg: DictConfig) -> dict:
                                               save_path,
                                               plot_transitions,
                                               test_epochs)
-        online_eval.output(save_path / 'stats.json')
+        #online_eval.output(save_path / 'stats.json')
 
     # need to update make_plots here
     stats = online_eval.get_stats()
-    make_plots(fr.freezer, stats, save_path / 'plots')
+    make_online_plots(fr.freezer, stats, save_path / 'plots')
     # env.plot(save_path / 'plots')
 
     agent.save(save_path / 'agent')

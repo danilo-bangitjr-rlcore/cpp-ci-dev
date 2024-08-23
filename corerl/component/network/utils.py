@@ -8,7 +8,7 @@ from typing import Optional
 class Float(torch.nn.Module):
     def __init__(self, device: str, init_value: float):
         super().__init__()
-        self.constant = torch.nn.Parameter(torch.tensor(init_value, dtype=torch.float32).to(device))
+        self.constant = torch.nn.Parameter(torch.tensor(init_value, dtype=torch.float32).to(device.device))
 
     def forward(self) -> torch.nn.Parameter:
         return self.constant
@@ -23,17 +23,17 @@ class NoneActivation(nn.Module):
 
 
 def expectile_loss(diff: torch.Tensor, expectile: float = 0.9) -> torch.Tensor:
-    weight = torch.where(diff > 0, expectile, (1 - expectile))
-    return weight * (diff ** 2)
+    weight = torch.where(diff > 0, expectile, (1 - expectile)).to(global_device.device)
+    return (weight * (diff ** 2)).to(global_device.device)
 
 
 def ensemble_expectile_loss(q: torch.Tensor, vs: list[torch.Tensor], expectile: float = 0.9) -> list[torch.Tensor]:
     losses = []
     for v in vs:
-        diff = q - v
-        weight = torch.where(diff > 0, expectile, (1 - expectile))
+        diff = (q - v).to(global_device.device)
+        weight = torch.where(diff > 0, expectile, (1 - expectile)).to(global_device.device)
         loss_v = (weight * (diff ** 2)).mean()
-        losses.append(loss_v)
+        losses.append(loss_v.to(global_device.device))
     return losses
 
 
@@ -53,14 +53,14 @@ def ensemble_mse(target, q_ens) -> list[torch.Tensor]:
     assert q_ens.ndim == 3
     ensemble_target = target.ndim == 3
     if ensemble_target:
-        mses = [nn.functional.mse_loss(t, q) for (t, q) in zip(target, q_ens)]
+        mses = [nn.functional.mse_loss(t, q).to(global_device.device) for (t, q) in zip(target, q_ens)]
     else:
-        mses = [nn.functional.mse_loss(target, q) for q in q_ens]
+        mses = [nn.functional.mse_loss(target, q).to(global_device.device) for q in q_ens]
     return mses
 
 
 def reset_weight_random(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
-    return new_net
+    return new_net.to(global_device.device)
 
 
 def reset_weight_shift(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
@@ -115,35 +115,35 @@ def layer_init_normal(layer: nn.Module, bias: bool = True) -> nn.Module:
     nn.init.normal_(layer.weight)
     if int(bias):
         nn.init.constant_(layer.bias.data, 0)
-    return layer
+    return layer.to(global_device.device)
 
 
 def layer_init_zero(layer: nn.Module, bias: bool = True) -> nn.Module:
     nn.init.constant_(layer.weight, 0)
     if int(bias):
         nn.init.constant_(layer.bias.data, 0)
-    return layer
+    return layer.to(global_device.device)
 
 
 def layer_init_constant(layer: nn.Module, const: float, bias: bool = True) -> nn.Module:
     nn.init.constant_(layer.weight, float(const))
     if int(bias):
         nn.init.constant_(layer.bias.data, float(const))
-    return layer
+    return layer.to(global_device.device)
 
 
 def layer_init_xavier(layer: nn.Module, bias: bool = True) -> nn.Module:
     nn.init.xavier_uniform_(layer.weight)
     if int(bias):
         nn.init.constant_(layer.bias.data, 0)
-    return layer
+    return layer.to(global_device.device)
 
 
 def layer_init_uniform(layer: nn.Module, low: float = -0.003, high: float = 0.003, bias: float = 0) -> nn.Module:
     nn.init.uniform_(layer.weight, low, high)
     if float(bias):
         nn.init.constant_(layer.bias.data, bias)
-    return layer
+    return layer.to(global_device.device)
 
 
 def tensor(x: float | numpy.ndarray | torch.Tensor, device: Optional[str] = None) -> torch.Tensor:
@@ -157,14 +157,14 @@ def tensor(x: float | numpy.ndarray | torch.Tensor, device: Optional[str] = None
     if isinstance(x, torch.Tensor):
         return x
     if device is not None:
-        x = torch.tensor(x, dtype=torch.float32).to(device)
+        x = torch.tensor(x, dtype=torch.float32).to(device.device)
     else:
-        x = torch.tensor(x, dtype=torch.float32).to(global_device)
+        x = torch.tensor(x, dtype=torch.float32).to(global_device.device)
     return x
 
 
 def state_to_tensor(state: numpy.ndarray,  device: Optional[str] = None) -> torch.Tensor:
-    state = tensor(state.reshape((1, -1)), device)
+    state = tensor(state.reshape((1, -1)), device.device)
     return state
 
 

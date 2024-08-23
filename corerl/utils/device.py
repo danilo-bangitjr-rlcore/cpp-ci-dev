@@ -1,6 +1,15 @@
-device = None
+import torch
 
+class Device:
+    def __init__(self):
+        self.device = torch.device('cpu')
 
-def init_device(device_name='cpu'):
-    global device
-    device = device_name
+    def update_device(self, device_name=None):
+        if device_name:
+            self.device = torch.device(device_name)
+        else:
+            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        print("Update Device:", self.device)
+
+device = Device()

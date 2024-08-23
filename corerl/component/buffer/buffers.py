@@ -3,6 +3,7 @@ from omegaconf import DictConfig
 from warnings import warn
 import numpy as np
 import torch
+import random
 
 from corerl.data.data import Transition, TransitionBatch
 import pandas as pd
@@ -27,7 +28,6 @@ class UniformBuffer:
         self.data = None
         self.pos = 0
         self.full = False
-        self.device = torch.device(cfg.device)
 
         if self.batch_size == 0:
             self.sample = self.sample_batch
@@ -38,15 +38,7 @@ class UniformBuffer:
         if self.data is None:
             # Lazy instantiation
             data_size = _get_size(experience)
-            self.data = tuple(
-                [
-                    torch.empty(
-                        (self.memory, *s),
-                        device=self.device,
-                    )
-                    for s in data_size
-                ]
-            )
+            self.data = [torch.empty((self.memory, *s), device=device.device) for s in data_size]
 
         for i, elem in enumerate(experience):
             self.data[i][self.pos] = _to_tensor(elem)
@@ -56,7 +48,25 @@ class UniformBuffer:
             self.full = True
         self.pos %= self.memory
 
-    def sample_mini_batch(self, batch_size: int = None) -> TransitionBatch:
+    def load(self, transitions: list[Transition]) -> None:
+        assert len(transitions) > 0
+
+        data_size = _get_size(transitions[0])
+        self.data = [torch.empty((self.memory, *s)) for s in data_size]
+
+        for transition in transitions:
+            for i, elem in enumerate(transition):
+                self.data[i][self.pos] = _to_tensor(elem)
+
+            self.pos += 1
+            if not self.full and self.pos == self.memory:
+                self.full = True
+            self.pos %= self.memory
+
+        for i in range(len(self.data)):
+            self.data[i] = self.data[i].to(device.device)
+
+    def sample_mini_batch(self, batch_size: int = None) -> list[TransitionBatch]:
         if self.size == 0:
             return None
         if batch_size is None:
@@ -66,9 +76,9 @@ class UniformBuffer:
 
         sampled_data = [self.data[i][sampled_indices] for i in range(len(self.data))]
 
-        return self._prepare(sampled_data)
+        return [self._prepare(sampled_data)]
 
-    def sample_batch(self) -> TransitionBatch:
+    def sample_batch(self) -> list[TransitionBatch]:
         if self.size == 0:
             return None
 
@@ -77,29 +87,11 @@ class UniformBuffer:
         else:
             sampled_data = (self.data[i][: self.pos] for i in range(len(self.data)))
 
-        return self._prepare(sampled_data)
-
-    """
-    def load(
-        self, states: list, actions: list, cumulants: list, dones: list,
-        truncates: list,
-        ) -> None:
-        for i in range(len(states) - 1):
-            self.feed(
-                (
-                    states[i], actions[i], cumulants[i], states[i+1],
-                    int(dones[i]), int(truncates[i]),
-                ),
-            )
-    """
-
-    def load(self, transitions: list) -> None:
-        for transition in transitions:
-            self.feed(transition)
+        return [self._prepare(sampled_data)]
 
     @property
-    def size(self) -> int:
-        return self.memory if self.full else self.pos
+    def size(self) -> list[int]:
+        return [self.memory if self.full else self.pos]
 
     def reset(self) -> None:
         self.pos = 0
@@ -133,7 +125,7 @@ class PriorityBuffer(UniformBuffer):
 
         self.priority /= scale
 
-    def sample_mini_batch(self, batch_size: int = None) -> TransitionBatch:
+    def sample_mini_batch(self, batch_size: int = None) -> list[TransitionBatch]:
         if len(self.data) == 0:
             return None
         if batch_size is None:
@@ -147,27 +139,82 @@ class PriorityBuffer(UniformBuffer):
 
         sampled_data = [self.data[i][sampled_indices] for i in range(len(self.data))]
 
-        return self._prepare(sampled_data)
+        return [self._prepare(sampled_data)]
 
     def update_priorities(self, priority=None):
         if priority is None:
             raise NotImplementedError
         else:
             assert priority.shape == self.priority.shape
-            self.priority = torch.Tensor(priority)
+            self.priority = torch.tensor(priority)
+
+
+class EnsembleUniformBuffer:
+    def __init__(self, cfg: DictConfig):
+        self.seed = cfg.seed
+        self.rng = np.random.RandomState(self.seed)
+        random.seed(self.seed)
+        self.batch_size = cfg.batch_size
+        self.ensemble = cfg.ensemble  # Size of the ensemble
+        self.data_subset = cfg.data_subset  # Percentage of all transitions added to a given buffer in the ensemble
+
+        self.buffer_ensemble = [UniformBuffer(cfg) for _ in range(self.ensemble)]
+
+        if self.batch_size == 0:
+            self.sample = self.sample_batch
+        else:
+            self.sample = self.sample_mini_batch
+
+    def feed(self, experience: Transition) -> None:
+        for i in range(self.ensemble):
+            if self.rng.rand() < self.data_subset:
+                self.buffer_ensemble[i].feed(experience)
+
+    def load(self, transitions: list[Transition]) -> None:
+        num_transitions = len(transitions)
+        assert num_transitions > 0
+
+        subset_size = int(num_transitions * self.data_subset)
+
+        ensemble_transitions = [random.sample(transitions, subset_size) for i in range(self.ensemble)]
+
+        for i in range(self.ensemble):
+            self.buffer_ensemble[i].load(ensemble_transitions[i])
+
+    def sample_mini_batch(self, batch_size: int = None) -> list[TransitionBatch]:
+        ensemble_batch = []
+        for i in range(self.ensemble):
+            ensemble_batch += self.buffer_ensemble[i].sample_mini_batch(batch_size)
+
+        return ensemble_batch
+
+    def sample_batch(self) -> list[TransitionBatch]:
+        ensemble_batch = []
+        for i in range(self.ensemble):
+            ensemble_batch += self.buffer_ensemble[i].sample_batch()
+
+        return ensemble_batch
+
+    @property
+    def size(self) -> list[int]:
+        return [self.buffer_ensemble[i].size[0] for i in range(self.ensemble)]
+
+    def reset(self) -> None:
+        for i in range(self.ensemble):
+            self.buffer_ensemble[i].reset()
 
 
 def _to_tensor(elem):
     if (
-        isinstance(elem, torch.Tensor)
-        or isinstance(elem, np.ndarray)
-        or isinstance(elem, list)
+            isinstance(elem, torch.Tensor)
+            or isinstance(elem, np.ndarray)
+            or isinstance(elem, list)
     ):
-        return torch.Tensor(elem)
+        return torch.tensor(elem)
     elif elem is None:
         return torch.empty((1, 0))
     else:
-        return torch.Tensor([elem])
+        return torch.tensor([elem])
 
 
 def _get_size(experience: Transition) -> list[tuple]:
@@ -219,7 +266,7 @@ class SQLBuffer(UniformBuffer):
             else:
                 initial_idx = self._initial_idx
         return initial_idx
-    
+
     def get_initial_idx(self):
         idx = self.session.scalar(
             select(SQLTransition.id).order_by(SQLTransition.id.desc())
@@ -228,7 +275,7 @@ class SQLBuffer(UniformBuffer):
             idx = 0
         return idx
 
-    def _transition_feed(self, experience: Transition, transition_infos: List[TransitionInfo]=None) -> None:
+    def _transition_feed(self, experience: Transition, transition_infos: List[TransitionInfo] = None) -> None:
         sql_transition = SQLTransition(
             state=list(experience.state),
             action=list(experience.action),
@@ -241,25 +288,24 @@ class SQLBuffer(UniformBuffer):
         else:
             sql_transition = self.session.merge(sql_transition)
             self.session.add(sql_transition)
-    
+
         self.session.commit()
         self.update_data()
-    
+
     def _sql_transition_feed(self, experience: SQLTransition):
-        
+
         # experience = self.session.merge(experience)
         self.session.add(experience)
         self.session.commit()
         self.update_data()
 
-    def feed(self, experience: Transition, transition_infos: List[TransitionInfo]=None) -> None:
+    def feed(self, experience: Transition, transition_infos: List[TransitionInfo] = None) -> None:
         if isinstance(experience, Transition):
             self._transition_feed(experience, transition_infos)
         elif isinstance(experience, SQLTransition):
             self._sql_transition_feed(experience)
         else:
             raise TypeError
-
 
     def _feed(self, experience: Transition) -> None:
         return super().feed(experience)
@@ -272,7 +318,7 @@ class SQLBuffer(UniformBuffer):
             reward=row.reward.item(),
             n_step_reward=row.reward.item(),
             next_state=row.next_state.item(),
-            boot_state=row.next_state.item(), # WARNING: sql buffer only supports 1 step
+            boot_state=row.next_state.item(),  # WARNING: sql buffer only supports 1 step
             next_obs=None,
         )
         return transition

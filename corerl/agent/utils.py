@@ -21,15 +21,15 @@ def get_batch_actions_discrete(state_batch: Float[torch.Tensor, "batch_size stat
     a_onehot = torch.FloatTensor(actions.size()[0], action_dim)
     a_onehot.zero_()
     sample_actions = a_onehot.scatter_(1, actions, 1)
-    return sample_actions
+    return sample_actions.to(device.device)
 
 
 def get_top_action(func, states, actions, action_dim, batch_size, n_actions, return_idx=None):
 
     if return_idx is None:
-        x = func(states, actions)
+        x = func([states], [actions])
     else:  # in func returns a tuple
-        x = func(states, actions)[0]
+        x = func([states], [actions])[0]
 
     x = x.reshape((batch_size, n_actions, 1))
     sorted_q_inds = torch.argsort(x, dim=1, descending=True)
@@ -39,7 +39,7 @@ def get_top_action(func, states, actions, action_dim, batch_size, n_actions, ret
 
     actions = actions.reshape(batch_size, n_actions, action_dim)
     best_actions = torch.gather(actions, dim=1, index=best_inds)
-    return best_actions
+    return best_actions.to(device.device)
 
 
 # def get_max_actions_critic(critic, states, actions, action_dim, batch_size, n_samples):
@@ -86,14 +86,16 @@ def get_test_state_qs_and_policy_params(agent, test_transitions):
     repeated_actions = np.concatenate(repeated_actions)
     repeated_actions = tensor(repeated_actions, device)
 
-    q_values = agent.q_critic.get_q(repeated_test_states, repeated_actions, with_grad=False)
+    q_values, ensemble_qs = agent.q_critic.get_qs([repeated_test_states], [repeated_actions], with_grad=False)
     q_values = to_np(q_values)
     q_values = q_values.reshape(num_states, test_actions)
+    ensemble_qs = to_np(ensemble_qs)
+    ensemble_qs = ensemble_qs.reshape(agent.q_critic.model.ensemble, num_states, test_actions)
 
     # Actor Params
     actor_alphas, actor_betas = agent.actor.model.get_dist_params(test_states)
     actor_alphas = to_np(actor_alphas)
     actor_betas = to_np(actor_betas)
 
-    return test_states_np, actions, q_values, np.array(list(zip(actor_alphas, actor_betas)))
+    return test_states_np, actions, q_values, ensemble_qs, np.array(list(zip(actor_alphas, actor_betas)))
 

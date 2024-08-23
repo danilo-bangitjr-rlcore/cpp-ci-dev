@@ -9,7 +9,7 @@ from corerl.agent.base import BaseAC
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic, init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, state_to_tensor, ensemble_expectile_loss, ensemble_mse
+from corerl.component.network.utils import to_np, state_to_tensor, ensemble_expectile_loss, ensemble_mse, expectile_loss
 from corerl.utils.device import device
 from corerl.data.data import TransitionBatch, Transition
 
@@ -17,6 +17,7 @@ from corerl.data.data import TransitionBatch, Transition
 class IQL(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
+        self.ensemble_targets = cfg.ensemble_targets
         self.temp = cfg.temp
         self.expectile = cfg.expectile
 
@@ -24,11 +25,11 @@ class IQL(BaseAC):
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
-        self.critic_buffer = init_buffer(cfg.buffer)
-        self.policy_buffer = init_buffer(cfg.buffer)
+        self.critic_buffer = init_buffer(cfg.critic.buffer)
+        self.policy_buffer = init_buffer(cfg.actor.buffer)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        tensor_state = state_to_tensor(state, device)
+        tensor_state = state_to_tensor(state, device.device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
         return action
@@ -42,53 +43,125 @@ class IQL(BaseAC):
     def compute_actor_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states = batch.state
         actions = batch.action
-        v = self.v_critic.get_v(states, with_grad=False)
-        q = self.q_critic.get_q(states, actions, with_grad=False)  # NOTE: we are not using target networks
+        v = self.v_critic.get_v([states], with_grad=False)
+        q = self.q_critic.get_q([states], [actions], with_grad=False)  # NOTE: we are not using target networks
         exp_a = torch.exp((q - v) * self.temp)
-        exp_a = torch.min(exp_a, torch.FloatTensor([100.0]).to(states.device))
+        exp_a = torch.min(exp_a, torch.FloatTensor([100.0]).to(device.device))
         log_probs, _ = self.actor.get_log_prob(states, actions, with_grad=True)
         actor_loss = -(exp_a * log_probs).mean()
         return actor_loss
 
+    """
     def compute_v_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states, actions = batch.state, batch.action
         q = self.q_critic.get_q(states, actions, with_grad=False)
         _, vs = self.v_critic.get_vs(states, with_grad=True)
         value_loss = ensemble_expectile_loss(q, vs, self.expectile)
         return value_loss
+    """
 
-    def compute_q_loss(self, batch: TransitionBatch) -> torch.Tensor:
-        states, actions, rewards, next_states, dones, gamma_exps = (batch.state, batch.action,
-                                                                    batch.n_step_reward, batch.boot_state,
-                                                                    batch.terminated, batch.gamma_exponent)
+    def compute_v_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+        ensemble = len(ensemble_batch)
+        state_batches = []
+        action_batches = []
+        qs = []
+        for batch in ensemble_batch:
+            state_batch = batch.state
+            action_batch = batch.action
 
-        next_v = self.v_critic.get_v_target(next_states)
-        target = rewards + ((self.gamma ** gamma_exps) * (1 - dones) * next_v)
-        _, q_ens = self.q_critic.get_qs(states, actions, with_grad=True)
-        q_loss = ensemble_mse(target, q_ens)
+            # Option 1: Using the reduction of the ensemble in the update target
+            if not self.ensemble_targets:
+                q = self.q_critic.get_q_target([state_batch], [action_batch])
+                qs.append(q)
 
-        return q_loss
+            state_batches.append(state_batch)
+            action_batches.append(action_batch)
+
+        # Option 2: Using the corresponding target function in the ensemble in the update target
+        if self.ensemble_targets:
+            _, qs = self.q_critic.get_qs_target(state_batches, action_batches)
+        else:
+            for i in range(ensemble):
+                qs[i] = torch.unsqueeze(qs[i], 0)
+            qs = torch.cat(qs, dim=0)
+
+        _, vs = self.v_critic.get_vs(state_batches, with_grad=True)
+        losses = []
+        for i in range(ensemble):
+            diff = qs[i] - vs[i]
+            loss = expectile_loss(diff, self.expectile)
+            losses.append(loss)
+
+        return losses
+
+    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+        ensemble = len(ensemble_batch)
+        state_batches = []
+        action_batches = []
+        reward_batches = []
+        next_state_batches = []
+        mask_batches = []
+        gamma_exp_batches = []
+        next_vs = []
+        for batch in ensemble_batch:
+            state_batch = batch.state
+            action_batch = batch.action
+            reward_batch = batch.n_step_reward
+            next_state_batch = batch.boot_state
+            mask_batch = 1 - batch.terminated
+            gamma_exp_batch = batch.gamma_exponent
+
+            # Option 1: Using the reduction of the ensemble in the update target
+            if not self.ensemble_targets:
+                next_v = self.v_critic.get_v(next_state_batch)
+                next_vs.append(next_v)
+
+            state_batches.append(state_batch)
+            action_batches.append(action_batch)
+            reward_batches.append(reward_batch)
+            next_state_batches.append(next_state_batch)
+            mask_batches.append(mask_batch)
+            gamma_exp_batches.append(gamma_exp_batch)
+
+        # Option 2: Using the corresponding target function in the ensemble in the update target
+        if self.ensemble_targets:
+            _, next_vs = self.v_critic.get_vs(next_state_batches)
+        else:
+            for i in range(ensemble):
+                next_vs[i] = torch.unsqueeze(next_vs[i], 0)
+            next_vs = torch.cat(next_vs, dim=0)
+
+        _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
+        losses = []
+        for i in range(ensemble):
+            target = reward_batches[i] + ((self.gamma ** gamma_exp_batches[i]) * mask_batches[i] * next_vs[i])
+            losses.append(torch.nn.functional.mse_loss(target, qs[i]))
+
+        return losses
 
     def update_critic(self) -> None:
         for _ in range(self.n_critic_updates):
-            batch = self.critic_buffer.sample()
+            batches = self.critic_buffer.sample()
 
-            v_loss = self.compute_v_loss(batch)
+            v_loss = self.compute_v_loss(batches)
             self.v_critic.update(v_loss)
 
-            q_loss = self.compute_q_loss(batch)
+            q_loss = self.compute_q_loss(batches)
             self.q_critic.update(q_loss)
 
     def update_actor(self) -> None:
         for _ in range(self.n_actor_updates):
-            batch = self.policy_buffer.sample()
+            batches = self.policy_buffer.sample()
+            # Assuming we don't have an ensemble of policies
+            assert len(batches) == 1
+            batch = batches[0]
             actor_loss = self.compute_actor_loss(batch)
             self.actor.update(actor_loss)
 
     def update(self) -> None:
-        if self.critic_buffer.size > 0:
+        if min(self.critic_buffer.size) > 0:
             self.update_critic()
-        if self.policy_buffer.size > 0:
+        if min(self.policy_buffer.size) > 0:
             self.update_actor()
 
     def save(self, path: Path) -> None:

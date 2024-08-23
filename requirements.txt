@@ -18,9 +18,11 @@ PyYAML==6.0.1
 Requests==2.31.0
 scipy==1.13.0
 setuptools==69.2.0
+SQLAlchemy==2.0.31
+SQLAlchemy-Utils==0.41.2
 sympy==1.12
 torch==2.2.1
 tqdm==4.66.2
+sqlalchemy==2.0.31
+sqlalchemy_utils==0.41.2
 git+ssh://git@github.com/rlcoretech/linesearchopt.git#egg=linesearchopt
-
-

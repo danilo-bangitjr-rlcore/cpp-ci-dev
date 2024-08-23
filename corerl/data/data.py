@@ -9,12 +9,12 @@ from corerl.state_constructor.base import BaseStateConstructor
 class ObsTransition:
     prev_action: np.array  # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
     obs: np.array  # the raw observation of state
-    obs_steps_since_decision: int
+    obs_steps_until_decision: int
     obs_dp: bool  # Whether 'obs' is at a decision point
     action: np.array  # the action taken after 'obs' that occurs concurrently with 'next_obs'
     reward: float
     next_obs: np.array  # the immediate next observation
-    next_obs_steps_since_decision: int
+    next_obs_steps_until_decision: int
     next_obs_dp: bool  # Whether 'next_obs' is at a decision point
     terminated: bool
     truncate: bool
@@ -58,8 +58,8 @@ class Transition:
     boot_state_dp: bool = True # whether next_state is a decision point
     gamma_exponent: int = 1 # the exponent of gamma used for bootstrapping
     gap: bool = False  # whether there is a gap in the dataset following next_obs, always false online
-    steps_since_decision: int = 1
-    next_steps_since_decision: int = 1
+    steps_until_decision: int = 1
+    next_steps_until_decision: int = 1
 
     def __iter__(self):
         for field in fields(self):
@@ -117,8 +117,8 @@ class TransitionBatch:
     boot_state_dp: Tensor
     gamma_exponent: Tensor
     gap: Tensor
-    steps_since_decision: Tensor
-    next_steps_since_decision: Tensor
+    steps_until_decision: Tensor
+    next_steps_until_decision: Tensor
 
     def __post_init__(self):
         # ensure all the attributes have the same dimension
