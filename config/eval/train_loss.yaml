@@ -1,0 +1,5 @@
+name : train_loss
+ensemble : ${agent.critic.critic_network.ensemble}
+
+offline_eval : True
+online_eval : False

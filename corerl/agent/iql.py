@@ -29,7 +29,7 @@ class IQL(BaseAC):
         self.policy_buffer = init_buffer(cfg.actor.buffer)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        tensor_state = state_to_tensor(state, device)
+        tensor_state = state_to_tensor(state, device.device)
         tensor_action, info = self.actor.get_action(tensor_state, with_grad=False)
         action = to_np(tensor_action)[0]
         return action
@@ -46,7 +46,7 @@ class IQL(BaseAC):
         v = self.v_critic.get_v([states], with_grad=False)
         q = self.q_critic.get_q([states], [actions], with_grad=False)  # NOTE: we are not using target networks
         exp_a = torch.exp((q - v) * self.temp)
-        exp_a = torch.min(exp_a, torch.FloatTensor([100.0]).to(states.device))
+        exp_a = torch.min(exp_a, torch.FloatTensor([100.0]).to(device.device))
         log_probs, _ = self.actor.get_log_prob(states, actions, with_grad=True)
         actor_loss = -(exp_a * log_probs).mean()
         return actor_loss

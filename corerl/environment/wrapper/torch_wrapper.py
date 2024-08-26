@@ -1,6 +1,7 @@
 import numpy
 import torch
 from corerl.component.network.utils import tensor, to_np
+from corerl.utils.device import device
 import gymnasium
 
 
@@ -9,14 +10,13 @@ class TorchWrapper:
     Acts as an interface between gym environments which expect actions in the form of numpy arrays
     and agents who take actions in the form of torch tensors.
     """
-    def __init__(self, env: gymnasium.Env, device: str):
+    def __init__(self, env: gymnasium.Env):
         self.env = env
-        self.device = device
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
 
     def _process_state(self, state: numpy.ndarray) -> torch.Tensor:
-        state = tensor(state.reshape((1, -1)), self.device)
+        state = tensor(state.reshape((1, -1)), device.device)
         return state
 
     def reset(self) -> (torch.Tensor, dict):

@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 
 
-class AlertsEval(BaseEval):
+class UncertaintyAlertsEval(BaseEval):
     def __init__(self, cfg, **kwargs):
         if 'alerts' not in kwargs:
             raise KeyError("Missing required argument: 'alerts'")
@@ -15,19 +15,23 @@ class AlertsEval(BaseEval):
         self.traces = {}
         self.values = {}
         self.returns = {}
+        self.stds = {}
         for alert in alerts:
             alert_type = alert.alert_type()
             self.individual_alerts[alert_type] = {}
             self.traces[alert_type] = {}
             self.values[alert_type] = {}
             self.returns[alert_type] = {}
+            self.stds[alert_type] = {}
             for cumulant_name in alert.get_cumulant_names():
                 self.individual_alerts[alert_type][cumulant_name] = []
                 self.traces[alert_type][cumulant_name] = []
                 self.values[alert_type][cumulant_name] = []
                 self.returns[alert_type][cumulant_name] = []
+                self.stds[alert_type][cumulant_name] = []
 
         self.alert_trace_thresholds = self.alerts.get_trace_thresh()
+        self.std_thresholds = self.alerts.get_std_thresh()
 
     def do_eval(self, **kwargs) -> None:
         if 'alert_info_list' not in kwargs:
@@ -42,6 +46,7 @@ class AlertsEval(BaseEval):
                     self.traces[alert_type][cumulant_name] += alert_info["alert_trace"][alert_type][cumulant_name]
                     self.values[alert_type][cumulant_name] += alert_info["value"][alert_type][cumulant_name]
                     self.returns[alert_type][cumulant_name] += alert_info["return"][alert_type][cumulant_name]
+                    self.stds[alert_type][cumulant_name] += alert_info["std"][alert_type][cumulant_name]
 
     def get_stats(self):
         stats = {}
@@ -51,7 +56,9 @@ class AlertsEval(BaseEval):
         stats["alert_traces"] = self.traces
         stats["alert_values"] = self.values
         stats["alert_returns"] = self.returns
+        stats["online_stds"] = self.stds
         stats["alert_trace_thresholds"] = self.alert_trace_thresholds
+        stats["std_thresholds"] = self.std_thresholds
 
         return stats
 

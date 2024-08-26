@@ -35,44 +35,55 @@ class EnsembleQCritic(BaseQ):
         self.target_sync_counter = 0
 
     def get_qs(
-            self,
-            states: list[torch.Tensor],
-            actions: list[torch.Tensor],
-            with_grad: bool = False,
+        self,
+        state_batches: list[torch.Tensor],
+        action_batches: list[torch.Tensor],
+        with_grad: bool = False,
     ) -> (torch.Tensor, torch.Tensor):
+        ensemble = len(state_batches)
+        state_action_batches = [torch.concat((state_batches[i], action_batches[i]), dim=1) for i in range(ensemble)]
+        if ensemble > 1:
+            input_tensor = torch.stack(state_action_batches)
+        else:
+            input_tensor = state_action_batches[0]
 
-        state_actions = [torch.concat((states[i], actions[i]), dim=1) for i in range(len(states))]
         if with_grad:
-            q, qs = self.model(state_actions)
+            q, qs = self.model(input_tensor)
         else:
             with torch.no_grad():
-                q, qs = self.model(state_actions)
+                q, qs = self.model(input_tensor)
         return q, qs
 
     def get_q(
-            self,
-            states: list[torch.Tensor],
-            actions: list[torch.Tensor],
-            with_grad: bool = False,
+        self,
+        state_batches: list[torch.Tensor],
+        action_batches: list[torch.Tensor],
+        with_grad: bool = False,
     ) -> torch.Tensor:
-        q, qs = self.get_qs(states, actions, with_grad=with_grad)
+        q, qs = self.get_qs(state_batches, action_batches, with_grad=with_grad)
         return q
 
     def get_qs_target(
-            self, states: list[torch.Tensor], actions: list[torch.Tensor],
+        self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor],
     ) -> (torch.Tensor, torch.Tensor):
-        state_actions = [torch.concat((states[i], actions[i]), dim=1) for i in range(len(states))]
+        ensemble = len(state_batches)
+        state_action_batches = [torch.concat((state_batches[i], action_batches[i]), dim=1) for i in range(ensemble)]
+        if ensemble > 1:
+            input_tensor = torch.stack(state_action_batches)
+        else:
+            input_tensor = state_action_batches[0]
+
         with torch.no_grad():
-            return self.target(state_actions)
+            return self.target(input_tensor)
 
     def get_q_target(
-            self, states: list[torch.Tensor], actions: list[torch.Tensor],
+        self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor],
     ) -> torch.Tensor:
-        q, qs = self.get_qs_target(states, actions)
+        q, qs = self.get_qs_target(state_batches, action_batches)
         return q
 
     def update(
-            self, loss: torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
+        self, loss: torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
     ) -> None:
         self.optimizer.zero_grad()
 
@@ -81,7 +92,7 @@ class EnsembleQCritic(BaseQ):
         else:
             loss.backward()
 
-        if self.optimizer_name != 'lso':
+        if self.optimizer_name != "lso":
             self.optimizer.step()
         else:
             self.optimizer.step(*opt_args, **opt_kwargs)
@@ -102,7 +113,7 @@ class EnsembleQCritic(BaseQ):
     def sync_target(self) -> None:
         with torch.no_grad():
             for p, p_targ in zip(
-                    self.model.parameters(), self.target.parameters(),
+                self.model.parameters(), self.target.parameters(),
             ):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
@@ -121,16 +132,16 @@ class EnsembleQCritic(BaseQ):
 
     def load(self, path: Path) -> None:
         net_path = path / 'critic_net'
-        self.model.load_state_dict(torch.load(net_path, map_location=device))
+        self.model.load_state_dict(torch.load(net_path, map_location=device.device))
 
         target_path = path / 'critic_target'
         self.target.load_state_dict(
-            torch.load(target_path, map_location=device),
+            torch.load(target_path, map_location=device.device),
         )
 
         opt_path = path / 'critic_opt'
         self.optimizer.load_state_dict(
-            torch.load(opt_path, map_location=device),
+            torch.load(opt_path, map_location=device.device),
         )
 
 
@@ -153,13 +164,19 @@ class EnsembleVCritic(BaseV):
         self.target_sync_counter = 0
 
     def get_vs(
-            self, states: list[torch.Tensor], with_grad: bool = False,
+        self, state_batches: list[torch.Tensor], with_grad: bool = False,
     ) -> (torch.Tensor, torch.Tensor):
+        ensemble = len(state_batches)
+        if ensemble > 1:
+            input_tensor = torch.stack(state_batches)
+        else:
+            input_tensor = state_batches[0]
+
         if with_grad:
-            v, vs = self.model(states)
+            v, vs = self.model(input_tensor)
         else:
             with torch.no_grad():
-                v, vs = self.model(states)
+                v, vs = self.model(input_tensor)
         return v, vs
 
     def ensemble_backward(self, loss):
@@ -170,19 +187,24 @@ class EnsembleVCritic(BaseV):
         return
 
     def get_v(
-            self, states: list[torch.Tensor], with_grad: bool = False,
+        self, state_batches: list[torch.Tensor], with_grad: bool = False,
     ) -> torch.Tensor:
-        v, vs = self.get_vs(states, with_grad=with_grad)
+        v, vs = self.get_vs(state_batches, with_grad=with_grad)
         return v
 
     def get_vs_target(
-            self, states: list[torch.Tensor],
+        self, state_batches: list[torch.Tensor],
     ) -> (torch.Tensor, torch.Tensor):
+        ensemble = len(state_batches)
+        if ensemble > 1:
+            input_tensor = torch.stack(state_batches)
+        else:
+            input_tensor = state_batches[0]
         with torch.no_grad():
-            return self.target(states)
+            return self.target(input_tensor)
 
-    def get_v_target(self, states: list[torch.Tensor]) -> torch.Tensor:
-        v, vs = self.get_vs_target(states)
+    def get_v_target(self, state_batches: list[torch.Tensor]) -> torch.Tensor:
+        v, vs = self.get_vs_target(state_batches)
         return v
 
     def update(self, loss: torch.Tensor) -> None:
@@ -198,7 +220,7 @@ class EnsembleVCritic(BaseV):
     def sync_target(self) -> None:
         with torch.no_grad():
             for p, p_targ in zip(
-                    self.model.parameters(), self.target.parameters(),
+                self.model.parameters(), self.target.parameters(),
             ):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
@@ -217,16 +239,16 @@ class EnsembleVCritic(BaseV):
 
     def load(self, path: Path) -> None:
         net_path = path / 'critic_net'
-        self.model.load_state_dict(torch.load(net_path, map_location=device))
+        self.model.load_state_dict(torch.load(net_path, map_location=device.device))
 
         target_path = path / 'critic_target'
         self.target.load_state_dict(
-            torch.load(target_path, map_location=device),
+            torch.load(target_path, map_location=device.device),
         )
 
         opt_path = path / 'critic_opt'
         self.optimizer.load_state_dict(
-            torch.load(opt_path, map_location=device),
+            torch.load(opt_path, map_location=device.device),
         )
 
 
@@ -245,9 +267,9 @@ class EnsembleQCriticLineSearch(EnsembleQCritic):
         )
 
     def set_parameters(
-            self,
-            buffer_address: int,
-            eval_error_fn: Optional['Callable'] = None,
+        self,
+        buffer_address: int,
+        eval_error_fn: Optional['Callable'] = None,
     ) -> None:
         self.optimizer.set_params(
             buffer_address, [self.model_copy], eval_error_fn, ensemble=True,
@@ -269,7 +291,7 @@ class EnsembleVCriticLineSearch(EnsembleVCritic):
         )
 
     def set_parameters(
-            self, buffer_address: int, eval_error_fn: Optional['Callable'] = None,
+        self, buffer_address: int, eval_error_fn: Optional['Callable'] = None,
     ) -> None:
         self.optimizer.set_params(
             buffer_address, [self.model_copy], eval_error_fn, ensemble=True,

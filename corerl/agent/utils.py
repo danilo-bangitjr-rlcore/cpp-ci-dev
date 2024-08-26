@@ -21,7 +21,7 @@ def get_batch_actions_discrete(state_batch: Float[torch.Tensor, "batch_size stat
     a_onehot = torch.FloatTensor(actions.size()[0], action_dim)
     a_onehot.zero_()
     sample_actions = a_onehot.scatter_(1, actions, 1)
-    return sample_actions
+    return sample_actions.to(device.device)
 
 
 def get_top_action(func, states, actions, action_dim, batch_size, n_actions, return_idx=None):
@@ -39,7 +39,7 @@ def get_top_action(func, states, actions, action_dim, batch_size, n_actions, ret
 
     actions = actions.reshape(batch_size, n_actions, action_dim)
     best_actions = torch.gather(actions, dim=1, index=best_inds)
-    return best_actions
+    return best_actions.to(device.device)
 
 
 # def get_max_actions_critic(critic, states, actions, action_dim, batch_size, n_samples):

@@ -37,6 +37,10 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def load_buffer(self, transitions: list[Transition]) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
     def save(self, path) -> None:
         raise NotImplementedError
 

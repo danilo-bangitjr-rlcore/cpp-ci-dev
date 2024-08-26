@@ -76,7 +76,8 @@ class IBE(BaseEval):
     def do_eval(self, **kwargs) -> None:
         # train the model
         for _ in range(self.n_updates):
-            batch = self.agent.buffer.sample()
+            batches = self.agent.critic_buffer.sample()
+            batch = batches[0]
             loss = self.get_loss(batch)
 
             self.optimizer.zero_grad()
@@ -88,7 +89,8 @@ class IBE(BaseEval):
             self.losses.append(loss)
 
         # estimate the bellman error on a batch
-        batch = self.agent.buffer.sample()
+        batches = self.agent.critic_buffer.sample()
+        batch = batches[0]
         be = self.estimate_be(batch)
         self.bes.append(be)
 
@@ -100,7 +102,7 @@ class IBE(BaseEval):
         predictions = self.model(sa)
         delta = self.get_delta(batch)
 
-        be_batch = 2 * predictions * delta - torch.square(delta)
+        be_batch = 2 * predictions * delta - torch.square(predictions)
         mean_be = torch.squeeze(torch.mean(be_batch, axis=1))
 
         return to_np(mean_be).tolist()

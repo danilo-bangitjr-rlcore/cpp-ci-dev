@@ -25,8 +25,7 @@ class NetworkActor(BaseActor):
     ) -> None:
         self.optimizer.zero_grad()
         loss.backward()
-
-        if self.optimizer_name != 'lso':
+        if self.optimizer_name != "lso":
             self.optimizer.step()
         else:
             self.optimizer.step(*opt_args, **opt_kwargs)
@@ -55,10 +54,10 @@ class NetworkActor(BaseActor):
 
     def load(self, path: Path) -> None:
         net_path = path / 'actor_net'
-        self.model.load_state_dict(torch.load(net_path, map_location=device))
+        self.model.load_state_dict(torch.load(net_path, map_location=device.device))
 
         opt_path = path / 'actor_opt'
-        self.optimizer.load_state_dict(torch.load(opt_path, map_location=device))
+        self.optimizer.load_state_dict(torch.load(opt_path, map_location=device.device))
 
 
 class NetworkActorLineSearch(NetworkActor):
