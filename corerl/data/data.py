@@ -157,7 +157,7 @@ class Trajectory:
         for transition in self.transitions[:-1]:
             sc(transition.next_obs,
                transition.action,
-               initial_state=False,  # TODO: store this in transition
+               initial_state=False,  # assume the next state will never be an initial state.
                decision_point=transition.next_state_dp,
                steps_until_decision=transition.next_steps_until_decision)
             self.scs.append(deepcopy(sc))
@@ -175,7 +175,7 @@ class Trajectory:
             for transition in self.transitions[:idx]:
                 sc(transition.next_obs,
                    transition.action,
-                   initial_state=False,  # TODO: store this in transition
+                   initial_state=False,  # assume the next state will never be an initial state.
                    decision_point=transition.next_state_dp,
                    steps_until_decision=transition.next_steps_until_decision)
             return sc
