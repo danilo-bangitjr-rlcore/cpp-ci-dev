@@ -24,5 +24,6 @@ sympy==1.12
 torch==2.2.1
 tqdm==4.66.2
 sqlalchemy==2.0.31
+scikit-learn==1.5.1
 sqlalchemy_utils==0.41.2
 git+ssh://git@github.com/rlcoretech/linesearchopt.git#egg=linesearchopt

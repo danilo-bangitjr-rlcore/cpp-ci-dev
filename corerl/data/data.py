@@ -1,5 +1,6 @@
 import numpy as np
 from torch import Tensor
+from copy import deepcopy
 
 from dataclasses import dataclass, fields
 from corerl.state_constructor.base import BaseStateConstructor
@@ -44,8 +45,8 @@ class Transition:
     next_state: np.array  # the next state in the
     # NOTE: we distinguish between the next state and the next state which we bootstrap off of. All following
     # attributes are defined w.r.t. the boot strap state.
-    reward: float # one-step reward
-    n_step_reward: float 
+    reward: float  # one-step reward
+    n_step_reward: float
     n_step_cumulants: np.array = None
     # the state which we bootstrap off of, which is not necesssarily the next state
     # in the MDP
@@ -53,10 +54,10 @@ class Transition:
     boot_state: np.array = None
     terminated: bool = False
     truncate: bool = False
-    state_dp: bool = True # whether state is a decision point
-    next_state_dp: bool = True # Whether 'next_obs' is at a decision point
-    boot_state_dp: bool = True # whether next_state is a decision point
-    gamma_exponent: int = 1 # the exponent of gamma used for bootstrapping
+    state_dp: bool = True  # whether state is a decision point
+    next_state_dp: bool = True  # Whether 'next_obs' is at a decision point
+    boot_state_dp: bool = True  # whether next_state is a decision point
+    gamma_exponent: int = 1  # the exponent of gamma used for bootstrapping
     gap: bool = False  # whether there is a gap in the dataset following next_obs, always false online
     steps_until_decision: int = 1
     next_steps_until_decision: int = 1
@@ -137,13 +138,10 @@ class Trajectory:
     def __post_init__(self):
         self.transitions = []
         self.start_sc = None
-        self.scs = []
+        self.scs = None
 
     def add_transition(self, transition: Transition) -> None:
         self.transitions.append(transition)
-
-    def add_sc(self, sc: BaseStateConstructor) -> None:
-        self.scs.append(sc)
 
     @property
     def num_transitions(self):
@@ -151,6 +149,36 @@ class Trajectory:
 
     def add_start_sc(self, sc: BaseStateConstructor) -> None:
         self.start_sc = sc
+
+    def cache_scs(self) -> None:
+        self.scs = []
+        sc = deepcopy(self.start_sc)
+        self.scs.append(deepcopy(sc))
+        for transition in self.transitions[:-1]:
+            sc(transition.next_obs,
+               transition.action,
+               initial_state=False,  # assume the next state will never be an initial state.
+               decision_point=transition.next_state_dp,
+               steps_until_decision=transition.next_steps_until_decision)
+            self.scs.append(deepcopy(sc))
+
+    def get_sc_at_idx(self, idx: int) -> BaseStateConstructor:
+        """
+        rolls the initial state constructor forward to
+        """
+
+        if self.scs is not None:
+            print(len(self.scs))
+            return deepcopy(self.scs[idx])
+        else:
+            sc = deepcopy(self.start_sc)
+            for transition in self.transitions[:idx]:
+                sc(transition.next_obs,
+                   transition.action,
+                   initial_state=False,  # assume the next state will never be an initial state.
+                   decision_point=transition.next_state_dp,
+                   steps_until_decision=transition.next_steps_until_decision)
+            return sc
 
     def get_transitions_attr(self, attr):
         """
@@ -170,13 +198,13 @@ class Trajectory:
         child_1 = Trajectory()
         child_2 = Trajectory()
 
+        child_2.start_sc = self.get_sc_at_idx(idx)
+
+        if self.scs is not None:
+            child_1.scs = self.scs[:idx]
+            child_2.scs = self.scs[idx:]
+
         child_1.transitions = self.transitions[:idx]
         child_2.transitions = self.transitions[idx:]
-
-        child_1.scs = self.scs[:idx]
-        child_2.scs = self.scs[idx:]
-
-        child_1.start_sc = child_1.scs[0]
-        child_2.start_sc = child_2.scs[0]
 
         return child_1, child_2

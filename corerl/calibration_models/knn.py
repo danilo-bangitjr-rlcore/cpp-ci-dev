@@ -70,7 +70,7 @@ class KNNCalibrationModel(BaseCalibrationModel):
             losses = []
             pbar = tqdm(range(self.train_itr))
             for _ in pbar:
-                batch = self.buffer.sample(self.batch_size)
+                batch = self.buffer.sample(self.batch_size)[0]
                 loss = self._laplacian_loss(batch)
                 self.optimizer.zero_grad()
                 loss.backward()

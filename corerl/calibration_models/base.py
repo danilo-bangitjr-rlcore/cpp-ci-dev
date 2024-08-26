@@ -18,6 +18,9 @@ from corerl.agent.base import BaseAgent
 class BaseCalibrationModel(ABC):
     def __init__(self, cfg: DictConfig, train_info: dict):
         self.test_trajectories = train_info['test_trajectories_cm']
+        self.train_trajectories = train_info['train_trajectories_cm']
+        self.trajectories =  self.train_trajectories + self.test_trajectories
+
         self.reward_func = train_info['reward_func']
         self.normalizer = train_info['normalizer']
         self.transition_creator = train_info['transition_creator']
@@ -31,6 +34,8 @@ class BaseCalibrationModel(ABC):
         self.gamma = cfg.gamma
         self.allow_learning = cfg.allow_learning
 
+        self.rollout_indices = None  # indices of the trajectories for agent rollouts
+
     @abstractmethod
     def train(self):
         # You can make this method pass if you do not need to train a model
@@ -41,54 +46,71 @@ class BaseCalibrationModel(ABC):
             plot_save_path.mkdir(parents=True, exist_ok=True)
 
         losses = []
-
         for n, test_traj in enumerate(self.test_trajectories):
             last = test_traj.num_transitions - self.max_rollout_len
             increase_idx = last // self.num_test_rollouts
             start_idx = 0
-            for start in range(self.num_test_rollouts):
-                _, traj_losses = self._do_rollout(test_traj, start_idx=start_idx, plot='test',
-                                                  plot_save_path=plot_save_path)
-                start_idx += increase_idx
-                losses.append(traj_losses)
+            if test_traj.num_transitions >= self.max_rollout_len:
+                for start in range(self.num_test_rollouts):
+                    _, traj_losses = self._do_rollout(test_traj,
+                                                      start_idx=start_idx,
+                                                      plot='test',
+                                                      plot_save_path=plot_save_path)
+                    start_idx += increase_idx
+                    losses.append(traj_losses)
 
         return losses
 
-    def do_agent_rollouts(self, agent: BaseAgent, trajectories_agent: list[Trajectory],
-                          plot=None, plot_save_path=None) -> list[float]:
+    def _get_sample_indices(self, trajectories: list[Trajectory]) -> list[tuple[int, int]]:
+        num_transitions = np.array([traj.num_transitions for traj in trajectories])
+        sample_probs = num_transitions / np.sum(num_transitions)
+        rollout_indices = []
+        traj_indices = list(range(len(trajectories)))
+        while len(rollout_indices) <= self.num_test_rollouts:
+            traj_idx = np.random.choice(traj_indices, p=sample_probs)
+            traj = trajectories[traj_idx]
+            if traj.num_transitions >= self.max_rollout_len:
+                start_idx = random.choice(list(range(traj.num_transitions - self.max_rollout_len)))
+                rollout_indices.append((traj_idx, start_idx))
+        return rollout_indices
 
-        assert len(trajectories_agent) == len(self.test_trajectories)
+    def do_agent_rollouts(self,
+                          agent: BaseAgent,
+                          trajectories_agent: list[Trajectory],
+                          plot=None,
+                          plot_save_path=None,
+                          resample=False) -> list[float]:
+
         if plot_save_path is not None:
             plot_save_path.mkdir(parents=True, exist_ok=True)
 
+        if self.rollout_indices is None:
+            # in the first call to do_agent_rollouts, verify that the agent and cm transitions
+            # are lined up for the same observations.
+            assert len(trajectories_agent) == len(self.trajectories)
+            for traj_idx in range(len(trajectories_agent)):
+                traj_cm = self.trajectories[traj_idx]
+                traj_agent = trajectories_agent[traj_idx]
+                assert traj_cm.num_transitions == traj_agent.num_transitions # TODO: bug here
+                for i in range(traj_cm.num_transitions):
+                    assert np.allclose(traj_cm.transitions[i].obs, traj_agent.transitions[i].obs)
+                    assert np.allclose(traj_cm.transitions[i].next_obs, traj_agent.transitions[i].next_obs)
+                    assert np.allclose(traj_cm.transitions[i].action, traj_agent.transitions[i].action)
+
+        if resample or self.rollout_indices is None:
+            # this will cache which indices are being sampled, so each call to
+            # do_agent_rollouts will use the same starting states
+            self.rollout_indices = self._get_sample_indices(self.trajectories)
+
         returns = []
-
-        num_transitions = np.array([traj.num_transitions for traj in self.test_trajectories])
-        sample_probs = num_transitions / np.sum(num_transitions)
-        num_completed_rollouts = 0
-        traj_indices = list(range(len(self.test_trajectories)))
-        while num_completed_rollouts < self.num_test_rollouts:
-            traj_i = np.random.choice(traj_indices, p=sample_probs)
-            traj_cm = self.test_trajectories[traj_i]
-            traj_agent = trajectories_agent[traj_i]
-
-            # verify that transitions for the agent and the model are over the same sequence of observations
-            assert traj_cm.num_transitions == traj_agent.num_transitions
-            for i in range(traj_cm.num_transitions):
-                assert np.allclose(traj_cm.transitions[i].obs, traj_agent.transitions[i].obs)
-                assert np.allclose(traj_cm.transitions[i].next_obs, traj_agent.transitions[i].next_obs)
-                assert np.allclose(traj_cm.transitions[i].action, traj_agent.transitions[i].action)
-
-            if traj_agent.num_transitions >= self.max_rollout_len:
-                start_idx = random.choice(list(range(traj_cm.num_transitions - self.max_rollout_len)))
-                return_, _ = self._do_rollout(traj_cm,
-                                              agent=agent,
-                                              traj_agent=traj_agent,
-                                              start_idx=start_idx,
-                                              plot=plot,
-                                              plot_save_path=plot_save_path)
-                returns.append(return_)
-                num_completed_rollouts += 1
+        for (traj_idx, start_idx) in self.rollout_indices:
+            return_, _ = self._do_rollout(self.trajectories[traj_idx],
+                                          agent=agent,
+                                          traj_agent=trajectories_agent[traj_idx],
+                                          start_idx=start_idx,
+                                          plot=plot,
+                                          plot_save_path=plot_save_path)
+            returns.append(return_)
 
         return returns
 
@@ -130,8 +152,10 @@ class BaseCalibrationModel(ABC):
         if start_idx is None:
             start_idx = random.randint(0, traj_cm.num_transitions - self.max_rollout_len - 1)
 
+
+
         transitions_cm = traj_cm.transitions[start_idx:]
-        sc_cm = deepcopy(traj_cm.scs[start_idx])  # state constructor for the model
+        sc_cm = traj_cm.get_sc_at_idx(start_idx)  # state constructor for the model
         state_cm = transitions_cm[0].state  # initial state for the model
 
         state_agent = None  # the state for the agent is not used unless we pass in an agent
@@ -141,12 +165,8 @@ class BaseCalibrationModel(ABC):
         if agent is not None:
             assert traj_agent is not None
             transitions_agent = traj_agent.transitions[start_idx:]
-            for i in range(len(transitions_cm)):
-                assert np.array_equal(transitions_cm[i].obs, transitions_agent[i].obs)
-                assert np.array_equal(transitions_cm[i].action, transitions_agent[i].action)
-                assert np.array_equal(transitions_cm[i].next_obs, transitions_agent[i].next_obs)
 
-            sc_agent = deepcopy(traj_agent.scs[start_idx])  # state constructor for the agent
+            sc_agent = traj_agent.get_sc_at_idx(start_idx)  # state constructor for the agent
             state_agent = transitions_agent[0].state
             use_agent = True
 
@@ -172,8 +192,6 @@ class BaseCalibrationModel(ABC):
             # these lists are used to construct transitions.
             curr_decision_obs_transitions = []
             curr_decision_states = [state_agent]  # initialize this list with the first state that the agent sees
-
-
 
         for step in range(rollout_len):
             transition_step = transitions_cm[step]

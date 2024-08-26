@@ -27,11 +27,12 @@ class EnsembleQCritic(BaseQ):
             list(self.model.parameters(independent=True)),
             ensemble=True,
         )
+
+        self.optimizer_name = cfg.critic_optimizer.name
+
         self.polyak = cfg.polyak
         self.target_sync_freq = cfg.target_sync_freq
         self.target_sync_counter = 0
-
-        self.optimizer_name = cfg.critic_optimizer.name
 
     def get_qs(
         self,
@@ -71,7 +72,7 @@ class EnsembleQCritic(BaseQ):
             input_tensor = torch.stack(state_action_batches)
         else:
             input_tensor = state_action_batches[0]
-        
+
         with torch.no_grad():
             return self.target(input_tensor)
 

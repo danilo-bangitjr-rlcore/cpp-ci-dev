@@ -10,7 +10,6 @@ import json
 
 def flatten_list(nd_list: list) -> list:
     flat_list = []
-
     def flatten(item):
         if isinstance(item, list):
             for sub_item in item:
@@ -36,35 +35,43 @@ def add_key_to_run(run, key, values):
 
 def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[list[Callable]]]:
     runs = []
+    seeds = [0]
     for new_key, new_values in params.items():
-
-        new_runs = []
-        if len(runs) == 0:
-            for v in new_values:
-                run_ = {new_key: v}
-                new_runs.append(run_)
-
+        if new_key == 'experiment.seed':
+            seeds = new_values
         else:
-            for run in runs:
-                if isinstance(new_values, list):  # add to all runs
-                    new_runs += add_key_to_run(run, new_key, new_values)
-                elif isinstance(new_values, Callable):
-                    if new_values(run) is not None:
-                        new_values_ = new_values(run)
-                        new_runs += add_key_to_run(run, new_key, new_values_)
-                    else:
-                        new_runs.append(run)
+            new_runs = []
+            if len(runs) == 0:
+                for v in new_values:
+                    run_ = {new_key: v}
+                    new_runs.append(run_)
 
-        runs = new_runs
+            else:
+                for run in runs:
+                    if isinstance(new_values, list):  # add to all runs
+                        new_runs += add_key_to_run(run, new_key, new_values)
+                    elif isinstance(new_values, Callable):
+                        if new_values(run) is not None:
+                            new_values_ = new_values(run)
+                            new_runs += add_key_to_run(run, new_key, new_values_)
+                        else:
+                            new_runs.append(run)
 
+            runs = new_runs
+
+    runs_with_seeds = []
     for i in range(len(runs)):
-        runs[i]['experiment.param'] = i
+        for seed in seeds:
+            seed_run = runs[i].copy()
+            seed_run['experiment.seed'] = seed
+            seed_run['experiment.param'] = i
+            runs_with_seeds.append(seed_run)
 
     if 'tests' in params.keys():
-        expected_results = [params['tests'] for i in range(len(runs))]
-        return runs, expected_results
+        expected_results = [params['tests'] for i in range(len(runs_with_seeds))]
+        return runs_with_seeds, expected_results
     else:
-        return runs
+        return runs_with_seeds
 
 
 # def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[list[Callable]]]:

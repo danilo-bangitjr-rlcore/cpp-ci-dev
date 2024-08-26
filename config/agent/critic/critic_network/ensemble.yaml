@@ -2,7 +2,7 @@ defaults:
   - base: fc
   - _self_
 
-ensemble : 2
+ensemble : 1
 name : ensemble
 reduct : min
 vmap : False
