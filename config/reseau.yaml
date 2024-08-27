@@ -16,7 +16,7 @@ offline_data:
   output_path : offline_data/reseau
 
 experiment :
-  exp_name : "Alerts_Reduct_Regularization_Sweep"
+  exp_name : "STD_Trace_Sweep_2"
   device : cpu
   max_steps : 10000
   offline_steps : 10000
@@ -24,7 +24,7 @@ experiment :
   gamma : 0.95
   train_split : 0.995
   plot_split : 0.98
-  test_epochs : [0, 10, 100, 999, 1999, 4999, 9999, 14999, 19999]
+  test_epochs : [999, 1999, 4999, 9999, 19999]
   offline_stat_keys : []
   online_stat_keys : []
 
@@ -84,9 +84,10 @@ alerts:
   action_value_uncertainty:
     gamma : 0.95
     ret_perc : 0.1
-    std_thresh : 0.1
-    trace_decay : 0.995
-    trace_thresh : 0.1
+    alert_trace_decay : 0.99
+    alert_trace_thresh : 0.1
+    std_trace_decay : 0.99
+    std_trace_thresh : 0.15
     ensemble_targets : True
     critic:
       polyak: 0.995
@@ -102,15 +103,16 @@ alerts:
   gvf_uncertainty:
     gamma : 0.95
     ret_perc : 0.1
-    std_thresh : 0.1
-    trace_decay : 0.995
-    trace_thresh : 0.1
+    alert_trace_decay : 0.99
+    alert_trace_thresh : 0.075
+    std_trace_decay : 0.99
+    std_trace_thresh : 0.1
     ensemble_targets : True
     critic:
       polyak: 0.995
       critic_optimizer:
         lr : 0.0003
-        weight_decay : 0.01
+        weight_decay : 0.001
       critic_network:
         ensemble : 10
         reduct : mean

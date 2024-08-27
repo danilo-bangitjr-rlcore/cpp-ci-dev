@@ -268,11 +268,11 @@ def make_uncertainty_alerts_plots(stats, path):
     composite_alerts = stats["composite_alerts"]
     individual_alerts = stats["individual_alerts"]
     alert_traces = stats["alert_traces"]
-    trace_thresholds = stats["alert_trace_thresholds"]
+    alert_trace_thresholds = stats["alert_trace_thresholds"]
     values = stats["alert_values"]
     returns = stats["alert_returns"]
-    stds = stats["online_stds"]
-    std_thresholds = stats["std_thresholds"]
+    std_traces = stats["std_traces"]
+    std_trace_thresholds = stats["std_trace_thresholds"]
 
     min_steps = float('inf')
     min_steps = min(min_steps, len(composite_alerts))
@@ -286,7 +286,7 @@ def make_uncertainty_alerts_plots(stats, path):
             min_steps = min(min_steps, len(alert_traces[alert_type][cumulant_name]))
             min_steps = min(min_steps, len(values[alert_type][cumulant_name]))
             min_steps = min(min_steps, len(returns[alert_type][cumulant_name]))
-            min_steps = min(min_steps, len(stds[alert_type][cumulant_name]))
+            min_steps = min(min_steps, len(std_traces[alert_type][cumulant_name]))
     time_steps = list(range(min_steps))
 
     # Plot Individual Sensor Alerts
@@ -323,16 +323,16 @@ def make_uncertainty_alerts_plots(stats, path):
             ax[1].set_title("{} Q(s,a) vs. Observed Partial Returns".format(cumulant_name), pad=0)
 
             # Plot STD of Ensemble GVF values
-            cumulant_name_stds = stds[alert_type][cumulant_name][:min_steps]
-            thresh_list = [std_thresholds[alert_type][cumulant_name] for _ in range(min_steps)]
+            cumulant_name_std_traces = std_traces[alert_type][cumulant_name][:min_steps]
+            thresh_list = [std_trace_thresholds[alert_type][cumulant_name] for _ in range(min_steps)]
             ax[2].plot(time_steps, thresh_list, c="k", label="STD Threshold", alpha=1.0)
-            ax[2].plot(time_steps, cumulant_name_stds, label="{} Q(s,a) STD".format(cumulant_name), c="cyan", alpha=1.0)
+            ax[2].plot(time_steps, cumulant_name_std_traces, label="{} Q(s,a) STD".format(cumulant_name), c="cyan", alpha=1.0)
             ax[2].set_title("{} Q(s,a) STD".format(cumulant_name), pad=0)
             ax[2].set_yscale("log")
 
             # Plot alert trace
             cumulant_name_traces = alert_traces[alert_type][cumulant_name][:min_steps]
-            thresh_list = [trace_thresholds[alert_type][cumulant_name] for _ in range(min_steps)]
+            thresh_list = [alert_trace_thresholds[alert_type][cumulant_name] for _ in range(min_steps)]
             ax[3].plot(time_steps, thresh_list, c="k", label="Trace Threshold", alpha=1.0)
             ax[3].plot(time_steps, cumulant_name_traces, label="{} Trace".format(cumulant_name), c="m", alpha=1.0)
             ax[3].set_title("{} Q(s,a) vs. Observed Partial Returns Absolute Difference Trace".format(cumulant_name), pad=0)

@@ -5,6 +5,6 @@ defaults:
 name : gvf_trace
 endo_obs_names: ${env.endo_obs_names}
 endo_inds : ${env.endo_inds}
-trace_decay : 0.995
-trace_thresh : 0.1
+alert_trace_decay : 0.995
+alert_trace_thresh : 0.075
 train_itr : 1000

@@ -3,4 +3,5 @@ defaults:
   - _self_
 
 name : action_value_uncertainty
-std_thresh : 0.1
+std_trace_decay : 0.99
+std_trace_thresh : 0.15

@@ -167,7 +167,8 @@ class EnsembleUniformBuffer:
 
     def feed(self, experience: Transition) -> None:
         for i in range(self.ensemble):
-            if self.rng.rand() < self.data_subset:
+            rand_num = self.rng.rand()
+            if rand_num < self.data_subset:
                 self.buffer_ensemble[i].feed(experience)
 
     def load(self, transitions: list[Transition]) -> None:
