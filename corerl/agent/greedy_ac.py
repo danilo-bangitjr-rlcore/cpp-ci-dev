@@ -19,6 +19,9 @@ import corerl.agent.utils as utils
 import corerl.utils.freezer as fr
 from jaxtyping import Float
 from typing import Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -40,6 +43,7 @@ class GreedyAC(BaseAC):
         self.share_batch = cfg.share_batch  # whether updates to proposal and actor should share a batch
 
         self.uniform_sampling_percentage = cfg.uniform_sampling_percentage
+        self.learned_proposal_percent = 1 - self.uniform_sampling_percentage
         self.uniform_proposal = self.uniform_sampling_percentage == 1
 
         self.n_sampler_updates = cfg.n_sampler_updates
@@ -67,7 +71,7 @@ class GreedyAC(BaseAC):
         self._hooks(when.Agent.AfterCreate, self)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        tensor_state = state_to_tensor(state, device.device)
+        tensor_state = state_to_tensor(state, device)
 
         args, _ = self._hooks(when.Agent.BeforeGetAction, self, tensor_state)
         tensor_state = args[1]
@@ -109,105 +113,115 @@ class GreedyAC(BaseAC):
         self.policy_buffer.load(policy_transitions)
         self.critic_buffer.load(transitions)
 
-    def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
-                     batch_size: int) -> Float[torch.Tensor, 'batch_size num_samples']:
+    def get_sorted_q_values(
+        self,
+        state_batch: Float[torch.Tensor, "batch_size state_dim"],
+        sample_actions: Float[torch.Tensor, "batch_size num_samples action_dim"],
+    ) -> Float[torch.Tensor, "batch_size num_samples 1"]:
         # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
 
-        q_values: Float[torch.Tensor, 'batch_size*num_samples 1']
-        q_values = self.q_critic.get_q([repeated_states], [sample_actions], with_grad=False)
-        q_values: Float[torch.Tensor, 'batch_size num_samples 1']
-        q_values = q_values.reshape(batch_size, self.num_samples, 1)
-        sorted_q_inds: Float[torch.Tensor, 'batch_size num_samples 1']
+        batch_size = state_batch.shape[0]
+        num_samples = sample_actions.shape[1]
+        action_dim = sample_actions.shape[2]
+
+        repeated_states = state_batch.repeat_interleave(num_samples, dim=0)
+        flattened_actions = sample_actions.view(batch_size * num_samples, action_dim)
+        # flattened_actions = sample_actions.reshape(batch_size * num_samples, action_dim)
+
+        q_values: Float[torch.Tensor, "batch_size*num_samples 1"]
+        q_values = self.q_critic.get_q(
+            [repeated_states], [flattened_actions], with_grad=False
+        )
+        q_values = q_values.view(batch_size, num_samples, 1)
+        sorted_q_inds: Float[torch.Tensor, "batch_size num_samples 1"]
         sorted_q_inds = torch.argsort(q_values, dim=1, descending=True)
+
         return sorted_q_inds
 
-    def get_policy_update_info(self, state_batch: Float[torch.Tensor, 'batch_size state_dim']) -> (
+    def get_sampled_actions(
+        self, state_batch: Float[torch.Tensor, "batch_size state_dim"]
+    ) -> Float[torch.Tensor, "batch_size num_samples action_dim"]:
+        
+        batch_size = state_batch.shape[0]
+        if self.discrete_control:
+            raise NotImplementedError
+
+        if self.uniform_proposal:
+            self.uniform_sampling_percentage = 1.0
+
+        if self.learned_proposal_percent > 0:
+            n_proposal = int(np.floor(self.num_samples * self.learned_proposal_percent))
+            repeated_states: Float[torch.Tensor, "batch_size*n_proposal state_dim"]
+            repeated_states = state_batch.repeat_interleave(n_proposal, dim=0)
+
+            proposed_actions: Float[torch.Tensor, "batch_size*n_proposal action_dim"]
+            proposed_actions, _ = self.sampler.get_action(
+                repeated_states,
+                with_grad=False,
+            )
+            proposed_actions = proposed_actions.reshape(
+                batch_size, n_proposal, self.action_dim
+            )
+
+        else: 
+            proposed_actions = torch.empty(batch_size, 0, self.action_dim)
+
+        if self.uniform_sampling_percentage > 0:
+            n_rand = int(np.ceil(self.num_samples * self.uniform_sampling_percentage))
+            uniform_sample_actions = torch.rand(batch_size, n_rand, self.action_dim)
+
+        else:
+            uniform_sample_actions = torch.empty(batch_size, 0, self.action_dim)
+
+        SAMPLE_DIM = 1
+        sample_actions = torch.cat(
+            [proposed_actions, uniform_sample_actions], dim=SAMPLE_DIM
+        )
+        logger.debug(f"{proposed_actions.shape=}")
+        logger.debug(f"{uniform_sample_actions.shape=}")
+
+        return sample_actions
+    
+    def get_top_actions(
+        self,
+        proposed_actions: Float[torch.Tensor, "batch_size num_samples action_dim"],
+        sorted_q_inds: Float[torch.Tensor, "batch_size num_samples 1"],
+        n_top_actions: int,
+    ) -> Float[torch.Tensor, "batch_size*n_top_actions action_dim"]:
+
+        best_ind: Float[torch.Tensor, "batch_size n_top_actions action_dim"]
+        best_ind = sorted_q_inds[:, :n_top_actions].repeat_interleave(
+            self.action_dim, -1
+        )
+
+        # recall that if self.sample_all_discrete_actions then self.num_samples = self.action_dim
+        best_actions = torch.gather(proposed_actions, dim=1, index=best_ind)
+        batch_size = proposed_actions.shape[0]
+        best_actions = torch.reshape(best_actions, (batch_size*n_top_actions, self.action_dim))
+
+        return best_actions
+    
+    def get_policy_update_info(self, state_batch: Float[torch.Tensor, 'batch_size state_dim']) -> tuple[
             Float[torch.Tensor, 'batch_size state_dim'],
             Float[torch.Tensor, 'batch_size*num_samples state_dim'],
             Float[torch.Tensor, 'batch_size num_samples action_dim'],
             Float[torch.Tensor, 'batch_size num_samples'],
             Float[torch.Tensor, 'batch_size*top_actions state_dim'],
             Float[torch.Tensor, 'batch_size*num_samples action_dim'],
-            int):
+            int]:
+        
         batch_size = state_batch.shape[0]
         # recall that if self.sample_all_discrete_actions then self.num_samples = self.action_dim
         repeated_states: Float[torch.Tensor, 'batch_size*num_samples state_dim']
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
-
-        if self.sample_all_discrete_actions:  # if discrete control AND we are sampling all actions
-            repeated_states: Float[
-                torch.Tensor, 'batch_size*num_samples state_dim',
-            ]
-            repeated_states = state_batch.repeat_interleave(
-                self.num_samples, dim=0,
-            )
-
-            sample_actions: Float[torch.Tensor, 'batch_size*action_dim action_dim']
-            sample_actions = utils.get_batch_actions_discrete(state_batch, self.action_dim)
-
-        else:  # o/w sample from sampler
-            if self.uniform_proposal:
-                # for the continuous case
-                if self.discrete_control:
-                    sample_actions = utils.get_batch_actions_discrete(
-                        state_batch, self.action_dim, samples=self.num_samples,
-                    )
-                else:
-                    sample_actions = torch.rand((self.num_samples * batch_size, self.action_dim), device=device.device)
-            else:
-                learned_proposal_percent = 1 - self.uniform_sampling_percentage
-                if learned_proposal_percent > 0:
-                    repeated_states: Float[
-                        torch.Tensor, 'batch_size*num_samples state_dim',
-                    ]
-                    n = int(np.floor(self.num_samples * learned_proposal_percent))
-                    repeated_states = state_batch.repeat_interleave(n, dim=0)
-                    sample_actions: Float[
-                        torch.Tensor, 'batch_size*action_dim action_dim',
-                    ]
-                    sample_actions, _ = self.sampler.get_action(
-                        repeated_states, with_grad=False,
-                    )
-
-                if self.uniform_sampling_percentage > 0:
-                    n = int(np.ceil(
-                        self.num_samples * self.uniform_sampling_percentage
-                    ))
-
-                    uniform_sample_actions = torch.rand(
-                        n * batch_size, self.action_dim,
-                    )
-
-                    sample_actions = torch.cat(
-                        [sample_actions, uniform_sample_actions],
-                        dim=0,
-                    )
-
-                    # Repeat states again, once for each action sample
-                    repeated_states = state_batch.repeat_interleave(
-                        self.num_samples, dim=0,
-                    )
-
-        sorted_q_inds: Float[torch.Tensor, 'batch_size num_samples']
-        sorted_q_inds = self.sort_q_value(repeated_states, sample_actions, batch_size)
-
-        best_ind: Float[torch.Tensor, 'batch_size top_actions 1']
-        best_ind = sorted_q_inds[:, :self.top_actions]
-
-        best_ind: Float[torch.Tensor, 'batch_size top_actions action_dim']
-        best_ind = best_ind.repeat_interleave(self.action_dim, -1)
-
-        # recall that if self.sample_all_discrete_actions then self.num_samples = self.action_dim
-        sample_actions: Float[torch.Tensor, 'batch_size num_samples action_dim']
-        sample_actions = sample_actions.reshape(batch_size, self.num_samples, self.action_dim)
-        best_actions = torch.gather(sample_actions, dim=1, index=best_ind)
+        
+        sample_actions = self.get_sampled_actions(state_batch)
+        sorted_q_inds = self.get_sorted_q_values(state_batch, sample_actions)
+        best_actions = self.get_top_actions(sample_actions, sorted_q_inds, n_top_actions=self.top_actions)
 
         # Reshape samples for calculating the loss
         stacked_s_batch: Float[torch.Tensor, 'batch_size*top_actions state_dim']
         stacked_s_batch = state_batch.repeat_interleave(self.top_actions, dim=0)
-
-        best_actions: Float[torch.Tensor, 'batch_size*num_samples action_dim']
-        best_actions = torch.reshape(best_actions, (-1, self.action_dim))
 
         return state_batch, repeated_states, sample_actions, sorted_q_inds, stacked_s_batch, best_actions, batch_size
 
