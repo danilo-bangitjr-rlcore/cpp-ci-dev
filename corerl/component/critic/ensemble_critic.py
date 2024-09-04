@@ -22,7 +22,6 @@ class EnsembleQCritic(BaseQ):
             cfg.critic_network, input_dim=state_action_dim, output_dim=output_dim,
             critic=self.model,
         )
-        print("EnsembleQCritic vmap:", cfg.critic_network.vmap)
         self.optimizer = init_optimizer(
             cfg.critic_optimizer,
             list(self.model.parameters(independent=True)),
@@ -88,15 +87,9 @@ class EnsembleQCritic(BaseQ):
     ) -> None:
         self.optimizer.zero_grad()
 
-        print("loss type:", type(loss))
-
         if isinstance(loss, Union[list, tuple]):
-            print("Union Loss:")
-            print(loss)
             self.ensemble_backward(loss)
         else:
-            print("Else Loss:")
-            print(loss)
             loss.backward()
 
         if self.optimizer_name != "lso":
@@ -161,7 +154,6 @@ class EnsembleVCritic(BaseV):
             cfg.critic_network, input_dim=state_dim, output_dim=output_dim,
             critic=self.model,
         )
-        print("EnsembleVCritic vmap:", cfg.critic_network.vmap)
         self.optimizer = init_optimizer(
             cfg.critic_optimizer,
             list(self.model.parameters(independent=True)),
