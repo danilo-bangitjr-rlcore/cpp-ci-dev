@@ -144,8 +144,8 @@ def main(cfg: DictConfig) -> dict:
     make_online_plots(fr.freezer, stats, save_path / 'plots')
     # env.plot(save_path / 'plots')
 
-    #agent.save(save_path / 'agent')
-    #agent.load(save_path / 'agent')
+    agent.save(save_path / 'agent')
+    agent.load(save_path / 'agent')
 
     # return stats
 
