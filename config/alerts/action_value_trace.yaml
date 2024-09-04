@@ -3,5 +3,5 @@ defaults:
   - _self_
 
 name : action_value_trace
-alert_trace_decay : 0.995
-alert_trace_thresh : 0.1
+alert_trace_decay : 0.99
+alert_trace_thresh : 0.2

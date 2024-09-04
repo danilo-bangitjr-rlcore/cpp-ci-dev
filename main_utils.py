@@ -542,7 +542,7 @@ def offline_anytime_deployment(cfg: DictConfig,
         update_pbar(pbar, stats, cfg.experiment.online_stat_keys)
         alert_info_list = []
 
-        if len(transitions) > 0:
+        if len(transitions) > 0 and (j % 100 in [0, 13, 30, 37, 73, 88]):
             make_actor_critic_plots(agent, env, transitions, "Offline_Anytime_Encountered_States", j, save_path)
             if alerts.get_dim() > 0:
                 plot_info = alerts.get_test_state_qs(transitions)

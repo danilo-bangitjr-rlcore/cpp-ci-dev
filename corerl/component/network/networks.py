@@ -208,14 +208,18 @@ class EnsembleCritic(nn.Module):
         return
 
     def parameters(self, independent: bool = False) -> list:
-        param_list = []
-        if independent:
-            for i in range(self.ensemble):
-                param_list.append(self.subnetworks[i].parameters())
+        if self.vmap:
+            # https://github.com/pytorch/pytorch/issues/120581
+            return self.params.values()
         else:
-            for i in range(self.ensemble):
-                param_list += list(self.subnetworks[i].parameters())
-        return param_list
+            param_list = []
+            if independent:
+                for i in range(self.ensemble):
+                    param_list.append(self.subnetworks[i].parameters())
+            else:
+                for i in range(self.ensemble):
+                    param_list += list(self.subnetworks[i].parameters())
+            return param_list
 
 
 class SquashedGaussian(nn.Module):
