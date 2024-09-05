@@ -1,6 +1,7 @@
 defaults:
-  - base_env
+  - base_gym_env
   - _self_
 
 name : Pendulum-v1
+trig_features: True
 discrete_control : False
