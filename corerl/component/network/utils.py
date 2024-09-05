@@ -164,7 +164,7 @@ def tensor(x: float | numpy.ndarray | torch.Tensor, device: Optional[str] = None
 
 
 def state_to_tensor(state: numpy.ndarray,  device: Optional[str] = None) -> torch.Tensor:
-    state = tensor(state.reshape((1, -1)), device.device)
+    state = tensor(state.reshape((1, -1)), device)
     return state
 
 
