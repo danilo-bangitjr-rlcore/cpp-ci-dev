@@ -55,7 +55,8 @@ class BaseGVF(ABC):
     def update(self, cumulant_inds: Optional[list[int]] = None):
         if min(self.buffer.size) > 0:
             batches = self.buffer.sample()
-            loss, ensemble_info = self.compute_gvf_loss(batches, cumulant_inds=cumulant_inds, with_grad=True)
+            losses, ensemble_info = self.compute_gvf_loss(batches, cumulant_inds=cumulant_inds, with_grad=True)
+            loss = sum(losses)
             self.gvf.update(loss)
         #self.train_losses.append(loss.detach().numpy())
 

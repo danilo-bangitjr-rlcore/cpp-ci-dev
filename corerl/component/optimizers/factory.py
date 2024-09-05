@@ -8,7 +8,7 @@ from corerl.component.optimizers.custom_torch_opts import CustomAdam
 from typing import Iterator
 
 
-def init_optimizer(cfg: DictConfig, param: list | dict | Iterator, ensemble: Optional['bool'] = False):
+def init_optimizer(cfg: DictConfig, param: list | dict | Iterator, ensemble: Optional['bool'] = False, vmap: Optional['bool'] = False):
     """
     config files: root/config/agent/critic/critic_optimizer or root/config/agent/actor/actor_optimizer
     """
@@ -19,7 +19,7 @@ def init_optimizer(cfg: DictConfig, param: list | dict | Iterator, ensemble: Opt
         weight_decay = cfg.weight_decay
 
     # TODO: Han can you make sure this file is ok?
-    if ensemble:
+    if ensemble and not vmap:
         if name != "lso":
             kwargs = {'weight_decay': cfg.weight_decay, 'lr': cfg.lr}
 
