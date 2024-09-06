@@ -77,25 +77,29 @@ def get_test_state_qs_and_policy_params(agent, test_transitions):
         test_states.append(transition.state)
     test_states_np = np.array(test_states, dtype=np.float32)
 
-    test_states = tensor(test_states_np, device)
+    test_states = tensor(test_states_np, device.device)
     actions = np.linspace(np.array([0]), np.array([1]), num=test_actions)
 
     # Q-Values
     repeated_test_states = test_states.repeat_interleave(test_actions, dim=0)
     repeated_actions = [actions for i in range(num_states)]
     repeated_actions = np.concatenate(repeated_actions)
-    repeated_actions = tensor(repeated_actions, device)
+    repeated_actions = tensor(repeated_actions, device.device)
 
-    q_values, ensemble_qs = agent.q_critic.get_qs([repeated_test_states], [repeated_actions], with_grad=False)
-    q_values = to_np(q_values)
-    q_values = q_values.reshape(num_states, test_actions)
+    bootstrap_q_values, ensemble_qs = agent.q_critic.get_qs([repeated_test_states], [repeated_actions], with_grad=False, bootstrap_reduct=True)
+    bootstrap_q_values = to_np(bootstrap_q_values)
+    bootstrap_q_values = bootstrap_q_values.reshape(num_states, test_actions)
     ensemble_qs = to_np(ensemble_qs)
     ensemble_qs = ensemble_qs.reshape(agent.q_critic.model.ensemble, num_states, test_actions)
+
+    policy_q_values, _ = agent.q_critic.get_qs([repeated_test_states], [repeated_actions], with_grad=False, bootstrap_reduct=False)
+    policy_q_values = to_np(policy_q_values)
+    policy_q_values = policy_q_values.reshape(num_states, test_actions)
 
     # Actor Params
     actor_alphas, actor_betas = agent.actor.model.get_dist_params(test_states)
     actor_alphas = to_np(actor_alphas)
     actor_betas = to_np(actor_betas)
 
-    return test_states_np, actions, q_values, ensemble_qs, np.array(list(zip(actor_alphas, actor_betas)))
+    return test_states_np, actions, bootstrap_q_values, policy_q_values, ensemble_qs, np.array(list(zip(actor_alphas, actor_betas)))
 

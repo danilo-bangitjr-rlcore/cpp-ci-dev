@@ -4,5 +4,6 @@ defaults:
 
 ensemble : 1
 name : ensemble
-reduct : min
+bootstrap_reduct : min
+policy_reduct : max
 vmap : False

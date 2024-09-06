@@ -212,8 +212,8 @@ def get_offline_transitions(cfg: DictConfig,
     """
     output_path = Path(cfg.offline_data.output_path)
 
-    def create_transitions(obs_transitions, return_scs):
-        return transition_creator.make_offline_transitions(obs_transitions, sc, return_scs, cfg.state_constructor.warmup, use_pbar=True)
+    def create_transitions(obs_transitions):
+        return transition_creator.make_offline_transitions(obs_transitions, sc, cfg.state_constructor.warmup, use_pbar=True)
 
     agent_train_transitions, alert_train_transitions = load_or_create(root=output_path,
                                                                       cfgs=[cfg.data_loader, cfg.state_constructor,
@@ -477,10 +477,13 @@ def online_deployment(cfg: DictConfig,
 
             action = agent.get_action(state)
 
+            if j % 100 in [0, 13, 37, 73, 88]:
+                make_actor_critic_plots(agent, env, transitions, "Encountered_States", j, save_path)
+
         # Plot policy and critic at a set of test states
         # Plotting function is likely project specific
         if j in test_epochs:
-            make_actor_critic_plots(agent, env, plot_transitions, "Online_Deployment", j, save_path)
+            make_actor_critic_plots(agent, env, plot_transitions, "Test_States", j, save_path)
 
     return online_eval
 

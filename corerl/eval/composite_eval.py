@@ -1,5 +1,6 @@
+import pickle as pkl
 from functools import reduce
-
+from pathlib import Path
 from corerl.eval.base_eval import BaseEval
 from corerl.eval.factory import init_single_evaluator
 from omegaconf import DictConfig
@@ -25,6 +26,13 @@ class CompositeEval(BaseEval):
             return merged_stats
         else:
             return {}
+
+    def save(self, save_path: Path, prefix: str) -> None:
+        stats = self.get_stats()
+
+        stats_path = save_path / "{}_eval.pkl".format(prefix)
+        with open(stats_path, "wb") as f:
+            pkl.dump(stats, f)
 
 
 def _instantiate_evaluators(eval_cfg, eval_args, online=False, offline=False) -> list[BaseEval]:

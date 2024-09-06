@@ -39,6 +39,7 @@ class EnsembleQCritic(BaseQ):
         state_batches: list[torch.Tensor],
         action_batches: list[torch.Tensor],
         with_grad: bool = False,
+        bootstrap_reduct: bool = True,
     ) -> (torch.Tensor, torch.Tensor):
         ensemble = len(state_batches)
         state_action_batches = [torch.concat((state_batches[i], action_batches[i]), dim=1) for i in range(ensemble)]
@@ -48,10 +49,10 @@ class EnsembleQCritic(BaseQ):
             input_tensor = state_action_batches[0]
 
         if with_grad:
-            q, qs = self.model(input_tensor)
+            q, qs = self.model(input_tensor, bootstrap_reduct)
         else:
             with torch.no_grad():
-                q, qs = self.model(input_tensor)
+                q, qs = self.model(input_tensor, bootstrap_reduct)
         return q, qs
 
     def get_q(
@@ -59,12 +60,13 @@ class EnsembleQCritic(BaseQ):
         state_batches: list[torch.Tensor],
         action_batches: list[torch.Tensor],
         with_grad: bool = False,
+        bootstrap_reduct: bool = True,
     ) -> torch.Tensor:
-        q, qs = self.get_qs(state_batches, action_batches, with_grad=with_grad)
+        q, qs = self.get_qs(state_batches, action_batches, with_grad=with_grad, bootstrap_reduct=bootstrap_reduct)
         return q
 
     def get_qs_target(
-        self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor],
+        self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor], bootstrap_reduct: bool = True,
     ) -> (torch.Tensor, torch.Tensor):
         ensemble = len(state_batches)
         state_action_batches = [torch.concat((state_batches[i], action_batches[i]), dim=1) for i in range(ensemble)]
@@ -74,12 +76,12 @@ class EnsembleQCritic(BaseQ):
             input_tensor = state_action_batches[0]
 
         with torch.no_grad():
-            return self.target(input_tensor)
+            return self.target(input_tensor, bootstrap_reduct)
 
     def get_q_target(
-        self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor],
+        self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor], bootstrap_reduct: bool = True,
     ) -> torch.Tensor:
-        q, qs = self.get_qs_target(state_batches, action_batches)
+        q, qs = self.get_qs_target(state_batches, action_batches, bootstrap_reduct=bootstrap_reduct)
         return q
 
     def update(
@@ -164,7 +166,7 @@ class EnsembleVCritic(BaseV):
         self.target_sync_counter = 0
 
     def get_vs(
-        self, state_batches: list[torch.Tensor], with_grad: bool = False,
+        self, state_batches: list[torch.Tensor], with_grad: bool = False, bootstrap_reduct: bool = True,
     ) -> (torch.Tensor, torch.Tensor):
         ensemble = len(state_batches)
         if ensemble > 1:
@@ -173,10 +175,10 @@ class EnsembleVCritic(BaseV):
             input_tensor = state_batches[0]
 
         if with_grad:
-            v, vs = self.model(input_tensor)
+            v, vs = self.model(input_tensor, bootstrap_reduct)
         else:
             with torch.no_grad():
-                v, vs = self.model(input_tensor)
+                v, vs = self.model(input_tensor, bootstrap_reduct)
         return v, vs
 
     def ensemble_backward(self, loss):
@@ -187,13 +189,13 @@ class EnsembleVCritic(BaseV):
         return
 
     def get_v(
-        self, state_batches: list[torch.Tensor], with_grad: bool = False,
+        self, state_batches: list[torch.Tensor], with_grad: bool = False, bootstrap_reduct: bool = True,
     ) -> torch.Tensor:
-        v, vs = self.get_vs(state_batches, with_grad=with_grad)
+        v, vs = self.get_vs(state_batches, with_grad=with_grad, bootstrap_reduct=bootstrap_reduct)
         return v
 
     def get_vs_target(
-        self, state_batches: list[torch.Tensor],
+        self, state_batches: list[torch.Tensor], bootstrap_reduct: bool = True,
     ) -> (torch.Tensor, torch.Tensor):
         ensemble = len(state_batches)
         if ensemble > 1:
@@ -201,10 +203,10 @@ class EnsembleVCritic(BaseV):
         else:
             input_tensor = state_batches[0]
         with torch.no_grad():
-            return self.target(input_tensor)
+            return self.target(input_tensor, bootstrap_reduct)
 
-    def get_v_target(self, state_batches: list[torch.Tensor]) -> torch.Tensor:
-        v, vs = self.get_vs_target(state_batches)
+    def get_v_target(self, state_batches: list[torch.Tensor], bootstrap_reduct: bool = True) -> torch.Tensor:
+        v, vs = self.get_vs_target(state_batches, bootstrap_reduct)
         return v
 
     def update(self, loss: torch.Tensor) -> None:

@@ -157,14 +157,14 @@ def tensor(x: float | numpy.ndarray | torch.Tensor, device: Optional[str] = None
     if isinstance(x, torch.Tensor):
         return x
     if device is not None:
-        x = torch.tensor(x, dtype=torch.float32).to(device.device)
+        x = torch.tensor(x, dtype=torch.float32).to(device)
     else:
         x = torch.tensor(x, dtype=torch.float32).to(global_device.device)
     return x
 
 
 def state_to_tensor(state: numpy.ndarray,  device: Optional[str] = None) -> torch.Tensor:
-    state = tensor(state.reshape((1, -1)), device.device)
+    state = tensor(state.reshape((1, -1)), device)
     return state
 
 

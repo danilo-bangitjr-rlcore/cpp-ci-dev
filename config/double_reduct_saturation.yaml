@@ -1,0 +1,61 @@
+defaults:
+  - config
+  - override hydra/job_logging: custom
+  - override agent: greedy_ac
+  - override env: delayed_saturation
+  - override data_loader: direct_action
+  - override interaction: anytime
+  - override state_constructor: anytime_multi_trace
+  - _self_
+
+experiment :
+  exp_name : "Double_Reduct_Saturation_Test"
+  device : cpu
+  max_steps : 10000
+  offline_steps : 0
+  load_env_obs_space_from_data : False
+  gamma : 0.9
+  train_split : 0.995
+  plot_split : 0.98
+  test_epochs : null
+  offline_stat_keys : []
+  online_stat_keys : []
+  set_env_obs_space : False
+  timeout: 0
+
+interaction :
+  obs_length: 1
+  only_dp_transitions : False
+  steps_per_decision: 7
+  n_step : 0
+  action_normalizer:
+    use_cfg_values : False
+
+state_constructor:
+  use_indicator : True
+  representation : thermometer
+
+agent:
+  tau : 0
+  rho : 0.05
+  ensemble_targets: False
+  num_samples: 256
+  uniform_proposal : False
+  uniform_sampling_percentage: 0.5
+  critic:
+    polyak: 0.995
+    critic_optimizer:
+      lr : 0.0003
+      weight_decay : 0.0
+    critic_network:
+      ensemble : 10
+      bootstrap_reduct : min
+      policy_reduct: max
+      vmap : False
+    buffer:
+      batch_size : 512
+  actor:
+    actor_optimizer:
+      lr : 0.001
+  buffer:
+      batch_size : 128

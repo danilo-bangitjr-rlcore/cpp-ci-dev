@@ -12,5 +12,5 @@ share_batch : True
 n_sampler_updates: 1
 # Whether all critics in the ensemble should use their own targets or an
 # aggregate target based on the ensemble reduct function
-ensemble_targets: True
+ensemble_targets: False
 uniform_sampling_percentage: 0.5
