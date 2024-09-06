@@ -176,6 +176,7 @@ class GreedyAC(BaseAC):
 
                     uniform_sample_actions = torch.rand(
                         n * batch_size, self.action_dim,
+                        device=device.device
                     )
 
                     sample_actions = torch.cat(
