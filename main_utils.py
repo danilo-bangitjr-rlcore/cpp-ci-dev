@@ -212,8 +212,8 @@ def get_offline_transitions(cfg: DictConfig,
     """
     output_path = Path(cfg.offline_data.output_path)
 
-    def create_transitions(obs_transitions, return_scs):
-        return transition_creator.make_offline_transitions(obs_transitions, sc, return_scs, cfg.state_constructor.warmup, use_pbar=True)
+    def create_transitions(obs_transitions):
+        return transition_creator.make_offline_transitions(obs_transitions, sc, cfg.state_constructor.warmup, use_pbar=True)
 
     agent_train_transitions, alert_train_transitions = load_or_create(root=output_path,
                                                                       cfgs=[cfg.data_loader, cfg.state_constructor,
