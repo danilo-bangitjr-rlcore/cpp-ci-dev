@@ -82,7 +82,7 @@ def main(cfg: DictConfig) -> dict:
 
         print('Loading offline transitions...')
         log.info('Loading offline transitions...')
-        agent_train_transitions, agent_test_transitions, alert_train_transitions, alert_test_transitions, _ = utils.get_offline_transitions(
+        agent_train_transitions, agent_test_transitions, alert_train_transitions, alert_test_transitions = utils.get_offline_transitions(
             cfg, train_obs_transitions,
             test_obs_transitions, sc,
             transition_creator)
