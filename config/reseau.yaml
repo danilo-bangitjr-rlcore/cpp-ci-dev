@@ -81,44 +81,44 @@ data_loader:
                   "fit101_pv", "fit210_pv", "fit230_pv", "fit250_pv", "fit401_pv", "p250_fp",
                   "pt100_pv", "pt101_pv", "pt161_pv", "pt171_pv", "pt302_pv"]
 
-alerts:
-  action_value_uncertainty:
-    gamma : 0.95
-    ret_perc : 0.1
-    alert_trace_decay : 0.99
-    alert_trace_thresh : 0.3
-    std_trace_decay : 0.99
-    std_trace_thresh : 0.15
-    ensemble_targets : True
-    critic:
-      polyak: 0.995
-      critic_optimizer:
-        lr : 0.0003
-        weight_decay : 0.01
-      critic_network:
-        ensemble : 10
-        reduct : mean
-        vmap : False
-    buffer:
-      ensemble: 10
-      data_subset : 0.5
-  gvf_uncertainty:
-    gamma : 0.95
-    ret_perc : 0.1
-    alert_trace_decay : 0.99
-    alert_trace_thresh : 0.2
-    std_trace_decay : 0.99
-    std_trace_thresh : 0.15
-    ensemble_targets : True
-    critic:
-      polyak: 0.995
-      critic_optimizer:
-        lr : 0.0003
-        weight_decay : 0.01
-      critic_network:
-        ensemble : 10
-        reduct : mean
-        vmap : False
-    buffer:
-      ensemble: 10
-      data_subset : 0.1
+#alerts:
+#  action_value_uncertainty:
+#    gamma : 0.95
+#    ret_perc : 0.1
+#    alert_trace_decay : 0.99
+#    alert_trace_thresh : 0.3
+#    std_trace_decay : 0.99
+#    std_trace_thresh : 0.15
+#    ensemble_targets : True
+#    critic:
+#      polyak: 0.995
+#      critic_optimizer:
+#        lr : 0.0003
+#        weight_decay : 0.01
+#      critic_network:
+#        ensemble : 10
+#        reduct : mean
+#        vmap : False
+#    buffer:
+#      ensemble: 10
+#      data_subset : 0.5
+#  gvf_uncertainty:
+#    gamma : 0.95
+#    ret_perc : 0.1
+#    alert_trace_decay : 0.99
+#    alert_trace_thresh : 0.2
+#    std_trace_decay : 0.99
+#    std_trace_thresh : 0.15
+#    ensemble_targets : True
+#    critic:
+#      polyak: 0.995
+#      critic_optimizer:
+#        lr : 0.0003
+#        weight_decay : 0.01
+#      critic_network:
+#        ensemble : 10
+#        reduct : mean
+#        vmap : False
+#    buffer:
+#      ensemble: 10
+#      data_subset : 0.1
