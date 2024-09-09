@@ -61,8 +61,8 @@ def make_param_plot(freezer, save_path):
     param1 = []
     param2 = []
     for info in action_info:
-        param1.append(info['param1'])
-        param2.append(info['param2'])
+        param1.append(info['param1'].cpu())
+        param2.append(info['param2'].cpu())
 
     # transpose to make the actions the action dimensions the rows, and the iterations the columns
     param1 = np.array(param1).squeeze().T
