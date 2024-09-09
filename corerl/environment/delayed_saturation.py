@@ -50,7 +50,7 @@ class DelayedSaturation(gym.Env):
         self.action_trace = self.trace_val * self.action_trace + (1 - self.trace_val) * action
         self.saturation = self.saturation * self.decay
         effect = 0.15 * np.cos(self.time_step * np.pi * (2 / self.effect_period)) + 0.75
-        self.saturation = self.action_trace * effect
+        self.saturation += self.action_trace * effect
         self.saturation = np.clip(self.saturation, 0, 1)
         reward = -np.abs(self.saturation - self.saturation_sp).item()
 
