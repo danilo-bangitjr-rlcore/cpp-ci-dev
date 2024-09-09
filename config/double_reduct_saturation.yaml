@@ -8,13 +8,25 @@ defaults:
   - override state_constructor: anytime_multi_trace
   - _self_
 
+offline_data:
+  load_from : csv # alternatively, use "transition"
+  output_path : offline_data/delayed_saturation
+
+data_loader:
+  offline_data_path : offline_data/delayed_saturation/csv
+  train_filenames: ["data.csv"]
+  test_filenames: ["data.csv"]
+  skip_rows : 0
+  header : 0
+  df_col_names : ["Blank", "saturation", "action", "Date"]
+
 experiment :
   exp_name : "Double_Reduct_Saturation_Test"
   device : cpu
   max_steps : 10000
-  offline_steps : 0
+  offline_steps : 1
   load_env_obs_space_from_data : False
-  gamma : 0.9
+  gamma : 0.95
   train_split : 0.995
   plot_split : 0.98
   test_epochs : null
@@ -38,6 +50,7 @@ state_constructor:
 agent:
   tau : 0
   rho : 0.05
+  prop_rho_mult : 2.0
   ensemble_targets: False
   num_samples: 256
   uniform_proposal : False

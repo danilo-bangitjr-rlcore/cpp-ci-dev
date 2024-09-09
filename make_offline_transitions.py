@@ -19,7 +19,6 @@ from corerl.data.transition_creator import AnytimeTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data_loaders.utils import train_test_split
 from corerl.eval.composite_eval import CompositeEval
-from corerl.utils.plotting import make_plots
 
 import corerl.utils.freezer as fr
 import main_utils as utils
@@ -85,7 +84,7 @@ def main(cfg: DictConfig) -> dict:
         transitions, agent_train_transitions, alert_train_transitions, alert_info, env_info = interaction.step(action)
 
         for transition in transitions:  # agent_train_transitions:
-            agent.update_buffer(transition)
+            #agent.update_buffer(transition)
             observations.append(transition.obs)
             actions.append(transition.action)
 

@@ -85,7 +85,9 @@ def make_param_plot(freezer, save_path):
     axs[0].legend(bbox_to_anchor=(1.05, 1.05))
 
     axs[0].set_ylabel('Param 1')
+    axs[0].set_yscale('log')
     axs[1].set_ylabel('Param 2')
+    axs[1].set_yscale('log')
     axs[0].set_xlabel('Step')
 
     remove_spines(axs)
@@ -127,9 +129,6 @@ def make_cumulative_reward_plot(stats, save_path):
 
     reward_sums = stats['reward_sums']
     avg_reward = stats['avg_reward']
-
-    print("Reward Sums:")
-    print(reward_sums)
 
     fig, ax = plt.subplots()
     ax.plot(reward_sums)
@@ -601,10 +600,10 @@ def make_online_plots(freezer, stats, save_path):
     #make_ensemble_info_summary_plots(stats, save_path, "Online")
     """
     make_action_mean_variance_plot(freezer, save_path)
-    make_param_plot(freezer, save_path)
     make_action_gap_plot(stats, save_path)
     make_bellman_error_plot(stats, save_path, "online")
     """
+    make_param_plot(freezer, save_path)
     make_reward_plot(stats, save_path)
     make_cumulative_reward_plot(stats, save_path)
 
