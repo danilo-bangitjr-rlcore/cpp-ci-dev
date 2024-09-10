@@ -1,5 +1,7 @@
 defaults:
   - config
+  - alerts@alerts.gvf_trace : gvf_trace
+  - alerts@alerts.gvf_uncertainty : gvf_uncertainty
   - override hydra/job_logging: custom
   - override agent: greedy_ac
   - override env: reseau
