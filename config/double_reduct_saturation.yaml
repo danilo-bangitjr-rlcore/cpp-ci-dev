@@ -25,12 +25,12 @@ experiment :
   exp_name : "Double_Reduct_Delayed_Saturation_Action_Schedule_Pretraining"
   device : cpu
   max_steps : 10000
-  offline_steps : 10000
+  offline_steps : 20000
   load_env_obs_space_from_data : False
   gamma : 0.95
   train_split : 0.995
-  plot_split : 0.98
-  test_epochs : [0, 1, 5, 10, 100, 999, 1999, 4999, 9999]
+  plot_split : 0.95
+  test_epochs : [0, 1, 5, 10, 100, 999, 1999, 4999, 9999, 19999]
   offline_stat_keys : []
   online_stat_keys : []
   set_env_obs_space : False
@@ -49,6 +49,7 @@ state_constructor:
   representation : thermometer
 
 agent:
+  action_schedule : [[0.05], [0.05], [0.1], [0.1], [0.15], [0.15], [0.2], [0.2], [0.25], [0.25], [0.3], [0.3], [0.25], [0.25], [0.2], [0.2], [0.15], [0.15], [0.1], [0.1], [0.05], [0.05], [0.0], [0.0], [0.05], [0.1], [0.7], [0.75], [0.8], [0.85], [0.9], [0.95], [1.0], [0.95], [0.9], [0.85], [0.8], [0.75], [0.7], [0.65], [0.6], [0.55], [0.5], [0.1], [0.05], [0.0], [0.0], [0.0], [0.5], [0.05], [0.0], [0.0], [0.4], [0.0], [0.0], [0.25], [0.0], [0.0], [0.6], [0.45], [0.1], [0.15], [0.0], [0.05], [0.1], [0.1], [0.2], [0.2], [0.1], [0.15], [0.15], [0.1], [0.1], [0.25], [0.05], [0.2]]
   tau : 0
   rho : 0.05
   prop_rho_mult : 2.0
