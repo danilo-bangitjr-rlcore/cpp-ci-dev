@@ -14,22 +14,23 @@ offline_data:
 
 data_loader:
   offline_data_path : offline_data/delayed_saturation/csv
-  train_filenames: ["data.csv"]
-  test_filenames: ["data.csv"]
+  train_filenames: ["action_schedule_data.csv"]
+  test_filenames: ["gac_data.csv"]
   skip_rows : 0
   header : 0
   df_col_names : ["Blank", "saturation", "action", "Date"]
+# "gac_data.csv", "random_data.csv", "action_schedule_data.csv"
 
 experiment :
-  exp_name : "Double_Reduct_Saturation_Test"
+  exp_name : "Double_Reduct_Delayed_Saturation_Action_Schedule_Pretraining"
   device : cpu
   max_steps : 10000
-  offline_steps : 1
+  offline_steps : 10000
   load_env_obs_space_from_data : False
   gamma : 0.95
   train_split : 0.995
   plot_split : 0.98
-  test_epochs : null
+  test_epochs : [0, 1, 5, 10, 100, 999, 1999, 4999, 9999]
   offline_stat_keys : []
   online_stat_keys : []
   set_env_obs_space : False
