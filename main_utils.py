@@ -447,8 +447,9 @@ def online_deployment(cfg: DictConfig,
         for transition in alert_train_transitions:
             alerts.update_buffer(transition)
 
-        agent.update()
-        alerts.update()
+        if cfg.experiment.online_updates:
+            agent.update()
+            alerts.update()
 
         alert_info_list.append(alert_info)
 
@@ -529,9 +530,11 @@ def offline_anytime_deployment(cfg: DictConfig,
         for transition in alert_train_transitions:
             alerts.update_buffer(transition)
 
-        agent.update()
-
-        ensemble_info = alerts.update()
+        if cfg.experiment.online_updates:
+            agent.update()
+            ensemble_info = alerts.update()
+        else:
+            ensemble_info = {}
 
         alert_info_list.append(alert_info)
 

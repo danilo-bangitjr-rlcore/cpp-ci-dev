@@ -14,7 +14,7 @@ offline_data:
 
 data_loader:
   offline_data_path : offline_data/delayed_saturation/csv
-  train_filenames: ["action_schedule_poor_coverage.csv"]
+  train_filenames: ["action_schedule_good_coverage.csv"]
   test_filenames: ["gac_data.csv"]
   skip_rows : 0
   header : 0
