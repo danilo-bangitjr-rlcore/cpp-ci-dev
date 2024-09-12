@@ -14,7 +14,7 @@ offline_data:
 
 data_loader:
   offline_data_path : offline_data/delayed_saturation/csv
-  train_filenames: ["action_schedule_good_coverage.csv"]
+  train_filenames: ["fixed_action_0_3.csv", "fixed_action_0_1.csv"]
   test_filenames: ["gac_data.csv"]
   skip_rows : 0
   header : 0
@@ -22,7 +22,7 @@ data_loader:
 # "gac_data.csv", "random_data.csv", "action_schedule_poor_coverage.csv", "action_schedule_good_coverage.csv"
 
 experiment :
-  exp_name : "Long_Action_Duration_Schedule_Good_Coverage"
+  exp_name : "Double_Reduct_Action_0_3_0_1_Pretraining_Online_Updates"
   device : cpu
   max_steps : 10000
   offline_steps : 10000
