@@ -1,6 +1,6 @@
 import corerl.component.network.utils as utils
 from . import *
-from . import _HalfBoundedConstraint
+from .policy import _get_type_from_dist
 from corerl.component.distribution import get_dist_type
 from corerl.component.layer import init_activation, Parallel
 import torch.nn as nn
@@ -8,30 +8,12 @@ import torch.distributions as d
 from corerl.utils.device import device
 
 
-def get_type_from_dist(dist):
-    if isinstance(dist.support, d.constraints.interval):
-        return Bounded
-
-    # Weirdness with PyTorch's constraints.real makes us need to call `type` on
-    # it first
-    elif isinstance(dist.support, type(d.constraints.real)):
-        return UnBounded
-
-    elif isinstance(dist.support, _HalfBoundedConstraint):
-        return HalfBounded
-
-    else:
-        raise NotImplementedError(
-            f"unknown policy type for distribution {dist}",
-        )
-
-
 def get_type_from_str(type_: str):
     if type_.lower() == "softmax":
         return Softmax
     else:
         try:
-            return get_type_from_dist(get_dist_type(type_))
+            return _get_type_from_dist(get_dist_type(type_))
         except NotImplementedError:
             raise NotImplementedError(f"unknown policy type {type_}")
 
@@ -139,12 +121,10 @@ def create(cfg, input_dim, output_dim, action_min=None, action_max=None):
     if policy_type.continuous:
         dist_type = get_dist_type(cfg["dist"])
         if policy_type is UnBounded:
-            out = policy_type(net, dist_type)
+            return policy_type(net, dist_type)
         else:
-            out = policy_type(
+            return ContinuousPolicy.from_(
                 net, dist_type, action_min=action_min, action_max=action_max,
             )
     else:
-        out = policy_type(net, input_dim, output_dim)
-
-    return out
+        return policy_type(net, input_dim, output_dim)

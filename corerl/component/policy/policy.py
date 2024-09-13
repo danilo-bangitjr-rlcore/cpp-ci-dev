@@ -1,6 +1,23 @@
 from abc import ABC, abstractmethod, abstractclassmethod
 import torch
 import torch.distributions as d
+from warnings import warn
+from typing import Union
+
+
+_BoundedAboveConstraint = Union[
+    d.constraints.less_than,
+]
+
+_BoundedBelowConstraint = Union[
+    d.constraints.greater_than_eq,
+    d.constraints.greater_than,
+]
+
+_HalfBoundedConstraint = Union[
+    _BoundedAboveConstraint, _BoundedBelowConstraint,
+]
+
 
 
 class Policy(ABC):
@@ -58,6 +75,10 @@ class ContinuousPolicy(Policy,ABC):
     def __init__(self, model):
         super().__init__(model)
 
+    @classmethod
+    def from_(cls, model, dist, *args, **kwargs):
+        return _get_type_from_dist(dist)(model, dist, *args, **kwargs)
+
     def load_state_dict(self, sd):
         return self._model.load_state_dict(sd)
 
@@ -90,9 +111,8 @@ class ContinuousPolicy(Policy,ABC):
         return len(self.param_names)
 
     @property
-    @abstractclassmethod
     def continuous(cls):
-        pass
+        True
 
     @classmethod
     @property
@@ -174,3 +194,213 @@ class ContinuousPolicy(Policy,ABC):
         other_dist = other._transform_from_params(*other_params)
 
         return d.kl.kl_divergence(self_dist, other_dist)
+
+
+class Bounded(ContinuousPolicy):
+    def __init__(self, model, dist, action_min=None, action_max=None):
+        super().__init__(model)
+        self._dist = dist
+
+        if not isinstance(dist.support, d.constraints.interval):
+            raise ValueError(
+                "Bounded expects dist to have support type " +
+                f"{d.constraints.interval}, but " +
+                f"got {type(dist.support)}"
+            )
+        dist_min = dist.support.lower_bound
+        dist_max = dist.support.upper_bound
+
+        if action_min is None:
+            action_min = self._dist.support.lower_bound
+        if action_max is None:
+            action_max= self._dist.support.upper_bound
+
+        assert action_min < action_max
+
+        self._action_scale = (action_max - action_min) / (dist_max - dist_min)
+        self._action_bias = -self._action_scale * dist_min + action_min
+
+    @property
+    def support(self):
+        lb = self._dist.support.lower_bound
+        ub = self._dist.support.upper_bound
+
+        return type(self._dist.support)(
+            lower_bound=self._action_scale * lb + self._action_bias,
+            upper_bound=self._action_scale * ub + self._action_bias,
+        )
+
+    @property
+    def param_names(self):
+        return tuple(self._dist.arg_constraints.keys())
+
+    @classmethod
+    def from_env(cls, model, dist, env):
+        action_min = torch.Tensor(env.action_space.low)
+        action_max = torch.Tensor(env.action_space.high)
+
+        return cls(model, dist, action_min, action_max)
+
+    def _transform_from_params(self, *params):
+        return self._transform(self._dist(*params))
+
+    def _transform(self, dist):
+        if self._action_bias != 0 or self._action_scale != 1:
+            transform = d.AffineTransform(
+                loc=self._action_bias, scale=self._action_scale,
+            )
+            dist = d.TransformedDistribution(dist, [transform])
+
+        return d.Independent(dist, 1)
+
+
+class UnBounded(ContinuousPolicy):
+    def __init__(self, model, dist):
+        super().__init__(model)
+        self._dist = dist
+
+        if not isinstance(dist.support, type(d.constraints.real)):
+            raise ValueError(
+                "UnBounded expects dist to have support type " +
+                f"{type(d.constraints.real)}, but " +
+                f"got {type(dist.support)}"
+            )
+
+    @property
+    def support(self):
+        return self._dist.support
+
+    @property
+    def param_names(self):
+        return tuple(self._dist.arg_constraints.keys())
+
+    @classmethod
+    def from_env(cls, model, dist, env):
+        return cls(model, dist)
+
+    def _transform_from_params(self, *params):
+        return self._transform(self._dist(*params))
+
+    def _transform(self, dist):
+        return d.Independent(dist, 1)
+
+
+class HalfBounded(ContinuousPolicy):
+    """
+    HalfBounded is a policy on a half-bounded support interval, either
+    `(action_min, ∞)` or `(-∞, action_max)`.
+
+    If given a distribution `dist` which has support unbounded above, then
+    `dist` will be transformed to cover the action space, such that `dist` has
+    support `(action_min, ∞)`.
+
+    If given a distribution `dist` which has support unbounded below, then
+    `dist` will be transformed to cover the action space, such that `dist` has
+    support `(-∞, action_max)`.
+    """
+    def __init__(self, model, dist, action_min=None, action_max=None):
+        super().__init__(model)
+        self._dist = dist
+
+        if isinstance(dist.support, _BoundedAboveConstraint):
+            self._dist_max = dist.support.upper_bound
+            self._dist_min = -torch.inf
+            if action_min is not None and action_min != -torch.inf:
+                warn(
+                    f"the support of {dist} is not bounded below, ignoring" +
+                    "action_min value {action_min}"
+                )
+            action_min = -torch.inf
+
+            if action_max is None:
+                action_max = self._dist.support.upper_bound
+            assert action_max != torch.inf
+
+        elif isinstance(dist.support, _BoundedBelowConstraint):
+            self._dist_min = dist.support.lower_bound
+            self._dist_max = torch.inf
+            if action_max is not None and action_max != torch.inf:
+                warn(
+                    f"the support of {dist} is not bounded above, ignoring " +
+                    f"action_max value {action_max}"
+                )
+            action_max = torch.inf
+
+            if action_min is None:
+                action_min = self._dist.support.lower_bound
+            assert action_min != -torch.inf
+
+        else:
+            raise ValueError(
+                "HalfBounded expects dist to have support type " +
+                f"{_HalfBoundedConstraint}, but " +
+                f"got {type(dist.support)}"
+            )
+
+        assert action_min < action_max
+        self._action_min = action_min
+        self._action_max = action_max
+
+    @property
+    def support(self):
+        if self._bounded_below:
+            lb = self._dist.support.lower_bound
+            return type(self._dist.support)(lb + self._action_min)
+        else:
+            ub = self._dist.support.upper_bound
+            return type(self._dist.support)(ub + self._action_max)
+
+    @property
+    def _bounded_below(self):
+        return self._dist_min is not -torch.inf
+
+    @property
+    def _bounded_above(self):
+        return self._dist_max is not torch.inf
+
+    @property
+    def param_names(self):
+        return tuple(self._dist.arg_constraints.keys())
+
+    @classmethod
+    def from_env(cls, model, dist, env):
+        action_min = torch.Tensor(env.action_space.low)
+        action_max = torch.Tensor(env.action_space.high)
+
+        return cls(model, dist, action_min, action_max)
+
+    def _transform_from_params(self, *params):
+        return self._transform(self._dist(*params))
+
+    def _transform(self, dist):
+        if self._bounded_below:
+            transform = d.AffineTransform(loc=self._action_min, scale=1)
+            dist = d.TransformedDistribution(dist, [transform])
+        else:
+            transform = d.AffineTransform(loc=self._action_max, scale=1)
+
+        dist = d.TransformedDistribution(dist, [transform])
+
+        return d.Independent(dist, 1)
+
+    def __repr__(self):
+        return f"HalfBounded[{self._dist}, {self._model}]"
+
+
+def _get_type_from_dist(dist):
+    if isinstance(dist.support, d.constraints.interval):
+        return Bounded
+
+    # Weirdness with PyTorch's constraints.real makes us need to call `type` on
+    # it first
+    elif isinstance(dist.support, type(d.constraints.real)):
+        return UnBounded
+
+    elif isinstance(dist.support, _HalfBoundedConstraint):
+        return HalfBounded
+
+    else:
+        raise NotImplementedError(
+            f"unknown policy type for distribution {dist}",
+        )
+
