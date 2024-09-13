@@ -4,6 +4,7 @@ from corerl.component.distribution import get_dist_type
 from corerl.component.layer import init_activation, Parallel
 import torch.nn as nn
 import torch.distributions as d
+from corerl.utils.device import device
 
 
 def get_type_from_dist(dist):
@@ -34,23 +35,23 @@ def get_type_from_str(type_: str):
             raise NotImplementedError(f"unknown policy type {type_}")
 
 
-def create_nn(cfg, policy_type, input_dim, output_dim):
+def _create_nn(cfg, policy_type, input_dim, output_dim):
     name = cfg["base"]["name"]
     if name.lower() in ("mlp", "fc"):
-        return create_mlp(cfg, policy_type, input_dim, output_dim)
+        return _create_mlp(cfg, policy_type, input_dim, output_dim)
     else:
         raise NotImplementedError(f"unknown neural network type {name}")
 
 
-def create_mlp(cfg, policy_type, input_dim, output_dim):
+def _create_mlp(cfg, policy_type, input_dim, output_dim):
     continuous = policy_type.continuous
     if not continuous:
-        return create_discrete_mlp(cfg, input_dim, output_dim)
+        return _create_discrete_mlp(cfg, input_dim, output_dim)
     else:
-        return create_continuous_mlp(cfg, input_dim, output_dim)
+        return _create_continuous_mlp(cfg, input_dim, output_dim)
 
 
-def create_discrete_mlp(cfg, input_dim, output_dim):
+def _create_discrete_mlp(cfg, input_dim, output_dim):
     assert cfg["base"]["name"].lower() in ("mlp", "fc")
 
     hidden = cfg["base"]["hidden"]
@@ -81,10 +82,10 @@ def create_discrete_mlp(cfg, input_dim, output_dim):
     head_layer = head_layer_init(head_layer)
     net.append(head_layer)
     net.append(init_activation(head_act))
-    return nn.Sequential(*net)
+    return nn.Sequential(*net).to(device.device)
 
 
-def create_continuous_mlp(cfg, input_dim, output_dim):
+def _create_continuous_mlp(cfg, input_dim, output_dim):
     assert cfg["base"]["name"].lower() in ("mlp", "fc")
 
     dist = get_dist_type(cfg["dist"])
@@ -126,12 +127,13 @@ def create_continuous_mlp(cfg, input_dim, output_dim):
             head_layers[i].append(init_activation(head_act[i][k]))
 
     head = Parallel(*(nn.Sequential(*path) for path in head_layers))
-    return nn.Sequential(nn.Sequential(*net), head)
+    return nn.Sequential(nn.Sequential(*net), head).to(device.device)
 
 
 def create(cfg, input_dim, output_dim, action_min=None, action_max=None):
     policy_type = get_type_from_str(cfg["dist"])
-    net = create_nn(cfg, policy_type, input_dim, output_dim)
+
+    net = _create_nn(cfg, policy_type, input_dim, output_dim)
 
     if policy_type.continuous:
         dist_type = get_dist_type(cfg["dist"])
