@@ -70,7 +70,7 @@ def create_mlp(cfg, input_dim, output_dim):
     return nn.Sequential(nn.Sequential(*net), head)
 
 
-def create(cfg, input_dim, output_dim, action_min, action_max):
+def create(cfg, input_dim, output_dim, action_min=None, action_max=None):
     net = create_nn(cfg, input_dim, output_dim)
 
     policy_type = get_type(cfg["type"])

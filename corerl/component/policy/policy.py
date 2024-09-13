@@ -7,6 +7,15 @@ class Policy(ABC):
     def __init__(self, model):
         self._model = model
 
+    def load_state_dict(self, sd):
+        return self._model.load_state_dict(sd)
+
+    def state_dict(self):
+        return self._model.state_dict()
+
+    def parameters(self):
+        return self._model.parameters()
+
     @classmethod
     @abstractmethod
     def from_env(cls, model, dist, env):
