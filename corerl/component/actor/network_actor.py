@@ -10,10 +10,18 @@ from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.optimizers.linesearch_optimizer import LineSearchOpt
 from corerl.utils.device import device
 
+
+DEFAULT_ACTION_MIN = 0
+DEFAULT_ACTION_MAX = 1
+
+
 class NetworkActor(BaseActor):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, initializer: Optional['NetworkActor'] = None):
-        # We always assume actions are normalized in 0, 1
-        action_min, action_max = 0, 1
+        # We always assume actions are normalized in (0, 1) unless otherwise
+        # stated
+        action_min = cfg.get("action_min", DEFAULT_ACTION_MIN)
+        action_max = cfg.get("action_max", DEFAULT_ACTION_MAX)
+
         self.policy = policy.create(
             cfg.actor_network, state_dim, action_dim, action_min, action_max,
         )
