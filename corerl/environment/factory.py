@@ -15,6 +15,7 @@ from corerl.environment.wrapper.discrete_control_wrapper import DiscreteControlW
     SparseDiscreteControlWrapper
 from corerl.environment.wrapper.d4rl import D4RLWrapper
 from corerl.environment.pendulum_env import PendulumEnv
+from corerl.environment.cartpole_env import CartPoleEnv
 from corerl.environment.wrapper.one_hot_wrapper import OneHotWrapper
 from corerl.environment.saturation import Saturation
 from corerl.environment.delayed_saturation import DelayedSaturation
@@ -77,8 +78,6 @@ def init_environment(cfg: DictConfig) -> gym.Env:
         env = DiscreteControlWrapper("Acrobot-v1", seed)
     elif name == "Acrobot-v1-sparse":
         env = SparseDiscreteControlWrapper("Acrobot-v1", seed)
-    elif name == "CartPole-v1":
-        env = DiscreteControlWrapper('CartPole-v1', seed)
     elif name == "MountainCarContinuous-v0":
         env = gym.make("MountainCarContinuous-v0")
         env._max_episode_steps = np.inf
@@ -96,6 +95,13 @@ def init_environment(cfg: DictConfig) -> gym.Env:
         # continual learning task. No timeout
         env = PendulumEnv(
             render_mode="human", continuous_action=(not cfg.discrete_control),
+        )
+        env.reset(seed=seed)
+    elif name == "CartPole-v1":
+        env = CartPoleEnv(
+            continuous_action=(not cfg.discrete_control),
+            sutton_barto_reward=cfg.sutton_barto_reward,
+            render_mode=cfg.get("render_mode", "human"),
         )
         env.reset(seed=seed)
     elif name == "HalfCheetah-v4":
