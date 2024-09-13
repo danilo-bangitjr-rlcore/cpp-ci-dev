@@ -4,6 +4,7 @@ defaults:
   - override env : pendulum
   - override interaction : anytime
   - override hydra/job_logging: custom
+  - override agent/actor/actor_network: softmax
   - _self_
 
 agent:
@@ -29,6 +30,7 @@ experiment:
   timeout : 0
   offline_steps : 0
   render : 1
+  render_after : 5000
   load_env_obs_space_from_data : False
   param_from_hash : True
   gamma : 0.99

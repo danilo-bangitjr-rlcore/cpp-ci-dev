@@ -436,11 +436,12 @@ def online_deployment(cfg: DictConfig,
     alert_info_list = []
     state, info = interaction.reset()
     action = agent.get_action(state)  # initial action
+    render_after = cfg["experiment"].get("render_after", 0)
     print('Starting online training...')
     for j in pbar:
         transitions, agent_train_transitions, alert_train_transitions, alert_info, env_info = interaction.step(action)
         # TODO can alerts happen here???? I feel like I should consult Alex about this. before doing something substantial
-        if cfg.experiment.render:
+        if cfg.experiment.render and j >= render_after:
             interaction.env.render()
 
         for transition in agent_train_transitions:
