@@ -10,6 +10,15 @@ class Exp(nn.Module):
         return torch.exp(x)
 
 
+class Bias(nn.Module):
+    def __init__(self, value=1):
+        super().__init__()
+        self._value = value
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x + self._value
+
+
 class Clamp(nn.Module):
     def __init__(self, min, max):
         super().__init__()
@@ -49,6 +58,7 @@ def init_activation(cfg) -> nn.Module:
     kwargs = cfg.get("kwargs", {})
 
     activations = {
+        "bias": Bias,
         "exp": Exp,
         "clamp": Clamp,
         "tanh_shift": TanhShift,

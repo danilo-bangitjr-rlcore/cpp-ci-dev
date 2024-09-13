@@ -2,7 +2,11 @@ defaults:
   - base: fc
   - _self_
 
-name : squashed_gaussian
-layer_init : Xavier
-head_activation : None
-bias : True
+type : bounded
+dist : squashed_gaussian
+head_layer_init : Xavier
+head_activation : [
+  [{"name": "identity"}],
+  [{"name": "clamp", "args": [-20, 2]}, {"name": "exp"}]
+]
+head_bias : True
