@@ -2,12 +2,45 @@ import torch.nn as nn
 import torch
 
 
-class Exp(nn.Module):
-    def __init__(self):
+class Add(nn.Module):
+    def __init__(self, value):
         super().__init__()
+        self._value = value
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.exp(x)
+        return x * self._value
+
+
+class Multiply(nn.Module):
+    def __init__(self, by):
+        super().__init__()
+        self._by = by
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x * self._by
+
+
+class Functional(nn.Module):
+    def __init__(self, f, *args, **kwargs):
+        super().__init__()
+        if isinstance(f, str):
+            self._f = getattr(torch.nn.functional, f)
+        else:
+            self._f = f
+
+        self._args = args
+        self._kwargs = kwargs
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self._f(x, *self._args, **self._kwargs)
+
+
+# class Exp(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+
+#     def forward(self, x: torch.Tensor) -> torch.Tensor:
+#         return torch.exp(x)
 
 
 class Bias(nn.Module):
@@ -19,14 +52,14 @@ class Bias(nn.Module):
         return x + self._value
 
 
-class Clamp(nn.Module):
-    def __init__(self, min, max):
-        super().__init__()
-        self._min = min
-        self._max = max
+# class Clamp(nn.Module):
+#     def __init__(self, min, max):
+#         super().__init__()
+#         self._min = min
+#         self._max = max
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return torch.clamp(x, self._min, self._max)
+#     def forward(self, x: torch.Tensor) -> torch.Tensor:
+#         return torch.clamp(x, self._min, self._max)
 
 
 class Identity(nn.Module):
@@ -59,8 +92,13 @@ def init_activation(cfg) -> nn.Module:
 
     activations = {
         "bias": Bias,
-        "exp": Exp,
-        "clamp": Clamp,
+        "add": Add,
+        "multiply": Multiply,
+        "functional": Functional,
+        "exp": lambda *args, **kwargs: Functional(torch.exp, *args, **kwargs),
+        "clamp": lambda *args, **kwargs: Functional(
+            torch.clamp, *args, **kwargs,
+        ),
         "tanh_shift": TanhShift,
         "none": Identity,
         "identity": Identity,
