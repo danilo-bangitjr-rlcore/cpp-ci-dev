@@ -1,5 +1,6 @@
 import corerl.component.network.utils as utils
 from . import *
+from . import _HalfBoundedConstraint
 from corerl.component.distribution import get_dist_type
 from corerl.component.layer import init_activation, Parallel
 import torch.nn as nn
@@ -31,7 +32,7 @@ def get_type_from_str(type_: str):
     else:
         try:
             return get_type_from_dist(get_dist_type(type_))
-        except:
+        except NotImplementedError:
             raise NotImplementedError(f"unknown policy type {type_}")
 
 
