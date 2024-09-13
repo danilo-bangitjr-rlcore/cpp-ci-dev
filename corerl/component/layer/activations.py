@@ -2,16 +2,10 @@ import torch.nn as nn
 import torch
 
 
-class Add(nn.Module):
-    def __init__(self, value):
-        super().__init__()
-        self._value = value
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x * self._value
-
-
 class Multiply(nn.Module):
+    """
+    Multiply is an arbitrary scalar multiplication activation function
+    """
     def __init__(self, by):
         super().__init__()
         self._by = by
@@ -21,6 +15,10 @@ class Multiply(nn.Module):
 
 
 class Functional(nn.Module):
+    """
+    Functional converts a function from torch.nn.functional to a
+    torch.nn.Module
+    """
     def __init__(self, f, *args, **kwargs):
         super().__init__()
         if isinstance(f, str):
@@ -35,15 +33,10 @@ class Functional(nn.Module):
         return self._f(x, *self._args, **self._kwargs)
 
 
-# class Exp(nn.Module):
-#     def __init__(self):
-#         super().__init__()
-
-#     def forward(self, x: torch.Tensor) -> torch.Tensor:
-#         return torch.exp(x)
-
-
 class Bias(nn.Module):
+    """
+    Bias is an arbitrary scalar addition activation function
+    """
     def __init__(self, value=1):
         super().__init__()
         self._value = value
@@ -52,17 +45,10 @@ class Bias(nn.Module):
         return x + self._value
 
 
-# class Clamp(nn.Module):
-#     def __init__(self, min, max):
-#         super().__init__()
-#         self._min = min
-#         self._max = max
-
-#     def forward(self, x: torch.Tensor) -> torch.Tensor:
-#         return torch.clamp(x, self._min, self._max)
-
-
 class Identity(nn.Module):
+    """
+    Identity is the identity activation function
+    """
     def __init__(self):
         super().__init__()
 
@@ -92,7 +78,6 @@ def init_activation(cfg) -> nn.Module:
 
     activations = {
         "bias": Bias,
-        "add": Add,
         "multiply": Multiply,
         "functional": Functional,
         "exp": lambda *args, **kwargs: Functional(torch.exp, *args, **kwargs),
