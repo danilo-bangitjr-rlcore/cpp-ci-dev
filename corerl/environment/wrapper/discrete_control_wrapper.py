@@ -7,7 +7,7 @@ import numpy as np
 # as in continuous control tasks. (1, action_dimension)
 class DiscreteControlWrapper(gym.Env):
     def __init__(self, name, seed):
-        self.env = gym.make(name)
+        self.env = gym.make(name, render_mode="human")
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
         self.env._max_episode_steps = np.inf  # control timeout setting in agent
@@ -24,6 +24,9 @@ class DiscreteControlWrapper(gym.Env):
         samples = np.arange(self.action_space.n).reshape(-1, 1)
         shape = samples.shape
         return samples, shape
+    
+    def render(self):
+        return self.env.render()
 
 
 class SparseDiscreteControlWrapper(DiscreteControlWrapper):
