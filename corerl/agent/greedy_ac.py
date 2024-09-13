@@ -71,7 +71,7 @@ class GreedyAC(BaseAC):
         self._hooks(when.Agent.AfterCreate, self)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        tensor_state = state_to_tensor(state, device.device)
+        tensor_state = state_to_tensor(state, device)
 
         args, _ = self._hooks(when.Agent.BeforeGetAction, self, tensor_state)
         tensor_state = args[1]
@@ -138,13 +138,22 @@ class GreedyAC(BaseAC):
 
         return sorted_q_inds
 
+    def get_uniform_action_samples(
+        self, batch_size: int, n_rand: int
+    ) -> Float[torch.Tensor, "batch_size n_rand action_dim"]:
+        if self.discrete_control:
+            action_indices = torch.randint(high=self.action_dim, size=(batch_size, n_rand, 1))
+            empty_action_onehot = torch.zeros(size=(batch_size, n_rand, self.action_dim))
+            uniform_sample_actions = empty_action_onehot.scatter_(dim=-1, index=action_indices, value=1)
+        else:
+            uniform_sample_actions = torch.rand(batch_size, n_rand, self.action_dim)
+
+        return uniform_sample_actions.to(device.device)
+
     def get_sampled_actions(
         self, state_batch: Float[torch.Tensor, "batch_size state_dim"]
     ) -> Float[torch.Tensor, "batch_size num_samples action_dim"]:
-        
         batch_size = state_batch.shape[0]
-        if self.discrete_control:
-            raise NotImplementedError
 
         if self.uniform_proposal:
             self.uniform_sampling_percentage = 1.0
@@ -163,12 +172,12 @@ class GreedyAC(BaseAC):
                 batch_size, n_proposal, self.action_dim
             )
 
-        else: 
+        else:
             proposed_actions = torch.empty(batch_size, 0, self.action_dim)
 
         if self.uniform_sampling_percentage > 0:
             n_rand = int(np.ceil(self.num_samples * self.uniform_sampling_percentage))
-            uniform_sample_actions = torch.rand(batch_size, n_rand, self.action_dim)
+            uniform_sample_actions = self.get_uniform_action_samples(batch_size=batch_size, n_rand=n_rand)
 
         else:
             uniform_sample_actions = torch.empty(batch_size, 0, self.action_dim)

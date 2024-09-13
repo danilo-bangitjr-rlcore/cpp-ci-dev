@@ -18,3 +18,6 @@ class OneHotWrapper:
         action = np.argmax(action)
         action = np.array([action])
         return self.env.step(action)
+    
+    def render(self):
+        return self.env.render()
