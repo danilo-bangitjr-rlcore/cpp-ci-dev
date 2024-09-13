@@ -1,11 +1,63 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractclassmethod
 import torch
 import torch.distributions as d
+
 
 
 class Policy(ABC):
     def __init__(self, model):
         self._model = model
+
+    def load_state_dict(self, sd):
+        return self._model.load_state_dict(sd)
+
+    def state_dict(self):
+        return self._model.state_dict()
+
+    def parameters(self):
+        return self._model.parameters()
+
+    @classmethod
+    @abstractmethod
+    def from_env(cls, model, dist, env):
+        pass
+
+    @property
+    @abstractmethod
+    def param_names(self):
+        pass
+
+    @property
+    def n_params(self):
+        return len(self.param_names)
+
+    @property
+    @abstractclassmethod
+    def continuous(cls):
+        pass
+
+    @classmethod
+    @property
+    def discrete(cls):
+        return not cls.continuous
+
+    @property
+    @abstractmethod
+    def support(self):
+        pass
+
+    @abstractmethod
+    def forward(self, state, rsample=True):
+        pass
+
+    @abstractmethod
+    def log_prob(self, state: torch.Tensor, action: torch.Tensor):
+        pass
+
+
+class ContinuousPolicy(Policy,ABC):
+    def __init__(self, model):
+        super().__init__(model)
 
     def load_state_dict(self, sd):
         return self._model.load_state_dict(sd)
@@ -37,6 +89,16 @@ class Policy(ABC):
     @property
     def n_params(self):
         return len(self.param_names)
+
+    @property
+    @abstractclassmethod
+    def continuous(cls):
+        pass
+
+    @classmethod
+    @property
+    def discrete(cls):
+        return not cls.continuous
 
     @property
     @abstractmethod

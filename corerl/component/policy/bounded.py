@@ -1,8 +1,9 @@
-from . import Policy
+from . import ContinuousPolicy
+import torch
 import torch.distributions as d
 
 
-class Bounded(Policy):
+class Bounded(ContinuousPolicy):
     def __init__(self, model, dist, action_min=None, action_max=None):
         super().__init__(model)
         self._dist = dist
@@ -25,6 +26,11 @@ class Bounded(Policy):
 
         self._action_scale = (action_max - action_min) / (dist_max - dist_min)
         self._action_bias = -self._action_scale * dist_min + action_min
+
+    @classmethod
+    @property
+    def continuous(self):
+        return True
 
     @property
     def support(self):

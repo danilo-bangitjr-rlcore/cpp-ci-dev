@@ -1,35 +1,94 @@
 import corerl.component.network.utils as utils
-from . import Bounded, HalfBounded, UnBounded
+from . import *
 from corerl.component.distribution import get_dist_type
 from corerl.component.layer import init_activation, Parallel
 import torch.nn as nn
+import torch.distributions as d
 
 
-
-def get_type(type_):
-    if type_.lower() == "bounded":
+def get_type_from_dist(dist):
+    if isinstance(dist.support, d.constraints.interval):
         return Bounded
-    elif type_.lower() == "unbounded":
+
+    # Weirdness with PyTorch's constraints.real makes us need to call `type` on
+    # it first
+    elif isinstance(dist.support, type(d.constraints.real)):
         return UnBounded
-    elif type_.lower() == "halfbounded":
+
+    elif isinstance(dist.support, _HalfBoundedConstraint):
         return HalfBounded
+
     else:
-        raise NotImplementedError(f"unknown policy type {type_}")
+        raise NotImplementedError(
+            f"unknown policy type for distribution {dist}",
+        )
 
 
-def create_nn(cfg, input_dim, output_dim):
+def get_type_from_str(type_: str):
+    if type_.lower() == "softmax":
+        return Softmax
+    else:
+        try:
+            return get_type_from_dist(get_dist_type(type_))
+        except:
+            raise NotImplementedError(f"unknown policy type {type_}")
+
+
+def create_nn(cfg, policy_type, input_dim, output_dim):
     name = cfg["base"]["name"]
     if name.lower() in ("mlp", "fc"):
-        return create_mlp(cfg, input_dim, output_dim)
+        return create_mlp(cfg, policy_type, input_dim, output_dim)
     else:
         raise NotImplementedError(f"unknown neural network type {name}")
 
 
-def create_mlp(cfg, input_dim, output_dim):
+def create_mlp(cfg, policy_type, input_dim, output_dim):
+    continuous = policy_type.continuous
+    if not continuous:
+        return create_discrete_mlp(cfg, input_dim, output_dim)
+    else:
+        return create_continuous_mlp(cfg, input_dim, output_dim)
+
+
+def create_discrete_mlp(cfg, input_dim, output_dim):
     assert cfg["base"]["name"].lower() in ("mlp", "fc")
 
-    policy_type = get_type(cfg["type"])
+    hidden = cfg["base"]["hidden"]
+    act = cfg["base"]["activation"]
+    bias = cfg["base"]["bias"]
+
+    head_act = cfg["head_activation"]
+    head_bias = cfg["head_bias"]
+
+    head_layer_init = utils.init_layer(cfg["head_layer_init"])
+    layer_init = utils.init_layer(cfg["base"]["layer_init"])
+
+    assert len(hidden) == len(act)
+
+    net = []
+    layer = nn.Linear(input_dim, hidden[0], bias=bias)
+    layer = layer_init(layer)
+    net.append(layer)
+    net.append(init_activation(act[0]))
+
+    for j in range(1, len(hidden)):
+        layer = nn.Linear(hidden[j-1], hidden[j], bias=bias)
+        layer = layer_init(layer)
+        net.append(layer)
+        net.append(init_activation(act[j]))
+
+    head_layer = nn.Linear(hidden[-1], output_dim, bias=head_bias)
+    head_layer = head_layer_init(head_layer)
+    net.append(head_layer)
+    net.append(init_activation(head_act))
+    return nn.Sequential(*net)
+
+
+def create_continuous_mlp(cfg, input_dim, output_dim):
+    assert cfg["base"]["name"].lower() in ("mlp", "fc")
+
     dist = get_dist_type(cfg["dist"])
+    policy_type = get_type_from_str(cfg["dist"])
 
     hidden = cfg["base"]["hidden"]
     act = cfg["base"]["activation"]
@@ -71,14 +130,18 @@ def create_mlp(cfg, input_dim, output_dim):
 
 
 def create(cfg, input_dim, output_dim, action_min=None, action_max=None):
-    net = create_nn(cfg, input_dim, output_dim)
+    policy_type = get_type_from_str(cfg["dist"])
+    net = create_nn(cfg, policy_type, input_dim, output_dim)
 
-    policy_type = get_type(cfg["type"])
-    dist_type = get_dist_type(cfg["dist"])
-
-    if policy_type is UnBounded:
-        return policy_type(net, dist_type)
+    if policy_type.continuous:
+        dist_type = get_dist_type(cfg["dist"])
+        if policy_type is UnBounded:
+            out = policy_type(net, dist_type)
+        else:
+            out = policy_type(
+                net, dist_type, action_min=action_min, action_max=action_max,
+            )
     else:
-        return policy_type(
-            net, dist_type, action_min=action_min, action_max=action_max,
-        )
+        out = policy_type(net, input_dim, output_dim)
+
+    return out

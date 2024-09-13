@@ -1,14 +1,8 @@
 from typing import Union
 import torch
 import torch.distributions as d
-from . import Policy
+from . import ContinuousPolicy
 
-
-_HalfBoundedConstraint = Union[
-    d.constraints.greater_than_eq,
-    d.constraints.greater_than,
-    d.constraints.less_than,
-]
 
 _BoundedAboveConstraint = Union[
     d.constraints.less_than,
@@ -19,8 +13,12 @@ _BoundedBelowConstraint = Union[
     d.constraints.greater_than,
 ]
 
+_HalfBoundedConstraint = Union[
+    _BoundedAboveConstraint, _BoundedBelowConstraint,
+]
 
-class HalfBounded(Policy):
+
+class HalfBounded(ContinuousPolicy):
     """
     HalfBounded is a policy on a half-bounded support interval, either
     `(action_min, ∞)` or `(-∞, action_max)`.
@@ -75,6 +73,11 @@ class HalfBounded(Policy):
         assert action_min < action_max
         self._action_min = action_min
         self._action_max = action_max
+
+    @classmethod
+    @property
+    def continuous(self):
+        return True
 
     @property
     def support(self):

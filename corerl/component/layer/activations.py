@@ -89,7 +89,7 @@ def init_activation(cfg) -> nn.Module:
 
     if name.lower() not in activations.keys():
         raise NotImplementedError(
-            f"unknown activation function {name}, known activations include " +
+            f"unknown activation function '{name}', known activations include " +
             f"{list(activations.keys())}",
         )
 

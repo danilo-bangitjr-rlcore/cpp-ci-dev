@@ -2,25 +2,27 @@ import torch.distributions as d
 from . import ArctanhNormal
 
 
+_dist_types = {
+    "arctanh_normal": ArctanhNormal,
+    "squashed_gaussian": ArctanhNormal,
+    "beta": d.Beta,
+    "kumaraswamy": d.Kumaraswamy,
+    "gamma": d.Gamma,
+    "laplace": d.Laplace,
+    "normal": d.Normal,
+    "log_normal": d.LogNormal,
+}
+
+
 def get_dist_type(type_):
-    if type_.lower() in ("arctanhnormal", "squashed_gaussian"):
-        return ArctanhNormal
-    elif type_.lower() == "beta":
-        return d.Beta
-    elif type_.lower() == "logitnormal":
-        return d.LogitNormal
-    elif type_.lower() == "gamma":
-        return d.Gamma
-    elif type_.lower() == "laplace":
-        return d.Laplace
-    elif type_.lower() == "normal":
-        return d.Normal
-    elif type_.lower() == "kumaraswamy":
-        return d.Kumaraswamy
-    elif type_.lower() == "lognormal":
-        return d.LogNormal
+    if type_.lower() in _dist_types.keys():
+        return _dist_types[type_.lower()]
     else:
         try:
+            # Try to get the distribution from torch.distributions
             getattr(d, type_)
         except AttributeError:
-            raise NotImplementedError(f"unknown policy type {type_}")
+            raise NotImplementedError(
+                f"unknown policy type '{type_}', known policy types include " +
+                f"{list(_dist_types.keys())}",
+            )

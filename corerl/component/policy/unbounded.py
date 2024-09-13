@@ -1,8 +1,8 @@
-from . import Policy
+from . import ContinuousPolicy
 import torch.distributions as d
 
 
-class UnBounded(Policy):
+class UnBounded(ContinuousPolicy):
     def __init__(self, model, dist):
         super().__init__(model)
         self._dist = dist
@@ -13,6 +13,11 @@ class UnBounded(Policy):
                 f"{type(d.constraints.real)}, but " +
                 f"got {type(dist.support)}"
             )
+
+    @classmethod
+    @property
+    def continuous(self):
+        return True
 
     @property
     def support(self):
