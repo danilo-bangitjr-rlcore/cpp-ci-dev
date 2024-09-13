@@ -3,7 +3,6 @@ import torch
 import torch.distributions as d
 
 
-
 class Policy(ABC):
     def __init__(self, model):
         self._model = model
