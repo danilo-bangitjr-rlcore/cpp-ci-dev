@@ -2,15 +2,12 @@ from . import Policy
 import torch
 import torch.nn as nn
 import torch.distributions as d
-from corerl.utils.device import device
 
 
 class Softmax(Policy):
     def __init__(self, net, input_dim: int, output_dim: int):
-        super(Softmax, self).__init__()
+        super(Softmax, self).__init__(net)
         self.output_dim = output_dim
-        self.base_network = net
-        self.to(device.device)
 
     @classmethod
     @property
@@ -18,7 +15,7 @@ class Softmax(Policy):
         return False
 
     def get_probs(self, state: torch.Tensor) -> (torch.Tensor, torch.Tensor):
-        x = self.base_network(state)
+        x = self._model(state)
         probs = nn.functional.softmax(x, dim=1)
         return probs, x
 
@@ -63,26 +60,3 @@ class Softmax(Policy):
         logp = dist.log_prob(actions.squeeze(-1))
         logp = logp.view(-1, 1)
         return logp, {}
-
-
-# class UniformRandomCont(BetaPolicy):
-#     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
-#         super(UniformRandomCont, self).__init__(cfg, input_dim, output_dim)
-#         self.output_dim = output_dim
-
-#     def get_dist_params(self, state):
-#         alpha = torch.ones(state.size()[0], self.output_dim)
-#         beta = torch.ones(state.size()[0], self.output_dim)
-#         return alpha, beta
-
-
-# class UniformRandomDisc(Softmax):
-#     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
-#         super(UniformRandomDisc, self).__init__(cfg, input_dim, output_dim)
-#         self.output_dim = output_dim
-
-#     def get_probs(self, state):
-#         x = torch.ones(state.size()[0], self.output_dim)
-#         probs = nn.functional.softmax(x, dim=1)
-#         return probs, x
-
