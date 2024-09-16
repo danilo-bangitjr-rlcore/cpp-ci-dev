@@ -91,7 +91,7 @@ class BaseCalibrationModel(ABC):
             for traj_idx in range(len(trajectories_agent)):
                 traj_cm = self.trajectories[traj_idx]
                 traj_agent = trajectories_agent[traj_idx]
-                assert traj_cm.num_transitions == traj_agent.num_transitions  # TODO: bug here
+                assert traj_cm.num_transitions == traj_agent.num_transitions
                 for i in range(traj_cm.num_transitions):
                     assert np.allclose(traj_cm.transitions[i].obs, traj_agent.transitions[i].obs)
                     assert np.allclose(traj_cm.transitions[i].next_obs, traj_agent.transitions[i].next_obs)
