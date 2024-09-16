@@ -1,5 +1,5 @@
 from .policy import (
-    Policy, ContinuousPolicy, UnBounded, Bounded, HalfBounded,
+    Policy, ContinuousIIDPolicy, UnBounded, Bounded, HalfBounded,
 )
 from .softmax import Softmax
 from .factory import create

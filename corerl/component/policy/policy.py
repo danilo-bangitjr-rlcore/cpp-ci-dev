@@ -21,62 +21,140 @@ _HalfBoundedConstraint = Union[
 
 
 class Policy(ABC):
+    """
+    Policy is the abstract base class for all policies
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The PyTorch module to use as the policy's neural network
+    """
     def __init__(self, model):
         self._model = model
 
     def load_state_dict(self, sd):
+        """
+        Loads the state dictionary `sd` into the policy's model
+        """
         return self._model.load_state_dict(sd)
 
     def state_dict(self):
+        """
+        Gets the state dictionary from the policy's model
+        """
         return self._model.state_dict()
 
     def parameters(self):
+        """
+        Returns the parameters of the policy's model.
+        """
         return self._model.parameters()
 
     @classmethod
     @abstractmethod
     def from_env(cls, model, dist, env):
+        """
+        Constructs an instance of the class which has policy distribution
+        support over the environment `env` action space
+        """
         pass
 
     @property
     @abstractmethod
     def param_names(self):
+        """
+        The names of the policy distribution parameters
+        """
         pass
 
     @property
     def n_params(self):
+        """
+        The number of parameters that the policy distribution has
+        """
         return len(self.param_names)
 
     @property
     @abstractclassmethod
     def continuous(cls):
+        """
+        Whether the policy class represents a continuous-action policy or not
+        """
         pass
 
     @classmethod
     @property
     def discrete(cls):
+        """
+        Whether the policy class represents a discrete-action policy or not
+        """
         return not cls.continuous
 
     @property
     @abstractmethod
     def support(self):
+        """
+        The support of the policy distribution
+        """
         pass
 
     @abstractmethod
     def forward(self, state, rsample=True):
+        """
+        Return a sample from the policy in state `state`
+        """
         pass
 
     @abstractmethod
     def log_prob(self, state: torch.Tensor, action: torch.Tensor):
+        """
+        Return the log density/probability of the action `action` in the state
+        `state`
+        """
         pass
 
 
-class ContinuousPolicy(Policy,ABC):
-    def __init__(self, model):
+class ContinuousIIDPolicy(Policy,ABC):
+    """
+    ContinuousIIDPolicy represents a continuous-action policy, where each
+    action dimension is IID.
+    """
+    def __init__(self, model, dist):
         super().__init__(model)
+        self._dist = dist
 
     @classmethod
     def from_(cls, model, dist, *args, **kwargs):
+        """
+        Factory which returns a ContinuousIIDPolicy which supports the
+        distribution `dist`.
+
+        `args` and `kwargs` are passed to the constructor of the concrete
+        ContinuousIIDPolicy type:
+
+        - If `dist` has bounded support, then you should pass 2 (keyword)
+        arguments, corresponding to (`action_min`, `action_max`)
+        - If `dist` is bounded above and unbounded below, then you should pass
+        1 (keyword) argument, corresponding to (`action_max`,)
+        - If `dist` is bounded below and unbounded above, then you should pass
+        1 (keyword) argument, corresponding to (`action_min`,)
+        - If `dist` is unbounded, then no extra arguments should be passed
+
+        Parameters
+        ----------
+        model : torch.nn.Module
+            The PyTorch module to use as the policy's neural network
+        dist : torch.distribution.Distribution
+            The policy distribution to use
+        *args : Iterable[any]
+            The arguments to pass to the policy constructor
+        **kwargs : Dict[any]
+            The keyword arguments to pass to the policy constructor
+
+        Returns
+        -------
+        ContinuousIIDPolicy
+        """
         return _get_type_from_dist(dist)(model, dist, *args, **kwargs)
 
     def load_state_dict(self, sd):
@@ -93,12 +171,26 @@ class ContinuousPolicy(Policy,ABC):
     def from_env(cls, model, dist, env):
         pass
 
-    @abstractmethod
     def _transform_from_params(self, *params):
-        pass
+        """
+        Given a tuple of policy parameters, return the underlying policy
+        distribution transformed to cover the correct support region.
+
+        For example, if the underlying distribution is a Beta distribution and
+        the support region is (10, 11), then this function takes a 2-tuple of
+        parameters for the Beta distribution and returns a Beta distribution
+        with support over (10, 11)
+
+        `params` must satisfy `params[i].shape == params[j].shape ∀i,j`.
+        """
+        return self._transform(self._dist(*params))
 
     @abstractmethod
     def _transform(self, dist):
+        """
+        Similar to _transform_from_params, but takes the underlying
+        distribution object to transform, rather than its parameters.
+        """
         pass
 
     @property
@@ -195,11 +287,14 @@ class ContinuousPolicy(Policy,ABC):
 
         return d.kl.kl_divergence(self_dist, other_dist)
 
+    @property
+    def has_rsample(self):
+        return self._dist.has_rsample
 
-class Bounded(ContinuousPolicy):
+
+class Bounded(ContinuousIIDPolicy):
     def __init__(self, model, dist, action_min=None, action_max=None):
-        super().__init__(model)
-        self._dist = dist
+        super().__init__(model, dist)
 
         if not isinstance(dist.support, d.constraints.interval):
             raise ValueError(
@@ -241,9 +336,6 @@ class Bounded(ContinuousPolicy):
 
         return cls(model, dist, action_min, action_max)
 
-    def _transform_from_params(self, *params):
-        return self._transform(self._dist(*params))
-
     def _transform(self, dist):
         if self._action_bias != 0 or self._action_scale != 1:
             transform = d.AffineTransform(
@@ -254,10 +346,9 @@ class Bounded(ContinuousPolicy):
         return d.Independent(dist, 1)
 
 
-class UnBounded(ContinuousPolicy):
+class UnBounded(ContinuousIIDPolicy):
     def __init__(self, model, dist):
-        super().__init__(model)
-        self._dist = dist
+        super().__init__(model, dist)
 
         if not isinstance(dist.support, type(d.constraints.real)):
             raise ValueError(
@@ -278,14 +369,11 @@ class UnBounded(ContinuousPolicy):
     def from_env(cls, model, dist, env):
         return cls(model, dist)
 
-    def _transform_from_params(self, *params):
-        return self._transform(self._dist(*params))
-
     def _transform(self, dist):
         return d.Independent(dist, 1)
 
 
-class HalfBounded(ContinuousPolicy):
+class HalfBounded(ContinuousIIDPolicy):
     """
     HalfBounded is a policy on a half-bounded support interval, either
     `(action_min, ∞)` or `(-∞, action_max)`.
@@ -299,8 +387,7 @@ class HalfBounded(ContinuousPolicy):
     support `(-∞, action_max)`.
     """
     def __init__(self, model, dist, action_min=None, action_max=None):
-        super().__init__(model)
-        self._dist = dist
+        super().__init__(model, dist)
 
         if isinstance(dist.support, _BoundedAboveConstraint):
             self._dist_max = dist.support.upper_bound
@@ -368,9 +455,6 @@ class HalfBounded(ContinuousPolicy):
         action_max = torch.Tensor(env.action_space.high)
 
         return cls(model, dist, action_min, action_max)
-
-    def _transform_from_params(self, *params):
-        return self._transform(self._dist(*params))
 
     def _transform(self, dist):
         if self._bounded_below:

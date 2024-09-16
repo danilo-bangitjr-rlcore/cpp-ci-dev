@@ -123,7 +123,7 @@ def create(cfg, input_dim, output_dim, action_min=None, action_max=None):
         if policy_type is UnBounded:
             return policy_type(net, dist_type)
         else:
-            return ContinuousPolicy.from_(
+            return ContinuousIIDPolicy.from_(
                 net, dist_type, action_min=action_min, action_max=action_max,
             )
     else:
