@@ -1,0 +1,42 @@
+defaults:
+  - gym
+  - override agent: greedy_ac
+  - override env : cartpole
+  - override interaction : anytime
+  - override hydra/job_logging: custom
+  - override agent/actor/actor_network: softmax
+  - _self_
+
+agent:
+  n_critic_updates : 1
+  n_actor_updates : 1
+  n_sampler_updates : 1
+  num_samples: 32
+  uniform_sampling_percentage: 0.8
+  critic:
+    critic_network:
+      ensemble: 2
+
+
+experiment:
+  exp_name: pendulum_test/
+  load_path : null
+  save_path : output
+  max_steps: 10000
+  online_learning : True
+  debug : 0
+  seed : 1
+  param : 0
+  device : cpu
+  timeout : 0
+  offline_steps : 0
+  render : 1
+  load_env_obs_space_from_data : False
+  param_from_hash : True
+  gamma : 0.99
+  train_split : 0.9
+  plot_split : 0.999
+  test_epochs : null # If you want to test at certain epochs, specify a list here
+  offline_stat_keys: []
+  online_stat_keys: []
+

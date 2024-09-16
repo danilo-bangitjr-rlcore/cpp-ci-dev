@@ -37,8 +37,8 @@ class ActionValueTraceAlert(BaseAlert):
         self.gamma = cfg.gamma
         self.ret_perc = cfg.ret_perc  # Percentage of the full return being neglected in the observed partial return
         self.return_steps = int(np.ceil(np.log(self.ret_perc) / np.log(self.gamma)))
-        self.trace_decay = cfg.trace_decay
-        self.trace_thresh = cfg.trace_thresh
+        self.alert_trace_decay = cfg.alert_trace_decay
+        self.alert_trace_thresh = cfg.alert_trace_thresh
         self.ensemble_targets = cfg.ensemble_targets
 
         self.partial_returns = deque([], self.return_steps)
@@ -173,10 +173,10 @@ class ActionValueTraceAlert(BaseAlert):
             # If the Observed Partial Return is greater than Q(s,a), the agent is performing the task even better than expected so set the absolute difference to 0
             if self.partial_returns[-1] > self.values[-1]:
                 abs_diff = 0.0
-            self.alert_trace = ((1.0 - self.trace_decay) * abs_diff) + (self.trace_decay * self.alert_trace)
+            self.alert_trace = ((1.0 - self.alert_trace_decay) * abs_diff) + (self.alert_trace_decay * self.alert_trace)
             for cumulant_name in self.get_cumulant_names():
                 info["alert_trace"][self.alert_type()][cumulant_name].append(self.alert_trace)
-                info["alert"][self.alert_type()][cumulant_name].append(bool(self.alert_trace > self.trace_thresh))
+                info["alert"][self.alert_type()][cumulant_name].append(bool(self.alert_trace > self.alert_trace_thresh))
                 info["value"][self.alert_type()][cumulant_name].append(self.values[-1].squeeze().astype(float).item())
                 info["return"][self.alert_type()][cumulant_name].append(
                     self.partial_returns[-1].squeeze().astype(float).item())
@@ -205,7 +205,7 @@ class ActionValueTraceAlert(BaseAlert):
         trace_threshes = {}
         trace_threshes[self.alert_type()] = {}
         for cumulant_name in self.get_cumulant_names():
-            trace_threshes[self.alert_type()][cumulant_name] = self.trace_thresh
+            trace_threshes[self.alert_type()][cumulant_name] = self.alert_trace_thresh
 
         return trace_threshes
 
@@ -247,7 +247,9 @@ class ActionValueUncertaintyAlert(ActionValueTraceAlert):
     def __init__(self, cfg: DictConfig, cumulant_start_ind: int, **kwargs):
         super().__init__(cfg, cumulant_start_ind, **kwargs)
 
-        self.std_thresh = cfg.std_thresh
+        self.std_trace_decay = cfg.std_trace_decay
+        self.std_trace_thresh = cfg.std_trace_thresh
+        self.std_trace = 0.0
         
         self.stds = deque([], self.return_steps)
         self.means = deque([], self.return_steps)
@@ -293,32 +295,27 @@ class ActionValueUncertaintyAlert(ActionValueTraceAlert):
             curr_std = self.stds[-1].squeeze().astype(float).item()
             curr_mean = self.means[-1].squeeze().astype(float).item()
             curr_value = self.values[-1].squeeze().astype(float).item()
-            for cumulant_name in self.get_cumulant_names():
-                # info["std"][self.alert_type()][cumulant_name].append(curr_std / np.absolute(curr_mean))
-                info["std"][self.alert_type()][cumulant_name].append(curr_std)
-                info["return"][self.alert_type()][cumulant_name].append(curr_return)
-                info["value"][self.alert_type()][cumulant_name].append(curr_value)
 
-            # Only take into account std of ensemble when alert isn't active
-            if self.active_alert or (not self.active_alert and curr_std <= self.std_thresh):
+            # Always update the STD trace
+            self.std_trace = ((1.0 - self.std_trace_decay) * curr_std) + (self.std_trace_decay * self.std_trace)
+
+            # Only update the alert trace when the STD trace is below its threshold
+            if self.std_trace < self.std_trace_thresh:
                 abs_diff = abs(curr_return - curr_value)
                 # If the Observed Partial Return is greater than Q(s,a), the agent is performing the task even better than expected so set the absolute difference to 0
                 if curr_return > curr_value:
                     abs_diff = 0.0
-                self.alert_trace = ((1.0 - self.trace_decay) * abs_diff) + (self.trace_decay * self.alert_trace)
+                self.alert_trace = ((1.0 - self.alert_trace_decay) * abs_diff) + (self.alert_trace_decay * self.alert_trace)
 
-                for cumulant_name in self.get_cumulant_names():
-                    self.active_alert = bool(self.alert_trace > self.trace_thresh)
-                    info["alert"][self.alert_type()][cumulant_name].append(self.active_alert)
-                    info["alert_trace"][self.alert_type()][cumulant_name].append(self.alert_trace)
-            else:
-                # If no alert is active and the std of the ensemble is above the threshold, don't throw an alert
-                abs_diff = 0.0
-                self.alert_trace = ((1.0 - self.trace_decay) * abs_diff) + (self.trace_decay * self.alert_trace)
-                for cumulant_name in self.get_cumulant_names():
-                    self.active_alert = False
-                    info["alert"][self.alert_type()][cumulant_name].append(self.active_alert)
-                    info["alert_trace"][self.alert_type()][cumulant_name].append(self.alert_trace)
+            self.active_alert = bool(self.alert_trace > self.alert_trace_thresh)
+
+            for cumulant_name in self.get_cumulant_names():
+                # info["std"][self.alert_type()][cumulant_name].append(curr_std / np.absolute(curr_mean))
+                info["std_trace"][self.alert_type()][cumulant_name].append(self.std_trace)
+                info["alert_trace"][self.alert_type()][cumulant_name].append(self.alert_trace)
+                info["alert"][self.alert_type()][cumulant_name].append(self.active_alert)
+                info["return"][self.alert_type()][cumulant_name].append(curr_return)
+                info["value"][self.alert_type()][cumulant_name].append(curr_value)
 
         return info
 
@@ -329,7 +326,7 @@ class ActionValueUncertaintyAlert(ActionValueTraceAlert):
         info["return"] = {}
         info["alert_trace"] = {}
         info["alert"] = {}
-        info["std"] = {}
+        info["std_trace"] = {}
 
         for key in info:
             info[key][self.alert_type()] = {}
@@ -342,6 +339,6 @@ class ActionValueUncertaintyAlert(ActionValueTraceAlert):
         std_threshes = {}
         std_threshes[self.alert_type()] = {}
         for cumulant_name in self.get_cumulant_names():
-            std_threshes[self.alert_type()][cumulant_name] = self.std_thresh
+            std_threshes[self.alert_type()][cumulant_name] = self.std_trace_thresh
 
         return std_threshes

@@ -34,6 +34,9 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
         self.offline_transitions = transitions
         assert len(self.offline_transitions) > 0
 
+        # TODO: Make the equivalent fix that was made in anytime_interaction.py
+        self.reward_sum = 0
+
         # Keep track of which transition we're at in self.offline_transitions
         self.transition_ind = 0
         self.curr_decision_transitions = []

@@ -40,8 +40,8 @@ class GVFTraceAlert(BaseAlert):
 
         self.ret_perc = cfg.ret_perc  # Percentage of the full return being neglected in the observed partial return
         self.return_steps = int(np.ceil(np.log(self.ret_perc) / np.log(self.gamma)))
-        self.trace_thresh = cfg.trace_thresh
-        self.trace_decay = cfg.trace_decay
+        self.alert_trace_thresh = cfg.alert_trace_thresh
+        self.alert_trace_decay = cfg.alert_trace_decay
 
         self.partial_returns = deque([], self.return_steps)
         self.values = deque([], self.return_steps)
@@ -112,8 +112,8 @@ class GVFTraceAlert(BaseAlert):
         info = self.initialize_alert_info()
         if len(self.partial_returns) == self.return_steps:
             abs_diffs = abs(self.partial_returns[-1] - self.values[-1])
-            self.alert_trace = ((1.0 - self.trace_decay) * abs_diffs) + (self.trace_decay * self.alert_trace)
-            individual_alerts = (self.alert_trace > self.trace_thresh).tolist()
+            self.alert_trace = ((1.0 - self.alert_trace_decay) * abs_diffs) + (self.alert_trace_decay * self.alert_trace)
+            individual_alerts = (self.alert_trace > self.alert_trace_thresh).tolist()
 
             for i in range(len(self.endo_obs_names)):
                 cumulant_name = self.endo_obs_names[i]
@@ -148,7 +148,7 @@ class GVFTraceAlert(BaseAlert):
         trace_threshes = {}
         trace_threshes[self.alert_type()] = {}
         for cumulant_name in self.get_cumulant_names():
-            trace_threshes[self.alert_type()][cumulant_name] = self.trace_thresh
+            trace_threshes[self.alert_type()][cumulant_name] = self.alert_trace_thresh
 
         return trace_threshes
 
@@ -186,7 +186,9 @@ class GVFUncertaintyAlert(GVFTraceAlert):
     def __init__(self, cfg: DictConfig, cumulant_start_ind: int, **kwargs):
         super().__init__(cfg, cumulant_start_ind, **kwargs)
 
-        self.std_thresh = cfg.std_thresh
+        self.std_trace_decay = cfg.std_trace_decay
+        self.std_trace_thresh = cfg.std_trace_thresh
+        self.std_trace = np.zeros(self.get_dim())
 
         self.means = deque([], self.return_steps)
         self.stds = deque([], self.return_steps)
@@ -234,27 +236,25 @@ class GVFUncertaintyAlert(GVFTraceAlert):
             curr_stds = self.stds[-1].astype(float)
             curr_means = self.means[-1].astype(float)
             curr_values = self.values[-1].astype(float)
+
+            # Always update the STD trace
+            self.std_trace = ((1.0 - self.std_trace_decay) * curr_stds.item()) + (self.std_trace_decay * self.std_trace)
+
             for i in range(len(self.endo_obs_names)):
+                # Only update the alert trace when the STD trace is below its threshold
+                if self.std_trace[i] < self.std_trace_thresh:
+                    abs_diff = abs(curr_returns[i] - curr_values[i])
+                    self.alert_trace[i] = ((1.0 - self.alert_trace_decay) * abs_diff) + (self.alert_trace_decay * self.alert_trace[i])
+
+                self.active_alert[i] = bool(self.alert_trace[i] > self.alert_trace_thresh)
+
                 cumulant_name = self.endo_obs_names[i]
                 # info["std"][self.alert_type()][cumulant_name].append(curr_stds[i].item() / abs(curr_means[i].item()))
-                info["std"][self.alert_type()][cumulant_name].append(curr_stds[i].item())
+                info["std_trace"][self.alert_type()][cumulant_name].append(self.std_trace[i])
                 info["return"][self.alert_type()][cumulant_name].append(curr_returns[i].item())
                 info["value"][self.alert_type()][cumulant_name].append(curr_values[i].item())
-
-                # Only take into account std of ensemble when alert isn't active
-                if self.active_alert[i] or (not self.active_alert[i] and curr_stds[i].item() <= self.std_thresh):
-                    abs_diff = abs(curr_returns[i] - curr_values[i])
-                    self.alert_trace[i] = ((1.0 - self.trace_decay) * abs_diff) + (self.trace_decay * self.alert_trace[i])
-                    self.active_alert[i] = bool(self.alert_trace[i] > self.trace_thresh)
-                    info["alert"][self.alert_type()][cumulant_name].append(self.active_alert[i])
-                else:
-                    # If no alert is active and the std of the ensemble is above the threshold, don't throw an alert
-                    abs_diff = 0.0
-                    self.alert_trace[i] = ((1.0 - self.trace_decay) * abs_diff) + (self.trace_decay * self.alert_trace[i])
-                    self.active_alert[i] = False
-                    info["alert"][self.alert_type()][cumulant_name].append(self.active_alert[i])
-
                 info["alert_trace"][self.alert_type()][cumulant_name].append(self.alert_trace[i].item())
+                info["alert"][self.alert_type()][cumulant_name].append(self.active_alert[i])
 
         return info
 
@@ -265,7 +265,7 @@ class GVFUncertaintyAlert(GVFTraceAlert):
         info["return"] = {}
         info["alert_trace"] = {}
         info["alert"] = {}
-        info["std"] = {}
+        info["std_trace"] = {}
 
         for key in info:
             info[key][self.alert_type()] = {}
@@ -278,6 +278,6 @@ class GVFUncertaintyAlert(GVFTraceAlert):
         std_threshes = {}
         std_threshes[self.alert_type()] = {}
         for cumulant_name in self.get_cumulant_names():
-            std_threshes[self.alert_type()][cumulant_name] = self.std_thresh
+            std_threshes[self.alert_type()][cumulant_name] = self.std_trace_thresh
 
         return std_threshes

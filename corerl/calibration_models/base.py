@@ -19,7 +19,7 @@ class BaseCalibrationModel(ABC):
     def __init__(self, cfg: DictConfig, train_info: dict):
         self.test_trajectories = train_info['test_trajectories_cm']
         self.train_trajectories = train_info['train_trajectories_cm']
-        self.trajectories =  self.train_trajectories + self.test_trajectories
+        self.trajectories = self.train_trajectories + self.test_trajectories
 
         self.reward_func = train_info['reward_func']
         self.normalizer = train_info['normalizer']
@@ -91,7 +91,7 @@ class BaseCalibrationModel(ABC):
             for traj_idx in range(len(trajectories_agent)):
                 traj_cm = self.trajectories[traj_idx]
                 traj_agent = trajectories_agent[traj_idx]
-                assert traj_cm.num_transitions == traj_agent.num_transitions # TODO: bug here
+                assert traj_cm.num_transitions == traj_agent.num_transitions
                 for i in range(traj_cm.num_transitions):
                     assert np.allclose(traj_cm.transitions[i].obs, traj_agent.transitions[i].obs)
                     assert np.allclose(traj_cm.transitions[i].next_obs, traj_agent.transitions[i].next_obs)
@@ -151,8 +151,6 @@ class BaseCalibrationModel(ABC):
 
         if start_idx is None:
             start_idx = random.randint(0, traj_cm.num_transitions - self.max_rollout_len - 1)
-
-
 
         transitions_cm = traj_cm.transitions[start_idx:]
         sc_cm = traj_cm.get_sc_at_idx(start_idx)  # state constructor for the model
