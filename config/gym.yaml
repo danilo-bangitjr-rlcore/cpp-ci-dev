@@ -1,0 +1,32 @@
+defaults:
+  - agent: greedy_ac
+  - env : base_gym_env
+  - interaction : anytime
+  - data_loader : direct_action
+  - state_constructor : identity
+  - normalizer : identity
+  # - db: credentials
+  - _self_
+
+interaction:
+  steps_per_decision: 1
+
+normalizer:
+  action_normalizer:
+    name: scale
+    action_high: ${env.action_high}
+    action_low: ${env.action_low}
+    use_cfg_values: false
+    discrete_control: ${env.discrete_control}
+
+  obs_normalizer:
+    discrete_control: ${env.discrete_control}
+
+transition_creator:
+  gamma : ${experiment.gamma}
+  steps_per_decision : ${interaction.steps_per_decision}
+  n_step : ${interaction.n_step}
+  only_dp_transitions :  ${interaction.only_dp_transitions}
+
+alerts:
+eval:

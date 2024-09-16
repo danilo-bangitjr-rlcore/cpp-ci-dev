@@ -77,6 +77,8 @@ def init_environment(cfg: DictConfig) -> gym.Env:
         env = DiscreteControlWrapper("Acrobot-v1", seed)
     elif name == "Acrobot-v1-sparse":
         env = SparseDiscreteControlWrapper("Acrobot-v1", seed)
+    elif name == "CartPole-v1":
+        env = DiscreteControlWrapper('CartPole-v1', seed)
     elif name == "MountainCarContinuous-v0":
         env = gym.make("MountainCarContinuous-v0")
         env._max_episode_steps = np.inf

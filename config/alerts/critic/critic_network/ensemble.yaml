@@ -2,7 +2,7 @@ defaults:
   - base: fc
   - _self_
 
-ensemble : ${alerts.ensemble}
+ensemble : 10 # ${alerts.base.ensemble}
 name : ensemble
-reduct : ${alerts.base.reduct}
+reduct : mean # ${alerts.base.reduct}
 vmap : False
