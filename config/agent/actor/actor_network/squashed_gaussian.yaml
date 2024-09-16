@@ -2,7 +2,6 @@ defaults:
   - base: fc
   - _self_
 
-type : bounded
 dist : squashed_gaussian
 head_layer_init : Xavier
 head_activation : [

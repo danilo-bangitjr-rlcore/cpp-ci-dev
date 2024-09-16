@@ -2,7 +2,6 @@ defaults:
   - base: fc
   - _self_
 
-type : bounded
 dist : beta
 head_layer_init : Xavier
 head_activation : [

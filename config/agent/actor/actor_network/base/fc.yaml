@@ -1,12 +1,11 @@
 name: fc
 
-# Neural network composed of two hidden layers of 32 units with the ReLU
-# activation after the first hidden layer and the Soft Shrinkage activation
-# after the second hidden layer
-hidden : [32, 32]
+# Neural network composed of two hidden layers of 64 units with the ReLU
+# activation after the first and second hidden layers after the second hidden
+# layer
+hidden : [64, 64]
 activation : [
-  {"name": "relu"},
-  {"name": "threshold", "kwargs": {"threshold": 0.0, "value": -1.0}},
+  {"name": "relu"}, {"name": "relu"},
 ]
 
 bias: True
