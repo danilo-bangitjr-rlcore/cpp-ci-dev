@@ -120,28 +120,24 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                     plot_save_path=None,
                     ) -> tuple[float, list[float]]:
 
-        # I would like to unify this with _do
+        # Revan: I would like to unify this with _do_rollout in base but dk how
         if start_idx is None:
             start_idx = random.randint(0, traj_cm.num_transitions - self.max_rollout_len - 1)
+
         transitions_cm = traj_cm.transitions[start_idx:]
-        sc_cm = deepcopy(traj_cm.scs[start_idx])  # state constructor for the model
+        sc_cm = traj_cm.get_sc_at_idx(start_idx)  # state constructor for the model
         state_cm = transitions_cm[0].state  # initial state for the model
-        state_agent = None
+
+        state_agent = None  # the state for the agent is not used unless we pass in an agent
         sc_agent = None
         use_agent = False
 
         if agent is not None:
             assert traj_agent is not None
             transitions_agent = traj_agent.transitions[start_idx:]
-            for i in range(len(transitions_cm)):
-                assert np.array_equal(transitions_cm[i].obs, transitions_agent[i].obs)
-                assert np.array_equal(transitions_cm[i].action, transitions_agent[i].action)
-                assert np.array_equal(transitions_cm[i].next_obs, transitions_agent[i].next_obs)
 
-            sc_agent = deepcopy(traj_agent.scs[start_idx])  # state constructor for the agent
+            sc_agent = traj_agent.get_sc_at_idx(start_idx)  # state constructor for the agent
             state_agent = transitions_agent[0].state
-            assert len(state_agent) == 24
-
             use_agent = True
 
         g = 0  # the return
