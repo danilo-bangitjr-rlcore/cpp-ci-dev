@@ -1,4 +1,12 @@
-from collections.abc import MutableMapping
+from collections.abc import MutableMapping, Sequence
+
+
+def drop(d: MutableMapping, to_drop: Sequence[str]) -> dict:
+    to_keep = set(d.keys()) - set(to_drop)
+    return {
+        k: d[k] for k in to_keep
+     }
+
 
 def flatten(dictionary: MutableMapping, parent_key: str = "", separator: str = "_") -> dict:
     items = []
