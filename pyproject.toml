@@ -4,8 +4,44 @@ addopts="-n auto"
 asyncio_default_fixture_loop_scope = "function"
 asyncio_mode = "auto"
 
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ['F', 'E', 'W', 'B']
+ignore = [
+    'E402',
+
+    # multiple statements on one line. Incompatible with:
+    # if cond: break
+    'E701',
+
+    # syntax error in forward declaration - incompatible with jaxtyping
+    'F722',
+]
+
+[tool.pyright]
+include = ['corerl']
+stubPath = "./typings"
+venvPath = '.'
+venv = '.venv'
+typeCheckingMode = 'standard'
+useLibraryCodeForTypes = true
+
 [project]
 name = "corerl"
 version = "0.0.0"
 description = ""
 requires-python = ">=3.10,<3.13"
+authors = []
+dependencies = []
+readme = "README.md"
+
+[project.optional-dependencies]
+dev = [
+    "pip",
+    "ruff",
+    "pytest",
+    "pytest-cov",
+    "pyright",
+]
