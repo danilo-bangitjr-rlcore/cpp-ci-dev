@@ -160,7 +160,7 @@ def setup_sql_logging(cfg, restart_db=False):
         try:
             db_version = int(db_name.split('_v')[-1]) + 1
             base_db_name = db_name.split('_v')[0]
-        except:
+        except Exception:
             db_version = 2
             base_db_name = db_name
 
