@@ -181,7 +181,7 @@ def setup_sql_logging(cfg, restart_db=False):
         return session, run
 
 
-def flatten_dict(dictionary: dict, parent_key: str = "", separator: str = "_") -> dict:
+def flatten_dict(dictionary: MutableMapping, parent_key: str = "", separator: str = "_") -> dict:
     items = []
     for key, value in dictionary.items():
         new_key = parent_key + separator + key if parent_key else key
