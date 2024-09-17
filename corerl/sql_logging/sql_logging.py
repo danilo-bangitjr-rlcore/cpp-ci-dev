@@ -131,7 +131,7 @@ def is_sane_database(engine):
             exisiting_table_cols = [c["name"] for c in iengine.get_columns(table.name)]
             for column in table.columns:
                 # Assume normal flat column
-                if not column.key in exisiting_table_cols:
+                if column.key not in exisiting_table_cols:
                     logger.warning("Schema declares column %s which does not exist in table %s", column.key, table.name)
                     errors = True
         else:
