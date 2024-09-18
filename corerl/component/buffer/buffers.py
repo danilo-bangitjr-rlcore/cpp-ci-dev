@@ -81,9 +81,10 @@ class UniformBuffer:
         for i in range(len(self.data)):
             self.data[i] = self.data[i].to(device.device)
 
-    def sample_mini_batch(self, batch_size: int = None) -> list[TransitionBatch]:
-        if self.size == 0:
+    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch] | None:
+        if self.size == 0 or self.data is None:
             return None
+
         if batch_size is None:
             batch_size = self.batch_size
 
@@ -96,8 +97,8 @@ class UniformBuffer:
 
         return [self._prepare(sampled_data)]
 
-    def sample_batch(self) -> list[TransitionBatch]:
-        if self.size == 0:
+    def sample_batch(self) -> list[TransitionBatch] | None:
+        if self.size == 0 or self.data is None:
             return None
 
         if self.full:
@@ -115,7 +116,7 @@ class UniformBuffer:
         self.pos = 0
         self.full = False
 
-    def get_all_data(self) -> list:
+    def get_all_data(self) -> list | None:
         return self.data
 
     def update_priorities(self, priority=None):
@@ -142,11 +143,13 @@ class PriorityBuffer(UniformBuffer):
 
         self.priority /= scale
 
-    def sample_mini_batch(self, batch_size: int = None) -> list[TransitionBatch]:
-        if len(self.data) == 0:
+    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch] | None:
+        if self.size == 0 or self.data is None:
             return None
+
         if batch_size is None:
             batch_size = self.batch_size
+
         sampled_indices = self.rng.choice(
             self.size,
             batch_size,
@@ -198,17 +201,23 @@ class EnsembleUniformBuffer:
         for i in range(self.ensemble):
             self.buffer_ensemble[i].load(ensemble_transitions[i])
 
-    def sample_mini_batch(self, batch_size: int = None) -> list[TransitionBatch]:
+    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
         ensemble_batch = []
         for i in range(self.ensemble):
-            ensemble_batch += self.buffer_ensemble[i].sample_mini_batch(batch_size)
+            part = self.buffer_ensemble[i].sample_mini_batch(batch_size)
+            if part is None: continue
+
+            ensemble_batch += part
 
         return ensemble_batch
 
     def sample_batch(self) -> list[TransitionBatch]:
         ensemble_batch = []
         for i in range(self.ensemble):
-            ensemble_batch += self.buffer_ensemble[i].sample_batch()
+            part = self.buffer_ensemble[i].sample_batch()
+            if part is None: continue
+
+            ensemble_batch += part
 
         return ensemble_batch
 
@@ -292,7 +301,7 @@ class SQLBuffer(UniformBuffer):
             idx = 0
         return idx
 
-    def _transition_feed(self, experience: Transition, transition_infos: List[TransitionInfo] = None) -> None:
+    def _transition_feed(self, experience: Transition, transition_infos: List[TransitionInfo] | None = None) -> None:
         sql_transition = SQLTransition(
             state=list(experience.state),
             action=list(experience.action),
@@ -316,7 +325,7 @@ class SQLBuffer(UniformBuffer):
         self.session.commit()
         self.update_data()
 
-    def feed(self, experience: Transition, transition_infos: List[TransitionInfo] = None) -> None:
+    def feed(self, experience: Transition, transition_infos: List[TransitionInfo] | None = None) -> None:
         if isinstance(experience, Transition):
             self._transition_feed(experience, transition_infos)
         elif isinstance(experience, SQLTransition):
@@ -356,6 +365,9 @@ class SQLBuffer(UniformBuffer):
             self._feed(self.row_to_transition(row))
 
     def remove_transitions(self, remove_ids):
+        if self.data is None:
+            return
+
         keep_positions = []
         # TODO: Find a way to make this more efficient
         for pos, id in enumerate(self.transition_ids):
@@ -379,7 +391,7 @@ class SQLBuffer(UniformBuffer):
 
         # get ids of active transitions in sql table
         df = pd.read_sql(
-            select(SQLTransition.id).where(SQLTransition.exclude == False),
+            select(SQLTransition.id).where(SQLTransition.exclude == False), # noqa: E712
             con=self.engine,
         )
 
