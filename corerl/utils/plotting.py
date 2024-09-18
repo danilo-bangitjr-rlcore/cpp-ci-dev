@@ -603,9 +603,9 @@ def make_online_plots(freezer, stats, save_path):
     make_action_gap_plot(stats, save_path)
     make_bellman_error_plot(stats, save_path, "online")
     """
-    make_param_plot(freezer, save_path)
-    make_reward_plot(stats, save_path)
-    make_cumulative_reward_plot(stats, save_path)
+    #make_param_plot(freezer, save_path)
+    #make_reward_plot(stats, save_path)
+    #make_cumulative_reward_plot(stats, save_path)
 
 def make_offline_plots(freezer, stats, save_path):
     save_path.mkdir(parents=True, exist_ok=True)
@@ -615,4 +615,4 @@ def make_offline_plots(freezer, stats, save_path):
 def make_actor_critic_plots(agent, env, plot_transitions, prefix, iteration, save_path):
     test_states, test_actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params = get_test_state_qs_and_policy_params(agent, plot_transitions)
     #make_reseau_actor_critic_plot(test_states, test_actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params, env, save_path, prefix, iteration)
-    make_saturation_actor_critic_plot(test_states, test_actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params, env, save_path, prefix, iteration)
+    #make_saturation_actor_critic_plot(test_states, test_actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params, env, save_path, prefix, iteration)
