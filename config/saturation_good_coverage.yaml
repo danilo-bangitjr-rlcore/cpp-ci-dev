@@ -25,7 +25,7 @@ experiment :
   exp_name : "Double_Reduct_Action_0_3_0_1_Pretraining_Online_Updates"
   device : cpu
   max_steps : 10000
-  offline_steps : 10000
+  offline_steps : 1000
   load_env_obs_space_from_data : False
   gamma : 0.95
   train_split : 0.995
@@ -62,7 +62,7 @@ agent:
   num_samples: 256
   uniform_proposal : False
   uniform_sampling_percentage: 0.5
-  n_critic_updates: 5
+  n_critic_updates: 10
   n_actor_updates: 1
   critic:
     polyak: 0.995
@@ -71,13 +71,13 @@ agent:
       weight_decay : 0.0
     critic_network:
       ensemble : 10
-      bootstrap_reduct : min
-      policy_reduct: max
+      bootstrap_reduct : mean
+      policy_reduct: mean
       vmap : False
     buffer:
       batch_size : 512
   actor:
     actor_optimizer:
-      lr : 0.001
+      lr : 0.0001
   buffer:
       batch_size : 128
