@@ -35,7 +35,7 @@ def add_key_to_run(run, key, values):
 
 def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[list[Callable]]]:
     runs = []
-    seeds = [0, 1, 2, 3, 4]
+    seeds = [0]
     for new_key, new_values in params.items():
         if new_key == 'experiment.seed':
             seeds = new_values

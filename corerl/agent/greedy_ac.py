@@ -47,8 +47,8 @@ class GreedyAC(BaseAC):
         self.uniform_proposal = self.uniform_sampling_percentage == 1
 
         self.n_sampler_updates = cfg.n_sampler_updates
-        if self.share_batch:
-            assert self.n_critic_updates == self.n_sampler_updates, "Actor and proposal must use same number of updates"
+        if self.share_batch and not self.uniform_proposal:
+            assert self.n_actor_updates == self.n_sampler_updates, "Actor and proposal must use same number of updates"
 
         self.top_actions = int(self.rho * self.num_samples)  # Number of actions used to update actor
         self.top_actions_proposal = int(
@@ -71,7 +71,7 @@ class GreedyAC(BaseAC):
         self._hooks(when.Agent.AfterCreate, self)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        tensor_state = state_to_tensor(state, device)
+        tensor_state = state_to_tensor(state, device.device)
 
         args, _ = self._hooks(when.Agent.BeforeGetAction, self, tensor_state)
         tensor_state = args[1]

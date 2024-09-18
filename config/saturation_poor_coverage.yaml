@@ -62,6 +62,8 @@ agent:
   num_samples: 256
   uniform_proposal : False
   uniform_sampling_percentage: 0.5
+  n_critic_updates: 5
+  n_actor_updates: 1
   critic:
     polyak: 0.995
     critic_optimizer:
