@@ -1,3 +1,6 @@
+from collections.abc import Iterable
+
+from torch import Tensor
 from corerl.utils.device import device
 from omegaconf import DictConfig
 from warnings import warn
@@ -118,9 +121,8 @@ class UniformBuffer:
     def update_priorities(self, priority=None):
         pass
 
-    def _prepare(self, batch: list) -> TransitionBatch:
-        batch = TransitionBatch(*batch)
-        return batch
+    def _prepare(self, batch: Iterable[Tensor]) -> TransitionBatch:
+        return TransitionBatch(*batch)
 
 
 class PriorityBuffer(UniformBuffer):
