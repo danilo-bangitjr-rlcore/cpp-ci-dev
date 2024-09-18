@@ -3,7 +3,6 @@ from collections.abc import Iterable
 from torch import Tensor
 from corerl.utils.device import device
 from omegaconf import DictConfig
-from warnings import warn
 import numpy as np
 import torch
 import random
@@ -130,7 +129,7 @@ class PriorityBuffer(UniformBuffer):
     def __init__(self, cfg: DictConfig):
         super(PriorityBuffer, self).__init__(cfg)
         self.priority = torch.zeros((self.memory,))
-        warn("Priority buffer has not been tested yet")
+        logger.warning("Priority buffer has not been tested yet")
 
     def feed(self, experience: Transition) -> None:
         super(PriorityBuffer, self).feed(experience)
