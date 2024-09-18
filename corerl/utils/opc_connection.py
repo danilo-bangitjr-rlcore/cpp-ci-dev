@@ -39,6 +39,7 @@ class OpcConnection:
             opc_url = f"opc.tcp://{self.ip_address}:{self.port}"
         else:
             raise NotImplementedError
+
         self.client = Client(
             url=opc_url,
             timeout=20,
