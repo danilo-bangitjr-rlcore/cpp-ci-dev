@@ -107,7 +107,8 @@ def main(cfg: DictConfig) -> dict:
         make_offline_plots(fr.freezer, stats, save_path / 'plots')
 
         # Alert offline training should come after agent offline training since alert value function updates depend upon the agent's policy
-        utils.offline_alert_training(cfg, env, composite_alert, alert_train_transitions, plot_transitions, save_path)
+        if composite_alert.get_dim() > 0:
+            utils.offline_alert_training(cfg, env, composite_alert, alert_train_transitions, plot_transitions, save_path)
 
     if not (test_epochs is None):
         assert not (plot_transitions is None), "Must include test transitions if test_epochs is not None"
@@ -142,10 +143,11 @@ def main(cfg: DictConfig) -> dict:
     # need to update make_plots here
     stats = online_eval.get_stats()
     make_online_plots(fr.freezer, stats, save_path / 'plots')
-    # env.plot(save_path / 'plots')
+    env.plot(save_path / 'plots')
+    online_eval.save(save_path, "Online")
 
-    agent.save(save_path / 'agent')
-    agent.load(save_path / 'agent')
+    #agent.save(save_path / 'agent')
+    #agent.load(save_path / 'agent')
 
     # return stats
 

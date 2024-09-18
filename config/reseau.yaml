@@ -18,9 +18,9 @@ offline_data:
   output_path : offline_data/reseau
 
 experiment :
-  exp_name : "STD_Trace_Sweep_2"
+  exp_name : "Double_Reduct_Test"
   device : cpu
-  max_steps : 10000
+  max_steps : 300
   offline_steps : 10000
   load_env_obs_space_from_data : True
   gamma : 0.95
@@ -51,6 +51,7 @@ normalizer:
 agent:
   tau : 0
   rho : 0.04
+  ensemble_targets: False
   num_samples: 256
   uniform_proposal : True
   critic:
@@ -60,7 +61,8 @@ agent:
       weight_decay : 0.01
     critic_network:
       ensemble : 10
-      reduct : min
+      bootstrap_reduct : min
+      policy_reduct: max
       vmap : False
     buffer:
       batch_size : 512

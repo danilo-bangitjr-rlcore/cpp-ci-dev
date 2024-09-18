@@ -449,8 +449,9 @@ def online_deployment(cfg: DictConfig,
         for transition in alert_train_transitions:
             alerts.update_buffer(transition)
 
-        agent.update()
-        alerts.update()
+        if cfg.experiment.online_updates:
+            agent.update()
+            alerts.update()
 
         alert_info_list.append(alert_info)
 
@@ -479,10 +480,13 @@ def online_deployment(cfg: DictConfig,
 
             action = agent.get_action(state)
 
+            if j % 100 in [0, 13, 37, 73, 88]:
+                make_actor_critic_plots(agent, env, transitions, "Encountered_States", j, save_path)
+
         # Plot policy and critic at a set of test states
         # Plotting function is likely project specific
         if j in test_epochs:
-            make_actor_critic_plots(agent, env, plot_transitions, "Online_Deployment", j, save_path)
+            make_actor_critic_plots(agent, env, plot_transitions, "Test_States", j, save_path)
 
     return online_eval
 
@@ -528,9 +532,11 @@ def offline_anytime_deployment(cfg: DictConfig,
         for transition in alert_train_transitions:
             alerts.update_buffer(transition)
 
-        agent.update()
-
-        ensemble_info = alerts.update()
+        if cfg.experiment.online_updates:
+            agent.update()
+            ensemble_info = alerts.update()
+        else:
+            ensemble_info = {}
 
         alert_info_list.append(alert_info)
 

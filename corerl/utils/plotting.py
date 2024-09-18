@@ -61,8 +61,8 @@ def make_param_plot(freezer, save_path):
     param1 = []
     param2 = []
     for info in action_info:
-        param1.append(info['param1'])
-        param2.append(info['param2'])
+        param1.append(info['param1'].cpu())
+        param2.append(info['param2'].cpu())
 
     # transpose to make the actions the action dimensions the rows, and the iterations the columns
     param1 = np.array(param1).squeeze().T
@@ -85,7 +85,9 @@ def make_param_plot(freezer, save_path):
     axs[0].legend(bbox_to_anchor=(1.05, 1.05))
 
     axs[0].set_ylabel('Param 1')
+    axs[0].set_yscale('log')
     axs[1].set_ylabel('Param 2')
+    axs[1].set_yscale('log')
     axs[0].set_xlabel('Step')
 
     remove_spines(axs)
@@ -121,6 +123,22 @@ def make_bellman_error_plot(stats, save_path, prefix):
     plt.savefig(save_path / '{}_bellman_error.png'.format(prefix), bbox_inches='tight')
     plt.close()
 
+def make_cumulative_reward_plot(stats, save_path):
+    if 'reward_sums' not in stats:
+        return
+
+    reward_sums = stats['reward_sums']
+    avg_reward = stats['avg_reward']
+
+    fig, ax = plt.subplots()
+    ax.plot(reward_sums)
+    remove_spines(ax, has_subplots=False)
+    ax.set_xlabel('Step')
+    ax.set_ylabel('Cumulative Reward')
+    ax.set_yscale('symlog')
+    ax.set_title("Avg Reward: {}".format(avg_reward))
+    plt.savefig(save_path / 'cumulative_reward.png', bbox_inches='tight')
+    plt.close()
 
 def make_reward_plot(stats, save_path):
     if 'rewards' not in stats:
@@ -394,7 +412,70 @@ def make_ensemble_info_summary_plots(stats, path, prefix):
             plt.savefig(path / "{}_Alert_Ensemble_{}_Summary.png".format(cumulant_name, prefix))
             plt.close()
 
-def make_reseau_actor_critic_plot(states, actions, q_values, ensemble_q_values, actor_params, env, path, prefix, epoch):
+def make_saturation_actor_critic_plot(states, actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params, env, path, prefix, epoch):
+    # Currently assuming 'anytime_multi_trace' state constructor
+    obs_space_low = env.observation_space.low
+    obs_space_high = env.observation_space.high
+    action_space_low = env.action_space.low
+    action_space_high = env.action_space.high
+    mins = [0, action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], 0, 0, 0, 0, 0, 0, 0, 0]
+    maxs = [1, action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], 1, 1, 1, 1, 1, 1, 1, 1]
+    ensemble = len(ensemble_q_values)
+    for i in range(0, len(states)):
+        curr_state = states[i]
+        curr_alpha = actor_params[i][0]
+        curr_beta = actor_params[i][1]
+
+        ax_title = 'Saturation: '
+        for j in [2, 14, 12, 10, 8, 6, 4]:
+            ax_title += "{:.1e} ".format(curr_state[j])
+
+        ax_title += '\nAction: '
+        for j in [1, 13, 11, 9, 7, 5, 3]:
+            ax_title += "{:.1e} ".format(curr_state[j])
+
+        ax_title += '\nAnytime Thermometer: '
+        for j in [16, 17, 18, 19, 20, 21, 22]:
+            ax_title += "{} ".format(curr_state[j])
+
+        fig, ax = plt.subplots(2, 1, sharex=True, figsize=(6, 12))
+
+        beta_pdf = beta.pdf(actions, curr_alpha, curr_beta)
+        beta_max = actions[beta_pdf.argmax()]
+        #beta_max = beta.mean(curr_alpha, curr_beta)
+        bootstrap_reduct_max = actions[bootstrap_q_values[i].argmax()]
+        policy_reduct_max = actions[policy_q_values[i].argmax()]
+
+        ax[0].axvline(x=beta_max, color='r', linestyle="dashed", alpha=1.0)
+        ax[1].axvline(x=beta_max, color='r', linestyle="dashed", alpha=1.0)
+        ax[0].axvline(x=bootstrap_reduct_max, color='b', linestyle="dashed", alpha=1.0)
+        ax[1].axvline(x=bootstrap_reduct_max, color='b', linestyle="dashed", alpha=1.0)
+        ax[0].axvline(x=policy_reduct_max, color='g', linestyle="dashed", alpha=1.0)
+        ax[1].axvline(x=policy_reduct_max, color='g', linestyle="dashed", alpha=1.0)
+
+        # Plot Actor Policy
+        ax[0].plot(
+                actions,
+                beta_pdf,
+                label="Actor Policy",
+                c="r",
+            )
+        ax[0].set_title("Actor Policy", pad=0)
+
+        # Plot each critic in the ensemble
+        ax[1].plot(actions, bootstrap_q_values[i], label="Bootstrap Reduct", c="b", alpha=1.0)
+        ax[1].plot(actions, policy_q_values[i], label="Policy Reduct", c="g", alpha=1.0)
+        for j in range(ensemble):
+            ax[1].plot(actions, ensemble_q_values[j][i], alpha=0.2)
+
+        ax[1].set_title("Q-Function", pad=20)
+        plt.xlabel("Action Space")
+        fig.suptitle(ax_title)
+        #ax.legend()
+        fig.savefig(path / "{}_epoch_{}_state_{}_Summary_Plots.png".format(prefix, epoch, i))
+        plt.close()
+
+def make_reseau_actor_critic_plot(states, actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params, env, path, prefix, epoch):
     # Currently assuming 'ReseauAnytime' state constructor
     obs_space_low = env.observation_space.low
     obs_space_high = env.observation_space.high
@@ -429,24 +510,38 @@ def make_reseau_actor_critic_plot(states, actions, q_values, ensemble_q_values, 
 
         fig, ax = plt.subplots(2, 1, sharex=True, figsize=(6, 12))
 
+        beta_pdf = beta.pdf(actions, curr_alpha, curr_beta)
+        beta_max = actions[beta_pdf.argmax()]
+        #beta_max = beta.mean(curr_alpha, curr_beta)
+        bootstrap_reduct_max = actions[bootstrap_q_values[i].argmax()]
+        policy_reduct_max = actions[policy_q_values[i].argmax()]
+
+        ax[0].axvline(x=beta_max, color='r', linestyle="dashed", alpha=1.0)
+        ax[1].axvline(x=beta_max, color='r', linestyle="dashed", alpha=1.0)
+        ax[0].axvline(x=bootstrap_reduct_max, color='b', linestyle="dashed", alpha=1.0)
+        ax[1].axvline(x=bootstrap_reduct_max, color='b', linestyle="dashed", alpha=1.0)
+        ax[0].axvline(x=policy_reduct_max, color='g', linestyle="dashed", alpha=1.0)
+        ax[1].axvline(x=policy_reduct_max, color='g', linestyle="dashed", alpha=1.0)
+
         # Plot Actor Policy
         ax[0].plot(
                 actions,
-                beta.pdf(actions, curr_alpha, curr_beta),
+                beta_pdf,
                 label="Actor Policy",
                 c="r",
             )
         ax[0].set_title("Actor Policy", pad=0)
 
         # Plot each critic in the ensemble
-        ax[1].plot(actions, q_values[i], label="Q Function", c="b", alpha=1.0)
+        ax[1].plot(actions, bootstrap_q_values[i], label="Bootstrap Reduct", c="b", alpha=1.0)
+        ax[1].plot(actions, policy_q_values[i], label="Policy Reduct", c="g", alpha=1.0)
         for j in range(ensemble):
             ax[1].plot(actions, ensemble_q_values[j][i], alpha=0.2)
 
         ax[1].set_title("Q-Function", pad=20)
         plt.xlabel("Action Space")
         fig.suptitle(ax_title)
-        # ax.legend()
+        ax.legend()
         fig.savefig(path / "{}_epoch_{}_test_state_{}_Summary_Plots.png".format(prefix, epoch, i))
         plt.close()
 
@@ -501,15 +596,16 @@ def make_reseau_gvf_critic_plot(plot_info, env, path, prefix, epoch):
 def make_online_plots(freezer, stats, save_path):
     save_path.mkdir(parents=True, exist_ok=True)
     #make_trace_alerts_plots(stats, save_path)
-    make_uncertainty_alerts_plots(stats, save_path)
+    #make_uncertainty_alerts_plots(stats, save_path)
     #make_ensemble_info_summary_plots(stats, save_path, "Online")
     """
     make_action_mean_variance_plot(freezer, save_path)
-    make_param_plot(freezer, save_path)
     make_action_gap_plot(stats, save_path)
     make_bellman_error_plot(stats, save_path, "online")
-    make_reward_plot(stats, save_path)
     """
+    #make_param_plot(freezer, save_path)
+    #make_reward_plot(stats, save_path)
+    #make_cumulative_reward_plot(stats, save_path)
 
 def make_offline_plots(freezer, stats, save_path):
     save_path.mkdir(parents=True, exist_ok=True)
@@ -517,5 +613,6 @@ def make_offline_plots(freezer, stats, save_path):
     #make_train_test_loss_plot(stats, save_path)
 
 def make_actor_critic_plots(agent, env, plot_transitions, prefix, iteration, save_path):
-    test_states, test_actions, q_values, ensemble_q_values, actor_params = get_test_state_qs_and_policy_params(agent, plot_transitions)
-    make_reseau_actor_critic_plot(test_states, test_actions, q_values, ensemble_q_values, actor_params, env, save_path, prefix, iteration)
+    test_states, test_actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params = get_test_state_qs_and_policy_params(agent, plot_transitions)
+    #make_reseau_actor_critic_plot(test_states, test_actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params, env, save_path, prefix, iteration)
+    #make_saturation_actor_critic_plot(test_states, test_actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params, env, save_path, prefix, iteration)

@@ -8,6 +8,7 @@ import corerl.component.network.utils as utils
 from corerl.utils.device import device
 
 from omegaconf import DictConfig
+from typing import Optional
 
 # Differences of this size are representable up to ~ 15
 FLOAT32_EPS = 10 * np.finfo(np.float32).eps
@@ -35,8 +36,7 @@ def _percentile_bootstrap(
     return torch.quantile(bootstr_stat, percentile, dim=dim)
 
 
-def _init_ensemble_reduct(cfg: DictConfig):
-    reduct = cfg.reduct
+def _init_ensemble_reduct(cfg: DictConfig, reduct: str):
     if reduct.startswith("torch.nn."):
         return getattr(torch, reduct[9:])
     elif reduct.startswith("torch."):
@@ -64,6 +64,14 @@ def _init_ensemble_reduct(cfg: DictConfig):
 
     return _f
 
+def _init_ensemble_reducts(cfg: DictConfig):
+    bootstrap_reduct = cfg.bootstrap_reduct
+    bootstrap_reduct_fn = _init_ensemble_reduct(cfg, bootstrap_reduct)
+
+    policy_reduct = cfg.policy_reduct
+    policy_reduct_fn = _init_ensemble_reduct(cfg, policy_reduct)
+
+    return bootstrap_reduct_fn, policy_reduct_fn
 
 def create_base(
         cfg: DictConfig, input_dim: int, output_dim: int,
@@ -160,14 +168,14 @@ class EnsembleCritic(nn.Module):
         self.base_model = copy.deepcopy(self.subnetworks[0])
         self.base_model = self.base_model.to(device.device)
 
-        self._reduct = _init_ensemble_reduct(cfg)
+        self.bootstrap_reduct, self.policy_reduct = _init_ensemble_reducts(cfg)
         self.to(device.device)
 
     def fmodel(self, params, buffers, x: torch.Tensor):
         return functional_call(self.base_model, (params, buffers), (x,))
 
     def forward(
-            self, input_tensor: torch.Tensor,
+            self, input_tensor: torch.Tensor, bootstrap_reduct: Optional[bool] = True,
     ) -> (torch.Tensor, torch.Tensor):
         # For ensemble critic updates, expecting a different batch for each member of the ensemble
         # Therefore, we expect the shape of the input_tensor to be (ensemble_size, batch_size, state-action dim)
@@ -194,7 +202,10 @@ class EnsembleCritic(nn.Module):
         else:
             raise NotImplementedError
 
-        q = self._reduct(qs, dim=0)
+        if bootstrap_reduct:
+            q = self.bootstrap_reduct(qs, dim=0)
+        else:
+            q = self.policy_reduct(qs, dim=0)
 
         return q, qs
 

@@ -6,6 +6,8 @@ from corerl.agent.sarsa import EpsilonGreedySarsa
 from corerl.agent.inac import InAC
 from corerl.agent.greedy_ac import GreedyAC, GreedyACLineSearch, ExploreLSGAC
 from corerl.agent.greedy_iql import GreedyIQL
+from corerl.agent.random import RandomAgent
+from corerl.agent.action_schedule import ActionScheduleAgent
 
 
 def init_agent(cfg: DictConfig, state_dim: int, action_dim: int) -> BaseAgent:
@@ -28,6 +30,10 @@ def init_agent(cfg: DictConfig, state_dim: int, action_dim: int) -> BaseAgent:
         agent = GreedyACLineSearch(cfg, state_dim, action_dim)
     elif cfg.name == 'greedy_ac_linesearch_explore':
         agent = ExploreLSGAC(cfg, state_dim, action_dim)
+    elif cfg.name == 'random':
+        agent = RandomAgent(cfg, state_dim, action_dim)
+    elif cfg.name == 'action_schedule':
+        agent = ActionScheduleAgent(cfg, state_dim, action_dim)
     else:
         raise NotImplementedError
 

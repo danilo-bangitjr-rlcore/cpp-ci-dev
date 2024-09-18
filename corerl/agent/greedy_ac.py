@@ -47,8 +47,8 @@ class GreedyAC(BaseAC):
         self.uniform_proposal = self.uniform_sampling_percentage == 1
 
         self.n_sampler_updates = cfg.n_sampler_updates
-        if self.share_batch:
-            assert self.n_critic_updates == self.n_sampler_updates, "Actor and proposal must use same number of updates"
+        if self.share_batch and not self.uniform_proposal:
+            assert self.n_actor_updates == self.n_sampler_updates, "Actor and proposal must use same number of updates"
 
         self.top_actions = int(self.rho * self.num_samples)  # Number of actions used to update actor
         self.top_actions_proposal = int(
@@ -71,7 +71,7 @@ class GreedyAC(BaseAC):
         self._hooks(when.Agent.AfterCreate, self)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        tensor_state = state_to_tensor(state, device)
+        tensor_state = state_to_tensor(state, device.device)
 
         args, _ = self._hooks(when.Agent.BeforeGetAction, self, tensor_state)
         tensor_state = args[1]
@@ -119,7 +119,7 @@ class GreedyAC(BaseAC):
         sample_actions: Float[torch.Tensor, "batch_size num_samples action_dim"],
     ) -> Float[torch.Tensor, "batch_size num_samples 1"]:
         # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
-
+        
         batch_size = state_batch.shape[0]
         num_samples = sample_actions.shape[1]
         action_dim = sample_actions.shape[2]
@@ -130,7 +130,7 @@ class GreedyAC(BaseAC):
 
         q_values: Float[torch.Tensor, "batch_size*num_samples 1"]
         q_values = self.q_critic.get_q(
-            [repeated_states], [flattened_actions], with_grad=False
+            [repeated_states], [flattened_actions], with_grad=False, bootstrap_reduct=False
         )
         q_values = q_values.view(batch_size, num_samples, 1)
         sorted_q_inds: Float[torch.Tensor, "batch_size num_samples 1"]
@@ -261,7 +261,7 @@ class GreedyAC(BaseAC):
 
             # Option 1: Using the reduction of the ensemble in the update target
             if not self.ensemble_targets:
-                next_q = self.q_critic.get_q_target([next_state_batch], [next_actions])
+                next_q = self.q_critic.get_q_target([next_state_batch], [next_actions], bootstrap_reduct=True)
                 next_qs.append(next_q)
 
             state_batches.append(state_batch)
@@ -274,13 +274,13 @@ class GreedyAC(BaseAC):
 
         # Option 2: Using the corresponding target function in the ensemble in the update target
         if self.ensemble_targets:
-            _, next_qs = self.q_critic.get_qs_target(next_state_batches, next_action_batches)
+            _, next_qs = self.q_critic.get_qs_target(next_state_batches, next_action_batches, bootstrap_reduct=True)
         else:
             for i in range(ensemble):
                 next_qs[i] = torch.unsqueeze(next_qs[i], 0)
             next_qs = torch.cat(next_qs, dim=0)
 
-        _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
+        _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True, bootstrap_reduct=True)
         losses = []
         for i in range(ensemble):
             # N-Step SARSA update with variable 'N', thus 'reward_batch' is an n_step reward
@@ -564,9 +564,9 @@ class GreedyACLineSearch(GreedyAC):
 
     def critic_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = args
-        q = self.q_critic.get_q([state_batch], [action_batch], with_grad=False)
+        q = self.q_critic.get_q([state_batch], [action_batch], with_grad=False, bootstrap_reduct=True)
         next_action, _ = self.actor.get_action(next_state_batch, with_grad=False)
-        next_q = self.q_critic.get_q_target([next_state_batch], [next_action])
+        next_q = self.q_critic.get_q_target([next_state_batch], [next_action], bootstrap_reduct=True)
         target = reward_batch + mask_batch * self.gamma * next_q
         error = torch.nn.functional.mse_loss(q.detach(), target.detach())
         return error
@@ -599,7 +599,7 @@ class ExploreLSGAC(GreedyACLineSearch):
 
     def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
                      batch_size: int) -> torch.Tensor:
-        q_values = self.q_critic.get_q([repeated_states], [sample_actions], with_grad=False)
+        q_values = self.q_critic.get_q([repeated_states], [sample_actions], with_grad=False, bootstrap_reduct=True)
 
         # query the exploration bonus
         exp_b = self.exploration.get_exploration_bonus(repeated_states, sample_actions)

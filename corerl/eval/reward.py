@@ -12,6 +12,8 @@ class RewardEval(BaseEval):
         self.reward_window = cfg.reward_window
         self.returns = []
         self.rewards = []
+        self.reward_sum = 0
+        self.reward_sums = []
 
     def do_eval(self, **kwargs) -> None:
         if 'transitions' not in kwargs:
@@ -21,6 +23,8 @@ class RewardEval(BaseEval):
         for transition in transitions:
             reward = transition.reward
             terminated = transition.terminated
+            self.reward_sum += reward
+            self.reward_sums.append(self.reward_sum)
             self.episode_return += reward * (self.gamma ** self.episode_steps)
             self.rewards.append(reward)
             if terminated:
@@ -56,6 +60,7 @@ class RewardEval(BaseEval):
 
         stats['rewards'] = self.rewards
         stats['returns'] = self.returns
+        stats['reward_sums'] = self.reward_sums
 
         return stats
 

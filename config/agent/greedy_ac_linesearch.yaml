@@ -18,3 +18,4 @@ n_sampler_updates: 1
 n_critic_updates : 1
 n_actor_updates : 1
 ensemble_targets: True
+uniform_sampling_percentage: 0.5
