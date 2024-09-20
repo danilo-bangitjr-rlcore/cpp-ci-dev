@@ -1,0 +1,127 @@
+defaults:
+  - config
+  - alerts@alerts.action_value_uncertainty : action_value_uncertainty
+  - alerts@alerts.gvf_uncertainty : gvf_uncertainty
+  - override hydra/job_logging: custom
+  - override agent: greedy_ac
+  - override env: reseau
+  - override data_loader: direct_action
+  - override interaction: offline_anytime
+  - override calibration_model : knn
+  - override state_constructor: multi_trace
+
+  - _self_
+
+# values may be overridden outside of the defaults list
+
+offline_data:
+  load_from : csv # alternatively, use "transition"
+  output_path : offline_data/reseau
+
+experiment :
+  exp_name : "Alerts_Reduct_Regularization_Sweep"
+  device : cpu
+  max_steps : 10000
+  offline_steps : 10000
+  load_env_obs_space_from_data : True
+  gamma : 0.95
+  transition_kind : regular_rl
+  train_split : 0.995
+  plot_split : 0.98
+  test_epochs : [0, 10, 100, 999, 1999, 4999, 9999, 14999, 19999]
+  offline_stat_keys : []
+  online_stat_keys : []
+
+
+env:
+  opc : null
+  db : null
+
+interaction :
+  obs_length : 60
+  steps_per_decision : 30
+  only_dp_transitions : True
+
+normalizer:
+  action_normalizer:
+    action_high : 300
+    action_low:  0
+  reward_normalizer:
+    reward_high : 4
+    reward_low : -9
+    reward_bias : 4
+
+state_constructor:
+  warmup : 2
+
+agent:
+  tau : 0
+  rho : 0.04
+  num_samples: 256
+  uniform_proposal : True
+  critic:
+    polyak: 0.995
+    critic_optimizer:
+      lr : 0.0003
+      weight_decay : 0.01
+    critic_network:
+      ensemble : 10
+      reduct : min
+      vmap : False
+    buffer:
+      batch_size : 512
+  actor:
+    actor_optimizer:
+      lr : 0.001
+    buffer:
+      batch_size : 128
+  # buffer: ensemble_uniform
+
+
+data_loader:
+  offline_data_path : offline_data/reseau/csv
+  train_filenames: ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv", "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie.csv"]
+  test_filenames: ["rosie_2_alert.csv"]
+  skip_rows : 3
+  header : 0
+  df_col_names : ["Blank", "Result", "Table", "Date", "ait101_pv", "ait301_pv", "ait401_pv",
+                  "fit101_pv", "fit210_pv", "fit230_pv", "fit250_pv", "fit401_pv", "p250_fp",
+                  "pt100_pv", "pt101_pv", "pt161_pv", "pt171_pv", "pt302_pv"]
+
+alerts:
+  action_value_uncertainty:
+    gamma : 0.95
+    ret_perc : 0.1
+    std_thresh : 0.1
+    trace_decay : 0.995
+    trace_thresh : 0.1
+    ensemble_targets : True
+    critic:
+      polyak: 0.995
+      critic_optimizer:
+        lr : 0.0003
+        weight_decay : 0.01
+      critic_network:
+        ensemble : 10
+        reduct : mean
+        vmap : False
+    buffer:
+      ensemble: 10
+  gvf_uncertainty:
+    gamma : 0.95
+    ret_perc : 0.1
+    std_thresh : 0.1
+    trace_decay : 0.995
+    trace_thresh : 0.1
+    ensemble_targets : True
+    critic:
+      polyak: 0.995
+      critic_optimizer:
+        lr : 0.0003
+        weight_decay : 0.01
+      critic_network:
+        ensemble : 10
+        reduct : mean
+        vmap : False
+    buffer:
+      ensemble: 10

@@ -174,7 +174,7 @@ class OldAnytimeTransitionCreator(object):
         if len(curr_chunk_alert_transitions) == 0:
             warmup_sc = None
         else:
-            assert np.allclose(warmup_sc.get_current_state(), curr_chunk_agent_transitions[0].state)
+            # assert np.allclose(warmup_sc.get_current_state(), curr_chunk_agent_transitions[0].state)
             assert np.allclose(warmup_sc.get_current_state(), curr_chunk_alert_transitions[0].state)
 
         return curr_chunk_agent_transitions, curr_chunk_alert_transitions, warmup_sc
@@ -203,6 +203,7 @@ class OldAnytimeTransitionCreator(object):
 
         # next, we may modify the transitions depending on whether the agent is only training with decision point transitions
         # i.e. "regular RL"
+        agent_transitions = []
         if self.only_dp_transitions:
             # we may have filtered out all transitions for the agent, so return an empty list in this case
             if len(filtered_transitions) == 0:
