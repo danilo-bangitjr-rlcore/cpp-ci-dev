@@ -1,8 +1,9 @@
+from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Coroutine
 import datetime
 import logging
-from typing import Any, TypeVar
+from typing import Any, Concatenate, ParamSpec, TypeVar
 
 import numpy as np
 from asyncua import Client, Node, ua
@@ -13,9 +14,10 @@ PREFIX = "opctest"
 
 
 T = TypeVar('T')
+U = ParamSpec('U')
 def linear_backoff(seconds: float, direction: str, attempts: int = 50):
-    def _inner(f: Callable[..., Coroutine[None, None, T]]):
-        async def wrapper(self: OpcConnection, *args, **kwargs) -> T:
+    def _inner(f: Callable[Concatenate[OpcConnection, U], Coroutine[None, None, T]]):
+        async def wrapper(self: OpcConnection, *args: U.args, **kwargs: U.kwargs) -> T:
 
             for _ in range(attempts):
                 try:
