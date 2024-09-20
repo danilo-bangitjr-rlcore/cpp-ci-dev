@@ -8,11 +8,11 @@ from tqdm import tqdm
 
 from corerl.environment.reward.base import BaseReward
 from corerl.data_loaders.base import BaseDataLoader
-from corerl.data.data import ObsTransition
+from corerl.data.data import OldObsTransition
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
 
-class DirectActionDataLoader(BaseDataLoader):
+class OldDirectActionDataLoader(BaseDataLoader):
     """
     This class takes a dataset consisting of a group of CSV files and produces a list of observation transitions
     """
@@ -160,7 +160,7 @@ class DirectActionDataLoader(BaseDataLoader):
 
     def create_obs_transitions(self, df: pd.DataFrame,
                                normalizer: ObsTransitionNormalizer,
-                               reward_function: BaseReward, *args) -> list[ObsTransition]:
+                               reward_function: BaseReward, *args) -> list[OldObsTransition]:
         """
         Iterate through the df and produce transitions using the "Anytime" paradigm.
         Take into account discontinuities in the dataframe (large gaps in time between consecutive rows)
@@ -236,7 +236,7 @@ class DirectActionDataLoader(BaseDataLoader):
                     reward = reward_function(next_obs, **reward_info)
 
                     if obs.any():
-                        obs_transition = ObsTransition(
+                        obs_transition = OldObsTransition(
                             prev_action,
                             obs,
                             prev_steps_until_decision,

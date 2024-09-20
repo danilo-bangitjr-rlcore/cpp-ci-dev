@@ -7,7 +7,7 @@ from corerl.state_constructor.base import BaseStateConstructor
 from corerl.interaction.anytime_interaction import AnytimeInteraction
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.data import Transition
-from corerl.data.transition_creator import AnytimeTransitionCreator
+from corerl.data.transition_creator import OldAnytimeTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
 
@@ -23,7 +23,7 @@ class OfflineAnytimeInteraction(AnytimeInteraction):
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
             alerts: CompositeAlert,
-            transition_creator: AnytimeTransitionCreator,
+            transition_creator: OldAnytimeTransitionCreator,
             normalizer: ObsTransitionNormalizer,
             transitions: list[Transition]
     ):

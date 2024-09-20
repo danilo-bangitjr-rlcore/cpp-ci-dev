@@ -9,13 +9,13 @@ from omegaconf import DictConfig
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.interaction.base import BaseInteraction
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.data.data import Transition, ObsTransition
+from corerl.data.data import Transition, OldObsTransition
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
 # this is to avoid circular imports for type checking
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from corerl.data.transition_creator import AnytimeTransitionCreator
+    from corerl.data.transition_creator import OldAnytimeTransitionCreator
 
 class AnytimeInteraction(BaseInteraction):
     """
@@ -29,7 +29,7 @@ class AnytimeInteraction(BaseInteraction):
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
             alerts: CompositeAlert,  # TODO: can I remove alerts from this?
-            transition_creator: "AnytimeTransitionCreator",  # this is to avoid circular imports for type checking
+            transition_creator: "OldAnytimeTransitionCreator",  # this is to avoid circular imports for type checking
             normalizer: ObsTransitionNormalizer):
         super().__init__(cfg, env, state_constructor, alerts)
 
@@ -72,7 +72,7 @@ class AnytimeInteraction(BaseInteraction):
         truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
         decision_point = (self.steps_until_decision == self.steps_per_decision)
 
-        obs_transition = ObsTransition(
+        obs_transition = OldObsTransition(
             self.raw_last_action,
             self.raw_last_obs,
             self.prev_steps_until_decision,  # I don't think this variable is actually used

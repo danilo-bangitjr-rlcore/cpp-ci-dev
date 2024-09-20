@@ -5,12 +5,12 @@ from copy import deepcopy
 from typing import Optional
 
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.data.data import ObsTransition, Transition, Trajectory
+from corerl.data.data import OldObsTransition, Transition, Trajectory
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.interaction.anytime_interaction import AnytimeInteraction
 
 
-class AnytimeTransitionCreator(object):
+class OldAnytimeTransitionCreator(object):
     def __init__(self, cfg, alerts: CompositeAlert):
         self.gamma = cfg.gamma  # gamma for the agent
         self.steps_per_decision = cfg.steps_per_decision
@@ -23,7 +23,7 @@ class AnytimeTransitionCreator(object):
         self.only_dp_transitions = only_dp_transitions
 
     def make_offline_trajectories(self,
-                                  obs_transitions: list[ObsTransition],
+                                  obs_transitions: list[OldObsTransition],
                                   sc: BaseStateConstructor,
                                   return_all_scs: bool = False,
                                   warmup: int = 0,
@@ -68,7 +68,7 @@ class AnytimeTransitionCreator(object):
         return trajectories
 
     def make_offline_transitions(self,
-                                 obs_transitions: list[ObsTransition],
+                                 obs_transitions: list[OldObsTransition],
                                  sc: BaseStateConstructor,
                                  warmup: int = 0,
                                  use_pbar: bool = False) -> tuple[list[Transition], list[Transition]]:
@@ -106,7 +106,7 @@ class AnytimeTransitionCreator(object):
         return agent_transitions, alert_transitions
 
     def _make_offline_transitions_for_chunk(self,
-                                            curr_chunk_obs_transitions: list[ObsTransition],
+                                            curr_chunk_obs_transitions: list[OldObsTransition],
                                             sc: BaseStateConstructor,
                                             warmup: int = 0) -> tuple[
         list[Transition], list[Transition], BaseStateConstructor]:
@@ -177,7 +177,7 @@ class AnytimeTransitionCreator(object):
         return curr_chunk_agent_transitions, curr_chunk_alert_transitions, warmup_sc
 
     def make_decision_window_transitions(self,
-                                         curr_decision_obs_transitions: list[ObsTransition],
+                                         curr_decision_obs_transitions: list[OldObsTransition],
                                          curr_decision_states: list[np.ndarray],
                                          filter_with_alerts: bool = False,
                                          interaction: Optional[AnytimeInteraction] = None
@@ -251,7 +251,7 @@ class AnytimeTransitionCreator(object):
         return np_n_step_cumulants
 
     def _make_decision_window_transitions(self,
-                                          curr_decision_obs_transitions: list[ObsTransition],
+                                          curr_decision_obs_transitions: list[OldObsTransition],
                                           states: list[np.ndarray]) -> list[Transition]:
         """
         Produce the agent and alert state transitions using the observation transitions that occur between two decision points

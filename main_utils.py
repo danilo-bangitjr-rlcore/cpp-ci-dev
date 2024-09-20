@@ -19,12 +19,12 @@ from corerl.eval.composite_eval import CompositeEval
 from corerl.data_loaders.base import BaseDataLoader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.data_loaders.utils import train_test_split
-from corerl.data.data import Transition, ObsTransition, Trajectory
+from corerl.data.data import Transition, OldObsTransition, Trajectory
 from corerl.interaction.base import BaseInteraction
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.data.transition_creator import AnytimeTransitionCreator
+from corerl.data.transition_creator import OldAnytimeTransitionCreator
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.agent.base import BaseAgent
 from corerl.utils.plotting import make_actor_critic_plots, make_ensemble_info_step_plot, make_ensemble_info_summary_plots, make_reseau_gvf_critic_plot
@@ -169,7 +169,7 @@ def get_offline_obs_transitions(cfg: DictConfig,
                                 test_data_df: pd.DataFrame,
                                 dl: BaseDataLoader,
                                 normalizer: ObsTransitionNormalizer) -> tuple[
-    list[ObsTransition], Optional[list[ObsTransition]]]:
+    list[OldObsTransition], Optional[list[OldObsTransition]]]:
     """
     Loads offline observation transitions (transitions without states) from an offline dataset.
     """
@@ -201,10 +201,10 @@ def get_offline_obs_transitions(cfg: DictConfig,
 
 
 def get_offline_transitions(cfg: DictConfig,
-                            train_obs_transitions: list[ObsTransition],
-                            test_obs_transitions: list[ObsTransition],
+                            train_obs_transitions: list[OldObsTransition],
+                            test_obs_transitions: list[OldObsTransition],
                             sc: BaseStateConstructor,
-                            transition_creator: AnytimeTransitionCreator) -> tuple[
+                            transition_creator: OldAnytimeTransitionCreator) -> tuple[
     list[Transition], list[Transition], list[Transition], list[Transition]]:
     """
     Takes observation transitions and produces offline transitions (including state) using the interaction's state
@@ -246,10 +246,10 @@ def get_offline_transitions(cfg: DictConfig,
 
 def get_offline_trajectories(cfg: DictConfig,
                              hash_cfgs: list[DictConfig],
-                             train_obs_transitions: list[ObsTransition],
-                             test_obs_transitions: list[ObsTransition],
+                             train_obs_transitions: list[OldObsTransition],
+                             test_obs_transitions: list[OldObsTransition],
                              sc: BaseStateConstructor,
-                             transition_creator: AnytimeTransitionCreator,
+                             transition_creator: OldAnytimeTransitionCreator,
                              warmup=0,
                              prefix='',
                              cache_train_scs: bool = False,

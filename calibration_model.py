@@ -16,7 +16,7 @@ from corerl.data_loaders.factory import init_data_loader
 from corerl.utils.device import device
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.data.transition_creator import AnytimeTransitionCreator
+from corerl.data.transition_creator import OldAnytimeTransitionCreator
 from corerl.environment.reward.factory import init_reward_function
 from corerl.utils.plotting import make_actor_critic_plots
 from corerl.eval.composite_eval import CompositeEval
@@ -67,7 +67,7 @@ def main(cfg: DictConfig) -> dict:
     }
     normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
     composite_alert = CompositeAlert(cfg.alerts, alert_args)
-    transition_creator = AnytimeTransitionCreator(cfg.transition_creator, composite_alert)
+    transition_creator = OldAnytimeTransitionCreator(cfg.transition_creator, composite_alert)
     # TODO: refactor so I don't need to have train and test seperate.
     train_obs_transitions, test_obs_transitions = utils.get_offline_obs_transitions(cfg,
                                                                                     train_data_df,

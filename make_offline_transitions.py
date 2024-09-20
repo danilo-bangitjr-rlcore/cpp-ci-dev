@@ -15,7 +15,7 @@ from corerl.alerts.composite_alert import CompositeAlert
 from corerl.interaction.factory import init_interaction
 from corerl.utils.device import device
 from corerl.data_loaders.factory import init_data_loader
-from corerl.data.transition_creator import AnytimeTransitionCreator
+from corerl.data.transition_creator import OldAnytimeTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data_loaders.utils import train_test_split
 from corerl.eval.composite_eval import CompositeEval
@@ -59,7 +59,7 @@ def main(cfg: DictConfig) -> dict:
 
     normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
     alerts = CompositeAlert(cfg.alerts, alert_args)
-    transition_creator = AnytimeTransitionCreator(cfg.transition_creator, alerts)
+    transition_creator = OldAnytimeTransitionCreator(cfg.transition_creator, alerts)
     interaction = init_interaction(cfg.interaction, env, sc, alerts,
                                    transition_creator, normalizer)
 

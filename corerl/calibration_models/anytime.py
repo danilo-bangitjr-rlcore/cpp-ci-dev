@@ -13,7 +13,7 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.calibration_models.base import BaseCalibrationModel
-from corerl.data.data import ObsTransition
+from corerl.data.data import OldObsTransition
 from corerl.component.network.utils import tensor, to_np
 from corerl.data.data import Trajectory
 from corerl.agent.base import BaseAgent
@@ -224,7 +224,7 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                                            decision_point=decision_point,
                                            steps_until_decision=steps_until_decision)
 
-                    obs_transition = ObsTransition(
+                    obs_transition = OldObsTransition(
                         prev_action,
                         prev_obs,
                         prev_steps_until_decision,
