@@ -208,15 +208,14 @@ class AnytimeTransitionCreator(object):
             # transition to create our decision point to decision point transition
             elif filtered_transitions[0].state_dp:
                 transition = deepcopy(filtered_transitions[0])
-                transition.next_obs = transition.boot_obs
-                transition.next_state_dp = transition.boot_state_dp
-                transition.next_state = transition.boot_state
-                transition.steps_until_decision = 1
-                transition.next_steps_until_decision = 1
-                transition.reward = transition.n_step_reward
-                assert len(transition.boot_state) == len(transition.state)
+                if transition.gamma_exponent == self.steps_per_decision:
+                    transition.steps_until_decision = self.steps_per_decision
+                    transition.next_steps_until_decision = self.steps_per_decision - 1
+                    transition.boot_steps_until_decision = self.steps_per_decision
+                    # NOTE, if the last transition was filtered out, this last line may not be correct
+                    transition.gap = filtered_transitions[-1].gap
 
-                agent_transitions = [transition]
+                    agent_transitions = [transition]
             # we filtered out the transition that starts at a decision point. return an emtpy list in this case
             else:
                 agent_transitions = []

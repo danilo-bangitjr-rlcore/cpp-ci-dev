@@ -99,7 +99,8 @@ class DirectActionDataLoader(BaseDataLoader):
         return obs
 
     def find_action_boundary(self, action_df: pd.DataFrame,
-                             start_ind: pd.Timestamp) -> (np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool):
+                             start_ind: pd.Timestamp, debug_idx=None) -> (
+            np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool):
         """
         Return the action taken at the beginning of the dataframe.
         Iterate through the dataframe until an action change, a truncation/termination in the episode, or a large break in time.
@@ -109,6 +110,10 @@ class DirectActionDataLoader(BaseDataLoader):
         prev_date = start_ind
         curr_action = action_df.loc[start_ind].to_numpy()
         curr_date = None
+
+        new_action = None
+        new_action_start = None
+
         for curr_date, row in action_df.loc[start_ind:].iterrows():
             date_diff = curr_date - prev_date
             # Is there a large gap in time between consecutive rows in the df?
@@ -117,8 +122,19 @@ class DirectActionDataLoader(BaseDataLoader):
             # Is the episode terminated/truncated?
             trunc, term = self.check_termination_truncation(row)
             row_action = row[self.action_col_names].to_numpy()
+
+            # have to do some business with actions and such
+            if not np.array_equal(curr_action, row_action):  # if the row action is not equal to the current action
+                if row_action != new_action:
+                    new_action_start = curr_date
+                    new_action = row_action
+
+                # if the new action has been held for more than obs_length
+                if curr_date - new_action_start >= timedelta(seconds=self.obs_length):
+                    new_action = True
+
             # Has there been a change in action/truncation/termination/gap in data?
-            if data_gap or trunc or term or not np.array_equal(curr_action, row_action):
+            if data_gap or trunc or term or new_action: 
                 return curr_action, prev_date, curr_date, trunc, term, data_gap
 
             prev_date = curr_date
@@ -163,6 +179,9 @@ class DirectActionDataLoader(BaseDataLoader):
         obs_df = df[self.obs_col_names]
 
         prev_obs_transition = None
+
+        debug_idx = 0
+
         while action_start < df_end:
             data_gap = False  # Indicates a discontinuity in the df
             prev_action = None
@@ -170,10 +189,11 @@ class DirectActionDataLoader(BaseDataLoader):
             prev_decision_point = None
             prev_steps_until_decision = None
             transition_added = False
-      
+
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
-                                                                                                              action_start)
+                                                                                                              action_start,
+                                                                                                              debug_idx)
                 action_transitions = []
 
                 if data_gap:
@@ -201,7 +221,7 @@ class DirectActionDataLoader(BaseDataLoader):
                         obs_transitions.append(prev_obs_transition)
                         prev_obs_transition = None
                     obs_transitions[-1].gap = True
-                
+
                 # Next, iterate over current action time steps and produce obs transitions
                 for step in range(curr_action_steps):
                     decision_point = steps_until_decision == self.steps_per_decision
@@ -230,6 +250,7 @@ class DirectActionDataLoader(BaseDataLoader):
                             False,  # assume a continuing env
                             gap=(step == curr_action_steps - 1) and data_gap  # if the last step and there is a data gap
                         )
+
                         obs_transition = normalizer.normalize(obs_transition)
 
                         # Make first obs in chunk a decision point
@@ -245,6 +266,8 @@ class DirectActionDataLoader(BaseDataLoader):
                             action_transitions.append(obs_transition)
                         else:
                             prev_obs_transition = obs_transition
+
+                    debug_idx += 1
 
                     prev_action = curr_action
                     step_start = step_start + timedelta(seconds=self.obs_length)
@@ -265,6 +288,92 @@ class DirectActionDataLoader(BaseDataLoader):
                     assert action_transitions[0].obs_dp
                 action_start = next_action_start
 
-        print("Number of observation transitions: {}".format(len(obs_transitions)))
+        chunks = []
+        curr_chunk = []
+        for obs_transition in obs_transitions:
+            curr_chunk.append(obs_transition)
+            if obs_transition.gap:
+                chunks.append(curr_chunk)
+                curr_chunk = []
+
+        chunks.append(curr_chunk)
+
+        assert len(obs_transitions) == sum([len(chunk) for chunk in chunks])
+        fixed_transitions = []
+        for chunk in chunks:
+            fixed_transitions += self.fix_obs_transitions(chunk)
+
+        assert len(fixed_transitions) == len(obs_transitions)
+
+        return fixed_transitions
+
+    def fix_obs_transitions(self, obs_transitions):
+        action_windows = get_action_windows(obs_transitions)
+        # pre-compute the steps until decisions
+        steps_until_decisions = []  # this is a list of the steps per decision for the initial obs in each obs transition
+        dps = []
+        for curr_action_obs_transitions in action_windows:
+            num_action_steps = len(curr_action_obs_transitions)  # number of steps where that action was taken
+            remainder_steps = (num_action_steps % self.steps_per_decision)
+            steps_until_decision = remainder_steps
+            initial = True
+
+            for _ in curr_action_obs_transitions:
+                dp = False
+                if steps_until_decision == 0:
+                    steps_until_decision = self.steps_per_decision
+                    dp = True
+                elif initial:
+                    dp = True
+
+                dps.append(dp)
+                steps_until_decisions.append(steps_until_decision)
+                steps_until_decision -= 1
+                initial = False
+
+        last_steps_until_decision = steps_until_decisions[-1] - 1
+        if last_steps_until_decision == 0:
+            last_steps_until_decision = self.steps_per_decision
+        elif last_steps_until_decision == -1:
+            last_steps_until_decision = self.steps_per_decision - 1
+
+        steps_until_decisions.append(last_steps_until_decision)
+        dps.append(last_steps_until_decision == self.steps_per_decision)
+
+        for i in range(len(obs_transitions)):
+            obs_transitions[i].obs_steps_until_decision = steps_until_decisions[i]
+            obs_transitions[i].next_obs_steps_until_decision = steps_until_decisions[i + 1]
+
+            obs_transitions[i].obs_dp = dps[i]
+            obs_transitions[i].next_obs_dp = dps[i + 1]
 
         return obs_transitions
+
+
+def get_action_windows(obs_transitions):
+    curr_action = obs_transitions[0].action  # the first action
+    action_windows = []
+    curr_action_obs_transitions = []
+
+    for i, obs_transition in enumerate(obs_transitions):
+        if obs_transition.action == curr_action:
+            curr_action_obs_transitions.append(obs_transition)
+
+        else:  # the action changed
+            action_windows.append(curr_action_obs_transitions)
+            curr_action_obs_transitions = [obs_transition]
+            curr_action = obs_transition.action
+
+    action_windows.append(curr_action_obs_transitions)  # append any left-overs as a new action window
+
+    # check that everything is correct
+    assert sum([len(aw) for aw in action_windows]) == len(obs_transitions)  # is a partition
+    prev_action = None
+    for i, action_window in enumerate(action_windows):
+        action = action_window[0].action
+        for obs_t in action_window:  # all elements of the action window has the same action
+            assert action == obs_t.action
+        assert action != prev_action  # neighbouring action windows have different actions
+        prev_action = action
+
+    return action_windows
