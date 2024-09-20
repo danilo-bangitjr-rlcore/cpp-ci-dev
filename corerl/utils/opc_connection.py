@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Callable, Coroutine
 import datetime
 import logging
 from typing import Any, TypeVar
@@ -9,6 +10,28 @@ from asyncua import Client, Node, ua
 _logger = logging.getLogger(__name__)
 
 PREFIX = "opctest"
+
+
+T = TypeVar('T')
+def linear_backoff(seconds: float, direction: str, attempts: int = 50):
+    def _inner(f: Callable[..., Coroutine[None, None, T]]):
+        async def wrapper(self: OpcConnection, *args, **kwargs) -> T:
+
+            for _ in range(attempts):
+                try:
+                    return await f(self, *args, **kwargs)
+
+                except (ConnectionError, ua.UaError, TimeoutError) as err:
+                    _logger.warning(f"{err}")
+                    _logger.warning(f"{direction.upper()}: Reconnecting in {seconds} seconds")
+                    self.update_stats()
+                    await asyncio.sleep(seconds)
+                    await self.reconnect()
+
+            raise Exception(f'Failed to reconnect after {attempts} attempts')
+
+        return wrapper
+    return _inner
 
 
 class OpcConnection:
@@ -48,63 +71,46 @@ class OpcConnection:
         )
         await self.client.connect()
 
+
+    @linear_backoff(seconds=2, direction='read')
     async def get_nodes(self, addresses: list[str]) -> list[Node]:
         """Returns an array of OPC nodes corresponding to the string addresses"""
-        while True:
-            try:
-                if self.vendor == "kepware":
-                    ns = 2
-                else:
-                    ns = 1
-                nodes = [
-                    self.client.get_node(f"ns={ns};s={address}") for address in addresses
-                ]
-                return nodes
-            except (ConnectionError, ua.UaError, TimeoutError):
-                _logger.warning("READ: Reconnecting in 2 seconds")
-                self.update_stats()
-                await asyncio.sleep(2)
-                await self.reconnect()
+        if self.vendor == "kepware":
+            ns = 2
+        else:
+            ns = 1
+        nodes = [
+            self.client.get_node(f"ns={ns};s={address}") for address in addresses
+        ]
+        return nodes
 
+
+    @linear_backoff(seconds=2, direction='read')
     async def read_values(self, nodes: list[Node]) -> list[Any]:
         """Reads the values of an array of OPC nodes and returns those values"""
-        while True:
-            try:
-                return await self.client.read_values(nodes)
-            except (ConnectionError, ua.UaError, TimeoutError):
-                _logger.warning("READ: Reconnecting in 2 seconds")
-                self.update_stats()
-                await asyncio.sleep(2)
-                await self.reconnect()
+        return await self.client.read_values(nodes)
 
+
+    @linear_backoff(seconds=2, direction='read')
     async def read_variant_types(self, nodes: list[Node]) -> list[ua.VariantType]:
         """Determines the VariantType of the Values of the list of Nodes"""
-        while True:
-            try:
-                node_ids = [node.nodeid for node in nodes]
-                values = await self.client.uaclient.read_attributes(
-                    node_ids, ua.AttributeIds.Value
-                )
-                return [value.Value.VariantType for value in values]
-            except (ConnectionError, ua.UaError, TimeoutError):
-                _logger.warning("READ: Reconnecting in 2 seconds")
-                self.update_stats()
-                await asyncio.sleep(2)
-                await self.reconnect()
+        node_ids = [node.nodeid for node in nodes]
+        values = await self.client.uaclient.read_attributes(
+            node_ids, ua.AttributeIds.Value
+        )
+        return [value.Value.VariantType for value in values if value.Value is not None]
 
+
+    @linear_backoff(seconds=2, direction='read')
     async def read_attributes(
         self, nodes: list[Node], attr: ua.AttributeIds
     ) -> list[Any]:
         """Returns the specified Attribute of the list of Nodes"""
-        while True:
-            try:
-                node_ids = [node.nodeid for node in nodes]
-                return await self.client.uaclient.read_attributes(node_ids, attr)
-            except (ConnectionError, ua.UaError, TimeoutError):
-                _logger.warning("READ: Reconnecting in 2 seconds")
-                self.update_stats()
-                await asyncio.sleep(2)
+        node_ids = [node.nodeid for node in nodes]
+        return await self.client.uaclient.read_attributes(node_ids, attr)
 
+
+    @linear_backoff(seconds=2, direction='write')
     async def write_values(
         self,
         nodes: list[Node],
@@ -112,22 +118,13 @@ class OpcConnection:
         values: list[Any] | np.ndarray,
     ) -> None:
         """Writes the Values with corresponding VariantTypes to the list of Nodes"""
-        while True:
-            try:
-                # creating explicit DataValues like this, with just a variant and value
-                # avoids issues of time stamp syncing, should investigate this later
-                data_values = []
-                for i in range(0, len(values)):
-                    data_values.append(ua.DataValue(ua.Variant(values[i], variants[i])))
+        # creating explicit DataValues like this, with just a variant and value
+        # avoids issues of time stamp syncing, should investigate this later
+        data_values = []
+        for i in range(0, len(values)):
+            data_values.append(ua.DataValue(ua.Variant(values[i], variants[i])))
 
-                await self.client.write_values(nodes, data_values)
-                return
-            except (ConnectionError, ua.UaError, TimeoutError) as err:
-                _logger.warning(f"{err}")
-                _logger.warning("WRITE: Reconnecting in 2 seconds")
-                self.update_stats()
-                await asyncio.sleep(2)
-                await self.reconnect()
+        await self.client.write_values(nodes, data_values)
 
     async def disconnect(self) -> None:
         """Disconnects from the OPC server and closes any log files"""
