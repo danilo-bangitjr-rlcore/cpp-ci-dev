@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import logging
+from typing import Any, TypeVar
 
 import numpy as np
 from asyncua import Client, Node, ua
@@ -65,7 +66,7 @@ class OpcConnection:
                 await asyncio.sleep(2)
                 await self.reconnect()
 
-    async def read_values(self, nodes: list[Node]) -> list[any]:
+    async def read_values(self, nodes: list[Node]) -> list[Any]:
         """Reads the values of an array of OPC nodes and returns those values"""
         while True:
             try:
@@ -93,7 +94,7 @@ class OpcConnection:
 
     async def read_attributes(
         self, nodes: list[Node], attr: ua.AttributeIds
-    ) -> list[any]:
+    ) -> list[Any]:
         """Returns the specified Attribute of the list of Nodes"""
         while True:
             try:
@@ -108,7 +109,7 @@ class OpcConnection:
         self,
         nodes: list[Node],
         variants: list[ua.VariantType],
-        values: list[any] | np.ndarray,
+        values: list[Any] | np.ndarray,
     ) -> None:
         """Writes the Values with corresponding VariantTypes to the list of Nodes"""
         while True:
