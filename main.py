@@ -14,7 +14,7 @@ from corerl.state_constructor.factory import init_state_constructor
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.interaction.factory import init_interaction
 from corerl.data_loaders.factory import init_data_loader
-from corerl.data.transition_creator import OldAnytimeTransitionCreator
+from corerl.data.factory import init_transition_creator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
 from corerl.data_loaders.utils import train_test_split
@@ -57,17 +57,9 @@ def main(cfg: DictConfig) -> dict:
     log.info("State Dim: {}, action dim: {}".format(state_dim, action_dim))
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
-    alert_args = {
-        'agent': agent,
-        'state_dim': state_dim,
-        'action_dim': action_dim,
-        'input_dim': state_dim,
-    }
-
     obs_normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
     transition_normalizer = TransitionNormalizer(cfg.normalizer, env)
-    composite_alert = CompositeAlert(cfg.alerts, alert_args)
-    transition_creator = OldAnytimeTransitionCreator(cfg.transition_creator, composite_alert)
+    agent_tc = init_transition_creator(cfg.agent_transition_creator, sc)
 
     plot_transitions = None
     agent_test_transitions = None
@@ -80,13 +72,20 @@ def main(cfg: DictConfig) -> dict:
                                                                                         test_data_df,
                                                                                         dl, obs_normalizer)
 
-        print('Loading offline transitions...')
-        log.info('Loading offline transitions...')
-        agent_train_transitions, agent_test_transitions, alert_train_transitions, alert_test_transitions = utils.get_offline_transitions(
-            cfg, train_obs_transitions,
-            test_obs_transitions, sc,
-            transition_creator)
+        print('Loading offline agent transitions...')
+        log.info('Loading offline agent transitions...')
 
+        agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.agent_transition_creator, cfg.env]
+        agent_train_transitions = utils.get_offline_transitions_refactored(cfg, train_obs_transitions, sc,
+                                                                           agent_tc,
+                                                                           hash_cfgs=agent_hash_cfgs,
+                                                                           prefix='agent_train_refactored')
+        agent_test_transitions = utils.get_offline_transitions_refactored(cfg, test_obs_transitions, sc,
+                                                                          agent_tc,
+                                                                          hash_cfgs=agent_hash_cfgs,
+                                                                          prefix='agent_test_refactored')
+
+        # TODO: move this?
         all_agent_transitions = agent_train_transitions + agent_test_transitions
         dp_transitions = utils.get_dp_transitions(all_agent_transitions)
         plot_split = train_test_split(dp_transitions, train_split=cfg.experiment.plot_split)
@@ -103,18 +102,36 @@ def main(cfg: DictConfig) -> dict:
                                               save_path,
                                               test_epochs)
 
+
         stats = offline_eval.get_stats()
         make_offline_plots(fr.freezer, stats, save_path / 'plots')
 
         # Alert offline training should come after agent offline training since alert value function updates depend upon the agent's policy
-        if composite_alert.get_dim() > 0:
+        if cfg.use_alerts:
+            alert_args = {
+                'agent': agent,
+                'state_dim': state_dim,
+                'action_dim': action_dim,
+                'input_dim': state_dim,
+            }
+            composite_alert = CompositeAlert(cfg.alerts, alert_args)
+            alert_tc = init_transition_creator(cfg.alert_transition_creator, sc)
+            alert_tc.init_alerts(composite_alert)
+
+            alert_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.alert_transition_creator, cfg.alerts, cfg.env]
+            alert_train_transitions = utils.get_offline_transitions_refactored(cfg, train_obs_transitions, sc,
+                                                                               alert_tc,
+                                                                               hash_cfgs=alert_hash_cfgs,
+                                                                               prefix='alert_train_refactored')
             utils.offline_alert_training(cfg, env, composite_alert, alert_train_transitions, plot_transitions, save_path)
+
+
 
     if not (test_epochs is None):
         assert not (plot_transitions is None), "Must include test transitions if test_epochs is not None"
 
     interaction = init_interaction(cfg.interaction, env, sc, composite_alert,
-                                   transition_creator, obs_normalizer,
+                                   agent_tc, obs_normalizer,
                                    transitions=agent_test_transitions)
 
     if cfg.interaction.name == "offline_anytime":  # simulating online experience from an offline dataset
@@ -127,7 +144,7 @@ def main(cfg: DictConfig) -> dict:
                                                        save_path,
                                                        plot_transitions,
                                                        test_epochs)
-        #online_eval.output(save_path / 'stats.json')
+        # online_eval.output(save_path / 'stats.json')
     else:
         online_eval = utils.online_deployment(cfg,
                                               agent,
@@ -138,7 +155,7 @@ def main(cfg: DictConfig) -> dict:
                                               save_path,
                                               plot_transitions,
                                               test_epochs)
-        #online_eval.output(save_path / 'stats.json')
+        # online_eval.output(save_path / 'stats.json')
 
     # need to update make_plots here
     stats = online_eval.get_stats()
@@ -146,8 +163,8 @@ def main(cfg: DictConfig) -> dict:
     env.plot(save_path / 'plots')
     online_eval.save(save_path, "Online")
 
-    #agent.save(save_path / 'agent')
-    #agent.load(save_path / 'agent')
+    # agent.save(save_path / 'agent')
+    # agent.load(save_path / 'agent')
 
     # return stats
 

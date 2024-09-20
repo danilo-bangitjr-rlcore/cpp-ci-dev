@@ -24,7 +24,7 @@ from corerl.interaction.base import BaseInteraction
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.data.transition_creator import OldAnytimeTransitionCreator
+from corerl.data.transition_creator import OldAnytimeTransitionCreator, BaseTransitionCreator
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.agent.base import BaseAgent
 from corerl.utils.plotting import make_actor_critic_plots, make_ensemble_info_step_plot, \
@@ -204,93 +204,50 @@ def get_offline_obs_transitions(cfg: DictConfig,
 
 
 def get_offline_transitions(cfg: DictConfig,
-                            train_obs_transitions: list[ObsTransition],
-                            test_obs_transitions: list[ObsTransition],
+                            obs_transitions: list[ObsTransition],
                             sc: BaseStateConstructor,
-                            transition_creator: OldAnytimeTransitionCreator) -> tuple[
-    list[Transition], list[Transition], list[Transition], list[Transition]]:
-    """
-    Takes observation transitions and produces offline transitions (including state) using the interaction's state
-    constructor=
-    """
+                            transition_creator: OldAnytimeTransitionCreator,
+                            hash_cfgs=None,
+                            prefix=''
+                            ) -> list[Transition]:
     output_path = Path(cfg.offline_data.output_path)
 
-    def create_transitions(obs_transitions):
-        return transition_creator.make_offline_transitions(obs_transitions, sc,
-                                                           cfg.state_constructor.warmup, use_pbar=True)
+    if hash_cfgs is None:
+        hash_cfgs = []
 
-    agent_train_transitions, alert_train_transitions = load_or_create(root=output_path,
-                                                                      cfgs=[cfg.data_loader, cfg.state_constructor,
-                                                                            cfg.transition_creator,
-                                                                            cfg.alerts, cfg.env],
-                                                                      prefix='train_transitions',
-                                                                      create_func=create_transitions,
-                                                                      args=[train_obs_transitions])
+    def _create_transitions(obs_transitions_, sc_, warmup_):
+        return transition_creator.make_offline_transitions(obs_transitions_, sc_, warmup_, use_pbar=True)[0]
 
-    if test_obs_transitions is not None:
-        agent_test_transitions, alert_test_transitions = load_or_create(root=output_path,
-                                                                        cfgs=[cfg.data_loader,
-                                                                              cfg.state_constructor,
-                                                                              cfg.transition_creator,
-                                                                              cfg.alerts, cfg.env],
-                                                                        prefix='test_transitions',
-                                                                        create_func=create_transitions,
-                                                                        args=[test_obs_transitions])
+    warmup = cfg.state_constructor.warmup
+    transitions = load_or_create(root=output_path, cfgs=hash_cfgs, prefix=prefix,
+                                 create_func=_create_transitions, args=[obs_transitions, sc, warmup])
 
-    else:
-        agent_test_transitions = None
-        alert_test_transitions = None
+    num_transitions = len(transitions)
+    print(f"Loaded {num_transitions} transitions from prefix {prefix}")
 
-    print(
-        f"Loaded {len(agent_train_transitions)} agent train and {len(agent_test_transitions)} agent test transitions. ")
-    print(
-        f"Loaded {len(alert_train_transitions)} alert train and {len(alert_test_transitions)} alert test transitions. ")
-    return agent_train_transitions, agent_test_transitions, alert_train_transitions, alert_test_transitions
+    return transitions
 
 
 def get_offline_transitions_refactored(cfg: DictConfig,
-                                       train_obs_transitions: list[ObsTransition],
-                                       test_obs_transitions: list[ObsTransition],
+                                       obs_transitions: list[ObsTransition],
                                        sc: BaseStateConstructor,
-                                       tc: OldAnytimeTransitionCreator,
-                                       prefix='') -> tuple[list[Transition], list[Transition]]:
-    """
-    Takes observation transitions and produces offline transitions (including state) using the interaction's state
-    constructor=
-    """
+                                       tc: BaseTransitionCreator,
+                                       hash_cfgs=None,
+                                       prefix='') -> list[Transition]:
     output_path = Path(cfg.offline_data.output_path)
 
-    def create_transitions(obs_transitions):
-        return make_transitions(obs_transitions, sc, tc,
-                                warmup=cfg.state_constructor.warmup,
-                                transition_kind=cfg.experiment.transition_kind)
+    def _create_transitions(obs_transitions_, sc_, tc_, warmup_):
+        return make_transitions(obs_transitions_, sc_, tc_, warmup=warmup_)
 
-    train_transitions = load_or_create(root=output_path,
-                                       cfgs=[cfg.data_loader, cfg.state_constructor,
-                                             cfg.transition_creator,
-                                             cfg.alerts, cfg.env],
-                                       prefix=prefix + 'train_transitions',
-                                       create_func=create_transitions,
-                                       args=[train_obs_transitions])
+    warmup = cfg.state_constructor.warmup
+    transitions = load_or_create(root=output_path, cfgs=hash_cfgs, prefix=prefix,
+                                 create_func=_create_transitions,
+                                 args=[obs_transitions, sc, tc, warmup])
 
-    if test_obs_transitions is not None:
-        test_transitions = load_or_create(root=output_path,
-                                          cfgs=[cfg.data_loader,
-                                                cfg.state_constructor,
-                                                cfg.transition_creator,
-                                                cfg.alerts, cfg.env],
-                                          prefix=prefix + 'test_transitions',
-                                          create_func=create_transitions,
-                                          args=[test_obs_transitions])
+    num_transitions = len(transitions)
+    print(f"Loaded {num_transitions} transitions from prefix {prefix}")
 
-    else:
-        test_transitions = []
-
-    print(
-        f"Loaded {len(train_transitions)} train and {len(test_transitions)} test transitions. ")
-    return train_transitions, test_transitions
-
-
+    return transitions
 
 
 def get_offline_trajectories(cfg: DictConfig,
@@ -308,6 +265,8 @@ def get_offline_trajectories(cfg: DictConfig,
     Takes observation transitions and produces offline trajectories (including state) using the interactions's state
     constructor=
     """
+
+    # TODO: refactor this
     output_path = Path(cfg.offline_data.output_path)
 
     def create_trajectories(obs_transitions, return_scs):

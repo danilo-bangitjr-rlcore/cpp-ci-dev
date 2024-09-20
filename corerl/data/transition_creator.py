@@ -389,6 +389,7 @@ class BaseTransitionCreator(ABC):
         self.gamma = cfg.gamma
         self.alert = None
         self.state_constructor = state_constuctor
+        self.transition_kind = cfg.transition_kind
 
         # n_step = 0: bootstrap off state at next decision point
         # n_step > 0: bootstrap off state n steps into the future without crossing decision boundary
@@ -495,9 +496,9 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             curr_obs_transition = self.curr_obs_transitions[step_idx]
             reward = curr_obs_transition.reward
             reward_queue.appendleft(reward)
-            cumulant_queue.appendleft(cumulants[step_idx])
             n_step_reward = _get_n_step_reward(reward_queue, self.gamma)
             if using_alerts:
+                cumulant_queue.appendleft(cumulants[step_idx])
                 n_step_cumulants = _get_n_step_cumulants(cumulant_queue, alert_gammas)
             else:
                 n_step_cumulants = None

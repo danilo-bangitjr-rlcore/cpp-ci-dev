@@ -10,7 +10,7 @@ def init_data_loader(cfg: DictConfig) -> BaseDataLoader:
     name = cfg.name
 
     if name == "direct_action":
-        return OldDirectActionDataLoader(cfg)
+        return DirectActionDataLoader(cfg)
     else:
         raise NotImplementedError
 

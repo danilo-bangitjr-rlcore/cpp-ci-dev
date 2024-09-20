@@ -22,6 +22,8 @@ defaults:
 #  - eval@eval.endo_obs : endo_obs
 #  - eval@eval.ensemble : ensemble
 
+use_alerts : False
+
 experiment:
   exp_name : experiment
   exp_info : experiment
@@ -44,11 +46,19 @@ experiment:
   offline_stat_keys: []
   online_stat_keys: []
 
-transition_creator:
+agent_transition_creator:
   gamma : ${experiment.gamma}
   steps_per_decision : ${interaction.steps_per_decision}
   n_step : ${interaction.n_step}
   only_dp_transitions :  ${interaction.only_dp_transitions}
+  transition_kind : anytime
+
+alert_transition_creator:
+  gamma : ${experiment.gamma}
+  steps_per_decision : ${interaction.steps_per_decision}
+  n_step : ${interaction.n_step}
+  only_dp_transitions :  ${interaction.only_dp_transitions}
+  transition_kind : anytime
 
 # Uncomment the alerts or evals you'd like to use in the defaults list above
 alerts:

@@ -13,7 +13,8 @@ from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data_loaders.factory import init_data_loader_test
-from corerl.data.transition_creator import OldAnytimeTransitionCreator, RegularRLTransitionCreator
+from corerl.data.factory import init_transition_creator
+from corerl.data.transition_creator import OldAnytimeTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
 
@@ -36,11 +37,6 @@ def main(cfg: DictConfig) -> dict:
     torch.manual_seed(seed)
 
     env = init_environment(cfg.env)
-
-    do_offline_training = cfg.experiment.offline_steps > 0
-    # first, load the data and potentially update the bounds of the obs space of the environment
-    # it's important this happens before we create the state constructor and interaction since normalization
-    # depends on these values
 
     dl, dl_refac = init_data_loader_test(cfg.data_loader)
 
@@ -66,11 +62,10 @@ def main(cfg: DictConfig) -> dict:
     }
 
     obs_normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
-    transition_normalizer = TransitionNormalizer(cfg.normalizer, env)
     composite_alert = CompositeAlert(cfg.alerts, alert_args)
-    old_transition_creator = OldAnytimeTransitionCreator(cfg.transition_creator, composite_alert)
+    old_transition_creator = OldAnytimeTransitionCreator(cfg.agent_transition_creator, composite_alert)
 
-    transition_creator = RegularRLTransitionCreator(cfg.transition_creator, sc)
+    transition_creator = init_transition_creator(cfg.agent_transition_creator, sc)
     transition_creator.init_alerts(composite_alert)
 
     # THIS IS THE OLD WAY
@@ -90,9 +85,6 @@ def main(cfg: DictConfig) -> dict:
                                                                                         prefix='refac_'
                                                                                         )
 
-    # train_obs_transitions, test_obs_transitions = train_obs_transitions[:1000], test_obs_transitions[:60]
-    # train_obs_transitions_r, test_obs_transitions_r = train_obs_transitions_r[:1000], test_obs_transitions_r[:60]
-
     def check_equal(obs_t_1, obs_t_2):
         assert len(obs_t_1) == len(obs_t_2)
         for i, _ in enumerate(obs_t_1):
@@ -110,8 +102,6 @@ def main(cfg: DictConfig) -> dict:
                 print('refactored')
                 print(o_2)
                 assert False
-
-
         print("passed obs transition test :) ")
 
     def check_equal2(t_1, t_2):
@@ -123,8 +113,6 @@ def main(cfg: DictConfig) -> dict:
                 print(t_1[i])
                 print("refactored")
                 print(t_2[i])
-
-                print(t_2[i].gap)
                 assert False
 
         print("passed transition test :) ")
@@ -132,27 +120,23 @@ def main(cfg: DictConfig) -> dict:
     check_equal(train_obs_transitions, train_obs_transitions_r)
     check_equal(test_obs_transitions, test_obs_transitions_r)
 
-
-    print(train_obs_transitions_r[0])
-
     print('Loading offline transitions...')
     log.info('Loading offline transitions...')
-    agent_train_transitions, agent_test_transitions, alert_train_transitions, alert_test_transitions = utils.get_offline_transitions(
-        cfg,
-        train_obs_transitions,
-        test_obs_transitions,
-        sc,
-        old_transition_creator)
 
-    # needs a new transition_creator
+    agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.agent_transition_creator, cfg.alerts, cfg.env]
+    agent_train_transitions = utils.get_offline_transitions(cfg, train_obs_transitions, sc, old_transition_creator,
+                                                            hash_cfgs=agent_hash_cfgs, prefix='agent_train')
+    agent_test_transitions = utils.get_offline_transitions(cfg, test_obs_transitions, sc, old_transition_creator,
+                                                           hash_cfgs=agent_hash_cfgs, prefix='agent_test')
 
-    agent_train_transitions_refac, agent_test_transitions_refac = utils.get_offline_transitions_refactored(
-        cfg,
-        train_obs_transitions_r,
-        test_obs_transitions_r,
-        sc,
-        transition_creator,
-        prefix='refac_')
+    agent_train_transitions_refac = utils.get_offline_transitions_refactored(cfg, train_obs_transitions, sc,
+                                                                             transition_creator,
+                                                                             hash_cfgs=agent_hash_cfgs,
+                                                                             prefix='agent_train_refactored')
+    agent_test_transitions_refac = utils.get_offline_transitions_refactored(cfg, test_obs_transitions, sc,
+                                                                            transition_creator,
+                                                                            hash_cfgs=agent_hash_cfgs,
+                                                                            prefix='agent_test_refactored')
 
     check_equal2(agent_train_transitions, agent_train_transitions_refac)
     check_equal2(agent_test_transitions, agent_test_transitions_refac)
