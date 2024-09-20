@@ -1,0 +1,94 @@
+import pytest
+import asyncio
+from test.unit.utils.fixture_opc import client, server # noqa: F401
+
+@pytest.mark.asyncio
+async def test_connect1(server, client): # noqa: F811
+    """
+    Client should be able to connect to a running server.
+    """
+    await client.connect()
+
+
+@pytest.mark.asyncio
+async def test_connect2(client): # noqa: F811
+    """
+    Client should fail when no server is running.
+    """
+    with pytest.raises(ConnectionRefusedError):
+        await client.connect()
+
+
+@pytest.mark.asyncio
+async def test_read_values1(server, client): # noqa: F811
+    """
+    Client can read values for both sensors.
+    """
+    await client.connect()
+    nodes = [
+        client.client.get_node('ns=2;i=2'),
+        client.client.get_node('ns=2;i=3'),
+    ]
+
+    await server.step(1.1)
+
+    values = await client.read_values(nodes)
+    assert values == [1.1, 2.1]
+
+
+@pytest.mark.asyncio
+async def test_disconnect1(server, client): # noqa: F811
+    """
+    Client survives when a server goes offline after connection.
+    Check this sequence:
+      1. Client and server connect
+      2. Server closes
+      3. Server starts
+      4. Client implicitly reconnects in the background
+      5. Client reads
+    """
+    await client.connect()
+    nodes = [
+        client.client.get_node('ns=2;i=2')
+    ]
+
+    await server.step(2.0)
+    got = await client.read_values(nodes)
+    assert got == [2.0]
+
+    await server.close()
+    await asyncio.sleep(1)
+    await server.start()
+    await server.step(3.0)
+    got = await client.read_values(nodes)
+    assert got == [3.0]
+
+
+@pytest.mark.asyncio
+async def test_disconnect2(server, client): # noqa: F811
+    """
+    Client survives when a server goes offline after connection.
+    Check this sequence:
+      1. Client and server connect
+      2. Server closes
+      3. Client reads
+      4. Server starts
+      5. Client implicitly reconnects in the background
+      6. Client completes read from step 3
+    """
+    await client.connect()
+    nodes = [
+        client.client.get_node('ns=2;i=2')
+    ]
+
+    await server.step(2.0)
+    got = await client.read_values(nodes)
+    assert got == [2.0]
+
+    await server.close()
+    read_future = client.read_values(nodes)
+    await asyncio.sleep(1)
+    await server.start()
+    await server.step(3.0)
+    got = await read_future
+    assert got == [3.0]
