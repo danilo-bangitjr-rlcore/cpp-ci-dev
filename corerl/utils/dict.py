@@ -8,12 +8,20 @@ def drop(d: MutableMapping, to_drop: Sequence[str]) -> dict:
      }
 
 
-def flatten(d: MutableMapping, parent_key: str = "", separator: str = "_") -> dict:
-    items = []
+def flatten(
+    d: MutableMapping,
+    separator: str = "_",
+    _parent_key: str = "",
+    _carry: dict | None = None,
+) -> dict:
+    _carry = _carry if _carry is not None else {}
+
     for k, v in d.items():
-        new_key = parent_key + separator + k if parent_key else k
+        new_k = _parent_key + k
         if isinstance(v, MutableMapping):
-            items.extend(flatten(v, new_key, separator=separator).items())
+            new_parent = new_k + separator
+            flatten(v, separator, new_parent, _carry)
         else:
-            items.append((new_key, v))
-    return dict(items)
+            _carry[new_k] = v
+
+    return _carry
