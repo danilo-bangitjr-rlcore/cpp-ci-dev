@@ -447,8 +447,7 @@ def online_deployment(cfg: DictConfig,
     action = agent.get_action(state)  # initial action
     print('Starting online training...')
     for j in pbar:
-        transitions, agent_train_transitions, alert_train_transitions, alert_info, env_info = interaction.step(action)
-        # TODO can alerts happen here???? I feel like I should consult Alex about this. before doing something substantial
+        transitions, agent_train_transitions, _, alert_train_transitions, alert_info, env_info = interaction.step(action)
 
         for transition in agent_train_transitions:
             agent.update_buffer(transition)
@@ -506,6 +505,9 @@ def offline_anytime_deployment(cfg: DictConfig,
     """
     Interacting with an offline dataset as if it were encountered online
     """
+
+    # TODO: refactor this
+
     # Instantiate online evaluators
     online_eval_args = {
         'agent': agent,

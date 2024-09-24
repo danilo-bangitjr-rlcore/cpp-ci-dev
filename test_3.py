@@ -75,7 +75,6 @@ def main(cfg: DictConfig) -> dict:
         alert_tc = init_transition_creator(cfg.alert_transition_creator, sc)
         alert_tc.init_alerts(composite_alert)
 
-
     if do_offline_training:
         print('Loading offline observations...')
         log.info('Loading offline observations...')
@@ -86,18 +85,18 @@ def main(cfg: DictConfig) -> dict:
 
         print('Loading offline agent transitions...')
         log.info('Loading offline agent transitions...')
-        agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.agent_transition_creator, cfg.env]
 
+        agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.agent_transition_creator, cfg.env]
         agent_train_transitions = utils.get_offline_transitions_refactored(cfg, train_obs_transitions, sc,
                                                                            agent_tc,
                                                                            hash_cfgs=agent_hash_cfgs,
                                                                            prefix='agent_train_refactored')
-
         agent_test_transitions = utils.get_offline_transitions_refactored(cfg, test_obs_transitions, sc,
                                                                           agent_tc,
                                                                           hash_cfgs=agent_hash_cfgs,
                                                                           prefix='agent_test_refactored')
 
+        # TODO: move this?
         all_agent_transitions = agent_train_transitions + agent_test_transitions
         dp_transitions = utils.get_dp_transitions(all_agent_transitions)
         plot_split = train_test_split(dp_transitions, train_split=cfg.experiment.plot_split)
@@ -114,7 +113,6 @@ def main(cfg: DictConfig) -> dict:
                                               save_path,
                                               test_epochs)
 
-
         stats = offline_eval.get_stats()
         make_offline_plots(fr.freezer, stats, save_path / 'plots')
 
@@ -125,18 +123,21 @@ def main(cfg: DictConfig) -> dict:
                                                                                alert_tc,
                                                                                hash_cfgs=alert_hash_cfgs,
                                                                                prefix='alert_train_refactored')
-
-            utils.offline_alert_training(cfg, env, composite_alert, alert_train_transitions, plot_transitions, save_path)
-
-
+            utils.offline_alert_training(cfg, env, composite_alert, alert_train_transitions, plot_transitions,
+                                         save_path)
 
     if not (test_epochs is None):
         assert not (plot_transitions is None), "Must include test transitions if test_epochs is not None"
 
-    interaction = init_interaction(cfg.interaction, env, sc, agent_tc, obs_normalizer,
-                                   transitions=agent_test_transitions)
+    interaction = init_interaction(cfg.interaction, env, sc,
+                                   agent_tc, obs_normalizer,
+                                   transitions=agent_test_transitions
+                                   )
+
     if cfg.use_alerts:
+        print("INIT ALERT")
         interaction.init_alerts(composite_alert, alert_tc)
+        print(alert_tc.alert)
 
     if cfg.interaction.name == "offline_anytime":  # simulating online experience from an offline dataset
         online_eval = utils.offline_anytime_deployment(cfg,

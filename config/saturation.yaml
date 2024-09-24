@@ -1,5 +1,6 @@
 defaults:
   - config
+  - alerts@alerts.gvf_trace : gvf_trace
   - override agent: greedy_ac
   - override env: delayed_saturation
   - override data_loader: direct_action
@@ -8,6 +9,8 @@ defaults:
   - override state_constructor: anytime_multi_trace
   - override hydra/launcher: joblib
   - _self_
+
+use_alerts : True
 
 offline_data:
   load_from : transition

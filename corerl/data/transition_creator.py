@@ -474,6 +474,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         that occur between two decision points
         """
         using_alerts = self.alert is not None and self.alert.get_dim() > 0
+
         alert_gammas, cumulants = None, None
         if using_alerts:
             # Alerts can use different discount factors than the agent's value functions
@@ -527,6 +528,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                 gap=curr_obs_transition.gap,
                 steps_until_decision=self.curr_steps_until_decisions[step_idx],
                 next_steps_until_decision=self.curr_steps_until_decisions[step_idx + 1],
+                boot_steps_until_decision=self.curr_steps_until_decisions[-1]
             )
             new_transitions.append(transition)
             boot_state_queue.appendleft(state)
