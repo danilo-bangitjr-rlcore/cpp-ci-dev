@@ -4,7 +4,7 @@ from asyncua import Server, Node
 from corerl.utils.opc_connection import OpcConnection
 
 
-class TestOpcServer:
+class FakeOpcServer:
     def __init__(self, port: int = 0):
         self._port = port or get_free_port('localhost')
         self._s: Server | None = None
@@ -37,7 +37,7 @@ class TestOpcServer:
 
 @pytest_asyncio.fixture(loop_scope='function')
 async def server():
-    s = TestOpcServer()
+    s = FakeOpcServer()
     await s.start()
     yield s
     await s.close()
@@ -64,7 +64,7 @@ async def client():
 @pytest_asyncio.fixture(loop_scope='function')
 async def server_and_client():
     # building a server should find us an open port
-    server = TestOpcServer()
+    server = FakeOpcServer()
     await server.start()
 
     # let the client's config know what port we are using
