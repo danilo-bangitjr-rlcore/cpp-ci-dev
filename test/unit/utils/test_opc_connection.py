@@ -62,7 +62,7 @@ async def test_disconnect1(server_and_client):
     assert got == [2.0]
 
     await server.close()
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.1)
     await server.start()
     await server.step(3.0)
     got = await client.read_values(nodes)
@@ -94,7 +94,7 @@ async def test_disconnect2(server_and_client):
 
     await server.close()
     read_future = client.read_values(nodes)
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.1)
     await server.start()
     await server.step(3.0)
     got = await read_future
