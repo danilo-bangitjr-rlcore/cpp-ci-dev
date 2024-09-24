@@ -1,4 +1,10 @@
 [tool]
 [tool.pytest.ini_options]
 addopts="-n auto"
+asyncio_default_fixture_loop_scope = "function"
 
+[project]
+name = "corerl"
+version = "0.0.0"
+description = ""
+requires-python = ">=3.10,<3.13"
