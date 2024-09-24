@@ -100,11 +100,11 @@ class EnsembleQCritic(BaseQ):
         else:
             self.optimizer.step(*opt_args, **opt_kwargs)
 
+        self.target_sync_counter += 1
         if self.target_sync_counter % self.target_sync_freq == 0:
             self.sync_target()
             self.target_sync_counter = 0
 
-        self.target_sync_counter += 1
 
     def ensemble_backward(self, loss):
         for i in range(len(loss)):
