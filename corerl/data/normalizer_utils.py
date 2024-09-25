@@ -141,11 +141,12 @@ def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> BaseNormalize
     if name == "identity":
         action_min, action_max = get_action_bounds(cfg, env)
 
-        warnings.warn(
-            "\033[1;33m" +
-            f"actions are bounded between [{action_min}, {action_max}] " +
-            f"but the policy has support only over [0, 1]. Are you sure this is what you wanted to do?" +
-            "\033[0m")
+        if action_min < 0 or action_max > 1:
+            warnings.warn(
+                "\033[1;33m" +
+                f"actions are bounded between [{action_min}, {action_max}] " +
+                f"but the policy has support only over [0, 1]. Are you sure this is what you wanted to do?" +
+                "\033[0m")
 
         return Identity()
 
