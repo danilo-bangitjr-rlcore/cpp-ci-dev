@@ -139,8 +139,7 @@ def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> BaseNormalize
 
     name = cfg.name
     if name == "identity":
-        action_min = env.action_space.low
-        action_max = env.action_space.high
+        action_min, action_max = get_action_bounds(cfg, env)
 
         warnings.warn(
             "\033[1;33m" +
@@ -151,12 +150,7 @@ def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> BaseNormalize
         return Identity()
 
     elif name == "scale":
-        if cfg.use_cfg_values:  # use high and low specified in the config
-            action_min = np.array(cfg.action_low)
-            action_max = np.array(cfg.action_high)
-        else:  # use information from the environment
-            action_min = env.action_space.low
-            action_max = env.action_space.high
+        action_min, action_max = get_action_bounds(cfg, env)
 
         scale = (action_max - action_min)
         bias = action_min
@@ -169,6 +163,19 @@ def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> BaseNormalize
         return Clip(cfg.clip_min, cfg.clip_max)
 
     raise NotImplementedError
+
+
+def get_action_bounds(cfg: DictConfig, env: gymnasium.Env) -> tuple[np.ndarray, np.ndarray]:
+    if cfg.use_cfg_values:
+        return (
+            np.array(cfg.action_low),
+            np.array(cfg.action_high),
+        )
+
+    # We don't currently have a reliable way to type-guard
+    # whether the action_space has a `low` and `high`.
+    space: Any = env.action_space
+    return (space.low, space.high)
 
 
 def init_reward_normalizer(cfg: DictConfig) -> BaseNormalizer:
