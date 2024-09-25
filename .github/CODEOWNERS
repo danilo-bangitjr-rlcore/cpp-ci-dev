@@ -1,3 +1,6 @@
-# file path              # owners
-*                        @andy-rlcore @revan-macqueen-rlcore
-/corerl/alerts           @alex-trudeau-rlcore
+# file path                                         # owners
+*                                                   @andy-rlcore @revan-macqueen-rlcore
+/corerl/alerts                                      @alex-trudeau-rlcore
+/corerl/environment/influx_opc_env.py               @kerrick-rlcore
+/corerl/sql_logging/                                @kerrick-rlcore
+/corerl/agent/greedy_ac.py                          @kerrick-rlcore
