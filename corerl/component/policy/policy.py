@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod, abstractclassmethod
 import torch
 import torch.distributions as d
 import logging
-from typing import Union
+from typing import Union, List
 
 
 _BoundedAboveConstraint = Union[
@@ -38,7 +38,7 @@ class Policy(ABC):
         """
         return self._model.load_state_dict(sd)
 
-    def state_dict(self):
+    def state_dict(self) -> dict:
         """
         Gets the state dictionary from the policy's model
         """
@@ -61,30 +61,29 @@ class Policy(ABC):
 
     @property
     @abstractmethod
-    def param_names(self):
+    def param_names(self) -> tuple[str]:
         """
         The names of the policy distribution parameters
         """
         pass
 
     @property
-    def n_params(self):
+    def n_params(self) -> int:
         """
         The number of parameters that the policy distribution has
         """
         return len(self.param_names)
 
-    @property
-    @abstractclassmethod
-    def continuous(cls):
+    @classmethod
+    @abstractmethod
+    def continuous(cls) -> bool:
         """
         Whether the policy class represents a continuous-action policy or not
         """
         pass
 
     @classmethod
-    @property
-    def discrete(cls):
+    def discrete(cls) -> bool:
         """
         Whether the policy class represents a discrete-action policy or not
         """
@@ -106,7 +105,9 @@ class Policy(ABC):
         pass
 
     @abstractmethod
-    def log_prob(self, state: torch.Tensor, action: torch.Tensor):
+    def log_prob(
+        self, state: torch.Tensor, action: torch.Tensor,
+    ) -> tuple[torch.Tensor, dict]:
         """
         Return the log density/probability of the action `action` in the state
         `state`
@@ -160,7 +161,7 @@ class ContinuousIIDPolicy(Policy,ABC):
     def load_state_dict(self, sd):
         return self._model.load_state_dict(sd)
 
-    def state_dict(self):
+    def state_dict(self) -> dict:
         return self._model.state_dict()
 
     def parameters(self):
@@ -171,7 +172,7 @@ class ContinuousIIDPolicy(Policy,ABC):
     def from_env(cls, model, dist, env):
         pass
 
-    def _transform_from_params(self, *params):
+    def _transform_from_params(self, *params) -> d.Distribution:
         """
         Given a tuple of policy parameters, return the underlying policy
         distribution transformed to cover the correct support region.
@@ -186,7 +187,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         return self._transform(self._dist(*params))
 
     @abstractmethod
-    def _transform(self, dist):
+    def _transform(self, dist) -> d.Distribution:
         """
         Similar to _transform_from_params, but takes the underlying
         distribution object to transform, rather than its parameters.
@@ -195,19 +196,18 @@ class ContinuousIIDPolicy(Policy,ABC):
 
     @property
     @abstractmethod
-    def param_names(self):
+    def param_names(self) -> tuple[str]:
         pass
 
     @property
     def n_params(self):
         return len(self.param_names)
 
-    @property
+    @classmethod
     def continuous(cls):
         return True
 
     @classmethod
-    @property
     def discrete(cls):
         return not cls.continuous
 
@@ -232,13 +232,15 @@ class ContinuousIIDPolicy(Policy,ABC):
 
         return samples, info
 
-    def sample(self, state):
+    def sample(self, state) -> tuple[torch.Tensor, dict]:
         return self.forward(state, False)
 
-    def rsample(self, state):
+    def rsample(self, state) -> tuple[torch.Tensor, dict]:
         return self.forward(state, True)
 
-    def log_prob(self, state: torch.Tensor, action: torch.Tensor):
+    def log_prob(
+        self, state: torch.Tensor, action: torch.Tensor,
+    ) -> tuple[torch.Tensor, dict]:
         params = self._model(state)
         dist = self._transform_from_params(*params)
 
@@ -251,34 +253,34 @@ class ContinuousIIDPolicy(Policy,ABC):
         lp = dist.log_prob(action)
         lp = lp.view(-1, 1)
 
-        return lp, None
+        return lp, {}
 
-    def mean(self, state: torch.Tensor):
+    def mean(self, state: torch.Tensor) -> torch.Tensor:
         params = self._model(state)
         dist = self._transform_from_params(*params)
         return dist.mean
 
-    def mode(self, state: torch.Tensor):
+    def mode(self, state: torch.Tensor) -> torch.Tensor:
         params = self._model(state)
         dist = self._transform_from_params(*params)
         return dist.mode
 
-    def variance(self, state: torch.Tensor):
+    def variance(self, state: torch.Tensor) -> torch.Tensor:
         params = self._model(state)
         dist = self._transform_from_params(*params)
         return dist.variance
 
-    def stddev(self, state: torch.Tensor):
+    def stddev(self, state: torch.Tensor) -> torch.Tensor:
         params = self._model(state)
         dist = self._transform_from_params(*params)
         return dist.stddev
 
-    def entropy(self, state: torch.Tensor):
+    def entropy(self, state: torch.Tensor) -> torch.Tensor:
         params = self._model(state)
         dist = self._transform_from_params(*params)
         return dist.entropy()
 
-    def kl(self, other, state):
+    def kl(self, other, state) -> torch.Tensor:
         self_params = self._model(state)
         self_dist = self._transform_from_params(*self_params)
 
@@ -326,7 +328,7 @@ class Bounded(ContinuousIIDPolicy):
         )
 
     @property
-    def param_names(self):
+    def param_names(self) -> tuple[str]:
         return tuple(self._dist.arg_constraints.keys())
 
     @classmethod
@@ -336,7 +338,7 @@ class Bounded(ContinuousIIDPolicy):
 
         return cls(model, dist, action_min, action_max)
 
-    def _transform(self, dist):
+    def _transform(self, dist) -> d.Distribution:
         if self._action_bias != 0 or self._action_scale != 1:
             transform = d.AffineTransform(
                 loc=self._action_bias, scale=self._action_scale,
@@ -362,14 +364,14 @@ class UnBounded(ContinuousIIDPolicy):
         return self._dist.support
 
     @property
-    def param_names(self):
+    def param_names(self) -> tuple[str]:
         return tuple(self._dist.arg_constraints.keys())
 
     @classmethod
     def from_env(cls, model, dist, env):
         return cls(model, dist)
 
-    def _transform(self, dist):
+    def _transform(self, dist) -> d.Distribution:
         return d.Independent(dist, 1)
 
 
@@ -446,7 +448,7 @@ class HalfBounded(ContinuousIIDPolicy):
         return self._dist_max is not torch.inf
 
     @property
-    def param_names(self):
+    def param_names(self) -> tuple[str]:
         return tuple(self._dist.arg_constraints.keys())
 
     @classmethod

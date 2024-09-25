@@ -116,7 +116,7 @@ def create(cfg, input_dim, output_dim, action_min=None, action_max=None):
 
     net = _create_nn(cfg, policy_type, input_dim, output_dim)
 
-    if not policy_type.continuous:
+    if not policy_type.continuous():
         return policy_type(net, input_dim, output_dim)
 
     dist_type = get_dist_type(cfg["dist"])

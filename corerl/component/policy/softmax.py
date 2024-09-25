@@ -10,7 +10,6 @@ class Softmax(Policy):
         self.output_dim = output_dim
 
     @classmethod
-    @property
     def continuous(cls):
         return False
 
