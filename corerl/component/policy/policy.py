@@ -204,7 +204,7 @@ class ContinuousIIDPolicy(Policy,ABC):
 
     @property
     def continuous(cls):
-        True
+        return True
 
     @classmethod
     @property
