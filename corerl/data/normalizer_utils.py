@@ -1,23 +1,28 @@
 import warnings
 
+from typing import Any, TypeVar, Generic
 from omegaconf import DictConfig
 from abc import ABC, abstractmethod
 
 import numpy as np
 import gymnasium
 
+from corerl.utils.types import Ring
 
-class BaseNormalizer(ABC):
+
+R = TypeVar('R', bound=Ring)
+
+class BaseNormalizer(ABC, Generic[R]):
     @abstractmethod
     def __init__(self):
         raise NotImplementedError
 
     @abstractmethod
-    def __call__(self, x: float | np.ndarray) -> float | np.ndarray:
+    def __call__(self, x: R) -> R:
         raise NotImplementedError
 
     @abstractmethod
-    def denormalize(self, x: float | np.ndarray) -> float | np.ndarray:
+    def denormalize(self, x: R) -> R:
         raise NotImplementedError
 
 
@@ -25,34 +30,34 @@ class Identity(BaseNormalizer):
     def __init__(self):
         return
 
-    def __call__(self, x: float | np.ndarray) -> float | np.ndarray:
+    def __call__(self, x: R) -> R:
         return x
 
-    def denormalize(self, x: float | np.ndarray) -> float | np.ndarray:
+    def denormalize(self, x: R) -> R:
         return x
 
 
 class Scale(BaseNormalizer):
-    def __init__(self, scale: float | np.ndarray, bias: float | np.ndarray):
+    def __init__(self, scale: R, bias: R):
         self.scale = scale
         self.bias = bias
 
-    def __call__(self, x: float | np.ndarray) -> float | np.ndarray:
+    def __call__(self, x: R) -> R:
         return (x - self.bias) / self.scale
 
-    def denormalize(self, x: float | np.ndarray) -> float | np.ndarray:
+    def denormalize(self, x: R) -> R:
         return x * self.scale + self.bias
 
 
 class Clip(BaseNormalizer):
-    def __init__(self, min_: float | np.ndarray, max_: float | np.ndarray):
-        self.min = min_
-        self.max = max_
+    def __init__(self, min_: R, max_: R):
+        self.min: Any = min_
+        self.max: Any = max_
 
-    def __call__(self, x: float | np.ndarray) -> np.float64 | np.ndarray:
+    def __call__(self, x: Any) -> Any:
         return np.clip(x, self.min, self.max)
 
-    def denormalize(self, x: float | np.ndarray) -> float | np.ndarray:
+    def denormalize(self, x: R) -> R:
         return x
 
 
@@ -80,10 +85,10 @@ class MaxMin(BaseNormalizer):
         self.scale = self.max - self.min
         self.bias = self.min
 
-    def __call__(self, x: float | np.ndarray) -> np.float64 | np.ndarray:
+    def __call__(self, x: R) -> R:
         return (x - self.bias) / self.scale
 
-    def denormalize(self, x: float | np.ndarray) -> float | np.ndarray:
+    def denormalize(self, x: R) -> R:
         return x * self.scale + self.bias
 
 
@@ -94,15 +99,15 @@ class AvgNanNorm(BaseNormalizer):
         self.scale = self.max - self.min
         self.bias = self.min
 
-    def __call__(self, x: float | np.ndarray) -> np.float64 | np.ndarray:
+    def __call__(self, x: np.ndarray) -> np.ndarray:
         x = self.handle_nan(x)
         # x = self.average(x)
         return self.normalize(x)
 
-    def normalize(self, x: float | np.ndarray) -> float | np.ndarray:
+    def normalize(self, x: np.ndarray) -> np.ndarray:
         return (x - self.bias) / self.scale
 
-    def denormalize(self, x: float | np.ndarray) -> float | np.ndarray:
+    def denormalize(self, x: np.ndarray) -> np.ndarray:
         return x * self.scale + self.bias
 
     def handle_nan(self, x: np.ndarray) -> np.ndarray:
