@@ -52,7 +52,7 @@ class Policy(ABC):
 
     @classmethod
     @abstractmethod
-    def from_env(cls, model, dist, env):
+    def from_env(cls, model, dist, env) -> 'Policy':
         """
         Constructs an instance of the class which has policy distribution
         support over the environment `env` action space
@@ -169,7 +169,7 @@ class ContinuousIIDPolicy(Policy,ABC):
 
     @classmethod
     @abstractmethod
-    def from_env(cls, model, dist, env):
+    def from_env(cls, model, dist, env) -> 'ContinuousIIDPolicy':
         pass
 
     def _transform_from_params(self, *params) -> d.Distribution:
@@ -332,7 +332,7 @@ class Bounded(ContinuousIIDPolicy):
         return tuple(self._dist.arg_constraints.keys())
 
     @classmethod
-    def from_env(cls, model, dist, env):
+    def from_env(cls, model, dist, env) -> 'Bounded':
         action_min = torch.Tensor(env.action_space.low)
         action_max = torch.Tensor(env.action_space.high)
 
@@ -368,7 +368,7 @@ class UnBounded(ContinuousIIDPolicy):
         return tuple(self._dist.arg_constraints.keys())
 
     @classmethod
-    def from_env(cls, model, dist, env):
+    def from_env(cls, model, dist, env) -> 'UnBounded':
         return cls(model, dist)
 
     def _transform(self, dist) -> d.Distribution:
@@ -452,7 +452,7 @@ class HalfBounded(ContinuousIIDPolicy):
         return tuple(self._dist.arg_constraints.keys())
 
     @classmethod
-    def from_env(cls, model, dist, env):
+    def from_env(cls, model, dist, env) -> 'HalfBounded':
         action_min = torch.Tensor(env.action_space.low)
         action_max = torch.Tensor(env.action_space.high)
 
