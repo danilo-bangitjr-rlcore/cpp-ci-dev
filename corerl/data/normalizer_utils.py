@@ -201,3 +201,5 @@ def init_obs_normalizer(cfg: DictConfig, env) -> BaseNormalizer:
         return MaxMin(env)
     elif name == "avg_nan_norm":
         return AvgNanNorm(env)
+
+    raise Exception(f'Normalizer <{name}> not implemented')
