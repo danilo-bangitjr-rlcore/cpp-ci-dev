@@ -36,7 +36,7 @@ class Softmax(Policy):
 
     def forward(
             self, state: torch.Tensor, debug: bool = False,
-    ) -> (torch.Tensor, dict):
+    ) -> tuple[torch.Tensor, dict]:
         probs, x = self.get_probs(state)
         dist = torch.distributions.Categorical(probs=probs)
         actions = dist.sample()
