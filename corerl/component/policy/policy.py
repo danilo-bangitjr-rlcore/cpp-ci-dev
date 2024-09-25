@@ -99,7 +99,7 @@ class Policy(ABC):
         pass
 
     @abstractmethod
-    def forward(self, state, rsample=True):
+    def forward(self, state, rsample=True) -> tuple[torch.Tensor, dict]:
         """
         Return a sample from the policy in state `state`
         """
@@ -216,7 +216,7 @@ class ContinuousIIDPolicy(Policy,ABC):
     def support(self):
         pass
 
-    def forward(self, state, rsample=True):
+    def forward(self, state, rsample=True) -> tuple[torch.Tensor, dict]:
         params = self._model(state)
         dist = self._transform_from_params(*params)
 
