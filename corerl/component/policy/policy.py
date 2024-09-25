@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod, abstractclassmethod
 import torch
 import torch.distributions as d
-from warnings import warn
+import logging
 from typing import Union
 
 
@@ -393,7 +393,7 @@ class HalfBounded(ContinuousIIDPolicy):
             self._dist_max = dist.support.upper_bound
             self._dist_min = -torch.inf
             if action_min is not None and action_min != -torch.inf:
-                warn(
+                logging.warning(
                     f"the support of {dist} is not bounded below, ignoring" +
                     "action_min value {action_min}"
                 )
@@ -407,7 +407,7 @@ class HalfBounded(ContinuousIIDPolicy):
             self._dist_min = dist.support.lower_bound
             self._dist_max = torch.inf
             if action_max is not None and action_max != torch.inf:
-                warn(
+                logging.warning(
                     f"the support of {dist} is not bounded above, ignoring " +
                     f"action_max value {action_max}"
                 )
