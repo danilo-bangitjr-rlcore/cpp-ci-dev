@@ -140,38 +140,39 @@ def _get_policy_bounds(agent):
 def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> BaseNormalizer:
     if cfg.discrete_control:
         return Identity()
-    else:  # continuous control
-        name = cfg.name
-        if name == "identity":
+
+    name = cfg.name
+    if name == "identity":
+        action_min = env.action_space.low
+        action_max = env.action_space.high
+
+        warnings.warn(
+            "\033[1;33m" +
+            f"actions are bounded between [{action_min}, {action_max}] " +
+            f"but the policy has support only over [0, 1]. Are you sure this is what you wanted to do?" +
+            "\033[0m")
+
+        return Identity()
+
+    elif name == "scale":
+        if cfg.use_cfg_values:  # use high and low specified in the config
+            action_min = np.array(cfg.action_low)
+            action_max = np.array(cfg.action_high)
+        else:  # use information from the environment
             action_min = env.action_space.low
             action_max = env.action_space.high
 
-            warnings.warn(
-                "\033[1;33m" +
-                f"actions are bounded between [{action_min}, {action_max}] " +
-                f"but the policy has support only over [0, 1]. Are you sure this is what you wanted to do?" +
-                "\033[0m")
+        scale = (action_max - action_min)
+        bias = action_min
 
-            return Identity()
-        elif name == "scale":
-            if cfg.use_cfg_values:  # use high and low specified in the config
-                action_min = np.array(cfg.action_low)
-                action_max = np.array(cfg.action_high)
-            else:  # use information from the environment
-                action_min = env.action_space.low
-                action_max = env.action_space.high
+        print(f"Initializing action normalizer using scale = {scale} and bias = {bias}")
 
-            scale = (action_max - action_min)
-            bias = action_min
+        return Scale(scale, bias)
 
-            print(f"Initializing action normalizer using scale = {scale} and bias = {bias}")
+    elif name == "clip":
+        return Clip(cfg.clip_min, cfg.clip_max)
 
-            return Scale(scale, bias)
-
-        elif name == "clip":
-            return Clip(cfg.clip_min, cfg.clip_max)
-        else:
-            raise NotImplementedError
+    raise NotImplementedError
 
 
 def init_reward_normalizer(cfg: DictConfig) -> BaseNormalizer:
