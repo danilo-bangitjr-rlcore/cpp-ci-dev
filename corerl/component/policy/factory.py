@@ -22,16 +22,14 @@ def _create_nn(cfg, policy_type, input_dim, output_dim):
     name = cfg["base"]["name"]
     if name.lower() in ("mlp", "fc"):
         return _create_mlp(cfg, policy_type, input_dim, output_dim)
-    else:
-        raise NotImplementedError(f"unknown neural network type {name}")
+    raise NotImplementedError(f"unknown neural network type {name}")
 
 
 def _create_mlp(cfg, policy_type, input_dim, output_dim):
     continuous = policy_type.continuous
     if not continuous:
         return _create_discrete_mlp(cfg, input_dim, output_dim)
-    else:
-        return _create_continuous_mlp(cfg, input_dim, output_dim)
+    return _create_continuous_mlp(cfg, input_dim, output_dim)
 
 
 def _create_discrete_mlp(cfg, input_dim, output_dim):
@@ -118,13 +116,12 @@ def create(cfg, input_dim, output_dim, action_min=None, action_max=None):
 
     net = _create_nn(cfg, policy_type, input_dim, output_dim)
 
-    if policy_type.continuous:
-        dist_type = get_dist_type(cfg["dist"])
-        if policy_type is UnBounded:
-            return policy_type(net, dist_type)
-        else:
-            return ContinuousIIDPolicy.from_(
-                net, dist_type, action_min=action_min, action_max=action_max,
-            )
-    else:
+    if not policy_type.continuous:
         return policy_type(net, input_dim, output_dim)
+
+    dist_type = get_dist_type(cfg["dist"])
+    if policy_type is UnBounded:
+        return policy_type(net, dist_type)
+    return ContinuousIIDPolicy.from_(
+        net, dist_type, action_min=action_min, action_max=action_max,
+    )
