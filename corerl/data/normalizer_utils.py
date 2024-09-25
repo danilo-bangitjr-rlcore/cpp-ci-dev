@@ -133,10 +133,6 @@ class AvgNanNorm(BaseNormalizer):
             raise ValueError("Invalid shape for observation")
 
 
-def _get_policy_bounds(agent):
-    return agent.actor.distribution_bounds()
-
-
 def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> BaseNormalizer:
     if cfg.discrete_control:
         return Identity()
