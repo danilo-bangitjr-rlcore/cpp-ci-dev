@@ -205,9 +205,12 @@ class OldAnytimeTransitionCreator(object):
         # i.e. "regular RL"
         agent_transitions = []
         if self.only_dp_transitions:
+
+            print("DP TRANSITIONS")
             # we may have filtered out all transitions for the agent, so return an empty list in this case
             if len(filtered_transitions) == 0:
                 agent_transitions = []
+                print("len 0")
             # check to see if the first transition starts at a decision point. if so, we will modify this
             # transition to create our decision point to decision point transition
             elif filtered_transitions[0].state_dp:

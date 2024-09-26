@@ -91,12 +91,12 @@ def main(cfg: DictConfig) -> dict:
         agent_train_transitions = utils.get_offline_transitions_refactored(cfg, train_obs_transitions, sc,
                                                                            agent_tc,
                                                                            hash_cfgs=agent_hash_cfgs,
-                                                                           prefix='agent_train_refactored')
+                                                                           prefix='agent_train')
 
         agent_test_transitions = utils.get_offline_transitions_refactored(cfg, test_obs_transitions, sc,
                                                                           agent_tc,
                                                                           hash_cfgs=agent_hash_cfgs,
-                                                                          prefix='agent_test_refactored')
+                                                                          prefix='agent_test')
 
         all_agent_transitions = agent_train_transitions + agent_test_transitions
         dp_transitions = utils.get_dp_transitions(all_agent_transitions)
