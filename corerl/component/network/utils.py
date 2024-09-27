@@ -3,6 +3,9 @@ import torch
 import torch.nn as nn
 from corerl.utils.device import device as global_device
 from typing import Optional
+from corerl.component.layer import Identity
+import warnings
+import corerl.component.layer.activations as activations
 
 
 class Float(torch.nn.Module):
@@ -12,14 +15,6 @@ class Float(torch.nn.Module):
 
     def forward(self) -> torch.nn.Parameter:
         return self.constant
-
-
-class NoneActivation(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return x
 
 
 def expectile_loss(diff: torch.Tensor, expectile: float = 0.9) -> torch.Tensor:
@@ -177,41 +172,33 @@ def to_np(t: numpy.ndarray | torch.Tensor) -> numpy.ndarray:
         raise AssertionError("")
 
 
-def init_activation(name: str) -> nn.Module:
-    if name == "ReLU":
-        return torch.nn.ReLU
-    elif name == "Softplus":
-        return torch.nn.Softplus
-    elif name == "ReLU6":
-        return torch.nn.ReLU6
-    elif name == "None":
-        return NoneActivation
-    else:
-        raise NotImplementedError
+def init_activation(name: str) -> type[nn.Module]:
+    warnings.warn(
+        "init_activation in module utils is deprecated and will be removed, " +
+        "use activations.init_activation instead"
+    )
+
+    return type(activations.init_activation({"name": name}))
 
 
-def init_activation_function(name: str):
-    if name == "ReLU":
-        return torch.nn.functional.relu
-    elif name == "Softplus":
-        return torch.nn.functional.softplus
-    elif name == "ReLU6":
-        return torch.nn.functional.relu6
-    elif name == "None":
-        return NoneActivation
-    else:
-        raise NotImplementedError
+def init_activation_function(name: str) -> nn.Module:
+    warnings.warn(
+        "init_activation in module utils is deprecated and will be removed, " +
+        "use activations.init_activation instead"
+    )
+
+    return activations.init_activation({"name": name})()
 
 
 def init_layer(init: str) -> callable:
-    if init == 'Xavier':
+    if init.lower() == 'xavier':
         layer_init = layer_init_xavier
-    elif init == 'Const':
+    elif init.lower() == 'const':
         layer_init = layer_init_constant
-    elif init == 'Zero':
+    elif init.lower() == 'zero':
         layer_init = layer_init_zero
-    elif init == 'Normal':
+    elif init.lower() == 'normal':
         layer_init = layer_init_normal
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"unknown weight initialization {name}")
     return layer_init

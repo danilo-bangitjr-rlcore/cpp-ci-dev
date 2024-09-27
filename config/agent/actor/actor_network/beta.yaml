@@ -2,10 +2,15 @@ defaults:
   - base: fc
   - _self_
 
-name : beta
-beta_param_bias : 1.0
-beta_param_bound : 10000
-layer_init : Xavier
-head_activation : Softplus
-bias : True
-tanh_shift : -4.0
+dist : beta
+head_layer_init : Xavier
+head_activation : [
+  [{"name": "softplus"}, {"name": "bias", "args": [1]}],
+  [
+    {
+      "name": "tanh_shift",
+      "kwargs": {"shift": -4, "denom": 1, "high": 10000, "low": 1}
+    }
+  ]
+]
+head_bias : True
