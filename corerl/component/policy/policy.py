@@ -66,7 +66,7 @@ class Policy(ABC):
 
     @property
     @abstractmethod
-    def param_names(self) -> tuple[str]:
+    def param_names(self) -> tuple[str, ...]:
         """
         The names of the policy distribution parameters
         """
@@ -201,7 +201,7 @@ class ContinuousIIDPolicy(Policy,ABC):
 
     @property
     @abstractmethod
-    def param_names(self) -> tuple[str]:
+    def param_names(self) -> tuple[str, ...]:
         pass
 
     @property
@@ -333,7 +333,7 @@ class Bounded(ContinuousIIDPolicy):
         )
 
     @property
-    def param_names(self) -> tuple[str]:
+    def param_names(self) -> tuple[str, ...]:
         return tuple(self._dist.arg_constraints.keys())
 
     @classmethod
@@ -369,7 +369,7 @@ class UnBounded(ContinuousIIDPolicy):
         return self._dist.support
 
     @property
-    def param_names(self) -> tuple[str]:
+    def param_names(self) -> tuple[str, ...]:
         return tuple(self._dist.arg_constraints.keys())
 
     @classmethod
@@ -453,7 +453,7 @@ class HalfBounded(ContinuousIIDPolicy):
         return self._dist_max is not torch.inf
 
     @property
-    def param_names(self) -> tuple[str]:
+    def param_names(self) -> tuple[str, ...]:
         return tuple(self._dist.arg_constraints.keys())
 
     @classmethod

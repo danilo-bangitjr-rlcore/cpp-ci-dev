@@ -13,7 +13,9 @@ class Softmax(Policy):
     def continuous(cls):
         return False
 
-    def get_probs(self, state: torch.Tensor) -> (torch.Tensor, torch.Tensor):
+    def get_probs(
+        self, state: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         x = self._model(state)
         probs = nn.functional.softmax(x, dim=1)
         return probs, x
@@ -23,7 +25,7 @@ class Softmax(Policy):
         return d.constraints.integer_interval(0, self.output_dim-1)
 
     @property
-    def param_names(self):
+    def param_names(self) -> tuple[str, ...]:
         return tuple(f"logit_{i}" for i in range(self.output_dim))
 
     @classmethod
