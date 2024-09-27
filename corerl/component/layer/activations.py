@@ -71,7 +71,7 @@ class TanhShift(nn.Module):
         return normalized * (self._high - self._low) + self._low
 
 
-def init_activation(cfg) -> type[nn.Module]:
+def init_activation(cfg) -> nn.Module:
     name = cfg["name"]
     args = cfg.get("args", tuple())
     kwargs = cfg.get("kwargs", {})
