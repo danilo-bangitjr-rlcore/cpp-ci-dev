@@ -50,8 +50,8 @@ class Softmax(Policy):
         return actions, {'logp': logp}
 
     def log_prob(
-            self, states: torch.Tensor, actions: torch.Tensor, debug: bool = False,
-    ) -> (torch.Tensor, dict):
+            self, state: torch.Tensor, action: torch.Tensor, debug: bool = False,
+    ) -> tuple[torch.Tensor, dict]:
         actions = (actions == 1).nonzero(as_tuple=False)
         actions = actions[:, 1:]
         probs, _ = self.get_probs(states)
