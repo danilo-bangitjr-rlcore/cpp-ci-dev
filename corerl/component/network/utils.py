@@ -178,7 +178,7 @@ def init_activation(name: str) -> type[nn.Module]:
         "use activations.init_activation instead"
     )
 
-    return activations.init_activation({"name": name})
+    return type(activations.init_activation({"name": name}))
 
 
 def init_activation_function(name: str) -> nn.Module:
