@@ -34,7 +34,7 @@ class Softmax(Policy):
         return cls(model, input_dim, output_dim)
 
     def forward(
-            self, state: torch.Tensor, debug: bool = False,
+            self, state: torch.Tensor,
     ) -> tuple[torch.Tensor, dict]:
         probs, x = self.get_probs(state)
         dist = torch.distributions.Categorical(probs=probs)
@@ -50,7 +50,7 @@ class Softmax(Policy):
         return actions, {'logp': logp}
 
     def log_prob(
-            self, state: torch.Tensor, action: torch.Tensor, debug: bool = False,
+            self, state: torch.Tensor, action: torch.Tensor,
     ) -> tuple[torch.Tensor, dict]:
         actions = (actions == 1).nonzero(as_tuple=False)
         actions = actions[:, 1:]
