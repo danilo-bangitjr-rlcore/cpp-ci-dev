@@ -11,11 +11,11 @@ from corerl.utils.device import device
 def get_type_from_str(type_: str):
     if type_.lower() == "softmax":
         return Softmax
-    else:
-        try:
-            return _get_type_from_dist(get_dist_type(type_))
-        except NotImplementedError:
-            raise NotImplementedError(f"unknown policy type {type_}")
+
+    try:
+        return _get_type_from_dist(get_dist_type(type_))
+    except NotImplementedError:
+        raise NotImplementedError(f"unknown policy type {type_}")
 
 
 def _create_nn(cfg, policy_type, input_dim, output_dim):

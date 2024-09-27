@@ -490,8 +490,7 @@ def _get_type_from_dist(dist):
     elif isinstance(dist.support, _HalfBoundedConstraint):
         return HalfBounded
 
-    else:
-        raise NotImplementedError(
-            f"unknown policy type for distribution {dist}",
-        )
+    raise NotImplementedError(
+        f"unknown policy type for distribution {dist}",
+    )
 
