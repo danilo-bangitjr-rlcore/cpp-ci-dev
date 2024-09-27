@@ -4,6 +4,8 @@ import torch.nn as nn
 from corerl.utils.device import device as global_device
 from typing import Optional
 from corerl.component.layer import Identity
+import warnings
+import corerl.component.layer.activations as activations
 
 
 class Float(torch.nn.Module):
@@ -171,29 +173,21 @@ def to_np(t: numpy.ndarray | torch.Tensor) -> numpy.ndarray:
 
 
 def init_activation(name: str) -> nn.Module:
-    if name.lower() == "relu":
-        return torch.nn.ReLU
-    elif name.lower() == "softplus":
-        return torch.nn.Softplus
-    elif name.lower() == "relu6":
-        return torch.nn.ReLU6
-    elif name.lower() == "none":
-        return Identity
-    else:
-        raise NotImplementedError(f"unknown activation function {name}")
+    warnings.warn(
+        "init_activation in module utils is deprecated and will be removed, " +
+        "use activations.init_activation instead"
+    )
+
+    return activations.init_activation({"name": name})
 
 
 def init_activation_function(name: str):
-    if name.lower() == "relu":
-        return torch.nn.functional.relu
-    elif name.lower() == "softplus":
-        return torch.nn.functional.softplus
-    elif name.lower() == "relu6":
-        return torch.nn.functional.relu6
-    elif name.lower() == "none":
-        return Identity()
-    else:
-        raise NotImplementedError(f"unknown activation function {name}")
+    warnings.warn(
+        "init_activation in module utils is deprecated and will be removed, " +
+        "use activations.init_activation instead"
+    )
+
+    return activations.init_activation({"name": name})()
 
 
 def init_layer(init: str) -> callable:
