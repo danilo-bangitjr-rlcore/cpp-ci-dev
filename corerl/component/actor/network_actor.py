@@ -90,6 +90,11 @@ class NetworkActorLineSearch(NetworkActor):
         self.policy = policy.create(
             cfg.actor_network, state_dim, action_dim, action_min, action_max,
         )
+        self.policy_copy = init_actor_network(
+            cfg.actor_network, state_dim, action_dim, action_min, action_max
+        )
 
     def set_parameters(self, buffer_address: int, eval_error_fn: Optional['Callable'] = None) -> None:
-        self.optimizer.set_params(buffer_address, [self.policy_copy], eval_error_fn)
+        self.optimizer.set_params(
+            buffer_address, [self.policy_copy.model], eval_error_fn,
+        )

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import torch
+import torch.nn as nn
 import torch.distributions as d
 import logging
 from typing import Union
@@ -49,6 +50,10 @@ class Policy(ABC):
         Returns the parameters of the policy's model.
         """
         return self._model.parameters()
+
+    @property
+    def model(self) -> nn.Module:
+        return self._model
 
     @classmethod
     @abstractmethod
