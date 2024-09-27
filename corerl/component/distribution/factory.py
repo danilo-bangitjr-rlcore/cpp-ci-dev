@@ -14,13 +14,13 @@ _dist_types = {
 }
 
 
-def get_dist_type(type_):
+def get_dist_type(type_) -> d.Distribution:
     if type_.lower() in _dist_types.keys():
         return _dist_types[type_.lower()]
     else:
         try:
             # Try to get the distribution from torch.distributions
-            getattr(d, type_)
+            return getattr(d, type_)
         except AttributeError:
             raise NotImplementedError(
                 f"unknown policy type '{type_}', known policy types include " +
