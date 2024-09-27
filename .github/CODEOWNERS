@@ -4,3 +4,21 @@
 /corerl/environment/influx_opc_env.py               @kerrick-rlcore
 /corerl/sql_logging/                                @kerrick-rlcore
 /corerl/agent/greedy_ac.py                          @kerrick-rlcore
+/corerl/calibration_models                          @revan-macqueen-rlcore
+/corerl/state_constructor                           @revan-macqueen-rlcore
+/corerl/interaction                                 @revan-macqueen-rlcore
+/corerl/data                                        @revan-macqueen-rlcore
+/corerl/data_loaders                                @revan-macqueen-rlcore @alex-trudeau-rlcore
+/corerl/environment/saturation.py                   @revan-macqueen-rlcore
+/corerl/environment/delayed_saturation.py           @revan-macqueen-rlcore
+/corerl/utils/sweep.py                              @revan-macqueen-rlcore
+/corerl/utils/freezer.py                            @revan-macqueen-rlcore
+/corerl/utils/device.py                             @alex-trudeau-rlcore
+/corerl/calibration_model.py                        @revan-macqueen-rlcore
+/corerl/make_sweep.py                               @revan-macqueen-rlcore
+/corerl/make_offline_transitions.py                 @revan-macqueen-rlcore
+/corerl/eval/ibe.py                                 @revan-macqueen-rlcore
+/corerl/eval/action_gap.py                          @revan-macqueen-rlcore
+/corerl/eval/base_eval.py                           @revan-macqueen-rlcore
+/corerl/eval/composite_eval.py                      @revan-macqueen-rlcore
+/corerl/eval/reward.py                              @revan-macqueen-rlcore
