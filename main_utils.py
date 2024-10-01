@@ -1,7 +1,5 @@
 from corerl.utils.hook import when
 import numpy as np
-import hashlib
-import copy
 import pickle as pkl
 import logging
 
@@ -9,11 +7,12 @@ log = logging.getLogger(__name__)
 
 import pandas as pd
 from tqdm import tqdm
+from collections.abc import MutableMapping
 from omegaconf import OmegaConf, DictConfig
 from gymnasium.spaces.utils import flatdim
 from gymnasium import spaces, Env
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from corerl.eval.composite_eval import CompositeEval
 from corerl.data_loaders.base import BaseDataLoader
@@ -76,21 +75,12 @@ def check_exists(save_path):
         return None
 
 
-def load_or_create(root: Path, cfgs: list[DictConfig], prefix: str, create_func: callable, args: list) -> object:
+def load_or_create(root: Path, cfgs: list[MutableMapping[str, Any]], prefix: str, create_func: callable, args: list) -> object:
     """
     Will either load an object or create a new one using create func. Objects are saved at root using a hash determined
     by cfgs.
     """
-
-    cfg_str = ''
-    for cfg in cfgs:
-        if not isinstance(cfg, DictConfig):
-            cfg_str += str(cfg)
-        else:
-            cfg_copy = OmegaConf.to_container(copy.deepcopy(cfg), resolve=True)
-            cfg_str += str(cfg_copy)
-
-    cfg_hash = hashlib.sha1(cfg_str.encode("utf-8")).hexdigest()
+    cfg_hash = dict_u.hash_many(cfgs)
     save_path = root / cfg_hash / f"{prefix}-{cfg_hash}.pkl"
     obj = check_exists(save_path)
 

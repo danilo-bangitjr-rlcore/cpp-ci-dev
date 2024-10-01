@@ -60,3 +60,18 @@ def hash(
             _hash.update(str(d[k]).encode('utf-8'))
 
     return _hash.hexdigest()
+
+
+def hash_many(
+    ds: Iterable[MutableMapping[str, Any]],
+    ignore: Iterable[str] | None = None,
+) -> str:
+    # build a shared hasher that is reused for each
+    # dictionary in the list to ensure a single
+    # consistent hash is produced
+    hasher = hashlib.sha1()
+
+    for d in ds:
+        hash(d, ignore, _hash=hasher)
+
+    return hasher.hexdigest()

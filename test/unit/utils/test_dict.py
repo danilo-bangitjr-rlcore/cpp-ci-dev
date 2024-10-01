@@ -243,3 +243,27 @@ def test_hash_insertion_order1():
     h1 = dict_u.hash(d1)
     h2 = dict_u.hash(d2)
     assert h1 == h2
+
+
+# ---------------
+# -- hash_many --
+# ---------------
+
+def test_hash_many1():
+    """
+    Can hash a list of dictionaries.
+    Two lists with different dictionaries should
+    produce different hashes.
+    """
+    ds1 = [
+        {'a': 1},
+        {'b': 2},
+    ]
+
+    ds2 = [
+        {'a': 1},
+        {'b': 3},
+    ]
+
+    assert dict_u.hash_many(ds1) == dict_u.hash_many(ds1)
+    assert dict_u.hash_many(ds1) != dict_u.hash_many(ds2)
