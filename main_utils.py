@@ -29,12 +29,12 @@ from corerl.state_constructor.base import BaseStateConstructor
 from corerl.agent.base import BaseAgent
 from corerl.utils.plotting import make_actor_critic_plots, make_ensemble_info_step_plot, make_ensemble_info_summary_plots, make_reseau_gvf_critic_plot
 
+import corerl.utils.dict as dict_u
+
 
 def prepare_save_dir(cfg: DictConfig):
     if cfg.experiment.param_from_hash:
-        cfg_copy = copy.deepcopy(cfg)
-        del cfg_copy.experiment.seed
-        cfg_hash = hashlib.sha1(str(cfg_copy).encode("utf-8")).hexdigest()
+        cfg_hash = dict_u.hash(cfg, ignore={'experiment.seed'})
         print("Creating experiment param from hash:", cfg_hash)
         cfg.experiment.param = cfg_hash
 
