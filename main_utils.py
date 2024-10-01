@@ -259,14 +259,14 @@ def get_offline_trajectories(cfg: DictConfig,
         prefix = prefix + '_'
 
     train_trajectories = load_or_create(root=output_path,
-                                        cfgs=hash_cfgs + [cache_train_scs],
+                                        cfgs=hash_cfgs + [{'cache': cache_train_scs}],
                                         prefix=prefix + 'train_trajectories',
                                         create_func=create_trajectories,
                                         args=[train_obs_transitions, cache_train_scs])
 
     if test_obs_transitions is not None:
         test_trajectories = load_or_create(root=output_path,
-                                           cfgs=hash_cfgs + [cache_train_scs],
+                                           cfgs=hash_cfgs + [{'cache': cache_train_scs}],
                                            prefix=prefix + 'test_trajectories',
                                            create_func=create_trajectories,
                                            args=[test_obs_transitions, cache_test_scs])
