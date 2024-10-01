@@ -34,7 +34,7 @@ class OpcConnection:
                 raise err
 
         if self.vendor == "kepware":
-            opc_url=f"opc.tcp://{self.ip_address}:{self.port}/PTC/ThingWorxKepwareServer/",
+            opc_url = f"opc.tcp://{self.ip_address}:{self.port}/PTC/ThingWorxKepwareServer/"
         elif self.vendor == "ignition":
             opc_url = f"opc.tcp://{self.ip_address}:{self.port}"
         else:
