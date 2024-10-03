@@ -1,6 +1,9 @@
+import hydra
 import asyncio
 import logging
 import subprocess
+
+from omegaconf import DictConfig
 
 def MINS(x: float):
     return x * 60
@@ -8,11 +11,14 @@ def MINS(x: float):
 def HOURS(x: float):
     return 60 * MINS(x)
 
-def try_to_execute():
+def try_to_execute(cfg: DictConfig):
+    exec = cfg.deployment.python_executable
+    python_entrypoint = cfg.deployment.python_entrypoint
+    config_name = cfg.deployment.config_name
+
     try:
         subprocess.run(
-            # TODO: replace this with actual deployment command
-            ['python', 'main.py', '--config-name', 'saturation.yaml'],
+            [exec, python_entrypoint, '--config-name', config_name],
         )
 
     # Note: BaseException here is broader than Exception
@@ -23,13 +29,13 @@ def try_to_execute():
         logging.exception('Caught an exception executing the agent application!')
 
 
-async def main():
+async def async_main(cfg: DictConfig):
     attempts = 0
 
     while True:
         # this should be an indefinitely blocking call
         # if we move on from this, it means an exception was caught
-        try_to_execute()
+        try_to_execute(cfg)
 
         attempts += 1
         sleep = min(2**attempts, HOURS(1))
@@ -39,5 +45,11 @@ async def main():
         await asyncio.sleep(sleep)
 
 
-loop = asyncio.get_event_loop()
-loop.run_until_complete(main())
+@hydra.main(version_base=None, config_name='config', config_path="config/")
+def main(cfg: DictConfig):
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(async_main(cfg))
+
+
+if __name__ == '__main__':
+    main()

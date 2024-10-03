@@ -1,0 +1,7 @@
+defaults:
+  - _self_
+
+deployment:
+  python_executable: python
+  python_entrypoint: main.py
+  config_name: saturation.yaml
