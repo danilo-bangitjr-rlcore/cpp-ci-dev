@@ -5,3 +5,4 @@ deployment:
   python_executable: python
   python_entrypoint: main.py
   config_name: saturation.yaml
+  options: [experiment.max_steps=25]

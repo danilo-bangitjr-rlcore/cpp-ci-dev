@@ -15,10 +15,11 @@ def try_to_execute(cfg: DictConfig):
     exec = cfg.deployment.python_executable
     python_entrypoint = cfg.deployment.python_entrypoint
     config_name = cfg.deployment.config_name
+    options = cfg.deployment.options
 
     try:
-        subprocess.run(
-            [exec, python_entrypoint, '--config-name', config_name],
+        return subprocess.run(
+            [exec, python_entrypoint, '--config-name', config_name, *options],
         )
 
     # Note: BaseException here is broader than Exception
@@ -35,7 +36,10 @@ async def async_main(cfg: DictConfig):
     while True:
         # this should be an indefinitely blocking call
         # if we move on from this, it means an exception was caught
-        try_to_execute(cfg)
+        proc = try_to_execute(cfg)
+
+        if proc is not None and proc.returncode == 0:
+            break
 
         attempts += 1
         sleep = min(2**attempts, HOURS(1))
