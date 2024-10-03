@@ -203,13 +203,13 @@ def get_offline_obs_transitions(cfg: DictConfig,
     return train_obs_transitions, test_obs_transitions
 
 
-def get_offline_transitions(cfg: DictConfig,
-                            obs_transitions: list[ObsTransition],
-                            sc: BaseStateConstructor,
-                            transition_creator: OldAnytimeTransitionCreator,
-                            hash_cfgs=None,
-                            prefix=''
-                            ) -> list[Transition]:
+def old_get_offline_transitions(cfg: DictConfig,
+                                obs_transitions: list[ObsTransition],
+                                sc: BaseStateConstructor,
+                                transition_creator: OldAnytimeTransitionCreator,
+                                hash_cfgs=None,
+                                prefix=''
+                                ) -> list[Transition]:
     output_path = Path(cfg.offline_data.output_path)
 
     if hash_cfgs is None:
@@ -228,12 +228,12 @@ def get_offline_transitions(cfg: DictConfig,
     return transitions
 
 
-def get_offline_transitions_refactored(cfg: DictConfig,
-                                       obs_transitions: list[ObsTransition],
-                                       sc: BaseStateConstructor,
-                                       tc: BaseTransitionCreator,
-                                       hash_cfgs=None,
-                                       prefix='') -> list[Transition]:
+def get_offline_transitions(cfg: DictConfig,
+                            obs_transitions: list[ObsTransition],
+                            sc: BaseStateConstructor,
+                            tc: BaseTransitionCreator,
+                            hash_cfgs=None,
+                            prefix='') -> list[Transition]:
     output_path = Path(cfg.offline_data.output_path)
 
     def _create_transitions(obs_transitions_, sc_, tc_, warmup_):
@@ -261,12 +261,7 @@ def get_offline_trajectories(cfg: DictConfig,
                              cache_train_scs: bool = False,
                              cache_test_scs: bool = False
                              ) -> tuple[list[Trajectory], Optional[list[Trajectory]]]:
-    """
-    Takes observation transitions and produces offline trajectories (including state) using the interactions's state
-    constructor=
-    """
 
-    # TODO: refactor this
     output_path = Path(cfg.offline_data.output_path)
 
     def create_trajectories(obs_transitions, return_scs):
@@ -505,8 +500,6 @@ def offline_anytime_deployment(cfg: DictConfig,
     """
     Interacting with an offline dataset as if it were encountered online
     """
-
-    # TODO: refactor this
 
     # Instantiate online evaluators
     online_eval_args = {
