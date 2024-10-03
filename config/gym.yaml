@@ -11,6 +11,10 @@ defaults:
 interaction:
   steps_per_decision: 1
 
+experiment:
+  plotting: False
+  online_updates : True # Whether to update the agent online in deployment
+
 normalizer:
   action_normalizer:
     name: scale
