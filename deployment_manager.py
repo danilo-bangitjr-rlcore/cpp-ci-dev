@@ -11,9 +11,8 @@ def HOURS(x: float):
 def try_to_execute():
     try:
         subprocess.run(
-            # TODO: replace this with actually deployment command
-            ['python main.py --config-name saturation.yaml'],
-            shell=True,
+            # TODO: replace this with actual deployment command
+            ['python', 'main.py', '--config-name', 'saturation.yaml'],
         )
 
     # Note: BaseException here is broader than Exception
