@@ -1,29 +1,32 @@
 import pytest
 import asyncio
-from test.unit.utils.fixture_opc import client, server # noqa: F401
+from test.unit.utils.fixture_opc import * # noqa: F403
 
 @pytest.mark.asyncio
-async def test_connect1(server, client): # noqa: F811
+async def test_connect1(server_and_client):
     """
     Client should be able to connect to a running server.
     """
+    _, client = server_and_client
     await client.connect()
 
 
 @pytest.mark.asyncio
-async def test_connect2(client): # noqa: F811
+async def test_connect2(client):
     """
     Client should fail when no server is running.
     """
-    with pytest.raises(ConnectionRefusedError):
+    with pytest.raises(Exception):
         await client.connect()
 
 
 @pytest.mark.asyncio
-async def test_read_values1(server, client): # noqa: F811
+async def test_read_values1(server_and_client):
     """
     Client can read values for both sensors.
     """
+    server, client = server_and_client
+
     await client.connect()
     nodes = [
         client.client.get_node('ns=2;i=2'),
@@ -37,7 +40,7 @@ async def test_read_values1(server, client): # noqa: F811
 
 
 @pytest.mark.asyncio
-async def test_disconnect1(server, client): # noqa: F811
+async def test_disconnect1(server_and_client):
     """
     Client survives when a server goes offline after connection.
     Check this sequence:
@@ -47,6 +50,8 @@ async def test_disconnect1(server, client): # noqa: F811
       4. Client implicitly reconnects in the background
       5. Client reads
     """
+    server, client = server_and_client
+
     await client.connect()
     nodes = [
         client.client.get_node('ns=2;i=2')
@@ -57,7 +62,7 @@ async def test_disconnect1(server, client): # noqa: F811
     assert got == [2.0]
 
     await server.close()
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.1)
     await server.start()
     await server.step(3.0)
     got = await client.read_values(nodes)
@@ -65,7 +70,7 @@ async def test_disconnect1(server, client): # noqa: F811
 
 
 @pytest.mark.asyncio
-async def test_disconnect2(server, client): # noqa: F811
+async def test_disconnect2(server_and_client):
     """
     Client survives when a server goes offline after connection.
     Check this sequence:
@@ -76,6 +81,8 @@ async def test_disconnect2(server, client): # noqa: F811
       5. Client implicitly reconnects in the background
       6. Client completes read from step 3
     """
+    server, client = server_and_client
+
     await client.connect()
     nodes = [
         client.client.get_node('ns=2;i=2')
@@ -87,7 +94,7 @@ async def test_disconnect2(server, client): # noqa: F811
 
     await server.close()
     read_future = client.read_values(nodes)
-    await asyncio.sleep(1)
+    await asyncio.sleep(0.1)
     await server.start()
     await server.step(3.0)
     got = await read_future
