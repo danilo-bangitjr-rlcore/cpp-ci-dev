@@ -21,12 +21,14 @@ class BaseNormalizer(ABC, Generic[R]):
     def __call__(self, x: R) -> R:
         raise NotImplementedError
 
+
+class InvertibleNormalizer(BaseNormalizer[R]):
     @abstractmethod
     def denormalize(self, x: R) -> R:
         raise NotImplementedError
 
 
-class Identity(BaseNormalizer):
+class Identity(InvertibleNormalizer):
     def __init__(self):
         return
 
@@ -37,7 +39,7 @@ class Identity(BaseNormalizer):
         return x
 
 
-class Scale(BaseNormalizer):
+class Scale(InvertibleNormalizer):
     def __init__(self, scale: R, bias: R):
         self.scale = scale
         self.bias = bias
@@ -57,11 +59,8 @@ class Clip(BaseNormalizer):
     def __call__(self, x: Any) -> Any:
         return np.clip(x, self.min, self.max)
 
-    def denormalize(self, x: R) -> R:
-        return x
 
-
-class OneHot(BaseNormalizer):
+class OneHot(InvertibleNormalizer):
     def __init__(self, total_count: int, start_from: int):
         self.total_count = total_count
         self.start = start_from
@@ -78,7 +77,7 @@ class OneHot(BaseNormalizer):
         return idx
 
 
-class MaxMin(BaseNormalizer):
+class MaxMin(InvertibleNormalizer):
     def __init__(self, env):
         self.min = env.observation_space.low
         self.max = env.observation_space.high
@@ -92,7 +91,7 @@ class MaxMin(BaseNormalizer):
         return x * self.scale + self.bias
 
 
-class AvgNanNorm(BaseNormalizer):
+class AvgNanNorm(InvertibleNormalizer):
     def __init__(self, env):
         self.min = env.observation_space.low
         self.max = env.observation_space.high
@@ -133,7 +132,7 @@ class AvgNanNorm(BaseNormalizer):
             raise ValueError("Invalid shape for observation")
 
 
-def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> BaseNormalizer:
+def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> InvertibleNormalizer:
     if cfg.discrete_control:
         return Identity()
 
@@ -159,9 +158,6 @@ def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> BaseNormalize
         print(f"Initializing action normalizer using scale = {scale} and bias = {bias}")
 
         return Scale(scale, bias)
-
-    elif name == "clip":
-        return Clip(cfg.clip_min, cfg.clip_max)
 
     raise NotImplementedError
 
@@ -198,7 +194,7 @@ def init_reward_normalizer(cfg: DictConfig) -> BaseNormalizer:
         raise NotImplementedError
 
 
-def init_obs_normalizer(cfg: DictConfig, env) -> BaseNormalizer:
+def init_obs_normalizer(cfg: DictConfig, env) -> InvertibleNormalizer:
     name = cfg.name
     if name == "identity":
         return Identity()
