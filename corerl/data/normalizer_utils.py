@@ -78,9 +78,9 @@ class OneHot(InvertibleNormalizer):
 
 
 class MaxMin(InvertibleNormalizer):
-    def __init__(self, env):
-        self.min = env.observation_space.low
-        self.max = env.observation_space.high
+    def __init__(self, min: float, max: float):
+        self.min = min
+        self.max = max
         self.scale = self.max - self.min
         self.bias = self.min
 
@@ -92,9 +92,9 @@ class MaxMin(InvertibleNormalizer):
 
 
 class AvgNanNorm(InvertibleNormalizer):
-    def __init__(self, env):
-        self.min = env.observation_space.low
-        self.max = env.observation_space.high
+    def __init__(self, min: float, max: float):
+        self.min = min
+        self.max = max
         self.scale = self.max - self.min
         self.bias = self.min
 
@@ -199,8 +199,21 @@ def init_obs_normalizer(cfg: DictConfig, env) -> InvertibleNormalizer:
     if name == "identity":
         return Identity()
     elif name == "maxmin":
-        return MaxMin(env)
+        lo, hi = get_observation_bounds(env)
+        return MaxMin(lo, hi)
     elif name == "avg_nan_norm":
-        return AvgNanNorm(env)
+        lo, hi = get_observation_bounds(env)
+        return AvgNanNorm(lo, hi)
 
     raise Exception(f'Normalizer <{name}> not implemented')
+
+
+def get_observation_bounds(env: gymnasium.Env) -> tuple[float, float]:
+    # We don't currently have a reliable way to type-guard
+    # whether the observation_space has a `low` and `high`.
+    space: Any = env.observation_space
+
+    return (
+        space.low,
+        space.high,
+    )
