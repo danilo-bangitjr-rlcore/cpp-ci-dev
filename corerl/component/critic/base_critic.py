@@ -47,10 +47,10 @@ class BaseQ(BaseCritic):
 
     @abstractmethod
     def get_q(self, state: TensorLike, action: TensorLike,
-              **kwargs) -> TensorLike:
+              **kwargs) -> torch.Tensor:
         raise NotImplementedError
 
     @abstractmethod
     def get_q_target(self, state: TensorLike, action: TensorLike,
-                     **kwargs) -> TensorLike:
+                     **kwargs) -> torch.Tensor:
         raise NotImplementedError
