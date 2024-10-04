@@ -1,4 +1,8 @@
 import sqlalchemy
+import corerl.utils.dict as dict_u
+
+from typing import Any
+from collections.abc import MutableMapping
 from sqlalchemy import Engine, MetaData
 from sqlalchemy import Table, Column, DateTime
 from sqlalchemy.sql import func
@@ -6,7 +10,6 @@ from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy_utils import database_exists, drop_database, create_database
 from sqlalchemy import select
 from omegaconf import OmegaConf
-from collections.abc import MutableMapping
 from corerl.sql_logging.base_schema import (
     Base,
     Run,
@@ -142,7 +145,7 @@ def setup_sql_logging(cfg, restart_db=False):
     logger.info("Setting up sql db...")
 
     con_cfg = cfg.agent.buffer.con_cfg
-    flattened_cfg = prep_cfg_for_db(OmegaConf.to_container(cfg), to_remove=[])
+    flattened_cfg = prep_cfg_for_db(cfg, to_remove=[])
     db_name = cfg.agent.buffer.db_name
     engine = get_sql_engine(con_cfg, db_name=db_name)
     
@@ -181,18 +184,9 @@ def setup_sql_logging(cfg, restart_db=False):
         return session, run
 
 
-def flatten_dict(dictionary: dict, parent_key: str = "", separator: str = "_") -> dict:
-    items = []
-    for key, value in dictionary.items():
-        new_key = parent_key + separator + key if parent_key else key
-        if isinstance(value, MutableMapping):
-            items.extend(flatten_dict(value, new_key, separator=separator).items())
-        else:
-            items.append((new_key, value))
-    return dict(items)
+def prep_cfg_for_db(cfg: Any, to_remove: list[str]) -> dict:
+    cfg_dict = OmegaConf.to_container(cfg)
+    assert isinstance(cfg_dict, MutableMapping)
 
-
-def prep_cfg_for_db(cfg: dict, to_remove: list[str]) -> dict:
-    for key in to_remove:
-        del cfg[key]
-    return flatten_dict(cfg)
+    cgf_dict = dict_u.drop(cfg_dict, to_remove)
+    return dict_u.flatten(cgf_dict)

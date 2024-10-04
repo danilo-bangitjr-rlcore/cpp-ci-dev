@@ -4,4 +4,4 @@ defaults:
 
 name : Pendulum-v1
 trig_features: True
-discrete_control : False
+discrete_control : True
