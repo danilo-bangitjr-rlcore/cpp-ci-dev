@@ -6,8 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 from corerl.environment.reward.base import BaseReward
-from corerl.state_constructor.base import BaseStateConstructor
-from corerl.interaction.base import BaseInteraction
+from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
 
 class BaseDataLoader(ABC):
@@ -38,7 +37,7 @@ class BaseDataLoader(ABC):
     @abstractmethod
     def create_obs_transitions(self,
                                df: pd.DataFrame,
-                               interaction: BaseInteraction,
+                               normalizer: ObsTransitionNormalizer,
                                reward_function: BaseReward, *args) -> dict:
         raise NotImplementedError
 

@@ -14,7 +14,7 @@ def init_data_loader(cfg: DictConfig) -> BaseDataLoader:
     else:
         raise NotImplementedError
 
-def init_data_loader_test(cfg: DictConfig) -> BaseDataLoader:
+def init_data_loader_old(cfg: DictConfig) -> BaseDataLoader:
     """
     config files: corerl/config/data_loader
     """
