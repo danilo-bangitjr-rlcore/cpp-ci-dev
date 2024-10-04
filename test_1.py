@@ -12,7 +12,7 @@ from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.data_loaders.factory import init_data_loader_test
+from corerl.data_loaders.factory import init_data_loader_old
 from corerl.data.factory import init_transition_creator
 from corerl.data.transition_creator import OldAnytimeTransitionCreator, AnytimeTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
@@ -38,7 +38,7 @@ def main(cfg: DictConfig) -> dict:
 
     env = init_environment(cfg.env)
 
-    dl, dl_refac = init_data_loader_test(cfg.data_loader)
+    dl, dl_refac = init_data_loader_old(cfg.data_loader)
 
     all_data_df, train_data_df, test_data_df = utils.load_df_from_csv(cfg, dl)
     all_data_df_r, train_data_df_r, test_data_df_r = utils.load_df_from_csv(cfg, dl_refac)
@@ -124,19 +124,20 @@ def main(cfg: DictConfig) -> dict:
     log.info('Loading offline transitions...')
 
     agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.agent_transition_creator, cfg.alerts, cfg.env]
-    agent_train_transitions = utils.get_offline_transitions(cfg, train_obs_transitions, sc, old_transition_creator,
-                                                            hash_cfgs=agent_hash_cfgs, prefix='agent_train')
-    agent_test_transitions = utils.get_offline_transitions(cfg, test_obs_transitions, sc, old_transition_creator,
-                                                           hash_cfgs=agent_hash_cfgs, prefix='agent_test')
+    agent_train_transitions = utils.old_get_offline_transitions(cfg, train_obs_transitions, sc, old_transition_creator,
+                                                                hash_cfgs=agent_hash_cfgs, prefix='agent_train')
+    agent_test_transitions = utils.old_get_offline_transitions(cfg, test_obs_transitions, sc, old_transition_creator,
+                                                               hash_cfgs=agent_hash_cfgs, prefix='agent_test')
 
-    agent_train_transitions_refac = utils.get_offline_transitions_refactored(cfg, train_obs_transitions, sc,
-                                                                             transition_creator,
-                                                                             hash_cfgs=agent_hash_cfgs,
-                                                                             prefix='agent_train_refactored')
-    agent_test_transitions_refac = utils.get_offline_transitions_refactored(cfg, test_obs_transitions, sc,
-                                                                            transition_creator,
-                                                                            hash_cfgs=agent_hash_cfgs,
-                                                                            prefix='agent_test_refactored')
+    agent_train_transitions_refac = utils.get_offline_transitions(cfg, train_obs_transitions, sc,
+                                                                  transition_creator,
+                                                                  hash_cfgs=agent_hash_cfgs,
+                                                                  prefix='agent_train_refactored')
+
+    agent_test_transitions_refac = utils.get_offline_transitions(cfg, test_obs_transitions, sc,
+                                                                 transition_creator,
+                                                                 hash_cfgs=agent_hash_cfgs,
+                                                                 prefix='agent_test_refactored')
 
     check_equal2(agent_train_transitions, agent_train_transitions_refac)
     check_equal2(agent_test_transitions, agent_test_transitions_refac)

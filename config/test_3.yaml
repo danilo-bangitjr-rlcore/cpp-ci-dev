@@ -22,7 +22,7 @@ state_constructor:
 
 experiment :
   exp_name : "delayed_saturation_debug"
-  max_steps : 10000
+  max_steps : 100
   offline_steps : 0
   set_env_obs_space : False
   timeout: 0
@@ -33,11 +33,23 @@ env:
 
 interaction :
   obs_length: 1
-  only_dp_transitions : False
+  only_dp_transitions : True
   steps_per_decision: 7
   n_step : 0
   action_normalizer:
     use_cfg_values : False
+
+agent_transition_creator:
+  transition_kind : regular_rl
+
+
+old_agent_transition_creator:
+  gamma : ${experiment.gamma}
+  steps_per_decision : ${interaction.steps_per_decision}
+  n_step : ${interaction.n_step}
+  only_dp_transitions :  ${interaction.only_dp_transitions}
+#  transition_kind : regular_rl
+
 
 agent:
   tau : 0
