@@ -1,5 +1,8 @@
+import pytest
 import subprocess
 
+
+@pytest.mark.timeout(60)
 def test_deployment_manager():
     """
     Should be able to execute the deployment script with the saturation experiment
