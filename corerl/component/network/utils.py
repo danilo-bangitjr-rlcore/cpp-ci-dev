@@ -196,4 +196,4 @@ def init_layer(init: str) -> Callable[[torch.nn.modules.Module], torch.nn.module
     elif init.lower() == 'normal':
         return layer_init_normal
 
-    raise NotImplementedError(f"unknown weight initialization {name}")
+    raise NotImplementedError(f"unknown weight initialization {init}")
