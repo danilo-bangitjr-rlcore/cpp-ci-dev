@@ -53,12 +53,12 @@ class BaseGVF(ABC):
         raise NotImplementedError
 
     def update(self, cumulant_inds: Optional[list[int]] = None):
+        ensemble_info = {}
         if min(self.buffer.size) > 0:
             batches = self.buffer.sample()
             losses, ensemble_info = self.compute_gvf_loss(batches, cumulant_inds=cumulant_inds, with_grad=True)
             loss = sum(losses)
             self.gvf.update(loss)
-        #self.train_losses.append(loss.detach().numpy())
 
         return ensemble_info
 

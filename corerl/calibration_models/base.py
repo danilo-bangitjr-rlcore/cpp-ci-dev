@@ -9,8 +9,8 @@ from omegaconf import DictConfig
 
 import corerl.calibration_models.utils as utils
 from corerl.component.network.utils import to_np
-from corerl.data.data import Transition, ObsTransition
-from corerl.data.transition_creator import AnytimeTransitionCreator
+from corerl.data.data import Transition, OldObsTransition
+from corerl.data.transition_creator import OldAnytimeTransitionCreator
 from corerl.data.data import Trajectory
 from corerl.agent.base import BaseAgent
 
@@ -233,7 +233,7 @@ class BaseCalibrationModel(ABC):
                                        decision_point=decision_point,
                                        steps_until_decision=steps_until_decision)
 
-                obs_transition = ObsTransition(
+                obs_transition = OldObsTransition(
                     prev_action,
                     prev_obs,
                     prev_steps_until_decision,
