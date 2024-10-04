@@ -12,14 +12,14 @@ def HOURS(x: float):
     return 60 * MINS(x)
 
 def try_to_execute(cfg: DictConfig):
-    exec = cfg.deployment.python_executable
+    exec = str(cfg.deployment.python_executable).split(' ')
     python_entrypoint = cfg.deployment.python_entrypoint
     config_name = cfg.deployment.config_name
     options = cfg.deployment.options
 
     try:
         return subprocess.run(
-            [exec, python_entrypoint, '--config-name', config_name, *options],
+            [*exec, python_entrypoint, '--config-name', config_name, *options],
         )
 
     # Note: BaseException here is broader than Exception
