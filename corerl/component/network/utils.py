@@ -189,8 +189,6 @@ def init_activation_function(name: str) -> nn.Module:
 def init_layer(init: str) -> Callable[[torch.nn.modules.Module], torch.nn.modules.Module]:
     if init.lower() == 'xavier':
         return layer_init_xavier
-    elif init.lower() == 'const':
-        return layer_init_constant
     elif init.lower() == 'zero':
         return layer_init_zero
     elif init.lower() == 'normal':
