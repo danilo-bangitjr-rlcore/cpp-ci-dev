@@ -51,5 +51,5 @@ class BaseDataLoader(ABC):
             return obj
 
     @abstractmethod
-    def get_obs_max_min(self, offline_data_df: pd.DataFrame) -> (np.ndarray, np.ndarray):
+    def get_obs_max_min(self, offline_data_df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
         raise NotImplementedError

@@ -24,7 +24,7 @@ class SAC(BaseAC):
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)
         self.n_entropy_updates = cfg.n_entropy_updates
-        
+
         # Entropy
         self.automatic_entropy_tuning = cfg.tau == -1
         if self.automatic_entropy_tuning:
@@ -105,12 +105,12 @@ class SAC(BaseAC):
         return losses
 
     # Version of SAC that uses state-value function
-    # def compute_v_loss(self, batch: TransitionBatch) -> (torch.Tensor, np.ndarray, np.ndarray):
+    # def compute_v_loss(self, batch: TransitionBatch) -> tuple[torch.Tensor, np.ndarray, np.ndarray]:
     #     """L_{\phi}, learn z for state value, v = tau log z"""
     #     state_batch = batch.state
     #     action_batch = batch.action
     #     dp_mask = batch['state_decision_points']
-    #     
+    #
     #     v_phi = self.v_critic.get_v(state_batch, with_grad=True)
     #     actions, info = self.actor.get_action(state_batch, with_grad=False)
     #     with torch.no_grad():
@@ -122,7 +122,7 @@ class SAC(BaseAC):
     #
     #     return value_loss, v_phi.detach().numpy(), log_probs.detach().numpy()
 
-    def compute_actor_loss(self, batch: TransitionBatch) -> (torch.Tensor, torch.Tensor):
+    def compute_actor_loss(self, batch: TransitionBatch) -> tuple[torch.Tensor, torch.Tensor]:
         state_batch = batch.state
         action_batch = batch.action
         dp_mask = batch.boot_state_dp
@@ -150,7 +150,7 @@ class SAC(BaseAC):
                 actions = (dp_mask * actions) + ((1.0 - dp_mask) * action_batch)
 
             log_pi, _ = self.actor.get_log_prob(state_batch, actions, with_grad=False)
-            
+
             alpha_loss = -(self.log_alpha() * (log_pi + self.target_entropy).detach()).mean()
 
             self.alpha_optimizer.zero_grad()
@@ -183,7 +183,7 @@ class SAC(BaseAC):
 
         if self.automatic_entropy_tuning and min(self.policy_buffer.size) > 0:
             self.update_entropy()
-    
+
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
 

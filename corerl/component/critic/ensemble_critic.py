@@ -41,7 +41,7 @@ class EnsembleQCritic(BaseQ):
         action_batches: list[torch.Tensor],
         with_grad: bool = False,
         bootstrap_reduct: bool = True,
-    ) -> (torch.Tensor, torch.Tensor):
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         ensemble = len(state_batches)
         state_action_batches = [torch.concat((state_batches[i], action_batches[i]), dim=1) for i in range(ensemble)]
         if ensemble > 1:
@@ -68,7 +68,7 @@ class EnsembleQCritic(BaseQ):
 
     def get_qs_target(
         self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor], bootstrap_reduct: bool = True,
-    ) -> (torch.Tensor, torch.Tensor):
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         ensemble = len(state_batches)
         state_action_batches = [torch.concat((state_batches[i], action_batches[i]), dim=1) for i in range(ensemble)]
         if ensemble > 1:
@@ -169,7 +169,7 @@ class EnsembleVCritic(BaseV):
 
     def get_vs(
         self, state_batches: list[torch.Tensor], with_grad: bool = False, bootstrap_reduct: bool = True,
-    ) -> (torch.Tensor, torch.Tensor):
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         ensemble = len(state_batches)
         if ensemble > 1:
             input_tensor = torch.stack(state_batches)
@@ -198,7 +198,7 @@ class EnsembleVCritic(BaseV):
 
     def get_vs_target(
         self, state_batches: list[torch.Tensor], bootstrap_reduct: bool = True,
-    ) -> (torch.Tensor, torch.Tensor):
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         ensemble = len(state_batches)
         if ensemble > 1:
             input_tensor = torch.stack(state_batches)

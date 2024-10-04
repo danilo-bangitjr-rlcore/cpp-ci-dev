@@ -366,7 +366,7 @@ class OldAnytimeInteraction(BaseInteraction):
 
         return step_alert_info
 
-    def reset(self) -> (np.ndarray, dict):
+    def reset(self) -> tuple[np.ndarray, dict]:
         """
         Reset the environment and the state constructor
         """

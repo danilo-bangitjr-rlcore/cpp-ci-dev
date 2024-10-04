@@ -1,7 +1,7 @@
 import random
 
 
-def train_test_split(*lsts, train_split: float = 0.9, shuffle: bool = True) -> (list[tuple], list[tuple]):
+def train_test_split(*lsts, train_split: float = 0.9, shuffle: bool = True) -> tuple[list[tuple], list[tuple]]:
     num_samples = len(lsts[0])
     for a in lsts:
         assert len(a) == num_samples

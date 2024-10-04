@@ -48,14 +48,14 @@ class NetworkActor(BaseActor):
         else:
             self.optimizer.step(*opt_args, **opt_kwargs)
 
-    def get_action(self, state: torch.Tensor, with_grad=False) -> (torch.Tensor, dict):
+    def get_action(self, state: torch.Tensor, with_grad=False) -> tuple[torch.Tensor, dict]:
         if with_grad:
             return self.policy.forward(state)
         else:
             with torch.no_grad():
                 return self.policy.forward(state)
 
-    def get_log_prob(self, states: torch.Tensor, actions: torch.Tensor, with_grad=False) -> (torch.Tensor, dict):
+    def get_log_prob(self, states: torch.Tensor, actions: torch.Tensor, with_grad=False) -> tuple[torch.Tensor, dict]:
         if with_grad:
             return self.policy.log_prob(states, actions)
         else:
