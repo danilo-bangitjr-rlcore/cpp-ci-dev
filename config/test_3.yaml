@@ -22,7 +22,7 @@ state_constructor:
 
 experiment :
   exp_name : "delayed_saturation_debug"
-  max_steps : 10000
+  max_steps : 100
   offline_steps : 0
   set_env_obs_space : False
   timeout: 0
