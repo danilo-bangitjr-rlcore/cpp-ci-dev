@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 import numpy
+from pathlib import Path
 from corerl.component.buffer.buffers import UniformBuffer
 from corerl.data.data import Transition
 from corerl.utils.hook import Hooks, when
@@ -41,11 +42,11 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def save(self, path) -> None:
+    def save(self, path: Path) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def load(self, path: str) -> None:
+    def load(self, path: Path) -> None:
         raise NotImplementedError
 
     # A function to save stats and other objects during the run
