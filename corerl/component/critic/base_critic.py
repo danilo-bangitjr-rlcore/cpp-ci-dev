@@ -12,7 +12,6 @@ class BaseCritic(ABC):
     @abstractmethod
     def __init__(self, cfg: DictConfig):
         self.discrete_control = cfg.discrete_control
-        raise NotImplementedError
 
     @abstractmethod
     def update(self, loss: torch.Tensor) -> None:
