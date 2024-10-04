@@ -14,14 +14,12 @@ class BaseInteraction(ABC):
     def __init__(self,
                  cfg: DictConfig,
                  env: gymnasium.Env,
-                 state_constructor: BaseStateConstructor,
-                 alerts: CompositeAlert, **kwargs):
+                 state_constructor: BaseStateConstructor, **kwargs):
 
         self.env = env
         self.state_constructor = state_constructor
         self.timeout = cfg.timeout  # When timeout is set to 0, there is no timeout.
         self.internal_clock = 0
-        self.alerts = alerts
 
         self.steps_per_decision = cfg.steps_per_decision  # how many observation steps per decision step
         self.obs_length = cfg.obs_length  # how often to update the observation
@@ -29,14 +27,16 @@ class BaseInteraction(ABC):
 
     @abstractmethod
     # step returns a list of transitions and a list of environment infos
-    def step(self, action: np.ndarray) -> tuple[list[Transition], list[Transition], list[dict], list[dict]]:
+    def step(self, action: np.ndarray) -> tuple[list[Transition], list[Transition], list[Transition], list[Transition], list[dict], list[dict]]:
         """
         Execute the action in the environment and transition to the next decision point
         Returns:
-        - transitions: List of all produced agent transitions
-        - train_transitions: List of Agent transitions that didn't trigger an alert
-        - alert_info_list: List of dictionaries describing which types of alerts were/weren't triggered
-        - env_info_list: List of dictionaries describing env info
+        - agent_transitions: List of all produced agent transitions
+        - agent_train_transitions: List of agent transitions that didn't trigger an alert
+        - alert_transitions : List of all produced alert transitions
+        - alert_train_transitions: List of alert transitions that didn't trigger an alert
+        - alert_info: Dictionary describing which types of alerts were/weren't triggered
+        - env_info: Dictionary describing env info
         """
         raise NotImplementedError
 
@@ -63,3 +63,6 @@ class BaseInteraction(ABC):
         self.internal_clock += 1
         trunc = (self.timeout > 0) and (self.internal_clock % self.timeout == 0)
         return trunc
+
+    def init_alerts(self, composite_alert, alert_tc):
+        pass

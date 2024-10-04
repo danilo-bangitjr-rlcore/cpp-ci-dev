@@ -12,7 +12,7 @@ from corerl.data.data import Transition, Trajectory
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
-from corerl.data_loaders.factory import init_data_loader
+from corerl.data_loaders.factory import init_data_loader_old
 from corerl.utils.device import device
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.alerts.composite_alert import CompositeAlert
@@ -48,7 +48,7 @@ def main(cfg: DictConfig) -> dict:
 
     env = init_environment(cfg.env)
 
-    dl = init_data_loader(cfg.data_loader)
+    dl, _ = init_data_loader_old(cfg.data_loader)
     all_data_df, train_data_df, test_data_df = utils.load_df_from_csv(cfg, dl)
     if cfg.experiment.load_env_obs_space_from_data:
         env = utils.set_env_obs_space(env, all_data_df, dl)
@@ -67,8 +67,8 @@ def main(cfg: DictConfig) -> dict:
     }
     normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
     composite_alert = CompositeAlert(cfg.alerts, alert_args)
-    transition_creator = OldAnytimeTransitionCreator(cfg.transition_creator, composite_alert)
-    # TODO: refactor so I don't need to have train and test seperate.
+    transition_creator = OldAnytimeTransitionCreator(cfg.agent_transition_creator, composite_alert)
+
     train_obs_transitions, test_obs_transitions = utils.get_offline_obs_transitions(cfg,
                                                                                     train_data_df,
                                                                                     test_data_df,
@@ -87,7 +87,6 @@ def main(cfg: DictConfig) -> dict:
                                                                                        warmup,
                                                                                        prefix='agent_train')
 
-    # TODO: add seperate train/test based on a fraction, not dataset...
     train_trajectories_agent = train_trajectories_agent + test_trajectories_agent
     train_transitions = trajectories_to_transitions(train_trajectories_agent)
     plot_transitions = trajectories_to_transitions(test_trajectories_agent)
@@ -102,7 +101,7 @@ def main(cfg: DictConfig) -> dict:
     cm_hash_cfgs = [cfg.data_loader, cfg.calibration_model.state_constructor, cfg.interaction]
 
     # load the transitions for the cm
-    # Keeping these separate, they will be combined in the calibraiton model
+    # Keeping these separate, they will be combined in the calibration model
     train_trajectories_cm, test_trajectories_cm = utils.get_offline_trajectories(cfg,
                                                                                  cm_hash_cfgs,
                                                                                  train_obs_transitions,

@@ -155,8 +155,8 @@ class ActionValueTraceAlert(BaseAlert):
         action = np.expand_dims(action, 0)
 
         # Get action-value estimate for the given state-action pair
-        state = utils.tensor(state, device)
-        action = utils.tensor(action, device)
+        state = utils.tensor(state)
+        action = utils.tensor(action)
         value = self.q_critic.get_q([state], [action], with_grad=False)
         value = utils.to_np(value)
         # The critic predicts the expected full return. Need to take into account that we're neglecting some percentage of the return.
@@ -272,8 +272,8 @@ class ActionValueUncertaintyAlert(ActionValueTraceAlert):
         action = np.expand_dims(action, 0)
 
         # Get ensemble action-value estimates for the given state-action pair
-        state = utils.tensor(state, device)
-        action = utils.tensor(action, device)
+        state = utils.tensor(state)
+        action = utils.tensor(action)
         q, q_ens = self.q_critic.get_qs([state], [action], with_grad=False)
         q_ens = utils.to_np(q_ens)
         q_std = q_ens.std()

@@ -10,11 +10,11 @@ def init_data_loader(cfg: DictConfig) -> BaseDataLoader:
     name = cfg.name
 
     if name == "direct_action":
-        return OldDirectActionDataLoader(cfg)
+        return DirectActionDataLoader(cfg)
     else:
         raise NotImplementedError
 
-def init_data_loader_test(cfg: DictConfig) -> BaseDataLoader:
+def init_data_loader_old(cfg: DictConfig) -> BaseDataLoader:
     """
     config files: corerl/config/data_loader
     """

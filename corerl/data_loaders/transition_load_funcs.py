@@ -12,7 +12,6 @@ from tqdm import tqdm
 def make_transitions(obs_transitions: list[ObsTransition],
                      sc: BaseStateConstructor,
                      tc: BaseTransitionCreator,
-                     transition_kind='anytime',
                      warmup=0,
                      ) -> list[Transition]:
     curr_chunk_obs_transitions = []
@@ -20,6 +19,7 @@ def make_transitions(obs_transitions: list[ObsTransition],
 
     last_idx = len(obs_transitions) - 1
     regular_rl_warmup = warmup // tc.steps_per_decision
+    transition_kind = tc.transition_kind
     for idx, obs_transition in enumerate(tqdm(obs_transitions)):
         curr_chunk_obs_transitions.append(obs_transition)
         done = (idx == last_idx)

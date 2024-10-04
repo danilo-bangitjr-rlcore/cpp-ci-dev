@@ -389,6 +389,7 @@ class BaseTransitionCreator(ABC):
         self.gamma = cfg.gamma
         self.alert = None
         self.state_constructor = state_constuctor
+        self.transition_kind = cfg.transition_kind
 
         # n_step = 0: bootstrap off state at next decision point
         # n_step > 0: bootstrap off state n steps into the future without crossing decision boundary
@@ -473,6 +474,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         that occur between two decision points
         """
         using_alerts = self.alert is not None and self.alert.get_dim() > 0
+
         alert_gammas, cumulants = None, None
         if using_alerts:
             # Alerts can use different discount factors than the agent's value functions
@@ -495,9 +497,9 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             curr_obs_transition = self.curr_obs_transitions[step_idx]
             reward = curr_obs_transition.reward
             reward_queue.appendleft(reward)
-            cumulant_queue.appendleft(cumulants[step_idx])
             n_step_reward = _get_n_step_reward(reward_queue, self.gamma)
             if using_alerts:
+                cumulant_queue.appendleft(cumulants[step_idx])
                 n_step_cumulants = _get_n_step_cumulants(cumulant_queue, alert_gammas)
             else:
                 n_step_cumulants = None
@@ -526,6 +528,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                 gap=curr_obs_transition.gap,
                 steps_until_decision=self.curr_steps_until_decisions[step_idx],
                 next_steps_until_decision=self.curr_steps_until_decisions[step_idx + 1],
+                boot_steps_until_decision=self.curr_steps_until_decisions[-1]
             )
             new_transitions.append(transition)
             boot_state_queue.appendleft(state)
