@@ -2,7 +2,7 @@ import numpy
 import torch
 import torch.nn as nn
 from corerl.utils.device import device as global_device
-from typing import Optional
+from collections.abc import Callable
 from corerl.component.layer import Identity
 import warnings
 import corerl.component.layer.activations as activations
@@ -14,7 +14,7 @@ class Float(torch.nn.Module):
         d = torch.device(device)
         self.constant = torch.nn.Parameter(torch.tensor(init_value, dtype=torch.float32).to(d))
 
-    def forward(self) -> torch.nn.Parameter:
+    def forward(self) -> torch.Tensor:
         return self.constant
 
 
@@ -186,15 +186,14 @@ def init_activation_function(name: str) -> nn.Module:
     return activations.init_activation({"name": name})()
 
 
-def init_layer(init: str) -> callable:
+def init_layer(init: str) -> Callable[[torch.nn.modules.Module], torch.nn.modules.Module]:
     if init.lower() == 'xavier':
-        layer_init = layer_init_xavier
+        return layer_init_xavier
     elif init.lower() == 'const':
-        layer_init = layer_init_constant
+        return layer_init_constant
     elif init.lower() == 'zero':
-        layer_init = layer_init_zero
+        return layer_init_zero
     elif init.lower() == 'normal':
-        layer_init = layer_init_normal
-    else:
-        raise NotImplementedError(f"unknown weight initialization {name}")
-    return layer_init
+        return layer_init_normal
+
+    raise NotImplementedError(f"unknown weight initialization {name}")
