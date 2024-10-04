@@ -11,7 +11,8 @@ import corerl.component.layer.activations as activations
 class Float(torch.nn.Module):
     def __init__(self, device: str, init_value: float):
         super().__init__()
-        self.constant = torch.nn.Parameter(torch.tensor(init_value, dtype=torch.float32).to(device.device))
+        d = torch.device(device)
+        self.constant = torch.nn.Parameter(torch.tensor(init_value, dtype=torch.float32).to(d))
 
     def forward(self) -> torch.nn.Parameter:
         return self.constant
@@ -141,7 +142,10 @@ def layer_init_uniform(layer: nn.Module, low: float = -0.003, high: float = 0.00
     return layer.to(global_device.device)
 
 
-def tensor(x: float | numpy.ndarray | torch.Tensor, device: Optional[str] = None) -> torch.Tensor:
+def tensor(
+    x: float | numpy.ndarray | torch.Tensor,
+    device: str | torch.device | None = None,
+) -> torch.Tensor:
     if isinstance(x, torch.Tensor):
         return x
     if device is not None:
@@ -151,9 +155,8 @@ def tensor(x: float | numpy.ndarray | torch.Tensor, device: Optional[str] = None
     return x
 
 
-def state_to_tensor(state: numpy.ndarray,  device: Optional[str] = None) -> torch.Tensor:
-    state = tensor(state.reshape((1, -1)), device)
-    return state
+def state_to_tensor(state: numpy.ndarray,  device: str | torch.device | None = None) -> torch.Tensor:
+    return tensor(state.reshape((1, -1)), device)
 
 
 def to_np(t: numpy.ndarray | torch.Tensor) -> numpy.ndarray:
