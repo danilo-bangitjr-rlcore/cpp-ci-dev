@@ -11,6 +11,7 @@ buffer:
   name: uniform
   device: cpu
   seed: ${experiment.seed}
+  combined : False
 
 
 train_itr: 10000
