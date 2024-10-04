@@ -8,31 +8,35 @@ defaults:
   - override data_loader: direct_action
   - override interaction: offline_anytime
   - override calibration_model : knn
-  - override state_constructor: reseau_anytime
+  - override state_constructor: multi_trace
   - _self_
 
-use_alerts : True
+# values may be overridden outside of the defaults list
 
 offline_data:
   load_from : csv # alternatively, use "transition"
   output_path : offline_data/reseau
 
 experiment :
-  exp_name : "Double_Reduct_Test"
+  exp_name : "Alerts_Reduct_Regularization_Sweep"
   device : cpu
-  max_steps : 300
+  max_steps : 10000
   offline_steps : 10000
   load_env_obs_space_from_data : True
   gamma : 0.95
   train_split : 0.995
   plot_split : 0.98
-  test_epochs : [999, 1999, 4999, 9999, 19999]
+  test_epochs : [0, 10, 100, 999, 1999, 4999, 9999, 14999, 19999]
   offline_stat_keys : []
   online_stat_keys : []
+  transition_kind : anytime
 
 env:
   opc : null
   db : null
+
+state_constructor:
+  warmup : 173
 
 interaction :
   obs_length : 60
@@ -51,7 +55,6 @@ normalizer:
 agent:
   tau : 0
   rho : 0.04
-  ensemble_targets: False
   num_samples: 256
   uniform_proposal : True
   critic:
@@ -61,12 +64,10 @@ agent:
       weight_decay : 0.01
     critic_network:
       ensemble : 10
-      bootstrap_reduct : min
-      policy_reduct: max
+      reduct : min
       vmap : False
     buffer:
       batch_size : 512
-      data_subset : 0.9
   actor:
     actor_optimizer:
       lr : 0.001
@@ -77,8 +78,8 @@ agent:
 
 data_loader:
   offline_data_path : offline_data/reseau/csv
-  train_filenames: ["exp.csv", "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv", "m_b_2.csv", "m_2.csv", "m_3.csv"]
-  test_filenames: ["rosie_alert.csv"]
+  train_filenames: ["exp.csv" , "f_1.csv", "f_b_1.csv", "f_2.csv", "m_b_1.csv", "m_1.csv", "m_b_2.csv", "m_2.csv", "m_3.csv", "rosie.csv"]
+  test_filenames: ["rosie_2_alert.csv"]
   skip_rows : 3
   header : 0
   df_col_names : ["Blank", "Result", "Table", "Date", "ait101_pv", "ait301_pv", "ait401_pv",

@@ -14,10 +14,8 @@ from corerl.state_constructor.factory import init_state_constructor
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.interaction.factory import init_interaction
 from corerl.utils.device import device
-from corerl.data_loaders.factory import init_data_loader
-from corerl.data.transition_creator import AnytimeTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
-from corerl.data_loaders.utils import train_test_split
+from corerl.data.factory import init_transition_creator
 from corerl.eval.composite_eval import CompositeEval
 
 import corerl.utils.freezer as fr
@@ -29,13 +27,30 @@ def add_time_column(df):
     df['time'] = base + pd.to_timedelta(range(len(df)), unit='s')
     return df
 
+def output_to_df(cfg, observations, actions):
+    initial_action = actions[0]
+    observations = np.array(observations)
+    actions = [np.zeros_like(initial_action)] + actions[:-1]
+    actions = np.array(actions)
+
+    dataset = np.concatenate((observations, actions), axis=1)
+    colnames = cfg.env.obs_names + cfg.env.action_names
+
+    df = pd.DataFrame(dataset, columns=colnames)
+    df = add_time_column(df)
+
+    print("Generated df:")
+    print(df.head())
+
+    output_path = Path(cfg.offline_data.output_path) / 'csv'
+    output_path.mkdir(parents=True, exist_ok=True)
+    df.to_csv(output_path / 'data.csv')
+
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
 def main(cfg: DictConfig) -> dict:
     save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
-
-    test_epochs = cfg.experiment.test_epochs
     device.update_device(cfg.experiment.device)
 
     # set the random seeds
@@ -50,18 +65,9 @@ def main(cfg: DictConfig) -> dict:
     print("State Dim: {}, action dim: {}".format(state_dim, action_dim))
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
-    alert_args = {
-        'agent': agent,
-        'state_dim': state_dim,
-        'action_dim': action_dim,
-        'input_dim': state_dim,
-    }
-
     normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
-    alerts = CompositeAlert(cfg.alerts, alert_args)
-    transition_creator = AnytimeTransitionCreator(cfg.transition_creator, alerts)
-    interaction = init_interaction(cfg.interaction, env, sc, alerts,
-                                   transition_creator, normalizer)
+    transition_creator = init_transition_creator(cfg.agent_transition_creator, sc)
+    interaction = init_interaction(cfg.interaction, env, sc, transition_creator, normalizer)
 
     # Instantiate online evaluators
     online_eval_args = {
@@ -72,32 +78,24 @@ def main(cfg: DictConfig) -> dict:
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(range(max_steps))
     state, info = interaction.reset()
-    action = agent.get_action(state)  # initial action
-    all_transitions = []
+    action = agent.get_action(state)
 
     observations = []
     actions = []
 
     print('Starting online training...')
     alert_info_list = []
-    for j in pbar:
-        transitions, agent_train_transitions, alert_train_transitions, alert_info, env_info = interaction.step(action)
+    for _ in pbar:
+        transitions, agent_train_transitions, _, _, _, env_info = interaction.step(action)
 
-        for transition in transitions:  # agent_train_transitions:
-            #agent.update_buffer(transition)
+        for transition in transitions:
             observations.append(transition.obs)
             actions.append(transition.action)
 
         for transition in agent_train_transitions:
             agent.update_buffer(transition)
 
-        for transition in alert_train_transitions:
-            alerts.update_buffer(transition)
-
         agent.update()
-        alerts.update()
-
-        alert_info_list.append(alert_info)
 
         if len(transitions) > 0:
             # logging + evaluation
@@ -113,7 +111,6 @@ def main(cfg: DictConfig) -> dict:
             stats = online_eval.get_stats()
 
             utils.update_pbar(pbar, stats, cfg.experiment.online_stat_keys)
-            alert_info_list = []
 
             terminated = transitions[-1].terminated
             truncated = transitions[-1].truncate
@@ -124,23 +121,7 @@ def main(cfg: DictConfig) -> dict:
 
             action = agent.get_action(state)
 
-    env.plot(save_path)
-    observations = np.array(observations)
-    actions = [np.zeros_like(action)] + actions[:-1]
-    actions = np.array(actions)
-
-    dataset = np.concatenate((observations, actions), axis=1)
-    colnames = cfg.env.obs_names + cfg.env.action_names
-
-    df = pd.DataFrame(dataset, columns=colnames)
-    df = add_time_column(df)
-
-    print("Generated df:")
-    print(df.head())
-
-    output_path = Path(cfg.offline_data.output_path) / 'csv'
-    output_path.mkdir(parents=True, exist_ok=True)
-    df.to_csv(output_path / 'data.csv')
+    output_to_df(cfg, observations, actions)
 
 
 if __name__ == "__main__":

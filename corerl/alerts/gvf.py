@@ -95,8 +95,8 @@ class GVFTraceAlert(BaseAlert):
         action = np.expand_dims(action, axis=0)
 
         # GVF Predictions
-        state = utils.tensor(state, device)
-        action = utils.tensor(action, device)
+        state = utils.tensor(state)
+        action = utils.tensor(action)
         curr_values = self.gvfs.gvf.get_q([state], [action], with_grad=False)
         curr_values = utils.to_np(curr_values)
         # The GVF predicts the expected full return. Need to take into account that we're neglecting some percentage of the return.
@@ -211,8 +211,8 @@ class GVFUncertaintyAlert(GVFTraceAlert):
         action = np.expand_dims(action, axis=0)
 
         # GVF Predictions
-        state = utils.tensor(state, device)
-        action = utils.tensor(action, device)
+        state = utils.tensor(state)
+        action = utils.tensor(action)
         gvf_qs, gvf_ens = self.gvfs.gvf.get_qs([state], [action], with_grad=False)
         gvf_ens = utils.to_np(gvf_ens)
         gvf_means = gvf_ens.mean(axis=0)

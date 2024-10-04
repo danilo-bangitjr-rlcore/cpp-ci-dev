@@ -1,13 +1,14 @@
 import numpy as np
 from torch import Tensor
 from copy import deepcopy
+from math import isclose
 
 from dataclasses import dataclass, fields
 from corerl.state_constructor.base import BaseStateConstructor
 
 
 @dataclass
-class ObsTransition:
+class OldObsTransition:
     prev_action: np.array  # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
     obs: np.array  # the raw observation of state
     obs_steps_until_decision: int
@@ -17,6 +18,31 @@ class ObsTransition:
     next_obs: np.array  # the immediate next observation
     next_obs_steps_until_decision: int
     next_obs_dp: bool  # Whether 'next_obs' is at a decision point
+    terminated: bool
+    truncate: bool
+    gap: bool  # whether there is a gap in the dataset following next_obs
+
+    def __iter__(self):
+        for field in fields(self):
+            yield getattr(self, field.name)
+
+    @property
+    def field_names(self):
+        return [field.name for field in fields(self)]
+
+    def __str__(self):
+        string = ''
+        for field in fields(self):
+            string += f"{field.name}: {getattr(self, field.name)}\n"
+        return string
+
+
+@dataclass
+class ObsTransition:
+    obs: np.array  # the raw observation of state
+    action: np.array  # the action taken after 'obs' that occurs concurrently with 'next_obs'
+    reward: float
+    next_obs: np.array  # the immediate next observation
     terminated: bool
     truncate: bool
     gap: bool  # whether there is a gap in the dataset following next_obs
@@ -61,6 +87,7 @@ class Transition:
     gap: bool = False  # whether there is a gap in the dataset following next_obs, always false online
     steps_until_decision: int = 1
     next_steps_until_decision: int = 1
+    boot_steps_until_decision: int = 1
 
     def __iter__(self):
         for field in fields(self):
@@ -82,8 +109,11 @@ class Transition:
                 return False
 
             if isinstance(attr_self, np.ndarray):
-                if not np.array_equal(attr_self, attr_other):
-                    return False
+                return np.allclose(attr_self, attr_other)
+
+            elif isinstance(attr_self, float):
+                return isclose(attr_self, attr_other)
+
             elif attr_self != attr_other:
                 return False
 
@@ -120,6 +150,7 @@ class TransitionBatch:
     gap: Tensor
     steps_until_decision: Tensor
     next_steps_until_decision: Tensor
+    boot_steps_until_decision: Tensor
 
     def __post_init__(self):
         # ensure all the attributes have the same dimension
