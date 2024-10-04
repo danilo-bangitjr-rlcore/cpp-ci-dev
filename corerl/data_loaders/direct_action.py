@@ -11,6 +11,8 @@ from corerl.data_loaders.base import BaseDataLoader
 from corerl.data.data import OldObsTransition, ObsTransition
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
+from warnings import warn
+
 
 class OldDirectActionDataLoader(BaseDataLoader):
     """
@@ -18,6 +20,9 @@ class OldDirectActionDataLoader(BaseDataLoader):
     """
 
     def __init__(self, cfg: DictConfig):
+
+        warn("You are using a deprecated version of the DirectActionDataLoader")
+
         self.offline_data_path = Path(cfg.offline_data_path)
 
         # You can either load all the csvs in the directory or a subset
@@ -134,7 +139,7 @@ class OldDirectActionDataLoader(BaseDataLoader):
                     new_action = True
 
             # Has there been a change in action/truncation/termination/gap in data?
-            if data_gap or trunc or term or new_action: 
+            if data_gap or trunc or term or new_action:
                 return curr_action, prev_date, curr_date, trunc, term, data_gap
 
             prev_date = curr_date
@@ -378,6 +383,7 @@ def get_action_windows(obs_transitions):
 
     return action_windows
 
+
 class DirectActionDataLoader(BaseDataLoader):
     """
     This class takes a dataset consisting of a group of CSV files and produces a list of observation transitions
@@ -534,7 +540,8 @@ class DirectActionDataLoader(BaseDataLoader):
             obs = np.empty(0)
 
             while not data_gap and action_start < df_end:
-                curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df, action_start)
+                curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
+                                                                                                              action_start)
 
                 if data_gap:
                     curr_action_steps, step_start = self.get_curr_action_steps(action_start, action_end)

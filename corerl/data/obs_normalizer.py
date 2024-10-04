@@ -1,5 +1,5 @@
 from corerl.data.normalizer_utils import init_action_normalizer, init_reward_normalizer, init_obs_normalizer
-from corerl.data.data import OldObsTransition
+from corerl.data.data import ObsTransition, OldObsTransition
 
 
 class ObsTransitionNormalizer:
@@ -8,8 +8,10 @@ class ObsTransitionNormalizer:
         self.reward_normalizer = init_reward_normalizer(cfg.reward_normalizer)
         self.obs_normalizer = init_obs_normalizer(cfg.obs_normalizer, env)
 
-    def normalize(self, obs_transition: OldObsTransition) -> OldObsTransition:
-        obs_transition.prev_action = self.action_normalizer(obs_transition.prev_action)
+    def normalize(self, obs_transition: ObsTransition) -> ObsTransition:
+        if isinstance(obs_transition, OldObsTransition):  # TODO: change this back
+            obs_transition.prev_action = self.action_normalizer(obs_transition.prev_action)
+
         obs_transition.obs = self.obs_normalizer(obs_transition.obs)
         obs_transition.action = self.action_normalizer(obs_transition.action)
         obs_transition.next_obs = self.obs_normalizer(obs_transition.next_obs)

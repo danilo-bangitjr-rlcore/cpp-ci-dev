@@ -14,7 +14,5 @@ reward_low : -0.5
 obs_names : ['saturation']
 endo_obs_names : ['saturation']
 action_names : ['action']
-
 obs_col_names : ["saturation"]
-
 endo_inds : [0]
