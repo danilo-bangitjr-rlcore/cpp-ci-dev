@@ -4,7 +4,7 @@ defaults:
   - override env : pendulum
   - override interaction : anytime
   - override hydra/job_logging: custom
-  - override agent/actor/actor_network: softmax
+  - override agent/actor/actor_network: squashed_gaussian
   - _self_
 
 agent:
@@ -39,4 +39,3 @@ experiment:
   test_epochs : null # If you want to test at certain epochs, specify a list here
   offline_stat_keys: []
   online_stat_keys: []
-

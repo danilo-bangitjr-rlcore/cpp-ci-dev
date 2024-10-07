@@ -64,14 +64,14 @@ def main(cfg: DictConfig) -> dict:
     plot_transitions = None
     agent_test_transitions = None
 
+    alert_args = {
+        'agent': agent,
+        'state_dim': state_dim,
+        'action_dim': action_dim,
+        'input_dim': state_dim,
+    }
+    composite_alert = CompositeAlert(cfg.alerts, alert_args)
     if cfg.use_alerts:
-        alert_args = {
-            'agent': agent,
-            'state_dim': state_dim,
-            'action_dim': action_dim,
-            'input_dim': state_dim,
-        }
-        composite_alert = CompositeAlert(cfg.alerts, alert_args)
         alert_tc = init_transition_creator(cfg.alert_transition_creator, sc)
         alert_tc.init_alerts(composite_alert)
 
@@ -89,7 +89,7 @@ def main(cfg: DictConfig) -> dict:
             hash_cfgs=agent_hash_cfgs, prefix='agent_train')
 
         agent_test_transitions = utils.get_offline_transitions(cfg, test_obs_transitions, sc, agent_tc,
-            hash_cfgs=agent_hash_cfgs, refix='agent_test')
+            hash_cfgs=agent_hash_cfgs, prefix='agent_test')
 
         all_agent_transitions = agent_train_transitions + agent_test_transitions
         dp_transitions = utils.get_dp_transitions(all_agent_transitions)
@@ -126,14 +126,13 @@ def main(cfg: DictConfig) -> dict:
             transition_normalizer, save_path, plot_transitions, test_epochs)
         online_eval.output(save_path / 'stats.json')
     else:
-        online_eval = utils.online_deployment(cfg, agent,  interaction,  env,composite_alert, transition_normalizer,
+        online_eval = utils.online_deployment(cfg, agent, interaction, env, composite_alert, transition_normalizer,
             save_path, plot_transitions, test_epochs)
         online_eval.output(save_path / 'stats.json')
 
     # need to update make_plots here
     stats = online_eval.get_stats()
     make_online_plots(fr.freezer, stats, save_path / 'plots')
-    env.plot(save_path / 'plots')
     online_eval.save(save_path, "Online")
 
     # agent.save(save_path / 'agent')

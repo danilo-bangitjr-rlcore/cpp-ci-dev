@@ -1,9 +1,0 @@
-defaults:
-  - base: fc
-  - _self_
-
-dist : softmax
-head_layer_init : Xavier
-head_activation : {"name": "identity"}
-head_bias : True
-

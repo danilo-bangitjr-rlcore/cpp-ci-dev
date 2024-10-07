@@ -11,6 +11,10 @@ defaults:
 interaction:
   steps_per_decision: 1
 
+experiment:
+  plotting: False
+  online_updates : True # Whether to update the agent online in deployment
+
 normalizer:
   action_normalizer:
     name: scale
@@ -22,11 +26,14 @@ normalizer:
   obs_normalizer:
     discrete_control: ${env.discrete_control}
 
-transition_creator:
+agent_transition_creator:
   gamma : ${experiment.gamma}
   steps_per_decision : ${interaction.steps_per_decision}
   n_step : ${interaction.n_step}
   only_dp_transitions :  ${interaction.only_dp_transitions}
+  transition_kind : anytime
+
+use_alerts: False
 
 alerts:
 eval:
