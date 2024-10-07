@@ -3,6 +3,8 @@ import numpy as np
 import pickle as pkl
 import logging
 
+import corerl.utils.pickle as pkl_u
+
 log = logging.getLogger(__name__)
 
 import pandas as pd
@@ -69,14 +71,6 @@ def update_pbar(pbar, stats: dict, keys: list) -> None:
     pbar.set_description(pbar_str)
 
 
-def check_exists(save_path):
-    if save_path.exists():
-        with open(save_path, 'rb') as f:
-            return pkl.load(f)
-    else:
-        return None
-
-
 U = ParamSpec('U')
 T = TypeVar('T')
 BuilderFunc = Callable[U, T]
@@ -93,7 +87,7 @@ def load_or_create(
     """
     cfg_hash = dict_u.hash_many(cfgs)
     save_path = root / cfg_hash / f"{prefix}-{cfg_hash}.pkl"
-    obj = check_exists(save_path)
+    obj = pkl_u.maybe_load(save_path)
 
     if obj is None:
         print(f"Generating {prefix}...")
