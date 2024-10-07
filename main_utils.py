@@ -7,12 +7,12 @@ log = logging.getLogger(__name__)
 
 import pandas as pd
 from tqdm import tqdm
-from collections.abc import MutableMapping
+from collections.abc import Callable, MutableMapping
 from omegaconf import OmegaConf, DictConfig
 from gymnasium.spaces.utils import flatdim
 from gymnasium import spaces, Env
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, ParamSpec, TypeVar
 
 from corerl.eval.composite_eval import CompositeEval
 from corerl.data_loaders.base import BaseDataLoader
@@ -77,7 +77,16 @@ def check_exists(save_path):
         return None
 
 
-def load_or_create(root: Path, cfgs: list[MutableMapping[str, Any]], prefix: str, create_func: callable, args: list) -> object:
+U = ParamSpec('U')
+T = TypeVar('T')
+BuilderFunc = Callable[U, T]
+def load_or_create(
+    root: Path,
+    cfgs: list[MutableMapping[str, Any]],
+    prefix: str,
+    create_func: BuilderFunc[U, T],
+    *args: U.args, **kwargs: U.kwargs,
+) -> T:
     """
     Will either load an object or create a new one using create func. Objects are saved at root using a hash determined
     by cfgs.
@@ -88,7 +97,7 @@ def load_or_create(root: Path, cfgs: list[MutableMapping[str, Any]], prefix: str
 
     if obj is None:
         print(f"Generating {prefix}...")
-        obj = create_func(*args)  # loads the entire dataset
+        obj = create_func(*args, **kwargs)  # loads the entire dataset
 
         save_path = root / cfg_hash
         save_path.mkdir(parents=True, exist_ok=True)
