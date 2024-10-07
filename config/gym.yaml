@@ -26,11 +26,12 @@ normalizer:
   obs_normalizer:
     discrete_control: ${env.discrete_control}
 
-transition_creator:
+agent_transition_creator:
   gamma : ${experiment.gamma}
   steps_per_decision : ${interaction.steps_per_decision}
   n_step : ${interaction.n_step}
   only_dp_transitions :  ${interaction.only_dp_transitions}
+  transition_kind : anytime
 
 alerts:
 eval:
