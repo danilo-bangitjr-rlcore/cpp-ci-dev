@@ -1,62 +1,66 @@
 import warnings
 
+from typing import Any, TypeVar, Generic
 from omegaconf import DictConfig
 from abc import ABC, abstractmethod
 
 import numpy as np
 import gymnasium
 
+from corerl.utils.types import Ring
 
-class BaseNormalizer(ABC):
+
+R = TypeVar('R', bound=Ring)
+
+class BaseNormalizer(ABC, Generic[R]):
     @abstractmethod
     def __init__(self):
         raise NotImplementedError
 
     @abstractmethod
-    def __call__(self, x: float | np.ndarray) -> float | np.ndarray:
+    def __call__(self, x: R) -> R:
         raise NotImplementedError
 
+
+class InvertibleNormalizer(BaseNormalizer[R]):
     @abstractmethod
-    def denormalize(self, x: float | np.ndarray) -> float | np.ndarray:
+    def denormalize(self, x: R) -> R:
         raise NotImplementedError
 
 
-class Identity(BaseNormalizer):
+class Identity(InvertibleNormalizer):
     def __init__(self):
         return
 
-    def __call__(self, x: float | np.ndarray) -> float | np.ndarray:
+    def __call__(self, x: R) -> R:
         return x
 
-    def denormalize(self, x: float | np.ndarray) -> float | np.ndarray:
+    def denormalize(self, x: R) -> R:
         return x
 
 
-class Scale(BaseNormalizer):
-    def __init__(self, scale: float | np.ndarray, bias: float | np.ndarray):
+class Scale(InvertibleNormalizer):
+    def __init__(self, scale: R, bias: R):
         self.scale = scale
         self.bias = bias
 
-    def __call__(self, x: float | np.ndarray) -> float | np.ndarray:
+    def __call__(self, x: R) -> R:
         return (x - self.bias) / self.scale
 
-    def denormalize(self, x: float | np.ndarray) -> float | np.ndarray:
+    def denormalize(self, x: R) -> R:
         return x * self.scale + self.bias
 
 
 class Clip(BaseNormalizer):
-    def __init__(self, min_: float | np.ndarray, max_: float | np.ndarray):
-        self.min = min_
-        self.max = max_
+    def __init__(self, min_: R, max_: R):
+        self.min: Any = min_
+        self.max: Any = max_
 
-    def __call__(self, x: float | np.ndarray) -> np.float64 | np.ndarray:
+    def __call__(self, x: Any) -> Any:
         return np.clip(x, self.min, self.max)
 
-    def denormalize(self, x: float | np.ndarray) -> float | np.ndarray:
-        return x
 
-
-class OneHot(BaseNormalizer):
+class OneHot(InvertibleNormalizer):
     def __init__(self, total_count: int, start_from: int):
         self.total_count = total_count
         self.start = start_from
@@ -73,36 +77,36 @@ class OneHot(BaseNormalizer):
         return idx
 
 
-class MaxMin(BaseNormalizer):
-    def __init__(self, env):
-        self.min = env.observation_space.low
-        self.max = env.observation_space.high
+class MaxMin(InvertibleNormalizer):
+    def __init__(self, min: float, max: float):
+        self.min = min
+        self.max = max
         self.scale = self.max - self.min
         self.bias = self.min
 
-    def __call__(self, x: float | np.ndarray) -> np.float64 | np.ndarray:
+    def __call__(self, x: R) -> R:
         return (x - self.bias) / self.scale
 
-    def denormalize(self, x: float | np.ndarray) -> float | np.ndarray:
+    def denormalize(self, x: R) -> R:
         return x * self.scale + self.bias
 
 
-class AvgNanNorm(BaseNormalizer):
-    def __init__(self, env):
-        self.min = env.observation_space.low
-        self.max = env.observation_space.high
+class AvgNanNorm(InvertibleNormalizer):
+    def __init__(self, min: float, max: float):
+        self.min = min
+        self.max = max
         self.scale = self.max - self.min
         self.bias = self.min
 
-    def __call__(self, x: float | np.ndarray) -> np.float64 | np.ndarray:
+    def __call__(self, x: np.ndarray) -> np.ndarray:
         x = self.handle_nan(x)
         # x = self.average(x)
         return self.normalize(x)
 
-    def normalize(self, x: float | np.ndarray) -> float | np.ndarray:
+    def normalize(self, x: np.ndarray) -> np.ndarray:
         return (x - self.bias) / self.scale
 
-    def denormalize(self, x: float | np.ndarray) -> float | np.ndarray:
+    def denormalize(self, x: np.ndarray) -> np.ndarray:
         return x * self.scale + self.bias
 
     def handle_nan(self, x: np.ndarray) -> np.ndarray:
@@ -128,45 +132,47 @@ class AvgNanNorm(BaseNormalizer):
             raise ValueError("Invalid shape for observation")
 
 
-def _get_policy_bounds(agent):
-    return agent.actor.distribution_bounds()
-
-
-def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> BaseNormalizer:
+def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> InvertibleNormalizer:
     if cfg.discrete_control:
         return Identity()
-    else:  # continuous control
-        name = cfg.name
-        if name == "identity":
-            action_min = env.action_space.low
-            action_max = env.action_space.high
 
+    name = cfg.name
+    if name == "identity":
+        action_min, action_max = get_action_bounds(cfg, env)
+
+        if action_min < 0 or action_max > 1:
             warnings.warn(
                 "\033[1;33m" +
                 f"actions are bounded between [{action_min}, {action_max}] " +
-                f"but the policy has support only over [0, 1]. Are you sure this is what you wanted to do?" +
+                "but the policy has support only over [0, 1]. Are you sure this is what you wanted to do?" +
                 "\033[0m")
 
-            return Identity()
-        elif name == "scale":
-            if cfg.use_cfg_values:  # use high and low specified in the config
-                action_min = np.array(cfg.action_low)
-                action_max = np.array(cfg.action_high)
-            else:  # use information from the environment
-                action_min = env.action_space.low
-                action_max = env.action_space.high
+        return Identity()
 
-            scale = (action_max - action_min)
-            bias = action_min
+    elif name == "scale":
+        action_min, action_max = get_action_bounds(cfg, env)
 
-            print(f"Initializing action normalizer using scale = {scale} and bias = {bias}")
+        scale = (action_max - action_min)
+        bias = action_min
 
-            return Scale(scale, bias)
+        print(f"Initializing action normalizer using scale = {scale} and bias = {bias}")
 
-        elif name == "clip":
-            return Clip(cfg.clip_min, cfg.clip_max)
-        else:
-            raise NotImplementedError
+        return Scale(scale, bias)
+
+    raise NotImplementedError
+
+
+def get_action_bounds(cfg: DictConfig, env: gymnasium.Env) -> tuple[np.ndarray, np.ndarray]:
+    if cfg.use_cfg_values:
+        return (
+            np.array(cfg.action_low),
+            np.array(cfg.action_high),
+        )
+
+    # We don't currently have a reliable way to type-guard
+    # whether the action_space has a `low` and `high`.
+    space: Any = env.action_space
+    return (space.low, space.high)
 
 
 def init_reward_normalizer(cfg: DictConfig) -> BaseNormalizer:
@@ -188,11 +194,26 @@ def init_reward_normalizer(cfg: DictConfig) -> BaseNormalizer:
         raise NotImplementedError
 
 
-def init_obs_normalizer(cfg: DictConfig, env) -> BaseNormalizer:
+def init_obs_normalizer(cfg: DictConfig, env) -> InvertibleNormalizer:
     name = cfg.name
     if name == "identity":
         return Identity()
     elif name == "maxmin":
-        return MaxMin(env)
+        lo, hi = get_observation_bounds(env)
+        return MaxMin(lo, hi)
     elif name == "avg_nan_norm":
-        return AvgNanNorm(env)
+        lo, hi = get_observation_bounds(env)
+        return AvgNanNorm(lo, hi)
+
+    raise Exception(f'Normalizer <{name}> not implemented')
+
+
+def get_observation_bounds(env: gymnasium.Env) -> tuple[float, float]:
+    # We don't currently have a reliable way to type-guard
+    # whether the observation_space has a `low` and `high`.
+    space: Any = env.observation_space
+
+    return (
+        space.low,
+        space.high,
+    )
