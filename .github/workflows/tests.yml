@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.11", "3.12"]
 
     steps:
       # setup the repository
@@ -32,3 +32,4 @@ jobs:
           uv pip install -r requirements.txt
 
       - run: uv run pytest test/unit
+      - run: uv run pytest test/smoke

@@ -457,7 +457,7 @@ def online_deployment(cfg: DictConfig,
 
         # Plot policy and critic at a set of test states
         # Plotting function is likely project specific
-        if j in test_epochs:
+        if cfg.experiment.plotting and j in test_epochs:
             make_actor_critic_plots(agent, env, plot_transitions, "Online_Deployment", j, save_path)
 
     return online_eval

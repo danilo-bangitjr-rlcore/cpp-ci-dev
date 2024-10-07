@@ -35,6 +35,7 @@ experiment:
   offline_steps : 0
   max_steps : 200
   online_updates : True # Whether to update the agent online in deployment
+  plotting: False
   render : 0
   save_path : output
   load_env_obs_space_from_data : False
@@ -66,4 +67,3 @@ alert_transition_creator:
 alerts:
 
 eval:
-
