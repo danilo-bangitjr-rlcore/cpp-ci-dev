@@ -89,7 +89,7 @@ def main(cfg: DictConfig) -> dict:
             hash_cfgs=agent_hash_cfgs, prefix='agent_train')
 
         agent_test_transitions = utils.get_offline_transitions(cfg, test_obs_transitions, sc, agent_tc,
-            hash_cfgs=agent_hash_cfgs, refix='agent_test')
+            hash_cfgs=agent_hash_cfgs, prefix='agent_test')
 
         all_agent_transitions = agent_train_transitions + agent_test_transitions
         dp_transitions = utils.get_dp_transitions(all_agent_transitions)
