@@ -347,10 +347,8 @@ def offline_training(cfg: DictConfig,
     print("Num agent train transitions:", len(train_transitions))
     agent.load_buffer(train_transitions)
 
-    print("Agent Critic Buffer Size(s):", agent.critic_buffer.size)
-    log.info("Agent Critic Buffer Size(s): {}".format(agent.critic_buffer.size))
-    print("Agent Policy Buffer Size(s):", agent.policy_buffer.size)
-    log.info("Agent Policy Buffer Size(s): {}".format(agent.policy_buffer.size))
+    for buffer_name, size in agent.get_buffer_sizes().items():
+        log.info(f"Agent {buffer_name} size", size)
 
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))

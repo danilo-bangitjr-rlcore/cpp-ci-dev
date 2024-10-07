@@ -553,6 +553,12 @@ class GreedyAC(BaseAC):
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
 
+    def get_buffer_sizes(self) -> dict[str, list[int]]:
+        return {
+            'critic': self.critic_buffer.size,
+            'policy': self.policy_buffer.size,
+        }
+
 
 class GreedyACLineSearch(GreedyAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
