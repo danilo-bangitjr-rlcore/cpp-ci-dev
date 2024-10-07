@@ -126,7 +126,7 @@ def main(cfg: DictConfig) -> dict:
             transition_normalizer, save_path, plot_transitions, test_epochs)
         online_eval.output(save_path / 'stats.json')
     else:
-        online_eval = utils.online_deployment(cfg, agent,  interaction,  env,composite_alert, transition_normalizer,
+        online_eval = utils.online_deployment(cfg, agent, interaction, env, composite_alert, transition_normalizer,
             save_path, plot_transitions, test_epochs)
         online_eval.output(save_path / 'stats.json')
 
