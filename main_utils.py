@@ -3,16 +3,18 @@ import numpy as np
 import pickle as pkl
 import logging
 
+import corerl.utils.pickle as pkl_u
+
 log = logging.getLogger(__name__)
 
 import pandas as pd
 from tqdm import tqdm
-from collections.abc import MutableMapping
+from collections.abc import Callable, MutableMapping
 from omegaconf import OmegaConf, DictConfig
 from gymnasium.spaces.utils import flatdim
 from gymnasium import spaces, Env
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, ParamSpec, TypeVar
 
 from corerl.eval.composite_eval import CompositeEval
 from corerl.data_loaders.base import BaseDataLoader
@@ -69,40 +71,38 @@ def update_pbar(pbar, stats: dict, keys: list) -> None:
     pbar.set_description(pbar_str)
 
 
-def check_exists(save_path):
-    if save_path.exists():
-        with open(save_path, 'rb') as f:
-            return pkl.load(f)
-    else:
-        return None
-
-
-def load_or_create(root: Path, cfgs: list[MutableMapping[str, Any]], prefix: str, create_func: callable, args: list) -> object:
+U = ParamSpec('U')
+T = TypeVar('T')
+BuilderFunc = Callable[U, T]
+def load_or_create(
+    root: Path,
+    cfgs: list[MutableMapping[str, Any]],
+    prefix: str,
+    create_func: BuilderFunc[U, T],
+    *args: U.args, **kwargs: U.kwargs,
+) -> T:
     """
     Will either load an object or create a new one using create func. Objects are saved at root using a hash determined
     by cfgs.
     """
     cfg_hash = dict_u.hash_many(cfgs)
     save_path = root / cfg_hash / f"{prefix}-{cfg_hash}.pkl"
-    obj = check_exists(save_path)
+    obj: Any = pkl_u.maybe_load(save_path)
 
-    if obj is None:
-        print(f"Generating {prefix}...")
-        obj = create_func(*args)  # loads the entire dataset
-
-        save_path = root / cfg_hash
-        save_path.mkdir(parents=True, exist_ok=True)
-
-        # Revan: I don't understand what the point of this line of code is here.
-        # with open(save_path / "config.yaml", "w") as f:
-        #     OmegaConf.save(cfg, f)
-
-        with open(save_path / f"{prefix}-{cfg_hash}.pkl", 'wb') as f:
-            pkl.dump(obj, f)
-
-        print(f"Saved {prefix} to {save_path}.")
-    else:
+    if obj is not None:
         print(f"Loaded {prefix} from {save_path}.")
+        return obj
+
+    print(f"Generating {prefix}...")
+    obj = create_func(*args, **kwargs)  # loads the entire dataset
+
+    save_path = root / cfg_hash
+    pkl_u.dump(
+        save_path / f"{prefix}-{cfg_hash}.pkl",
+        obj,
+    )
+
+    print(f"Saved {prefix} to {save_path}.")
 
     return obj
 
@@ -347,10 +347,8 @@ def offline_training(cfg: DictConfig,
     print("Num agent train transitions:", len(train_transitions))
     agent.load_buffer(train_transitions)
 
-    print("Agent Critic Buffer Size(s):", agent.critic_buffer.size)
-    log.info("Agent Critic Buffer Size(s): {}".format(agent.critic_buffer.size))
-    print("Agent Policy Buffer Size(s):", agent.policy_buffer.size)
-    log.info("Agent Policy Buffer Size(s): {}".format(agent.policy_buffer.size))
+    for buffer_name, size in agent.get_buffer_sizes().items():
+        log.info(f"Agent {buffer_name} size", size)
 
     offline_steps = cfg.experiment.offline_steps
     pbar = tqdm(range(offline_steps))
