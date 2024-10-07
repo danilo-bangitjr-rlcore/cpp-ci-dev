@@ -64,14 +64,14 @@ def main(cfg: DictConfig) -> dict:
     plot_transitions = None
     agent_test_transitions = None
 
+    alert_args = {
+        'agent': agent,
+        'state_dim': state_dim,
+        'action_dim': action_dim,
+        'input_dim': state_dim,
+    }
+    composite_alert = CompositeAlert(cfg.alerts, alert_args)
     if cfg.use_alerts:
-        alert_args = {
-            'agent': agent,
-            'state_dim': state_dim,
-            'action_dim': action_dim,
-            'input_dim': state_dim,
-        }
-        composite_alert = CompositeAlert(cfg.alerts, alert_args)
         alert_tc = init_transition_creator(cfg.alert_transition_creator, sc)
         alert_tc.init_alerts(composite_alert)
 
