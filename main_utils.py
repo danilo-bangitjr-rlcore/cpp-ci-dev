@@ -87,23 +87,30 @@ def load_or_create(
     """
     cfg_hash = dict_u.hash_many(cfgs)
     save_path = root / cfg_hash / f"{prefix}-{cfg_hash}.pkl"
-    obj = pkl_u.maybe_load(save_path)
+    obj: Any = pkl_u.maybe_load(save_path)
 
-    if obj is None:
-        print(f"Generating {prefix}...")
-        obj = create_func(*args, **kwargs)  # loads the entire dataset
+    if obj is not None:
+        print(f"Loaded {prefix} from {save_path}.")
+        return obj
 
-        save_path = root / cfg_hash
-        save_path.mkdir(parents=True, exist_ok=True)
+    print(f"Generating {prefix}...")
+    obj = create_func(*args, **kwargs)  # loads the entire dataset
 
-        # Revan: I don't understand what the point of this line of code is here.
-        # with open(save_path / "config.yaml", "w") as f:
-        #     OmegaConf.save(cfg, f)
+    save_path = root / cfg_hash
+    save_path.mkdir(parents=True, exist_ok=True)
 
-        with open(save_path / f"{prefix}-{cfg_hash}.pkl", 'wb') as f:
-            pkl.dump(obj, f)
+    # Revan: I don't understand what the point of this line of code is here.
+    # with open(save_path / "config.yaml", "w") as f:
+    #     OmegaConf.save(cfg, f)
+
+    with open(save_path / f"{prefix}-{cfg_hash}.pkl", 'wb') as f:
+        pkl.dump(obj, f)
 
         print(f"Saved {prefix} to {save_path}.")
+        print(f"Saved {prefix} to {save_path}.")
+    else:
+        print(f"Loaded {prefix} from {save_path}.")
+    print(f"Saved {prefix} to {save_path}.")
     else:
         print(f"Loaded {prefix} from {save_path}.")
 
