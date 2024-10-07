@@ -11,13 +11,13 @@ class OneHotWrapper:
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
 
-    def reset(self) -> (np.ndarray, dict):
+    def reset(self) -> tuple[np.ndarray, dict]:
         return self.env.reset()
 
     def step(self, action: np.ndarray):
         action = np.argmax(action)
         action = np.array([action])
         return self.env.step(action)
-    
+
     def render(self):
         return self.env.render()

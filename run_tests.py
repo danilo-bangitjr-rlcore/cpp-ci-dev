@@ -19,7 +19,7 @@ class HiddenPrints:
         sys.stdout = self._original_stdout
 
 
-def get_cfg(params: dict) -> (str, DictConfig):
+def get_cfg(params: dict) -> tuple[str, DictConfig]:
     cmd = 'python3 test/output_conf.py '
     for k, v in params.items():
         cmd += '{}={} '.format(k, v)

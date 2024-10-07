@@ -128,7 +128,7 @@ class EnsembleFC(nn.Module):
         ]
         self.to(device.device)
 
-    def forward(self, input_tensor: torch.Tensor) -> (torch.Tensor, torch.Tensor):
+    def forward(self, input_tensor: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         outs = [net(input_tensor) for net in self.subnetworks]
         for i in range(self.ensemble):
             outs[i] = torch.unsqueeze(outs[i], 0)
@@ -179,7 +179,7 @@ class EnsembleCritic(nn.Module):
 
     def forward(
             self, input_tensor: torch.Tensor, bootstrap_reduct: Optional[bool] = True,
-    ) -> (torch.Tensor, torch.Tensor):
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         # For ensemble critic updates, expecting a different batch for each member of the ensemble
         # Therefore, we expect the shape of the input_tensor to be (ensemble_size, batch_size, state-action dim)
         if len(input_tensor.shape) == 3 and input_tensor.shape[0] == self.ensemble:

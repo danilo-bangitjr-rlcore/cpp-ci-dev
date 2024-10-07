@@ -19,7 +19,7 @@ class TorchWrapper:
         state = tensor(state.reshape((1, -1)), device.device)
         return state
 
-    def reset(self) -> (torch.Tensor, dict):
+    def reset(self) -> tuple[torch.Tensor, dict]:
         state, info = self.env.reset()
         state = self._process_state(state)
         return state, info

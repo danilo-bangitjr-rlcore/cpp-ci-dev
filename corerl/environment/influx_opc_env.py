@@ -44,8 +44,8 @@ class DBClientWrapper:
 
     def _parse_row(self, row: dict, date_col: str, col_names: list) -> Point:
         """
-        Parse row of CSV file into Point 
-        
+        Parse row of CSV file into Point
+
         args:
             row: dict representing one row of csv
             date_col: label of date within the dict
@@ -71,7 +71,7 @@ class DBClientWrapper:
               include_time: bool = False) -> pd.DataFrame:
         """
         Returns all data between start_time and end_time
-        
+
         args:
             start_time (int) : a timestamp
             end_time (int) : a timestamp
@@ -138,7 +138,7 @@ class InfluxOPCEnv(ABC, gym.Env):
     def _check_done(self) -> bool:
         raise NotImplementedError
 
-    def get_observation(self, a: np.ndarray) -> (np.ndarray, float, bool, bool, dict):
+    def get_observation(self, a: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict]:
         state = self._get_observation()
         done = self._check_done()
         reward = self._get_reward(state, a)
@@ -156,7 +156,7 @@ class InfluxOPCEnv(ABC, gym.Env):
         time.sleep(end_timer - time.time())
         return self.get_observation(action)
 
-    def reset(self) -> (np.ndarray, dict):
+    def reset(self) -> tuple[np.ndarray, dict]:
         state = self._get_observation()
         state = state.to_numpy()
         return state, {}

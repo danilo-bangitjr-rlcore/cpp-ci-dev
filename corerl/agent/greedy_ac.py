@@ -109,7 +109,7 @@ class GreedyAC(BaseAC):
         for transition in transitions:
             if transition.state_dp:
                 policy_transitions.append(transition)
-        
+
         self.policy_buffer.load(policy_transitions)
         self.critic_buffer.load(transitions)
 
@@ -119,7 +119,7 @@ class GreedyAC(BaseAC):
         sample_actions: Float[torch.Tensor, "batch_size num_samples action_dim"],
     ) -> Float[torch.Tensor, "batch_size num_samples 1"]:
         # https://github.com/samuelfneumann/GreedyAC/blob/master/agent/nonlinear/GreedyAC.py
-        
+
         batch_size = state_batch.shape[0]
         num_samples = sample_actions.shape[1]
         action_dim = sample_actions.shape[2]
@@ -190,7 +190,7 @@ class GreedyAC(BaseAC):
         logger.debug(f"{uniform_sample_actions.shape=}")
 
         return sample_actions
-    
+
     def get_top_actions(
         self,
         proposed_actions: Float[torch.Tensor, "batch_size num_samples action_dim"],
@@ -209,7 +209,7 @@ class GreedyAC(BaseAC):
         best_actions = torch.reshape(best_actions, (batch_size*n_top_actions, self.action_dim))
 
         return best_actions
-    
+
     def get_policy_update_info(self, state_batch: Float[torch.Tensor, 'batch_size state_dim']) -> tuple[
             Float[torch.Tensor, 'batch_size state_dim'],
             Float[torch.Tensor, 'batch_size*num_samples state_dim'],
@@ -218,12 +218,12 @@ class GreedyAC(BaseAC):
             Float[torch.Tensor, 'batch_size*top_actions state_dim'],
             Float[torch.Tensor, 'batch_size*num_samples action_dim'],
             int]:
-        
+
         batch_size = state_batch.shape[0]
         # recall that if self.sample_all_discrete_actions then self.num_samples = self.action_dim
         repeated_states: Float[torch.Tensor, 'batch_size*num_samples state_dim']
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
-        
+
         sample_actions = self.get_sampled_actions(state_batch)
         sorted_q_inds = self.get_sorted_q_values(state_batch, sample_actions)
         best_actions = self.get_top_actions(sample_actions, sorted_q_inds, n_top_actions=self.top_actions)
@@ -334,13 +334,13 @@ class GreedyAC(BaseAC):
 
         return sampler_loss
 
-    def compute_actor_loss(self, update_info) -> (torch.Tensor, tuple):
+    def compute_actor_loss(self, update_info) -> torch.Tensor:
         _, _, _, _, stacked_s_batch, best_actions, _ = update_info
         logp, _ = self.actor.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
         actor_loss = -logp.mean()  # BUG: This is negative?
         return actor_loss
 
-    def compute_sampler_loss(self, update_info) -> (torch.Tensor, torch.Tensor):
+    def compute_sampler_loss(self, update_info) -> tuple[torch.Tensor, torch.Tensor]:
         if self.tau != 0:  # Entropy version of proposal policy update
             sampler_loss = self.compute_sampler_entropy_loss(update_info)
         else:

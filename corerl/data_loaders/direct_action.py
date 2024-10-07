@@ -444,7 +444,7 @@ class DirectActionDataLoader(BaseDataLoader):
         else:
             return None
 
-    def get_obs_max_min(self, df: pd.DataFrame) -> (np.ndarray, np.ndarray):
+    def get_obs_max_min(self, df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
         """
         Find the max and min values for each column in the input df to later be used for normalization
         """
@@ -470,7 +470,7 @@ class DirectActionDataLoader(BaseDataLoader):
         return obs
 
     def find_action_boundary(self, action_df: pd.DataFrame,
-                             start_ind: pd.Timestamp) -> (np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool):
+                             start_ind: pd.Timestamp) -> tuple[np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool]:
         """
         Return the action taken at the beginning of the dataframe.
         Iterate through the dataframe until an action change, a truncation/termination in the episode, or a large break in time.
@@ -496,13 +496,13 @@ class DirectActionDataLoader(BaseDataLoader):
 
         return curr_action, prev_date, curr_date, False, False, False
 
-    def check_termination_truncation(self, df: pd.DataFrame) -> (bool, bool):
+    def check_termination_truncation(self, df: pd.DataFrame) -> tuple[bool, bool]:
         """
         Project specific. Assuming a continuing environment.
         """
         return False, False
 
-    def get_curr_action_steps(self, action_start: pd.Timestamp, action_end: pd.Timestamp) -> (int, pd.Timestamp):
+    def get_curr_action_steps(self, action_start: pd.Timestamp, action_end: pd.Timestamp) -> tuple[int, pd.Timestamp]:
         """
         Determine the number of time steps that fit in the given action window and align the time steps, taking into account the time remainder
         """

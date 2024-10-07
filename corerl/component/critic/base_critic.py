@@ -5,12 +5,13 @@ from omegaconf import DictConfig
 from pathlib import Path
 from abc import ABC, abstractmethod
 
+from corerl.utils.types import TensorLike
+
 
 class BaseCritic(ABC):
     @abstractmethod
     def __init__(self, cfg: DictConfig):
         self.discrete_control = cfg.discrete_control
-        raise NotImplementedError
 
     @abstractmethod
     def update(self, loss: torch.Tensor) -> None:
@@ -45,11 +46,11 @@ class BaseQ(BaseCritic):
         super(BaseQ, self).__init__(cfg)
 
     @abstractmethod
-    def get_q(self, state: torch.Tensor | np.ndarray, action: torch.Tensor | np.ndarray,
-              **kwargs) -> torch.Tensor | np.ndarray:
+    def get_q(self, state: TensorLike, action: TensorLike,
+              **kwargs) -> torch.Tensor:
         raise NotImplementedError
 
     @abstractmethod
-    def get_q_target(self, state: torch.Tensor | np.ndarray, action: torch.Tensor | np.ndarray,
-                     **kwargs) -> torch.Tensor | np.ndarray:
+    def get_q_target(self, state: TensorLike, action: TensorLike,
+                     **kwargs) -> torch.Tensor:
         raise NotImplementedError
