@@ -97,22 +97,12 @@ def load_or_create(
     obj = create_func(*args, **kwargs)  # loads the entire dataset
 
     save_path = root / cfg_hash
-    save_path.mkdir(parents=True, exist_ok=True)
+    pkl_u.dump(
+        save_path / f"{prefix}-{cfg_hash}.pkl",
+        obj,
+    )
 
-    # Revan: I don't understand what the point of this line of code is here.
-    # with open(save_path / "config.yaml", "w") as f:
-    #     OmegaConf.save(cfg, f)
-
-    with open(save_path / f"{prefix}-{cfg_hash}.pkl", 'wb') as f:
-        pkl.dump(obj, f)
-
-        print(f"Saved {prefix} to {save_path}.")
-        print(f"Saved {prefix} to {save_path}.")
-    else:
-        print(f"Loaded {prefix} from {save_path}.")
     print(f"Saved {prefix} to {save_path}.")
-    else:
-        print(f"Loaded {prefix} from {save_path}.")
 
     return obj
 
