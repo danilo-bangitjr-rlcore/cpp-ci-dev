@@ -8,9 +8,9 @@ import gymnasium
 def init_state_constructor(cfg: DictConfig, env: gymnasium.Env) -> BaseStateConstructor:
     name = cfg.name
     if name == "multi_trace":
-        return examples.MultiTrace(cfg, env)
+        return examples.MultiTrace(cfg)
     elif name == "anytime_multi_trace":
-        return examples.AnytimeMultiTrace(cfg, env)
+        return examples.AnytimeMultiTrace(cfg)
     elif name == "identity":
         return examples.Identity(cfg, env)
     elif name == 'normalize':
