@@ -192,3 +192,4 @@ corerl/old/control/bin/data/
 offline_data/
 multirun/
 /reseau/
+/test/unit/utils/test_stuff.ipynb
