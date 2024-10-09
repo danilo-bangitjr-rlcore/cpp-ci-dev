@@ -37,7 +37,6 @@ class BaseDataLoader(ABC):
     @abstractmethod
     def create_obs_transitions(self,
                                df: pd.DataFrame,
-                               normalizer: ObsTransitionNormalizer,
                                reward_function: BaseReward, *args) -> dict:
         raise NotImplementedError
 

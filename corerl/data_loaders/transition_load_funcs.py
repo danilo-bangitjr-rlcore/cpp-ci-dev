@@ -3,17 +3,22 @@ A library of functions to transform lists of observation transitions into transi
 """
 import numpy as np
 
+from tqdm import tqdm
+
 from corerl.data.data import ObsTransition, Transition
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.data.transition_creator import BaseTransitionCreator
-from tqdm import tqdm
+from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
 
 def make_transitions(obs_transitions: list[ObsTransition],
                      sc: BaseStateConstructor,
                      tc: BaseTransitionCreator,
+                     obs_normalizer: ObsTransitionNormalizer,
                      warmup=0,
                      ) -> list[Transition]:
+    obs_transitions = _normalize_obs_transitions(obs_transitions, obs_normalizer)
+    print(obs_transitions[0])
     curr_chunk_obs_transitions = []
     transitions = []
 
@@ -25,7 +30,6 @@ def make_transitions(obs_transitions: list[ObsTransition],
         done = (idx == last_idx)
         if obs_transition.gap or done:
             new_transitions = make_transitions_for_chunk(curr_chunk_obs_transitions, sc, tc)
-
             if transition_kind == 'anytime':
                 transitions += new_transitions[warmup:]
             elif transition_kind == 'regular_rl':
@@ -36,6 +40,12 @@ def make_transitions(obs_transitions: list[ObsTransition],
             curr_chunk_obs_transitions = []
 
     return transitions
+
+
+def _normalize_obs_transitions(
+        obs_transitions: list[ObsTransition],
+        obs_normalizer: ObsTransitionNormalizer) -> list[ObsTransition]:
+    return [obs_normalizer.normalize(ot) for ot in obs_transitions]
 
 
 def _get_action_windows(obs_transitions: list[ObsTransition]) -> list[list[ObsTransition]]:
@@ -203,10 +213,10 @@ def make_transitions_for_chunk(obs_transitions: list[ObsTransition],
     initial_steps_until_decision = steps_until_decisions[0]
     initial_dp = dps[0]
     initial_state = sc(initial_obs_transition.obs,
-                       initial_obs_transition.action,  # assume that previous action was the same as the next
-                       initial_state=True,
-                       decision_point=initial_dp,
-                       steps_until_decision=initial_steps_until_decision)
+        initial_obs_transition.action,  # assume that previous action was the same as the next
+        initial_state=True,
+        decision_point=initial_dp,
+        steps_until_decision=initial_steps_until_decision)
 
     tc.reset(initial_state, initial_dp, initial_steps_until_decision)
 
@@ -216,9 +226,9 @@ def make_transitions_for_chunk(obs_transitions: list[ObsTransition],
         next_steps_until_decision = steps_until_decisions[obs_idx + 1]
 
         next_state = sc(obs_transition.next_obs, obs_transition.action,
-                        initial_state=False, decision_point=next_dp, steps_until_decision=next_steps_until_decision)
+            initial_state=False, decision_point=next_dp, steps_until_decision=next_steps_until_decision)
 
         transitions += tc.feed(obs_transition, next_state, next_dp=next_dp,
-                               next_steps_until_decision=next_steps_until_decision)
+            next_steps_until_decision=next_steps_until_decision)
 
     return transitions

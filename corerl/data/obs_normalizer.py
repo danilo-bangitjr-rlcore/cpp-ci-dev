@@ -9,11 +9,13 @@ class ObsTransitionNormalizer:
         self.obs_normalizer = init_obs_normalizer(cfg.obs_normalizer, env)
 
     def normalize(self, obs_transition: ObsTransition) -> ObsTransition:
-        if isinstance(obs_transition, OldObsTransition):  # TODO: change this back
-            obs_transition.prev_action = self.action_normalizer(obs_transition.prev_action)
+        copy = obs_transition.copy()
 
-        obs_transition.obs = self.obs_normalizer(obs_transition.obs)
-        obs_transition.action = self.action_normalizer(obs_transition.action)
-        obs_transition.next_obs = self.obs_normalizer(obs_transition.next_obs)
-        obs_transition.reward = self.reward_normalizer(obs_transition.reward)
-        return obs_transition
+        if isinstance(copy, OldObsTransition):
+            copy.prev_action = self.action_normalizer(copy.prev_action)
+
+        copy.obs = self.obs_normalizer(copy.obs)
+        copy.action = self.action_normalizer(copy.action)
+        copy.next_obs = self.obs_normalizer(copy.next_obs)
+        copy.reward = self.reward_normalizer(copy.reward)
+        return copy

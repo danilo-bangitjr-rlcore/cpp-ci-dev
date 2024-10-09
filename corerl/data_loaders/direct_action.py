@@ -514,14 +514,10 @@ class DirectActionDataLoader(BaseDataLoader):
         return curr_action_steps, step_start
 
     def create_obs_transitions(self, df: pd.DataFrame,
-                               normalizer: ObsTransitionNormalizer,
                                reward_function: BaseReward, *args) -> list[ObsTransition]:
         """
-        Iterate through the df and produce transitions using the "Anytime" paradigm.
-        Take into account discontinuities in the dataframe (large gaps in time between consecutive rows)
-        Creates fixed n-step transitions or variable n-step transitions that always bootstrap off the state at the next decision point
-
-        Will also normalize the observation transitions using the normalizer
+        Iterate through the df and produce observation transitions for that dataframe.
+        Takes into account discontinuities in the dataframe (large gaps in time between consecutive rows)
         """
         obs_transitions = []
 
@@ -581,8 +577,6 @@ class DirectActionDataLoader(BaseDataLoader):
                             gap=(step == curr_action_steps - 1) and data_gap  # if the last step and there is a data gap
                         )
 
-                        obs_transition = normalizer.normalize(obs_transition)
-
                         if len(obs_transitions) > 0 and not obs_transitions[-1].gap:
                             assert np.allclose(obs_transition.obs, obs_transitions[-1].next_obs)
 
@@ -604,5 +598,4 @@ class DirectActionDataLoader(BaseDataLoader):
                 action_start = next_action_start
 
         print("Number of observation transitions: {}".format(len(obs_transitions)))
-
         return obs_transitions
