@@ -74,12 +74,14 @@ def update_pbar(pbar, stats: dict, keys: list) -> None:
 U = ParamSpec('U')
 T = TypeVar('T')
 BuilderFunc = Callable[U, T]
+
+
 def load_or_create(
-    root: Path,
-    cfgs: list[MutableMapping[str, Any]],
-    prefix: str,
-    create_func: BuilderFunc[U, T],
-    *args: U.args, **kwargs: U.kwargs,
+        root: Path,
+        cfgs: list[MutableMapping[str, Any]],
+        prefix: str,
+        create_func: BuilderFunc[U, T],
+        args: U.args, **kwargs: U.kwargs,
 ) -> T:
     """
     Will either load an object or create a new one using create func. Objects are saved at root using a hash determined
@@ -238,7 +240,7 @@ def get_offline_trajectories(cfg: DictConfig,
     output_path = Path(cfg.offline_data.output_path)
 
     def create_trajectories(obs_transitions, return_scs):
-        return transition_creator.make_offline_trajectories(obs_transitions, sc,  use_pbar=True, warmup=warmup,
+        return transition_creator.make_offline_trajectories(obs_transitions, sc, use_pbar=True, warmup=warmup,
             return_all_scs=return_scs)
 
     if prefix != '':
