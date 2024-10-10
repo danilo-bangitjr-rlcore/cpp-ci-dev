@@ -18,7 +18,7 @@ def _make_anytime_transition_creator(sc, steps_per_decision, n_step) -> AnytimeT
     return AnytimeTransitionCreator(cfg, sc)
 
 
-def _make_simple_obs_sequence(num_observations: int) -> list[np.array]:
+def _make_simple_obs_sequence(num_observations: int) -> list[np.ndarray]:
     obs_sequence = [np.array([1])]
     for i in range(num_observations - 1):
         obs_sequence.append(np.array([0]))
@@ -46,7 +46,7 @@ def _make_simple_obs_transition_sequence(num_observations: int):
     return obs_transitions
 
 
-def _reset_sc(sc, obs_transitions):
+def _get_first_state(sc, obs_transitions):
     sc.reset()
     initial_obs = obs_transitions[0].obs
     initial_action = obs_transitions[0].obs
@@ -57,7 +57,6 @@ def _reset_sc(sc, obs_transitions):
 
 def test_anytime_transition_creator_init():
     tc = make_anytime_multi_trace(warmup=0, steps_per_decision=5)
-    assert tc is not None
 
 
 def _check_dps(i, steps_per_decision, transition, n_step):
@@ -70,9 +69,6 @@ def _check_dps(i, steps_per_decision, transition, n_step):
     if n_step == 0:
         assert transition.boot_state_dp
     else:
-        if steps_until_decision == 0:
-            steps_until_decision = steps_per_decision
-
         if n_step >= steps_until_decision:
             assert transition.boot_state_dp
 
@@ -96,11 +92,16 @@ def test_anytime_transition_creator_feed(
         steps_per_decision,
         n_step
 ):
+    """
+    Given a state constructor and a sequence of observations,
+    the anytime transition creator creates a sequence of transitions
+    and correctly marks which of those transitions are decision points.
+    """
     sc = make_anytime_multi_trace(warmup=0, steps_per_decision=steps_per_decision)
     tc = _make_anytime_transition_creator(sc, steps_per_decision, n_step)
 
     obs_transitions = _make_simple_obs_transition_sequence(num_observations)
-    sc, state = _reset_sc(sc, obs_transitions)
+    sc, state = _get_first_state(sc, obs_transitions)
 
     steps_until_decision = steps_per_decision
 
