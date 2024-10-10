@@ -83,7 +83,8 @@ def load_or_create(
         cfgs: list[MutableMapping[str, Any]],
         prefix: str,
         create_func: BuilderFunc[U, T],
-        args: U.args, **kwargs: U.kwargs,
+        args: U.args = tuple(),
+        kwargs: U.kwargs = {},
 ) -> T:
     """
     Will either load an object or create a new one using create func. Objects are saved at root using a hash determined
@@ -223,12 +224,11 @@ def get_offline_transitions(cfg: DictConfig,
                             prefix='') -> list[Transition]:
     output_path = Path(cfg.offline_data.output_path)
 
-    def _create_transitions(obs_transitions_, sc_, tc_, normalizer_, warmup_):
-        return make_transitions(obs_transitions_, sc_, tc_, normalizer_, warmup=warmup_)
-
     warmup = cfg.state_constructor.warmup
     transitions = load_or_create(root=output_path, cfgs=hash_cfgs, prefix=prefix,
-        create_func=_create_transitions, args=[obs_transitions, sc, tc, obs_normalizer, warmup])
+        create_func=make_transitions,
+        args=(obs_transitions, sc, tc, obs_normalizer),
+        kwargs={'warmup': warmup})
 
     num_transitions = len(transitions)
     print(f"Loaded {num_transitions} transitions from prefix {prefix}")

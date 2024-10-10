@@ -118,10 +118,6 @@ def main(cfg: DictConfig) -> dict:
     check_equal(train_obs_transitions, train_obs_transitions_r, obs_normalizer)
     check_equal(test_obs_transitions, test_obs_transitions_r, obs_normalizer)
 
-    print(train_obs_transitions[0])
-    print(train_obs_transitions_r[0])
-
-
     print('Loading offline transitions...')
     log.info('Loading offline transitions...')
 

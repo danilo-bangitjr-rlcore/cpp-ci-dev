@@ -36,23 +36,6 @@ class OldObsTransition:
             string += f"{field.name}: {getattr(self, field.name)}\n"
         return string
 
-    def copy(self):
-        return OldObsTransition(
-            prev_action= np.copy(self.prev_action),
-            obs=np.copy(self.obs),
-            obs_steps_until_decision = self.obs_steps_until_decision,
-            obs_dp = self.obs_dp,
-            action=np.copy(self.action),
-            reward=self.reward,
-            next_obs=np.copy(self.next_obs),
-            next_obs_steps_until_decision = self.next_obs_steps_until_decision,
-            next_obs_dp = self.next_obs_dp,
-            terminated=self.terminated,
-            truncate=self.truncate,
-            gap=self.gap
-        )
-
-
 
 @dataclass
 class ObsTransition:
@@ -77,17 +60,6 @@ class ObsTransition:
         for field in fields(self):
             string += f"{field.name}: {getattr(self, field.name)}\n"
         return string
-
-    def copy(self):
-        return ObsTransition(
-            obs=np.copy(self.obs),
-            action=np.copy(self.action),
-            reward=self.reward,
-            next_obs=np.copy(self.next_obs),
-            terminated=self.terminated,
-            truncate=self.truncate,
-            gap=self.gap
-        )
 
 
 @dataclass

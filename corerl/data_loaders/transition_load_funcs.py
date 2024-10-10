@@ -18,7 +18,6 @@ def make_transitions(obs_transitions: list[ObsTransition],
                      warmup=0,
                      ) -> list[Transition]:
     obs_transitions = _normalize_obs_transitions(obs_transitions, obs_normalizer)
-    print(obs_transitions[0])
     curr_chunk_obs_transitions = []
     transitions = []
 
