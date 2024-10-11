@@ -3,7 +3,7 @@ import asyncio
 import logging
 from collections import defaultdict
 from pydantic import ValidationError
-from websockets import ConnectionClosedError
+from websockets import ConnectionClosed
 from websockets.asyncio.server import serve, ServerConnection, Server
 from corerl.messages.events import Event, EventType, SubscribeEvent
 
@@ -49,7 +49,7 @@ class WebsocketServer:
         assert self._serve_future is not None
 
         self._serve_future.cancel()
-        self._server.server.close()
+        self._server.close()
 
 
     def connected_clients(self) -> set[uuid.UUID]:
@@ -64,10 +64,10 @@ class WebsocketServer:
 
         while True:
             try:
-                message = await websocket.recv()
-            except ConnectionClosedError as e:
+                message = await websocket.recv(decode=False)
+            except ConnectionClosed:
                 await self._handle_disconnect(websocket)
-                raise e
+                break
 
             event = maybe_parse_event(message)
             if event is None:
