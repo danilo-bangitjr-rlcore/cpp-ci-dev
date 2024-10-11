@@ -15,7 +15,7 @@ PREFIX = "opctest"
 
 T = TypeVar('T')
 U = ParamSpec('U')
-def linear_backoff(seconds: float, direction: str, attempts: int = 50):
+def linear_backoff(direction: str, attempts: int = 50):
     def _inner(f: Callable[Concatenate[OpcConnection, U], Coroutine[None, None, T]]):
         async def wrapper(self: OpcConnection, *args: U.args, **kwargs: U.kwargs) -> T:
 
@@ -25,10 +25,10 @@ def linear_backoff(seconds: float, direction: str, attempts: int = 50):
 
                 except (ConnectionError, ua.UaError, TimeoutError) as err:
                     _logger.warning(f"{err}")
-                    _logger.warning(f"{direction.upper()}: Reconnecting in {seconds} seconds")
+                    _logger.warning(f"{direction.upper()}: Reconnecting in {self._conn_timeout} seconds")
                     self.update_stats()
-                    await asyncio.sleep(seconds)
                     await self.reconnect()
+                    await asyncio.sleep(self._conn_timeout)
 
             raise Exception(f'Failed to reconnect after {attempts} attempts')
 
@@ -45,6 +45,7 @@ class OpcConnection:
         self.conn_attempts = 0
         self.values_read = 0
         self.conn_stats = cfg.conn_stats
+        self._conn_timeout = getattr(cfg, 'timeout', 2.)
         self.vendor = cfg.vendor if hasattr(cfg, "vendor") else "kepware"
 
     async def connect(self) -> None:
@@ -74,7 +75,7 @@ class OpcConnection:
         await self.client.connect()
 
 
-    @linear_backoff(seconds=2, direction='read')
+    @linear_backoff(direction='read')
     async def get_nodes(self, addresses: list[str]) -> list[Node]:
         """Returns an array of OPC nodes corresponding to the string addresses"""
         if self.vendor == "kepware":
@@ -87,13 +88,13 @@ class OpcConnection:
         return nodes
 
 
-    @linear_backoff(seconds=2, direction='read')
+    @linear_backoff(direction='read')
     async def read_values(self, nodes: list[Node]) -> list[Any]:
         """Reads the values of an array of OPC nodes and returns those values"""
         return await self.client.read_values(nodes)
 
 
-    @linear_backoff(seconds=2, direction='read')
+    @linear_backoff(direction='read')
     async def read_variant_types(self, nodes: list[Node]) -> list[ua.VariantType]:
         """Determines the VariantType of the Values of the list of Nodes"""
         node_ids = [node.nodeid for node in nodes]
@@ -103,7 +104,7 @@ class OpcConnection:
         return [value.Value.VariantType for value in values if value.Value is not None]
 
 
-    @linear_backoff(seconds=2, direction='read')
+    @linear_backoff(direction='read')
     async def read_attributes(
         self, nodes: list[Node], attr: ua.AttributeIds
     ) -> list[Any]:
@@ -112,7 +113,7 @@ class OpcConnection:
         return await self.client.uaclient.read_attributes(node_ids, attr)
 
 
-    @linear_backoff(seconds=2, direction='write')
+    @linear_backoff(direction='write')
     async def write_values(
         self,
         nodes: list[Node],
