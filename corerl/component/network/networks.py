@@ -1,14 +1,10 @@
 import copy
 import torch
 import torch.nn as nn
-import torch.distributions as distrib
 from torch.func import stack_module_state, functional_call
 import numpy as np
 import corerl.component.network.utils as utils
 from corerl.utils.device import device
-from corerl.component import policy
-from corerl.component import distribution as d
-from corerl.component import layer
 
 from omegaconf import DictConfig
 from typing import Optional

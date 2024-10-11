@@ -1,8 +1,7 @@
 import numpy as np
 import sympy as sym
 from scipy import signal
-from gymnasium import spaces, Env
-import copy
+from gymnasium import spaces
 
 # Observation = setpoint
 # Action = [kp1, ti1]

@@ -3,7 +3,6 @@ import gymnasium
 
 from gymnasium.spaces.utils import flatdim
 from collections import deque
-from typing import Optional
 
 from omegaconf import DictConfig
 from corerl.state_constructor.base import BaseStateConstructor
@@ -16,7 +15,7 @@ from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from corerl.data.transition_creator import OldAnytimeTransitionCreator, BaseTransitionCreator
+    from corerl.data.transition_creator import BaseTransitionCreator
 
 class AnytimeInteraction(BaseInteraction):
     """

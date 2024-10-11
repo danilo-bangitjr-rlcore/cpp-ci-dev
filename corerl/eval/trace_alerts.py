@@ -1,6 +1,5 @@
 from corerl.eval.base_eval import BaseEval
 from pathlib import Path
-import json
 
 
 class TraceAlertsEval(BaseEval):

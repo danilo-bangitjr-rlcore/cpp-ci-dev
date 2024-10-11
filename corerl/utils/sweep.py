@@ -1,4 +1,3 @@
-import itertools
 import importlib.util
 from pathlib import Path
 from omegaconf import OmegaConf

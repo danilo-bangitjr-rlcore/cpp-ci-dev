@@ -2,15 +2,13 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
-from copy import deepcopy
 from typing import Optional
 from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 
 import corerl.calibration_models.utils as utils
 from corerl.component.network.utils import to_np
-from corerl.data.data import Transition, OldObsTransition
-from corerl.data.transition_creator import OldAnytimeTransitionCreator
+from corerl.data.data import OldObsTransition
 from corerl.data.data import Trajectory
 from corerl.agent.base import BaseAgent
 

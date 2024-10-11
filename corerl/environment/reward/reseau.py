@@ -1,7 +1,6 @@
 from omegaconf import DictConfig
 
 import numpy as np
-import pandas as pd
 
 from corerl.environment.reward.base import BaseReward
 

@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 from corerl.utils.device import device as global_device
 from collections.abc import Callable
-from corerl.component.layer import Identity
 import warnings
 import corerl.component.layer.activations as activations
 

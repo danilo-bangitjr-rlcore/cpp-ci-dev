@@ -4,7 +4,6 @@ https://drive.google.com/drive/u/1/folders/1tJo78FvsWfWaPncJNNyI9IO1f7UbxCFR
 """
 import numpy as np
 import torch
-from torch.nn.functional import mse_loss
 from omegaconf import DictConfig
 
 from corerl.component.network.factory import init_custom_network

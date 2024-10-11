@@ -4,7 +4,6 @@ import gymnasium
 
 from omegaconf import DictConfig
 from abc import ABC, abstractmethod
-from typing import Optional
 
 
 class BaseStateConstructor(ABC):

@@ -1,7 +1,5 @@
 from corerl.eval.base_eval import BaseEval
 from pathlib import Path
-import json
-import numpy as np
 
 
 class EnsembleEval(BaseEval):

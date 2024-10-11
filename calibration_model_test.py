@@ -5,7 +5,6 @@ import random
 import pickle
 
 from omegaconf import DictConfig, OmegaConf
-from tqdm import tqdm
 
 from corerl.calibration_models.factory import init_calibration_model
 from corerl.data.data import Transition, Trajectory
@@ -18,9 +17,6 @@ from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.transition_creator import OldAnytimeTransitionCreator
 from corerl.environment.reward.factory import init_reward_function
-from corerl.utils.plotting import make_actor_critic_plots
-from corerl.eval.composite_eval import CompositeEval
-from corerl.data_loaders.utils import train_test_split
 
 import corerl.utils.freezer as fr
 import main_utils as utils

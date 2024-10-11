@@ -11,7 +11,6 @@ from pathlib import Path
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
-from corerl.alerts.composite_alert import CompositeAlert
 from corerl.interaction.factory import init_interaction
 from corerl.utils.device import device
 from corerl.data.obs_normalizer import ObsTransitionNormalizer

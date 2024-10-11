@@ -20,7 +20,6 @@ from corerl.data.transition_creator import OldAnytimeTransitionCreator
 from corerl.environment.reward.factory import init_reward_function
 from corerl.utils.plotting import make_actor_critic_plots
 from corerl.eval.composite_eval import CompositeEval
-from corerl.data_loaders.utils import train_test_split
 
 import corerl.utils.freezer as fr
 import main_utils as utils

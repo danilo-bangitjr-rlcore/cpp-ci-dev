@@ -1,6 +1,4 @@
-from corerl.utils.hook import when
 import numpy as np
-import pickle as pkl
 import logging
 
 import corerl.utils.pickle as pkl_u
@@ -28,8 +26,7 @@ from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.transition_creator import OldAnytimeTransitionCreator, BaseTransitionCreator
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.agent.base import BaseAgent
-from corerl.utils.plotting import make_actor_critic_plots, make_ensemble_info_step_plot, \
-    make_ensemble_info_summary_plots, make_reseau_gvf_critic_plot
+from corerl.utils.plotting import make_actor_critic_plots, make_reseau_gvf_critic_plot
 from corerl.data_loaders.transition_load_funcs import make_transitions
 
 import corerl.utils.dict as dict_u

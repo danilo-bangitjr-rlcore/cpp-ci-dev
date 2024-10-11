@@ -7,8 +7,6 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 from sqlalchemy.types import JSON, PickleType, DateTime
 from datetime import datetime
-import torch
-from dataclasses import dataclass
 
 from typing_extensions import Annotated
 

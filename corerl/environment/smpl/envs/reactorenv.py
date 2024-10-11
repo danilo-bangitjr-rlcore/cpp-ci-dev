@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 # import mpctools as mpc
 import numpy as np
 import torch
-from gymnasium import spaces, Env  # to create an openai-gym environment https://gym.openai.com/
+from gymnasium import spaces  # to create an openai-gym environment https://gym.openai.com/
 from scipy.integrate import solve_ivp  # the ode solver
 from tqdm import tqdm
 
