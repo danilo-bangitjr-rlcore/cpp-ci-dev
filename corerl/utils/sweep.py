@@ -63,6 +63,7 @@ def get_sweep_params(name: str, path: Path) -> list[dict]:
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec is not None, "Could not find module"
     module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
     spec.loader.exec_module(module)
     sweep_params = module.SWEEP_PARAMS
     sweep_params = params_to_list(sweep_params)
