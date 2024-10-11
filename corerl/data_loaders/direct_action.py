@@ -108,7 +108,6 @@ class OldDirectActionDataLoader(BaseDataLoader):
         self,
         action_df: pd.DataFrame,
         start_ind: pd.Timestamp,
-        debug_idx=None,
     ) -> tuple[np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool]:
         """
         Return the action taken at the beginning of the dataframe.
@@ -201,8 +200,7 @@ class OldDirectActionDataLoader(BaseDataLoader):
 
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
-                                                                                                              action_start,
-                                                                                                              debug_idx)
+                                                                                                              action_start)
                 action_transitions = []
 
                 if data_gap:
