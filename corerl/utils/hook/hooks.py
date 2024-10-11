@@ -34,18 +34,6 @@ class Hooks:
 
         hook.register_with(self, when)
 
-    def swap(self, i, j):
-        self[i], self[j] = self[j], self[i]
-
-    def __getitem__(self, indices):
-        if not isinstance(indices, tuple):
-            indices = (indices,)
-
-        out = self._hooks
-        for index in indices:
-            out = out[index]
-        return out
-
 # A hook is a function which is called at a specific time (see `When` above).
 # Hooks must always return their arguments and keyword arguments as a separate
 # tuple, dict. It is then the job of the caller to assign these values, if
@@ -85,11 +73,7 @@ class Hook:
 
         return _args, _kwargs
 
-    def register_with(self, hooks, when):
+    def register_with(self, hooks: Hooks, when: When):
         self._when = when
         self._hooks = hooks
         return None
-
-    def remove(self):
-        return self._hooks[self._when].remove(self)
-

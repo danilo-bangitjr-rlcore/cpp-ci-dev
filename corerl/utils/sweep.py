@@ -59,7 +59,7 @@ def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[list[Cal
         return runs_with_seeds
 
 
-def get_sweep_params(name: str, path: Path):
+def get_sweep_params(name: str, path: Path) -> list[dict]:
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec is not None, "Could not find module"
     module = importlib.util.module_from_spec(spec)
