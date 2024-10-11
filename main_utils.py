@@ -21,8 +21,9 @@ from corerl.data_loaders.base import BaseDataLoader
 from corerl.data_loaders.direct_action import OldDirectActionDataLoader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.data_loaders.utils import train_test_split
-from corerl.data.data import Transition, ObsTransition, Trajectory
+from corerl.data.data import OldObsTransition, Transition, ObsTransition, Trajectory
 from corerl.interaction.base import BaseInteraction
+from corerl.interaction.offline_anytime import OfflineAnytimeInteraction
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
 from corerl.alerts.composite_alert import CompositeAlert
@@ -33,6 +34,7 @@ from corerl.utils.plotting import make_actor_critic_plots, make_reseau_gvf_criti
 from corerl.data_loaders.transition_load_funcs import make_transitions
 
 import corerl.utils.dict as dict_u
+import corerl.utils.nullable as nullable
 
 
 def prepare_save_dir(cfg: DictConfig):
@@ -185,13 +187,15 @@ def get_offline_obs_transitions(cfg: DictConfig,
     return train_obs_transitions, test_obs_transitions
 
 
-def old_get_offline_transitions(cfg: DictConfig,
-                                obs_transitions: list[ObsTransition],
-                                sc: BaseStateConstructor,
-                                transition_creator: OldAnytimeTransitionCreator,
-                                hash_cfgs=None,
-                                prefix=''
-                                ) -> list[Transition]:
+def old_get_offline_transitions(
+    cfg: DictConfig,
+    obs_transitions: list[OldObsTransition],
+    sc: BaseStateConstructor,
+    transition_creator: OldAnytimeTransitionCreator,
+    hash_cfgs: list[MutableMapping[str, Any]] | None = None,
+    prefix=''
+) -> list[Transition]:
+    hash_cfgs = nullable.default(hash_cfgs, list)
     output_path = Path(cfg.offline_data.output_path)
 
     warmup = cfg.state_constructor.warmup
@@ -213,13 +217,16 @@ def old_get_offline_transitions(cfg: DictConfig,
     return transitions
 
 
-def get_offline_transitions(cfg: DictConfig,
-                            obs_transitions: list[ObsTransition],
-                            sc: BaseStateConstructor,
-                            tc: BaseTransitionCreator,
-                            obs_normalizer: ObsTransitionNormalizer,
-                            hash_cfgs=None,
-                            prefix='') -> list[Transition]:
+def get_offline_transitions(
+    cfg: DictConfig,
+    obs_transitions: list[ObsTransition],
+    sc: BaseStateConstructor,
+    tc: BaseTransitionCreator,
+    obs_normalizer: ObsTransitionNormalizer,
+    hash_cfgs: list[MutableMapping[str, Any]] | None = None,
+    prefix='',
+) -> list[Transition]:
+    hash_cfgs = nullable.default(hash_cfgs, list)
     output_path = Path(cfg.offline_data.output_path)
 
     warmup = cfg.state_constructor.warmup
@@ -238,8 +245,8 @@ def get_offline_transitions(cfg: DictConfig,
 
 def get_offline_trajectories(cfg: DictConfig,
                              hash_cfgs: list[DictConfig],
-                             train_obs_transitions: list[ObsTransition],
-                             test_obs_transitions: list[ObsTransition],
+                             train_obs_transitions: list[OldObsTransition],
+                             test_obs_transitions: list[OldObsTransition],
                              sc: BaseStateConstructor,
                              transition_creator: OldAnytimeTransitionCreator,
                              warmup=0,
@@ -484,7 +491,7 @@ def online_deployment(cfg: DictConfig,
 
 def offline_anytime_deployment(cfg: DictConfig,
                                agent: BaseAgent,
-                               interaction: BaseInteraction,
+                               interaction: OfflineAnytimeInteraction,
                                env: Env,
                                alerts: CompositeAlert,
                                transition_normalizer: TransitionNormalizer,
@@ -512,13 +519,14 @@ def offline_anytime_deployment(cfg: DictConfig,
 
     for j in pbar:
         # does not need an action from the agent
-        transitions, agent_train_transitions, _, alert_train_transitions, alert_info, _ = interaction.step()
+        transitions, agent_train_transitions, _, alert_train_transitions, alert_info = interaction.step()
 
         if transitions is None:
             print("Reached End Of Offline Eval Data")
             log.info("Reached End Of Offline Eval Data")
             break
 
+        agent_train_transitions = nullable.default(agent_train_transitions, list)
         for transition in agent_train_transitions:
             agent.update_buffer(transition)
 
@@ -553,6 +561,7 @@ def offline_anytime_deployment(cfg: DictConfig,
 
         # Plot policy and critic at a set of test states
         # Plotting function is likely project specific
+        test_epochs = nullable.default(test_epochs, list)
         if j in test_epochs:
             make_actor_critic_plots(agent, env, plot_transitions, "Offline_Anytime_Test_States", j, save_path)
 
