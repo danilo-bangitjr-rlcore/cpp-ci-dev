@@ -4,6 +4,7 @@ import numpy
 from pathlib import Path
 from corerl.data.data import Transition
 from corerl.utils.hook import Hooks, when
+from corerl.messages.client import make_msg_bus_client
 
 class BaseAgent(ABC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
@@ -17,6 +18,9 @@ class BaseAgent(ABC):
         self.seed = cfg.seed
         self.n_updates = cfg.n_updates  # how many updates to apply each time update() is called
         self.freezer_freq = cfg.freezer_freq  # how often to save to freezer. This counter is not used currently.
+
+        self._msg_bus = make_msg_bus_client(cfg.message_bus)
+        self._msg_bus.start_sync()
 
     @abstractmethod
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:  # must return a numpy array, not a tensor.

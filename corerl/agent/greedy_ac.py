@@ -1,6 +1,7 @@
 import numpy as np
 from omegaconf import DictConfig
 from pathlib import Path
+from corerl.messages.events import EventType
 from corerl.utils.hook import when
 import torch
 import numpy
@@ -71,6 +72,8 @@ class GreedyAC(BaseAC):
         self._hooks(when.Agent.AfterCreate, self)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
+        self._msg_bus.emit_event_sync(EventType.agent_get_action)
+
         tensor_state = state_to_tensor(state, device.device)
 
         args, _ = self._hooks(when.Agent.BeforeGetAction, self, tensor_state)
@@ -90,6 +93,8 @@ class GreedyAC(BaseAC):
         return action
 
     def update_buffer(self, transition: Transition) -> None:
+        self._msg_bus.emit_event_sync(EventType.agent_update_buffer)
+
         args, _ = self._hooks(
             when.Agent.BeforeUpdateCriticBuffer, self, transition,
         )
@@ -351,6 +356,8 @@ class GreedyAC(BaseAC):
         return sampler_loss
 
     def update_critic(self) -> None:
+        self._msg_bus.emit_event_sync(EventType.agent_update_critic)
+
         for _ in range(self.n_critic_updates):
             batches = self.critic_buffer.sample()
             args, _ = self._hooks(
@@ -376,6 +383,8 @@ class GreedyAC(BaseAC):
         return q_loss
 
     def update_actor(self) -> None:
+        self._msg_bus.emit_event_sync(EventType.agent_update_actor)
+
         update_infos = []
         for _ in range(self.n_actor_updates):
             batches = self.policy_buffer.sample()
@@ -517,6 +526,8 @@ class GreedyAC(BaseAC):
         return critic_loss
 
     def save(self, path: Path) -> None:
+        self._msg_bus.emit_event_sync(EventType.agent_save)
+
         path.mkdir(parents=True, exist_ok=True)
         actor_path = path / "actor"
         self.actor.save(actor_path)
@@ -536,6 +547,8 @@ class GreedyAC(BaseAC):
             pkl.dump(self.policy_buffer, f)
 
     def load(self, path: Path) -> None:
+        self._msg_bus.emit_event_sync(EventType.agent_load)
+
         actor_path = path / "actor"
         self.actor.load(actor_path)
 
