@@ -79,7 +79,7 @@ class OldDirectActionDataLoader(BaseDataLoader):
         else:
             return None
 
-    def get_obs_max_min(self, df: pd.DataFrame) -> (np.ndarray, np.ndarray):
+    def get_obs_max_min(self, df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
         """
         Find the max and min values for each column in the input df to later be used for normalization
         """
@@ -104,9 +104,12 @@ class OldDirectActionDataLoader(BaseDataLoader):
         obs = np.mean(obs, axis=0)
         return obs
 
-    def find_action_boundary(self, action_df: pd.DataFrame,
-                             start_ind: pd.Timestamp, debug_idx=None) -> (
-            np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool):
+    def find_action_boundary(
+        self,
+        action_df: pd.DataFrame,
+        start_ind: pd.Timestamp,
+        debug_idx=None,
+    ) -> tuple[np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool]:
         """
         Return the action taken at the beginning of the dataframe.
         Iterate through the dataframe until an action change, a truncation/termination in the episode, or a large break in time.
