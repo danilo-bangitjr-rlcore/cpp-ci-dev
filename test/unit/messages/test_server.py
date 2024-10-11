@@ -9,7 +9,6 @@ from corerl.messages.client import WebsocketClient
 # ----------------
 # -- Connection --
 # ----------------
-@pytest.mark.asyncio
 async def test_connect1(server):
     """
     Multiple clients can connect to a single
@@ -35,7 +34,7 @@ async def test_connect1(server):
 # ------------------
 # -- Subscription --
 # ------------------
-@pytest.mark.asyncio
+@pytest.mark.timeout(1)
 async def test_subscribe1(server_and_client):
     """
     Given a server and two clients, one client can
@@ -69,7 +68,7 @@ async def test_subscribe1(server_and_client):
     await receiver.close()
 
 
-@pytest.mark.asyncio
+@pytest.mark.timeout(1)
 async def test_subscribe2(server_and_client):
     """
     Given a server and two clients, one client can

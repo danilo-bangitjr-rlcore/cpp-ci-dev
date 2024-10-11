@@ -1,4 +1,4 @@
-import pytest_asyncio
+import pytest
 from asyncua import Server, Node
 from corerl.utils.opc_connection import OpcConnection
 from test.infrastructure.networking import get_free_port
@@ -35,7 +35,8 @@ class FakeOpcServer:
         await self._s.stop()
 
 
-@pytest_asyncio.fixture(loop_scope='function')
+
+@pytest.fixture
 async def server():
     s = FakeOpcServer()
     await s.start()
@@ -52,7 +53,7 @@ class OpcConfigStub:
         self.vendor = 'ignition'
 
 
-@pytest_asyncio.fixture(loop_scope='function')
+@pytest.fixture
 async def client():
     config = OpcConfigStub()
 
@@ -61,7 +62,7 @@ async def client():
     await client.disconnect()
 
 
-@pytest_asyncio.fixture(loop_scope='function')
+@pytest.fixture
 async def server_and_client():
     # building a server should find us an open port
     server = FakeOpcServer()

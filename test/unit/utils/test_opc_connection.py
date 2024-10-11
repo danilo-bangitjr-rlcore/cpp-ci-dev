@@ -2,7 +2,6 @@ import pytest
 import asyncio
 from test.unit.utils.fixture_opc import * # noqa: F403
 
-@pytest.mark.asyncio
 async def test_connect1(server_and_client):
     """
     Client should be able to connect to a running server.
@@ -11,7 +10,6 @@ async def test_connect1(server_and_client):
     await client.connect()
 
 
-@pytest.mark.asyncio
 async def test_connect2(client):
     """
     Client should fail when no server is running.
@@ -20,7 +18,6 @@ async def test_connect2(client):
         await client.connect()
 
 
-@pytest.mark.asyncio
 async def test_read_values1(server_and_client):
     """
     Client can read values for both sensors.
@@ -39,7 +36,6 @@ async def test_read_values1(server_and_client):
     assert values == [1.1, 2.1]
 
 
-@pytest.mark.asyncio
 async def test_disconnect1(server_and_client):
     """
     Client survives when a server goes offline after connection.
@@ -69,7 +65,6 @@ async def test_disconnect1(server_and_client):
     assert got == [3.0]
 
 
-@pytest.mark.asyncio
 async def test_disconnect2(server_and_client):
     """
     Client survives when a server goes offline after connection.

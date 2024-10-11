@@ -1,4 +1,3 @@
-import pytest
 import asyncio
 from test.unit.messages.fixtures import * # noqa: F403
 from corerl.messages.events import EventType
@@ -7,7 +6,6 @@ from corerl.messages.events import EventType
 # ----------------
 # -- Connection --
 # ----------------
-@pytest.mark.asyncio
 async def test_connect1(server_and_client):
     """
     Client can connect to a running server
@@ -19,7 +17,6 @@ async def test_connect1(server_and_client):
 
     await client.send_message('hi')
 
-@pytest.mark.asyncio
 async def test_connect2(server_and_client):
     """
     Client can connect to a server, even when
@@ -38,17 +35,15 @@ async def test_connect2(server_and_client):
 # -- Messaging --
 # ---------------
 
-@pytest.mark.asyncio
 async def test_message1(client):
     """
-    If an unconnected clients sends a message,
+    If an unconnected client sends a message,
     it times out but does not raise an exception.
     """
     await client.start()
     await client.send_message('hi')
 
 
-@pytest.mark.asyncio
 async def test_message2(server_and_client):
     """
     Client can send a message to a listening server.
@@ -60,7 +55,6 @@ async def test_message2(server_and_client):
     await client.send_message('hi')
 
 
-@pytest.mark.asyncio
 async def test_message3(server_and_client):
     """
     Client can send an event to a listening server.
