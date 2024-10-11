@@ -32,7 +32,7 @@ class WebsocketClient:
     # ---------------
     async def start(self, max_attempts: int = -1):
         self._loop = asyncio.get_event_loop()
-        self._first_connect_future = NoCancelFuture(loop=self._loop)
+        self._first_connect_future = asyncio.Future(loop=self._loop)
         self._reconnect_future = asyncio.ensure_future(
             self._continuously_reconnect(max_attempts),
             loop=self._loop,
@@ -51,7 +51,7 @@ class WebsocketClient:
     async def send_message(self, msg: str):
         try:
             socket = await asyncio.wait_for(
-                self.ensure_connected(),
+                asyncio.shield(self.ensure_connected()),
                 timeout=1,
             )
             await socket.send(msg)
@@ -184,11 +184,6 @@ def make_msg_bus_client(cfg: MessageBusClientConfig) -> WebsocketClient:
 # --------------------
 # -- Internal utils --
 # --------------------
-class NoCancelFuture(asyncio.Future):
-    def cancel(self, msg: None = None) -> bool:
-        return False
-
-
 def maybe_cancel(e: asyncio.Future | Future | None):
     if e is None:
         return
