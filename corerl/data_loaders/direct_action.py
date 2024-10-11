@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
 
@@ -54,7 +55,7 @@ class OldDirectActionDataLoader(BaseDataLoader):
         self.obs_length = cfg.obs_length
         self.steps_per_decision = cfg.steps_per_decision
 
-    def load_data(self, filenames: list[str]) -> pd.DataFrame | None:
+    def load_data(self, filenames: Sequence[str] | Sequence[Path]) -> pd.DataFrame | None:
         """
         Read csvs into a single concatenated df sorted by date, containing only the columns in the observation space
         """

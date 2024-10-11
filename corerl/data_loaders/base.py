@@ -2,6 +2,7 @@ import numpy as np
 import pickle as pkl
 from omegaconf import DictConfig
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from pathlib import Path
 
 import pandas as pd
@@ -28,7 +29,7 @@ class BaseDataLoader(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def load_data(self, filenames: list[str]) -> pd.DataFrame:
+    def load_data(self, filenames: Sequence[str] | Sequence[Path]) -> pd.DataFrame:
         """
         Read offline data into a single dataframe sorted by date, containing only columns in observation space
         """
