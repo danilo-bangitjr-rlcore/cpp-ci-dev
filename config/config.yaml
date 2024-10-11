@@ -62,6 +62,9 @@ alert_transition_creator:
   only_dp_transitions :  ${interaction.only_dp_transitions}
   transition_kind : anytime
 
+agent:
+  message_bus:
+    enable: False
 
 # Uncomment the alerts or evals you'd like to use in the defaults list above
 alerts:
