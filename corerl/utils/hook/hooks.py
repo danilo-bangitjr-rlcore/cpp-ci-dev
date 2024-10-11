@@ -1,13 +1,18 @@
-from typing import Union, List, Tuple
+from __future__ import annotations
+from typing import Any, Callable, Union, List, Tuple
+from corerl.utils.hook.when import Agent, Env
+
+
+When = Agent | Env
 
 class Hooks:
     def __init__(self, keys=None):
-        self._hooks = {}
+        self._hooks: dict[When, list[Callable[..., Any]]] = {}
         if keys is not None:
             for k in keys:
                 self._hooks[k] = []
 
-    def __call__(self, when, *args, **kwargs):
+    def __call__(self, when: When, *args, **kwargs):
         if when not in self._hooks.keys() or len(self._hooks[when]) == 0:
             return args, kwargs
         for f in self._hooks[when]:
@@ -15,10 +20,10 @@ class Hooks:
             args, kwargs = f(*args, **kwargs)
         return args, kwargs
 
-    def call(self, when, *args, **kwargs):
+    def call(self, when: When, *args, **kwargs):
         return self(when, *args, **kwargs)
 
-    def register(self, hook, when):
+    def register(self, hook: Hook | Callable[..., Any], when: When):
         if not isinstance(hook, Hook) and callable(hook):
             hook = Hook(hook)
 
@@ -50,7 +55,7 @@ class Hooks:
 # sure this is a good idea. We could just capture the agent with a closure, if
 # need be...
 class Hook:
-    def __init__(self, f, name=None):
+    def __init__(self, f: Callable[..., Any], name: str | None = None):
         self._f = f
         if name is None:
             name = repr(self._f)
