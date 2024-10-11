@@ -172,15 +172,12 @@ def get_offline_obs_transitions(cfg: DictConfig,
         create_func=lambda: _create_obs_transitions(train_data_df, normalizer, reward_func),
     )
 
-    if test_data_df is not None:
-        test_obs_transitions = load_or_create(
-            root=output_path,
-            cfgs=[cfg.data_loader, cfg.env],
-            prefix=prefix + 'test_obs_transitions',
-            create_func=lambda: _create_obs_transitions(test_data_df, normalizer, reward_func),
-        )
-    else:
-        test_obs_transitions = None
+    test_obs_transitions = load_or_create(
+        root=output_path,
+        cfgs=[cfg.data_loader, cfg.env],
+        prefix=prefix + 'test_obs_transitions',
+        create_func=lambda: _create_obs_transitions(test_data_df, normalizer, reward_func),
+    )
 
     print(f"Loaded {len(train_obs_transitions)} train and {len(test_obs_transitions)} test obs transitions. ")
 

@@ -38,7 +38,7 @@ class BaseDataLoader(ABC):
     @abstractmethod
     def create_obs_transitions(self,
                                df: pd.DataFrame,
-                               reward_function: BaseReward, *args) -> dict:
+                               reward_function: BaseReward, *args) -> list:
         raise NotImplementedError
 
     def save(self, save_obj: object, path: Path):
