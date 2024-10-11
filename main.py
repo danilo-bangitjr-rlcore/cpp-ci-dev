@@ -25,7 +25,7 @@ import main_utils as utils
 
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
-def main(cfg: DictConfig) -> dict:
+def main(cfg: DictConfig):
     save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
 
