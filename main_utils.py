@@ -296,7 +296,7 @@ def get_state_action_dim(env: Env, sc: BaseStateConstructor) -> tuple[int, int]:
 
 
 def offline_alert_training(cfg: DictConfig, env: Env, alerts: CompositeAlert, train_transitions: list[Transition],
-                           plot_transitions: list[Transition], save_path: Path) -> CompositeEval:
+                           plot_transitions: list[Transition], save_path: Path):
     print('Starting offline alert training...')
     log.info('Starting offline alert training...')
 
