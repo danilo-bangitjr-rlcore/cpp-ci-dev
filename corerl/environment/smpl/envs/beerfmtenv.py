@@ -7,7 +7,7 @@ import math
 import random
 
 import numpy as np
-from gymnasium import spaces, Env
+from gymnasium import spaces
 from scipy.integrate import odeint
 
 from corerl.environment.smpl.envs.utils import *

@@ -1,14 +1,13 @@
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 import numpy as np
 import torch
 from collections import deque
 from corerl.alerts.base import BaseAlert
 import corerl.component.network.utils as utils
-from corerl.utils.device import device
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import ensemble_mse, to_np, tensor
+from corerl.component.network.utils import to_np
 from corerl.data.data import TransitionBatch, Transition
 
 

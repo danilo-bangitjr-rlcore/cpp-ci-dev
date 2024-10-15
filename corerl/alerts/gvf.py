@@ -1,11 +1,10 @@
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
 import numpy as np
 from collections import deque
 from corerl.alerts.base import BaseAlert
 import corerl.component.network.utils as utils
-from corerl.utils.device import device
-from corerl.prediction.gvf import SimpleGVF, QGVF
+from corerl.prediction.gvf import QGVF
 from corerl.data.data import Transition
 
 

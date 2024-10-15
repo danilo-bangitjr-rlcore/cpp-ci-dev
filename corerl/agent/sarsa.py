@@ -1,4 +1,3 @@
-import numpy as np
 from omegaconf import DictConfig
 from pathlib import Path
 
@@ -10,7 +9,7 @@ import pickle as pkl
 from corerl.agent.base import BaseAgent
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, ensemble_mse, state_to_tensor
+from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.utils.device import device
 from corerl.data.data import TransitionBatch, Transition
 

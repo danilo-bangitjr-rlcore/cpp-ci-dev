@@ -1,7 +1,7 @@
 from omegaconf import DictConfig
 
 import numpy as np
-from corerl.component.network.utils import to_np, tensor
+from corerl.component.network.utils import tensor
 from corerl.utils.device import device
 from corerl.alerts.base import BaseAlert
 from corerl.alerts.factory import init_alert

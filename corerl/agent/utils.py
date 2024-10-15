@@ -3,7 +3,6 @@ import numpy as np
 from jaxtyping import Float
 from typing import Optional
 
-import corerl.component.network.utils as utils
 from corerl.component.network.utils import to_np, tensor
 from corerl.utils.device import device
 

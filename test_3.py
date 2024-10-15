@@ -15,7 +15,6 @@ from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.factory import init_transition_creator
 from corerl.data.transition_creator import OldAnytimeTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
-from corerl.data.transition_normalizer import TransitionNormalizer
 from corerl.interaction.anytime_interaction import AnytimeInteraction, OldAnytimeInteraction
 from tqdm import tqdm
 

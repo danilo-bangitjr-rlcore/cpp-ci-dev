@@ -1,5 +1,5 @@
 import numpy as np
-from gymnasium import spaces, Env
+from gymnasium import spaces
 import copy
 import sympy as sym
 from scipy import signal

@@ -5,7 +5,6 @@ from omegaconf import DictConfig
 import gymnasium
 
 from corerl.state_constructor.base import BaseStateConstructor
-from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.data import Transition
 
 

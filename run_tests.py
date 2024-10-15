@@ -1,7 +1,6 @@
 import argparse
 from pathlib import Path
 import os
-import stat
 import corerl.utils.sweep as sweep
 import subprocess
 from omegaconf import DictConfig, OmegaConf

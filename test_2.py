@@ -16,7 +16,6 @@ from corerl.data_loaders.factory import init_data_loader_old
 from corerl.data.factory import init_transition_creator
 from corerl.data.transition_creator import OldAnytimeTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
-from corerl.data.transition_normalizer import TransitionNormalizer
 
 import corerl.utils.freezer as fr
 import main_utils as utils

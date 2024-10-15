@@ -2,12 +2,10 @@ import unittest
 from corerl.sql_logging import sql_logging
 from omegaconf import OmegaConf
 from sqlalchemy_utils import database_exists, drop_database, create_database
-from sqlalchemy import MetaData, select, ForeignKeyConstraint
-import sqlalchemy
+from sqlalchemy import select
 from corerl.component.network.factory import init_critic_network
 import torch
 import pandas as pd
-from dataclasses import dataclass
 from sqlalchemy.orm import Session
 from hydra import compose, initialize
 import numpy as np

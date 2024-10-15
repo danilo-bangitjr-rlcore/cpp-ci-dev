@@ -3,10 +3,9 @@ from omegaconf import DictConfig
 from pathlib import Path
 
 import numpy
-import random
 
 from corerl.agent.base import BaseAgent
-from corerl.data.data import TransitionBatch, Transition
+from corerl.data.data import Transition
 
 
 class RandomAgent(BaseAgent):

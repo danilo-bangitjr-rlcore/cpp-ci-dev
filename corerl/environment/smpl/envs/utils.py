@@ -1,20 +1,16 @@
 import json
 import math
 import os
-import random
 import time
 # ---- to capture numpy warnings ----
-import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium import spaces, Env  # to create an openai-gym environment https://gym.openai.com/
 
-from scipy.integrate import solve_ivp  # the ode solver
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from corerl.environment.smpl.envs.mzutils.data_structures import SimplePriorityQueue
 from corerl.environment.smpl.envs.mzutils.os_funcs import mkdir_p
 from corerl.environment.smpl.envs.mzutils.gym_space_management import normalize_spaces, denormalize_spaces
 

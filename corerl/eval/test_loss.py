@@ -1,5 +1,4 @@
 from pathlib import Path
-import json
 from corerl.eval.base_eval import BaseEval
 from corerl.component.buffer.factory import init_buffer
 

@@ -4,7 +4,6 @@ from .policy import _get_type_from_dist
 from corerl.component.distribution import get_dist_type
 from corerl.component.layer import init_activation, Parallel
 import torch.nn as nn
-import torch.distributions as d
 from corerl.utils.device import device
 
 

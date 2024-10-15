@@ -1,6 +1,3 @@
-import os
-import numpy as np
-import matplotlib.pyplot as plt
 from reactorenv import ReactorEnvGym
 
 # set up the environment

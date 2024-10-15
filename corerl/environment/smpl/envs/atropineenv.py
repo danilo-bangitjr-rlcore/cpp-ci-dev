@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import requests
 from casadi import DM
-from gymnasium import spaces, Env
+from gymnasium import spaces
 
 from corerl.environment.smpl.envs.helpers.constants import USS, INPUT_REFS, OUTPUT_REF, SIM_TIME
 from corerl.environment.smpl.envs.helpers.helper_funcs import state_estimator
