@@ -1,4 +1,5 @@
-import  pytest
+import sys
+import pytest
 import subprocess
 
 
@@ -6,6 +7,9 @@ import subprocess
     'saturation',
 ])
 @pytest.mark.timeout(60)
+@pytest.mark.skipif(
+    sys.platform =="win32", reason="Windows gh action runners are too flaky."
+)
 def test_main_configs(config: str):
     """
     Should be able to execute the main script for several configs
