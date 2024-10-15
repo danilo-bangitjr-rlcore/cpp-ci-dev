@@ -143,13 +143,14 @@ def get_dp_transitions(transitions: list[Transition]) -> list[Transition]:
     return dp_transitions
 
 
-def get_offline_obs_transitions(cfg: DictConfig,
-                                train_data_df: pd.DataFrame,
-                                test_data_df: pd.DataFrame,
-                                dl: BaseDataLoader | OldDirectActionDataLoader,
-                                normalizer: ObsTransitionNormalizer,
-                                prefix='') -> tuple[
-    list[ObsTransition], Optional[list[ObsTransition]]]:
+def get_offline_obs_transitions(
+    cfg: DictConfig,
+    train_data_df: pd.DataFrame,
+    test_data_df: pd.DataFrame,
+    dl: BaseDataLoader | OldDirectActionDataLoader,
+    normalizer: ObsTransitionNormalizer,
+    prefix='',
+) -> tuple[list[ObsTransition] | list[OldObsTransition], list[ObsTransition] | list[OldObsTransition]]:
     """
     Loads offline observation transitions (transitions without states) from an offline dataset.
     """
