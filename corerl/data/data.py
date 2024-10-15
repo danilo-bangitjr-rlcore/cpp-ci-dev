@@ -167,9 +167,9 @@ class TransitionBatch:
 @dataclass
 class Trajectory:
     def __post_init__(self):
-        self.transitions = []
-        self.start_sc = None
-        self.scs = None
+        self.transitions: list[Transition] = []
+        self.start_sc: BaseStateConstructor | None = None
+        self.scs: list[BaseStateConstructor] | None = None
 
     def add_transition(self, transition: Transition) -> None:
         self.transitions.append(transition)
@@ -182,6 +182,7 @@ class Trajectory:
         self.start_sc = sc
 
     def cache_scs(self) -> None:
+        assert self.start_sc is not None
         self.scs = []
         sc = deepcopy(self.start_sc)
         self.scs.append(deepcopy(sc))
@@ -197,7 +198,7 @@ class Trajectory:
         """
         rolls the initial state constructor forward to
         """
-
+        assert self.start_sc is not None
         if self.scs is not None:
             print(len(self.scs))
             return deepcopy(self.scs[idx])
