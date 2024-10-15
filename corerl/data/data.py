@@ -212,7 +212,7 @@ class Trajectory:
                 steps_until_decision=transition.next_steps_until_decision)
         return sc
 
-    def get_transitions_attr(self, attr):
+    def get_transitions_attr(self, attr: str):
         """
         Returns a numpy array, which is the concatenation of all the transitions attribute for attr
         """
@@ -227,7 +227,7 @@ class Trajectory:
         return np.concatenate(attribute_list, axis=0)
 
 
-    def split_at(self, idx):
+    def split_at(self, idx: int):
         child_1 = Trajectory()
         child_2 = Trajectory()
 
