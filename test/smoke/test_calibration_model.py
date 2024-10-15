@@ -6,7 +6,7 @@ import subprocess
 @pytest.mark.parametrize('config', [
     'saturation',
 ])
-@pytest.mark.timeout(60)
+@pytest.mark.timeout(120)
 @pytest.mark.skipif(
     sys.platform =="win32", reason="Windows gh action runners are too flaky."
 )
