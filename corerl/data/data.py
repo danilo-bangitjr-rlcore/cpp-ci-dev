@@ -202,29 +202,30 @@ class Trajectory:
         if self.scs is not None:
             print(len(self.scs))
             return deepcopy(self.scs[idx])
-        else:
-            sc = deepcopy(self.start_sc)
-            for transition in self.transitions[:idx]:
-                sc(transition.next_obs,
-                    transition.action,
-                    initial_state=False,  # assume the next state will never be an initial state.
-                    decision_point=transition.next_state_dp,
-                    steps_until_decision=transition.next_steps_until_decision)
-            return sc
+
+        sc = deepcopy(self.start_sc)
+        for transition in self.transitions[:idx]:
+            sc(transition.next_obs,
+                transition.action,
+                initial_state=False,  # assume the next state will never be an initial state.
+                decision_point=transition.next_state_dp,
+                steps_until_decision=transition.next_steps_until_decision)
+        return sc
 
     def get_transitions_attr(self, attr):
         """
         Returns a numpy array, which is the concatenation of all the transitions attribute for attr
         """
-        if len(self.transitions) > 0:
-            if hasattr(self.transitions[0], attr):
-                # return array of that attribute for all transitions
-                attribute_list = [getattr(transition, attr).reshape(1, -1) for transition in self.transitions]
-                return np.concatenate(attribute_list, axis=0)
-            else:
-                raise AttributeError("Invalid attribute for Trajectory")
-        else:
+        if len(self.transitions) == 0:
             raise AssertionError("Please ensure that transitions have been added")
+
+        if not hasattr(self.transitions[0], attr):
+            raise AttributeError("Invalid attribute for Trajectory")
+
+        # return array of that attribute for all transitions
+        attribute_list = [getattr(transition, attr).reshape(1, -1) for transition in self.transitions]
+        return np.concatenate(attribute_list, axis=0)
+
 
     def split_at(self, idx):
         child_1 = Trajectory()
