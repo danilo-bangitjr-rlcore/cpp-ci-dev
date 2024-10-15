@@ -9,13 +9,13 @@ from corerl.state_constructor.base import BaseStateConstructor
 
 @dataclass
 class OldObsTransition:
-    prev_action: np.array  # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
-    obs: np.array  # the raw observation of state
+    prev_action: np.ndarray  # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
+    obs: np.ndarray  # the raw observation of state
     obs_steps_until_decision: int
     obs_dp: bool  # Whether 'obs' is at a decision point
-    action: np.array  # the action taken after 'obs' that occurs concurrently with 'next_obs'
+    action: np.ndarray  # the action taken after 'obs' that occurs concurrently with 'next_obs'
     reward: float
-    next_obs: np.array  # the immediate next observation
+    next_obs: np.ndarray  # the immediate next observation
     next_obs_steps_until_decision: int
     next_obs_dp: bool  # Whether 'next_obs' is at a decision point
     terminated: bool
@@ -39,10 +39,10 @@ class OldObsTransition:
 
 @dataclass
 class ObsTransition:
-    obs: np.array  # the raw observation of state
-    action: np.array  # the action taken after 'obs' that occurs concurrently with 'next_obs'
+    obs: np.ndarray  # the raw observation of state
+    action: np.ndarray  # the action taken after 'obs' that occurs concurrently with 'next_obs'
     reward: float
-    next_obs: np.array  # the immediate next observation
+    next_obs: np.ndarray  # the immediate next observation
     terminated: bool = False
     truncate: bool = False
     gap: bool = False  # whether there is a gap in the dataset following next_obs
@@ -64,20 +64,20 @@ class ObsTransition:
 
 @dataclass
 class Transition:
-    obs: np.array  # the raw observation of state
-    state: np.array
-    action: np.array
-    next_obs: np.array  # the immediate next observation
-    next_state: np.array  # the next state in the
+    obs: np.ndarray  # the raw observation of state
+    state: np.ndarray
+    action: np.ndarray
+    next_obs: np.ndarray  # the immediate next observation
+    next_state: np.ndarray  # the next state in the
     # NOTE: we distinguish between the next state and the next state which we bootstrap off of. All following
     # attributes are defined w.r.t. the boot strap state.
     reward: float  # one-step reward
     n_step_reward: float
-    n_step_cumulants: np.array = None
+    n_step_cumulants: np.ndarray | None = None
     # the state which we bootstrap off of, which is not necesssarily the next state
     # in the MDP
-    boot_obs: np.array = None  # the raw observation of next_state
-    boot_state: np.array = None
+    boot_obs: np.ndarray | None = None  # the raw observation of next_state
+    boot_state: np.ndarray | None = None
     terminated: bool = False
     truncate: bool = False
     state_dp: bool = True  # whether state is a decision point
