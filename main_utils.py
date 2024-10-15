@@ -15,9 +15,11 @@ from gymnasium.spaces.utils import flatdim
 from gymnasium import spaces, Env
 from pathlib import Path
 from typing import Any, Optional, ParamSpec, TypeVar
+from warnings import warn
 
 from corerl.eval.composite_eval import CompositeEval
 from corerl.data_loaders.base import BaseDataLoader
+from corerl.data_loaders.direct_action import OldDirectActionDataLoader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.data_loaders.utils import train_test_split
 from corerl.data.data import Transition, ObsTransition, Trajectory
@@ -81,7 +83,8 @@ def load_or_create(
         cfgs: list[MutableMapping[str, Any]],
         prefix: str,
         create_func: BuilderFunc[U, T],
-        args: U.args, **kwargs: U.kwargs,
+        args: U.args = tuple(),
+        kwargs: U.kwargs = {},
 ) -> T:
     """
     Will either load an object or create a new one using create func. Objects are saved at root using a hash determined
@@ -163,8 +166,15 @@ def get_offline_obs_transitions(cfg: DictConfig,
     output_path = Path(cfg.offline_data.output_path)
     reward_func = init_reward_function(cfg.env.reward)
 
-    def _create_obs_transitions(df):
-        return dl.create_obs_transitions(df, normalizer, reward_func)
+    if isinstance(dl, OldDirectActionDataLoader):
+        warn("Using deprecated old direct action data loader to get offline transitions.")
+        dl: OldDirectActionDataLoader
+
+        def _create_obs_transitions(df):
+            return dl.create_obs_transitions(df, normalizer, reward_func)
+    else:
+        def _create_obs_transitions(df):
+            return dl.create_obs_transitions(df, reward_func)
 
     train_obs_transitions = load_or_create(root=output_path, cfgs=[cfg.data_loader, cfg.env],
         prefix=prefix + 'train_obs_transitions', create_func=_create_obs_transitions, args=[train_data_df])
@@ -209,16 +219,16 @@ def get_offline_transitions(cfg: DictConfig,
                             obs_transitions: list[ObsTransition],
                             sc: BaseStateConstructor,
                             tc: BaseTransitionCreator,
+                            obs_normalizer: ObsTransitionNormalizer,
                             hash_cfgs=None,
                             prefix='') -> list[Transition]:
     output_path = Path(cfg.offline_data.output_path)
 
-    def _create_transitions(obs_transitions_, sc_, tc_, warmup_):
-        return make_transitions(obs_transitions_, sc_, tc_, warmup=warmup_)
-
     warmup = cfg.state_constructor.warmup
     transitions = load_or_create(root=output_path, cfgs=hash_cfgs, prefix=prefix,
-        create_func=_create_transitions, args=[obs_transitions, sc, tc, warmup])
+        create_func=make_transitions,
+        args=(obs_transitions, sc, tc, obs_normalizer),
+        kwargs={'warmup': warmup})
 
     num_transitions = len(transitions)
     print(f"Loaded {num_transitions} transitions from prefix {prefix}")

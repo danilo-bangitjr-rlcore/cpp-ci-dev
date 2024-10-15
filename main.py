@@ -85,10 +85,10 @@ def main(cfg: DictConfig) -> dict:
         log.info('Loading offline agent transitions...')
         agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.agent_transition_creator, cfg.env]
 
-        agent_train_transitions = utils.get_offline_transitions(cfg, train_obs_transitions, sc, agent_tc,
+        agent_train_transitions = utils.get_offline_transitions(cfg, train_obs_transitions, sc, agent_tc, obs_normalizer,
             hash_cfgs=agent_hash_cfgs, prefix='agent_train')
 
-        agent_test_transitions = utils.get_offline_transitions(cfg, test_obs_transitions, sc, agent_tc,
+        agent_test_transitions = utils.get_offline_transitions(cfg, test_obs_transitions, sc, agent_tc, obs_normalizer,
             hash_cfgs=agent_hash_cfgs, prefix='agent_test')
 
         all_agent_transitions = agent_train_transitions + agent_test_transitions
@@ -109,7 +109,7 @@ def main(cfg: DictConfig) -> dict:
             alert_hash_cfgs = [cfg.data_loader, cfg.state_constructor,
                 cfg.alert_transition_creator, cfg.alerts, cfg.env]
             alert_train_transitions = utils.get_offline_transitions(cfg, train_obs_transitions, sc,
-                alert_tc, hash_cfgs=alert_hash_cfgs, prefix='alert_train_refactored')
+                alert_tc, obs_normalizer, hash_cfgs=alert_hash_cfgs, prefix='alert_train_refactored')
 
             utils.offline_alert_training(cfg, env, composite_alert, alert_train_transitions,
                 plot_transitions, save_path)

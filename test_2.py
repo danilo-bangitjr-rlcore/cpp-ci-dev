@@ -85,12 +85,12 @@ def main(cfg: DictConfig) -> dict:
                                                                                         prefix='refac_'
                                                                                         )
 
-    def check_equal(obs_t_1, obs_t_2):
+    def check_equal(obs_t_1, obs_t_2, normalizer):
         assert len(obs_t_1) == len(obs_t_2)
         for i, _ in enumerate(obs_t_1):
 
             o_1 = obs_t_1[i]
-            o_2 = obs_t_2[i]
+            o_2 = normalizer.normalize(obs_t_2[i])
 
             if not (np.allclose(o_1.obs, o_2.obs)
                     and np.allclose(o_1.action, o_2.action)
@@ -117,8 +117,8 @@ def main(cfg: DictConfig) -> dict:
 
         print("passed transition test :) ")
 
-    check_equal(train_obs_transitions, train_obs_transitions_r)
-    check_equal(test_obs_transitions, test_obs_transitions_r)
+    check_equal(train_obs_transitions, train_obs_transitions_r, obs_normalizer)
+    check_equal(test_obs_transitions, test_obs_transitions_r, obs_normalizer)
 
     print('Loading offline transitions...')
     log.info('Loading offline transitions...')
@@ -129,12 +129,13 @@ def main(cfg: DictConfig) -> dict:
     agent_test_transitions = utils.old_get_offline_transitions(cfg, test_obs_transitions, sc, old_transition_creator,
                                                                hash_cfgs=agent_hash_cfgs, prefix='agent_test')
 
-    agent_train_transitions_refac = utils.get_offline_transitions(cfg, train_obs_transitions, sc,
-                                                                  transition_creator,
+    agent_train_transitions_refac = utils.get_offline_transitions(cfg, train_obs_transitions_r, sc,
+                                                                  transition_creator, obs_normalizer,
+
                                                                   hash_cfgs=agent_hash_cfgs,
                                                                   prefix='agent_train_refactored')
-    agent_test_transitions_refac = utils.get_offline_transitions(cfg, test_obs_transitions, sc,
-                                                                 transition_creator,
+    agent_test_transitions_refac = utils.get_offline_transitions(cfg, test_obs_transitions_r, sc,
+                                                                 transition_creator, obs_normalizer,
                                                                  hash_cfgs=agent_hash_cfgs,
                                                                  prefix='agent_test_refactored')
 

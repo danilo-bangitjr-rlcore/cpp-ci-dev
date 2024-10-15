@@ -382,7 +382,7 @@ def _get_n_step_reward(reward_queue: deque, gamma: float) -> float:
 
 
 class BaseTransitionCreator(ABC):
-    def __init__(self, cfg: DictConfig, state_constuctor: BaseStateConstructor) -> None:
+    def __init__(self, cfg: DictConfig, state_constuctor: BaseStateConstructor, ) -> None:
         self.state = None
         self.steps_per_decision = cfg.steps_per_decision
         self.n_step = cfg.n_step
@@ -417,6 +417,7 @@ class BaseTransitionCreator(ABC):
              next_state: np.ndarray,
              next_dp: bool,
              next_steps_until_decision: int) -> list[Transition]:
+
         self.curr_obs_transitions.append(obs_transition)
         self.curr_states.append(next_state)
         self.curr_dps.append(next_dp)

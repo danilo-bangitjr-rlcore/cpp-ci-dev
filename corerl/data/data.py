@@ -43,9 +43,9 @@ class ObsTransition:
     action: np.array  # the action taken after 'obs' that occurs concurrently with 'next_obs'
     reward: float
     next_obs: np.array  # the immediate next observation
-    terminated: bool
-    truncate: bool
-    gap: bool  # whether there is a gap in the dataset following next_obs
+    terminated: bool = False
+    truncate: bool = False
+    gap: bool = False  # whether there is a gap in the dataset following next_obs
 
     def __iter__(self):
         for field in fields(self):
@@ -187,10 +187,10 @@ class Trajectory:
         self.scs.append(deepcopy(sc))
         for transition in self.transitions[:-1]:
             sc(transition.next_obs,
-               transition.action,
-               initial_state=False,  # assume the next state will never be an initial state.
-               decision_point=transition.next_state_dp,
-               steps_until_decision=transition.next_steps_until_decision)
+                transition.action,
+                initial_state=False,  # assume the next state will never be an initial state.
+                decision_point=transition.next_state_dp,
+                steps_until_decision=transition.next_steps_until_decision)
             self.scs.append(deepcopy(sc))
 
     def get_sc_at_idx(self, idx: int) -> BaseStateConstructor:
@@ -205,10 +205,10 @@ class Trajectory:
             sc = deepcopy(self.start_sc)
             for transition in self.transitions[:idx]:
                 sc(transition.next_obs,
-                   transition.action,
-                   initial_state=False,  # assume the next state will never be an initial state.
-                   decision_point=transition.next_state_dp,
-                   steps_until_decision=transition.next_steps_until_decision)
+                    transition.action,
+                    initial_state=False,  # assume the next state will never be an initial state.
+                    decision_point=transition.next_state_dp,
+                    steps_until_decision=transition.next_steps_until_decision)
             return sc
 
     def get_transitions_attr(self, attr):
