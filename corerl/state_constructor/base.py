@@ -16,7 +16,7 @@ class BaseStateConstructor(ABC):
     """
 
     @abstractmethod
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env):
+    def __init__(self, cfg: DictConfig):
         self.state = None
         raise NotImplementedError
 

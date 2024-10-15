@@ -9,8 +9,7 @@ class MultiTrace(CompositeStateConstructor):
     """
     A trace constructor that is composed of multiple traces
     """
-
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env):
+    def __init__(self, cfg: DictConfig):
         # define the computation graphs
         start_sc = comp.Identity()  # first component in the graph
         trace_components = []
@@ -30,7 +29,7 @@ class AnytimeMultiTrace(CompositeStateConstructor):
     A trace constructor that is composed of multiple traces
     """
 
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env):
+    def __init__(self, cfg: DictConfig):
         # define the computation graphs
         start_sc = comp.Identity()  # first component in the graph
         trace_components = []
@@ -41,13 +40,13 @@ class AnytimeMultiTrace(CompositeStateConstructor):
 
         if cfg.representation == 'countdown':
             anytime_sc = comp.AnytimeCountDown(cfg.steps_per_decision, parents=[start_sc],
-                                               use_indicator=cfg.use_indicator)
+                use_indicator=cfg.use_indicator)
         elif cfg.representation == 'one_hot':
             anytime_sc = comp.AnytimeOneHot(cfg.steps_per_decision, parents=[start_sc],
-                                            use_indicator=cfg.use_indicator)
+                use_indicator=cfg.use_indicator)
         elif cfg.representation == 'thermometer':
             anytime_sc = comp.AnytimeThermometer(cfg.steps_per_decision, parents=[start_sc],
-                                            use_indicator=cfg.use_indicator)
+                use_indicator=cfg.use_indicator)
         else:
             raise ValueError
 
