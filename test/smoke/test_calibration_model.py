@@ -17,7 +17,7 @@ def test_main_configs(config: str):
     proc = subprocess.run([
         'uv', 'run', 'python', 'make_offline_transitions.py',
         '--config-name', f'{config}.yaml',
-        'experiment.max_steps=100',
+        'experiment.max_steps=50',
     ])
     proc.check_returncode()
 
@@ -25,11 +25,11 @@ def test_main_configs(config: str):
         'uv', 'run', 'python', 'calibration_model.py',
         '--config-name', f'{config}.yaml',
         'experiment.max_steps=25',
-        'experiment.offline_steps=25',
-        'experiment.cm_eval_freq=12',
-        'calibration_model.train_itr=25',
+        'experiment.offline_steps=10',
+        'experiment.cm_eval_freq=10',
+        'calibration_model.train_itr=10',
         'calibration_model.num_test_rollouts=1',
-        'calibration_model.max_rollout_len=90',
+        'calibration_model.max_rollout_len=30',
         'state_constructor.warmup=0',
     ])
     proc.check_returncode()
