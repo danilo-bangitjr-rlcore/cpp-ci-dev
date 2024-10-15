@@ -189,7 +189,7 @@ def main():
 
     """
     OPTIONAL: The SQLBuffer
-    
+
     There is an SQLBuffer that will automatically sync to the transition table.
     The primary use case here is if you want to mark transitions to be ignored online.
     It can also be useful if you want to relabel (e.g., renormalize) or alter transitions in the buffer online.

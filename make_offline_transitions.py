@@ -2,6 +2,7 @@ import hydra
 import numpy as np
 import torch
 import random
+import logging
 import pandas as pd
 
 from omegaconf import DictConfig
@@ -19,6 +20,8 @@ from corerl.eval.composite_eval import CompositeEval
 
 import corerl.utils.freezer as fr
 import main_utils as utils
+
+log = logging.getLogger(__name__)
 
 
 def add_time_column(df):
@@ -38,8 +41,7 @@ def output_to_df(cfg, observations, actions):
     df = pd.DataFrame(dataset, columns=colnames)
     df = add_time_column(df)
 
-    print("Generated df:")
-    print(df.head())
+    log.info(f'Generated df: \n{df.head()}')
 
     output_path = Path(cfg.offline_data.output_path) / 'csv'
     output_path.mkdir(parents=True, exist_ok=True)
@@ -61,7 +63,7 @@ def main(cfg: DictConfig) -> dict:
     env = init_environment(cfg.env)
     sc = init_state_constructor(cfg.state_constructor, env)
     state_dim, action_dim = utils.get_state_action_dim(env, sc)
-    print("State Dim: {}, action dim: {}".format(state_dim, action_dim))
+    log.debug(f"State Dim: {state_dim}, action dim: {action_dim}")
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
     normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
@@ -82,7 +84,7 @@ def main(cfg: DictConfig) -> dict:
     observations = []
     actions = []
 
-    print('Starting online training...')
+    log.info('Starting online training...')
     alert_info_list = []
     for _ in pbar:
         transitions, agent_train_transitions, _, _, _, env_info = interaction.step(action)

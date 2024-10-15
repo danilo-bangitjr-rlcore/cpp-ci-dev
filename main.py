@@ -53,7 +53,6 @@ def main(cfg: DictConfig) -> dict:
     # the next part of instantiates objects. It is shared between online and offline training
     sc = init_state_constructor(cfg.state_constructor, env)
     state_dim, action_dim = utils.get_state_action_dim(env, sc)
-    print("State Dim: {}, action dim: {}".format(state_dim, action_dim))
     log.info("State Dim: {}, action dim: {}".format(state_dim, action_dim))
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
@@ -76,12 +75,10 @@ def main(cfg: DictConfig) -> dict:
         alert_tc.init_alerts(composite_alert)
 
     if do_offline_training:
-        print('Loading offline observations...')
         log.info('Loading offline observations...')
         train_obs_transitions, test_obs_transitions = utils.get_offline_obs_transitions(cfg,
             train_data_df, test_data_df, dl, obs_normalizer)
 
-        print('Loading offline agent transitions...')
         log.info('Loading offline agent transitions...')
         agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.agent_transition_creator, cfg.env]
 

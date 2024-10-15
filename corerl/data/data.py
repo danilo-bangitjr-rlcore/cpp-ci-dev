@@ -199,7 +199,6 @@ class Trajectory:
         """
 
         if self.scs is not None:
-            print(len(self.scs))
             return deepcopy(self.scs[idx])
         else:
             sc = deepcopy(self.start_sc)

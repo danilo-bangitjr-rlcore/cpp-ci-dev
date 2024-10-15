@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import random
 import pickle
+import logging
 
 from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
@@ -23,6 +24,8 @@ from corerl.eval.composite_eval import CompositeEval
 
 import corerl.utils.freezer as fr
 import main_utils as utils
+
+log = logging.getLogger(__name__)
 
 
 def trajectories_to_transitions(trajectories: list[Trajectory]) -> list[Transition]:
@@ -54,8 +57,6 @@ def main(cfg: DictConfig) -> dict:
 
     sc_agent = init_state_constructor(cfg.state_constructor, env)
     state_dim, action_dim = utils.get_state_action_dim(env, sc_agent)
-    print("State Dim:", state_dim)
-    print("Action Dim:", action_dim)
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
     alert_args = {
@@ -91,7 +92,7 @@ def main(cfg: DictConfig) -> dict:
     plot_transitions = trajectories_to_transitions(test_trajectories_agent)
 
     # load trajectories for the model
-    print("loading trajectories for the model")
+    log.info("loading trajectories for the model")
     sc_cm = init_state_constructor(cfg.calibration_model.state_constructor, env)
 
     # the models need all transitions, not just DP transitions
@@ -142,7 +143,7 @@ def main(cfg: DictConfig) -> dict:
     cm = init_calibration_model(cfg.calibration_model, train_info)
     cm.train()
 
-    print("Doing test rollouts...")
+    log.info("Doing test rollouts...")
     losses = cm.do_test_rollouts(save_path / 'test_rollouts')
 
     with open(save_path / 'test_rollout_losses.pkl', 'wb') as f:
@@ -153,13 +154,13 @@ def main(cfg: DictConfig) -> dict:
     if test_epochs is None:
         test_epochs = []
 
-    print('Starting offline agent training...')
+    log.info('Starting offline agent training...')
     offline_eval_args = {
         'agent': agent
     }
     offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
 
-    print(f"Num agent train transitions: {len(train_transitions)}, "
+    log.debug(f"Num agent train transitions: {len(train_transitions)}, "
           f"Num agent plot transitions: {len(plot_transitions)}, "
           f"num agent rollout transitions: {len(trajectories_to_transitions(rollout_trajectories_agent))}")
 
@@ -184,7 +185,7 @@ def main(cfg: DictConfig) -> dict:
                                            plot='post_training',
                                            plot_save_path=save_path / 'agent_rollouts' / str(i))
 
-            print(f"Mean return post-training at iteration {i}: {np.mean(returns)}")
+            log.info(f"Mean return post-training at iteration {i}: {np.mean(returns)}")
             all_returns.append(returns)
 
     with open(save_path / 'returns.pkl', 'wb') as f:
