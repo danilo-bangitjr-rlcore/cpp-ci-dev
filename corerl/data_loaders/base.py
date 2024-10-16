@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import pandas as pd
+from corerl.data.data import ObsTransition, OldObsTransition
 from corerl.environment.reward.base import BaseReward
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
@@ -36,9 +37,11 @@ class BaseDataLoader(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def create_obs_transitions(self,
-                               df: pd.DataFrame,
-                               reward_function: BaseReward, *args) -> list:
+    def create_obs_transitions(
+        self,
+        df: pd.DataFrame,
+        reward_function: BaseReward, *args,
+    ) -> list[OldObsTransition] | list[ObsTransition]:
         raise NotImplementedError
 
     def save(self, save_obj: object, path: Path):
