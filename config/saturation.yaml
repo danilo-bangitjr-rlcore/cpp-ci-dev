@@ -26,6 +26,7 @@ experiment :
   offline_steps : 0
   set_env_obs_space : False
   timeout: 0
+  cm_eval_freq: 100
 
 env:
   opc : null
@@ -51,7 +52,7 @@ agent:
       weight_decay : 0.0
   actor:
     actor_optimizer:
-      lr : 0.001
+      lr : 0.0005
   buffer:
       batch_size : 64
 

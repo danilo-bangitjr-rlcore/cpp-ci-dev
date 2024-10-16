@@ -6,6 +6,7 @@ import subprocess
     'pendulum',
     'saturation',
 ])
+@pytest.mark.timeout(120)
 def test_main_configs(config: str):
     """
     Should be able to execute the main script for several configs
