@@ -1,10 +1,12 @@
+import gymnasium as gym
 from corerl.data.normalizer_utils import init_action_normalizer, init_reward_normalizer, init_obs_normalizer
 from corerl.data.data import ObsTransition, OldObsTransition
 
 from copy import copy
+from omegaconf import DictConfig
 
 class ObsTransitionNormalizer:
-    def __init__(self, cfg, env):
+    def __init__(self, cfg: DictConfig, env: gym.Env):
         self.action_normalizer = init_action_normalizer(cfg.action_normalizer, env)
         self.reward_normalizer = init_reward_normalizer(cfg.reward_normalizer)
         self.obs_normalizer = init_obs_normalizer(cfg.obs_normalizer, env)
