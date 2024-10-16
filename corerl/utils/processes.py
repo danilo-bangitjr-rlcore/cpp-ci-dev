@@ -1,6 +1,6 @@
 import asyncio
+import atexit
 import logging
-import subprocess
 import datetime as dt
 
 from corerl.utils.time import Seconds, as_seconds
@@ -17,9 +17,9 @@ async def keep_alive(
     attempts = 0
 
     while True:
-        proc = try_to_execute(cmd)
+        proc = await try_to_execute(cmd)
 
-        if proc is not None and proc.returncode == 0:
+        if proc is not None and proc == 0:
             break
 
         attempts += 1
@@ -29,13 +29,20 @@ async def keep_alive(
         await asyncio.sleep(sleep)
 
 
-def try_to_execute(cmd: list[str]):
-    try:
-        return subprocess.run(cmd)
+async def try_to_execute(cmd: list[str]):
+    proc = await asyncio.create_subprocess_exec(*cmd)
+    exit_code = None
+    atexit.register(proc.kill)
 
-    # Note: BaseException here is broader than Exception
-    # and will include things like keyboard interrupts.
-    # This makes the manager process hard-to-kill (which is the goal!)
-    # however, also makes it hard to work with.
-    except BaseException:
+    try:
+        exit_code = await proc.wait()
+
+    except asyncio.CancelledError:
+        proc.kill()
+        exit_code = 0
+
+    except Exception:
         log.exception('Caught an exception executing the agent application!')
+
+    atexit.unregister(proc.kill)
+    return exit_code
