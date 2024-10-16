@@ -1,7 +1,7 @@
-import socket
-import pytest_asyncio
+import pytest
 from asyncua import Server, Node
 from corerl.utils.opc_connection import OpcConnection
+from test.infrastructure.networking import get_free_port
 
 
 class FakeOpcServer:
@@ -35,7 +35,8 @@ class FakeOpcServer:
         await self._s.stop()
 
 
-@pytest_asyncio.fixture(loop_scope='function')
+
+@pytest.fixture
 async def server():
     s = FakeOpcServer()
     await s.start()
@@ -53,7 +54,7 @@ class OpcConfigStub:
         self.timeout = 1
 
 
-@pytest_asyncio.fixture(loop_scope='function')
+@pytest.fixture
 async def client():
     config = OpcConfigStub()
 
@@ -62,7 +63,7 @@ async def client():
     await client.disconnect()
 
 
-@pytest_asyncio.fixture(loop_scope='function')
+@pytest.fixture
 async def server_and_client():
     # building a server should find us an open port
     server = FakeOpcServer()
@@ -77,19 +78,3 @@ async def server_and_client():
 
     await client.disconnect()
     await server.close()
-
-
-
-def get_free_port(host: str):
-    # binding to port 0 will ask the OS to give us an arbitrary free port
-    # since we've just bound that free port, it is by definition no longer free,
-    # so we set that port as reuseable to allow another socket to bind to it
-    # then we immediately close the socket and release our connection.
-    sock = socket.socket()
-    sock.bind((host, 0))
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-    port: int = sock.getsockname()[1]
-    sock.close()
-
-    return port

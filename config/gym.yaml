@@ -35,5 +35,11 @@ agent_transition_creator:
 
 use_alerts: False
 
+agent:
+  message_bus:
+    enable: False
+    host: 'localhost'
+    port: 8123
+
 alerts:
 eval:
