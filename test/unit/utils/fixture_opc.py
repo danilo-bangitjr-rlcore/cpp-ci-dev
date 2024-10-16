@@ -50,6 +50,7 @@ class OpcConfigStub:
         self.port = 4840
         self.conn_stats = None
         self.vendor = 'ignition'
+        self.timeout = 1
 
 
 @pytest_asyncio.fixture(loop_scope='function')
