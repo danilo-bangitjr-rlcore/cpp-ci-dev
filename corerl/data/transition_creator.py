@@ -63,10 +63,10 @@ class OldAnytimeTransitionCreator(object):
                     new_traj.add_transition(curr_chunk_transitions[i])
 
                 if return_all_scs:
-                    new_traj.cache_scs()
-                    assert len(new_traj.scs) == new_traj.num_transitions
-                    for i in range(len(new_traj.scs)):
-                        assert np.allclose(new_traj.scs[i].get_current_state(), new_traj.transitions[i].state)
+                    scs = new_traj.cache_scs()
+                    assert len(scs) == new_traj.num_transitions
+                    for i in range(len(scs)):
+                        assert np.allclose(scs[i].get_current_state(), new_traj.transitions[i].state)
 
                 trajectories.append(new_traj)
 

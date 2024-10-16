@@ -181,7 +181,7 @@ class Trajectory:
     def add_start_sc(self, sc: BaseStateConstructor) -> None:
         self.start_sc = sc
 
-    def cache_scs(self) -> None:
+    def cache_scs(self) -> list[BaseStateConstructor]:
         assert self.start_sc is not None
         self.scs = []
         sc = deepcopy(self.start_sc)
@@ -193,6 +193,8 @@ class Trajectory:
                 decision_point=transition.next_state_dp,
                 steps_until_decision=transition.next_steps_until_decision)
             self.scs.append(deepcopy(sc))
+
+        return self.scs
 
     def get_sc_at_idx(self, idx: int) -> BaseStateConstructor:
         """
