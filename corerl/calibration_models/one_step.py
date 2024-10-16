@@ -1,3 +1,4 @@
+import logging
 import torch
 import torch.nn as nn
 
@@ -9,6 +10,9 @@ from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.network.utils import tensor
 from corerl.calibration_models.base import BaseCalibrationModel
+
+
+log = logging.getLogger(__name__)
 
 
 class OneStep(BaseCalibrationModel):
@@ -48,7 +52,7 @@ class OneStep(BaseCalibrationModel):
         self.train_losses.append(loss.detach().numpy())
 
     def train(self):
-        print('Training model...')
+        log.info('Training model...')
         pbar = tqdm(range(self.train_itr))
         for _ in pbar:
             self._update()

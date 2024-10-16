@@ -1,3 +1,5 @@
+import logging
+
 from omegaconf import DictConfig
 
 import numpy as np
@@ -6,6 +8,9 @@ from corerl.utils.device import device
 from corerl.alerts.base import BaseAlert
 from corerl.alerts.factory import init_alert
 from corerl.data.data import Transition
+
+
+log = logging.getLogger(__name__)
 
 
 class CompositeAlert(BaseAlert):
@@ -131,6 +136,5 @@ class CompositeAlert(BaseAlert):
     def get_buffer_sizes(self):
         for alert in self.alerts:
             alert_type = alert.alert_type()
-            print("Get {} Buffer Size(s)".format(alert_type))
-            print("{} Buffer Size(s): {}".format(alert_type, alert.get_buffer_size()))
-
+            log.info(f"Get {alert_type} Buffer Size(s)")
+            log.info(f"{alert_type} Buffer Size(s): {alert.get_buffer_size()}")

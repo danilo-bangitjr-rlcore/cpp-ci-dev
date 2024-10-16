@@ -40,7 +40,7 @@ import corerl.utils.nullable as nullable
 def prepare_save_dir(cfg: DictConfig):
     if cfg.experiment.param_from_hash:
         cfg_hash = dict_u.hash(cfg, ignore={'experiment.seed'})
-        print("Creating experiment param from hash:", cfg_hash)
+        log.debug("Creating experiment param from hash:", cfg_hash)
         cfg.experiment.param = cfg_hash
 
     save_path = (
@@ -89,10 +89,10 @@ def load_or_create(
     obj: Any = pkl_u.maybe_load(save_path)
 
     if obj is not None:
-        print(f"Loaded {prefix} from {save_path}.")
+        log.info(f"Loaded {prefix} from {save_path}.")
         return obj
 
-    print(f"Generating {prefix}...")
+    log.debug(f"Generating {prefix}...")
     obj = create_func()
 
     save_path = root / cfg_hash
@@ -101,7 +101,7 @@ def load_or_create(
         obj,
     )
 
-    print(f"Saved {prefix} to {save_path}.")
+    log.debug(f"Saved {prefix} to {save_path}.")
 
     return obj
 
@@ -109,7 +109,6 @@ def load_or_create(
 def set_env_obs_space(env: Env, df: pd.DataFrame, dl: BaseDataLoader):
     obs_bounds = dl.get_obs_max_min(df)
     env.observation_space = spaces.Box(low=obs_bounds[0], high=obs_bounds[1], dtype=np.float32)
-    print("Updated env observation space:", env.observation_space)
     log.info("Updated env observation space: {}".format(env.observation_space))
     return env
 
@@ -180,7 +179,7 @@ def get_offline_obs_transitions(
         create_func=lambda: _create_obs_transitions(test_data_df, normalizer, reward_func),
     )
 
-    print(f"Loaded {len(train_obs_transitions)} train and {len(test_obs_transitions)} test obs transitions. ")
+    log.debug(f"Loaded {len(train_obs_transitions)} train and {len(test_obs_transitions)} test obs transitions. ")
 
     return train_obs_transitions, test_obs_transitions
 
@@ -210,7 +209,7 @@ def old_get_offline_transitions(
     )
 
     num_transitions = len(transitions)
-    print(f"Loaded {num_transitions} transitions from prefix {prefix}")
+    log.debug(f"Loaded {num_transitions} transitions from prefix {prefix}")
 
     return transitions
 
@@ -236,7 +235,7 @@ def get_offline_transitions(
     )
 
     num_transitions = len(transitions)
-    print(f"Loaded {num_transitions} transitions from prefix {prefix}")
+    log.debug(f"Loaded {num_transitions} transitions from prefix {prefix}")
 
     return transitions
 
@@ -286,7 +285,7 @@ def get_offline_trajectories(cfg: DictConfig,
     else:
         test_trajectories = []
 
-    print(f"Loaded {len(train_trajectories)} train and {len(test_trajectories)} test trajectories. ")
+    log.debug(f"Loaded {len(train_trajectories)} train and {len(test_trajectories)} test trajectories. ")
     return train_trajectories, test_trajectories
 
 
@@ -302,15 +301,13 @@ def get_state_action_dim(env: Env, sc: BaseStateConstructor) -> tuple[int, int]:
 
 def offline_alert_training(cfg: DictConfig, env: Env, alerts: CompositeAlert, train_transitions: list[Transition],
                            plot_transitions: list[Transition], save_path: Path):
-    print('Starting offline alert training...')
     log.info('Starting offline alert training...')
 
     if plot_transitions is None:
         split = train_test_split(train_transitions, train_split=cfg.experiment.train_split)
         train_transitions, plot_transitions = split[0][0], split[0][1]
 
-    print("Num alert train transitions:", len(train_transitions))
-    log.info("Num alert train transitions: {}".format(len(train_transitions)))
+    log.debug("Num alert train transitions: {}".format(len(train_transitions)))
 
     alerts.load_buffer(train_transitions)
     alerts.get_buffer_sizes()
@@ -352,7 +349,6 @@ def offline_training(cfg: DictConfig,
     if test_epochs is None:
         test_epochs = []
 
-    print('Starting offline agent training...')
     log.info('Starting offline agent training...')
     offline_eval_args = {
         'agent': agent,
@@ -370,7 +366,7 @@ def offline_training(cfg: DictConfig,
         split = train_test_split(train_transitions, train_split=cfg.experiment.train_split)
         train_transitions, plot_transitions = split[0][0], split[0][1]
 
-    print("Num agent train transitions:", len(train_transitions))
+    log.debug("Num agent train transitions:", len(train_transitions))
     agent.load_buffer(train_transitions)
 
     for buffer_name, size in agent.get_buffer_sizes().items():
@@ -438,7 +434,7 @@ def online_deployment(cfg: DictConfig,
     state, info = interaction.reset()
     action = agent.get_action(state)  # initial action
     render_after = cfg["experiment"].get("render_after", 0)
-    print('Starting online training...')
+    log.info('Starting online training...')
     for j in pbar:
         transitions, agent_train_transitions, _, alert_train_transitions, alert_info, env_info = interaction.step(
             action)
@@ -512,7 +508,6 @@ def offline_anytime_deployment(cfg: DictConfig,
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(range(max_steps))
     alert_info_list = []
-    print('Starting online anytime training with offline dataset...')
     log.info('Starting online anytime training with offline dataset...')
 
     for j in pbar:
@@ -520,7 +515,6 @@ def offline_anytime_deployment(cfg: DictConfig,
         transitions, agent_train_transitions, _, alert_train_transitions, alert_info = interaction.step()
 
         if transitions is None:
-            print("Reached End Of Offline Eval Data")
             log.info("Reached End Of Offline Eval Data")
             break
 

@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
@@ -13,6 +14,8 @@ from corerl.data.data import OldObsTransition, ObsTransition
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
 from warnings import warn
+
+log = logging.getLogger(__name__)
 
 
 class OldDirectActionDataLoader(BaseDataLoader):
@@ -89,8 +92,8 @@ class OldDirectActionDataLoader(BaseDataLoader):
         obs_space_low = np_min_max[0, :]
         obs_space_high = np_min_max[1, :]
 
-        print("Obs Space Low:", obs_space_low)
-        print("Obs Space High:", obs_space_high)
+        log.debug(f"Obs Space Low: {obs_space_low}")
+        log.debug(f"Obs Space High: {obs_space_high}")
 
         return obs_space_low, obs_space_high
 
@@ -456,8 +459,8 @@ class DirectActionDataLoader(BaseDataLoader):
         obs_space_low = np_min_max[0, :]
         obs_space_high = np_min_max[1, :]
 
-        print("Obs Space Low:", obs_space_low)
-        print("Obs Space High:", obs_space_high)
+        log.debug(f"Obs Space Low: {obs_space_low}")
+        log.debug(f"Obs Space High: {obs_space_high}")
 
         return obs_space_low, obs_space_high
 
@@ -599,5 +602,5 @@ class DirectActionDataLoader(BaseDataLoader):
 
                 action_start = next_action_start
 
-        print("Number of observation transitions: {}".format(len(obs_transitions)))
+        log.debug(f"Number of observation transitions: {len(obs_transitions)}")
         return obs_transitions

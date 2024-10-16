@@ -1,4 +1,8 @@
+import logging
 import torch
+
+log = logging.getLogger(__name__)
+
 
 class Device:
     def __init__(self):
@@ -10,6 +14,6 @@ class Device:
         else:
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        print("Update Device:", self.device)
+        log.info("Update Device:", self.device)
 
 device = Device()

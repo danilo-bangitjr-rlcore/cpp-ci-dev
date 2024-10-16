@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import random
+import logging
 
 from tqdm import tqdm
 from omegaconf import DictConfig
@@ -16,6 +17,8 @@ from corerl.data.data import OldObsTransition
 from corerl.component.network.utils import tensor, to_np
 from corerl.data.data import Trajectory
 from corerl.agent.base import BaseAgent
+
+log = logging.getLogger(__name__)
 
 
 class AnytimeCalibrationModel(BaseCalibrationModel):
@@ -70,7 +73,7 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
         self.train_losses.append(loss.detach().numpy())
 
     def train(self):
-        print('Training model...')
+        log.info('Training model...')
         pbar = tqdm(range(self.train_itr))
         train_losses = []
         train_loss = 0

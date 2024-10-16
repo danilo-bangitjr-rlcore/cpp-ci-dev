@@ -1,4 +1,5 @@
 import torch
+import logging
 import numpy as np
 import sklearn.neighbors as skn
 
@@ -11,6 +12,8 @@ from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.network.utils import to_np
 from corerl.calibration_models.base import BaseCalibrationModel
 from corerl.data.data import Transition, TransitionBatch
+
+log = logging.getLogger(__name__)
 
 
 class KNNCalibrationModel(BaseCalibrationModel):
@@ -45,7 +48,7 @@ class KNNCalibrationModel(BaseCalibrationModel):
 
     def _init_metric(self, cfg: DictConfig) -> None:
         if self.learn_metric:  # learn a laplacian
-            print("Learning Laplacian representation...")
+            log.info("Learning Laplacian representation...")
             if self.include_actions:
                 input_dim = self.state_dim + self.action_dim
             else:
@@ -66,7 +69,7 @@ class KNNCalibrationModel(BaseCalibrationModel):
 
     def train(self, loss_avg=100) -> None:
         if self.learn_metric:
-            print("Learning Laplacian representation...")
+            log.info("Learning Laplacian representation...")
             losses = []
             pbar = tqdm(range(self.train_itr))
             for _ in pbar:
@@ -83,7 +86,7 @@ class KNNCalibrationModel(BaseCalibrationModel):
 
                 self.optimizer.step()
 
-        print("Constructing lookup...")
+        log.info("Constructing lookup...")
         self._construct_lookup_continuous(self.train_transitions)
 
     def _laplacian_loss(self, batch: TransitionBatch) -> torch.Tensor:

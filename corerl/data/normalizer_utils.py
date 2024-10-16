@@ -1,3 +1,4 @@
+import logging
 import warnings
 
 from typing import Any, TypeVar, Generic
@@ -8,6 +9,8 @@ import numpy as np
 import gymnasium
 
 from corerl.utils.types import Ring
+
+log = logging.getLogger(__name__)
 
 
 R = TypeVar('R', bound=Ring)
@@ -155,7 +158,7 @@ def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> InvertibleNor
         scale = (action_max - action_min)
         bias = action_min
 
-        print(f"Initializing action normalizer using scale = {scale} and bias = {bias}")
+        log.debug(f"Initializing action normalizer using scale = {scale} and bias = {bias}")
 
         return Scale(scale, bias)
 
@@ -185,7 +188,7 @@ def init_reward_normalizer(cfg: DictConfig) -> BaseNormalizer:
         scale = reward_high - reward_low
         bias = float(cfg.reward_bias)
 
-        print(f"Initializing reward normalizer using scale = {scale} and bias = {bias}")
+        log.debug(f"Initializing reward normalizer using scale = {scale} and bias = {bias}")
 
         return Scale(scale, bias)
     elif name == "clip":

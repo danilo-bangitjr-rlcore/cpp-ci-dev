@@ -1,3 +1,4 @@
+import logging
 import torch
 import torch.nn as nn
 from tqdm import tqdm
@@ -6,6 +7,8 @@ from omegaconf import DictConfig
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
+
+log = logging.getLogger(__name__)
 
 
 class OneStepModel:
@@ -50,7 +53,7 @@ class OneStepModel:
         self.train_losses.append(loss.detach().numpy())
 
     def train(self):
-        print('Training model...')
+        log.info('Training model...')
         pbar = tqdm(range(self.train_itr))
         for _ in pbar:
             self.update()
