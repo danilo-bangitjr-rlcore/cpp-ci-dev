@@ -1,8 +1,12 @@
+import logging
 import uuid
 from enum import StrEnum, auto
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from corerl.utils.time import now_iso
+
+logger = logging.getLogger(__name__)
+
 
 
 class EventType(StrEnum):
@@ -33,3 +37,14 @@ class Event(BaseModel):
 class SubscribeEvent(Event):
     type: EventType = EventType.subscribe
     subscribe_to: EventType
+
+
+# ---------------------
+# -- Utility methods --
+# ---------------------
+def maybe_parse_event(msg: str | bytes) -> Event | None:
+    try:
+        return Event.model_validate_json(msg)
+    except ValidationError:
+        logger.exception('Failed to parse websocket message')
+        return None
