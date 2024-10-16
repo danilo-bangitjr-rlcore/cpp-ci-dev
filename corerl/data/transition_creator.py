@@ -317,6 +317,7 @@ class OldAnytimeTransitionCreator(object):
 
             # Shared amongst agent and alert transitions
             gamma_exp = len(np_n_step_rewards)
+            assert boot_state_queue.maxlen is not None
             boot_state_dp = dp_counter <= boot_state_queue.maxlen
 
             if self.alerts.get_dim() > 0:
@@ -479,10 +480,8 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         Produce the agent and alert state transitions using the observation transitions
         that occur between two decision points
         """
-        using_alerts = self.alert is not None and self.alert.get_dim() > 0
-
         alert_gammas, cumulants = None, None
-        if using_alerts:
+        if self.alert is not None and self.alert.get_dim() > 0:
             # Alerts can use different discount factors than the agent's value functions
             alert_gammas = np.array(self.alert.get_discount_factors())
             cumulants = self._get_alert_cumulants()
@@ -504,7 +503,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             reward = curr_obs_transition.reward
             reward_queue.appendleft(reward)
             n_step_reward = _get_n_step_reward(reward_queue, self.gamma)
-            if using_alerts:
+            if cumulants is not None and alert_gammas is not None:
                 cumulant_queue.appendleft(cumulants[step_idx])
                 n_step_cumulants = _get_n_step_cumulants(cumulant_queue, alert_gammas)
             else:
@@ -558,9 +557,8 @@ class RegularRLTransitionCreator(BaseTransitionCreator):
         elif len(self.curr_obs_transitions) > self.steps_per_decision:
             assert False, "There should not be more than self.steps_per_decision obs transitions in len(self.curr_obs_transitions)"
 
-        using_alerts = self.alert is not None and self.alert.get_dim() > 0
         n_step_cumulants = None
-        if using_alerts:
+        if self.alert is not None and self.alert.get_dim() > 0:
             alert_gammas = np.array(
                 self.alert.get_discount_factors())  # Alerts can use different discount factors than the agent's value functions
             cumulants = self._get_alert_cumulants()
