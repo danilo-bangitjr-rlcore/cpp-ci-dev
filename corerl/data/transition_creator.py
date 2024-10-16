@@ -56,6 +56,7 @@ class OldAnytimeTransitionCreator(object):
             curr_chunk_transitions, _, start_sc = self._make_offline_transitions_for_chunk(curr_chunk_obs_transitions,
                                                                                            sc, warmup)
 
+            assert start_sc is not None
             if len(curr_chunk_transitions) > 0:
                 new_traj = Trajectory()
                 new_traj.add_start_sc(start_sc)
@@ -116,7 +117,7 @@ class OldAnytimeTransitionCreator(object):
                                             curr_chunk_obs_transitions: list[OldObsTransition],
                                             sc: BaseStateConstructor,
                                             warmup: int = 0) -> tuple[
-        list[Transition], list[Transition], BaseStateConstructor]:
+        list[Transition], list[Transition], BaseStateConstructor | None]:
         """
         Produce Anytime transitions for a continuous chunk of observation transitions (no data gaps) from an offline dataset
         """
@@ -179,7 +180,7 @@ class OldAnytimeTransitionCreator(object):
             warmup_sc = None
         else:
             # assert np.allclose(warmup_sc.get_current_state(), curr_chunk_agent_transitions[0].state)
-            assert np.allclose(warmup_sc.get_current_state(), curr_chunk_alert_transitions[0].state)
+            assert warmup_sc is not None and np.allclose(warmup_sc.get_current_state(), curr_chunk_alert_transitions[0].state)
 
         return curr_chunk_agent_transitions, curr_chunk_alert_transitions, warmup_sc
 
