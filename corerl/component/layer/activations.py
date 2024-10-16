@@ -125,6 +125,7 @@ def init_activation(cfg) -> nn.Module:
     kwargs = cfg.get("kwargs", {})
 
     activations = {
+        "fta": FTA,
         "bias": Bias,
         "multiply": Multiply,
         "functional": Functional,

@@ -1,13 +1,15 @@
 import torch
-from corerl.component.layer.activations import FTA as FTA
+from corerl.component.layer.activations import (
+    FTA as FTA,
+    init_activation as init_activation
+)
 
 
 # ----------
 # -- FTA --
 # ----------
 def test_fta1():
-    """
-    Test scalar case
+    """Test scalar case
     """
     eta = 0.1
     lower = 0
@@ -28,15 +30,14 @@ def test_fta1():
     input_ = torch.Tensor([0.52])
 
     got = fta(input_)
-    expected = torch.Tensor([[0.0, 0.98, 1.0, 0.0]])
+    expected = torch.Tensor([0.0, 0.98, 1.0, 0.0])
 
     assert torch.all(got == expected)
     assert got.shape == expected.shape
 
 
 def test_fta2():
-    """
-    Test batch case
+    """Test batch case
     """
     eta = 0.1
     lower = 0
@@ -48,11 +49,11 @@ def test_fta2():
 
     got = fta(input_)
     expected = torch.Tensor([
-        [1.0, 0.0,  0.0, 0.0 ],
-        [1.0, 0.0,  0.0, 0.0 ],
-        [0.0, 0.98, 1.0, 0.0 ],
-        [0.0, 0.0,  1.0, 0.97],
-        [0.0, 0.0,  0.0, 1.0 ],
+        1.0, 0.0,  0.0, 0.0,
+        1.0, 0.0,  0.0, 0.0,
+        0.0, 0.98, 1.0, 0.0,
+        0.0, 0.0,  1.0, 0.97,
+        0.0, 0.0,  0.0, 1.0,
     ])
 
     assert torch.all(got == expected)
@@ -60,8 +61,7 @@ def test_fta2():
 
 
 def test_fta3():
-    """
-    η = 0 induces a one-hot encoding
+    """η = 0 induces a one-hot encoding
     """
     eta = 0.0
     lower = 0
@@ -75,3 +75,29 @@ def test_fta3():
     expected = torch.Tensor([0.0, 0.0, 1.0, 0.0])
 
     assert torch.all(got == expected)
+    assert got.shape == expected.shape
+
+
+def test_fta_factory():
+    """FTA can be constructed by factory
+    """
+
+    # kwargs only
+    cfg = {
+        "name": "FTA",
+        "kwargs": {
+            "eta": 0.1, "lower": 0, "upper": 1, "delta": 0.25,
+        }
+    }
+    act = init_activation(cfg)
+    assert isinstance(act, FTA)
+
+    # args only
+    cfg = {"name": "FTA", "args": [0.1, 0, 1, 0.25]}
+    act = init_activation(cfg)
+    assert isinstance(act, FTA)
+
+    # Mix of kwargs and args
+    cfg = {"name": "FTA", "args": [0.1, 0, 1], "kwargs": {"delta": 0.25}}
+    act = init_activation(cfg)
+    assert isinstance(act, FTA)
