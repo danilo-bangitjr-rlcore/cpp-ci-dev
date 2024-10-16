@@ -2,14 +2,11 @@ import hydra
 import asyncio
 import logging
 import subprocess
+import datetime as dt
 
 from omegaconf import DictConfig
+from corerl.utils.time import as_seconds
 
-def MINS(x: float):
-    return x * 60
-
-def HOURS(x: float):
-    return 60 * MINS(x)
 
 def try_to_execute(cfg: DictConfig):
     exec = str(cfg.deployment.python_executable).split(' ')
@@ -42,7 +39,7 @@ async def async_main(cfg: DictConfig):
             break
 
         attempts += 1
-        sleep = min(2**attempts, HOURS(1))
+        sleep = min(2**attempts, as_seconds(dt.timedelta(hours=1)))
 
         logging.error(f'Agent code has terminated unexpectedly <{attempts}> times. Restarting in {sleep} seconds.')
 
