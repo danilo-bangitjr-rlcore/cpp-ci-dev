@@ -2,9 +2,11 @@ import numpy as np
 import pickle as pkl
 from omegaconf import DictConfig
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from pathlib import Path
 
 import pandas as pd
+from corerl.data.data import ObsTransition, OldObsTransition
 from corerl.environment.reward.base import BaseReward
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
@@ -28,16 +30,18 @@ class BaseDataLoader(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def load_data(self, filenames: list[str]) -> pd.DataFrame:
+    def load_data(self, filenames: Sequence[str] | Sequence[Path]) -> pd.DataFrame:
         """
         Read offline data into a single dataframe sorted by date, containing only columns in observation space
         """
         raise NotImplementedError
 
     @abstractmethod
-    def create_obs_transitions(self,
-                               df: pd.DataFrame,
-                               reward_function: BaseReward, *args) -> dict:
+    def create_obs_transitions(
+        self,
+        df: pd.DataFrame,
+        reward_function: BaseReward, *args,
+    ) -> list[OldObsTransition] | list[ObsTransition]:
         raise NotImplementedError
 
     def save(self, save_obj: object, path: Path):

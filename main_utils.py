@@ -1,3 +1,4 @@
+from corerl.environment.reward.base import BaseReward
 import numpy as np
 import logging
 
@@ -7,12 +8,12 @@ log = logging.getLogger(__name__)
 
 import pandas as pd
 from tqdm import tqdm
-from collections.abc import Callable, MutableMapping
+from collections.abc import Callable, MutableMapping, Sequence
 from omegaconf import OmegaConf, DictConfig
 from gymnasium.spaces.utils import flatdim
 from gymnasium import spaces, Env
 from pathlib import Path
-from typing import Any, Optional, ParamSpec, TypeVar
+from typing import Any, Optional, TypeVar
 from warnings import warn
 
 from corerl.eval.composite_eval import CompositeEval
@@ -20,8 +21,9 @@ from corerl.data_loaders.base import BaseDataLoader
 from corerl.data_loaders.direct_action import OldDirectActionDataLoader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.data_loaders.utils import train_test_split
-from corerl.data.data import Transition, ObsTransition, Trajectory
+from corerl.data.data import OldObsTransition, Transition, ObsTransition, Trajectory
 from corerl.interaction.base import BaseInteraction
+from corerl.interaction.offline_anytime import OfflineAnytimeInteraction
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
 from corerl.alerts.composite_alert import CompositeAlert
@@ -32,6 +34,7 @@ from corerl.utils.plotting import make_actor_critic_plots, make_reseau_gvf_criti
 from corerl.data_loaders.transition_load_funcs import make_transitions
 
 import corerl.utils.dict as dict_u
+import corerl.utils.nullable as nullable
 
 
 def prepare_save_dir(cfg: DictConfig):
@@ -70,18 +73,12 @@ def update_pbar(pbar, stats: dict, keys: list) -> None:
     pbar.set_description(pbar_str)
 
 
-U = ParamSpec('U')
 T = TypeVar('T')
-BuilderFunc = Callable[U, T]
-
-
 def load_or_create(
-        root: Path,
-        cfgs: list[MutableMapping[str, Any]],
-        prefix: str,
-        create_func: BuilderFunc[U, T],
-        args: U.args = tuple(),
-        kwargs: U.kwargs = {},
+    root: Path,
+    cfgs: Sequence[MutableMapping[str, Any]],
+    prefix: str,
+    create_func: Callable[[], T],
 ) -> T:
     """
     Will either load an object or create a new one using create func. Objects are saved at root using a hash determined
@@ -96,7 +93,7 @@ def load_or_create(
         return obj
 
     print(f"Generating {prefix}...")
-    obj = create_func(*args, **kwargs)  # loads the entire dataset
+    obj = create_func()
 
     save_path = root / cfg_hash
     pkl_u.dump(
@@ -120,17 +117,14 @@ def set_env_obs_space(env: Env, df: pd.DataFrame, dl: BaseDataLoader):
 def load_df_from_csv(cfg: DictConfig, dl: BaseDataLoader) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     output_path = Path(cfg.offline_data.output_path)
 
-    def _create_df(dl_, filenames):
-        return dl_.load_data(filenames)
-
     all_data_df = load_or_create(root=output_path, cfgs=[cfg.data_loader, cfg.env], prefix='all_data_df',
-        create_func=_create_df, args=[dl, dl.all_filenames])
+        create_func=lambda: dl.load_data(dl.all_filenames))
 
     train_data_df = load_or_create(root=output_path, cfgs=[cfg.data_loader, cfg.env], prefix='train_data_df',
-        create_func=_create_df, args=[dl, dl.train_filenames])
+        create_func=lambda: dl.load_data(dl.train_filenames))
 
     test_data_df = load_or_create(root=output_path, cfgs=[cfg.data_loader, cfg.env], prefix='test_data_df',
-        create_func=_create_df, args=[dl, dl.test_filenames])
+        create_func=lambda: dl.load_data(dl.test_filenames))
 
     assert not all_data_df.isnull().values.any()
     assert not train_data_df.isnull().values.any()
@@ -149,13 +143,14 @@ def get_dp_transitions(transitions: list[Transition]) -> list[Transition]:
     return dp_transitions
 
 
-def get_offline_obs_transitions(cfg: DictConfig,
-                                train_data_df: pd.DataFrame,
-                                test_data_df: pd.DataFrame,
-                                dl: BaseDataLoader,
-                                normalizer: ObsTransitionNormalizer,
-                                prefix='') -> tuple[
-    list[ObsTransition], Optional[list[ObsTransition]]]:
+def get_offline_obs_transitions(
+    cfg: DictConfig,
+    train_data_df: pd.DataFrame,
+    test_data_df: pd.DataFrame,
+    dl: BaseDataLoader | OldDirectActionDataLoader,
+    normalizer: ObsTransitionNormalizer,
+    prefix='',
+) -> tuple[list[ObsTransition] | list[OldObsTransition], list[ObsTransition] | list[OldObsTransition]]:
     """
     Loads offline observation transitions (transitions without states) from an offline dataset.
     """
@@ -163,48 +158,56 @@ def get_offline_obs_transitions(cfg: DictConfig,
     output_path = Path(cfg.offline_data.output_path)
     reward_func = init_reward_function(cfg.env.reward)
 
-    if isinstance(dl, OldDirectActionDataLoader):
-        warn("Using deprecated old direct action data loader to get offline transitions.")
-        dl: OldDirectActionDataLoader
-
-        def _create_obs_transitions(df):
+    def _create_obs_transitions(df: pd.DataFrame, normalizer: ObsTransitionNormalizer, reward_func: BaseReward):
+        if isinstance(dl, OldDirectActionDataLoader):
+            warn("Using deprecated old direct action data loader to get offline transitions.")
             return dl.create_obs_transitions(df, normalizer, reward_func)
-    else:
-        def _create_obs_transitions(df):
-            return dl.create_obs_transitions(df, reward_func)
 
-    train_obs_transitions = load_or_create(root=output_path, cfgs=[cfg.data_loader, cfg.env],
-        prefix=prefix + 'train_obs_transitions', create_func=_create_obs_transitions, args=[train_data_df])
+        return dl.create_obs_transitions(df, reward_func)
 
-    if test_data_df is not None:
-        test_obs_transitions = load_or_create(root=output_path, cfgs=[cfg.data_loader, cfg.env],
-            prefix=prefix + 'test_obs_transitions', create_func=_create_obs_transitions, args=[test_data_df])
-    else:
-        test_obs_transitions = None
+
+    train_obs_transitions = load_or_create(
+        root=output_path,
+        cfgs=[cfg.data_loader, cfg.env],
+        prefix=prefix + 'train_obs_transitions',
+        create_func=lambda: _create_obs_transitions(train_data_df, normalizer, reward_func),
+    )
+
+    test_obs_transitions = load_or_create(
+        root=output_path,
+        cfgs=[cfg.data_loader, cfg.env],
+        prefix=prefix + 'test_obs_transitions',
+        create_func=lambda: _create_obs_transitions(test_data_df, normalizer, reward_func),
+    )
 
     print(f"Loaded {len(train_obs_transitions)} train and {len(test_obs_transitions)} test obs transitions. ")
 
     return train_obs_transitions, test_obs_transitions
 
 
-def old_get_offline_transitions(cfg: DictConfig,
-                                obs_transitions: list[ObsTransition],
-                                sc: BaseStateConstructor,
-                                transition_creator: OldAnytimeTransitionCreator,
-                                hash_cfgs=None,
-                                prefix=''
-                                ) -> list[Transition]:
+def old_get_offline_transitions(
+    cfg: DictConfig,
+    obs_transitions: list[OldObsTransition],
+    sc: BaseStateConstructor,
+    transition_creator: OldAnytimeTransitionCreator,
+    hash_cfgs: list[MutableMapping[str, Any]] | None = None,
+    prefix=''
+) -> list[Transition]:
+    hash_cfgs = nullable.default(hash_cfgs, list)
     output_path = Path(cfg.offline_data.output_path)
 
-    if hash_cfgs is None:
-        hash_cfgs = []
-
-    def _create_transitions(obs_transitions_, sc_, warmup_):
-        return transition_creator.make_offline_transitions(obs_transitions_, sc_, warmup_, use_pbar=True)[0]
-
     warmup = cfg.state_constructor.warmup
-    transitions = load_or_create(root=output_path, cfgs=hash_cfgs, prefix=prefix,
-        create_func=_create_transitions, args=[obs_transitions, sc, warmup])
+    transitions = load_or_create(
+        root=output_path,
+        cfgs=hash_cfgs,
+        prefix=prefix,
+        create_func=lambda: transition_creator.make_offline_transitions(
+            obs_transitions,
+            sc,
+            warmup,
+            use_pbar=True
+        )[0],
+    )
 
     num_transitions = len(transitions)
     print(f"Loaded {num_transitions} transitions from prefix {prefix}")
@@ -212,20 +215,25 @@ def old_get_offline_transitions(cfg: DictConfig,
     return transitions
 
 
-def get_offline_transitions(cfg: DictConfig,
-                            obs_transitions: list[ObsTransition],
-                            sc: BaseStateConstructor,
-                            tc: BaseTransitionCreator,
-                            obs_normalizer: ObsTransitionNormalizer,
-                            hash_cfgs=None,
-                            prefix='') -> list[Transition]:
+def get_offline_transitions(
+    cfg: DictConfig,
+    obs_transitions: list[ObsTransition],
+    sc: BaseStateConstructor,
+    tc: BaseTransitionCreator,
+    obs_normalizer: ObsTransitionNormalizer,
+    hash_cfgs: list[MutableMapping[str, Any]] | None = None,
+    prefix='',
+) -> list[Transition]:
+    hash_cfgs = nullable.default(hash_cfgs, list)
     output_path = Path(cfg.offline_data.output_path)
 
     warmup = cfg.state_constructor.warmup
-    transitions = load_or_create(root=output_path, cfgs=hash_cfgs, prefix=prefix,
-        create_func=make_transitions,
-        args=(obs_transitions, sc, tc, obs_normalizer),
-        kwargs={'warmup': warmup})
+    transitions = load_or_create(
+        root=output_path,
+        cfgs=hash_cfgs,
+        prefix=prefix,
+        create_func=lambda: make_transitions(obs_transitions, sc, tc, obs_normalizer, warmup=warmup),
+    )
 
     num_transitions = len(transitions)
     print(f"Loaded {num_transitions} transitions from prefix {prefix}")
@@ -235,8 +243,8 @@ def get_offline_transitions(cfg: DictConfig,
 
 def get_offline_trajectories(cfg: DictConfig,
                              hash_cfgs: list[DictConfig],
-                             train_obs_transitions: list[ObsTransition],
-                             test_obs_transitions: list[ObsTransition],
+                             train_obs_transitions: list[OldObsTransition],
+                             test_obs_transitions: list[OldObsTransition],
                              sc: BaseStateConstructor,
                              transition_creator: OldAnytimeTransitionCreator,
                              warmup=0,
@@ -246,25 +254,34 @@ def get_offline_trajectories(cfg: DictConfig,
                              ) -> tuple[list[Trajectory], Optional[list[Trajectory]]]:
     output_path = Path(cfg.offline_data.output_path)
 
-    def create_trajectories(obs_transitions, return_scs):
-        return transition_creator.make_offline_trajectories(obs_transitions, sc, use_pbar=True, warmup=warmup,
-            return_all_scs=return_scs)
-
     if prefix != '':
         prefix = prefix + '_'
 
-    train_trajectories = load_or_create(root=output_path,
+    train_trajectories = load_or_create(
+        root=output_path,
         cfgs=hash_cfgs + [{'cache': cache_train_scs}],
         prefix=prefix + 'train_trajectories',
-        create_func=create_trajectories,
-        args=[train_obs_transitions, cache_train_scs])
+        create_func=lambda: transition_creator.make_offline_trajectories(
+            train_obs_transitions,
+            sc,
+            use_pbar=True,
+            warmup=warmup,
+            return_all_scs=cache_train_scs,
+        ),
+    )
 
     if test_obs_transitions is not None:
         test_trajectories = load_or_create(root=output_path,
             cfgs=hash_cfgs + [{'cache': cache_train_scs}],
             prefix=prefix + 'test_trajectories',
-            create_func=create_trajectories,
-            args=[test_obs_transitions, cache_test_scs])
+            create_func=lambda: transition_creator.make_offline_trajectories(
+                test_obs_transitions,
+                sc,
+                use_pbar=True,
+                warmup=warmup,
+                return_all_scs=cache_test_scs,
+            ),
+        )
 
     else:
         test_trajectories = []
@@ -284,7 +301,7 @@ def get_state_action_dim(env: Env, sc: BaseStateConstructor) -> tuple[int, int]:
 
 
 def offline_alert_training(cfg: DictConfig, env: Env, alerts: CompositeAlert, train_transitions: list[Transition],
-                           plot_transitions: list[Transition], save_path: Path) -> CompositeEval:
+                           plot_transitions: list[Transition], save_path: Path):
     print('Starting offline alert training...')
     log.info('Starting offline alert training...')
 
@@ -472,7 +489,7 @@ def online_deployment(cfg: DictConfig,
 
 def offline_anytime_deployment(cfg: DictConfig,
                                agent: BaseAgent,
-                               interaction: BaseInteraction,
+                               interaction: OfflineAnytimeInteraction,
                                env: Env,
                                alerts: CompositeAlert,
                                transition_normalizer: TransitionNormalizer,
@@ -500,13 +517,14 @@ def offline_anytime_deployment(cfg: DictConfig,
 
     for j in pbar:
         # does not need an action from the agent
-        transitions, agent_train_transitions, _, alert_train_transitions, alert_info, _ = interaction.step()
+        transitions, agent_train_transitions, _, alert_train_transitions, alert_info = interaction.step()
 
         if transitions is None:
             print("Reached End Of Offline Eval Data")
             log.info("Reached End Of Offline Eval Data")
             break
 
+        agent_train_transitions = nullable.default(agent_train_transitions, list)
         for transition in agent_train_transitions:
             agent.update_buffer(transition)
 
@@ -541,6 +559,7 @@ def offline_anytime_deployment(cfg: DictConfig,
 
         # Plot policy and critic at a set of test states
         # Plotting function is likely project specific
+        test_epochs = nullable.default(test_epochs, list)
         if j in test_epochs:
             make_actor_critic_plots(agent, env, plot_transitions, "Offline_Anytime_Test_States", j, save_path)
 

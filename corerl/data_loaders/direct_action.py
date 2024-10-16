@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
 
@@ -54,7 +55,7 @@ class OldDirectActionDataLoader(BaseDataLoader):
         self.obs_length = cfg.obs_length
         self.steps_per_decision = cfg.steps_per_decision
 
-    def load_data(self, filenames: list[str]) -> pd.DataFrame | None:
+    def load_data(self, filenames: Sequence[str] | Sequence[Path]) -> pd.DataFrame | None:
         """
         Read csvs into a single concatenated df sorted by date, containing only the columns in the observation space
         """
@@ -78,7 +79,7 @@ class OldDirectActionDataLoader(BaseDataLoader):
         else:
             return None
 
-    def get_obs_max_min(self, df: pd.DataFrame) -> (np.ndarray, np.ndarray):
+    def get_obs_max_min(self, df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
         """
         Find the max and min values for each column in the input df to later be used for normalization
         """
@@ -103,9 +104,11 @@ class OldDirectActionDataLoader(BaseDataLoader):
         obs = np.mean(obs, axis=0)
         return obs
 
-    def find_action_boundary(self, action_df: pd.DataFrame,
-                             start_ind: pd.Timestamp, debug_idx=None) -> (
-            np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool):
+    def find_action_boundary(
+        self,
+        action_df: pd.DataFrame,
+        start_ind: pd.Timestamp,
+    ) -> tuple[np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool]:
         """
         Return the action taken at the beginning of the dataframe.
         Iterate through the dataframe until an action change, a truncation/termination in the episode, or a large break in time.
@@ -197,8 +200,7 @@ class OldDirectActionDataLoader(BaseDataLoader):
 
             while not data_gap and action_start < df_end:
                 curr_action, action_end, next_action_start, trunc, term, data_gap = self.find_action_boundary(action_df,
-                                                                                                              action_start,
-                                                                                                              debug_idx)
+                                                                                                              action_start)
                 action_transitions = []
 
                 if data_gap:
