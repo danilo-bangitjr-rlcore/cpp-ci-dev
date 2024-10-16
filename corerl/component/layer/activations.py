@@ -1,5 +1,53 @@
 import torch.nn as nn
 import torch
+from fractions import Fraction
+from decimal import Decimal
+
+
+def _fuzzy_indicator(
+    x: torch.Tensor,
+    eta: torch.Tensor | float,
+) -> torch.Tensor:
+    return (x <= eta) * x + (x > eta)
+
+
+class FTA(nn.Module):
+    def __init__(
+        self,
+        eta: float,
+        lower: float,
+        upper:float,
+        delta: float,
+    ):
+        super().__init__()
+        self._eta = eta
+        self._lower = lower
+        self._upper = upper
+        self._delta = delta
+
+        # Trick to ensure upper - lower is divisible by delta, which is
+        # required by FTA
+        l = Fraction(Decimal(f"{self._lower}"))
+        u = Fraction(Decimal(f"{self._upper}"))
+        δ = Fraction(Decimal(f"{self._delta}"))
+        assert (u - l) % δ == Fraction(0, 1)
+
+        n = (self._upper - self._lower) // self._delta
+        self._c = nn.Parameter(
+            torch.arange(self._lower, self._upper, self._delta),
+            requires_grad=False,
+        )
+
+    def forward(self, z: torch.Tensor) -> torch.Tensor:
+        z = z.view(*z.shape, 1)
+
+        z = 1 - _fuzzy_indicator(
+            torch.clip(self._c - z, min=0, max=None) +
+            torch.clip(z - self._delta - self._c, min=0, max=None),
+            self._eta,
+        )
+
+        return z.view(*z.shape[:-2], -1)
 
 
 class Multiply(nn.Module):
