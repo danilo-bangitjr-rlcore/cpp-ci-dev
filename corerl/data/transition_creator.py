@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import Optional
 
+from corerl.alerts.base import BaseAlert
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.data import OldObsTransition, Transition, Trajectory, ObsTransition
 from corerl.state_constructor.base import BaseStateConstructor
@@ -388,14 +389,13 @@ def _get_n_step_reward(reward_queue: deque, gamma: float) -> float:
 
 
 class BaseTransitionCreator(ABC):
-    def __init__(self, cfg: DictConfig, state_constuctor: BaseStateConstructor, ) -> None:
-        self.state = None
-        self.steps_per_decision = cfg.steps_per_decision
-        self.n_step = cfg.n_step
-        self.gamma = cfg.gamma
-        self.alert = None
+    def __init__(self, cfg: DictConfig, state_constuctor: BaseStateConstructor) -> None:
+        self.steps_per_decision: int = cfg.steps_per_decision
+        self.n_step: int = cfg.n_step
+        self.gamma: float = cfg.gamma
+        self.alert: BaseAlert | None = None
         self.state_constructor = state_constuctor
-        self.transition_kind = cfg.transition_kind
+        self.transition_kind: str = cfg.transition_kind
 
         # n_step = 0: bootstrap off state at next decision point
         # n_step > 0: bootstrap off state n steps into the future without crossing decision boundary
@@ -404,10 +404,10 @@ class BaseTransitionCreator(ABC):
         else:
             self.queue_len = self.n_step
 
-        self.curr_obs_transitions = []
-        self.curr_states = []
-        self.curr_dps = []
-        self.curr_steps_until_decisions = []
+        self.curr_obs_transitions: list[ObsTransition] = []
+        self.curr_states: list[np.ndarray] = []
+        self.curr_dps: list[bool] = []
+        self.curr_steps_until_decisions: list[int] = []
 
     def reset(self,
               state: np.ndarray,
@@ -429,7 +429,7 @@ class BaseTransitionCreator(ABC):
         self.curr_dps.append(next_dp)
         self.curr_steps_until_decisions.append(next_steps_until_decision)
 
-        transitions = []
+        transitions: list[Transition] = []
         if next_dp:
             assert len(self.curr_states) == len(self.curr_obs_transitions) + 1, \
                 'Should be one more state than obs transition. Did you forget to call reset()?'
@@ -446,7 +446,7 @@ class BaseTransitionCreator(ABC):
     def make_decision_window_transitions(self) -> list[Transition]:
         raise NotImplementedError
 
-    def init_alerts(self, alert):
+    def init_alerts(self, alert: BaseAlert):
         self.alert = alert
 
     """
