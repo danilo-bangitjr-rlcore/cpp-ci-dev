@@ -160,6 +160,8 @@ class WebsocketClient:
 
             if not self._first_connect_future.done():
                 self._first_connect_future.set_result(None)
+            else:
+                await self._resubscribe()
 
             try:
                 await self._listen_forever(socket)
@@ -186,6 +188,11 @@ class WebsocketClient:
             maybe_await(cb(event))
             for cb in self._callbacks[event.type]
         ])
+
+
+    async def _resubscribe(self):
+        for event in self._callbacks.keys():
+            await self.emit_event(event)
 
 # ------------------
 # -- Dummy Client --
