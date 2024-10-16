@@ -4,6 +4,7 @@ from .policy import _get_type_from_dist
 from corerl.component.distribution import get_dist_type
 from corerl.component.layer import init_activation, Parallel
 import torch.nn as nn
+import torch
 from corerl.utils.device import device
 
 
@@ -91,15 +92,27 @@ def _create_continuous_mlp(cfg, input_dim, output_dim):
     net.append(layer)
     net.append(init_activation(act[0]))
 
+    placeholder_input = torch.empty((input_dim,))
+
+    n_inputs: int
     for j in range(1, len(hidden)):
-        layer = nn.Linear(hidden[j-1], hidden[j], bias=bias)
+
+        output_shape = nn.Sequential(*net)(placeholder_input).shape
+        assert len(output_shape) == 1
+        n_inputs = output_shape[0]
+        layer = nn.Linear(n_inputs, hidden[j], bias=bias)
+
         layer = layer_init(layer)
         net.append(layer)
         net.append(init_activation(act[j]))
 
     head_layers = [[] for _ in range(paths)]
     for i in range(len(head_layers)):
-        head_layer = nn.Linear(hidden[-1], output_dim, bias=head_bias)
+        output_shape = nn.Sequential(*net)(placeholder_input).shape
+        assert len(output_shape) == 1
+        n_inputs = output_shape[0]
+
+        head_layer = nn.Linear(n_inputs, output_dim, bias=head_bias)
         head_layer = head_layer_init(head_layer)
         head_layers[i].append(head_layer)
 
@@ -107,6 +120,7 @@ def _create_continuous_mlp(cfg, input_dim, output_dim):
             head_layers[i].append(init_activation(head_act[i][k]))
 
     head = Parallel(*(nn.Sequential(*path) for path in head_layers))
+
     return nn.Sequential(nn.Sequential(*net), head).to(device.device)
 
 
