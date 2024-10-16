@@ -10,7 +10,7 @@ from typing import Optional
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.data import OldObsTransition, Transition, Trajectory, ObsTransition
 from corerl.state_constructor.base import BaseStateConstructor
-from corerl.interaction.anytime_interaction import AnytimeInteraction
+from corerl.interaction.anytime_interaction import OldAnytimeInteraction
 
 
 class OldAnytimeTransitionCreator(object):
@@ -188,7 +188,7 @@ class OldAnytimeTransitionCreator(object):
                                          curr_decision_obs_transitions: list[OldObsTransition],
                                          curr_decision_states: list[np.ndarray],
                                          filter_with_alerts: bool = False,
-                                         interaction: Optional[AnytimeInteraction] = None
+                                         interaction: Optional[OldAnytimeInteraction] = None
                                          ) -> tuple[list[Transition], list[Transition], list[Transition]]:
 
         assert len(curr_decision_states) == len(curr_decision_obs_transitions) + 1
