@@ -162,8 +162,10 @@ class GreedyAC(BaseAC):
         if self.uniform_proposal:
             self.uniform_sampling_percentage = 1.0
 
-        if self.learned_proposal_percent > 0:
-            n_proposal = int(np.floor(self.num_samples * self.learned_proposal_percent))
+        n_proposal = int(
+            np.floor(self.num_samples * self.learned_proposal_percent),
+        )
+        if n_proposal > 0:
             repeated_states: Float[torch.Tensor, "batch_size*n_proposal state_dim"]
             repeated_states = state_batch.repeat_interleave(n_proposal, dim=0)
 
