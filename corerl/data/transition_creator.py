@@ -36,6 +36,8 @@ class OldAnytimeTransitionCreator(object):
         trajectories = []
         done = False
         transition_idx = 0
+
+        pbar = None
         if use_pbar:
             pbar = tqdm(total=len(obs_transitions))
 
@@ -48,7 +50,7 @@ class OldAnytimeTransitionCreator(object):
                 gap = obs_transition.gap
                 transition_idx += 1
                 done = transition_idx == len(obs_transitions)
-                if use_pbar:
+                if pbar is not None:
                     pbar.update(1)
 
             curr_chunk_transitions, _, start_sc = self._make_offline_transitions_for_chunk(curr_chunk_obs_transitions,
@@ -84,6 +86,8 @@ class OldAnytimeTransitionCreator(object):
         alert_transitions = []
         done = False
         transition_idx = 0
+
+        pbar = None
         if use_pbar:
             pbar = tqdm(total=len(obs_transitions))
 
@@ -96,7 +100,7 @@ class OldAnytimeTransitionCreator(object):
                 gap = obs_transition.gap
                 transition_idx += 1
                 done = transition_idx == len(obs_transitions)
-                if use_pbar:
+                if pbar is not None:
                     pbar.update(1)
 
             curr_chunk_agent_transitions, curr_chunk_alert_transitions, _ = self._make_offline_transitions_for_chunk(
