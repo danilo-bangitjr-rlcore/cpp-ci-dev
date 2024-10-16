@@ -27,12 +27,11 @@ class FTA(nn.Module):
 
         # Trick to ensure upper - lower is divisible by delta, which is
         # required by FTA
-        l = Fraction(Decimal(f"{self._lower}"))
-        u = Fraction(Decimal(f"{self._upper}"))
+        _l = Fraction(Decimal(f"{self._lower}"))
+        _u = Fraction(Decimal(f"{self._upper}"))
         δ = Fraction(Decimal(f"{self._delta}"))
-        assert (u - l) % δ == Fraction(0, 1)
+        assert (_u - _l) % δ == Fraction(0, 1)
 
-        n = (self._upper - self._lower) // self._delta
         self._c = nn.Parameter(
             torch.arange(self._lower, self._upper, self._delta),
             requires_grad=False,
