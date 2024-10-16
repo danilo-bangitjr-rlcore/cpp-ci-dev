@@ -4,7 +4,7 @@ class Device:
     def __init__(self):
         self.device = torch.device('cpu')
 
-    def update_device(self, device_name=None):
+    def update_device(self, device_name: str | None = None):
         if device_name:
             self.device = torch.device(device_name)
         else:

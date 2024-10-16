@@ -25,7 +25,7 @@ import main_utils as utils
 
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
-def main(cfg: DictConfig) -> dict:
+def main(cfg: DictConfig):
     save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
 
@@ -114,8 +114,8 @@ def main(cfg: DictConfig) -> dict:
             utils.offline_alert_training(cfg, env, composite_alert, alert_train_transitions,
                 plot_transitions, save_path)
 
-    if not (test_epochs is None):
-        assert not (plot_transitions is None), "Must include test transitions if test_epochs is not None"
+    if test_epochs is not None:
+        assert plot_transitions is not None, "Must include test transitions if test_epochs is not None"
 
     interaction = init_interaction(cfg.interaction, env, sc, agent_tc, obs_normalizer, transitions=agent_test_transitions)
     if cfg.use_alerts:

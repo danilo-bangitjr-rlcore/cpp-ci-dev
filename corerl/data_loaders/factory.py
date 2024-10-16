@@ -1,9 +1,8 @@
 from omegaconf import DictConfig
-from corerl.data_loaders.base import BaseDataLoader
 from corerl.data_loaders.direct_action import DirectActionDataLoader
 from corerl.data_loaders.direct_action import OldDirectActionDataLoader
 
-def init_data_loader(cfg: DictConfig) -> BaseDataLoader:
+def init_data_loader(cfg: DictConfig):
     """
     config files: corerl/config/data_loader
     """
@@ -14,7 +13,7 @@ def init_data_loader(cfg: DictConfig) -> BaseDataLoader:
     else:
         raise NotImplementedError
 
-def init_data_loader_old(cfg: DictConfig) -> BaseDataLoader:
+def init_data_loader_old(cfg: DictConfig):
     """
     config files: corerl/config/data_loader
     """

@@ -6,21 +6,7 @@ import pandas as pd
 import pickle as pkl
 import json
 
-
-def flatten_list(nd_list: list) -> list:
-    flat_list = []
-    def flatten(item):
-        if isinstance(item, list):
-            for sub_item in item:
-                flatten(sub_item)
-        else:
-            flat_list.append(item)
-
-    flatten(nd_list)
-    return flat_list
-
-
-def add_key_to_run(run, key, values):
+def add_key_to_run(run: dict, key: str, values: list):
     run_list = []
     for value in values:
         if isinstance(value, list):
@@ -73,41 +59,11 @@ def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[list[Cal
         return runs_with_seeds
 
 
-# def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[list[Callable]]]:
-#     keys, values = zip(*params['independent'].items())
-#     runs_ = [dict(zip(keys, v)) for v in itertools.product(*values)]
-#
-#     runs = []
-#     for run in runs_:
-#         for cond_key, cond_fn in params['conditional'].items():
-#             cond_value = cond_fn(run)
-#             if cond_value is not None:
-#                 run[cond_key] = cond_value
-#
-#         for k in run.keys():
-#             if not isinstance(run[k], list):
-#                 run[k] = [run[k]]
-#
-#         keys, values = zip(*run.items())
-#         run = [dict(zip(keys, v)) for v in itertools.product(*values)]
-#         runs.append(run)
-#
-#     runs = flatten_list(runs)
-#     for i in range(len(runs)):
-#         runs[i]['experiment.param'] = i
-#
-#     runs = flatten_list(runs)
-#     if 'tests' in params.keys():
-#         expected_results = [params['tests'] for i in range(len(runs))]
-#         return runs, expected_results
-#     else:
-#         return runs
-
-
 def get_sweep_params(name: str, path: Path) -> list[dict]:
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec is not None, "Could not find module"
     module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
     spec.loader.exec_module(module)
     sweep_params = module.SWEEP_PARAMS
     sweep_params = params_to_list(sweep_params)
