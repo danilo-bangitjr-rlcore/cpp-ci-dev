@@ -2,9 +2,9 @@ import pytest
 import numpy as np
 from omegaconf import DictConfig
 
-from corerl.data.transition_creator import AnytimeTransitionCreator, RegularRLTransitionCreator
+from corerl.data.transition_creator import AnytimeTransitionCreator
 from corerl.data.data import ObsTransition
-from test.unit.utils.state_constructor import make_anytime_multi_trace
+from test.unit.state_constructor.state_constructor import make_anytime_multi_trace
 
 
 def _make_anytime_transition_creator(sc, steps_per_decision, n_step) -> AnytimeTransitionCreator:
