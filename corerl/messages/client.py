@@ -210,6 +210,9 @@ class DummyWebsocketClient(WebsocketClient):
     async def close(self):
         ...
 
+    def close_sync(self):
+        ...
+
     async def send_message(self, msg: str):
         ...
 

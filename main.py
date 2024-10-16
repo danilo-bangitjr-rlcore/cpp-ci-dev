@@ -133,6 +133,8 @@ def main(cfg: DictConfig):
     make_online_plots(fr.freezer, stats, save_path / 'plots')
     online_eval.save(save_path, "Online")
 
+    agent.close()
+
     # agent.save(save_path / 'agent')
     # agent.load(save_path / 'agent')
 
