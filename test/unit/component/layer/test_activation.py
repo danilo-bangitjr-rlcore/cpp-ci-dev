@@ -14,8 +14,8 @@ def test_fta1():
     eta = 0.1
     lower = 0
     upper = 1
-    delta = 0.25
-    fta = FTA(eta, lower, upper, delta)
+    bins = 4
+    fta = FTA(eta, lower, upper, bins)
 
     # Test with a scalar torch.Tensor type where ndim == 0
     input_ = torch.tensor(0.52)
@@ -42,8 +42,8 @@ def test_fta2():
     eta = 0.1
     lower = 0
     upper = 1
-    delta = 0.25
-    fta = FTA(eta, lower, upper, delta)
+    bins = 4
+    fta = FTA(eta, lower, upper, bins)
 
     input_ = torch.Tensor([0.0, 0.1, 0.52, 0.72, 1.0])
 
@@ -66,8 +66,8 @@ def test_fta3():
     eta = 0.0
     lower = 0
     upper = 1
-    delta = 0.25
-    fta = FTA(eta, lower, upper, delta)
+    bins = 4
+    fta = FTA(eta, lower, upper, bins)
 
     input_ = torch.Tensor([0.52])
 
@@ -86,18 +86,18 @@ def test_fta_factory():
     cfg = {
         "name": "FTA",
         "kwargs": {
-            "eta": 0.1, "lower": 0, "upper": 1, "delta": 0.25,
+            "eta": 0.1, "lower": 0, "upper": 1, "n_bins": 4,
         }
     }
     act = init_activation(cfg)
     assert isinstance(act, FTA)
 
     # args only
-    cfg = {"name": "FTA", "args": [0.1, 0, 1, 0.25]}
+    cfg = {"name": "FTA", "args": [0.1, 0, 1, 5]}
     act = init_activation(cfg)
     assert isinstance(act, FTA)
 
     # Mix of kwargs and args
-    cfg = {"name": "FTA", "args": [0.1, 0, 1], "kwargs": {"delta": 0.25}}
+    cfg = {"name": "FTA", "args": [0.1, 0, 1], "kwargs": {"n_bins": 3}}
     act = init_activation(cfg)
     assert isinstance(act, FTA)
