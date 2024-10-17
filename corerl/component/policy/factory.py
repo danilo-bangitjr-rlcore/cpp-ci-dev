@@ -89,7 +89,7 @@ def _create_discrete_mlp(cfg, input_dim, output_dim):
 
     # Create the head layer(s)
     head_layer = _create_layer(
-        nn.Linear, head_layer_init, net, hidden[j], head_bias,
+        nn.Linear, head_layer_init, net, output_dim, head_bias,
         placeholder_input,
     )
     net.append(head_layer)
