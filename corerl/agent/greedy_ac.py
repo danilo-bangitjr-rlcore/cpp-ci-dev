@@ -7,7 +7,7 @@ import torch
 import numpy
 import pickle as pkl
 import logging
-log = logging.getLogger(__name__)
+
 from corerl.agent.base import BaseAC
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
@@ -19,7 +19,6 @@ from corerl.data.data import TransitionBatch, Transition
 import corerl.utils.freezer as fr
 from jaxtyping import Float
 from typing import Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
