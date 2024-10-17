@@ -387,8 +387,6 @@ class GreedyAC(BaseAC):
             )
             batches, q_loss = args[1:]
 
-        return q_loss
-
     def update_actor(self) -> None:
         self._msg_bus.emit_event_sync(EventType.agent_update_actor)
 
@@ -432,7 +430,6 @@ class GreedyAC(BaseAC):
             )
             actor_loss = args[1]
 
-        return update_infos
 
     def update_sampler(self, update_infos: Optional[list[tuple]]) -> None:
         if update_infos is not None:
