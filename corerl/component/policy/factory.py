@@ -2,6 +2,7 @@ import corerl.component.network.utils as utils
 from . import *
 from .policy import _get_type_from_dist
 from corerl.component.distribution import get_dist_type
+from corerl.component.network.networks import _create_layer, _get_output_shape
 from corerl.component.layer import init_activation, Parallel
 import torch.nn as nn
 import torch
@@ -17,23 +18,6 @@ def get_type_from_str(type_: str):
     except NotImplementedError:
         raise NotImplementedError(f"unknown policy type {type_}")
 
-def _create_layer(
-    layer_type: type[nn.Module],
-    layer_init,
-    base_net,
-    hidden,
-    bias,
-    placeholder_input,
-):
-    if layer_type is nn.Linear:
-        n_inputs = _get_output_shape(
-            base_net, placeholder_input, dim=0,
-        )
-        layer = layer_type(n_inputs, hidden, bias=bias)
-        return layer_init(layer)
-
-    raise NotImplementedError(f"unknown layer type {layer_type}")
-
 
 def _create_nn(cfg, policy_type, input_dim, output_dim):
     name = cfg["base"]["name"]
@@ -47,12 +31,6 @@ def _create_mlp(cfg, policy_type, input_dim, output_dim):
     if not continuous:
         return _create_discrete_mlp(cfg, input_dim, output_dim)
     return _create_continuous_mlp(cfg, input_dim, output_dim)
-
-
-def _get_output_shape(net, placeholder_input, *, dim=None):
-    output_shape = nn.Sequential(*net)(placeholder_input).shape
-    assert len(output_shape) == 1
-    return output_shape[dim]
 
 
 def _create_discrete_mlp(cfg, input_dim, output_dim):

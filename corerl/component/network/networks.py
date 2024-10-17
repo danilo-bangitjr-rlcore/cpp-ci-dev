@@ -79,6 +79,29 @@ def create_base(
         return FC(cfg, input_dim, output_dim)
     else:
         raise NotImplementedError
+def _create_layer(
+    layer_type: type[nn.Module],
+    layer_init,
+    base_net,
+    hidden,
+    bias,
+    placeholder_input,
+):
+    if layer_type is nn.Linear:
+        n_inputs = _get_output_shape(
+            base_net, placeholder_input, dim=0,
+        )
+        layer = layer_type(n_inputs, hidden, bias=bias)
+        return layer_init(layer)
+
+    raise NotImplementedError(f"unknown layer type {layer_type}")
+
+
+def _get_output_shape(net, placeholder_input, *, dim=None):
+    output_shape = nn.Sequential(*net)(placeholder_input).shape
+    assert len(output_shape) == 1
+    return output_shape[dim]
+
 
 
 # TODO: here is an example of initializing a network.
