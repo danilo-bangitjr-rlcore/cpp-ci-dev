@@ -31,15 +31,20 @@ class GreedyAC(BaseAC):
         self.ensemble_targets = cfg.ensemble_targets
 
         self.action_dim = action_dim
-        # Removed self.gac_a_dim = self.action_dim. Hopefully this doesn't break anything
 
-        self.average_entropy = cfg.average_entropy  # Whether to average the proposal policy's entropy over all the sampled actions
-        self.tau = cfg.tau  # Entropy constant used in the entropy version of the proposal policy update
-        self.rho = cfg.rho  # percentage of sampled actions used in actor update
-        self.rho_proposal = self.rho * cfg.prop_rho_mult  # percentage of sampled actions used in the non-entropy version of the proposal policy update
+        # Whether to average the proposal policy's entropy over all the sampled actions
+        self.average_entropy = cfg.average_entropy
+        # Entropy constant used in the entropy version of the proposal policy update
+        self.tau = cfg.tau
+        # percentage of sampled actions used in actor update
+        self.rho = cfg.rho
+        # percentage of sampled actions used in the non-entropy version of the proposal policy update
+        self.rho_proposal = self.rho * cfg.prop_rho_mult
 
-        self.num_samples = cfg.num_samples  # number of actions sampled from the proposal policy
-        self.share_batch = cfg.share_batch  # whether updates to proposal and actor should share a batch
+        # number of actions sampled from the proposal policy
+        self.num_samples = cfg.num_samples
+        # whether updates to proposal and actor should share a batch
+        self.share_batch = cfg.share_batch
 
         self.uniform_sampling_percentage = cfg.uniform_sampling_percentage
         self.learned_proposal_percent = 1 - self.uniform_sampling_percentage
