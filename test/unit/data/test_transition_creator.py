@@ -3,7 +3,7 @@ import numpy as np
 from omegaconf import DictConfig
 
 from corerl.data.transition_creator import AnytimeTransitionCreator
-from corerl.data.data import ObsTransition
+from corerl.data.data import ObsTransition, Transition
 from test.unit.state_constructor.state_constructor import make_anytime_multi_trace
 from corerl.state_constructor.base import BaseStateConstructor
 
@@ -64,7 +64,7 @@ def test_anytime_transition_creator_init():
     make_anytime_multi_trace(warmup=0, steps_per_decision=5)
 
 
-def _check_dps(i, steps_per_decision, transition, n_step):
+def _check_dps(i: int, steps_per_decision: int, transition: Transition, n_step: int):
     steps_until_decision = steps_per_decision - (i % steps_per_decision)
     # check if state_dp set properly
     if i % steps_per_decision == 0:
