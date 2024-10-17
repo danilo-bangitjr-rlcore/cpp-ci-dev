@@ -301,11 +301,9 @@ class GreedyAC(BaseAC):
             # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
             target = reward_batches[i] + mask_batches[i] * (self.gamma ** gamma_exp_batches[i]) * next_qs[i]
 
-            args, _ = self._hooks(
+            _, _ = self._hooks(
               when.Agent.BeforeCriticLossComputed, self, ensemble_batch[i], target, qs[i], i
             )
-            # Producing errors when gradient is computed
-            #ensemble_batch[i], target, qs[i], _ = args[1:]
 
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
 
