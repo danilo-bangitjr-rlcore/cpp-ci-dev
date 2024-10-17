@@ -1,6 +1,7 @@
 import pytest
 import asyncio
 from test.unit.utils.fixture_opc import FakeOpcServer, OpcConnection
+from test.unit.utils.fixture_opc import * # noqa: F403
 
 async def test_connect1(server_and_client: tuple[FakeOpcServer, OpcConnection]):
     """
