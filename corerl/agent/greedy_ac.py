@@ -2,6 +2,9 @@ from functools import partial
 import numpy as np
 from omegaconf import DictConfig
 from pathlib import Path
+from corerl.component.actor.network_actor import NetworkActorLineSearch
+from corerl.component.critic.ensemble_critic import EnsembleQCriticLineSearch
+from corerl.component.exploration.random_network import RndNetworkExploreLineSearch
 from corerl.messages.events import EventType
 from corerl.utils.hook import when
 import torch
@@ -575,6 +578,10 @@ class GreedyACLineSearch(GreedyAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
 
+        assert isinstance(self.actor, NetworkActorLineSearch)
+        assert isinstance(self.sampler, NetworkActorLineSearch)
+        assert isinstance(self.q_critic, EnsembleQCriticLineSearch)
+
         self.actor.set_parameters(id(self.policy_buffer), eval_error_fn=self.actor_eval_error_fn)
         self.sampler.set_parameters(id(self.policy_buffer), eval_error_fn=self.sampler_eval_error_fn)
         self.q_critic.set_parameters(id(self.critic_buffer), eval_error_fn=self.critic_eval_error_fn)
@@ -606,6 +613,8 @@ class ExploreLSGAC(GreedyACLineSearch):
         super().__init__(cfg, state_dim, action_dim)
         # initialize exploration module
         self.exploration = init_exploration_module(cfg.exploration, state_dim, action_dim)
+        assert isinstance(self.exploration, RndNetworkExploreLineSearch)
+
         self.exploration.set_parameters(id(self.critic_buffer))
         self.exploration_weight = cfg.exploration_weight
 
