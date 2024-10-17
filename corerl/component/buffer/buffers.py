@@ -79,9 +79,9 @@ class UniformBuffer:
         for i in range(len(self.data)):
             self.data[i] = self.data[i].to(device.device)
 
-    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch] | None:
+    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
         if self.size == 0 or self.data is None:
-            return None
+            return []
 
         if batch_size is None:
             batch_size = self.batch_size
@@ -95,9 +95,9 @@ class UniformBuffer:
 
         return [self._prepare(sampled_data)]
 
-    def sample_batch(self) -> list[TransitionBatch] | None:
+    def sample_batch(self) -> list[TransitionBatch]:
         if self.size == 0 or self.data is None:
-            return None
+            return []
 
         if self.full:
             sampled_data = self.data
