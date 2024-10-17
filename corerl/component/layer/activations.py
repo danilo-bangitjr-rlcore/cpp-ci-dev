@@ -1,7 +1,5 @@
 import torch.nn as nn
 import torch
-from fractions import Fraction
-from decimal import Decimal
 
 
 def _fuzzy_indicator(
@@ -12,25 +10,25 @@ def _fuzzy_indicator(
 
 
 class FTA(nn.Module):
+    """Transform using the Fuzzy Tiling Activation
+
+    For more information, see the paper here: https://arxiv.org/abs/1911.08068
+    """
     def __init__(
         self,
         eta: float,
         lower: float,
         upper:float,
-        delta: float,
+        n_bins: int,
     ):
         super().__init__()
+
+        assert n_bins > 1, f"n_bins must be greater than 1, got {n_bins}"
+
         self._eta = eta
         self._lower = lower
         self._upper = upper
-        self._delta = delta
-
-        # Trick to ensure upper - lower is divisible by delta, which is
-        # required by FTA
-        _l = Fraction(Decimal(f"{self._lower}"))
-        _u = Fraction(Decimal(f"{self._upper}"))
-        δ = Fraction(Decimal(f"{self._delta}"))
-        assert (_u - _l) % δ == Fraction(0, 1)
+        self._delta = (self._upper - self._lower) / n_bins
 
         self._c = nn.Parameter(
             torch.arange(self._lower, self._upper, self._delta),
