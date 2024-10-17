@@ -459,7 +459,7 @@ class GreedyAC(BaseAC):
                     when.Agent.AfterProposalUpdate, self, batch, sampler_loss,
                 )
         else:
-            for i in range(self.n_sampler_updates):
+            for _ in range(self.n_sampler_updates):
                 batches = self.policy_buffer.sample()
                 assert len(batches) == 1
                 batch = batches[0]
