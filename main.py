@@ -5,8 +5,6 @@ import numpy as np
 import torch
 import random
 
-log = logging.getLogger(__name__)
-
 from corerl.utils.device import device
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
@@ -22,6 +20,9 @@ from corerl.utils.plotting import make_online_plots, make_offline_plots
 
 import corerl.utils.freezer as fr
 import main_utils as utils
+
+log = logging.getLogger(__name__)
+
 
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")

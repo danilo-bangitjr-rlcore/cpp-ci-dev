@@ -7,10 +7,11 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import Optional
 
+from corerl.alerts.base import BaseAlert
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.data import OldObsTransition, Transition, Trajectory, ObsTransition
 from corerl.state_constructor.base import BaseStateConstructor
-from corerl.interaction.anytime_interaction import AnytimeInteraction
+from corerl.interaction.anytime_interaction import OldAnytimeInteraction
 
 
 class OldAnytimeTransitionCreator(object):
@@ -36,6 +37,8 @@ class OldAnytimeTransitionCreator(object):
         trajectories = []
         done = False
         transition_idx = 0
+
+        pbar = None
         if use_pbar:
             pbar = tqdm(total=len(obs_transitions))
 
@@ -48,12 +51,13 @@ class OldAnytimeTransitionCreator(object):
                 gap = obs_transition.gap
                 transition_idx += 1
                 done = transition_idx == len(obs_transitions)
-                if use_pbar:
+                if pbar is not None:
                     pbar.update(1)
 
             curr_chunk_transitions, _, start_sc = self._make_offline_transitions_for_chunk(curr_chunk_obs_transitions,
                                                                                            sc, warmup)
 
+            assert start_sc is not None
             if len(curr_chunk_transitions) > 0:
                 new_traj = Trajectory()
                 new_traj.add_start_sc(start_sc)
@@ -61,10 +65,10 @@ class OldAnytimeTransitionCreator(object):
                     new_traj.add_transition(curr_chunk_transitions[i])
 
                 if return_all_scs:
-                    new_traj.cache_scs()
-                    assert len(new_traj.scs) == new_traj.num_transitions
-                    for i in range(len(new_traj.scs)):
-                        assert np.allclose(new_traj.scs[i].get_current_state(), new_traj.transitions[i].state)
+                    scs = new_traj.cache_scs()
+                    assert len(scs) == new_traj.num_transitions
+                    for i in range(len(scs)):
+                        assert np.allclose(scs[i].get_current_state(), new_traj.transitions[i].state)
 
                 trajectories.append(new_traj)
 
@@ -84,6 +88,8 @@ class OldAnytimeTransitionCreator(object):
         alert_transitions = []
         done = False
         transition_idx = 0
+
+        pbar = None
         if use_pbar:
             pbar = tqdm(total=len(obs_transitions))
 
@@ -96,7 +102,7 @@ class OldAnytimeTransitionCreator(object):
                 gap = obs_transition.gap
                 transition_idx += 1
                 done = transition_idx == len(obs_transitions)
-                if use_pbar:
+                if pbar is not None:
                     pbar.update(1)
 
             curr_chunk_agent_transitions, curr_chunk_alert_transitions, _ = self._make_offline_transitions_for_chunk(
@@ -112,7 +118,7 @@ class OldAnytimeTransitionCreator(object):
                                             curr_chunk_obs_transitions: list[OldObsTransition],
                                             sc: BaseStateConstructor,
                                             warmup: int = 0) -> tuple[
-        list[Transition], list[Transition], BaseStateConstructor]:
+        list[Transition], list[Transition], BaseStateConstructor | None]:
         """
         Produce Anytime transitions for a continuous chunk of observation transitions (no data gaps) from an offline dataset
         """
@@ -175,7 +181,7 @@ class OldAnytimeTransitionCreator(object):
             warmup_sc = None
         else:
             # assert np.allclose(warmup_sc.get_current_state(), curr_chunk_agent_transitions[0].state)
-            assert np.allclose(warmup_sc.get_current_state(), curr_chunk_alert_transitions[0].state)
+            assert warmup_sc is not None and np.allclose(warmup_sc.get_current_state(), curr_chunk_alert_transitions[0].state)
 
         return curr_chunk_agent_transitions, curr_chunk_alert_transitions, warmup_sc
 
@@ -183,7 +189,7 @@ class OldAnytimeTransitionCreator(object):
                                          curr_decision_obs_transitions: list[OldObsTransition],
                                          curr_decision_states: list[np.ndarray],
                                          filter_with_alerts: bool = False,
-                                         interaction: Optional[AnytimeInteraction] = None
+                                         interaction: Optional[OldAnytimeInteraction] = None
                                          ) -> tuple[list[Transition], list[Transition], list[Transition]]:
 
         assert len(curr_decision_states) == len(curr_decision_obs_transitions) + 1
@@ -312,6 +318,7 @@ class OldAnytimeTransitionCreator(object):
 
             # Shared amongst agent and alert transitions
             gamma_exp = len(np_n_step_rewards)
+            assert boot_state_queue.maxlen is not None
             boot_state_dp = dp_counter <= boot_state_queue.maxlen
 
             if self.alerts.get_dim() > 0:
@@ -382,14 +389,13 @@ def _get_n_step_reward(reward_queue: deque, gamma: float) -> float:
 
 
 class BaseTransitionCreator(ABC):
-    def __init__(self, cfg: DictConfig, state_constuctor: BaseStateConstructor, ) -> None:
-        self.state = None
-        self.steps_per_decision = cfg.steps_per_decision
-        self.n_step = cfg.n_step
-        self.gamma = cfg.gamma
-        self.alert = None
+    def __init__(self, cfg: DictConfig, state_constuctor: BaseStateConstructor) -> None:
+        self.steps_per_decision: int = cfg.steps_per_decision
+        self.n_step: int = cfg.n_step
+        self.gamma: float = cfg.gamma
+        self.alert: BaseAlert | None = None
         self.state_constructor = state_constuctor
-        self.transition_kind = cfg.transition_kind
+        self.transition_kind: str = cfg.transition_kind
 
         # n_step = 0: bootstrap off state at next decision point
         # n_step > 0: bootstrap off state n steps into the future without crossing decision boundary
@@ -398,10 +404,10 @@ class BaseTransitionCreator(ABC):
         else:
             self.queue_len = self.n_step
 
-        self.curr_obs_transitions = []
-        self.curr_states = []
-        self.curr_dps = []
-        self.curr_steps_until_decisions = []
+        self.curr_obs_transitions: list[ObsTransition] = []
+        self.curr_states: list[np.ndarray] = []
+        self.curr_dps: list[bool] = []
+        self.curr_steps_until_decisions: list[int] = []
 
     def reset(self,
               state: np.ndarray,
@@ -423,7 +429,7 @@ class BaseTransitionCreator(ABC):
         self.curr_dps.append(next_dp)
         self.curr_steps_until_decisions.append(next_steps_until_decision)
 
-        transitions = []
+        transitions: list[Transition] = []
         if next_dp:
             assert len(self.curr_states) == len(self.curr_obs_transitions) + 1, \
                 'Should be one more state than obs transition. Did you forget to call reset()?'
@@ -440,7 +446,7 @@ class BaseTransitionCreator(ABC):
     def make_decision_window_transitions(self) -> list[Transition]:
         raise NotImplementedError
 
-    def init_alerts(self, alert):
+    def init_alerts(self, alert: BaseAlert):
         self.alert = alert
 
     """
@@ -474,10 +480,8 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         Produce the agent and alert state transitions using the observation transitions
         that occur between two decision points
         """
-        using_alerts = self.alert is not None and self.alert.get_dim() > 0
-
         alert_gammas, cumulants = None, None
-        if using_alerts:
+        if self.alert is not None and self.alert.get_dim() > 0:
             # Alerts can use different discount factors than the agent's value functions
             alert_gammas = np.array(self.alert.get_discount_factors())
             cumulants = self._get_alert_cumulants()
@@ -499,7 +503,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             reward = curr_obs_transition.reward
             reward_queue.appendleft(reward)
             n_step_reward = _get_n_step_reward(reward_queue, self.gamma)
-            if using_alerts:
+            if cumulants is not None and alert_gammas is not None:
                 cumulant_queue.appendleft(cumulants[step_idx])
                 n_step_cumulants = _get_n_step_cumulants(cumulant_queue, alert_gammas)
             else:
@@ -553,9 +557,8 @@ class RegularRLTransitionCreator(BaseTransitionCreator):
         elif len(self.curr_obs_transitions) > self.steps_per_decision:
             assert False, "There should not be more than self.steps_per_decision obs transitions in len(self.curr_obs_transitions)"
 
-        using_alerts = self.alert is not None and self.alert.get_dim() > 0
         n_step_cumulants = None
-        if using_alerts:
+        if self.alert is not None and self.alert.get_dim() > 0:
             alert_gammas = np.array(
                 self.alert.get_discount_factors())  # Alerts can use different discount factors than the agent's value functions
             cumulants = self._get_alert_cumulants()

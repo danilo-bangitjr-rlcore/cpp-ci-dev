@@ -314,13 +314,13 @@ class GreedyAC(BaseAC):
         sampler_entropy = sampler_entropy.reshape(batch_size, self.num_samples, 1)
 
         if self.average_entropy:
-            sampler_entropy = -sampler_entropy.mean(axis=1)
+            sampler_entropy = -sampler_entropy.mean(dim=1)
         else:
             sampler_entropy = -sampler_entropy[:, 0, :]
 
         logp, _ = self.sampler.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
         sampler_loss = logp.reshape(batch_size, self.top_actions, 1)
-        sampler_loss = -1 * (sampler_loss.mean(axis=1) + self.tau * sampler_entropy).mean()
+        sampler_loss = -1 * (sampler_loss.mean(dim=1) + self.tau * sampler_entropy).mean()
 
         return sampler_loss
 
@@ -336,7 +336,7 @@ class GreedyAC(BaseAC):
 
         logp, _ = self.sampler.get_log_prob(stacked_s_batch_proposal, best_actions_proposal, with_grad=True)
         sampler_loss = logp.reshape(batch_size, self.top_actions_proposal, 1)
-        sampler_loss = -1 * (sampler_loss.mean(axis=1)).mean()
+        sampler_loss = -1 * (sampler_loss.mean(dim=1)).mean()
 
         return sampler_loss
 
