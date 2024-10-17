@@ -1,3 +1,4 @@
+from functools import partial
 import numpy as np
 from omegaconf import DictConfig
 from pathlib import Path
@@ -418,9 +419,7 @@ class GreedyAC(BaseAC):
             self.actor.update(
                 actor_loss,
                 opt_kwargs={
-                    "closure": lambda: self.actor_err(
-                        stacked_s_batch, best_actions,
-                    ),
+                    "closure": partial(self.actor_err, stacked_s_batch, best_actions),
                 },
             )
             update_infos.append(update_info)
@@ -452,9 +451,7 @@ class GreedyAC(BaseAC):
                 self.sampler.update(
                     sampler_loss,
                     opt_kwargs={
-                        "closure": lambda: self.sampler_err(
-                            stacked_s_batch, best_actions,
-                        ),
+                        "closure": partial(self.sampler_err, stacked_s_batch, best_actions)
                     },
                 )
 
@@ -490,9 +487,7 @@ class GreedyAC(BaseAC):
                 self.sampler.update(
                     sampler_loss,
                     opt_kwargs={
-                        "closure": lambda: self.sampler_err(
-                            stacked_s_batch, best_actions,
-                        ),
+                        "closure": partial(self.sampler_err, stacked_s_batch, best_actions),
                     },
                 )
 
