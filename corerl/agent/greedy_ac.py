@@ -365,15 +365,13 @@ class GreedyAC(BaseAC):
 
         for _ in range(self.n_critic_updates):
             batches = self.critic_buffer.sample()
-            args, _ = self._hooks(
-                when.Agent.AfterCriticBufferSample, self, batches,
-            )
-            batches = args[1]
 
             def closure():
-                return sum(self.compute_critic_loss(batches))
-            q_loss = closure()
+                losses = self.compute_critic_loss(batches) # noqa: B023
+                return torch.stack(losses, dim=-1).sum(dim=-1)
 
+
+            q_loss = closure()
             args, _ = self._hooks(
                 when.Agent.AfterCriticLossComputed, self, batches, q_loss,
             )
