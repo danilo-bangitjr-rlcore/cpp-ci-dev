@@ -26,7 +26,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-torch.autograd.set_detect_anomaly(True)
+torch.autograd.set_detect_anomaly(True) # type: ignore
 
 
 class GreedyAC(BaseAC):
