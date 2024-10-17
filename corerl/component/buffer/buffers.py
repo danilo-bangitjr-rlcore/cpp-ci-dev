@@ -13,7 +13,6 @@ from corerl.sql_logging import sql_logging
 from corerl.sql_logging.base_schema import SQLTransition
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from omegaconf import DictConfig
 import logging
 from typing import List
 from corerl.sql_logging.base_schema import TransitionInfo
