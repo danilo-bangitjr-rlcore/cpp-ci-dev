@@ -2,9 +2,13 @@ import copy
 import torch
 import torch.nn as nn
 from torch.func import stack_module_state, functional_call
+from collections.abc import Mapping
 import numpy as np
 import corerl.component.network.utils as utils
 from corerl.utils.device import device
+import corerl.component.layer as layer
+
+from warnings import warn
 
 from omegaconf import DictConfig
 from typing import Optional
@@ -72,13 +76,57 @@ def _init_ensemble_reducts(cfg: DictConfig):
 
     return bootstrap_reduct_fn, policy_reduct_fn
 
-def create_base(
-        cfg: DictConfig, input_dim: int, output_dim: int,
-) -> nn.Module:
-    if cfg.name == "fc":
-        return FC(cfg, input_dim, output_dim)
-    else:
-        raise NotImplementedError
+
+def create_base(cfg: Mapping, input_dim: int, output_dim: Optional[int]):
+    assert cfg["name"].lower() in ("mlp", "fc")
+
+    hidden = cfg["hidden"]
+    act = cfg["activation"]
+    bias = cfg["bias"]
+    assert len(hidden) == len(act)
+    layer_init = utils.init_layer(cfg["layer_init"])
+
+    # For now, to deal with the migration to the new network ctors, we make
+    # these assertions, to ensure that if anyone is using a head activation,
+    # etc., we catch that.
+    ks = cfg.keys()
+    filt = list(filter(lambda x: x.startswith("head_"), ks))
+    if len(filt) > 0:
+        warn(f"create_base: unexpected config key(s) {filt}, ignoring...")
+
+    assert "head_activation" not in cfg.keys()
+    assert "head_bias" not in cfg.keys()
+    assert "head_layer_init" not in cfg.keys()
+
+    net = []
+
+    # Add the first layer to the network
+    layer_ = nn.Linear(input_dim, hidden[0], bias=bias)
+    layer_ = layer_init(layer_)
+    net.append(layer_)
+    net.append(layer.init_activation(act[0]))
+
+    placeholder_input = torch.empty((input_dim,))
+
+    # Create the base layers of the network
+    for j in range(1, len(hidden)):
+        layer_ = _create_layer(
+            nn.Linear, layer_init, net, hidden[j], bias, placeholder_input,
+        )
+
+        net.append(layer_)
+        net.append(layer.init_activation(act[j]))
+
+
+    if output_dim is not None:
+        layer_ = _create_layer(
+            nn.Linear, layer_init, net, output_dim, bias, placeholder_input,
+        )
+        net.append(layer_)
+
+    return nn.Sequential(*net).to(device.device)
+
+
 def _create_layer(
     layer_type: type[nn.Module],
     layer_init,
