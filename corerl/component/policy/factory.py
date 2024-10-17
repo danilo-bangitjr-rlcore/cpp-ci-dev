@@ -17,6 +17,23 @@ def get_type_from_str(type_: str):
     except NotImplementedError:
         raise NotImplementedError(f"unknown policy type {type_}")
 
+def _create_layer(
+    layer_type: type[nn.Module],
+    layer_init,
+    base_net,
+    hidden,
+    bias,
+    placeholder_input,
+):
+    if layer_type is nn.Linear:
+        n_inputs = _get_output_shape(
+            base_net, placeholder_input, dim=0,
+        )
+        layer = layer_type(n_inputs, hidden, bias=bias)
+        return layer_init(layer)
+
+    raise NotImplementedError(f"unknown layer type {layer_type}")
+
 
 def _create_nn(cfg, policy_type, input_dim, output_dim):
     name = cfg["base"]["name"]
@@ -30,6 +47,12 @@ def _create_mlp(cfg, policy_type, input_dim, output_dim):
     if not continuous:
         return _create_discrete_mlp(cfg, input_dim, output_dim)
     return _create_continuous_mlp(cfg, input_dim, output_dim)
+
+
+def _get_output_shape(net, placeholder_input, *, dim=None):
+    output_shape = nn.Sequential(*net)(placeholder_input).shape
+    assert len(output_shape) == 1
+    return output_shape[dim]
 
 
 def _create_discrete_mlp(cfg, input_dim, output_dim):
@@ -53,16 +76,25 @@ def _create_discrete_mlp(cfg, input_dim, output_dim):
     net.append(layer)
     net.append(init_activation(act[0]))
 
+    placeholder_input = torch.empty((input_dim,))
+
+    # Create the base layers
     for j in range(1, len(hidden)):
-        layer = nn.Linear(hidden[j-1], hidden[j], bias=bias)
-        layer = layer_init(layer)
+        layer = _create_layer(
+            nn.Linear, layer_init, net, hidden[j], bias, placeholder_input,
+        )
+
         net.append(layer)
         net.append(init_activation(act[j]))
 
-    head_layer = nn.Linear(hidden[-1], output_dim, bias=head_bias)
-    head_layer = head_layer_init(head_layer)
+    # Create the head layer(s)
+    head_layer = _create_layer(
+        nn.Linear, head_layer_init, net, hidden[j], head_bias,
+        placeholder_input,
+    )
     net.append(head_layer)
     net.append(init_activation(head_act))
+
     return nn.Sequential(*net).to(device.device)
 
 
@@ -94,29 +126,27 @@ def _create_continuous_mlp(cfg, input_dim, output_dim):
 
     placeholder_input = torch.empty((input_dim,))
 
-    n_inputs: int
+    # Create the base layers of the network
     for j in range(1, len(hidden)):
+        layer = _create_layer(
+            nn.Linear, layer_init, net, hidden[j], bias, placeholder_input,
+        )
 
-        output_shape = nn.Sequential(*net)(placeholder_input).shape
-        assert len(output_shape) == 1
-        n_inputs = output_shape[0]
-        layer = nn.Linear(n_inputs, hidden[j], bias=bias)
-
-        layer = layer_init(layer)
         net.append(layer)
         net.append(init_activation(act[j]))
 
+    # Create head layer(s) to the network
     head_layers = [[] for _ in range(paths)]
     for i in range(len(head_layers)):
-        output_shape = nn.Sequential(*net)(placeholder_input).shape
-        assert len(output_shape) == 1
-        n_inputs = output_shape[0]
+        head_layer = _create_layer(
+            nn.Linear, head_layer_init, net, output_dim, head_bias,
+            placeholder_input,
+        )
 
-        head_layer = nn.Linear(n_inputs, output_dim, bias=head_bias)
-        head_layer = head_layer_init(head_layer)
         head_layers[i].append(head_layer)
 
         for k in range(len(head_act[i])):
+            # Head layers may have multiple activation functions
             head_layers[i].append(init_activation(head_act[i][k]))
 
     head = Parallel(*(nn.Sequential(*path) for path in head_layers))
