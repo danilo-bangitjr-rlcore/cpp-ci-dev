@@ -1,13 +1,17 @@
+from functools import partial
 import numpy as np
 from omegaconf import DictConfig
 from pathlib import Path
+from corerl.component.actor.network_actor import NetworkActorLineSearch
+from corerl.component.critic.ensemble_critic import EnsembleQCriticLineSearch
+from corerl.component.exploration.random_network import RndNetworkExploreLineSearch
 from corerl.messages.events import EventType
 from corerl.utils.hook import when
 import torch
 import numpy
 import pickle as pkl
 import logging
-log = logging.getLogger(__name__)
+
 from corerl.agent.base import BaseAC
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
@@ -19,11 +23,10 @@ from corerl.data.data import TransitionBatch, Transition
 import corerl.utils.freezer as fr
 from jaxtyping import Float
 from typing import Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
-torch.autograd.set_detect_anomaly(True)
+torch.autograd.set_detect_anomaly(True) # type: ignore
 
 
 class GreedyAC(BaseAC):
@@ -32,15 +35,20 @@ class GreedyAC(BaseAC):
         self.ensemble_targets = cfg.ensemble_targets
 
         self.action_dim = action_dim
-        # Removed self.gac_a_dim = self.action_dim. Hopefully this doesn't break anything
 
-        self.average_entropy = cfg.average_entropy  # Whether to average the proposal policy's entropy over all the sampled actions
-        self.tau = cfg.tau  # Entropy constant used in the entropy version of the proposal policy update
-        self.rho = cfg.rho  # percentage of sampled actions used in actor update
-        self.rho_proposal = self.rho * cfg.prop_rho_mult  # percentage of sampled actions used in the non-entropy version of the proposal policy update
+        # Whether to average the proposal policy's entropy over all the sampled actions
+        self.average_entropy = cfg.average_entropy
+        # Entropy constant used in the entropy version of the proposal policy update
+        self.tau = cfg.tau
+        # percentage of sampled actions used in actor update
+        self.rho = cfg.rho
+        # percentage of sampled actions used in the non-entropy version of the proposal policy update
+        self.rho_proposal = self.rho * cfg.prop_rho_mult
 
-        self.num_samples = cfg.num_samples  # number of actions sampled from the proposal policy
-        self.share_batch = cfg.share_batch  # whether updates to proposal and actor should share a batch
+        # number of actions sampled from the proposal policy
+        self.num_samples = cfg.num_samples
+        # whether updates to proposal and actor should share a batch
+        self.share_batch = cfg.share_batch
 
         self.uniform_sampling_percentage = cfg.uniform_sampling_percentage
         self.learned_proposal_percent = 1 - self.uniform_sampling_percentage
@@ -293,11 +301,9 @@ class GreedyAC(BaseAC):
             # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
             target = reward_batches[i] + mask_batches[i] * (self.gamma ** gamma_exp_batches[i]) * next_qs[i]
 
-            args, _ = self._hooks(
+            _, _ = self._hooks(
               when.Agent.BeforeCriticLossComputed, self, ensemble_batch[i], target, qs[i], i
             )
-            # Producing errors when gradient is computed
-            #ensemble_batch[i], target, qs[i], _ = args[1:]
 
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
 
@@ -346,7 +352,7 @@ class GreedyAC(BaseAC):
         actor_loss = -logp.mean()  # BUG: This is negative?
         return actor_loss
 
-    def compute_sampler_loss(self, update_info) -> tuple[torch.Tensor, torch.Tensor]:
+    def compute_sampler_loss(self, update_info) -> torch.Tensor:
         if self.tau != 0:  # Entropy version of proposal policy update
             sampler_loss = self.compute_sampler_entropy_loss(update_info)
         else:
@@ -361,15 +367,13 @@ class GreedyAC(BaseAC):
 
         for _ in range(self.n_critic_updates):
             batches = self.critic_buffer.sample()
-            args, _ = self._hooks(
-                when.Agent.AfterCriticBufferSample, self, batches,
-            )
-            batches = args[1]
 
             def closure():
-                return sum(self.compute_critic_loss(batches))
-            q_loss = closure()
+                losses = self.compute_critic_loss(batches) # noqa: B023
+                return torch.stack(losses, dim=-1).sum(dim=-1)
 
+
+            q_loss = closure()
             args, _ = self._hooks(
                 when.Agent.AfterCriticLossComputed, self, batches, q_loss,
             )
@@ -380,8 +384,6 @@ class GreedyAC(BaseAC):
                 when.Agent.AfterCriticUpdate, self, batches, q_loss,
             )
             batches, q_loss = args[1:]
-
-        return q_loss
 
     def update_actor(self) -> None:
         self._msg_bus.emit_event_sync(EventType.agent_update_actor)
@@ -416,9 +418,7 @@ class GreedyAC(BaseAC):
             self.actor.update(
                 actor_loss,
                 opt_kwargs={
-                    "closure": lambda: self.actor_err(
-                        stacked_s_batch, best_actions,
-                    ),
+                    "closure": partial(self.actor_err, stacked_s_batch, best_actions),
                 },
             )
             update_infos.append(update_info)
@@ -428,7 +428,6 @@ class GreedyAC(BaseAC):
             )
             actor_loss = args[1]
 
-        return update_infos
 
     def update_sampler(self, update_infos: Optional[list[tuple]]) -> None:
         if update_infos is not None:
@@ -450,9 +449,7 @@ class GreedyAC(BaseAC):
                 self.sampler.update(
                     sampler_loss,
                     opt_kwargs={
-                        "closure": lambda: self.sampler_err(
-                            stacked_s_batch, best_actions,
-                        ),
+                        "closure": partial(self.sampler_err, stacked_s_batch, best_actions)
                     },
                 )
 
@@ -460,7 +457,7 @@ class GreedyAC(BaseAC):
                     when.Agent.AfterProposalUpdate, self, batch, sampler_loss,
                 )
         else:
-            for i in range(self.n_sampler_updates):
+            for _ in range(self.n_sampler_updates):
                 batches = self.policy_buffer.sample()
                 assert len(batches) == 1
                 batch = batches[0]
@@ -488,9 +485,7 @@ class GreedyAC(BaseAC):
                 self.sampler.update(
                     sampler_loss,
                     opt_kwargs={
-                        "closure": lambda: self.sampler_err(
-                            stacked_s_batch, best_actions,
-                        ),
+                        "closure": partial(self.sampler_err, stacked_s_batch, best_actions),
                     },
                 )
 
@@ -578,6 +573,10 @@ class GreedyACLineSearch(GreedyAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
 
+        assert isinstance(self.actor, NetworkActorLineSearch)
+        assert isinstance(self.sampler, NetworkActorLineSearch)
+        assert isinstance(self.q_critic, EnsembleQCriticLineSearch)
+
         self.actor.set_parameters(id(self.policy_buffer), eval_error_fn=self.actor_eval_error_fn)
         self.sampler.set_parameters(id(self.policy_buffer), eval_error_fn=self.sampler_eval_error_fn)
         self.q_critic.set_parameters(id(self.critic_buffer), eval_error_fn=self.critic_eval_error_fn)
@@ -609,6 +608,8 @@ class ExploreLSGAC(GreedyACLineSearch):
         super().__init__(cfg, state_dim, action_dim)
         # initialize exploration module
         self.exploration = init_exploration_module(cfg.exploration, state_dim, action_dim)
+        assert isinstance(self.exploration, RndNetworkExploreLineSearch)
+
         self.exploration.set_parameters(id(self.critic_buffer))
         self.exploration_weight = cfg.exploration_weight
 

@@ -3,7 +3,6 @@ from collections.abc import Iterable
 from torch import Tensor
 from corerl.utils.device import device
 from omegaconf import DictConfig
-from warnings import warn
 import numpy as np
 import torch
 import random
@@ -14,7 +13,6 @@ from corerl.sql_logging import sql_logging
 from corerl.sql_logging.base_schema import SQLTransition
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from omegaconf import DictConfig
 import logging
 from typing import List
 from corerl.sql_logging.base_schema import TransitionInfo
@@ -81,9 +79,9 @@ class UniformBuffer:
         for i in range(len(self.data)):
             self.data[i] = self.data[i].to(device.device)
 
-    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch] | None:
+    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
         if self.size == 0 or self.data is None:
-            return None
+            return []
 
         if batch_size is None:
             batch_size = self.batch_size
@@ -97,9 +95,9 @@ class UniformBuffer:
 
         return [self._prepare(sampled_data)]
 
-    def sample_batch(self) -> list[TransitionBatch] | None:
+    def sample_batch(self) -> list[TransitionBatch]:
         if self.size == 0 or self.data is None:
-            return None
+            return []
 
         if self.full:
             sampled_data = self.data
@@ -130,7 +128,7 @@ class PriorityBuffer(UniformBuffer):
     def __init__(self, cfg: DictConfig):
         super(PriorityBuffer, self).__init__(cfg)
         self.priority = torch.zeros((self.memory,))
-        warn("Priority buffer has not been tested yet")
+        logger.warning("Priority buffer has not been tested yet")
 
     def feed(self, experience: Transition) -> None:
         super(PriorityBuffer, self).feed(experience)

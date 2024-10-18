@@ -1,9 +1,8 @@
 from corerl.component.critic.ensemble_critic import EnsembleQCritic, EnsembleVCritic, EnsembleQCriticLineSearch
-from corerl.component.critic.ensemble_critic import BaseQ, BaseV
 from omegaconf import DictConfig
 
 
-def init_q_critic(cfg: DictConfig, state_dim: int, action_dim: int, output_dim: int = 1) -> BaseQ:
+def init_q_critic(cfg: DictConfig, state_dim: int, action_dim: int, output_dim: int = 1) -> EnsembleQCritic:
     """
     corresponding configs: config/agent/critic
     """
@@ -17,7 +16,7 @@ def init_q_critic(cfg: DictConfig, state_dim: int, action_dim: int, output_dim: 
     return critic
 
 
-def init_v_critic(cfg: DictConfig, state_dim: int, output_dim: int = 1) -> BaseV:
+def init_v_critic(cfg: DictConfig, state_dim: int, output_dim: int = 1) -> EnsembleVCritic:
     """
     corresponding configs: config/agent/critic
     """

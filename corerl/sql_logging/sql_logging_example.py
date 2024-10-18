@@ -74,6 +74,7 @@ def main():
     # first read the sql credentials and create the test database
     test_db_name = "orm_test_db"
     con_cfg = OmegaConf.load("config/db/sql/credentials_vpn.yaml")
+    assert isinstance(con_cfg, dict)
     engine = sql_logging.get_sql_engine(con_cfg, db_name=test_db_name)
 
     # here we remove the test_db if it already exists
