@@ -18,6 +18,10 @@ class Reinforce(BaseAC):
         self.v_critic = init_v_critic(cfg.critic, state_dim)
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
 
+        self.ep_states: list[np.ndarray] = []
+        self.ep_actions: list[float] = []
+        self.ep_rewards: list[float] = []
+
     # Call at the beginning of episode once environment has been reset
     def reset_episode_stats(self, reset_state: np.ndarray) -> None:
         self.ep_states = [reset_state]
@@ -61,13 +65,11 @@ class Reinforce(BaseAC):
 
         self.returns = tensor(self.returns, device.device)
 
-        self.ep_states = np.asarray(self.ep_states[:-1])
-        self.ep_states = tensor(self.ep_states, device.device)
-        self.ep_actions = np.asarray(self.ep_actions)
-        self.ep_actions = tensor(self.ep_actions, device.device)
+        self.ep_states = self.ep_states[:-1]
 
-    def compute_v_loss(self) -> torch.Tensor:
-        _, v_ens = self.v_critic.get_vs([self.ep_states], with_grad=True)
+    def compute_v_loss(self) -> list[torch.Tensor]:
+        states = [torch.Tensor(self.ep_states, device.device)]
+        _, v_ens = self.v_critic.get_vs(states, with_grad=True)
         v_base_loss = ensemble_mse(self.returns, v_ens)
 
         return v_base_loss
@@ -78,10 +80,13 @@ class Reinforce(BaseAC):
             self.v_critic.update(v_loss)
 
     def compute_actor_loss(self) -> torch.Tensor:
-        v_base = self.v_critic.get_v([self.ep_states], with_grad=False)
+        states = [torch.Tensor(self.ep_states, device.device)]
+        v_base = self.v_critic.get_v(states, with_grad=False)
         with torch.no_grad():
             delta = self.returns - v_base
-        log_prob, _ = self.actor.get_log_prob(self.ep_states, self.ep_actions)
+
+        actions = torch.Tensor(self.ep_actions, device.device)
+        log_prob, _ = self.actor.get_log_prob(states[0], actions)
         actor_loss = torch.mean(-log_prob * delta)
 
         return actor_loss
