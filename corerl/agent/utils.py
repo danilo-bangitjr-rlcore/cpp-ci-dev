@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import torch
 import numpy as np
 from jaxtyping import Float
@@ -49,33 +50,6 @@ def get_top_action(
     return best_actions.to(device.device)
 
 
-# def get_max_actions_critic(critic, states, actions, action_dim, batch_size, n_samples):
-#     qs = critic.get_q(states, actions)
-#     qs = qs.reshape((batch_size, n_samples, 1))
-#     sorted_q_inds = torch.argsort(qs, dim=1, descending=True)
-#
-#     best_inds = sorted_q_inds[:, 0, :]  # index for the best action in each state
-#     best_inds = best_inds.unsqueeze(1)
-#     best_inds = best_inds.repeat_interleave(action_dim, -1)
-#
-#     actions = actions.reshape(batch_size, n_samples, action_dim)
-#     best_actions = torch.gather(actions, dim=1, index=best_inds)
-#     return best_actions
-
-# def get_max_actions_actor(actor, states, actions, action_dim, batch_size, n_samples):
-#     log_probs, _ = actor.get_log_prob(states, actions)
-#     log_probs = log_probs.reshape((batch_size, n_samples, 1))
-#     sorted_prob_inds = torch.argsort(log_probs, dim=1, descending=True)
-#
-#     best_inds = sorted_prob_inds[:, 0, :]  # index for the best action in each state
-#     best_inds = best_inds.unsqueeze(1)
-#     best_inds = best_inds.repeat_interleave(action_dim, -1)
-#
-#     sample_actions = actions.reshape(batch_size, n_samples, action_dim)
-#     best_actions = torch.gather(sample_actions, dim=1, index=best_inds)
-#     return best_actions
-
-
 def get_test_state_qs_and_policy_params(agent, test_transitions):
     test_actions = 100
     num_states = len(test_transitions)
@@ -93,13 +67,23 @@ def get_test_state_qs_and_policy_params(agent, test_transitions):
     repeated_actions = np.concatenate(repeated_actions)
     repeated_actions = tensor(repeated_actions, device.device)
 
-    bootstrap_q_values, ensemble_qs = agent.q_critic.get_qs([repeated_test_states], [repeated_actions], with_grad=False, bootstrap_reduct=True)
+    bootstrap_q_values, ensemble_qs = agent.q_critic.get_qs(
+        [repeated_test_states],
+        [repeated_actions],
+        with_grad=False,
+        bootstrap_reduct=True,
+    )
     bootstrap_q_values = to_np(bootstrap_q_values)
     bootstrap_q_values = bootstrap_q_values.reshape(num_states, test_actions)
     ensemble_qs = to_np(ensemble_qs)
     ensemble_qs = ensemble_qs.reshape(agent.q_critic.model.ensemble, num_states, test_actions)
 
-    policy_q_values, _ = agent.q_critic.get_qs([repeated_test_states], [repeated_actions], with_grad=False, bootstrap_reduct=False)
+    policy_q_values, _ = agent.q_critic.get_qs(
+        [repeated_test_states],
+        [repeated_actions],
+        with_grad=False,
+        bootstrap_reduct=False,
+    )
     policy_q_values = to_np(policy_q_values)
     policy_q_values = policy_q_values.reshape(num_states, test_actions)
 
@@ -108,5 +92,11 @@ def get_test_state_qs_and_policy_params(agent, test_transitions):
     actor_alphas = to_np(actor_alphas)
     actor_betas = to_np(actor_betas)
 
-    return test_states_np, actions, bootstrap_q_values, policy_q_values, ensemble_qs, np.array(list(zip(actor_alphas, actor_betas)))
-
+    return (
+        test_states_np,
+        actions,
+        bootstrap_q_values,
+        policy_q_values,
+        ensemble_qs,
+        np.array(list(zip(actor_alphas, actor_betas, strict=True))),
+    )
