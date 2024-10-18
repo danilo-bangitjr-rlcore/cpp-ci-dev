@@ -186,6 +186,7 @@ class PendulumEnv(gym.Env):
         reward, self.state = args[3:5]
 
         # States are encoded as [θ, ω]
+        print("R:", reward)
         return self.state, reward, False, False, {}
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
