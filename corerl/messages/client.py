@@ -105,9 +105,20 @@ class WebsocketClient:
 
 
     def emit_event_sync(self, event: Event | EventType):
-        assert self._loop is not None
+        loop = self._loop
+        if loop is None:
+            loop = self.restart_sync()
+
         fut = self.emit_event(event)
-        fut = asyncio.run_coroutine_threadsafe(fut, self._loop)
+        fut = asyncio.run_coroutine_threadsafe(fut, loop)
+
+
+    def restart_sync(self):
+        self.close_sync()
+        self.start_sync()
+
+        assert self._loop is not None
+        return self._loop
 
 
     # ------------------------

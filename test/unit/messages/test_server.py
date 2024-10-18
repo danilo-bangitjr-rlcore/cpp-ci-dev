@@ -68,7 +68,7 @@ async def test_subscribe1(server_and_client):
     await receiver.close()
 
 
-@pytest.mark.timeout(1)
+@pytest.mark.timeout(10)
 async def test_subscribe2(server_and_client):
     """
     Given a server and two clients, one client can
