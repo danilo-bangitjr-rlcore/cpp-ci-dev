@@ -86,17 +86,20 @@ def create_base(cfg: Mapping, input_dim: int, output_dim: Optional[int]):
     assert len(hidden) == len(act)
     layer_init = utils.init_layer(cfg["layer_init"])
 
-    # For now, to deal with the migration to the new network ctors, we make
-    # these assertions, to ensure that if anyone is using a head activation,
-    # etc., we catch that.
+    # In the previous iteration of the codebase, the create_base function
+    # allowed for the creation of activations on network heads/output layers.
+    # Here, we explicitly disallow that, since the feature was never even used.
+    #
+    # That being said, this was a central part in how networks were
+    # constructed. Hence for now, we are going to explicitly raise an error
+    # when such keys exist in the configuration, to ensure everyone is aware of
+    # this change.
     ks = cfg.keys()
     filt = list(filter(lambda x: x.startswith("head_"), ks))
     if len(filt) > 0:
-        warn(f"create_base: unexpected config key(s) {filt}, ignoring...")
-
-    assert "head_activation" not in cfg.keys()
-    assert "head_bias" not in cfg.keys()
-    assert "head_layer_init" not in cfg.keys()
+        warn(
+            f"create_base: unexpected config key(s) {filt}"
+        )
 
     net = []
 
