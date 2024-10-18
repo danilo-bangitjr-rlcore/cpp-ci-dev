@@ -85,11 +85,14 @@ class EnsembleQCritic(BaseQ):
         return q
 
     def update(
-        self, loss: list[torch.Tensor], opt_args=tuple(), opt_kwargs=dict(),
+        self, loss: list[torch.Tensor] | torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
     ) -> None:
         self.optimizer.zero_grad()
 
-        self.ensemble_backward(loss)
+        if isinstance(loss, (list, tuple)):
+            self.ensemble_backward(loss)
+        else:
+            loss.backward()
 
         if self.optimizer_name != "lso":
             self.optimizer.step()
