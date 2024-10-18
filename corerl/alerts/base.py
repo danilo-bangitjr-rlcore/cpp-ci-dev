@@ -73,7 +73,7 @@ class BaseAlert(ABC):
         self,
         plot_info: dict[str, Any],
         repeated_test_states: torch.Tensor,
-        repated_actions: torch.Tensor,
+        repeated_actions: torch.Tensor,
         num_states: int,
         test_actions: int,
     ) -> dict[str, Any]: ...
