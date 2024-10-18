@@ -181,6 +181,10 @@ class GVFTraceAlert(BaseAlert):
 
         return plot_info
 
+
+    def get_std_thresh(self) -> dict[str, dict[str, float]]:
+        return {}
+
 class GVFUncertaintyAlert(GVFTraceAlert):
     def __init__(self, cfg: DictConfig, cumulant_start_ind: int, **kwargs):
         super().__init__(cfg, cumulant_start_ind, **kwargs)
