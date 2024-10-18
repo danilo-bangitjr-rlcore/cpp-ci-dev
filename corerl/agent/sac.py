@@ -171,7 +171,7 @@ class SAC(BaseAC):
             # Assuming we don't have an ensemble of policies
             assert len(batches) == 1
             batch = batches[0]
-            actor_loss = self.compute_actor_loss(batch)
+            actor_loss, _ = self.compute_actor_loss(batch)
             self.actor.update(actor_loss)
 
     def update(self) -> None:
