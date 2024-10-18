@@ -1,8 +1,9 @@
 import pytest
 import asyncio
+from test.unit.utils.fixture_opc import FakeOpcServer, OpcConnection
 from test.unit.utils.fixture_opc import * # noqa: F403
 
-async def test_connect1(server_and_client):
+async def test_connect1(server_and_client: tuple[FakeOpcServer, OpcConnection]):
     """
     Client should be able to connect to a running server.
     """
@@ -10,7 +11,7 @@ async def test_connect1(server_and_client):
     await client.connect()
 
 
-async def test_connect2(client):
+async def test_connect2(client: OpcConnection):
     """
     Client should fail when no server is running.
     """
@@ -18,7 +19,7 @@ async def test_connect2(client):
         await client.connect()
 
 
-async def test_read_values1(server_and_client):
+async def test_read_values1(server_and_client: tuple[FakeOpcServer, OpcConnection]):
     """
     Client can read values for both sensors.
     """
@@ -36,7 +37,7 @@ async def test_read_values1(server_and_client):
     assert values == [1.1, 2.1]
 
 
-async def test_disconnect1(server_and_client):
+async def test_disconnect1(server_and_client: tuple[FakeOpcServer, OpcConnection]):
     """
     Client survives when a server goes offline after connection.
     Check this sequence:
@@ -65,7 +66,7 @@ async def test_disconnect1(server_and_client):
     assert got == [3.0]
 
 
-async def test_disconnect2(server_and_client):
+async def test_disconnect2(server_and_client: tuple[FakeOpcServer, OpcConnection]):
     """
     Client survives when a server goes offline after connection.
     Check this sequence:

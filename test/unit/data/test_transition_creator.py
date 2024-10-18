@@ -3,11 +3,16 @@ import numpy as np
 from omegaconf import DictConfig
 
 from corerl.data.transition_creator import AnytimeTransitionCreator
-from corerl.data.data import ObsTransition
+from corerl.data.data import ObsTransition, Transition
 from test.unit.state_constructor.state_constructor import make_anytime_multi_trace
+from corerl.state_constructor.base import BaseStateConstructor
 
 
-def _make_anytime_transition_creator(sc, steps_per_decision, n_step) -> AnytimeTransitionCreator:
+def _make_anytime_transition_creator(
+    sc: BaseStateConstructor,
+    steps_per_decision: int,
+    n_step: int,
+) -> AnytimeTransitionCreator:
     cfg_d = {
         'steps_per_decision': steps_per_decision,
         'n_step': n_step,
@@ -46,7 +51,7 @@ def _make_simple_obs_transition_sequence(num_observations: int):
     return obs_transitions
 
 
-def _get_first_state(sc, obs_transitions):
+def _get_first_state(sc: BaseStateConstructor, obs_transitions: list[ObsTransition]):
     sc.reset()
     initial_obs = obs_transitions[0].obs
     initial_action = obs_transitions[0].obs
@@ -56,10 +61,10 @@ def _get_first_state(sc, obs_transitions):
 
 
 def test_anytime_transition_creator_init():
-    tc = make_anytime_multi_trace(warmup=0, steps_per_decision=5)
+    make_anytime_multi_trace(warmup=0, steps_per_decision=5)
 
 
-def _check_dps(i, steps_per_decision, transition, n_step):
+def _check_dps(i: int, steps_per_decision: int, transition: Transition, n_step: int):
     steps_until_decision = steps_per_decision - (i % steps_per_decision)
     # check if state_dp set properly
     if i % steps_per_decision == 0:

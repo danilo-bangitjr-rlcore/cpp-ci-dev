@@ -1,10 +1,9 @@
-import pytest
 from omegaconf import DictConfig
 
-from corerl.state_constructor.examples import MultiTrace, AnytimeMultiTrace
+from corerl.state_constructor.examples import AnytimeMultiTrace
 
 
-def make_anytime_multi_trace(warmup, steps_per_decision):
+def make_anytime_multi_trace(warmup: int, steps_per_decision: int):
     cfg_d = {
         'trace_values': [0.9],
         'warmup': warmup,

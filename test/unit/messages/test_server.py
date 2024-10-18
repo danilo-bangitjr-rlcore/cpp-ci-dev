@@ -2,14 +2,13 @@ import pytest
 
 from websockets.asyncio.client import connect
 
-from test.unit.messages.fixtures import * # noqa: F403
+from test.unit.messages.conftest import WebsocketServer, WebsocketClient
 from corerl.messages.events import Event, EventType, SubscribeEvent
-from corerl.messages.client import WebsocketClient
 
 # ----------------
 # -- Connection --
 # ----------------
-async def test_connect1(server):
+async def test_connect1(server: WebsocketServer):
     """
     Multiple clients can connect to a single
     server.
@@ -35,7 +34,7 @@ async def test_connect1(server):
 # -- Subscription --
 # ------------------
 @pytest.mark.timeout(1)
-async def test_subscribe1(server_and_client):
+async def test_subscribe1(server_and_client: tuple[WebsocketServer, WebsocketClient]):
     """
     Given a server and two clients, one client can
     subscribe to events from the server, while the
@@ -69,7 +68,7 @@ async def test_subscribe1(server_and_client):
 
 
 @pytest.mark.timeout(10)
-async def test_subscribe2(server_and_client):
+async def test_subscribe2(server_and_client: tuple[WebsocketServer, WebsocketClient]):
     """
     Given a server and two clients, one client can
     subscribe to events from the server, while the
