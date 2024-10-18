@@ -147,3 +147,6 @@ class SimpleAC(BaseAC):
         policy_buffer_path = path / "policy_buffer.pkl"
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
+
+    def load_buffer(self, transitions: list[Transition]) -> None:
+        ...

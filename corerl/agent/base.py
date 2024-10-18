@@ -49,11 +49,6 @@ class BaseAgent(ABC):
     def load(self, path: Path) -> None:
         raise NotImplementedError
 
-    # A function to save stats and other objects during the run
-    @abstractmethod
-    def add_to_freezer(self) -> None:
-        pass
-
     def register_hook(self, hook, when: when.Agent):
         self._hooks.register(hook, when)
 

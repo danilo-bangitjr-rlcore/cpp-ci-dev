@@ -89,7 +89,7 @@ class InAC(BaseAC):
             target = qs[i] - self.temp * log_probs_batches[i]
             value_loss = (0.5 * (v_phis[i] - target) ** 2).mean()
             losses.append(value_loss)
-        
+
         return losses
 
 
@@ -116,7 +116,7 @@ class InAC(BaseAC):
             next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
             with torch.no_grad():
                 next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
-            
+
             next_log_probs, _ = self.actor.get_log_prob(next_state_batch, next_actions,
                                                         with_grad=False)
 
@@ -239,3 +239,6 @@ class InAC(BaseAC):
         policy_buffer_path = path / "policy_buffer.pkl"
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
+
+    def load_buffer(self, transitions: list[Transition]) -> None:
+        ...
