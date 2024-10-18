@@ -1,5 +1,10 @@
+from typing import Any
 from omegaconf import DictConfig
 from abc import ABC, abstractmethod
+
+import torch
+
+from corerl.data.data import Transition
 
 class BaseAlert(ABC):
     @abstractmethod
@@ -42,3 +47,38 @@ class BaseAlert(ABC):
         Utilizes the info in **kwargs to produce the list of cumulants for the given alert type
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def update_buffer(self, transition: Transition):
+        ...
+
+    @abstractmethod
+    def load_buffer(self, transitions: list[Transition]):
+        ...
+
+    @abstractmethod
+    def get_trace_thresh(self) -> dict[str, dict[str, float]]:
+        ...
+
+    @abstractmethod
+    def get_std_thresh(self) -> dict[str, dict[str, float]]:
+        ...
+
+    @abstractmethod
+    def alert_type(self) -> str:
+        ...
+
+    @abstractmethod
+    def get_test_state_qs(
+        self,
+        plot_info: dict[str, Any],
+        repeated_test_states: torch.Tensor,
+        repated_actions: torch.Tensor,
+        num_states: int,
+        test_actions: int,
+    ) -> dict[str, Any]: ...
+
+
+    @abstractmethod
+    def get_buffer_size(self) -> list[int]:
+        ...
