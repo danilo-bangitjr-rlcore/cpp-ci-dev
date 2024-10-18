@@ -24,9 +24,16 @@ def get_batch_actions_discrete(
     return sample_actions.to(device.device)
 
 
-def get_top_action(func, states, actions, action_dim, batch_size, n_actions, return_idx=None):
-
-    if return_idx is None:
+def get_top_action(
+    func: Callable[[list[torch.Tensor], list[torch.Tensor]], torch.Tensor],
+    states: torch.Tensor,
+    actions: torch.Tensor,
+    action_dim: int,
+    batch_size: int,
+    n_actions: int,
+    return_idx: bool = False,
+):
+    if not return_idx:
         x = func([states], [actions])
     else:  # in func returns a tuple
         x = func([states], [actions])[0]
