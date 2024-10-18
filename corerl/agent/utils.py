@@ -6,9 +6,11 @@ from corerl.component.network.utils import to_np, tensor
 from corerl.utils.device import device
 
 
-def get_batch_actions_discrete(state_batch: Float[torch.Tensor, "batch_size state_dim"], action_dim: int,
-                               samples: int | None = None) \
-        -> Float[torch.Tensor, "batch_size*action_dim action_dim"]:
+def get_batch_actions_discrete(
+    state_batch: Float[torch.Tensor, "batch_size state_dim"],
+    action_dim: int,
+    samples: int | None = None,
+) -> Float[torch.Tensor, "batch_size*action_dim action_dim"]:
     batch_size = state_batch.shape[0]
     if samples is None:
         actions = torch.arange(action_dim).reshape((1, -1))
