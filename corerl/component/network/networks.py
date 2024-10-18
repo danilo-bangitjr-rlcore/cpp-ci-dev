@@ -151,10 +151,13 @@ def _get_output_shape(net, placeholder_input, *, dim=None):
     return output_shape[dim]
 
 
-
 # TODO: here is an example of initializing a network.
 class FC(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
+        warn(
+            "FC is deprecated and will be removed in a future version" +
+            "to create an MLP, use `create_base` instead"
+        )
         super(FC, self).__init__()
         layer_norm = cfg.layer_norm
         arch = cfg.arch
