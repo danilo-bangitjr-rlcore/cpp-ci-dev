@@ -156,3 +156,9 @@ class CompositeAlert(BaseAlert):
         test_actions: int,
     ) -> dict[str, Any]:
         ...
+
+    def get_buffer_size(self) -> list[int]:
+        return []
+
+    def alert_type(self) -> str:
+        ...
