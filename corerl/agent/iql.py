@@ -39,9 +39,11 @@ class IQL(BaseAC):
         if transition.state_dp:
             self.policy_buffer.feed(transition)
 
-    def compute_actor_loss(self, batch: TransitionBatch) -> torch.Tensor:
-        states = batch.state
-        actions = batch.action
+    def compute_actor_loss(
+        self,
+        update_info: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, int],
+    ) -> torch.Tensor:
+        _, _, _, _, states, actions, _ = update_info
         v = self.v_critic.get_v([states], with_grad=False)
         q = self.q_critic.get_q([states], [actions], with_grad=False)  # NOTE: we are not using target networks
         exp_a = torch.exp((q - v) * self.temp)
@@ -130,7 +132,10 @@ class IQL(BaseAC):
             # Assuming we don't have an ensemble of policies
             assert len(batches) == 1
             batch = batches[0]
-            actor_loss = self.compute_actor_loss(batch)
+            empty = torch.empty(0)
+            actor_loss = self.compute_actor_loss((
+                empty, empty, empty, empty, batch.state, batch.action, 0,
+            ))
             self.actor.update(actor_loss)
 
     def update(self) -> None:
