@@ -2,7 +2,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
-from typing import Optional
+from typing import Any, Optional
 from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 
@@ -11,28 +11,30 @@ from corerl.component.network.utils import to_np
 from corerl.data.data import OldObsTransition
 from corerl.data.data import Trajectory
 from corerl.agent.base import BaseAgent
+from corerl.data.transition_creator import BaseTransitionCreator
+from corerl.data.transition_normalizer import TransitionNormalizer
 
 
 class BaseCalibrationModel(ABC):
-    def __init__(self, cfg: DictConfig, train_info: dict):
-        self.test_trajectories = train_info['test_trajectories_cm']
-        self.train_trajectories = train_info['train_trajectories_cm']
+    def __init__(self, cfg: DictConfig, train_info: dict[str, Any]):
+        self.test_trajectories: list[Trajectory] = train_info['test_trajectories_cm']
+        self.train_trajectories: list[Trajectory] = train_info['train_trajectories_cm']
         self.trajectories = self.train_trajectories + self.test_trajectories
 
         self.reward_func = train_info['reward_func']
-        self.normalizer = train_info['normalizer']
-        self.transition_creator = train_info['transition_creator']
+        self.normalizer: TransitionNormalizer = train_info['normalizer']
+        self.transition_creator: BaseTransitionCreator = train_info['transition_creator']
 
-        self.endo_inds = cfg.endo_inds
-        self.exo_inds = cfg.exo_inds
+        self.endo_inds: list[int] = cfg.endo_inds
+        self.exo_inds: list[int] = cfg.exo_inds
 
-        self.max_rollout_len = cfg.max_rollout_len
-        self.steps_per_decision = cfg.steps_per_decision
-        self.num_test_rollouts = cfg.num_test_rollouts
-        self.gamma = cfg.gamma
-        self.allow_learning = cfg.allow_learning
+        self.max_rollout_len: int = cfg.max_rollout_len
+        self.steps_per_decision: int = cfg.steps_per_decision
+        self.num_test_rollouts: int = cfg.num_test_rollouts
+        self.gamma: float = cfg.gamma
+        self.allow_learning: bool = cfg.allow_learning
 
-        self.rollout_indices = None  # indices of the trajectories for agent rollouts
+        self.rollout_indices: list[tuple[int, int]] | None = None  # indices of the trajectories for agent rollouts
 
     @abstractmethod
     def train(self):
