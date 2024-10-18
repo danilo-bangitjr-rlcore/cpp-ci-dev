@@ -303,10 +303,6 @@ def offline_alert_training(cfg: DictConfig, env: Env, alerts: CompositeAlert, tr
                            plot_transitions: list[Transition], save_path: Path):
     log.info('Starting offline alert training...')
 
-    if plot_transitions is None:
-        split = train_test_split(train_transitions, train_split=cfg.experiment.train_split)
-        train_transitions, plot_transitions = split[0][0], split[0][1]
-
     log.debug("Num alert train transitions: {}".format(len(train_transitions)))
 
     alerts.load_buffer(train_transitions)
@@ -361,10 +357,6 @@ def offline_training(cfg: DictConfig,
     """
     offline_eval_cfg = {}
     offline_eval = CompositeEval(offline_eval_cfg, offline_eval_args, offline=True)
-
-    if plot_transitions is None:
-        split = train_test_split(train_transitions, train_split=cfg.experiment.train_split)
-        train_transitions, plot_transitions = split[0][0], split[0][1]
 
     log.debug("Num agent train transitions:", len(train_transitions))
     agent.load_buffer(train_transitions)
