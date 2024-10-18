@@ -1,7 +1,7 @@
 import numpy
 import torch
 import torch.nn as nn
-from corerl.utils.device import device as global_device
+from corerl.utils.device import Device, device as global_device
 from collections.abc import Callable
 import warnings
 import corerl.component.layer.activations as activations
@@ -143,15 +143,18 @@ def layer_init_uniform(layer: nn.Module, low: float = -0.003, high: float = 0.00
 
 def tensor(
     x: float | numpy.ndarray | torch.Tensor,
-    device: str | torch.device | None = None,
+    device: str | torch.device | Device | None = None,
 ) -> torch.Tensor:
     if isinstance(x, torch.Tensor):
         return x
-    if device is not None:
-        x = torch.tensor(x, dtype=torch.float32).to(device)
-    else:
-        x = torch.tensor(x, dtype=torch.float32).to(global_device.device)
-    return x
+
+    if device is None:
+        device = global_device.device
+
+    elif isinstance(device, Device):
+        device = device.device
+
+    return torch.tensor(x, dtype=torch.float32).to(device)
 
 
 def state_to_tensor(state: numpy.ndarray,  device: str | torch.device | None = None) -> torch.Tensor:
