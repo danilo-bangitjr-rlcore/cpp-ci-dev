@@ -199,11 +199,27 @@ class FC(nn.Module):
 
 
 class EnsembleFC(nn.Module):
+    @classmethod
+    def _create_base(
+        cls, cfg: DictConfig, input_dim: int, output_dim: int,
+    ) -> nn.Module:
+        """Create subnetworks for EnsembleFC.
+
+        This function was moved from the main body of the file, where it is
+        replaced by the current version of `create_base`. This is kept here for
+        compatibility, until we move EnsembleFC to use the new implementation
+        of `create_base`
+        """
+        if cfg.name == "fc":
+            return FC(cfg, input_dim, output_dim)
+        else:
+            raise NotImplementedError
+
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(EnsembleFC, self).__init__()
         self.ensemble = cfg.ensemble
         self.subnetworks = [
-            create_base(cfg.base, input_dim, output_dim)
+            EnsembleFC._create_base(cfg.base, input_dim, output_dim)
             for _ in range(self.ensemble)
         ]
         self.to(device.device)
