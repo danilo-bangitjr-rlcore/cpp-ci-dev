@@ -78,6 +78,13 @@ def _init_ensemble_reducts(cfg: DictConfig):
 
 
 def create_base(cfg: Mapping, input_dim: int, output_dim: Optional[int]):
+    if cfg["name"].lower() in ("mlp", "fc"):
+        return _create_base_mlp(cfg, input_dim, output_dim)
+    else:
+        raise ValueError(f"unknown network type {cfg['name']}")
+
+
+def _create_base_mlp(cfg: Mapping, input_dim: int, output_dim: Optional[int]):
     assert cfg["name"].lower() in ("mlp", "fc")
 
     hidden = cfg["hidden"]
