@@ -9,7 +9,8 @@ class BaseAlert(ABC):
     @abstractmethod
     def evaluate(self, **kwargs) -> dict:
         """
-        Feed the latest state/observation/data pertinent to the given alert and evaluate if an alert must be sent to the operator
+        Feed the latest state/observation/data pertinent to the given alert
+        and evaluate if an alert must be sent to the operator
         """
         raise NotImplementedError
 
@@ -23,7 +24,8 @@ class BaseAlert(ABC):
     @abstractmethod
     def get_dim(self) -> int:
         """
-        Returns the number of parallel alerts tracked by the given alert type (Ex: GVF alert tracks multiple endogenous variables)
+        Returns the number of parallel alerts tracked by the given alert type
+        (Ex: GVF alert tracks multiple endogenous variables)
         """
         raise NotImplementedError
 
