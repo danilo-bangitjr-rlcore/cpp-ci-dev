@@ -3,7 +3,7 @@ name: fc
 # Neural network composed of two hidden layers of 64 units with the ReLU
 # activation after the first and second hidden layers after the second hidden
 # layer
-hidden : [64, 64]
+hidden : [256, 256]
 
 activation : [
   {"name": "relu"}, {"name": "relu"},
