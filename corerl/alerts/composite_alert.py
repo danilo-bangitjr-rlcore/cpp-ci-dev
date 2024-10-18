@@ -16,9 +16,13 @@ log = logging.getLogger(__name__)
 
 
 class CompositeAlert(BaseAlert):
-    def __init__(self, cfg: DictConfig, alert_args: dict):
+    def __init__(self, cfg: DictConfig | None, alert_args: dict):
         self.alerts: list[BaseAlert] = []
         cumulant_start_ind = 0
+
+        if cfg is None:
+            return
+
         for alert_type in cfg.keys():
             alert_type_cfg = cfg[alert_type]
             self.alerts.append(init_alert(alert_type_cfg, cumulant_start_ind, alert_args))
