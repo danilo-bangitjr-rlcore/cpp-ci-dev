@@ -20,7 +20,6 @@ from corerl.eval.composite_eval import CompositeEval
 from corerl.data_loaders.base import BaseDataLoader
 from corerl.data_loaders.direct_action import OldDirectActionDataLoader
 from corerl.environment.reward.factory import init_reward_function
-from corerl.data_loaders.utils import train_test_split
 from corerl.data.data import OldObsTransition, Transition, ObsTransition, Trajectory
 from corerl.interaction.base import BaseInteraction
 from corerl.interaction.offline_anytime import OfflineAnytimeInteraction
