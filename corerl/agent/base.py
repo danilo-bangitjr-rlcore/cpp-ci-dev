@@ -50,6 +50,7 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     # A function to save stats and other objects during the run
+    @abstractmethod
     def add_to_freezer(self) -> None:
         pass
 
