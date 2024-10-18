@@ -114,9 +114,10 @@ class ActionValueTraceAlert(BaseAlert):
 
         def closure():
             losses, ensemble_info = self.compute_critic_loss(batches)
-            return sum(losses), ensemble_info
-        q_loss, ens_info = closure()
+            loss = torch.stack(losses, dim=-1).sum(dim=-1)
+            return loss, ensemble_info
 
+        q_loss, ens_info = closure()
         self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
 
         return ens_info

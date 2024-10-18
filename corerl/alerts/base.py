@@ -14,7 +14,7 @@ class BaseAlert(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update(self) -> None:
+    def update(self) -> dict:
         """
         Update the alert's value function(s)
         """
