@@ -1,14 +1,14 @@
 import torch
 import copy
 import math
-from typing import Optional, Callable
+from typing import Any, Callable, overload
 
 
 
 class CustomAdam(torch.optim.Optimizer):
     def __init__(
         self,
-        params: torch.Tensor | dict[str, torch.Tensor],
+        params: torch.optim.optimizer.ParamsT,
         lr: float = 1e-3,
         betas: tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-8,
@@ -24,22 +24,28 @@ class CustomAdam(torch.optim.Optimizer):
         super(CustomAdam, self).__init__(params, defaults)
 
         self.state_idx = {}
-        max_p_len = 0
+        self.max_p_len = max(
+            len(group['params']) for group in self.param_groups
+        )
+
         for gi, group in enumerate(self.param_groups):
-            if len(group['params']) > max_p_len:
-                max_p_len = len(group['params'])
-        self.max_p_len = max_p_len
-        for gi, group in enumerate(self.param_groups):
-            for pi, p in enumerate(group['params']):
+            for pi in range(len(group['params'])):
                 self.state_idx[gi * self.max_p_len + pi] = {}
 
-    def __setstate__(self, state: dict[str, any]):
+    def __setstate__(self, state: dict[str, Any]):
         super(CustomAdam, self).__setstate__(state)
         for group in self.param_groups:
             group.setdefault('amsgrad', False)
 
-    # def step(self, network_param_groups, closure=None):
-    def step(self, closure: Optional[Callable] = None):
+    @overload
+    def step(self, closure: None = ...) -> None:
+        ...
+
+    @overload
+    def step(self, closure: Callable[[], float]) -> float:
+        ...
+
+    def step(self, closure: Callable[[], float] | None = None) -> float | None:
         loss = None
         if closure is not None:
             loss = closure()
@@ -71,13 +77,13 @@ class CustomAdam(torch.optim.Optimizer):
                 p.data.addcdiv_(exp_avg, denom, value=-step_size)
         return loss
 
-    def _dispatch_sqrt(self, x: float | torch.Tensor) -> float | torch.Tensor:  # float annotation is needed because of torchscript type inference
-        if not torch.jit.is_scripting() and isinstance(x, torch.Tensor):
+    def _dispatch_sqrt(self, x: float | torch.Tensor) -> float | torch.Tensor:
+        if not torch.jit.is_scripting() and isinstance(x, torch.Tensor): # type: ignore
             return x.sqrt()
         else:
             return math.sqrt(x)
 
-    def state_dict(self) -> dict[str, any]:
+    def state_dict(self) -> dict[str, Any]:
         hard_copy = {
             'state': {},
             'param_groups': []
@@ -89,7 +95,7 @@ class CustomAdam(torch.optim.Optimizer):
                     hard_copy['state'][s]['step'] = copy.deepcopy(self.state_idx[s]['step'])
                     hard_copy['state'][s]['exp_avg'] = copy.deepcopy(self.state_idx[s]['exp_avg'].data.detach())
                     hard_copy['state'][s]['exp_avg_sq'] = copy.deepcopy(self.state_idx[s]['exp_avg_sq'].data.detach())
-            for gi, group in enumerate(self.param_groups):
+            for group in self.param_groups:
                 hard_copy['param_groups'].append({})
                 hard_copy['param_groups'][-1]['lr'] = copy.deepcopy(group['lr'])
                 hard_copy['param_groups'][-1]['betas'] = copy.deepcopy(group['betas'])
@@ -98,7 +104,7 @@ class CustomAdam(torch.optim.Optimizer):
                 hard_copy['param_groups'][-1]['amsgrad'] = copy.deepcopy(group['amsgrad'])
         return hard_copy
 
-    def load_state_dict(self, state_dict: dict[str, any]) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         def inposition_fill(ref, data):
             if len(ref.data.size()) == 2:
                 idx = torch.arange(ref.data.size()[1])
