@@ -55,10 +55,10 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
 
     def _eval(self, batch, with_grad):
         # gamma_exponents double as the durations of actions
-        state_batch, action_batch, next_obs_batch, duration = batch.state, batch.action, batch.boot_obs, batch.gamma_exponent
-        endo_next_obs_batch = next_obs_batch[:, self.endo_inds]
+        duration = batch.gamma_exponent
+        endo_next_obs_batch = batch.boot_obs[:, self.endo_inds]
         duration /= self.max_action_duration
-        prediction = self.get_prediction(state_batch, action_batch, duration, with_grad=with_grad)
+        prediction = self.get_prediction(batch.state, batch.action, duration, with_grad=with_grad)
         loss = nn.functional.mse_loss(prediction, endo_next_obs_batch)
 
         return loss
