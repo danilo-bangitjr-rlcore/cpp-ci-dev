@@ -333,21 +333,25 @@ class GRU(nn.Module):
             out = self.output_net(out)
         else:
             out = []
+            last: Any = None
             for t in range(seq_length):
                 x_t = x[:, t, :].unsqueeze(1)
 
                 if t <= prediction_start:
                     out_t, h = self.gru(x_t, h)
                     out_t = self.output_net(out_t)
+                    last = out_t
 
                 else:  # feed the networks predictions back in.
-                    out_t_len = out_t.size(-1)
+                    assert last is not None
+                    out_t_len = last.size(-1)
                     # replace the first out_t_len elements of x_t with out_t
                     # the network only predicts endogenous variables, so we grab the exogenous from that time step
                     # Note: out_t is the prediction of endogenous variables from the prev. time step
-                    x_t = torch.cat((out_t, x_t[:, :, out_t_len:]), dim=-1)
+                    x_t = torch.cat((last, x_t[:, :, out_t_len:]), dim=-1)
                     out_t, h = self.gru(x_t, h)
                     out_t = self.output_net(out_t)
+                    last = out_t
 
                 out.append(out_t)
             out = torch.cat(out, dim=1)
