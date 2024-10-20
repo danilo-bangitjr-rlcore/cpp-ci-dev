@@ -2,7 +2,6 @@ from omegaconf import DictConfig
 import linesearchopt as lso
 from typing import Optional
 import torch
-from omegaconf import DictConfig
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.custom_torch_opts import CustomAdam
 from typing import Iterator
@@ -18,7 +17,6 @@ def init_optimizer(cfg: DictConfig, param: list | dict | Iterator, ensemble: Opt
     if "weight_decay" in cfg.keys():
         weight_decay = cfg.weight_decay
 
-    # TODO: Han can you make sure this file is ok?
     if ensemble and not vmap:
         if name != "lso":
             kwargs = {'weight_decay': cfg.weight_decay, 'lr': cfg.lr}
