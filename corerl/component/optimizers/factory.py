@@ -77,7 +77,7 @@ def lso_kwargs(cfg):
     if "fallback_step_size" in cfg.keys():
         kwargs["fallback_step_size"] = cfg["fallback_step_size"]
     else:
-        kwargs["fallback_step_size"] = init_step_size
+        kwargs["fallback_step_size"] = cfg['init_step_size']
 
     kwargs["optim"] = get_optim_type(cfg.optim.name)
 
