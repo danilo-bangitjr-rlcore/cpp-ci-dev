@@ -1,4 +1,4 @@
-from typing import Optional, Callable
+from typing import Any, Callable
 
 
 class EnsembleOptimizer:
