@@ -77,7 +77,7 @@ class KNNCalibrationModel(BaseCalibrationModel):
             losses = []
             pbar = tqdm(range(self.train_itr))
             for _ in pbar:
-                batch = self.buffer.sample(self.batch_size)[0]
+                batch = self.buffer.sample_mini_batch(self.batch_size)[0]
                 loss = self._laplacian_loss(batch)
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -88,15 +88,12 @@ class KNNCalibrationModel(BaseCalibrationModel):
                     avg_loss = sum(losses[-loss_avg:]) / loss_avg
                     pbar.set_description(f"Avg loss over last {loss_avg} iterations:: {avg_loss:.4f}")
 
-                self.optimizer.step()
+                self.optimizer.step(closure=lambda: 0.)
 
         log.info("Constructing lookup...")
         self._construct_lookup_continuous(self.train_transitions)
 
     def _laplacian_loss(self, batch: TransitionBatch) -> torch.Tensor:
-        """
-        TODO: have this include actions in representations. Will need to modify Transition class to save the next transition.
-        """
         state_batch = batch.state
         next_state_batch = batch.next_state
 
