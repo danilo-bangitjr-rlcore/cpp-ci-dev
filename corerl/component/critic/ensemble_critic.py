@@ -23,9 +23,11 @@ class EnsembleQCritic(BaseQ):
             cfg.critic_network, input_dim=state_action_dim, output_dim=output_dim,
             critic=self.model,
         )
+
+        params = self.model.parameters(independent=True) # type: ignore
         self.optimizer = init_optimizer(
             cfg.critic_optimizer,
-            list(self.model.parameters(independent=True)),
+            list(params),
             ensemble=True,
             vmap=cfg.critic_network.vmap
         )
@@ -113,8 +115,9 @@ class EnsembleQCritic(BaseQ):
 
     def ensemble_backward(self, loss: list[torch.Tensor]):
         for i in range(len(loss)):
+            params = self.model.parameters(independent=True)[i] # type: ignore
             loss[i].backward(
-                inputs=list(self.model.parameters(independent=True)[i])
+                inputs=list(params)
             )
         return
 
@@ -162,9 +165,11 @@ class EnsembleVCritic(BaseV):
             cfg.critic_network, input_dim=state_dim, output_dim=output_dim,
             critic=self.model,
         )
+
+        params = self.model.parameters(independent=True) # type: ignore
         self.optimizer = init_optimizer(
             cfg.critic_optimizer,
-            list(self.model.parameters(independent=True)),
+            list(params),
             ensemble=True,
             vmap=cfg.critic_network.vmap
         )
@@ -190,8 +195,10 @@ class EnsembleVCritic(BaseV):
 
     def ensemble_backward(self, loss: list[torch.Tensor]):
         for i in range(len(loss)):
+            params = self.model.parameters(independent=True)[i] # type: ignore
+
             loss[i].backward(
-                inputs=list(self.model.parameters(independent=True)[i])
+                inputs=list(params),
             )
         return
 
