@@ -3,20 +3,23 @@ import linesearchopt as lso
 import torch
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.custom_torch_opts import CustomAdam
-from typing import Iterator
 
 
-def init_optimizer(cfg: DictConfig, param: list | dict | Iterator, ensemble: bool = False, vmap: bool = False):
+def init_optimizer(
+    cfg: DictConfig,
+    param: torch.optim.optimizer.ParamsT,
+    ensemble: bool = False,
+    vmap: bool = False,
+):
     """
     config files: root/config/agent/critic/critic_optimizer or root/config/agent/actor/actor_optimizer
     """
     name = cfg.name
-    if "lr" in cfg.keys():
-        lr = cfg.lr
-    if "weight_decay" in cfg.keys():
-        weight_decay = cfg.weight_decay
+    lr: float | None = getattr(cfg, 'lr', None)
+    weight_decay: float | None = getattr(cfg, 'weight_decay', None)
 
     if ensemble and not vmap:
+        kwargs = {}
         if name != "lso":
             kwargs = {'weight_decay': cfg.weight_decay, 'lr': cfg.lr}
 
@@ -34,6 +37,8 @@ def init_optimizer(cfg: DictConfig, param: list | dict | Iterator, ensemble: boo
         else:
             raise NotImplementedError
     else:
+        assert lr is not None
+        assert weight_decay is not None
         if name == "rms_prop":
             return torch.optim.RMSprop(param, lr, weight_decay=weight_decay)
         elif name == 'adam':
