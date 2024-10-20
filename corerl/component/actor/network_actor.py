@@ -39,16 +39,25 @@ class NetworkActor(BaseActor):
         return self.policy.support
 
     def update(
-        self, loss: torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
+        self,
+        loss: torch.Tensor,
+        opt_args=tuple(),
+        opt_kwargs: dict | None = None,
     ) -> None:
+        opt_kwargs = nullable.default(opt_kwargs, dict)
+
         self.optimizer.zero_grad()
         loss.backward()
         if self.optimizer_name != "lso":
-            self.optimizer.step()
+            self.optimizer.step(closure=lambda: 0.)
         else:
             self.optimizer.step(*opt_args, **opt_kwargs)
 
-    def get_action(self, state: torch.Tensor, with_grad=False) -> tuple[torch.Tensor, dict]:
+    def get_action(
+        self,
+        state: torch.Tensor,
+        with_grad=False,
+    ) -> tuple[torch.Tensor, dict]:
         if with_grad:
             return self.policy.forward(state)
         else:
