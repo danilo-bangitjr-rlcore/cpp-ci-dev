@@ -144,7 +144,7 @@ class KNNCalibrationModel(BaseCalibrationModel):
         probs = probs / np.sum(probs)
         sampled_idx = np.random.choice(indices, p=probs)
         sampled_transition = self.train_transitions[sampled_idx]
-        next_obs = sampled_transition.next_obs[self.endo_inds]        # only need to return endogenous part of observation
+        next_obs = sampled_transition.next_obs[self.endo_inds]
         next_obs = np.expand_dims(next_obs, 0)
 
         return next_obs
