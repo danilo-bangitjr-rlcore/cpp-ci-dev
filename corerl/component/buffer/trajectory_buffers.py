@@ -43,17 +43,3 @@ class UniformTrajectoryBuffer:
 
     def get_all_data(self) -> list:
         return self.data
-
-    # def _prepare(self, batch: list) -> dict:
-    #     s, a, r, ns, d, t, dp, ndp, ge = batch
-    #     return {
-    #         'states': s,
-    #         'actions': a,
-    #         'rewards': r,
-    #         'next_states': ns,
-    #         'dones': d,
-    #         'truncs': t,
-    #         'state_decision_points': dp,
-    #         'next_state_decision_points': ndp,
-    #         'gamma_exps': ge
-    #     }

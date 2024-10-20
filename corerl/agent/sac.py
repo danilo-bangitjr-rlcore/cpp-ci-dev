@@ -104,24 +104,6 @@ class SAC(BaseAC):
 
         return losses
 
-    # Version of SAC that uses state-value function
-    # def compute_v_loss(self, batch: TransitionBatch) -> tuple[torch.Tensor, np.ndarray, np.ndarray]:
-    #     """L_{\phi}, learn z for state value, v = tau log z"""
-    #     state_batch = batch.state
-    #     action_batch = batch.action
-    #     dp_mask = batch['state_decision_points']
-    #
-    #     v_phi = self.v_critic.get_v(state_batch, with_grad=True)
-    #     actions, info = self.actor.get_action(state_batch, with_grad=False)
-    #     with torch.no_grad():
-    #         actions = (dp_mask * actions) + ((1.0 - dp_mask) * action_batch)
-    #     log_probs, _ = self.actor.get_log_prob(state_batch, actions, with_grad=False)
-    #     min_q = self.q_critic.get_q(state_batch, actions)
-    #     target = min_q - self.alpha * log_probs
-    #     value_loss = (0.5 * (v_phi - target) ** 2).mean()
-    #
-    #     return value_loss, v_phi.detach().numpy(), log_probs.detach().numpy()
-
     def compute_actor_loss(self, batch: TransitionBatch) -> tuple[torch.Tensor, torch.Tensor]:
         state_batch = batch.state
         action_batch = batch.action
