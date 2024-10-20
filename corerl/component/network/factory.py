@@ -34,11 +34,6 @@ def init_custom_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.
         network = networks.EnsembleFC(cfg, input_dim, output_dim)
     elif name == 'random_linear_uncertainty':
         network = networks.RndLinearUncertainty(cfg, input_dim, output_dim)
-    elif name == 'random_beta':
-        if cfg.discrete_control:
-            network = networks.UniformRandomDisc(cfg, input_dim, output_dim)
-        else:
-            network = networks.UniformRandomCont(cfg, input_dim, output_dim)
     elif name == 'gru':
         network = networks.GRU(cfg, input_dim, output_dim)
     else:
