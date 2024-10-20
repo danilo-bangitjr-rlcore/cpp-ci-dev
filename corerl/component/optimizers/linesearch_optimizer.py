@@ -2,7 +2,7 @@ from omegaconf import DictConfig
 import torch
 import numpy as np
 import ctypes
-from typing import Any, Optional, Callable
+from typing import Any, Callable
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 
@@ -40,8 +40,13 @@ class LineSearchOpt:
         self.error_evaluation_fn = None
         self.optimizer_lst = None
 
-    def set_params(self, buffer_address: int, net_copy: list, error_evaluation_fn: Callable,
-                   ensemble: Optional['bool'] = False) -> None:
+    def set_params(
+        self,
+        buffer_address: int,
+        net_copy: list,
+        error_evaluation_fn: Callable[[list[torch.Tensor]], torch.Tensor],
+        ensemble: bool = False,
+    ) -> None:
         self.optimizer_lst = []
         for i in range(len(self.net_lst)):
             if ensemble:

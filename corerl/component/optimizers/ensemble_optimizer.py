@@ -1,3 +1,4 @@
+import torch
 from typing import Any, Callable
 
 
@@ -5,7 +6,7 @@ class EnsembleOptimizer:
     def __init__(
         self,
         individual_optim: Callable,
-        param: list[dict],
+        param: torch.optim.optimizer.ParamsT,
         kwargs: dict[str, Any],
     ):
         self.optim = [individual_optim(list(p), **kwargs) for p in param]
