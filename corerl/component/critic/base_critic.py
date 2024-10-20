@@ -32,11 +32,20 @@ class BaseV(BaseCritic):
         super(BaseV, self).__init__(cfg)
 
     @abstractmethod
-    def get_v(self, state: torch.Tensor | np.ndarray, **kwargs) -> torch.Tensor | np.ndarray:
+    def get_v(
+        self,
+        state_batches: list[torch.Tensor],
+        with_grad: bool = False,
+        bootstrap_reduct: bool = True,
+    ) -> torch.Tensor:
         raise NotImplementedError
 
     @abstractmethod
-    def get_v_target(self, state: torch.Tensor | np.ndarray, **kwargs) -> torch.Tensor | np.ndarray:
+    def get_v_target(
+        self,
+        state_batches: list[torch.Tensor],
+        bootstrap_reduct: bool = True,
+    ) -> torch.Tensor:
         raise NotImplementedError
 
 
@@ -46,11 +55,20 @@ class BaseQ(BaseCritic):
         super(BaseQ, self).__init__(cfg)
 
     @abstractmethod
-    def get_q(self, state: TensorLike, action: TensorLike,
-              **kwargs) -> torch.Tensor:
+    def get_q(
+        self,
+        state_batches: list[torch.Tensor],
+        action_batches: list[torch.Tensor],
+        with_grad: bool = False,
+        bootstrap_reduct: bool = True,
+    ) -> torch.Tensor:
         raise NotImplementedError
 
     @abstractmethod
-    def get_q_target(self, state: TensorLike, action: TensorLike,
-                     **kwargs) -> torch.Tensor:
+    def get_q_target(
+        self,
+        state_batches: list[torch.Tensor],
+        action_batches: list[torch.Tensor],
+        bootstrap_reduct: bool = True,
+    ) -> torch.Tensor:
         raise NotImplementedError

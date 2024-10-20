@@ -196,7 +196,10 @@ class EnsembleVCritic(BaseV):
         return
 
     def get_v(
-        self, state_batches: list[torch.Tensor], with_grad: bool = False, bootstrap_reduct: bool = True,
+        self,
+        state_batches: list[torch.Tensor],
+        with_grad: bool = False,
+        bootstrap_reduct: bool = True,
     ) -> torch.Tensor:
         v, vs = self.get_vs(state_batches, with_grad=with_grad, bootstrap_reduct=bootstrap_reduct)
         return v
@@ -212,7 +215,11 @@ class EnsembleVCritic(BaseV):
         with torch.no_grad():
             return self.target(input_tensor, bootstrap_reduct)
 
-    def get_v_target(self, state_batches: list[torch.Tensor], bootstrap_reduct: bool = True) -> torch.Tensor:
+    def get_v_target(
+        self,
+        state_batches: list[torch.Tensor],
+        bootstrap_reduct: bool = True,
+    ) -> torch.Tensor:
         v, vs = self.get_vs_target(state_batches, bootstrap_reduct)
         return v
 
