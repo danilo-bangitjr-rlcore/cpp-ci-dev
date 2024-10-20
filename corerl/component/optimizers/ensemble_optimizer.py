@@ -6,7 +6,7 @@ class EnsembleOptimizer:
         self,
         individual_optim: Callable,
         param: list[dict],
-        kwargs: Optional,
+        kwargs: dict[str, Any],
     ):
         self.optim = [individual_optim(list(p), **kwargs) for p in param]
 
