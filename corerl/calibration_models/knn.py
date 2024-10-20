@@ -38,15 +38,15 @@ class KNNCalibrationModel(BaseCalibrationModel):
         self.learn_metric = cfg.learn_metric
         self.include_actions = cfg.include_actions  # whether to include actions in the learned representation
         self.metric = None
-        self.model = None
         self.beta = cfg.beta
         self.zeta = cfg.zeta
         self.num_neighbors = cfg.num_neighbors
         self.train_itr = cfg.train_itr
 
-        self._init_metric(cfg)
+        self.model, self.optimizer = self._init_metric(cfg)
 
-    def _init_metric(self, cfg: DictConfig) -> None:
+
+    def _init_metric(self, cfg: DictConfig):
         if self.learn_metric:  # learn a laplacian
             log.info("Learning Laplacian representation...")
             if self.include_actions:
@@ -54,8 +54,12 @@ class KNNCalibrationModel(BaseCalibrationModel):
             else:
                 input_dim = self.state_dim
 
-            self.model = init_custom_network(cfg.model, input_dim=input_dim, output_dim=self.output_dim)
-            self.optimizer = init_optimizer(cfg.optimizer, list(self.model.parameters()))
+            model = init_custom_network(cfg.model, input_dim=input_dim, output_dim=self.output_dim)
+            optimizer = init_optimizer(cfg.optimizer, list(model.parameters()))
+
+            return model, optimizer
+
+        raise NotImplementedError
 
     def _get_rep(self, state: np.ndarray) -> np.ndarray:
         if self.learn_metric:
