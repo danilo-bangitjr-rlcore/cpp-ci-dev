@@ -124,7 +124,9 @@ class EnsembleQCritic(BaseQ):
     def sync_target(self) -> None:
         with torch.no_grad():
             for p, p_targ in zip(
-                self.model.parameters(), self.target.parameters(),
+                self.model.parameters(),
+                self.target.parameters(),
+                strict=True,
             ):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
@@ -243,7 +245,9 @@ class EnsembleVCritic(BaseV):
     def sync_target(self) -> None:
         with torch.no_grad():
             for p, p_targ in zip(
-                self.model.parameters(), self.target.parameters(),
+                self.model.parameters(),
+                self.target.parameters(),
+                strict=True,
             ):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
