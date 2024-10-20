@@ -65,10 +65,10 @@ class ObsTransition:
 
 @dataclass
 class Transition:
-    obs: np.ndarray  # the raw observation of state
+    obs: np.ndarray | None  # the raw observation of state
     state: np.ndarray
     action: np.ndarray
-    next_obs: np.ndarray  # the immediate next observation
+    next_obs: np.ndarray | None  # the immediate next observation
     next_state: np.ndarray  # the next state in the
     # NOTE: we distinguish between the next state and the next state which we bootstrap off of. All following
     # attributes are defined w.r.t. the boot strap state.
@@ -188,6 +188,7 @@ class Trajectory:
         sc = deepcopy(self.start_sc)
         self.scs.append(deepcopy(sc))
         for transition in self.transitions[:-1]:
+            assert transition.next_obs is not None
             sc(transition.next_obs,
                 transition.action,
                 initial_state=False,  # assume the next state will never be an initial state.
@@ -207,6 +208,7 @@ class Trajectory:
 
         sc = deepcopy(self.start_sc)
         for transition in self.transitions[:idx]:
+            assert transition.next_obs is not None
             sc(transition.next_obs,
                 transition.action,
                 initial_state=False,  # assume the next state will never be an initial state.
