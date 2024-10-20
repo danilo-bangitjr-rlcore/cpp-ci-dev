@@ -1,6 +1,8 @@
 import torch
 import torch.distributions as d
 
+import corerl.utils.nullable as nullable
+
 
 class ArctanhNormal(d.Distribution):
     _EPSILON = 1e-6
@@ -53,11 +55,13 @@ class ArctanhNormal(d.Distribution):
         new._validate_args = self._validate_args
         return new
 
-    def sample(self, sample_shape=torch.Size()):  # noqa: B008
+    def sample(self, sample_shape: torch.Size | None = None):
+        sample_shape = nullable.default(sample_shape, torch.Size)
         samples = self._underlying.sample(sample_shape=sample_shape)
         return torch.tanh(samples)
 
-    def rsample(self, sample_shape=torch.Size()):  # noqa: B008
+    def rsample(self, sample_shape: torch.Size | None = None):
+        sample_shape = nullable.default(sample_shape, torch.Size)
         samples = self._underlying.rsample(sample_shape=sample_shape)
         return torch.tanh(samples)
 
