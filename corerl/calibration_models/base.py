@@ -192,8 +192,9 @@ class BaseCalibrationModel(ABC):
 
         # these lists are used to construct transitions.
         curr_decision_obs_transitions: list[OldObsTransition] = []
-        curr_decision_states: list[np.ndarray] = []  # initialize this list with the first state that the agent sees
+        curr_decision_states: list[np.ndarray] = []
         if state_agent is not None:
+            # initialize this list with the first state that the agent sees
             curr_decision_states.append(state_agent)
 
         for step in range(rollout_len):
