@@ -2,13 +2,13 @@ import torch
 import copy
 import math
 from typing import Any, Callable, overload
-
+from torch.optim.optimizer import ParamsT
 
 
 class CustomAdam(torch.optim.Optimizer):
     def __init__(
         self,
-        params: torch.optim.optimizer.ParamsT,
+        params: ParamsT,
         lr: float = 1e-3,
         betas: tuple[float, float] = (0.9, 0.999),
         eps: float = 1e-8,

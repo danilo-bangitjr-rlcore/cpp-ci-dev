@@ -3,11 +3,12 @@ import linesearchopt as lso
 import torch
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.custom_torch_opts import CustomAdam
+from torch.optim.optimizer import ParamsT
 
 
 def init_optimizer(
     cfg: DictConfig,
-    param: torch.optim.optimizer.ParamsT,
+    param: ParamsT,
     ensemble: bool = False,
     vmap: bool = False,
 ):
