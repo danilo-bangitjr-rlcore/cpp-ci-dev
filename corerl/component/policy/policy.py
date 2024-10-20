@@ -92,7 +92,7 @@ class Policy(ABC):
 
     @property
     @abstractmethod
-    def support(self):
+    def support(self) -> constraints.Constraint:
         """
         The support of the policy distribution
         """
@@ -202,11 +202,15 @@ class ContinuousIIDPolicy(Policy,ABC):
 
     @Policy.support.getter
     @abstractmethod
-    def support(self):
+    def support(self) -> constraints.Constraint:
         pass
 
     @override
-    def forward(self, state, rsample=True) -> tuple[torch.Tensor, dict]:
+    def forward(
+        self,
+        state: torch.Tensor,
+        rsample: bool = True,
+    ) -> tuple[torch.Tensor, dict]:
         params = self._model(state)
         dist = self._transform_from_params(*params)
 
