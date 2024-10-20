@@ -91,9 +91,15 @@ class NetworkActorLineSearch(NetworkActor):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int,
                  initializer: Optional['NetworkActor'] = None):
         super().__init__(cfg, state_dim, action_dim, initializer)
-        self.optimizer = LineSearchOpt(cfg.actor_optimizer, [self.policy], cfg.actor_optimizer.lr,
-                                       cfg.max_backtracking, cfg.error_threshold, cfg.lr_lower_bound,
-                                       cfg.actor_optimizer.name)
+        self.optimizer = LineSearchOpt(
+            cfg.actor_optimizer,
+            [self.policy.model],
+            cfg.actor_optimizer.lr,
+            cfg.max_backtracking,
+            cfg.error_threshold,
+            cfg.lr_lower_bound,
+            cfg.actor_optimizer.name,
+        )
 
         action_min, action_max = 0, 1
         self.policy = policy.create(

@@ -8,7 +8,7 @@ from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 
 
 class LineSearchOpt:
-    def __init__(self, cfg: DictConfig, net_lst: list[torch.Tensor], lr: float, max_backtracking: int,
+    def __init__(self, cfg: DictConfig, net_lst: list[torch.nn.Module], lr: float, max_backtracking: int,
                  error_threshold: float, lr_lower_bound: float, base_optimizer: str):
         self.cfg = cfg
         self.opt_copy_dict = {}
