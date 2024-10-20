@@ -1,14 +1,13 @@
 from omegaconf import DictConfig
 
 from corerl.component.actor.network_actor import NetworkActor, NetworkActorLineSearch
-from corerl.component.actor.network_actor import BaseActor
 
 
 def init_actor(
     cfg: DictConfig,
     state_dim: int,
     action_dim: int,
-    initializer: BaseActor | None = None,
+    initializer: NetworkActor | None = None,
 ) -> NetworkActor:
     """
     corresponding configs: config/agent/actor
