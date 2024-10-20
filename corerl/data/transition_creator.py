@@ -120,10 +120,15 @@ class OldAnytimeTransitionCreator(object):
                                             warmup: int = 0) -> tuple[
         list[Transition], list[Transition], BaseStateConstructor | None]:
         """
-        Produce Anytime transitions for a continuous chunk of observation transitions (no data gaps) from an offline dataset
+        Produce Anytime transitions for a continuous chunk of observation transitions (no data gaps)
+        from an offline dataset
         """
         for i in range(len(curr_chunk_obs_transitions) - 1):
-            assert np.allclose(curr_chunk_obs_transitions[i].next_obs, curr_chunk_obs_transitions[i + 1].obs)
+            l_next_obs = curr_chunk_obs_transitions[i].next_obs
+            r_next_obs = curr_chunk_obs_transitions[i + 1].obs
+
+            assert l_next_obs is not None and r_next_obs is not None
+            assert np.allclose(l_next_obs, r_next_obs)
             assert not curr_chunk_obs_transitions[i].gap
 
         sc.reset()
@@ -132,11 +137,16 @@ class OldAnytimeTransitionCreator(object):
 
         # Using ObsTransition.next_obs to create remaining states so creating first state with ObsTransition.obs
         first_obs_transition = deepcopy(curr_chunk_obs_transitions[0])
-        start_state = sc(first_obs_transition.obs,
-                         first_obs_transition.prev_action,
-                         initial_state=True,
-                         decision_point=first_obs_transition.obs_dp,
-                         steps_until_decision=first_obs_transition.obs_steps_until_decision)
+
+        assert first_obs_transition.obs is not None
+        assert first_obs_transition.prev_action is not None
+        start_state = sc(
+            first_obs_transition.obs,
+            first_obs_transition.prev_action,
+            initial_state=True,
+            decision_point=first_obs_transition.obs_dp,
+            steps_until_decision=first_obs_transition.obs_steps_until_decision,
+        )
 
         states = [start_state]
         curr_decision_obs_transitions = []
@@ -148,11 +158,14 @@ class OldAnytimeTransitionCreator(object):
             if idx == warmup:
                 warmup_sc = deepcopy(sc)  # the state constructor immediately after the warmup period
 
-            next_state = sc(obs_transition.next_obs,
-                            obs_transition.action,
-                            initial_state=False,
-                            decision_point=obs_transition.next_obs_dp,
-                            steps_until_decision=obs_transition.next_obs_steps_until_decision)
+            assert obs_transition.next_obs is not None
+            next_state = sc(
+                obs_transition.next_obs,
+                obs_transition.action,
+                initial_state=False,
+                decision_point=obs_transition.next_obs_dp,
+                steps_until_decision=obs_transition.next_obs_steps_until_decision,
+            )
 
             states.append(next_state)
             curr_decision_obs_transitions.append(obs_transition)
@@ -180,17 +193,18 @@ class OldAnytimeTransitionCreator(object):
         if len(curr_chunk_alert_transitions) == 0:
             warmup_sc = None
         else:
-            # assert np.allclose(warmup_sc.get_current_state(), curr_chunk_agent_transitions[0].state)
-            assert warmup_sc is not None and np.allclose(warmup_sc.get_current_state(), curr_chunk_alert_transitions[0].state)
+            assert warmup_sc is not None
+            assert np.allclose(warmup_sc.get_current_state(), curr_chunk_alert_transitions[0].state)
 
         return curr_chunk_agent_transitions, curr_chunk_alert_transitions, warmup_sc
 
-    def make_decision_window_transitions(self,
-                                         curr_decision_obs_transitions: list[OldObsTransition],
-                                         curr_decision_states: list[np.ndarray],
-                                         filter_with_alerts: bool = False,
-                                         interaction: Optional[OldAnytimeInteraction] = None
-                                         ) -> tuple[list[Transition], list[Transition], list[Transition]]:
+    def make_decision_window_transitions(
+        self,
+        curr_decision_obs_transitions: list[OldObsTransition],
+        curr_decision_states: list[np.ndarray],
+        filter_with_alerts: bool = False,
+        interaction: Optional[OldAnytimeInteraction] = None
+    ) -> tuple[list[Transition], list[Transition], list[Transition]]:
 
         assert len(curr_decision_states) == len(curr_decision_obs_transitions) + 1
         action = curr_decision_obs_transitions[0].action
@@ -207,7 +221,8 @@ class OldAnytimeTransitionCreator(object):
         else:
             filtered_transitions = transitions
 
-        # next, we may modify the transitions depending on whether the agent is only training with decision point transitions
+        # next, we may modify the transitions depending on
+        # whether the agent is only training with decision point transitions
         # i.e. "regular RL"
         agent_transitions = []
         if self.only_dp_transitions:
@@ -232,7 +247,8 @@ class OldAnytimeTransitionCreator(object):
         else:
             agent_transitions = filtered_transitions
 
-        # typically we will use transitions for logging, filtered_transitions for alerts, and agent_transitions for training
+        # typically we will use transitions for logging,
+        # filtered_transitions for alerts, and agent_transitions for training
         return transitions, filtered_transitions, agent_transitions
 
     def get_cumulants(self, reward: float, next_obs: np.ndarray) -> np.ndarray:
@@ -260,11 +276,14 @@ class OldAnytimeTransitionCreator(object):
 
         return np_n_step_cumulants
 
-    def _make_decision_window_transitions(self,
-                                          curr_decision_obs_transitions: list[OldObsTransition],
-                                          states: list[np.ndarray]) -> list[Transition]:
+    def _make_decision_window_transitions(
+        self,
+        curr_decision_obs_transitions: list[OldObsTransition],
+        states: list[np.ndarray],
+    ) -> list[Transition]:
         """
-        Produce the agent and alert state transitions using the observation transitions that occur between two decision points
+        Produce the agent and alert state transitions using the
+        observation transitions that occur between two decision points
         """
         # Alerts can use different discount factors than the agent's value functions
 
@@ -273,7 +292,9 @@ class OldAnytimeTransitionCreator(object):
 
         cumulants = []
         for i in range(len(rewards)):
-            curr_cumulants = self.get_cumulants(rewards[i], next_obs_list[i])
+            next_obs = next_obs_list[i]
+            assert next_obs is not None
+            curr_cumulants = self.get_cumulants(rewards[i], next_obs)
             cumulants.append(curr_cumulants)
 
         new_transitions = []
@@ -555,12 +576,14 @@ class RegularRLTransitionCreator(BaseTransitionCreator):
         if len(self.curr_obs_transitions) < self.steps_per_decision:
             return []
         elif len(self.curr_obs_transitions) > self.steps_per_decision:
-            assert False, "There should not be more than self.steps_per_decision obs transitions in len(self.curr_obs_transitions)"
+            raise AssertionError(
+                "There should not be more than self.steps_per_decision transitions in len(self.curr_obs_transitions)"
+            )
 
         n_step_cumulants = None
         if self.alert is not None and self.alert.get_dim() > 0:
-            alert_gammas = np.array(
-                self.alert.get_discount_factors())  # Alerts can use different discount factors than the agent's value functions
+            # Alerts can use different discount factors than the agent's value functions
+            alert_gammas = np.array(self.alert.get_discount_factors())
             cumulants = self._get_alert_cumulants()
             cumulant_queue = deque(cumulants)
             n_step_cumulants = _get_n_step_cumulants(cumulant_queue, alert_gammas)
