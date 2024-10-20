@@ -10,6 +10,8 @@ from corerl.component.network.factory import init_critic_target
 from corerl.component.optimizers.linesearch_optimizer import LineSearchOpt
 from corerl.utils.device import device
 
+import corerl.utils.nullable as nullable
+
 
 class EnsembleQCritic(BaseQ):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, output_dim: int = 1):
@@ -85,17 +87,21 @@ class EnsembleQCritic(BaseQ):
         return q
 
     def update(
-        self, loss: list[torch.Tensor] | torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
+        self,
+        loss: list[torch.Tensor] | torch.Tensor,
+        opt_args: tuple = tuple(),
+        opt_kwargs: dict | None = None,
     ) -> None:
-        self.optimizer.zero_grad()
+        opt_kwargs = nullable.default(opt_kwargs, dict)
 
+        self.optimizer.zero_grad()
         if isinstance(loss, (list, tuple)):
             self.ensemble_backward(loss)
         else:
             loss.backward()
 
         if self.optimizer_name != "lso":
-            self.optimizer.step()
+            self.optimizer.step(closure=lambda: 0.)
         else:
             self.optimizer.step(*opt_args, **opt_kwargs)
 
