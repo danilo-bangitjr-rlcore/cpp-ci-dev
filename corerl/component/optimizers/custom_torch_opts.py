@@ -6,11 +6,23 @@ from typing import Optional, Callable
 
 
 class CustomAdam(torch.optim.Optimizer):
-    def __init__(self, params: torch.Tensor | dict, lr: float=1e-3, betas: (float, float)=(0.9, 0.999),
-                 eps: float=1e-8, weight_decay: float=0):
-        defaults = dict(lr=lr, betas=betas, eps=eps,
-                        weight_decay=weight_decay, amsgrad=False)
+    def __init__(
+        self,
+        params: torch.Tensor | dict[str, torch.Tensor],
+        lr: float = 1e-3,
+        betas: tuple[float, float] = (0.9, 0.999),
+        eps: float = 1e-8,
+        weight_decay: float = 0,
+    ):
+        defaults = {
+            'lr': lr,
+            'betas': betas,
+            'eps': eps,
+            'weight_decay': weight_decay,
+            'amsgrad': False,
+        }
         super(CustomAdam, self).__init__(params, defaults)
+
         self.state_idx = {}
         max_p_len = 0
         for gi, group in enumerate(self.param_groups):
