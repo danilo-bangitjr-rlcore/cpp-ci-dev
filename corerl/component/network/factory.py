@@ -25,22 +25,6 @@ def init_critic_target(cfg: DictConfig, input_dim: int, output_dim: int, critic:
     return target_net
 
 
-def init_actor_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
-    """
-    corresponding configs : corerl/config/agent/actor/network
-    """
-    if cfg.name == 'squashed_gaussian':
-        network = networks.SquashedGaussian(cfg, input_dim, output_dim)
-    elif cfg.name == 'beta':
-        network = networks.BetaPolicy(cfg, input_dim, output_dim)
-    elif cfg.name == 'softmax':
-        network = networks.Softmax(cfg, input_dim, output_dim)
-    else:
-        raise NotImplementedError
-
-    return network
-
-
 def init_custom_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
     name = cfg.name.lower()
 
