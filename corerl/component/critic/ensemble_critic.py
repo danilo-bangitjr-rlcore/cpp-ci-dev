@@ -1,7 +1,7 @@
 import torch
 from pathlib import Path
 from omegaconf import DictConfig
-from typing import Optional, Callable
+from typing import Callable
 
 from corerl.component.critic.base_critic import BaseQ, BaseV
 from corerl.component.optimizers.factory import init_optimizer
@@ -235,7 +235,7 @@ class EnsembleVCritic(BaseV):
     def update(self, loss: list[torch.Tensor]) -> None:
         self.optimizer.zero_grad()
         self.ensemble_backward(loss)
-        self.optimizer.step()
+        self.optimizer.step(closure=lambda: 0.)
         if self.target_sync_counter % self.target_sync_freq == 0:
             self.sync_target()
             self.target_sync_counter = 0
@@ -296,7 +296,7 @@ class EnsembleQCriticLineSearch(EnsembleQCritic):
     def set_parameters(
         self,
         buffer_address: int,
-        eval_error_fn: Optional['Callable'] = None,
+        eval_error_fn: Callable[[list[torch.Tensor]], torch.Tensor],
     ) -> None:
         self.optimizer.set_params(
             buffer_address, [self.model_copy], eval_error_fn, ensemble=True,
@@ -318,7 +318,9 @@ class EnsembleVCriticLineSearch(EnsembleVCritic):
         )
 
     def set_parameters(
-        self, buffer_address: int, eval_error_fn: Optional['Callable'] = None,
+        self,
+        buffer_address: int,
+        eval_error_fn: Callable[[list[torch.Tensor]], torch.Tensor],
     ) -> None:
         self.optimizer.set_params(
             buffer_address, [self.model_copy], eval_error_fn, ensemble=True,

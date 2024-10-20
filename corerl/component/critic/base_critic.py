@@ -1,11 +1,8 @@
-import numpy as np
 import torch
 from omegaconf import DictConfig
 
 from pathlib import Path
 from abc import ABC, abstractmethod
-
-from corerl.utils.types import TensorLike
 
 
 class BaseCritic(ABC):
@@ -14,7 +11,7 @@ class BaseCritic(ABC):
         self.discrete_control = cfg.discrete_control
 
     @abstractmethod
-    def update(self, loss: torch.Tensor) -> None:
+    def update(self, loss: list[torch.Tensor]) -> None:
         raise NotImplementedError
 
     @abstractmethod
