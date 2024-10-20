@@ -7,10 +7,7 @@ import logging
 from typing import Union
 from typing_extensions import override
 
-
-_BoundedAboveConstraint = Union[  #pyright: ignore
-    constraints.less_than,
-]
+_BoundedAboveConstraint = constraints.less_than
 
 _BoundedBelowConstraint = Union[
     constraints.greater_than_eq,
@@ -18,7 +15,8 @@ _BoundedBelowConstraint = Union[
 ]
 
 _HalfBoundedConstraint = Union[
-    _BoundedAboveConstraint, _BoundedBelowConstraint,
+    _BoundedAboveConstraint,
+    _BoundedBelowConstraint,
 ]
 
 
@@ -475,7 +473,6 @@ class HalfBounded(ContinuousIIDPolicy):
 
 
 def _get_type_from_dist(dist):
-
     if isinstance(dist.support, constraints.interval):
         return Bounded
 
@@ -490,4 +487,3 @@ def _get_type_from_dist(dist):
     raise NotImplementedError(
         f"unknown policy type for distribution {dist}",
     )
-
