@@ -1,4 +1,3 @@
-from typing import Union
 import torch
 from pathlib import Path
 from omegaconf import DictConfig
@@ -86,11 +85,11 @@ class EnsembleQCritic(BaseQ):
         return q
 
     def update(
-        self, loss: torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
+        self, loss: list[torch.Tensor] | torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
     ) -> None:
         self.optimizer.zero_grad()
 
-        if isinstance(loss, Union[list, tuple]):
+        if isinstance(loss, (list, tuple)):
             self.ensemble_backward(loss)
         else:
             loss.backward()
@@ -106,7 +105,7 @@ class EnsembleQCritic(BaseQ):
             self.target_sync_counter = 0
 
 
-    def ensemble_backward(self, loss):
+    def ensemble_backward(self, loss: list[torch.Tensor]):
         for i in range(len(loss)):
             loss[i].backward(
                 inputs=list(self.model.parameters(independent=True)[i])
@@ -183,7 +182,7 @@ class EnsembleVCritic(BaseV):
                 v, vs = self.model(input_tensor, bootstrap_reduct)
         return v, vs
 
-    def ensemble_backward(self, loss):
+    def ensemble_backward(self, loss: list[torch.Tensor]):
         for i in range(len(loss)):
             loss[i].backward(
                 inputs=list(self.model.parameters(independent=True)[i])
@@ -211,7 +210,7 @@ class EnsembleVCritic(BaseV):
         v, vs = self.get_vs_target(state_batches, bootstrap_reduct)
         return v
 
-    def update(self, loss: torch.Tensor) -> None:
+    def update(self, loss: list[torch.Tensor]) -> None:
         self.optimizer.zero_grad()
         self.ensemble_backward(loss)
         self.optimizer.step()

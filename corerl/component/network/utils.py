@@ -8,7 +8,7 @@ import corerl.component.layer.activations as activations
 
 
 class Float(torch.nn.Module):
-    def __init__(self, device: str, init_value: float):
+    def __init__(self, device: str | torch.device, init_value: float):
         super().__init__()
         d = torch.device(device)
         self.constant = torch.nn.Parameter(torch.tensor(init_value, dtype=torch.float32).to(d))

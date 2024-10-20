@@ -17,7 +17,6 @@ from corerl.data.data import TransitionBatch, Transition
 class IQL(BaseAC):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
-        self.ensemble_targets = cfg.ensemble_targets
         self.temp = cfg.temp
         self.expectile = cfg.expectile
 
@@ -40,9 +39,11 @@ class IQL(BaseAC):
         if transition.state_dp:
             self.policy_buffer.feed(transition)
 
-    def compute_actor_loss(self, batch: TransitionBatch) -> torch.Tensor:
-        states = batch.state
-        actions = batch.action
+    def compute_actor_loss(
+        self,
+        update_info: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, int],
+    ) -> torch.Tensor:
+        _, _, _, _, states, actions, _ = update_info
         v = self.v_critic.get_v([states], with_grad=False)
         q = self.q_critic.get_q([states], [actions], with_grad=False)  # NOTE: we are not using target networks
         exp_a = torch.exp((q - v) * self.temp)
@@ -69,22 +70,10 @@ class IQL(BaseAC):
             state_batch = batch.state
             action_batch = batch.action
 
-            # Option 1: Using the reduction of the ensemble in the update target
-            if not self.ensemble_targets:
-                q = self.q_critic.get_q_target([state_batch], [action_batch])
-                qs.append(q)
-
             state_batches.append(state_batch)
             action_batches.append(action_batch)
 
-        # Option 2: Using the corresponding target function in the ensemble in the update target
-        if self.ensemble_targets:
-            _, qs = self.q_critic.get_qs_target(state_batches, action_batches)
-        else:
-            for i in range(ensemble):
-                qs[i] = torch.unsqueeze(qs[i], 0)
-            qs = torch.cat(qs, dim=0)
-
+        _, qs = self.q_critic.get_qs_target(state_batches, action_batches)
         _, vs = self.v_critic.get_vs(state_batches, with_grad=True)
         losses = []
         for i in range(ensemble):
@@ -111,11 +100,6 @@ class IQL(BaseAC):
             mask_batch = 1 - batch.terminated
             gamma_exp_batch = batch.gamma_exponent
 
-            # Option 1: Using the reduction of the ensemble in the update target
-            if not self.ensemble_targets:
-                next_v = self.v_critic.get_v(next_state_batch)
-                next_vs.append(next_v)
-
             state_batches.append(state_batch)
             action_batches.append(action_batch)
             reward_batches.append(reward_batch)
@@ -123,14 +107,7 @@ class IQL(BaseAC):
             mask_batches.append(mask_batch)
             gamma_exp_batches.append(gamma_exp_batch)
 
-        # Option 2: Using the corresponding target function in the ensemble in the update target
-        if self.ensemble_targets:
-            _, next_vs = self.v_critic.get_vs(next_state_batches)
-        else:
-            for i in range(ensemble):
-                next_vs[i] = torch.unsqueeze(next_vs[i], 0)
-            next_vs = torch.cat(next_vs, dim=0)
-
+        _, next_vs = self.v_critic.get_vs(next_state_batches)
         _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
         losses = []
         for i in range(ensemble):
@@ -155,7 +132,10 @@ class IQL(BaseAC):
             # Assuming we don't have an ensemble of policies
             assert len(batches) == 1
             batch = batches[0]
-            actor_loss = self.compute_actor_loss(batch)
+            empty = torch.empty(0)
+            actor_loss = self.compute_actor_loss((
+                empty, empty, empty, empty, batch.state, batch.action, 0,
+            ))
             self.actor.update(actor_loss)
 
     def update(self) -> None:
@@ -201,3 +181,6 @@ class IQL(BaseAC):
         policy_buffer_path = path / "policy_buffer.pkl"
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
+
+    def load_buffer(self, transitions: list[Transition]) -> None:
+        ...

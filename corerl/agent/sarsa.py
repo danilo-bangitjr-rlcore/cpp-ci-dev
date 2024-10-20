@@ -102,7 +102,7 @@ class EpsilonGreedySarsa(BaseAgent):
         for i in range(ensemble):
             target = reward_batches[i] + mask_batches[i] * (self.gamma ** gamma_exp_batches[i]) * next_qs[i]
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
-        
+
         return losses
 
     def atomic_critic_update(self) -> None:
@@ -132,3 +132,6 @@ class EpsilonGreedySarsa(BaseAgent):
         critic_buffer_path = path / "critic_buffer.pkl"
         with open(critic_buffer_path, "rb") as f:
             self.critic_buffer = pkl.load(f)
+
+    def load_buffer(self, transitions: list[Transition]) -> None:
+        ...

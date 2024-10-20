@@ -19,7 +19,7 @@ class GreedyIQL(GreedyAC, IQL):
     def update_critic(self):
         IQL.update_critic(self)
 
-    def update(self, share_batch: bool = True) -> None:
+    def update(self) -> None:
         GreedyAC.update(self)
 
     def save(self, path: Path) -> None:
