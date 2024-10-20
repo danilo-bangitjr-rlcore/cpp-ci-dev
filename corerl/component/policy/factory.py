@@ -1,6 +1,6 @@
 import corerl.component.network.utils as utils
 from corerl.component.policy.softmax import Softmax, Policy
-from corerl.component.policy.policy import _get_type_from_dist, ContinuousIIDPolicy, UnBounded
+from corerl.component.policy.policy import ContinuousIIDPolicy, UnBounded, _get_type_from_dist
 from corerl.component.distribution import get_dist_type
 from corerl.component.network.networks import _create_layer, create_base
 from corerl.component.layer import init_activation, Parallel
@@ -113,8 +113,11 @@ def _create_continuous_mlp(cfg, input_dim, output_dim):
 
 
 def create(cfg, input_dim, output_dim, action_min=None, action_max=None):
-    policy_type = get_type_from_str(cfg["dist"])
+    if cfg['dist'].lower() == 'softmax':
+        net = _create_nn(cfg, 'softmax', input_dim, output_dim)
+        return Softmax(net, input_dim, output_dim)
 
+    policy_type = get_type_from_str(cfg["dist"])
     net = _create_nn(cfg, policy_type, input_dim, output_dim)
 
     if not policy_type.continuous():
@@ -125,5 +128,8 @@ def create(cfg, input_dim, output_dim, action_min=None, action_max=None):
     if policy_type is UnBounded:
         return policy_type(net, dist_type)
     return ContinuousIIDPolicy.from_(
-        net, dist_type, action_min=action_min, action_max=action_max,
+        net,
+        dist_type,
+        action_min=action_min,
+        action_max=action_max,
     )
