@@ -24,7 +24,7 @@ class EnsembleOptimizer:
         return [opt.state_dict() for opt in self.optim]
 
     def load_state_dict(self, state_dict_lst: list[dict]) -> None:
-        for opt, sd in zip(self.optim, state_dict_lst):
+        for opt, sd in zip(self.optim, state_dict_lst, strict=True):
             opt.load_state_dict(sd)
         return
 
