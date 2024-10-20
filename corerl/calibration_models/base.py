@@ -95,8 +95,16 @@ class BaseCalibrationModel(ABC):
                 traj_agent = trajectories_agent[traj_idx]
                 assert traj_cm.num_transitions == traj_agent.num_transitions
                 for i in range(traj_cm.num_transitions):
-                    assert np.allclose(traj_cm.transitions[i].obs, traj_agent.transitions[i].obs)
-                    assert np.allclose(traj_cm.transitions[i].next_obs, traj_agent.transitions[i].next_obs)
+                    l_obs = traj_cm.transitions[i].obs
+                    r_obs = traj_agent.transitions[i].obs
+                    assert l_obs is not None and r_obs is not None
+
+                    l_next_obs = traj_cm.transitions[i].next_obs
+                    r_next_obs = traj_agent.transitions[i].next_obs
+
+                    assert l_next_obs is not None and r_next_obs is not None
+                    assert np.allclose(l_obs, r_obs)
+                    assert np.allclose(l_next_obs, r_next_obs)
                     assert np.allclose(traj_cm.transitions[i].action, traj_agent.transitions[i].action)
 
         if resample or self.rollout_indices is None:
@@ -211,6 +219,7 @@ class BaseCalibrationModel(ABC):
                                       use_agent=use_agent, agent=agent, state_agent=state_agent)
 
             next_obs = transition_step.next_obs  # the TRUE next observation
+            assert next_obs is not None
             next_endo_obs = next_obs[self.endo_inds]  # the endogenous component of the true next observation
 
             kwargs = {}  # add kwargs to _get_next_endo_obs here
