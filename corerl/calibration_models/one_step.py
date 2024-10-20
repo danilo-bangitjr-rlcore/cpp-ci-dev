@@ -47,7 +47,7 @@ class OneStep(BaseCalibrationModel):
 
         self.optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step()
+        self.optimizer.step(closure=lambda: 0.)
 
         self.train_losses.append(loss.detach().numpy())
 
