@@ -1,6 +1,6 @@
 import corerl.component.network.utils as utils
-from . import Softmax, Policy, UnBounded
-from .policy import _get_type_from_dist, ContinuousIIDPolicy
+from corerl.component.policy.softmax import Softmax, Policy
+from corerl.component.policy.policy import _get_type_from_dist, ContinuousIIDPolicy, UnBounded
 from corerl.component.distribution import get_dist_type
 from corerl.component.network.networks import _create_layer, create_base
 from corerl.component.layer import init_activation, Parallel
