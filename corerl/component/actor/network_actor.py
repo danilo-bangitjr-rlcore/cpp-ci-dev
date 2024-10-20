@@ -4,6 +4,7 @@ from omegaconf import DictConfig
 from typing import Optional, Callable
 
 import corerl.component.policy as policy
+import corerl.utils.nullable as nullable
 from corerl.component.actor.base_actor import BaseActor
 from corerl.component.network.factory import init_actor_network
 from corerl.component.optimizers.factory import init_optimizer
@@ -106,10 +107,13 @@ class NetworkActorLineSearch(NetworkActor):
             cfg.actor_network, state_dim, action_dim, action_min, action_max,
         )
         self.policy_copy = init_actor_network(
-            cfg.actor_network, state_dim, action_dim, action_min, action_max
+            cfg.actor_network, state_dim, action_dim,
         )
 
-    def set_parameters(self, buffer_address: int, eval_error_fn: Optional['Callable'] = None) -> None:
+    def set_parameters(
+        self, buffer_address: int,
+        eval_error_fn: Callable[[list[torch.Tensor]], torch.Tensor],
+    ) -> None:
         self.optimizer.set_params(
             buffer_address, [self.policy_copy.model], eval_error_fn,
         )
