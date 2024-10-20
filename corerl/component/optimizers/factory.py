@@ -1,13 +1,12 @@
 from omegaconf import DictConfig
 import linesearchopt as lso
-from typing import Optional
 import torch
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.custom_torch_opts import CustomAdam
 from typing import Iterator
 
 
-def init_optimizer(cfg: DictConfig, param: list | dict | Iterator, ensemble: Optional['bool'] = False, vmap: Optional['bool'] = False):
+def init_optimizer(cfg: DictConfig, param: list | dict | Iterator, ensemble: bool = False, vmap: bool = False):
     """
     config files: root/config/agent/critic/critic_optimizer or root/config/agent/actor/actor_optimizer
     """
