@@ -228,10 +228,13 @@ class BaseCalibrationModel(ABC):
             r = self._get_reward(prev_action, action, fictitious_next_obs)
             g += (self.gamma ** step) * r
 
-            if use_agent:
-                state_agent = sc_agent(fictitious_next_obs, action,
-                                       decision_point=decision_point,
-                                       steps_until_decision=steps_until_decision)
+            if use_agent and sc_agent is not None:
+                state_agent = sc_agent(
+                    fictitious_next_obs,
+                    action,
+                    decision_point=decision_point,
+                    steps_until_decision=steps_until_decision,
+                )
 
                 obs_transition = OldObsTransition(
                     prev_action,
