@@ -1,8 +1,9 @@
+from typing import Any
 import numpy as np
 import gymnasium as gym
 import gym_electric_motor as gem
 from omegaconf import DictConfig
-from gymnasium.wrappers import FlattenObservation
+from gymnasium.wrappers.flatten_observation import FlattenObservation
 
 from corerl.environment.bimodal import Bimodal
 from corerl.environment.reseau_env import ReseauEnv
@@ -24,6 +25,12 @@ from corerl.environment.delayed_saturation import DelayedSaturation
 def init_environment(cfg: DictConfig) -> gym.Env:
     seed = cfg.seed
     name = cfg.name
+
+    # NOTE: not all of these wrappers and envs actually inherit `gym.Env`
+    # which means the type of env cannot be `gym.Env`. We could use a
+    # Prototype and spell out the desired contract, or we could fix
+    # downstream implementations to inherit `gym.Env`.
+    env: Any | None = None
     if name == "three_tanks_v2":
         if cfg.change_action:
             if cfg.discrete_control:
@@ -65,22 +72,22 @@ def init_environment(cfg: DictConfig) -> gym.Env:
     # unsure about these gem things
     # Didn't find interface for timeout & seed setting for gem environments.
     elif name == "Cont-CC-PermExDc-v0":
-        env = FlattenObservation(gem.make("Cont-CC-PermExDc-v0"))
+        env = FlattenObservation(gem.make("Cont-CC-PermExDc-v0")) # type: ignore - this gem.make method seem implemented incorrectly
     elif name == "Cont-CC-PMSM-v0":
-        env = FlattenObservation(gem.make("Cont-CC-PMSM-v0"))
+        env = FlattenObservation(gem.make("Cont-CC-PMSM-v0")) # type: ignore - this gem.make method seem implemented incorrectly
     elif name == "Cont-CC-DFIM-v0":
-        env = FlattenObservation(gem.make("Cont-CC-DFIM-v0"))
+        env = FlattenObservation(gem.make("Cont-CC-DFIM-v0")) # type: ignore - this gem.make method seem implemented incorrectly
     elif name == "Cont-CC-SCIM-v0":
-        env = FlattenObservation(gem.make("Cont-CC-SCIM-v0"))
+        env = FlattenObservation(gem.make("Cont-CC-SCIM-v0")) # type: ignore - this gem.make method seem implemented incorrectly
     elif name == "Cont-CC-EESM-v0":
-        env = FlattenObservation(gem.make("Cont-CC-EESM-v0"))
+        env = FlattenObservation(gem.make("Cont-CC-EESM-v0")) # type: ignore - this gem.make method seem implemented incorrectly
     elif name == "Acrobot-v1":
         env = DiscreteControlWrapper("Acrobot-v1", seed)
     elif name == "Acrobot-v1-sparse":
         env = SparseDiscreteControlWrapper("Acrobot-v1", seed)
     elif name == "MountainCarContinuous-v0":
         env = gym.make("MountainCarContinuous-v0")
-        env._max_episode_steps = np.inf
+        env._max_episode_steps = np.inf # type: ignore
         env.reset(seed=seed)
     elif name == "MountainCar-v0":
         env = DiscreteControlWrapper("MountainCar-v0", seed)
@@ -106,7 +113,7 @@ def init_environment(cfg: DictConfig) -> gym.Env:
         env.reset(seed=seed)
     elif name == "HalfCheetah-v4":
         env = gym.make("HalfCheetah-v4")
-        env._max_episode_steps = np.inf
+        env._max_episode_steps = np.inf # type: ignore
         env.reset(seed=seed)
     elif name == "Ant-expert":
         env = D4RLWrapper("ant-expert-v2", seed)
@@ -149,6 +156,7 @@ def init_environment(cfg: DictConfig) -> gym.Env:
     else:
         raise NotImplementedError
 
+    assert env is not None
     if cfg.discrete_control:
         env = OneHotWrapper(env)
 
