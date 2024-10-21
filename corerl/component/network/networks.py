@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.func import stack_module_state, functional_call
 from collections.abc import Mapping, Iterable
+from typing import Callable
 import numpy as np
 import corerl.component.network.utils as utils
 from corerl.utils.device import device
