@@ -1,3 +1,4 @@
+import torch
 from corerl.eval.base_eval import BaseEval
 from corerl.component.buffer.factory import init_buffer
 
@@ -21,7 +22,7 @@ class TestLossEval(BaseEval):
 
     def do_eval(self, **kwargs) -> None:
         batches = self.buffer.sample()
-        test_loss = sum(self.agent.compute_critic_loss(batches))
+        test_loss = torch.as_tensor(sum(self.agent.compute_critic_loss(batches)))
         self.test_losses.append(test_loss.cpu().detach().numpy())
 
     def get_stats(self):
