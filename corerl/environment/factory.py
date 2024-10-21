@@ -14,8 +14,8 @@ from corerl.environment.smpl.envs.reactorenv import ReactorEnvGym
 from corerl.environment.wrapper.discrete_control_wrapper import DiscreteControlWrapper, \
     SparseDiscreteControlWrapper
 from corerl.environment.wrapper.d4rl import D4RLWrapper
-from corerl.environment.pendulum_env import PendulumEnv
-from corerl.environment.cartpole_env import CartPoleEnv
+from corerl.environment.third_party.pendulum_env import PendulumEnv
+from corerl.environment.third_party.cartpole_env import CartPoleEnv
 from corerl.environment.wrapper.one_hot_wrapper import OneHotWrapper
 from corerl.environment.saturation import Saturation
 from corerl.environment.delayed_saturation import DelayedSaturation
