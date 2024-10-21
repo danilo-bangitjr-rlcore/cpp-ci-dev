@@ -2,9 +2,14 @@ import copy
 import torch
 import torch.nn as nn
 from torch.func import stack_module_state, functional_call
+from collections.abc import Mapping, Iterable
+from typing import Callable
 import numpy as np
 import corerl.component.network.utils as utils
 from corerl.utils.device import device
+import corerl.component.layer as layer
+
+from warnings import warn
 
 from omegaconf import DictConfig
 from typing import Optional
@@ -72,18 +77,108 @@ def _init_ensemble_reducts(cfg: DictConfig):
 
     return bootstrap_reduct_fn, policy_reduct_fn
 
+
 def create_base(
-        cfg: DictConfig, input_dim: int, output_dim: int,
+    cfg: Mapping, input_dim: int, output_dim: Optional[int],
 ) -> nn.Module:
-    if cfg.name == "fc":
-        return FC(cfg, input_dim, output_dim)
+    if cfg["name"].lower() in ("mlp", "fc"):
+        return _create_base_mlp(cfg, input_dim, output_dim)
     else:
-        raise NotImplementedError
+        raise ValueError(f"unknown network type {cfg['name']}")
+
+
+def _create_base_mlp(
+    cfg: Mapping, input_dim: int, output_dim: Optional[int],
+) -> nn.Module:
+    assert cfg["name"].lower() in ("mlp", "fc")
+
+    hidden = cfg["hidden"]
+    act = cfg["activation"]
+    bias = cfg["bias"]
+    assert len(hidden) == len(act)
+    layer_init = utils.init_layer(cfg["layer_init"])
+
+    # Warn if any of the config keys start with `head_`, since this function
+    # only creates network bases
+    ks = cfg.keys()
+    filt = list(filter(lambda x: x.startswith("head_"), ks))
+    if len(filt) > 0:
+        warn(
+            f"create_base: unexpected config key(s) {filt}"
+        )
+
+    net = []
+
+    # Add the first layer to the network
+    layer_ = nn.Linear(input_dim, hidden[0], bias=bias)
+    layer_ = layer_init(layer_)
+    net.append(layer_)
+    net.append(layer.init_activation(act[0]))
+
+    placeholder_input = torch.empty((input_dim,))
+
+    # Create the base layers of the network
+    for j in range(1, len(hidden)):
+        layer_ = _create_layer(
+            nn.Linear, layer_init, net, hidden[j], bias, placeholder_input,
+        )
+
+        net.append(layer_)
+        net.append(layer.init_activation(act[j]))
+
+
+    if output_dim is not None:
+        layer_ = _create_layer(
+            nn.Linear, layer_init, net, output_dim, bias, placeholder_input,
+        )
+        net.append(layer_)
+
+    return nn.Sequential(*net).to(device.device)
+
+
+def _create_layer(
+    layer_type: type[nn.Module],
+    layer_init: Callable[[nn.Module], nn.Module],
+    base_net: nn.Module,
+    hidden: int,
+    bias: bool,
+    placeholder_input: torch.Tensor,
+) -> nn.Module:
+    """
+    Create a single layer of type `layer_type` initialized with `layer_init`.
+
+    The argument `base_net` is the base net that the layer will be accepting
+    input from, and is used to determine the input size for the layer under
+    construction, together with `placeholder_input`.
+    """
+    if layer_type is nn.Linear:
+        n_inputs = _get_output_shape(
+            base_net, placeholder_input, dim=0,
+        )
+        layer = layer_type(n_inputs, hidden, bias=bias)
+        return layer_init(layer)
+
+    raise NotImplementedError(f"unknown layer type {layer_type}")
+
+
+def _get_output_shape(
+    net: Iterable[nn.Module],
+    placeholder_input: torch.Tensor,
+    *,
+    dim: Optional[int]=None,
+) -> int:
+    output_shape = nn.Sequential(*net)(placeholder_input).shape
+    assert len(output_shape) == 1
+    return output_shape[dim]
 
 
 # TODO: here is an example of initializing a network.
 class FC(nn.Module):
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
+        warn(
+            "FC is deprecated and will be removed in a future version" +
+            "to create an MLP, use `create_base` instead"
+        )
         super(FC, self).__init__()
         layer_norm = cfg.layer_norm
         arch = cfg.arch
@@ -115,11 +210,27 @@ class FC(nn.Module):
 
 
 class EnsembleFC(nn.Module):
+    @classmethod
+    def _create_base(
+        cls, cfg: DictConfig, input_dim: int, output_dim: int,
+    ) -> nn.Module:
+        """Create subnetworks for EnsembleFC.
+
+        This function was moved from the main body of the file, where it is
+        replaced by the current version of `create_base`. This is kept here for
+        compatibility, until we move EnsembleFC to use the new implementation
+        of `create_base`
+        """
+        if cfg.name == "fc":
+            return FC(cfg, input_dim, output_dim)
+        else:
+            raise NotImplementedError
+
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(EnsembleFC, self).__init__()
         self.ensemble = cfg.ensemble
         self.subnetworks = [
-            create_base(cfg.base, input_dim, output_dim)
+            EnsembleFC._create_base(cfg.base, input_dim, output_dim)
             for _ in range(self.ensemble)
         ]
         self.to(device.device)
