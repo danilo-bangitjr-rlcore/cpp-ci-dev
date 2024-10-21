@@ -2,7 +2,7 @@ import copy
 import torch
 import torch.nn as nn
 from torch.func import stack_module_state, functional_call
-from collections.abc import Mapping
+from collections.abc import Mapping, Iterable
 import numpy as np
 import corerl.component.network.utils as utils
 from corerl.utils.device import device
@@ -77,14 +77,18 @@ def _init_ensemble_reducts(cfg: DictConfig):
     return bootstrap_reduct_fn, policy_reduct_fn
 
 
-def create_base(cfg: Mapping, input_dim: int, output_dim: Optional[int]):
+def create_base(
+    cfg: Mapping, input_dim: int, output_dim: Optional[int],
+) -> nn.Module:
     if cfg["name"].lower() in ("mlp", "fc"):
         return _create_base_mlp(cfg, input_dim, output_dim)
     else:
         raise ValueError(f"unknown network type {cfg['name']}")
 
 
-def _create_base_mlp(cfg: Mapping, input_dim: int, output_dim: Optional[int]):
+def _create_base_mlp(
+    cfg: Mapping, input_dim: int, output_dim: Optional[int],
+) -> nn.Module:
     assert cfg["name"].lower() in ("mlp", "fc")
 
     hidden = cfg["hidden"]
@@ -133,12 +137,19 @@ def _create_base_mlp(cfg: Mapping, input_dim: int, output_dim: Optional[int]):
 
 def _create_layer(
     layer_type: type[nn.Module],
-    layer_init,
-    base_net,
-    hidden,
-    bias,
-    placeholder_input,
-):
+    layer_init: Callable[[nn.Module], nn.Module],
+    base_net: nn.Module,
+    hidden: int,
+    bias: bool,
+    placeholder_input: torch.Tensor,
+) -> nn.Module:
+    """
+    Create a single layer of type `layer_type` initialized with `layer_init`.
+
+    The argument `base_net` is the base net that the layer will be accepting
+    input from, and is used to determine the input size for the layer under
+    construction, together with `placeholder_input`.
+    """
     if layer_type is nn.Linear:
         n_inputs = _get_output_shape(
             base_net, placeholder_input, dim=0,
@@ -149,7 +160,12 @@ def _create_layer(
     raise NotImplementedError(f"unknown layer type {layer_type}")
 
 
-def _get_output_shape(net, placeholder_input, *, dim=None):
+def _get_output_shape(
+    net: Iterable[nn.Module],
+    placeholder_input: torch.Tensor,
+    *,
+    dim: Optional[int]=None,
+) -> int:
     output_shape = nn.Sequential(*net)(placeholder_input).shape
     assert len(output_shape) == 1
     return output_shape[dim]
