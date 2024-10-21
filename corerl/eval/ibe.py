@@ -25,8 +25,11 @@ class IBE(BaseEval):
         self.gamma = cfg.gamma
         self.model = init_custom_network(cfg.network, state_dim + action_dim, output_dim=1)
         self.optimizer = init_optimizer(cfg.optimizer, param=self.model.parameters(), ensemble=False)
-        self.optimizer = init_optimizer(cfg.optimizer, list(self.model.parameters(independent=True)),
-                                        ensemble=True)
+        self.optimizer = init_optimizer(
+            cfg.optimizer,
+            list(self.model.parameters(independent=True)), # type: ignore
+            ensemble=True,
+        )
 
         self.losses = []
         self.bes = []  # the bellman errors
@@ -81,7 +84,9 @@ class IBE(BaseEval):
 
             self.optimizer.zero_grad()
             for i in range(len(loss)):
-                loss[i].backward(inputs=list(self.model.parameters(independent=True)[i]))
+                loss[i].backward(
+                    inputs=list(self.model.parameters(independent=True)[i]), # type: ignore
+                )
 
             self.optimizer.step()
             loss = [l.detach().item() for l in loss]
