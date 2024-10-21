@@ -13,12 +13,12 @@ from csv import DictReader
 from math import floor
 import asyncio
 
-from typing import Callable
+from typing import Any, Callable
 from corerl.utils.opc_connection import OpcConnection
 
 
 class DBClientWrapper:
-    def __init__(self, cfg, date_fn: Callable = None):
+    def __init__(self, cfg, date_fn: Callable[[str], int]):
         self.bucket = cfg.bucket
         self.org = cfg.org
         self.client = influxdb_client.InfluxDBClient(url=cfg.url, token=cfg.token, org=self.org, timeout=30_000)
@@ -63,7 +63,8 @@ class DBClientWrapper:
         if self.end_time <= time:
             self.end_time = int(time)
 
-        point = point.time(int(time * 1e9))  # multiplication to convert timestamp in seconds to nanoseconds
+        # multiplication to convert timestamp in seconds to nanoseconds
+        point = point.time(int(time * 1e9)) # type: ignore
         return point
 
     def query(self, start_time: int, end_time: int, col_names: list | None = None,
@@ -94,7 +95,7 @@ class DBClientWrapper:
         query_str = ' '.join(query_str_list)
         df_list = self.query_api.query_data_frame(query_str)
 
-        if type(df_list) == list:
+        if isinstance(df_list, list):
             df = pd.concat(df_list, axis=1)
         else:
             df = df_list
@@ -105,15 +106,8 @@ class DBClientWrapper:
 
 class InfluxOPCEnv(ABC, gym.Env):
     def __init__(self, cfg):
-        if cfg.db is not None:
-            self.db_client = DBClientWrapper(cfg.db)
-        else:
-            self.db_client = None
-
-        if cfg.opc is not None:
-            self.opc_connection = OpcConnection(cfg.opc)
-        else:
-            self.opc_connection = None
+        self.db_client = DBClientWrapper(cfg.db, int)
+        self.opc_connection = OpcConnection(cfg.opc)
 
         self.control_tags = cfg.control_tags
         self.col_names = cfg.col_names
@@ -155,7 +149,12 @@ class InfluxOPCEnv(ABC, gym.Env):
         time.sleep(end_timer - time.time())
         return self.get_observation(action)
 
-    def reset(self) -> tuple[np.ndarray, dict]:
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> tuple[np.ndarray, dict]:
         state = self._get_observation()
         state = state.to_numpy()
         return state, {}
