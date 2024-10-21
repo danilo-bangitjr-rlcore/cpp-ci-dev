@@ -25,9 +25,9 @@ class GVFTraceAlert(BaseAlert):
 
         self.endo_obs_names = cfg.endo_obs_names
         self.endo_inds = cfg.endo_inds
-        assert len(self.endo_obs_names) > 0, "In config/env/<env_name>.yaml, define 'endo_obs_names' to be a list of the names of the endogenous variables in the observation"
-        assert len(self.endo_inds) > 0, "In config/env/<env_name>.yaml, define 'endo_inds' to be a list of the indices of the endogenous variables within the environment's observation vector"
-        assert len(self.endo_obs_names) == len(self.endo_inds), "The length of self.endo_obs_names and self.endo_inds should be the same and the ordering of the indices should correspond to the ordering of the variable names"
+        assert len(self.endo_obs_names) > 0, "In config/env/<env_name>.yaml, define 'endo_obs_names' to be a list of the names of the endogenous variables in the observation" # noqa: E501
+        assert len(self.endo_inds) > 0, "In config/env/<env_name>.yaml, define 'endo_inds' to be a list of the indices of the endogenous variables within the environment's observation vector" # noqa: E501
+        assert len(self.endo_obs_names) == len(self.endo_inds), "The length of self.endo_obs_names and self.endo_inds should be the same and the ordering of the indices should correspond to the ordering of the variable names" # noqa: E501
 
         self.gvfs = QGVF(cfg, self.input_dim, self.action_dim, agent=self.agent)
         self.num_gvfs = self.gvfs.get_num_gvfs()
@@ -56,15 +56,13 @@ class GVFTraceAlert(BaseAlert):
         return self.gvfs.get_buffer_size()
 
     def update(self) -> dict:
-        gvf_info = self.gvfs.update(self.cumulant_inds)
+        self.gvfs.update(self.cumulant_inds)
 
         ensemble_info = {}
         ensemble_info[self.alert_type()] = {}
         ind = 0
         for cumulant_name in self.get_cumulant_names():
             ensemble_info[self.alert_type()][cumulant_name] = {}
-            # Probably need to comment out the line below
-            # ensemble_info[self.alert_type()][cumulant_name]["std"] = gvf_info["std"][:, ind]
             ind += 1
 
         return ensemble_info
@@ -98,7 +96,8 @@ class GVFTraceAlert(BaseAlert):
         action = utils.tensor(action)
         curr_values = self.gvfs.gvf.get_q([state], [action], with_grad=False)
         curr_values = utils.to_np(curr_values)
-        # The GVF predicts the expected full return. Need to take into account that we're neglecting some percentage of the return.
+        # The GVF predicts the expected full return.
+        # Need to take into account that we're neglecting some percentage of the return.
         corrected_values = curr_values * (1.0 - self.ret_perc)
         self.values.appendleft(corrected_values)
 
@@ -111,7 +110,8 @@ class GVFTraceAlert(BaseAlert):
         info = self.initialize_alert_info()
         if len(self.partial_returns) == self.return_steps:
             abs_diffs = abs(self.partial_returns[-1] - self.values[-1])
-            self.alert_trace = ((1.0 - self.alert_trace_decay) * abs_diffs) + (self.alert_trace_decay * self.alert_trace)
+            decay = self.alert_trace_decay
+            self.alert_trace = ((1.0 - decay) * abs_diffs) + (decay * self.alert_trace)
             individual_alerts = (self.alert_trace > self.alert_trace_thresh).tolist()
 
             for i in range(len(self.endo_obs_names)):
@@ -181,6 +181,10 @@ class GVFTraceAlert(BaseAlert):
 
         return plot_info
 
+
+    def get_std_thresh(self) -> dict[str, dict[str, float]]:
+        return {}
+
 class GVFUncertaintyAlert(GVFTraceAlert):
     def __init__(self, cfg: DictConfig, cumulant_start_ind: int, **kwargs):
         super().__init__(cfg, cumulant_start_ind, **kwargs)
@@ -218,7 +222,8 @@ class GVFUncertaintyAlert(GVFTraceAlert):
         self.means.appendleft(gvf_means)
         gvf_stds = gvf_ens.std(axis=0)
         self.stds.appendleft(gvf_stds)
-        # The critic predicts the expected full return. Need to take into account that we're neglecting some percentage of the return.
+        # The critic predicts the expected full return.
+        # Need to take into account that we're neglecting some percentage of the return.
         gvf_qs = utils.to_np(gvf_qs)
         corrected_qs = gvf_qs * (1.0 - self.ret_perc)
         self.values.appendleft(corrected_qs)
@@ -233,7 +238,6 @@ class GVFUncertaintyAlert(GVFTraceAlert):
         if len(self.partial_returns) == self.return_steps:
             curr_returns = self.partial_returns[-1].astype(float)
             curr_stds = self.stds[-1].astype(float)
-            curr_means = self.means[-1].astype(float)
             curr_values = self.values[-1].astype(float)
 
             # Always update the STD trace
@@ -243,7 +247,8 @@ class GVFUncertaintyAlert(GVFTraceAlert):
                 # Only update the alert trace when the STD trace is below its threshold
                 if self.std_trace[i] < self.std_trace_thresh:
                     abs_diff = abs(curr_returns[i] - curr_values[i])
-                    self.alert_trace[i] = ((1.0 - self.alert_trace_decay) * abs_diff) + (self.alert_trace_decay * self.alert_trace[i])
+                    decay = self.alert_trace_decay
+                    self.alert_trace[i] = ((1.0 - decay) * abs_diff) + (decay * self.alert_trace[i])
 
                 self.active_alert[i] = bool(self.alert_trace[i] > self.alert_trace_thresh)
 

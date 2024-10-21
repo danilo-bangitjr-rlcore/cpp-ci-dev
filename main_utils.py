@@ -20,7 +20,6 @@ from corerl.eval.composite_eval import CompositeEval
 from corerl.data_loaders.base import BaseDataLoader
 from corerl.data_loaders.direct_action import OldDirectActionDataLoader
 from corerl.environment.reward.factory import init_reward_function
-from corerl.data_loaders.utils import train_test_split
 from corerl.data.data import OldObsTransition, Transition, ObsTransition, Trajectory
 from corerl.interaction.base import BaseInteraction
 from corerl.interaction.offline_anytime import OfflineAnytimeInteraction
@@ -303,10 +302,6 @@ def offline_alert_training(cfg: DictConfig, env: Env, alerts: CompositeAlert, tr
                            plot_transitions: list[Transition], save_path: Path):
     log.info('Starting offline alert training...')
 
-    if plot_transitions is None:
-        split = train_test_split(train_transitions, train_split=cfg.experiment.train_split)
-        train_transitions, plot_transitions = split[0][0], split[0][1]
-
     log.debug("Num alert train transitions: {}".format(len(train_transitions)))
 
     alerts.load_buffer(train_transitions)
@@ -326,7 +321,7 @@ def offline_alert_training(cfg: DictConfig, env: Env, alerts: CompositeAlert, tr
 
         if i in cfg.experiment.test_epochs:
             # make_ensemble_info_step_plot(ensemble_info, i, save_path)
-            plot_info = alerts.get_test_state_qs(plot_transitions)
+            plot_info = alerts.get_plot_info(plot_transitions)
             make_reseau_gvf_critic_plot(plot_info, env, save_path, "Offline_Alert_Training", i)
 
         offline_eval_args = {
@@ -334,7 +329,7 @@ def offline_alert_training(cfg: DictConfig, env: Env, alerts: CompositeAlert, tr
         }
         offline_eval.do_eval(**offline_eval_args)  # run all evaluators
 
-    stats = offline_eval.get_stats()
+    offline_eval.get_stats()
     # make_ensemble_info_summary_plots(stats, save_path, "Offline")
 
 
@@ -361,10 +356,6 @@ def offline_training(cfg: DictConfig,
     """
     offline_eval_cfg = {}
     offline_eval = CompositeEval(offline_eval_cfg, offline_eval_args, offline=True)
-
-    if plot_transitions is None:
-        split = train_test_split(train_transitions, train_split=cfg.experiment.train_split)
-        train_transitions, plot_transitions = split[0][0], split[0][1]
 
     log.debug("Num agent train transitions:", len(train_transitions))
     agent.load_buffer(train_transitions)
@@ -431,9 +422,8 @@ def online_deployment(cfg: DictConfig,
     pbar = tqdm(range(max_steps))
     # State Warmup Here?
     alert_info_list = []
-    state, info = interaction.reset()
+    state, _ = interaction.reset()
     action = agent.get_action(state)  # initial action
-    render_after = cfg["experiment"].get("render_after", 0)
     log.info('Starting online training...')
     for j in pbar:
         transitions, agent_train_transitions, _, alert_train_transitions, alert_info, env_info = interaction.step(
@@ -548,7 +538,7 @@ def offline_anytime_deployment(cfg: DictConfig,
         if len(transitions) > 0:
             make_actor_critic_plots(agent, env, transitions, "Offline_Anytime_Encountered_States", j, save_path)
             if alerts.get_dim() > 0:
-                plot_info = alerts.get_test_state_qs(transitions)
+                plot_info = alerts.get_plot_info(transitions)
                 make_reseau_gvf_critic_plot(plot_info, env, save_path, "Offline_Anytime", j)
 
         # Plot policy and critic at a set of test states

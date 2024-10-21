@@ -8,7 +8,7 @@ def init_alert(cfg: DictConfig, cumulant_start_ind: int, alert_args: dict) -> Ba
     config files: corerl/config/alerts
     """
 
-    assert cfg.ensemble == cfg.buffer.ensemble == cfg.critic.critic_network.ensemble, "Ensure all config values of ensemble are equal"
+    assert cfg.ensemble == cfg.buffer.ensemble == cfg.critic.critic_network.ensemble, "Ensure all config values of ensemble are equal" # noqa: E501
     assert cfg.reduct == cfg.critic.critic_network.reduct, "Ensure all config values of reduct are equal"
 
     name = cfg.name

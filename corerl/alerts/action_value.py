@@ -24,7 +24,8 @@ class ActionValueTraceAlert(BaseAlert):
         self.cumulant_end_ind = self.cumulant_start_ind + self.get_dim()
         self.cumulant_inds = list(range(self.cumulant_start_ind, self.cumulant_end_ind))
 
-        # Even though we're not using the agent's critic for the alert, we still need the agent's actor to update the alert's critic
+        # Even though we're not using the agent's critic for the alert,
+        # we still need the agent's actor to update the alert's critic
         self.agent = kwargs['agent']
 
         # Don't use agent's Q-function because this alert's Q-function can use a different discount factor
@@ -47,7 +48,7 @@ class ActionValueTraceAlert(BaseAlert):
     def update_buffer(self, transition: Transition) -> None:
         self.buffer.feed(transition)
 
-    def load_buffer(self, transitions: list[Transition]) -> None:     
+    def load_buffer(self, transitions: list[Transition]) -> None:
         self.buffer.load(transitions)
 
     def compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> tuple[list[torch.Tensor], dict]:
@@ -106,15 +107,6 @@ class ActionValueTraceAlert(BaseAlert):
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
 
         ensemble_info = {}
-        # Should we compute the STD of 'next_qs' in next_q, next_qs = self.q_critic.get_q_target([next_state_batch], [next_actions]) above and take the average over the batches?
-        """
-        q_ens = utils.to_np(qs)
-        ensemble_info[self.alert_type()] = {}
-        for cumulant_name in self.get_cumulant_names():
-            ensemble_info[self.alert_type()][cumulant_name] = {}
-            ensemble_info[self.alert_type()][cumulant_name]["std"] = q_ens.std(axis=0)
-        """
-
         return losses, ensemble_info
 
     def update(self) -> dict:
@@ -122,9 +114,10 @@ class ActionValueTraceAlert(BaseAlert):
 
         def closure():
             losses, ensemble_info = self.compute_critic_loss(batches)
-            return sum(losses), ensemble_info
-        q_loss, ens_info = closure()
+            loss = torch.stack(losses, dim=-1).sum(dim=-1)
+            return loss, ensemble_info
 
+        q_loss, ens_info = closure()
         self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
 
         return ens_info
@@ -158,7 +151,8 @@ class ActionValueTraceAlert(BaseAlert):
         action = utils.tensor(action)
         value = self.q_critic.get_q([state], [action], with_grad=False)
         value = utils.to_np(value)
-        # The critic predicts the expected full return. Need to take into account that we're neglecting some percentage of the return.
+        # The critic predicts the expected full return.
+        # Need to take into account that we're neglecting some percentage of the return.
         corrected_value = value * (1.0 - self.ret_perc)
         self.values.appendleft(corrected_value)
 
@@ -169,7 +163,8 @@ class ActionValueTraceAlert(BaseAlert):
         info = self.initialize_alert_info()
         if len(self.partial_returns) == self.return_steps:
             abs_diff = np.abs(self.partial_returns[-1] - self.values[-1]).item()
-            # If the Observed Partial Return is greater than Q(s,a), the agent is performing the task even better than expected so set the absolute difference to 0
+            # If the Observed Partial Return is greater than Q(s,a),
+            # the agent is performing the task even better than expected so set the absolute difference to 0
             if self.partial_returns[-1] > self.values[-1]:
                 abs_diff = 0.0
             self.alert_trace = ((1.0 - self.alert_trace_decay) * abs_diff) + (self.alert_trace_decay * self.alert_trace)
@@ -242,6 +237,12 @@ class ActionValueTraceAlert(BaseAlert):
 
         return plot_info
 
+
+    def get_std_thresh(self) -> dict[str, dict[str, float]]:
+        return {}
+
+
+
 class ActionValueUncertaintyAlert(ActionValueTraceAlert):
     def __init__(self, cfg: DictConfig, cumulant_start_ind: int, **kwargs):
         super().__init__(cfg, cumulant_start_ind, **kwargs)
@@ -249,7 +250,7 @@ class ActionValueUncertaintyAlert(ActionValueTraceAlert):
         self.std_trace_decay = cfg.std_trace_decay
         self.std_trace_thresh = cfg.std_trace_thresh
         self.std_trace = 0.0
-        
+
         self.stds = deque([], self.return_steps)
         self.means = deque([], self.return_steps)
 
@@ -279,7 +280,8 @@ class ActionValueUncertaintyAlert(ActionValueTraceAlert):
         self.stds.appendleft(q_std)
         q_mean = q_ens.mean()
         self.means.appendleft(q_mean)
-        # The critic predicts the expected full return. Need to take into account that we're neglecting some percentage of the return.
+        # The critic predicts the expected full return.
+        # Need to take into account that we're neglecting some percentage of the return.
         q = utils.to_np(q)
         corrected_q = q * (1.0 - self.ret_perc)
         self.values.appendleft(corrected_q)
@@ -292,7 +294,6 @@ class ActionValueUncertaintyAlert(ActionValueTraceAlert):
         if len(self.partial_returns) == self.return_steps:
             curr_return = self.partial_returns[-1].squeeze().astype(float).item()
             curr_std = self.stds[-1].squeeze().astype(float).item()
-            curr_mean = self.means[-1].squeeze().astype(float).item()
             curr_value = self.values[-1].squeeze().astype(float).item()
 
             # Always update the STD trace
@@ -301,10 +302,13 @@ class ActionValueUncertaintyAlert(ActionValueTraceAlert):
             # Only update the alert trace when the STD trace is below its threshold
             if self.std_trace < self.std_trace_thresh:
                 abs_diff = abs(curr_return - curr_value)
-                # If the Observed Partial Return is greater than Q(s,a), the agent is performing the task even better than expected so set the absolute difference to 0
+                # If the Observed Partial Return is greater than Q(s,a),
+                # the agent is performing the task even better than expected so set the absolute difference to 0
                 if curr_return > curr_value:
                     abs_diff = 0.0
-                self.alert_trace = ((1.0 - self.alert_trace_decay) * abs_diff) + (self.alert_trace_decay * self.alert_trace)
+
+                decay = self.alert_trace_decay
+                self.alert_trace = ((1.0 - decay) * abs_diff) + (decay * self.alert_trace)
 
             self.active_alert = bool(self.alert_trace > self.alert_trace_thresh)
 

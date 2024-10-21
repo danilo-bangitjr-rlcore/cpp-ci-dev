@@ -1,8 +1,10 @@
 import logging
+from typing import Any
 
 from omegaconf import DictConfig
 
 import numpy as np
+import torch
 from corerl.component.network.utils import tensor
 from corerl.utils.device import device
 from corerl.alerts.base import BaseAlert
@@ -14,14 +16,17 @@ log = logging.getLogger(__name__)
 
 
 class CompositeAlert(BaseAlert):
-    def __init__(self, cfg: DictConfig, alert_args: dict):
-        self.alerts = []
-        if cfg:
-            cumulant_start_ind = 0
-            for alert_type in cfg.keys():
-                alert_type_cfg = cfg[alert_type]
-                self.alerts.append(init_alert(alert_type_cfg, cumulant_start_ind, alert_args))
-                cumulant_start_ind += self.alerts[-1].get_dim()
+    def __init__(self, cfg: DictConfig | None, alert_args: dict):
+        self.alerts: list[BaseAlert] = []
+        cumulant_start_ind = 0
+
+        if cfg is None:
+            return
+
+        for alert_type in cfg.keys():
+            alert_type_cfg = cfg[alert_type]
+            self.alerts.append(init_alert(alert_type_cfg, cumulant_start_ind, alert_args))
+            cumulant_start_ind += self.alerts[-1].get_dim()
 
     def update_buffer(self, transition: Transition) -> None:
         for alert in self.alerts:
@@ -106,7 +111,7 @@ class CompositeAlert(BaseAlert):
     def get_alerts(self) -> list[BaseAlert]:
         return self.alerts
 
-    def get_test_state_qs(self, test_transitions):
+    def get_plot_info(self, test_transitions):
         test_actions = 100
         num_states = len(test_transitions)
         test_states = []
@@ -129,7 +134,13 @@ class CompositeAlert(BaseAlert):
         plot_info["ensemble_qs"] = {}
 
         for alert in self.alerts:
-            plot_info = alert.get_test_state_qs(plot_info, repeated_test_states, repeated_actions, num_states, test_actions)
+            plot_info = alert.get_test_state_qs(
+                plot_info,
+                repeated_test_states,
+                repeated_actions,
+                num_states,
+                test_actions,
+            )
 
         return plot_info
 
@@ -138,3 +149,20 @@ class CompositeAlert(BaseAlert):
             alert_type = alert.alert_type()
             log.info(f"Get {alert_type} Buffer Size(s)")
             log.info(f"{alert_type} Buffer Size(s): {alert.get_buffer_size()}")
+
+
+    def get_test_state_qs(
+        self,
+        plot_info: dict[str, Any],
+        repeated_test_states: torch.Tensor,
+        repeated_actions: torch.Tensor,
+        num_states: int,
+        test_actions: int,
+    ) -> dict[str, Any]:
+        ...
+
+    def get_buffer_size(self) -> list[int]:
+        return []
+
+    def alert_type(self) -> str:
+        ...
