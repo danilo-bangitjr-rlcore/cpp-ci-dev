@@ -93,14 +93,8 @@ def _create_base_mlp(cfg: Mapping, input_dim: int, output_dim: Optional[int]):
     assert len(hidden) == len(act)
     layer_init = utils.init_layer(cfg["layer_init"])
 
-    # In the previous iteration of the codebase, the create_base function
-    # allowed for the creation of activations on network heads/output layers.
-    # Here, we explicitly disallow that, since the feature was never even used.
-    #
-    # That being said, this was a central part in how networks were
-    # constructed. Hence for now, we are going to explicitly raise an error
-    # when such keys exist in the configuration, to ensure everyone is aware of
-    # this change.
+    # Warn if any of the config keys start with `head_`, since this function
+    # only creates network bases
     ks = cfg.keys()
     filt = list(filter(lambda x: x.startswith("head_"), ks))
     if len(filt) > 0:
