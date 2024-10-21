@@ -16,8 +16,8 @@ class TorchWrapper:
         self.action_space = self.env.action_space
 
     def _process_state(self, state: numpy.ndarray) -> torch.Tensor:
-        state = tensor(state.reshape((1, -1)), device.device)
-        return state
+        s = tensor(state.reshape((1, -1)), device.device)
+        return s
 
     def reset(self) -> tuple[torch.Tensor, dict]:
         state, info = self.env.reset()
@@ -25,7 +25,7 @@ class TorchWrapper:
         return state, info
 
     def step(self, action: numpy.ndarray | torch.Tensor):
-        action = to_np(action)[0] # TODO: not sure if i like the [0] here
+        action = to_np(action)[0]
         state, reward, done, truncate, env_info = self.env.step(action)
         state = self._process_state(state)
         return state, reward, done, truncate, env_info

@@ -15,9 +15,9 @@ class OneHotWrapper:
         return self.env.reset()
 
     def step(self, action: np.ndarray):
-        action = np.argmax(action)
-        action = np.array([action])
-        return self.env.step(action)
+        a = np.argmax(action)
+        a = np.array([a])
+        return self.env.step(a)
 
     def render(self):
         return self.env.render()
