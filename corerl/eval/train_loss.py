@@ -1,5 +1,4 @@
 from corerl.eval.base_eval import BaseEval
-from pathlib import Path
 
 
 class TrainLossEval(BaseEval):
@@ -17,8 +16,4 @@ class TrainLossEval(BaseEval):
     def get_stats(self):
         stats = {}
         stats["train_losses"] = self.train_losses
-        return stats
-
-    def output(self, path: Path):
-        stats = self.get_stats()
         return stats

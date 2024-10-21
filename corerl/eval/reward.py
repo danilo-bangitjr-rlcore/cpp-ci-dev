@@ -1,5 +1,4 @@
 from corerl.eval.base_eval import BaseEval
-from pathlib import Path
 
 
 class RewardEval(BaseEval):
@@ -61,8 +60,4 @@ class RewardEval(BaseEval):
         stats['returns'] = self.returns
         stats['reward_sums'] = self.reward_sums
 
-        return stats
-
-    def output(self, path: Path):
-        stats = self.get_stats()
         return stats
