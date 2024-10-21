@@ -11,7 +11,8 @@ class TestLossEval(BaseEval):
             raise KeyError("Missing required argument: 'eval_transitions'")
 
         eval_transitions = kwargs['eval_transitions']
-        assert len(eval_transitions) > 0, "To use the TestLossEval, the number of passed eval transitions must be greater than 0"
+        assert len(eval_transitions) > 0, \
+            "To use the TestLossEval, the number of passed eval transitions must be greater than 0"
 
         self.agent = kwargs['agent']
         self.buffer = init_buffer(cfg.buffer)
