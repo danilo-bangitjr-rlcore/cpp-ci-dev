@@ -1,3 +1,4 @@
+from typing import Any
 from corerl.eval.base_eval import BaseEval
 
 
@@ -33,7 +34,7 @@ class RewardEval(BaseEval):
                 self.episode_steps += 1
 
     def get_stats(self):
-        stats = {'num_episodes': len(self.returns)}
+        stats: dict[str, Any] = {'num_episodes': len(self.returns)}
         if len(self.rewards) > 0:
             stats['avg_reward'] = sum(self.rewards) / len(self.rewards)
         else:
