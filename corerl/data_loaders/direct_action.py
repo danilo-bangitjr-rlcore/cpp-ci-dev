@@ -25,7 +25,7 @@ class OldDirectActionDataLoader(BaseDataLoader):
 
     def __init__(self, cfg: DictConfig):
 
-        warn("You are using a deprecated version of the DirectActionDataLoader")
+        warn("You are using a deprecated version of the DirectActionDataLoader", stacklevel=1)
 
         self.offline_data_path = Path(cfg.offline_data_path)
 
@@ -42,16 +42,13 @@ class OldDirectActionDataLoader(BaseDataLoader):
         # Are we using separate files for the text set
         self.skip_rows = cfg.skip_rows
         self.header = cfg.header
-        # not sure if OmegaConf.to_object is necessary anymore?
-        self.df_col_names = OmegaConf.to_object(cfg.df_col_names)
-        assert len(
-            self.df_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'df_col_names', a list of names you'd like to give the columns in your dataframe"
+        self.df_col_names = cfg.df_col_names
+        assert len(self.df_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'df_col_names', a list of names you'd like to give the columns in your dataframe" # noqa: E501
         self.obs_col_names = cfg.obs_col_names
         assert len(
-            self.obs_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'obs_col_names', a sublist of the column names in self.df_col_names that you'd like to be included in observations"
-        self.action_col_names = OmegaConf.to_object(cfg.action_col_names)
-        assert len(
-            self.action_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'action_names', a sublist of the column names in self.df_col_names that correspond to the dimensions of the action space"
+            self.obs_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'obs_col_names', a sublist of the column names in self.df_col_names that you'd like to be included in observations" # noqa: E501
+        self.action_col_names = cfg.action_col_names
+        assert len(self.action_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'action_names', a sublist of the column names in self.df_col_names that correspond to the dimensions of the action space" # noqa: E501
         self.date_col_name = cfg.date_col_name
         self.max_time_delta = cfg.max_time_delta
         self.time_thresh = pd.Timedelta(self.max_time_delta, "s")
