@@ -11,12 +11,13 @@ from corerl.data.transition_creator import BaseTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 
 
-def make_transitions(obs_transitions: list[ObsTransition],
-                     sc: BaseStateConstructor,
-                     tc: BaseTransitionCreator,
-                     obs_normalizer: ObsTransitionNormalizer,
-                     warmup=0,
-                     ) -> list[Transition]:
+def make_transitions(
+    obs_transitions: list[ObsTransition],
+    sc: BaseStateConstructor,
+    tc: BaseTransitionCreator,
+    obs_normalizer: ObsTransitionNormalizer,
+    warmup=0,
+) -> list[Transition]:
     obs_transitions = _normalize_obs_transitions(obs_transitions, obs_normalizer)
     curr_chunk_obs_transitions = []
     transitions = []
@@ -42,8 +43,9 @@ def make_transitions(obs_transitions: list[ObsTransition],
 
 
 def _normalize_obs_transitions(
-        obs_transitions: list[ObsTransition],
-        obs_normalizer: ObsTransitionNormalizer) -> list[ObsTransition]:
+    obs_transitions: list[ObsTransition],
+    obs_normalizer: ObsTransitionNormalizer,
+) -> list[ObsTransition]:
     return [obs_normalizer.normalize(ot) for ot in obs_transitions]
 
 
@@ -56,7 +58,7 @@ def _get_action_windows(obs_transitions: list[ObsTransition]) -> list[list[ObsTr
     action_windows = []
     curr_action_obs_transitions = []
 
-    for i, obs_transition in enumerate(obs_transitions):
+    for obs_transition in obs_transitions:
         if obs_transition.action == curr_action:
             curr_action_obs_transitions.append(obs_transition)
 
@@ -70,7 +72,7 @@ def _get_action_windows(obs_transitions: list[ObsTransition]) -> list[list[ObsTr
     # check that everything is correct
     assert sum([len(aw) for aw in action_windows]) == len(obs_transitions)  # is a partition
     prev_action = None
-    for i, action_window in enumerate(action_windows):
+    for action_window in action_windows:
         # check all elements of the action window has the same action
         action = action_window[0].action
         for obs_t in action_window:
@@ -81,8 +83,10 @@ def _get_action_windows(obs_transitions: list[ObsTransition]) -> list[list[ObsTr
     return action_windows
 
 
-def _get_right_aligned_action_window_dps(action_window: list[ObsTransition], steps_per_decision: int) -> tuple[
-    list[bool], list[int]]:
+def _get_right_aligned_action_window_dps(
+    action_window: list[ObsTransition],
+    steps_per_decision: int,
+) -> tuple[list[bool], list[int]]:
     """
     Iterates through an action window and determines whether reach obs transition is a decision point (dp)
     and what the number of steps until the next decision are for that obs transition.
@@ -111,8 +115,10 @@ def _get_right_aligned_action_window_dps(action_window: list[ObsTransition], ste
     return aw_dps, aw_steps_until_decisions
 
 
-def _get_left_aligned_action_window_dps(action_window: list[ObsTransition], steps_per_decision: int) -> tuple[
-    list[bool], list[int]]:
+def _get_left_aligned_action_window_dps(
+    action_window: list[ObsTransition],
+    steps_per_decision: int,
+) -> tuple[list[bool], list[int]]:
     """
     Iterates through an action window and determines whether reach obs transition is a decision point (dp)
     and what the number of steps until the next decision are for that obs transition.
@@ -158,9 +164,11 @@ def _get_last_dp(steps_until_decisions, steps_per_decision):
     return last_dp, last_steps_until_decision
 
 
-def _get_dps_and_steps_until_decision(obs_transitions: list[ObsTransition],
-                                      steps_per_decision: int,
-                                      right_align=True) -> tuple[list[bool], list[int]]:
+def _get_dps_and_steps_until_decision(
+    obs_transitions: list[ObsTransition],
+    steps_per_decision: int,
+    right_align=True,
+) -> tuple[list[bool], list[int]]:
     """
     Returns two lists:
         1. Whether each observation is a decision point.
@@ -194,9 +202,11 @@ def _get_dps_and_steps_until_decision(obs_transitions: list[ObsTransition],
     return dps, steps_until_decisions
 
 
-def make_transitions_for_chunk(obs_transitions: list[ObsTransition],
-                               sc: BaseStateConstructor,
-                               tc: BaseTransitionCreator) -> list[Transition]:
+def make_transitions_for_chunk(
+    obs_transitions: list[ObsTransition],
+    sc: BaseStateConstructor,
+    tc: BaseTransitionCreator,
+) -> list[Transition]:
     """
     Given a list of obs transitions, return a list of transitions for this list.
     """
