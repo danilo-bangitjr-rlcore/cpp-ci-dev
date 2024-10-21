@@ -65,7 +65,7 @@ class IBE(BaseEval):
 
         return delta
 
-    def get_loss(self, batch: TransitionBatch) -> torch.Tensor:
+    def get_loss(self, batch: TransitionBatch) -> list[torch.Tensor]:
         delta = self.get_delta(batch)
         state_batch = batch.state
         action_batch = batch.action
@@ -88,8 +88,8 @@ class IBE(BaseEval):
                     inputs=list(self.model.parameters(independent=True)[i]), # type: ignore
                 )
 
-            self.optimizer.step()
-            loss = [l.detach().item() for l in loss]
+            self.optimizer.step() # type: ignore
+            loss = [lo.detach().item() for lo in loss]
             self.losses.append(loss)
 
         # estimate the bellman error on a batch
