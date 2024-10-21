@@ -8,7 +8,15 @@ from scipy import signal
 # Observation = setpoint
 # Action = [kp1, ti1]
 class ThreeTankEnvBase(object):
-    def __init__(self, isoffline, seed=None, random_sp=[3]):
+    def __init__(
+        self,
+        isoffline: bool,
+        seed: int | None = None,
+        random_sp: list[int] | None = None,
+    ):
+        if random_sp is None:
+            random_sp = [3]
+
         if seed is not None:
             self.rng = np.random.RandomState(seed)
         else:
