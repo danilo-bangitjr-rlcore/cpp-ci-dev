@@ -1,5 +1,4 @@
 from corerl.eval.base_eval import BaseEval
-from pathlib import Path
 
 
 class ActionEval(BaseEval):
@@ -31,8 +30,4 @@ class ActionEval(BaseEval):
     def get_stats(self):
         stats = {}
         stats["raw_actions"] = self.actions
-        return stats
-
-    def output(self, path: Path):
-        stats = self.get_stats()
         return stats

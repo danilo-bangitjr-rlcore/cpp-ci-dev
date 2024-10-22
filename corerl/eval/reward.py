@@ -1,5 +1,5 @@
+from typing import Any
 from corerl.eval.base_eval import BaseEval
-from pathlib import Path
 
 
 class RewardEval(BaseEval):
@@ -34,7 +34,7 @@ class RewardEval(BaseEval):
                 self.episode_steps += 1
 
     def get_stats(self):
-        stats = {'num_episodes': len(self.returns)}
+        stats: dict[str, Any] = {'num_episodes': len(self.returns)}
         if len(self.rewards) > 0:
             stats['avg_reward'] = sum(self.rewards) / len(self.rewards)
         else:
@@ -61,8 +61,4 @@ class RewardEval(BaseEval):
         stats['returns'] = self.returns
         stats['reward_sums'] = self.reward_sums
 
-        return stats
-
-    def output(self, path: Path):
-        stats = self.get_stats()
         return stats

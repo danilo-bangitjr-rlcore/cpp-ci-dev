@@ -32,12 +32,12 @@ def get_top_action(
     action_dim: int,
     batch_size: int,
     n_actions: int,
-    return_idx: bool = False,
+    return_idx: int = 0,
 ):
     if not return_idx:
         x = func([states], [actions])
     else:  # in func returns a tuple
-        x = func([states], [actions])[0]
+        x = func([states], [actions])[return_idx]
 
     x = x.reshape((batch_size, n_actions, 1))
     sorted_q_inds = torch.argsort(x, dim=1, descending=True)

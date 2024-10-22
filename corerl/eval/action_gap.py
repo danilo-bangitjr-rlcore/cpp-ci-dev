@@ -22,11 +22,24 @@ class ActionGapEval(BaseEval):
         actions = torch.rand(size=(batch_size * self.n_samples, self.action_dim))
         states = torch.repeat_interleave(state_batch, self.n_samples, dim=0)
 
-        best_q_actions = get_top_action(self.agent.q_critic.get_q, states, actions,
-                                        self.action_dim, batch_size, n_actions=self.n_samples)
+        best_q_actions = get_top_action(
+            self.agent.q_critic.get_q,
+            states,
+            actions,
+            self.action_dim,
+            batch_size,
+            n_actions=self.n_samples,
+        )
 
-        best_pi_actions = get_top_action(self.agent.actor.get_log_prob, states, actions,
-                                         self.action_dim, batch_size, n_actions=self.n_samples, return_idx=0)
+        best_pi_actions = get_top_action(
+            self.agent.actor.get_log_prob,
+            states,
+            actions,
+            self.action_dim,
+            batch_size,
+            n_actions=self.n_samples,
+            return_idx=0,
+        )
 
         best_q_actions = best_q_actions.squeeze()
         best_pi_actions = best_pi_actions.squeeze()

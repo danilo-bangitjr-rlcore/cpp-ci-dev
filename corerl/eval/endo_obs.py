@@ -1,5 +1,4 @@
 from corerl.eval.base_eval import BaseEval
-from pathlib import Path
 
 
 class EndoObsEval(BaseEval):
@@ -35,8 +34,4 @@ class EndoObsEval(BaseEval):
     def get_stats(self):
         stats = {}
         stats["raw_endo_obs"] = self.raw_endo_obs
-        return stats
-
-    def output(self, path: Path):
-        stats = self.get_stats()
         return stats

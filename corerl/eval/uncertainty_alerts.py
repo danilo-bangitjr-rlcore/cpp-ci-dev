@@ -1,5 +1,4 @@
 from corerl.eval.base_eval import BaseEval
-from pathlib import Path
 
 
 class UncertaintyAlertsEval(BaseEval):
@@ -59,8 +58,4 @@ class UncertaintyAlertsEval(BaseEval):
         stats["alert_trace_thresholds"] = self.alert_trace_thresholds
         stats["std_trace_thresholds"] = self.std_trace_thresholds
 
-        return stats
-
-    def output(self, path: Path):
-        stats = self.get_stats()
         return stats
