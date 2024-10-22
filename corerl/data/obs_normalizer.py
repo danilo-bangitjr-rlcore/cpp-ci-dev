@@ -1,3 +1,4 @@
+from typing import overload
 import gymnasium as gym
 from corerl.data.normalizer_utils import init_action_normalizer, init_reward_normalizer, init_obs_normalizer
 from corerl.data.data import ObsTransition, OldObsTransition
@@ -11,7 +12,15 @@ class ObsTransitionNormalizer:
         self.reward_normalizer = init_reward_normalizer(cfg.reward_normalizer)
         self.obs_normalizer = init_obs_normalizer(cfg.obs_normalizer, env)
 
+    @overload
     def normalize(self, obs_transition: ObsTransition) -> ObsTransition:
+        ...
+
+    @overload
+    def normalize(self, obs_transition: OldObsTransition) -> OldObsTransition:
+        ...
+
+    def normalize(self, obs_transition: ObsTransition | OldObsTransition) -> ObsTransition | OldObsTransition:
         obs_transition_copy = copy(obs_transition)
 
         if isinstance(obs_transition_copy, OldObsTransition):
