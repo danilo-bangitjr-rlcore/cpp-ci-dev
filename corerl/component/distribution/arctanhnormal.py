@@ -15,10 +15,6 @@ class ArctanhNormal(d.Distribution):
     }
 
     @property
-    def mean(self):
-        return torch.tanh(self.loc)
-
-    @property
     def loc(self):
         return self._underlying.loc
 
