@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import time
 from gymnasium.spaces import Box
 
@@ -19,11 +20,12 @@ class ReseauEnv(InfluxOPCEnv):
         self.endo_obs_names = cfg.endo_obs_names
         self.endo_inds = cfg.endo_inds
 
-    def _get_reward(self, obs: np.ndarray, a: np.ndarray):
+    def _get_reward(self, s: np.ndarray | pd.DataFrame, a: np.ndarray):
+        assert isinstance(s, np.ndarray)
         if self.prev_action is None:
-            r = self.reward_func(obs, prev_action=a, curr_action=a)
+            r = self.reward_func(s, prev_action=a, curr_action=a)
         else:
-            r = self.reward_func(obs, prev_action=self.prev_action, curr_action=a)
+            r = self.reward_func(s, prev_action=self.prev_action, curr_action=a)
             self.prev_action = a
         return r
 

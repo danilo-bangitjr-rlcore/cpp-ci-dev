@@ -1,4 +1,4 @@
-# Import modules
+from typing import Any
 import gymnasium as gym
 import math
 import numpy as np
@@ -19,26 +19,20 @@ class Bimodal(gym.Env):
         self._state_max = np.array([1.])
         self._state = np.array([1.])
 
-        self._observation_space = gym.spaces.Box(self._state_min,
-                                                 self._state_max)
+        self.observation_space = gym.spaces.Box(
+            self._state_min,
+            self._state_max,
+        )
 
         self._action_dim = 1
         self._action_range = np.array([4.])
         self._action_min = np.array([-2.])
         self._action_max = np.array([2.])
 
-        self._action_space = gym.spaces.Box(self._action_min, self._action_max)
+        self.action_space = gym.spaces.Box(self._action_min, self._action_max)
 
     def seed(self, seed):
         self._random = np.random.default_rng(seed)
-
-    @property
-    def action_space(self):
-        return self._action_space
-
-    @property
-    def observation_space(self):
-        return self._observation_space
 
     def step(self, action):
         action = action.item()
@@ -66,7 +60,12 @@ class Bimodal(gym.Env):
 
         return self._state, reward, True, False, {}
 
-    def reset(self):
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ):
         self._state = np.array([1.])
         return self._state, {}
 

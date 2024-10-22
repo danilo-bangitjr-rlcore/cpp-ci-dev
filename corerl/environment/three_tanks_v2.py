@@ -1,3 +1,4 @@
+from typing import Any
 import numpy as np
 from gymnasium import spaces
 import copy
@@ -8,7 +9,15 @@ from scipy import signal
 # Observation = setpoint
 # Action = [kp1, ti1]
 class ThreeTankEnvBase(object):
-    def __init__(self, isoffline, seed=None, random_sp=[3]):
+    def __init__(
+        self,
+        isoffline: bool,
+        seed: int | None = None,
+        random_sp: list[int] | None = None,
+    ):
+        if random_sp is None:
+            random_sp = [3]
+
         if seed is not None:
             self.rng = np.random.RandomState(seed)
         else:
@@ -63,7 +72,7 @@ class ThreeTankEnvBase(object):
         type2_c = np.array(type2_c, dtype=float)
         sys2 = signal.TransferFunction([self.processgain], type2_c)
         sys2 = sys2.to_ss()
-        sys2 = sys2.to_discrete(1)
+        sys2 = sys2.to_discrete(1) # type: ignore
         self.isoffline = isoffline
         if self.isoffline:
             self.A = sys2.A * 0.9
@@ -103,7 +112,7 @@ class ThreeTankEnvBase(object):
         type2_c = np.array(type2_c, dtype=float)
         sys2 = signal.TransferFunction([self.processgain], type2_c)
         sys2 = sys2.to_ss()
-        sys2 = sys2.to_discrete(1)
+        sys2 = sys2.to_discrete(1) # type: ignore
 
         if self.isoffline:
             self.A = sys2.A * 0.9
@@ -119,7 +128,12 @@ class ThreeTankEnvBase(object):
         self.no_of_error = 0
         self.flowrate_buffer = []
 
-    def reset(self, seed=None):
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ):
         # Overwriting old seed
         if seed is not None:
             self.rng = np.random.RandomState(seed)
@@ -195,9 +209,6 @@ class ThreeTankEnvBase(object):
 
     # the environment reacts to the inputted action
     def inner_step(self, delta_flow_rate, disturbance=0):
-        # if no value for the valves is given, the valves default to this
-        # configuration
-        overflow = 0
         # updating the flow rate of pump 1 given the change in flow rate
         self.flowrate_T1 += delta_flow_rate[0]
 
@@ -243,7 +254,7 @@ class ThreeTankEnvBase(object):
         # This method calculates all required factors for reward calculation
         # Sum of error square over the number of errors
         mse = self.error_sum / self.no_of_error
-        reward = - mse.item() * 100
+        reward = - mse.item() * 100 # type: ignore
         self.error_sum = 0
         self.no_of_error = 0
         self.flowrate_buffer = []
@@ -254,12 +265,17 @@ class ThreeTankEnvBase(object):
 # Action: [kp1, ti1] -> 2
 class ThreeTankEnv(ThreeTankEnvBase):
     # Bandit setting
-    def __init__(self, seed=None, random_sp=[3]):
+    def __init__(
+        self,
+        seed: int | None = None,
+        random_sp: list[int] | None = None,
+    ):
         super(ThreeTankEnv, self).__init__(
             True, seed=seed, random_sp=random_sp,
         )
         self.observation_space = spaces.Discrete(
-            len(random_sp), start=int(np.array(random_sp).min()),
+            len(self.random_sp),
+            start=int(np.array(self.random_sp).min()),
         )
         self.max_actions = np.array([20, 20], dtype=np.float32)
         self.min_actions = np.array([0, 0], dtype=np.float32)
@@ -269,11 +285,13 @@ class ThreeTankEnv(ThreeTankEnvBase):
             shape=(2,),
             dtype=np.float32,
         )
-        self.visualization_range = [-1, max(15, np.array(random_sp).max() + 1)]
+        self.visualization_range = [-1, max(15, np.array(self.random_sp).max() + 1)]
 
     def step(self, a):
         pid = a
         self.update_pid(pid)
+
+        sp = None
         for _ in range(1000):
             sp = self.inner_step(self.pid_controller())
 
@@ -283,27 +301,37 @@ class ThreeTankEnv(ThreeTankEnvBase):
         r = (r + 8) / 8
         done = True
 
-        return sp, r, done, False, {'environment_pid': pid,
-                                    'interval_log': self.height_T1_record}
+        assert sp is not None
+        return sp, r, done, False, {
+            'environment_pid': pid,
+            'interval_log': self.height_T1_record,
+        }
 
-    def reset(self, seed=None):
-        s = super(ThreeTankEnv, self).reset(seed)
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ):
+        s = super().reset(seed=seed)
         setpoint_backup = self.setpoint
         self.setpoint = self.setpoint - 1
 
-        for i in range(100):
+        for _ in range(100):
             self.inner_step(self.pid_controller())
+
         self.setpoint = setpoint_backup
-        self.reset_reward(), self.reinit_the_system()
-        return s, {}
+        self.reset_reward()
+        self.reinit_the_system()
+        return s
 
 
 # Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
 # Action: [delta_kp1, delta_ti1] -> continuous version -> 2
 class TTChangeAction(ThreeTankEnvBase):
     # Normal RL setting.
-    def __init__(self, seed=None):
-        super(TTChangeAction, self).__init__(seed, random_sp=[3])
+    def __init__(self, seed: int | None = None):
+        super(TTChangeAction, self).__init__(isoffline=False, seed=seed, random_sp=[3])
 
         self.default_Kp = 0.15
         self.default_tau_I = 20
@@ -402,16 +430,22 @@ class TTChangeAction(ThreeTankEnvBase):
             'height_T1_record': self.height_T1_record,
             'setpoint_T1_record': self.setpoint_T1_record,
         }
-        self.reset_reward(), self.reset_system()
+        self.reset_reward()
+        self.reset_system()
         # super(TTChangeAction, self).reset()
         # self.update_pid(pid_params, KI=True)
 
         return s_next, r, done, False, info
 
-    def reset(self, seed=None):
-        info = super(TTChangeAction, self).reset()
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ):
+        super(TTChangeAction, self).reset()
         s = self.observation(self.prev_pid_params)
-        return s, info
+        return s
 
     def pid_param_clip(self, pid_params):
 

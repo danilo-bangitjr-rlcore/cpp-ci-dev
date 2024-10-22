@@ -22,6 +22,10 @@ ignore = [
 
 [tool.pyright]
 include = ['corerl']
+exclude = [
+    'corerl/environment/smpl',
+    'corerl/environment/third_party',
+]
 stubPath = "./typings"
 venvPath = '.'
 venv = '.venv'
