@@ -55,9 +55,9 @@ class Softmax(Policy):
     def log_prob(
             self, state: torch.Tensor, action: torch.Tensor,
     ) -> tuple[torch.Tensor, dict]:
-        actions = (actions == 1).nonzero(as_tuple=False)
+        actions = (action == 1).nonzero(as_tuple=False)
         actions = actions[:, 1:]
-        probs, _ = self.get_probs(states)
+        probs, _ = self.get_probs(state)
         dist = torch.distributions.Categorical(probs)
         logp = dist.log_prob(actions.squeeze(-1))
         logp = logp.view(-1, 1)
