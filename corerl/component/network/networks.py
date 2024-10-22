@@ -139,7 +139,8 @@ def _create_base_mlp(
 def _create_layer(
     layer_type: type[nn.Module],
     layer_init: Callable[[nn.Module], nn.Module],
-    base_net: nn.Module,
+    base_net:
+    Iterable[nn.Module],
     hidden: int,
     bias: bool,
     placeholder_input: torch.Tensor,

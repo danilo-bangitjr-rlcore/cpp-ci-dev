@@ -1,22 +1,23 @@
 import corerl.component.network.utils as utils
-from . import *
-from .policy import _get_type_from_dist
+from . import Softmax, Policy, UnBounded
+from .policy import _get_type_from_dist, ContinuousIIDPolicy
 from corerl.component.distribution import get_dist_type
-from corerl.component.network.networks import _create_layer, _get_output_shape, create_base
+from corerl.component.network.networks import _create_layer, create_base
 from corerl.component.layer import init_activation, Parallel
 import torch.nn as nn
 import torch
 from corerl.utils.device import device
 
 
-def get_type_from_str(type_: str):
+def get_type_from_str(type_: str) -> type[Policy]:
     if type_.lower() == "softmax":
         return Softmax
 
     try:
         return _get_type_from_dist(get_dist_type(type_))
-    except NotImplementedError:
-        raise NotImplementedError(f"unknown policy type {type_}")
+
+    except NotImplementedError as e:
+        raise NotImplementedError(f"unknown policy type {type_}") from e
 
 
 def _create_nn(cfg, policy_type, input_dim, output_dim):
@@ -81,6 +82,8 @@ def _create_continuous_mlp(cfg, input_dim, output_dim):
 
     dist = get_dist_type(cfg["dist"])
     policy_type = get_type_from_str(cfg["dist"])
+    assert issubclass(policy_type, ContinuousIIDPolicy)
+
     paths = policy_type(None, dist).n_params
 
     head_act = cfg["head_activation"]
@@ -115,6 +118,7 @@ def create(cfg, input_dim, output_dim, action_min=None, action_max=None):
     net = _create_nn(cfg, policy_type, input_dim, output_dim)
 
     if not policy_type.continuous():
+        assert policy_type is Softmax
         return policy_type(net, input_dim, output_dim)
 
     dist_type = get_dist_type(cfg["dist"])

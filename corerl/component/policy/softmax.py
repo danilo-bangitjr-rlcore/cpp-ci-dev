@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.distributions as d
 
+_constraints = d.constraints  #pyright: ignore[reportAttributeAccessIssue]
 
 class Softmax(Policy):
     def __init__(self, net, input_dim: int, output_dim: int):
@@ -22,7 +23,7 @@ class Softmax(Policy):
 
     @property
     def support(self):
-        return d.constraints.integer_interval(0, self.output_dim-1)
+        return _constraints.integer_interval(0, self.output_dim-1)
 
     @property
     def param_names(self) -> tuple[str, ...]:
