@@ -185,7 +185,7 @@ class EnsembleFC(nn.Module):
         compatibility, until we move EnsembleFC to use the new implementation
         of `create_base`
         """
-        if cfg.name == "fc":
+        if cfg.name in ("fc", "mlp"):
             return create_base(cfg, input_dim, output_dim)
         else:
             raise NotImplementedError
