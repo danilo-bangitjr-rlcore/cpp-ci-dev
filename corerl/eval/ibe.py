@@ -26,14 +26,16 @@ class IBE(BaseEval):
         self.model = init_custom_network(cfg.network, state_dim + action_dim, output_dim=1)
         self.optimizer = init_optimizer(
             cfg.optimizer,
-            list(self.model.parameters(independent=True)), # type: ignore
-            ensemble=True,
+            list(self.model.parameters(independent=True)),
+            ensemble=True
         )
 
         self.losses = []
         self.bes = []  # the bellman errors
+        self.bes_changes = []  # the change of bellman errors
+        self.bes_changes_smoothed = []  # the change of bellman errors
 
-    def get_delta(self, batch: TransitionBatch) -> torch.Tensor:
+    def _get_delta(self, batch: TransitionBatch) -> torch.Tensor:
         state_batch = batch.state
         action_batch = batch.action
         reward_batch = batch.n_step_reward
@@ -64,8 +66,8 @@ class IBE(BaseEval):
 
         return delta
 
-    def get_loss(self, batch: TransitionBatch) -> list[torch.Tensor]:
-        delta = self.get_delta(batch)
+    def get_loss(self, batch: TransitionBatch) -> torch.Tensor:
+        delta = self._get_delta(batch)
         state_batch = batch.state
         action_batch = batch.action
         sa = torch.concatenate((state_batch, action_batch), dim=1)
@@ -83,35 +85,44 @@ class IBE(BaseEval):
 
             self.optimizer.zero_grad()
             for i in range(len(loss)):
-                loss[i].backward(
-                    inputs=list(self.model.parameters(independent=True)[i]), # type: ignore
-                )
+                loss[i].backward(inputs=list(self.model.parameters(independent=True)[i]))
 
-            self.optimizer.step() # type: ignore
-            loss = [lo.detach().item() for lo in loss]
+            self.optimizer.step()
+            loss = [l.detach().item() for l in loss]
             self.losses.append(loss)
 
         # estimate the bellman error on a batch
         batches = self.agent.critic_buffer.sample()
         batch = batches[0]
-        be = self.estimate_be(batch)
-        self.bes.append(be)
+        be = self._estimate_be(batch)
+        self.bes.append(be.mean())
+        if len(self.bes) > 1:
+            self.bes_changes.append(self.bes[-1] - self.bes[-2])
+        else:
+            self.bes_changes.append(self.bes[-1])
 
-    def estimate_be(self, batch: TransitionBatch) -> np.ndarray:
+    def _estimate_be(self, batch: TransitionBatch) -> np.ndarray:
         state_batch = batch.state
         action_batch = batch.action
 
         sa = torch.concatenate((state_batch, action_batch), dim=1)
         predictions = self.model(sa)
-        delta = self.get_delta(batch)
+        delta = self._get_delta(batch)
 
         be_batch = 2 * predictions * delta - torch.square(predictions)
-        mean_be = torch.squeeze(torch.mean(be_batch, dim=1))
+        mean_be = torch.squeeze(torch.mean(be_batch, axis=1))
 
-        return to_np(mean_be).tolist()
+        return to_np(mean_be)
 
     def get_stats(self) -> dict:
+        smoothed_change = []
+        ary_bes_changes = np.asarray(self.bes_changes)
+        for i in range(10, len(self.bes_changes)):
+            smoothed_change.append(ary_bes_changes[i-10:i].mean())
         stats = {
             'bellman_error': self.bes,
+            'ibe_change': self.bes_changes,
+            'ibe_smoothed_change': smoothed_change
+            # 'last_bellman_error': self.bes[-1]
         }
         return stats
