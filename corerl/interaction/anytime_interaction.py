@@ -30,7 +30,7 @@ class AnytimeInteraction(BaseInteraction):
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
             normalizer: ObsTransitionNormalizer,
-            agent_transition_creator: "BaseTransitionCreator",
+            agent_transition_creator: BaseTransitionCreator,
     ):
         super().__init__(cfg, env, state_constructor)
 
@@ -83,6 +83,7 @@ class AnytimeInteraction(BaseInteraction):
         truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
         decision_point = (self.steps_until_decision == self.steps_per_decision)
 
+        assert self.raw_last_obs is not None
         obs_transition = ObsTransition(
             obs=self.raw_last_obs,
             action=raw_action,
@@ -143,7 +144,7 @@ class AnytimeInteraction(BaseInteraction):
 
         return return_tuple
 
-    def reset(self) -> (np.ndarray, dict):
+    def reset(self) -> tuple[np.ndarray, dict]:
         """
         Reset the environment and the state constructor
         """
@@ -195,6 +196,8 @@ class AnytimeInteraction(BaseInteraction):
         alert_info["state"] = state
         alert_info["next_obs"] = next_obs
         alert_info["reward"] = reward
+
+        assert self.alerts is not None
         step_alert_info = self.alerts.evaluate(**alert_info)
         return step_alert_info
 
@@ -304,13 +307,15 @@ class OldAnytimeInteraction(BaseInteraction):
         truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
         decision_point = (self.steps_until_decision == self.steps_per_decision)
 
+        assert self.raw_last_action is not None
+        assert self.raw_last_obs is not None
         obs_transition = OldObsTransition(
             self.raw_last_action,
             self.raw_last_obs,
             self.prev_steps_until_decision,  # I don't think this variable is actually used
             self.prev_decision_point,
             raw_action,
-            raw_reward,
+            float(raw_reward),
             raw_next_obs,
             self.steps_until_decision,
             decision_point,
