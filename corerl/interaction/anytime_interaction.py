@@ -5,7 +5,6 @@ from gymnasium.spaces.utils import flatdim
 from collections import deque
 
 from omegaconf import DictConfig
-from corerl.data.transition_creator import OldAnytimeTransitionCreator
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.interaction.base import BaseInteraction
 from corerl.alerts.composite_alert import CompositeAlert
@@ -17,6 +16,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from corerl.data.transition_creator import BaseTransitionCreator
+    from corerl.data.transition_creator import OldAnytimeTransitionCreator
 
 class AnytimeInteraction(BaseInteraction):
     """
@@ -30,7 +30,7 @@ class AnytimeInteraction(BaseInteraction):
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
             normalizer: ObsTransitionNormalizer,
-            agent_transition_creator: BaseTransitionCreator,
+            agent_transition_creator: 'BaseTransitionCreator',
     ):
         super().__init__(cfg, env, state_constructor)
 
@@ -56,7 +56,7 @@ class AnytimeInteraction(BaseInteraction):
     def init_alerts(
         self,
         composite_alert: CompositeAlert,
-        alert_transition_creator: BaseTransitionCreator,
+        alert_transition_creator: 'BaseTransitionCreator',
     ):
         self.alerts = composite_alert
         self.alert_transition_creator = alert_transition_creator
@@ -260,7 +260,7 @@ class OldAnytimeInteraction(BaseInteraction):
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
             alerts: CompositeAlert,
-            transition_creator: OldAnytimeTransitionCreator,
+            transition_creator: 'OldAnytimeTransitionCreator',
             normalizer: ObsTransitionNormalizer):
         super().__init__(cfg, env, state_constructor)
 

@@ -5,9 +5,12 @@ from omegaconf import DictConfig
 import gymnasium
 
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.data.transition_creator import BaseTransitionCreator
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.data.data import Transition
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from corerl.data.transition_creator import BaseTransitionCreator
 
 
 class BaseInteraction(ABC):
@@ -69,5 +72,5 @@ class BaseInteraction(ABC):
         return trunc
 
     @abstractmethod
-    def init_alerts(self, composite_alert: CompositeAlert, alert_transition_creator: BaseTransitionCreator):
+    def init_alerts(self, composite_alert: CompositeAlert, alert_transition_creator: 'BaseTransitionCreator'):
         ...
