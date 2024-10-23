@@ -5,7 +5,6 @@ from corerl.component.critic.factory import init_q_critic, init_v_critic
 from corerl.data.data import TransitionBatch, Transition
 from abc import ABC, abstractmethod
 from omegaconf import DictConfig
-from typing import Optional
 
 
 class BaseGVF(ABC):
@@ -21,10 +20,10 @@ class BaseGVF(ABC):
 
         self.endo_obs_names = cfg.endo_obs_names
         self.endo_inds = cfg.endo_inds
-        assert len(self.endo_obs_names) > 0, "In config/env/<env_name>.yaml, define 'endo_obs_names' to be a list of the names of the endogenous variables in the observation"
-        assert len(self.endo_inds) > 0, "In config/env/<env_name>.yaml, define 'endo_inds' to be a list of the indices of the endogenous variables within the environment's observation vector"
-        assert len(self.endo_obs_names) == len(self.endo_inds), "The length of self.endo_obs_names and self.endo_inds should be the same and the ordering of the indices should correspond to the ordering of the variable names"
-        
+        assert len(self.endo_obs_names) > 0, "In config/env/<env_name>.yaml, define 'endo_obs_names' to be a list of the names of the endogenous variables in the observation" # noqa: E501
+        assert len(self.endo_inds) > 0, "In config/env/<env_name>.yaml, define 'endo_inds' to be a list of the indices of the endogenous variables within the environment's observation vector" # noqa: E501
+        assert len(self.endo_obs_names) == len(self.endo_inds), "The length of self.endo_obs_names and self.endo_inds should be the same and the ordering of the indices should correspond to the ordering of the variable names" # noqa: E501
+
         self.num_gvfs = len(self.endo_inds)
         self.ensemble_targets = cfg.ensemble_targets
 
@@ -36,7 +35,7 @@ class BaseGVF(ABC):
     def update_train_buffer(self, transition: Transition) -> None:
         self.buffer.feed(transition)
 
-    def load_train_buffer(self, transitions: list[Transition]) -> None:     
+    def load_train_buffer(self, transitions: list[Transition]) -> None:
         self.buffer.load(transitions)
 
     def update_test_buffer(self, transition: Transition) -> None:
@@ -46,11 +45,17 @@ class BaseGVF(ABC):
         return self.buffer.size
 
     @abstractmethod
-    def compute_gvf_loss(self, batch: dict, cumulant_inds: Optional[list[int]] = None, with_grad: bool = False) -> torch.Tensor:
+    def compute_gvf_loss(
+        self,
+        ensemble_batch: list[TransitionBatch],
+        cumulant_inds: list[int] | None = None,
+        with_grad: bool = False,
+    ) -> tuple[list[torch.Tensor], dict]:
         raise NotImplementedError
 
-    def update(self, cumulant_inds: Optional[list[int]] = None):
+    def update(self, cumulant_inds: list[int] | None = None):
         ensemble_info = {}
+        assert self.gvf is not None
         if min(self.buffer.size) > 0:
             batches = self.buffer.sample()
             losses, ensemble_info = self.compute_gvf_loss(batches, cumulant_inds=cumulant_inds, with_grad=True)
@@ -59,7 +64,7 @@ class BaseGVF(ABC):
 
         return ensemble_info
 
-    def train(self, cumulant_inds: Optional[list[int]] = None):
+    def train(self, cumulant_inds: list[int] | None = None):
         pbar = tqdm(range(self.train_itr))
         for _ in pbar:
             self.update(cumulant_inds=cumulant_inds)
@@ -68,10 +73,12 @@ class BaseGVF(ABC):
 
         return self.train_losses, self.test_losses
 
-    def get_test_loss(self, cumulant_inds: Optional[list[int]] = None):
+    def get_test_loss(self, cumulant_inds: list[int] | None = None):
         batches = self.test_buffer.sample_batch()
         batch = batches[0]
-        loss, _ = self.compute_gvf_loss([batch], cumulant_inds=cumulant_inds)
+        losses, _ = self.compute_gvf_loss([batch], cumulant_inds=cumulant_inds)
+        loss = sum(losses, start=torch.zeros_like(losses[0]))
+
         self.test_losses.append(loss.detach().numpy())
 
     def get_num_gvfs(self):
@@ -83,8 +90,13 @@ class SimpleGVF(BaseGVF):
         super().__init__(cfg, input_dim, action_dim, **kwargs)
         self.gvf = init_v_critic(cfg.critic, self.input_dim, self.num_gvfs)
 
-    def compute_gvf_loss(self, ensemble_batch: list[TransitionBatch], cumulant_inds: Optional[list[int]] = None, with_grad: bool = False) -> tuple[list[torch.Tensor], dict]:
-        def _compute_gvf_loss(cumulant_inds: Optional[list[int]] = None):
+    def compute_gvf_loss(
+        self,
+        ensemble_batch: list[TransitionBatch],
+        cumulant_inds: list[int] | None = None,
+        with_grad: bool = False,
+    ) -> tuple[list[torch.Tensor], dict]:
+        def _compute_gvf_loss(cumulant_inds: list[int] | None = None):
             ensemble = len(ensemble_batch)
             state_batches = []
             action_batches = []
@@ -149,13 +161,18 @@ class QGVF(BaseGVF):
     def __init__(self, cfg: DictConfig, input_dim: int, action_dim: int, **kwargs):
         if 'agent' not in kwargs:
             raise KeyError("Missing required argument: 'agent'")
-        
+
         super().__init__(cfg, input_dim, action_dim, **kwargs)
         self.gvf = init_q_critic(cfg.critic, self.input_dim, self.action_dim, self.num_gvfs)
         self.agent = kwargs["agent"]
 
-    def compute_gvf_loss(self, ensemble_batch: list[TransitionBatch], cumulant_inds: Optional[list[int]] = None, with_grad: bool = False) -> tuple[list[torch.Tensor], dict]:
-        def _compute_gvf_loss(cumulant_inds: Optional[list[int]] = None):
+    def compute_gvf_loss(
+        self,
+        ensemble_batch: list[TransitionBatch],
+        cumulant_inds: list[int] | None = None,
+        with_grad: bool = False,
+    ) -> tuple[list[torch.Tensor], dict]:
+        def _compute_gvf_loss(cumulant_inds: list[int] | None = None):
             ensemble = len(ensemble_batch)
             state_batches = []
             action_batches = []
@@ -217,5 +234,3 @@ class QGVF(BaseGVF):
         else:
             with torch.no_grad():
                 return _compute_gvf_loss(cumulant_inds=cumulant_inds)
-
-
