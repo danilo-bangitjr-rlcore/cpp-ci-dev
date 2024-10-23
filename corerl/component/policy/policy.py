@@ -2,20 +2,18 @@ from abc import ABC, abstractmethod
 import torch
 import torch.nn as nn
 import torch.distributions as d
+import torch.distributions.constraints as constraints
 import logging
 from typing import Union
 
 
-_constraints = d.constraints  #pyright: ignore[reportAttributeAccessIssue]
-
-
-_BoundedAboveConstraint = Union[
-    _constraints.less_than,
+_BoundedAboveConstraint = Union[  #pyright: ignore
+    constraints.less_than,
 ]
 
 _BoundedBelowConstraint = Union[
-    _constraints.greater_than_eq,
-    _constraints.greater_than,
+    constraints.greater_than_eq,
+    constraints.greater_than,
 ]
 
 _HalfBoundedConstraint = Union[
@@ -308,10 +306,10 @@ class Bounded(ContinuousIIDPolicy):
     def __init__(self, model, dist, action_min=None, action_max=None):
         super().__init__(model, dist)
 
-        if not isinstance(dist.support, _constraints.interval):
+        if not isinstance(dist.support, constraints.interval):
             raise ValueError(
                 "Bounded expects dist to have support type " +
-                f"{_constraints.interval}, but " +
+                f"{constraints.interval}, but " +
                 f"got {type(dist.support)}"
             )
         dist_min = dist.support.lower_bound
@@ -362,10 +360,10 @@ class UnBounded(ContinuousIIDPolicy):
     def __init__(self, model, dist):
         super().__init__(model, dist)
 
-        if not isinstance(dist.support, type(_constraints.real)):
+        if not isinstance(dist.support, type(constraints.real)):
             raise ValueError(
                 "UnBounded expects dist to have support type " +
-                f"{type(_constraints.real)}, but " +
+                f"{type(constraints.real)}, but " +
                 f"got {type(dist.support)}"
             )
 
@@ -485,12 +483,12 @@ class HalfBounded(ContinuousIIDPolicy):
 
 def _get_type_from_dist(dist):
 
-    if isinstance(dist.support, _constraints.interval):
+    if isinstance(dist.support, constraints.interval):
         return Bounded
 
     # Weirdness with PyTorch's constraints.real makes us need to call `type` on
     # it first
-    elif isinstance(dist.support, type(_constraints.real)):
+    elif isinstance(dist.support, type(constraints.real)):
         return UnBounded
 
     elif isinstance(dist.support, _HalfBoundedConstraint):
