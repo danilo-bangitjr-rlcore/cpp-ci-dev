@@ -2,6 +2,7 @@ from corerl.environment.reward.base import BaseReward
 import numpy as np
 import logging
 
+from corerl.interaction.anytime_interaction import AnytimeInteraction
 import corerl.utils.pickle as pkl_u
 
 log = logging.getLogger(__name__)
@@ -22,7 +23,6 @@ from corerl.data_loaders.direct_action import OldDirectActionDataLoader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.data.data import OldObsTransition, Transition, ObsTransition, Trajectory
 from corerl.interaction.base import BaseInteraction
-from corerl.interaction.offline_anytime import OfflineAnytimeInteraction
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
 from corerl.alerts.composite_alert import CompositeAlert
@@ -475,7 +475,7 @@ def online_deployment(cfg: DictConfig,
 
 def offline_anytime_deployment(cfg: DictConfig,
                                agent: BaseAgent,
-                               interaction: OfflineAnytimeInteraction,
+                               interaction: AnytimeInteraction,
                                env: Env,
                                alerts: CompositeAlert,
                                transition_normalizer: TransitionNormalizer,
@@ -502,7 +502,7 @@ def offline_anytime_deployment(cfg: DictConfig,
 
     for j in pbar:
         # does not need an action from the agent
-        transitions, agent_train_transitions, _, alert_train_transitions, alert_info = interaction.step()
+        transitions, agent_train_transitions, alert_train_transitions, _, alert_info, _ = interaction.step(np.zeros(0))
 
         if transitions is None:
             log.info("Reached End Of Offline Eval Data")
