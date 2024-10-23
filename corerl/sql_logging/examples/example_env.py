@@ -1,6 +1,5 @@
 from line_profiler import profile
 import numpy as np
-import numpy as np
 from corerl.sql_logging.base_schema import TransitionInfo, SQLTransition
 
 from sqlalchemy.orm import Mapped
