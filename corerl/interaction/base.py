@@ -4,6 +4,8 @@ import numpy as np
 from omegaconf import DictConfig
 import gymnasium
 
+from corerl.alerts.composite_alert import CompositeAlert
+from corerl.data.transition_creator import BaseTransitionCreator
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.data.data import Transition
 
@@ -26,7 +28,10 @@ class BaseInteraction(ABC):
 
     @abstractmethod
     # step returns a list of transitions and a list of environment infos
-    def step(self, action: np.ndarray) -> tuple[list[Transition], list[Transition], list[Transition], list[Transition], list[dict], list[dict]]:
+    def step(
+        self,
+        action: np.ndarray,
+    ) -> tuple[list[Transition], list[Transition], list[Transition], list[Transition], dict, dict]:
         """
         Execute the action in the environment and transition to the next decision point
         Returns:
@@ -63,5 +68,6 @@ class BaseInteraction(ABC):
         trunc = (self.timeout > 0) and (self.internal_clock % self.timeout == 0)
         return trunc
 
-    def init_alerts(self, composite_alert, alert_tc):
-        pass
+    @abstractmethod
+    def init_alerts(self, composite_alert: CompositeAlert, alert_transition_creator: BaseTransitionCreator):
+        ...

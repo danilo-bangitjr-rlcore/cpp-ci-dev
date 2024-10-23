@@ -52,13 +52,19 @@ class AnytimeInteraction(BaseInteraction):
         self.only_dp_transitions = cfg.only_dp_transitions
         self.steps_until_decision = self.steps_per_decision
 
-    def init_alerts(self, alerts: CompositeAlert, alert_transition_creator: "BaseTransitionCreator"):
-        self.alerts = alerts
+    def init_alerts(
+        self,
+        composite_alert: CompositeAlert,
+        alert_transition_creator: BaseTransitionCreator,
+    ):
+        self.alerts = composite_alert
         self.alert_transition_creator = alert_transition_creator
         self.alert_transition_queue = deque([])
 
-    def step(self, action: np.ndarray) -> tuple[
-        list[Transition], list[Transition], list[Transition], list[Transition], dict, dict]:
+    def step(
+        self,
+        action: np.ndarray,
+    ) -> tuple[list[Transition], list[Transition], list[Transition], list[Transition], dict, dict]:
         """
         Execute 'action' in the environment for a duration of self.steps_per_decision * self.obs_length
         A new obs/state is created every self.obs_length seconds
@@ -191,10 +197,12 @@ class AnytimeInteraction(BaseInteraction):
         step_alert_info = self.alerts.evaluate(**alert_info)
         return step_alert_info
 
-    def _update_queues(self,
-                       agent_transitions,
-                       alert_transitions,
-                       alert_info) -> tuple[list[Transition], list[Transition]]:
+    def _update_queues(
+        self,
+        agent_transitions,
+        alert_transitions,
+        alert_info,
+    ) -> tuple[list[Transition], list[Transition]]:
 
         # TODO this is ripe for a refactor to increase readability
 
@@ -275,7 +283,10 @@ class OldAnytimeInteraction(BaseInteraction):
         self.prev_steps_until_decision = self.steps_per_decision
         self.steps_until_decision = self.steps_per_decision - 1
 
-    def step(self, action: np.ndarray) -> tuple[list[Transition], list[Transition], list[Transition], dict, dict]:
+    def step(
+        self,
+        action: np.ndarray,
+    ) -> tuple[list[Transition], list[Transition], list[Transition], list[Transition], dict, dict]:
         """
         Execute 'action' in the environment for a duration of self.steps_per_decision * self.obs_length
         A new obs/state is created every self.obs_length seconds
@@ -348,7 +359,7 @@ class OldAnytimeInteraction(BaseInteraction):
             # NOTE: these lists may sometimes be empty if we are not at a decision point
             transitions, alert_transitions, agent_transitions = [], [], []
 
-        return transitions, agent_transitions, alert_transitions, alert_info, env_info
+        return transitions, agent_transitions, alert_transitions, [], alert_info, env_info
 
     def get_step_alerts(self, action, state, next_obs, reward) -> dict:
         """
