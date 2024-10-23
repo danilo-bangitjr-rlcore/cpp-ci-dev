@@ -173,43 +173,6 @@ def _get_output_shape(
     return output_shape[dim]
 
 
-# TODO: here is an example of initializing a network.
-class FC(nn.Module):
-    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
-        warn(
-            "FC is deprecated and will be removed in a future version" +
-            "to create an MLP, use `create_base` instead"
-        )
-        super(FC, self).__init__()
-        layer_norm = cfg.layer_norm
-        arch = cfg.arch
-        activation = cfg.activation
-        head_activation = cfg.head_activation
-        layer_init = utils.init_layer(cfg.layer_init)
-        activation_cls = utils.init_activation(activation)
-
-        d = input_dim
-        modules = []
-        for hidden_size in arch:
-            fc = layer_init(nn.Linear(d, hidden_size, bias=cfg.bias))
-            modules.append(fc)
-            if layer_norm:
-                modules.append(nn.LayerNorm(hidden_size))
-            modules.append(activation_cls())
-            d = hidden_size
-        last_fc = layer_init(nn.Linear(d, output_dim, bias=cfg.bias))
-        modules.append(last_fc)
-
-        self.network = nn.Sequential(*modules)
-        self.head_act = utils.init_activation(head_activation)()
-        self.to(device.device)
-
-    def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
-        out = self.network(input_tensor)
-        out = self.head_act(out)
-        return out
-
-
 class EnsembleFC(nn.Module):
     @classmethod
     def _create_base(
