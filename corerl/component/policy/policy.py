@@ -2,17 +2,18 @@ from abc import ABC, abstractmethod
 import torch
 import torch.nn as nn
 import torch.distributions as d
+import torch.distributions.constraints as constraints
 import logging
 from typing import Union
 
 
-_BoundedAboveConstraint = Union[
-    d.constraints.less_than,
+_BoundedAboveConstraint = Union[  #pyright: ignore
+    constraints.less_than,
 ]
 
 _BoundedBelowConstraint = Union[
-    d.constraints.greater_than_eq,
-    d.constraints.greater_than,
+    constraints.greater_than_eq,
+    constraints.greater_than,
 ]
 
 _HalfBoundedConstraint = Union[
@@ -227,7 +228,8 @@ class ContinuousIIDPolicy(Policy,ABC):
 
         info = dict(zip(
             [param_name for param_name in self.param_names],
-            [p.squeeze().detach().numpy() for p in params]
+            [p.squeeze().detach().numpy() for p in params],
+            strict=True,
         ))
 
         if rsample:
@@ -249,6 +251,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         params = self._model(state)
         dist = self._transform_from_params(*params)
 
+        assert dist.support is not None
         if not torch.all(dist.support.check(action)):
             raise ValueError(
                 "expected all actions to be within the distribution support " +
@@ -303,10 +306,10 @@ class Bounded(ContinuousIIDPolicy):
     def __init__(self, model, dist, action_min=None, action_max=None):
         super().__init__(model, dist)
 
-        if not isinstance(dist.support, d.constraints.interval):
+        if not isinstance(dist.support, constraints.interval):
             raise ValueError(
                 "Bounded expects dist to have support type " +
-                f"{d.constraints.interval}, but " +
+                f"{constraints.interval}, but " +
                 f"got {type(dist.support)}"
             )
         dist_min = dist.support.lower_bound
@@ -357,10 +360,10 @@ class UnBounded(ContinuousIIDPolicy):
     def __init__(self, model, dist):
         super().__init__(model, dist)
 
-        if not isinstance(dist.support, type(d.constraints.real)):
+        if not isinstance(dist.support, type(constraints.real)):
             raise ValueError(
                 "UnBounded expects dist to have support type " +
-                f"{type(d.constraints.real)}, but " +
+                f"{type(constraints.real)}, but " +
                 f"got {type(dist.support)}"
             )
 
@@ -479,12 +482,13 @@ class HalfBounded(ContinuousIIDPolicy):
 
 
 def _get_type_from_dist(dist):
-    if isinstance(dist.support, d.constraints.interval):
+
+    if isinstance(dist.support, constraints.interval):
         return Bounded
 
     # Weirdness with PyTorch's constraints.real makes us need to call `type` on
     # it first
-    elif isinstance(dist.support, type(d.constraints.real)):
+    elif isinstance(dist.support, type(constraints.real)):
         return UnBounded
 
     elif isinstance(dist.support, _HalfBoundedConstraint):

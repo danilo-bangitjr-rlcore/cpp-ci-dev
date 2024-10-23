@@ -2,7 +2,7 @@ from . import Policy
 import torch
 import torch.nn as nn
 import torch.distributions as d
-
+import torch.distributions.constraints as constraints
 
 class Softmax(Policy):
     def __init__(self, net, input_dim: int, output_dim: int):
@@ -22,7 +22,7 @@ class Softmax(Policy):
 
     @property
     def support(self):
-        return d.constraints.integer_interval(0, self.output_dim-1)
+        return constraints.integer_interval(0, self.output_dim-1)
 
     @property
     def param_names(self) -> tuple[str, ...]:
@@ -54,9 +54,9 @@ class Softmax(Policy):
     def log_prob(
             self, state: torch.Tensor, action: torch.Tensor,
     ) -> tuple[torch.Tensor, dict]:
-        actions = (actions == 1).nonzero(as_tuple=False)
+        actions = (action == 1).nonzero(as_tuple=False)
         actions = actions[:, 1:]
-        probs, _ = self.get_probs(states)
+        probs, _ = self.get_probs(state)
         dist = torch.distributions.Categorical(probs)
         logp = dist.log_prob(actions.squeeze(-1))
         logp = logp.view(-1, 1)
