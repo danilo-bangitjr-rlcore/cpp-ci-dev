@@ -21,10 +21,10 @@ class BaseGVF(ABC):
 
         self.endo_obs_names = cfg.endo_obs_names
         self.endo_inds = cfg.endo_inds
-        assert len(self.endo_obs_names) > 0, "In config/env/<env_name>.yaml, define 'endo_obs_names' to be a list of the names of the endogenous variables in the observation"
-        assert len(self.endo_inds) > 0, "In config/env/<env_name>.yaml, define 'endo_inds' to be a list of the indices of the endogenous variables within the environment's observation vector"
-        assert len(self.endo_obs_names) == len(self.endo_inds), "The length of self.endo_obs_names and self.endo_inds should be the same and the ordering of the indices should correspond to the ordering of the variable names"
-        
+        assert len(self.endo_obs_names) > 0, "In config/env/<env_name>.yaml, define 'endo_obs_names' to be a list of the names of the endogenous variables in the observation" # noqa: E501
+        assert len(self.endo_inds) > 0, "In config/env/<env_name>.yaml, define 'endo_inds' to be a list of the indices of the endogenous variables within the environment's observation vector" # noqa: E501
+        assert len(self.endo_obs_names) == len(self.endo_inds), "The length of self.endo_obs_names and self.endo_inds should be the same and the ordering of the indices should correspond to the ordering of the variable names" # noqa: E501
+
         self.num_gvfs = len(self.endo_inds)
         self.ensemble_targets = cfg.ensemble_targets
 
@@ -36,7 +36,7 @@ class BaseGVF(ABC):
     def update_train_buffer(self, transition: Transition) -> None:
         self.buffer.feed(transition)
 
-    def load_train_buffer(self, transitions: list[Transition]) -> None:     
+    def load_train_buffer(self, transitions: list[Transition]) -> None:
         self.buffer.load(transitions)
 
     def update_test_buffer(self, transition: Transition) -> None:
@@ -46,7 +46,12 @@ class BaseGVF(ABC):
         return self.buffer.size
 
     @abstractmethod
-    def compute_gvf_loss(self, batch: dict, cumulant_inds: Optional[list[int]] = None, with_grad: bool = False) -> torch.Tensor:
+    def compute_gvf_loss(
+        self,
+        batch: dict,
+        cumulant_inds: Optional[list[int]] = None,
+        with_grad: bool = False,
+    ) -> torch.Tensor:
         raise NotImplementedError
 
     def update(self, cumulant_inds: Optional[list[int]] = None):
@@ -83,7 +88,12 @@ class SimpleGVF(BaseGVF):
         super().__init__(cfg, input_dim, action_dim, **kwargs)
         self.gvf = init_v_critic(cfg.critic, self.input_dim, self.num_gvfs)
 
-    def compute_gvf_loss(self, ensemble_batch: list[TransitionBatch], cumulant_inds: Optional[list[int]] = None, with_grad: bool = False) -> tuple[list[torch.Tensor], dict]:
+    def compute_gvf_loss(
+        self,
+        ensemble_batch: list[TransitionBatch],
+        cumulant_inds: Optional[list[int]] = None,
+        with_grad: bool = False,
+    ) -> tuple[list[torch.Tensor], dict]:
         def _compute_gvf_loss(cumulant_inds: Optional[list[int]] = None):
             ensemble = len(ensemble_batch)
             state_batches = []
@@ -149,12 +159,17 @@ class QGVF(BaseGVF):
     def __init__(self, cfg: DictConfig, input_dim: int, action_dim: int, **kwargs):
         if 'agent' not in kwargs:
             raise KeyError("Missing required argument: 'agent'")
-        
+
         super().__init__(cfg, input_dim, action_dim, **kwargs)
         self.gvf = init_q_critic(cfg.critic, self.input_dim, self.action_dim, self.num_gvfs)
         self.agent = kwargs["agent"]
 
-    def compute_gvf_loss(self, ensemble_batch: list[TransitionBatch], cumulant_inds: Optional[list[int]] = None, with_grad: bool = False) -> tuple[list[torch.Tensor], dict]:
+    def compute_gvf_loss(
+        self,
+        ensemble_batch: list[TransitionBatch],
+        cumulant_inds: Optional[list[int]] = None,
+        with_grad: bool = False,
+    ) -> tuple[list[torch.Tensor], dict]:
         def _compute_gvf_loss(cumulant_inds: Optional[list[int]] = None):
             ensemble = len(ensemble_batch)
             state_batches = []
@@ -217,5 +232,3 @@ class QGVF(BaseGVF):
         else:
             with torch.no_grad():
                 return _compute_gvf_loss(cumulant_inds=cumulant_inds)
-
-
