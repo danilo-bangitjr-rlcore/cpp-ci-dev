@@ -5,6 +5,7 @@ from gymnasium.spaces.utils import flatdim
 from collections import deque
 
 from omegaconf import DictConfig
+from corerl.data.transition_creator import OldAnytimeTransitionCreator
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.interaction.base import BaseInteraction
 from corerl.alerts.composite_alert import CompositeAlert
@@ -255,8 +256,8 @@ class OldAnytimeInteraction(BaseInteraction):
             cfg: DictConfig,
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
-            alerts: CompositeAlert,  # TODO: can I remove alerts from this?
-            transition_creator: "AnytimeTransitionCreator",  # this is to avoid circular imports for type checking
+            alerts: CompositeAlert,
+            transition_creator: OldAnytimeTransitionCreator,
             normalizer: ObsTransitionNormalizer):
         super().__init__(cfg, env, state_constructor)
 
@@ -346,11 +347,16 @@ class OldAnytimeInteraction(BaseInteraction):
 
         # Create transitions
         if decision_point:
-            transitions, alert_transitions, agent_transitions = self.transition_creator.make_decision_window_transitions(
+            (
+                transitions,
+                alert_transitions,
+                agent_transitions,
+            ) = self.transition_creator.make_decision_window_transitions(
                 self.curr_decision_obs_transitions,
                 self.curr_decision_states,
                 filter_with_alerts=True,
-                interaction=self)
+                interaction=self,
+            )
 
             self.curr_decision_obs_transitions = []
             self.curr_decision_states = [self.last_state]
