@@ -5,7 +5,6 @@ from corerl.component.critic.factory import init_q_critic, init_v_critic
 from corerl.data.data import TransitionBatch, Transition
 from abc import ABC, abstractmethod
 from omegaconf import DictConfig
-from typing import Optional
 
 
 class BaseGVF(ABC):
@@ -49,12 +48,12 @@ class BaseGVF(ABC):
     def compute_gvf_loss(
         self,
         batch: dict,
-        cumulant_inds: Optional[list[int]] = None,
+        cumulant_inds: list[int] | None = None,
         with_grad: bool = False,
     ) -> torch.Tensor:
         raise NotImplementedError
 
-    def update(self, cumulant_inds: Optional[list[int]] = None):
+    def update(self, cumulant_inds: list[int] | None = None):
         ensemble_info = {}
         if min(self.buffer.size) > 0:
             batches = self.buffer.sample()
@@ -64,7 +63,7 @@ class BaseGVF(ABC):
 
         return ensemble_info
 
-    def train(self, cumulant_inds: Optional[list[int]] = None):
+    def train(self, cumulant_inds: list[int] | None = None):
         pbar = tqdm(range(self.train_itr))
         for _ in pbar:
             self.update(cumulant_inds=cumulant_inds)
@@ -73,7 +72,7 @@ class BaseGVF(ABC):
 
         return self.train_losses, self.test_losses
 
-    def get_test_loss(self, cumulant_inds: Optional[list[int]] = None):
+    def get_test_loss(self, cumulant_inds: list[int] | None = None):
         batches = self.test_buffer.sample_batch()
         batch = batches[0]
         loss, _ = self.compute_gvf_loss([batch], cumulant_inds=cumulant_inds)
@@ -91,10 +90,10 @@ class SimpleGVF(BaseGVF):
     def compute_gvf_loss(
         self,
         ensemble_batch: list[TransitionBatch],
-        cumulant_inds: Optional[list[int]] = None,
+        cumulant_inds: list[int] | None = None,
         with_grad: bool = False,
     ) -> tuple[list[torch.Tensor], dict]:
-        def _compute_gvf_loss(cumulant_inds: Optional[list[int]] = None):
+        def _compute_gvf_loss(cumulant_inds: list[int] | None = None):
             ensemble = len(ensemble_batch)
             state_batches = []
             action_batches = []
@@ -167,10 +166,10 @@ class QGVF(BaseGVF):
     def compute_gvf_loss(
         self,
         ensemble_batch: list[TransitionBatch],
-        cumulant_inds: Optional[list[int]] = None,
+        cumulant_inds: list[int] | None = None,
         with_grad: bool = False,
     ) -> tuple[list[torch.Tensor], dict]:
-        def _compute_gvf_loss(cumulant_inds: Optional[list[int]] = None):
+        def _compute_gvf_loss(cumulant_inds: list[int] | None = None):
             ensemble = len(ensemble_batch)
             state_batches = []
             action_batches = []
