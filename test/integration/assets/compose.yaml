@@ -1,0 +1,8 @@
+services:
+
+  timescaledb:
+    image: timescale/timescaledb-ha:pg16
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: password
