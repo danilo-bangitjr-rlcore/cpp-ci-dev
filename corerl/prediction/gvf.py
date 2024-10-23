@@ -47,14 +47,15 @@ class BaseGVF(ABC):
     @abstractmethod
     def compute_gvf_loss(
         self,
-        batch: dict,
+        ensemble_batch: list[TransitionBatch],
         cumulant_inds: list[int] | None = None,
         with_grad: bool = False,
-    ) -> torch.Tensor:
+    ) -> tuple[list[torch.Tensor], dict]:
         raise NotImplementedError
 
     def update(self, cumulant_inds: list[int] | None = None):
         ensemble_info = {}
+        assert self.gvf is not None
         if min(self.buffer.size) > 0:
             batches = self.buffer.sample()
             losses, ensemble_info = self.compute_gvf_loss(batches, cumulant_inds=cumulant_inds, with_grad=True)
@@ -75,7 +76,9 @@ class BaseGVF(ABC):
     def get_test_loss(self, cumulant_inds: list[int] | None = None):
         batches = self.test_buffer.sample_batch()
         batch = batches[0]
-        loss, _ = self.compute_gvf_loss([batch], cumulant_inds=cumulant_inds)
+        losses, _ = self.compute_gvf_loss([batch], cumulant_inds=cumulant_inds)
+        loss = sum(losses, start=torch.zeros_like(losses[0]))
+
         self.test_losses.append(loss.detach().numpy())
 
     def get_num_gvfs(self):
