@@ -21,7 +21,7 @@ def init_critic_target(cfg: DictConfig, input_dim: int, output_dim: int, critic:
     """
     target_net = init_critic_network(cfg, input_dim, output_dim)
     target_net.load_state_dict(critic.state_dict())
-    
+
     return target_net
 
 
@@ -42,18 +42,20 @@ def init_actor_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.M
 
 
 def init_custom_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
-    if cfg.name == 'fc':
-        network = networks.FC(cfg, input_dim, output_dim)
-    elif cfg.name == 'ensemble_fc':
+    name = cfg.name.lower()
+
+    if name in ('fc', 'mlp'):
+        network = networks.create_base(cfg, input_dim, output_dim)
+    elif name == 'ensemble_fc':
         network = networks.EnsembleFC(cfg, input_dim, output_dim)
-    elif cfg.name == 'random_linear_uncertainty':
+    elif name == 'random_linear_uncertainty':
         network = networks.RndLinearUncertainty(cfg, input_dim, output_dim)
-    elif cfg.name == 'random_beta':
+    elif name == 'random_beta':
         if cfg.discrete_control:
             network = networks.UniformRandomDisc(cfg, input_dim, output_dim)
         else:
             network = networks.UniformRandomCont(cfg, input_dim, output_dim)
-    elif cfg.name == 'gru':
+    elif name == 'gru':
         network = networks.GRU(cfg, input_dim, output_dim)
     else:
         raise NotImplementedError

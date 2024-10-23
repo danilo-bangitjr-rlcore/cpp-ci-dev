@@ -17,14 +17,13 @@ train_itr: 10000
 batch_size : 256
 
 model:
-  layer_norm: 0
-  arch: [256, 256]
-  init_args: ReLU
-  head_activation: None
-  activation: ReLU
-  layer_init: Xavier
-  bias: True
   name: fc
+  hidden : [256, 256]
+  activation : [
+    {"name": "relu"}, {"name": "relu"},
+  ]
+  bias: True
+  layer_init : Xavier
 
 optimizer:
   lr: 0.0001
