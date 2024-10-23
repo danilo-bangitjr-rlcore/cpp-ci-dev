@@ -5,6 +5,8 @@ import json
 
 class StateEval(BaseEval):
     def __init__(self, cfg,  **kwargs):
+        if 'transitions' not in kwargs:
+            raise KeyError("Missing required argument: 'transitions'")
         self.start = True
         self.states = []
 
@@ -25,8 +27,3 @@ class StateEval(BaseEval):
     def get_stats(self):
         return {'states': self.states}
 
-    def output(self, path: Path):
-        stats = self.get_stats()
-
-        with open(path, 'w') as f:
-            json.dump(stats, f)

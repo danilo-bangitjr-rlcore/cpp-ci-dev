@@ -20,9 +20,3 @@ class EnvFieldEval(BaseEval):
 
     def get_stats(self):
         return self.cached_values
-
-    def output(self, path: Path):
-        stats = self.get_stats()
-
-        with open(path, 'w') as f:
-            json.dump(stats, f)

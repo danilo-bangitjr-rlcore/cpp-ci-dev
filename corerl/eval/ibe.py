@@ -24,7 +24,6 @@ class IBE(BaseEval):
         self.n_updates = cfg.n_updates
         self.gamma = cfg.gamma
         self.model = init_custom_network(cfg.network, state_dim + action_dim, output_dim=1)
-        self.optimizer = init_optimizer(cfg.optimizer, param=self.model.parameters(), ensemble=False)
         self.optimizer = init_optimizer(
             cfg.optimizer,
             list(self.model.parameters(independent=True)), # type: ignore
@@ -114,6 +113,5 @@ class IBE(BaseEval):
     def get_stats(self) -> dict:
         stats = {
             'bellman_error': self.bes,
-            'last_bellman_error': self.bes[-1]
         }
         return stats

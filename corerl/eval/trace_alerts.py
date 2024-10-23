@@ -5,6 +5,8 @@ class TraceAlertsEval(BaseEval):
     def __init__(self, cfg, **kwargs):
         if 'alerts' not in kwargs:
             raise KeyError("Missing required argument: 'alerts'")
+        if 'alert_info_list' not in kwargs:
+            raise KeyError("Missing required argument: 'alert_info_list'")
 
         self.alerts = kwargs['alerts']
         alerts = self.alerts.get_alerts()
@@ -57,6 +59,8 @@ class TraceAlertsEval(BaseEval):
 class UncertaintyAlertsEval(TraceAlertsEval):
     def __init__(self, cfg, **kwargs):
         super().__init__(cfg, **kwargs)
+        if 'alert_info_list' not in kwargs:
+            raise KeyError("Missing required argument: 'alert_info_list'")
 
         alerts = self.alerts.get_alerts()
         self.std_traces = {}

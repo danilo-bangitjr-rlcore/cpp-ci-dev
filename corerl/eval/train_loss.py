@@ -3,6 +3,8 @@ from corerl.eval.base_eval import BaseEval
 
 class TrainLossEval(BaseEval):
     def __init__(self, cfg, **kwargs):
+        if 'train_loss' not in kwargs:
+            raise KeyError("Missing required argument: 'train_loss'")
         self.ensemble = cfg.ensemble
         self.train_losses = []
 

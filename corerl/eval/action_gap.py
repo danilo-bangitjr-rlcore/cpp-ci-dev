@@ -11,6 +11,12 @@ class ActionGapEval(BaseEval):
         self.n_samples = cfg.n_samples
         if 'agent' not in kwargs:
             raise KeyError("Missing required argument: 'agent'")
+        if 'get_prev_action_function' not in kwargs:
+            raise KeyError("Missing required argument: 'get_prev_action_function'")
+        if 'get_critic_action_function' not in kwargs:
+            raise KeyError("Missing required argument: 'get_critic_action_function'")
+        self.get_prev_action = kwargs['get_prev_action_function']
+        self.get_critic_action = kwargs['get_critic_action_function']
 
         self.agent = kwargs['agent']
         self.action_dim = self.agent.action_dim
@@ -19,27 +25,25 @@ class ActionGapEval(BaseEval):
 
     def get_batch_action_gap(self, state_batch: Float[torch.Tensor, "batch_size state_dim"]) -> float:
         batch_size = state_batch.shape[0]
-        actions = torch.rand(size=(batch_size * self.n_samples, self.action_dim))
+
         states = torch.repeat_interleave(state_batch, self.n_samples, dim=0)
+        # actor_actions = torch.rand(size=(batch_size * self.n_samples, self.action_dim))
+        with torch.no_grad():
+            actor_actions, _ = self.agent.actor.get_action(states)
+        prev_action = self.get_prev_action(states)
+        critic_actions = self.get_critic_action(actor_actions, prev_action)
 
         best_q_actions = get_top_action(
             self.agent.q_critic.get_q,
             states,
-            actions,
-            self.action_dim,
-            batch_size,
-            n_actions=self.n_samples,
-        )
-
-        best_pi_actions = get_top_action(
-            self.agent.actor.get_log_prob,
-            states,
-            actions,
+            critic_actions,
             self.action_dim,
             batch_size,
             n_actions=self.n_samples,
             return_idx=0,
         )
+        best_pi_actions = get_top_action(self.agent.actor.get_log_prob, states, actor_actions,
+                                         self.action_dim, batch_size, n_actions=self.n_samples, return_idx=0)
 
         best_q_actions = best_q_actions.squeeze()
         best_pi_actions = best_pi_actions.squeeze()
@@ -55,7 +59,8 @@ class ActionGapEval(BaseEval):
         return mean_action_gap.item()
 
     def do_eval(self, **kwargs) -> None:
-        batch = self.agent.buffer.sample()
+        batch = self.agent.critic_buffer.sample()
+        batch = batch[0]
         state_batch = batch.state
         action_gap = self.get_batch_action_gap(state_batch)
         self.action_gaps.append(action_gap)
