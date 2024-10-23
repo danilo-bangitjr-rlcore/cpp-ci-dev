@@ -21,7 +21,7 @@ def init_critic_target(cfg: DictConfig, input_dim: int, output_dim: int, critic:
     """
     target_net = init_critic_network(cfg, input_dim, output_dim)
     target_net.load_state_dict(critic.state_dict())
-    
+
     return target_net
 
 
@@ -43,7 +43,7 @@ def init_actor_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.M
 
 def init_custom_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
     if cfg.name == 'fc':
-        network = networks.FC(cfg, input_dim, output_dim)
+        network = networks.create_base(cfg, input_dim, output_dim)
     elif cfg.name == 'ensemble_fc':
         network = networks.EnsembleFC(cfg, input_dim, output_dim)
     elif cfg.name == 'random_linear_uncertainty':

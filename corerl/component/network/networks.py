@@ -223,7 +223,7 @@ class EnsembleFC(nn.Module):
         of `create_base`
         """
         if cfg.name == "fc":
-            return FC(cfg, input_dim, output_dim)
+            return create_base(cfg, input_dim, output_dim)
         else:
             raise NotImplementedError
 
@@ -349,7 +349,7 @@ class RndLinearUncertainty(nn.Module):
         super(RndLinearUncertainty, self).__init__()
         self.output_dim = output_dim
         arch = cfg.arch
-        self.random_network = FC(cfg, input_dim, arch[-1])
+        self.random_network = create_base(cfg, input_dim, arch[-1])
         layer_init = utils.init_layer(cfg.layer_init)
         self.linear_head = layer_init(
             nn.Linear(arch[-1], output_dim, bias=cfg.bias),
