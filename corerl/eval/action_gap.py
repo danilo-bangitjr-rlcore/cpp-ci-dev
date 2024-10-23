@@ -23,7 +23,7 @@ class ActionGapEval(BaseEval):
         assert hasattr(self.agent, 'q_critic'), "Agent must have a q_critic"
         self.action_gaps = []
 
-    def get_batch_action_gap(self, state_batch: Float[torch.Tensor, "batch_size state_dim"]) -> float:
+    def _get_batch_action_gap(self, state_batch: Float[torch.Tensor, "batch_size state_dim"]) -> float:
         batch_size = state_batch.shape[0]
 
         states = torch.repeat_interleave(state_batch, self.n_samples, dim=0)
@@ -62,7 +62,7 @@ class ActionGapEval(BaseEval):
         batch = self.agent.critic_buffer.sample()
         batch = batch[0]
         state_batch = batch.state
-        action_gap = self.get_batch_action_gap(state_batch)
+        action_gap = self._get_batch_action_gap(state_batch)
         self.action_gaps.append(action_gap)
 
     def get_stats(self) -> dict:
