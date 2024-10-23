@@ -1,4 +1,5 @@
-name : action_gap
-n_samples : 100
+name: tde
+gamma: ${agent.gamma}
+
 offline_eval : True
 online_eval : True
