@@ -14,20 +14,8 @@ class BaseStateConstructor(ABC):
 
     """
 
-    @abstractmethod
-    def __init__(self, cfg: DictConfig):
+    def __init__(self):
         self.state = None
-        raise NotImplementedError
-
-    def __call__(self, obs: np.ndarray, action: np.ndarray, initial_state=False, **kwargs) -> np.ndarray:
-        """
-        We pass in the new observation, the last action, and whether this state is an initial state
-        """
-
-        init_array = np.zeros(1, dtype=bool)  # whether this is an initial state
-        init_array[0] = initial_state
-        state = np.concatenate([init_array, action, obs])  # convention: action goes first in the state array
-        raise state
 
     @abstractmethod
     def get_state_dim(self, *args) -> int:
@@ -38,6 +26,7 @@ class BaseStateConstructor(ABC):
         raise NotImplementedError
 
     def get_current_state(self) -> np.ndarray:
+        assert self.state is not None
         return self.state
 
 
