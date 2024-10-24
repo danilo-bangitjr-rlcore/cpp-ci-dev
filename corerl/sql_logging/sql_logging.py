@@ -7,6 +7,7 @@ from sqlalchemy import Engine, MetaData
 from sqlalchemy import Table, Column, DateTime
 from sqlalchemy.sql import func
 from sqlalchemy_utils import database_exists, create_database
+from sqlalchemy.schema import CreateSchema
 from sqlalchemy_utils import database_exists, drop_database, create_database
 from sqlalchemy import select
 from omegaconf import OmegaConf
@@ -110,6 +111,12 @@ def create_tables(metadata: MetaData, engine: Engine, schemas: dict) -> None:
         )
 
     metadata.create_all(engine, checkfirst=True)
+
+def table_exists(engine: Engine, table_name: str) -> bool:
+    iengine = inspect(engine)
+    exisiting_tables = iengine.get_table_names()
+    
+    return table_name in exisiting_tables
 
 def is_sane_database(engine):
     """
