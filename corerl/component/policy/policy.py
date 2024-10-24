@@ -4,7 +4,8 @@ import torch.nn as nn
 import torch.distributions as d
 import torch.distributions.constraints as constraints
 import logging
-from typing import Union, override
+from typing import Union
+from typing_extensions import override
 
 
 _BoundedAboveConstraint = Union[  #pyright: ignore
