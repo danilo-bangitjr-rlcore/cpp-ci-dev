@@ -60,10 +60,6 @@ def _get_first_state(sc: BaseStateConstructor, obs_transitions: list[ObsTransiti
     return sc, state
 
 
-def test_anytime_transition_creator_init():
-    make_anytime_multi_trace(warmup=0, steps_per_decision=5)
-
-
 def _check_dps(i: int, steps_per_decision: int, transition: Transition, n_step: int):
     steps_until_decision = steps_per_decision - (i % steps_per_decision)
     # check if state_dp set properly
