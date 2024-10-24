@@ -1,7 +1,6 @@
 from . import Policy
 import torch
 import torch.nn as nn
-import torch.distributions as d
 import torch.distributions.constraints as constraints
 
 class Softmax(Policy):
