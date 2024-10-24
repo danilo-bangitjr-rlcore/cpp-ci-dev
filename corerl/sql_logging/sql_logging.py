@@ -6,7 +6,6 @@ from collections.abc import MutableMapping
 from sqlalchemy import Engine, MetaData
 from sqlalchemy import Table, Column, DateTime
 from sqlalchemy.sql import func
-from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy_utils import database_exists, drop_database, create_database
 from sqlalchemy import select
 from omegaconf import OmegaConf
@@ -126,7 +125,13 @@ def is_sane_database(engine):
 
         if table.name in exisiting_tables:
             # Check all columns are found
-            # Looks like [{'default': "nextval('sanity_check_test_id_seq'::regclass)", 'autoincrement': True, 'nullable': False, 'type': INTEGER(), 'name': 'id'}]
+            # Looks like [{
+            #   'default': "nextval('sanity_check_test_id_seq'::regclass)",
+            #   'autoincrement': True,
+            #   'nullable': False,
+            #   'type': INTEGER(),
+            #   'name': 'id'
+            # }]
 
             exisiting_table_cols = [c["name"] for c in iengine.get_columns(table.name)]
             for column in table.columns:
@@ -148,14 +153,14 @@ def setup_sql_logging(cfg, restart_db=False):
     flattened_cfg = prep_cfg_for_db(cfg, to_remove=[])
     db_name = cfg.agent.buffer.db_name
     engine = get_sql_engine(con_cfg, db_name=db_name)
-    
+
     if restart_db:
         drop_database(engine.url)
-        create_database(engine.url)    
-        
+        create_database(engine.url)
+
     Base.metadata.create_all(engine) # create tables
 
-    # check if there is a problem with an existing db schema    
+    # check if there is a problem with an existing db schema
     while not is_sane_database(engine):
         try:
             db_version = int(db_name.split('_v')[-1]) + 1
@@ -166,11 +171,11 @@ def setup_sql_logging(cfg, restart_db=False):
 
         db_name = f'{base_db_name}_v{db_version}'
         logger.warning(f'Trying db with name {db_name}...')
-        logger.warning(f'To avoid this change the db_name in your config!')
+        logger.warning('To avoid this change the db_name in your config!')
         engine = get_sql_engine(con_cfg, db_name=db_name)
 
         Base.metadata.create_all(engine)
-        
+
     with Session(engine) as session:
         run = Run(
             hparams=[HParam(name=name, val=val) for name, val in flattened_cfg.items()]

@@ -1,7 +1,6 @@
 import torch
 import numpy as np
 import logging
-import numpy as np
 import hydra
 from omegaconf import DictConfig
 from corerl.sql_logging.examples.example_env import CoagBanditSimEnv
@@ -25,10 +24,6 @@ logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
     config_name="bandit_config",
 )
 def main(cfg: DictConfig) -> None:
-
-    logger.info(
-        f"Output dir: {(out := hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)}"
-    )
     run_agent(cfg)
 
 
