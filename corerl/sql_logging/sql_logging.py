@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 import logging
 from sqlalchemy import inspect
+from sqlalchemy import URL
 # from sqlalchemy.ext.declarative.clsregistry import _ModuleMarker
 
 logger = logging.getLogger(__name__)
@@ -37,13 +38,21 @@ def get_sql_engine(db_data: dict, db_name: str, force_drop=False) -> Engine:
     engine = sqlalchemy.create_engine(url_object, pool_recycle=280, pool_pre_ping=True)
 
     if force_drop:
-        if database_exists(engine.url):
-            drop_database(engine.url)
-        create_database(engine.url)  # creates database
-    elif not database_exists(engine.url):
-        create_database(engine.url)
+        maybe_drop_database(engine.url)
+    
+    maybe_create_database(engine.url)
 
     return engine
+
+def maybe_drop_database(conn_url: URL) -> None:
+    if not database_exists(conn_url):
+        return 
+    drop_database(conn_url)
+
+def maybe_create_database(conn_url: URL) -> None:
+    if database_exists(conn_url):
+        return
+    create_database(conn_url)
 
 
 def create_column(name: str, dtype: str, primary_key: bool = False) -> Column:
