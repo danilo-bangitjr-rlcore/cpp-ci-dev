@@ -6,37 +6,52 @@ from pathlib import Path
 import logging
 import pytest
 import time
+import docker
+from docker import DockerClient
+from corerl.utils.docker import container_exists, stop_container
 
 PERSIST = False  # if true, stop container but don't remove it (data will persist)
 INSPECT = False  # if true, leave container running after tests conclude
 
+
+def create_timescale_container(client: DockerClient, name: str) -> None:
+    if container_exists(client, name):
+        return
+
+    env = {"POSTGRES_PASSWORD": "password"}
+    client.containers.create(
+        image="timescale/timescaledb-ha:pg16",
+        detach=True,
+        ports={"5432": 5433},
+        environment=env,
+        name=name,
+    )
+
+def start_timescale_container(client: DockerClient, name: str):
+    
+    create_timescale_container(client, name)
+    container = client.containers.get(name)
+    container.start()
+
 @pytest.fixture(scope="module", autouse=True)
-def docker_compose_up():
-    compose_path = Path.cwd() / Path("test/integration/assets/compose.yaml")
-    logging.info(compose_path)
-
-    proc = subprocess.run(["docker", "compose", "-f", f"{compose_path}", "up", "timescaledb", "-d"])
-    time.sleep(5)  # give docker a few seconds to spin up db
-
+def timescale_docker():
+    client = docker.from_env()
+    container_name = "test_timescale"
+    start_timescale_container(client, name=container_name)
+    time.sleep(5) # give the container a few seconds to spin up
     yield
     
     # code after the yield is executed at cleanup time
+    if INSPECT:
+        return 
+    
+    stop_container(client, name=container_name)
+    
+    if PERSIST:
+        return
 
-    if not PERSIST:
-        # here we stop and remove the container used in the test
-        subprocess.run(["docker", "compose", "-f", f"{compose_path}", "down", "timescaledb"])
-        return_code = proc.returncode
-        print(f"docker compose down return code: {return_code}")
-        proc.check_returncode()
-    elif not INSPECT:
-        # here we just stop the container, but don't remove it
-        # the data will persist if the container is restarted
-        subprocess.run(["docker", "container", "stop", "assets-timescaledb-1"])
-        return_code = proc.returncode
-        print(f"docker container stop return code: {return_code}")
-        proc.check_returncode()
-
-
+    # prune container, deleting test data
+    client.containers.prune()
 
 
 def test_writing_datapt():
