@@ -17,32 +17,45 @@ class ArctanhNormal(d.Distribution):
         "loc": d.constraints.real, "scale": d.constraints.positive,     # pyright: ignore [reportAttributeAccessIssue]
     }
 
+    def __init__(self, loc, scale, validate_args=None):
+        self._underlying = d.Normal(loc, scale, validate_args)
+
     @property
     def loc(self):
+        """Get the location parameters
+        """
         return self._underlying.loc
 
     @loc.setter
     def loc(self, value):
+        """Set the location parameters
+        """
         self._underlying.loc = value
 
     @property
     def scale(self):
+        """Get the scale parameters
+        """
         return self._underlying.scale
 
     @scale.setter
     def scale(self, value):
+        """Set the scale parameters
+        """
         self._underlying.scale = value
 
     @property
     def batch_shape(self):
+        """Get the batch shape of the distribution
+        """
         return self._underlying.batch_shape
 
     @property
     def event_shape(self):
+        """Get the event shape of the distribution
+        """
         return self._underlying.event_shape
 
-    def __init__(self, loc, scale, validate_args=None):
-        self._underlying = d.Normal(loc, scale, validate_args)
 
     def expand(self, batch_shape, _instance=None):
         new = self._get_checked_instance(ArctanhNormal, _instance)
@@ -114,6 +127,6 @@ class ArctanhNormal(d.Distribution):
         for the entropy function.
 
         Instead, this function enables the gradient of the distribution entropy
-        to be correctly computed.
+        to be correctly computed. A similar approach is taken in rlax.
         """
         return self._underlying.entropy()
