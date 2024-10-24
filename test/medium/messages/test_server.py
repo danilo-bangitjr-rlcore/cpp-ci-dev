@@ -2,7 +2,7 @@ import pytest
 
 from websockets.asyncio.client import connect
 
-from test.unit.messages.conftest import WebsocketServer, WebsocketClient
+from test.medium.messages.conftest import WebsocketServer, WebsocketClient
 from corerl.messages.events import Event, EventType, SubscribeEvent
 
 # ----------------

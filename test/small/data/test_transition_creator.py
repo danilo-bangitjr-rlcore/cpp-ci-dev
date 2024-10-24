@@ -4,7 +4,7 @@ from omegaconf import DictConfig
 
 from corerl.data.transition_creator import AnytimeTransitionCreator
 from corerl.data.data import ObsTransition, Transition
-from test.unit.state_constructor.state_constructor import make_anytime_multi_trace
+from test.small.state_constructor.state_constructor import make_anytime_multi_trace
 from corerl.state_constructor.base import BaseStateConstructor
 
 
