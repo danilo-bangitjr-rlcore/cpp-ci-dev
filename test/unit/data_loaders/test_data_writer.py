@@ -54,14 +54,8 @@ def timescale_docker():
     client.containers.prune()
 
 
+@pytest.mark.skip(reason="github actions do not yet support docker")
 def test_writing_datapt():
-    # verify that the timescale container is running
-    proc = subprocess.run(
-        ["docker", "ps", "--filter", "name=assets-timescaledb-1", "--format", "{{.ID}}"], capture_output=True
-    )
-    out = proc.stdout
-    assert out is not None
-
     # connect to the db
     db_cfg = OmegaConf.create(
         {
