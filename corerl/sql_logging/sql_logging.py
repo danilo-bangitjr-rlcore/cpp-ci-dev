@@ -24,18 +24,23 @@ from sqlalchemy import inspect
 logger = logging.getLogger(__name__)
 
 
-def get_sql_engine(db_data: dict, db_name: str) -> Engine:
+def get_sql_engine(db_data: dict, db_name: str, force_drop=False) -> Engine:
     url_object = sqlalchemy.URL.create(
-        "mysql+pymysql",
+        drivername=db_data["drivername"],
         username=db_data["username"],
         password=db_data["password"],
         host=db_data["ip"],
         port=db_data["port"],
         database=db_name,
     )
-    engine = sqlalchemy.create_engine(url_object)
+    logger.debug("creating sql engine...")
+    engine = sqlalchemy.create_engine(url_object, pool_recycle=280, pool_pre_ping=True)
 
-    if not database_exists(engine.url):
+    if force_drop:
+        if database_exists(engine.url):
+            drop_database(engine.url)
+        create_database(engine.url)  # creates database
+    elif not database_exists(engine.url):
         create_database(engine.url)
 
     return engine
