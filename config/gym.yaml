@@ -1,4 +1,5 @@
 defaults:
+  - base_config
   - agent: greedy_ac
   - env : base_gym_env
   - interaction : anytime
@@ -32,6 +33,10 @@ agent_transition_creator:
   n_step : ${interaction.n_step}
   only_dp_transitions :  ${interaction.only_dp_transitions}
   transition_kind : anytime
+
+alert_transition_creator: null
+calibration_model: null
+offline_data: null
 
 use_alerts: False
 
