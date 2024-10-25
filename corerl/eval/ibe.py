@@ -85,8 +85,9 @@ class IBE(BaseEval):
 
             self.optimizer.zero_grad()
             for i in range(len(loss)):
-                loss[i].backward(inputs=list(self.model.parameters(independent=True)[i]))
-
+                loss[i].backward(
+                    inputs=list(self.model.parameters(independent=True)[i]),  # type: ignore
+                )
             self.optimizer.step()  # type: ignore
             loss = [lo.detach().item() for lo in loss]
             self.losses.append(loss)
