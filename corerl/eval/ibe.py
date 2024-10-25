@@ -112,17 +112,18 @@ class IBE(BaseEval):
         be_batch = 2 * predictions * delta - torch.square(predictions)
         mean_be = torch.squeeze(torch.mean(be_batch, axis=1))
 
-        return to_np(mean_be)
+        return to_np(mean_be).astype(np.float64)
 
     def get_stats(self) -> dict:
         smoothed_change = []
-        ary_bes_changes = np.asarray(self.bes_changes)
-        for i in range(10, len(self.bes_changes)):
-            smoothed_change.append(ary_bes_changes[i-10:i].mean())
+        ary_bes_changes = np.array(self.bes_changes, dtype=np.float64)
+        for i in range(0, min(9, len(ary_bes_changes))):
+            smoothed_change.append(ary_bes_changes[:i+1].mean())
+        for i in range(10, len(ary_bes_changes)):
+            smoothed_change.append(ary_bes_changes[i-9:i+1].mean())
         stats = {
             'bellman_error': self.bes,
             'ibe_change': self.bes_changes,
             'ibe_smoothed_change': smoothed_change
-            # 'last_bellman_error': self.bes[-1]
         }
         return stats
