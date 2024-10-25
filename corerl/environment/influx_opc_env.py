@@ -21,19 +21,16 @@ logger = logging.getLogger(__name__)
 
 
 class DBClientWrapper:
-    def __init__(self, cfg, date_fn: Callable | None = None):
+    def __init__(self, cfg):
         logger.debug(f"{cfg=}")
         self.sensor_table = cfg.sensor_table
         self.db_con = get_sql_engine(db_data=cfg, db_name=cfg.sensor_db_name)
-        self.start_time = np.inf
-        self.end_time = -np.inf
-        self.date_fn = date_fn
 
         # influx setup
         self.bucket = cfg.influx.bucket
-        self.org = cfg.influx.org
+        org = cfg.influx.org
         self.client = influxdb_client.InfluxDBClient(
-            url=cfg.influx.url, token=cfg.influx.token, org=self.org, timeout=30_000
+            url=cfg.influx.url, token=cfg.influx.token, org=org, timeout=30_000
         )
         self.write_client = self.client.write_api(write_options=SYNCHRONOUS)
         self.influx_query_api = self.client.query_api()
@@ -65,8 +62,7 @@ class DBClientWrapper:
         return df
 
     def timescale_get_last(self, end_time: datetime, col_names: List[str]) -> pd.Series:
-        ts_format = "%Y-%m-%d %H:%M:%S%z"
-        end_t_str = end_time.strftime(ts_format)
+        end_t_str = end_time.isoformat()
 
         dfs = []
         for col_name in col_names:
@@ -93,7 +89,7 @@ class DBClientWrapper:
 
         df = pd.concat(dfs, ignore_index=False, axis=1)
         logger.debug(f"timescale_get_last df\n{df}")
-        missing_cols = set(col_names.copy()) - set(df.columns.tolist())
+        missing_cols = set(col_names) - set(df.columns)
         df[list(missing_cols)] = np.nan
 
         df = df[col_names]
@@ -107,9 +103,8 @@ class DBClientWrapper:
         end_time: datetime,
         col_names: List[str],
     ) -> pd.DataFrame:
-        ts_format = "%Y-%m-%d %H:%M:%S%z"
-        start_t_str = start_time.strftime(ts_format)
-        end_t_str = end_time.strftime(ts_format)
+        start_t_str = start_time.isoformat()
+        end_t_str = end_time.isoformat()
 
         name_filter = "\tOR ".join([f"name = '{col}'\n" for col in col_names])
         name_filter = f"({name_filter})"
@@ -157,16 +152,12 @@ class DBClientWrapper:
             col_names = ["_time"] + col_names
 
         try:
-            df = self._timescale_query(
-                start_time=start_time, end_time=end_time, col_names=col_names
-            )
+            df = self._timescale_query(start_time=start_time, end_time=end_time, col_names=col_names)
         except:
             logger.warning(f"timescale query failed.", exc_info=True)
-            df = self._influx_query(
-                start_time=start_time, end_time=end_time, col_names=col_names
-            )
+            df = self._influx_query(start_time=start_time, end_time=end_time, col_names=col_names)
 
-        missing_cols = set(col_names.copy()) - set(df.columns.tolist())
+        missing_cols = set(col_names) - set(df.columns)
         df[list(missing_cols)] = np.nan
 
         df = df[col_names]
@@ -255,9 +246,7 @@ class InfluxOPCEnv(ABC, gym.Env):
     async def initialize_connection(self) -> None:
         await self.opc_connection.connect()
 
-    async def _take_action(
-        self, a: np.ndarray, addresses: list[str] | None = None
-    ) -> None:
+    async def _take_action(self, a: np.ndarray, addresses: list[str] | None = None) -> None:
         if addresses is None:
             addresses = list(self.control_tags)
         assert isinstance(addresses, list)
@@ -338,16 +327,11 @@ class InfluxOPCEnv(ABC, gym.Env):
             addresses = list(self.constant_sp.keys())
             constant_values = [self.constant_sp[k] for k in addresses]
             # add jitter
-            constant_values = [
-                val + 2e-4 * (random.random() - 0.5) for val in constant_values
-            ]
+            constant_values = [val + 2e-4 * (random.random() - 0.5) for val in constant_values]
             await self._take_action(a=np.array(constant_values), addresses=addresses)
             # grace period to allow new action to take effect
             grace_period = (
-                self.telegraf_collection_interval
-                + self.telegraf_flush_interval
-                + self.heartbeat_interval
-                + 2
+                self.telegraf_collection_interval + self.telegraf_flush_interval + self.heartbeat_interval + 2
             )
             if grace_period > self.obs_length.total_seconds():
                 logger.warning(
@@ -369,9 +353,7 @@ class InfluxOPCEnv(ABC, gym.Env):
             wait_duration = stop_t - now
             await asyncio.sleep(wait_duration.total_seconds())
         else:
-            logger.warning(
-                "step called after nominal wait period, resetting step clock..."
-            )
+            logger.warning("step called after nominal wait period, resetting step clock...")
             self.reset_clock()
             logger.info("Using current timestamp to generate next observation")
             stop_t = now
@@ -419,9 +401,7 @@ class InfluxOPCEnv(ABC, gym.Env):
         """
         while True:
             try:
-                return await self._async_step(
-                    action, decision_point, steps_until_decision, time
-                )
+                return await self._async_step(action, decision_point, steps_until_decision, time)
             # except Exception as e:
             except Exception:
                 logger.warning(f"async env step failed!", exc_info=True)

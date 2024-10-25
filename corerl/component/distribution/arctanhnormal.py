@@ -5,15 +5,14 @@ import torch.distributions as d
 class ArctanhNormal(d.Distribution):
     _EPSILON = 1e-6
 
-    arg_constraints = {
-        "loc": d.constraints.real, "scale": d.constraints.positive,
-    }
-    support = d.constraints.interval(-1.0, 1.0)
     has_rsample = True
 
-    @property
-    def mean(self):
-        return torch.tanh(self.loc)
+    # Ignoring all these errors is probably not the best idea, but this is how
+    # PyTorch implements things, so I am following their template
+    support = d.constraints.interval(-1.0, 1.0)  # pyright: ignore [reportAttributeAccessIssue,reportIncompatibleMethodOverride]
+    arg_constraints = { # pyright: ignore[reportIncompatibleMethodOverride,reportAssignmentType]
+        "loc": d.constraints.real, "scale": d.constraints.positive,     # pyright: ignore [reportAttributeAccessIssue]
+    }
 
     @property
     def loc(self):
@@ -47,15 +46,18 @@ class ArctanhNormal(d.Distribution):
         batch_shape = torch.Size(batch_shape)
         new.loc = self.loc.expand(batch_shape)
         new.scale = self.scale.expand(batch_shape)
+
+        assert isinstance(new, type(self))
         super(ArctanhNormal, new).__init__(batch_shape, validate_args=False)
+
         new._validate_args = self._validate_args
         return new
 
-    def sample(self, sample_shape=torch.Size()):
+    def sample(self, sample_shape=torch.Size()):  # noqa: B008
         samples = self._underlying.sample(sample_shape=sample_shape)
         return torch.tanh(samples)
 
-    def rsample(self, sample_shape=torch.Size()):
+    def rsample(self, sample_shape=torch.Size()):  # noqa: B008
         samples = self._underlying.rsample(sample_shape=sample_shape)
         return torch.tanh(samples)
 

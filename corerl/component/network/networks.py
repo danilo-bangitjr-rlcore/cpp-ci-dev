@@ -139,7 +139,8 @@ def _create_base_mlp(
 def _create_layer(
     layer_type: type[nn.Module],
     layer_init: Callable[[nn.Module], nn.Module],
-    base_net: nn.Module,
+    base_net:
+    Iterable[nn.Module],
     hidden: int,
     bias: bool,
     placeholder_input: torch.Tensor,
@@ -172,65 +173,12 @@ def _get_output_shape(
     return output_shape[dim]
 
 
-# TODO: here is an example of initializing a network.
-class FC(nn.Module):
-    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
-        warn(
-            "FC is deprecated and will be removed in a future version" +
-            "to create an MLP, use `create_base` instead"
-        )
-        super(FC, self).__init__()
-        layer_norm = cfg.layer_norm
-        arch = cfg.arch
-        activation = cfg.activation
-        head_activation = cfg.head_activation
-        layer_init = utils.init_layer(cfg.layer_init)
-        activation_cls = utils.init_activation(activation)
-
-        d = input_dim
-        modules = []
-        for hidden_size in arch:
-            fc = layer_init(nn.Linear(d, hidden_size, bias=cfg.bias))
-            modules.append(fc)
-            if layer_norm:
-                modules.append(nn.LayerNorm(hidden_size))
-            modules.append(activation_cls())
-            d = hidden_size
-        last_fc = layer_init(nn.Linear(d, output_dim, bias=cfg.bias))
-        modules.append(last_fc)
-
-        self.network = nn.Sequential(*modules)
-        self.head_act = utils.init_activation(head_activation)()
-        self.to(device.device)
-
-    def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
-        out = self.network(input_tensor)
-        out = self.head_act(out)
-        return out
-
-
 class EnsembleFC(nn.Module):
-    @classmethod
-    def _create_base(
-        cls, cfg: DictConfig, input_dim: int, output_dim: int,
-    ) -> nn.Module:
-        """Create subnetworks for EnsembleFC.
-
-        This function was moved from the main body of the file, where it is
-        replaced by the current version of `create_base`. This is kept here for
-        compatibility, until we move EnsembleFC to use the new implementation
-        of `create_base`
-        """
-        if cfg.name == "fc":
-            return FC(cfg, input_dim, output_dim)
-        else:
-            raise NotImplementedError
-
     def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
         super(EnsembleFC, self).__init__()
         self.ensemble = cfg.ensemble
         self.subnetworks = [
-            EnsembleFC._create_base(cfg.base, input_dim, output_dim)
+            create_base(cfg.base, input_dim, output_dim)
             for _ in range(self.ensemble)
         ]
         self.to(device.device)
@@ -348,7 +296,7 @@ class RndLinearUncertainty(nn.Module):
         super(RndLinearUncertainty, self).__init__()
         self.output_dim = output_dim
         arch = cfg.arch
-        self.random_network = FC(cfg, input_dim, arch[-1])
+        self.random_network = create_base(cfg, input_dim, arch[-1])
         layer_init = utils.init_layer(cfg.layer_init)
         self.linear_head = layer_init(
             nn.Linear(arch[-1], output_dim, bias=cfg.bias),

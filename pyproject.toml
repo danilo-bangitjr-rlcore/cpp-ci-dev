@@ -25,6 +25,7 @@ include = ['corerl']
 exclude = [
     'corerl/environment/smpl',
     'corerl/environment/third_party',
+    'corerl/sql_logging/examples',
 ]
 stubPath = "./typings"
 venvPath = '.'
