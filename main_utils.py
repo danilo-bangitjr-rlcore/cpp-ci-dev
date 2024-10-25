@@ -394,7 +394,7 @@ def online_deployment(cfg: MainConfig,
                       transition_normalizer: TransitionNormalizer,
                       save_path: Path,
                       plot_transitions: Optional[list[Transition]] = None,
-                      test_epochs: Optional[list[Transition]] = None):
+                      test_epochs: Optional[list[int]] = None):
     if test_epochs is None:
         test_epochs = []
 
