@@ -1,21 +1,8 @@
 import corerl.state_constructor.examples as examples
-from corerl.state_constructor.base import BaseStateConstructor
+from corerl.utils.hydra import DiscriminatedUnion
 
-from omegaconf import DictConfig
 import gymnasium
 
 
-def init_state_constructor(cfg: DictConfig, env: gymnasium.Env) -> BaseStateConstructor:
-    name = cfg.name
-    if name == "multi_trace":
-        return examples.MultiTrace(cfg)
-    elif name == "anytime_multi_trace":
-        return examples.AnytimeMultiTrace(cfg)
-    elif name == "identity":
-        return examples.Identity(cfg, env)
-    elif name == 'simple_reseau':
-        return examples.SimpleReseauAnytime(cfg, env)
-    elif name == 'reseau_anytime':
-        return examples.ReseauAnytime(cfg, env)
-    else:
-        raise NotImplementedError
+def init_state_constructor(cfg: DiscriminatedUnion, env: gymnasium.Env):
+    return examples.sc_group.dispatch(cfg, env)

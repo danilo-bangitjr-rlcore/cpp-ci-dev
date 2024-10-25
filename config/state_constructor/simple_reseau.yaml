@@ -1,3 +1,0 @@
-name: simple_reseau
-steps_per_decision : ${interaction.steps_per_decision}
-warmup : 180

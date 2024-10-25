@@ -1,5 +1,6 @@
 import numpy as np
 from abc import ABC, abstractmethod
+from corerl.utils.hydra import Group
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -96,3 +97,11 @@ class CompositeStateConstructor(BaseStateConstructor):
     def reset(self) -> None:
         self.state = None
         self._reset_graph_state()
+
+
+
+# set up config groups
+sc_group = Group(
+    'state_constructor',
+    return_type=CompositeStateConstructor,
+)
