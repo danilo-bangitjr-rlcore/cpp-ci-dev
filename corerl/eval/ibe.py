@@ -26,7 +26,7 @@ class IBE(BaseEval):
         self.model = init_custom_network(cfg.network, state_dim + action_dim, output_dim=1)
         self.optimizer = init_optimizer(
             cfg.optimizer,
-            list(self.model.parameters(independent=True)),
+            list(self.model.parameters(independent=True)), # type: ignore
             ensemble=True
         )
 
@@ -66,7 +66,7 @@ class IBE(BaseEval):
 
         return delta
 
-    def get_loss(self, batch: TransitionBatch) -> torch.Tensor:
+    def get_loss(self, batch: TransitionBatch) -> list[torch.Tensor]:
         delta = self._get_delta(batch)
         state_batch = batch.state
         action_batch = batch.action
@@ -87,8 +87,8 @@ class IBE(BaseEval):
             for i in range(len(loss)):
                 loss[i].backward(inputs=list(self.model.parameters(independent=True)[i]))
 
-            self.optimizer.step()
-            loss = [l.detach().item() for l in loss]
+            self.optimizer.step()  # type: ignore
+            loss = [lo.detach().item() for lo in loss]
             self.losses.append(loss)
 
         # estimate the bellman error on a batch
@@ -110,7 +110,7 @@ class IBE(BaseEval):
         delta = self._get_delta(batch)
 
         be_batch = 2 * predictions * delta - torch.square(predictions)
-        mean_be = torch.squeeze(torch.mean(be_batch, axis=1))
+        mean_be = torch.squeeze(torch.mean(be_batch, dim=1))
 
         return to_np(mean_be).astype(np.float64)
 
