@@ -5,18 +5,16 @@ from sqlalchemy import text, Engine
 
 
 class DataWriter:
-    def __init__(
-        self,
-        db_cfg: DictConfig,
-        db_name: str,
-        sensor_table_name: str,
-    ):
+    def __init__(self, db_cfg: DictConfig, db_name: str, sensor_table_name: str, commit_every: int) -> None:
         # db_data = OmegaConf.to_container(db_cfg)
         db_data = dict(db_cfg)
         self.engine: Engine = get_sql_engine(db_data=db_data, db_name=db_name)
         self.ts_format = "%Y-%m-%d %H:%M:%S%z"
         self.sensor_table_name = sensor_table_name
         self.host = "localhost"
+        self.commit_every = commit_every
+        self._writes = 0
+        self.connection = self.engine.connect()
 
     def write(
         self,
@@ -26,7 +24,7 @@ class DataWriter:
         host: str | None = None,
         id: str | None = None,
         quality: str | None = None,
-    ):
+    ) -> None:
         if host is None:
             host = self.host
         if id is None:
@@ -35,14 +33,23 @@ class DataWriter:
             quality = "The operation succeeded. StatusGood (0x0)"
 
         assert timestamp.tzinfo == UTC
-        ts: str = timestamp.strftime(self.ts_format)
-        jsonb_str = f"'{{\"val\": {val}}}'"
+        ts = timestamp.isoformat()
+        
+        jsonb_str = f'{{"val": {val}}}'
         insert_stmt = f"""
             INSERT INTO {self.sensor_table_name}
             (time, host, id, name, \"Quality\", fields)
-            VALUES (TIMESTAMP \'{ts}\', \'{host}\', \'{id}\', \'{name}\', \'{quality}\', {jsonb_str});
+            VALUES (TIMESTAMP '{ts}', '{host}', '{id}', '{name}', '{quality}', '{jsonb_str}');
         """
 
-        with self.engine.connect() as connection:
-            connection.execute(text(insert_stmt))
-            connection.commit()
+        self.connection.execute(text(insert_stmt))
+
+        self._writes += 1
+        if self._writes % self.commit_every == 0:
+            self.commit()
+
+    def commit(self) -> None:
+        self.connection.commit()
+
+    def close(self) -> None:
+        self.connection.close()

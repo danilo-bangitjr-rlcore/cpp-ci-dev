@@ -8,6 +8,7 @@ import docker
 from docker import DockerClient
 from corerl.utils.docker import container_exists, stop_container
 from corerl.sql_logging.sql_logging import table_exists
+from typing import Generator
 
 PERSIST = False  # if true, stop container but don't remove it (data will persist)
 INSPECT = False  # if true, leave container running after tests conclude
@@ -26,18 +27,16 @@ def create_timescale_container(client: DockerClient, name: str) -> None:
         name=name,
     )
 
-
-# generate a create table statement to reflect an existing table with
-# pg_dump -h your_host -U your_user -p your_port your_database -t your_table --schema-only
-# example:
-# pg_dump -h localhost -U postgres -p 5432 postgres -t mock_system --schema-only
-
 def start_timescale_container(client: DockerClient, name: str):
     create_timescale_container(client, name)
     container = client.containers.get(name)
     container.start()
 
 
+# generate a create table statement to reflect an existing table with
+# pg_dump -h your_host -U your_user -p your_port your_database -t your_table --schema-only
+# example:
+# pg_dump -h localhost -U postgres -p 5432 postgres -t mock_system --schema-only
 def create_sensor_table(engine: Engine, sensor_table_name: str):
     create_table_stmt = f"""
         CREATE TABLE public.{sensor_table_name} (
@@ -52,7 +51,6 @@ def create_sensor_table(engine: Engine, sensor_table_name: str):
     with engine.connect() as connection:
         connection.execute(text(create_table_stmt))
         connection.commit()
-
     # TODO: execute statements to make this a hypertable
 
 
@@ -64,7 +62,7 @@ def maybe_create_sensor_table(engine: Engine, sensor_table_name: str):
     create_sensor_table(engine, sensor_table_name)
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def timescale_docker():
     client = docker.from_env()
     container_name = "test_timescale"
@@ -86,9 +84,8 @@ def timescale_docker():
     client.containers.prune()
 
 
-@pytest.mark.skip(reason="github actions do not yet support docker")
-def test_writing_datapt():
-    # connect to the db
+@pytest.fixture(scope="session")
+def data_writer() -> Generator[DataWriter, None, None]:
     db_cfg = OmegaConf.create(
         {
             "drivername": "postgresql+psycopg2",
@@ -101,11 +98,33 @@ def test_writing_datapt():
 
     db_name = "pytest"
     sensor_table_name = "sensors"
-    data_writer = DataWriter(db_cfg=db_cfg, db_name=db_name, sensor_table_name=sensor_table_name)
+    data_writer = DataWriter(db_cfg=db_cfg, db_name=db_name, sensor_table_name=sensor_table_name, commit_every=1)
     maybe_create_sensor_table(engine=data_writer.engine, sensor_table_name=sensor_table_name)
+    
+    yield data_writer
+
+    data_writer.close()
+
+@pytest.mark.skip(reason="github actions do not yet support docker")
+def test_writing_datapt(data_writer: DataWriter):
 
     ts = datetime.now(tz=UTC)
     sensor_name = "orp"
     sensor_val = 780.0
 
     data_writer.write(timestamp=ts, name=sensor_name, val=sensor_val)
+    data_writer.commit()
+
+
+@pytest.mark.skip(reason="github actions do not yet support docker")
+def test_batch_write(data_writer: DataWriter):
+    
+    ts = datetime.now(tz=UTC)
+    sensor_name = "orp"
+    sensor_val = 780.0
+
+    data_writer.commit_every = 10
+
+    for _ in range(10): 
+        sensor_val += 1
+        data_writer.write(timestamp=ts, name=sensor_name, val=sensor_val)
