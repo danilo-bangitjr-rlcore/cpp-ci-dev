@@ -1,8 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import beta
-
+import pandas as pd
+from matplotlib.path import Path
 from corerl.agent.utils import get_test_state_qs_and_policy_params
+
 
 def remove_spines(axs, spines=["top", "right"], has_subplots=True):
     def _remove_spines(ax, spines):
@@ -95,7 +97,7 @@ def make_param_plot(freezer, save_path):
     plt.close()
 
 
-def make_action_gap_plot(stats, save_path):
+def make_action_gap_plot(stats, save_path, prefix):
     if 'action_gap' not in stats:
         return
 
@@ -105,22 +107,110 @@ def make_action_gap_plot(stats, save_path):
     remove_spines(ax, has_subplots=False)
     ax.set_xlabel('Step')
     ax.set_ylabel('Action gap')
-    plt.savefig(save_path / 'action_gap.png', bbox_inches='tight')
+    plt.savefig(save_path / '{}_action_gap.png'.format(prefix), bbox_inches='tight')
     plt.close()
 
+
+def make_q_estimation_plot(stats, save_path, prefix):
+    if 'q_estimation_max' not in stats:
+        return
+
+    qs_max = stats['q_estimation_max']
+    qs_min = stats['q_estimation_min']
+    qs_med = stats['q_estimation_median']
+    qs_avg = stats['q_estimation_avg']
+    fig, axs = plt.subplots(4, sharex=True)
+    axs[0].plot(qs_max)
+    axs[0].set_title("Q Estimation - Max")
+    axs[1].plot(qs_min)
+    axs[1].set_title("Q Estimation - Min")
+    axs[2].plot(qs_med)
+    axs[2].set_title("Q Estimation - Median")
+    axs[3].plot(qs_avg)
+    axs[3].set_title("Q Estimation - Average")
+
+    fig.supxlabel('Step')
+    fig.supylabel('Q')
+    plt.tight_layout()
+    plt.savefig(save_path / '{}_q_estimation.png'.format(prefix), bbox_inches='tight')
+    plt.close()
+
+def make_policy_improvement_plot(stats, save_path, prefix):
+    if 'policy_improvements' not in stats:
+        return
+
+    pi_improve = stats['policy_improvements']
+    greedy_gap = stats['greedy_gaps']
+    fig, ax = plt.subplots(1)
+    ax.axhline(y=0., ls='--', c='grey')
+    ax.plot(pi_improve, c='C0', label='Policy improvement')
+    ax.plot(greedy_gap, c='C1', label='Greedification gap')
+
+    fig.supxlabel('Step')
+    fig.supylabel(r'$\Delta Q$')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(save_path / '{}_policy_improvement.png'.format(prefix), bbox_inches='tight')
+    plt.close()
+
+def make_counterfactual_plot(stats, save_path, prefix):
+    if 'efficiency_predictions' not in stats:
+        return
+
+    efficiency_predictions = stats['efficiency_predictions']
+    fig, ax = plt.subplots(1)
+    # ax.axhline(y=0., ls='--', c='grey')
+    ax.plot(efficiency_predictions, c='C0', label='Predicted efficiency')
+
+    fig.supxlabel('Step')
+    fig.supylabel('Averaged Efficiency')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(save_path / '{}_counterfactual.png'.format(prefix), bbox_inches='tight')
+    plt.close()
 
 def make_bellman_error_plot(stats, save_path, prefix):
     if 'bellman_error' not in stats:
         return
 
     bes = stats['bellman_error']
+    fig, ax = plt.subplots(3, sharex=True, figsize=(12, 12))
+    ax[0].axhline(y=0., ls='--', c='grey')
+    ax[0].plot(bes)
+    remove_spines(ax[0], has_subplots=False)
+    ax[0].set_xlabel('Step')
+    ax[0].set_ylabel('BE')
+
+    bes_delta = stats['ibe_change']
+    ax[1].axhline(y=0., ls='--', c='grey')
+    ax[1].plot(bes_delta)
+    remove_spines(ax[1], has_subplots=False)
+    ax[1].set_xlabel('Step')
+    ax[1].set_ylabel(r'$\delta$BE')
+
+    bes_delta_smoothed = stats['ibe_smoothed_change']
+    ax[2].axhline(y=0., ls='--', c='grey')
+    ax[2].plot(bes_delta_smoothed)
+    remove_spines(ax[2], has_subplots=False)
+    ax[2].set_xlabel('Step')
+    ax[2].set_ylabel(r'Smoothed $\delta$BE')
+
+    plt.savefig(save_path / '{}_bellman_error.png'.format(prefix), bbox_inches='tight')
+    plt.close()
+
+def make_td_error_plot(stats, save_path, prefix):
+    if 'td_error' not in stats:
+        return
+
+    tdes = stats['td_error']
     fig, ax = plt.subplots()
-    ax.plot(bes)
+    ax.axhline(y=0., ls='--', c='grey')
+    ax.plot(tdes)
     remove_spines(ax, has_subplots=False)
     ax.set_xlabel('Step')
-    ax.set_ylabel('BE')
-    ax.set_yscale('log')
-    plt.savefig(save_path / '{}_bellman_error.png'.format(prefix), bbox_inches='tight')
+    ax.set_ylabel('TDE')
+    # ax.set_yscale('log')
+    plt.savefig(save_path / '{}_td_error.png'.format(prefix), bbox_inches='tight')
     plt.close()
 
 def make_cumulative_reward_plot(stats, save_path):
@@ -593,6 +683,201 @@ def make_reseau_gvf_critic_plot(plot_info, env, path, prefix, epoch):
             fig.savefig(path / "{}_{}_epoch_{}_state_{}_Critic_Ensemble.png".format(prefix, cumulant_name, epoch, i))
             plt.close()
 
+def radar(ax, normalizations, df, *, id_column, title=None, max_values=None, padding=1.25):
+    categories = df._get_numeric_data().columns.tolist()
+    data = df[categories].to_dict(orient='list')
+    ids = df[id_column].tolist()
+
+    # if max_values is None:
+    #     max_values = {key: padding * max(value) for key, value in data.items()}
+    # normalized_data = {key: np.array(value) / max_values[key] for key, value in data.items()}
+    # normalized_data = {key: (np.array(value) - normalizations.get(key, [0, 1])[0]) / (normalizations.get(key, [0, 1])[1] - normalizations.get(key, [0, 1])[0]) for key, value in data.items()}
+    normalized_data = {}
+    for key, value in data.items():
+        #first < second: larger the better
+        #first > second: smaller the better
+        first = normalizations.get(key, [0, 1])[0]
+        second = normalizations.get(key, [0, 1])[1]
+        normalized_data[key] = (np.array(value) - first) / (second - first)
+
+    num_vars = len(data.keys())
+    tiks = list(data.keys())
+    tiks += tiks[:1]
+    angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist() + [0]
+
+    for i, model_name in enumerate(ids):
+        values = [normalized_data[key][i] for key in data.keys()]
+        actual_values = [data[key][i] for key in data.keys()]
+        values += values[:1]  # Close the plot for a better look
+        ax.plot(angles, values, label=model_name)
+        ax.fill(angles, values, alpha=0.15)
+        for _x, _y, t, at in zip(angles, values, values, actual_values):
+            _y = 0.9
+            t = f'{t:.2f}\n({at:.2f})' if isinstance(t, float) else str(t)
+            ax.text(_x, _y, t, fontsize=7, va='center', ha='center')
+
+    ax.fill(angles, np.ones(num_vars + 1), alpha=0.05)
+    ax.set_yticklabels([])
+    ax.set_xticks(angles)
+    ax.set_xticklabels(tiks, fontsize=7)
+    # ax.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
+    if title is not None: ax.set_title(title)
+
+def make_summary_plot(plot_info: dict, path: Path, prefix: str):
+    formal_labels = {
+        'bellman_error': 'BE',
+        'ibe_smoothed_change': 'BEC',
+        'td_error': 'TDE',
+        'action_gap': 'Pi Diff', # L2 distance between greedy action and learned action
+        'greedy_gaps': 'Q Gap', # Gap between q estimation of greedy action and learned action
+        'policy_improvements': 'Q Imprv', # q estimation of learned action minus q estimation of dataset action
+        'q_estimation_avg': 'Avg Q',
+        'q_estimation_median': 'Med Q',
+        'q_estimation_min': 'Min Q',
+        'q_estimation_max': 'Max Q',
+        'ensemble_ste': 'Ens STE',
+        'local_max': 'Local Max',
+        'local_min': 'Local Min',
+        'linear': 'Linear',
+        'flat': 'Flat',
+        'num_episodes': '#Ep',
+        'rewards': 'R',
+        'avg_reward': 'Avg R',
+        'avg_return': 'Avg G',
+        'composite_alerts': 'Alerts',
+        'efficiency_predictions': 'Eff Pred',
+    }
+    larger_better_list = [
+        'x',
+        'Q Imprv',
+        'Local Max',
+        'R',
+        'Avg R',
+        'Avg G',
+        'Eff Pred',
+    ]
+    smaller_better_list = [
+        'x',
+        'Pi Diff',
+        'BEC',
+        'TDE',
+        'Q Gap',
+        'Local Min',
+        'Linear',
+        'Flat',
+    ]
+    statistic_list = [
+        'x',
+        'BE',
+        'Avg Q',
+        'Med Q',
+        'Min Q',
+        'Max Q',
+        '#Ep',
+        'Alerts',
+        'Ens STE',
+    ]
+    normalizations = {
+        'BE': [0, 1],
+        'BEC': [0, 1],
+        'TDE': [0, 1],
+        'Q Gap': [-1, 1],
+        'Q Imprv': [-1, 1],
+        'Pi Gap': [-1, 1],
+        'Avg Q': [0, 10],
+        'Med Q': [0, 10],
+        'Min Q': [0, 10],
+        'Max Q': [0, 10],
+        'Ens STE': [0, 10],
+        'Local Max': [0, 1],
+        'Local Min': [0, 1],
+        'Linear': [0, 1],
+        'Flat': [0, 1],
+        '#Ep': [0, 1000],
+        'R': [0, 2],
+        'Avg R': [0, 2],
+        'Avg G': [0, 1000],
+        'Alerts': [0, 1]
+    }
+    order = {
+        'bellman_error': 0,
+        'ibe_smoothed_change': 0,
+        'td_error': 0,
+        'action_gap': 1,
+        'greedy_gaps': 1,
+        'policy_improvements': 1,
+        'q_estimation_avg': 2,
+        'q_estimation_median': 2,
+        'q_estimation_min': 2,
+        'q_estimation_max': 2,
+        'ensemble_ste': 2,
+        'local_max': 3,
+        'local_min': 3,
+        'linear': 3,
+        'flat': 3,
+        'num_episodes': 4,
+        'rewards': 4,
+        'avg_reward': 4,
+        'avg_reward (1)': 4,
+        'avg_return': 4,
+        'composite_alerts': 5,
+    }
+    plot_info_keys = list(plot_info.keys())
+    plot_info_orders = [order.get(k, -1) for k in plot_info_keys]
+    ordered_keys = [x for _,x in sorted(zip(plot_info_orders, plot_info_keys))]
+    data = {'x': [*'0']}
+    for k in ordered_keys:
+        v = plot_info[k]
+        if type(v) == list and len(v) > 0:
+            v = v[-10:]
+            if type(v) == np.ndarray or type(v) == list: # ensemble size > 1
+                v = np.asarray(v).mean()
+        elif type(v) == list and len(v) == 0:
+            v = None
+        data[formal_labels.get(k, k)] = [v]
+
+    larger_better = {}
+    for k in data.keys():
+        if k in larger_better_list:
+            larger_better[k] = data[k]
+    smaller_better = {}
+    for k in data.keys():
+        if k in smaller_better_list:
+            smaller_better[k] = data[k]
+    statistic_only = {}
+    for k in data.keys():
+        if k in statistic_list:
+            statistic_only[k] = data[k]
+
+    fig, ax = plt.subplots(1, 3, figsize=(10, 3), subplot_kw=dict(polar=True))
+    radar(
+        ax[0], normalizations,
+        pd.DataFrame(larger_better),
+        id_column='x',
+        title='Larger the better',
+        padding=1.1
+    )
+    radar(
+        ax[1], normalizations,
+        pd.DataFrame(smaller_better),
+        id_column='x',
+        title='Closer to 0 the better',
+        padding=1.1
+    )
+    radar(
+        ax[2], normalizations,
+        pd.DataFrame(statistic_only),
+        id_column='x',
+        title='Statistic',
+        padding=1.1
+    )
+    plt.tight_layout()
+    fig.savefig(path / "{}_summary.png".format(prefix), dpi=300)
+    plt.close()
+    plt.clf()
+
+
+
 def make_online_plots(freezer, stats, save_path):
     save_path.mkdir(parents=True, exist_ok=True)
     #make_trace_alerts_plots(stats, save_path)
@@ -609,8 +894,14 @@ def make_online_plots(freezer, stats, save_path):
 
 def make_offline_plots(freezer, stats, save_path):
     save_path.mkdir(parents=True, exist_ok=True)
-    #make_bellman_error_plot(stats, save_path, "offline")
-    #make_train_test_loss_plot(stats, save_path)
+    make_bellman_error_plot(stats, save_path, "offline")
+    make_td_error_plot(stats, save_path, "offline")
+    make_action_gap_plot(stats, save_path, "offline")
+    make_q_estimation_plot(stats, save_path, "offline")
+    make_policy_improvement_plot(stats, save_path, "offline")
+    # make_train_test_loss_plot(stats, save_path)
+    make_counterfactual_plot(stats, save_path, "offline")
+    make_summary_plot(stats, save_path, "offline")
 
 def make_actor_critic_plots(agent, env, plot_transitions, prefix, iteration, save_path):
     test_states, test_actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params = get_test_state_qs_and_policy_params(agent, plot_transitions)
