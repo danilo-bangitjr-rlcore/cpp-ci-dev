@@ -54,7 +54,7 @@ class GreedyAC(BaseAC):
         self.learned_proposal_percent = 1 - self.uniform_sampling_percentage
         self.uniform_proposal = self.uniform_sampling_percentage == 1
 
-        self._interleave_updates = cfg.get("interleave_updates", True)
+        self._interleave_updates = cfg["interleave_updates"]
 
         self.n_sampler_updates = cfg.n_sampler_updates
         if self.share_batch and not self.uniform_proposal:
