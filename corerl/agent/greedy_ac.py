@@ -521,7 +521,7 @@ class GreedyAC(BaseAC):
             self._update_interleave()
             return None
 
-        self._update_no_interleave()
+        self._update_sequential()
 
     def _update_interleave(self) -> None:
         n_sampler_updates = 0
@@ -540,7 +540,7 @@ class GreedyAC(BaseAC):
                 )
                 n_sampler_updates += 1
 
-    def _update_no_interleave(self) -> None:
+    def _update_sequential(self) -> None:
         for _ in range(self.n_critic_updates):
             self.update_critic()
 
