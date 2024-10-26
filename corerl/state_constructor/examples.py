@@ -6,6 +6,10 @@ import gymnasium
 from corerl.utils.hydra import interpolate, list_
 
 
+# ----------------
+# -- MultiTrace --
+# ----------------
+
 @dataclass
 class MultiTraceConfig:
     name: str = 'multi_trace'
@@ -32,6 +36,10 @@ class MultiTrace(CompositeStateConstructor):
         self.sc = concat_sc
 
 sc_group.dispatcher(MultiTrace)
+
+# -----------------------
+# -- AnytimeMultiTrace --
+# -----------------------
 
 @dataclass
 class AnytimeMultiTraceConfig(MultiTraceConfig):
@@ -75,6 +83,10 @@ class AnytimeMultiTrace(CompositeStateConstructor):
 
 sc_group.dispatcher(AnytimeMultiTrace)
 
+# --------------
+# -- Identity --
+# --------------
+
 @dataclass
 class IdentityConfig:
     name: str = 'identity'
@@ -85,6 +97,10 @@ class Identity(CompositeStateConstructor):
         self.sc = sc
 
 sc_group.dispatcher(Identity)
+
+# ------------------
+# -- SimpleReseau --
+# ------------------
 
 @dataclass
 class SimpleReseauConfig:
@@ -101,6 +117,10 @@ class SimpleReseauAnytime(CompositeStateConstructor):
 
 
 sc_group.dispatcher(SimpleReseauAnytime)
+
+# -------------------
+# -- ReseauAnytime --
+# -------------------
 
 @dataclass
 class ReseauAnytimeConfig(SimpleReseauConfig):
