@@ -1,9 +1,9 @@
 import copy
 import torch
 import torch.nn as nn
-from torch.func import stack_module_state, functional_call
 from collections.abc import Mapping, Iterable
 from typing import Callable
+from torch.func import stack_module_state, functional_call # type: ignore
 import numpy as np
 import corerl.component.network.utils as utils
 from corerl.utils.device import device
@@ -12,7 +12,7 @@ import corerl.component.layer as layer
 from warnings import warn
 
 from omegaconf import DictConfig
-from typing import Optional
+from typing import Any, Optional
 
 # Differences of this size are representable up to ~ 15
 FLOAT32_EPS = 10 * np.finfo(np.float32).eps
@@ -104,7 +104,8 @@ def _create_base_mlp(
     filt = list(filter(lambda x: x.startswith("head_"), ks))
     if len(filt) > 0:
         warn(
-            f"create_base: unexpected config key(s) {filt}"
+            f"create_base: unexpected config key(s) {filt}",
+            stacklevel=1,
         )
 
     net = []
@@ -183,23 +184,23 @@ class EnsembleFC(nn.Module):
         ]
         self.to(device.device)
 
-    def forward(self, input_tensor: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
         outs = [net(input_tensor) for net in self.subnetworks]
         for i in range(self.ensemble):
             outs[i] = torch.unsqueeze(outs[i], 0)
         outs = torch.cat(outs, dim=0)
         return outs
 
-    def state_dict(self) -> list:
+    def state_dict(self) -> list[dict[str, Any]]: # type: ignore
         sd = [net.state_dict() for net in self.subnetworks]
         return sd
 
-    def load_state_dict(self, state_dict_list: list) -> None:
+    def load_state_dict(self, state_dict_list: list) -> None: # type: ignore
         for i in range(self.ensemble):
             self.subnetworks[i].load_state_dict(state_dict_list[i])
         return
 
-    def parameters(self, independent: bool = False) -> list:
+    def parameters(self, independent: bool = False) -> list[torch.nn.Parameter]: # type: ignore
         param_list = []
         if independent:
             for i in range(self.ensemble):
@@ -221,7 +222,7 @@ class EnsembleCritic(nn.Module):
         ]
 
         # Vectorizing the ensemble to use torch.vmap to avoid sequentially querrying the ensemble
-        self.params, self.buffers = stack_module_state(self.subnetworks)
+        self.params, self.buffers = stack_module_state(self.subnetworks) # type: ignore
 
         self.base_model = copy.deepcopy(self.subnetworks[0])
         self.base_model = self.base_model.to(device.device)
@@ -267,19 +268,19 @@ class EnsembleCritic(nn.Module):
 
         return q, qs
 
-    def state_dict(self) -> list:
+    def state_dict(self) -> list: # type: ignore
         sd = [net.state_dict() for net in self.subnetworks]
         return sd
 
-    def load_state_dict(self, state_dict_list: list) -> None:
+    def load_state_dict(self, state_dict_list: list) -> None: # type: ignore
         for i in range(self.ensemble):
             self.subnetworks[i].load_state_dict(state_dict_list[i])
         return
 
-    def parameters(self, independent: bool = False) -> list:
+    def parameters(self, independent: bool = False) -> list: # type: ignore
         if self.vmap:
             # https://github.com/pytorch/pytorch/issues/120581
-            return self.params.values()
+            return self.params.values() # type: ignore
         else:
             param_list = []
             if independent:
@@ -303,7 +304,7 @@ class RndLinearUncertainty(nn.Module):
         )
         self.to(device.device)
 
-    def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
+    def forward(self, input_tensor: torch.Tensor) -> tuple[torch.Tensor, dict[str, Any]]:
         with torch.no_grad():
             base = self.random_network(input_tensor)
         out = self.linear_head(base)
@@ -333,21 +334,25 @@ class GRU(nn.Module):
             out = self.output_net(out)
         else:
             out = []
+            last: Any = None
             for t in range(seq_length):
                 x_t = x[:, t, :].unsqueeze(1)
 
                 if t <= prediction_start:
                     out_t, h = self.gru(x_t, h)
                     out_t = self.output_net(out_t)
+                    last = out_t
 
                 else:  # feed the networks predictions back in.
-                    out_t_len = out_t.size(-1)
+                    assert last is not None
+                    out_t_len = last.size(-1)
                     # replace the first out_t_len elements of x_t with out_t
                     # the network only predicts endogenous variables, so we grab the exogenous from that time step
                     # Note: out_t is the prediction of endogenous variables from the prev. time step
-                    x_t = torch.cat((out_t, x_t[:, :, out_t_len:]), dim=-1)
+                    x_t = torch.cat((last, x_t[:, :, out_t_len:]), dim=-1)
                     out_t, h = self.gru(x_t, h)
                     out_t = self.output_net(out_t)
+                    last = out_t
 
                 out.append(out_t)
             out = torch.cat(out, dim=1)

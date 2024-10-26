@@ -6,7 +6,6 @@ from typing import Optional, Callable
 import corerl.component.policy as policy
 import corerl.utils.nullable as nullable
 from corerl.component.actor.base_actor import BaseActor
-from corerl.component.network.factory import init_actor_network
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.optimizers.linesearch_optimizer import LineSearchOpt
 from corerl.utils.device import device
@@ -106,8 +105,8 @@ class NetworkActorLineSearch(NetworkActor):
         self.policy = policy.create(
             cfg.actor_network, state_dim, action_dim, action_min, action_max,
         )
-        self.policy_copy = init_actor_network(
-            cfg.actor_network, state_dim, action_dim,
+        self.policy_copy = policy.create(
+            cfg.actor_network, state_dim, action_dim, action_min, action_max,
         )
 
     def set_parameters(

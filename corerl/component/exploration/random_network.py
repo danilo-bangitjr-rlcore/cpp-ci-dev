@@ -76,13 +76,13 @@ class RndNetworkExplore(BaseExploration):
                                                random_next_action, mask_batch, self.gamma)
         self.optimizer0.zero_grad()
         loss0.backward()
-        self.optimizer0.step()
+        self.optimizer0.step(closure=lambda: 0.)
         self.optimizer1.zero_grad()
         loss1.backward()
-        self.optimizer1.step()
+        self.optimizer1.step(closure=lambda: 0.)
 
-    def get_networks(self) -> tuple[torch.nn.Module]:
-        return (self.fbonus0, self.fbonus1)
+    def get_networks(self) -> list[torch.nn.Module]:
+        return [self.fbonus0, self.fbonus1]
 
 
 class RndNetworkExploreLineSearch(RndNetworkExplore):
@@ -122,6 +122,5 @@ class RndNetworkExploreLineSearch(RndNetworkExplore):
         loss1.backward()
         self.optimizer.step()
 
-    def get_networks(self) -> tuple[torch.nn.Module]:
-        return (self.fbonus0, self.fbonus1, self.fbonus0_copy, self.fbonus1_copy)
-
+    def get_networks(self) -> list[torch.nn.Module]:
+        return [self.fbonus0, self.fbonus1, self.fbonus0_copy, self.fbonus1_copy]

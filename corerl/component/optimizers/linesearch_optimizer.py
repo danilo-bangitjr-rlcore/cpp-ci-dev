@@ -2,14 +2,22 @@ from omegaconf import DictConfig
 import torch
 import numpy as np
 import ctypes
-from typing import Optional, Callable
+from typing import Any, Callable
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 
 
 class LineSearchOpt:
-    def __init__(self, cfg: DictConfig, net_lst: list[torch.nn.Module], lr: float, max_backtracking: int,
-                 error_threshold: float, lr_lower_bound: float, base_optimizer: str):
+    def __init__(
+        self,
+        cfg: DictConfig,
+        net_lst: list[torch.nn.Module],
+        lr: float,
+        max_backtracking: int,
+        error_threshold: float,
+        lr_lower_bound: float,
+        base_optimizer: str,
+    ):
         self.cfg = cfg
         self.opt_copy_dict = {}
         self.net_lst = net_lst
@@ -28,17 +36,22 @@ class LineSearchOpt:
         self.error_threshold = error_threshold
         self.lr_lower_bound = lr_lower_bound
         self.optimizer_type = base_optimizer
-        self.buffer = None
+        self.buffer: Any = None
         self.error_evaluation_fn = None
         self.optimizer_lst = None
 
-    def set_params(self, buffer_address: int, net_copy: list, error_evaluation_fn: Callable,
-                   ensemble: Optional['bool'] = False) -> None:
+    def set_params(
+        self,
+        buffer_address: int,
+        net_copy: list,
+        error_evaluation_fn: Callable[[list[torch.Tensor]], torch.Tensor],
+        ensemble: bool = False,
+    ) -> None:
         self.optimizer_lst = []
         for i in range(len(self.net_lst)):
             if ensemble:
                 self.optimizer_lst.append(init_optimizer(
-                    self.cfg, self.net_lst[i].parameters(independent=True), ensemble=ensemble))
+                    self.cfg, self.net_lst[i].parameters(independent=True), ensemble=ensemble)) # type: ignore
             else:
                 self.optimizer_lst.append(init_optimizer(
                     self.cfg, self.net_lst[i].parameters(), ensemble=ensemble))
@@ -91,20 +104,28 @@ class LineSearchOpt:
             self.__save_opt(i, opt_lst[i])
             self.__clone_model_0to1(net_lst[i], self.net_copy_lst[i])
 
-    def __undo_update(self, net_lst: list[torch.nn.Module],
-                      opt_lst: list[torch.optim.Optimizer | EnsembleOptimizer]) \
-            -> [list[torch.nn.Module], list[torch.optim.Optimizer | EnsembleOptimizer]]:
+    def __undo_update(
+        self,
+        net_lst: list[torch.nn.Module],
+        opt_lst: list[torch.optim.Optimizer | EnsembleOptimizer]
+    ) -> tuple[list[torch.nn.Module], list[torch.optim.Optimizer | EnsembleOptimizer]]:
         for i in range(len(net_lst)):
             self.__clone_model_0to1(self.net_copy_lst[i], net_lst[i])
             opt_lst[i] = self.__load_opt(i, opt_lst[i])
+
         return net_lst, opt_lst
 
     def zero_grad(self) -> None:
+        if self.optimizer_lst is None:
+            return
+
         for opt in self.optimizer_lst:
             opt.zero_grad()
-        return
+
 
     def step(self) -> None:
+        assert self.error_evaluation_fn is not None
+
         batch = self.buffer.sample()
         state_batch = batch.state
         action_batch = batch.action
@@ -118,16 +139,27 @@ class LineSearchOpt:
             self.net_lst,
         )
 
-    def state_dict(self) -> list[dict]:
+    def state_dict(self):
+        if self.optimizer_lst is None:
+            return []
+
         return [opt.state_dict() for opt in self.optimizer_lst]
 
     def load_state_dict(self, state_dict_lst: list[dict]) -> None:
-        for opt, sd in zip(self.optimizer_lst, state_dict_lst):
-            opt.load_state_dict(sd)
-        return
+        assert self.optimizer_lst is not None
 
-    def __backtrack_sgd(self, error_evaluation_fn: Callable, error_eval_input: list[torch.Tensor],
-                        network_lst: list[torch.nn.Module]) -> None:
+        for opt, sd in zip(self.optimizer_lst, state_dict_lst, strict=True):
+            assert not isinstance(opt, EnsembleOptimizer)
+            opt.load_state_dict(sd)
+
+
+    def __backtrack_sgd(
+        self,
+        error_evaluation_fn: Callable[[list[torch.Tensor]], torch.Tensor],
+        error_eval_input: list[torch.Tensor],
+        network_lst: list[torch.nn.Module],
+    ) -> None:
+        assert self.optimizer_lst is not None
         self.__parameter_backup(network_lst, self.optimizer_lst)
         before_error = error_evaluation_fn(error_eval_input)
         grad_rec = []
@@ -153,14 +185,21 @@ class LineSearchOpt:
                 break
             else:
                 break
+
+        assert after_error is not None
         self.last_scaler = self.lr_weight
         self.lr_weight = self.lr_weight_copy
         self.last_change = (after_error - before_error).detach().numpy()
         self.inner_count += 1
         return
 
-    def __backtrack_momentum(self, error_evaluation_fn: Callable, error_eval_input: list[torch.Tensor],
-                             network_lst: list[torch.nn.Module]) -> None:
+    def __backtrack_momentum(
+        self,
+        error_evaluation_fn: Callable[[list[torch.Tensor]], torch.Tensor],
+        error_eval_input: list[torch.Tensor],
+        network_lst: list[torch.nn.Module],
+    ) -> None:
+        assert self.optimizer_lst is not None
         self.__parameter_backup(network_lst, self.optimizer_lst)
         before_error = error_evaluation_fn(error_eval_input)
         grad_rec = []
