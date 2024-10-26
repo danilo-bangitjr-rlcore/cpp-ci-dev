@@ -31,4 +31,4 @@ jobs:
           uv venv
           uv pip install -r requirements.txt
 
-      - run: uv run pytest test/small
+      - run: uv run pytest -n auto test/small
