@@ -9,7 +9,8 @@ from corerl.state_constructor.base import BaseStateConstructor
 
 @dataclass
 class OldObsTransition:
-    prev_action: np.ndarray  # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
+    # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
+    prev_action: np.ndarray | None
     obs: np.ndarray  # the raw observation of state
     obs_steps_until_decision: int
     obs_dp: bool  # Whether 'obs' is at a decision point

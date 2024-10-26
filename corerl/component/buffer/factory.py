@@ -2,7 +2,7 @@ import corerl.component.buffer.buffers as buffers
 from omegaconf import DictConfig
 
 
-def init_buffer(cfg: DictConfig) -> buffers.UniformBuffer:
+def init_buffer(cfg: DictConfig):
     """
     corresponding configs: part of config/agent
     """

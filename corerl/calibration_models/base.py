@@ -2,7 +2,7 @@ import numpy as np
 import random
 import matplotlib.pyplot as plt
 
-from typing import Optional
+from typing import Any, Optional
 from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 
@@ -11,28 +11,30 @@ from corerl.component.network.utils import to_np
 from corerl.data.data import OldObsTransition
 from corerl.data.data import Trajectory
 from corerl.agent.base import BaseAgent
+from corerl.data.transition_creator import OldAnytimeTransitionCreator
+from corerl.data.transition_normalizer import TransitionNormalizer
 
 
 class BaseCalibrationModel(ABC):
-    def __init__(self, cfg: DictConfig, train_info: dict):
-        self.test_trajectories = train_info['test_trajectories_cm']
-        self.train_trajectories = train_info['train_trajectories_cm']
+    def __init__(self, cfg: DictConfig, train_info: dict[str, Any]):
+        self.test_trajectories: list[Trajectory] = train_info['test_trajectories_cm']
+        self.train_trajectories: list[Trajectory] = train_info['train_trajectories_cm']
         self.trajectories = self.train_trajectories + self.test_trajectories
 
         self.reward_func = train_info['reward_func']
-        self.normalizer = train_info['normalizer']
-        self.transition_creator = train_info['transition_creator']
+        self.normalizer: TransitionNormalizer = train_info['normalizer']
+        self.transition_creator: OldAnytimeTransitionCreator = train_info['transition_creator']
 
-        self.endo_inds = cfg.endo_inds
-        self.exo_inds = cfg.exo_inds
+        self.endo_inds: list[int] = cfg.endo_inds
+        self.exo_inds: list[int] = cfg.exo_inds
 
-        self.max_rollout_len = cfg.max_rollout_len
-        self.steps_per_decision = cfg.steps_per_decision
-        self.num_test_rollouts = cfg.num_test_rollouts
-        self.gamma = cfg.gamma
-        self.allow_learning = cfg.allow_learning
+        self.max_rollout_len: int = cfg.max_rollout_len
+        self.steps_per_decision: int = cfg.steps_per_decision
+        self.num_test_rollouts: int = cfg.num_test_rollouts
+        self.gamma: float = cfg.gamma
+        self.allow_learning: bool = cfg.allow_learning
 
-        self.rollout_indices = None  # indices of the trajectories for agent rollouts
+        self.rollout_indices: list[tuple[int, int]] | None = None  # indices of the trajectories for agent rollouts
 
     @abstractmethod
     def train(self):
@@ -44,16 +46,18 @@ class BaseCalibrationModel(ABC):
             plot_save_path.mkdir(parents=True, exist_ok=True)
 
         losses = []
-        for n, test_traj in enumerate(self.test_trajectories):
+        for _, test_traj in enumerate(self.test_trajectories):
             last = test_traj.num_transitions - self.max_rollout_len
             increase_idx = last // self.num_test_rollouts
             start_idx = 0
             if test_traj.num_transitions >= self.max_rollout_len:
-                for start in range(self.num_test_rollouts):
-                    _, traj_losses = self._do_rollout(test_traj,
-                                                      start_idx=start_idx,
-                                                      plot='test',
-                                                      plot_save_path=plot_save_path)
+                for _ in range(self.num_test_rollouts):
+                    _, traj_losses = self._do_rollout(
+                        test_traj,
+                        start_idx=start_idx,
+                        plot='test',
+                        plot_save_path=plot_save_path,
+                    )
                     start_idx += increase_idx
                     losses.append(traj_losses)
 
@@ -62,7 +66,7 @@ class BaseCalibrationModel(ABC):
     def _get_sample_indices(self, trajectories: list[Trajectory]) -> list[tuple[int, int]]:
         num_transitions = np.array([traj.num_transitions for traj in trajectories])
         sample_probs = num_transitions / np.sum(num_transitions)
-        rollout_indices = []
+        rollout_indices: list[tuple[int, int]] = []
         traj_indices = list(range(len(trajectories)))
         while len(rollout_indices) <= self.num_test_rollouts:
             traj_idx = np.random.choice(traj_indices, p=sample_probs)
@@ -112,7 +116,7 @@ class BaseCalibrationModel(ABC):
 
         return returns
 
-    def _get_reward(self, prev_action: np.ndarray, curr_action: np.ndarray, obs: np.ndarray) -> float:
+    def _get_reward(self, prev_action: np.ndarray | None, curr_action: np.ndarray, obs: np.ndarray) -> float:
         reward_info = {}
         if prev_action is None:
             reward_info['prev_action'] = curr_action
@@ -144,7 +148,8 @@ class BaseCalibrationModel(ABC):
         This method can be used with or without an agent. If no agent is given, actions are selected
         according to the traj_cm.
 
-        NOTE that the transitions in trajectories here must have the same frequency as the agent expects with its state constructor
+        NOTE that the transitions in trajectories here must have the same frequency
+        as the agent expects with its state constructor
         """
 
         if start_idx is None:
@@ -184,10 +189,13 @@ class BaseCalibrationModel(ABC):
         prev_steps_until_decision = None
         prev_decision_point = decision_point
 
-        if use_agent:
-            # these lists are used to construct transitions.
-            curr_decision_obs_transitions = []
-            curr_decision_states = [state_agent]  # initialize this list with the first state that the agent sees
+
+        # these lists are used to construct transitions.
+        curr_decision_obs_transitions: list[OldObsTransition] = []
+        curr_decision_states: list[np.ndarray] = []
+        if state_agent is not None:
+            # initialize this list with the first state that the agent sees
+            curr_decision_states.append(state_agent)
 
         for step in range(rollout_len):
             transition_step = transitions_cm[step]
@@ -226,10 +234,13 @@ class BaseCalibrationModel(ABC):
             r = self._get_reward(prev_action, action, fictitious_next_obs)
             g += (self.gamma ** step) * r
 
-            if use_agent:
-                state_agent = sc_agent(fictitious_next_obs, action,
-                                       decision_point=decision_point,
-                                       steps_until_decision=steps_until_decision)
+            if use_agent and sc_agent is not None:
+                state_agent = sc_agent(
+                    fictitious_next_obs,
+                    action,
+                    decision_point=decision_point,
+                    steps_until_decision=steps_until_decision,
+                )
 
                 obs_transition = OldObsTransition(
                     prev_action,

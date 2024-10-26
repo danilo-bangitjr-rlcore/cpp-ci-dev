@@ -55,10 +55,10 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
 
     def _eval(self, batch, with_grad):
         # gamma_exponents double as the durations of actions
-        state_batch, action_batch, next_obs_batch, duration = batch.state, batch.action, batch.boot_obs, batch.gamma_exponent
-        endo_next_obs_batch = next_obs_batch[:, self.endo_inds]
+        duration = batch.gamma_exponent
+        endo_next_obs_batch = batch.boot_obs[:, self.endo_inds]
         duration /= self.max_action_duration
-        prediction = self.get_prediction(state_batch, action_batch, duration, with_grad=with_grad)
+        prediction = self.get_prediction(batch.state, batch.action, duration, with_grad=with_grad)
         loss = nn.functional.mse_loss(prediction, endo_next_obs_batch)
 
         return loss
@@ -68,7 +68,7 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
         loss = self._eval(batch, with_grad=True)
         self.optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step()
+        self.optimizer.step(closure=lambda: 0.)
 
         self.train_losses.append(loss.detach().numpy())
 
@@ -160,10 +160,12 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
         prev_steps_until_decision = None
         prev_decision_point = decision_point
 
+        # these lists are used to construct transitions.
+        curr_decision_obs_transitions = []
+        curr_decision_states = []
         if use_agent:
-            # these lists are used to construct transitions.
-            curr_decision_obs_transitions = []
-            curr_decision_states = [state_agent]  # initialize this list with the first state that the agent sees
+            # initialize this list with the first state that the agent sees
+            curr_decision_states.append(state_agent)
 
         outer_step = 0
         done = False
@@ -189,6 +191,8 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
             state_cm_tensor = tensor(state_cm).reshape((1, -1))
             action_tensor = tensor(action).reshape((1, -1))
             duration_tensor = tensor(duration).reshape((1, -1))
+
+            fictitious_next_obs = None
 
             predicted_next_endo_obs = to_np(self.get_prediction(state_cm_tensor, action_tensor, duration_tensor))
             for inner_step in range(1, duration_int+1):
@@ -221,7 +225,7 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                 r = self._get_reward(prev_action, action, fictitious_next_obs)
                 g += self.gamma ** (outer_step + inner_step) * r
 
-                if use_agent:
+                if use_agent and sc_agent is not None:
                     state_agent = sc_agent(fictitious_next_obs, action,
                                            decision_point=decision_point,
                                            steps_until_decision=steps_until_decision)
