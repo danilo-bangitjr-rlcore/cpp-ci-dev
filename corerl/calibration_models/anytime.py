@@ -200,6 +200,8 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                 inner_step_obs = inner_step_transition.obs
                 inner_next_obs = inner_step_transition.next_obs
 
+                assert inner_next_obs is not None
+
                 if self.interpolation == 'linear':
                     predicted_inner_endo_obs = self.linear_interpolation(inner_step, duration_int, curr_obs,
                                                                          predicted_next_endo_obs)
@@ -256,6 +258,8 @@ class AnytimeCalibrationModel(BaseCalibrationModel):
                 prev_obs = fictitious_next_obs
                 prev_steps_until_decision = steps_until_decision
                 prev_decision_point = decision_point
+
+                assert inner_step_obs is not None
 
                 actions.append(action)
                 endo_obss.append(inner_step_obs[0])

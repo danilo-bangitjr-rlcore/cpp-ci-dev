@@ -14,15 +14,13 @@ class UniformTrajectoryBuffer:
         self.pos = 0
         self.full = False
 
-        if self.batch_size == 0:
-            self.sample = self.sample_batch
-        else:
-            self.sample = self.sample_mini_batch
-
     def feed(self, trajectory: tuple) -> None:
         self.data.extend(trajectory)
 
-    def sample_mini_batch(self, batch_size: int = None) -> dict:
+    def sample_mini_batch(self, batch_size: int | None = None) -> list:
+        if batch_size is None:
+            batch_size = len(self.data)
+
         total_transitions = self.num_transitions
         probs = [len(i) / total_transitions for i in self.data]
         sampled_data = random.choices(self.data, weights=probs, k=batch_size)
@@ -45,17 +43,3 @@ class UniformTrajectoryBuffer:
 
     def get_all_data(self) -> list:
         return self.data
-
-    # def _prepare(self, batch: list) -> dict:
-    #     s, a, r, ns, d, t, dp, ndp, ge = batch
-    #     return {
-    #         'states': s,
-    #         'actions': a,
-    #         'rewards': r,
-    #         'next_states': ns,
-    #         'dones': d,
-    #         'truncs': t,
-    #         'state_decision_points': dp,
-    #         'next_state_decision_points': ndp,
-    #         'gamma_exps': ge
-    #     }

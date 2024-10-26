@@ -4,6 +4,7 @@ from omegaconf import DictConfig
 from typing import Optional, Callable
 
 import corerl.component.policy as policy
+import corerl.utils.nullable as nullable
 from corerl.component.actor.base_actor import BaseActor
 from corerl.component.network.factory import init_actor_network
 from corerl.component.optimizers.factory import init_optimizer
@@ -39,16 +40,25 @@ class NetworkActor(BaseActor):
         return self.policy.support
 
     def update(
-        self, loss: torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
+        self,
+        loss: torch.Tensor,
+        opt_args=tuple(),
+        opt_kwargs: dict | None = None,
     ) -> None:
+        opt_kwargs = nullable.default(opt_kwargs, dict)
+
         self.optimizer.zero_grad()
         loss.backward()
         if self.optimizer_name != "lso":
-            self.optimizer.step()
+            self.optimizer.step(closure=lambda: 0.)
         else:
             self.optimizer.step(*opt_args, **opt_kwargs)
 
-    def get_action(self, state: torch.Tensor, with_grad=False) -> tuple[torch.Tensor, dict]:
+    def get_action(
+        self,
+        state: torch.Tensor,
+        with_grad=False,
+    ) -> tuple[torch.Tensor, dict]:
         if with_grad:
             return self.policy.forward(state)
         else:
@@ -82,19 +92,28 @@ class NetworkActorLineSearch(NetworkActor):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int,
                  initializer: Optional['NetworkActor'] = None):
         super().__init__(cfg, state_dim, action_dim, initializer)
-        self.optimizer = LineSearchOpt(cfg.actor_optimizer, [self.policy], cfg.actor_optimizer.lr,
-                                       cfg.max_backtracking, cfg.error_threshold, cfg.lr_lower_bound,
-                                       cfg.actor_optimizer.name)
+        self.optimizer = LineSearchOpt(
+            cfg.actor_optimizer,
+            [self.policy.model],
+            cfg.actor_optimizer.lr,
+            cfg.max_backtracking,
+            cfg.error_threshold,
+            cfg.lr_lower_bound,
+            cfg.actor_optimizer.name,
+        )
 
         action_min, action_max = 0, 1
         self.policy = policy.create(
             cfg.actor_network, state_dim, action_dim, action_min, action_max,
         )
         self.policy_copy = init_actor_network(
-            cfg.actor_network, state_dim, action_dim, action_min, action_max
+            cfg.actor_network, state_dim, action_dim,
         )
 
-    def set_parameters(self, buffer_address: int, eval_error_fn: Optional['Callable'] = None) -> None:
+    def set_parameters(
+        self, buffer_address: int,
+        eval_error_fn: Callable[[list[torch.Tensor]], torch.Tensor],
+    ) -> None:
         self.optimizer.set_params(
             buffer_address, [self.policy_copy.model], eval_error_fn,
         )
