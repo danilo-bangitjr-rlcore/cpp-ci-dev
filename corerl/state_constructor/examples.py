@@ -63,12 +63,6 @@ class Identity(CompositeStateConstructor):
         self.sc = sc
 
 
-class Normalize(CompositeStateConstructor):
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env):
-        sc = comp.MaxMinNormalize(env)
-        self.sc = sc
-
-
 class SimpleReseauAnytime(CompositeStateConstructor):
     def __init__(self, cfg: DictConfig, env: gymnasium.Env):
         identity_sc = comp.Identity()
