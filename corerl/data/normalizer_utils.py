@@ -148,7 +148,9 @@ def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> InvertibleNor
                 "\033[1;33m" +
                 f"actions are bounded between [{action_min}, {action_max}] " +
                 "but the policy has support only over [0, 1]. Are you sure this is what you wanted to do?" +
-                "\033[0m")
+                "\033[0m",
+                stacklevel=1,
+            )
 
         return Identity()
 
