@@ -1,0 +1,11 @@
+# Instructions for installing docker and running this compose file: 
+# https://docs.google.com/document/d/1am6Svfv_IlzLAZ22XMr9ytquCG8T9bWD9F5-roPxkp4/edit?usp=sharing
+
+services:
+
+  timescaledb:
+    image: timescale/timescaledb-ha:pg16
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: password
