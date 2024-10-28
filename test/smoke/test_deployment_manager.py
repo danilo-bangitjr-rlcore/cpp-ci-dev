@@ -16,5 +16,6 @@ def test_deployment_manager():
         'uv', 'run',
         'python', 'deployment_manager.py',
         '--config-name', 'deployment_manager.yaml',
+        'deployment.python_executable="uv run python"'
     ])
     proc.check_returncode()

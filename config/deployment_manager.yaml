@@ -2,7 +2,12 @@ defaults:
   - _self_
 
 deployment:
-  python_executable: uv run python
+  python_executable: python
   python_entrypoint: main.py
   config_name: saturation.yaml
   options: [experiment.max_steps=25]
+
+event_bus:
+  python_entrypoint: event_bus.py
+  host: localhost
+  port: 8123
