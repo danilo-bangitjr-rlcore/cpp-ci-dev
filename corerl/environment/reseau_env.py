@@ -21,7 +21,7 @@ class ReseauEnv(InfluxOPCEnv):
         self.endo_obs_names = cfg.endo_obs_names
         self.endo_inds = cfg.endo_inds
 
-    def _get_reward(self, s: np.ndarray | pd.DataFrame, a: np.ndarray):
+    def _get_reward(self, s: np.ndarray | pd.DataFrame, a: np.ndarray): # type: ignore
         assert isinstance(s, np.ndarray)
         if self.prev_action is None:
             r = self.reward_func(s, prev_action=a, curr_action=a)
@@ -32,10 +32,10 @@ class ReseauEnv(InfluxOPCEnv):
 
     def step(self, action: np.ndarray):
         self.take_action(action)
-        end_timer = time.time() + self.obs_length
+        end_timer = time.time() + self.obs_length.total_seconds()
         time.sleep(end_timer - time.time())
         self.prev_action = action
-        return self.get_observation(action)
+        return self.get_observation(action) # type: ignore
 
     def _check_done(self) -> bool:
         return False
