@@ -28,8 +28,8 @@ class Curvature(BaseEval):
         self.num_deltas = cfg.num_deltas
         self.epsilon = cfg.epsilon
         self.relaxation = cfg.relaxation
-        self.delta_action = torch.rand((1, self.num_deltas, self.agent.action_dim)) * \
-                            (1. - self.epsilon) + self.epsilon
+        r = torch.rand((1, self.num_deltas, self.agent.action_dim))
+        self.delta_action = (1 - self.epsilon) * r + self.epsilon
 
         self.local_max = []
         self.local_min = []
