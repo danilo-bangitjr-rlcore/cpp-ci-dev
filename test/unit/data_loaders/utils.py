@@ -6,8 +6,8 @@ from docker import DockerClient
 import time
 import docker
 
-PERSIST = False  # if true, stop container but don't remove it (data will persist)
-INSPECT = False  # if true, leave container running after tests conclude
+PERSIST = True  # if true, stop container but don't remove it (data will persist)
+INSPECT = True  # if true, leave container running after tests conclude
 
 def maybe_create_sensor_table(engine: Engine, sensor_table_name: str):
     if table_exists(engine, table_name=sensor_table_name):
@@ -64,8 +64,7 @@ def start_timescale_container(client: DockerClient, name: str):
 def timescale_docker():
     client = docker.from_env()
     container_name = "test_timescale"
-    start_timescale_container(client, name=container_name)
-    # TODO: poll for connection instead of hard coded wait
+    start_timescale_container(client, name=container_name) 
     yield
 
     # code after the yield is executed at cleanup time

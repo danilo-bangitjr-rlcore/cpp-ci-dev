@@ -76,6 +76,8 @@ class TestDataReader:
             end_time=end_time,
             bucket_width=timedelta(seconds=10),
         )
+
+        print(end_time)
         print(result_df)
         print(len(result_df))
         assert set(TestDataReader.sensor_names).issubset(result_df.columns)

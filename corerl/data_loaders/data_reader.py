@@ -28,9 +28,13 @@ class DataReader:
 
         name_filter = "\tOR ".join([f"name = '{name}'\n" for name in names])
         name_filter = f"({name_filter})"
+        """
+        NOTE: Addition of bucket_width in the select statement ensures that the labels
+        for the time buckets align with the end of the bucket rather than the beginnning.
+        """
         query_str = f"""
             SELECT 
-              time_bucket(INTERVAL '{bucket_width}', time) as time_bucket,
+              time_bucket(INTERVAL '{bucket_width}', time) + '{bucket_width}' as time_bucket,
               name,
               avg((fields->'val')::float) AS avg_val
             FROM {self.sensor_table_name}
