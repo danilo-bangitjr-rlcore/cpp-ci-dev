@@ -1,6 +1,7 @@
 name: ibe
 gamma: ${agent.gamma}
 n_updates: 1
+smoothing_window: 10
 
 optimizer:
   name: adam

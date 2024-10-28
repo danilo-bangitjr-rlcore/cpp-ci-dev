@@ -23,6 +23,7 @@ class IBE(BaseEval):
         action_dim = self.agent.action_dim
         self.n_updates = cfg.n_updates
         self.gamma = cfg.gamma
+        self.smoothing_window = cfg.smoothing_window
         self.model = init_custom_network(cfg.network, state_dim + action_dim, output_dim=1)
         self.optimizer = init_optimizer(
             cfg.optimizer,
@@ -118,9 +119,9 @@ class IBE(BaseEval):
     def get_stats(self) -> dict:
         smoothed_change = []
         ary_bes_changes = np.array(self.bes_changes, dtype=np.float64)
-        for i in range(0, min(9, len(ary_bes_changes))):
+        for i in range(0, min(self.smoothing_window-1, len(ary_bes_changes))):
             smoothed_change.append(ary_bes_changes[:i+1].mean())
-        for i in range(10, len(ary_bes_changes)):
+        for i in range(self.smoothing_window, len(ary_bes_changes)):
             smoothed_change.append(ary_bes_changes[i-9:i+1].mean())
         stats = {
             'bellman_error': self.bes,
