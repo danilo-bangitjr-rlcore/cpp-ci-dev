@@ -66,13 +66,16 @@ class Curvature(BaseEval):
         )
         repeated_prev_action = self.get_prev_action(repeated_states)
 
-        theta_plus = (repeated_action_batch + self.delta_action).view(
-            (repeated_states.size(0), -1)
-        ).clip(0, 1)
-        theta_minus = (repeated_action_batch - self.delta_action).view(
-            (repeated_states.size(0), -1)
-        ).clip(0, 1)
-
+        theta_plus = (
+            (repeated_action_batch + self.delta_action)
+                .view((repeated_states.size(0), -1))
+                .clip(0, 1)
+        )
+        theta_minus = (
+            (repeated_action_batch - self.delta_action)
+                .view((repeated_states.size(0), -1))
+                .clip(0, 1)
+        )
         best_pi_actions = self.get_critic_action(best_pi_actions, prev_action_batch)
         theta_plus = self.get_critic_action(theta_plus, repeated_prev_action)
         theta_minus = self.get_critic_action(theta_minus, repeated_prev_action)
@@ -88,14 +91,14 @@ class Curvature(BaseEval):
         delta_minus = to_np(q_minus - q_0)
         relaxation = to_np(q_0.max() - q_0.min()) * self.relaxation
 
-        less_less = ((delta_plus <= relaxation) & (delta_minus <= relaxation)).astype(
-            int).sum(axis=1) / float(self.num_deltas)
-        larger_larger = ((delta_plus > relaxation) & (delta_minus > relaxation)).astype(
-            int).sum(axis=1) / float(self.num_deltas)
-        equal = np.isclose(delta_plus, -delta_minus).astype(
-            int).sum(axis=1) / float(self.num_deltas)
-        zero = (np.isclose(delta_plus, 0.) & np.isclose(delta_minus, 0.)).astype(
-            int).sum(axis=1) / float(self.num_deltas)
+        less_less = ((delta_plus <= relaxation) & (delta_minus <= relaxation)) \
+            .mean(axis=1)
+        larger_larger = ((delta_plus > relaxation) & (delta_minus > relaxation)) \
+            .mean(axis=1)
+        equal = np.isclose(delta_plus, -delta_minus) \
+            .mean(axis=1)
+        zero = (np.isclose(delta_plus, 0.) & np.isclose(delta_minus, 0.)) \
+            .mean(axis=1)
 
         self.local_max.append(less_less.mean())
         self.local_min.append(larger_larger.mean())
