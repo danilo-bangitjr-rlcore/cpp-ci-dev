@@ -31,10 +31,10 @@ class Curvature(BaseEval):
         r = torch.rand((1, self.num_deltas, self.agent.action_dim))
         self.delta_action = (1 - self.epsilon) * r + self.epsilon
 
-        self.local_max = []
-        self.local_min = []
-        self.linear = []
-        self.flat = []
+        self.local_max: list[np.float64] = []
+        self.local_min: list[np.float64] = []
+        self.linear: list[np.float64] = []
+        self.flat: list[np.float64] = []
 
     def do_eval(self, **kwargs) -> None:
         # estimate the td error on a batch
