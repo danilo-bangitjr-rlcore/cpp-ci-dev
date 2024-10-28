@@ -1,4 +1,3 @@
 defaults:
-  - action_normalizer: scale
   - reward_normalizer: scale
   - obs_normalizer: maxmin

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import logging
 
 from typing import Any, TypeVar, Generic
@@ -7,6 +8,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import gymnasium
 
+from corerl.utils.hydra import Group, interpolate
 from corerl.utils.types import Ring
 
 log = logging.getLogger(__name__)
@@ -134,28 +136,52 @@ class AvgNanNorm(InvertibleNormalizer):
             raise ValueError("Invalid shape for observation")
 
 
-def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> InvertibleNormalizer:
+@dataclass
+class BaseNormalizerConfig:
+    name: str = 'none'
+    use_cfg_values: bool = False
+    discrete_control: bool = interpolate('${env.discrete_control}')
+
+
+@dataclass
+class IdentityNormalizerConfig(BaseNormalizerConfig):
+    name: str = 'identity'
+
+
+@dataclass
+class ScaleNormalizerConfig(BaseNormalizerConfig):
+    name: str = 'scale'
+    action_low: float = interpolate('${env.action_low}')
+    action_high: float = interpolate('${env.action_high}')
+
+
+action_normalizer_group = Group(
+    'normalizer/action_normalizer',
+    return_type=InvertibleNormalizer[np.ndarray],
+)
+
+@action_normalizer_group.dispatcher(IdentityNormalizerConfig)
+def _identity_normalizer(cfg: IdentityNormalizerConfig, env: gymnasium.Env):
+    return Identity()
+
+
+@action_normalizer_group.dispatcher(ScaleNormalizerConfig)
+def _init_scale_normalizer(cfg: ScaleNormalizerConfig, env: gymnasium.Env):
+    action_min, action_max = get_action_bounds(cfg, env)
+    return Scale(
+        scale=action_max - action_min,
+        bias=action_min,
+    )
+
+
+def init_action_normalizer(cfg: BaseNormalizerConfig, env: gymnasium.Env):
     if cfg.discrete_control:
         return Identity()
 
-    name = cfg.name
-    if name == "identity":
-        return Identity()
-
-    elif name == "scale":
-        action_min, action_max = get_action_bounds(cfg, env)
-
-        scale = (action_max - action_min)
-        bias = action_min
-
-        log.debug(f"Initializing action normalizer using scale = {scale} and bias = {bias}")
-
-        return Scale(scale, bias)
-
-    raise NotImplementedError
+    return action_normalizer_group.dispatch(cfg, env)
 
 
-def get_action_bounds(cfg: DictConfig, env: gymnasium.Env) -> tuple[np.ndarray, np.ndarray]:
+def get_action_bounds(cfg: ScaleNormalizerConfig, env: gymnasium.Env) -> tuple[np.ndarray, np.ndarray]:
     if cfg.use_cfg_values:
         return (
             np.array(cfg.action_low),
