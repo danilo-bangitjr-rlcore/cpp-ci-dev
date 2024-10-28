@@ -1,5 +1,4 @@
 import logging
-import warnings
 
 from typing import Any, TypeVar, Generic
 from omegaconf import DictConfig
@@ -141,17 +140,6 @@ def init_action_normalizer(cfg: DictConfig, env: gymnasium.Env) -> InvertibleNor
 
     name = cfg.name
     if name == "identity":
-        action_min, action_max = get_action_bounds(cfg, env)
-
-        if action_min < 0 or action_max > 1:
-            warnings.warn(
-                "\033[1;33m" +
-                f"actions are bounded between [{action_min}, {action_max}] " +
-                "but the policy has support only over [0, 1]. Are you sure this is what you wanted to do?" +
-                "\033[0m",
-                stacklevel=1,
-            )
-
         return Identity()
 
     elif name == "scale":
