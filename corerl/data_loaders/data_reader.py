@@ -21,26 +21,19 @@ class DataReader:
     def batch_aggregated_read(
         self, names: List[str], start_time: datetime, end_time: datetime, bucket_width: timedelta
     ):
-        assert start_time.tzinfo == UTC
-        assert end_time.tzinfo == UTC
-        start_t_str = start_time.isoformat()
-        end_t_str = end_time.isoformat()
-
-        name_filter = "\tOR ".join([f"name = '{name}'\n" for name in names])
-        name_filter = f"({name_filter})"
         """
         NOTE: Addition of bucket_width in the select statement ensures that the labels
         for the time buckets align with the end of the bucket rather than the beginnning.
         """
+        
         query_str = f"""
             SELECT 
               time_bucket(INTERVAL '{bucket_width}', time) + '{bucket_width}' as time_bucket,
               name,
-              avg((fields->'val')::float) AS avg_val
+              avg({_parse_jsonb('fields')}) AS avg_val
             FROM {self.sensor_table_name}
-            WHERE time > TIMESTAMP '{start_t_str}'
-            AND time < TIMESTAMP '{end_t_str}'
-            AND {name_filter}
+            WHERE {_time_between('time', start_time, end_time)}
+            AND {_filter_any('name', names)}
             GROUP BY time_bucket, name
             ORDER BY time_bucket DESC, name ASC;
         """
@@ -51,27 +44,21 @@ class DataReader:
             raise Exception("dataframe returned from timescale was empty.")
 
         sensor_data = sensor_data.pivot(columns="name", values="avg_val", index="time_bucket")
+
         missing_cols = set(names) - set(sensor_data.columns)
         sensor_data[list(missing_cols)] = np.nan
 
         return sensor_data
 
     def single_aggregated_read(self, names: List[str], start_time: datetime, end_time: datetime):
-        assert start_time.tzinfo == UTC
-        assert end_time.tzinfo == UTC
-        start_t_str = start_time.isoformat()
-        end_t_str = end_time.isoformat()
-
-        name_filter = "\tOR ".join([f"name = '{name}'\n" for name in names])
-        name_filter = f"({name_filter})"
+        
         query_str = f"""
             SELECT 
               name,
-              avg((fields->'val')::float) AS avg_val
+              avg({_parse_jsonb('fields')}) AS avg_val
             FROM {self.sensor_table_name}
-            WHERE time > TIMESTAMP '{start_t_str}'
-            AND time < TIMESTAMP '{end_t_str}'
-            AND {name_filter}
+            WHERE {_time_between('time', start_time, end_time)}
+            AND {_filter_any('name', names)}
             GROUP BY name
             ORDER BY name ASC;
         """
@@ -80,9 +67,11 @@ class DataReader:
         if sensor_data.empty:
             logger.warning(f"failed query:\n{query_str}")
             raise Exception("dataframe returned from timescale was empty.")
-        sensor_data["time"] = end_time
 
+        # add time column to enable pivot
+        sensor_data["time"] = end_time
         sensor_data = sensor_data.pivot(columns="name", values="avg_val", index="time")
+        
         missing_cols = set(names) - set(sensor_data.columns)
         sensor_data[list(missing_cols)] = np.nan
 
@@ -90,3 +79,18 @@ class DataReader:
 
     def close(self) -> None:
         self.connection.close()
+
+def _time_between(time_col: str, start: datetime, end: datetime) -> str:
+    assert start.tzinfo == UTC
+    assert end.tzinfo == UTC
+    return f"""
+        {time_col} > TIMESTAMP '{start.isoformat()}'
+        AND {time_col} < TIMESTAMP '{end.isoformat()}'
+    """
+
+def _parse_jsonb(col: str, attribute: str = 'val', type_str: str = 'float') -> str:
+    return f"({col}->'{attribute}')::{type_str}"
+
+def _filter_any(col: str, vals: list[str]) -> str:
+    s = '\tOR '.join([f"{col} = '{v}'\n" for v in vals])
+    return f'({s})'

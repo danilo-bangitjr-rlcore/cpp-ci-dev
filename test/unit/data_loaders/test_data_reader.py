@@ -1,3 +1,4 @@
+from pandas import DataFrame
 from corerl.data_loaders.data_reader import DataReader
 from corerl.data_loaders.data_writer import DataWriter
 from omegaconf import OmegaConf
@@ -80,7 +81,7 @@ class TestDataReader:
         print(end_time)
         print(result_df)
         print(len(result_df))
-        assert set(TestDataReader.sensor_names).issubset(result_df.columns)
+        self._ensure_names_included(result_df)
 
     @pytest.mark.skip(reason="github actions do not yet support docker")
     def test_missing_col_batch_aggregated_read(self, data_reader: DataReader, populate_db):
@@ -96,7 +97,7 @@ class TestDataReader:
         )
 
         assert bool(result_df[missing_sensor_name].isnull().all())
-        assert set(TestDataReader.sensor_names).issubset(result_df.columns)
+        self._ensure_names_included(result_df)
 
     @pytest.mark.skip(reason="github actions do not yet support docker")
     def test_missing_col_single_aggregated_read(self, data_reader: DataReader, populate_db):
@@ -111,4 +112,8 @@ class TestDataReader:
         )
 
         assert bool(result_df[missing_sensor_name].isnull().all())
-        assert set(TestDataReader.sensor_names).issubset(result_df.columns)
+        self._ensure_names_included(result_df)
+
+    def _ensure_names_included(self, data: DataFrame) -> None:
+        for name in TestDataReader.sensor_names:
+            assert name in data.columns

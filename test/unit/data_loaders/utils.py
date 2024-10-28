@@ -6,8 +6,8 @@ from docker import DockerClient
 import time
 import docker
 
-PERSIST = True  # if true, stop container but don't remove it (data will persist)
-INSPECT = True  # if true, leave container running after tests conclude
+PERSIST = False  # if true, stop container but don't remove it (data will persist)
+INSPECT = False  # if true, leave container running after tests conclude
 
 def maybe_create_sensor_table(engine: Engine, sensor_table_name: str):
     if table_exists(engine, table_name=sensor_table_name):
