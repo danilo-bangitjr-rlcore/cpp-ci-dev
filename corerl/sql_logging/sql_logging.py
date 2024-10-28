@@ -9,7 +9,7 @@ from sqlalchemy.sql import func
 from sqlalchemy_utils import database_exists, create_database
 
 from sqlalchemy_utils import database_exists, drop_database, create_database
-from sqlalchemy import select
+from sqlalchemy import select, URL
 from omegaconf import OmegaConf
 from corerl.sql_logging.base_schema import (
     Base,
@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 import logging
 from sqlalchemy import inspect
 from sqlalchemy import URL
+import time
 # from sqlalchemy.ext.declarative.clsregistry import _ModuleMarker
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ def get_sql_engine(db_data: dict, db_name: str, force_drop=False) -> Engine:
         database=db_name,
     )
     logger.debug("creating sql engine...")
-    engine = sqlalchemy.create_engine(url_object, pool_recycle=280, pool_pre_ping=True)
+    engine = try_create_engine(url_object=url_object)
 
     if force_drop:
         maybe_drop_database(engine.url)
@@ -45,15 +46,43 @@ def get_sql_engine(db_data: dict, db_name: str, force_drop=False) -> Engine:
 
     return engine
 
+def try_create_engine(url_object: URL, backoff_seconds: int = 5, max_tries: int = 5) -> Engine:
+    engine = None
+    tries = 0
+    while not engine is not None:
+        if tries >= max_tries:
+            raise Exception("sql engine creation failed")
+        try:
+            engine = sqlalchemy.create_engine(url_object, pool_recycle=280, pool_pre_ping=True)
+        except:
+            logger.warning(f"failed to create sql engine, retrying in {backoff_seconds} seconds...")
+            time.sleep(backoff_seconds)
+        tries += 1
+
+    return engine
+
 def maybe_drop_database(conn_url: URL) -> None:
     if not database_exists(conn_url):
         return 
     drop_database(conn_url)
 
-def maybe_create_database(conn_url: URL) -> None:
+def maybe_create_database(conn_url: URL, backoff_seconds: int = 5, max_tries: int = 5) -> None:
     if database_exists(conn_url):
         return
-    create_database(conn_url)
+
+    success = False
+    tries = 0
+    while not success:
+        if tries >= max_tries:
+            raise Exception("database creation failed")
+        try:
+            create_database(conn_url)
+            success = True
+        except Exception as e:
+            logger.warning(f"failed to create database, retrying in {backoff_seconds} seconds...")
+            logger.error(e, exc_info=True)
+            time.sleep(backoff_seconds)
+        tries += 1
 
 
 def create_column(name: str, dtype: str, primary_key: bool = False) -> Column:
