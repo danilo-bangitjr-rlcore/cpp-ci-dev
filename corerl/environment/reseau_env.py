@@ -1,3 +1,4 @@
+from datetime import datetime
 import numpy as np
 import pandas as pd
 import time
@@ -38,3 +39,12 @@ class ReseauEnv(InfluxOPCEnv):
 
     def _check_done(self) -> bool:
         return False
+
+    async def healthcheck(self):
+        ...
+
+    async def async_reset(self, *, seed=None, options=None) -> tuple[np.ndarray, dict]:
+        ...
+
+    async def get_deployed_action(self, time: datetime | None = None) -> np.ndarray:
+        ...
