@@ -239,7 +239,7 @@ class LineSearchOpt:
 
     @property
     def latest_change(self) -> float:
-        return self.last_change
+        return float(self.last_change)
 
     @property
     def latest_lr_main(self) -> float:
