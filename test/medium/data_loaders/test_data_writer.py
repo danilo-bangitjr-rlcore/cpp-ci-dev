@@ -2,7 +2,7 @@ from corerl.data_loaders.data_writer import DataWriter
 from omegaconf import OmegaConf
 from datetime import datetime, UTC, timedelta
 import pytest
-from test.unit.data_loaders.utils import maybe_create_sensor_table
+from test.medium.data_loaders.utils import maybe_create_sensor_table
 from typing import Generator
 from random import random
 

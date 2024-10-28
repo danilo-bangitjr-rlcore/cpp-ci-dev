@@ -3,8 +3,8 @@ from corerl.data_loaders.data_reader import DataReader
 from corerl.data_loaders.data_writer import DataWriter
 from omegaconf import OmegaConf
 import pytest
-from test.unit.data_loaders.utils import maybe_create_sensor_table, timescale_docker
-from test.unit.data_loaders.test_data_writer import write_n_random_vals, data_writer
+from test.medium.data_loaders.utils import maybe_create_sensor_table, timescale_docker
+from test.medium.data_loaders.test_data_writer import write_n_random_vals, data_writer
 from typing import Generator, List
 from datetime import datetime, timedelta, UTC
 
