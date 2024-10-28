@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 from corerl.agent.utils import get_top_action
 from jaxtyping import Float
 from omegaconf import DictConfig
