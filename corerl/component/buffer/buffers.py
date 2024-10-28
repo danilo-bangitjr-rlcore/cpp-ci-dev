@@ -334,7 +334,7 @@ class SQLBuffer(UniformBuffer):
     def _feed(self, experience: Transition) -> None:
         return super().feed(experience)
 
-    def row_to_transition(self, row: pd.DataFrame) -> Transition:
+    def row_to_transition(self, row: pd.DataFrame | pd.Series) -> Transition:
         transition = Transition(
             obs=None,
             state=row.state.item(),
