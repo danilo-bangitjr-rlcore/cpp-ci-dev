@@ -79,3 +79,34 @@ class TestDataReader:
         print(result_df)
         print(len(result_df))
         assert set(TestDataReader.sensor_names).issubset(result_df.columns)
+
+    @pytest.mark.skip(reason="github actions do not yet support docker")
+    def test_missing_col_batch_aggregated_read(self, data_reader: DataReader, populate_db):
+        end_time = datetime.now(UTC) + timedelta(minutes=1)
+        start_time = end_time - timedelta(minutes=30)
+        missing_sensor_name = "sensor_x"
+
+        result_df = data_reader.batch_aggregated_read(
+            names=TestDataReader.sensor_names + [missing_sensor_name],
+            start_time=start_time,
+            end_time=end_time,
+            bucket_width=timedelta(seconds=10),
+        )
+
+        assert bool(result_df[missing_sensor_name].isnull().all())
+        assert set(TestDataReader.sensor_names).issubset(result_df.columns)
+
+    @pytest.mark.skip(reason="github actions do not yet support docker")
+    def test_missing_col_single_aggregated_read(self, data_reader: DataReader, populate_db):
+        end_time = datetime.now(UTC) + timedelta(minutes=1)
+        start_time = end_time - timedelta(minutes=30)
+        missing_sensor_name = "sensor_x"
+
+        result_df = data_reader.single_aggregated_read(
+            names=TestDataReader.sensor_names + [missing_sensor_name],
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+        assert bool(result_df[missing_sensor_name].isnull().all())
+        assert set(TestDataReader.sensor_names).issubset(result_df.columns)

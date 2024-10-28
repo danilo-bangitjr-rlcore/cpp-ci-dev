@@ -4,6 +4,7 @@ from corerl.sql_logging.sql_logging import get_sql_engine
 import pandas as pd
 from sqlalchemy import Engine
 from typing import List
+import numpy as np
 from corerl.data_loaders.utils import try_connect
 import logging
 
@@ -46,6 +47,8 @@ class DataReader:
             raise Exception("dataframe returned from timescale was empty.")
 
         sensor_data = sensor_data.pivot(columns="name", values="avg_val", index="time_bucket")
+        missing_cols = set(names) - set(sensor_data.columns)
+        sensor_data[list(missing_cols)] = np.nan
 
         return sensor_data
 
@@ -76,6 +79,8 @@ class DataReader:
         sensor_data["time"] = end_time
 
         sensor_data = sensor_data.pivot(columns="name", values="avg_val", index="time")
+        missing_cols = set(names) - set(sensor_data.columns)
+        sensor_data[list(missing_cols)] = np.nan
 
         return sensor_data
 
