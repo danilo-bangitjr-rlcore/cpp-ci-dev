@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import ctypes
 from typing import Any, Callable
+from torch.optim.optimizer import Optimizer
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 
@@ -89,17 +90,17 @@ class LineSearchOpt:
             net1.load_state_dict(net0.state_dict())
         return net1
 
-    def __save_opt(self, i: int, opt0: torch.optim.Optimizer | EnsembleOptimizer) -> None:
+    def __save_opt(self, i: int, opt0: Optimizer | EnsembleOptimizer) -> None:
         self.opt_copy_dict[i] = opt0.state_dict()
         return
 
-    def __load_opt(self, i: int, opt0: torch.optim.Optimizer | EnsembleOptimizer) \
-            -> torch.optim.Optimizer | EnsembleOptimizer:
+    def __load_opt(self, i: int, opt0: Optimizer | EnsembleOptimizer) \
+            -> Optimizer | EnsembleOptimizer:
         opt0.load_state_dict(self.opt_copy_dict[i])
         return opt0
 
     def __parameter_backup(self, net_lst: list[torch.nn.Module],
-                           opt_lst: list[torch.optim.Optimizer | EnsembleOptimizer]) -> None:
+                           opt_lst: list[Optimizer | EnsembleOptimizer]) -> None:
         for i in range(len(net_lst)):
             self.__save_opt(i, opt_lst[i])
             self.__clone_model_0to1(net_lst[i], self.net_copy_lst[i])
@@ -107,8 +108,8 @@ class LineSearchOpt:
     def __undo_update(
         self,
         net_lst: list[torch.nn.Module],
-        opt_lst: list[torch.optim.Optimizer | EnsembleOptimizer]
-    ) -> tuple[list[torch.nn.Module], list[torch.optim.Optimizer | EnsembleOptimizer]]:
+        opt_lst: list[Optimizer | EnsembleOptimizer]
+    ) -> tuple[list[torch.nn.Module], list[Optimizer | EnsembleOptimizer]]:
         for i in range(len(net_lst)):
             self.__clone_model_0to1(self.net_copy_lst[i], net_lst[i])
             opt_lst[i] = self.__load_opt(i, opt_lst[i])
@@ -232,7 +233,7 @@ class LineSearchOpt:
         self.inner_count += 1
         return
 
-    def __reset_lr(self, opt: torch.optim.Optimizer | EnsembleOptimizer, new_lr) -> None:
+    def __reset_lr(self, opt: Optimizer | EnsembleOptimizer, new_lr) -> None:
         for g in opt.param_groups:
             g['lr'] = new_lr
 
