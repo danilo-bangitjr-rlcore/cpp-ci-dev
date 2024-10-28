@@ -21,7 +21,7 @@ class TDE(BaseEval):
 
         self.agent = kwargs['agent']
         self.gamma = cfg.gamma
-        self.tdes = []  # the td errors
+        self.tdes: list[float] = []  # the td errors
 
     def do_eval(self, **kwargs) -> None:
         # estimate the td error on a batch

@@ -31,10 +31,10 @@ class IBE(BaseEval):
             ensemble=True
         )
 
-        self.losses = []
-        self.bes = []  # the bellman errors
-        self.bes_changes = []  # the change of bellman errors
-        self.bes_changes_smoothed = []  # the change of bellman errors
+        self.losses: list[list[float]] = []
+        self.bes: list[np.float64] = []  # the bellman errors
+        self.bes_changes: list[np.float64] = []  # the change of bellman errors
+        self.bes_changes_smoothed: list[np.float64] = []  # the change of bellman errors
 
     def _get_delta(self, batch: TransitionBatch) -> torch.Tensor:
         state_batch = batch.state

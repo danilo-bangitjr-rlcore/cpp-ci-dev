@@ -11,10 +11,10 @@ class RewardEval(BaseEval):
         self.episode_return = 0
         self.return_window = cfg.return_window
         self.reward_window = cfg.reward_window
-        self.returns = []
-        self.rewards = []
-        self.reward_sum = 0
-        self.reward_sums = []
+        self.returns: list[float] = []
+        self.rewards: list[float] = []
+        self.reward_sum: float = 0.
+        self.reward_sums: list[float] = []
 
     def do_eval(self, **kwargs) -> None:
         if 'transitions' not in kwargs:

@@ -27,8 +27,8 @@ class PolicyImprove(BaseEval):
         self.n_samples = cfg.n_samples
         self.get_prev_action = kwargs['get_prev_action_function']
         self.get_critic_action = kwargs['get_critic_action_function']
-        self.policy_improvments = []
-        self.greedy_gaps = []
+        self.policy_improvments: list[float] = []
+        self.greedy_gaps: list[float] = []
 
     def _get_actions(self, state_batch: Float[torch.Tensor, "batch_size state_dim"],
                      prev_actions: Float[torch.Tensor, "batch_size action_dim"]) \

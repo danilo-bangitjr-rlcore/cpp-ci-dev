@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from corerl.agent.utils import get_top_action
 from jaxtyping import Float
 from omegaconf import DictConfig
@@ -21,7 +22,7 @@ class ActionGapEval(BaseEval):
         self.agent = kwargs['agent']
         self.action_dim = self.agent.action_dim
         assert hasattr(self.agent, 'q_critic'), "Agent must have a q_critic"
-        self.action_gaps = []
+        self.action_gaps: list[float] = []
 
     def _get_batch_action_gap(self, state_batch: Float[torch.Tensor, "batch_size state_dim"]) -> float:
         batch_size = state_batch.shape[0]
