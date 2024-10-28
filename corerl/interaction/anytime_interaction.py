@@ -325,6 +325,7 @@ class OldAnytimeInteraction(BaseInteraction):
         )
         obs_transition = self.normalizer.normalize(obs_transition)
 
+        assert obs_transition.next_obs is not None
         next_state = self.state_constructor(obs_transition.next_obs,
                                             obs_transition.action,
                                             initial_state=False,  # we are not in reset(), so never an initial state
