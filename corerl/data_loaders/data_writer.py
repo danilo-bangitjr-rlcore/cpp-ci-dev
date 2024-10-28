@@ -2,19 +2,18 @@ from omegaconf import DictConfig
 from datetime import datetime, UTC
 from corerl.sql_logging.sql_logging import get_sql_engine
 from sqlalchemy import text, Engine
+from corerl.data_loaders.utils import try_connect
 
 
 class DataWriter:
     def __init__(self, db_cfg: DictConfig, db_name: str, sensor_table_name: str, commit_every: int) -> None:
-        # db_data = OmegaConf.to_container(db_cfg)
         db_data = dict(db_cfg)
         self.engine: Engine = get_sql_engine(db_data=db_data, db_name=db_name)
-        self.ts_format = "%Y-%m-%d %H:%M:%S%z"
         self.sensor_table_name = sensor_table_name
         self.host = "localhost"
         self.commit_every = commit_every
         self._writes = 0
-        self.connection = self.engine.connect()
+        self.connection = try_connect(self.engine)
 
     def write(
         self,
