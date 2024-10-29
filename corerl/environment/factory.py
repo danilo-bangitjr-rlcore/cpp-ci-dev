@@ -33,16 +33,26 @@ def init_environment(cfg: DictConfig) -> gym.Env:
     # downstream implementations to inherit `gym.Env`.
     env: Any | None = None
     if name == "three_tanks_v2":
+        if cfg.discrete_control:
+            raise NotImplementedError
+
         if cfg.change_action:
-            if cfg.discrete_control:
-                raise NotImplementedError
-            else:
-                env = TTv2.TTChangeAction(seed)
+            temp = cfg.reset_temperature
+            if temp in ("np.inf", "∞", "inf"):
+                temp = np.inf
+
+            env = TTv2.TTChangeAction(
+                seed,
+                mse_penalty_reward=cfg.mse_penalty_reward,
+                reset_to_high_reward=cfg.reset_to_high_reward,
+                reset_buffer_size=cfg.reset_buffer_size,
+                reset_buffer_add_delay=cfg.reset_buffer_add_delay,
+                reset_buffer_always_include_start=cfg.reset_buffer_always_include_start,
+                reset_temperature=temp,
+                n_internal_iter=cfg.n_internal_iter,
+            )
         else:
-            if cfg.discrete_control:
-                raise NotImplementedError
-            else:
-                env = TTv2.ThreeTankEnv(seed, random_sp=cfg.random_sp)
+            env = TTv2.ThreeTankEnv(seed, random_sp=cfg.random_sp)
 
     elif name == "four_rooms":
         env = FourRoomsEnv(
