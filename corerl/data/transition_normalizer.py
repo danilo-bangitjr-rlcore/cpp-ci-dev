@@ -3,7 +3,10 @@ import gymnasium as gym
 from copy import deepcopy
 from omegaconf import DictConfig
 from corerl.data.data import Transition
-from corerl.data.normalizer_utils import InvertibleNormalizer, init_action_normalizer, init_reward_normalizer, init_obs_normalizer
+from corerl.data.normalizer.action import init_action_normalizer
+from corerl.data.normalizer.obs import init_obs_normalizer
+from corerl.data.normalizer.reward import init_reward_normalizer
+from corerl.data.normalizer.base import InvertibleNormalizer
 
 log = logging.getLogger(__name__)
 

@@ -1,14 +1,12 @@
 from dataclasses import dataclass
+import numpy as np
 import logging
 
 from typing import Any, TypeVar, Generic
-from omegaconf import DictConfig
 from abc import ABC, abstractmethod
 
-import numpy as np
-import gymnasium
+from omegaconf import MISSING
 
-from corerl.utils.hydra import Group, interpolate
 from corerl.utils.types import Ring
 
 log = logging.getLogger(__name__)
@@ -16,6 +14,16 @@ log = logging.getLogger(__name__)
 
 R = TypeVar('R', bound=Ring)
 
+
+@dataclass
+class NormalizerConfig:
+    action_normalizer: Any = MISSING
+    obs_normalizer: Any = MISSING
+    reward_normalizer: Any = MISSING
+
+# ----------
+# -- Base --
+# ----------
 class BaseNormalizer(ABC, Generic[R]):
     @abstractmethod
     def __init__(self):
@@ -32,6 +40,9 @@ class InvertibleNormalizer(BaseNormalizer[R]):
         raise NotImplementedError
 
 
+# --------------
+# -- Identity --
+# --------------
 class Identity(InvertibleNormalizer):
     def __init__(self):
         return
@@ -43,6 +54,9 @@ class Identity(InvertibleNormalizer):
         return x
 
 
+# -----------
+# -- Scale --
+# -----------
 class Scale(InvertibleNormalizer):
     def __init__(self, scale: R, bias: R):
         self.scale = scale
@@ -55,6 +69,9 @@ class Scale(InvertibleNormalizer):
         return x * self.scale + self.bias
 
 
+# ----------
+# -- Clip --
+# ----------
 class Clip(BaseNormalizer):
     def __init__(self, min_: R, max_: R):
         self.min: Any = min_
@@ -64,6 +81,9 @@ class Clip(BaseNormalizer):
         return np.clip(x, self.min, self.max)
 
 
+# ------------
+# -- OneHot --
+# ------------
 class OneHot(InvertibleNormalizer):
     def __init__(self, total_count: int, start_from: int):
         self.total_count = total_count
@@ -81,6 +101,9 @@ class OneHot(InvertibleNormalizer):
         return idx
 
 
+# ------------
+# -- MaxMin --
+# ------------
 class MaxMin(InvertibleNormalizer):
     def __init__(self, min: float, max: float):
         self.min = min
@@ -95,6 +118,9 @@ class MaxMin(InvertibleNormalizer):
         return x * self.scale + self.bias
 
 
+# ----------------
+# -- AvgNanNorm --
+# ----------------
 class AvgNanNorm(InvertibleNormalizer):
     def __init__(self, min: float, max: float):
         self.min = min
@@ -134,105 +160,3 @@ class AvgNanNorm(InvertibleNormalizer):
             return x
         else:
             raise ValueError("Invalid shape for observation")
-
-
-@dataclass
-class BaseNormalizerConfig:
-    name: str = 'none'
-    use_cfg_values: bool = False
-    discrete_control: bool = interpolate('${env.discrete_control}')
-
-
-@dataclass
-class IdentityNormalizerConfig(BaseNormalizerConfig):
-    name: str = 'identity'
-
-
-@dataclass
-class ScaleNormalizerConfig(BaseNormalizerConfig):
-    name: str = 'scale'
-    action_low: float = interpolate('${env.action_low}')
-    action_high: float = interpolate('${env.action_high}')
-
-
-action_normalizer_group = Group(
-    'normalizer/action_normalizer',
-    return_type=InvertibleNormalizer[np.ndarray],
-)
-
-@action_normalizer_group.dispatcher(IdentityNormalizerConfig)
-def _identity_normalizer(cfg: IdentityNormalizerConfig, env: gymnasium.Env):
-    return Identity()
-
-
-@action_normalizer_group.dispatcher(ScaleNormalizerConfig)
-def _init_scale_normalizer(cfg: ScaleNormalizerConfig, env: gymnasium.Env):
-    action_min, action_max = get_action_bounds(cfg, env)
-    return Scale(
-        scale=action_max - action_min,
-        bias=action_min,
-    )
-
-
-def init_action_normalizer(cfg: BaseNormalizerConfig, env: gymnasium.Env):
-    if cfg.discrete_control:
-        return Identity()
-
-    return action_normalizer_group.dispatch(cfg, env)
-
-
-def get_action_bounds(cfg: ScaleNormalizerConfig, env: gymnasium.Env) -> tuple[np.ndarray, np.ndarray]:
-    if cfg.use_cfg_values:
-        return (
-            np.array(cfg.action_low),
-            np.array(cfg.action_high),
-        )
-
-    # We don't currently have a reliable way to type-guard
-    # whether the action_space has a `low` and `high`.
-    space: Any = env.action_space
-    return (space.low, space.high)
-
-
-def init_reward_normalizer(cfg: DictConfig) -> BaseNormalizer:
-    name = cfg.name
-    if name == "identity":
-        return Identity()
-    elif name == "scale":
-        reward_high = float(cfg.reward_high)
-        reward_low = float(cfg.reward_low)
-        scale = reward_high - reward_low
-        bias = float(cfg.reward_bias)
-
-        log.debug(f"Initializing reward normalizer using scale = {scale} and bias = {bias}")
-
-        return Scale(scale, bias)
-    elif name == "clip":
-        return Clip(cfg.clip_min, cfg.clip_max)
-    else:
-        raise NotImplementedError
-
-
-def init_obs_normalizer(cfg: DictConfig, env) -> InvertibleNormalizer:
-    name = cfg.name
-    if name == "identity":
-        return Identity()
-    elif name == "maxmin":
-        lo, hi = get_observation_bounds(env)
-        return MaxMin(lo, hi)
-    elif name == "avg_nan_norm":
-        lo, hi = get_observation_bounds(env)
-        return AvgNanNorm(lo, hi)
-
-    raise Exception(f'Normalizer <{name}> not implemented')
-
-
-def get_observation_bounds(env: gymnasium.Env) -> tuple[float, float]:
-    # We don't currently have a reliable way to type-guard
-    # whether the observation_space has a `low` and `high`.
-    space: Any = env.observation_space
-
-    return (
-        space.low,
-        space.high,
-    )

@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from corerl.data.normalizer_utils import AvgNanNorm, InvertibleNormalizer, Clip, Identity, MaxMin, OneHot, Scale
+from corerl.data.normalizer.base import AvgNanNorm, InvertibleNormalizer, Clip, Identity, MaxMin, OneHot, Scale
 
 
 

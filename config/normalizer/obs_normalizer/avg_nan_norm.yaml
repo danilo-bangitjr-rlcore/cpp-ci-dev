@@ -1,2 +1,0 @@
-name: avg_nan_norm
-discrete_control: ${env.discrete_control}
