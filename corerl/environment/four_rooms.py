@@ -41,12 +41,12 @@ class FourRoomsEnv(gym.Env):
 
         if continuous_action:
             max_action = np.array([1, 1])
-            self._action_space = spaces.Box(
+            self.action_space = spaces.Box(
                 -max_action, max_action, dtype=np.float32,
             )
             self._continuous_action = True
         else:
-            self._action_space = spaces.Discrete(5)
+            self.action_space = spaces.Discrete(5)
             self._continuous_action = False
 
         self._action_scale = action_scale
@@ -55,7 +55,7 @@ class FourRoomsEnv(gym.Env):
         self._noise_scale = noise_scale
         self._rng = np.random.default_rng(seed)
 
-        self._observation_space = spaces.Box(
+        self.observation_space = spaces.Box(
             np.array([0, 0]),
             np.array([1, 1]),
             dtype=np.float32,
@@ -69,14 +69,6 @@ class FourRoomsEnv(gym.Env):
 
     def register_hook(self, hook, when: when.Env):
         self._hooks.register(hook, when)
-
-    @property
-    def action_space(self):
-        return self._action_space
-
-    @property
-    def observation_space(self):
-        return self._observation_space
 
     @classmethod
     def _discrete_to_continuous(cls, action):
@@ -202,7 +194,9 @@ class FourRoomsEnv(gym.Env):
             self._fig = plt.figure()
             self._ax = self._fig.add_subplot()
 
-            for start, end in zip(self.corridors_start, self.corridors_end):
+            for start, end in zip(
+                self.corridors_start, self.corridors_end, strict=True,
+            ):
                 if start[0] < 0.5:
                     self._ax.plot(
                         [0, start[0]], [start[1], start[1]], color="black",
