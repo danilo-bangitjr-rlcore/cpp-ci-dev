@@ -26,10 +26,14 @@ class ObsTransitionNormalizer:
         obs_transition_copy = copy(obs_transition)
 
         if isinstance(obs_transition_copy, OldObsTransition):
+            assert obs_transition_copy.prev_action is not None
             obs_transition_copy.prev_action = self.action_normalizer(obs_transition_copy.prev_action)
 
+        assert obs_transition_copy.obs is not None
         obs_transition_copy.obs = self.obs_normalizer(obs_transition_copy.obs)
         obs_transition_copy.action = self.action_normalizer(obs_transition_copy.action)
+
+        assert obs_transition_copy.next_obs is not None
         obs_transition_copy.next_obs = self.obs_normalizer(obs_transition_copy.next_obs)
         obs_transition_copy.reward = self.reward_normalizer(obs_transition_copy.reward)
         return obs_transition_copy

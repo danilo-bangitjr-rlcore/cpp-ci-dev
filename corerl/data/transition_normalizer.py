@@ -19,6 +19,9 @@ class TransitionNormalizer:
     def denormalize(self, transition: Transition):
         transition_copy = deepcopy(transition)
 
+        assert transition_copy.obs is not None
+        assert transition_copy.next_obs is not None
+
         transition_copy.obs = self.obs_normalizer.denormalize(transition_copy.obs)
         transition_copy.action = self.action_normalizer.denormalize(transition_copy.action)
         transition_copy.next_obs = self.obs_normalizer.denormalize(transition_copy.next_obs)
