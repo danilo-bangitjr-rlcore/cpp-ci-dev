@@ -5,6 +5,7 @@ from collections.abc import MutableMapping
 from hydra.core.config_store import ConfigStore
 
 from corerl.experiment.config import ExperimentConfig
+from corerl.data.normalizer.base import NormalizerConfig
 
 @dataclass
 class MainConfig(MutableMapping):
@@ -20,7 +21,7 @@ class MainConfig(MutableMapping):
     event_bus: Any = MISSING
     experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
     interaction: Any = MISSING
-    normalizer: Any = MISSING
+    normalizer: NormalizerConfig = field(default_factory=NormalizerConfig)
     offline_data: Any = MISSING
     state_constructor: Any = MISSING
 
