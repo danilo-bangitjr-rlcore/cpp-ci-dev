@@ -5,18 +5,24 @@ import pandas as pd
 from matplotlib.path import Path
 from corerl.agent.utils import get_test_state_qs_and_policy_params
 
+import corerl.utils.nullable as nullable
 
-def remove_spines(axs, spines=["top", "right"], has_subplots=True):
-    def _remove_spines(ax, spines):
+def remove_spines(
+    axs,
+    spines: list[str] | None = None,
+    has_subplots=True,
+):
+    spines = nullable.default(spines, lambda: ["top", "right"])
+    def _remove_spines(ax):
         for spine in spines:
             if spine in ax.spines:
                 ax.spines[spine].set_visible(False)
 
     if has_subplots:
         for ax in axs.flat:
-            _remove_spines(ax, spines)
+            _remove_spines(ax)
     else:
-        _remove_spines(axs, spines)
+        _remove_spines(axs)
 
 
 def make_action_mean_variance_plot(freezer, save_path):
@@ -247,15 +253,7 @@ def make_reward_plot(stats, save_path):
 def make_train_test_loss_plot(stats, save_path):
     train_losses = stats["train_losses"]
     test_losses = stats["test_losses"]
-    #ensemble = len(train_losses)
-    #colors = ['blue', 'green', 'red', 'orange', 'purple', 'magenta', 'goldenrod', 'olive', 'lime', 'cyan', 'crimson', 'peru']
-
-    fig, ax = plt.subplots(figsize=(12, 12))
-    """
-    for i in range(ensemble):
-        ax.plot(train_losses[i], c=colors[i], linestyle="solid", label="train loss {}".format(i), alpha=1.0)
-        ax.plot(test_losses[i], c=colors[i], linestyle="dotted", label="test loss {}".format(i), alpha=0.5)
-    """
+    _, ax = plt.subplots(figsize=(12, 12))
     ax.plot(train_losses, linestyle="solid", label="train loss", alpha=1.0)
     ax.plot(test_losses, linestyle="dotted", label="test loss", alpha=1.0)
     ax.set_xlabel('Iteration')
@@ -276,8 +274,7 @@ def make_trace_alerts_plots(stats, path):
     returns = stats["alert_returns"]
     trace_thresholds = stats["alert_trace_thresholds"]
 
-    min_steps = float('inf')
-    min_steps = min(min_steps, len(composite_alerts))
+    min_steps = len(composite_alerts)
     for action_name in actions_taken:
         min_steps = min(min_steps, len(actions_taken[action_name]))
     for alert_type in individual_alerts:
@@ -296,7 +293,8 @@ def make_trace_alerts_plots(stats, path):
         for cumulant_name in individual_alerts[alert_type]:
             fig, ax = plt.subplots(3, 1, sharex=True, figsize=(12, 12))
 
-            # Individual Alerts - Plot vertical red lines in each subplot at time steps where there are alerts for the given cumulant
+            # Individual Alerts -
+            # Plot vertical red lines in each subplot at time steps where there are alerts for the given cumulant
             for step in time_steps:
                 if individual_alerts[alert_type][cumulant_name][step]:
                     ax[0].axvline(x=step, color='r', alpha=0.2)
@@ -324,7 +322,7 @@ def make_trace_alerts_plots(stats, path):
             thresh_list = [trace_thresholds[alert_type][cumulant_name] for _ in range(min_steps)]
             ax[2].plot(time_steps, thresh_list, c="k", label="Trace Threshold", alpha=1.0)
             ax[2].plot(time_steps, cumulant_name_traces, label="{} Trace".format(cumulant_name), c="m", alpha=1.0)
-            ax[2].set_title("{} Q(s,a) vs. Observed Partial Returns Absolute Difference Trace".format(cumulant_name), pad=0)
+            ax[2].set_title(f"{cumulant_name} Q(s,a) vs. Observed Partial Returns Absolute Difference Trace", pad=0)
 
             ax[0].legend()
             ax[1].legend()
@@ -358,11 +356,14 @@ def make_trace_alerts_plots(stats, path):
         for cumulant_name in individual_alerts[alert_type]:
             thresh_list = [trace_thresholds[alert_type][cumulant_name] for _ in range(min_steps)]
             cumulant_name_traces = alert_traces[alert_type][cumulant_name][:min_steps]
-            ax[1].plot(time_steps, thresh_list, c=colors[counter], linestyle="dashed", label="{} Threshold".format(cumulant_name), alpha=1.0)
-            ax[1].plot(time_steps, cumulant_name_traces, c=colors[counter], linestyle="solid", label="{} Trace".format(cumulant_name), alpha=1.0)
-            counter += 1
-    ax[1].set_title("All Alert Traces and Thresholds", pad=0)
+            thresh_label = f'{cumulant_name} Threshold'
+            ax[1].plot(time_steps, thresh_list, c=colors[counter], linestyle="dashed", label=thresh_label, alpha=1.0)
 
+            trace_label = f'{cumulant_name} Trace'
+            ax[1].plot(time_steps, cumulant_name_traces, c=colors[counter], linestyle="solid", label=trace_label, alpha=1.0) # noqa: E501
+            counter += 1
+
+    ax[1].set_title("All Alert Traces and Thresholds", pad=0)
     ax[0].legend()
     ax[1].legend()
     plt.xlabel("Time Step")
@@ -382,8 +383,7 @@ def make_uncertainty_alerts_plots(stats, path):
     std_traces = stats["std_traces"]
     std_trace_thresholds = stats["std_trace_thresholds"]
 
-    min_steps = float('inf')
-    min_steps = min(min_steps, len(composite_alerts))
+    min_steps = len(composite_alerts)
     for action_name in actions_taken:
         min_steps = min(min_steps, len(actions_taken[action_name]))
     for endo_obs_name in endo_obs:
@@ -406,7 +406,8 @@ def make_uncertainty_alerts_plots(stats, path):
         for cumulant_name in individual_alerts[alert_type]:
             fig, ax = plt.subplots(4, 1, sharex=True, figsize=(12, 12))
 
-            # Individual Alerts - Plot vertical red lines in each subplot at time steps where there are alerts for the given cumulant
+            # Individual Alerts -
+            # Plot vertical red lines in each subplot at time steps where there are alerts for the given cumulant
             for step in time_steps:
                 if individual_alerts[alert_type][cumulant_name][step]:
                     ax[0].axvline(x=step, color='r', alpha=0.2)
@@ -434,8 +435,9 @@ def make_uncertainty_alerts_plots(stats, path):
             cumulant_name_std_traces = std_traces[alert_type][cumulant_name][:min_steps]
             thresh_list = [std_trace_thresholds[alert_type][cumulant_name] for _ in range(min_steps)]
             ax[2].plot(time_steps, thresh_list, c="k", label="STD Threshold", alpha=1.0)
-            ax[2].plot(time_steps, cumulant_name_std_traces, label="{} Q(s,a) STD".format(cumulant_name), c="cyan", alpha=1.0)
-            ax[2].set_title("{} Q(s,a) STD".format(cumulant_name), pad=0)
+            q_label = f'{cumulant_name} Q(s,a) STD'
+            ax[2].plot(time_steps, cumulant_name_std_traces, label=q_label, c="cyan", alpha=1.0)
+            ax[2].set_title(q_label, pad=0)
             ax[2].set_yscale("log")
 
             # Plot alert trace
@@ -443,7 +445,7 @@ def make_uncertainty_alerts_plots(stats, path):
             thresh_list = [alert_trace_thresholds[alert_type][cumulant_name] for _ in range(min_steps)]
             ax[3].plot(time_steps, thresh_list, c="k", label="Trace Threshold", alpha=1.0)
             ax[3].plot(time_steps, cumulant_name_traces, label="{} Trace".format(cumulant_name), c="m", alpha=1.0)
-            ax[3].set_title("{} Q(s,a) vs. Observed Partial Returns Absolute Difference Trace".format(cumulant_name), pad=0)
+            ax[3].set_title(f"{cumulant_name} Q(s,a) vs. Observed Partial Returns Absolute Difference Trace", pad=0)
 
             ax[0].legend()
             ax[1].legend()
@@ -502,14 +504,19 @@ def make_ensemble_info_summary_plots(stats, path, prefix):
             plt.savefig(path / "{}_Alert_Ensemble_{}_Summary.png".format(cumulant_name, prefix))
             plt.close()
 
-def make_saturation_actor_critic_plot(states, actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params, env, path, prefix, epoch):
+def make_saturation_actor_critic_plot(
+    states,
+    actions,
+    bootstrap_q_values,
+    policy_q_values,
+    ensemble_q_values,
+    actor_params,
+    env,
+    path,
+    prefix,
+    epoch,
+):
     # Currently assuming 'anytime_multi_trace' state constructor
-    obs_space_low = env.observation_space.low
-    obs_space_high = env.observation_space.high
-    action_space_low = env.action_space.low
-    action_space_high = env.action_space.high
-    mins = [0, action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], action_space_low[0], obs_space_low[0], 0, 0, 0, 0, 0, 0, 0, 0]
-    maxs = [1, action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], action_space_high[0], obs_space_high[0], 1, 1, 1, 1, 1, 1, 1, 1]
     ensemble = len(ensemble_q_values)
     for i in range(0, len(states)):
         curr_state = states[i]
@@ -565,14 +572,25 @@ def make_saturation_actor_critic_plot(states, actions, bootstrap_q_values, polic
         fig.savefig(path / "{}_epoch_{}_state_{}_Summary_Plots.png".format(prefix, epoch, i))
         plt.close()
 
-def make_reseau_actor_critic_plot(states, actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params, env, path, prefix, epoch):
+def make_reseau_actor_critic_plot(
+    states,
+    actions,
+    bootstrap_q_values,
+    policy_q_values,
+    ensemble_q_values,
+    actor_params,
+    env,
+    path,
+    prefix,
+    epoch,
+):
     # Currently assuming 'ReseauAnytime' state constructor
     obs_space_low = env.observation_space.low
     obs_space_high = env.observation_space.high
     action_space_low = env.action_space.low
     action_space_high = env.action_space.high
-    mins = [0, action_space_low[0], obs_space_low[0], obs_space_low[1], action_space_low[0], action_space_low[0], action_space_low[0], action_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[1], obs_space_low[1], obs_space_low[1], obs_space_low[1], 0, 0]
-    maxs = [1, action_space_high[0], obs_space_high[0], obs_space_high[1], action_space_high[0], action_space_high[0], action_space_high[0], action_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[1], obs_space_high[1], obs_space_high[1], obs_space_high[1], 1, 1]
+    mins = [0, action_space_low[0], obs_space_low[0], obs_space_low[1], action_space_low[0], action_space_low[0], action_space_low[0], action_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[1], obs_space_low[1], obs_space_low[1], obs_space_low[1], 0, 0] # noqa: E501 - lol
+    maxs = [1, action_space_high[0], obs_space_high[0], obs_space_high[1], action_space_high[0], action_space_high[0], action_space_high[0], action_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[1], obs_space_high[1], obs_space_high[1], obs_space_high[1], 1, 1] # noqa: E501 - lol
     ensemble = len(ensemble_q_values)
     for i in range(0, len(states)):
         curr_state = states[i]
@@ -582,10 +600,10 @@ def make_reseau_actor_critic_plot(states, actions, bootstrap_q_values, policy_q_
         # Create graph title
         for j in [8, 9, 10, 11, 12, 13, 14, 15]:
             curr_state[j] = curr_state[j] * (maxs[j] - mins[j])
-        
+
         for j in [1, 2, 3, 4, 5, 6, 7]:
             curr_state[j] = curr_state[j] * (maxs[j] - mins[j]) + mins[j]
-        
+
         ax_title = 'ORP: '
         for j in [2, 8, 9, 10, 11]:
             ax_title += "{:.3e} ".format(curr_state[j])
@@ -641,8 +659,8 @@ def make_reseau_gvf_critic_plot(plot_info, env, path, prefix, epoch):
     obs_space_high = env.observation_space.high
     action_space_low = env.action_space.low
     action_space_high = env.action_space.high
-    mins = [0, action_space_low[0], obs_space_low[0], obs_space_low[1], action_space_low[0], action_space_low[0], action_space_low[0], action_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[1], obs_space_low[1], obs_space_low[1], obs_space_low[1], 0, 0]
-    maxs = [1, action_space_high[0], obs_space_high[0], obs_space_high[1], action_space_high[0], action_space_high[0], action_space_high[0], action_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[1], obs_space_high[1], obs_space_high[1], obs_space_high[1], 1, 1]
+    mins = [0, action_space_low[0], obs_space_low[0], obs_space_low[1], action_space_low[0], action_space_low[0], action_space_low[0], action_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[0], obs_space_low[1], obs_space_low[1], obs_space_low[1], obs_space_low[1], 0, 0] # noqa: E501 - lol
+    maxs = [1, action_space_high[0], obs_space_high[0], obs_space_high[1], action_space_high[0], action_space_high[0], action_space_high[0], action_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[0], obs_space_high[1], obs_space_high[1], obs_space_high[1], obs_space_high[1], 1, 1] # noqa: E501 - lol
     states = plot_info["states"]
     actions = plot_info["actions"]
     for i in range(0, len(states)):
@@ -651,10 +669,10 @@ def make_reseau_gvf_critic_plot(plot_info, env, path, prefix, epoch):
         # Create graph title
         for j in [8, 9, 10, 11, 12, 13, 14, 15]:
             curr_state[j] = curr_state[j] * (maxs[j] - mins[j])
-        
+
         for j in [1, 2, 3, 4, 5, 6, 7]:
             curr_state[j] = curr_state[j] * (maxs[j] - mins[j]) + mins[j]
-        
+
         ax_title = 'ORP: '
         for j in [2, 8, 9, 10, 11]:
             ax_title += "{:.3e} ".format(curr_state[j])
@@ -904,6 +922,6 @@ def make_offline_plots(freezer, stats, save_path):
     make_summary_plot(stats, save_path, "offline")
 
 def make_actor_critic_plots(agent, env, plot_transitions, prefix, iteration, save_path):
-    test_states, test_actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params = get_test_state_qs_and_policy_params(agent, plot_transitions)
-    #make_reseau_actor_critic_plot(test_states, test_actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params, env, save_path, prefix, iteration)
-    #make_saturation_actor_critic_plot(test_states, test_actions, bootstrap_q_values, policy_q_values, ensemble_q_values, actor_params, env, save_path, prefix, iteration)
+    res = get_test_state_qs_and_policy_params(agent, plot_transitions) # noqa
+    #make_reseau_actor_critic_plot(*res, env, save_path, prefix, iteration)
+    #make_saturation_actor_critic_plot(*res, env, save_path, prefix, iteration)

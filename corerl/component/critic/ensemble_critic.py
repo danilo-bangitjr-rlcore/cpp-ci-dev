@@ -1,7 +1,7 @@
 import torch
 from pathlib import Path
 from omegaconf import DictConfig
-from typing import Optional, Callable
+from typing import Callable
 
 from corerl.component.critic.base_critic import BaseQ, BaseV
 from corerl.component.optimizers.factory import init_optimizer
@@ -9,6 +9,8 @@ from corerl.component.network.factory import init_critic_network
 from corerl.component.network.factory import init_critic_target
 from corerl.component.optimizers.linesearch_optimizer import LineSearchOpt
 from corerl.utils.device import device
+
+import corerl.utils.nullable as nullable
 
 
 class EnsembleQCritic(BaseQ):
@@ -21,9 +23,11 @@ class EnsembleQCritic(BaseQ):
             cfg.critic_network, input_dim=state_action_dim, output_dim=output_dim,
             critic=self.model,
         )
+
+        params = self.model.parameters(independent=True) # type: ignore
         self.optimizer = init_optimizer(
             cfg.critic_optimizer,
-            list(self.model.parameters(independent=True)),
+            list(params),
             ensemble=True,
             vmap=cfg.critic_network.vmap
         )
@@ -85,17 +89,21 @@ class EnsembleQCritic(BaseQ):
         return q
 
     def update(
-        self, loss: list[torch.Tensor] | torch.Tensor, opt_args=tuple(), opt_kwargs=dict(),
+        self,
+        loss: list[torch.Tensor] | torch.Tensor,
+        opt_args: tuple = tuple(),
+        opt_kwargs: dict | None = None,
     ) -> None:
-        self.optimizer.zero_grad()
+        opt_kwargs = nullable.default(opt_kwargs, dict)
 
+        self.optimizer.zero_grad()
         if isinstance(loss, (list, tuple)):
             self.ensemble_backward(loss)
         else:
             loss.backward()
 
         if self.optimizer_name != "lso":
-            self.optimizer.step()
+            self.optimizer.step(closure=lambda: 0.)
         else:
             self.optimizer.step(*opt_args, **opt_kwargs)
 
@@ -107,15 +115,18 @@ class EnsembleQCritic(BaseQ):
 
     def ensemble_backward(self, loss: list[torch.Tensor]):
         for i in range(len(loss)):
+            params = self.model.parameters(independent=True)[i] # type: ignore
             loss[i].backward(
-                inputs=list(self.model.parameters(independent=True)[i])
+                inputs=list(params)
             )
         return
 
     def sync_target(self) -> None:
         with torch.no_grad():
             for p, p_targ in zip(
-                self.model.parameters(), self.target.parameters(),
+                self.model.parameters(),
+                self.target.parameters(),
+                strict=True,
             ):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
@@ -156,9 +167,11 @@ class EnsembleVCritic(BaseV):
             cfg.critic_network, input_dim=state_dim, output_dim=output_dim,
             critic=self.model,
         )
+
+        params = self.model.parameters(independent=True) # type: ignore
         self.optimizer = init_optimizer(
             cfg.critic_optimizer,
-            list(self.model.parameters(independent=True)),
+            list(params),
             ensemble=True,
             vmap=cfg.critic_network.vmap
         )
@@ -184,13 +197,18 @@ class EnsembleVCritic(BaseV):
 
     def ensemble_backward(self, loss: list[torch.Tensor]):
         for i in range(len(loss)):
+            params = self.model.parameters(independent=True)[i] # type: ignore
+
             loss[i].backward(
-                inputs=list(self.model.parameters(independent=True)[i])
+                inputs=list(params),
             )
         return
 
     def get_v(
-        self, state_batches: list[torch.Tensor], with_grad: bool = False, bootstrap_reduct: bool = True,
+        self,
+        state_batches: list[torch.Tensor],
+        with_grad: bool = False,
+        bootstrap_reduct: bool = True,
     ) -> torch.Tensor:
         v, vs = self.get_vs(state_batches, with_grad=with_grad, bootstrap_reduct=bootstrap_reduct)
         return v
@@ -206,14 +224,18 @@ class EnsembleVCritic(BaseV):
         with torch.no_grad():
             return self.target(input_tensor, bootstrap_reduct)
 
-    def get_v_target(self, state_batches: list[torch.Tensor], bootstrap_reduct: bool = True) -> torch.Tensor:
+    def get_v_target(
+        self,
+        state_batches: list[torch.Tensor],
+        bootstrap_reduct: bool = True,
+    ) -> torch.Tensor:
         v, vs = self.get_vs_target(state_batches, bootstrap_reduct)
         return v
 
     def update(self, loss: list[torch.Tensor]) -> None:
         self.optimizer.zero_grad()
         self.ensemble_backward(loss)
-        self.optimizer.step()
+        self.optimizer.step(closure=lambda: 0.)
         if self.target_sync_counter % self.target_sync_freq == 0:
             self.sync_target()
             self.target_sync_counter = 0
@@ -223,7 +245,9 @@ class EnsembleVCritic(BaseV):
     def sync_target(self) -> None:
         with torch.no_grad():
             for p, p_targ in zip(
-                self.model.parameters(), self.target.parameters(),
+                self.model.parameters(),
+                self.target.parameters(),
+                strict=True,
             ):
                 p_targ.data.mul_(self.polyak)
                 p_targ.data.add_((1 - self.polyak) * p.data)
@@ -272,7 +296,7 @@ class EnsembleQCriticLineSearch(EnsembleQCritic):
     def set_parameters(
         self,
         buffer_address: int,
-        eval_error_fn: Optional['Callable'] = None,
+        eval_error_fn: Callable[[list[torch.Tensor]], torch.Tensor],
     ) -> None:
         self.optimizer.set_params(
             buffer_address, [self.model_copy], eval_error_fn, ensemble=True,
@@ -294,7 +318,9 @@ class EnsembleVCriticLineSearch(EnsembleVCritic):
         )
 
     def set_parameters(
-        self, buffer_address: int, eval_error_fn: Optional['Callable'] = None,
+        self,
+        buffer_address: int,
+        eval_error_fn: Callable[[list[torch.Tensor]], torch.Tensor],
     ) -> None:
         self.optimizer.set_params(
             buffer_address, [self.model_copy], eval_error_fn, ensemble=True,

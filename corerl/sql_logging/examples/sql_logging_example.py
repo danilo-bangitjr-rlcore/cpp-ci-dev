@@ -6,9 +6,7 @@ from corerl.component.network.factory import init_critic_network
 from sqlalchemy.orm import Session
 from hydra import compose, initialize
 from sqlalchemy.orm import mapped_column, Mapped
-from corerl.component.network.factory import init_critic_network
 
-from sqlalchemy.orm import mapped_column
 import numpy as np
 import torch
 import pandas as pd

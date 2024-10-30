@@ -1,13 +1,17 @@
 from . import Policy
 import torch
 import torch.nn as nn
-import torch.distributions as d
 import torch.distributions.constraints as constraints
+
 
 class Softmax(Policy):
     def __init__(self, net, input_dim: int, output_dim: int):
         super(Softmax, self).__init__(net)
         self.output_dim = output_dim
+
+    @Policy.has_rsample.getter
+    def has_rsample(self) -> bool:
+        return False
 
     @classmethod
     def continuous(cls):
@@ -20,7 +24,7 @@ class Softmax(Policy):
         probs = nn.functional.softmax(x, dim=1)
         return probs, x
 
-    @property
+    @Policy.support.getter
     def support(self):
         return constraints.integer_interval(0, self.output_dim-1)
 
@@ -29,15 +33,18 @@ class Softmax(Policy):
         return tuple(f"logit_{i}" for i in range(self.output_dim))
 
     @classmethod
-    def from_env(cls, model, env):
+    def from_env(cls, model, dist, env):
         output_dim = env.action_space.shape[0]
         input_dim = env.observation_space.shape[0]
 
         return cls(model, input_dim, output_dim)
 
     def forward(
-            self, state: torch.Tensor,
+        self,
+        state: torch.Tensor,
+        rsample: bool = True,
     ) -> tuple[torch.Tensor, dict]:
+        assert not rsample, "Softmax does not support the reparameterization trick"
         probs, x = self.get_probs(state)
         dist = torch.distributions.Categorical(probs=probs)
         actions = dist.sample()
@@ -52,7 +59,9 @@ class Softmax(Policy):
         return actions, {'logp': logp}
 
     def log_prob(
-            self, state: torch.Tensor, action: torch.Tensor,
+        self,
+        state: torch.Tensor,
+        action: torch.Tensor,
     ) -> tuple[torch.Tensor, dict]:
         actions = (action == 1).nonzero(as_tuple=False)
         actions = actions[:, 1:]

@@ -55,6 +55,9 @@ class BaseAgent(ABC):
     def get_buffer_sizes(self) -> dict[str, list[int]]:
         return {}
 
+    def close(self):
+        self._msg_bus.close_sync()
+
 
 class BaseAC(BaseAgent):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):

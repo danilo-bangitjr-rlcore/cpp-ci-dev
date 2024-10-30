@@ -1,9 +1,9 @@
 import numpy as np
-import torch
-import gymnasium
-
-from omegaconf import DictConfig
 from abc import ABC, abstractmethod
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from corerl.state_constructor.components import BaseStateConstructorComponent
 
 
 class BaseStateConstructor(ABC):
@@ -14,23 +14,22 @@ class BaseStateConstructor(ABC):
 
     """
 
-    @abstractmethod
-    def __init__(self, cfg: DictConfig):
+    def __init__(self):
         self.state = None
-        raise NotImplementedError
-
-    def __call__(self, obs: np.ndarray, action: np.ndarray, initial_state=False, **kwargs) -> np.ndarray:
-        """
-        We pass in the new observation, the last action, and whether this state is an initial state
-        """
-
-        init_array = np.zeros(1, dtype=bool)  # whether this is an initial state
-        init_array[0] = initial_state
-        state = np.concatenate([init_array, action, obs])  # convention: action goes first in the state array
-        raise state
 
     @abstractmethod
-    def get_state_dim(self, *args) -> int:
+    def __call__(
+        self,
+        obs: np.ndarray,
+        action: np.ndarray,
+        initial_state: bool = False,
+        get_state_dim: bool = False,
+        **kwargs,
+    ) -> np.ndarray:
+        ...
+
+    @abstractmethod
+    def get_state_dim(self, obs: np.ndarray, action: np.ndarray) -> int:
         raise NotImplementedError
 
     @abstractmethod
@@ -38,33 +37,34 @@ class BaseStateConstructor(ABC):
         raise NotImplementedError
 
     def get_current_state(self) -> np.ndarray:
+        assert self.state is not None
         return self.state
 
+    def reset_called(self): # noqa: B027
+        ...
+
+    def clear_state(self): # noqa: B027
+        ...
 
 class CompositeStateConstructor(BaseStateConstructor):
-    @abstractmethod
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env):
-        self.sc = None  # a placeholder for the final component in the graph
-        raise NotImplementedError
+    def __init__(self):
+        self.sc: 'BaseStateConstructorComponent | None' = None
 
-    def __call__(self, obs: np.ndarray | torch.Tensor, action: np.ndarray | torch.Tensor,
-                 initial_state=False, get_state_dim=False, **kwargs) -> np.ndarray | torch.Tensor:
-
-        if isinstance(obs, np.ndarray):
-            assert isinstance(action, np.ndarray), 'obs and action must have the same type'
-            concat_fn = np.concatenate
-            zero_fn = np.zeros
-        elif isinstance(obs, torch.Tensor):
-            assert isinstance(action, torch.Tensor), 'obs and action must have the same type'
-            concat_fn = torch.concat
-            zero_fn = torch.zeros
-
-        a_obs = concat_fn([action, obs])  # convention: action goes first in the state array
-        state = self._call_graph(a_obs, get_state_dim=get_state_dim, **kwargs)  # get_state_dim is a flag whether we are calling just for the purpose of getting the state dim
+    def __call__(
+        self,
+        obs: np.ndarray,
+        action: np.ndarray,
+        initial_state: bool = False,
+        get_state_dim: bool = False,
+        **kwargs,
+    ) -> np.ndarray:
+        a_obs = np.concatenate([action, obs])  # convention: action goes first in the state array
+        # get_state_dim is a flag whether we are calling just for the purpose of getting the state dim
+        state = self._call_graph(a_obs, get_state_dim=get_state_dim, **kwargs)
         self._reset_graph_call()
-        init_array = zero_fn(1, dtype=bool)  # whether this is an initial state
+        init_array = np.zeros(1, dtype=bool)  # whether this is an initial state
         init_array[0] = initial_state
-        state = concat_fn([init_array, state])
+        state = np.concatenate([init_array, state])
         self.state = state
         return state
 
@@ -76,18 +76,21 @@ class CompositeStateConstructor(BaseStateConstructor):
         return state_dim
 
     def _call_graph(self, obs: np.ndarray, **kwargs) -> np.ndarray:
+        assert self.sc is not None
         return self.sc(obs, **kwargs)
 
     def _reset_graph_call(self) -> None:
         """
         Resets the self.called variables in the graph
         """
+        assert self.sc is not None
         self.sc.reset_called()
 
     def _reset_graph_state(self) -> None:
         """
         Resets the state of all components in the graph
         """
+        assert self.sc is not None
         self.sc.clear_state()
 
     def reset(self) -> None:

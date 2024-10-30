@@ -65,6 +65,12 @@ alert_transition_creator:
 agent:
   message_bus:
     enable: False
+    host: ${event_bus.host}
+    port: ${event_bus.port}
+
+event_bus:
+  host: localhost
+  port: 8123
 
 # Uncomment the alerts or evals you'd like to use in the defaults list above
 alerts:

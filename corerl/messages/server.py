@@ -2,10 +2,9 @@ import uuid
 import asyncio
 import logging
 from collections import defaultdict
-from pydantic import ValidationError
 from websockets import ConnectionClosed
 from websockets.asyncio.server import serve, ServerConnection, Server
-from corerl.messages.events import Event, EventType, SubscribeEvent
+from corerl.messages.events import maybe_parse_event, EventType, SubscribeEvent
 
 
 logger = logging.getLogger(__name__)
@@ -118,15 +117,3 @@ class WebsocketServer:
         #   e.g. for notifications
         self._event_to_socket_id[type].add(socket_id)
         self._socket_id_to_events[socket_id].add(type)
-
-
-
-# ---------------------
-# -- Utility methods --
-# ---------------------
-def maybe_parse_event(msg: str | bytes) -> Event | None:
-    try:
-        return Event.model_validate_json(msg)
-    except ValidationError:
-        logger.exception('Failed to parse websocket message')
-        return None

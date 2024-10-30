@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from corerl.data.transition_creator import BaseTransitionCreator
+    from corerl.data.transition_creator import OldAnytimeTransitionCreator
 
 class AnytimeInteraction(BaseInteraction):
     """
@@ -29,7 +30,7 @@ class AnytimeInteraction(BaseInteraction):
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
             normalizer: ObsTransitionNormalizer,
-            agent_transition_creator: "BaseTransitionCreator",
+            agent_transition_creator: 'BaseTransitionCreator',
     ):
         super().__init__(cfg, env, state_constructor)
 
@@ -52,13 +53,19 @@ class AnytimeInteraction(BaseInteraction):
         self.only_dp_transitions = cfg.only_dp_transitions
         self.steps_until_decision = self.steps_per_decision
 
-    def init_alerts(self, alerts: CompositeAlert, alert_transition_creator: "BaseTransitionCreator"):
-        self.alerts = alerts
+    def init_alerts(
+        self,
+        composite_alert: CompositeAlert,
+        alert_transition_creator: 'BaseTransitionCreator',
+    ):
+        self.alerts = composite_alert
         self.alert_transition_creator = alert_transition_creator
         self.alert_transition_queue = deque([])
 
-    def step(self, action: np.ndarray) -> tuple[
-        list[Transition], list[Transition], list[Transition], list[Transition], dict, dict]:
+    def step(
+        self,
+        action: np.ndarray,
+    ) -> tuple[list[Transition], list[Transition], list[Transition], list[Transition], dict, dict]:
         """
         Execute 'action' in the environment for a duration of self.steps_per_decision * self.obs_length
         A new obs/state is created every self.obs_length seconds
@@ -76,6 +83,7 @@ class AnytimeInteraction(BaseInteraction):
         truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
         decision_point = (self.steps_until_decision == self.steps_per_decision)
 
+        assert self.raw_last_obs is not None
         obs_transition = ObsTransition(
             obs=self.raw_last_obs,
             action=raw_action,
@@ -136,7 +144,7 @@ class AnytimeInteraction(BaseInteraction):
 
         return return_tuple
 
-    def reset(self) -> (np.ndarray, dict):
+    def reset(self) -> tuple[np.ndarray, dict]:
         """
         Reset the environment and the state constructor
         """
@@ -188,13 +196,17 @@ class AnytimeInteraction(BaseInteraction):
         alert_info["state"] = state
         alert_info["next_obs"] = next_obs
         alert_info["reward"] = reward
+
+        assert self.alerts is not None
         step_alert_info = self.alerts.evaluate(**alert_info)
         return step_alert_info
 
-    def _update_queues(self,
-                       agent_transitions,
-                       alert_transitions,
-                       alert_info) -> tuple[list[Transition], list[Transition]]:
+    def _update_queues(
+        self,
+        agent_transitions,
+        alert_transitions,
+        alert_info,
+    ) -> tuple[list[Transition], list[Transition]]:
 
         # TODO this is ripe for a refactor to increase readability
 
@@ -247,8 +259,8 @@ class OldAnytimeInteraction(BaseInteraction):
             cfg: DictConfig,
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
-            alerts: CompositeAlert,  # TODO: can I remove alerts from this?
-            transition_creator: "AnytimeTransitionCreator",  # this is to avoid circular imports for type checking
+            alerts: CompositeAlert,
+            transition_creator: 'OldAnytimeTransitionCreator',
             normalizer: ObsTransitionNormalizer):
         super().__init__(cfg, env, state_constructor)
 
@@ -275,7 +287,10 @@ class OldAnytimeInteraction(BaseInteraction):
         self.prev_steps_until_decision = self.steps_per_decision
         self.steps_until_decision = self.steps_per_decision - 1
 
-    def step(self, action: np.ndarray) -> tuple[list[Transition], list[Transition], list[Transition], dict, dict]:
+    def step(
+        self,
+        action: np.ndarray,
+    ) -> tuple[list[Transition], list[Transition], list[Transition], list[Transition], dict, dict]:
         """
         Execute 'action' in the environment for a duration of self.steps_per_decision * self.obs_length
         A new obs/state is created every self.obs_length seconds
@@ -292,13 +307,15 @@ class OldAnytimeInteraction(BaseInteraction):
         truncate = self.env_counter()  # use the interaction counter to decide reset. Remove reset in environment
         decision_point = (self.steps_until_decision == self.steps_per_decision)
 
+        assert self.raw_last_action is not None
+        assert self.raw_last_obs is not None
         obs_transition = OldObsTransition(
             self.raw_last_action,
             self.raw_last_obs,
             self.prev_steps_until_decision,  # I don't think this variable is actually used
             self.prev_decision_point,
             raw_action,
-            raw_reward,
+            float(raw_reward),
             raw_next_obs,
             self.steps_until_decision,
             decision_point,
@@ -335,11 +352,16 @@ class OldAnytimeInteraction(BaseInteraction):
 
         # Create transitions
         if decision_point:
-            transitions, alert_transitions, agent_transitions = self.transition_creator.make_decision_window_transitions(
+            (
+                transitions,
+                alert_transitions,
+                agent_transitions,
+            ) = self.transition_creator.make_decision_window_transitions(
                 self.curr_decision_obs_transitions,
                 self.curr_decision_states,
                 filter_with_alerts=True,
-                interaction=self)
+                interaction=self,
+            )
 
             self.curr_decision_obs_transitions = []
             self.curr_decision_states = [self.last_state]
@@ -348,7 +370,7 @@ class OldAnytimeInteraction(BaseInteraction):
             # NOTE: these lists may sometimes be empty if we are not at a decision point
             transitions, alert_transitions, agent_transitions = [], [], []
 
-        return transitions, agent_transitions, alert_transitions, alert_info, env_info
+        return transitions, agent_transitions, alert_transitions, [], alert_info, env_info
 
     def get_step_alerts(self, action, state, next_obs, reward) -> dict:
         """

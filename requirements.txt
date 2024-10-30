@@ -34,4 +34,6 @@ sqlalchemy==2.0.31
 scikit-learn==1.5.1
 sqlalchemy_utils==0.41.2
 websockets==13.1
+psycopg2-binary==2.9.10
+docker==7.1.0
 git+ssh://git@github.com/rlcoretech/linesearchopt.git#egg=linesearchopt

@@ -5,11 +5,9 @@ import torch.distributions as d
 import torch.distributions.constraints as constraints
 import logging
 from typing import Union
+from typing_extensions import override
 
-
-_BoundedAboveConstraint = Union[  #pyright: ignore
-    constraints.less_than,
-]
+_BoundedAboveConstraint = constraints.less_than
 
 _BoundedBelowConstraint = Union[
     constraints.greater_than_eq,
@@ -17,9 +15,9 @@ _BoundedBelowConstraint = Union[
 ]
 
 _HalfBoundedConstraint = Union[
-    _BoundedAboveConstraint, _BoundedBelowConstraint,
+    _BoundedAboveConstraint,
+    _BoundedBelowConstraint,
 ]
-
 
 
 class Policy(ABC):
@@ -33,6 +31,12 @@ class Policy(ABC):
     """
     def __init__(self, model):
         self._model = model
+
+
+    @property
+    @abstractmethod
+    def has_rsample(self) -> bool:
+        raise NotImplementedError()
 
     def load_state_dict(self, sd):
         """
@@ -55,15 +59,6 @@ class Policy(ABC):
     @property
     def model(self) -> nn.Module:
         return self._model
-
-    @classmethod
-    @abstractmethod
-    def from_env(cls, model, dist, env) -> 'Policy':
-        """
-        Constructs an instance of the class which has policy distribution
-        support over the environment `env` action space
-        """
-        pass
 
     @property
     @abstractmethod
@@ -97,7 +92,7 @@ class Policy(ABC):
 
     @property
     @abstractmethod
-    def support(self):
+    def support(self) -> constraints.Constraint:
         """
         The support of the policy distribution
         """
@@ -164,15 +159,6 @@ class ContinuousIIDPolicy(Policy,ABC):
         """
         return _get_type_from_dist(dist)(model, dist, *args, **kwargs)
 
-    def load_state_dict(self, sd):
-        return self._model.load_state_dict(sd)
-
-    def state_dict(self) -> dict:
-        return self._model.state_dict()
-
-    def parameters(self):
-        return self._model.parameters()
-
     @classmethod
     @abstractmethod
     def from_env(cls, model, dist, env) -> 'ContinuousIIDPolicy':
@@ -200,29 +186,31 @@ class ContinuousIIDPolicy(Policy,ABC):
         """
         pass
 
-    @property
+    @Policy.param_names.getter
     @abstractmethod
     def param_names(self) -> tuple[str, ...]:
         pass
 
-    @property
+    @Policy.n_params.getter
     def n_params(self):
         return len(self.param_names)
 
+    @override
     @classmethod
     def continuous(cls):
         return True
 
-    @classmethod
-    def discrete(cls):
-        return not cls.continuous
-
-    @property
+    @Policy.support.getter
     @abstractmethod
-    def support(self):
+    def support(self) -> constraints.Constraint:
         pass
 
-    def forward(self, state, rsample=True) -> tuple[torch.Tensor, dict]:
+    @override
+    def forward(
+        self,
+        state: torch.Tensor,
+        rsample: bool = True,
+    ) -> tuple[torch.Tensor, dict]:
         params = self._model(state)
         dist = self._transform_from_params(*params)
 
@@ -245,6 +233,7 @@ class ContinuousIIDPolicy(Policy,ABC):
     def rsample(self, state) -> tuple[torch.Tensor, dict]:
         return self.forward(state, True)
 
+    @override
     def log_prob(
         self, state: torch.Tensor, action: torch.Tensor,
     ) -> tuple[torch.Tensor, dict]:
@@ -297,8 +286,8 @@ class ContinuousIIDPolicy(Policy,ABC):
 
         return d.kl.kl_divergence(self_dist, other_dist)
 
-    @property
-    def has_rsample(self):
+    @Policy.has_rsample.getter
+    def has_rsample(self) -> bool:
         return self._dist.has_rsample
 
 
@@ -325,7 +314,7 @@ class Bounded(ContinuousIIDPolicy):
         self._action_scale = (action_max - action_min) / (dist_max - dist_min)
         self._action_bias = -self._action_scale * dist_min + action_min
 
-    @property
+    @ContinuousIIDPolicy.support.getter
     def support(self):
         lb = self._dist.support.lower_bound
         ub = self._dist.support.upper_bound
@@ -335,10 +324,11 @@ class Bounded(ContinuousIIDPolicy):
             upper_bound=self._action_scale * ub + self._action_bias,
         )
 
-    @property
+    @ContinuousIIDPolicy.param_names.getter
     def param_names(self) -> tuple[str, ...]:
         return tuple(self._dist.arg_constraints.keys())
 
+    @override
     @classmethod
     def from_env(cls, model, dist, env) -> 'Bounded':
         action_min = torch.Tensor(env.action_space.low)
@@ -346,6 +336,7 @@ class Bounded(ContinuousIIDPolicy):
 
         return cls(model, dist, action_min, action_max)
 
+    @override
     def _transform(self, dist) -> d.Distribution:
         if self._action_bias != 0 or self._action_scale != 1:
             transform = d.AffineTransform(
@@ -367,18 +358,20 @@ class UnBounded(ContinuousIIDPolicy):
                 f"got {type(dist.support)}"
             )
 
-    @property
+    @ContinuousIIDPolicy.support.getter
     def support(self):
         return self._dist.support
 
-    @property
+    @ContinuousIIDPolicy.param_names.getter
     def param_names(self) -> tuple[str, ...]:
         return tuple(self._dist.arg_constraints.keys())
 
+    @override
     @classmethod
     def from_env(cls, model, dist, env) -> 'UnBounded':
         return cls(model, dist)
 
+    @override
     def _transform(self, dist) -> d.Distribution:
         return d.Independent(dist, 1)
 
@@ -438,7 +431,7 @@ class HalfBounded(ContinuousIIDPolicy):
         self._action_min = action_min
         self._action_max = action_max
 
-    @property
+    @ContinuousIIDPolicy.support.getter
     def support(self):
         if self._bounded_below:
             lb = self._dist.support.lower_bound
@@ -455,10 +448,11 @@ class HalfBounded(ContinuousIIDPolicy):
     def _bounded_above(self):
         return self._dist_max is not torch.inf
 
-    @property
+    @ContinuousIIDPolicy.param_names.getter
     def param_names(self) -> tuple[str, ...]:
         return tuple(self._dist.arg_constraints.keys())
 
+    @override
     @classmethod
     def from_env(cls, model, dist, env) -> 'HalfBounded':
         action_min = torch.Tensor(env.action_space.low)
@@ -466,6 +460,7 @@ class HalfBounded(ContinuousIIDPolicy):
 
         return cls(model, dist, action_min, action_max)
 
+    @override
     def _transform(self, dist):
         if self._bounded_below:
             transform = d.AffineTransform(loc=self._action_min, scale=1)
@@ -482,7 +477,6 @@ class HalfBounded(ContinuousIIDPolicy):
 
 
 def _get_type_from_dist(dist):
-
     if isinstance(dist.support, constraints.interval):
         return Bounded
 
@@ -497,4 +491,3 @@ def _get_type_from_dist(dist):
     raise NotImplementedError(
         f"unknown policy type for distribution {dist}",
     )
-

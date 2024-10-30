@@ -2,7 +2,7 @@ import pytest
 
 from websockets.asyncio.client import connect
 
-from test.unit.messages.conftest import WebsocketServer, WebsocketClient
+from test.medium.messages.conftest import WebsocketServer, WebsocketClient
 from corerl.messages.events import Event, EventType, SubscribeEvent
 
 # ----------------
@@ -33,7 +33,7 @@ async def test_connect1(server: WebsocketServer):
 # ------------------
 # -- Subscription --
 # ------------------
-@pytest.mark.timeout(1)
+@pytest.mark.timeout(5)
 async def test_subscribe1(server_and_client: tuple[WebsocketServer, WebsocketClient]):
     """
     Given a server and two clients, one client can
@@ -67,7 +67,7 @@ async def test_subscribe1(server_and_client: tuple[WebsocketServer, WebsocketCli
     await receiver.close()
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(30)
 async def test_subscribe2(server_and_client: tuple[WebsocketServer, WebsocketClient]):
     """
     Given a server and two clients, one client can

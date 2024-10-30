@@ -11,7 +11,6 @@ from datetime import datetime
 from typing_extensions import Annotated
 
 from sqlalchemy.sql import func
-from sqlalchemy.orm import mapped_column
 from sqlalchemy import ForeignKeyConstraint
 from sqlalchemy.dialects.mysql import LONGBLOB
 

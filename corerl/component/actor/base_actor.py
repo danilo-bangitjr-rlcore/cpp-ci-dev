@@ -12,11 +12,20 @@ class BaseActor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_action(self, state: np.ndarray | torch.Tensor, **kwargs) -> tuple[np.ndarray | torch.Tensor, dict]:
+    def get_action(
+        self,
+        state: torch.Tensor,
+        with_grad: bool = False,
+    ) -> tuple[torch.Tensor, dict]:
         raise NotImplementedError
 
     @abstractmethod
-    def update(self, *args) -> None:
+    def update(
+        self,
+        loss: torch.Tensor,
+        opt_args: tuple = tuple(),
+        opt_kwargs: dict | None = None,
+    ) -> None:
         raise NotImplementedError
 
     @abstractmethod

@@ -1,25 +1,26 @@
 from omegaconf import DictConfig
 import linesearchopt as lso
-from typing import Optional
 import torch
-from omegaconf import DictConfig
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.custom_torch_opts import CustomAdam
-from typing import Iterator
+from torch.optim.optimizer import ParamsT
 
 
-def init_optimizer(cfg: DictConfig, param: list | dict | Iterator, ensemble: Optional['bool'] = False, vmap: Optional['bool'] = False):
+def init_optimizer(
+    cfg: DictConfig,
+    param: ParamsT,
+    ensemble: bool = False,
+    vmap: bool = False,
+):
     """
     config files: root/config/agent/critic/critic_optimizer or root/config/agent/actor/actor_optimizer
     """
     name = cfg.name
-    if "lr" in cfg.keys():
-        lr = cfg.lr
-    if "weight_decay" in cfg.keys():
-        weight_decay = cfg.weight_decay
+    lr: float | None = getattr(cfg, 'lr', None)
+    weight_decay: float | None = getattr(cfg, 'weight_decay', None)
 
-    # TODO: Han can you make sure this file is ok?
     if ensemble and not vmap:
+        kwargs = {}
         if name != "lso":
             kwargs = {'weight_decay': cfg.weight_decay, 'lr': cfg.lr}
 
@@ -37,6 +38,8 @@ def init_optimizer(cfg: DictConfig, param: list | dict | Iterator, ensemble: Opt
         else:
             raise NotImplementedError
     else:
+        assert lr is not None
+        assert weight_decay is not None
         if name == "rms_prop":
             return torch.optim.RMSprop(param, lr, weight_decay=weight_decay)
         elif name == 'adam':
@@ -75,7 +78,7 @@ def lso_kwargs(cfg):
     if "fallback_step_size" in cfg.keys():
         kwargs["fallback_step_size"] = cfg["fallback_step_size"]
     else:
-        kwargs["fallback_step_size"] = init_step_size
+        kwargs["fallback_step_size"] = cfg['init_step_size']
 
     kwargs["optim"] = get_optim_type(cfg.optim.name)
 

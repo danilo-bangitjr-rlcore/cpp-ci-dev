@@ -9,13 +9,14 @@ from corerl.state_constructor.base import BaseStateConstructor
 
 @dataclass
 class OldObsTransition:
-    prev_action: np.ndarray  # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
-    obs: np.ndarray  # the raw observation of state
+    # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
+    prev_action: np.ndarray | None
+    obs: np.ndarray | None # the raw observation of state
     obs_steps_until_decision: int
     obs_dp: bool  # Whether 'obs' is at a decision point
     action: np.ndarray  # the action taken after 'obs' that occurs concurrently with 'next_obs'
     reward: float
-    next_obs: np.ndarray  # the immediate next observation
+    next_obs: np.ndarray | None  # the immediate next observation
     next_obs_steps_until_decision: int
     next_obs_dp: bool  # Whether 'next_obs' is at a decision point
     terminated: bool
@@ -64,10 +65,10 @@ class ObsTransition:
 
 @dataclass
 class Transition:
-    obs: np.ndarray  # the raw observation of state
+    obs: np.ndarray | None  # the raw observation of state
     state: np.ndarray
     action: np.ndarray
-    next_obs: np.ndarray  # the immediate next observation
+    next_obs: np.ndarray | None  # the immediate next observation
     next_state: np.ndarray  # the next state in the
     # NOTE: we distinguish between the next state and the next state which we bootstrap off of. All following
     # attributes are defined w.r.t. the boot strap state.
@@ -187,6 +188,7 @@ class Trajectory:
         sc = deepcopy(self.start_sc)
         self.scs.append(deepcopy(sc))
         for transition in self.transitions[:-1]:
+            assert transition.next_obs is not None
             sc(transition.next_obs,
                 transition.action,
                 initial_state=False,  # assume the next state will never be an initial state.
@@ -206,6 +208,7 @@ class Trajectory:
 
         sc = deepcopy(self.start_sc)
         for transition in self.transitions[:idx]:
+            assert transition.next_obs is not None
             sc(transition.next_obs,
                 transition.action,
                 initial_state=False,  # assume the next state will never be an initial state.

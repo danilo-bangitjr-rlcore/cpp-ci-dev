@@ -141,9 +141,9 @@ class PriorityBuffer(UniformBuffer):
 
         self.priority /= scale
 
-    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch] | None:
+    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
         if self.size == 0 or self.data is None:
-            return None
+            return []
 
         if batch_size is None:
             batch_size = self.batch_size

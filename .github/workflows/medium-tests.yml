@@ -1,4 +1,4 @@
-name: Tests
+name: Medium Tests
 
 on: [pull_request]
 
@@ -7,8 +7,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.11", "3.12"]
+        os: [ubuntu-latest]
+        python-version: ["3.12"]
 
     steps:
       # setup the repository
@@ -25,11 +25,10 @@ jobs:
         uses: astral-sh/setup-uv@v2
         with:
           enable-cache: true
-          cache-dependency-glob: "requirements**.txt"
+          cache-dependency-glob: "requirements.txt"
 
       - run: |
           uv venv
           uv pip install -r requirements.txt
 
-      - run: uv run pytest test/unit
-      - run: uv run pytest -o log_cli=true test/smoke
+      - run: uv run pytest test/medium

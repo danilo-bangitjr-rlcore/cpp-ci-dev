@@ -38,15 +38,15 @@ class KNNCalibrationModel(BaseCalibrationModel):
         self.learn_metric = cfg.learn_metric
         self.include_actions = cfg.include_actions  # whether to include actions in the learned representation
         self.metric = None
-        self.model = None
         self.beta = cfg.beta
         self.zeta = cfg.zeta
         self.num_neighbors = cfg.num_neighbors
         self.train_itr = cfg.train_itr
 
-        self._init_metric(cfg)
+        self.model, self.optimizer = self._init_metric(cfg)
 
-    def _init_metric(self, cfg: DictConfig) -> None:
+
+    def _init_metric(self, cfg: DictConfig):
         if self.learn_metric:  # learn a laplacian
             log.info("Learning Laplacian representation...")
             if self.include_actions:
@@ -54,8 +54,12 @@ class KNNCalibrationModel(BaseCalibrationModel):
             else:
                 input_dim = self.state_dim
 
-            self.model = init_custom_network(cfg.model, input_dim=input_dim, output_dim=self.output_dim)
-            self.optimizer = init_optimizer(cfg.optimizer, list(self.model.parameters()))
+            model = init_custom_network(cfg.model, input_dim=input_dim, output_dim=self.output_dim)
+            optimizer = init_optimizer(cfg.optimizer, list(model.parameters()))
+
+            return model, optimizer
+
+        raise NotImplementedError
 
     def _get_rep(self, state: np.ndarray) -> np.ndarray:
         if self.learn_metric:
@@ -73,7 +77,7 @@ class KNNCalibrationModel(BaseCalibrationModel):
             losses = []
             pbar = tqdm(range(self.train_itr))
             for _ in pbar:
-                batch = self.buffer.sample(self.batch_size)[0]
+                batch = self.buffer.sample_mini_batch(self.batch_size)[0]
                 loss = self._laplacian_loss(batch)
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -84,15 +88,12 @@ class KNNCalibrationModel(BaseCalibrationModel):
                     avg_loss = sum(losses[-loss_avg:]) / loss_avg
                     pbar.set_description(f"Avg loss over last {loss_avg} iterations:: {avg_loss:.4f}")
 
-                self.optimizer.step()
+                self.optimizer.step(closure=lambda: 0.)
 
         log.info("Constructing lookup...")
         self._construct_lookup_continuous(self.train_transitions)
 
     def _laplacian_loss(self, batch: TransitionBatch) -> torch.Tensor:
-        """
-        TODO: have this include actions in representations. Will need to modify Transition class to save the next transition.
-        """
         state_batch = batch.state
         next_state_batch = batch.next_state
 
@@ -143,7 +144,7 @@ class KNNCalibrationModel(BaseCalibrationModel):
         probs = probs / np.sum(probs)
         sampled_idx = np.random.choice(indices, p=probs)
         sampled_transition = self.train_transitions[sampled_idx]
-        next_obs = sampled_transition.next_obs[self.endo_inds]        # only need to return endogenous part of observation
+        next_obs = sampled_transition.next_obs[self.endo_inds]
         next_obs = np.expand_dims(next_obs, 0)
 
         return next_obs
