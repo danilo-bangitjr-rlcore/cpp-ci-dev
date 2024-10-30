@@ -11,6 +11,9 @@ from gymnasium import spaces
 
 
 class FourRoomsEnv(gym.Env):
+    """FourRoomsEnv implements the continuous-state four rooms domain with
+    discrete or continuous actions.
+    """
     corridors_start = [
         (0.225, 0.5),
         (0.725, 0.5),
@@ -35,9 +38,30 @@ class FourRoomsEnv(gym.Env):
         decay_scale: float=0.25,
         decay_probability: float=1.0,
     ):
+        """Initializes the instance
+
+        Args:
+            seed:
+                The RNG seed to use
+            continuous_action:
+                Whether actions are continuous or not, by default `True`.
+            action_scale:
+                Multiplier which determines how far an action moves the agent
+            noise_scale:
+                One half of the multiplier on 0-mean Gaussian noise added to
+                the action. By default 0. Set to 0 to disable.
+            decay_scale:
+                When decay_probability > 0, actions in the up/right direction
+                are decayed by `1 - decay_scale`. This makes it harder for
+                the agent to travel up/right. By default 0.25.
+            decay_probability:
+                Probability with which to decay actions in the up/right
+                direction. By default 1.0. Set to 0 to disable.
+        """
         self._fig = None
         self._ax = None
 
+        assert 0 < decay_scale <= 1
         self._positive_action_decay = decay_scale
         self._positive_action_decay_prob = decay_probability
 
