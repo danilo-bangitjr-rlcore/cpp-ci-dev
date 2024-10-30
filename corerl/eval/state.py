@@ -8,7 +8,7 @@ class StateEval(BaseEval):
         if 'transitions' not in kwargs:
             raise KeyError("Missing required argument: 'transitions'")
         self.start = True
-        self.states = []
+        self.states: list[list[float]] = []
 
     def do_eval(self, **kwargs) -> None:
         if 'transitions' not in kwargs:

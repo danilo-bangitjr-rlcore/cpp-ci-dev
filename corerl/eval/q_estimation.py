@@ -21,11 +21,11 @@ class QEstimation(BaseEval):
 
         self.agent = kwargs['agent']
         assert hasattr(self.agent, 'q_critic'), "Agent must have a q_critic"
-        self.qs_max = []
-        self.qs_min = []
-        self.qs_median = []
-        self.qs_avg = []
-        self.ens_stes = []
+        self.qs_max: list[list[float]] = []
+        self.qs_min: list[list[float]] = []
+        self.qs_median: list[list[float]] = []
+        self.qs_avg: list[list[float]] = []
+        self.ens_stes: list[float] = []
 
     def do_eval(self, **kwargs) -> None:
         batches = self.agent.critic_buffer.sample()
