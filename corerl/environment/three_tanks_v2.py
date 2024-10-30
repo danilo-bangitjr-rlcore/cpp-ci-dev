@@ -1,6 +1,5 @@
 import copy
-
-from typing import Optional, Sequence
+from typing import List, Optional, Sequence
 
 import numpy as np
 import sympy as sym
@@ -16,7 +15,7 @@ class ThreeTankEnvBase(object):
         self,
         isoffline: bool,
         seed: Optional[int]=None,
-        random_sp=(3,),
+        random_sp: Sequence[float]=(3.0,),
     ):
         if seed is not None:
             self.rng = np.random.RandomState(seed)
@@ -132,7 +131,7 @@ class ThreeTankEnvBase(object):
         self.no_of_error = 0
         self.flowrate_buffer = []
 
-    def reset(self, seed=None):
+    def reset(self, seed: Optional[int]=None) -> tuple[np.ndarray, dict]:
         # Overwriting old seed
         if seed is not None:
             self.rng = np.random.RandomState(seed)
@@ -176,7 +175,11 @@ class ThreeTankEnvBase(object):
         current_state = [self.setpoint / self.state_normalizer]  # 100 = max
         return np.asarray(current_state), {}
 
-    def update_pid(self, pi_parameters, KI=False):
+    def update_pid(
+        self,
+        pi_parameters: np.ndarray[int, np.dtype[np.float32]] | List[float],
+        KI=False,
+    ):
         # This method update the pid settings based on the action
         self.kp1 = pi_parameters[0]
         if KI:
@@ -187,7 +190,7 @@ class ThreeTankEnvBase(object):
         self.kp1 = np.clip(self.kp1, self.KP_MIN, self.KP_MAX)
         self.ti1 = np.clip(self.ti1, self.TAU_MIN, self.TAU_MAX)
 
-    def pid_controller(self):
+    def pid_controller(self) -> np.ndarray:
         # This method calculates the PID results based on the errors and PID
         # parameters. Uses velocity form of the equation
         del_fr_1 = self.kp1 * (
@@ -198,16 +201,16 @@ class ThreeTankEnvBase(object):
         # self.flowrate_1_buffer.append(del_fr_1)
         return np.asarray(del_flow_rate)
 
-    def get_setpoints(self):
+    def get_setpoints(self) -> float:
         return self.setpoint
 
     # changes the set points
-    def set_setpoints(self, setpoints_T1=None):
+    def set_setpoints(self, setpoints_T1: Optional[int]=None):
         if setpoints_T1 is not None:
             self.setpoint = setpoints_T1
 
     # the environment reacts to the inputted action
-    def inner_step(self, delta_flow_rate, disturbance=0):
+    def inner_step(self, delta_flow_rate: np.ndarray) -> np.ndarray:
         # updating the flow rate of pump 1 given the change in flow rate
         self.flowrate_T1 += delta_flow_rate[0]
 
@@ -245,7 +248,7 @@ class ThreeTankEnvBase(object):
 
         return np.asarray(next_state)
 
-    def get_mse(self):
+    def get_mse(self) -> float:
         # This method calculates all required factors for reward calculation
         # Sum of error square over the number of errors
         mse = self.error_sum / self.no_of_error
@@ -255,7 +258,11 @@ class ThreeTankEnvBase(object):
 
 class ThreeTankEnv(ThreeTankEnvBase):
     # Bandit setting
-    def __init__(self, seed=None, baseline_scale=1, random_sp=(3,)):
+    def __init__(
+        self,
+        seed: Optional[int]=None,
+        random_sp: Sequence[float]=(3.0,)
+    ):
         super(ThreeTankEnv, self).__init__(
             True, seed=seed, random_sp=random_sp,
         )
@@ -279,7 +286,9 @@ class ThreeTankEnv(ThreeTankEnvBase):
 
         self.reset()
 
-    def step(self, a, cache=True, use_baseline=True):
+    def step(
+        self, a: np.ndarray, cache=True, use_baseline=True,
+    ) -> tuple[np.ndarray, float, bool, bool, dict]:
         pid = a
         self.update_pid(pid, KI=True)
         self.prev_pid_params = pid
@@ -328,18 +337,15 @@ class ThreeTankEnv(ThreeTankEnvBase):
 
         return sp, r, True, False, info
 
-    def reset(self, seed=None):
+    def reset(self, seed: Optional[int]=None) -> tuple[np.ndarray, dict]:
         out = super(ThreeTankEnv, self).reset(seed)
         self.reset_reward()
         self.reinit_the_system()
         return out
 
-    def get_reward(self):
+    def get_reward(self) -> float:
         # This method calculates all required factors for reward calculation
         # reward = self.get_mse()
-        # self.error_sum = 0
-        # self.no_of_error = 0
-        # self.flowrate_buffer = []
         return self.get_mse()
 
 
@@ -347,14 +353,14 @@ class TTChangeAction(ThreeTankEnvBase):
     # Normal RL setting.
     def __init__(
         self,
-        seed=None,
-        reset_to_high_reward=True,
-        reset_buffer_size=1,
-        reset_buffer_add_delay=25,
-        reset_buffer_always_include_start=True,
-        mse_penalty_reward=True,
-        reset_temperature=np.inf,
-        n_internal_iter=500,
+        seed: Optional[int]=None,
+        reset_to_high_reward: bool=True,
+        reset_buffer_size: int=1,
+        reset_buffer_add_delay: int=25,
+        reset_buffer_always_include_start: bool=True,
+        mse_penalty_reward: bool=True,
+        reset_temperature: float=np.inf,
+        n_internal_iter: int=500,
     ):
         super(TTChangeAction, self).__init__(False, seed, random_sp=[3])
 
@@ -448,12 +454,12 @@ class TTChangeAction(ThreeTankEnvBase):
         self.kp_record = []
         self.ti_record = []
 
-    def get_next_pid_params(self, a):
+    def get_next_pid_params(self, a: np.ndarray) -> np.ndarray:
         pid_params = a + self.prev_pid_params
         pid_params = self.pid_param_clip(pid_params)
         return pid_params
 
-    def get_reward(self):
+    def get_reward(self) -> float:
         if self.mse_penalty_reward:
             r = self.get_mse()
             r /= 15
@@ -483,7 +489,7 @@ class TTChangeAction(ThreeTankEnvBase):
             r = mse + overshoot_penalty + settling_bonus + rise_penalty
         return r
 
-    def add_to_buffer(self, r, pid_params):
+    def add_to_buffer(self, r: float, pid_params: np.ndarray):
         if not self.reset_to_high_reward:
             return
 
@@ -513,11 +519,11 @@ class TTChangeAction(ThreeTankEnvBase):
             self.last_reset_time = self.curr_step
 
     @property
-    def _reset_buffer_full(self):
+    def _reset_buffer_full(self) -> bool:
         return self.reset_buffer_pointer >= self._reset_buffer.shape[0]
 
     @property
-    def _reset_prob(self):
+    def _reset_prob(self) -> np.ndarray:
         p = self._reset_buffer_priorities[:self.reset_buffer_pointer]
         temperature = self.reset_temperature
         if temperature == 0:
@@ -533,16 +539,18 @@ class TTChangeAction(ThreeTankEnvBase):
         return probs
 
     @property
-    def _reset_ind(self):
+    def _reset_ind(self) -> int:
         p = self._reset_prob
         return np.random.choice(p.shape[0], p=p)
 
     @property
-    def _reset_state(self):
+    def _reset_state(self) -> np.ndarray:
         ind = self._reset_ind
         return self._reset_buffer[ind, :]
 
-    def _step(self, pid_params, cache=True, add=True):
+    def _step(
+        self, pid_params: np.ndarray, cache: bool=True, add: bool=True,
+    ) -> tuple[np.ndarray, float, bool, bool, dict]:
         self.update_pid(pid_params, KI=True)
         for _ in range(self.internal_iterations):
             self.inner_step(self.pid_controller())
@@ -587,7 +595,9 @@ class TTChangeAction(ThreeTankEnvBase):
 
         return s_next, r, False, False, info
 
-    def step(self, a, cache=True):
+    def step(
+        self, a: np.ndarray, cache: bool=True,
+    ) -> tuple[np.ndarray, float, bool, bool, dict]:
         assert self.action_space.contains(a)
         assert np.all(a <= 1)
         self.curr_step += 1
@@ -599,22 +609,22 @@ class TTChangeAction(ThreeTankEnvBase):
 
         return self._step(pid_params, cache=cache)
 
-    def reset(self, seed=None):
+    def reset(self, seed: Optional[int]=None) -> tuple[np.ndarray, dict]:
         s = self.observation(self.prev_pid_params)
         return s, {}
 
-    def pid_param_clip(self, pid_params):
+    def pid_param_clip(self, pid_params: np.ndarray) -> np.ndarray:
         pid_params[0] = np.clip(pid_params[0], self.KP_MIN, self.KP_MAX)
         pid_params[1] = np.clip(
             pid_params[1], 1 / self.TAU_MAX, 1 / self.TAU_MIN,
         )
         return pid_params
 
-    def observation(self, pid_params):
+    def observation(self, pid_params: np.ndarray) -> np.ndarray:
         return pid_params
 
 
-def percent_overshoot(process, setpoint):
+def percent_overshoot(process: np.ndarray, setpoint: np.ndarray) -> float:
     overshoot = process - setpoint
     overshoot = overshoot[overshoot > 0]
     if len(overshoot) == 0:
@@ -625,7 +635,12 @@ def percent_overshoot(process, setpoint):
         return overshoot[i] / sp
 
 
-def rise_time(process, setpoint=None, use_setpoint=False, p=0.1):
+def rise_time(
+    process: np.ndarray,
+    setpoint: Optional[np.ndarray]=None,
+    use_setpoint: bool=False,
+    p: float=0.1,
+) -> float:
     assert 0 < p < 1
     assert process.ndim == 1
 
@@ -647,7 +662,12 @@ def rise_time(process, setpoint=None, use_setpoint=False, p=0.1):
     return _rise_time / process_time
 
 
-def settling_time(process, setpoint=None, use_setpoint=False, p=0.05):
+def settling_time(
+    process: np.ndarray,
+    setpoint: Optional[np.ndarray]=None,
+    use_setpoint: bool=False,
+    p: float=0.05,
+) -> float:
     assert 0 < p < 1
     assert process.ndim == 1
 
