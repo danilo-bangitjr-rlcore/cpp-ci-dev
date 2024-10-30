@@ -27,14 +27,16 @@ class FourRoomsEnv(gym.Env):
     _EPSILON = 1e-6
 
     def __init__(
-        self, seed, continuous_action=True, action_scale=0.01,
-        noise_scale=0.0, misleading_reward=False,
-        decay_scale=0.25, decay_probability=1.0,
+        self,
+        seed: int,
+        continuous_action: bool=True,
+        action_scale: float=0.01,
+        noise_scale: float=0.0,
+        decay_scale: float=0.25,
+        decay_probability: float=1.0,
     ):
         self._fig = None
         self._ax = None
-
-        self._misleading_reward = misleading_reward
 
         self._positive_action_decay = decay_scale
         self._positive_action_decay_prob = decay_probability
@@ -71,7 +73,7 @@ class FourRoomsEnv(gym.Env):
         self._hooks.register(hook, when)
 
     @classmethod
-    def _discrete_to_continuous(cls, action):
+    def _discrete_to_continuous(cls, action: np.ndarray):
         if action.item() == 0:
             return np.array([1.0, 0.0], dtype=np.float32)
         elif action.item() == 1:
@@ -83,7 +85,7 @@ class FourRoomsEnv(gym.Env):
         else:
             return np.array([0.0, 0.0], dtype=np.float32)
 
-    def step(self, action):
+    def step(self, action: np.ndarray):
         assert self.action_space.contains(action)
         if not self._continuous_action:
             action = FourRoomsEnv._discrete_to_continuous(action)
@@ -164,10 +166,7 @@ class FourRoomsEnv(gym.Env):
 
         self._current_state = np.array([next_x, next_y], dtype=np.float32)
 
-        if self._misleading_reward:
-            reward = -0.001 * np.linalg.norm(self._current_state)
-        else:
-            reward = 0
+        reward = 0
 
         args, _ = self._hooks(
             when.Env.AfterStep,
@@ -177,7 +176,9 @@ class FourRoomsEnv(gym.Env):
 
         return self._current_state, reward, False, False, {}
 
-    def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
+    def reset(
+        self, *, seed: Optional[int] = None, options: Optional[dict] = None,
+    ):
         args, _ = self._hooks(when.Env.BeforeReset, self, self._current_state)
         self._fig = None
         self._ax = None
