@@ -8,6 +8,7 @@ from gymnasium.wrappers.flatten_observation import FlattenObservation
 from corerl.environment.bimodal import Bimodal
 from corerl.environment.reseau_env import ReseauEnv
 import corerl.environment.three_tanks_v2 as TTv2
+from corerl.environment.four_rooms import FourRoomsEnv
 import corerl.environment.three_tanks as TTv1
 from corerl.environment.smpl.envs.atropineenv import AtropineEnvGym
 from corerl.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
@@ -42,6 +43,18 @@ def init_environment(cfg: DictConfig) -> gym.Env:
                 raise NotImplementedError
             else:
                 env = TTv2.ThreeTankEnv(seed, random_sp=cfg.random_sp)
+
+    elif name == "four_rooms":
+        env = FourRoomsEnv(
+            seed,
+            action_scale=cfg.action_scale,
+            noise_scale=cfg.noise_scale,
+            decay_scale=cfg.decay_scale,
+            decay_probability=cfg.decay_probability,
+            misleading_reward=cfg.misleading_reward,
+            continuous_action=not cfg.discrete_control,
+        )
+
     elif name == "three_tanks":
         if cfg.change_action:
             if cfg.discrete_action:
