@@ -82,6 +82,7 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
         concat_df = concat_df[self.obs_col_names + self.action_col_names]
         concat_df = concat_df.ffill()
 
+        assert isinstance(concat_df, pd.DataFrame)
         return concat_df
 
     def get_obs_max_min(
@@ -102,11 +103,16 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
 
         return obs_space_low, obs_space_high
 
-    def get_df_date_range(self, df: pd.DataFrame, start_ind: pd.Timestamp, end_ind: pd.Timestamp) -> pd.DataFrame:
+    def get_df_date_range(
+        self,
+        df: pd.DataFrame | pd.Series,
+        start_ind: pd.Timestamp,
+        end_ind: pd.Timestamp,
+    ) -> pd.DataFrame | pd.Series:
         window_df = df.loc[start_ind: end_ind]
         return window_df
 
-    def get_obs(self, df: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp) -> np.ndarray:
+    def get_obs(self, df: pd.DataFrame | pd.Series, start: pd.Timestamp, end: pd.Timestamp) -> np.ndarray:
         obs_df = self.get_df_date_range(df, start, end)  # here it is only used for observations
         obs = obs_df.to_numpy()
         obs = np.mean(obs, axis=0)
@@ -114,7 +120,7 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
 
     def find_action_boundary(
         self,
-        action_df: pd.DataFrame,
+        action_df: pd.DataFrame | pd.Series,
         start_ind: pd.Timestamp,
     ) -> tuple[np.ndarray, pd.Timestamp, pd.Timestamp, bool]:
         """
@@ -474,6 +480,7 @@ class DirectActionDataLoader(BaseDataLoader):
         concat_df = concat_df[self.obs_col_names + self.action_col_names]
         concat_df = concat_df.ffill()
 
+        assert isinstance(concat_df, pd.DataFrame)
         return concat_df
 
     def get_obs_max_min(self, df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
@@ -491,11 +498,16 @@ class DirectActionDataLoader(BaseDataLoader):
 
         return obs_space_low, obs_space_high
 
-    def get_df_date_range(self, df: pd.DataFrame, start_ind: pd.Timestamp, end_ind: pd.Timestamp) -> pd.DataFrame:
+    def get_df_date_range(
+        self,
+        df: pd.DataFrame | pd.Series,
+        start_ind: pd.Timestamp,
+        end_ind: pd.Timestamp,
+    ) -> pd.DataFrame | pd.Series:
         window_df = df.loc[start_ind: end_ind]
         return window_df
 
-    def get_obs(self, df: pd.DataFrame, start: pd.Timestamp, end: pd.Timestamp) -> np.ndarray:
+    def get_obs(self, df: pd.DataFrame | pd.Series, start: pd.Timestamp, end: pd.Timestamp) -> np.ndarray:
         obs_df = self.get_df_date_range(df, start, end)  # here it is only used for observations
         obs = obs_df.to_numpy()
         obs = np.mean(obs, axis=0)
@@ -503,7 +515,7 @@ class DirectActionDataLoader(BaseDataLoader):
 
     def find_action_boundary(
         self,
-        action_df: pd.DataFrame,
+        action_df: pd.DataFrame | pd.Series,
         start_ind: pd.Timestamp,
     ) -> tuple[np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool]:
         """

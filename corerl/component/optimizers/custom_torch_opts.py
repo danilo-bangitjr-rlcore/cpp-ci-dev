@@ -2,10 +2,10 @@ import torch
 import copy
 import math
 from typing import Any, Callable, overload
-from torch.optim.optimizer import ParamsT
+from torch.optim.optimizer import ParamsT, Optimizer
 
 
-class CustomAdam(torch.optim.Optimizer):
+class CustomAdam(Optimizer):
     def __init__(
         self,
         params: ParamsT,
