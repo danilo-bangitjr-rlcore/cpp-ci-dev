@@ -25,10 +25,11 @@ jobs:
         uses: astral-sh/setup-uv@v2
         with:
           enable-cache: true
-          cache-dependency-glob: "requirements.txt"
+          cache-dependency-glob: "pyproject.toml"
 
       - run: |
           uv venv
-          uv pip install -r requirements.txt
+          uv pip compile --extra=dev pyproject.toml -o deps.txt
+          uv pip sync deps.txt
 
       - run: uv run pytest -n auto test/small
