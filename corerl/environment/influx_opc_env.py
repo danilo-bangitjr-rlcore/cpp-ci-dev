@@ -1,4 +1,4 @@
-import influxdb_client
+from influxdb_client.client.influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
 from abc import ABC, abstractmethod
 
@@ -29,7 +29,7 @@ class DBClientWrapper:
         # influx setup
         self.bucket = cfg.influx.bucket
         org = cfg.influx.org
-        self.client = influxdb_client.InfluxDBClient(
+        self.client = InfluxDBClient(
             url=cfg.influx.url, token=cfg.influx.token, org=org, timeout=30_000
         )
         self.write_client = self.client.write_api(write_options=SYNCHRONOUS)
@@ -59,6 +59,7 @@ class DBClientWrapper:
         else:
             df = df_list
 
+        assert isinstance(df, pd.DataFrame)
         return df
 
     def timescale_get_last(self, end_time: datetime, col_names: List[str]) -> pd.Series:
@@ -109,7 +110,7 @@ class DBClientWrapper:
         name_filter = "\tOR ".join([f"name = '{col}'\n" for col in col_names])
         name_filter = f"({name_filter})"
         query_str = f"""
-            SELECT 
+            SELECT
               name,
               avg((fields->'val')::float) AS avg_val
             FROM {self.sensor_table}

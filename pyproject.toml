@@ -38,14 +38,43 @@ version = "0.0.0"
 description = ""
 requires-python = ">=3.10,<3.13"
 authors = []
-dependencies = []
+dependencies = [
+    "asyncua~=1.0",
+    "casadi~=3.6",
+    "gym_electric_motor~=2.0",
+    "gymnasium~=0.29",
+    "hydra-core~=1.3",
+    "hydra-joblib-launcher~=1.2",
+    "influxdb_client~=1.39",
+    "jaxtyping~=0.2",
+    "matplotlib~=3.8",
+    "nltk~=3.8",
+    "numpy~=1.26",
+    "pandas~=2.2",
+    "pydantic~=2.9",
+    "pygame~=2.5",
+    "requests~=2.31",
+    "scipy~=1.13",
+    "sqlalchemy~=2.0",
+    "sqlalchemy-utils~=0.41",
+    "torch~=2.5",
+    "tqdm~=4.66",
+    "scikit-learn~=1.5",
+    "websockets~=13.1",
+    "psycopg2-binary~=2.9",
+    "linesearchopt@git+ssh://git@github.com/rlcoretech/linesearchopt.git"
+]
 readme = "README.md"
 
 [project.optional-dependencies]
 dev = [
     "pip",
+    "uv",
+    "docker",
     "ruff",
     "pytest",
-    "pytest-cov",
+    "pytest-asyncio",
+    "pytest-xdist",
+    "pytest-timeout",
     "pyright",
 ]
