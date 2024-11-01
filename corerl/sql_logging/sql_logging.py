@@ -6,7 +6,6 @@ from collections.abc import MutableMapping
 from sqlalchemy import Engine, MetaData
 from sqlalchemy import Table, Column, DateTime
 from sqlalchemy.sql import func
-from sqlalchemy_utils import database_exists, create_database
 
 from sqlalchemy_utils import database_exists, drop_database, create_database
 from sqlalchemy import select, URL
@@ -20,9 +19,7 @@ from sqlalchemy.orm import Session
 
 import logging
 from sqlalchemy import inspect
-from sqlalchemy import URL
 import time
-# from sqlalchemy.ext.declarative.clsregistry import _ModuleMarker
 
 logger = logging.getLogger(__name__)
 
