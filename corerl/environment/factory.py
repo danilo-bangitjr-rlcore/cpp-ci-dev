@@ -51,7 +51,6 @@ def init_environment(cfg: DictConfig) -> gym.Env:
             noise_scale=cfg.noise_scale,
             decay_scale=cfg.decay_scale,
             decay_probability=cfg.decay_probability,
-            misleading_reward=cfg.misleading_reward,
             continuous_action=not cfg.discrete_control,
         )
 

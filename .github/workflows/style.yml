@@ -1,32 +1,36 @@
-name: Small Tests
+name: Style
 
 on: [pull_request]
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        python-version: ["3.12"]
-
+  check:
+    runs-on: ubuntu-latest
     steps:
       # setup the repository
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+            python-version: 3.12
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
 
       - uses: webfactory/ssh-agent@v0.7.0
         with:
           ssh-private-key: ${{ secrets.PRIVATE_DEPLOY_KEY }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v2
 
       - run: |
           uv venv
           uv pip compile --extra=dev pyproject.toml -o deps.txt
           uv pip sync deps.txt
 
-      - run: uv run pytest -n auto test/small
+      - run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      # linting
+    #   - uses: chartboost/ruff-action@v1
+
+      # type checking
+      - uses: jakebailey/pyright-action@v2
+        with:
+          pylance-version: latest-release
