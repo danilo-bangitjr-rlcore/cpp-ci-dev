@@ -3,6 +3,7 @@ defaults:
   - _self_
 
 name : greedy_ac
+interleave_updates: True
 average_entropy : True
 tau : 0.0
 rho : 0.1

@@ -54,6 +54,8 @@ class GreedyAC(BaseAC):
         self.learned_proposal_percent = 1 - self.uniform_sampling_percentage
         self.uniform_proposal = self.uniform_sampling_percentage == 1
 
+        self._interleave_updates = cfg["interleave_updates"]
+
         self.n_sampler_updates = cfg.n_sampler_updates
         if self.share_batch and not self.uniform_proposal:
             assert self.n_actor_updates == self.n_sampler_updates, "Actor and proposal must use same number of updates"
@@ -366,70 +368,74 @@ class GreedyAC(BaseAC):
         return sampler_loss
 
     def update_critic(self) -> None:
+        if min(self.critic_buffer.size) <= 0:
+            return
+
         self._msg_bus.emit_event_sync(EventType.agent_update_critic)
 
-        for _ in range(self.n_critic_updates):
-            batches = self.critic_buffer.sample()
+        batches = self.critic_buffer.sample()
 
-            def closure():
-                losses = self.compute_critic_loss(batches) # noqa: B023
-                return torch.stack(losses, dim=-1).sum(dim=-1)
+        def closure():
+            losses = self.compute_critic_loss(batches) # noqa: B023
+            return torch.stack(losses, dim=-1).sum(dim=-1)
 
 
-            q_loss = closure()
-            args, _ = self._hooks(
-                when.Agent.AfterCriticLossComputed, self, batches, q_loss,
-            )
-            batches, q_loss = args[1:]
-            self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
+        q_loss = closure()
+        args, _ = self._hooks(
+            when.Agent.AfterCriticLossComputed, self, batches, q_loss,
+        )
+        batches, q_loss = args[1:]
+        self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
 
-            args, _ = self._hooks(
-                when.Agent.AfterCriticUpdate, self, batches, q_loss,
-            )
-            batches, q_loss = args[1:]
+        args, _ = self._hooks(
+            when.Agent.AfterCriticUpdate, self, batches, q_loss,
+        )
+        batches, q_loss = args[1:]
 
-    def update_actor(self) -> None:
+    def update_actor(self) -> tuple:
         self._msg_bus.emit_event_sync(EventType.agent_update_actor)
 
-        update_infos = []
-        for _ in range(self.n_actor_updates):
-            batches = self.policy_buffer.sample()
-            # Assuming we don't have an ensemble of policies
-            assert len(batches) == 1
-            batch = batches[0]
+        if min(self.policy_buffer.size) <= 0:
+            return tuple()
 
-            args, _ = self._hooks(
-                when.Agent.AfterActorBufferSample, self, batch,
-            )
-            batch = args[1]
+        batches = self.policy_buffer.sample()
+        # Assuming we don't have an ensemble of policies
+        assert len(batches) == 1
+        batch = batches[0]
 
-            update_info = self.get_policy_update_info(batch.state)
-            args, _ = self._hooks(
-                when.Agent.BeforeActorLossComputed, self, update_info,
-            )
-            update_info = args[1]
+        args, _ = self._hooks(
+            when.Agent.AfterActorBufferSample, self, batch,
+        )
+        batch = args[1]
 
-            actor_loss = self.compute_actor_loss(update_info)
-            args, _ = self._hooks(
-                when.Agent.AfterActorLossComputed, self, batch, update_info,
-                actor_loss,
-            )
-            batch, update_info, actor_loss = args[1:]
+        update_info = self.get_policy_update_info(batch.state)
+        args, _ = self._hooks(
+            when.Agent.BeforeActorLossComputed, self, update_info,
+        )
+        update_info = args[1]
 
-            stacked_s_batch = update_info[4]
-            best_actions = update_info[5]
-            self.actor.update(
-                actor_loss,
-                opt_kwargs={
-                    "closure": partial(self.actor_err, stacked_s_batch, best_actions),
-                },
-            )
-            update_infos.append(update_info)
+        actor_loss = self.compute_actor_loss(update_info)
+        args, _ = self._hooks(
+            when.Agent.AfterActorLossComputed, self, batch, update_info,
+            actor_loss,
+        )
+        batch, update_info, actor_loss = args[1:]
 
-            args, _ = self._hooks(
-                when.Agent.AfterActorUpdate, self, batch, actor_loss,
-            )
-            actor_loss = args[1]
+        stacked_s_batch = update_info[4]
+        best_actions = update_info[5]
+        self.actor.update(
+            actor_loss,
+            opt_kwargs={
+                "closure": partial(self.actor_err, stacked_s_batch, best_actions),
+            },
+        )
+
+        args, _ = self._hooks(
+            when.Agent.AfterActorUpdate, self, batch, actor_loss,
+        )
+        actor_loss = args[1]
+
+        return update_info
 
 
     def update_sampler(self, update_infos: Optional[list[tuple]]) -> None:
@@ -460,41 +466,43 @@ class GreedyAC(BaseAC):
                     when.Agent.AfterProposalUpdate, self, batch, sampler_loss,
                 )
         else:
-            for _ in range(self.n_sampler_updates):
-                batches = self.policy_buffer.sample()
-                assert len(batches) == 1
-                batch = batches[0]
+            if min(self.policy_buffer.size) <= 0:
+                return
 
-                args, _ = self._hooks(
-                    when.Agent.AfterProposalBufferSample, self, batch,
-                )
-                batch = args[1]
+            batches = self.policy_buffer.sample()
+            assert len(batches) == 1
+            batch = batches[0]
 
-                update_info = self.get_policy_update_info(batch.state)
-                args, _ = self._hooks(
-                    when.Agent.BeforeProposalLossComputed, self, update_info,
-                )
-                update_info = args[1]
+            args, _ = self._hooks(
+                when.Agent.AfterProposalBufferSample, self, batch,
+            )
+            batch = args[1]
 
-                sampler_loss = self.compute_sampler_loss(update_info)
-                args, _ = self._hooks(
-                    when.Agent.AfterProposalLossComputed, self, batch,
-                    update_info, sampler_loss,
-                )
-                batch, update_info, sampler_loss = args[1:]
+            update_info = self.get_policy_update_info(batch.state)
+            args, _ = self._hooks(
+                when.Agent.BeforeProposalLossComputed, self, update_info,
+            )
+            update_info = args[1]
 
-                stacked_s_batch = update_info[4]
-                best_actions = update_info[5]
-                self.sampler.update(
-                    sampler_loss,
-                    opt_kwargs={
-                        "closure": partial(self.sampler_err, stacked_s_batch, best_actions),
-                    },
-                )
+            sampler_loss = self.compute_sampler_loss(update_info)
+            args, _ = self._hooks(
+                when.Agent.AfterProposalLossComputed, self, batch,
+                update_info, sampler_loss,
+            )
+            batch, update_info, sampler_loss = args[1:]
 
-                self._hooks(
-                    when.Agent.AfterProposalUpdate, self, batch, sampler_loss,
-                )
+            stacked_s_batch = update_info[4]
+            best_actions = update_info[5]
+            self.sampler.update(
+                sampler_loss,
+                opt_kwargs={
+                    "closure": partial(self.sampler_err, stacked_s_batch, best_actions),
+                },
+            )
+
+            self._hooks(
+                when.Agent.AfterProposalUpdate, self, batch, sampler_loss,
+            )
 
     def actor_err(self, stacked_s_batch, best_actions) -> torch.Tensor:
         logp, _ = self.actor.get_log_prob(
@@ -509,20 +517,46 @@ class GreedyAC(BaseAC):
         return -logp.mean()
 
     def update(self) -> None:
-        # share_batch ensures that update_actor and update_sampler use the same batch
-        critic_loss = None
-        if min(self.critic_buffer.size) > 0:
-            critic_loss = self.update_critic()
+        if self._interleave_updates:
+            self._update_interleave()
+            return None
 
-        if min(self.policy_buffer.size) > 0:
-            update_infos = self.update_actor()
-            if not self.uniform_proposal:
-                if self.share_batch:
-                    self.update_sampler(update_infos=update_infos)
-                else:
-                    self.update_sampler(update_infos=None)
+        self._update_sequential()
 
-        return critic_loss
+    def _update_interleave(self) -> None:
+        n_sampler_updates = 0
+        for _ in range(self.n_actor_updates):
+            for _ in range(self.n_critic_updates):
+                self.update_critic()
+
+            update_info = self.update_actor()
+            if (
+                not self.uniform_proposal and
+                n_sampler_updates <= self.n_sampler_updates
+            ):
+                update_info = [update_info] if len(update_info) > 0 else None
+                self.update_sampler(
+                    update_infos=(update_info if self.share_batch else None),
+                )
+                n_sampler_updates += 1
+
+    def _update_sequential(self) -> None:
+        for _ in range(self.n_critic_updates):
+            self.update_critic()
+
+        update_infos = []
+        for _ in range(self.n_actor_updates):
+            update_info = self.update_actor()
+            if len(update_info) > 0:
+                update_infos.append(update_info)
+
+        if not self.uniform_proposal:
+            if self.share_batch:
+                self.update_sampler(update_infos=update_infos)
+            else:
+                self.update_sampler(update_infos=None)
+
+        return None
 
     def save(self, path: Path) -> None:
         self._msg_bus.emit_event_sync(EventType.agent_save)
