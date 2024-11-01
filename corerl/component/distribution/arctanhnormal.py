@@ -3,6 +3,7 @@ import torch.distributions as d
 from torch.types import _size
 
 import corerl.utils.nullable as nullable
+from typing_extensions import override
 
 
 class ArctanhNormal(d.Distribution):
@@ -17,33 +18,48 @@ class ArctanhNormal(d.Distribution):
         "loc": d.constraints.real, "scale": d.constraints.positive,     # pyright: ignore [reportAttributeAccessIssue]
     }
 
+    def __init__(self, loc, scale, validate_args=None):
+        self._underlying = d.Normal(loc, scale, validate_args)
+
     @property
     def loc(self):
+        """Get the location parameters
+        """
         return self._underlying.loc
 
     @loc.setter
     def loc(self, value):
+        """Set the location parameters
+        """
         self._underlying.loc = value
 
     @property
     def scale(self):
+        """Get the scale parameters
+        """
         return self._underlying.scale
 
     @scale.setter
     def scale(self, value):
+        """Set the scale parameters
+        """
         self._underlying.scale = value
 
-    @property
+    @d.Distribution.batch_shape.getter
+    @override
     def batch_shape(self):
+        """Get the batch shape of the distribution
+        """
         return self._underlying.batch_shape
 
-    @property
+    @d.Distribution.event_shape.getter
+    @override
     def event_shape(self):
+        """Get the event shape of the distribution
+        """
         return self._underlying.event_shape
 
-    def __init__(self, loc, scale, validate_args=None):
-        self._underlying = d.Normal(loc, scale, validate_args)
-
+    @override
     def expand(self, batch_shape, _instance=None):
         new = self._get_checked_instance(ArctanhNormal, _instance)
         batch_shape = torch.Size(batch_shape)
@@ -56,16 +72,19 @@ class ArctanhNormal(d.Distribution):
         new._validate_args = self._validate_args
         return new
 
+    @override
     def sample(self, sample_shape: _size | None = None):
         sample_shape = nullable.default(sample_shape, torch.Size)
         samples = self._underlying.sample(sample_shape=sample_shape)
         return torch.tanh(samples)
 
+    @override
     def rsample(self, sample_shape: _size | None = None):
         sample_shape = nullable.default(sample_shape, torch.Size)
         samples = self._underlying.rsample(sample_shape=sample_shape)
         return torch.tanh(samples)
 
+    @override
     def log_prob(self, value):
         normal_samples = torch.atanh(torch.clamp(
             value, -1.0 + ArctanhNormal._EPSILON, 1.0 - ArctanhNormal._EPSILON,
@@ -79,6 +98,7 @@ class ArctanhNormal(d.Distribution):
 
         return normal_logp - offset
 
+    @override
     def cdf(self, value):
         less_than_mask = torch.where(value <= -1)
         greater_than_mask = torch.where(value >= 1)
@@ -93,6 +113,7 @@ class ArctanhNormal(d.Distribution):
 
         return normal_cdf
 
+    @override
     def icdf(self, value):
         less_than_mask = torch.where(value <= -1)
         greater_than_mask = torch.where(value >= 1)
@@ -107,6 +128,7 @@ class ArctanhNormal(d.Distribution):
 
         return normal_cdf
 
+    @override
     def entropy(self):
         """
         Note that this function does not return the entropy of the
@@ -114,6 +136,6 @@ class ArctanhNormal(d.Distribution):
         for the entropy function.
 
         Instead, this function enables the gradient of the distribution entropy
-        to be correctly computed.
+        to be correctly computed. A similar approach is taken in rlax.
         """
         return self._underlying.entropy()

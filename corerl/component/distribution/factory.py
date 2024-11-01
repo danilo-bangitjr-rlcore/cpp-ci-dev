@@ -2,7 +2,7 @@ import torch.distributions as d
 from . import ArctanhNormal
 
 
-_dist_types = {
+_dist_types: dict[str, type[d.Distribution]] = {
     "arctanh_normal": ArctanhNormal,
     "squashed_gaussian": ArctanhNormal,
     "beta": d.Beta,
@@ -14,7 +14,7 @@ _dist_types = {
 }
 
 
-def get_dist_type(type_) -> d.Distribution:
+def get_dist_type(type_) -> type[d.Distribution]:
     if type_.lower() in _dist_types.keys():
         return _dist_types[type_.lower()]
 
