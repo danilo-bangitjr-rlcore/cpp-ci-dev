@@ -14,7 +14,7 @@ class GreedyIQL(GreedyAC, IQL):
         super().__init__(cfg, state_dim, action_dim)
 
     def update_actor(self):
-        GreedyAC.update_actor(self)
+        return GreedyAC.update_actor(self)
 
     def update_critic(self):
         IQL.update_critic(self)

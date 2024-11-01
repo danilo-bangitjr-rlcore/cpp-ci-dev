@@ -66,7 +66,7 @@ class BaseAC(BaseAgent):
         self.n_actor_updates = cfg.n_actor_updates
 
     @abstractmethod
-    def update_actor(self) -> None:
+    def update_actor(self) -> tuple:
         raise NotImplementedError
 
     @abstractmethod

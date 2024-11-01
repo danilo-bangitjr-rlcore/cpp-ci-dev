@@ -171,7 +171,7 @@ class InAC(BaseAC):
             q_loss = self.compute_q_loss(batches)
             self.q_critic.update(q_loss)
 
-    def update_actor(self) -> None:
+    def update_actor(self) -> tuple:
         for _ in range(self.n_actor_updates):
             batches = self.policy_buffer.sample()
             # Assuming we don't have an ensemble of policies
@@ -179,6 +179,8 @@ class InAC(BaseAC):
             batch = batches[0]
             actor_loss = self.compute_actor_loss(batch)
             self.actor.update(actor_loss)
+
+        return tuple()
 
     def update_beh(self) -> None:
         batches = self.policy_buffer.sample()
