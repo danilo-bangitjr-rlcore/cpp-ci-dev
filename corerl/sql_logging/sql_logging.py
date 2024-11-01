@@ -1,10 +1,11 @@
+from dataclasses import dataclass
 import logging
 import sqlalchemy
 import time
 import corerl.utils.dict as dict_u
 
 from typing import Any
-from omegaconf import OmegaConf
+from omegaconf import MISSING, OmegaConf
 from collections.abc import MutableMapping
 from sqlalchemy import Table, Column, DateTime, Engine, MetaData, URL, select, inspect
 from sqlalchemy.orm import Session
@@ -19,13 +20,22 @@ from corerl.sql_logging.base_schema import (
 logger = logging.getLogger(__name__)
 
 
-def get_sql_engine(db_data: dict, db_name: str, force_drop=False) -> Engine:
+@dataclass
+class SQLEngineConfig:
+    drivername: str = MISSING
+    username: str = MISSING
+    password: str = MISSING
+    ip: str = MISSING
+    port: int = MISSING
+
+
+def get_sql_engine(db_data: SQLEngineConfig, db_name: str, force_drop=False) -> Engine:
     url_object = sqlalchemy.URL.create(
-        drivername=db_data["drivername"],
-        username=db_data["username"],
-        password=db_data["password"],
-        host=db_data["ip"],
-        port=db_data["port"],
+        drivername=db_data.drivername,
+        username=db_data.username,
+        password=db_data.password,
+        host=db_data.ip,
+        port=db_data.port,
         database=db_name,
     )
     logger.debug("creating sql engine...")
