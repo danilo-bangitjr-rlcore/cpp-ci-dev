@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, UTC
 from corerl.sql_logging.sql_logging import get_sql_engine
 import pandas as pd
 from sqlalchemy import Engine
-from typing import List
+from typing import List, Any
 import numpy as np
 from corerl.data_loaders.utils import try_connect
 import logging
@@ -94,3 +94,40 @@ def _parse_jsonb(col: str, attribute: str = 'val', type_str: str = 'float') -> s
 def _filter_any(col: str, vals: list[str]) -> str:
     s = '\tOR '.join([f"{col} = '{v}'\n" for v in vals])
     return f'({s})'
+
+
+def fill_data_for_changed_setpoint(
+        change_tags: List[str],
+        dfs: List[pd.DataFrame],
+        delta_t: timedelta
+) -> List[tuple[datetime, str, Any]]:
+    data_tuples = []
+    largest_timestamp = None
+    for df in dfs:
+        columns = df.columns.values.tolist()  # datetime, tag, value
+        if df.iloc[0, 1] not in change_tags:
+            largest_timestamp = df[columns[0]].iloc[len(df)-1] \
+                if largest_timestamp is None else \
+                max(largest_timestamp, df[columns[0]].iloc[len(df)-1])
+
+    for df in dfs:
+        if df.iloc[0, 1] in change_tags:
+            for idx in range(len(df)-1):
+                data_tuples += _fillin_between(df, idx, delta_t)
+            # use largest_timestamp+delta_t to take care of the timestamp on the edge
+            data_tuples += _fillin_between(df, len(df) - 1, delta_t, largest_timestamp+delta_t)
+        else:
+            data_tuples += list(zip(*map(df.get, df)))
+    return data_tuples
+
+def _fillin_between(df: pd.DataFrame, row: int, delta_t: timedelta, end_ts: datetime | None=None) \
+        -> List[tuple[datetime, str, Any]]:
+    start_ts, tag, value = df.iloc[row]
+    if end_ts is None:
+        end_ts, _, _ = df.iloc[row+1]
+    ts = start_ts
+    tuples = []
+    while ts < end_ts:
+        tuples.append((ts, tag, value))
+        ts += delta_t
+    return tuples
