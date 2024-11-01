@@ -7,6 +7,8 @@ import logging
 from typing import Union, Optional, Any, Mapping, Iterator
 from typing_extensions import override
 
+import corerl.utils.nullable as nullable
+
 _BoundedAboveConstraint = constraints.less_than
 
 _BoundedBelowConstraint = Union[
@@ -295,8 +297,8 @@ class Bounded(ContinuousIIDPolicy):
         self,
         model: nn.Module,
         dist: type[d.Distribution],
-        action_min: Optional[torch.Tensor]=None,
-        action_max: Optional[torch.Tensor]=None,
+        action_min: torch.Tensor | float | None,
+        action_max: torch.Tensor | float | None,
     ):
         super().__init__(model, dist)
 
@@ -309,10 +311,17 @@ class Bounded(ContinuousIIDPolicy):
         dist_min = dist.support.lower_bound
         dist_max = dist.support.upper_bound
 
-        if action_min is None:
-            action_min = torch.Tensor([self._dist.support.lower_bound])
-        if action_max is None:
-            action_max= torch.Tensor([self._dist.support.upper_bound])
+        action_min = nullable.default(
+            action_min,
+            lambda: torch.Tensor([self._dist.support.lower_bound]),
+        )
+        action_min = torch.as_tensor(action_min)
+
+        action_max = nullable.default(
+            action_max,
+            lambda: torch.Tensor([self._dist.support.upper_bound]),
+        )
+        action_max = torch.as_tensor(action_max)
 
         assert torch.all(action_min < action_max)
 
