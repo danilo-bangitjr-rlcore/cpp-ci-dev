@@ -335,6 +335,7 @@ class ThreeTankEnv(ThreeTankEnvBase):
             "reset_at": reset_at,
         }
 
+        sp = np.asarray(sp)
         return sp, r, True, False, info
 
     def reset(self, seed: Optional[int]=None) -> tuple[np.ndarray, dict]:
@@ -659,7 +660,7 @@ def rise_time(
     _rise_time = t1 - t0
     process_time = len(process)
 
-    return _rise_time / process_time
+    return float(_rise_time / process_time)
 
 
 def settling_time(
@@ -688,4 +689,4 @@ def settling_time(
     _settling_time = indicator[::-1].argmin()
     process_time = len(process)
 
-    return _settling_time / process_time
+    return float(_settling_time / process_time)
