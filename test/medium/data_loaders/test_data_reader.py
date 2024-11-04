@@ -3,8 +3,7 @@ from corerl.data_loaders.data_reader import DataReader
 from corerl.data_loaders.data_writer import DataWriter
 from omegaconf import OmegaConf
 import pytest
-from test.medium.data_loaders.utils import maybe_create_sensor_table, timescale_docker
-from test.medium.data_loaders.test_data_writer import write_n_random_vals, data_writer
+from test.medium.data_loaders.test_data_writer import write_n_random_vals
 from typing import Generator, List
 from datetime import datetime, timedelta, UTC
 
@@ -24,7 +23,6 @@ def data_reader(timescale_docker) -> Generator[DataReader, None, None]:
     db_name = "pytest"
     sensor_table_name = "sensors"
     data_reader = DataReader(db_cfg=db_cfg, db_name=db_name, sensor_table_name=sensor_table_name)
-    maybe_create_sensor_table(engine=data_reader.engine, sensor_table_name=sensor_table_name)
 
     yield data_reader
 
