@@ -1,4 +1,0 @@
-defaults:
-  - action_normalizer: identity
-  - reward_normalizer: identity
-  - obs_normalizer: identity

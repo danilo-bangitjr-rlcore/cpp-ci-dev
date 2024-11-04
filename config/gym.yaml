@@ -5,7 +5,9 @@ defaults:
   - interaction : anytime
   - data_loader : direct_action
   - state_constructor : identity
-  - normalizer : identity
+  - normalizer/obs_normalizer : identity
+  - normalizer/action_normalizer : identity
+  - normalizer/reward_normalizer : identity
   # - db: credentials
   - _self_
 
@@ -15,17 +17,6 @@ interaction:
 experiment:
   plotting: False
   online_updates : True # Whether to update the agent online in deployment
-
-normalizer:
-  action_normalizer:
-    name: scale
-    action_high: ${env.action_high}
-    action_low: ${env.action_low}
-    use_cfg_values: false
-    discrete_control: ${env.discrete_control}
-
-  obs_normalizer:
-    discrete_control: ${env.discrete_control}
 
 agent_transition_creator:
   gamma : ${experiment.gamma}

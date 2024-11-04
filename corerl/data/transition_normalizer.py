@@ -3,7 +3,10 @@ import gymnasium as gym
 from copy import deepcopy
 from omegaconf import DictConfig
 from corerl.data.data import Transition
-from corerl.data.normalizer_utils import InvertibleNormalizer, init_action_normalizer, init_reward_normalizer, init_obs_normalizer
+from corerl.data.normalizer.action import init_action_normalizer
+from corerl.data.normalizer.obs import init_obs_normalizer
+from corerl.data.normalizer.reward import init_reward_normalizer
+from corerl.data.normalizer.base import InvertibleNormalizer
 
 log = logging.getLogger(__name__)
 
@@ -15,6 +18,9 @@ class TransitionNormalizer:
 
     def denormalize(self, transition: Transition):
         transition_copy = deepcopy(transition)
+
+        assert transition_copy.obs is not None
+        assert transition_copy.next_obs is not None
 
         transition_copy.obs = self.obs_normalizer.denormalize(transition_copy.obs)
         transition_copy.action = self.action_normalizer.denormalize(transition_copy.action)

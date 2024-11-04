@@ -1,6 +1,8 @@
 from typing import overload
 import gymnasium as gym
-from corerl.data.normalizer_utils import init_action_normalizer, init_reward_normalizer, init_obs_normalizer
+from corerl.data.normalizer.action import init_action_normalizer
+from corerl.data.normalizer.obs import init_obs_normalizer
+from corerl.data.normalizer.reward import init_reward_normalizer
 from corerl.data.data import ObsTransition, OldObsTransition
 
 from copy import copy
@@ -24,10 +26,14 @@ class ObsTransitionNormalizer:
         obs_transition_copy = copy(obs_transition)
 
         if isinstance(obs_transition_copy, OldObsTransition):
+            assert obs_transition_copy.prev_action is not None
             obs_transition_copy.prev_action = self.action_normalizer(obs_transition_copy.prev_action)
 
+        assert obs_transition_copy.obs is not None
         obs_transition_copy.obs = self.obs_normalizer(obs_transition_copy.obs)
         obs_transition_copy.action = self.action_normalizer(obs_transition_copy.action)
+
+        assert obs_transition_copy.next_obs is not None
         obs_transition_copy.next_obs = self.obs_normalizer(obs_transition_copy.next_obs)
         obs_transition_copy.reward = self.reward_normalizer(obs_transition_copy.reward)
         return obs_transition_copy

@@ -1,2 +1,0 @@
-name: maxmin
-discrete_control: ${env.discrete_control}
