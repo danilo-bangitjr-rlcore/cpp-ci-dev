@@ -1,13 +1,29 @@
 from abc import ABC, abstractmethod
-from omegaconf import DictConfig
+from dataclasses import dataclass, field
+from typing import Any
 import numpy
 from pathlib import Path
+
+from omegaconf import MISSING
 from corerl.data.data import Transition
 from corerl.utils.hook import Hooks, when
-from corerl.messages.client import make_msg_bus_client
+from corerl.messages.client import MessageBusClientConfig, make_msg_bus_client
+from corerl.utils.hydra import interpolate
+
+@dataclass
+class BaseAgentConfig:
+    discrete_control: bool = interpolate('${env.discrete_control}')
+    freezer_freq: int = 1
+    gamma: float = interpolate('${experiment.gamma}')
+    message_bus: MessageBusClientConfig = field(default_factory=MessageBusClientConfig)
+    n_updates: int = 1
+    replay_ratio: int = 1
+    seed: int = interpolate('${experiment.seed}')
+    update_freq: int = 1
+
 
 class BaseAgent(ABC):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: BaseAgentConfig, state_dim: int, action_dim: int):
         self._hooks = Hooks(keys=[e.value for e in when.Agent])
         self.replay_ratio = cfg.replay_ratio
         self.update_freq = cfg.update_freq
@@ -59,8 +75,23 @@ class BaseAgent(ABC):
         self._msg_bus.close_sync()
 
 
+
+@dataclass
+class BaseACConfig(BaseAgentConfig):
+    critic: Any = MISSING
+    actor: Any = MISSING
+
+    n_actor_updates: int = 1
+    n_critic_updates: int = 1
+    defaults: list[Any] = field(default_factory=lambda: [
+        'base_agent',
+        { 'critic': 'critic' },
+        { 'actor': 'network' },
+    ])
+
+
 class BaseAC(BaseAgent):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: BaseACConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         self.n_critic_updates = cfg.n_critic_updates
         self.n_actor_updates = cfg.n_actor_updates
