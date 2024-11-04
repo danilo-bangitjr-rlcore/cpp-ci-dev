@@ -18,7 +18,6 @@ class MainConfig(MutableMapping):
     data_loader: Any = MISSING
     env: Any = MISSING
     eval: Any = MISSING
-    event_bus: Any = MISSING
     experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
     interaction: Any = MISSING
     normalizer: NormalizerConfig = field(default_factory=NormalizerConfig)

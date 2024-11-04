@@ -2,7 +2,7 @@ import pytest
 from test.infrastructure.networking import get_free_port
 
 from corerl.messages.client import WebsocketClient
-from corerl.messages.server import WebsocketServer
+from corerl.messages.server import WebsocketServer, WebsocketServerConfig
 
 @pytest.fixture
 async def server_and_client():
@@ -10,7 +10,9 @@ async def server_and_client():
     # arbitrary port. Easiest to just build both at the same
     # time to manage this shared state.
     p = get_free_port('localhost')
-    s = WebsocketServer('localhost', p)
+
+    config = WebsocketServerConfig(host='localhost', port=p)
+    s = WebsocketServer(config)
     c = WebsocketClient('localhost', p)
 
     yield s, c
@@ -31,7 +33,8 @@ async def client():
 @pytest.fixture
 async def server():
     p = get_free_port('localhost')
-    s = WebsocketServer('localhost', p)
+    config = WebsocketServerConfig(host='localhost', port=p)
+    s = WebsocketServer(config)
 
     yield s
     await s.close()

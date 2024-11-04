@@ -1,10 +1,11 @@
 import asyncio
+import logging
 from collections import defaultdict
 from collections.abc import Callable
-import logging
+from dataclasses import dataclass
 from asyncio import AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor, Future
-from typing import Protocol
+from omegaconf import MISSING
 from websockets import ConnectionClosed
 from websockets.asyncio.client import connect, ClientConnection
 
@@ -226,10 +227,11 @@ class DummyWebsocketClient(WebsocketClient):
 # -----------------
 # -- Message Bus --
 # -----------------
-class MessageBusClientConfig(Protocol):
-    enable: bool
-    host: str
-    port: int | str
+@dataclass
+class MessageBusClientConfig:
+    enable: bool = False
+    host: str = MISSING
+    port: int | str = MISSING
 
 
 def make_msg_bus_client(cfg: MessageBusClientConfig) -> WebsocketClient:
