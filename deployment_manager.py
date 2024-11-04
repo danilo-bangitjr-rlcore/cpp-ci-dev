@@ -37,7 +37,7 @@ async def start_event_bus(cfg: DictConfig):
     python_entrypoint = cfg.event_bus.python_entrypoint
 
     await keep_alive(
-        cmd=[*exec, python_entrypoint],
+        cmd=[*exec, python_entrypoint, '--config-name', 'deployment_manager.yaml'],
         base_backoff=2,
         max_backoff=dt.timedelta(minutes=5),
     )

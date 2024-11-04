@@ -1,15 +1,27 @@
-from corerl.state_constructor.base import CompositeStateConstructor
+from dataclasses import dataclass
+from corerl.state_constructor.base import CompositeStateConstructor, sc_group
 import corerl.state_constructor.components as comp
 
-from omegaconf import DictConfig
 import gymnasium
+from corerl.utils.hydra import interpolate, list_
+
+
+# ----------------
+# -- MultiTrace --
+# ----------------
+
+@dataclass
+class MultiTraceConfig:
+    name: str = 'multi_trace'
+    trace_values: list[float] = list_()
+    warmup: int = 360
 
 
 class MultiTrace(CompositeStateConstructor):
     """
     A trace constructor that is composed of multiple traces
     """
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: MultiTraceConfig, _):
         # define the computation graphs
         start_sc = comp.Identity()  # first component in the graph
         trace_components = []
@@ -23,13 +35,26 @@ class MultiTrace(CompositeStateConstructor):
         concat_sc = comp.Concatenate(parents=concat_parents)
         self.sc = concat_sc
 
+sc_group.dispatcher(MultiTrace)
+
+# -----------------------
+# -- AnytimeMultiTrace --
+# -----------------------
+
+@dataclass
+class AnytimeMultiTraceConfig(MultiTraceConfig):
+    name: str = 'anytime_multi_trace'
+    representation: str = 'countdown'
+    steps_per_decision: int = interpolate('${interaction.steps_per_decision}')
+    use_indicator: bool = True
+
 
 class AnytimeMultiTrace(CompositeStateConstructor):
     """
     A trace constructor that is composed of multiple traces
     """
 
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: AnytimeMultiTraceConfig, _):
         # define the computation graphs
         start_sc = comp.Identity()  # first component in the graph
         trace_components = []
@@ -56,23 +81,58 @@ class AnytimeMultiTrace(CompositeStateConstructor):
         concat_sc = comp.Concatenate(parents=concat_parents)
         self.sc = concat_sc
 
+sc_group.dispatcher(AnytimeMultiTrace)
+
+# --------------
+# -- Identity --
+# --------------
+
+@dataclass
+class IdentityConfig:
+    name: str = 'identity'
 
 class Identity(CompositeStateConstructor):
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env):
+    def __init__(self, cfg: IdentityConfig, env: gymnasium.Env):
         sc = comp.Identity()
         self.sc = sc
 
+sc_group.dispatcher(Identity)
+
+# ------------------
+# -- SimpleReseau --
+# ------------------
+
+@dataclass
+class SimpleReseauConfig:
+    name: str = 'simple_reseau'
+    steps_per_decision: int = interpolate('${interaction.steps_per_decision}')
+    warmup: int = 180
 
 class SimpleReseauAnytime(CompositeStateConstructor):
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env):
+    def __init__(self, cfg: SimpleReseauConfig, env: gymnasium.Env):
         identity_sc = comp.Identity()
         anytime_sc = comp.AnytimeCountDown(cfg.steps_per_decision, parents=[identity_sc])
         concat_sc = comp.Concatenate(parents=[identity_sc, anytime_sc])
         self.sc = concat_sc
 
 
+sc_group.dispatcher(SimpleReseauAnytime)
+
+# -------------------
+# -- ReseauAnytime --
+# -------------------
+
+@dataclass
+class ReseauAnytimeConfig(SimpleReseauConfig):
+    name: str = 'reseau_anytime'
+    orp_col: int = 1
+    flow_rate_col: int = 2
+    fpm_col: int = 0
+    memory: list[int] = list_([30, 60, 180, 360])
+    warmup: int = 360
+
 class ReseauAnytime(CompositeStateConstructor):
-    def __init__(self, cfg: DictConfig, env: gymnasium.Env):
+    def __init__(self, cfg: ReseauAnytimeConfig, env: gymnasium.Env):
         identity_sc = comp.Identity()
 
         col_sc_1 = comp.KeepCols(cfg.orp_col, parents=[identity_sc])
@@ -98,3 +158,5 @@ class ReseauAnytime(CompositeStateConstructor):
         concat_parents = [identity_sc] + fpm_avgs + orp_diffs + flow_diffs + [anytime_sc]
         concat_sc = comp.Concatenate(parents=concat_parents)
         self.sc = concat_sc
+
+sc_group.dispatcher(ReseauAnytime)

@@ -1,7 +1,0 @@
-defaults:
-   - multi_trace
-
-name: anytime_multi_trace
-representation : countdown # alternatively, one_hot or  thermometer
-steps_per_decision : ${interaction.steps_per_decision}
-use_indicator : True

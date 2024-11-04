@@ -10,13 +10,14 @@ log = logging.getLogger(__name__)
 import pandas as pd
 from tqdm import tqdm
 from collections.abc import Callable, MutableMapping, Sequence
-from omegaconf import OmegaConf, DictConfig
+from omegaconf import OmegaConf
 from gymnasium.spaces.utils import flatdim
 from gymnasium import spaces, Env
 from pathlib import Path
 from typing import Any, Optional, TypeVar
 from warnings import warn
 
+from corerl.config import MainConfig
 from corerl.eval.composite_eval import CompositeEval
 from corerl.data_loaders.base import BaseDataLoader
 from corerl.data_loaders.direct_action import OldDirectActionDataLoader
@@ -36,7 +37,7 @@ import corerl.utils.dict as dict_u
 import corerl.utils.nullable as nullable
 
 
-def prepare_save_dir(cfg: DictConfig):
+def prepare_save_dir(cfg: MainConfig):
     if cfg.experiment.param_from_hash:
         cfg_hash = dict_u.hash(cfg, ignore={'experiment.seed'})
         log.debug("Creating experiment param from hash:", cfg_hash)
@@ -112,7 +113,7 @@ def set_env_obs_space(env: Env, df: pd.DataFrame, dl: BaseDataLoader):
     return env
 
 
-def load_df_from_csv(cfg: DictConfig, dl: BaseDataLoader) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def load_df_from_csv(cfg: MainConfig, dl: BaseDataLoader) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     output_path = Path(cfg.offline_data.output_path)
 
     all_data_df = load_or_create(root=output_path, cfgs=[cfg.data_loader, cfg.env], prefix='all_data_df',
@@ -142,7 +143,7 @@ def get_dp_transitions(transitions: list[Transition]) -> list[Transition]:
 
 
 def get_offline_obs_transitions(
-    cfg: DictConfig,
+    cfg: MainConfig,
     train_data_df: pd.DataFrame,
     test_data_df: pd.DataFrame,
     dl: BaseDataLoader | OldDirectActionDataLoader,
@@ -184,7 +185,7 @@ def get_offline_obs_transitions(
 
 
 def old_get_offline_transitions(
-    cfg: DictConfig,
+    cfg: MainConfig,
     obs_transitions: list[OldObsTransition],
     sc: BaseStateConstructor,
     transition_creator: OldAnytimeTransitionCreator,
@@ -214,7 +215,7 @@ def old_get_offline_transitions(
 
 
 def get_offline_transitions(
-    cfg: DictConfig,
+    cfg: MainConfig,
     obs_transitions: list[ObsTransition],
     sc: BaseStateConstructor,
     tc: BaseTransitionCreator,
@@ -239,17 +240,18 @@ def get_offline_transitions(
     return transitions
 
 
-def get_offline_trajectories(cfg: DictConfig,
-                             hash_cfgs: list[DictConfig],
-                             train_obs_transitions: list[OldObsTransition],
-                             test_obs_transitions: list[OldObsTransition],
-                             sc: BaseStateConstructor,
-                             transition_creator: OldAnytimeTransitionCreator,
-                             warmup=0,
-                             prefix='',
-                             cache_train_scs: bool = False,
-                             cache_test_scs: bool = False
-                             ) -> tuple[list[Trajectory], Optional[list[Trajectory]]]:
+def get_offline_trajectories(
+    cfg: MainConfig,
+    hash_cfgs: list[MutableMapping],
+    train_obs_transitions: list[OldObsTransition],
+    test_obs_transitions: list[OldObsTransition],
+    sc: BaseStateConstructor,
+    transition_creator: OldAnytimeTransitionCreator,
+    warmup=0,
+    prefix='',
+    cache_train_scs: bool = False,
+    cache_test_scs: bool = False
+) -> tuple[list[Trajectory], Optional[list[Trajectory]]]:
     output_path = Path(cfg.offline_data.output_path)
 
     if prefix != '':
@@ -298,7 +300,7 @@ def get_state_action_dim(env: Env, sc: BaseStateConstructor) -> tuple[int, int]:
     return state_dim, action_dim
 
 
-def offline_alert_training(cfg: DictConfig, env: Env, alerts: CompositeAlert, train_transitions: list[Transition],
+def offline_alert_training(cfg: MainConfig, env: Env, alerts: CompositeAlert, train_transitions: list[Transition],
                            plot_transitions: list[Transition], save_path: Path):
     log.info('Starting offline alert training...')
 
@@ -333,7 +335,7 @@ def offline_alert_training(cfg: DictConfig, env: Env, alerts: CompositeAlert, tr
     # make_ensemble_info_summary_plots(stats, save_path, "Offline")
 
 
-def offline_training(cfg: DictConfig,
+def offline_training(cfg: MainConfig,
                      env: Env,
                      agent: BaseAgent,
                      train_transitions: list[Transition],
@@ -384,7 +386,7 @@ def offline_training(cfg: DictConfig,
     return offline_eval
 
 
-def online_deployment(cfg: DictConfig,
+def online_deployment(cfg: MainConfig,
                       agent: BaseAgent,
                       interaction: BaseInteraction,
                       env: Env,
@@ -392,7 +394,7 @@ def online_deployment(cfg: DictConfig,
                       transition_normalizer: TransitionNormalizer,
                       save_path: Path,
                       plot_transitions: Optional[list[Transition]] = None,
-                      test_epochs: Optional[list[Transition]] = None):
+                      test_epochs: Optional[list[int]] = None):
     if test_epochs is None:
         test_epochs = []
 
@@ -473,7 +475,7 @@ def online_deployment(cfg: DictConfig,
     return online_eval
 
 
-def offline_anytime_deployment(cfg: DictConfig,
+def offline_anytime_deployment(cfg: MainConfig,
                                agent: BaseAgent,
                                interaction: AnytimeInteraction,
                                env: Env,

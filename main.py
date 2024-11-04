@@ -1,10 +1,10 @@
 import logging
-from omegaconf import DictConfig
 import hydra
 import numpy as np
 import torch
 import random
 
+from corerl.config import MainConfig
 from corerl.utils.device import device
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
-def main(cfg: DictConfig):
+def main(cfg: MainConfig):
     save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
 
@@ -112,7 +112,7 @@ def main(cfg: DictConfig):
             utils.offline_alert_training(cfg, env, composite_alert, alert_train_transitions,
                 plot_transitions, save_path)
 
-    if test_epochs is not None:
+    if len(test_epochs) > 0:
         assert plot_transitions is not None, "Must include test transitions if test_epochs is not None"
 
     interaction = init_interaction(cfg.interaction, env, sc, agent_tc, obs_normalizer, transitions=agent_test_transitions)

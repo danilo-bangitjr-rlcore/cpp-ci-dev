@@ -1,7 +1,0 @@
-name: reseau_anytime
-steps_per_decision : ${interaction.steps_per_decision}
-orp_col : 1
-flow_rate_col : 2
-fpm_col : 0
-memory : [30, 60, 180, 360]
-warmup : 360

@@ -36,6 +36,6 @@ experiment:
   gamma : 0.99
   train_split : 0.9
   plot_split : 0.999
-  test_epochs : null # If you want to test at certain epochs, specify a list here
+  test_epochs : []
   offline_stat_keys: []
   online_stat_keys: []
