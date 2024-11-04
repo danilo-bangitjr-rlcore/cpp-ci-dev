@@ -32,25 +32,22 @@ class DataWriter:
         quality: str | None = None,
     ) -> None:
         self._init()
-
-        if host is None:
-            host = self.host
-        if id is None:
-            id = name
-        if quality is None:
-            quality = "The operation succeeded. StatusGood (0x0)"
-
         assert timestamp.tzinfo == UTC
-        ts = timestamp.isoformat()
 
-        jsonb_str = f'{{"val": {val}}}'
         insert_stmt = f"""
             INSERT INTO {self.sensor_table_name}
             (time, host, id, name, \"Quality\", fields)
-            VALUES (TIMESTAMP '{ts}', '{host}', '{id}', '{name}', '{quality}', '{jsonb_str}');
+            VALUES (TIMESTAMP ':ts', ':host', ':id', ':name', ':quality', ':jsonb');
         """
 
-        self.connection.execute(text(insert_stmt))
+        self.connection.execute(text(insert_stmt), {
+            'ts': timestamp.isoformat(),
+            'host': host or self.host,
+            'id': id or name,
+            'name': name,
+            'quality': quality or "The operation succeeded. StatusGood (0x0)",
+            'jsonb': f'{{"val": {val}}}',
+        })
 
         self._writes += 1
         if self._writes % self.commit_every == 0:
