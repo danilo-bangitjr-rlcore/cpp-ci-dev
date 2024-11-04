@@ -6,7 +6,7 @@
 /corerl/agent/greedy_ac.py                          @kerrick-rlcore
 /corerl/calibration_models                          @revan-macqueen-rlcore
 /corerl/state_constructor                           @revan-macqueen-rlcore
-/corerl/interaction                                 @revan-macqueen-rlcore
+/corerl/interaction                                 @revan-macqueen-rlcore @alex-trudeau-rlcore
 /corerl/data                                        @revan-macqueen-rlcore
 /corerl/data_loaders                                @revan-macqueen-rlcore @alex-trudeau-rlcore
 /corerl/environment/saturation.py                   @revan-macqueen-rlcore
@@ -16,7 +16,7 @@
 /corerl/utils/device.py                             @alex-trudeau-rlcore
 /corerl/calibration_model.py                        @revan-macqueen-rlcore
 /corerl/make_sweep.py                               @revan-macqueen-rlcore
-/corerl/make_offline_transitions.py                 @revan-macqueen-rlcore
+/corerl/make_offline_transitions.py                 @revan-macqueen-rlcore @alex-trudeau-rlcore
 /corerl/eval/ibe.py                                 @revan-macqueen-rlcore
 /corerl/eval/action_gap.py                          @revan-macqueen-rlcore
 /corerl/eval/base_eval.py                           @revan-macqueen-rlcore
