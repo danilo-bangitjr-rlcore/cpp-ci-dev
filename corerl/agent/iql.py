@@ -126,7 +126,7 @@ class IQL(BaseAC):
             q_loss = self.compute_q_loss(batches)
             self.q_critic.update(q_loss)
 
-    def update_actor(self) -> None:
+    def update_actor(self) -> tuple:
         for _ in range(self.n_actor_updates):
             batches = self.policy_buffer.sample()
             # Assuming we don't have an ensemble of policies
@@ -137,6 +137,8 @@ class IQL(BaseAC):
                 empty, empty, empty, empty, batch.state, batch.action, 0,
             ))
             self.actor.update(actor_loss)
+
+        return tuple()
 
     def update(self) -> None:
         if min(self.critic_buffer.size) > 0:

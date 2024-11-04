@@ -52,7 +52,7 @@ class SimpleAC(BaseAC):
         loss_actor = -(self.tau * ent + log_prob * (target - v.detach())).mean()
         return loss_actor
 
-    def update_actor(self) -> None:
+    def update_actor(self) -> tuple:
         for _ in range(self.n_actor_updates):
             batches = self.policy_buffer.sample()
             # Assuming we don't have an ensemble of policies
@@ -60,6 +60,8 @@ class SimpleAC(BaseAC):
             batch = batches[0]
             loss_actor = self.compute_actor_loss(batch)
             self.actor.update(loss_actor)
+
+        return tuple()
 
     def compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)

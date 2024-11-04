@@ -91,10 +91,12 @@ class Reinforce(BaseAC):
 
         return actor_loss
 
-    def update_actor(self) -> None:
+    def update_actor(self) -> tuple:
         for _ in range(self.n_actor_updates):
             actor_loss = self.compute_actor_loss()
             self.actor.update(actor_loss)
+
+        return tuple()
 
     def update(self) -> None:
         self.compute_returns()
