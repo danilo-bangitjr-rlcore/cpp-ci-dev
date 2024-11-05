@@ -3,9 +3,10 @@ from corerl.agent.simple_ac import SimpleAC
 from corerl.agent.sarsa import EpsilonGreedySarsa
 from corerl.agent.inac import InAC
 from corerl.agent.greedy_iql import GreedyIQL
-from corerl.agent.random import RandomAgent
 from corerl.utils.hydra import DiscriminatedUnion
 
+import corerl.agent.random # noqa: F401
+import corerl.agent.reinforce # noqa: F401
 import corerl.agent.iql # noqa: F401
 import corerl.agent.greedy_ac # noqa: F401
 import corerl.agent.action_schedule # noqa: F401
@@ -29,8 +30,6 @@ def init_agent(cfg: DiscriminatedUnion, state_dim: int, action_dim: int) -> Base
         agent = EpsilonGreedySarsa(cfg, state_dim, action_dim)
     elif cfg.name == 'greedy_iql':
         agent = GreedyIQL(cfg, state_dim, action_dim)
-    elif cfg.name == 'random':
-        agent = RandomAgent(cfg, state_dim, action_dim)
     else:
         raise NotImplementedError
 
