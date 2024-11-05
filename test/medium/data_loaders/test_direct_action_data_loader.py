@@ -1,6 +1,5 @@
-from corerl.data_loaders.factory import init_data_loader_new
+from corerl.data_loaders.factory import init_data_loader
 from corerl.data_loaders.direct_action import DirectActionDataLoaderConfig, DirectActionDataLoader
-from corerl.data_loaders.base import BaseDataLoaderConfig, BaseDataLoader
 
 
 def test_direct_action_data_loader1():
@@ -25,6 +24,6 @@ def test_direct_action_data_loader1():
         only_dp_transitions=False
     )
 
-    dl = init_data_loader_new(cfg)
+    dl = init_data_loader(cfg)
 
     assert isinstance(dl, DirectActionDataLoader)
