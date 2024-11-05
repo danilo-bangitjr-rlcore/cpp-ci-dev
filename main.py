@@ -11,7 +11,7 @@ from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.interaction.factory import init_interaction
-from corerl.data_loaders.factory import init_data_loader_new
+from corerl.data_loaders.factory import init_data_loader
 from corerl.data.factory import init_transition_creator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
@@ -46,7 +46,7 @@ def main(cfg: MainConfig):
     # it's important this happens before we create the state constructor and interaction since normalization
     # depends on these values
     if do_offline_training:
-        dl = init_data_loader_new(cfg.data_loader)
+        dl = init_data_loader(cfg.data_loader)
         all_data_df, train_data_df, test_data_df = utils.load_df_from_csv(cfg, dl)
         if cfg.experiment.load_env_obs_space_from_data:
             env = utils.set_env_obs_space(env, all_data_df, dl)
