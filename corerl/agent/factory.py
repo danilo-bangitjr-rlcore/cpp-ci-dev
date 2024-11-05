@@ -1,7 +1,7 @@
 from corerl.agent.base import BaseAgent, group
-from corerl.agent.greedy_iql import GreedyIQL
 from corerl.utils.hydra import DiscriminatedUnion
 
+import corerl.agent.greedy_iql # noqa: F401
 import corerl.agent.inac # noqa: F401
 import corerl.agent.simple_ac # noqa: F401
 import corerl.agent.random # noqa: F401
@@ -14,18 +14,4 @@ import corerl.agent.sarsa # noqa: F401
 
 
 def init_agent(cfg: DiscriminatedUnion, state_dim: int, action_dim: int) -> BaseAgent:
-    """
-    corresponding configs: config/agent
-    """
-
-    try:
-        return group.dispatch(cfg, state_dim, action_dim)
-    except Exception:
-        ...
-
-    if cfg.name == 'greedy_iql':
-        agent = GreedyIQL(cfg, state_dim, action_dim)
-    else:
-        raise NotImplementedError
-
-    return agent
+    return group.dispatch(cfg, state_dim, action_dim)

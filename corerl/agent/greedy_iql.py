@@ -1,16 +1,25 @@
-from omegaconf import DictConfig
+from dataclasses import dataclass
 
-from corerl.agent.iql import IQL
-from corerl.agent.greedy_ac import GreedyAC
+from corerl.agent.base import group
+from corerl.agent.iql import IQL, IQLConfig
+from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig
 from pathlib import Path
 import pickle as pkl
+
+
+@dataclass
+class GreedyIQLConfig(GreedyACConfig, IQLConfig):
+    name: str = 'greedy_iql'
+
+    temp: float = 1.0
+    expectile: float = 0.8
 
 
 class GreedyIQL(GreedyAC, IQL):
     """
     A verison of IQL that uses GAC-style updates.
     """
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: GreedyIQLConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
 
     def update_actor(self):
@@ -65,3 +74,5 @@ class GreedyIQL(GreedyAC, IQL):
         policy_buffer_path = path / "policy_buffer.pkl"
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
+
+group.dispatcher(GreedyIQL)

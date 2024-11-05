@@ -1,9 +1,0 @@
-defaults:
-  - greedy_ac
-  - _self_
-
-name : greedy_iql
-temp : 1.0
-expectile: 0.8
-
-
