@@ -88,7 +88,9 @@ def get_test_state_qs_and_policy_params(agent, test_transitions):
     policy_q_values = policy_q_values.reshape(num_states, test_actions)
 
     # Actor Params
-    actor_alphas, actor_betas = agent.actor.model.get_dist_params(test_states)
+    sampled_actions, policy_params = agent.actor.policy.forward(test_states)
+    actor_alphas = policy_params['concentration1']
+    actor_betas = policy_params['concentration0']
     actor_alphas = to_np(actor_alphas)
     actor_betas = to_np(actor_betas)
 
