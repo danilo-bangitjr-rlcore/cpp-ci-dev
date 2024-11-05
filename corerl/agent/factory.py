@@ -1,5 +1,4 @@
-from omegaconf import DictConfig
-from corerl.agent.base import BaseAgent
+from corerl.agent.base import BaseAgent, group
 from corerl.agent.iql import IQL
 from corerl.agent.simple_ac import SimpleAC
 from corerl.agent.sarsa import EpsilonGreedySarsa
@@ -7,13 +6,21 @@ from corerl.agent.inac import InAC
 from corerl.agent.greedy_ac import GreedyAC, GreedyACLineSearch, ExploreLSGAC
 from corerl.agent.greedy_iql import GreedyIQL
 from corerl.agent.random import RandomAgent
-from corerl.agent.action_schedule import ActionScheduleAgent
+from corerl.utils.hydra import DiscriminatedUnion
+
+import corerl.agent.action_schedule # noqa: F401
 
 
-def init_agent(cfg: DictConfig, state_dim: int, action_dim: int) -> BaseAgent:
+def init_agent(cfg: DiscriminatedUnion, state_dim: int, action_dim: int) -> BaseAgent:
     """
     corresponding configs: config/agent
     """
+
+    try:
+        return group.dispatch(cfg, state_dim, action_dim)
+    except Exception:
+        ...
+
     if cfg.name == 'simple_ac':
         agent = SimpleAC(cfg, state_dim, action_dim)
     elif cfg.name == 'iql':
@@ -32,8 +39,6 @@ def init_agent(cfg: DictConfig, state_dim: int, action_dim: int) -> BaseAgent:
         agent = ExploreLSGAC(cfg, state_dim, action_dim)
     elif cfg.name == 'random':
         agent = RandomAgent(cfg, state_dim, action_dim)
-    elif cfg.name == 'action_schedule':
-        agent = ActionScheduleAgent(cfg, state_dim, action_dim)
     else:
         raise NotImplementedError
 
