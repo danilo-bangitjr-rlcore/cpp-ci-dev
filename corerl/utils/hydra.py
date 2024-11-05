@@ -5,7 +5,7 @@ from collections.abc import Callable
 from hydra.core.config_store import ConfigStore
 
 T = TypeVar('T')
-def list_(vals: list[T] | None = None) -> list[T]:
+def list_(vals: list[T] | None = None) -> Any:
     if vals is None:
         return field(default_factory=list)
 

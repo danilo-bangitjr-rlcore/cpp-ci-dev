@@ -6,6 +6,7 @@ from hydra.core.config_store import ConfigStore
 
 from corerl.experiment.config import ExperimentConfig
 from corerl.data.normalizer.base import NormalizerConfig
+from corerl.data_loaders.base import BaseDataLoaderConfig
 
 @dataclass
 class MainConfig(MutableMapping):
@@ -15,7 +16,7 @@ class MainConfig(MutableMapping):
     alert_transition_creator: Any = MISSING
     alerts: Any = MISSING
     calibration_model: Any = MISSING
-    data_loader: Any = MISSING
+    data_loader: BaseDataLoaderConfig = MISSING
     env: Any = MISSING
     eval: Any = MISSING
     event_bus: Any = MISSING
