@@ -1,7 +1,0 @@
-defaults:
-  - base_ac
-  - _self_
-
-name : iql
-temp : 1.0
-expectile: 0.8
