@@ -60,7 +60,7 @@ class Reinforce(BaseAC):
 
         ep_t -= 1
         for t in range(ep_t, -1, -1):
-            curr_return = self.ep_rewards[t] + self.gamma * curr_return
+            curr_return = self.ep_rewards[t] + self.gamma * torch.tensor(curr_return)
             self.returns[t] = curr_return
 
         self.returns = tensor(self.returns, device.device)
