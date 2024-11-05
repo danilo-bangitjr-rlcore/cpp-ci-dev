@@ -84,7 +84,6 @@ class SimpleAC(BaseAC):
             next_state_batch = batch.boot_state
             mask_batch = 1 - batch.terminated
             gamma_exp_batch = batch.gamma_exponent
-            dp_mask = batch.boot_state_dp
 
             # Option 1: Using the reduction of the ensemble in the update target
             if not self.ensemble_targets:
