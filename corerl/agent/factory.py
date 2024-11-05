@@ -7,6 +7,7 @@ from corerl.utils.hydra import DiscriminatedUnion
 
 import corerl.agent.random # noqa: F401
 import corerl.agent.reinforce # noqa: F401
+import corerl.agent.sac # noqa: F401
 import corerl.agent.iql # noqa: F401
 import corerl.agent.greedy_ac # noqa: F401
 import corerl.agent.action_schedule # noqa: F401
