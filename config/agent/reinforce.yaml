@@ -1,7 +1,0 @@
-defaults:
-  - base_ac
-  - _self_
-
-name : reinforce
-tau : -1
-lr_alpha : 0.001
