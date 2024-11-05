@@ -11,7 +11,7 @@ from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.interaction.factory import init_interaction
-from corerl.data_loaders.factory import init_data_loader
+from corerl.data_loaders.factory import init_data_loader, init_old_data_loader
 from corerl.data.factory import init_transition_creator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
