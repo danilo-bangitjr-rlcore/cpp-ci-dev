@@ -5,6 +5,10 @@ from abc import ABC, abstractmethod
 
 from corerl.utils.hydra import Group
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from corerl.component.actor.network_actor import NetworkActor
+
 
 class BaseActor(ABC):
     @abstractmethod
@@ -37,7 +41,7 @@ class BaseActor(ABC):
         raise NotImplementedError
 
 
-group = Group(
-    'agent/actor',
-    return_type=BaseActor,
-)
+group = Group[
+    [int, int, NetworkActor | None],
+    BaseActor,
+]('agent/actor')
