@@ -90,7 +90,6 @@ class GreedyAC(BaseAC):
             self.rho_proposal * self.num_samples)  # Number of actions used to update proposal policy
 
         self.actor = init_actor(cfg.actor, state_dim, action_dim)
-        assert isinstance(self.actor, NetworkActor)
         self.sampler = init_actor(cfg.actor, state_dim, action_dim, initializer=self.actor)
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points

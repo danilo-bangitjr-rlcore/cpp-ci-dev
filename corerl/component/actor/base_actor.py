@@ -4,13 +4,11 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 
 from corerl.utils.hydra import Group
-
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from corerl.component.actor.network_actor import NetworkActor
-
+from corerl.component.policy.policy import Policy
 
 class BaseActor(ABC):
+    policy: Policy
+
     @abstractmethod
     def get_action(
         self,
@@ -42,6 +40,6 @@ class BaseActor(ABC):
 
 
 group = Group[
-    [int, int, NetworkActor | None],
+    [int, int, BaseActor | None],
     BaseActor,
 ]('agent/actor')

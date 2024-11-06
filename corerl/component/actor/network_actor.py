@@ -2,7 +2,7 @@ import torch
 from dataclasses import dataclass, field
 from pathlib import Path
 from omegaconf import MISSING
-from typing import Any, Optional, Callable
+from typing import Any, Callable
 
 import corerl.component.policy as policy
 import corerl.utils.nullable as nullable
@@ -38,7 +38,7 @@ class NetworkActor(BaseActor):
         cfg: NetworkActorConfig,
         state_dim: int,
         action_dim: int,
-        initializer: Optional['NetworkActor'] = None,
+        initializer: BaseActor | None = None,
     ):
         # We always assume actions are normalized in (0, 1) unless otherwise
         # stated
@@ -128,7 +128,7 @@ class NetworkActorLineSearch(NetworkActor):
         cfg: NetworkActorLineSearchConfig,
         state_dim: int,
         action_dim: int,
-        initializer: Optional['NetworkActor'] = None,
+        initializer: BaseActor | None = None,
     ):
         super().__init__(cfg, state_dim, action_dim, initializer)
         self.optimizer = LineSearchOpt(
