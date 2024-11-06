@@ -2,7 +2,6 @@ from corerl.data_loaders.data_writer import DataWriter
 from omegaconf import OmegaConf
 from datetime import datetime, UTC, timedelta
 import pytest
-from test.medium.data_loaders.utils import maybe_create_sensor_table
 from typing import Generator
 from random import random
 
@@ -22,7 +21,6 @@ def data_writer() -> Generator[DataWriter, None, None]:
     db_name = "pytest"
     sensor_table_name = "sensors"
     data_writer = DataWriter(db_cfg=db_cfg, db_name=db_name, sensor_table_name=sensor_table_name, commit_every=1)
-    maybe_create_sensor_table(engine=data_writer.engine, sensor_table_name=sensor_table_name)
 
     yield data_writer
 
