@@ -1,5 +1,5 @@
 import inspect
-from dataclasses import field, fields, is_dataclass
+from dataclasses import dataclass, field, fields, is_dataclass
 from typing import Any, Concatenate, ParamSpec, TypeVar, Generic, Protocol
 from collections.abc import Callable
 from hydra.core.config_store import ConfigStore
@@ -14,6 +14,18 @@ def list_(vals: list[T] | None = None) -> Any:
 
 def interpolate(path: str) -> Any:
     return path
+
+
+def config(name: str, group: str | None = None):
+    def _inner(cls: type[T]):
+        node = dataclass(cls)
+
+        cs = ConfigStore.instance()
+        cs.store(name=name, group=group, node=node)
+
+        return node
+
+    return _inner
 
 
 # -----------------------
