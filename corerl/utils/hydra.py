@@ -28,11 +28,10 @@ Config = TypeVar('Config', bound=DiscriminatedUnion)
 R = TypeVar('R')
 P = ParamSpec('P')
 
-class Group(Generic[R]):
+class Group(Generic[P, R]):
     def __init__(
         self,
         group: str,
-        return_type: type[R],
     ):
         self._group = group
         self._dispatchers: dict[str, Callable[..., R]] = {}
@@ -53,8 +52,8 @@ class Group(Generic[R]):
 
         return f
 
-    def dispatch(self, config: DiscriminatedUnion, *args: Any):
-        return self._dispatchers[config.name](config, *args)
+    def dispatch(self, config: DiscriminatedUnion, *args: P.args, **kwargs: P.kwargs):
+        return self._dispatchers[config.name](config, *args, **kwargs)
 
 
 def get_config_name(config: type[Any]):

@@ -6,14 +6,13 @@ from corerl.utils.hydra import Group, interpolate
 
 from corerl.data.normalizer.base import Identity, InvertibleNormalizer, Scale
 
-
 # -------------
 # -- Configs --
 # -------------
-group = Group(
-    'normalizer/action_normalizer',
-    return_type=InvertibleNormalizer[np.ndarray],
-)
+group = Group[
+    [gymnasium.Env],
+    InvertibleNormalizer[np.ndarray],
+]('normalizer/action_normalizer')
 
 
 @dataclass

@@ -4,10 +4,10 @@ from corerl.utils.hydra import Group, interpolate, DiscriminatedUnion
 from corerl.data.normalizer.base import BaseNormalizer, Clip, Identity, Scale
 
 
-group = Group(
-    'normalizer/reward_normalizer',
-    return_type=BaseNormalizer[float],
-)
+group = Group[
+    [],
+    BaseNormalizer[float],
+]('normalizer/reward_normalizer')
 
 
 @dataclass

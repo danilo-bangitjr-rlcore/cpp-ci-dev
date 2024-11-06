@@ -1,3 +1,4 @@
+import gymnasium
 import numpy as np
 from abc import ABC, abstractmethod
 from corerl.utils.hydra import Group
@@ -101,7 +102,7 @@ class CompositeStateConstructor(BaseStateConstructor):
 
 
 # set up config groups
-sc_group = Group(
-    'state_constructor',
-    return_type=CompositeStateConstructor,
-)
+sc_group = Group[
+    [gymnasium.Env],
+    CompositeStateConstructor,
+]('state_constructor')
