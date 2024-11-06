@@ -3,6 +3,8 @@ import torch
 from pathlib import Path
 from abc import ABC, abstractmethod
 
+from corerl.utils.hydra import Group
+
 
 class BaseActor(ABC):
     @abstractmethod
@@ -29,3 +31,9 @@ class BaseActor(ABC):
     @abstractmethod
     def load(self, path: Path) -> None:
         raise NotImplementedError
+
+
+group = Group(
+    'agent/actor',
+    return_type=BaseActor,
+)
