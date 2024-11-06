@@ -4,15 +4,28 @@ https://drive.google.com/drive/u/1/folders/1tJo78FvsWfWaPncJNNyI9IO1f7UbxCFR
 """
 import numpy as np
 import torch
-from omegaconf import DictConfig
 
-from corerl.eval.base_eval import BaseEval
+from corerl.eval.base_eval import BaseEval, EvalConfig
 from corerl.component.network.utils import to_np
 from corerl.agent.utils import get_top_action
+from corerl.utils.hydra import config
+
+
+@config('curvature', group='eval')
+class CurvatureConfig(EvalConfig):
+    name: str = 'curvature'
+
+    num_action_samples: int = 20
+    num_deltas: int = 20
+    epsilon: float = 0.1
+    relaxation: float = 0.1
+
+    offline_eval: bool = True
+    online_eval: bool = True
 
 
 class Curvature(BaseEval):
-    def __init__(self, cfg: DictConfig, **kwargs):
+    def __init__(self, cfg: CurvatureConfig, **kwargs):
         if 'agent' not in kwargs:
             raise KeyError("Missing required argument: 'agent'")
         if 'get_prev_action_function' not in kwargs:
