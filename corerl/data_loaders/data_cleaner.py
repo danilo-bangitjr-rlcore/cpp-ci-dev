@@ -76,7 +76,7 @@ def _clean_by_sliding_window(
         data: np.ndarray,
         window_length: int,
         in_range_threshold: float,
-        min_window_count: int=12
+        min_window_count: int = 12
 ) -> (np.ndarray, dict):
     # if the window length is too long,
     # then jump and ensure one number is evaluated by at least 12 windows

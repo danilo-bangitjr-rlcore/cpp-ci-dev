@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, UTC
 from corerl.sql_logging.sql_logging import get_sql_engine
 import pandas as pd
 from sqlalchemy import Engine
-from typing import List, Any
+from typing import List, Any, Union
 import numpy as np
 from corerl.data_loaders.utils import try_connect
 import logging
@@ -120,7 +120,7 @@ def fill_data_for_changed_setpoint(
             data_tuples += list(zip(*map(df.get, df)))
     return data_tuples
 
-def _fillin_between(df: pd.DataFrame, row: int, delta_t: timedelta, end_ts: datetime | None=None) \
+def _fillin_between(df: pd.DataFrame, row: int, delta_t: timedelta, end_ts: Union[datetime, None]=None) \
         -> List[tuple[datetime, str, Any]]:
     start_ts, tag, value = df.iloc[row]
     if end_ts is None:
