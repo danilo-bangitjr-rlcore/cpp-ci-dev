@@ -28,6 +28,7 @@ def test_main_configs(config: str):
     proc = subprocess.run([
         'uv', 'run', 'python', 'calibration_model.py',
         '--config-name', f'{config}.yaml',
+        'data_loader=old_direct_action',
         'experiment.max_steps=25',
         'experiment.offline_steps=10',
         'experiment.cm_eval_freq=10',

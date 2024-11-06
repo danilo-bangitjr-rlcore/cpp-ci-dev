@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 
 from corerl.environment.reward.base import BaseReward
-from corerl.data_loaders.base import BaseDataLoader, OldBaseDataLoader, BaseDataLoaderConfig, dl_group, old_dl_group
+from corerl.data_loaders.base import BaseDataLoader, OldBaseDataLoader, BaseDataLoaderConfig, dl_group
 from corerl.data.data import OldObsTransition, ObsTransition
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.utils.hydra import list_, interpolate
@@ -59,14 +59,11 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
         self.skip_rows = cfg.skip_rows
         self.header = cfg.header
         self.df_col_names = cfg.df_col_names
-        assert len(
-            self.df_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'df_col_names', a list of names you'd like to give the columns in your dataframe"  # noqa: E501
+        assert len(self.df_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'df_col_names', a list of names you'd like to give the columns in your dataframe"  # noqa: E501
         self.obs_col_names = cfg.obs_col_names
-        assert len(
-            self.obs_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'obs_col_names', a sublist of the column names in self.df_col_names that you'd like to be included in observations"  # noqa: E501
+        assert len(self.obs_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'obs_col_names', a sublist of the column names in self.df_col_names that you'd like to be included in observations"  # noqa: E501
         self.action_col_names = cfg.action_col_names
-        assert len(
-            self.action_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'action_names', a sublist of the column names in self.df_col_names that correspond to the dimensions of the action space"  # noqa: E501
+        assert len(self.action_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'action_names', a sublist of the column names in self.df_col_names that correspond to the dimensions of the action space"  # noqa: E501
         self.date_col_name = cfg.date_col_name
         self.max_time_delta = cfg.max_time_delta
         self.time_thresh = pd.Timedelta(self.max_time_delta, "s")
@@ -74,8 +71,8 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
         self.steps_per_decision = cfg.steps_per_decision
 
     def load_data(
-            self,
-            filenames: Sequence[str] | Sequence[Path],
+        self,
+        filenames: Sequence[str] | Sequence[Path],
     ) -> pd.DataFrame:
         """
         Read csvs into a single concatenated df sorted by date, containing only the columns in the observation space
@@ -105,8 +102,8 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
         return concat_df
 
     def get_obs_max_min(
-            self,
-            df: pd.DataFrame,
+        self,
+        df: pd.DataFrame,
     ) -> tuple[np.ndarray, np.ndarray]:
         """
         Find the max and min values for each column in the input df to later be used for normalization
@@ -123,10 +120,10 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
         return obs_space_low, obs_space_high
 
     def get_df_date_range(
-            self,
-            df: pd.DataFrame | pd.Series,
-            start_ind: pd.Timestamp,
-            end_ind: pd.Timestamp,
+        self,
+        df: pd.DataFrame | pd.Series,
+        start_ind: pd.Timestamp,
+        end_ind: pd.Timestamp,
     ) -> pd.DataFrame | pd.Series:
         window_df = df.loc[start_ind: end_ind]
         return window_df
@@ -138,9 +135,9 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
         return obs
 
     def find_action_boundary(
-            self,
-            action_df: pd.DataFrame | pd.Series,
-            start_ind: pd.Timestamp,
+        self,
+        action_df: pd.DataFrame | pd.Series,
+        start_ind: pd.Timestamp,
     ) -> tuple[np.ndarray, pd.Timestamp, pd.Timestamp, bool]:
         """
         Return the action taken at the beginning of the dataframe.
@@ -187,9 +184,9 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
         return curr_action, prev_date, curr_date, False
 
     def get_curr_action_steps(
-            self,
-            action_start: pd.Timestamp,
-            action_end: pd.Timestamp,
+        self,
+        action_start: pd.Timestamp,
+        action_end: pd.Timestamp,
     ) -> tuple[int, pd.Timestamp]:
         """
         Determine the number of time steps that fit in the given action window and align the time steps,
@@ -203,11 +200,11 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
         return curr_action_steps, step_start
 
     def create_obs_transitions(
-            self,
-            df: pd.DataFrame,
-            normalizer: ObsTransitionNormalizer,
-            reward_function: BaseReward,
-            *args,
+        self,
+        df: pd.DataFrame,
+        normalizer: ObsTransitionNormalizer,
+        reward_function: BaseReward,
+        *args,
     ) -> list[OldObsTransition]:
         """
         Iterate through the df and produce transitions using the "Anytime" paradigm.
@@ -438,12 +435,14 @@ def get_action_windows(obs_transitions: list[OldObsTransition]):
 
     return action_windows
 
-old_dl_group.dispatcher(OldDirectActionDataLoader)
+
+dl_group.dispatcher(OldDirectActionDataLoader)
 
 
 @dataclass
 class DirectActionDataLoaderConfig(OldDirectActionDataLoaderConfig):
     name: str = 'direct_action'
+
 
 class DirectActionDataLoader(BaseDataLoader):
     """
@@ -467,22 +466,19 @@ class DirectActionDataLoader(BaseDataLoader):
         self.skip_rows = cfg.skip_rows
         self.header = cfg.header
         self.df_col_names = cfg.df_col_names
-        assert len(
-            self.df_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'df_col_names', a list of names you'd like to give the columns in your dataframe"  # noqa: E501
+        assert len(self.df_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'df_col_names', a list of names you'd like to give the columns in your dataframe"  # noqa: E501
         self.obs_col_names = cfg.obs_col_names
-        assert len(
-            self.obs_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'obs_col_names', a sublist of the column names in self.df_col_names that you'd like to be included in observations"  # noqa: E501
+        assert len(self.obs_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'obs_col_names', a sublist of the column names in self.df_col_names that you'd like to be included in observations"  # noqa: E501
         self.action_col_names = cfg.action_col_names
-        assert len(
-            self.action_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'action_names', a sublist of the column names in self.df_col_names that correspond to the dimensions of the action space"  # noqa: E501
+        assert len(self.action_col_names) > 0, "Ensure config/env/<env_name>.yaml defines 'action_names', a sublist of the column names in self.df_col_names that correspond to the dimensions of the action space"  # noqa: E501
         self.date_col_name = cfg.date_col_name
         self.max_time_delta = cfg.max_time_delta
         self.time_thresh = pd.Timedelta(self.max_time_delta, "s")
         self.obs_length = cfg.obs_length
 
     def load_data(
-            self,
-            filenames: Sequence[str] | Sequence[Path],
+        self,
+        filenames: Sequence[str] | Sequence[Path],
     ) -> pd.DataFrame:
         """
         Read csvs into a single concatenated df sorted by date, containing only the columns in the observation space
@@ -527,10 +523,10 @@ class DirectActionDataLoader(BaseDataLoader):
         return obs_space_low, obs_space_high
 
     def get_df_date_range(
-            self,
-            df: pd.DataFrame | pd.Series,
-            start_ind: pd.Timestamp,
-            end_ind: pd.Timestamp,
+        self,
+        df: pd.DataFrame | pd.Series,
+        start_ind: pd.Timestamp,
+        end_ind: pd.Timestamp,
     ) -> pd.DataFrame | pd.Series:
         window_df = df.loc[start_ind: end_ind]
         return window_df
@@ -542,9 +538,9 @@ class DirectActionDataLoader(BaseDataLoader):
         return obs
 
     def find_action_boundary(
-            self,
-            action_df: pd.DataFrame | pd.Series,
-            start_ind: pd.Timestamp,
+        self,
+        action_df: pd.DataFrame | pd.Series,
+        start_ind: pd.Timestamp,
     ) -> tuple[np.ndarray, pd.Timestamp, pd.Timestamp, bool, bool, bool]:
         """
         Return the action taken at the beginning of the dataframe.
@@ -594,10 +590,10 @@ class DirectActionDataLoader(BaseDataLoader):
         return curr_action_steps, step_start
 
     def create_obs_transitions(
-            self,
-            df: pd.DataFrame,
-            reward_function: BaseReward,
-            *args,
+        self,
+        df: pd.DataFrame,
+        reward_function: BaseReward,
+        *args,
     ) -> list[ObsTransition]:
         """
         Iterate through the df and produce observation transitions for that dataframe.

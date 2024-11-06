@@ -17,7 +17,6 @@ class MainConfig(MutableMapping):
     alerts: Any = MISSING
     calibration_model: Any = MISSING
     data_loader: BaseDataLoaderConfig = MISSING
-    old_data_loader: BaseDataLoaderConfig = MISSING
     env: Any = MISSING
     eval: Any = MISSING
     event_bus: Any = MISSING

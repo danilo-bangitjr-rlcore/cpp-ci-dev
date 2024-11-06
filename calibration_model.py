@@ -13,7 +13,7 @@ from corerl.data.data import Transition, Trajectory
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
-from corerl.data_loaders.factory import init_old_data_loader
+from corerl.data_loaders.factory import init_data_loader
 from corerl.utils.device import device
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.alerts.composite_alert import CompositeAlert
@@ -50,7 +50,7 @@ def main(cfg: DictConfig):
 
     env = init_environment(cfg.env)
 
-    dl = init_old_data_loader(cfg.old_data_loader)
+    dl = init_data_loader(cfg.data_loader)
     all_data_df, train_data_df, test_data_df = utils.load_df_from_csv(cfg, dl)
     if cfg.experiment.load_env_obs_space_from_data:
         env = utils.set_env_obs_space(env, all_data_df, dl)

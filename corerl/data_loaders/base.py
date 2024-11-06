@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from pathlib import Path
-from omegaconf import MISSING
+from typing import Union
 
 import pandas as pd
 from corerl.data.data import ObsTransition, OldObsTransition
@@ -73,12 +73,6 @@ class BaseDataLoader(ABC):
     ) -> tuple[np.ndarray, np.ndarray]:
         raise NotImplementedError
 
-# set up config groups
-dl_group = Group(
-    'data_loader',
-    return_type=BaseDataLoader,
-)
-
 
 class OldBaseDataLoader(ABC):
     @abstractmethod
@@ -135,7 +129,7 @@ class OldBaseDataLoader(ABC):
 
 
 # set up config groups
-old_dl_group = Group(
-    'old_data_loader',
-    return_type=OldBaseDataLoader,
+dl_group = Group(
+    'data_loader',
+    return_type=Union[BaseDataLoader, OldBaseDataLoader],
 )
