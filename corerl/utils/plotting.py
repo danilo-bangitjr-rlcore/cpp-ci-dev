@@ -1,8 +1,9 @@
+from typing import Any, cast
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import beta
 import pandas as pd
-from matplotlib.path import Path
+from pathlib import Path
 from corerl.agent.utils import get_test_state_qs_and_policy_params
 
 import corerl.utils.nullable as nullable
@@ -852,7 +853,7 @@ def make_summary_plot(plot_info: dict, path: Path, prefix: str):
                 v = np.asarray(v).mean()
         elif type(v) == list and len(v) == 0:
             v = None
-        data[formal_labels.get(k, k)] = [v]
+        data[formal_labels.get(k, k)] = [cast(Any, v)]
 
     larger_better = {}
     for k in data.keys():
@@ -890,7 +891,7 @@ def make_summary_plot(plot_info: dict, path: Path, prefix: str):
         padding=1.1
     )
     plt.tight_layout()
-    fig.savefig(path / "{}_summary.png".format(prefix), dpi=300)
+    fig.savefig(path / f"{prefix}_summary.png", dpi=300)
     plt.close()
     plt.clf()
 
