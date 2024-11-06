@@ -81,7 +81,7 @@ def _init_ensemble_reducts(cfg: DictConfig):
 def create_base(
     cfg: Mapping, input_dim: int, output_dim: Optional[int],
 ) -> nn.Module:
-    if cfg["name"].lower() in ("mlp", "fc"):
+    if cfg.name.lower() in ("mlp", "fc"):
         return _create_base_mlp(cfg, input_dim, output_dim)
     else:
         raise ValueError(f"unknown network type {cfg['name']}")
@@ -90,23 +90,13 @@ def create_base(
 def _create_base_mlp(
     cfg: Mapping, input_dim: int, output_dim: Optional[int],
 ) -> nn.Module:
-    assert cfg["name"].lower() in ("mlp", "fc")
+    assert cfg.name.lower() in ("mlp", "fc")
 
-    hidden = cfg["hidden"]
-    act = cfg["activation"]
-    bias = cfg["bias"]
+    hidden = cfg.hidden
+    act = cfg.activation
+    bias = cfg.bias
     assert len(hidden) == len(act)
-    layer_init = utils.init_layer(cfg["layer_init"])
-
-    # Warn if any of the config keys start with `head_`, since this function
-    # only creates network bases
-    ks = cfg.keys()
-    filt = list(filter(lambda x: x.startswith("head_"), ks))
-    if len(filt) > 0:
-        warn(
-            f"create_base: unexpected config key(s) {filt}",
-            stacklevel=1,
-        )
+    layer_init = utils.init_layer(cfg.layer_init)
 
     net = []
 

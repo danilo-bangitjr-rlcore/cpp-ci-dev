@@ -29,7 +29,7 @@ def _create_nn(
     action_min: torch.Tensor | float | None,
     action_max: torch.Tensor | float | None,
 ):
-    name = cfg["base"]["name"]
+    name = cfg.base.name
     if name.lower() in ("mlp", "fc"):
         return _create_mlp(cfg, policy_type, input_dim, output_dim, action_min, action_max)
     raise NotImplementedError(f"unknown neural network type {name}")
@@ -50,17 +50,17 @@ def _create_mlp(
 
 
 def _create_discrete_mlp(cfg, input_dim, output_dim):
-    assert cfg["base"]["name"].lower() in ("mlp", "fc")
+    assert cfg.base.name.lower() in ("mlp", "fc")
 
-    hidden = cfg["base"]["hidden"]
-    act = cfg["base"]["activation"]
-    bias = cfg["base"]["bias"]
+    hidden = cfg.base.hidden
+    act = cfg.base.activation
+    bias = cfg.base.bias
 
-    head_act = cfg["head_activation"]
-    head_bias = cfg["head_bias"]
+    head_act = cfg.head_activation
+    head_bias = cfg.head_bias
 
-    head_layer_init = utils.init_layer(cfg["head_layer_init"])
-    layer_init = utils.init_layer(cfg["base"]["layer_init"])
+    head_layer_init = utils.init_layer(cfg.head_layer_init)
+    layer_init = utils.init_layer(cfg.base.layer_init)
 
     assert len(hidden) == len(act)
 
@@ -99,20 +99,20 @@ def _create_continuous_mlp(
     action_min: torch.Tensor | float | None,
     action_max: torch.Tensor | float | None,
 ):
-    assert cfg["base"]["name"].lower() in ("mlp", "fc")
+    assert cfg.base.name.lower() in ("mlp", "fc")
 
-    dist = get_dist_type(cfg["dist"])
-    policy_type = get_type_from_str(cfg["dist"])
+    dist = get_dist_type(cfg.dist)
+    policy_type = get_type_from_str(cfg.dist)
     assert issubclass(policy_type, ContinuousIIDPolicy)
 
     paths = policy_type.from_(None, dist, action_min, action_max).n_params
 
-    head_act = cfg["head_activation"]
-    head_bias = cfg["head_bias"]
-    head_layer_init = utils.init_layer(cfg["head_layer_init"])
+    head_act = cfg.head_activation
+    head_bias = cfg.head_bias
+    head_layer_init = utils.init_layer(cfg.head_layer_init)
 
     placeholder_input = torch.empty((input_dim,))
-    net = [create_base(cfg["base"], input_dim, None)]
+    net = [create_base(cfg.base, input_dim, None)]
 
     # Create head layer(s) to the network
     head_layers = [[] for _ in range(paths)]
@@ -140,7 +140,7 @@ def create(
     action_min: torch.Tensor | float | None = None,
     action_max: torch.Tensor | float | None = None,
 ):
-    policy_type = get_type_from_str(cfg["dist"])
+    policy_type = get_type_from_str(cfg.dist)
     net = _create_nn(cfg, policy_type, input_dim, output_dim, action_min, action_max)
 
     if policy_type is Softmax:
@@ -150,7 +150,7 @@ def create(
         assert policy_type is Softmax
         return policy_type(net, input_dim, output_dim)
 
-    dist_type = get_dist_type(cfg["dist"])
+    dist_type = get_dist_type(cfg.dist)
     if policy_type is UnBounded:
         return policy_type(net, dist_type)
     return ContinuousIIDPolicy.from_(
