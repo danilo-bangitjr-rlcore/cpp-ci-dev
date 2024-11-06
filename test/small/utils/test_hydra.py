@@ -31,7 +31,7 @@ def test_group1():
     # --------------------
     # -- Setup handlers --
     # --------------------
-    group = Group('sub', return_type=str)
+    group = Group[[], str]('sub')
     @group.dispatcher
     def _sub1_handler(cfg: Sub1):
         return f'Sub1 handler <{cfg.test_a}>'
