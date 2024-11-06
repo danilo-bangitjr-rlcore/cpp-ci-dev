@@ -4,16 +4,16 @@ from typing import Any
 from dataclasses import dataclass
 from corerl.utils.hydra import Group, interpolate
 
-from corerl.data.normalizer.base import AvgNanNorm, Identity, InvertibleNormalizer, MaxMin, Scale
+from corerl.data.normalizer.base import AvgNanNorm, Identity, InvertibleNormalizer, MaxMin
 
 
 # -------------
 # -- Configs --
 # -------------
-group = Group(
-    'normalizer/obs_normalizer',
-    return_type=InvertibleNormalizer[np.ndarray],
-)
+group = Group[
+    [gymnasium.Env],
+    InvertibleNormalizer[np.ndarray],
+]('normalizer/obs_normalizer')
 
 
 @dataclass
