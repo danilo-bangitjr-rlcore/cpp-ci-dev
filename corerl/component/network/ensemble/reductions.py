@@ -4,15 +4,15 @@ import numpy as np
 from dataclasses import dataclass
 from corerl.utils.hydra import Group
 
-ensemble_bootstrap_reduct_group = Group(
-    'agent/critic/critic_network/bootstrap_reduct',
-    return_type=torch.Tensor,
-)
+ensemble_bootstrap_reduct_group = Group[
+    [torch.Tensor, int],
+    torch.Tensor,
+]('agent/critic/critic_network/bootstrap_reduct')
 
-ensemble_policy_reduct_group = Group(
-    'agent/critic/critic_network/policy_reduct',
-    return_type=torch.Tensor,
-)
+ensemble_policy_reduct_group = Group[
+    [torch.Tensor, int],
+    torch.Tensor,
+]('agent/critic/critic_network/policy_reduct')
 
 
 @dataclass
