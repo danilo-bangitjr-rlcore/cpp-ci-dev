@@ -16,7 +16,7 @@ from corerl.utils.hydra import Group, list_
 @dataclass
 class BaseDataLoaderConfig:
     name: str = 'base'
-    offline_data_path: str = MISSING
+    offline_data_path: str | None = None
     train_filenames: list[str] = list_()
     test_filenames: list[str] = list_()
 

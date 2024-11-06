@@ -4,6 +4,7 @@ defaults:
   - env : base_gym_env
   - interaction : anytime
   - data_loader : direct_action
+  - old_data_loader : old_direct_action
   - state_constructor : identity
   - normalizer/obs_normalizer : identity
   - normalizer/action_normalizer : identity

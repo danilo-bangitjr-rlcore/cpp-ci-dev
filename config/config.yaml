@@ -5,6 +5,7 @@ defaults:
   - env : three_tanks
   - interaction : anytime
   - data_loader : direct_action
+  - old_data_loader : old_direct_action
   - state_constructor : identity
   - calibration_model : anytime
   - normalizer/action_normalizer : scale

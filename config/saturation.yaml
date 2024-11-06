@@ -4,6 +4,7 @@ defaults:
   - override agent: greedy_ac
   - override env: delayed_saturation
   - override data_loader: direct_action
+  - override old_data_loader: old_direct_action
   - override interaction: anytime
   - override calibration_model : one_step
   - override state_constructor: anytime_multi_trace
@@ -46,7 +47,7 @@ agent:
   num_samples: 100
   uniform_proposal : True
   critic:
-    polyak': 0.995
+    polyak: 0.995
     critic_optimizer:
       lr : 0.0003
       weight_decay : 0.0
@@ -57,6 +58,17 @@ agent:
       batch_size : 64
 
 data_loader:
+  offline_data_path: offline_data/saturation/csv
+  train_filenames: ["data.csv"]
+  test_filenames: ["data.csv"]
+  skip_rows: 0
+  header: 0
+  df_col_names: ["index", "saturation", "action", "time"]
+  date_col_name : "time"
+  action_col_names: ["action"]
+  obs_col_names: ["saturation"]
+
+old_data_loader:
   offline_data_path: offline_data/saturation/csv
   train_filenames: ["data.csv"]
   test_filenames: ["data.csv"]
