@@ -297,8 +297,8 @@ class Bounded(ContinuousIIDPolicy):
         self,
         model: nn.Module,
         dist: type[d.Distribution],
-        action_min: torch.Tensor | float | None,
-        action_max: torch.Tensor | float | None,
+        action_min: torch.Tensor | float | None = None,
+        action_max: torch.Tensor | float | None = None,
     ):
         super().__init__(model, dist)
 

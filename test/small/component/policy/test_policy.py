@@ -299,4 +299,3 @@ def test_halfbounded_sample_gamma():
     # Samples should **not** have been reparameterized
     samples_got = policy.forward(input_, rsample=False)[0]
     assert not samples_got.requires_grad
-
