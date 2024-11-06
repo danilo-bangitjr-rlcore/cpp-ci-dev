@@ -1,42 +1,36 @@
-from corerl.component.network import networks
-from omegaconf import DictConfig
 import torch.nn as nn
+from corerl.component.network import networks
+from corerl.utils.hydra import DiscriminatedUnion, Group
+
+critic_group = Group(
+    'agent/critic/critic_network',
+    return_type=nn.Module,
+)
+
+critic_group.dispatcher(networks.EnsembleCritic)
 
 
-def init_critic_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
-    """
-    corresponding configs : corerl/config/agent/critic/critic_network
-    """
-    name = cfg.name
-    if name == 'ensemble':
-        network = networks.EnsembleCritic(cfg, input_dim, output_dim)
-    else:
-        raise NotImplementedError
+def init_critic_network(cfg: DiscriminatedUnion, input_dim: int, output_dim: int):
+    return critic_group.dispatch(cfg, input_dim, output_dim)
 
-    return network
 
-def init_critic_target(cfg: DictConfig, input_dim: int, output_dim: int, critic: nn.Module) -> nn.Module:
-    """
-    corresponding configs : corerl/config/agent/critic/critic_network
-    """
+def init_critic_target(cfg: DiscriminatedUnion, input_dim: int, output_dim: int, critic: nn.Module):
     target_net = init_critic_network(cfg, input_dim, output_dim)
     target_net.load_state_dict(critic.state_dict())
 
     return target_net
 
 
-def init_custom_network(cfg: DictConfig, input_dim: int, output_dim: int) -> nn.Module:
-    name = cfg.name.lower()
 
-    if name in ('fc', 'mlp'):
-        network = networks.create_base(cfg, input_dim, output_dim)
-    elif name == 'ensemble_fc':
-        network = networks.EnsembleFC(cfg, input_dim, output_dim)
-    elif name == 'random_linear_uncertainty':
-        network = networks.RndLinearUncertainty(cfg, input_dim, output_dim)
-    elif name == 'gru':
-        network = networks.GRU(cfg, input_dim, output_dim)
-    else:
-        raise NotImplementedError
+calibration_model_group = Group(
+    'model',
+    return_type=nn.Module,
+)
 
-    return network
+calibration_model_group.dispatcher(networks.create_base)
+calibration_model_group.dispatcher(networks.EnsembleCritic)
+calibration_model_group.dispatcher(networks.RndLinearUncertainty)
+calibration_model_group.dispatcher(networks.GRU)
+
+def init_custom_network(cfg: DiscriminatedUnion, input_dim: int, output_dim: int):
+    return calibration_model_group.dispatch(cfg, input_dim, output_dim)

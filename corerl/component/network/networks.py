@@ -1,8 +1,8 @@
 import copy
 import torch
 import torch.nn as nn
-from collections.abc import Mapping, Iterable
-from typing import Callable
+from dataclasses import dataclass, field
+from collections.abc import Iterable
 from torch.func import stack_module_state, functional_call # type: ignore
 import numpy as np
 import corerl.component.network.utils as utils
@@ -10,19 +10,47 @@ from corerl.component.network.ensemble.reductions import MeanReduct, ensemble_bo
 from corerl.utils.device import device
 import corerl.component.layer as layer
 
-from warnings import warn
-
 from omegaconf import DictConfig
-from typing import Any, Optional
+from typing import Any, Callable, Optional, TypedDict
+
+from corerl.utils.hydra import list_
+
 
 # Differences of this size are representable up to ~ 15
 FLOAT32_EPS = 10 * np.finfo(np.float32).eps
 EPSILON = 1e-6
 
 
+class ActivationConfig(TypedDict):
+    name: str
 
 
-def _init_ensemble_reducts(cfg: DictConfig):
+@dataclass
+class NNTorsoConfig:
+    name: str = 'fc'
+
+    bias: bool = True
+    layer_init: str = 'Xavier'
+    hidden: list[int] = list_([64, 64])
+    activation: list[ActivationConfig] = list_([
+        {'name': 'relu'},
+        {'name': 'relu'},
+    ])
+
+
+@dataclass
+class EnsembleCriticConfig:
+    name: str = 'ensemble'
+    ensemble: int = 1
+    bootstrap_reduct: Any = field(default_factory=MeanReduct)
+    policy_reduct: Any = field(default_factory=MeanReduct)
+    vmap: bool = False
+
+    base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
+
+
+
+def _init_ensemble_reducts(cfg: EnsembleCriticConfig):
     def bs_reduct(x: torch.Tensor, dim: int):
         return ensemble_bootstrap_reduct_group.dispatch(cfg.bootstrap_reduct, x, dim)
 
@@ -33,16 +61,16 @@ def _init_ensemble_reducts(cfg: DictConfig):
 
 
 def create_base(
-    cfg: Mapping, input_dim: int, output_dim: Optional[int],
+    cfg: NNTorsoConfig, input_dim: int, output_dim: Optional[int],
 ) -> nn.Module:
     if cfg.name.lower() in ("mlp", "fc"):
         return _create_base_mlp(cfg, input_dim, output_dim)
     else:
-        raise ValueError(f"unknown network type {cfg['name']}")
+        raise ValueError(f"unknown network type {cfg.name}")
 
 
 def _create_base_mlp(
-    cfg: Mapping, input_dim: int, output_dim: Optional[int],
+    cfg: NNTorsoConfig, input_dim: int, output_dim: Optional[int],
 ) -> nn.Module:
     assert cfg.name.lower() in ("mlp", "fc")
 
@@ -156,7 +184,7 @@ class EnsembleFC(nn.Module):
 
 
 class EnsembleCritic(nn.Module):
-    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
+    def __init__(self, cfg: EnsembleCriticConfig, input_dim: int, output_dim: int):
         super(EnsembleCritic, self).__init__()
         self.ensemble = cfg.ensemble
         self.vmap = cfg.vmap
@@ -236,8 +264,14 @@ class EnsembleCritic(nn.Module):
             return param_list
 
 
+
+@dataclass
+class RndLinearUncertaintyConfig(NNTorsoConfig):
+    name: str = 'rnd'
+    arch: list[Any] = list_()
+
 class RndLinearUncertainty(nn.Module):
-    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
+    def __init__(self, cfg: RndLinearUncertaintyConfig, input_dim: int, output_dim: int):
         super(RndLinearUncertainty, self).__init__()
         self.output_dim = output_dim
         arch = cfg.arch
@@ -259,8 +293,18 @@ class RndLinearUncertainty(nn.Module):
         return out, info
 
 
+@dataclass
+class GRUConfig:
+    name: str = 'gru'
+
+    gru_hidden_dim: int = -1
+    num_gru_layers: int = 1
+
+    base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
+
+
 class GRU(nn.Module):
-    def __init__(self, cfg, input_dim, output_dim):
+    def __init__(self, cfg: GRUConfig, input_dim: int, output_dim: int):
         super(GRU, self).__init__()
         self.input_dim = input_dim
         self.gru_hidden_dim = cfg.gru_hidden_dim

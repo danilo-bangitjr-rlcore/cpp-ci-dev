@@ -1,9 +1,12 @@
-from omegaconf import DictConfig
+from dataclasses import dataclass, field
+from typing import Any
+
+from omegaconf import MISSING
 import corerl.component.network.utils as utils
 from corerl.component.policy.softmax import Softmax, Policy
 from corerl.component.policy.policy import ContinuousIIDPolicy, UnBounded, _get_type_from_dist
 from corerl.component.distribution import get_dist_type
-from corerl.component.network.networks import _create_layer, create_base
+from corerl.component.network.networks import _create_layer, create_base, NNTorsoConfig
 from corerl.component.layer import init_activation, Parallel
 import torch.nn as nn
 import torch
@@ -21,8 +24,18 @@ def get_type_from_str(type_: str) -> type[Policy]:
         raise NotImplementedError(f"unknown policy type {type_}") from e
 
 
+@dataclass
+class BaseNNConfig:
+    base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
+
+    dist: str = MISSING
+    head_layer_init: str = MISSING
+    head_activation: list[list[dict[str, Any]]] = MISSING
+    head_bias: bool = MISSING
+
+
 def _create_nn(
-    cfg: DictConfig,
+    cfg: BaseNNConfig,
     policy_type: type[Policy],
     input_dim: int,
     output_dim: int,
@@ -36,7 +49,7 @@ def _create_nn(
 
 
 def _create_mlp(
-    cfg: DictConfig,
+    cfg: BaseNNConfig,
     policy_type: type[Policy],
     input_dim: int,
     output_dim: int,
@@ -49,7 +62,7 @@ def _create_mlp(
     return _create_continuous_mlp(cfg, input_dim, output_dim, action_min, action_max)
 
 
-def _create_discrete_mlp(cfg, input_dim, output_dim):
+def _create_discrete_mlp(cfg: BaseNNConfig, input_dim: int, output_dim: int):
     assert cfg.base.name.lower() in ("mlp", "fc")
 
     hidden = cfg.base.hidden
@@ -93,7 +106,7 @@ def _create_discrete_mlp(cfg, input_dim, output_dim):
 
 
 def _create_continuous_mlp(
-    cfg: DictConfig,
+    cfg: BaseNNConfig,
     input_dim: int,
     output_dim: int,
     action_min: torch.Tensor | float | None,
@@ -134,7 +147,7 @@ def _create_continuous_mlp(
 
 
 def create(
-    cfg: DictConfig,
+    cfg: BaseNNConfig,
     input_dim: int,
     output_dim: int,
     action_min: torch.Tensor | float | None = None,
