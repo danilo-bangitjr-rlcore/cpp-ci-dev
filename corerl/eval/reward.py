@@ -4,15 +4,17 @@ from corerl.eval.base_eval import BaseEval
 
 class RewardEval(BaseEval):
     def __init__(self, cfg, **kwargs):
+        if 'transitions' not in kwargs:
+            raise KeyError("Missing required argument: 'transitions'")
         self.gamma = cfg.gamma
         self.episode_steps = 0
         self.episode_return = 0
         self.return_window = cfg.return_window
         self.reward_window = cfg.reward_window
-        self.returns = []
-        self.rewards = []
-        self.reward_sum = 0
-        self.reward_sums = []
+        self.returns: list[float] = []
+        self.rewards: list[float] = []
+        self.reward_sum: float = 0.
+        self.reward_sums: list[float] = []
 
     def do_eval(self, **kwargs) -> None:
         if 'transitions' not in kwargs:

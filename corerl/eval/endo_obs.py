@@ -7,6 +7,8 @@ class EndoObsEval(BaseEval):
             raise KeyError("Missing required argument: 'env'")
         if 'transition_normalizer' not in kwargs:
             raise KeyError("Missing required argument: 'transition_normalizer'")
+        if 'transitions' not in kwargs:
+            raise KeyError("Missing required argument: 'transitions'")
 
         self.env = kwargs['env']
         self.transition_normalizer = kwargs['transition_normalizer']

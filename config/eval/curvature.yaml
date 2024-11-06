@@ -1,0 +1,8 @@
+name: curvature
+
+num_action_samples : 20
+num_deltas : 20
+epsilon : 0.1
+relaxation : 0.1
+offline_eval : True
+online_eval : True

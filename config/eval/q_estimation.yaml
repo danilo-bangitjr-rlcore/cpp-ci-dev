@@ -1,4 +1,4 @@
-name : action_gap
-n_samples : 100
+name: q_estimation
+
 offline_eval : True
 online_eval : True
