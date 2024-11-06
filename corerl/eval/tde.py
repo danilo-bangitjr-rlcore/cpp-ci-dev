@@ -2,16 +2,12 @@
 Implements Identifiable BE Selection (without the selection) from
 https://drive.google.com/drive/u/1/folders/1tJo78FvsWfWaPncJNNyI9IO1f7UbxCFR
 """
-import numpy as np
 import torch
-from torch.nn.functional import mse_loss
 from omegaconf import DictConfig
 
-from corerl.component.network.factory import init_custom_network
-from corerl.component.optimizers.factory import init_optimizer
 from corerl.eval.base_eval import BaseEval
 from corerl.data.data import TransitionBatch
-from corerl.component.network.utils import ensemble_mse, to_np
+from corerl.component.network.utils import to_np
 
 
 class TDE(BaseEval):
@@ -21,7 +17,7 @@ class TDE(BaseEval):
 
         self.agent = kwargs['agent']
         self.gamma = cfg.gamma
-        self.tdes: list[float] = []  # the td errors
+        self.tdes: list[list[float]] = []  # the td errors
 
     def do_eval(self, **kwargs) -> None:
         # estimate the td error on a batch
