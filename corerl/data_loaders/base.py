@@ -24,7 +24,9 @@ class BaseDataLoaderConfig:
 class BaseDataLoader(ABC):
     @abstractmethod
     def __init__(self, cfg: BaseDataLoaderConfig, _):
-        self.offline_data_path = Path(cfg.offline_data_path)
+        offline_path = cfg.offline_data_path
+        assert isinstance(offline_path, str)
+        self.offline_data_path = Path(offline_path)
         # You can either load all the csvs in the directory or a subset
 
         if not cfg.train_filenames:
