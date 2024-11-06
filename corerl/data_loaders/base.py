@@ -129,7 +129,6 @@ class OldBaseDataLoader(ABC):
 
 
 # set up config groups
-dl_group = Group(
+dl_group = Group[[], OldBaseDataLoader | BaseDataLoader](
     'data_loader',
-    return_type=Union[BaseDataLoader, OldBaseDataLoader],
 )
