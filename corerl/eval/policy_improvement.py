@@ -10,7 +10,6 @@ from corerl.data.data import TransitionBatch
 from corerl.component.network.utils import to_np
 from corerl.agent.utils import get_top_action
 from jaxtyping import Float
-from corerl.utils.device import device
 
 
 
@@ -27,12 +26,12 @@ class PolicyImprove(BaseEval):
         self.n_samples = cfg.n_samples
         self.get_prev_action = kwargs['get_prev_action_function']
         self.get_critic_action = kwargs['get_critic_action_function']
-        self.policy_improvments: list[float] = []
-        self.greedy_gaps: list[float] = []
+        self.policy_improvments: list[list[float]] = []
+        self.greedy_gaps: list[list[float]] = []
 
     def _get_actions(self, state_batch: Float[torch.Tensor, "batch_size state_dim"],
                      prev_actions: Float[torch.Tensor, "batch_size action_dim"]) \
-            -> [torch.Tensor, torch.Tensor]:
+            -> tuple[torch.Tensor, torch.Tensor]:
         batch_size = state_batch.shape[0]
         action_dim = prev_actions.shape[1]
         states = torch.repeat_interleave(state_batch, self.n_samples, dim=0)
@@ -67,7 +66,7 @@ class PolicyImprove(BaseEval):
         best_pi_actions = self.get_critic_action(best_pi_actions, prev_actions)
         return best_q_actions, best_pi_actions
 
-    def _estimate_improvement(self, batch: TransitionBatch) -> [list, list]:
+    def _estimate_improvement(self, batch: TransitionBatch) -> tuple[list[float], list[float]]:
         state_batch = batch.state
         dataset_action = batch.action
         prev_action_batch = self.get_prev_action(state_batch)
