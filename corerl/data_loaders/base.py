@@ -16,7 +16,7 @@ from corerl.utils.hydra import Group, list_
 @dataclass
 class BaseDataLoaderConfig:
     name: str = 'base'
-    offline_data_path: str | None = None
+    offline_data_path: str = 'offline_data'
     train_filenames: list[str] = list_()
     test_filenames: list[str] = list_()
 
@@ -24,9 +24,7 @@ class BaseDataLoaderConfig:
 class BaseDataLoader(ABC):
     @abstractmethod
     def __init__(self, cfg: BaseDataLoaderConfig, _):
-        offline_path = cfg.offline_data_path
-        assert isinstance(offline_path, str)
-        self.offline_data_path = Path(offline_path)
+        self.offline_data_path = Path(cfg.offline_data_path)
         # You can either load all the csvs in the directory or a subset
 
         if not cfg.train_filenames:
