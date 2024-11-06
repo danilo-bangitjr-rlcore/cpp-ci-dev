@@ -1,13 +1,22 @@
 import torch
 from corerl.agent.utils import get_top_action
 from jaxtyping import Float
-from omegaconf import DictConfig
 
-from corerl.eval.base_eval import BaseEval
+from corerl.eval.base_eval import BaseEval, EvalConfig
+from corerl.utils.hydra import config
+
+
+@config('action_gap', group='eval')
+class ActionGapConfig(EvalConfig):
+    name: str = 'action_gap'
+
+    n_samples: int = 100
+    offline_eval: bool = True
+    online_eval: bool = True
 
 
 class ActionGapEval(BaseEval):
-    def __init__(self, cfg: DictConfig, **kwargs):
+    def __init__(self, cfg: ActionGapConfig, **kwargs):
         self.n_samples = cfg.n_samples
         if 'agent' not in kwargs:
             raise KeyError("Missing required argument: 'agent'")

@@ -2,12 +2,15 @@ import json
 from pathlib import Path
 
 from abc import ABC, abstractmethod
-from omegaconf import DictConfig
+
+class EvalConfig:
+    offline_eval: bool
+    online_eval: bool
 
 
 class BaseEval(ABC):
     @abstractmethod
-    def __init__(self, cfg: DictConfig, **kwargs):
+    def __init__(self, cfg: EvalConfig, **kwargs):
         raise NotImplementedError
 
     @abstractmethod
