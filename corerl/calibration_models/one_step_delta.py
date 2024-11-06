@@ -46,47 +46,6 @@ class ShortHorizonDelta(BaseCalibrationModel):
         self.train_losses = []
         self.test_losses = []
 
-    def pid_estimation(self, datasets):
-
-        pid_prediction_models = []
-        linear_cfg = {
-            "name": "fc",
-            "layer_norm": 0,
-            "arch": [],
-            "head_activation": "None",
-            "activation": "ReLU",
-            "layer_init": "Xavier",
-            "bias": True,
-        }
-        linear_cfg = json.loads(json.dumps(linear_cfg), object_hook=Obj)
-        opt_cfg = {
-            "lr": 0.001,
-            "weight_decay": 0.0,
-            "name": "adam"
-        }
-        opt_cfg = json.loads(json.dumps(opt_cfg), object_hook=Obj)
-        in_sets, out_sets = datasets['inputs'], datasets['outputs']
-        for idx in range(len(in_sets)):
-            in_data, out_data = (tensor(in_sets[idx], device.device),
-                                 tensor(out_sets[idx], device.device))
-            pid_model = init_custom_network(linear_cfg, input_dim=3, output_dim=1)
-            optimizer = init_optimizer(opt_cfg, list(pid_model.parameters()))
-            data_size = len(in_data)
-            pbar = tqdm(range(self.train_itr))
-            print("Training PID parameter for controller {}".format(idx + 1))
-            for _ in pbar:
-                sampled_indices = self.rng.randint(0, data_size, self.batch_size)
-                in_batch, out_batch = in_data[sampled_indices], out_data[sampled_indices]
-                pred = pid_model(in_batch)
-                loss = torch.nn.functional.mse_loss(pred, out_batch)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                pbar.set_description("pid {} train loss: {:7.6f}".format(idx+1, to_np(loss)))
-            print("PID parameter of controller {}".format(idx + 1), [param.data for param in pid_model.parameters()])
-            pid_prediction_models.append(pid_model)
-        return pid_prediction_models
-
     def _update(self):
         batch = self.buffer.sample_mini_batch(self.batch_size)[0]
         obs_batch, state_batch, action_batch, next_obs_batch = batch.obs, batch.state, batch.action, batch.next_obs
