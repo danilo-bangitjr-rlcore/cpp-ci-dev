@@ -2,10 +2,10 @@ import torch.nn as nn
 from corerl.component.network import networks
 from corerl.utils.hydra import DiscriminatedUnion, Group
 
-critic_group = Group(
-    'agent/critic/critic_network',
-    return_type=nn.Module,
-)
+critic_group = Group[
+    [int, int],
+    nn.Module,
+]('agent/critic/critic_network')
 
 critic_group.dispatcher(networks.EnsembleCritic)
 
@@ -22,10 +22,10 @@ def init_critic_target(cfg: DiscriminatedUnion, input_dim: int, output_dim: int,
 
 
 
-calibration_model_group = Group(
-    'model',
-    return_type=nn.Module,
-)
+calibration_model_group = Group[
+    [int, int],
+    nn.Module,
+]('model')
 
 calibration_model_group.dispatcher(networks.create_base)
 calibration_model_group.dispatcher(networks.EnsembleCritic)
