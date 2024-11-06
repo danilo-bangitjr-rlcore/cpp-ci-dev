@@ -4,14 +4,11 @@ https://drive.google.com/drive/u/1/folders/1tJo78FvsWfWaPncJNNyI9IO1f7UbxCFR
 """
 import numpy as np
 import torch
-from torch.nn.functional import mse_loss
 from omegaconf import DictConfig
 
-from corerl.component.network.factory import init_custom_network
-from corerl.component.optimizers.factory import init_optimizer
 from corerl.eval.base_eval import BaseEval
 from corerl.data.data import TransitionBatch
-from corerl.component.network.utils import ensemble_mse, to_np
+from corerl.component.network.utils import to_np
 
 
 class QEstimation(BaseEval):
@@ -25,7 +22,7 @@ class QEstimation(BaseEval):
         self.qs_min: list[list[float]] = []
         self.qs_median: list[list[float]] = []
         self.qs_avg: list[list[float]] = []
-        self.ens_stes: list[float] = []
+        self.ens_stes: list[list[float]] = []
 
     def do_eval(self, **kwargs) -> None:
         batches = self.agent.critic_buffer.sample()
@@ -37,7 +34,10 @@ class QEstimation(BaseEval):
         self.qs_avg.append(q_avg)
         self.ens_stes.append(ens_ste)
 
-    def _estimate_q(self, batch: TransitionBatch) -> [list, list, list, list, list]:
+    def _estimate_q(
+        self,
+        batch: TransitionBatch,
+    ) -> tuple[list[float], list[float], list[float], list[float], list[float]]:
         state_batch = batch.state
         action_batch = batch.action
 
