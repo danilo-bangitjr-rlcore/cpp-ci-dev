@@ -1,10 +1,22 @@
 import torch
-from corerl.eval.base_eval import BaseEval
+from typing import Any
+from corerl.eval.base_eval import BaseEval, EvalConfig
 from corerl.component.buffer.factory import init_buffer
+from corerl.utils.hydra import config, interpolate
+
+
+@config('test_loss', group='eval')
+class TestLossConfig(EvalConfig):
+    name: str = 'test_loss'
+    ensemble: int = interpolate('${agent.critic.critic_network.ensemble}')
+    buffer: Any = interpolate('${agent.critic.buffer}')
+
+    offline_eval: bool = True
+    online_eval: bool = False
 
 
 class TestLossEval(BaseEval):
-    def __init__(self, cfg, **kwargs):
+    def __init__(self, cfg: TestLossConfig, **kwargs):
         if 'agent' not in kwargs:
             raise KeyError("Missing required argument: 'agent'")
         if 'eval_transitions' not in kwargs:
