@@ -353,7 +353,7 @@ class smplEnvBase(Env):
             # If done = True, then done_info["terminal"] and at least one of done_info["timeout"] or done_info["error_occurred"] should be True.
             observation = [0.0, 0.0]
             # done_info = {"timeout": boolean, "error_occurred": boolean, "terminal": boolean}
-        except Exception as e:
+        except Exception:
             observation = self.min_observations
             done_info = {"timeout": False, "error_occurred": True, "terminal": True}
 
