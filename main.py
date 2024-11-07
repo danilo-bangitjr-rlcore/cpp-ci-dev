@@ -75,6 +75,8 @@ def main(cfg: MainConfig):
 
     obs_normalizer: ObsTransitionNormalizer | None = None
     transition_normalizer: TransitionNormalizer | None = None
+
+    alert_tc: BaseTransitionCreator | None = None
     if cfg.use_alerts:
         alert_tc = init_transition_creator(cfg.alert_transition_creator, sc)
         alert_tc.init_alerts(composite_alert)
@@ -120,7 +122,7 @@ def main(cfg: MainConfig):
 
         # Alert offline training should come after agent offline training
         # since alert value function updates depend upon the agent's policy
-        if cfg.use_alerts:
+        if alert_tc is not None:
             alert_hash_cfgs = [cfg.data_loader, cfg.state_constructor,
                 cfg.alert_transition_creator, cfg.alerts, cfg.env]
             alert_train_transitions = utils.get_offline_transitions(cfg, train_obs_transitions, sc,
@@ -148,10 +150,11 @@ def main(cfg: MainConfig):
         transitions=agent_test_transitions,
     )
 
-    if cfg.use_alerts:
+    if alert_tc is not None:
         interaction.init_alerts(composite_alert, alert_tc)
 
     if cfg.interaction.name == "offline_anytime":  # simulating online experience from an offline dataset
+        assert isinstance(interaction, AnytimeInteraction)
         online_eval = utils.offline_anytime_deployment(cfg, agent, interaction, env, composite_alert,
             transition_normalizer, save_path, plot_transitions, test_epochs)
         online_eval.output(save_path / 'stats.json')
