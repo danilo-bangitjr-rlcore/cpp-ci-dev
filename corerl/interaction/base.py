@@ -14,7 +14,6 @@ if TYPE_CHECKING:
 
 
 class BaseInteraction(ABC):
-    @abstractmethod
     def __init__(self,
                  cfg: DictConfig,
                  env: gymnasium.Env,
