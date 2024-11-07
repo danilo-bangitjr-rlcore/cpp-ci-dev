@@ -63,7 +63,7 @@ class DBClientWrapper:
           |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")"""
         # query_str = " ".join(query_str_list)
         df_list = self.influx_query_api.query_data_frame(query_str)
-        if type(df_list) == list:
+        if isinstance(df_list, list):
             df = pd.concat(df_list, axis=1)
         else:
             df = df_list

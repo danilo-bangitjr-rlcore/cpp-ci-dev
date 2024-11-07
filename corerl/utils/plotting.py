@@ -840,11 +840,11 @@ def make_summary_plot(plot_info: dict, path: Path, prefix: str):
     data = {'x': [*'0']}
     for k in ordered_keys:
         v = plot_info[k]
-        if type(v) == list and len(v) > 0:
+        if isinstance(v, list) and len(v) > 0:
             v = v[-10:]
-            if type(v) == np.ndarray or type(v) == list: # ensemble size > 1
+            if isinstance(v, np.ndarray | list): # ensemble size > 1
                 v = np.asarray(v).mean()
-        elif type(v) == list and len(v) == 0:
+        elif isinstance(v, list) and len(v) == 0:
             v = None
         data[formal_labels.get(k, k)] = [cast(Any, v)]
 
