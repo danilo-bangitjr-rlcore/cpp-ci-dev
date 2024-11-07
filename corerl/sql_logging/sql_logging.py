@@ -1,39 +1,41 @@
+from dataclasses import dataclass
+import logging
 import sqlalchemy
+import time
 import corerl.utils.dict as dict_u
 
 from typing import Any
+from omegaconf import MISSING, OmegaConf
 from collections.abc import MutableMapping
-from sqlalchemy import Engine, MetaData
-from sqlalchemy import Table, Column, DateTime
+from sqlalchemy import Table, Column, DateTime, Engine, MetaData, URL, select, inspect
+from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
-from sqlalchemy_utils import database_exists, create_database
-
 from sqlalchemy_utils import database_exists, drop_database, create_database
-from sqlalchemy import select, URL
-from omegaconf import OmegaConf
 from corerl.sql_logging.base_schema import (
     Base,
     Run,
     HParam,
 )
-from sqlalchemy.orm import Session
-
-import logging
-from sqlalchemy import inspect
-from sqlalchemy import URL
-import time
-# from sqlalchemy.ext.declarative.clsregistry import _ModuleMarker
 
 logger = logging.getLogger(__name__)
 
 
-def get_sql_engine(db_data: dict, db_name: str, force_drop=False) -> Engine:
+@dataclass
+class SQLEngineConfig:
+    drivername: str = MISSING
+    username: str = MISSING
+    password: str = MISSING
+    ip: str = MISSING
+    port: int = MISSING
+
+
+def get_sql_engine(db_data: SQLEngineConfig, db_name: str, force_drop=False) -> Engine:
     url_object = sqlalchemy.URL.create(
-        drivername=db_data["drivername"],
-        username=db_data["username"],
-        password=db_data["password"],
-        host=db_data["ip"],
-        port=db_data["port"],
+        drivername=db_data.drivername,
+        username=db_data.username,
+        password=db_data.password,
+        host=db_data.ip,
+        port=db_data.port,
         database=db_name,
     )
     logger.debug("creating sql engine...")

@@ -1,6 +1,9 @@
+from dataclasses import dataclass
 from influxdb_client.client.influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
 from abc import ABC, abstractmethod
+
+from omegaconf import MISSING
 
 from corerl.utils.hook import when, Hooks
 
@@ -8,20 +11,27 @@ import numpy as np
 import gymnasium as gym
 import pandas as pd
 from datetime import datetime, timedelta, UTC
-from typing import Tuple, Generator, List
+from typing import Any, Tuple, Generator, List
 import asyncio
 import random
 
 from typing import Callable, List
 from corerl.utils.opc_connection import OpcConnection
-from corerl.sql_logging.sql_logging import get_sql_engine
+from corerl.sql_logging.sql_logging import get_sql_engine, SQLEngineConfig
 import logging
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class DBClientConfig(SQLEngineConfig):
+    sensor_table: str = MISSING
+    sensor_db_name: str = MISSING
+    influx: Any = MISSING
+
+
 class DBClientWrapper:
-    def __init__(self, cfg):
+    def __init__(self, cfg: DBClientConfig):
         logger.debug(f"{cfg=}")
         self.sensor_table = cfg.sensor_table
         self.db_con = get_sql_engine(db_data=cfg, db_name=cfg.sensor_db_name)

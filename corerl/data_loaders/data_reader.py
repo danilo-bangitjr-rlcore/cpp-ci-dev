@@ -1,6 +1,5 @@
-from omegaconf import DictConfig
 from datetime import datetime, timedelta, UTC
-from corerl.sql_logging.sql_logging import get_sql_engine
+from corerl.sql_logging.sql_logging import get_sql_engine, SQLEngineConfig
 import pandas as pd
 from sqlalchemy import Engine
 from typing import List
@@ -12,9 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class DataReader:
-    def __init__(self, db_cfg: DictConfig, db_name: str, sensor_table_name: str) -> None:
-        db_data = dict(db_cfg)
-        self.engine: Engine = get_sql_engine(db_data=db_data, db_name=db_name)
+    def __init__(self, db_cfg: SQLEngineConfig, db_name: str, sensor_table_name: str) -> None:
+        self.engine: Engine = get_sql_engine(db_data=db_cfg, db_name=db_name)
         self.sensor_table_name = sensor_table_name
         self.connection = try_connect(self.engine)
 
