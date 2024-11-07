@@ -1,18 +1,23 @@
-from omegaconf import DictConfig
+from dataclasses import dataclass
 from pathlib import Path
 
 import torch
 import numpy as np
 
-from corerl.agent.base import BaseAC
+from corerl.agent.base import BaseAC, BaseACConfig, group
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic
 from corerl.component.network.utils import to_np, state_to_tensor, tensor, ensemble_mse
 from corerl.utils.device import device
 from corerl.data.data import Transition
 
+@dataclass
+class ReinforceConfig(BaseACConfig):
+    name: str = 'reinforce'
+    ensemble_targets: bool = False
+
 class Reinforce(BaseAC):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: ReinforceConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         self.ensemble_targets = cfg.ensemble_targets
         self.v_critic = init_v_critic(cfg.critic, state_dim)
@@ -60,7 +65,7 @@ class Reinforce(BaseAC):
 
         ep_t -= 1
         for t in range(ep_t, -1, -1):
-            curr_return = self.ep_rewards[t] + self.gamma * curr_return
+            curr_return = self.ep_rewards[t] + self.gamma * torch.tensor(curr_return)
             self.returns[t] = curr_return
 
         self.returns = tensor(self.returns, device.device)
@@ -118,3 +123,5 @@ class Reinforce(BaseAC):
 
         v_critic_path = path / "v_critic"
         self.v_critic.load(v_critic_path)
+
+group.dispatcher(Reinforce)

@@ -1,11 +1,11 @@
-from omegaconf import DictConfig
+from dataclasses import dataclass
 from pathlib import Path
 
 import torch
 import numpy as np
 import pickle as pkl
 
-from corerl.agent.base import BaseAC
+from corerl.agent.base import BaseAC, BaseACConfig, group
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
@@ -13,8 +13,17 @@ from corerl.component.network.utils import to_np, state_to_tensor, Float
 from corerl.utils.device import device
 from corerl.data.data import TransitionBatch, Transition
 
+@dataclass
+class SACConfig(BaseACConfig):
+    name: str = 'sac'
+
+    ensemble_targets: bool = False
+    n_entropy_updates: int = 1
+    tau: float = -1
+    lr_alpha: float = 0.001
+
 class SAC(BaseAC):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: SACConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         self.ensemble_targets = cfg.ensemble_targets
         # self.v_critic = init_v_critic(cfg.critic, state_dim) # Paper has V and Q...
@@ -221,3 +230,6 @@ class SAC(BaseAC):
         policy_buffer_path = path / "policy_buffer.pkl"
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
+
+
+group.dispatcher(SAC)

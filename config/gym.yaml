@@ -34,12 +34,8 @@ use_alerts: False
 agent:
   message_bus:
     enable: False
-    host: ${event_bus.host}
-    port: ${event_bus.port}
-
-event_bus:
-  host: localhost
-  port: 8123
+    host: ''
+    port: ''
 
 alerts:
 eval:

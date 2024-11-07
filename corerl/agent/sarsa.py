@@ -1,4 +1,6 @@
-from omegaconf import DictConfig
+from dataclasses import dataclass, field
+from typing import Any
+from omegaconf import MISSING
 from pathlib import Path
 
 import torch
@@ -6,7 +8,7 @@ import numpy
 import random
 import pickle as pkl
 
-from corerl.agent.base import BaseAgent
+from corerl.agent.base import BaseAgent, BaseAgentConfig, group
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor
@@ -14,8 +16,25 @@ from corerl.utils.device import device
 from corerl.data.data import TransitionBatch, Transition
 
 
+@dataclass
+class EpsilonGreedySarsaConfig(BaseAgentConfig):
+    name: str = 'epsilon_greedy_sarsa'
+
+    ensemble_targets: bool = False
+    epsilon: float = 0.1
+    samples: int = 10_000
+
+    critic: Any = MISSING
+
+    defaults: list[Any] = field(default_factory=lambda: [
+        'base_agent',
+        { 'critic': 'critic' },
+        '_self_',
+    ])
+
+
 class EpsilonGreedySarsa(BaseAgent):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: EpsilonGreedySarsaConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         self.ensemble_targets = cfg.ensemble_targets
         self.samples = cfg.samples
@@ -135,3 +154,6 @@ class EpsilonGreedySarsa(BaseAgent):
 
     def load_buffer(self, transitions: list[Transition]) -> None:
         ...
+
+
+group.dispatcher(EpsilonGreedySarsa)

@@ -1,8 +1,0 @@
-defaults:
-  - base_ac
-  - _self_
-
-
-name : simple_ac
-tau : 0.0
-n_entropy_updates : 1

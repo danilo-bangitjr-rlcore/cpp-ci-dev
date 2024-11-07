@@ -1,4 +1,4 @@
-from omegaconf import DictConfig
+from dataclasses import dataclass
 from pathlib import Path
 
 import torch.nn as nn
@@ -6,7 +6,7 @@ import torch
 import numpy
 import pickle as pkl
 
-from corerl.agent.base import BaseAC
+from corerl.agent.base import BaseAC, BaseACConfig, group
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic, init_q_critic
 from corerl.component.buffer.factory import init_buffer
@@ -15,8 +15,18 @@ from corerl.utils.device import device
 from corerl.data.data import TransitionBatch, Transition
 
 
+@dataclass
+class InACConfig(BaseACConfig):
+    name: str = 'inac'
+
+    ensemble_targets: bool = False
+    eps: float = 1e-8
+    exp_threshold: int = 10_000
+    temp: float = 1.0
+
+
 class InAC(BaseAC):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: InACConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         self.ensemble_targets = cfg.ensemble_targets
         self.temp = cfg.temp
@@ -244,3 +254,5 @@ class InAC(BaseAC):
 
     def load_buffer(self, transitions: list[Transition]) -> None:
         ...
+
+group.dispatcher(InAC)

@@ -1,11 +1,11 @@
-from omegaconf import DictConfig
+from dataclasses import dataclass
 from pathlib import Path
 
 import torch
 import numpy
 import pickle as pkl
 
-from corerl.agent.base import BaseAC
+from corerl.agent.base import BaseAC, BaseACConfig, group
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic, init_q_critic
 from corerl.component.buffer.factory import init_buffer
@@ -14,8 +14,16 @@ from corerl.utils.device import device
 from corerl.data.data import TransitionBatch, Transition
 
 
+@dataclass
+class IQLConfig(BaseACConfig):
+    name: str = 'iql'
+
+    temp: float = 1.0
+    expectile: float = 0.8
+
+
 class IQL(BaseAC):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: IQLConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         self.temp = cfg.temp
         self.expectile = cfg.expectile
@@ -186,3 +194,5 @@ class IQL(BaseAC):
 
     def load_buffer(self, transitions: list[Transition]) -> None:
         ...
+
+group.dispatcher(IQL)

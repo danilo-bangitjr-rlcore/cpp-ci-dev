@@ -1,6 +1,7 @@
+from dataclasses import dataclass, field
 from functools import partial
 import numpy as np
-from omegaconf import DictConfig
+from omegaconf import MISSING
 from pathlib import Path
 from corerl.component.actor.network_actor import NetworkActorLineSearch
 from corerl.component.critic.ensemble_critic import EnsembleQCriticLineSearch
@@ -12,7 +13,7 @@ import numpy
 import pickle as pkl
 import logging
 
-from corerl.agent.base import BaseAC
+from corerl.agent.base import BaseAC, BaseACConfig, group
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
@@ -22,15 +23,39 @@ from corerl.utils.device import device
 from corerl.data.data import TransitionBatch, Transition
 import corerl.utils.freezer as fr
 from jaxtyping import Float
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
 torch.autograd.set_detect_anomaly(True) # type: ignore
 
 
+@dataclass
+class GreedyACConfig(BaseACConfig):
+    name: str = 'greedy_ac'
+
+    average_entropy: bool = True
+    ensemble_targets: bool = False
+    interleave_updates: bool = True
+    n_sampler_updates: int = 1
+    num_samples: int = 500
+    prop_rho_mult: float = 2.0
+    rho: float = 0.1
+    share_batch: bool = True
+    tau: float = 0.0
+    uniform_sampling_percentage: float = 0.5
+
+    actor: Any = MISSING
+    critic: Any = MISSING
+
+    defaults: list[Any] = field(default_factory=lambda: [
+        'base_ac',
+        '_self_',
+    ])
+
+
 class GreedyAC(BaseAC):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: GreedyACConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         self.ensemble_targets = cfg.ensemble_targets
 
@@ -54,7 +79,7 @@ class GreedyAC(BaseAC):
         self.learned_proposal_percent = 1 - self.uniform_sampling_percentage
         self.uniform_proposal = self.uniform_sampling_percentage == 1
 
-        self._interleave_updates = cfg["interleave_updates"]
+        self._interleave_updates = cfg.interleave_updates
 
         self.n_sampler_updates = cfg.n_sampler_updates
         if self.share_batch and not self.uniform_proposal:
@@ -606,8 +631,24 @@ class GreedyAC(BaseAC):
         }
 
 
+group.dispatcher(GreedyAC)
+
+
+@dataclass
+class GreedyACLineSearchConfig(GreedyACConfig):
+    name: str = 'greedy_ac_linesearch'
+
+    defaults: list[Any] = field(default_factory=lambda: [
+        'base_agent',
+        { 'critic': 'critic_linesearch' },
+        { 'actor': 'network_linesearch' },
+        { 'buffer': 'uniform' },
+        '_self_',
+    ])
+
+
 class GreedyACLineSearch(GreedyAC):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: GreedyACLineSearchConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
 
         assert isinstance(self.actor, NetworkActorLineSearch)
@@ -640,8 +681,28 @@ class GreedyACLineSearch(GreedyAC):
         return -logp.mean().detach()
 
 
+group.dispatcher(GreedyACLineSearch)
+
+
+@dataclass
+class ExploreLSGACConfig(GreedyACLineSearchConfig):
+    name: str = 'greedy_ac_linesearch_explore'
+    exploration_weight: float = 0.1
+
+    exploration: Any = MISSING
+
+    defaults: list[Any] = field(default_factory=lambda: [
+        'base_agent',
+        { 'critic': 'critic_linesearch' },
+        { 'actor': 'network_linesearch' },
+        { 'buffer': 'uniform' },
+        { 'exploration': 'random_linear_linesearch' },
+        '_self_',
+    ])
+
+
 class ExploreLSGAC(GreedyACLineSearch):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: ExploreLSGACConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         # initialize exploration module
         self.exploration = init_exploration_module(cfg.exploration, state_dim, action_dim)
@@ -666,3 +727,6 @@ class ExploreLSGAC(GreedyACLineSearch):
         q_values = q_values.reshape(batch_size, self.num_samples, 1)
         sorted_q = torch.argsort(q_values, dim=1, descending=True)
         return sorted_q
+
+
+group.dispatcher(ExploreLSGAC)

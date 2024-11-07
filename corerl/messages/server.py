@@ -2,6 +2,8 @@ import uuid
 import asyncio
 import logging
 from collections import defaultdict
+from dataclasses import dataclass
+from omegaconf import MISSING
 from websockets import ConnectionClosed
 from websockets.asyncio.server import serve, ServerConnection, Server
 from corerl.messages.events import maybe_parse_event, EventType, SubscribeEvent
@@ -10,10 +12,16 @@ from corerl.messages.events import maybe_parse_event, EventType, SubscribeEvent
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class WebsocketServerConfig:
+    host: str = MISSING
+    port: int = MISSING
+
+
 class WebsocketServer:
-    def __init__(self, host: str, port: int):
-        self.host = host
-        self.port = port
+    def __init__(self, cfg: WebsocketServerConfig):
+        self.host = cfg.host
+        self.port = cfg.port
 
         self._server: Server | None = None
         self._serve_future: asyncio.Future[None] | None = None

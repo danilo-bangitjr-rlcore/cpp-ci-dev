@@ -1,11 +1,11 @@
-from omegaconf import DictConfig
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy
 import torch
 import pickle as pkl
 
-from corerl.agent.base import BaseAC
+from corerl.agent.base import BaseAC, BaseACConfig, group
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic
 from corerl.component.buffer.factory import init_buffer
@@ -13,8 +13,15 @@ from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.utils.device import device
 from corerl.data.data import TransitionBatch, Transition
 
+@dataclass
+class SimpleACConfig(BaseACConfig):
+    name: str = 'simple_ac'
+
+    ensemble_targets: bool = False
+    tau: float = 0.0
+
 class SimpleAC(BaseAC):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: SimpleACConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         self.ensemble_targets = cfg.ensemble_targets
         self.tau = cfg.tau
@@ -77,7 +84,6 @@ class SimpleAC(BaseAC):
             next_state_batch = batch.boot_state
             mask_batch = 1 - batch.terminated
             gamma_exp_batch = batch.gamma_exponent
-            dp_mask = batch.boot_state_dp
 
             # Option 1: Using the reduction of the ensemble in the update target
             if not self.ensemble_targets:
@@ -152,3 +158,5 @@ class SimpleAC(BaseAC):
 
     def load_buffer(self, transitions: list[Transition]) -> None:
         ...
+
+group.dispatcher(SimpleAC)
