@@ -1,8 +1,17 @@
-from corerl.eval.base_eval import BaseEval
+from corerl.eval.base_eval import BaseEval, EvalConfig
+from corerl.utils.hydra import config
+
+
+@config('ensemble', group='eval')
+class EnsembleConfig(EvalConfig):
+    name: str = 'ensemble'
+
+    offline_eval: bool = True
+    online_eval: bool = True
 
 
 class EnsembleEval(BaseEval):
-    def __init__(self, cfg, **kwargs):
+    def __init__(self, cfg: EnsembleConfig, **kwargs):
         if 'alerts' not in kwargs:
             raise KeyError("Missing required argument: 'alerts'")
         if 'ensemble_info' not in kwargs:
