@@ -289,8 +289,9 @@ class InfluxOPCEnv(ABC, gym.Env):
         stop_t: datetime,
         decision_point: bool,
         steps_until_decision: int | None,
-        info: dict = {},
+        info: dict | None = None,
     ) -> Tuple[np.ndarray, float, bool, bool, dict]:
+        info = info or {}
         state = self._get_observation(stop_t)
         done = self._check_done()
         logger.debug("compute reward")
