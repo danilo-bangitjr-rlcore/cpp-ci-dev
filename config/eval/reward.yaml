@@ -1,7 +1,0 @@
-name : reward
-gamma : ${agent.gamma}
-return_window : 100
-reward_window : 100
-
-offline_eval : False
-online_eval : True
