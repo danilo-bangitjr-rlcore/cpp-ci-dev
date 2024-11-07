@@ -56,7 +56,7 @@ def try_create_engine(url_object: URL, backoff_seconds: int = 5, max_tries: int 
             raise Exception("sql engine creation failed")
         try:
             engine = sqlalchemy.create_engine(url_object, pool_recycle=280, pool_pre_ping=True)
-        except:
+        except Exception:
             logger.warning(f"failed to create sql engine, retrying in {backoff_seconds} seconds...")
             time.sleep(backoff_seconds)
         tries += 1

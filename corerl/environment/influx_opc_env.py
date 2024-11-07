@@ -163,7 +163,7 @@ class DBClientWrapper:
 
         try:
             df = self._timescale_query(start_time=start_time, end_time=end_time, col_names=col_names)
-        except:
+        except Exception:
             logger.warning("timescale query failed.", exc_info=True)
             df = self._influx_query(start_time=start_time, end_time=end_time, col_names=col_names)
 
@@ -250,7 +250,7 @@ class InfluxOPCEnv(ABC, gym.Env):
             logger.info("OPC reconnection successful")
             self.signal_warmup()
 
-        except:
+        except Exception:
             logger.warning("OPC reconnection failed.")
 
     async def initialize_connection(self) -> None:
