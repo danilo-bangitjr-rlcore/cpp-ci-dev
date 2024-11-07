@@ -25,7 +25,7 @@ def _make_anytime_transition_creator(
 
 def _make_simple_obs_sequence(num_observations: int) -> list[np.ndarray]:
     obs_sequence = [np.array([1])]
-    for i in range(num_observations - 1):
+    for _ in range(num_observations - 1):
         obs_sequence.append(np.array([0]))
     return obs_sequence
 
@@ -109,7 +109,7 @@ def test_anytime_transition_creator_feed(
     tc.reset(state, dp=True, steps_until_decision=steps_until_decision)
     transitions = []
 
-    for i, obs_transition in enumerate(obs_transitions):
+    for _, obs_transition in enumerate(obs_transitions):
         steps_until_decision -= 1
 
         if steps_until_decision == 0:
