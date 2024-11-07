@@ -1,4 +1,0 @@
-name: q_estimation
-
-offline_eval : True
-online_eval : True
