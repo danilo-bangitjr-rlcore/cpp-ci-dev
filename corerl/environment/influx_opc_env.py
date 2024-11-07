@@ -15,7 +15,6 @@ from typing import Any, Tuple, Generator, List
 import asyncio
 import random
 
-from typing import Callable, List
 from corerl.utils.opc_connection import OpcConnection
 from corerl.sql_logging.sql_logging import get_sql_engine, SQLEngineConfig
 import logging
