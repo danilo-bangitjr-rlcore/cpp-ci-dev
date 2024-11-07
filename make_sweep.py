@@ -24,6 +24,7 @@ def main():
         for run in sweep_params:
             write_str = '{} {} '.format(cfg.cmd, cfg.run_file)
 
+            assert isinstance(run, dict)
             for k, v in run.items():
                 write_str += "{}={} ".format(k, v)
 
