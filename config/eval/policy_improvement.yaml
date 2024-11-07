@@ -1,4 +1,0 @@
-name: policy_improvement
-n_samples : 100
-offline_eval : True
-online_eval : True
