@@ -24,7 +24,6 @@ import main_utils as utils
 log = logging.getLogger(__name__)
 
 
-
 @hydra.main(version_base=None, config_name='config', config_path="config/")
 def main(cfg: MainConfig):
     save_path = utils.prepare_save_dir(cfg)

@@ -9,6 +9,7 @@ from omegaconf import DictConfig
 from tqdm import tqdm
 from pathlib import Path
 
+from corerl.config import MainConfig
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
@@ -49,7 +50,7 @@ def output_to_df(cfg, observations, actions):
 
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
-def main(cfg: DictConfig) -> dict:
+def main(cfg: MainConfig) -> dict:
     save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
     device.update_device(cfg.experiment.device)

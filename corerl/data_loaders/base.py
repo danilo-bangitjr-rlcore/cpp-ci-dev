@@ -1,19 +1,29 @@
 import numpy as np
 import pickle as pkl
-from omegaconf import DictConfig
+from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Union
 
 import pandas as pd
 from corerl.data.data import ObsTransition, OldObsTransition
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.environment.reward.base import BaseReward
+from corerl.utils.hydra import Group, list_
+
+
+@dataclass
+class BaseDataLoaderConfig:
+    name: str = 'base'
+    offline_data_path: str = 'offline_data'
+    train_filenames: list[str] = list_()
+    test_filenames: list[str] = list_()
 
 
 class BaseDataLoader(ABC):
     @abstractmethod
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: BaseDataLoaderConfig, _):
         self.offline_data_path = Path(cfg.offline_data_path)
         # You can either load all the csvs in the directory or a subset
 
@@ -66,7 +76,7 @@ class BaseDataLoader(ABC):
 
 class OldBaseDataLoader(ABC):
     @abstractmethod
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: BaseDataLoaderConfig, _):
         self.offline_data_path = Path(cfg.offline_data_path)
         # You can either load all the csvs in the directory or a subset
 
@@ -116,3 +126,9 @@ class OldBaseDataLoader(ABC):
         df: pd.DataFrame,
     ) -> tuple[np.ndarray, np.ndarray]:
         raise NotImplementedError
+
+
+# set up config groups
+dl_group = Group[[], OldBaseDataLoader | BaseDataLoader](
+    'data_loader',
+)
