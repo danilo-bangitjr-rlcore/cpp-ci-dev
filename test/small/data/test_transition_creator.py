@@ -68,9 +68,9 @@ def test_anytime_transition_creator_feed(
         transitions += new_transitions
 
         if decision_point:
-            assert len(new_transitions)
+            assert len(new_transitions) > 0
         else:
-            assert not len(new_transitions)
+            assert len(new_transitions) == 0
 
     for i, transition in enumerate(transitions):
         last_transition = i == len(transitions) - 1
