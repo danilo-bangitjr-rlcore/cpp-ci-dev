@@ -707,14 +707,8 @@ def radar(ax, normalizations, df, *, id_column, title=None, max_values=None, pad
     data = df[categories].to_dict(orient='list')
     ids = df[id_column].tolist()
 
-    # if max_values is None:
-    #     max_values = {key: padding * max(value) for key, value in data.items()}
-    # normalized_data = {key: np.array(value) / max_values[key] for key, value in data.items()}
-    # normalized_data = {key: (np.array(value) - normalizations.get(key, [0, 1])[0]) / (normalizations.get(key, [0, 1])[1] - normalizations.get(key, [0, 1])[0]) for key, value in data.items()}
     normalized_data = {}
     for key, value in data.items():
-        #first < second: larger the better
-        #first > second: smaller the better
         first = normalizations.get(key, [0, 1])[0]
         second = normalizations.get(key, [0, 1])[1]
         normalized_data[key] = (np.array(value) - first) / (second - first)
@@ -739,7 +733,6 @@ def radar(ax, normalizations, df, *, id_column, title=None, max_values=None, pad
     ax.set_yticklabels([])
     ax.set_xticks(angles)
     ax.set_xticklabels(tiks, fontsize=7)
-    # ax.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
     if title is not None: ax.set_title(title)
 
 def make_summary_plot(plot_info: dict, path: Path, prefix: str):
