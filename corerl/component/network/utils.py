@@ -173,7 +173,8 @@ def to_np(t: numpy.ndarray | torch.Tensor) -> numpy.ndarray:
 def init_activation(name: str) -> type[nn.Module]:
     warnings.warn(
         "init_activation in module utils is deprecated and will be removed, " +
-        "use activations.init_activation instead"
+        "use activations.init_activation instead",
+        stacklevel=1,
     )
 
     return type(activations.init_activation({"name": name}))
@@ -182,7 +183,8 @@ def init_activation(name: str) -> type[nn.Module]:
 def init_activation_function(name: str) -> nn.Module:
     warnings.warn(
         "init_activation in module utils is deprecated and will be removed, " +
-        "use activations.init_activation instead"
+        "use activations.init_activation instead",
+        stacklevel=1,
     )
 
     return activations.init_activation({"name": name})()
