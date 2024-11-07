@@ -49,7 +49,7 @@ def output_to_df(cfg, observations, actions):
 
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
-def main(cfg: MainConfig) -> dict:
+def main(cfg: MainConfig):
     save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
     device.update_device(cfg.experiment.device)
