@@ -21,7 +21,7 @@ from corerl.environment.smpl.envs.mzutils.data_structures import SimplePriorityQ
 from corerl.environment.smpl.envs.utils import *
 
 np.seterr(all='warn')
-# ---- to capture numpy warnings ---- 
+# ---- to capture numpy warnings ----
 
 
 # macros the defined by the reactor
@@ -364,7 +364,7 @@ class ReactorEnvGym(smplEnvBase):
             action = action.clip(self.min_actions, self.max_actions)
         # /---- standard ----
 
-        # ---- to capture numpy warnings ---- 
+        # ---- to capture numpy warnings ----
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("error")
             observation = self.reactor.step(self.previous_observation, action)
@@ -375,7 +375,7 @@ class ReactorEnvGym(smplEnvBase):
                 print("NAN Error Reward")
                 done = True
                 done_info["terminal"] = True
-        # /---- to capture numpy warnings ---- 
+        # /---- to capture numpy warnings ----
 
         # ---- standard ----
         # compute reward
@@ -384,7 +384,7 @@ class ReactorEnvGym(smplEnvBase):
         # compute done
         if not done:
             done, done_info = self.done_calculator(observation, self.step_count, reward, done=done, done_info=done_info)
-        
+
         self.previous_observation = observation
 
         self.total_reward += reward

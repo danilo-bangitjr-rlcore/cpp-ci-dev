@@ -28,4 +28,3 @@ SWEEP_PARAMS = {
     'data_loader.test_filenames': get_test_data(),
     'data_loader.train_filenames': lambda d: get_train_data(d['data_loader.test_filenames']),
 }
-

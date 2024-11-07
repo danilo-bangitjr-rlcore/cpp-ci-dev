@@ -1,7 +1,7 @@
 import heapq
 import os
 import pandas as pd
-        
+
 from corerl.environment.smpl.envs.mzutils.os_funcs import mkdir_p, get_things_in_loc
 
 
@@ -95,7 +95,7 @@ class SeedData:
         else:
             self.seed_data = pd.read_csv(os.path.join(self.save_path, 'seed_data.csv'))
             print("Loaded the seed_data.csv at", self.save_path)
-    
+
     def save(self):
         self.seed_data.to_csv(os.path.join(self.save_path, 'seed_data.csv'), index=False)
 
