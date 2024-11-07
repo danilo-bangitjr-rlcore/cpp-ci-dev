@@ -52,7 +52,7 @@ class DBClientWrapper:
     ) -> pd.DataFrame:
         filter_list = [f'r._field == "{field_name}"' for field_name in col_names]
         filter_str = " or\n".join(filter_list)
-        timescale = f"10s"
+        timescale = "10s"
         start_t_str = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
         end_t_str = end_time.strftime("%Y-%m-%dT%H:%M:%SZ")
         query_str = f"""from(bucket: "{self.bucket}")
@@ -164,7 +164,7 @@ class DBClientWrapper:
         try:
             df = self._timescale_query(start_time=start_time, end_time=end_time, col_names=col_names)
         except:
-            logger.warning(f"timescale query failed.", exc_info=True)
+            logger.warning("timescale query failed.", exc_info=True)
             df = self._influx_query(start_time=start_time, end_time=end_time, col_names=col_names)
 
         missing_cols = set(col_names) - set(df.columns)
@@ -237,11 +237,11 @@ class InfluxOPCEnv(ABC, gym.Env):
             logger.debug("Checking OPC connection...")
             await self.opc_connection.client.check_connection()
         except Exception:
-            logger.warning(f"OPC connection failed", exc_info=True)
+            logger.warning("OPC connection failed", exc_info=True)
             await self.attempt_reconnect()
 
     async def attempt_reconnect(self) -> None:
-        logger.info(f"Attempting to reconnect to OPC")
+        logger.info("Attempting to reconnect to OPC")
         try:
             if hasattr(self.opc_connection, "client"):
                 await self.opc_connection.client.disconnect()
@@ -414,7 +414,7 @@ class InfluxOPCEnv(ABC, gym.Env):
                 return await self._async_step(action, decision_point, steps_until_decision, time)
             # except Exception as e:
             except Exception:
-                logger.warning(f"async env step failed!", exc_info=True)
+                logger.warning("async env step failed!", exc_info=True)
                 await self.check_opc_client()
                 await asyncio.sleep(10)
 

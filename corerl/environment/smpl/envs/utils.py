@@ -41,7 +41,7 @@ class smplEnvBase(Env):
             min_actions=[-1.0, -1.0],
             observation_name=None, action_name=None, initial_state_deviation_ratio=None, np_dtype=np.float32,
             max_steps=None, error_reward=-100.0):
-        """the __init__ of a smpl environment.
+        r"""the __init__ of a smpl environment.
 
         Args:
             dense_reward (bool, optional): Whether returns a dense reward or not. If True, will try to return a reward for each step. If False, will return a reward at the end of the episode. Defaults to True.
