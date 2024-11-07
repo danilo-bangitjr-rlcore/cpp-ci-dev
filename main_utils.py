@@ -14,12 +14,12 @@ from omegaconf import OmegaConf
 from gymnasium.spaces.utils import flatdim
 from gymnasium import spaces, Env
 from pathlib import Path
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional, TypeVar, overload
 from warnings import warn
 
 from corerl.config import MainConfig
 from corerl.eval.composite_eval import CompositeEval
-from corerl.data_loaders.base import BaseDataLoader
+from corerl.data_loaders.base import BaseDataLoader, OldBaseDataLoader
 from corerl.data_loaders.direct_action import OldDirectActionDataLoader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.data.data import OldObsTransition, Transition, ObsTransition, Trajectory
@@ -141,6 +141,26 @@ def get_dp_transitions(transitions: list[Transition]) -> list[Transition]:
 
     return dp_transitions
 
+
+@overload
+def get_offline_obs_transitions(
+    cfg: MainConfig,
+    train_data_df: pd.DataFrame,
+    test_data_df: pd.DataFrame,
+    dl: BaseDataLoader,
+    normalizer: ObsTransitionNormalizer,
+    prefix: str = '',
+) -> tuple[list[ObsTransition], list[ObsTransition]]: ...
+
+@overload
+def get_offline_obs_transitions(
+    cfg: MainConfig,
+    train_data_df: pd.DataFrame,
+    test_data_df: pd.DataFrame,
+    dl: OldDirectActionDataLoader,
+    normalizer: ObsTransitionNormalizer,
+    prefix: str = '',
+) -> tuple[list[OldObsTransition], list[OldObsTransition]]: ...
 
 def get_offline_obs_transitions(
     cfg: MainConfig,
