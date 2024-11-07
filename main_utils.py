@@ -106,14 +106,17 @@ def load_or_create(
     return obj
 
 
-def set_env_obs_space(env: Env, df: pd.DataFrame, dl: BaseDataLoader):
+def set_env_obs_space(env: Env, df: pd.DataFrame, dl: BaseDataLoader | OldBaseDataLoader):
     obs_bounds = dl.get_obs_max_min(df)
     env.observation_space = spaces.Box(low=obs_bounds[0], high=obs_bounds[1], dtype=np.float32)
     log.info("Updated env observation space: {}".format(env.observation_space))
     return env
 
 
-def load_df_from_csv(cfg: MainConfig, dl: BaseDataLoader) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def load_df_from_csv(
+    cfg: MainConfig,
+    dl: BaseDataLoader | OldBaseDataLoader,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     output_path = Path(cfg.offline_data.output_path)
 
     all_data_df = load_or_create(root=output_path, cfgs=[cfg.data_loader, cfg.env], prefix='all_data_df',
