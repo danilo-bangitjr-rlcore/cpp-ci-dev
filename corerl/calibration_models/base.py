@@ -25,8 +25,8 @@ class BaseCalibrationModel(ABC):
         self.normalizer: TransitionNormalizer = train_info['normalizer']
         self.transition_creator: OldAnytimeTransitionCreator = train_info['transition_creator']
 
-        self.endo_inds: list[int] = cfg.endo_inds
-        self.exo_inds: list[int] = cfg.exo_inds
+        self.endo_inds = np.asarray(cfg.endo_inds)
+        self.exo_inds = np.asarray(cfg.exo_inds)
 
         self.max_rollout_len: int = cfg.max_rollout_len
         self.steps_per_decision: int = cfg.steps_per_decision
