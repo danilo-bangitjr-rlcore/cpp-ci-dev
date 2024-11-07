@@ -21,6 +21,7 @@ class MultiTrace(CompositeStateConstructor):
     A trace constructor that is composed of multiple traces
     """
     def __init__(self, cfg: MultiTraceConfig):
+        super().__init__()
         # define the computation graphs
         start_sc = comp.Identity()  # first component in the graph
         trace_components = []
@@ -54,6 +55,7 @@ class AnytimeMultiTrace(CompositeStateConstructor):
     """
 
     def __init__(self, cfg: AnytimeMultiTraceConfig):
+        super().__init__()
         # define the computation graphs
         start_sc = comp.Identity()  # first component in the graph
         trace_components = []
@@ -92,6 +94,7 @@ class IdentityConfig:
 
 class Identity(CompositeStateConstructor):
     def __init__(self, cfg: IdentityConfig):
+        super().__init__()
         sc = comp.Identity()
         self.sc = sc
 
@@ -109,6 +112,7 @@ class SimpleReseauConfig:
 
 class SimpleReseauAnytime(CompositeStateConstructor):
     def __init__(self, cfg: SimpleReseauConfig):
+        super().__init__()
         identity_sc = comp.Identity()
         anytime_sc = comp.AnytimeCountDown(cfg.steps_per_decision, parents=[identity_sc])
         concat_sc = comp.Concatenate(parents=[identity_sc, anytime_sc])
@@ -132,6 +136,7 @@ class ReseauAnytimeConfig(SimpleReseauConfig):
 
 class ReseauAnytime(CompositeStateConstructor):
     def __init__(self, cfg: ReseauAnytimeConfig):
+        super().__init__()
         identity_sc = comp.Identity()
 
         col_sc_1 = comp.KeepCols(cfg.orp_col, parents=[identity_sc])
