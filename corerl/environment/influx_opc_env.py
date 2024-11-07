@@ -214,7 +214,7 @@ class InfluxOPCEnv(ABC, gym.Env):
 
         sp_addresses = [*constant_sp_addresses, *control_sp_addresses]
         sp_values = [*constant_sp_values, *control_sp_values.tolist()]
-        for key, val in zip(sp_addresses, sp_values):
+        for key, val in zip(sp_addresses, sp_values, strict=False):
             setpoints_to_write[key] = val
 
         logger.debug(f"{sp_addresses=}")

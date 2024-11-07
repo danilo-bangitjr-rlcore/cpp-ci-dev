@@ -730,7 +730,7 @@ def radar(ax, normalizations, df, *, id_column, title=None, max_values=None, pad
         values += values[:1]  # Close the plot for a better look
         ax.plot(angles, values, label=model_name)
         ax.fill(angles, values, alpha=0.15)
-        for _x, _y, t, at in zip(angles, values, values, actual_values):
+        for _x, _y, t, at in zip(angles, values, values, actual_values, strict=False):
             _y = 0.9
             t = f'{t:.2f}\n({at:.2f})' if isinstance(t, float) else str(t)
             ax.text(_x, _y, t, fontsize=7, va='center', ha='center')
@@ -843,7 +843,7 @@ def make_summary_plot(plot_info: dict, path: Path, prefix: str):
     }
     plot_info_keys = list(plot_info.keys())
     plot_info_orders = [order.get(k, -1) for k in plot_info_keys]
-    ordered_keys = [x for _,x in sorted(zip(plot_info_orders, plot_info_keys))]
+    ordered_keys = [x for _,x in sorted(zip(plot_info_orders, plot_info_keys, strict=False))]
     data = {'x': [*'0']}
     for k in ordered_keys:
         v = plot_info[k]

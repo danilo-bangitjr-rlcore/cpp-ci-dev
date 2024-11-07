@@ -48,7 +48,7 @@ def ensemble_mse(target, q_ens) -> list[torch.Tensor]:
     assert q_ens.ndim == 3
     ensemble_target = target.ndim == 3
     if ensemble_target:
-        mses = [nn.functional.mse_loss(t, q).to(global_device.device) for (t, q) in zip(target, q_ens)]
+        mses = [nn.functional.mse_loss(t, q).to(global_device.device) for (t, q) in zip(target, q_ens, strict=False)]
     else:
         mses = [nn.functional.mse_loss(target, q).to(global_device.device) for q in q_ens]
     return mses
@@ -60,7 +60,7 @@ def reset_weight_random(old_net: nn.Module, new_net: nn.Module, param: list[torc
 
 def reset_weight_shift(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
     with torch.no_grad():
-        for p, p_new in zip(old_net.parameters(), new_net.parameters()):
+        for p, p_new in zip(old_net.parameters(), new_net.parameters(), strict=False):
             p_new.data.mul_(0)
             p_new.data.add_(p.data + param)
     return new_net
@@ -68,7 +68,7 @@ def reset_weight_shift(old_net: nn.Module, new_net: nn.Module, param: list[torch
 
 def reset_weight_shrink(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
     with torch.no_grad():
-        for p, p_new in zip(old_net.parameters(), new_net.parameters()):
+        for p, p_new in zip(old_net.parameters(), new_net.parameters(), strict=False):
             p_new.data.mul_(0)
             p_new.data.add_(p.data * param)
     return new_net
@@ -76,7 +76,7 @@ def reset_weight_shrink(old_net: nn.Module, new_net: nn.Module, param: list[torc
 
 def reset_weight_shrink_rnd(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
     with torch.no_grad():
-        for p, p_new in zip(old_net.parameters(), new_net.parameters()):
+        for p, p_new in zip(old_net.parameters(), new_net.parameters(), strict=False):
             p_new.data.mul_(0.5)
             p_new.data.add_(p.data * param * 0.5)
     return new_net
