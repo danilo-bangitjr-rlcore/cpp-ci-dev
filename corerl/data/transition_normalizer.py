@@ -1,17 +1,16 @@
 import logging
 import gymnasium as gym
 from copy import deepcopy
-from omegaconf import DictConfig
 from corerl.data.data import Transition
 from corerl.data.normalizer.action import init_action_normalizer
 from corerl.data.normalizer.obs import init_obs_normalizer
 from corerl.data.normalizer.reward import init_reward_normalizer
-from corerl.data.normalizer.base import InvertibleNormalizer
+from corerl.data.normalizer.base import InvertibleNormalizer, NormalizerConfig
 
 log = logging.getLogger(__name__)
 
 class TransitionNormalizer:
-    def __init__(self, cfg: DictConfig, env: gym.Env):
+    def __init__(self, cfg: NormalizerConfig, env: gym.Env):
         self.action_normalizer = init_action_normalizer(cfg.action_normalizer, env)
         self.reward_normalizer = init_reward_normalizer(cfg.reward_normalizer)
         self.obs_normalizer = init_obs_normalizer(cfg.obs_normalizer, env)
