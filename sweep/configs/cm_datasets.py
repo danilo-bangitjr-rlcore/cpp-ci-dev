@@ -14,9 +14,7 @@ def get_train_data(test_name):
 
 def get_test_data():
     test_files = deepcopy(FILENAMES)
-    l = [[t] for t in test_files]
-
-    return l
+    return [[t] for t in test_files]
 
 
 SWEEP_PARAMS = {
