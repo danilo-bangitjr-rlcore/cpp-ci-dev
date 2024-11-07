@@ -1,5 +1,0 @@
-name: tde
-gamma: ${agent.gamma}
-
-offline_eval : True
-online_eval : True

@@ -3,15 +3,24 @@ Implements Identifiable BE Selection (without the selection) from
 https://drive.google.com/drive/u/1/folders/1tJo78FvsWfWaPncJNNyI9IO1f7UbxCFR
 """
 import torch
-from omegaconf import DictConfig
 
-from corerl.eval.base_eval import BaseEval
+from corerl.eval.base_eval import BaseEval, EvalConfig
 from corerl.data.data import TransitionBatch
 from corerl.component.network.utils import to_np
+from corerl.utils.hydra import config, interpolate
+
+
+@config('tde', group='eval')
+class TDEConfig(EvalConfig):
+    name: str = 'tde'
+    gamma: float = interpolate('${agent.gamma}')
+
+    offline_eval: bool = True
+    online_eval: bool = True
 
 
 class TDE(BaseEval):
-    def __init__(self, cfg: DictConfig, **kwargs):
+    def __init__(self, cfg: TDEConfig, **kwargs):
         if 'agent' not in kwargs:
             raise KeyError("Missing required argument: 'agent'")
 
