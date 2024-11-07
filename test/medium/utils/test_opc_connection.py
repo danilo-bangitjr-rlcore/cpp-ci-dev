@@ -15,7 +15,7 @@ async def test_connect2(client: OpcConnection):
     """
     Client should fail when no server is running.
     """
-    with pytest.raises(Exception):
+    with pytest.raises(Exception): # noqa: B017 - OPC does not raise consistent exception
         await client.connect()
 
 
