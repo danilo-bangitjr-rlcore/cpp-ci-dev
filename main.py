@@ -5,6 +5,8 @@ import torch
 import random
 
 from corerl.config import MainConfig
+from corerl.data.transition_creator import BaseTransitionCreator
+from corerl.interaction.anytime_interaction import AnytimeInteraction
 from corerl.utils.device import device
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
@@ -70,11 +72,24 @@ def main(cfg: MainConfig):
         'input_dim': state_dim,
     }
     composite_alert = CompositeAlert(cfg.alerts, alert_args)
+
+    obs_normalizer: ObsTransitionNormalizer | None = None
+    transition_normalizer: TransitionNormalizer | None = None
     if cfg.use_alerts:
         alert_tc = init_transition_creator(cfg.alert_transition_creator, sc)
         alert_tc.init_alerts(composite_alert)
 
-    if do_offline_training:
+
+    should_train_offline = cfg.experiment.offline_steps > 0
+    if should_train_offline:
+        dl = init_data_loader(cfg.data_loader)
+        all_data_df, train_data_df, test_data_df = utils.load_df_from_csv(cfg, dl)
+        if cfg.experiment.load_env_obs_space_from_data:
+            env = utils.set_env_obs_space(env, all_data_df, dl)
+
+        obs_normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
+        transition_normalizer = TransitionNormalizer(cfg.normalizer, env)
+
         log.info('Loading offline observations...')
         train_obs_transitions, test_obs_transitions = utils.get_offline_obs_transitions(cfg,
             train_data_df, test_data_df, dl, obs_normalizer)
@@ -117,6 +132,13 @@ def main(cfg: MainConfig):
     if len(test_epochs) > 0:
         assert plot_transitions is not None, "Must include test transitions if test_epochs is not None"
 
+
+    if obs_normalizer is None:
+        obs_normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
+
+    if transition_normalizer is None:
+        transition_normalizer = TransitionNormalizer(cfg.normalizer, env)
+
     interaction = init_interaction(
         cfg.interaction,
         env,
@@ -125,6 +147,7 @@ def main(cfg: MainConfig):
         obs_normalizer,
         transitions=agent_test_transitions,
     )
+
     if cfg.use_alerts:
         interaction.init_alerts(composite_alert, alert_tc)
 
