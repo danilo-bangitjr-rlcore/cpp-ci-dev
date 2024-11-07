@@ -42,24 +42,10 @@ def main(cfg: MainConfig):
 
     env = init_environment(cfg.env)
 
-    do_offline_training = cfg.experiment.offline_steps > 0
-    # first, load the data and potentially update the bounds of the obs space of the environment
-    # it's important this happens before we create the state constructor and interaction since normalization
-    # depends on these values
-    if do_offline_training:
-        dl = init_data_loader(cfg.data_loader)
-        all_data_df, train_data_df, test_data_df = utils.load_df_from_csv(cfg, dl)
-        if cfg.experiment.load_env_obs_space_from_data:
-            env = utils.set_env_obs_space(env, all_data_df, dl)
-
-    # the next part of instantiates objects. It is shared between online and offline training
-    sc = init_state_constructor(cfg.state_constructor, env)
+    sc = init_state_constructor(cfg.state_constructor)
     state_dim, action_dim = utils.get_state_action_dim(env, sc)
     log.info("State Dim: {}, action dim: {}".format(state_dim, action_dim))
     agent = init_agent(cfg.agent, state_dim, action_dim)
-
-    obs_normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
-    transition_normalizer = TransitionNormalizer(cfg.normalizer, env)
     agent_tc = init_transition_creator(cfg.agent_transition_creator, sc)
 
     plot_transitions = None

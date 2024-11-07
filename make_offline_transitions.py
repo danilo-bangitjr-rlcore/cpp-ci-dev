@@ -61,7 +61,7 @@ def main(cfg: MainConfig) -> dict:
     torch.manual_seed(seed)
 
     env = init_environment(cfg.env)
-    sc = init_state_constructor(cfg.state_constructor, env)
+    sc = init_state_constructor(cfg.state_constructor)
     state_dim, action_dim = utils.get_state_action_dim(env, sc)
     log.debug(f"State Dim: {state_dim}, action dim: {action_dim}")
     agent = init_agent(cfg.agent, state_dim, action_dim)

@@ -55,7 +55,7 @@ def main(cfg: MainConfig):
     if cfg.experiment.load_env_obs_space_from_data:
         env = utils.set_env_obs_space(env, all_data_df, dl)
 
-    sc_agent = init_state_constructor(cfg.state_constructor, env)
+    sc_agent = init_state_constructor(cfg.state_constructor)
     state_dim, action_dim = utils.get_state_action_dim(env, sc_agent)
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
@@ -94,7 +94,7 @@ def main(cfg: MainConfig):
 
     # load trajectories for the model
     log.info("loading trajectories for the model")
-    sc_cm = init_state_constructor(cfg.calibration_model.state_constructor, env)
+    sc_cm = init_state_constructor(cfg.calibration_model.state_constructor)
 
     # the models need all transitions, not just DP transitions
     transition_creator.set_only_dp_transitions(False)
