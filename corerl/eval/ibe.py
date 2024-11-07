@@ -2,19 +2,49 @@
 Implements Identifiable BE Selection (without the selection) from
 https://drive.google.com/drive/u/1/folders/1tJo78FvsWfWaPncJNNyI9IO1f7UbxCFR
 """
+from dataclasses import dataclass, field
 import numpy as np
 import torch
-from omegaconf import DictConfig
 
 from corerl.component.network.factory import init_custom_network
+from corerl.component.network.networks import NNTorsoConfig
 from corerl.component.optimizers.factory import init_optimizer
-from corerl.eval.base_eval import BaseEval
+from corerl.eval.base_eval import BaseEval, EvalConfig
 from corerl.data.data import TransitionBatch
 from corerl.component.network.utils import ensemble_mse, to_np
+from corerl.utils.hydra import config, interpolate
+
+
+@dataclass
+class IBEOptimizer:
+    name: str = 'adam'
+    lr: float = 0.0001
+    weight_decay: float = 0.0
+
+
+@dataclass
+class IBENetwork:
+    name: str = 'ensemble_fc'
+    ensemble: int = interpolate('${agent.critic.critic_network.ensemble}')
+    base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
+
+
+@config('ibe', group='eval')
+class IBEConfig(EvalConfig):
+    name: str = 'ibe'
+    gamma: float = interpolate('${agent.gamma}')
+    n_updates: int = 1
+    smoothing_window: int = 10
+
+    optimizer: IBEOptimizer = field(default_factory=IBEOptimizer)
+    network: IBENetwork = field(default_factory=IBENetwork)
+
+    offline_eval: bool = True
+    online_eval: bool = True
 
 
 class IBE(BaseEval):
-    def __init__(self, cfg: DictConfig, **kwargs):
+    def __init__(self, cfg: IBEConfig, **kwargs):
         if 'agent' not in kwargs:
             raise KeyError("Missing required argument: 'agent'")
 
