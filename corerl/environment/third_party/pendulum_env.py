@@ -272,7 +272,7 @@ class PendulumEnv(gym.Env):
 
         rod_length = 1 * scale
         rod_width = 0.2 * scale
-        l, r, t, b = 0, rod_length, rod_width / 2, -rod_width / 2
+        l, r, t, b = 0, rod_length, rod_width / 2, -rod_width / 2 # noqa
         coords = [(l, b), (l, t), (r, t), (r, b)]
         transformed_coords = []
         for c in coords:

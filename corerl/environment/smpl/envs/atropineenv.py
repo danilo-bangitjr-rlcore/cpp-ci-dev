@@ -1,3 +1,4 @@
+# flake8: noqa
 # -*- coding: utf-8 -*-
 """
 AtropineEnv simulates an atropine production environment.
@@ -357,7 +358,7 @@ class AtropineEnvGym(smplEnvBase):
             here in done_calculator_standard, done_info looks like {"terminal": boolean, "timeout": boolean},
             where "timeout" is true when episode end due to reaching the maximum episode length,
             "terminal" is true when "timeout" or episode end due to termination conditions such as env error encountered. (basically done)
-            
+
         Args:
             current_observation ([np.ndarray]): This is denormalized observation, as usual.
             step_count ([int]): step_count.

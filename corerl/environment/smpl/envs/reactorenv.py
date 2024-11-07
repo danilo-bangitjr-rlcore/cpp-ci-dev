@@ -1,3 +1,4 @@
+# flake8: noqa
 # -*- coding: utf-8 -*-
 """
 ReactorEnv simulates a general reactor environment. This is supposed to be a template environment. The documentations in that file is enhanced and provided comment lines (# ---- standard ---- and # /---- standard ----) enclose pieces of code that should be reused by most of smpl environments. Please consult the smplEnvBase class.
@@ -407,11 +408,11 @@ class ReactorEnvGym(smplEnvBase):
     def evenly_spread_initial_states(self, val_per_state, dump_location=None):
         """
         Evenly spread initial states.
-        This function is needed only if the environment has steady_observations. 
-        
+        This function is needed only if the environment has steady_observations.
+
         Args:
             val_per_state (int): how many values to sampler per state.
-            
+
         Returns:
         [initial_states]: evenly spread initial_states.
         """
@@ -675,7 +676,7 @@ class ReactorEnvGym(smplEnvBase):
         """
         observation: numpy array of shape (self.observation_dim)
         returns: observation eval (reward in a sense)
-        
+
         return float(- (np.mean((observation - self.steady_observations) ** 2 / np.maximum(
             (self.init_observation - self.steady_observations) ** 2, 1e-8))))
         """

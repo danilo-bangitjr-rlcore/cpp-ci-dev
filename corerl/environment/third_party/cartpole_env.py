@@ -1,3 +1,4 @@
+# flake8: noqa
 """
 Adapted from
 https://github.com/Farama-Foundation/Gymnasium/blob/main/gymnasium/envs/classic_control/cartpole.py

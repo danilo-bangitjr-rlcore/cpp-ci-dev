@@ -1,3 +1,4 @@
+# flake8: noqa
 import heapq
 import os
 import pandas as pd
@@ -8,7 +9,7 @@ from corerl.environment.smpl.envs.mzutils.os_funcs import mkdir_p, get_things_in
 class SimplePriorityQueue():
     """
     a simple wrapper around heapq.
-    
+
     >>> q = SimplePriorityQueue()
     >>> q.put((2, "Harry"))
     >>> q.put((3, "Charles"))

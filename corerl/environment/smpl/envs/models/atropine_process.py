@@ -1,3 +1,4 @@
+# flake8: noqa
 import numpy as np
 from casadi import reshape, vertcat, SX, integrator, mtimes, inf, nlpsol
 
