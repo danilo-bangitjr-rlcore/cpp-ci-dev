@@ -1,8 +1,16 @@
-from corerl.eval.base_eval import BaseEval
+from corerl.eval.base_eval import BaseEval, EvalConfig
+from corerl.utils.hydra import config
+
+
+@config('trace_alerts', group='eval')
+class TraceAlertsConfig(EvalConfig):
+    name: str = 'trace_alerts'
+    offline_eval: bool = False
+    online_eval: bool = True
 
 
 class TraceAlertsEval(BaseEval):
-    def __init__(self, cfg, **kwargs):
+    def __init__(self, cfg: TraceAlertsConfig, **kwargs):
         if 'alerts' not in kwargs:
             raise KeyError("Missing required argument: 'alerts'")
         if 'alert_info_list' not in kwargs:
@@ -56,8 +64,12 @@ class TraceAlertsEval(BaseEval):
         return stats
 
 
+@config('uncertainty_alerts', group='eval')
+class UncertaintyAlertsConfig(TraceAlertsConfig):
+    name: str = 'uncertainty_alerts'
+
 class UncertaintyAlertsEval(TraceAlertsEval):
-    def __init__(self, cfg, **kwargs):
+    def __init__(self, cfg: UncertaintyAlertsConfig, **kwargs):
         super().__init__(cfg, **kwargs)
         if 'alert_info_list' not in kwargs:
             raise KeyError("Missing required argument: 'alert_info_list'")
