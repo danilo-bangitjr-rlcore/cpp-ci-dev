@@ -22,23 +22,6 @@ class BaseDataLoaderConfig:
 
 class BaseDataLoader(ABC):
     @abstractmethod
-    def __init__(self, cfg: BaseDataLoaderConfig, _):
-        self.offline_data_path = Path(cfg.offline_data_path)
-        # You can either load all the csvs in the directory or a subset
-
-        if not cfg.train_filenames:
-            # will return all files as training data
-            self.train_filenames = list(self.offline_data_path.glob('*.csv'))
-            self.test_filenames = []
-        else:
-            self.train_filenames = [self.offline_data_path / file for file in cfg.train_filenames]
-            self.test_filenames = [self.offline_data_path / file for file in cfg.test_filenames]
-
-        self.all_filenames = self.train_filenames + self.test_filenames
-
-        raise NotImplementedError
-
-    @abstractmethod
     def load_data(
         self,
         filenames: Sequence[str] | Sequence[Path],
@@ -74,23 +57,6 @@ class BaseDataLoader(ABC):
 
 
 class OldBaseDataLoader(ABC):
-    @abstractmethod
-    def __init__(self, cfg: BaseDataLoaderConfig, _):
-        self.offline_data_path = Path(cfg.offline_data_path)
-        # You can either load all the csvs in the directory or a subset
-
-        if not cfg.train_filenames:
-            # will return all files as training data
-            self.train_filenames = list(self.offline_data_path.glob('*.csv'))
-            self.test_filenames = []
-        else:
-            self.train_filenames = [self.offline_data_path / file for file in cfg.train_filenames]
-            self.test_filenames = [self.offline_data_path / file for file in cfg.test_filenames]
-
-        self.all_filenames = self.train_filenames + self.test_filenames
-
-        raise NotImplementedError
-
     @abstractmethod
     def load_data(
         self,
