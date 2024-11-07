@@ -1,5 +1,5 @@
 from corerl.data_loaders.data_writer import DataWriter
-from omegaconf import OmegaConf
+from corerl.sql_logging.sql_logging import SQLEngineConfig
 from datetime import datetime, UTC, timedelta
 import pytest
 from typing import Generator
@@ -10,14 +10,12 @@ import corerl.utils.nullable as nullable
 
 @pytest.fixture(scope="module")
 def data_writer() -> Generator[DataWriter, None, None]:
-    db_cfg = OmegaConf.create(
-        {
-            "drivername": "postgresql+psycopg2",
-            "username": "postgres",
-            "password": "password",
-            "ip": "localhost",
-            "port": 5433,  # default is 5432, but we want to use different port for test db
-        }
+    db_cfg = SQLEngineConfig(
+        drivername="postgresql+psycopg2",
+        username="postgres",
+        password="password",
+        ip="localhost",
+        port=5433, # default is 5432, but we want to use different port for test db
     )
 
     db_name = "pytest"
