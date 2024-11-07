@@ -82,8 +82,10 @@ def main(cfg: MainConfig):
         log.info('Loading offline agent transitions...')
         agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.agent_transition_creator, cfg.env]
 
-        agent_train_transitions = utils.get_offline_transitions(cfg, train_obs_transitions, sc, agent_tc, obs_normalizer,
-            hash_cfgs=agent_hash_cfgs, prefix='agent_train')
+        agent_train_transitions = utils.get_offline_transitions(
+            cfg, train_obs_transitions, sc, agent_tc, obs_normalizer,
+            hash_cfgs=agent_hash_cfgs, prefix='agent_train',
+        )
 
         agent_test_transitions = utils.get_offline_transitions(cfg, test_obs_transitions, sc, agent_tc, obs_normalizer,
             hash_cfgs=agent_hash_cfgs, prefix='agent_test')
@@ -101,7 +103,8 @@ def main(cfg: MainConfig):
         stats = offline_eval.get_stats()
         make_offline_plots(fr.freezer, stats, save_path / 'plots')
 
-        # Alert offline training should come after agent offline training since alert value function updates depend upon the agent's policy
+        # Alert offline training should come after agent offline training
+        # since alert value function updates depend upon the agent's policy
         if cfg.use_alerts:
             alert_hash_cfgs = [cfg.data_loader, cfg.state_constructor,
                 cfg.alert_transition_creator, cfg.alerts, cfg.env]
@@ -114,7 +117,14 @@ def main(cfg: MainConfig):
     if len(test_epochs) > 0:
         assert plot_transitions is not None, "Must include test transitions if test_epochs is not None"
 
-    interaction = init_interaction(cfg.interaction, env, sc, agent_tc, obs_normalizer, transitions=agent_test_transitions)
+    interaction = init_interaction(
+        cfg.interaction,
+        env,
+        sc,
+        agent_tc,
+        obs_normalizer,
+        transitions=agent_test_transitions,
+    )
     if cfg.use_alerts:
         interaction.init_alerts(composite_alert, alert_tc)
 
