@@ -1,10 +1,105 @@
 import pytest
 import numpy as np
 
-from corerl.data.transition_creator import AnytimeTransitionCreator, AnytimeTCConfig
-from corerl.data.data import Transition
+from corerl.data.data import ObsTransition, Transition
+from corerl.data.transition_creator import AnytimeTransitionCreator, RegularRLTransitionCreator, AnytimeTCConfig, RegularRLTCConfig # noqa: E501
+from corerl.state_constructor.examples import IdentityConfig
+from corerl.state_constructor.factory import init_state_constructor
 from test.small.state_constructor.state_constructor import make_anytime_multi_trace
 from test.infrastructure.dummy_data.transitions import make_simple_obs_transition_sequence
+
+
+
+def test_regular_rl_transition_creator():
+    sc = init_state_constructor(IdentityConfig())
+    cfg = RegularRLTCConfig(
+        steps_per_decision=5,
+        n_step=1,
+        gamma=0.1,
+    )
+    tc = RegularRLTransitionCreator(
+        cfg=cfg,
+        state_constuctor=sc,
+    )
+
+    # transform first observation into a state
+    state = sc(
+        obs=np.array([100]),
+        action=np.array([0]),
+        initial_state=True,
+    )
+    tc.reset(state, dp=True, steps_until_decision=5)
+
+    # the next 4 obs transitions are interior to the decision window
+    # and so will not produce a transition
+    for i in range(4):
+        next_transition = ObsTransition(
+            obs=np.array([101 + i]),
+            action=np.array([1 + i]),
+            reward=1.0,
+            next_obs=np.array([102 + i]),
+            terminated=False,
+            truncate=False,
+            gap=False,
+        )
+        next_state = sc(
+            obs=next_transition.obs,
+            action=next_transition.action
+        )
+        transitions = tc.feed(
+            obs_transition=next_transition,
+            next_state=next_state,
+            next_dp=False,
+            next_steps_until_decision=4 - i,
+        )
+
+        assert len(transitions) == 0
+
+    # the next obs transition is a decision point
+    # so a new transition should be created
+    next_transition = ObsTransition(
+        obs=np.array([105]),
+        action=np.array([5]),
+        reward=1.0,
+        next_obs=np.array([106]),
+        terminated=False,
+        truncate=False,
+        gap=False,
+    )
+    next_state = sc(
+        obs=next_transition.obs,
+        action=next_transition.action
+    )
+    transitions = tc.feed(
+        obs_transition=next_transition,
+        next_state=next_state,
+        next_dp=True,
+        next_steps_until_decision=0,
+    )
+
+    assert len(transitions) == 1
+    assert transitions[0] == Transition(
+        obs=np.array([101]),
+        state=np.array([1, 0, 100]),
+        action=np.array([1]),
+        next_obs=np.array([102]),
+        next_state=np.array([0, 1, 101]),
+        reward=1.0,
+        n_step_reward=1.1111,
+        n_step_cumulants=None,
+        boot_obs=np.array([106]),
+        boot_state=np.array([0, 5, 105]),
+        terminated=False,
+        truncate=False,
+        state_dp=True,
+        next_state_dp=False,
+        boot_state_dp=True,
+        gamma_exponent=5,
+        gap=False,
+        steps_until_decision=5,
+        next_steps_until_decision=4,
+        boot_steps_until_decision=5,
+    )
 
 
 @pytest.mark.parametrize("num_observations, steps_per_decision, n_step",
