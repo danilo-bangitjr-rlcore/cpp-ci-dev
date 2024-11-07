@@ -1,5 +1,0 @@
-name : envfield
-
-offline_eval : False
-online_eval : True
-fields: [cached_flowrate, cached_height_T1]

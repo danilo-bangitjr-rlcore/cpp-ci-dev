@@ -1,8 +1,18 @@
-from corerl.eval.base_eval import BaseEval
+from corerl.eval.base_eval import BaseEval, EvalConfig
+from corerl.utils.hydra import config, list_
+
+
+@config('envfield', group='eval')
+class EnvFieldConfig(EvalConfig):
+    name: str = 'envfield'
+    fields: list[str] = list_(['cached_flowrate', 'cached_height_T1'])
+
+    offline_eval: bool = False
+    online_eval: bool = True
 
 
 class EnvFieldEval(BaseEval):
-    def __init__(self, cfg, **kwargs):
+    def __init__(self, cfg: EnvFieldConfig, **kwargs):
         self.start = True
         self.env_fields = cfg.fields
         self.cached_values = {}
