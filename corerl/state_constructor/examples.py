@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from corerl.state_constructor.base import CompositeStateConstructor, sc_group
 import corerl.state_constructor.components as comp
 
-import gymnasium
 from corerl.utils.hydra import interpolate, list_
 
 
@@ -21,7 +20,7 @@ class MultiTrace(CompositeStateConstructor):
     """
     A trace constructor that is composed of multiple traces
     """
-    def __init__(self, cfg: MultiTraceConfig, _):
+    def __init__(self, cfg: MultiTraceConfig):
         # define the computation graphs
         start_sc = comp.Identity()  # first component in the graph
         trace_components = []
@@ -54,7 +53,7 @@ class AnytimeMultiTrace(CompositeStateConstructor):
     A trace constructor that is composed of multiple traces
     """
 
-    def __init__(self, cfg: AnytimeMultiTraceConfig, _):
+    def __init__(self, cfg: AnytimeMultiTraceConfig):
         # define the computation graphs
         start_sc = comp.Identity()  # first component in the graph
         trace_components = []
@@ -92,7 +91,7 @@ class IdentityConfig:
     name: str = 'identity'
 
 class Identity(CompositeStateConstructor):
-    def __init__(self, cfg: IdentityConfig, env: gymnasium.Env):
+    def __init__(self, cfg: IdentityConfig):
         sc = comp.Identity()
         self.sc = sc
 
@@ -109,7 +108,7 @@ class SimpleReseauConfig:
     warmup: int = 180
 
 class SimpleReseauAnytime(CompositeStateConstructor):
-    def __init__(self, cfg: SimpleReseauConfig, env: gymnasium.Env):
+    def __init__(self, cfg: SimpleReseauConfig):
         identity_sc = comp.Identity()
         anytime_sc = comp.AnytimeCountDown(cfg.steps_per_decision, parents=[identity_sc])
         concat_sc = comp.Concatenate(parents=[identity_sc, anytime_sc])
@@ -132,7 +131,7 @@ class ReseauAnytimeConfig(SimpleReseauConfig):
     warmup: int = 360
 
 class ReseauAnytime(CompositeStateConstructor):
-    def __init__(self, cfg: ReseauAnytimeConfig, env: gymnasium.Env):
+    def __init__(self, cfg: ReseauAnytimeConfig):
         identity_sc = comp.Identity()
 
         col_sc_1 = comp.KeepCols(cfg.orp_col, parents=[identity_sc])

@@ -1,8 +1,8 @@
 from pandas import DataFrame
 from corerl.data_loaders.data_reader import DataReader
 from corerl.data_loaders.data_writer import DataWriter
-from omegaconf import OmegaConf
 import pytest
+from corerl.sql_logging.sql_logging import SQLEngineConfig
 from test.medium.data_loaders.test_data_writer import write_n_random_vals
 from typing import Generator, List
 from datetime import datetime, timedelta, UTC
@@ -10,14 +10,12 @@ from datetime import datetime, timedelta, UTC
 
 @pytest.fixture(scope="module")
 def data_reader(timescale_docker) -> Generator[DataReader, None, None]:
-    db_cfg = OmegaConf.create(
-        {
-            "drivername": "postgresql+psycopg2",
-            "username": "postgres",
-            "password": "password",
-            "ip": "localhost",
-            "port": 5433,  # default is 5432, but we want to use different port for test db
-        }
+    db_cfg = SQLEngineConfig(
+        drivername="postgresql+psycopg2",
+        username="postgres",
+        password="password",
+        ip="localhost",
+        port=5433, # default is 5432, but we want to use different port for test db
     )
 
     db_name = "pytest"
@@ -39,7 +37,6 @@ class TestDataReader:
         now = datetime.now(UTC)
         for name in names:
             write_n_random_vals(n=n_vals, name=name, data_writer=data_writer, end_time=now)
-        data_writer.commit()
 
     @pytest.mark.skip(reason="github actions do not yet support docker")
     def test_read_with_non_UTC(self, data_reader: DataReader, populate_db):

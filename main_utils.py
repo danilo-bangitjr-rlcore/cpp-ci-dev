@@ -14,12 +14,12 @@ from omegaconf import OmegaConf
 from gymnasium.spaces.utils import flatdim
 from gymnasium import spaces, Env
 from pathlib import Path
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional, TypeVar, overload
 from warnings import warn
 
 from corerl.config import MainConfig
 from corerl.eval.composite_eval import CompositeEval
-from corerl.data_loaders.base import BaseDataLoader
+from corerl.data_loaders.base import BaseDataLoader, OldBaseDataLoader
 from corerl.data_loaders.direct_action import OldDirectActionDataLoader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.data.data import OldObsTransition, Transition, ObsTransition, Trajectory
@@ -76,7 +76,7 @@ def update_pbar(pbar, stats: dict, keys: list) -> None:
 T = TypeVar('T')
 def load_or_create(
     root: Path,
-    cfgs: Sequence[MutableMapping[str, Any]],
+    cfgs: Sequence[Any],
     prefix: str,
     create_func: Callable[[], T],
 ) -> T:
@@ -106,14 +106,17 @@ def load_or_create(
     return obj
 
 
-def set_env_obs_space(env: Env, df: pd.DataFrame, dl: BaseDataLoader):
+def set_env_obs_space(env: Env, df: pd.DataFrame, dl: BaseDataLoader | OldBaseDataLoader):
     obs_bounds = dl.get_obs_max_min(df)
     env.observation_space = spaces.Box(low=obs_bounds[0], high=obs_bounds[1], dtype=np.float32)
     log.info("Updated env observation space: {}".format(env.observation_space))
     return env
 
 
-def load_df_from_csv(cfg: MainConfig, dl: BaseDataLoader) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def load_df_from_csv(
+    cfg: MainConfig,
+    dl: BaseDataLoader | OldBaseDataLoader,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     output_path = Path(cfg.offline_data.output_path)
 
     all_data_df = load_or_create(root=output_path, cfgs=[cfg.data_loader, cfg.env], prefix='all_data_df',
@@ -141,6 +144,26 @@ def get_dp_transitions(transitions: list[Transition]) -> list[Transition]:
 
     return dp_transitions
 
+
+@overload
+def get_offline_obs_transitions(
+    cfg: MainConfig,
+    train_data_df: pd.DataFrame,
+    test_data_df: pd.DataFrame,
+    dl: BaseDataLoader,
+    normalizer: ObsTransitionNormalizer,
+    prefix: str = '',
+) -> tuple[list[ObsTransition], list[ObsTransition]]: ...
+
+@overload
+def get_offline_obs_transitions(
+    cfg: MainConfig,
+    train_data_df: pd.DataFrame,
+    test_data_df: pd.DataFrame,
+    dl: OldDirectActionDataLoader,
+    normalizer: ObsTransitionNormalizer,
+    prefix: str = '',
+) -> tuple[list[OldObsTransition], list[OldObsTransition]]: ...
 
 def get_offline_obs_transitions(
     cfg: MainConfig,

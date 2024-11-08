@@ -5,12 +5,13 @@ import random
 import pickle
 import logging
 
-from omegaconf import DictConfig, OmegaConf
 from tqdm import tqdm
 
 from corerl.calibration_models.factory import init_calibration_model
+from corerl.config import MainConfig
 from corerl.data.data import Transition, Trajectory
 from corerl.agent.factory import init_agent
+from corerl.data_loaders.direct_action import OldDirectActionDataLoader
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.data_loaders.factory import init_data_loader
@@ -36,7 +37,7 @@ def trajectories_to_transitions(trajectories: list[Trajectory]) -> list[Transiti
 
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
-def main(cfg: DictConfig):
+def main(cfg: MainConfig):
     save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
 
@@ -55,7 +56,7 @@ def main(cfg: DictConfig):
     if cfg.experiment.load_env_obs_space_from_data:
         env = utils.set_env_obs_space(env, all_data_df, dl)
 
-    sc_agent = init_state_constructor(cfg.state_constructor, env)
+    sc_agent = init_state_constructor(cfg.state_constructor)
     state_dim, action_dim = utils.get_state_action_dim(env, sc_agent)
     agent = init_agent(cfg.agent, state_dim, action_dim)
 
@@ -69,6 +70,7 @@ def main(cfg: DictConfig):
     composite_alert = CompositeAlert(cfg.alerts, alert_args)
     transition_creator = OldAnytimeTransitionCreator(cfg.agent_transition_creator, composite_alert)
 
+    assert isinstance(dl, OldDirectActionDataLoader)
     train_obs_transitions, test_obs_transitions = utils.get_offline_obs_transitions(cfg,
                                                                                     train_data_df,
                                                                                     test_data_df,
@@ -87,17 +89,18 @@ def main(cfg: DictConfig):
                                                                                        warmup,
                                                                                        prefix='agent_train')
 
+    assert test_trajectories_agent is not None
     train_trajectories_agent = train_trajectories_agent + test_trajectories_agent
     train_transitions = trajectories_to_transitions(train_trajectories_agent)
     plot_transitions = trajectories_to_transitions(test_trajectories_agent)
 
     # load trajectories for the model
     log.info("loading trajectories for the model")
-    sc_cm = init_state_constructor(cfg.calibration_model.state_constructor, env)
+    sc_cm = init_state_constructor(cfg.calibration_model.state_constructor)
 
     # the models need all transitions, not just DP transitions
     transition_creator.set_only_dp_transitions(False)
-    OmegaConf.update(cfg, "interaction.only_dp_transitions", False)
+    cfg.interaction.only_dp_transitions = False
     cm_hash_cfgs = [cfg.data_loader, cfg.calibration_model.state_constructor, cfg.interaction]
 
     # load the transitions for the cm
@@ -112,6 +115,7 @@ def main(cfg: DictConfig):
                                                                                  prefix='model')
 
 
+    assert test_trajectories_cm is not None
     # these are the transitions the agents will use for rollouts. The only reason we need these is to get
     # state/state constructors for the agent that are lined up with the calibration model's
     agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.interaction]
@@ -123,6 +127,7 @@ def main(cfg: DictConfig):
                                                                                                 transition_creator,
                                                                                                 warmup,
                                                                                                 prefix='agent_rollout')
+    assert rollout_trajectories_agent_2 is not None
     rollout_trajectories_agent = rollout_trajectories_agent_1 + rollout_trajectories_agent_2
 
     train_info = {

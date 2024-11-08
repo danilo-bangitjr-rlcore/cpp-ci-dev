@@ -1,5 +1,4 @@
 import numpy as np
-from typing import Any
 from corerl.state_constructor.examples import MultiTrace, MultiTraceConfig
 from corerl.state_constructor.factory import init_state_constructor
 
@@ -13,8 +12,7 @@ def test_multitrace1():
         trace_values=[0.9, 0.1],
     )
 
-    env: Any = None
-    sc = init_state_constructor(cfg, env)
+    sc = init_state_constructor(cfg)
 
     assert isinstance(sc, MultiTrace)
 
@@ -28,8 +26,7 @@ def test_multitrace2():
         trace_values=[0.1],
     )
 
-    env: Any = None
-    sc = init_state_constructor(cfg, env)
+    sc = init_state_constructor(cfg)
 
     x = np.ones(2)
     a = np.array([2.])

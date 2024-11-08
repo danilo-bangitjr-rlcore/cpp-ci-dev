@@ -5,6 +5,9 @@ import torch
 import random
 
 from corerl.config import MainConfig
+from corerl.data.transition_creator import BaseTransitionCreator
+from corerl.data_loaders.base import BaseDataLoader
+from corerl.interaction.anytime_interaction import AnytimeInteraction
 from corerl.utils.device import device
 from corerl.agent.factory import init_agent
 from corerl.environment.factory import init_environment
@@ -40,24 +43,10 @@ def main(cfg: MainConfig):
 
     env = init_environment(cfg.env)
 
-    do_offline_training = cfg.experiment.offline_steps > 0
-    # first, load the data and potentially update the bounds of the obs space of the environment
-    # it's important this happens before we create the state constructor and interaction since normalization
-    # depends on these values
-    if do_offline_training:
-        dl = init_data_loader(cfg.data_loader)
-        all_data_df, train_data_df, test_data_df = utils.load_df_from_csv(cfg, dl)
-        if cfg.experiment.load_env_obs_space_from_data:
-            env = utils.set_env_obs_space(env, all_data_df, dl)
-
-    # the next part of instantiates objects. It is shared between online and offline training
-    sc = init_state_constructor(cfg.state_constructor, env)
+    sc = init_state_constructor(cfg.state_constructor)
     state_dim, action_dim = utils.get_state_action_dim(env, sc)
     log.info("State Dim: {}, action dim: {}".format(state_dim, action_dim))
     agent = init_agent(cfg.agent, state_dim, action_dim)
-
-    obs_normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
-    transition_normalizer = TransitionNormalizer(cfg.normalizer, env)
     agent_tc = init_transition_creator(cfg.agent_transition_creator, sc)
 
     plot_transitions = None
@@ -70,11 +59,27 @@ def main(cfg: MainConfig):
         'input_dim': state_dim,
     }
     composite_alert = CompositeAlert(cfg.alerts, alert_args)
+
+    obs_normalizer: ObsTransitionNormalizer | None = None
+    transition_normalizer: TransitionNormalizer | None = None
+
+    alert_tc: BaseTransitionCreator | None = None
     if cfg.use_alerts:
         alert_tc = init_transition_creator(cfg.alert_transition_creator, sc)
         alert_tc.init_alerts(composite_alert)
 
-    if do_offline_training:
+
+    should_train_offline = cfg.experiment.offline_steps > 0
+    if should_train_offline:
+        dl = init_data_loader(cfg.data_loader)
+        assert isinstance(dl, BaseDataLoader)
+        all_data_df, train_data_df, test_data_df = utils.load_df_from_csv(cfg, dl)
+        if cfg.experiment.load_env_obs_space_from_data:
+            env = utils.set_env_obs_space(env, all_data_df, dl)
+
+        obs_normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
+        transition_normalizer = TransitionNormalizer(cfg.normalizer, env)
+
         log.info('Loading offline observations...')
         train_obs_transitions, test_obs_transitions = utils.get_offline_obs_transitions(cfg,
             train_data_df, test_data_df, dl, obs_normalizer)
@@ -105,7 +110,7 @@ def main(cfg: MainConfig):
 
         # Alert offline training should come after agent offline training
         # since alert value function updates depend upon the agent's policy
-        if cfg.use_alerts:
+        if alert_tc is not None:
             alert_hash_cfgs = [cfg.data_loader, cfg.state_constructor,
                 cfg.alert_transition_creator, cfg.alerts, cfg.env]
             alert_train_transitions = utils.get_offline_transitions(cfg, train_obs_transitions, sc,
@@ -117,6 +122,13 @@ def main(cfg: MainConfig):
     if len(test_epochs) > 0:
         assert plot_transitions is not None, "Must include test transitions if test_epochs is not None"
 
+
+    if obs_normalizer is None:
+        obs_normalizer = ObsTransitionNormalizer(cfg.normalizer, env)
+
+    if transition_normalizer is None:
+        transition_normalizer = TransitionNormalizer(cfg.normalizer, env)
+
     interaction = init_interaction(
         cfg.interaction,
         env,
@@ -125,10 +137,12 @@ def main(cfg: MainConfig):
         obs_normalizer,
         transitions=agent_test_transitions,
     )
-    if cfg.use_alerts:
+
+    if alert_tc is not None:
         interaction.init_alerts(composite_alert, alert_tc)
 
     if cfg.interaction.name == "offline_anytime":  # simulating online experience from an offline dataset
+        assert isinstance(interaction, AnytimeInteraction)
         online_eval = utils.offline_anytime_deployment(cfg, agent, interaction, env, composite_alert,
             transition_normalizer, save_path, plot_transitions, test_epochs)
         online_eval.output(save_path / 'stats.json')

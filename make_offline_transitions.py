@@ -49,7 +49,7 @@ def output_to_df(cfg, observations, actions):
 
 
 @hydra.main(version_base=None, config_name='config', config_path="config/")
-def main(cfg: MainConfig) -> dict:
+def main(cfg: MainConfig):
     save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
     device.update_device(cfg.experiment.device)
@@ -61,7 +61,7 @@ def main(cfg: MainConfig) -> dict:
     torch.manual_seed(seed)
 
     env = init_environment(cfg.env)
-    sc = init_state_constructor(cfg.state_constructor, env)
+    sc = init_state_constructor(cfg.state_constructor)
     state_dim, action_dim = utils.get_state_action_dim(env, sc)
     log.debug(f"State Dim: {state_dim}, action dim: {action_dim}")
     agent = init_agent(cfg.agent, state_dim, action_dim)
