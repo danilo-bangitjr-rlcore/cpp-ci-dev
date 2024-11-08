@@ -20,7 +20,7 @@ def data_writer() -> Generator[DataWriter, None, None]:
 
     db_name = "pytest"
     sensor_table_name = "sensors"
-    data_writer = DataWriter(db_cfg=db_cfg, db_name=db_name, sensor_table_name=sensor_table_name, commit_every=1)
+    data_writer = DataWriter(db_cfg=db_cfg, db_name=db_name, sensor_table_name=sensor_table_name)
 
     yield data_writer
 
@@ -48,7 +48,6 @@ def test_writing_datapt(data_writer: DataWriter):
     sensor_val = 780.0
 
     data_writer.write(timestamp=ts, name=sensor_name, val=sensor_val)
-    data_writer.commit()
 
 
 @pytest.mark.skip(reason="github actions do not yet support docker")
@@ -56,8 +55,6 @@ def test_batch_write(data_writer: DataWriter):
     ts = datetime.now(tz=UTC)
     sensor_name = "orp"
     sensor_val = 780.0
-
-    data_writer.commit_every = 10
 
     for _ in range(10):
         sensor_val += 1

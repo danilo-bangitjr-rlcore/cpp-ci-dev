@@ -37,7 +37,6 @@ class TestDataReader:
         now = datetime.now(UTC)
         for name in names:
             write_n_random_vals(n=n_vals, name=name, data_writer=data_writer, end_time=now)
-        data_writer.commit()
 
     @pytest.mark.skip(reason="github actions do not yet support docker")
     def test_read_with_non_UTC(self, data_reader: DataReader, populate_db):
