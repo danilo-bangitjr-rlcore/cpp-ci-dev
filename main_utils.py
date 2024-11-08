@@ -76,7 +76,7 @@ def update_pbar(pbar, stats: dict, keys: list) -> None:
 T = TypeVar('T')
 def load_or_create(
     root: Path,
-    cfgs: Sequence[MutableMapping[str, Any]],
+    cfgs: Sequence[Any],
     prefix: str,
     create_func: Callable[[], T],
 ) -> T:

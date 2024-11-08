@@ -11,6 +11,7 @@ from corerl.calibration_models.factory import init_calibration_model
 from corerl.config import MainConfig
 from corerl.data.data import Transition, Trajectory
 from corerl.agent.factory import init_agent
+from corerl.data_loaders.direct_action import OldDirectActionDataLoader
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.data_loaders.factory import init_data_loader
@@ -69,6 +70,7 @@ def main(cfg: MainConfig):
     composite_alert = CompositeAlert(cfg.alerts, alert_args)
     transition_creator = OldAnytimeTransitionCreator(cfg.agent_transition_creator, composite_alert)
 
+    assert isinstance(dl, OldDirectActionDataLoader)
     train_obs_transitions, test_obs_transitions = utils.get_offline_obs_transitions(cfg,
                                                                                     train_data_df,
                                                                                     test_data_df,
