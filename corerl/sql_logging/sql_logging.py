@@ -43,7 +43,7 @@ def get_sql_engine(db_data: SQLEngineConfig, db_name: str, force_drop=False) -> 
 
     if force_drop:
         maybe_drop_database(engine.url)
-    
+
     maybe_create_database(engine.url)
 
     return engine
@@ -56,7 +56,7 @@ def try_create_engine(url_object: URL, backoff_seconds: int = 5, max_tries: int 
             raise Exception("sql engine creation failed")
         try:
             engine = sqlalchemy.create_engine(url_object, pool_recycle=280, pool_pre_ping=True)
-        except:
+        except Exception:
             logger.warning(f"failed to create sql engine, retrying in {backoff_seconds} seconds...")
             time.sleep(backoff_seconds)
         tries += 1
@@ -65,7 +65,7 @@ def try_create_engine(url_object: URL, backoff_seconds: int = 5, max_tries: int 
 
 def maybe_drop_database(conn_url: URL) -> None:
     if not database_exists(conn_url):
-        return 
+        return
     drop_database(conn_url)
 
 def maybe_create_database(conn_url: URL, backoff_seconds: int = 5, max_tries: int = 5) -> None:
@@ -146,7 +146,7 @@ def create_tables(metadata: MetaData, engine: Engine, schemas: dict) -> None:
 def table_exists(engine: Engine, table_name: str) -> bool:
     iengine = inspect(engine)
     exisiting_tables = iengine.get_table_names()
-    
+
     return table_name in exisiting_tables
 
 def is_sane_database(engine):

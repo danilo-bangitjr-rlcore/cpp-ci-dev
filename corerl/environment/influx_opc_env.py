@@ -15,7 +15,6 @@ from typing import Any, Tuple, Generator, List
 import asyncio
 import random
 
-from typing import Callable, List
 from corerl.utils.opc_connection import OpcConnection
 from corerl.sql_logging.sql_logging import get_sql_engine, SQLEngineConfig
 import logging
@@ -53,7 +52,7 @@ class DBClientWrapper:
     ) -> pd.DataFrame:
         filter_list = [f'r._field == "{field_name}"' for field_name in col_names]
         filter_str = " or\n".join(filter_list)
-        timescale = f"10s"
+        timescale = "10s"
         start_t_str = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
         end_t_str = end_time.strftime("%Y-%m-%dT%H:%M:%SZ")
         query_str = f"""from(bucket: "{self.bucket}")
@@ -64,7 +63,7 @@ class DBClientWrapper:
           |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")"""
         # query_str = " ".join(query_str_list)
         df_list = self.influx_query_api.query_data_frame(query_str)
-        if type(df_list) == list:
+        if isinstance(df_list, list):
             df = pd.concat(df_list, axis=1)
         else:
             df = df_list
@@ -164,8 +163,8 @@ class DBClientWrapper:
 
         try:
             df = self._timescale_query(start_time=start_time, end_time=end_time, col_names=col_names)
-        except:
-            logger.warning(f"timescale query failed.", exc_info=True)
+        except Exception:
+            logger.warning("timescale query failed.", exc_info=True)
             df = self._influx_query(start_time=start_time, end_time=end_time, col_names=col_names)
 
         missing_cols = set(col_names) - set(df.columns)
@@ -215,7 +214,7 @@ class InfluxOPCEnv(ABC, gym.Env):
 
         sp_addresses = [*constant_sp_addresses, *control_sp_addresses]
         sp_values = [*constant_sp_values, *control_sp_values.tolist()]
-        for key, val in zip(sp_addresses, sp_values):
+        for key, val in zip(sp_addresses, sp_values, strict=False):
             setpoints_to_write[key] = val
 
         logger.debug(f"{sp_addresses=}")
@@ -238,11 +237,11 @@ class InfluxOPCEnv(ABC, gym.Env):
             logger.debug("Checking OPC connection...")
             await self.opc_connection.client.check_connection()
         except Exception:
-            logger.warning(f"OPC connection failed", exc_info=True)
+            logger.warning("OPC connection failed", exc_info=True)
             await self.attempt_reconnect()
 
     async def attempt_reconnect(self) -> None:
-        logger.info(f"Attempting to reconnect to OPC")
+        logger.info("Attempting to reconnect to OPC")
         try:
             if hasattr(self.opc_connection, "client"):
                 await self.opc_connection.client.disconnect()
@@ -251,7 +250,7 @@ class InfluxOPCEnv(ABC, gym.Env):
             logger.info("OPC reconnection successful")
             self.signal_warmup()
 
-        except:
+        except Exception:
             logger.warning("OPC reconnection failed.")
 
     async def initialize_connection(self) -> None:
@@ -290,8 +289,9 @@ class InfluxOPCEnv(ABC, gym.Env):
         stop_t: datetime,
         decision_point: bool,
         steps_until_decision: int | None,
-        info: dict = {},
+        info: dict | None = None,
     ) -> Tuple[np.ndarray, float, bool, bool, dict]:
+        info = info or {}
         state = self._get_observation(stop_t)
         done = self._check_done()
         logger.debug("compute reward")
@@ -415,7 +415,7 @@ class InfluxOPCEnv(ABC, gym.Env):
                 return await self._async_step(action, decision_point, steps_until_decision, time)
             # except Exception as e:
             except Exception:
-                logger.warning(f"async env step failed!", exc_info=True)
+                logger.warning("async env step failed!", exc_info=True)
                 await self.check_opc_client()
                 await asyncio.sleep(10)
 

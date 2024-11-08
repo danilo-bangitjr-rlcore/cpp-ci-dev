@@ -1,3 +1,4 @@
+# flake8: noqa
 """
 Adapted from
 https://github.com/Farama-Foundation/Gymnasium/blob/main/gymnasium/envs/classic_control/cartpole.py
@@ -557,7 +558,7 @@ class CartPoleVectorEnv(VectorEnv):
                 "Cartpole's state is None, it probably hasn't be reset yet."
             )
 
-        for x, screen in zip(self.state.T, self.screens):
+        for x, screen in zip(self.state.T, self.screens, strict=False):
             assert isinstance(x, np.ndarray) and x.shape == (4,)
 
             self.surf = pygame.Surface((self.screen_width, self.screen_height))

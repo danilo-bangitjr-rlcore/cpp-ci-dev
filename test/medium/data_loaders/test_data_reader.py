@@ -46,15 +46,10 @@ class TestDataReader:
         end_time = datetime.now()  # didn't explicitly add UTC timezone
         start_time = end_time - timedelta(minutes=5)
 
-        passed = True
-        try:
+        with pytest.raises(AssertionError):
             data_reader.single_aggregated_read(
                 names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time
             )
-        except:
-            passed = False
-
-        assert not passed
 
     @pytest.mark.skip(reason="github actions do not yet support docker")
     def test_single_aggregated_read(self, data_reader: DataReader, populate_db):

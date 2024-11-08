@@ -6,7 +6,7 @@ import subprocess
 from omegaconf import DictConfig, OmegaConf
 from main import main as run_main
 
-import sys, os
+import sys
 
 class HiddenPrints:
     def __enter__(self):

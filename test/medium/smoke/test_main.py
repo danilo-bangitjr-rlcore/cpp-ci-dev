@@ -16,5 +16,8 @@ def test_main_configs(config: str):
     This test does no checking of result validity.
     """
 
-    proc = subprocess.run(['uv', 'run', 'python', 'main.py', '--config-name', f'{config}.yaml', 'experiment.max_steps=25'])
+    proc = subprocess.run([
+        'uv', 'run', 'python', 'main.py',
+        '--config-name', f'{config}.yaml', 'experiment.max_steps=25',
+    ])
     proc.check_returncode()

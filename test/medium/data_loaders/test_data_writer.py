@@ -5,6 +5,8 @@ import pytest
 from typing import Generator
 from random import random
 
+import corerl.utils.nullable as nullable
+
 
 @pytest.fixture(scope="module")
 def data_writer() -> Generator[DataWriter, None, None]:
@@ -31,9 +33,10 @@ def write_n_random_vals(
     n: int,
     name: str,
     data_writer: DataWriter,
-    end_time: datetime = datetime.now(UTC),
+    end_time: datetime | None = None,
     interval: timedelta = timedelta(seconds=5),
 ):
+    end_time = nullable.default(end_time, lambda: datetime.now(UTC))
     for i in range(n, 0, -1):
         ts = end_time - i * interval
         val = random()

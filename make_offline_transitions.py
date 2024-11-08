@@ -5,7 +5,6 @@ import random
 import logging
 import pandas as pd
 
-from omegaconf import DictConfig
 from tqdm import tqdm
 from pathlib import Path
 

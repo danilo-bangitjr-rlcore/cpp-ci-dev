@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Union
 
 import pandas as pd
 from corerl.data.data import ObsTransition, OldObsTransition

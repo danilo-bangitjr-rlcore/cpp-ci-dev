@@ -69,7 +69,6 @@ def main(cfg: DictConfig) -> dict:
                                                                                     test_data_df,
                                                                                     dl, normalizer)
 
-    agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.interaction]
     warmup = cfg.state_constructor.warmup
 
     # load trajectories for the model

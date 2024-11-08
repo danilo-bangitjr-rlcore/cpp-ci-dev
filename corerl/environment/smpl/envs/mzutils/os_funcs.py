@@ -1,3 +1,4 @@
+# flake8: noqa
 import codecs
 import errno
 import os
@@ -62,8 +63,8 @@ def get_things_in_loc(in_path, just_files=True, endswith=None):
 
 def get_checkpoints_in_loc(in_path, keywords=['checkpoint-'], files_or_folders='folders'):
     """
-    This function will loop through in_path to find all files/folders that includes all keywords 
-    if files_or_folders='files'/'folders'. 
+    This function will loop through in_path to find all files/folders that includes all keywords
+    if files_or_folders='files'/'folders'.
     again, in_path can be file path or dir path.
     The function is meant to grab all checkpoint-XXXX in a folder.
     """
@@ -355,7 +356,7 @@ def set_local_vars_from_yaml(yaml_loc, name_space_dict):
     :param yaml_loc: your yaml file location.
     :param name_space_dict: a dictionary that contains the local variables. e.g. locals()
     :return: None
-    for example, if your yaml file contains a variable called num_workers and the value of 
+    for example, if your yaml file contains a variable called num_workers and the value of
     which is an integer 4, then
     >>> set_local_vars_from_yaml('path_to_file.yaml', locals())
     >>> num_workers

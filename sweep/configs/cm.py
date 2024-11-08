@@ -13,8 +13,7 @@ def get_train_data(test_name):
 
 def get_test_data():
     test_files = deepcopy(FILENAMES)
-    l = [[t] for t in test_files]
-    return l
+    return [[t] for t in test_files]
 
 
 SWEEP_PARAMS = {
@@ -26,4 +25,3 @@ SWEEP_PARAMS = {
     'data_loader.test_filenames': lambda d: get_test_data(),
     'data_loader.train_filenames': lambda d: get_train_data(d['data_loader.test_filenames']),
 }
-

@@ -159,7 +159,10 @@ def get_offline_obs_transitions(
 
     def _create_obs_transitions(df: pd.DataFrame, normalizer: ObsTransitionNormalizer, reward_func: BaseReward):
         if isinstance(dl, OldDirectActionDataLoader):
-            warn("Using deprecated old direct action data loader to get offline transitions.")
+            warn(
+                "Using deprecated old direct action data loader to get offline transitions.",
+                stacklevel=1,
+            )
             return dl.create_obs_transitions(df, normalizer, reward_func)
 
         return dl.create_obs_transitions(df, reward_func)

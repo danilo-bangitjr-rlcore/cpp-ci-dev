@@ -1,3 +1,4 @@
+# flake8: noqa
 import json
 import math
 import os
@@ -41,7 +42,7 @@ class smplEnvBase(Env):
             min_actions=[-1.0, -1.0],
             observation_name=None, action_name=None, initial_state_deviation_ratio=None, np_dtype=np.float32,
             max_steps=None, error_reward=-100.0):
-        """the __init__ of a smpl environment.
+        r"""the __init__ of a smpl environment.
 
         Args:
             dense_reward (bool, optional): Whether returns a dense reward or not. If True, will try to return a reward for each step. If False, will return a reward at the end of the episode. Defaults to True.
@@ -169,7 +170,7 @@ class smplEnvBase(Env):
             here in done_calculator_standard, done_info looks like {"terminal": boolean, "timeout": boolean},
             where "timeout" is true when episode end due to reaching the maximum episode length,
             "terminal" is true when "timeout" or episode end due to termination conditions such as env error encountered. (basically done)
-            
+
         Args:
             current_observation ([np.ndarray]): This is denormalized observation, as usual.
             step_count ([int]): step_count.
@@ -232,7 +233,7 @@ class smplEnvBase(Env):
             normalize (bool): Defaults to None.
             step_reward (float, optional): The reward of current step. Defaults to None.
             done_info (dict, optional): Defaults to None.
-        
+
         Returns:
             observation (np.ndarray): This is the returned observation controlled by the normalize argument, for step function.
             [(float, bool, dict)]: reward, done and done_info.
@@ -353,7 +354,7 @@ class smplEnvBase(Env):
             # If done = True, then done_info["terminal"] and at least one of done_info["timeout"] or done_info["error_occurred"] should be True.
             observation = [0.0, 0.0]
             # done_info = {"timeout": boolean, "error_occurred": boolean, "terminal": boolean}
-        except Exception as e:
+        except Exception:
             observation = self.min_observations
             done_info = {"timeout": False, "error_occurred": True, "terminal": True}
 
@@ -376,11 +377,11 @@ class smplEnvBase(Env):
     def evenly_spread_initial_states(self, val_per_state, dump_location=None):
         """
         Evenly spread initial states.
-        This function is needed only if the environment has steady_observations. 
-        
+        This function is needed only if the environment has steady_observations.
+
         Args:
             val_per_state (int): how many values to sampler per state.
-            
+
         Returns:
         [initial_states]: evenly spread initial_states.
         """
@@ -530,7 +531,7 @@ class smplEnvBase(Env):
 
         Args:
             algorithms: list of (algorithm, algorithm_name, normalize).
-            
+
         Returns:
             list of algorithm_name.
         """
@@ -588,7 +589,7 @@ class smplEnvBase(Env):
 
         Args:
             dataset (_type_): d4rl or torch format dataset obtained from generate_dataset_with_algorithm
-            
+
         Returns:
             the same as evalute_algorithms
         """

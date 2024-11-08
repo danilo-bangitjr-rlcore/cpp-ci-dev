@@ -707,14 +707,8 @@ def radar(ax, normalizations, df, *, id_column, title=None, max_values=None, pad
     data = df[categories].to_dict(orient='list')
     ids = df[id_column].tolist()
 
-    # if max_values is None:
-    #     max_values = {key: padding * max(value) for key, value in data.items()}
-    # normalized_data = {key: np.array(value) / max_values[key] for key, value in data.items()}
-    # normalized_data = {key: (np.array(value) - normalizations.get(key, [0, 1])[0]) / (normalizations.get(key, [0, 1])[1] - normalizations.get(key, [0, 1])[0]) for key, value in data.items()}
     normalized_data = {}
     for key, value in data.items():
-        #first < second: larger the better
-        #first > second: smaller the better
         first = normalizations.get(key, [0, 1])[0]
         second = normalizations.get(key, [0, 1])[1]
         normalized_data[key] = (np.array(value) - first) / (second - first)
@@ -730,7 +724,7 @@ def radar(ax, normalizations, df, *, id_column, title=None, max_values=None, pad
         values += values[:1]  # Close the plot for a better look
         ax.plot(angles, values, label=model_name)
         ax.fill(angles, values, alpha=0.15)
-        for _x, _y, t, at in zip(angles, values, values, actual_values):
+        for _x, _y, t, at in zip(angles, values, values, actual_values, strict=False):
             _y = 0.9
             t = f'{t:.2f}\n({at:.2f})' if isinstance(t, float) else str(t)
             ax.text(_x, _y, t, fontsize=7, va='center', ha='center')
@@ -739,7 +733,6 @@ def radar(ax, normalizations, df, *, id_column, title=None, max_values=None, pad
     ax.set_yticklabels([])
     ax.set_xticks(angles)
     ax.set_xticklabels(tiks, fontsize=7)
-    # ax.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
     if title is not None: ax.set_title(title)
 
 def make_summary_plot(plot_info: dict, path: Path, prefix: str):
@@ -843,15 +836,15 @@ def make_summary_plot(plot_info: dict, path: Path, prefix: str):
     }
     plot_info_keys = list(plot_info.keys())
     plot_info_orders = [order.get(k, -1) for k in plot_info_keys]
-    ordered_keys = [x for _,x in sorted(zip(plot_info_orders, plot_info_keys))]
+    ordered_keys = [x for _,x in sorted(zip(plot_info_orders, plot_info_keys, strict=False))]
     data = {'x': [*'0']}
     for k in ordered_keys:
         v = plot_info[k]
-        if type(v) == list and len(v) > 0:
+        if isinstance(v, list) and len(v) > 0:
             v = v[-10:]
-            if type(v) == np.ndarray or type(v) == list: # ensemble size > 1
+            if isinstance(v, np.ndarray | list): # ensemble size > 1
                 v = np.asarray(v).mean()
-        elif type(v) == list and len(v) == 0:
+        elif isinstance(v, list) and len(v) == 0:
             v = None
         data[formal_labels.get(k, k)] = [cast(Any, v)]
 

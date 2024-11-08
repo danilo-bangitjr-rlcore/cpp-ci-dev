@@ -23,9 +23,9 @@ class DataReader:
         NOTE: Addition of bucket_width in the select statement ensures that the labels
         for the time buckets align with the end of the bucket rather than the beginnning.
         """
-        
+
         query_str = f"""
-            SELECT 
+            SELECT
               time_bucket(INTERVAL '{bucket_width}', time) + '{bucket_width}' as time_bucket,
               name,
               avg({_parse_jsonb('fields')}) AS avg_val
@@ -49,9 +49,9 @@ class DataReader:
         return sensor_data
 
     def single_aggregated_read(self, names: List[str], start_time: datetime, end_time: datetime):
-        
+
         query_str = f"""
-            SELECT 
+            SELECT
               name,
               avg({_parse_jsonb('fields')}) AS avg_val
             FROM {self.sensor_table_name}
@@ -69,7 +69,7 @@ class DataReader:
         # add time column to enable pivot
         sensor_data["time"] = end_time
         sensor_data = sensor_data.pivot(columns="name", values="avg_val", index="time")
-        
+
         missing_cols = set(names) - set(sensor_data.columns)
         sensor_data[list(missing_cols)] = np.nan
 

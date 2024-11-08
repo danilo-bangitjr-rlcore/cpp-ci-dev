@@ -1,3 +1,4 @@
+# flake8: noqa
 # -*- coding: utf-8 -*-
 """
 ReactorEnv simulates a general reactor environment. This is supposed to be a template environment. The documentations in that file is enhanced and provided comment lines (# ---- standard ---- and # /---- standard ----) enclose pieces of code that should be reused by most of smpl environments. Please consult the smplEnvBase class.
@@ -21,7 +22,7 @@ from corerl.environment.smpl.envs.mzutils.data_structures import SimplePriorityQ
 from corerl.environment.smpl.envs.utils import *
 
 np.seterr(all='warn')
-# ---- to capture numpy warnings ---- 
+# ---- to capture numpy warnings ----
 
 
 # macros the defined by the reactor
@@ -364,7 +365,7 @@ class ReactorEnvGym(smplEnvBase):
             action = action.clip(self.min_actions, self.max_actions)
         # /---- standard ----
 
-        # ---- to capture numpy warnings ---- 
+        # ---- to capture numpy warnings ----
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("error")
             observation = self.reactor.step(self.previous_observation, action)
@@ -375,7 +376,7 @@ class ReactorEnvGym(smplEnvBase):
                 print("NAN Error Reward")
                 done = True
                 done_info["terminal"] = True
-        # /---- to capture numpy warnings ---- 
+        # /---- to capture numpy warnings ----
 
         # ---- standard ----
         # compute reward
@@ -384,7 +385,7 @@ class ReactorEnvGym(smplEnvBase):
         # compute done
         if not done:
             done, done_info = self.done_calculator(observation, self.step_count, reward, done=done, done_info=done_info)
-        
+
         self.previous_observation = observation
 
         self.total_reward += reward
@@ -407,11 +408,11 @@ class ReactorEnvGym(smplEnvBase):
     def evenly_spread_initial_states(self, val_per_state, dump_location=None):
         """
         Evenly spread initial states.
-        This function is needed only if the environment has steady_observations. 
-        
+        This function is needed only if the environment has steady_observations.
+
         Args:
             val_per_state (int): how many values to sampler per state.
-            
+
         Returns:
         [initial_states]: evenly spread initial_states.
         """
@@ -675,7 +676,7 @@ class ReactorEnvGym(smplEnvBase):
         """
         observation: numpy array of shape (self.observation_dim)
         returns: observation eval (reward in a sense)
-        
+
         return float(- (np.mean((observation - self.steady_observations) ** 2 / np.maximum(
             (self.init_observation - self.steady_observations) ** 2, 1e-8))))
         """
