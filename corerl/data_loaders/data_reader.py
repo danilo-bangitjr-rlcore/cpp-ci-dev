@@ -101,7 +101,7 @@ def fill_data_for_changed_setpoint(
         dfs: List[pd.DataFrame],
         delta_t: timedelta
 ) -> List[tuple[datetime, str, Any]]:
-    data_tuples = []
+    data_tuples: List[tuple[datetime, str, Any]] = []
     largest_timestamp = None
     for df in dfs:
         columns = df.columns.values.tolist()  # datetime, tag, value
@@ -115,18 +115,19 @@ def fill_data_for_changed_setpoint(
             for idx in range(len(df)-1):
                 data_tuples += _fillin_between(df, idx, delta_t)
             # use largest_timestamp+delta_t to take care of the timestamp on the edge
+            assert largest_timestamp is not None
             data_tuples += _fillin_between(df, len(df) - 1, delta_t, largest_timestamp+delta_t)
         else:
             data_tuples += list(zip(*map(df.get, df)))
     return data_tuples
 
-def _fillin_between(df: pd.DataFrame, row: int, delta_t: timedelta, end_ts: Union[datetime, None]=None) \
+def _fillin_between(df: pd.DataFrame, row: int, delta_t: timedelta, end_ts: datetime | None=None) \
         -> List[tuple[datetime, str, Any]]:
     start_ts, tag, value = df.iloc[row]
     if end_ts is None:
         end_ts, _, _ = df.iloc[row+1]
     ts = start_ts
-    tuples = []
+    tuples: List[tuple[datetime, str, Any]] = []
     while ts < end_ts:
         tuples.append((ts, tag, value))
         ts += delta_t

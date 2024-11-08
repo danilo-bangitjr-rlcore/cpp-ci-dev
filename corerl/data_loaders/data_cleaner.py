@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta, UTC
-from typing import List
+from typing import List, Tuple
 import numpy as np
 import pandas as pd
-
+from pandas import Index
 
 def fill_in_missing_data(
         data: pd.DataFrame,
@@ -17,7 +16,7 @@ def fill_in_missing_data(
     elif remove_mode == 'Copy':
         for tag in tags:
             column = data[tag]
-            nan_idx: List[int] = column.index[column.apply(np.isnan)]
+            nan_idx: Index = pd.Index(column.index[column.apply(np.isnan)])
             for idx in nan_idx:
                 if idx == 0:
                     data.loc[idx, tag] = 0.
@@ -27,7 +26,8 @@ def fill_in_missing_data(
         too_long_intervals = set()
         for tag in tags:
             column = data[tag]
-            nan_idx: List[int] = column.index[column.apply(np.isnan)]
+            # assert  False, type(column.index[column.apply(np.isnan)])
+            nan_idx: Index = pd.Index(column.index[column.apply(np.isnan)])
             replace_interval = _check_interval_length(nan_idx)
             for interval in replace_interval:
                 s, e = interval
@@ -41,7 +41,7 @@ def fill_in_missing_data(
             data = fill_in_missing_data(data, remove_mode='Delete')
     return data
 
-def _check_interval_length(idx: List[int]) -> List[List]:
+def _check_interval_length(idx: Index) -> List[List]:
     replace_interval = []
     k = 0
     while k < len(idx):
@@ -60,7 +60,7 @@ def clean_by_multiple_sliding_window(
         data: np.ndarray,
         window_length_lst: List[int],
         in_range_threshold: float
-) -> (np.ndarray, dict):
+) -> Tuple[np.ndarray, dict]:
     outlier_counts = np.zeros(len(data))
     infos = {}
     for window_length in window_length_lst:
@@ -77,7 +77,7 @@ def _clean_by_sliding_window(
         window_length: int,
         in_range_threshold: float,
         min_window_count: int = 12
-) -> (np.ndarray, dict):
+) -> Tuple[np.ndarray, dict]:
     # if the window length is too long,
     # then jump and ensure one number is evaluated by at least 12 windows
     skip = max(1, window_length // min_window_count)
