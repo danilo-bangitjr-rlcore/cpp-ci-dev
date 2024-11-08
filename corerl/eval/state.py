@@ -1,8 +1,17 @@
-from corerl.eval.base_eval import BaseEval
+from corerl.eval.base_eval import BaseEval, EvalConfig
+from corerl.utils.hydra import config
+
+
+@config('state', group='eval')
+class StateConfig(EvalConfig):
+    name: str = 'state'
+
+    offline_eval: bool = False
+    online_eval: bool = True
 
 
 class StateEval(BaseEval):
-    def __init__(self, cfg,  **kwargs):
+    def __init__(self, cfg: StateConfig,  **kwargs):
         if 'transitions' not in kwargs:
             raise KeyError("Missing required argument: 'transitions'")
         self.start = True
@@ -24,4 +33,3 @@ class StateEval(BaseEval):
 
     def get_stats(self):
         return {'states': self.states}
-

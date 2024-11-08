@@ -1,6 +1,0 @@
-name : test_loss
-ensemble : ${agent.critic.critic_network.ensemble}
-buffer : ${agent.critic.buffer}
-
-offline_eval : True
-online_eval : False

@@ -1,4 +1,4 @@
-from omegaconf import DictConfig
+from typing import Any
 
 from corerl.eval.reward import RewardEval
 from corerl.eval.state import StateEval
@@ -20,7 +20,7 @@ from corerl.eval.curvature import Curvature
 from corerl.eval.base_eval import BaseEval
 
 
-def init_single_evaluator(cfg: DictConfig, eval_args: dict) -> BaseEval:
+def init_single_evaluator(cfg: Any, eval_args: dict) -> BaseEval:
     name = cfg.name
     if name == 'ibe':
         return IBE(cfg, **eval_args)

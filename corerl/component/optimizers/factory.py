@@ -1,4 +1,4 @@
-from omegaconf import DictConfig
+from typing import Any
 import linesearchopt as lso
 import torch
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
@@ -7,7 +7,7 @@ from torch.optim.optimizer import ParamsT
 
 
 def init_optimizer(
-    cfg: DictConfig,
+    cfg: Any,
     param: ParamsT,
     ensemble: bool = False,
     vmap: bool = False,

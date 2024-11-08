@@ -1,9 +1,22 @@
 from typing import Any
-from corerl.eval.base_eval import BaseEval
+from corerl.eval.base_eval import BaseEval, EvalConfig
+from corerl.utils.hydra import config, interpolate
+
+
+@config('reward', group='eval')
+class RewardConfig(EvalConfig):
+    name: str = 'reward'
+
+    gamma: float = interpolate('${agent.gamma}')
+    return_window: int = 100
+    reward_window: int = 100
+
+    offline_eval: bool = False
+    online_eval: bool = True
 
 
 class RewardEval(BaseEval):
-    def __init__(self, cfg, **kwargs):
+    def __init__(self, cfg: RewardConfig, **kwargs):
         if 'transitions' not in kwargs:
             raise KeyError("Missing required argument: 'transitions'")
         self.gamma = cfg.gamma

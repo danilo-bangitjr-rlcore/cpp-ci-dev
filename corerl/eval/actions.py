@@ -1,8 +1,16 @@
-from corerl.eval.base_eval import BaseEval
+from corerl.eval.base_eval import BaseEval, EvalConfig
+from corerl.utils.hydra import config
+
+
+@config('actions', group='eval')
+class ActionsConfig(EvalConfig):
+    name: str = 'actions'
+    offline_eval: bool = False
+    online_eval: bool = True
 
 
 class ActionEval(BaseEval):
-    def __init__(self, cfg, **kwargs):
+    def __init__(self, cfg: ActionsConfig, **kwargs):
         if 'env' not in kwargs:
             raise KeyError("Missing required argument: 'env'")
         if 'transition_normalizer' not in kwargs:

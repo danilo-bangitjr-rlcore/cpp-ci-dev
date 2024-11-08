@@ -3,18 +3,26 @@ Implements Identifiable BE Selection (without the selection) from
 https://drive.google.com/drive/u/1/folders/1tJo78FvsWfWaPncJNNyI9IO1f7UbxCFR
 """
 import torch
-from omegaconf import DictConfig
 
-from corerl.eval.base_eval import BaseEval
+from corerl.eval.base_eval import BaseEval, EvalConfig
 from corerl.data.data import TransitionBatch
 from corerl.component.network.utils import to_np
 from corerl.agent.utils import get_top_action
 from jaxtyping import Float
+from corerl.utils.hydra import config
 
+
+@config('policy_improvement', group='eval')
+class PolicyImproveConfig(EvalConfig):
+    name: str = 'policy_improvement'
+
+    n_samples: int = 100
+    offline_eval: bool = True
+    online_eval: bool = True
 
 
 class PolicyImprove(BaseEval):
-    def __init__(self, cfg: DictConfig, **kwargs):
+    def __init__(self, cfg: PolicyImproveConfig, **kwargs):
         if 'agent' not in kwargs:
             raise KeyError("Missing required argument: 'agent'")
         if 'get_prev_action_function' not in kwargs:
