@@ -55,7 +55,7 @@ class ShortHorizonDelta(BaseCalibrationModel):
 
         self.optimizer.zero_grad()
         loss.backward()
-        self.optimizer.step()
+        self.optimizer.step(closure=lambda: 0.)
 
         self.train_losses.append(loss.detach().numpy())
 
@@ -89,13 +89,13 @@ class ShortHorizonDelta(BaseCalibrationModel):
         action_tensor = tensor(action).reshape((1, -1))
         return self.get_prediction(kwargs["prev_obs"], state_tensor, action_tensor)
 
-    def save(self, path: str) -> None:
+    def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
         net_path = os.path.join(path, "model")
         torch.save(self.model.state_dict(), net_path)
         return
 
-    def load(self, path: str) -> None:
+    def load(self, path: Path) -> None:
         net_path = os.path.join(path, "model")
         self.model.load_state_dict(torch.load(net_path, map_location=device.device))
         return
