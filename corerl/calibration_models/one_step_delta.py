@@ -17,13 +17,6 @@ from corerl.calibration_models.base import BaseCalibrationModel
 from corerl.utils.device import device
 
 
-class Obj:
-    # constructor
-    def __init__(self, dict1):
-        self.__dict__.update(dict1)
-    def keys(self):
-        return self.__dict__.keys()
-
 log = logging.getLogger(__name__)
 
 
@@ -56,7 +49,6 @@ class ShortHorizonDelta(BaseCalibrationModel):
         # we only predict the next endogenous component of the observation
         endo_next_obs_batch = next_obs_batch[:, self.endo_inds]
         delta_endo_next_obs_batch = endo_next_obs_batch - obs_batch[:, self.endo_inds]
-        # prediction = self.get_prediction(obs_batch, state_batch, action_batch, with_grad=True)
         x = torch.concat((state_batch, action_batch), dim=1)
         prediction = self.model(x)
         loss = nn.functional.mse_loss(prediction, delta_endo_next_obs_batch)
