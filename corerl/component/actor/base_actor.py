@@ -1,15 +1,13 @@
 import torch
-import numpy as np
 
 from pathlib import Path
 from abc import ABC, abstractmethod
-from omegaconf import DictConfig
 
+from corerl.utils.hydra import Group
+from corerl.component.policy.policy import Policy
 
 class BaseActor(ABC):
-    @abstractmethod
-    def __init__(self, cfg: DictConfig):
-        raise NotImplementedError
+    policy: Policy
 
     @abstractmethod
     def get_action(
@@ -29,9 +27,19 @@ class BaseActor(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_log_prob(self, states: torch.Tensor, actions: torch.Tensor, with_grad=False) -> tuple[torch.Tensor, dict]:
+        raise NotImplementedError
+
+    @abstractmethod
     def save(self, path: Path) -> None:
         raise NotImplementedError
 
     @abstractmethod
     def load(self, path: Path) -> None:
         raise NotImplementedError
+
+
+group = Group[
+    [int, int, BaseActor | None],
+    BaseActor,
+]('agent/actor')

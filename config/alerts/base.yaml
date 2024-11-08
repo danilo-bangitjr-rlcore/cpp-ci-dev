@@ -6,5 +6,6 @@ defaults:
 gamma : 0.95
 ret_perc : 0.1 # Percentage of observed return not used to compute the observed partial return
 ensemble : 10
-reduct : mean
+reduct :
+  name: mean
 ensemble_targets : True

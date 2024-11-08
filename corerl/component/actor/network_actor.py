@@ -1,26 +1,49 @@
 import torch
+from dataclasses import dataclass, field
 from pathlib import Path
-from omegaconf import DictConfig
-from typing import Optional, Callable
+from omegaconf import MISSING
+from typing import Any, Callable
 
 import corerl.component.policy as policy
 import corerl.utils.nullable as nullable
-from corerl.component.actor.base_actor import BaseActor
+from corerl.component.actor.base_actor import BaseActor, group
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.optimizers.linesearch_optimizer import LineSearchOpt
 from corerl.utils.device import device
 
 
-DEFAULT_ACTION_MIN = 0
-DEFAULT_ACTION_MAX = 1
+
+@dataclass
+class NetworkActorConfig:
+    name: str = 'network'
+
+    action_min: float = 0
+    action_max: float = 1
+
+    actor_network: Any = MISSING
+    actor_optimizer: Any = MISSING
+    buffer: Any = MISSING
+
+    defaults: list[Any] = field(default_factory=lambda: [
+        {'actor_network': 'beta'},
+        {'actor_optimizer': 'adam'},
+        {'buffer': 'ensemble_uniform'},
+        '_self_',
+    ])
 
 
 class NetworkActor(BaseActor):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, initializer: Optional['NetworkActor'] = None):
+    def __init__(
+        self,
+        cfg: NetworkActorConfig,
+        state_dim: int,
+        action_dim: int,
+        initializer: BaseActor | None = None,
+    ):
         # We always assume actions are normalized in (0, 1) unless otherwise
         # stated
-        action_min = cfg.get("action_min", DEFAULT_ACTION_MIN)
-        action_max = cfg.get("action_max", DEFAULT_ACTION_MAX)
+        action_min = cfg.action_min
+        action_max = cfg.action_max
 
         self.policy = policy.create(
             cfg.actor_network, state_dim, action_dim, action_min, action_max,
@@ -87,9 +110,26 @@ class NetworkActor(BaseActor):
         self.optimizer.load_state_dict(torch.load(opt_path, map_location=device.device))
 
 
+group.dispatcher(NetworkActor)
+
+
+@dataclass
+class NetworkActorLineSearchConfig(NetworkActorConfig):
+    name: str = 'network_linesearch'
+
+    error_threshold: float = 1e-4
+    lr_lower_bound: float = 1e-6
+    max_backtracking: int = 30
+
+
 class NetworkActorLineSearch(NetworkActor):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int,
-                 initializer: Optional['NetworkActor'] = None):
+    def __init__(
+        self,
+        cfg: NetworkActorLineSearchConfig,
+        state_dim: int,
+        action_dim: int,
+        initializer: BaseActor | None = None,
+    ):
         super().__init__(cfg, state_dim, action_dim, initializer)
         self.optimizer = LineSearchOpt(
             cfg.actor_optimizer,
@@ -116,3 +156,5 @@ class NetworkActorLineSearch(NetworkActor):
         self.optimizer.set_params(
             buffer_address, [self.policy_copy.model], eval_error_fn,
         )
+
+group.dispatcher(NetworkActorLineSearch)

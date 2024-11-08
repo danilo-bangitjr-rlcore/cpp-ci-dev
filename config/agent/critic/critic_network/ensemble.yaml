@@ -1,9 +1,0 @@
-defaults:
-  - base: fc
-  - _self_
-
-ensemble : 1
-name : ensemble
-bootstrap_reduct : mean
-policy_reduct : mean
-vmap : False

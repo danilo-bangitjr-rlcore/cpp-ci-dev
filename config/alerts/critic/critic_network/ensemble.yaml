@@ -4,7 +4,10 @@ defaults:
 
 ensemble : 10 # ${alerts.base.ensemble}
 name : ensemble
-reduct : mean # ${alerts.base.reduct}
-bootstrap_reduct : mean
-policy_reduct : mean
+reduct :
+  name: mean # ${alerts.base.reduct}
+bootstrap_reduct :
+  name: mean
+policy_reduct :
+  name: mean
 vmap : False

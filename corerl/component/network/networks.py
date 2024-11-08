@@ -1,112 +1,84 @@
 import copy
 import torch
 import torch.nn as nn
-from collections.abc import Mapping, Iterable
-from typing import Callable
+from dataclasses import dataclass, field
+from collections.abc import Iterable
 from torch.func import stack_module_state, functional_call # type: ignore
 import numpy as np
 import corerl.component.network.utils as utils
+from corerl.component.network.ensemble.reductions import MeanReduct, ensemble_bootstrap_reduct_group, ensemble_policy_reduct_group # noqa: E501
 from corerl.utils.device import device
 import corerl.component.layer as layer
 
-from warnings import warn
-
 from omegaconf import DictConfig
-from typing import Any, Optional
+from typing import Any, Callable, Optional, TypedDict
+
+from corerl.utils.hydra import list_
+
 
 # Differences of this size are representable up to ~ 15
 FLOAT32_EPS = 10 * np.finfo(np.float32).eps
 EPSILON = 1e-6
 
 
-def _percentile_bootstrap(
-        x, dim, batch_size, n_samples, percentile, statistic=torch.mean
-):
-    size = (*x.shape[:dim], batch_size * n_samples, *x.shape[dim + 1:])
-
-    # Randomly sampling integers from numpy is faster than from torch
-    ind = np.random.randint(0, x.shape[dim], size)
-    samples = torch.gather(x, dim, torch.from_numpy(ind))
-
-    size = (
-        *x.shape[:dim],
-        batch_size,
-        n_samples,
-        *x.shape[dim + 1:],
-    )
-    samples = samples.reshape(size)
-    bootstr_stat = statistic(samples, dim=(len(x.shape[:dim])))
-
-    return torch.quantile(bootstr_stat, percentile, dim=dim)
+class ActivationConfig(TypedDict):
+    name: str
 
 
-def _init_ensemble_reduct(cfg: DictConfig, reduct: str):
-    if reduct.startswith("torch.nn."):
-        return getattr(torch, reduct[9:])
-    elif reduct.startswith("torch."):
-        return getattr(torch, reduct[6:])
-    elif reduct.lower() == "min":
-        def _f(x, dim):
-            return torch.min(x, dim=dim)[0]
-    elif reduct.lower() == "max":
-        def _f(x, dim):
-            return torch.max(x, dim=dim)[0]
-    elif reduct.lower() == "mean":
-        def _f(x, dim):
-            return torch.mean(x, dim=dim)
-    elif reduct.lower() == "median":
-        def _f(x, dim):
-            return torch.quantile(x, q=0.5, dim=dim)
-    elif reduct.lower() == "percentile":
-        def _f(x, dim):
-            return _percentile_bootstrap(
-                x, dim, cfg.bootstrap_batch_size, cfg.bootstrap_samples,
-                cfg.percentile,
-            )
-    else:
-        raise ValueError(f"unknown reduct type {reduct}")
+@dataclass
+class NNTorsoConfig:
+    name: str = 'fc'
 
-    return _f
+    bias: bool = True
+    layer_init: str = 'Xavier'
+    hidden: list[int] = list_([64, 64])
+    activation: list[ActivationConfig] = list_([
+        {'name': 'relu'},
+        {'name': 'relu'},
+    ])
 
-def _init_ensemble_reducts(cfg: DictConfig):
-    bootstrap_reduct = cfg.bootstrap_reduct
-    bootstrap_reduct_fn = _init_ensemble_reduct(cfg, bootstrap_reduct)
 
-    policy_reduct = cfg.policy_reduct
-    policy_reduct_fn = _init_ensemble_reduct(cfg, policy_reduct)
+@dataclass
+class EnsembleCriticConfig:
+    name: str = 'ensemble'
+    ensemble: int = 1
+    bootstrap_reduct: Any = field(default_factory=MeanReduct)
+    policy_reduct: Any = field(default_factory=MeanReduct)
+    vmap: bool = False
 
-    return bootstrap_reduct_fn, policy_reduct_fn
+    base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
+
+
+
+def _init_ensemble_reducts(cfg: EnsembleCriticConfig):
+    def bs_reduct(x: torch.Tensor, dim: int):
+        return ensemble_bootstrap_reduct_group.dispatch(cfg.bootstrap_reduct, x, dim)
+
+    def p_reduct(x: torch.Tensor, dim: int):
+        return ensemble_policy_reduct_group.dispatch(cfg.policy_reduct, x, dim)
+
+    return bs_reduct, p_reduct
 
 
 def create_base(
-    cfg: Mapping, input_dim: int, output_dim: Optional[int],
+    cfg: NNTorsoConfig, input_dim: int, output_dim: Optional[int],
 ) -> nn.Module:
-    if cfg["name"].lower() in ("mlp", "fc"):
+    if cfg.name.lower() in ("mlp", "fc"):
         return _create_base_mlp(cfg, input_dim, output_dim)
     else:
-        raise ValueError(f"unknown network type {cfg['name']}")
+        raise ValueError(f"unknown network type {cfg.name}")
 
 
 def _create_base_mlp(
-    cfg: Mapping, input_dim: int, output_dim: Optional[int],
+    cfg: NNTorsoConfig, input_dim: int, output_dim: Optional[int],
 ) -> nn.Module:
-    assert cfg["name"].lower() in ("mlp", "fc")
+    assert cfg.name.lower() in ("mlp", "fc")
 
-    hidden = cfg["hidden"]
-    act = cfg["activation"]
-    bias = cfg["bias"]
+    hidden = cfg.hidden
+    act = cfg.activation
+    bias = cfg.bias
     assert len(hidden) == len(act)
-    layer_init = utils.init_layer(cfg["layer_init"])
-
-    # Warn if any of the config keys start with `head_`, since this function
-    # only creates network bases
-    ks = cfg.keys()
-    filt = list(filter(lambda x: x.startswith("head_"), ks))
-    if len(filt) > 0:
-        warn(
-            f"create_base: unexpected config key(s) {filt}",
-            stacklevel=1,
-        )
+    layer_init = utils.init_layer(cfg.layer_init)
 
     net = []
 
@@ -212,7 +184,7 @@ class EnsembleFC(nn.Module):
 
 
 class EnsembleCritic(nn.Module):
-    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
+    def __init__(self, cfg: EnsembleCriticConfig, input_dim: int, output_dim: int):
         super(EnsembleCritic, self).__init__()
         self.ensemble = cfg.ensemble
         self.vmap = cfg.vmap
@@ -292,8 +264,14 @@ class EnsembleCritic(nn.Module):
             return param_list
 
 
+
+@dataclass
+class RndLinearUncertaintyConfig(NNTorsoConfig):
+    name: str = 'rnd'
+    arch: list[Any] = list_()
+
 class RndLinearUncertainty(nn.Module):
-    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
+    def __init__(self, cfg: RndLinearUncertaintyConfig, input_dim: int, output_dim: int):
         super(RndLinearUncertainty, self).__init__()
         self.output_dim = output_dim
         arch = cfg.arch
@@ -315,8 +293,18 @@ class RndLinearUncertainty(nn.Module):
         return out, info
 
 
+@dataclass
+class GRUConfig:
+    name: str = 'gru'
+
+    gru_hidden_dim: int = -1
+    num_gru_layers: int = 1
+
+    base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
+
+
 class GRU(nn.Module):
-    def __init__(self, cfg, input_dim, output_dim):
+    def __init__(self, cfg: GRUConfig, input_dim: int, output_dim: int):
         super(GRU, self).__init__()
         self.input_dim = input_dim
         self.gru_hidden_dim = cfg.gru_hidden_dim

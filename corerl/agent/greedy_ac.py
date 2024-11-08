@@ -3,7 +3,7 @@ from functools import partial
 import numpy as np
 from omegaconf import MISSING
 from pathlib import Path
-from corerl.component.actor.network_actor import NetworkActorLineSearch
+from corerl.component.actor.network_actor import NetworkActor, NetworkActorLineSearch
 from corerl.component.critic.ensemble_critic import EnsembleQCriticLineSearch
 from corerl.component.exploration.random_network import RndNetworkExploreLineSearch
 from corerl.messages.events import EventType

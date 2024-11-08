@@ -1,9 +1,12 @@
-from omegaconf import DictConfig
+from dataclasses import dataclass, field
+from typing import Any
+
+from omegaconf import MISSING
 import corerl.component.network.utils as utils
 from corerl.component.policy.softmax import Softmax, Policy
 from corerl.component.policy.policy import ContinuousIIDPolicy, UnBounded, _get_type_from_dist
 from corerl.component.distribution import get_dist_type
-from corerl.component.network.networks import _create_layer, create_base
+from corerl.component.network.networks import _create_layer, create_base, NNTorsoConfig
 from corerl.component.layer import init_activation, Parallel
 import torch.nn as nn
 import torch
@@ -21,22 +24,32 @@ def get_type_from_str(type_: str) -> type[Policy]:
         raise NotImplementedError(f"unknown policy type {type_}") from e
 
 
+@dataclass
+class BaseNNConfig:
+    base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
+
+    dist: str = MISSING
+    head_layer_init: str = MISSING
+    head_activation: list[list[dict[str, Any]]] = MISSING
+    head_bias: bool = MISSING
+
+
 def _create_nn(
-    cfg: DictConfig,
+    cfg: BaseNNConfig,
     policy_type: type[Policy],
     input_dim: int,
     output_dim: int,
     action_min: torch.Tensor | float | None,
     action_max: torch.Tensor | float | None,
 ):
-    name = cfg["base"]["name"]
+    name = cfg.base.name
     if name.lower() in ("mlp", "fc"):
         return _create_mlp(cfg, policy_type, input_dim, output_dim, action_min, action_max)
     raise NotImplementedError(f"unknown neural network type {name}")
 
 
 def _create_mlp(
-    cfg: DictConfig,
+    cfg: BaseNNConfig,
     policy_type: type[Policy],
     input_dim: int,
     output_dim: int,
@@ -49,18 +62,18 @@ def _create_mlp(
     return _create_continuous_mlp(cfg, input_dim, output_dim, action_min, action_max)
 
 
-def _create_discrete_mlp(cfg, input_dim, output_dim):
-    assert cfg["base"]["name"].lower() in ("mlp", "fc")
+def _create_discrete_mlp(cfg: BaseNNConfig, input_dim: int, output_dim: int):
+    assert cfg.base.name.lower() in ("mlp", "fc")
 
-    hidden = cfg["base"]["hidden"]
-    act = cfg["base"]["activation"]
-    bias = cfg["base"]["bias"]
+    hidden = cfg.base.hidden
+    act = cfg.base.activation
+    bias = cfg.base.bias
 
-    head_act = cfg["head_activation"]
-    head_bias = cfg["head_bias"]
+    head_act = cfg.head_activation
+    head_bias = cfg.head_bias
 
-    head_layer_init = utils.init_layer(cfg["head_layer_init"])
-    layer_init = utils.init_layer(cfg["base"]["layer_init"])
+    head_layer_init = utils.init_layer(cfg.head_layer_init)
+    layer_init = utils.init_layer(cfg.base.layer_init)
 
     assert len(hidden) == len(act)
 
@@ -93,26 +106,26 @@ def _create_discrete_mlp(cfg, input_dim, output_dim):
 
 
 def _create_continuous_mlp(
-    cfg: DictConfig,
+    cfg: BaseNNConfig,
     input_dim: int,
     output_dim: int,
     action_min: torch.Tensor | float | None,
     action_max: torch.Tensor | float | None,
 ):
-    assert cfg["base"]["name"].lower() in ("mlp", "fc")
+    assert cfg.base.name.lower() in ("mlp", "fc")
 
-    dist = get_dist_type(cfg["dist"])
-    policy_type = get_type_from_str(cfg["dist"])
+    dist = get_dist_type(cfg.dist)
+    policy_type = get_type_from_str(cfg.dist)
     assert issubclass(policy_type, ContinuousIIDPolicy)
 
     paths = policy_type.from_(None, dist, action_min, action_max).n_params
 
-    head_act = cfg["head_activation"]
-    head_bias = cfg["head_bias"]
-    head_layer_init = utils.init_layer(cfg["head_layer_init"])
+    head_act = cfg.head_activation
+    head_bias = cfg.head_bias
+    head_layer_init = utils.init_layer(cfg.head_layer_init)
 
     placeholder_input = torch.empty((input_dim,))
-    net = [create_base(cfg["base"], input_dim, None)]
+    net = [create_base(cfg.base, input_dim, None)]
 
     # Create head layer(s) to the network
     head_layers = [[] for _ in range(paths)]
@@ -134,13 +147,13 @@ def _create_continuous_mlp(
 
 
 def create(
-    cfg: DictConfig,
+    cfg: BaseNNConfig,
     input_dim: int,
     output_dim: int,
     action_min: torch.Tensor | float | None = None,
     action_max: torch.Tensor | float | None = None,
 ):
-    policy_type = get_type_from_str(cfg["dist"])
+    policy_type = get_type_from_str(cfg.dist)
     net = _create_nn(cfg, policy_type, input_dim, output_dim, action_min, action_max)
 
     if policy_type is Softmax:
@@ -150,7 +163,7 @@ def create(
         assert policy_type is Softmax
         return policy_type(net, input_dim, output_dim)
 
-    dist_type = get_dist_type(cfg["dist"])
+    dist_type = get_dist_type(cfg.dist)
     if policy_type is UnBounded:
         return policy_type(net, dist_type)
     return ContinuousIIDPolicy.from_(

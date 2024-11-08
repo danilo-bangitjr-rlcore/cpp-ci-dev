@@ -1,21 +1,11 @@
-from omegaconf import DictConfig
-
-from corerl.component.actor.network_actor import NetworkActor, NetworkActorLineSearch
+from corerl.utils.hydra import DiscriminatedUnion
+from corerl.component.actor.base_actor import group, BaseActor
 
 
 def init_actor(
-    cfg: DictConfig,
+    cfg: DiscriminatedUnion,
     state_dim: int,
     action_dim: int,
-    initializer: NetworkActor | None = None,
-) -> NetworkActor:
-    """
-    corresponding configs: config/agent/actor
-    """
-    if cfg.name == 'network':
-        actor = NetworkActor(cfg, state_dim, action_dim, initializer=initializer)
-    elif cfg.name == 'network_linesearch':
-        actor = NetworkActorLineSearch(cfg, state_dim, action_dim, initializer=initializer)
-    else:
-        raise NotImplementedError
-    return actor
+    initializer: BaseActor | None = None,
+):
+    return group.dispatch(cfg, state_dim, action_dim, initializer)
