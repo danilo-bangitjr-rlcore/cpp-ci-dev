@@ -12,7 +12,7 @@ from pathlib import Path
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
-from corerl.component.network.utils import tensor, to_np
+from corerl.component.network.utils import tensor
 from corerl.calibration_models.base import BaseCalibrationModel
 from corerl.utils.device import device
 
@@ -33,22 +33,23 @@ class ShortHorizonDelta(BaseCalibrationModel):
 
         self.buffer.load(train_transitions)
 
-        input_dim = len(train_transitions[0].state)
-        action_dim = len(train_transitions[0].action)
-        output_dim = len(train_transitions[0].obs[self.endo_inds])
+        input_dim: int = len(train_transitions[0].state)
+        action_dim: int = len(train_transitions[0].action)
+        output_dim: int = len(train_transitions[0].obs[self.endo_inds])
 
         self.model = init_custom_network(cfg.model, input_dim=input_dim + action_dim, output_dim=output_dim)
         self.optimizer = init_optimizer(cfg.optimizer, list(self.model.parameters()))
 
-        self.train_losses = []
-        self.test_losses = []
+        self.train_losses: List[np.ndarray] = []
+        self.test_losses: List[np.ndarray] = []
 
     def _update(self):
         batch = self.buffer.sample_mini_batch(self.batch_size)[0]
         obs_batch, state_batch, action_batch, next_obs_batch = batch.obs, batch.state, batch.action, batch.next_obs
         # we only predict the next endogenous component of the observation
         endo_next_obs_batch = next_obs_batch[:, self.endo_inds]
-        delta_endo_next_obs_batch = endo_next_obs_batch - obs_batch[:, self.endo_inds]
+        endo_obs_batch = obs_batch[:, self.endo_inds]
+        delta_endo_next_obs_batch = endo_next_obs_batch - endo_obs_batch
         x = torch.concat((state_batch, action_batch), dim=1)
         prediction = self.model(x)
         loss = nn.functional.mse_loss(prediction, delta_endo_next_obs_batch)
@@ -59,7 +60,7 @@ class ShortHorizonDelta(BaseCalibrationModel):
 
         self.train_losses.append(loss.detach().numpy())
 
-    def train(self) -> List[float]:
+    def train(self) -> List[np.ndarray]:
         log.info('Training model...')
         pbar = tqdm(range(self.train_itr))
         for _ in pbar:
@@ -73,7 +74,7 @@ class ShortHorizonDelta(BaseCalibrationModel):
             state: torch.Tensor,
             action: torch.Tensor,
             with_grad: bool = False
-    ):
+    ) -> torch.Tensor:
         x = torch.concat((state, action), dim=1)
         if with_grad:
             y = self.model(x)
