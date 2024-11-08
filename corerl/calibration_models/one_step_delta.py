@@ -2,9 +2,9 @@ import logging
 import os
 import torch
 import torch.nn as nn
-import json
 import numpy as np
 
+from typing import List
 from tqdm import tqdm
 from omegaconf import DictConfig
 from pathlib import Path
@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 
 
 class ShortHorizonDelta(BaseCalibrationModel):
-    def __init__(self, cfg: DictConfig, train_info):
+    def __init__(self, cfg: DictConfig, train_info: dict):
         super().__init__(cfg, train_info)
         train_transitions = train_info['train_transitions_cm']
         self.rng = np.random.RandomState(cfg.seed)
@@ -59,16 +59,21 @@ class ShortHorizonDelta(BaseCalibrationModel):
 
         self.train_losses.append(loss.detach().numpy())
 
-    def train(self):
+    def train(self) -> List[float]:
         log.info('Training model...')
         pbar = tqdm(range(self.train_itr))
         for _ in pbar:
             self._update()
             pbar.set_description("train loss: {:7.6f}".format(self.train_losses[-1]))
-
         return self.train_losses
 
-    def get_prediction(self, obs: torch.Tensor, state: torch.Tensor, action: torch.Tensor, with_grad: bool = False):
+    def get_prediction(
+            self,
+            obs: torch.Tensor,
+            state: torch.Tensor,
+            action: torch.Tensor,
+            with_grad: bool = False
+    ):
         x = torch.concat((state, action), dim=1)
         if with_grad:
             y = self.model(x)
@@ -84,11 +89,13 @@ class ShortHorizonDelta(BaseCalibrationModel):
         action_tensor = tensor(action).reshape((1, -1))
         return self.get_prediction(kwargs["prev_obs"], state_tensor, action_tensor)
 
-    def save(self, path) -> None:
+    def save(self, path: str) -> None:
         path.mkdir(parents=True, exist_ok=True)
         net_path = os.path.join(path, "model")
         torch.save(self.model.state_dict(), net_path)
+        return
 
-    def load(self, path):
+    def load(self, path: str) -> None:
         net_path = os.path.join(path, "model")
         self.model.load_state_dict(torch.load(net_path, map_location=device.device))
+        return
