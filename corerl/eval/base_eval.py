@@ -10,10 +10,6 @@ class EvalConfig:
 
 class BaseEval(ABC):
     @abstractmethod
-    def __init__(self, cfg: EvalConfig, **kwargs):
-        raise NotImplementedError
-
-    @abstractmethod
     def do_eval(self, **kwargs) -> None:
         raise NotImplementedError
 

@@ -17,7 +17,6 @@ class BaseStateConstructorComponent(ABC):
         self.children = None
         self.called = False
         self.obs_next: np.ndarray | None = None
-        return
 
     def __call__(self, obs: np.ndarray, **kwargs) -> np.ndarray:
         if not self.called:

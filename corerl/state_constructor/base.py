@@ -49,6 +49,7 @@ class BaseStateConstructor(ABC):
 
 class CompositeStateConstructor(BaseStateConstructor):
     def __init__(self):
+        super().__init__()
         self.sc: 'BaseStateConstructorComponent | None' = None
 
     def __call__(
