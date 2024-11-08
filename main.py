@@ -6,7 +6,7 @@ import random
 
 from corerl.config import MainConfig
 from corerl.data.transition_creator import BaseTransitionCreator
-from corerl.data_loaders.base import BaseDataLoader
+from corerl.data_loaders.direct_action import DirectActionDataLoader
 from corerl.interaction.anytime_interaction import AnytimeInteraction
 from corerl.utils.device import device
 from corerl.agent.factory import init_agent
@@ -72,7 +72,7 @@ def main(cfg: MainConfig):
     should_train_offline = cfg.experiment.offline_steps > 0
     if should_train_offline:
         dl = init_data_loader(cfg.data_loader)
-        assert isinstance(dl, BaseDataLoader)
+        assert isinstance(dl, DirectActionDataLoader)
         all_data_df, train_data_df, test_data_df = utils.load_df_from_csv(cfg, dl)
         if cfg.experiment.load_env_obs_space_from_data:
             env = utils.set_env_obs_space(env, all_data_df, dl)

@@ -20,7 +20,7 @@ from warnings import warn
 from corerl.config import MainConfig
 from corerl.eval.composite_eval import CompositeEval
 from corerl.data_loaders.base import BaseDataLoader, OldBaseDataLoader
-from corerl.data_loaders.direct_action import OldDirectActionDataLoader
+from corerl.data_loaders.direct_action import DirectActionDataLoader, OldDirectActionDataLoader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.data.data import OldObsTransition, Transition, ObsTransition, Trajectory
 from corerl.interaction.base import BaseInteraction
@@ -115,7 +115,7 @@ def set_env_obs_space(env: Env, df: pd.DataFrame, dl: BaseDataLoader | OldBaseDa
 
 def load_df_from_csv(
     cfg: MainConfig,
-    dl: BaseDataLoader | OldBaseDataLoader,
+    dl: DirectActionDataLoader | OldDirectActionDataLoader,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     output_path = Path(cfg.offline_data.output_path)
 

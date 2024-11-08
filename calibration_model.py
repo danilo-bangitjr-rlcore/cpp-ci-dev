@@ -52,6 +52,7 @@ def main(cfg: MainConfig):
     env = init_environment(cfg.env)
 
     dl = init_data_loader(cfg.data_loader)
+    assert isinstance(dl, OldDirectActionDataLoader)
     all_data_df, train_data_df, test_data_df = utils.load_df_from_csv(cfg, dl)
     if cfg.experiment.load_env_obs_space_from_data:
         env = utils.set_env_obs_space(env, all_data_df, dl)
