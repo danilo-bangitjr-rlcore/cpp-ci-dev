@@ -28,7 +28,8 @@ class OldDirectActionDataLoaderConfig(BaseDataLoaderConfig):
     obs_col_names: list[str] = interpolate('${env.obs_col_names}')
     action_col_names: list[str] = interpolate('${env.action_names}')
     date_col_name: str = 'Date'
-    max_time_delta: int = 10  # Maximum allowable time between consecutive rows in a DF. If this threshold is exceeded, data_gap = True
+    # Maximum allowable time between consecutive rows in a DF. If this threshold is exceeded, data_gap = True
+    max_time_delta: int = 10
     obs_length: int = interpolate('${interaction.obs_length}')
     steps_per_decision: int = interpolate('${interaction.steps_per_decision}')
     only_dp_transitions: bool = interpolate('${interaction.only_dp_transitions}')
