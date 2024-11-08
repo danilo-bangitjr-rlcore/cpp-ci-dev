@@ -1,3 +1,4 @@
+import logging
 import os
 import torch
 import torch.nn as nn
@@ -22,6 +23,9 @@ class Obj:
         self.__dict__.update(dict1)
     def keys(self):
         return self.__dict__.keys()
+
+log = logging.getLogger(__name__)
+
 
 class ShortHorizonDelta(BaseCalibrationModel):
     def __init__(self, cfg: DictConfig, train_info):
@@ -64,7 +68,7 @@ class ShortHorizonDelta(BaseCalibrationModel):
         self.train_losses.append(loss.detach().numpy())
 
     def train(self):
-        print('Training model...')
+        log.info('Training model...')
         pbar = tqdm(range(self.train_itr))
         for _ in pbar:
             self._update()
