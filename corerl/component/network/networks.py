@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from collections.abc import Iterable
 from torch.func import stack_module_state, functional_call # type: ignore
 import numpy as np
+from corerl.component.network.base import BaseNetworkConfig
 import corerl.component.network.utils as utils
 from corerl.component.network.ensemble.reductions import MeanReduct, ensemble_bootstrap_reduct_group, ensemble_policy_reduct_group # noqa: E501
 from corerl.utils.device import device
@@ -26,7 +27,7 @@ class ActivationConfig(TypedDict):
 
 
 @dataclass
-class NNTorsoConfig:
+class NNTorsoConfig(BaseNetworkConfig):
     name: str = 'fc'
 
     bias: bool = True
@@ -39,7 +40,7 @@ class NNTorsoConfig:
 
 
 @dataclass
-class EnsembleCriticConfig:
+class EnsembleCriticConfig(BaseNetworkConfig):
     name: str = 'ensemble'
     ensemble: int = 1
     bootstrap_reduct: Any = field(default_factory=MeanReduct)
@@ -294,7 +295,7 @@ class RndLinearUncertainty(nn.Module):
 
 
 @dataclass
-class GRUConfig:
+class GRUConfig(BaseNetworkConfig):
     name: str = 'gru'
 
     gru_hidden_dim: int = -1
