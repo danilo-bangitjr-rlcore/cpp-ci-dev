@@ -90,7 +90,8 @@ def _clean_by_sliding_window(
     window_idx = np.arange(0, window_length)
     data_idxs = np.arange(len(data)).reshape(-1, 1)
     data_idxs = data_idxs + window_starts
-    data_idxs = data_idxs.reshape(data_idxs.shape[0], data_idxs.shape[1], 1)
+    num_data, num_windows_each_unit = data_idxs.shape[0], data_idxs.shape[1]
+    data_idxs = data_idxs.reshape(num_data, num_windows_each_unit, 1)
     data_idxs = data_idxs + window_idx
     windows = padded_data[data_idxs]
 
