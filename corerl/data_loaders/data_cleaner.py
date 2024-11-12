@@ -80,12 +80,12 @@ def _clean_by_sliding_window(
 ) -> Tuple[np.ndarray, dict]:
     # if the window length is too long,
     # then jump and ensure one number is evaluated by at least 12 windows
-    skip = max(1, window_length // min_window_count)
     nans0 = np.empty(window_length - 1)
     nans1 = np.empty(window_length - 1)
     nans0[:] = np.nan
     nans1[:] = np.nan
     padded_data = np.concatenate([nans0, data, nans1], axis=0)
+    skip = max(1, window_length // min_window_count)
     window_starts = np.arange(0, window_length, skip)
     window_idx = np.arange(0, window_length)
     data_idxs = np.arange(len(data)).reshape(-1, 1)
