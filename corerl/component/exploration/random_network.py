@@ -12,7 +12,6 @@ from corerl.component.optimizers.factory import init_optimizer
 
 class RndNetworkExplore(BaseExploration):
     def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg)
         self.gamma = cfg.gamma
         # Networks for uncertainty measure
         self.ftrue0 = init_custom_network(cfg.exploration_network, state_dim+action_dim, state_dim+action_dim)
