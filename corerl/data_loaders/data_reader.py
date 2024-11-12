@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, UTC
 from corerl.sql_logging.sql_logging import get_sql_engine
 import pandas as pd
 from sqlalchemy import Engine
-from typing import List, Any, Union
+from typing import List, Any
 import numpy as np
 from corerl.data_loaders.utils import try_connect
 import logging
@@ -119,7 +119,7 @@ def fill_data_for_changed_setpoint(
             assert largest_timestamp is not None
             data_tuples += _fillin_between(df, len(df) - 1, delta_t, largest_timestamp+delta_t)
         else:
-            data_tuples += list(zip(*map(df.get, df)))
+            data_tuples += list(zip(*map(df.get, df), strict=True))
     return data_tuples
 
 def _fillin_between(df: pd.DataFrame, row: int, delta_t: timedelta, end_ts: datetime | None=None) \

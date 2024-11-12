@@ -4,7 +4,7 @@ import numpy as np
 from pandas import DataFrame
 from corerl.data_loaders.data_reader import fill_data_for_changed_setpoint
 from datetime import datetime, timedelta
-from typing import Generator, List
+from typing import List
 
 class DataReaderTestCase(unittest.TestCase):
     def test_fill_data_for_changed_setpoint(self):
