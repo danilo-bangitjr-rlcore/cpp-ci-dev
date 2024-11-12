@@ -1,10 +1,9 @@
-from typing import Protocol
-from omegaconf import DictConfig
 import torch
-
+from typing import Protocol
+from corerl.utils.hydra import DiscriminatedUnion, Group
 
 class BaseExploration(Protocol):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: DiscriminatedUnion, state_dim: int, action_dim: int):
         ...
 
     def update(self) -> None:
@@ -19,3 +18,9 @@ class BaseExploration(Protocol):
 
     def get_networks(self) -> list[torch.nn.Module]:
         ...
+
+
+explore_group = Group[
+    [int, int],
+    BaseExploration,
+]('agent/exploration')

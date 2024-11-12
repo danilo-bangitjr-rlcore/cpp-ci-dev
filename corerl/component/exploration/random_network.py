@@ -1,17 +1,31 @@
-from omegaconf import DictConfig
+from dataclasses import dataclass, field
 import torch
 import torch.nn as nn
 import ctypes
 from typing import Optional, Callable
+from corerl.component.network.networks import NNTorsoConfig, RndLinearUncertaintyConfig
 from corerl.component.network.utils import clone_model_0to1
-from corerl.component.exploration.base import BaseExploration
-from corerl.component.network.factory import init_custom_network
-from corerl.component.optimizers.linesearch_optimizer import LineSearchOpt
+from corerl.component.exploration.base import BaseExploration, explore_group
+from corerl.component.network.factory import BaseNetworkConfig, init_custom_network
+from corerl.component.optimizers.linesearch_optimizer import LSOConfig, LineSearchOpt
 from corerl.component.optimizers.factory import init_optimizer
+from corerl.component.optimizers.torch_opts import CustomAdamConfig, OptimConfig
+from corerl.utils.hydra import DiscriminatedUnion, interpolate
+
+
+@dataclass(frozen=True)
+class RndNetworkExploreConfig(DiscriminatedUnion):
+    name: str = 'random_linear'
+    gamma: float = interpolate('${agent.gamma}')
+
+    exploration_network: BaseNetworkConfig = field(default_factory=RndLinearUncertaintyConfig)
+    policy_network: BaseNetworkConfig = field(default_factory=NNTorsoConfig)
+
+    exploration_optimizer: OptimConfig = field(default_factory=CustomAdamConfig)
 
 
 class RndNetworkExplore(BaseExploration):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: RndNetworkExploreConfig, state_dim: int, action_dim: int):
         self.gamma = cfg.gamma
         # Networks for uncertainty measure
         self.ftrue0 = init_custom_network(cfg.exploration_network, state_dim+action_dim, state_dim+action_dim)
@@ -84,8 +98,22 @@ class RndNetworkExplore(BaseExploration):
         return [self.fbonus0, self.fbonus1]
 
 
+explore_group.dispatcher(RndNetworkExplore)
+
+
+@dataclass(frozen=True)
+class RndNetworkExploreLSConfig(RndNetworkExploreConfig):
+    name: str = 'random_linear_linesearch'
+
+    max_backtracking: int = 30
+    error_threshold: float = 1e-4
+    lr_lower_bound: float = 1e-6
+
+    exploration_optimizer: LSOConfig = field(default_factory=LSOConfig)
+
+
 class RndNetworkExploreLineSearch(RndNetworkExplore):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: RndNetworkExploreLSConfig, state_dim: int, action_dim: int):
         super().__init__(cfg, state_dim, action_dim)
         self.fbonus0_copy = init_custom_network(cfg.exploration_network, state_dim+action_dim, state_dim+action_dim)
         self.fbonus1_copy = init_custom_network(cfg.exploration_network, state_dim+action_dim, state_dim+action_dim)
@@ -123,3 +151,5 @@ class RndNetworkExploreLineSearch(RndNetworkExplore):
 
     def get_networks(self) -> list[torch.nn.Module]:
         return [self.fbonus0, self.fbonus1, self.fbonus0_copy, self.fbonus1_copy]
+
+explore_group.dispatcher(RndNetworkExploreLineSearch)
