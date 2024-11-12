@@ -4,7 +4,7 @@ import torch
 
 
 class BaseExploration(Protocol):
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int):
         ...
 
     def update(self) -> None:
