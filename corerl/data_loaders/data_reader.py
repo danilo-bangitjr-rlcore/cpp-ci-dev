@@ -105,7 +105,8 @@ def fill_data_for_changed_setpoint(
     largest_timestamp = None
     for df in dfs:
         columns = df.columns.values.tolist()  # datetime, tag, value
-        if df.iloc[0, 1] not in change_tags:
+        tag = df.iloc[0, 1]
+        if tag not in change_tags:
             largest_timestamp = df[columns[0]].max() \
                 if largest_timestamp is None else \
                 max(largest_timestamp, df[columns[0]].max())
