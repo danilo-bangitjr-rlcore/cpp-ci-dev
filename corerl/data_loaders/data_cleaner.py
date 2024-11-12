@@ -85,22 +85,22 @@ def _clean_by_sliding_window(
     nans1 = np.empty(window_length - 1)
     nans0[:] = np.nan
     nans1[:] = np.nan
-    temp_data = np.concatenate([nans0, data, nans1], axis=0)
+    padded_data = np.concatenate([nans0, data, nans1], axis=0)
     window_starts = np.arange(0, window_length, skip)
     window_idx = np.arange(0, window_length)
     data_idxs = np.arange(len(data)).reshape(-1, 1)
     data_idxs = data_idxs + window_starts
     data_idxs = data_idxs.reshape(data_idxs.shape[0], data_idxs.shape[1], 1)
     data_idxs = data_idxs + window_idx
-    windows = temp_data[data_idxs]
+    windows = padded_data[data_idxs]
 
     nan_mask = np.isnan(windows)
     masked_windows = np.ma.masked_array(windows, mask=nan_mask)
-    temp_mean = masked_windows.mean(axis=-1)
-    temp_std = masked_windows.std(axis=-1)
+    window_mean = masked_windows.mean(axis=-1)
+    window_std = masked_windows.std(axis=-1)
 
-    upper_windows = temp_mean + temp_std * 1.96
-    lower_windows = temp_mean - temp_std * 1.96
+    upper_windows = window_mean + window_std * 1.96
+    lower_windows = window_mean - window_std * 1.96
 
     in_range_count = np.zeros(len(data))
     for i in range(len(data)):
