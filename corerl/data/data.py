@@ -110,10 +110,12 @@ class Transition:
                 return False
 
             if isinstance(attr_self, np.ndarray):
-                return np.allclose(attr_self, attr_other)
+                if not np.allclose(attr_self, attr_other):
+                    return False
 
             elif isinstance(attr_self, float):
-                return isclose(attr_self, attr_other)
+                if not isclose(attr_self, attr_other):
+                    return False
 
             elif attr_self != attr_other:
                 return False

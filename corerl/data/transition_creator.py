@@ -435,6 +435,8 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         Produce the agent and alert state transitions using the observation transitions
         that occur between two decision points
         """
+        check_actions_equal(self.curr_obs_transitions)
+
         alert_gammas, cumulants = None, None
         if self.alert is not None and self.alert.get_dim() > 0:
             # Alerts can use different discount factors than the agent's value functions
@@ -523,6 +525,8 @@ class RegularRLTransitionCreator(BaseTransitionCreator):
                 "There should not be more than self.steps_per_decision transitions in len(self.curr_obs_transitions)"
             )
 
+        check_actions_equal(self.curr_obs_transitions)
+
         n_step_cumulants = None
         if self.alert is not None and self.alert.get_dim() > 0:
             # Alerts can use different discount factors than the agent's value functions
@@ -577,3 +581,10 @@ class RegularRLTransitionCreator(BaseTransitionCreator):
         return [transition]
 
 tc_group.dispatcher(RegularRLTransitionCreator)
+
+
+def check_actions_equal(curr_obs_transitions):
+    actions = [o.action for o in curr_obs_transitions]
+    first_action = actions[0]
+    for action in actions[1:]:
+        assert first_action == action, "All actions within a decision window must be equal."
