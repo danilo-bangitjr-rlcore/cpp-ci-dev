@@ -1,3 +1,7 @@
+"""
+Original paper: https://papers.nips.cc/paper_files/paper/2019/hash/2557911c1bf75c2b643afb4ecbfc8ec2-Abstract.html
+Linesearch library: https://github.com/rlcoretech/LineSearchOpt
+"""
 from collections.abc import Iterable
 import torch
 import numpy as np
