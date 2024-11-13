@@ -29,7 +29,6 @@ class EnsembleQCritic(BaseQ):
             cfg.critic_optimizer,
             list(params),
             ensemble=True,
-            vmap=cfg.critic_network.vmap
         )
 
         self.optimizer_name = cfg.critic_optimizer.name
@@ -173,7 +172,6 @@ class EnsembleVCritic(BaseV):
             cfg.critic_optimizer,
             list(params),
             ensemble=True,
-            vmap=cfg.critic_network.vmap
         )
         self.polyak = cfg.polyak
         self.target_sync_freq = cfg.target_sync_freq

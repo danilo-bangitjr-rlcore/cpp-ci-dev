@@ -1,7 +1,7 @@
 import inspect
 from dataclasses import dataclass, field, fields, is_dataclass
 from typing import Any, Concatenate, ParamSpec, TypeVar, Generic, Protocol
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from hydra.core.config_store import ConfigStore
 
 T = TypeVar('T')
@@ -43,9 +43,9 @@ P = ParamSpec('P')
 class Group(Generic[P, R]):
     def __init__(
         self,
-        group: str,
+        group: str | Sequence[str],
     ):
-        self._group = group
+        self._groups: Sequence[str] = [group] if isinstance(group, str) else group
         self._dispatchers: dict[str, Callable[..., R]] = {}
 
 
@@ -59,7 +59,9 @@ class Group(Generic[P, R]):
         name = get_config_name(config)
 
         cs = ConfigStore.instance()
-        cs.store(name=name, group=self._group, node=config)
+        for group in self._groups:
+            cs.store(name=name, group=group, node=config)
+
         self._dispatchers[name] = f
 
         return f

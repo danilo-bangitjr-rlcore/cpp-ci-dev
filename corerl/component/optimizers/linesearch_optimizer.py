@@ -1,17 +1,59 @@
-from omegaconf import DictConfig
+"""
+Original paper: https://papers.nips.cc/paper_files/paper/2019/hash/2557911c1bf75c2b643afb4ecbfc8ec2-Abstract.html
+Linesearch library: https://github.com/rlcoretech/LineSearchOpt
+"""
+from collections.abc import Iterable
 import torch
 import numpy as np
 import ctypes
+from dataclasses import dataclass, field
 from typing import Any, Callable
 from torch.optim.optimizer import Optimizer
-from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
+from corerl.component.optimizers.custom_torch_opts import CustomAdam
+from corerl.component.optimizers.torch_opts import OptimConfig, AdamConfig, optim_group
+from corerl.utils.hydra import list_
+import linesearchopt as lso
 
 
+@dataclass
+class LSOInitConfig:
+    name: str = 'to'
+    args: list[Any] = list_([0.1])
+
+@dataclass
+class SearchConditionKwargsConfig:
+    c: float = 0.1
+    beta: float = 0.9
+    min_step_size: float = 0
+    max_step_size: float = 1
+
+@dataclass
+class SearchConditionConfig:
+    name: str = 'Armijo'
+    kwargs: SearchConditionKwargsConfig = field(default_factory=SearchConditionKwargsConfig)
+
+@dataclass
+class LSOConfig(OptimConfig):
+    name: str = 'lso'
+
+    init_step_size: float = 0.1
+    max_backtracking_steps: int = 30
+    unit_norm_direction: bool = False
+    fallback_step_size: float = 0.0001
+
+    optim: OptimConfig = field(default_factory=AdamConfig)
+    init: LSOInitConfig = field(default_factory=LSOInitConfig)
+    search_condition: SearchConditionConfig = field(default_factory=SearchConditionConfig)
+
+
+# ------------------------
+# -- LSO Implementation --
+# ------------------------
 class LineSearchOpt:
     def __init__(
         self,
-        cfg: DictConfig,
+        cfg: LSOConfig,
         net_lst: list[torch.nn.Module],
         lr: float,
         max_backtracking: int,
@@ -50,12 +92,10 @@ class LineSearchOpt:
     ) -> None:
         self.optimizer_lst = []
         for i in range(len(self.net_lst)):
-            if ensemble:
-                self.optimizer_lst.append(init_optimizer(
-                    self.cfg, self.net_lst[i].parameters(independent=True), ensemble=ensemble)) # type: ignore
-            else:
-                self.optimizer_lst.append(init_optimizer(
-                    self.cfg, self.net_lst[i].parameters(), ensemble=ensemble))
+            params = self.net_lst[i].parameters(independent=True) if ensemble else self.net_lst[i].parameters() # type: ignore
+            optim = optim_group.dispatch(self.cfg, params, ensemble)
+            self.optimizer_lst.append(optim)
+
             self.opt_copy_dict[i] = None
         if self.optimizer_type == 'sgd':
             self.__backtrack_fn = self.__backtrack_sgd
@@ -255,3 +295,60 @@ class LineSearchOpt:
             "lr_weight": self.last_scaler,
         }
         return i_log
+
+
+# -------------------------------
+# -- LSO Config Initialization --
+# -------------------------------
+@optim_group.dispatcher
+def _lso(cfg: LSOConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+    if not ensemble:
+        return construct_lso(param, cfg)
+
+    return EnsembleOptimizer(
+        lso.Optimizer, param,
+        kwargs=lso_kwargs(cfg),
+    )
+
+def construct_lso(param: Iterable[torch.nn.Parameter], cfg: LSOConfig):
+    kwargs = lso_kwargs(cfg)
+    optim = lso.Optimizer(param, **kwargs)
+    return optim
+
+
+def lso_kwargs(cfg: LSOConfig):
+    kwargs = {}
+    init_cfg = cfg.init
+    init = construct_lso_init(init_cfg)
+    kwargs["init"] = init
+
+    search_cfg = cfg.search_condition
+    search_condition = construct_lso_search_condition(search_cfg)
+
+    kwargs["search_condition"] = search_condition
+    kwargs["init_step_size"] = cfg.init_step_size
+    kwargs["max_backtracking_steps"] = cfg.max_backtracking_steps
+    kwargs["unit_norm_direction"] = cfg.unit_norm_direction
+    kwargs["fallback_step_size"] = cfg.fallback_step_size
+
+    kwargs["optim"] = get_optim_type(cfg.optim.name)
+
+    return kwargs
+
+def construct_lso_init(cfg: LSOInitConfig):
+    type_ = cfg.name
+    args = cfg.args
+    return getattr(lso.init, type_)(*args)
+
+
+def construct_lso_search_condition(cfg: SearchConditionConfig):
+    type_ = cfg.name
+    kwargs = cfg.kwargs
+    return getattr(lso.search, type_)(**kwargs)
+
+
+def get_optim_type(name: str):
+    if name == "custom_adam":
+        return CustomAdam
+    else:
+        return getattr(torch.optim, name)
