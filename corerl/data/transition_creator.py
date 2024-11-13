@@ -1,21 +1,34 @@
 import numpy as np
+from dataclasses import dataclass
 from tqdm import tqdm
 from collections import deque
-from omegaconf import DictConfig
-from abc import ABC, abstractmethod
 
 from copy import deepcopy
 from typing import Optional
 
-from corerl.alerts.base import BaseAlert
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.data.data import OldObsTransition, Transition, Trajectory, ObsTransition
+from corerl.data.data import OldObsTransition, Transition, Trajectory
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.interaction.anytime_interaction import OldAnytimeInteraction
+from corerl.utils.hydra import interpolate
+
+from corerl.data.base_tc import BaseTransitionCreator, BaseTCConfig, tc_group
+
+
+@dataclass
+class OldAnytimeTCConfig:
+    # we don't want this to be instantiatable from new code
+    # so give a dummy name to prevent factory from tying to instantiate
+    name: str = 'none'
+
+    gamma: float = interpolate('${experiment.gamma}')
+    steps_per_decision = interpolate('${interaction.steps_per_decision}')
+    n_step: int = interpolate('${interaction.n_step}')
+    only_dp_transitions: bool = interpolate('${interaction.only_dp_transitions}')
 
 
 class OldAnytimeTransitionCreator(object):
-    def __init__(self, cfg, alerts: CompositeAlert):
+    def __init__(self, cfg: OldAnytimeTCConfig, alerts: CompositeAlert):
         self.gamma = cfg.gamma  # gamma for the agent
         self.steps_per_decision = cfg.steps_per_decision
         self.n_step = cfg.n_step
@@ -409,93 +422,14 @@ def _get_n_step_reward(reward_queue: deque, gamma: float) -> float:
     return n_step_reward
 
 
-class BaseTransitionCreator(ABC):
-    def __init__(self, cfg: DictConfig, state_constuctor: BaseStateConstructor) -> None:
-        self.steps_per_decision: int = cfg.steps_per_decision
-        self.n_step: int = cfg.n_step
-        self.gamma: float = cfg.gamma
-        self.alert: BaseAlert | None = None
-        self.state_constructor = state_constuctor
-        self.transition_kind: str = cfg.transition_kind
-
-        # n_step = 0: bootstrap off state at next decision point
-        # n_step > 0: bootstrap off state n steps into the future without crossing decision boundary
-        if self.n_step == 0 or self.n_step >= self.steps_per_decision:
-            self.queue_len = self.steps_per_decision
-        else:
-            self.queue_len = self.n_step
-
-        self.curr_obs_transitions: list[ObsTransition] = []
-        self.curr_states: list[np.ndarray] = []
-        self.curr_dps: list[bool] = []
-        self.curr_steps_until_decisions: list[int] = []
-
-    def reset(self,
-              state: np.ndarray,
-              dp: bool,
-              steps_until_decision: int) -> None:
-        self.curr_obs_transitions = []
-        self.curr_states = [state]
-        self.curr_dps = [dp]
-        self.curr_steps_until_decisions = [steps_until_decision]
-
-    def feed(self,
-             obs_transition: ObsTransition,
-             next_state: np.ndarray,
-             next_dp: bool,
-             next_steps_until_decision: int) -> list[Transition]:
-
-        self.curr_obs_transitions.append(obs_transition)
-        self.curr_states.append(next_state)
-        self.curr_dps.append(next_dp)
-        self.curr_steps_until_decisions.append(next_steps_until_decision)
-
-        transitions: list[Transition] = []
-        if next_dp:
-            assert len(self.curr_states) == len(self.curr_obs_transitions) + 1, \
-                'Should be one more state than obs transition. Did you forget to call reset()?'
-
-            transitions = self.make_decision_window_transitions()  # transitions is a list of anytime transitions
-            self.curr_obs_transitions = []
-            self.curr_states = [next_state]
-            self.curr_dps = [next_dp]
-            self.curr_steps_until_decisions = [next_steps_until_decision]
-
-        return transitions
-
-    @abstractmethod
-    def make_decision_window_transitions(self) -> list[Transition]:
-        raise NotImplementedError
-
-    def init_alerts(self, alert: BaseAlert):
-        self.alert = alert
-
-    """
-    #### Alert stuff below ####
-    """
-
-    def _get_alert_cumulants(self) -> list:
-        """
-        Get cumulants used to train alert value functions
-        Currently passes the information required for Action-Value and GVF alerts.
-        """
-
-        assert self.alert is not None, "Alert not initialized, did you forget to call init_alerts()?"
-
-        cumulants = []
-        reward_list = [curr_obs_transition.reward for curr_obs_transition in self.curr_obs_transitions]
-        next_obs_list = [curr_obs_transition.next_obs for curr_obs_transition in self.curr_obs_transitions]
-
-        for i in range(len(reward_list)):
-            cumulant_args = {"reward": reward_list[i], "obs": next_obs_list[i]}
-            curr_cumulants = self.alert.get_cumulants(**cumulant_args)
-            curr_cumulants = np.array(curr_cumulants)
-            cumulants.append(curr_cumulants)
-
-        return cumulants
-
+@dataclass
+class AnytimeTCConfig(BaseTCConfig):
+    name: str = 'anytime'
 
 class AnytimeTransitionCreator(BaseTransitionCreator):
+    def __init__(self, cfg: AnytimeTCConfig, state_constuctor: BaseStateConstructor):
+        super().__init__(cfg, state_constuctor)
+
     def make_decision_window_transitions(self) -> list[Transition]:
         """
         Produce the agent and alert state transitions using the observation transitions
@@ -565,7 +499,16 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         return new_transitions
 
 
+tc_group.dispatcher(AnytimeTransitionCreator)
+
+
+@dataclass
+class RegularRLTCConfig(BaseTCConfig):
+    name: str = 'regular_rl'
+
 class RegularRLTransitionCreator(BaseTransitionCreator):
+    def __init__(self, cfg: RegularRLTCConfig, state_constuctor: BaseStateConstructor):
+        super().__init__(cfg, state_constuctor)
 
     def make_decision_window_transitions(self) -> list[Transition]:
         """
@@ -632,3 +575,5 @@ class RegularRLTransitionCreator(BaseTransitionCreator):
         )
 
         return [transition]
+
+tc_group.dispatcher(RegularRLTransitionCreator)
