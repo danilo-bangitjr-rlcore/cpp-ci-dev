@@ -10,6 +10,8 @@ defaults:
   - normalizer/action_normalizer : scale
   - normalizer/obs_normalizer : maxmin
   - normalizer/reward_normalizer : scale
+  - agent_transition_creator: anytime
+  - alert_transition_creator: anytime
 #  - alerts@alerts.action_value_trace : action_value_trace
 #  - alerts@alerts.action_value_uncertainty : action_value_uncertainty
 #  - alerts@alerts.gvf_trace : gvf_trace
@@ -26,20 +28,6 @@ defaults:
 #  - eval@eval.ensemble : ensemble
 
 use_alerts : False
-
-agent_transition_creator:
-  gamma : ${experiment.gamma}
-  steps_per_decision : ${interaction.steps_per_decision}
-  n_step : ${interaction.n_step}
-  only_dp_transitions :  ${interaction.only_dp_transitions}
-  transition_kind : anytime
-
-alert_transition_creator:
-  gamma : ${experiment.gamma}
-  steps_per_decision : ${interaction.steps_per_decision}
-  n_step : ${interaction.n_step}
-  only_dp_transitions :  ${interaction.only_dp_transitions}
-  transition_kind : anytime
 
 agent:
   message_bus:

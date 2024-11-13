@@ -8,6 +8,7 @@ defaults:
   - normalizer/obs_normalizer : identity
   - normalizer/action_normalizer : identity
   - normalizer/reward_normalizer : identity
+  - agent_transition_creator: anytime
   # - db: credentials
   - _self_
 
@@ -17,13 +18,6 @@ interaction:
 experiment:
   plotting: False
   online_updates : True # Whether to update the agent online in deployment
-
-agent_transition_creator:
-  gamma : ${experiment.gamma}
-  steps_per_decision : ${interaction.steps_per_decision}
-  n_step : ${interaction.n_step}
-  only_dp_transitions :  ${interaction.only_dp_transitions}
-  transition_kind : anytime
 
 alert_transition_creator: null
 calibration_model: null

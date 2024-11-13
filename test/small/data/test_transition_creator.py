@@ -1,8 +1,7 @@
 import pytest
 import numpy as np
-from omegaconf import DictConfig
 
-from corerl.data.transition_creator import AnytimeTransitionCreator
+from corerl.data.transition_creator import AnytimeTransitionCreator, AnytimeTCConfig
 from corerl.data.data import ObsTransition, Transition
 from test.small.state_constructor.state_constructor import make_anytime_multi_trace
 from corerl.state_constructor.base import BaseStateConstructor
@@ -13,13 +12,11 @@ def _make_anytime_transition_creator(
     steps_per_decision: int,
     n_step: int,
 ) -> AnytimeTransitionCreator:
-    cfg_d = {
-        'steps_per_decision': steps_per_decision,
-        'n_step': n_step,
-        'gamma': 0.9,
-        'transition_kind': 'anytime'
-    }
-    cfg = DictConfig(cfg_d)
+    cfg = AnytimeTCConfig(
+        gamma=0.9,
+        steps_per_decision=steps_per_decision,
+        n_step=n_step,
+    )
     return AnytimeTransitionCreator(cfg, sc)
 
 
