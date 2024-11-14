@@ -1,6 +1,6 @@
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import List
+from typing import List, Literal, assert_never
 
 import numpy as np
 import pandas as pd
@@ -24,7 +24,7 @@ class DataReader:
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
-        aggregation: str = "avg",
+        aggregation: Literal["avg"] | Literal["last"],
     ):
         query_str = f"""
             SELECT
@@ -51,7 +51,7 @@ class DataReader:
         return sensor_data
 
     def single_aggregated_read(
-        self, names: List[str], start_time: datetime, end_time: datetime, aggregation: str = "avg"
+        self, names: List[str], start_time: datetime, end_time: datetime, aggregation: Literal["avg"] | Literal["last"]
     ):
         bucket_width = end_time - start_time
 
@@ -103,15 +103,15 @@ def _time_bucket(bucket_width: timedelta, time_col: str, origin: datetime | None
         return f"time_bucket(INTERVAL '{bucket_width}', {time_col}, origin => {origin_ts}) + '{bucket_width}'"
 
 
-def _aggregator(aggregation: str, val_col: str, time_col: str | None = None) -> str:
-    assert aggregation in ["avg", "last"]
-    if aggregation == "avg":
-        return f"avg({val_col})"
-    elif aggregation == "last":
-        assert time_col is not None
-        return f"last({val_col}, {time_col})"
-    else:
-        raise NotImplementedError
+def _aggregator(aggregation: Literal["avg"] | Literal["last"], val_col: str, time_col: str | None = None) -> str:
+    match aggregation:
+        case "avg":
+            return f"avg({val_col})"
+        case "last":
+            assert time_col is not None
+            return f"last({val_col}, {time_col})"
+        case _:
+            assert_never(aggregation)
 
 
 def _time_between(time_col: str, start: datetime, end: datetime) -> str:
