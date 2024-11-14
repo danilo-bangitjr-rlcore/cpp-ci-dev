@@ -15,9 +15,9 @@ from corerl.utils.device import device
 
 @dataclass
 class BaseNNConfig:
-    base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
+    name: str = MISSING
 
-    dist: str = MISSING
+    base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
     head_layer_init: str = MISSING
     head_activation: list[list[dict[str, Any]]] = MISSING
     head_bias: bool = MISSING
@@ -103,8 +103,8 @@ def _create_continuous_mlp(
 ):
     assert cfg.base.name.lower() in ("mlp", "fc")
 
-    dist = get_dist_type(cfg.dist)
-    policy_type = get_type_from_str(cfg.dist)
+    dist = get_dist_type(cfg.name)
+    policy_type = get_type_from_str(cfg.name)
     assert issubclass(policy_type, ContinuousIIDPolicy)
 
     paths = policy_type.from_(None, dist, action_min, action_max).n_params
@@ -154,7 +154,7 @@ def create(
     action_min: torch.Tensor | float | None = None,
     action_max: torch.Tensor | float | None = None,
 ):
-    policy_type = get_type_from_str(cfg.dist)
+    policy_type = get_type_from_str(cfg.name)
     net = _create_nn(cfg, policy_type, input_dim, output_dim, action_min, action_max)
 
     if policy_type is Softmax:
@@ -164,7 +164,7 @@ def create(
         assert policy_type is Softmax
         return policy_type(net, input_dim, output_dim)
 
-    dist_type = get_dist_type(cfg.dist)
+    dist_type = get_dist_type(cfg.name)
     if policy_type is UnBounded:
         return policy_type(net, dist_type)
     return ContinuousIIDPolicy.from_(
