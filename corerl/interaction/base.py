@@ -6,8 +6,10 @@ from omegaconf import MISSING
 import gymnasium
 
 from corerl.alerts.composite_alert import CompositeAlert
+from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.data.data import Transition
+from corerl.data.base_tc import BaseTransitionCreator
 from corerl.utils.hydra import interpolate, Group
 
 @dataclass
