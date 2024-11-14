@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 import numpy as np
 import torch
 
-from corerl.component.network.factory import init_custom_network
+from corerl.component.network.factory import BaseNetworkConfig, init_custom_network
 from corerl.component.network.networks import NNTorsoConfig
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.optimizers.torch_opts import SgdConfig, OptimConfig
@@ -17,7 +17,7 @@ from corerl.utils.hydra import config, interpolate
 
 
 @dataclass
-class IBENetwork:
+class IBENetwork(BaseNetworkConfig):
     name: str = 'ensemble_fc'
     ensemble: int = interpolate('${agent.critic.critic_network.ensemble}')
     base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
