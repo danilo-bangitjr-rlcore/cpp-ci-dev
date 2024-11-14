@@ -1,6 +1,6 @@
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import List, Literal, assert_never, Any
+from typing import Any, List, Literal, assert_never
 
 import numpy as np
 import pandas as pd
@@ -24,7 +24,7 @@ class DataReader:
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
-        aggregation: Literal["avg"] | Literal["last"],
+        aggregation: Literal["avg"] | Literal["last"] = "avg",
     ):
         query_str = f"""
             SELECT
@@ -51,7 +51,11 @@ class DataReader:
         return sensor_data
 
     def single_aggregated_read(
-        self, names: List[str], start_time: datetime, end_time: datetime, aggregation: Literal["avg"] | Literal["last"]
+        self,
+        names: List[str],
+        start_time: datetime,
+        end_time: datetime,
+        aggregation: Literal["avg"] | Literal["last"] = "avg",
     ):
         bucket_width = end_time - start_time
 
@@ -133,9 +137,7 @@ def _filter_any(col: str, vals: list[str]) -> str:
 
 
 def fill_data_for_changed_setpoint(
-        change_tags: List[str],
-        dfs: List[pd.DataFrame],
-        delta_t: timedelta
+    change_tags: List[str], dfs: List[pd.DataFrame], delta_t: timedelta
 ) -> List[tuple[datetime, str, Any]]:
     data_tuples: List[tuple[datetime, str, Any]] = []
     largest_timestamp = None
@@ -143,26 +145,28 @@ def fill_data_for_changed_setpoint(
         columns = df.columns.values.tolist()  # datetime, tag, value
         tag = df.iloc[0, 1]
         if tag not in change_tags:
-            largest_timestamp = df[columns[0]].max() \
-                if largest_timestamp is None else \
-                max(largest_timestamp, df[columns[0]].max())
+            largest_timestamp = (
+                df[columns[0]].max() if largest_timestamp is None else max(largest_timestamp, df[columns[0]].max())
+            )
 
     for df in dfs:
         if df.iloc[0, 1] in change_tags:
-            for idx in range(len(df)-1):
+            for idx in range(len(df) - 1):
                 data_tuples += _fillin_between(df, idx, delta_t)
             # use largest_timestamp+delta_t to take care of the timestamp on the edge
             assert largest_timestamp is not None
-            data_tuples += _fillin_between(df, len(df) - 1, delta_t, largest_timestamp+delta_t)
+            data_tuples += _fillin_between(df, len(df) - 1, delta_t, largest_timestamp + delta_t)
         else:
             data_tuples += list(zip(*map(df.get, df), strict=True))
     return data_tuples
 
-def _fillin_between(df: pd.DataFrame, row: int, delta_t: timedelta, end_ts: datetime | None=None) \
-        -> List[tuple[datetime, str, Any]]:
+
+def _fillin_between(
+    df: pd.DataFrame, row: int, delta_t: timedelta, end_ts: datetime | None = None
+) -> List[tuple[datetime, str, Any]]:
     start_ts, tag, value = df.iloc[row]
     if end_ts is None:
-        end_ts, _, _ = df.iloc[row+1]
+        end_ts, _, _ = df.iloc[row + 1]
     ts = start_ts
     tuples: List[tuple[datetime, str, Any]] = []
     while ts < end_ts:
