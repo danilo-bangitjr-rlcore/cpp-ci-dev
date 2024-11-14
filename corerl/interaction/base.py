@@ -83,3 +83,9 @@ class BaseInteraction(ABC):
     @abstractmethod
     def init_alerts(self, composite_alert: CompositeAlert, alert_transition_creator: 'BaseTransitionCreator'):
         ...
+
+
+interaction_group = Group[
+    [gymnasium.Env, BaseStateConstructor, ObsTransitionNormalizer, BaseTransitionCreator],
+    BaseInteraction,
+]('interaction')

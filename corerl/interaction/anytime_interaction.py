@@ -7,17 +7,17 @@ from collections import deque
 
 from omegaconf import MISSING
 from corerl.state_constructor.base import BaseStateConstructor
-from corerl.interaction.base import BaseInteraction, BaseInteractionConfig
+from corerl.interaction.base import BaseInteraction, BaseInteractionConfig, interaction_group
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.data import Transition, OldObsTransition, ObsTransition
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
+from corerl.data.base_tc import BaseTransitionCreator
 from corerl.utils.hydra import interpolate
 
 # this is to avoid circular imports for type checking
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from corerl.data.transition_creator import BaseTransitionCreator
     from corerl.data.transition_creator import OldAnytimeTransitionCreator
 
 @dataclass
@@ -256,6 +256,9 @@ class AnytimeInteraction(BaseInteraction):
             self.alert_info_list = []
 
         return agent_train_transitions, alert_train_transitions
+
+
+interaction_group.dispatcher(AnytimeInteraction)
 
 
 @dataclass
