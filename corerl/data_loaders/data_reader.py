@@ -1,6 +1,6 @@
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import List, Literal, assert_never
+from typing import List, Literal, assert_never, Any
 
 import numpy as np
 import pandas as pd
