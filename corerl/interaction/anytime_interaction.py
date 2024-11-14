@@ -1,15 +1,17 @@
+from dataclasses import dataclass
 import numpy as np
 import gymnasium
 
 from gymnasium.spaces.utils import flatdim
 from collections import deque
 
-from omegaconf import DictConfig
+from omegaconf import MISSING
 from corerl.state_constructor.base import BaseStateConstructor
-from corerl.interaction.base import BaseInteraction
+from corerl.interaction.base import BaseInteraction, BaseInteractionConfig
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.data.data import Transition, OldObsTransition, ObsTransition
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
+from corerl.utils.hydra import interpolate
 
 # this is to avoid circular imports for type checking
 from typing import TYPE_CHECKING
@@ -17,6 +19,15 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from corerl.data.transition_creator import BaseTransitionCreator
     from corerl.data.transition_creator import OldAnytimeTransitionCreator
+
+@dataclass
+class AnytimeInteractionConfig(BaseInteractionConfig):
+    name: str = 'anytime'
+
+    gamma: float = interpolate('${experiment.gamma}')
+    n_step: int = 0
+    warmup_steps: int = 360
+
 
 class AnytimeInteraction(BaseInteraction):
     """
@@ -26,7 +37,7 @@ class AnytimeInteraction(BaseInteraction):
 
     def __init__(
             self,
-            cfg: DictConfig,
+            cfg: AnytimeInteractionConfig,
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
             normalizer: ObsTransitionNormalizer,
@@ -248,6 +259,18 @@ class AnytimeInteraction(BaseInteraction):
         return agent_train_transitions, alert_train_transitions
 
 
+@dataclass
+class OldAnytimeInteractionConfig(BaseInteractionConfig):
+    # because we want to deprecate this class,
+    # make it challenging to automatically instantiate it.
+    # Instead consumers must instantiate it directly when needed.
+    name: str = MISSING
+
+    gamma = interpolate('${experiment.gamma}')
+    n_step: int = 0
+    warmup_steps: int = 360
+
+
 class OldAnytimeInteraction(BaseInteraction):
     """
     Interaction that will repeat an action for some length of time, while the
@@ -256,7 +279,7 @@ class OldAnytimeInteraction(BaseInteraction):
 
     def __init__(
             self,
-            cfg: DictConfig,
+            cfg: OldAnytimeInteractionConfig,
             env: gymnasium.Env,
             state_constructor: BaseStateConstructor,
             alerts: CompositeAlert,

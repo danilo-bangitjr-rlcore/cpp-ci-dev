@@ -1,21 +1,28 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 import numpy as np
-from omegaconf import DictConfig
+from omegaconf import MISSING
 import gymnasium
 
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.data.data import Transition
+from corerl.utils.hydra import interpolate, Group
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from corerl.data.transition_creator import BaseTransitionCreator
+@dataclass
+class BaseInteractionConfig:
+    name: str = MISSING
+
+    only_dp_transitions: bool = False
+    timeout: int = interpolate('${experiment.timeout}')
+    steps_per_decision: int = 1
+    obs_length: int = 0
 
 
 class BaseInteraction(ABC):
     def __init__(self,
-                 cfg: DictConfig,
+                 cfg: BaseInteractionConfig,
                  env: gymnasium.Env,
                  state_constructor: BaseStateConstructor, **kwargs):
 
