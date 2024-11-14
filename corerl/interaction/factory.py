@@ -12,10 +12,5 @@ def init_interaction(cfg: BaseInteractionConfig,
                      env: gymnasium.Env,
                      sc: BaseStateConstructor,
                      agent_tc: BaseTransitionCreator,
-                     obs_normalizer:  ObsTransitionNormalizer,
-                     **kwargs) -> BaseInteraction:
-    name = cfg.name
-    if name == 'anytime':
-        return AnytimeInteraction(cfg, env, sc, obs_normalizer, agent_tc)
-    else:
-        raise NotImplementedError
+                     obs_normalizer:  ObsTransitionNormalizer):
+

@@ -24,7 +24,7 @@ class BaseInteraction(ABC):
     def __init__(self,
                  cfg: BaseInteractionConfig,
                  env: gymnasium.Env,
-                 state_constructor: BaseStateConstructor, **kwargs):
+                 state_constructor: BaseStateConstructor):
 
         self.env = env
         self.state_constructor = state_constructor
