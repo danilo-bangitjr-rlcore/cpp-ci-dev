@@ -18,9 +18,9 @@ class BaseNNConfig:
     name: str = MISSING
 
     base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
-    head_layer_init: str = MISSING
+    head_layer_init: str = 'Xavier'
     head_activation: list[list[dict[str, Any]]] = MISSING
-    head_bias: bool = MISSING
+    head_bias: bool = True
 
 
 def _create_nn(
