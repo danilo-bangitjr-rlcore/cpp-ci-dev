@@ -1,11 +1,13 @@
-from datetime import datetime, timedelta, UTC
-from corerl.sql_logging.sql_logging import get_sql_engine, SQLEngineConfig
+import logging
+from datetime import UTC, datetime, timedelta
+from typing import Any, List, Literal, assert_never
+
+import numpy as np
 import pandas as pd
 from sqlalchemy import Engine
-from typing import List, Any
-import numpy as np
+
 from corerl.data_loaders.utils import try_connect
-import logging
+from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 
 logger = logging.getLogger(__name__)
 
@@ -17,23 +19,23 @@ class DataReader:
         self.connection = try_connect(self.engine)
 
     def batch_aggregated_read(
-        self, names: List[str], start_time: datetime, end_time: datetime, bucket_width: timedelta
+        self,
+        names: List[str],
+        start_time: datetime,
+        end_time: datetime,
+        bucket_width: timedelta,
+        aggregation: Literal["avg"] | Literal["last"] = "avg",
     ):
-        """
-        NOTE: Addition of bucket_width in the select statement ensures that the labels
-        for the time buckets align with the end of the bucket rather than the beginnning.
-        """
-
         query_str = f"""
             SELECT
-              time_bucket(INTERVAL '{bucket_width}', time) + '{bucket_width}' as time_bucket,
-              name,
-              avg({_parse_jsonb('fields')}) AS avg_val
+                {_time_bucket(bucket_width=bucket_width, time_col='time')} as time_bucket,
+                name,
+                {_aggregator(aggregation=aggregation, val_col=_parse_jsonb('fields'), time_col='time')} AS val
             FROM {self.sensor_table_name}
             WHERE {_time_between('time', start_time, end_time)}
             AND {_filter_any('name', names)}
             GROUP BY time_bucket, name
-            ORDER BY time_bucket DESC, name ASC;
+            ORDER BY time_bucket ASC, name ASC;
         """
 
         sensor_data = pd.read_sql(sql=query_str, con=self.connection)
@@ -41,24 +43,32 @@ class DataReader:
             logger.warning(f"failed query:\n{query_str}")
             raise Exception("dataframe returned from timescale was empty.")
 
-        sensor_data = sensor_data.pivot(columns="name", values="avg_val", index="time_bucket")
+        sensor_data = sensor_data.pivot(columns="name", values="val", index="time_bucket")
 
         missing_cols = set(names) - set(sensor_data.columns)
         sensor_data[list(missing_cols)] = np.nan
 
         return sensor_data
 
-    def single_aggregated_read(self, names: List[str], start_time: datetime, end_time: datetime):
+    def single_aggregated_read(
+        self,
+        names: List[str],
+        start_time: datetime,
+        end_time: datetime,
+        aggregation: Literal["avg"] | Literal["last"] = "avg",
+    ):
+        bucket_width = end_time - start_time
 
         query_str = f"""
             SELECT
-              name,
-              avg({_parse_jsonb('fields')}) AS avg_val
+                {_time_bucket(bucket_width=bucket_width, time_col='time', origin=start_time)} as time_bucket,
+                name,
+                {_aggregator(aggregation=aggregation, val_col=_parse_jsonb('fields'), time_col='time')} AS val
             FROM {self.sensor_table_name}
             WHERE {_time_between('time', start_time, end_time)}
             AND {_filter_any('name', names)}
-            GROUP BY name
-            ORDER BY name ASC;
+            GROUP BY time_bucket, name
+            ORDER BY time_bucket ASC, name ASC;
         """
 
         sensor_data = pd.read_sql(sql=query_str, con=self.connection)
@@ -67,8 +77,13 @@ class DataReader:
             raise Exception("dataframe returned from timescale was empty.")
 
         # add time column to enable pivot
-        sensor_data["time"] = end_time
-        sensor_data = sensor_data.pivot(columns="name", values="avg_val", index="time")
+        sensor_data = sensor_data.pivot(columns="name", values="val", index="time_bucket")
+        n_rows = sensor_data.shape[0]
+        if n_rows != 1:
+            logger.warning(
+                f"single_aggregated_read returned {n_rows}, expected 1. Taking the last row (newest data)..."
+            )
+            sensor_data = sensor_data.iloc[-1]
 
         missing_cols = set(names) - set(sensor_data.columns)
         sensor_data[list(missing_cols)] = np.nan
@@ -78,6 +93,31 @@ class DataReader:
     def close(self) -> None:
         self.connection.close()
 
+
+def _time_bucket(bucket_width: timedelta, time_col: str, origin: datetime | None = None) -> str:
+    """
+    NOTE: Addition of bucket_width in the timebucket definition ensures that the labels
+    for the time buckets align with the end of the bucket rather than the beginnning.
+    """
+    if origin is None:
+        return f"time_bucket(INTERVAL '{bucket_width}', {time_col}) + '{bucket_width}'"
+    else:
+        assert origin.tzinfo == UTC
+        origin_ts = f"TIMESTAMP '{origin.isoformat()}'"
+        return f"time_bucket(INTERVAL '{bucket_width}', {time_col}, origin => {origin_ts}) + '{bucket_width}'"
+
+
+def _aggregator(aggregation: Literal["avg"] | Literal["last"], val_col: str, time_col: str | None = None) -> str:
+    match aggregation:
+        case "avg":
+            return f"avg({val_col})"
+        case "last":
+            assert time_col is not None
+            return f"last({val_col}, {time_col})"
+        case _:
+            assert_never(aggregation)
+
+
 def _time_between(time_col: str, start: datetime, end: datetime) -> str:
     assert start.tzinfo == UTC
     assert end.tzinfo == UTC
@@ -86,18 +126,18 @@ def _time_between(time_col: str, start: datetime, end: datetime) -> str:
         AND {time_col} < TIMESTAMP '{end.isoformat()}'
     """
 
-def _parse_jsonb(col: str, attribute: str = 'val', type_str: str = 'float') -> str:
+
+def _parse_jsonb(col: str, attribute: str = "val", type_str: str = "float") -> str:
     return f"({col}->'{attribute}')::{type_str}"
 
+
 def _filter_any(col: str, vals: list[str]) -> str:
-    s = '\tOR '.join([f"{col} = '{v}'\n" for v in vals])
-    return f'({s})'
+    s = "\tOR ".join([f"{col} = '{v}'\n" for v in vals])
+    return f"({s})"
 
 
 def fill_data_for_changed_setpoint(
-        change_tags: List[str],
-        dfs: List[pd.DataFrame],
-        delta_t: timedelta
+    change_tags: List[str], dfs: List[pd.DataFrame], delta_t: timedelta
 ) -> List[tuple[datetime, str, Any]]:
     data_tuples: List[tuple[datetime, str, Any]] = []
     largest_timestamp = None
@@ -105,26 +145,28 @@ def fill_data_for_changed_setpoint(
         columns = df.columns.values.tolist()  # datetime, tag, value
         tag = df.iloc[0, 1]
         if tag not in change_tags:
-            largest_timestamp = df[columns[0]].max() \
-                if largest_timestamp is None else \
-                max(largest_timestamp, df[columns[0]].max())
+            largest_timestamp = (
+                df[columns[0]].max() if largest_timestamp is None else max(largest_timestamp, df[columns[0]].max())
+            )
 
     for df in dfs:
         if df.iloc[0, 1] in change_tags:
-            for idx in range(len(df)-1):
+            for idx in range(len(df) - 1):
                 data_tuples += _fillin_between(df, idx, delta_t)
             # use largest_timestamp+delta_t to take care of the timestamp on the edge
             assert largest_timestamp is not None
-            data_tuples += _fillin_between(df, len(df) - 1, delta_t, largest_timestamp+delta_t)
+            data_tuples += _fillin_between(df, len(df) - 1, delta_t, largest_timestamp + delta_t)
         else:
             data_tuples += list(zip(*map(df.get, df), strict=True))
     return data_tuples
 
-def _fillin_between(df: pd.DataFrame, row: int, delta_t: timedelta, end_ts: datetime | None=None) \
-        -> List[tuple[datetime, str, Any]]:
+
+def _fillin_between(
+    df: pd.DataFrame, row: int, delta_t: timedelta, end_ts: datetime | None = None
+) -> List[tuple[datetime, str, Any]]:
     start_ts, tag, value = df.iloc[row]
     if end_ts is None:
-        end_ts, _, _ = df.iloc[row+1]
+        end_ts, _, _ = df.iloc[row + 1]
     ts = start_ts
     tuples: List[tuple[datetime, str, Any]] = []
     while ts < end_ts:

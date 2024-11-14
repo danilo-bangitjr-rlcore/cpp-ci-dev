@@ -109,6 +109,9 @@ class DataWriter:
 
 
     def _write(self, points: list[Point]):
+        if len(points) == 0:
+            return
+
         insert_stmt = f"""
             INSERT INTO {self.sensor_table_name}
             (time, host, id, name, \"Quality\", fields)

@@ -39,6 +39,7 @@ def write_n_random_vals(
         ts = end_time - i * interval
         val = random()
         data_writer.write(timestamp=ts, name=name, val=val)
+        data_writer.blocking_sync()
 
 
 @pytest.mark.skip(reason="github actions do not yet support docker")
