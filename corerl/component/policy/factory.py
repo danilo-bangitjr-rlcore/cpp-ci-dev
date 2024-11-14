@@ -13,17 +13,6 @@ import torch
 from corerl.utils.device import device
 
 
-def get_type_from_str(type_: str) -> type[Policy]:
-    if type_.lower() == "softmax":
-        return Softmax
-
-    try:
-        return _get_type_from_dist(get_dist_type(type_))
-
-    except NotImplementedError as e:
-        raise NotImplementedError(f"unknown policy type {type_}") from e
-
-
 @dataclass
 class BaseNNConfig:
     base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
@@ -144,6 +133,18 @@ def _create_continuous_mlp(
     head = Parallel(*(nn.Sequential(*path) for path in head_layers))
 
     return nn.Sequential(nn.Sequential(*net), head).to(device.device)
+
+
+
+def get_type_from_str(type_: str) -> type[Policy]:
+    if type_.lower() == "softmax":
+        return Softmax
+
+    try:
+        return _get_type_from_dist(get_dist_type(type_))
+
+    except NotImplementedError as e:
+        raise NotImplementedError(f"unknown policy type {type_}") from e
 
 
 def create(
