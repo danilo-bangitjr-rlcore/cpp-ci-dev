@@ -9,17 +9,11 @@ import torch
 from corerl.component.network.factory import init_custom_network
 from corerl.component.network.networks import NNTorsoConfig
 from corerl.component.optimizers.factory import init_optimizer
+from corerl.component.optimizers.torch_opts import SgdConfig, OptimConfig
 from corerl.eval.base_eval import BaseEval, EvalConfig
 from corerl.data.data import TransitionBatch
 from corerl.component.network.utils import ensemble_mse, to_np
 from corerl.utils.hydra import config, interpolate
-
-
-@dataclass
-class IBEOptimizer:
-    name: str = 'adam'
-    lr: float = 0.0001
-    weight_decay: float = 0.0
 
 
 @dataclass
@@ -36,7 +30,7 @@ class IBEConfig(EvalConfig):
     n_updates: int = 1
     smoothing_window: int = 10
 
-    optimizer: IBEOptimizer = field(default_factory=IBEOptimizer)
+    optimizer: OptimConfig = field(default_factory=SgdConfig)
     network: IBENetwork = field(default_factory=IBENetwork)
 
     offline_eval: bool = True
