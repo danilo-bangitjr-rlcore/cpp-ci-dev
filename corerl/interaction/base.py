@@ -33,6 +33,7 @@ class BaseInteraction(ABC):
         self.timeout = cfg.timeout  # When timeout is set to 0, there is no timeout.
         self.internal_clock = 0
 
+        self.only_dp_transitions = cfg.only_dp_transitions
         self.steps_per_decision = cfg.steps_per_decision  # how many observation steps per decision step
         self.obs_length = cfg.obs_length  # how often to update the observation
         assert self.obs_length >= 0

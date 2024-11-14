@@ -61,7 +61,6 @@ class AnytimeInteraction(BaseInteraction):
         self.warmup_steps = cfg.warmup_steps
 
         self.alert_info_list = []
-        self.only_dp_transitions = cfg.only_dp_transitions
         self.steps_until_decision = self.steps_per_decision
 
     def init_alerts(
@@ -303,7 +302,6 @@ class OldAnytimeInteraction(BaseInteraction):
         self.warmup_steps = cfg.warmup_steps
 
         self.alert_info_list = []
-        self.only_dp_transitions = cfg.only_dp_transitions
         self.curr_decision_obs_transitions = []
         self.curr_decision_states = []
         self.prev_decision_point = True
