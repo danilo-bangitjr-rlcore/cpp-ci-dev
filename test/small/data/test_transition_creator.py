@@ -23,19 +23,21 @@ def test_regular_rl_transition_creator():
     )
 
     # transform first observation into a state
+    first_obs = np.array([100])
+    first_act = np.array([0])
     state = sc(
-        obs=np.array([100]),
-        action=np.array([0]),
+        obs=first_obs,
+        action=first_act,
         initial_state=True,
     )
     tc.reset(state, dp=True, steps_until_decision=5)
 
-    # the next 4 obs transitions are interior to the decision window
-    # and so will not produce a transition
+    # Add the first 4 transitions to the TC.
+    # No transition is created until `next_dp=True`
     for i in range(4):
         next_transition = ObsTransition(
-            obs=np.array([100 + i]),
-            action=np.array([0]),
+            obs=first_obs + i,
+            action=first_act,
             reward=1.0,
             next_obs=np.array([101 + i]),
             terminated=False,
@@ -58,7 +60,7 @@ def test_regular_rl_transition_creator():
     # so a new transition should be created
     next_transition = ObsTransition(
         obs=np.array([104]),
-        action=np.array([0]),
+        action=first_act,
         reward=1.0,
         next_obs=np.array([105]),
         terminated=False,
@@ -78,9 +80,9 @@ def test_regular_rl_transition_creator():
 
     assert len(transitions) == 1
     assert transitions[0] == Transition(
-        obs=np.array([100]),
+        obs=first_obs,
         state=np.array([1, 0, 100]),
-        action=np.array([0]),
+        action=first_act,
         next_obs=np.array([101]),
         next_state=np.array([0, 0, 101]),
         reward=1.0,
