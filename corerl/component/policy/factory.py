@@ -4,13 +4,17 @@ from typing import Any
 from omegaconf import MISSING
 import corerl.component.network.utils as utils
 from corerl.component.policy.softmax import Softmax, Policy
-from corerl.component.policy.policy import ContinuousIIDPolicy, UnBounded, _get_type_from_dist
+from corerl.component.policy.policy import ContinuousIIDPolicy, _get_type_from_dist
 from corerl.component.distribution import get_dist_type
 from corerl.component.network.networks import _create_layer, create_base, NNTorsoConfig
 from corerl.component.layer import init_activation, Parallel
 import torch.nn as nn
 import torch
 from corerl.utils.device import device
+from corerl.utils.hydra import Group, list_
+
+
+HeadActivation = list[list[dict[str, Any]]]
 
 
 @dataclass
@@ -19,7 +23,7 @@ class BaseNNConfig:
 
     base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
     head_layer_init: str = 'Xavier'
-    head_activation: list[list[dict[str, Any]]] = MISSING
+    head_activation: HeadActivation = MISSING
     head_bias: bool = True
 
 
@@ -136,6 +140,160 @@ def _create_continuous_mlp(
 
 
 
+policy_group = Group[
+    [int, int, torch.Tensor | float | None, torch.Tensor | float | None],
+    Policy,
+]('agent/actor/actor_network')
+
+
+@dataclass
+class BetaPolicyConfig(BaseNNConfig):
+    name: str = 'beta'
+
+    head_activation: HeadActivation = list_([
+        [{'name': 'softplus'}, {'name': 'bias', 'args': [1]}],
+        [{
+            'name': 'tanh_shift',
+            'kwargs': { 'shift': -4, 'denom': 1, 'high': 10_000, 'low': 1 },
+        }],
+    ])
+
+
+@policy_group.dispatcher
+def _beta(
+    cfg: BetaPolicyConfig,
+    input_dim: int,
+    output_dim: int,
+    action_min: torch.Tensor | float | None,
+    action_max: torch.Tensor | float | None,
+):
+    return ContinuousIIDPolicy.from_(
+        _create_continuous_mlp(cfg, input_dim, output_dim, action_min, action_max),
+        get_dist_type('beta'),
+        action_min=action_min,
+        action_max=action_max,
+    )
+
+
+@dataclass
+class GammaPolicyConfig(BaseNNConfig):
+    name: str = 'gamma'
+
+    # Since policies should always return actions in [0, 1], we can force the
+    # mean to stay within this range
+    head_activation: HeadActivation = list_([
+        [{'name': 'softplus'}, {'name': 'bias', 'args': [1]}],
+        [{'name': 'softplus'}, {'name': 'bias', 'args': [1]}],
+    ])
+
+@policy_group.dispatcher
+def _gamma(
+    cfg: GammaPolicyConfig,
+    input_dim: int,
+    output_dim: int,
+    action_min: torch.Tensor | float | None,
+    action_max: torch.Tensor | float | None,
+):
+    return ContinuousIIDPolicy.from_(
+        _create_continuous_mlp(cfg, input_dim, output_dim, action_min, action_max),
+        get_dist_type('gamma'),
+        action_min=action_min,
+    )
+
+
+
+@dataclass
+class LaplacePolicyConfig(BaseNNConfig):
+    name: str = 'laplace'
+
+    head_activation: HeadActivation = list_([
+        [{"name": "functional", "args": ["sigmoid"]}],
+        [{"name": "clamp", "args": [-20, 2]}, {"name": "exp"}],
+    ])
+
+@policy_group.dispatcher
+def _laplace(
+    cfg: LaplacePolicyConfig,
+    input_dim: int,
+    output_dim: int,
+    action_min: torch.Tensor | float | None,
+    action_max: torch.Tensor | float | None,
+):
+    return ContinuousIIDPolicy.from_(
+        _create_continuous_mlp(cfg, input_dim, output_dim, action_min, action_max),
+        get_dist_type('laplace'),
+    )
+
+
+@dataclass
+class NormalPolicyConfig(BaseNNConfig):
+    name: str = 'normal'
+
+    head_activation: HeadActivation = list_([
+        [{"name": "functional", "args": ["sigmoid"]}],
+        [{"name": "clamp", "args": [-20, 2]}, {"name": "exp"}],
+    ])
+
+@policy_group.dispatcher
+def _normal(
+    cfg: NormalPolicyConfig,
+    input_dim: int,
+    output_dim: int,
+    action_min: torch.Tensor | float | None,
+    action_max: torch.Tensor | float | None,
+):
+    return ContinuousIIDPolicy.from_(
+        _create_continuous_mlp(cfg, input_dim, output_dim, action_min, action_max),
+        get_dist_type('normal'),
+    )
+
+
+@dataclass
+class SquashedGaussianPolicyConfig(BaseNNConfig):
+    name: str = 'squashed_gaussian'
+
+    head_activation: HeadActivation = list_([
+        [{"name": "identity"}],
+        [{"name": "clamp", "args": [-20, 2]}, {"name": "exp"}],
+    ])
+
+
+@policy_group.dispatcher
+def _squashed_gaussian(
+    cfg: SquashedGaussianPolicyConfig,
+    input_dim: int,
+    output_dim: int,
+    action_min: torch.Tensor | float | None,
+    action_max: torch.Tensor | float | None,
+):
+    return ContinuousIIDPolicy.from_(
+        _create_continuous_mlp(cfg, input_dim, output_dim, action_min, action_max),
+        get_dist_type('squashed_gaussian'),
+        action_min=action_min,
+        action_max=action_max,
+    )
+
+
+@dataclass
+class SoftmaxPolicyConfig(BaseNNConfig):
+    name: str = 'softmax'
+
+    head_activation: HeadActivation = list_([
+        [{"name": "identity"}],
+    ])
+
+@policy_group.dispatcher
+def _softmax(
+    cfg: SoftmaxPolicyConfig,
+    input_dim: int,
+    output_dim: int,
+    action_min: torch.Tensor | float | None,
+    action_max: torch.Tensor | float | None,
+):
+    net = _create_discrete_mlp(cfg, input_dim, output_dim)
+    return Softmax(net, input_dim, output_dim)
+
+
 def get_type_from_str(type_: str) -> type[Policy]:
     if type_.lower() == "softmax":
         return Softmax
@@ -154,22 +312,4 @@ def create(
     action_min: torch.Tensor | float | None = None,
     action_max: torch.Tensor | float | None = None,
 ):
-    policy_type = get_type_from_str(cfg.name)
-    net = _create_nn(cfg, policy_type, input_dim, output_dim, action_min, action_max)
-
-    if policy_type is Softmax:
-        return Softmax(net, input_dim, output_dim)
-
-    if not policy_type.continuous():
-        assert policy_type is Softmax
-        return policy_type(net, input_dim, output_dim)
-
-    dist_type = get_dist_type(cfg.name)
-    if policy_type is UnBounded:
-        return policy_type(net, dist_type)
-    return ContinuousIIDPolicy.from_(
-        net,
-        dist_type,
-        action_min=action_min,
-        action_max=action_max,
-    )
+    return policy_group.dispatch(cfg, input_dim, output_dim, action_min, action_max)
