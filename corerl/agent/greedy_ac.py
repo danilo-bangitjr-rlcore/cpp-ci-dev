@@ -17,7 +17,7 @@ from corerl.agent.base import BaseAC, BaseACConfig, group
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, state_to_tensor
+from corerl.component.network.utils import to_np, tensor, state_to_tensor
 from corerl.component.exploration.factory import init_exploration_module
 from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import TransitionBatch, Transition
@@ -44,6 +44,10 @@ class GreedyACConfig(BaseACConfig):
     share_batch: bool = True
     tau: float = 0.0
     uniform_sampling_percentage: float = 0.5
+    delta_actor: bool = False
+    delta_critic: bool = False
+    guardrail_low: list[float] = MISSING
+    guardrail_high: list[float] = MISSING
 
     actor: Any = MISSING
     critic: Any = MISSING
@@ -103,7 +107,70 @@ class GreedyAC(BaseAC):
                 self.num_samples = self.action_dim
                 self.top_actions_proposal = self.action_dim
 
+        self.delta_actor = cfg.delta_actor
+        self.delta_critic = cfg.delta_critic
+        assert not self.delta_critic # delta_critic==True hasn't been tested
+
+        self.action_normalizer = None
+        self.delta_action_normalizer = None
+        self.interaction_get_action = lambda action, state: action
+        self.interaction_get_action_inverse = lambda action, state: action
+        if self.delta_actor:
+            self.interaction_get_action = self.delta_to_direct
+            self.interaction_get_action_inverse = self.direct_to_delta
+
+        self.get_action_for_critic = lambda out, prev_action: out
+        if not self.delta_critic:
+            self.get_action_for_critic = self.delta_to_direct
+
+        self.guardrail_low = tensor(numpy.array(cfg.guardrail_low), 'cpu')
+        self.guardrail_high = tensor(numpy.array(cfg.guardrail_high), 'cpu')
+
         self._hooks(when.Agent.AfterCreate, self)
+
+    def set_normalizer(self, action_normalizer, delta_action_normalizer):
+        self.action_normalizer = action_normalizer
+        self.delta_action_normalizer = delta_action_normalizer
+
+    def delta_to_direct(self, delta_action, prev_action):
+
+        if len(delta_action.size()) == 3: # [batch_size, n_samples, action_dim]
+            prev_action = prev_action.reshape(delta_action.size())
+        if type(delta_action) == torch.Tensor:
+            delta_action = delta_action.cpu()
+        if type(prev_action) == torch.Tensor:
+            prev_action = prev_action.cpu()
+        new_action = self.action_normalizer(
+            (self.delta_action_normalizer.denormalize(delta_action) +
+            self.action_normalizer.denormalize(prev_action)).clip(self.guardrail_low, self.guardrail_high)
+        )
+        new_action = new_action.type(type(delta_action))
+        if type(new_action) == torch.Tensor:
+            new_action = new_action.to(device=device.device)
+        return new_action
+
+    def direct_to_delta(self, direct_action, prev_action):
+
+        if len(direct_action.size()) == 3: # [batch_size, n_samples, action_dim]
+            prev_action = prev_action.reshape(direct_action.size())
+        if type(direct_action) == torch.Tensor:
+            direct_action = direct_action.cpu()
+        if type(prev_action) == torch.Tensor:
+            prev_action = prev_action.cpu()
+        new_action = self.delta_action_normalizer(
+            self.action_normalizer.denormalize(direct_action) -
+            self.action_normalizer.denormalize(prev_action)
+        )
+        if type(new_action) == torch.Tensor:
+            new_action = new_action.to(device=device.device)
+        return new_action
+
+    def get_action_from_state(self, state: numpy.ndarray | torch.Tensor) \
+            -> numpy.ndarray | torch.Tensor:
+        if len(state.shape) == 1:
+            return state[1: self.action_dim+1]
+        else:
+            return state[:, 1: self.action_dim+1]
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         self._msg_bus.emit_event_sync(EventType.agent_get_action)
@@ -112,15 +179,18 @@ class GreedyAC(BaseAC):
 
         args, _ = self._hooks(when.Agent.BeforeGetAction, self, tensor_state)
         tensor_state = args[1]
-        tensor_action, action_info = self.actor.get_action(
+        tensor_actor_action, action_info = self.actor.get_action(
             tensor_state, with_grad=False,
         )
 
         args, _ = self._hooks(
-            when.Agent.AfterGetAction, self, tensor_state, tensor_action,
+            when.Agent.AfterGetAction, self, tensor_state, tensor_actor_action,
         )
-        tensor_state, tensor_action = args[1:]
-        action = to_np(tensor_action)[0]
+        tensor_state, tensor_actor_action = args[1:]
+
+        prev_action = self.get_action_from_state(state)
+        action = self.interaction_get_action(tensor_actor_action, prev_action)
+        action = to_np(action)
 
         # log the action_info to the freezer
         fr.freezer.store('action_info', action_info)
@@ -264,8 +334,10 @@ class GreedyAC(BaseAC):
         # recall that if self.sample_all_discrete_actions then self.num_samples = self.action_dim
         repeated_states: Float[torch.Tensor, 'batch_size*num_samples state_dim']
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
+        prev_action_batch = self.get_action_from_state(repeated_states)
 
         sample_actions = self.get_sampled_actions(state_batch)
+        sample_actions = self.get_action_for_critic(sample_actions, prev_action_batch)
         sorted_q_inds = self.get_sorted_q_values(state_batch, sample_actions)
         best_actions = self.get_top_actions(sample_actions, sorted_q_inds, n_top_actions=self.top_actions)
 
@@ -294,7 +366,8 @@ class GreedyAC(BaseAC):
             gamma_exp_batch = batch.gamma_exponent
             dp_mask = batch.boot_state_dp
 
-            next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
+            next_actor_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
+            next_actions = self.get_action_for_critic(next_actor_actions, action_batch)
             # For the 'Anytime' paradigm, only states at decision points can sample next_actions
             # If a state isn't at a decision point, its next_action is set to the current action
             with torch.no_grad():
@@ -530,14 +603,18 @@ class GreedyAC(BaseAC):
             )
 
     def actor_err(self, stacked_s_batch, best_actions) -> torch.Tensor:
+        prev_actions = self.get_action_from_state(stacked_s_batch)
+        best_actor_actions = self.interaction_get_action_inverse(best_actions, prev_actions)
         logp, _ = self.actor.get_log_prob(
-            stacked_s_batch, best_actions, with_grad=True,
+            stacked_s_batch, best_actor_actions, with_grad=True,
         )
         return -logp.mean()
 
     def sampler_err(self, stacked_s_batch, best_actions) -> torch.Tensor:
+        prev_actions = self.get_action_from_state(stacked_s_batch)
+        best_actor_actions = self.interaction_get_action_inverse(best_actions, prev_actions)
         logp, _ = self.sampler.get_log_prob(
-            stacked_s_batch, best_actions, with_grad=True,
+            stacked_s_batch, best_actor_actions, with_grad=True,
         )
         return -logp.mean()
 
