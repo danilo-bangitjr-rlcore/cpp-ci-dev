@@ -4,7 +4,7 @@ from typing import Any
 from omegaconf import MISSING
 import corerl.component.network.utils as utils
 from corerl.component.policy.softmax import Softmax, Policy
-from corerl.component.policy.policy import ContinuousIIDPolicy, _get_type_from_dist
+from corerl.component.policy.policy import ContinuousIIDPolicy
 from corerl.component.distribution import get_dist_type
 from corerl.component.network.networks import _create_layer, create_base, NNTorsoConfig
 from corerl.component.layer import init_activation, Parallel
@@ -25,34 +25,6 @@ class BaseNNConfig:
     head_layer_init: str = 'Xavier'
     head_activation: HeadActivation = MISSING
     head_bias: bool = True
-
-
-def _create_nn(
-    cfg: BaseNNConfig,
-    policy_type: type[Policy],
-    input_dim: int,
-    output_dim: int,
-    action_min: torch.Tensor | float | None,
-    action_max: torch.Tensor | float | None,
-):
-    name = cfg.base.name
-    if name.lower() in ("mlp", "fc"):
-        return _create_mlp(cfg, policy_type, input_dim, output_dim, action_min, action_max)
-    raise NotImplementedError(f"unknown neural network type {name}")
-
-
-def _create_mlp(
-    cfg: BaseNNConfig,
-    policy_type: type[Policy],
-    input_dim: int,
-    output_dim: int,
-    action_min: torch.Tensor | float | None,
-    action_max: torch.Tensor | float | None,
-):
-    continuous = policy_type.continuous
-    if not continuous:
-        return _create_discrete_mlp(cfg, input_dim, output_dim)
-    return _create_continuous_mlp(cfg, input_dim, output_dim, action_min, action_max)
 
 
 def _create_discrete_mlp(cfg: BaseNNConfig, input_dim: int, output_dim: int):
@@ -108,10 +80,7 @@ def _create_continuous_mlp(
     assert cfg.base.name.lower() in ("mlp", "fc")
 
     dist = get_dist_type(cfg.name)
-    policy_type = get_type_from_str(cfg.name)
-    assert issubclass(policy_type, ContinuousIIDPolicy)
-
-    paths = policy_type.from_(None, dist, action_min, action_max).n_params
+    paths = ContinuousIIDPolicy.from_(None, dist, action_min, action_max).n_params
 
     head_act = cfg.head_activation
     head_bias = cfg.head_bias
@@ -293,16 +262,6 @@ def _softmax(
     net = _create_discrete_mlp(cfg, input_dim, output_dim)
     return Softmax(net, input_dim, output_dim)
 
-
-def get_type_from_str(type_: str) -> type[Policy]:
-    if type_.lower() == "softmax":
-        return Softmax
-
-    try:
-        return _get_type_from_dist(get_dist_type(type_))
-
-    except NotImplementedError as e:
-        raise NotImplementedError(f"unknown policy type {type_}") from e
 
 
 def create(
