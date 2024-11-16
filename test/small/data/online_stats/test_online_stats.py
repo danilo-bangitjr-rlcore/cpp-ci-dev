@@ -14,7 +14,7 @@ def test_return_constant_val():
     ema = ExpMovingBatchAvg(alpha)
     mu = None
     for _ in range(3):
-        ema.feed(np.array([x]))
+        ema.feed(x)
 
     mu = ema()
     assert mu == 1.0
@@ -30,7 +30,7 @@ def test_9_to_1_result():
     ema = ExpMovingBatchAvg(alpha)
     mu = None
     for x in range(9, 0, -1):
-        ema.feed(np.array([x]))
+        ema.feed(x)
 
     mu = ema()
     assert np.isclose(mu, 0.9 * 1.23456789)
@@ -102,7 +102,7 @@ def try_test_longrun_exp_moving_var():
     emv = ExpMovingBatchVar(alpha)
     for _ in range(10_000):
         z = np.random.normal()
-        emv.feed(np.array([z]))
+        emv.feed(z)
 
     # test mean
     assert abs(emv.ema()) < epsilon
@@ -138,10 +138,10 @@ def test_var_differential():
     high_var_emv = ExpMovingBatchVar(alpha)
     for _ in range(10_000):
         z = np.random.normal()
-        low_var_emv.feed(np.array([z]))
+        low_var_emv.feed(z)
 
         x = 2 * np.random.normal()
-        high_var_emv.feed(np.array([x]))
+        high_var_emv.feed(x)
 
     assert low_var_emv() < high_var_emv()
 
@@ -152,10 +152,10 @@ def test_batch_var_differential():
     high_var_emv = ExpMovingBatchVar(alpha)
     for _ in range(10_000):
         z_batch = np.array([np.random.normal() for _ in range(5)])
-        low_var_emv.feed(np.array([z_batch]))
+        low_var_emv.feed(z_batch)
 
         x_batch = np.array([2 * np.random.normal() for _ in range(5)])
-        high_var_emv.feed(np.array([x_batch]))
+        high_var_emv.feed(x_batch)
 
     assert low_var_emv() < high_var_emv()
 
@@ -172,16 +172,16 @@ def try_var_adaptation():
     # start with higher variance
     for _ in range(10_000):
         x = 2 * np.random.normal()
-        emv.feed(np.array(x))
+        emv.feed(x)
 
     # test var
     var = emv()
-    assert abs(var - 4.0) < 4*epsilon # more wiggle room for high var
+    assert abs(var - 4.0) < 4 * epsilon  # more wiggle room for high var
 
     # finish with low variance
     for _ in range(10_000):
         z = np.random.normal()
-        emv.feed(np.array(z))
+        emv.feed(z)
 
     # test var
     var = emv()
