@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 import numpy as np
 import pandas as pd
 
@@ -87,3 +89,30 @@ def test_detection_with_multiple_cols():
 
     assert np.isnan(data[name_x].iloc[0])
     assert not np.isnan(data[name_y].iloc[0])
+
+
+def test_detector_does_not_change_indices():
+    outlier_detector = ExpMovingDetector(alpha=0.99)
+    n = 5
+    values = [1] * n
+    base_timestamp = datetime.strptime("31/01/24 23:59:59", "%d/%m/%y %H:%M:%S")
+    timestamps = [base_timestamp + i * timedelta(minutes=5) for i in range(n)]
+    name = "sensor_x"
+
+    data = pd.DataFrame({name: values}, index=pd.DatetimeIndex(timestamps))
+    outlier_detector.filter(data)
+
+    for i, dt_index in enumerate(data.index):
+        ts = pd.to_datetime(dt_index)
+        assert ts == timestamps[i]
+
+    # catch the outlier
+    values = [10]  # <- this is the outlier
+    outlier_ts = timestamps[-1] + timedelta(minutes=5)
+    data = pd.DataFrame({name: values}, index=pd.DatetimeIndex([outlier_ts]))
+    outlier_detector.filter(data)
+
+    assert np.isnan(data[name].iloc[0])
+
+    ts = pd.to_datetime(data.index[0])
+    assert ts == outlier_ts
