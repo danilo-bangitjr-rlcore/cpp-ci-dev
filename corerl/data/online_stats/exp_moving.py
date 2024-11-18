@@ -6,7 +6,7 @@ from numpy import ndarray
 logger = logging.getLogger(__name__)
 
 
-class ExpMovingBatchAvg:
+class ExpMovingAvg:
     def __init__(self, alpha: float) -> None:
         self.alpha = alpha
         self.mu: float | None = None
@@ -23,10 +23,10 @@ class ExpMovingBatchAvg:
             self.mu = (1 - self.alpha) * batch_avg + self.alpha * self.mu
 
 
-class ExpMovingBatchVar:
+class ExpMovingVar:
     def __init__(self, alpha: float) -> None:
         self.alpha = alpha
-        self.ema = ExpMovingBatchAvg(alpha)
+        self.ema = ExpMovingAvg(alpha)
         self.var: float | None = None
 
     def __call__(self) -> float:
