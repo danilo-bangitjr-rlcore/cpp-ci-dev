@@ -439,8 +439,8 @@ def get_action_windows(obs_transitions: list[OldObsTransition]):
     for action_window in action_windows:
         action = action_window[0].action
         for obs_t in action_window:  # all elements of the action window has the same action
-            assert np.array_equal(action,obs_t.action) 
-        assert np.array_equal(action,prev_action) == False  # neighbouring action windows have different actions
+            assert np.array_equal(action,obs_t.action)
+        assert not np.array_equal(action,prev_action)  # neighbouring action windows have different actions
         prev_action = action
 
     return action_windows
