@@ -158,45 +158,43 @@ def main(cfg: MainConfig):
     test_epochs = cfg.experiment.test_epochs
     if test_epochs is None:
         test_epochs = []
-    
+        
+    log.info('Starting offline agent training...')
+    offline_eval_args = {
+        'agent': agent
+    }
+    offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
 
-    if cfg.calibration_model.offline_training == True:
-        log.info('Starting offline agent training...')
-        offline_eval_args = {
-            'agent': agent
-        }
-        offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
+    log.debug(f"Num agent train transitions: {len(train_transitions)}, "
+        f"Num agent plot transitions: {len(plot_transitions)}, "
+        f"num agent rollout transitions: {len(trajectories_to_transitions(rollout_trajectories_agent))}")
 
-        log.debug(f"Num agent train transitions: {len(train_transitions)}, "
-            f"Num agent plot transitions: {len(plot_transitions)}, "
-            f"num agent rollout transitions: {len(trajectories_to_transitions(rollout_trajectories_agent))}")
+    for transition in train_transitions:
+        agent.update_buffer(transition)
 
-        for transition in train_transitions:
-            agent.update_buffer(transition)
+    offline_steps = cfg.experiment.offline_steps
+    pbar = tqdm(range(offline_steps))
+    cm_eval_freq = cfg.experiment.cm_eval_freq
+    all_returns = []
+    for i in pbar:
+        agent.update()
+        offline_eval.do_eval(**offline_eval_args)  # run all evaluators
+        stats = offline_eval.get_stats()
 
-        offline_steps = cfg.experiment.offline_steps
-        pbar = tqdm(range(offline_steps))
-        cm_eval_freq = cfg.experiment.cm_eval_freq
-        all_returns = []
-        for i in pbar:
-            agent.update()
-            offline_eval.do_eval(**offline_eval_args)  # run all evaluators
-            stats = offline_eval.get_stats()
+        if i in test_epochs:
+            make_actor_critic_plots(agent, env, plot_transitions, "Offline_Training", i, save_path)
 
-            if i in test_epochs:
-                make_actor_critic_plots(agent, env, plot_transitions, "Offline_Training", i, save_path)
+        if i % cm_eval_freq == 0:
+            utils.update_pbar(pbar, stats, cfg.experiment.offline_stat_keys)
+            returns = cm.do_agent_rollouts(agent, rollout_trajectories_agent,
+                                        plot='post_training',
+                                        plot_save_path=save_path / 'agent_rollouts' / str(i))
 
-            if i % cm_eval_freq == 0:
-                utils.update_pbar(pbar, stats, cfg.experiment.offline_stat_keys)
-                returns = cm.do_agent_rollouts(agent, rollout_trajectories_agent,
-                                            plot='post_training',
-                                            plot_save_path=save_path / 'agent_rollouts' / str(i))
+            log.info(f"Mean return post-training at iteration {i}: {np.mean(returns)}")
+            all_returns.append(returns)
 
-                log.info(f"Mean return post-training at iteration {i}: {np.mean(returns)}")
-                all_returns.append(returns)
-
-        with open(save_path / 'returns.pkl', 'wb') as f:
-            pickle.dump(all_returns, f)
+    with open(save_path / 'returns.pkl', 'wb') as f:
+        pickle.dump(all_returns, f)
 
 
 if __name__ == "__main__":
