@@ -91,7 +91,6 @@ sc_group.dispatcher(AnytimeMultiTrace)
 @dataclass
 class IdentityConfig:
     name: str = 'identity'
-    warmup: int = 0
 
 class Identity(CompositeStateConstructor):
     def __init__(self, cfg: IdentityConfig):
