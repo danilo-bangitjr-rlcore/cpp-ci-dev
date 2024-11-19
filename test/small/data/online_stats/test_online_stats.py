@@ -2,7 +2,7 @@ from typing import Callable
 
 import numpy as np
 
-from corerl.data.online_stats.exp_moving import ExpMovingBatchAvg, ExpMovingBatchVar
+from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
 
 
 #######################################
@@ -11,7 +11,7 @@ from corerl.data.online_stats.exp_moving import ExpMovingBatchAvg, ExpMovingBatc
 def test_return_constant_val():
     x = 1.0
     alpha = 0.9
-    ema = ExpMovingBatchAvg(alpha)
+    ema = ExpMovingAvg(alpha)
     mu = None
     for _ in range(3):
         ema.feed(x)
@@ -27,7 +27,7 @@ def test_9_to_1_result():
     = 0.9 * [1 + 0.2 + 0.03 + ...]
     """
     alpha = 0.1
-    ema = ExpMovingBatchAvg(alpha)
+    ema = ExpMovingAvg(alpha)
     mu = None
     for x in range(9, 0, -1):
         ema.feed(x)
@@ -43,7 +43,7 @@ def test_9_to_1_batch_result():
     = 0.9 * [1 + 0.2 + 0.03 + ...]
     """
     alpha = 0.1
-    ema = ExpMovingBatchAvg(alpha)
+    ema = ExpMovingAvg(alpha)
     mu = None
     for x in range(9, 0, -1):
         batch = get_spread_batch(x, 5)
@@ -99,7 +99,7 @@ def test_longrun_exp_moving_var():
 def try_test_longrun_exp_moving_var():
     epsilon = 0.05
     alpha = 0.999
-    emv = ExpMovingBatchVar(alpha)
+    emv = ExpMovingVar(alpha)
     for _ in range(10_000):
         z = np.random.normal()
         emv.feed(z)
@@ -119,7 +119,7 @@ def test_longrun_exp_moving_batch_var():
 def try_longrun_exp_moving_batch_var():
     epsilon = 0.05
     alpha = 0.999
-    emv = ExpMovingBatchVar(alpha)
+    emv = ExpMovingVar(alpha)
     for _ in range(10_000):
         z_batch = np.array([np.random.normal() for _ in range(5)])
         emv.feed(z_batch)
@@ -134,8 +134,8 @@ def try_longrun_exp_moving_batch_var():
 
 def test_var_differential():
     alpha = 0.999
-    low_var_emv = ExpMovingBatchVar(alpha)
-    high_var_emv = ExpMovingBatchVar(alpha)
+    low_var_emv = ExpMovingVar(alpha)
+    high_var_emv = ExpMovingVar(alpha)
     for _ in range(10_000):
         z = np.random.normal()
         low_var_emv.feed(z)
@@ -148,8 +148,8 @@ def test_var_differential():
 
 def test_batch_var_differential():
     alpha = 0.999
-    low_var_emv = ExpMovingBatchVar(alpha)
-    high_var_emv = ExpMovingBatchVar(alpha)
+    low_var_emv = ExpMovingVar(alpha)
+    high_var_emv = ExpMovingVar(alpha)
     for _ in range(10_000):
         z_batch = np.array([np.random.normal() for _ in range(5)])
         low_var_emv.feed(z_batch)
@@ -167,7 +167,7 @@ def test_var_adaptation():
 def try_var_adaptation():
     epsilon = 0.05
     alpha = 0.999
-    emv = ExpMovingBatchVar(alpha)
+    emv = ExpMovingVar(alpha)
 
     # start with higher variance
     for _ in range(10_000):

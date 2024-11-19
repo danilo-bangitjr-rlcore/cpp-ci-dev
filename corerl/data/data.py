@@ -1,4 +1,5 @@
 import numpy as np
+from pandas import DataFrame
 from torch import Tensor
 from copy import deepcopy
 from math import isclose
@@ -6,6 +7,10 @@ from math import isclose
 from dataclasses import dataclass, fields
 from corerl.state_constructor.base import BaseStateConstructor
 
+
+@dataclass
+class PipelineFrame:
+    data: DataFrame
 
 @dataclass
 class OldObsTransition:
