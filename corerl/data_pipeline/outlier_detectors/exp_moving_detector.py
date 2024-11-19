@@ -8,7 +8,7 @@ from torch.ao.quantization.fx._model_report.detector import OutlierDetector
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
 from corerl.data_pipeline.outlier_detectors.base import BaseOutlierDetector, BaseOutlierDetectorConfig, outlier_group
-from corerl.data_pipeline.pipeline import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig
 
 
 @dataclass

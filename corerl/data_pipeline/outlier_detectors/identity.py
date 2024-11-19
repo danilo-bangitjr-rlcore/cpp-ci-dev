@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from corerl.data_pipeline.outlier_detectors.base import BaseOutlierDetector, BaseOutlierDetectorConfig, outlier_group
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.pipeline import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig
 
 
 @dataclass

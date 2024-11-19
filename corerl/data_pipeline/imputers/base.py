@@ -4,7 +4,7 @@ from omegaconf import MISSING
 from corerl.utils.hydra import Group
 
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.pipeline import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig
 
 
 @dataclass

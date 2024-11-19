@@ -21,7 +21,7 @@ from corerl.data_pipeline.state_constructors.base import BaseStateConstructor, B
 from corerl.data_pipeline.state_constructors.identity import IdentityStateConstructor
 from corerl.data_pipeline.state_constructors.factory import init_state_constructor
 
-
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import Transition
 
 type missing_data_checker_type = Callable[[PipelineFrame, TagConfig], PipelineFrame]
@@ -35,10 +35,6 @@ class PipelineConfig:
     transition_creator: BaseTransitionCreatorConfig = field(default_factory=BaseTransitionCreatorConfig)
     state_constructor: BaseStateConstructorConfig = field(default_factory=BaseStateConstructorConfig)
 
-
-@dataclass  # Placeholder
-class TagConfig:
-    pass
 
 
 class Pipeline:
