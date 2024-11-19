@@ -9,6 +9,7 @@ from corerl.data.normalizer.base import NormalizerConfig
 from corerl.data_pipeline.base import BaseDataLoaderConfig
 from corerl.interaction.anytime_interaction import AnytimeInteractionConfig
 from corerl.interaction.base import BaseInteractionConfig
+from corerl.state_constructor.base import SCConfig
 
 @dataclass
 class MainConfig(MutableMapping):
@@ -25,7 +26,7 @@ class MainConfig(MutableMapping):
     interaction: BaseInteractionConfig = field(default_factory=AnytimeInteractionConfig)
     normalizer: NormalizerConfig = field(default_factory=NormalizerConfig)
     offline_data: Any = MISSING
-    state_constructor: Any = MISSING
+    state_constructor: SCConfig = MISSING
 
 cs = ConfigStore.instance()
 cs.store(name='base_config', node=MainConfig)
