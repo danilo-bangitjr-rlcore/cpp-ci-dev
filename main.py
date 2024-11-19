@@ -135,7 +135,6 @@ def main(cfg: MainConfig):
         sc,
         agent_tc,
         obs_normalizer,
-        transitions=agent_test_transitions,
     )
 
     if alert_tc is not None:

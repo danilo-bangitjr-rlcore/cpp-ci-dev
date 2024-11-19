@@ -7,6 +7,8 @@ from hydra.core.config_store import ConfigStore
 from corerl.experiment.config import ExperimentConfig
 from corerl.data.normalizer.base import NormalizerConfig
 from corerl.data_loaders.base import BaseDataLoaderConfig
+from corerl.interaction.anytime_interaction import AnytimeInteractionConfig
+from corerl.interaction.base import BaseInteractionConfig
 
 @dataclass
 class MainConfig(MutableMapping):
@@ -20,7 +22,7 @@ class MainConfig(MutableMapping):
     env: Any = MISSING
     eval: Any = MISSING
     experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
-    interaction: Any = MISSING
+    interaction: BaseInteractionConfig = field(default_factory=AnytimeInteractionConfig)
     normalizer: NormalizerConfig = field(default_factory=NormalizerConfig)
     offline_data: Any = MISSING
     state_constructor: Any = MISSING

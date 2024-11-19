@@ -1,9 +1,0 @@
-name: anytime
-timeout: ${experiment.timeout}
-gamma : ${experiment.gamma}
-steps_per_decision : 1
-obs_length : 0 # 60 seconds
-n_step : 0 # 0 indicates a variable n-step update where the bootstrap state is always the state at the next decision point. n_step > 0 indicates a normal fixed n-step update that doesn't cross action boundaries.
-warmup_steps : 360
-only_dp_transitions : False # If set to True, only creates/trains on transitions with states at decision points (no transitions with intermediate states between decision points)
-online_updates : ${experiment.online_updates}
