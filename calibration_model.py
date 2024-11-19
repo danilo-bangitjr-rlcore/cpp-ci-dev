@@ -158,7 +158,7 @@ def main(cfg: MainConfig):
     test_epochs = cfg.experiment.test_epochs
     if test_epochs is None:
         test_epochs = []
-        
+
     log.info('Starting offline agent training...')
     offline_eval_args = {
         'agent': agent
