@@ -1,5 +1,13 @@
+from dataclasses import dataclass
+
 from corerl.data_pipeline.datatypes import Transition
-from corerl.data_pipeline.state_constructors.base import BaseStateConstructor
+from corerl.data_pipeline.state_constructors.base import BaseStateConstructor, BaseStateConstructorConfig, \
+    state_constructor_group
+
+
+@dataclass
+class IdentityStateConstructorConfig(BaseStateConstructorConfig):
+    name: str = 'identity'
 
 
 class IdentityStateConstructor(BaseStateConstructor):
@@ -8,3 +16,6 @@ class IdentityStateConstructor(BaseStateConstructor):
 
     def reset(self) -> None:
         pass
+
+
+state_constructor_group.dispatcher(IdentityStateConstructor)
