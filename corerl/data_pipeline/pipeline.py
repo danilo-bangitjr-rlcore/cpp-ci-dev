@@ -18,7 +18,7 @@ from corerl.data_pipeline.transition_creators.base import BaseTransitionCreator,
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
 
 from corerl.data_pipeline.state_constructors.base import BaseStateConstructor, BaseStateConstructorConfig
-from corerl.data_pipeline.state_constructors.identity import IdentityStateConstructor
+from corerl.data_pipeline.state_constructors.identity import IdentityStateConstructorConfig
 from corerl.data_pipeline.state_constructors.factory import init_state_constructor
 
 from corerl.data_pipeline.tag_config import TagConfig
@@ -33,7 +33,7 @@ class PipelineConfig:
     outlier_detector: BaseOutlierDetectorConfig = field(default_factory=IdentityDetectorConfig)
     imputer: BaseImputerConfig = field(default_factory=IdentityImputerConfig)
     transition_creator: BaseTransitionCreatorConfig = field(default_factory=BaseTransitionCreatorConfig)
-    state_constructor: BaseStateConstructorConfig = field(default_factory=BaseStateConstructorConfig)
+    state_constructor: BaseStateConstructorConfig = field(default_factory=IdentityStateConstructorConfig)
 
 
 

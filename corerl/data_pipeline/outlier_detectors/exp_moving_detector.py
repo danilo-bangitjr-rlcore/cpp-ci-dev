@@ -3,7 +3,6 @@ from typing import Hashable, Tuple
 import numpy as np
 from dataclasses import dataclass
 from pandas import DataFrame
-from torch.ao.quantization.fx._model_report.detector import OutlierDetector
 
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
