@@ -10,7 +10,7 @@ class ExpMovingDetector:
     """
     Uses exponential moving average and variance to detect outliers
     Expected usage is to feed streams of dataframes to this class's filter function.
-    Dataframes can have any number of columns, and 1 or more rows.
+    Dataframes can have any number of columns, or rows.
 
     This class will keep exponential moving stats for each column.
     If any value in a given column has distance from its moving avg greater than 2*sigma,
@@ -35,7 +35,7 @@ class ExpMovingDetector:
 
         return self.emas[name], self.emvs[name]
 
-    def _filter_col(self, name: Hashable, data: DataFrame) -> None:
+    def _filter_col(self, name: Hashable, data: DataFrame, update_stats: bool) -> None:
         """
         Columns of df are mutable, this function takes a Series
         and mutates the data (by possible setting some values to NaN)
@@ -43,10 +43,12 @@ class ExpMovingDetector:
         # get stats
         ema, emv = self._get_stats(name)
 
-        # update exponential stats
         x = data[name].to_numpy()
-        ema.feed(x)
-        emv.feed(x)
+
+        # update stats
+        if update_stats:
+            ema.feed(x)
+            emv.feed(x)
 
         # collect stats
         mu = ema()
@@ -57,14 +59,21 @@ class ExpMovingDetector:
         outliers = np.abs(mu - x) > self.tolerance * std
 
         # set outliers to NaN
-        # NOTE: this access pattern is important; it allows us
-        # to mutate the underlying dataframe instead of copying
         data.loc[outliers, name] = np.nan
 
-    def filter(self, data: DataFrame) -> None:
+    def filter(self, data: DataFrame, update_stats: bool = True) -> DataFrame:
+        """
+        If update_stats is True, data in the DataFrame is used to update
+        the running statistics. It may not be desirable to update the running
+        statistics if, for example, historical data should be re-processed with
+        the most up-to-date running statistics.
+        """
         if data.shape[0] == 0:
             # empty dataframe, do nothing
-            return
+            return data
 
-        for name in data.columns:
-            self._filter_col(name, data)
+        _data = data.copy()
+        for name in _data.columns:
+            self._filter_col(name, _data, update_stats)
+
+        return _data
