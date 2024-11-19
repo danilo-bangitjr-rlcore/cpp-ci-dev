@@ -3,6 +3,7 @@ from typing import Hashable, Tuple
 import numpy as np
 from pandas import DataFrame
 
+from corerl.data.data import PipelineFrame
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
 
 
@@ -61,19 +62,22 @@ class ExpMovingDetector:
         # set outliers to NaN
         data.loc[outliers, name] = np.nan
 
-    def filter(self, data: DataFrame, update_stats: bool = True) -> DataFrame:
+    def filter(self, pipeline_frame: PipelineFrame, update_stats: bool = True) -> PipelineFrame:
         """
         If update_stats is True, data in the DataFrame is used to update
         the running statistics. It may not be desirable to update the running
         statistics if, for example, historical data should be re-processed with
         the most up-to-date running statistics.
         """
+        data = pipeline_frame.data
         if data.shape[0] == 0:
             # empty dataframe, do nothing
-            return data
+            return pipeline_frame
 
         _data = data.copy()
         for name in _data.columns:
             self._filter_col(name, _data, update_stats)
 
-        return _data
+        filtered_frame = PipelineFrame(data=_data)
+
+        return filtered_frame

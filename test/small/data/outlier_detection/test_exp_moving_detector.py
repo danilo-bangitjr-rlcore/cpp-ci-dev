@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
+from corerl.data.data import PipelineFrame
 from corerl.data.outlier_detection.exp_moving_detector import ExpMovingDetector
 
 
@@ -21,10 +22,12 @@ def test_obvious_outlier_in_first_batch():
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
-    data = outlier_detector.filter(data)
+    pf = PipelineFrame(data)
+    filtered_pf = outlier_detector.filter(pf)
+    filtered_data = filtered_pf.data
 
-    assert not np.isnan(data[name].iloc[-2])
-    assert np.isnan(data[name].iloc[-1])
+    assert not np.isnan(filtered_data[name].iloc[-2])
+    assert np.isnan(filtered_data[name].iloc[-1])
 
 
 def test_obvious_outlier_in_second_batch():
@@ -37,16 +40,19 @@ def test_obvious_outlier_in_second_batch():
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
-    data = outlier_detector.filter(data)
+    pf = PipelineFrame(data)
+    outlier_detector.filter(pf)  # <- stats get initialized here
 
     values2 = [1] * 5
     values2[-1] = 100  # <- this is the outlier
 
     data2 = pd.DataFrame({name: values2})
-    data2 = outlier_detector.filter(data2)
+    pf2 = PipelineFrame(data2)
+    filtered_pf2 = outlier_detector.filter(pf2)
+    filtered_data2 = filtered_pf2.data
 
-    assert not np.isnan(data2[name].iloc[-2])
-    assert np.isnan(data2[name].iloc[-1])
+    assert not np.isnan(filtered_data2[name].iloc[-2])
+    assert np.isnan(filtered_data2[name].iloc[-1])
 
 
 def test_obvious_outlier_in_stream():
@@ -56,16 +62,22 @@ def test_obvious_outlier_in_stream():
     for _ in range(10):
         values = [1]
         data = pd.DataFrame({name: values})
+        pf = PipelineFrame(data)
 
-        data = outlier_detector.filter(data)
-        assert not np.isnan(data[name].iloc[0])
+        filtered_pf = outlier_detector.filter(pf)
+        filtered_data = filtered_pf.data
+
+        assert not np.isnan(filtered_data[name].iloc[0])
 
     # catch the outlier
     values = [10]  # <- this is the outlier
     data = pd.DataFrame({name: values})
-    data = outlier_detector.filter(data)
+    pf = PipelineFrame(data)
 
-    assert np.isnan(data[name].iloc[0])
+    filtered_pf = outlier_detector.filter(pf)
+    filtered_data = filtered_pf.data
+
+    assert np.isnan(filtered_data[name].iloc[0])
 
 
 def test_detection_with_multiple_cols():
@@ -78,17 +90,24 @@ def test_detection_with_multiple_cols():
         values_y = [2]
 
         data = pd.DataFrame({name_x: values_x, name_y: values_y})
-        data = outlier_detector.filter(data)
+        pf = PipelineFrame(data)
+
+        filtered_pf = outlier_detector.filter(pf)
+        filtered_data = filtered_pf.data
+        assert not filtered_data.isnull().values.any()
 
     # catch the outlier
     values_x = [10]  # <- this is the outlier
-    values_y = [2]
+    values_y = [2]  # <- this is not an outlier
 
     data = pd.DataFrame({name_x: values_x, name_y: values_y})
-    data = outlier_detector.filter(data)
+    pf = PipelineFrame(data)
 
-    assert np.isnan(data[name_x].iloc[0])
-    assert not np.isnan(data[name_y].iloc[0])
+    filtered_pf = outlier_detector.filter(pf)
+    filtered_data = filtered_pf.data
+
+    assert np.isnan(filtered_data[name_x].iloc[0])
+    assert not np.isnan(filtered_data[name_y].iloc[0])
 
 
 def test_detector_does_not_change_indices():
@@ -100,9 +119,12 @@ def test_detector_does_not_change_indices():
     name = "sensor_x"
 
     data = pd.DataFrame({name: values}, index=pd.DatetimeIndex(timestamps))
-    data = outlier_detector.filter(data)
+    pf = PipelineFrame(data)
 
-    for i, dt_index in enumerate(data.index):
+    filtered_pf = outlier_detector.filter(pf)
+    filtered_data = filtered_pf.data
+
+    for i, dt_index in enumerate(filtered_data.index):
         ts = pd.to_datetime(dt_index)
         assert ts == timestamps[i]
 
@@ -110,9 +132,12 @@ def test_detector_does_not_change_indices():
     values = [10]  # <- this is the outlier
     outlier_ts = timestamps[-1] + timedelta(minutes=5)
     data = pd.DataFrame({name: values}, index=pd.DatetimeIndex([outlier_ts]))
-    data = outlier_detector.filter(data)
+    pf = PipelineFrame(data)
 
-    assert np.isnan(data[name].iloc[0])
+    filtered_pf = outlier_detector.filter(pf)
+    filtered_data = filtered_pf.data
 
-    ts = pd.to_datetime(data.index[0])
+    assert np.isnan(filtered_data[name].iloc[0])
+
+    ts = pd.to_datetime(filtered_data.index[0])
     assert ts == outlier_ts
