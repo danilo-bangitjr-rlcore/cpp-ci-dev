@@ -6,7 +6,17 @@ from math import isclose
 
 from dataclasses import dataclass, fields
 from corerl.state_constructor.base import BaseStateConstructor
+import pandas as pd
 
+from enum import IntFlag, auto
+class MissingType(IntFlag):
+    NULL = auto()
+    BOUNDS = auto()
+    OUTLIER = auto()
+
+# for use to create sparse pandas dataframes
+# for example: sparse_df = pd.DataFrame(..., dtype=SparseMissingType)
+SparseMissingType = pd.SparseDtype(dtype=int, fill_value=MissingType.NULL)
 
 @dataclass
 class PipelineFrame:
