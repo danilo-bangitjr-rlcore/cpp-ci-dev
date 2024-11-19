@@ -3,7 +3,7 @@ from typing import Hashable, Tuple
 import numpy as np
 from pandas import DataFrame
 
-from corerl.data.data import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
 
 

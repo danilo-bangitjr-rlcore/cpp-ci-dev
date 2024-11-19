@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from corerl.data.data import ObsTransition, Transition
+from corerl.data_pipeline.datatypes import ObsTransition, Transition
 from corerl.data.transition_creator import AnytimeTransitionCreator, RegularRLTransitionCreator, AnytimeTCConfig, RegularRLTCConfig # noqa: E501
 from corerl.state_constructor.examples import IdentityConfig
 from corerl.state_constructor.factory import init_state_constructor

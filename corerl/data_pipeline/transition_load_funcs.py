@@ -5,7 +5,7 @@ import numpy as np
 
 from tqdm import tqdm
 
-from corerl.data.data import ObsTransition, Transition
+from corerl.data_pipeline.datatypes import ObsTransition, Transition
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.data.transition_creator import BaseTransitionCreator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer

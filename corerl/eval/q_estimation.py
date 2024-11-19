@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from corerl.eval.base_eval import BaseEval, EvalConfig
-from corerl.data.data import TransitionBatch
+from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.component.network.utils import to_np
 from corerl.utils.hydra import config
 

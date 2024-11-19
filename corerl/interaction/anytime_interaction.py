@@ -9,7 +9,7 @@ from omegaconf import MISSING
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.interaction.base import BaseInteraction, BaseInteractionConfig, interaction_group
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.data.data import Transition, OldObsTransition, ObsTransition
+from corerl.data_pipeline.datatypes import Transition, OldObsTransition, ObsTransition
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.base_tc import BaseTransitionCreator
 from corerl.utils.hydra import interpolate

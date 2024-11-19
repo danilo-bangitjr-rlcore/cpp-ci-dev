@@ -5,7 +5,7 @@ from collections import deque
 from corerl.alerts.base import BaseAlert
 import corerl.component.network.utils as utils
 from corerl.prediction.gvf import QGVF
-from corerl.data.data import Transition
+from corerl.data_pipeline.datatypes import Transition
 
 
 class GVFTraceAlert(BaseAlert):

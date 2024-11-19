@@ -1,6 +1,6 @@
 import pandas as pd
 
-from corerl.data.data import MissingType, SparseMissingType
+from corerl.data_pipeline.datatypes import MissingType, SparseMissingType
 
 
 def test_sparse_df_memory_usage():

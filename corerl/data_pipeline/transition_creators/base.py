@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 
-from corerl.data.data import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.pipeline import TagConfig
-from corerl.data.data import Transition
+from corerl.data_pipeline.datatypes import Transition
 
 
 @dataclass

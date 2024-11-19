@@ -2,7 +2,7 @@ from tqdm import tqdm
 import torch
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.critic.factory import init_q_critic, init_v_critic
-from corerl.data.data import TransitionBatch, Transition
+from corerl.data_pipeline.datatypes import TransitionBatch, Transition
 from abc import ABC, abstractmethod
 from omegaconf import DictConfig
 

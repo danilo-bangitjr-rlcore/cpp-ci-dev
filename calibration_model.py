@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from corerl.calibration_models.factory import init_calibration_model
 from corerl.config import MainConfig
-from corerl.data.data import Transition, Trajectory
+from corerl.data_pipeline.datatypes import Transition, Trajectory
 from corerl.agent.factory import init_agent
 from corerl.data_pipeline.direct_action import OldDirectActionDataLoader
 from corerl.environment.factory import init_environment

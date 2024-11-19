@@ -8,7 +8,7 @@ import corerl.component.network.utils as utils
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np
-from corerl.data.data import TransitionBatch, Transition
+from corerl.data_pipeline.datatypes import TransitionBatch, Transition
 
 
 class ActionValueTraceAlert(BaseAlert):

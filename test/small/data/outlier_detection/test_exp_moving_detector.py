@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
-from corerl.data.data import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.outlier_detectors.exp_moving_detector import ExpMovingDetector
 
 

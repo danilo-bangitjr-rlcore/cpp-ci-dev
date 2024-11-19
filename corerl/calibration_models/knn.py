@@ -11,7 +11,7 @@ from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.network.utils import to_np
 from corerl.calibration_models.base import BaseCalibrationModel
-from corerl.data.data import Transition, TransitionBatch
+from corerl.data_pipeline.datatypes import Transition, TransitionBatch
 
 log = logging.getLogger(__name__)
 

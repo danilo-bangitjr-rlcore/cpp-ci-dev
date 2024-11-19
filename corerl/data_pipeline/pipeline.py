@@ -1,8 +1,8 @@
 from typing import Callable
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from pandas import DataFrame
 
-from corerl.data.data import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.missing_data_checkers import identity_missing_data_checker
 from corerl.data_pipeline.bound_checkers import identity_bound_checker
 from corerl.data_pipeline.outlier_detectors.base import BaseOutlierDetector
@@ -14,7 +14,7 @@ from corerl.data_pipeline.state_constructors.base import BaseStateConstructor
 from corerl.data_pipeline.state_constructors.identity import IdentityStateConstructor
 
 
-from corerl.data.data import Transition
+from corerl.data_pipeline.datatypes import Transition
 
 type missing_data_checker_type = Callable[[PipelineFrame, TagConfig], PipelineFrame]
 type bound_checker_type = Callable[[PipelineFrame, TagConfig], PipelineFrame]

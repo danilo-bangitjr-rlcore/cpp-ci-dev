@@ -1,4 +1,4 @@
-from corerl.data.data import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.pipeline import TagConfig
 
 

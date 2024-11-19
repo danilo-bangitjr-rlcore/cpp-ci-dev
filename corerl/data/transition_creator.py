@@ -7,7 +7,7 @@ from copy import deepcopy
 from typing import Optional
 
 from corerl.alerts.composite_alert import CompositeAlert
-from corerl.data.data import OldObsTransition, Transition, Trajectory
+from corerl.data_pipeline.datatypes import OldObsTransition, Transition, Trajectory
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.interaction.anytime_interaction import OldAnytimeInteraction
 from corerl.utils.hydra import interpolate

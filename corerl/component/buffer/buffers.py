@@ -7,7 +7,7 @@ import numpy as np
 import torch
 import random
 
-from corerl.data.data import Transition, TransitionBatch
+from corerl.data_pipeline.datatypes import Transition, TransitionBatch
 import pandas as pd
 from corerl.sql_logging import sql_logging
 from corerl.sql_logging.base_schema import SQLTransition

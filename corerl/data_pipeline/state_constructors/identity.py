@@ -1,4 +1,4 @@
-from corerl.data.data import Transition
+from corerl.data_pipeline.datatypes import Transition
 from corerl.data_pipeline.state_constructors.base import BaseStateConstructor
 
 

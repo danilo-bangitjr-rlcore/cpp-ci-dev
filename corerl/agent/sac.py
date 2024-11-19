@@ -11,7 +11,7 @@ from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, Float
 from corerl.utils.device import device
-from corerl.data.data import TransitionBatch, Transition
+from corerl.data_pipeline.datatypes import TransitionBatch, Transition
 
 @dataclass
 class SACConfig(BaseACConfig):

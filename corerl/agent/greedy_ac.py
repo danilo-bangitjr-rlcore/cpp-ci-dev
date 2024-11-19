@@ -20,7 +20,7 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.component.exploration.factory import init_exploration_module
 from corerl.utils.device import device
-from corerl.data.data import TransitionBatch, Transition
+from corerl.data_pipeline.datatypes import TransitionBatch, Transition
 import corerl.utils.freezer as fr
 from jaxtyping import Float
 from typing import Any, Optional

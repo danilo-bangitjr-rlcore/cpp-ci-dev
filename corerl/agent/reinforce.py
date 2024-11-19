@@ -9,7 +9,7 @@ from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic
 from corerl.component.network.utils import to_np, state_to_tensor, tensor, ensemble_mse
 from corerl.utils.device import device
-from corerl.data.data import Transition
+from corerl.data_pipeline.datatypes import Transition
 
 @dataclass
 class ReinforceConfig(BaseACConfig):

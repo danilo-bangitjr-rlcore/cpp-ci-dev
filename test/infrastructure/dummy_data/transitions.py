@@ -1,6 +1,6 @@
 import numpy as np
 
-from corerl.data.data import ObsTransition
+from corerl.data_pipeline.datatypes import ObsTransition
 
 def make_simple_obs_sequence(num_observations: int) -> list[np.ndarray]:
     obs_sequence = [np.array([1])]

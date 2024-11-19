@@ -22,7 +22,7 @@ from corerl.eval.composite_eval import CompositeEval
 from corerl.data_pipeline.base import BaseDataLoader, OldBaseDataLoader
 from corerl.data_pipeline.direct_action import DirectActionDataLoader, OldDirectActionDataLoader
 from corerl.environment.reward.factory import init_reward_function
-from corerl.data.data import OldObsTransition, Transition, ObsTransition, Trajectory
+from corerl.data_pipeline.datatypes import OldObsTransition, Transition, ObsTransition, Trajectory
 from corerl.interaction.base import BaseInteraction
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer

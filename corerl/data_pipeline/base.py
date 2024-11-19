@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import pandas as pd
-from corerl.data.data import ObsTransition, OldObsTransition
+from corerl.data_pipeline.datatypes import ObsTransition, OldObsTransition
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.environment.reward.base import BaseReward
 from corerl.utils.hydra import Group, list_
