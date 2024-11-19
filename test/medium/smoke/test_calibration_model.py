@@ -36,5 +36,6 @@ def test_main_configs(config: str):
         'calibration_model.num_test_rollouts=1',
         'calibration_model.max_rollout_len=30',
         'state_constructor.warmup=0',
+        'offline_training=False'
     ])
     proc.check_returncode()
