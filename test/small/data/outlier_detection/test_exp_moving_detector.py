@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from corerl.data.data import PipelineFrame
-from corerl.data.outlier_detection.exp_moving_detector import ExpMovingDetector
+from corerl.data_pipeline.outlier_detectors.exp_moving_detector import ExpMovingDetector
 
 
 def test_obvious_outlier_in_first_batch():
