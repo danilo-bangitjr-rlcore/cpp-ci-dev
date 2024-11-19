@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 from pandas import DataFrame
-from corerl.data_loaders.data_reader import fill_data_for_changed_setpoint
+from corerl.data_pipeline.data_reader import fill_data_for_changed_setpoint
 from datetime import datetime, timedelta
 from typing import List
 

@@ -1,5 +1,5 @@
-from corerl.data_loaders.factory import init_data_loader
-from corerl.data_loaders.direct_action import DirectActionDataLoaderConfig, DirectActionDataLoader
+from corerl.data_pipeline.factory import init_data_loader
+from corerl.data_pipeline.direct_action import DirectActionDataLoaderConfig, DirectActionDataLoader
 
 
 def test_direct_action_data_loader1():

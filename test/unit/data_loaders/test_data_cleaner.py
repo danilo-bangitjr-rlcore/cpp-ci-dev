@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from pandas import DataFrame
 from datetime import datetime, timedelta
-from corerl.data_loaders.data_cleaner import fill_in_missing_data, clean_by_multiple_sliding_window
+from corerl.data_pipeline.data_cleaner import fill_in_missing_data, clean_by_multiple_sliding_window
 
 
 class DataCleanerTestCase(unittest.TestCase):

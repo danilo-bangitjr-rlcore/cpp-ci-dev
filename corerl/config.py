@@ -6,7 +6,7 @@ from hydra.core.config_store import ConfigStore
 
 from corerl.experiment.config import ExperimentConfig
 from corerl.data.normalizer.base import NormalizerConfig
-from corerl.data_loaders.base import BaseDataLoaderConfig
+from corerl.data_pipeline.base import BaseDataLoaderConfig
 from corerl.interaction.anytime_interaction import AnytimeInteractionConfig
 from corerl.interaction.base import BaseInteractionConfig
 

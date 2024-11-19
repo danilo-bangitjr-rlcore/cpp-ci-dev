@@ -1,4 +1,4 @@
-from corerl.data_loaders.data_writer import DataWriter
+from corerl.data_pipeline.data_writer import DataWriter
 from corerl.sql_logging.sql_logging import SQLEngineConfig
 from datetime import datetime, UTC, timedelta
 import pytest

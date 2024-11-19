@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 
 from corerl.environment.reward.base import BaseReward
-from corerl.data_loaders.base import BaseDataLoader, OldBaseDataLoader, BaseDataLoaderConfig, dl_group
+from corerl.data_pipeline.base import BaseDataLoader, OldBaseDataLoader, BaseDataLoaderConfig, dl_group
 from corerl.data.data import OldObsTransition, ObsTransition
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.utils.hydra import list_, interpolate

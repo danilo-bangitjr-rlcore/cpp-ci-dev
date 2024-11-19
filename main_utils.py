@@ -19,8 +19,8 @@ from warnings import warn
 
 from corerl.config import MainConfig
 from corerl.eval.composite_eval import CompositeEval
-from corerl.data_loaders.base import BaseDataLoader, OldBaseDataLoader
-from corerl.data_loaders.direct_action import DirectActionDataLoader, OldDirectActionDataLoader
+from corerl.data_pipeline.base import BaseDataLoader, OldBaseDataLoader
+from corerl.data_pipeline.direct_action import DirectActionDataLoader, OldDirectActionDataLoader
 from corerl.environment.reward.factory import init_reward_function
 from corerl.data.data import OldObsTransition, Transition, ObsTransition, Trajectory
 from corerl.interaction.base import BaseInteraction
@@ -31,7 +31,7 @@ from corerl.data.transition_creator import OldAnytimeTransitionCreator, BaseTran
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.agent.base import BaseAgent
 from corerl.utils.plotting import make_actor_critic_plots, make_reseau_gvf_critic_plot
-from corerl.data_loaders.transition_load_funcs import make_transitions
+from corerl.data_pipeline.transition_load_funcs import make_transitions
 
 import corerl.utils.dict as dict_u
 import corerl.utils.nullable as nullable
