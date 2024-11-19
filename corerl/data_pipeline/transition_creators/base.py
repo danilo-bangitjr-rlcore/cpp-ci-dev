@@ -23,5 +23,5 @@ class BaseTransitionCreator(ABC):
 
 
 transition_creator_group = Group[
-    [], BaseTransitionCreatorConfig
+    [], BaseTransitionCreator
 ]('pipeline/transition_creator')
