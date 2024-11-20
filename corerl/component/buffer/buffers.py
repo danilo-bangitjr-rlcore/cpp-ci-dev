@@ -234,7 +234,7 @@ class EnsembleUniformBuffer:
             new_data = []
             for attr in range(len(all_data)):
                 new_data_attr = torch.empty(all_data[attr].size(),
-                                        device=device.device)
+                                            device=device.device)
                 new_data_attr[np.arange(len(idx))] = all_data[attr][idx]
                 new_data.append(new_data_attr)
             self.buffer_ensemble[i].pos = len(idx)

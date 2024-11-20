@@ -26,7 +26,7 @@ def load_pkl_buffer(path: Path, mode: str, seed: int = 0, perc: float = 1.) \
     return critic_buffer, policy_buffer
 
 def subsampling_buffer(
-        buffer: [EnsembleUniformBuffer],
+        buffer: EnsembleUniformBuffer,
         mode: str,
         seed: int = 0,
         perc: float = 1.
@@ -66,7 +66,8 @@ def get_loaded_transitions_idx(
                           size=int(subsampling_perc * size_),
                           replace=False)
     elif mode == "latest":
-        idxs = numpy.arange(int((1. - subsampling_perc) * size_), size_)
+        # ToDo: Ensure the transitions are in order
+        idxs = numpy.arange(size_ - int(subsampling_perc * size_), size_)
     else:
         raise NotImplementedError("Buffer: Unknown subsampling mode.")
     return idxs
