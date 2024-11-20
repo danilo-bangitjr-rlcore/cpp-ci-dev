@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import PipelineFrame, MissingType
+from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
 from corerl.data_pipeline.outlier_detectors.exp_moving_detector import ExpMovingDetector, ExpMovingDetectorConfig
 from corerl.data_pipeline.tag_config import TagConfig
 
@@ -91,7 +91,6 @@ def test_obvious_outlier_in_stream():
 
 
 def test_detection_with_multiple_cols():
-
     cfg = ExpMovingDetectorConfig(alpha=0.99)
     tag_cfg = TagConfig()
 
@@ -162,13 +161,11 @@ def test_detector_does_not_change_indices():
 
 def test_outlier_gets_correct_missingtype():
 
-    """
-    Note the batches here are smaller compared to the previous
-    test (test_obvious_outlier_in_first_batch)
-    """
+    # initialize outlier detector
     cfg = ExpMovingDetectorConfig(alpha=0.99)
     tag_cfg = TagConfig()
 
+    # get prepare some data to warm up the stats
     outlier_detector = ExpMovingDetector(cfg)
     values = [1] * 5
     name = "sensor_x"
@@ -177,36 +174,36 @@ def test_outlier_gets_correct_missingtype():
     pf = PipelineFrame(data)
     outlier_detector(pf, tag_cfg)  # <- stats get initialized here
 
+    # create a batch with an outlier
     values2 = [1] * 5
     values2[-1] = 100  # <- this is the outlier
 
     data2 = pd.DataFrame({name: values2})
     pf2 = PipelineFrame(data2)
 
+    # filter the outlier
     filtered_pf2 = outlier_detector(pf2, tag_cfg)
-
     missing_info = filtered_pf2.missing_info
 
+    # check that the outlier has the correct missing type
     assert missing_info["sensor_x"].iloc[-1] == MissingType.OUTLIER
 
-def test_outlier_missing_type_is_added_to_existing_missing():
 
-    """
-    Note the batches here are smaller compared to the previous
-    test (test_obvious_outlier_in_first_batch)
-    """
+def test_outlier_missing_type_is_added_to_existing_missing():
+    # initialize outlier detector
     cfg = ExpMovingDetectorConfig(alpha=0.99)
     tag_cfg = TagConfig()
 
+    # get prepare some data to warm up the stats
     outlier_detector = ExpMovingDetector(cfg)
     values = [1] * 5
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data)
-
     outlier_detector(pf, tag_cfg)  # <- stats get initialized here
 
+    # create a batch with an outlier
     values2 = [1] * 5
     values2[-1] = 100  # <- this is the outlier
 
@@ -216,7 +213,10 @@ def test_outlier_missing_type_is_added_to_existing_missing():
     # add an initial missing type to the outlier
     pf2.missing_info.loc[4, "sensor_x"] = MissingType.BOUNDS
 
+    # filter the outlier
     filtered_pf2 = outlier_detector(pf2, tag_cfg)
+    missing_info = filtered_pf2.missing_info
 
+    # check that the outlier has both missing types
     missing_info = filtered_pf2.missing_info
     assert missing_info["sensor_x"].iloc[-1] == MissingType.BOUNDS & MissingType.OUTLIER
