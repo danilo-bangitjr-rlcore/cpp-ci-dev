@@ -21,13 +21,14 @@ from corerl.component.network.utils import to_np, tensor, state_to_tensor
 from corerl.component.exploration.factory import init_exploration_module
 from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import TransitionBatch, Transition
+from corerl.data.normalizer.base import InvertibleNormalizer
 import corerl.utils.freezer as fr
 from jaxtyping import Float
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
-torch.autograd.set_detect_anomaly(True) # type: ignore
+torch.autograd.set_detect_anomaly(True)  # type: ignore
 
 
 @dataclass
@@ -46,11 +47,12 @@ class GreedyACConfig(BaseACConfig):
     uniform_sampling_percentage: float = 0.5
     delta_actor: bool = False
     delta_critic: bool = False
-    guardrail_low: list[float] = MISSING
-    guardrail_high: list[float] = MISSING
 
     actor: Any = MISSING
     critic: Any = MISSING
+
+    guardrail_low: Optional[list[float] | None] = None
+    guardrail_high: Optional[list[float] | None] = None
 
     defaults: list[Any] = field(default_factory=lambda: [
         'base_ac',
@@ -111,8 +113,8 @@ class GreedyAC(BaseAC):
         self.delta_critic = cfg.delta_critic
         assert not self.delta_critic # delta_critic==True hasn't been tested
 
-        self.action_normalizer = None
-        self.delta_action_normalizer = None
+        self.action_normalizer: InvertibleNormalizer
+        self.delta_action_normalizer: InvertibleNormalizer
         self.interaction_get_action = lambda action, state: action
         self.interaction_get_action_inverse = lambda action, state: action
         if self.delta_actor:
@@ -120,15 +122,19 @@ class GreedyAC(BaseAC):
             self.interaction_get_action_inverse = self.direct_to_delta
 
         self.get_action_for_critic = lambda out, prev_action: out
-        if not self.delta_critic:
+        if self.delta_actor and (not self.delta_critic):
             self.get_action_for_critic = self.delta_to_direct
 
-        self.guardrail_low = tensor(numpy.array(cfg.guardrail_low), 'cpu')
-        self.guardrail_high = tensor(numpy.array(cfg.guardrail_high), 'cpu')
+        if (getattr(cfg, 'guardrail_low', None) is not None) and \
+                (getattr(cfg, 'guardrail_high', None) is not None):
+            self.guardrail_low = tensor(numpy.array(cfg.guardrail_low), 'cpu')
+            self.guardrail_high = tensor(numpy.array(cfg.guardrail_high), 'cpu')
 
         self._hooks(when.Agent.AfterCreate, self)
 
-    def set_normalizer(self, action_normalizer, delta_action_normalizer):
+    def set_normalizer(self,
+                       action_normalizer: InvertibleNormalizer,
+                       delta_action_normalizer: InvertibleNormalizer):
         self.action_normalizer = action_normalizer
         self.delta_action_normalizer = delta_action_normalizer
 
@@ -142,7 +148,7 @@ class GreedyAC(BaseAC):
         prev_action = prev_action.cpu()
         new_action = self.action_normalizer(
             (self.delta_action_normalizer.denormalize(delta_action) +
-            self.action_normalizer.denormalize(prev_action)).clip(self.guardrail_low, self.guardrail_high)
+             self.action_normalizer.denormalize(prev_action)).clip(self.guardrail_low, self.guardrail_high)
         )
         new_action = new_action.type(type(delta_action))
         if type(new_action) == torch.Tensor:
@@ -168,8 +174,8 @@ class GreedyAC(BaseAC):
             new_action = new_action.to(device=device.device)
         return new_action
 
-    def get_action_from_state(self, state: numpy.ndarray | torch.Tensor) \
-            -> numpy.ndarray | torch.Tensor:
+    def get_action_from_state(self, state: torch.Tensor) \
+            -> torch.Tensor:
         if len(state.shape) == 1:
             return state[1: self.action_dim+1]
         else:
@@ -191,9 +197,9 @@ class GreedyAC(BaseAC):
         )
         tensor_state, tensor_actor_action = args[1:]
 
-        prev_action = self.get_action_from_state(state)
-        action = self.interaction_get_action(tensor_actor_action, prev_action)
-        action = to_np(action)
+        prev_action = self.get_action_from_state(tensor_state)
+        tensor_action = self.interaction_get_action(tensor_actor_action, prev_action)
+        action = to_np(tensor_action)[0]
 
         # log the action_info to the freezer
         fr.freezer.store('action_info', action_info)

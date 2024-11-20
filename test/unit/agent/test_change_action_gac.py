@@ -5,12 +5,11 @@ from omegaconf import DictConfig
 
 from corerl.agent.greedy_ac import GreedyACConfig, GreedyAC
 from corerl.component.actor.network_actor import NetworkActorConfig
-from corerl.component.network.networks import EnsembleCriticConfig, NNTorsoConfig
+from corerl.component.network.networks import NNTorsoConfig
 from corerl.component.policy.factory import BaseNNConfig
 from corerl.component.optimizers.factory import OptimConfig
-from corerl.component.buffer.buffers import EnsembleUniformBuffer
-from corerl.data.data import Transition
 from corerl.data.normalizer.action import IdentityNormalizerConfig
+from corerl.data.normalizer.base import InvertibleNormalizer
 
 
 @pytest.fixture
@@ -54,11 +53,15 @@ def actor_cfg(buffer_cfg):
 
 @pytest.fixture
 def critic_cfg(buffer_cfg):
-    critic_cfg = EnsembleCriticConfig()
+    critic_cfg = DictConfig(
+        {
+            'name': 'ensemble',
+        }
+    )
     critic_cfg.critic_network = DictConfig(
         {
             'base': NNTorsoConfig(),
-            'ensemble': 2,
+            'ensemble': 1,
             'name': 'ensemble',
             'reduct': 'min',
             'vmap': False,
@@ -77,7 +80,6 @@ def critic_cfg(buffer_cfg):
     return critic_cfg
 
 
-
 @pytest.fixture
 def cfg():
     cfg = DictConfig(
@@ -94,36 +96,15 @@ def cfg():
     )
     return cfg
 
-@pytest.fixture
-def data():
-    data = []
-    for i in range(10):
-        trans = Transition(
-            obs=np.ones(1) * i,
-            state=np.ones(3) * i,
-            action=np.zeros(1),
-            next_obs=np.ones(1) * (i+1),
-            next_state=np.ones(3) * (i+1),
-            reward=0,
-            n_step_reward=1,
-        )
-        data.append(trans)
-    return data
-
-@pytest.fixture
-def buffer(cfg, data):
-    buffer = EnsembleUniformBuffer(cfg)
-    buffer.load(data)
-    return buffer
-
 
 @pytest.fixture
 def act_normalizer():
     return IdentityNormalizerConfig()
 
+
 @pytest.fixture
 def dummy_normalizer():
-    class DummyNormalizer:
+    class DummyNormalizer(InvertibleNormalizer):
         def __init__(self):
             pass
 
@@ -135,15 +116,15 @@ def dummy_normalizer():
 
     return DummyNormalizer()
 
+
 @pytest.fixture
-def gac(actor_cfg, critic_cfg, buffer, dummy_normalizer):
+def gac(actor_cfg, critic_cfg, dummy_normalizer):
     cfg = GreedyACConfig()
     cfg.delta_actor = True
-    cfg.guardrail_low = np.zeros(1)
-    cfg.guardrail_high = np.ones(1)
+    cfg.guardrail_low = [0]
+    cfg.guardrail_high = [1]
     cfg.actor = actor_cfg
     cfg.critic = critic_cfg
-    cfg.buffer = buffer
     state_dim = 1
     action_dim = 1
     gac = GreedyAC(cfg, state_dim, action_dim)
@@ -174,9 +155,9 @@ def test_direct_to_delta(gac):
     assert np.allclose(direct_action - prev_action, delta_action)
 
 def test_get_action_from_state(gac):
-    state = np.arange(3).reshape(1, -1)
+    state = torch.tensor(np.arange(3).reshape(1, -1))
     assert gac.get_action_from_state(state) == state[0, 1]
 
-    state = np.arange(3)
+    state = torch.tensor(np.arange(3))
     assert gac.get_action_from_state(state) == state[1]
 
