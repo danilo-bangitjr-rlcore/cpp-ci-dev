@@ -23,8 +23,15 @@ SparseMissingType = pd.SparseDtype(dtype=int, fill_value=MissingType.NULL)
 
 def update_missing_info_col(missing_info: pd.DataFrame, name: Hashable, missing_mask: np.ndarray, new_val: MissingType):
     """
-    Updates a column of a dataframe filled with MissingType's to prev_val & new_val.
-    The name attr of the `missing_mask` series determines the column to update.
+    Updates a column of a dataframe filled with MissingType's to (prev_val & new_val).
+        name: determines the column to update.
+        missing_mask: a mask that indicates which rows in the 'name' column to update
+
+    example -
+        with args: name='sensor_x', new_val=MissingType.OUTLIER,
+        if the existing MissingType at the row indicated by missing_mask was `MissingType.BOUNDS`,
+        this function will update it to `MissingType.BOUNDS & MissingType.OUTLIER`.
+
     """
     if not missing_mask.any():
         return
