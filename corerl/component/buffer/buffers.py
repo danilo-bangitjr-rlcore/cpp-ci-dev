@@ -227,9 +227,11 @@ class EnsembleUniformBuffer:
         for i in range(self.ensemble):
             self.buffer_ensemble[i].reset()
 
-    def subsampling(self, idxs) -> None:
+    def subsampling(self, idxs: list[list[int]]) -> None:
         for i in range(len(self.buffer_ensemble)):
             all_data = self.buffer_ensemble[i].data
+            if all_data is None:
+                continue
             idx = list(set(idxs[i]))
             new_data = []
             for attr in range(len(all_data)):

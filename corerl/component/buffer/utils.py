@@ -59,7 +59,7 @@ def get_loaded_transitions_idx(
         subsampling_perc: float = 1.
 ) -> list[int]:
     if mode == "all":
-        idxs = list(range(size_))
+        idxs = range(size_)
     elif mode == "random":
         rng = numpy.random.RandomState(seed)
         idxs = rng.choice(size_,
@@ -70,4 +70,4 @@ def get_loaded_transitions_idx(
         idxs = numpy.arange(size_ - int(subsampling_perc * size_), size_)
     else:
         raise NotImplementedError("Buffer: Unknown subsampling mode.")
-    return idxs
+    return list(idxs)
