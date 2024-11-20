@@ -5,7 +5,7 @@ import numpy as np
 from pandas import DataFrame
 
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
-from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, update_missing_info_col
+from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.outlier_detectors.base import BaseOutlierDetector, BaseOutlierDetectorConfig, outlier_group
 from corerl.data_pipeline.tag_config import TagConfig
 
@@ -71,22 +71,6 @@ class ExpMovingDetector(BaseOutlierDetector):
         outliers = np.abs(mu - x) > self.tolerance * std
 
         return outliers
-
-    def _update_missing_info(self, name: Hashable, pf: PipelineFrame, outlier_mask: np.ndarray):
-        # update missing info
-        existing_missing_mask = pf.missing_info[name] != MissingType.NULL
-        update_missing_mask = existing_missing_mask & outlier_mask  # <- Series & np.ndarray results in Series
-        col_name = update_missing_mask.name
-        update_missing_info_col(
-            missing_info=pf.missing_info,
-            name=col_name,
-            missing_mask=update_missing_mask.to_numpy(),
-            new_val=MissingType.OUTLIER,
-        )
-
-        # add new missing info
-        new_missing_mask = ~existing_missing_mask & outlier_mask
-        pf.missing_info.loc[new_missing_mask, name] = MissingType.OUTLIER
 
     def _filter_col(self, name: Hashable, pf: PipelineFrame, update_stats: bool) -> None:
         outlier_mask = self._get_outlier_mask(name=name, data=pf.data, update_stats=update_stats)
