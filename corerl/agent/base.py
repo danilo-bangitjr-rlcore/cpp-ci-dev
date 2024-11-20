@@ -5,7 +5,7 @@ import numpy
 from pathlib import Path
 
 from omegaconf import MISSING
-from corerl.data.data import Transition
+from corerl.data_pipeline.datatypes import Transition
 from corerl.utils.hook import Hooks, when
 from corerl.messages.client import MessageBusClientConfig, make_msg_bus_client
 from corerl.utils.hydra import Group, interpolate

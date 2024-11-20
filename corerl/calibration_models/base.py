@@ -8,8 +8,8 @@ from omegaconf import DictConfig
 
 import corerl.calibration_models.utils as utils
 from corerl.component.network.utils import to_np
-from corerl.data.data import OldObsTransition
-from corerl.data.data import Trajectory
+from corerl.data_pipeline.datatypes import OldObsTransition
+from corerl.data_pipeline.datatypes import Trajectory
 from corerl.agent.base import BaseAgent
 from corerl.data.transition_creator import OldAnytimeTransitionCreator
 from corerl.data.transition_normalizer import TransitionNormalizer

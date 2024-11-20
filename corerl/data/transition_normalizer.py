@@ -1,7 +1,7 @@
 import logging
 import gymnasium as gym
 from copy import deepcopy
-from corerl.data.data import Transition
+from corerl.data_pipeline.datatypes import Transition
 from corerl.data.normalizer.action import init_action_normalizer
 from corerl.data.normalizer.obs import init_obs_normalizer
 from corerl.data.normalizer.reward import init_reward_normalizer

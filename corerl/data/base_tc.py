@@ -4,7 +4,7 @@ from omegaconf import MISSING
 from abc import ABC, abstractmethod
 
 from corerl.alerts.base import BaseAlert
-from corerl.data.data import Transition, ObsTransition
+from corerl.data_pipeline.datatypes import Transition, ObsTransition
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.utils.hydra import interpolate, Group
 

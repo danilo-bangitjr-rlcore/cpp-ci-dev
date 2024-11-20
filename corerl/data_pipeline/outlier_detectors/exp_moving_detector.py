@@ -1,13 +1,23 @@
 from typing import Hashable, Tuple
 
 import numpy as np
+from dataclasses import dataclass
 from pandas import DataFrame
 
-from corerl.data.data import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
+from corerl.data_pipeline.outlier_detectors.base import BaseOutlierDetector, BaseOutlierDetectorConfig, outlier_group
+from corerl.data_pipeline.tag_config import TagConfig
 
 
-class ExpMovingDetector:
+@dataclass
+class ExpMovingDetectorConfig(BaseOutlierDetectorConfig):
+    name: str = 'exp_moving'
+    alpha: float = 0.99
+    tolerance: float = 2
+
+
+class ExpMovingDetector(BaseOutlierDetector):
     """
     Uses exponential moving average and variance to detect outliers
     Expected usage is to feed streams of dataframes to this class's filter function.
@@ -19,9 +29,10 @@ class ExpMovingDetector:
     it will be replaced by a NaN.
     """
 
-    def __init__(self, alpha: float, tolerance: float = 2) -> None:
-        self.alpha = alpha
-        self.tolerance = tolerance
+    def __init__(self, cfg: ExpMovingDetectorConfig) -> None:
+        super().__init__(cfg)
+        self.alpha = cfg.alpha
+        self.tolerance = cfg.tolerance
 
         # the following dicts store the exponential moving statistics
         # the keys are the column names in the DataFrames received by self.filter()
@@ -62,17 +73,17 @@ class ExpMovingDetector:
         # set outliers to NaN
         data.loc[outliers, name] = np.nan
 
-    def filter(self, pipeline_frame: PipelineFrame, update_stats: bool = True) -> PipelineFrame:
+    def __call__(self, pf: PipelineFrame,  cfg: TagConfig, update_stats: bool = True) -> PipelineFrame:
         """
         If update_stats is True, data in the DataFrame is used to update
         the running statistics. It may not be desirable to update the running
         statistics if, for example, historical data should be re-processed with
         the most up-to-date running statistics.
         """
-        data = pipeline_frame.data
+        data = pf.data
         if data.shape[0] == 0:
             # empty dataframe, do nothing
-            return pipeline_frame
+            return pf
 
         _data = data.copy()
         for name in _data.columns:
@@ -81,3 +92,6 @@ class ExpMovingDetector:
         filtered_frame = PipelineFrame(data=_data)
 
         return filtered_frame
+
+
+outlier_group.dispatcher(ExpMovingDetector)

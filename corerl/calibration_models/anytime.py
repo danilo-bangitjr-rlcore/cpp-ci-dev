@@ -13,9 +13,9 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.factory import init_custom_network
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.calibration_models.base import BaseCalibrationModel
-from corerl.data.data import OldObsTransition
+from corerl.data_pipeline.datatypes import OldObsTransition
 from corerl.component.network.utils import tensor, to_np
-from corerl.data.data import Trajectory
+from corerl.data_pipeline.datatypes import Trajectory
 from corerl.agent.base import BaseAgent
 
 log = logging.getLogger(__name__)

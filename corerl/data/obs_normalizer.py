@@ -4,7 +4,7 @@ from corerl.data.normalizer.action import init_action_normalizer
 from corerl.data.normalizer.base import NormalizerConfig
 from corerl.data.normalizer.obs import init_obs_normalizer
 from corerl.data.normalizer.reward import init_reward_normalizer
-from corerl.data.data import ObsTransition, OldObsTransition
+from corerl.data_pipeline.datatypes import ObsTransition, OldObsTransition
 
 from copy import copy
 
