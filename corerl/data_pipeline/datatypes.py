@@ -48,17 +48,17 @@ class OldObsTransition:
     gap: bool  # whether there is a gap in the dataset following next_obs
 
     def __iter__(self):
-        for field in fields(self):
-            yield getattr(self, field.name)
+        for f in fields(self):
+            yield getattr(self, f.name)
 
     @property
     def field_names(self):
-        return [field.name for field in fields(self)]
+        return [f.name for f in fields(self)]
 
     def __str__(self):
         string = ''
-        for field in fields(self):
-            string += f"{field.name}: {getattr(self, field.name)}\n"
+        for f in fields(self):
+            string += f"{f.name}: {getattr(self, f.name)}\n"
         return string
 
 
@@ -73,17 +73,17 @@ class ObsTransition:
     gap: bool = False  # whether there is a gap in the dataset following next_obs
 
     def __iter__(self):
-        for field in fields(self):
-            yield getattr(self, field.name)
+        for f in fields(self):
+            yield getattr(self, f.name)
 
     @property
     def field_names(self):
-        return [field.name for field in fields(self)]
+        return [f.name for f in fields(self)]
 
     def __str__(self):
         string = ''
-        for field in fields(self):
-            string += f"{field.name}: {getattr(self, field.name)}\n"
+        for f in fields(self):
+            string += f"{f.name}: {getattr(self, f.name)}\n"
         return string
 
 
@@ -115,20 +115,20 @@ class Transition:
     boot_steps_until_decision: int = 1
 
     def __iter__(self):
-        for field in fields(self):
-            yield getattr(self, field.name)
+        for f in fields(self):
+            yield getattr(self, f.name)
 
     @property
     def field_names(self):
-        return [field.name for field in fields(self)]
+        return [f.name for f in fields(self)]
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Transition):  # Not the same class, so not equal
             return False
 
-        for field in fields(self):
-            attr_self = getattr(self, field.name)
-            attr_other = getattr(other, field.name)
+        for f in fields(self):
+            attr_self = getattr(self, f.name)
+            attr_other = getattr(other, f.name)
 
             if not isinstance(attr_self, type(attr_other)):  # attributes are not the same class
                 return False
@@ -148,8 +148,8 @@ class Transition:
 
     def __str__(self):
         string = ''
-        for field in fields(self):
-            string += f"{field.name}: {getattr(self, field.name)}\n"
+        for f in fields(self):
+            string += f"{f.name}: {getattr(self, f.name)}\n"
         return string
 
 
@@ -182,9 +182,9 @@ class TransitionBatch:
     def __post_init__(self):
         # ensure all the attributes have the same dimension
         state_batch_size = self.state.size(0)
-        for field in fields(self):
-            assert getattr(self, field.name).size(0) == state_batch_size, \
-                f"Element {field.name} does not have the same batch size as the state"
+        for f in fields(self):
+            assert getattr(self, f.name).size(0) == state_batch_size, \
+                f"Element {f.name} does not have the same batch size as the state"
 
     @property
     def batch_size(self) -> int:
