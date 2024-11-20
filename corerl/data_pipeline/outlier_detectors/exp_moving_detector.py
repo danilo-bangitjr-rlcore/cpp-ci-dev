@@ -1,18 +1,18 @@
+from dataclasses import dataclass
 from typing import Hashable, Tuple
 
 import numpy as np
-from dataclasses import dataclass
 from pandas import DataFrame
 
-from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
+from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.outlier_detectors.base import BaseOutlierDetector, BaseOutlierDetectorConfig, outlier_group
 from corerl.data_pipeline.tag_config import TagConfig
 
 
 @dataclass
 class ExpMovingDetectorConfig(BaseOutlierDetectorConfig):
-    name: str = 'exp_moving'
+    name: str = "exp_moving"
     alpha: float = 0.99
     tolerance: float = 2
 
@@ -47,7 +47,7 @@ class ExpMovingDetector(BaseOutlierDetector):
 
         return self.emas[name], self.emvs[name]
 
-    def _filter_col(self, name: Hashable, data: DataFrame, update_stats: bool) -> None:
+    def _get_outlier_mask(self, name: Hashable, data: DataFrame, update_stats: bool) -> np.ndarray:
         """
         Columns of df are mutable, this function takes a Series
         and mutates the data (by possible setting some values to NaN)
@@ -70,10 +70,18 @@ class ExpMovingDetector(BaseOutlierDetector):
         # find outliers
         outliers = np.abs(mu - x) > self.tolerance * std
 
-        # set outliers to NaN
-        data.loc[outliers, name] = np.nan
+        return outliers
 
-    def __call__(self, pf: PipelineFrame,  cfg: TagConfig, update_stats: bool = True) -> PipelineFrame:
+    def _filter_col(self, name: Hashable, pf: PipelineFrame, update_stats: bool) -> None:
+        outlier_mask = self._get_outlier_mask(name=name, data=pf.data, update_stats=update_stats)
+
+        # set outliers to NaN
+        pf.data.loc[outlier_mask, name] = np.nan
+
+        # update missing info
+        self._update_missing_info(name, pf, outlier_mask)
+
+    def __call__(self, pf: PipelineFrame, cfg: TagConfig, update_stats: bool = True) -> PipelineFrame:
         """
         If update_stats is True, data in the DataFrame is used to update
         the running statistics. It may not be desirable to update the running
@@ -85,13 +93,10 @@ class ExpMovingDetector(BaseOutlierDetector):
             # empty dataframe, do nothing
             return pf
 
-        _data = data.copy()
-        for name in _data.columns:
-            self._filter_col(name, _data, update_stats)
+        for name in pf.data.columns:
+            self._filter_col(name, pf, update_stats)
 
-        filtered_frame = PipelineFrame(data=_data)
-
-        return filtered_frame
+        return pf
 
 
 outlier_group.dispatcher(ExpMovingDetector)
