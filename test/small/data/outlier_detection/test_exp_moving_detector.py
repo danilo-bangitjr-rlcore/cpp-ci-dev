@@ -160,12 +160,11 @@ def test_detector_does_not_change_indices():
 
 
 def test_outlier_gets_correct_missingtype():
-
     # initialize outlier detector
     cfg = ExpMovingDetectorConfig(alpha=0.99)
     tag_cfg = TagConfig()
 
-    # get prepare some data to warm up the stats
+    # prepare some data to warm up the stats
     outlier_detector = ExpMovingDetector(cfg)
     values = [1] * 5
     name = "sensor_x"
@@ -183,9 +182,9 @@ def test_outlier_gets_correct_missingtype():
 
     # filter the outlier
     filtered_pf2 = outlier_detector(pf2, tag_cfg)
-    missing_info = filtered_pf2.missing_info
 
     # check that the outlier has the correct missing type
+    missing_info = filtered_pf2.missing_info
     assert missing_info["sensor_x"].iloc[-1] == MissingType.OUTLIER
 
 
@@ -194,7 +193,7 @@ def test_outlier_missing_type_is_added_to_existing_missing():
     cfg = ExpMovingDetectorConfig(alpha=0.99)
     tag_cfg = TagConfig()
 
-    # get prepare some data to warm up the stats
+    # prepare some data to warm up the stats
     outlier_detector = ExpMovingDetector(cfg)
     values = [1] * 5
     name = "sensor_x"
@@ -215,7 +214,6 @@ def test_outlier_missing_type_is_added_to_existing_missing():
 
     # filter the outlier
     filtered_pf2 = outlier_detector(pf2, tag_cfg)
-    missing_info = filtered_pf2.missing_info
 
     # check that the outlier has both missing types
     missing_info = filtered_pf2.missing_info
