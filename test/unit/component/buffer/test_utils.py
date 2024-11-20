@@ -11,9 +11,7 @@ from pathlib import Path
 from corerl.data.data import Transition
 from corerl.component.buffer.buffers import EnsembleUniformBuffer
 from corerl.component.buffer.utils import (load_pkl_buffer,
-                                           subsampling_buffer,
-                                           subsampling_transitions,
-                                           get_loaded_transitions_idx)
+                                           subsampling_buffer)
 
 
 @pytest.fixture
