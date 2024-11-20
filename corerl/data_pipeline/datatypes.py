@@ -4,6 +4,7 @@ from torch import Tensor
 from copy import deepcopy
 from math import isclose
 
+from typing import Hashable
 from dataclasses import dataclass, fields, field
 from corerl.state_constructor.base import BaseStateConstructor
 import pandas as pd
@@ -18,6 +19,18 @@ class MissingType(IntFlag):
 # for use to create sparse pandas dataframes
 # for example: sparse_df = pd.DataFrame(..., dtype=SparseMissingType)
 SparseMissingType = pd.SparseDtype(dtype=int, fill_value=MissingType.NULL)
+
+
+def update_missing_info_col(missing_info: pd.DataFrame, name: Hashable, missing_mask: np.ndarray, new_val: MissingType):
+    """
+    Updates a column of a dataframe filled with MissingType's to prev_val & new_val.
+    The name attr of the `missing_mask` series determines the column to update.
+    """
+    if not missing_mask.any():
+        return
+
+    new_vals = np.array([new_val] * missing_mask.sum())
+    missing_info.loc[missing_mask, name] &= new_vals
 
 @dataclass
 class PipelineFrame:
