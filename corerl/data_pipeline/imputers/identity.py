@@ -5,6 +5,7 @@ from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, i
 from corerl.data_pipeline.tag_config import TagConfig
 
 
+
 @dataclass
 class IdentityImputerConfig(BaseImputerConfig):
     name: str = "identity"
