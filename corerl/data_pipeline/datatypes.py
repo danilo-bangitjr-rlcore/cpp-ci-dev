@@ -4,13 +4,14 @@ from torch import Tensor
 from copy import deepcopy
 from math import isclose
 
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, field
 from corerl.state_constructor.base import BaseStateConstructor
 import pandas as pd
 
 from enum import IntFlag, auto
 class MissingType(IntFlag):
     NULL = auto()
+    MISSING = auto() # indicates data did not exist in db
     BOUNDS = auto()
     OUTLIER = auto()
 
@@ -21,6 +22,14 @@ SparseMissingType = pd.SparseDtype(dtype=int, fill_value=MissingType.NULL)
 @dataclass
 class PipelineFrame:
     data: DataFrame
+    missing_info: DataFrame = field(init=False)
+
+    def __post_init__(self):
+        missing_info = DataFrame(index=self.data.index, dtype=SparseMissingType)
+        N = len(self.data)
+        # initialize filled with NULL (no memory cost)
+        null_cols = {col: [MissingType.NULL] * N for col in self.data.columns}
+        self.missing_info = missing_info.assign(**null_cols)
 
 @dataclass
 class OldObsTransition:
