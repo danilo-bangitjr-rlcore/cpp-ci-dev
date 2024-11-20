@@ -29,8 +29,8 @@ class EventType(StrEnum):
 
 
 class Event(BaseModel):
-    id: uuid.UUID = Field(..., default_factory=uuid.uuid4)
-    time: str = Field(..., default_factory=now_iso)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    time: str = Field(default_factory=now_iso)
     type: EventType
 
 
