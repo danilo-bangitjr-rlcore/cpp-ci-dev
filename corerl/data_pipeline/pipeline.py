@@ -14,7 +14,7 @@ from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig
 from corerl.data_pipeline.imputers.identity import IdentityImputerConfig
 from corerl.data_pipeline.imputers.factory import init_imputer
 
-from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreator, DummyTransitionCreatorConfig
+from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
 from corerl.data_pipeline.transition_creators.base import BaseTransitionCreator
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
 
