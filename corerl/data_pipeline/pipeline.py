@@ -14,7 +14,8 @@ from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig
 from corerl.data_pipeline.imputers.identity import IdentityImputerConfig
 from corerl.data_pipeline.imputers.factory import init_imputer
 
-from corerl.data_pipeline.transition_creators.base import BaseTransitionCreator, BaseTransitionCreatorConfig
+from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreator, DummyTransitionCreatorConfig
+from corerl.data_pipeline.transition_creators.base import BaseTransitionCreator
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
 
 from corerl.data_pipeline.state_constructors.base import BaseStateConstructor, BaseStateConstructorConfig
@@ -32,7 +33,7 @@ type bound_checker_type = Callable[[PipelineFrame, TagConfig], PipelineFrame]
 class PipelineConfig:
     outlier_detector: BaseOutlierDetectorConfig = field(default_factory=IdentityDetectorConfig)
     imputer: BaseImputerConfig = field(default_factory=IdentityImputerConfig)
-    transition_creator: BaseTransitionCreatorConfig = field(default_factory=BaseTransitionCreatorConfig)
+    transition_creator: DummyTransitionCreatorConfig = field(default_factory=DummyTransitionCreatorConfig)
     state_constructor: BaseStateConstructorConfig = field(default_factory=IdentityStateConstructorConfig)
 
 
