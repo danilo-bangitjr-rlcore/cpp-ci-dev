@@ -217,4 +217,8 @@ def test_outlier_missing_type_is_added_to_existing_missing():
 
     # check that the outlier has both missing types
     missing_info = filtered_pf2.missing_info
-    assert missing_info["sensor_x"].iloc[-1] == MissingType.BOUNDS & MissingType.OUTLIER
+    bitmap = MissingType(missing_info["sensor_x"].iloc[-1])
+
+    assert bitmap == MissingType.BOUNDS | MissingType.OUTLIER
+    assert MissingType.BOUNDS in bitmap
+    assert MissingType.OUTLIER in bitmap
