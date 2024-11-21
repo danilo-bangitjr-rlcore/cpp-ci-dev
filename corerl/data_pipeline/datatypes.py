@@ -21,7 +21,7 @@ class MissingType(IntFlag):
 SparseMissingType = pd.SparseDtype(dtype=int, fill_value=MissingType.NULL)
 
 
-def update_missing_info_col(missing_info: pd.DataFrame, name: Hashable, missing_mask: np.ndarray, new_val: MissingType):
+def update_existing_missing_info_col(missing_info: pd.DataFrame, name: Hashable, missing_mask: np.ndarray, new_val: MissingType):
     """
     Updates a column of a dataframe filled with MissingType's to (prev_val | new_val).
         name: determines the column to update.
@@ -39,6 +39,21 @@ def update_missing_info_col(missing_info: pd.DataFrame, name: Hashable, missing_
     for idx, prev_val in missing_info.loc[missing_mask, name].items():
         updated_val = MissingType(prev_val) | new_val
         missing_info.loc[idx, name] = updated_val
+
+def update_missing_info_col(missing_info: pd.DataFrame, name: Hashable, missing_type_mask: np.ndarray, new_val: MissingType):
+    # Update existing missing info
+    existing_missing_mask = missing_info[name] != MissingType.NULL
+    overlap_mask = existing_missing_mask & missing_type_mask  # <- Series & np.ndarray results in Series
+    update_existing_missing_info_col(
+        missing_info=missing_info,
+        name=name,
+        missing_mask=overlap_mask.to_numpy(),
+        new_val=new_val,
+    )
+
+    # Add new missing info
+    new_missing_mask = ~existing_missing_mask & missing_type_mask
+    missing_info.loc[new_missing_mask, name] = new_val
 
 @dataclass
 class PipelineFrame:

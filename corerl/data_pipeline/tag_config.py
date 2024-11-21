@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+from omegaconf import MISSING
 
 
 @dataclass  # Placeholder
 class TagConfig:
-    pass
+    name: str = MISSING
+    bounds: tuple[float | None, float | None] = (None, None)

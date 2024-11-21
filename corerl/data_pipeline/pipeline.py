@@ -58,7 +58,7 @@ class Pipeline:
     def __call__(self, data: DataFrame, cfg: TagConfig) -> list[Transition]:
         pf = PipelineFrame(data)
         pf = self.missing_data(pf, cfg)
-        pf = self.bound_checker(pf, cfg)
+        pf = self.bound_checker(pf, cfg) # Will need to be a list of TagConfigs
         pf = self.outlier_detector(pf, cfg)
         pf = self.imputer(pf, cfg)
         pfs = handle_data_gaps(pf)
