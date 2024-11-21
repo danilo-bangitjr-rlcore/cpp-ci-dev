@@ -2,7 +2,6 @@ from dataclasses import dataclass
 
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group
-from corerl.data_pipeline.tag_config import TagConfig
 
 
 
@@ -15,7 +14,7 @@ class IdentityImputer(BaseImputer):
     def __init__(self, cfg: IdentityImputerConfig):
         super().__init__(cfg)
 
-    def __call__(self, pf: PipelineFrame, cfg: TagConfig) -> PipelineFrame:
+    def __call__(self, pf: PipelineFrame, tag: str) -> PipelineFrame:
         return pf
 
 

@@ -17,7 +17,7 @@ class IdentityStateConstructor(BaseStateConstructor):
     def __init__(self, cfg: IdentityStateConstructorConfig):
         super().__init__(cfg)
 
-    def __call__(self, transitions: list[Transition]) -> list[Transition]:
+    def __call__(self, transitions: list[Transition], tag: str) -> list[Transition]:
         return transitions
 
     def reset(self) -> None:

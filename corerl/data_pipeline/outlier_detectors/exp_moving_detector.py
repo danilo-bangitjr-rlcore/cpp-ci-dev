@@ -7,7 +7,6 @@ from pandas import DataFrame
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
 from corerl.data_pipeline.datatypes import PipelineFrame, update_missing_info_col, MissingType
 from corerl.data_pipeline.outlier_detectors.base import BaseOutlierDetector, BaseOutlierDetectorConfig, outlier_group
-from corerl.data_pipeline.tag_config import TagConfig
 
 
 @dataclass
@@ -34,37 +33,24 @@ class ExpMovingDetector(BaseOutlierDetector):
         self.alpha = cfg.alpha
         self.tolerance = cfg.tolerance
 
-        # the following dicts store the exponential moving statistics
-        # the keys are the column names in the DataFrames received by self.filter()
-        self.emas: dict[Hashable, ExpMovingAvg] = {}
-        self.emvs: dict[Hashable, ExpMovingVar] = {}
-
-    def _get_stats(self, name: Hashable) -> Tuple[ExpMovingAvg, ExpMovingVar]:
-        if name not in self.emas:
-            self.emas[name] = ExpMovingAvg(alpha=self.alpha)
-        if name not in self.emvs:
-            self.emvs[name] = ExpMovingVar(alpha=self.alpha)
-
-        return self.emas[name], self.emvs[name]
+        self.ema = ExpMovingAvg(alpha=self.alpha)
+        self.emv = ExpMovingVar(alpha=self.alpha)
 
     def _get_outlier_mask(self, name: Hashable, data: DataFrame, update_stats: bool) -> np.ndarray:
         """
         Columns of df are mutable, this function takes a Series
         and mutates the data (by possible setting some values to NaN)
         """
-        # get stats
-        ema, emv = self._get_stats(name)
-
         x = data[name].to_numpy()
 
         # update stats
         if update_stats:
-            ema.feed(x)
-            emv.feed(x)
+            self.ema.feed(x)
+            self.emv.feed(x)
 
         # collect stats
-        mu = ema()
-        var = emv()
+        mu = self.ema()
+        var = self.emv()
         std = np.sqrt(var)
 
         # find outliers
@@ -81,7 +67,7 @@ class ExpMovingDetector(BaseOutlierDetector):
         # update missing info
         update_missing_info_col(pf.missing_info, name, outlier_mask, MissingType.OUTLIER)
 
-    def __call__(self, pf: PipelineFrame, cfg: TagConfig, update_stats: bool = True) -> PipelineFrame:
+    def __call__(self, pf: PipelineFrame, tag: str, update_stats: bool = True) -> PipelineFrame:
         """
         If update_stats is True, data in the DataFrame is used to update
         the running statistics. It may not be desirable to update the running
@@ -93,9 +79,7 @@ class ExpMovingDetector(BaseOutlierDetector):
             # empty dataframe, do nothing
             return pf
 
-        for name in pf.data.columns:
-            self._filter_col(name, pf, update_stats)
-
+        self._filter_col(tag, pf, update_stats)
         return pf
 
 

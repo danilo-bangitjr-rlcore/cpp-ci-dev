@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
 from corerl.data_pipeline.datatypes import PipelineFrame, Transition
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_creators.base import (
     BaseTransitionCreator,
     BaseTransitionCreatorConfig,
@@ -18,7 +17,7 @@ class DummyTransitionCreator(BaseTransitionCreator):
     def __init__(self, cfg: DummyTransitionCreatorConfig):
         super().__init__(cfg)
 
-    def __call__(self, pf: PipelineFrame, cfg: TagConfig) -> list[Transition]:
+    def __call__(self, pf: PipelineFrame) -> list[Transition]:
         return []
 
 
