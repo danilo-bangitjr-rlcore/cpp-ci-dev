@@ -1,0 +1,101 @@
+import numpy as np
+import pandas as pd
+
+from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
+from corerl.data_pipeline.bound_checker import bound_checker
+from corerl.data_pipeline.missing_data_checker import missing_data_checker
+from corerl.data_pipeline.tag_config import TagConfig
+
+
+def test_none_bounds():
+    tag_1_cfg = TagConfig(name="tag_1", bounds=(None, None))
+    tag_2_cfg = TagConfig(name="tag_2", bounds=(None, None))
+    tag_cfgs = [tag_1_cfg, tag_2_cfg]
+
+    data = pd.DataFrame({
+        "tag_1": [3.4, -0.2, 2.7],
+        "tag_2": [-0.4, 6.3, -3.8]
+    })
+    pf = PipelineFrame(data)
+
+    filtered_pf = bound_checker(pf, tag_cfgs)
+    filtered_data = filtered_pf.data
+    missing_info = filtered_pf.missing_info
+    oob_mask = missing_info == MissingType.BOUNDS.value
+
+    assert not np.isnan(filtered_data["tag_1"].iloc[[0, 1, 2]]).any()
+    assert not np.isnan(filtered_data["tag_2"].iloc[[0, 1, 2]]).any()
+    assert not oob_mask.to_numpy().any()
+
+
+def test_lower_bound_violation():
+    tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 10.0))
+    tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
+    tag_cfgs = [tag_1_cfg, tag_2_cfg]
+
+    data = pd.DataFrame({
+        "tag_1": [3.4, -0.2, 2.7],
+        "tag_2": [-0.4, 6.3, -3.8]
+    })
+    pf = PipelineFrame(data)
+
+    filtered_pf = bound_checker(pf, tag_cfgs)
+    filtered_data = filtered_pf.data
+    missing_info = filtered_pf.missing_info
+
+    assert np.isnan(filtered_data["tag_1"].iloc[1])
+    assert np.isnan(filtered_data["tag_2"].iloc[2])
+    assert not np.isnan(filtered_data["tag_1"].iloc[[0, 2]]).any()
+    assert not np.isnan(filtered_data["tag_2"].iloc[[0, 1]]).any()
+    assert missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
+    assert missing_info["tag_2"].iloc[2] == MissingType.BOUNDS
+
+
+def test_upper_bound_violation():
+    tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
+    tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
+    tag_cfgs = [tag_1_cfg, tag_2_cfg]
+
+    data = pd.DataFrame({
+        "tag_1": [0.4, 1.3, 0.7],
+        "tag_2": [11.9, -0.5, 3.6]
+    })
+    pf = PipelineFrame(data)
+
+    filtered_pf = bound_checker(pf, tag_cfgs)
+    filtered_data = filtered_pf.data
+    missing_info = filtered_pf.missing_info
+
+    assert np.isnan(filtered_data["tag_1"].iloc[1])
+    assert np.isnan(filtered_data["tag_2"].iloc[0])
+    assert not np.isnan(filtered_data["tag_1"].iloc[[0, 2]]).any()
+    assert not np.isnan(filtered_data["tag_2"].iloc[[1, 2]]).any()
+    assert missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
+    assert missing_info["tag_2"].iloc[0] == MissingType.BOUNDS
+
+
+def test_multiple_missing_types():
+    tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
+    tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
+    tag_cfgs = [tag_1_cfg, tag_2_cfg]
+
+    data = pd.DataFrame({
+        "tag_1": [np.nan, 1.3, 0.7],
+        "tag_2": [11.9, -0.5, np.nan]
+    })
+    pf = PipelineFrame(data)
+
+    filtered_missing_pf = missing_data_checker(pf, tag_1_cfg)
+
+    filtered_bounds_pf = bound_checker(filtered_missing_pf, tag_cfgs)
+    filtered_data = filtered_bounds_pf.data
+    missing_info = filtered_bounds_pf.missing_info
+
+    assert np.isnan(filtered_data["tag_1"].iloc[[0, 1]]).any()
+    assert np.isnan(filtered_data["tag_2"].iloc[[0, 2]]).any()
+    assert not np.isnan(filtered_data["tag_1"].iloc[2])
+    assert not np.isnan(filtered_data["tag_2"].iloc[1])
+    assert missing_info["tag_1"].iloc[0] == MissingType.MISSING
+    assert missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
+    assert missing_info["tag_2"].iloc[0] == MissingType.BOUNDS
+    assert missing_info["tag_2"].iloc[2] == MissingType.MISSING
