@@ -167,8 +167,7 @@ class GreedyAC(BaseAC):
             self.action_normalizer.denormalize(direct_action) -
             self.action_normalizer.denormalize(prev_action)
         )
-        if type(new_action) == torch.Tensor:
-            new_action = new_action.to(device=device.device)
+        new_action = new_action.to(device=device.device)
         return new_action
 
     def get_action_from_state(self, state: torch.Tensor) \
