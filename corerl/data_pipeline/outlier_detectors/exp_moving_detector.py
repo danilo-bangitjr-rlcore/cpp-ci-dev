@@ -5,7 +5,7 @@ import numpy as np
 from pandas import DataFrame
 
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
-from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame, update_missing_info_col, MissingType
 from corerl.data_pipeline.outlier_detectors.base import BaseOutlierDetector, BaseOutlierDetectorConfig, outlier_group
 from corerl.data_pipeline.tag_config import TagConfig
 
@@ -79,7 +79,7 @@ class ExpMovingDetector(BaseOutlierDetector):
         pf.data.loc[outlier_mask, name] = np.nan
 
         # update missing info
-        self._update_missing_info(name, pf, outlier_mask)
+        update_missing_info_col(pf.missing_info, name, outlier_mask, MissingType.OUTLIER)
 
     def __call__(self, pf: PipelineFrame, cfg: TagConfig, update_stats: bool = True) -> PipelineFrame:
         """
