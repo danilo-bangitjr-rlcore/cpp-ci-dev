@@ -151,8 +151,7 @@ class GreedyAC(BaseAC):
              self.action_normalizer.denormalize(prev_action)).clip(self.guardrail_low, self.guardrail_high)
         )
         new_action = new_action.type(type(delta_action))
-        if type(new_action) == torch.Tensor:
-            new_action = new_action.to(device=device.device)
+        new_action = new_action.to(device=device.device)
         return new_action
 
     def direct_to_delta(self,
@@ -162,10 +161,8 @@ class GreedyAC(BaseAC):
 
         if len(direct_action.shape) == 3: # [batch_size, n_samples, action_dim]
             prev_action = prev_action.reshape(direct_action.shape)
-        if type(direct_action) == torch.Tensor:
-            direct_action = direct_action.cpu()
-        if type(prev_action) == torch.Tensor:
-            prev_action = prev_action.cpu()
+        direct_action = direct_action.cpu()
+        prev_action = prev_action.cpu()
         new_action = self.delta_action_normalizer(
             self.action_normalizer.denormalize(direct_action) -
             self.action_normalizer.denormalize(prev_action)
