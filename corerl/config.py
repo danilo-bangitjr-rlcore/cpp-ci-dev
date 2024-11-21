@@ -1,7 +1,6 @@
 from typing import Any
 from dataclasses import dataclass, field
 from omegaconf import MISSING
-from collections.abc import MutableMapping
 from hydra.core.config_store import ConfigStore
 
 from corerl.data.base_tc import BaseTCConfig
@@ -13,7 +12,7 @@ from corerl.interaction.base import BaseInteractionConfig
 from corerl.state_constructor.base import SCConfig
 
 @dataclass
-class MainConfig(MutableMapping):
+class MainConfig:
     use_alerts: bool = False
     agent: Any = MISSING
     agent_transition_creator: Any = MISSING
