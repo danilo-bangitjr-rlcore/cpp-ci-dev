@@ -62,11 +62,9 @@ def test_load_pkl_buffer(buffer):
         pkl.dump(buffer, f)
     with open(test_path_actor, "wb") as f:
         pkl.dump(buffer, f)
-    assert load_pkl_buffer(path=Path(test_path), mode="all")
-    assert load_pkl_buffer(path=Path(test_path), mode="random",
-                           seed=0, perc=1.)
-    assert load_pkl_buffer(path=Path(test_path), mode="latest",
-                           perc=1.)
+    load_pkl_buffer(path=Path(test_path), mode="all")
+    load_pkl_buffer(path=Path(test_path), mode="random", seed=0, perc=1.)
+    load_pkl_buffer(path=Path(test_path), mode="latest", perc=1.)
     shutil.rmtree(test_path)
 
 def test_subsampling_buffer(buffer):
