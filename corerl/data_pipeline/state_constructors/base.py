@@ -16,7 +16,7 @@ class BaseStateConstructor(ABC):
         self.cfg = cfg
 
     @abstractmethod
-    def __call__(self, transitions: list[Transition]) -> list[Transition]:
+    def __call__(self, transitions: list[Transition], tag: str) -> list[Transition]:
         raise NotImplementedError
 
     @abstractmethod
