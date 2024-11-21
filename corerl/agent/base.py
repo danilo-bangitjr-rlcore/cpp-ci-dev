@@ -12,6 +12,8 @@ from corerl.utils.hydra import Group, interpolate
 
 @dataclass
 class BaseAgentConfig:
+    name: str = MISSING
+
     discrete_control: bool = interpolate('${env.discrete_control}')
     freezer_freq: int = 1
     gamma: float = interpolate('${experiment.gamma}')

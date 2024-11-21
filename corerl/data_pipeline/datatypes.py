@@ -59,6 +59,9 @@ def update_missing_info_col(missing_info: pd.DataFrame, name: Hashable, missing_
 class PipelineFrame:
     data: DataFrame
     missing_info: DataFrame = field(init=False)
+    data_gap: bool = False  # Revan: set by data
+    terminate: bool = False  # Revan: IDK where these will come from yet
+    truncate: bool = False  # Revan: IDK where these will come from yet
 
     def __post_init__(self):
         missing_info = DataFrame(index=self.data.index, dtype=SparseMissingType)

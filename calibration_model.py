@@ -78,7 +78,7 @@ def main(cfg: MainConfig):
                                                                                     dl, normalizer)
 
     agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.interaction]
-    warmup = cfg.state_constructor.warmup
+    warmup = getattr(cfg.state_constructor, 'warmup', 0)
 
     # these are the trajectories/transitions the agents will use to train
     train_trajectories_agent, test_trajectories_agent = utils.get_offline_trajectories(cfg,

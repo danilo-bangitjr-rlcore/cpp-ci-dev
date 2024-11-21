@@ -25,8 +25,13 @@ from corerl.data_pipeline.state_constructors.factory import init_state_construct
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import Transition
 
+from corerl.data_pipeline.pipeline_utils import warmup_pruning, handle_data_gaps
+
 type missing_data_checker_type = Callable[[PipelineFrame, TagConfig], PipelineFrame]
-type bound_checker_type = Callable[[PipelineFrame, list[TagConfig]], PipelineFrame]
+type bound_checker_type = Callable[[PipelineFrame, TagConfig], PipelineFrame]
+type warmup_pruning_type = Callable[[list[Transition], int], list[Transition]]
+
+WARMUP = 0
 
 
 @dataclass
@@ -35,7 +40,6 @@ class PipelineConfig:
     imputer: BaseImputerConfig = field(default_factory=IdentityImputerConfig)
     transition_creator: DummyTransitionCreatorConfig = field(default_factory=DummyTransitionCreatorConfig)
     state_constructor: BaseStateConstructorConfig = field(default_factory=IdentityStateConstructorConfig)
-
 
 
 class Pipeline:
@@ -49,6 +53,7 @@ class Pipeline:
         self.imputer: BaseImputer = init_imputer(cfg.imputer)
         self.transition_creator: BaseTransitionCreator = init_transition_creator(cfg.transition_creator)
         self.state_constructor: BaseStateConstructor = init_state_constructor(cfg.state_constructor)
+        self.warmup_pruning: warmup_pruning_type = warmup_pruning
 
     def __call__(self, data: DataFrame, cfg: TagConfig) -> list[Transition]:
         pf = PipelineFrame(data)
@@ -56,6 +61,11 @@ class Pipeline:
         pf = self.bound_checker(pf, cfg) # Will need to be a list of TagConfigs
         pf = self.outlier_detector(pf, cfg)
         pf = self.imputer(pf, cfg)
-        transitions = self.transition_creator(pf, cfg)
-        transitions_with_state = self.state_constructor(transitions)
-        return transitions_with_state
+        pfs = handle_data_gaps(pf)
+        transitions = []
+        for pf in pfs:
+            pf_transitions = self.transition_creator(pf, cfg)
+            pf_transitions = self.state_constructor(pf_transitions)
+            pf_transitions = self.warmup_pruning(pf_transitions, WARMUP)  # placeholder for WARMUP. Comes from somewhere
+            transitions += pf_transitions
+        return transitions

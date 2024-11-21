@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from corerl.state_constructor.base import CompositeStateConstructor, sc_group
+from corerl.state_constructor.base import CompositeStateConstructor, SCConfig, sc_group
 import corerl.state_constructor.components as comp
 
 from corerl.utils.hydra import interpolate, list_
@@ -10,7 +10,7 @@ from corerl.utils.hydra import interpolate, list_
 # ----------------
 
 @dataclass
-class MultiTraceConfig:
+class MultiTraceConfig(SCConfig):
     name: str = 'multi_trace'
     trace_values: list[float] = list_()
     warmup: int = 360
@@ -89,7 +89,7 @@ sc_group.dispatcher(AnytimeMultiTrace)
 # --------------
 
 @dataclass
-class IdentityConfig:
+class IdentityConfig(SCConfig):
     name: str = 'identity'
 
 class Identity(CompositeStateConstructor):
@@ -105,7 +105,7 @@ sc_group.dispatcher(Identity)
 # ------------------
 
 @dataclass
-class SimpleReseauConfig:
+class SimpleReseauConfig(SCConfig):
     name: str = 'simple_reseau'
     steps_per_decision: int = interpolate('${interaction.steps_per_decision}')
     warmup: int = 180
