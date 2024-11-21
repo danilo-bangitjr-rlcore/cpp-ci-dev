@@ -35,7 +35,7 @@ def actor_cfg(buffer_cfg):
     actor_cfg.name = 'network'
     actor_cfg.actor_network = BaseNNConfig()
     actor_cfg.actor_network.name = 'beta'
-    actor_cfg.actor_network.dist = 'beta'
+    # actor_cfg.actor_network.dist = 'beta'
     actor_cfg.actor_network.head_layer_init = 'Xavier'
     actor_cfg.actor_network.head_bias = True
     actor_cfg.actor_network.head_activation = [
