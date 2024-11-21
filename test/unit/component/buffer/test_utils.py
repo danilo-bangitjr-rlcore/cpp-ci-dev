@@ -8,7 +8,7 @@ import shutil
 import pickle as pkl
 from omegaconf import DictConfig
 from pathlib import Path
-from corerl.data.data import Transition
+from corerl.data_pipeline.datatypes import Transition
 from corerl.component.buffer.buffers import EnsembleUniformBuffer
 from corerl.component.buffer.utils import (load_pkl_buffer,
                                            subsampling_buffer)
