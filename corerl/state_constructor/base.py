@@ -1,5 +1,8 @@
 import numpy as np
+from dataclasses import dataclass
 from abc import ABC, abstractmethod
+
+from omegaconf import MISSING
 from corerl.utils.hydra import Group
 
 from typing import TYPE_CHECKING
@@ -100,6 +103,9 @@ class CompositeStateConstructor(BaseStateConstructor):
         self._reset_graph_state()
 
 
+@dataclass
+class SCConfig:
+    name: str = MISSING
 
 # set up config groups
 sc_group = Group[

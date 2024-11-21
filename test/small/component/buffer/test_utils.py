@@ -8,7 +8,7 @@ import shutil
 import pickle as pkl
 from omegaconf import DictConfig
 from pathlib import Path
-from corerl.data.data import Transition
+from corerl.data_pipeline.datatypes import Transition
 from corerl.component.buffer.buffers import EnsembleUniformBuffer
 from corerl.component.buffer.utils import (load_pkl_buffer,
                                            subsampling_buffer)
@@ -62,11 +62,9 @@ def test_load_pkl_buffer(buffer):
         pkl.dump(buffer, f)
     with open(test_path_actor, "wb") as f:
         pkl.dump(buffer, f)
-    assert load_pkl_buffer(path=Path(test_path), mode="all")
-    assert load_pkl_buffer(path=Path(test_path), mode="random",
-                           seed=0, perc=1.)
-    assert load_pkl_buffer(path=Path(test_path), mode="latest",
-                           perc=1.)
+    load_pkl_buffer(path=Path(test_path), mode="all")
+    load_pkl_buffer(path=Path(test_path), mode="random", seed=0, perc=1.)
+    load_pkl_buffer(path=Path(test_path), mode="latest", perc=1.)
     shutil.rmtree(test_path)
 
 def test_subsampling_buffer(buffer):

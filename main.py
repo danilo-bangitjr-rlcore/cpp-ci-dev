@@ -65,6 +65,7 @@ def main(cfg: MainConfig):
 
     alert_tc: BaseTransitionCreator | None = None
     if cfg.use_alerts:
+        assert cfg.alert_transition_creator is not None
         alert_tc = init_transition_creator(cfg.alert_transition_creator, sc)
         alert_tc.init_alerts(composite_alert)
 

@@ -221,7 +221,7 @@ def old_get_offline_transitions(
     hash_cfgs = nullable.default(hash_cfgs, list)
     output_path = Path(cfg.offline_data.output_path)
 
-    warmup = cfg.state_constructor.warmup
+    warmup = getattr(cfg.state_constructor, 'warmup', 0)
     transitions = load_or_create(
         root=output_path,
         cfgs=hash_cfgs,
@@ -252,7 +252,7 @@ def get_offline_transitions(
     hash_cfgs = nullable.default(hash_cfgs, list)
     output_path = Path(cfg.offline_data.output_path)
 
-    warmup = cfg.state_constructor.warmup
+    warmup = getattr(cfg.state_constructor, 'warmup', 0)
     transitions = load_or_create(
         root=output_path,
         cfgs=hash_cfgs,

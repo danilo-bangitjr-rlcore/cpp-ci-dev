@@ -4,7 +4,7 @@ import numpy
 from typing import Tuple
 
 from corerl.component.buffer.buffers import EnsembleUniformBuffer
-from corerl.data.data import Transition
+from corerl.data_pipeline.datatypes import Transition
 
 
 def load_pkl_buffer(path: Path, mode: str, seed: int = 0, perc: float = 1.) \
