@@ -39,7 +39,7 @@ import corerl.utils.nullable as nullable
 
 def prepare_save_dir(cfg: MainConfig):
     if cfg.experiment.param_from_hash:
-        cfg_hash = dict_u.hash(cfg, ignore={'experiment.seed'})
+        cfg_hash = dict_u.hash(cfg.__dict__, ignore={'experiment.seed'})
         log.debug("Creating experiment param from hash:", cfg_hash)
         cfg.experiment.param = cfg_hash
 

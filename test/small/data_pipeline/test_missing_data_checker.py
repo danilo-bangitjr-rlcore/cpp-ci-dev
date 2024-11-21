@@ -3,7 +3,6 @@ import pandas as pd
 
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
-from corerl.data_pipeline.tag_config import TagConfig
 
 
 def test_missing_data_gets_correct_missingtype():
@@ -12,8 +11,8 @@ def test_missing_data_gets_correct_missingtype():
     data = pd.DataFrame(cols)
     pf = PipelineFrame(data)
 
-    dummy_tag_cfg = TagConfig()
-    pf = missing_data_checker(pf, dummy_tag_cfg)
+    pf = missing_data_checker(pf, 'sensor_x')
+    pf = missing_data_checker(pf, 'sensor_y')
 
     missing_info = pf.missing_info
 

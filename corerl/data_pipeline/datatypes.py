@@ -4,7 +4,6 @@ from torch import Tensor
 from copy import deepcopy
 from math import isclose
 
-from typing import Hashable
 from dataclasses import dataclass, fields, field
 from corerl.state_constructor.base import BaseStateConstructor
 import pandas as pd
@@ -21,7 +20,12 @@ class MissingType(IntFlag):
 SparseMissingType = pd.SparseDtype(dtype=int, fill_value=MissingType.NULL)
 
 
-def update_existing_missing_info_col(missing_info: pd.DataFrame, name: Hashable, missing_mask: np.ndarray, new_val: MissingType):
+def update_existing_missing_info_col(
+    missing_info: pd.DataFrame,
+    name: str,
+    missing_mask: np.ndarray,
+    new_val: MissingType,
+):
     """
     Updates a column of a dataframe filled with MissingType's to (prev_val | new_val).
         name: determines the column to update.
@@ -40,7 +44,7 @@ def update_existing_missing_info_col(missing_info: pd.DataFrame, name: Hashable,
         updated_val = MissingType(prev_val) | new_val
         missing_info.loc[idx, name] = updated_val
 
-def update_missing_info_col(missing_info: pd.DataFrame, name: Hashable, missing_type_mask: np.ndarray, new_val: MissingType):
+def update_missing_info_col(missing_info: pd.DataFrame, name: str, missing_type_mask: np.ndarray, new_val: MissingType):
     # Update existing missing info
     existing_missing_mask = missing_info[name] != MissingType.NULL
     overlap_mask = existing_missing_mask & missing_type_mask  # <- Series & np.ndarray results in Series

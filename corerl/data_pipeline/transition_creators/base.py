@@ -4,7 +4,6 @@ from omegaconf import MISSING
 from corerl.utils.hydra import Group
 
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import Transition
 
 
@@ -18,7 +17,7 @@ class BaseTransitionCreator(ABC):
         self.cfg = cfg
 
     @abstractmethod
-    def __call__(self, pf: PipelineFrame, cfg: TagConfig) -> list[Transition]:
+    def __call__(self, pf: PipelineFrame) -> list[Transition]:
         raise NotImplementedError
 
 

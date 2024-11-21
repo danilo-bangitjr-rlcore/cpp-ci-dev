@@ -10,7 +10,6 @@ from corerl.data_pipeline.tag_config import TagConfig
 def test_none_bounds():
     tag_1_cfg = TagConfig(name="tag_1", bounds=(None, None))
     tag_2_cfg = TagConfig(name="tag_2", bounds=(None, None))
-    tag_cfgs = [tag_1_cfg, tag_2_cfg]
 
     data = pd.DataFrame({
         "tag_1": [3.4, -0.2, 2.7],
@@ -18,7 +17,8 @@ def test_none_bounds():
     })
     pf = PipelineFrame(data)
 
-    filtered_pf = bound_checker(pf, tag_cfgs)
+    filtered_pf = bound_checker(pf, 'tag_1', tag_1_cfg)
+    filtered_pf = bound_checker(pf, 'tag_2', tag_2_cfg)
     filtered_data = filtered_pf.data
     missing_info = filtered_pf.missing_info
     oob_mask = missing_info == MissingType.BOUNDS.value
@@ -31,7 +31,6 @@ def test_none_bounds():
 def test_lower_bound_violation():
     tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 10.0))
     tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
-    tag_cfgs = [tag_1_cfg, tag_2_cfg]
 
     data = pd.DataFrame({
         "tag_1": [3.4, -0.2, 2.7],
@@ -39,7 +38,8 @@ def test_lower_bound_violation():
     })
     pf = PipelineFrame(data)
 
-    filtered_pf = bound_checker(pf, tag_cfgs)
+    filtered_pf = bound_checker(pf, 'tag_1', tag_1_cfg)
+    filtered_pf = bound_checker(pf, 'tag_2', tag_2_cfg)
     filtered_data = filtered_pf.data
     missing_info = filtered_pf.missing_info
 
@@ -54,7 +54,6 @@ def test_lower_bound_violation():
 def test_upper_bound_violation():
     tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
     tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
-    tag_cfgs = [tag_1_cfg, tag_2_cfg]
 
     data = pd.DataFrame({
         "tag_1": [0.4, 1.3, 0.7],
@@ -62,7 +61,8 @@ def test_upper_bound_violation():
     })
     pf = PipelineFrame(data)
 
-    filtered_pf = bound_checker(pf, tag_cfgs)
+    filtered_pf = bound_checker(pf, 'tag_1', tag_1_cfg)
+    filtered_pf = bound_checker(pf, 'tag_2', tag_2_cfg)
     filtered_data = filtered_pf.data
     missing_info = filtered_pf.missing_info
 
@@ -77,7 +77,6 @@ def test_upper_bound_violation():
 def test_multiple_missing_types():
     tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
     tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
-    tag_cfgs = [tag_1_cfg, tag_2_cfg]
 
     data = pd.DataFrame({
         "tag_1": [np.nan, 1.3, 0.7],
@@ -85,9 +84,11 @@ def test_multiple_missing_types():
     })
     pf = PipelineFrame(data)
 
-    filtered_missing_pf = missing_data_checker(pf, tag_1_cfg)
+    filtered_missing_pf = missing_data_checker(pf, 'tag_1')
+    filtered_missing_pf = missing_data_checker(filtered_missing_pf, 'tag_2')
 
-    filtered_bounds_pf = bound_checker(filtered_missing_pf, tag_cfgs)
+    filtered_bounds_pf = bound_checker(filtered_missing_pf, 'tag_1', tag_1_cfg)
+    filtered_bounds_pf = bound_checker(filtered_bounds_pf, 'tag_2', tag_2_cfg)
     filtered_data = filtered_bounds_pf.data
     missing_info = filtered_bounds_pf.missing_info
 
