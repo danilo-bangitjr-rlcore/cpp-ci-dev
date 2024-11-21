@@ -1,7 +1,5 @@
-from dataclasses import dataclass
-from typing import Hashable, Tuple
-
 import numpy as np
+from dataclasses import dataclass
 from pandas import DataFrame
 
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
@@ -36,7 +34,7 @@ class ExpMovingDetector(BaseOutlierDetector):
         self.ema = ExpMovingAvg(alpha=self.alpha)
         self.emv = ExpMovingVar(alpha=self.alpha)
 
-    def _get_outlier_mask(self, name: Hashable, data: DataFrame, update_stats: bool) -> np.ndarray:
+    def _get_outlier_mask(self, name: str, data: DataFrame, update_stats: bool) -> np.ndarray:
         """
         Columns of df are mutable, this function takes a Series
         and mutates the data (by possible setting some values to NaN)
@@ -58,7 +56,7 @@ class ExpMovingDetector(BaseOutlierDetector):
 
         return outliers
 
-    def _filter_col(self, name: Hashable, pf: PipelineFrame, update_stats: bool) -> None:
+    def _filter_col(self, name: str, pf: PipelineFrame, update_stats: bool) -> None:
         outlier_mask = self._get_outlier_mask(name=name, data=pf.data, update_stats=update_stats)
 
         # set outliers to NaN
