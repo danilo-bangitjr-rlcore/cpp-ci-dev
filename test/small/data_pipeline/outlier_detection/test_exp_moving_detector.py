@@ -5,7 +5,6 @@ import pandas as pd
 
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
 from corerl.data_pipeline.outlier_detectors.exp_moving_detector import ExpMovingDetector, ExpMovingDetectorConfig
-from corerl.data_pipeline.tag_config import TagConfig
 
 
 def test_obvious_outlier_in_first_batch():
@@ -19,7 +18,6 @@ def test_obvious_outlier_in_first_batch():
     """
 
     cfg = ExpMovingDetectorConfig(alpha=0.99)
-    tag_cfg = TagConfig()
     outlier_detector = ExpMovingDetector(cfg)
     values = [1] * 1000
     values[-1] = 100  # <- this is the outlier
@@ -27,7 +25,7 @@ def test_obvious_outlier_in_first_batch():
 
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data)
-    filtered_pf = outlier_detector(pf, tag_cfg)
+    filtered_pf = outlier_detector(pf, name)
     filtered_data = filtered_pf.data
 
     assert not np.isnan(filtered_data[name].iloc[-2])
@@ -40,7 +38,6 @@ def test_obvious_outlier_in_second_batch():
     test (test_obvious_outlier_in_first_batch)
     """
     cfg = ExpMovingDetectorConfig(alpha=0.99)
-    tag_cfg = TagConfig()
 
     outlier_detector = ExpMovingDetector(cfg)
     values = [1] * 5
@@ -48,14 +45,14 @@ def test_obvious_outlier_in_second_batch():
 
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data)
-    outlier_detector(pf, tag_cfg)  # <- stats get initialized here
+    outlier_detector(pf, name)  # <- stats get initialized here
 
     values2 = [1] * 5
     values2[-1] = 100  # <- this is the outlier
 
     data2 = pd.DataFrame({name: values2})
     pf2 = PipelineFrame(data2)
-    filtered_pf2 = outlier_detector(pf2, tag_cfg)
+    filtered_pf2 = outlier_detector(pf2, name)
     filtered_data2 = filtered_pf2.data
 
     assert not np.isnan(filtered_data2[name].iloc[-2])
@@ -64,7 +61,6 @@ def test_obvious_outlier_in_second_batch():
 
 def test_obvious_outlier_in_stream():
     cfg = ExpMovingDetectorConfig(alpha=0.99)
-    tag_cfg = TagConfig()
 
     outlier_detector = ExpMovingDetector(cfg)
     name = "sensor_x"
@@ -74,7 +70,7 @@ def test_obvious_outlier_in_stream():
         data = pd.DataFrame({name: values})
         pf = PipelineFrame(data)
 
-        filtered_pf = outlier_detector(pf, tag_cfg)
+        filtered_pf = outlier_detector(pf, name)
         filtered_data = filtered_pf.data
 
         assert not np.isnan(filtered_data[name].iloc[0])
@@ -84,7 +80,7 @@ def test_obvious_outlier_in_stream():
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data)
 
-    filtered_pf = outlier_detector(pf, tag_cfg)
+    filtered_pf = outlier_detector(pf, name)
     filtered_data = filtered_pf.data
 
     assert np.isnan(filtered_data[name].iloc[0])
@@ -92,9 +88,9 @@ def test_obvious_outlier_in_stream():
 
 def test_detection_with_multiple_cols():
     cfg = ExpMovingDetectorConfig(alpha=0.99)
-    tag_cfg = TagConfig()
 
-    outlier_detector = ExpMovingDetector(cfg)
+    outlier_detector_x = ExpMovingDetector(cfg)
+    outlier_detector_y = ExpMovingDetector(cfg)
     name_x = "sensor_x"
     name_y = "sensor_y"
 
@@ -105,8 +101,12 @@ def test_detection_with_multiple_cols():
         data = pd.DataFrame({name_x: values_x, name_y: values_y})
         pf = PipelineFrame(data)
 
-        filtered_pf = outlier_detector(pf, tag_cfg)
-        filtered_data = filtered_pf.data
+        for tag, detector in zip([name_x, name_y], [outlier_detector_x, outlier_detector_y], strict=True):
+            pf = detector(pf, tag)
+
+        filtered_data = pf.data
+        print(filtered_data)
+
         assert not filtered_data.isnull().values.any()
 
     # catch the outlier
@@ -116,8 +116,9 @@ def test_detection_with_multiple_cols():
     data = pd.DataFrame({name_x: values_x, name_y: values_y})
     pf = PipelineFrame(data)
 
-    filtered_pf = outlier_detector(pf, tag_cfg)
-    filtered_data = filtered_pf.data
+    for tag, detector in zip([name_x, name_y], [outlier_detector_x, outlier_detector_y], strict=True):
+        pf = detector(pf, tag)
+    filtered_data = pf.data
 
     assert np.isnan(filtered_data[name_x].iloc[0])
     assert not np.isnan(filtered_data[name_y].iloc[0])
@@ -125,7 +126,6 @@ def test_detection_with_multiple_cols():
 
 def test_detector_does_not_change_indices():
     cfg = ExpMovingDetectorConfig(alpha=0.99)
-    tag_cfg = TagConfig()
 
     outlier_detector = ExpMovingDetector(cfg)
     n = 5
@@ -137,7 +137,7 @@ def test_detector_does_not_change_indices():
     data = pd.DataFrame({name: values}, index=pd.DatetimeIndex(timestamps))
     pf = PipelineFrame(data)
 
-    filtered_pf = outlier_detector(pf, tag_cfg)
+    filtered_pf = outlier_detector(pf, name)
     filtered_data = filtered_pf.data
 
     for i, dt_index in enumerate(filtered_data.index):
@@ -150,7 +150,7 @@ def test_detector_does_not_change_indices():
     data = pd.DataFrame({name: values}, index=pd.DatetimeIndex([outlier_ts]))
     pf = PipelineFrame(data)
 
-    filtered_pf = outlier_detector(pf, tag_cfg)
+    filtered_pf = outlier_detector(pf, name)
     filtered_data = filtered_pf.data
 
     assert np.isnan(filtered_data[name].iloc[0])
@@ -162,7 +162,6 @@ def test_detector_does_not_change_indices():
 def test_outlier_gets_correct_missingtype():
     # initialize outlier detector
     cfg = ExpMovingDetectorConfig(alpha=0.99)
-    tag_cfg = TagConfig()
 
     # prepare some data to warm up the stats
     outlier_detector = ExpMovingDetector(cfg)
@@ -171,7 +170,7 @@ def test_outlier_gets_correct_missingtype():
 
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data)
-    outlier_detector(pf, tag_cfg)  # <- stats get initialized here
+    outlier_detector(pf, name)  # <- stats get initialized here
 
     # create a batch with an outlier
     values2 = [1] * 5
@@ -181,7 +180,7 @@ def test_outlier_gets_correct_missingtype():
     pf2 = PipelineFrame(data2)
 
     # filter the outlier
-    filtered_pf2 = outlier_detector(pf2, tag_cfg)
+    filtered_pf2 = outlier_detector(pf2, name)
 
     # check that the outlier has the correct missing type
     missing_info = filtered_pf2.missing_info
@@ -191,7 +190,6 @@ def test_outlier_gets_correct_missingtype():
 def test_outlier_missing_type_is_added_to_existing_missing():
     # initialize outlier detector
     cfg = ExpMovingDetectorConfig(alpha=0.99)
-    tag_cfg = TagConfig()
 
     # prepare some data to warm up the stats
     outlier_detector = ExpMovingDetector(cfg)
@@ -200,7 +198,7 @@ def test_outlier_missing_type_is_added_to_existing_missing():
 
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data)
-    outlier_detector(pf, tag_cfg)  # <- stats get initialized here
+    outlier_detector(pf, name)  # <- stats get initialized here
 
     # create a batch with an outlier
     values2 = [1] * 5
@@ -213,7 +211,7 @@ def test_outlier_missing_type_is_added_to_existing_missing():
     pf2.missing_info.loc[4, "sensor_x"] = MissingType.BOUNDS
 
     # filter the outlier
-    filtered_pf2 = outlier_detector(pf2, tag_cfg)
+    filtered_pf2 = outlier_detector(pf2, name)
 
     # check that the outlier has both missing types
     missing_info = filtered_pf2.missing_info
