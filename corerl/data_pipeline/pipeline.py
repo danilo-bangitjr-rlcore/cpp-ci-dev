@@ -26,7 +26,7 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import Transition
 
 type missing_data_checker_type = Callable[[PipelineFrame, TagConfig], PipelineFrame]
-type bound_checker_type = Callable[[PipelineFrame, TagConfig], PipelineFrame]
+type bound_checker_type = Callable[[PipelineFrame, list[TagConfig]], PipelineFrame]
 
 
 @dataclass
@@ -53,7 +53,7 @@ class Pipeline:
     def __call__(self, data: DataFrame, cfg: TagConfig) -> list[Transition]:
         pf = PipelineFrame(data)
         pf = self.missing_data(pf, cfg)
-        pf = self.bound_checker(pf, cfg)
+        pf = self.bound_checker(pf, cfg) # Will need to be a list of TagConfigs
         pf = self.outlier_detector(pf, cfg)
         pf = self.imputer(pf, cfg)
         transitions = self.transition_creator(pf, cfg)
