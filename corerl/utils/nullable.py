@@ -1,8 +1,7 @@
-from typing import Callable, TypeVar
+from typing import Callable
 
 
-T = TypeVar('T')
-def default(thing: T | None, other: Callable[[], T]) -> T:
+def default[T](thing: T | None, other: Callable[[], T]) -> T:
     if thing is None:
         return other()
 

@@ -1,10 +1,8 @@
 import inspect
 from dataclasses import dataclass, field, fields, is_dataclass
-from typing import Any, Concatenate, ParamSpec, TypeVar, Generic, Protocol
+from typing import Any, Concatenate, TypeVar, Protocol
 from collections.abc import Callable, Sequence
 from hydra.core.config_store import ConfigStore
-
-T = TypeVar('T')
 
 def list_(vals: list[Any] | None = None) -> Any:
     if vals is None:
@@ -18,7 +16,7 @@ def interpolate(path: str) -> Any:
 
 
 def config(name: str, group: str | None = None):
-    def _inner(cls: type[T]):
+    def _inner[T](cls: type[T]):
         node = dataclass(cls)
 
         cs = ConfigStore.instance()
@@ -38,10 +36,8 @@ class DiscriminatedUnion(Protocol):
 
 
 Config = TypeVar('Config', bound=DiscriminatedUnion)
-R = TypeVar('R')
-P = ParamSpec('P')
 
-class Group(Generic[P, R]):
+class Group[**P, R]:
     def __init__(
         self,
         group: str | Sequence[str],
