@@ -1,71 +1,69 @@
+from collections.abc import Mapping
 from typing import Callable
-from dataclasses import dataclass, field
 from pandas import DataFrame
 
+from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
-from corerl.data_pipeline.bound_checker import bound_checker
-
-from corerl.data_pipeline.outlier_detectors.base import BaseOutlierDetector, BaseOutlierDetectorConfig
-from corerl.data_pipeline.outlier_detectors.identity import IdentityDetectorConfig
+from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.outlier_detectors.factory import init_outlier_detector
-
-from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig
-from corerl.data_pipeline.imputers.identity import IdentityImputerConfig
 from corerl.data_pipeline.imputers.factory import init_imputer
-
-from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
-from corerl.data_pipeline.transition_creators.base import BaseTransitionCreator
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
-
-from corerl.data_pipeline.state_constructors.base import BaseStateConstructor, BaseStateConstructorConfig
-from corerl.data_pipeline.state_constructors.identity import IdentityStateConstructorConfig
 from corerl.data_pipeline.state_constructors.factory import init_state_constructor
 
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import Transition
 
 from corerl.data_pipeline.pipeline_utils import warmup_pruning, handle_data_gaps
 
-type missing_data_checker_type = Callable[[PipelineFrame, TagConfig], PipelineFrame]
-type bound_checker_type = Callable[[PipelineFrame, TagConfig], PipelineFrame]
-type warmup_pruning_type = Callable[[list[Transition], int], list[Transition]]
-
 WARMUP = 0
 
+type PipelineStage[T] = Callable[[T, str], T]
+type WarmupPruner = Callable[[list[Transition], int], list[Transition]]
 
-@dataclass
-class PipelineConfig:
-    outlier_detector: BaseOutlierDetectorConfig = field(default_factory=IdentityDetectorConfig)
-    imputer: BaseImputerConfig = field(default_factory=IdentityImputerConfig)
-    transition_creator: DummyTransitionCreatorConfig = field(default_factory=DummyTransitionCreatorConfig)
-    state_constructor: BaseStateConstructorConfig = field(default_factory=IdentityStateConstructorConfig)
+def invoke_stage_per_tag[T](carry: T, stage: Mapping[str, PipelineStage[T]]):
+    for tag, f in stage.items():
+        carry = f(carry, tag)
 
+    return carry
 
 class Pipeline:
-    def __init__(self, cfg: PipelineConfig):
-        """
-        This will be defined according to the Pipeline config eventually
-        """
-        self.missing_data: missing_data_checker_type = missing_data_checker
-        self.bound_checker: bound_checker_type = bound_checker
-        self.outlier_detector: BaseOutlierDetector = init_outlier_detector(cfg.outlier_detector)
-        self.imputer: BaseImputer = init_imputer(cfg.imputer)
-        self.transition_creator: BaseTransitionCreator = init_transition_creator(cfg.transition_creator)
-        self.state_constructor: BaseStateConstructor = init_state_constructor(cfg.state_constructor)
-        self.warmup_pruning: warmup_pruning_type = warmup_pruning
+    def __init__(self, cfg: MainConfig):
+        self.missing_data = {
+            cfg.name: missing_data_checker for cfg in cfg.tags
+        }
 
-    def __call__(self, data: DataFrame, cfg: TagConfig) -> list[Transition]:
+        self.bound_checker = {
+            cfg.name: bound_checker_builder(cfg) for cfg in cfg.tags
+        }
+
+        self.transition_creator = init_transition_creator(cfg.agent_transition_creator)
+
+        self.outlier_detector = {
+            cfg.name: init_outlier_detector(cfg.outlier) for cfg in cfg.tags
+        }
+
+        self.imputer = {
+            cfg.name: init_imputer(cfg.imputer) for cfg in cfg.tags
+        }
+
+        self.state_constructor = {
+            cfg.name: init_state_constructor(cfg.state_constructor) for cfg in cfg.tags
+        }
+
+        self.warmup_pruning: WarmupPruner = warmup_pruning
+
+    def __call__(self, data: DataFrame) -> list[Transition]:
         pf = PipelineFrame(data)
-        pf = self.missing_data(pf, cfg)
-        pf = self.bound_checker(pf, cfg) # Will need to be a list of TagConfigs
-        pf = self.outlier_detector(pf, cfg)
-        pf = self.imputer(pf, cfg)
+        pf = invoke_stage_per_tag(pf, self.missing_data)
+        pf = invoke_stage_per_tag(pf, self.bound_checker)
+        pf = invoke_stage_per_tag(pf, self.outlier_detector)
+        pf = invoke_stage_per_tag(pf, self.imputer)
         pfs = handle_data_gaps(pf)
         transitions = []
         for pf in pfs:
-            pf_transitions = self.transition_creator(pf, cfg)
-            pf_transitions = self.state_constructor(pf_transitions)
+            pf_transitions = self.transition_creator(pf)
+            pf_transitions = invoke_stage_per_tag(pf_transitions, self.state_constructor)
             pf_transitions = self.warmup_pruning(pf_transitions, WARMUP)  # placeholder for WARMUP. Comes from somewhere
             transitions += pf_transitions
+
         return transitions
