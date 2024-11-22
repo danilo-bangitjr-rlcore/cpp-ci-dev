@@ -319,6 +319,7 @@ class StageCode(Enum):
     SC = auto()
 
 
+
 type TemporalState = Dict[StageCode, object | None]
 
 
