@@ -310,7 +310,7 @@ class Trajectory:
 
 class CallerCode(Enum):
     OFFLINE = auto()
-    ONLINE = auto
+    ONLINE = auto()
     REFRESH = auto()
 
 
