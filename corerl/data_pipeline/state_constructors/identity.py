@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 
-from corerl.data_pipeline.datatypes import Transition, PipelineFrame
+from corerl.data_pipeline.pipeline import PipelineFrame
+from corerl.data_pipeline.datatypes import Transition
 from corerl.data_pipeline.state_constructors.base import (
     BaseStateConstructor,
     BaseStateConstructorConfig,
     state_constructor_group,
+    StateConstructorTemporalState,
 )
 
 
@@ -17,8 +19,12 @@ class IdentityStateConstructor(BaseStateConstructor):
     def __init__(self, cfg: IdentityStateConstructorConfig):
         super().__init__(cfg)
 
-    def __call__(self, pf: PipelineFrame, tag: str) -> PipelineFrame:
-        return pf
+    def _inner_call(self,
+                    pf: PipelineFrame,
+                    sc_ts: StateConstructorTemporalState | None) \
+        -> tuple[list[Transition], StateConstructorTemporalState]:
+        sc_ts =  StateConstructorTemporalState()
+        return pf.transitions, sc_ts
 
     def reset(self) -> None:
         pass
