@@ -3,17 +3,21 @@ from pandas import DataFrame
 from torch import Tensor
 from copy import deepcopy
 from math import isclose
+import datetime
 
 from dataclasses import dataclass, fields, field
 from corerl.state_constructor.base import BaseStateConstructor
 import pandas as pd
 
 from enum import IntFlag, auto
+
+
 class MissingType(IntFlag):
     NULL = auto()
-    MISSING = auto() # indicates data did not exist in db
+    MISSING = auto()  # indicates data did not exist in db
     BOUNDS = auto()
     OUTLIER = auto()
+
 
 # for use to create sparse pandas dataframes
 # for example: sparse_df = pd.DataFrame(..., dtype=SparseMissingType)
@@ -60,25 +64,10 @@ def update_missing_info_col(missing_info: pd.DataFrame, name: str, missing_type_
     missing_info.loc[new_missing_mask, name] = new_val
 
 @dataclass
-class PipelineFrame:
-    data: DataFrame
-    missing_info: DataFrame = field(init=False)
-    data_gap: bool = False  # Revan: set by data
-    terminate: bool = False  # Revan: IDK where these will come from yet
-    truncate: bool = False  # Revan: IDK where these will come from yet
-
-    def __post_init__(self):
-        missing_info = DataFrame(index=self.data.index, dtype=SparseMissingType)
-        N = len(self.data)
-        # initialize filled with NULL (no memory cost)
-        null_cols = {col: [MissingType.NULL] * N for col in self.data.columns}
-        self.missing_info = missing_info.assign(**null_cols)
-
-@dataclass
 class OldObsTransition:
     # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
     prev_action: np.ndarray | None
-    obs: np.ndarray | None # the raw observation of state
+    obs: np.ndarray | None  # the raw observation of state
     obs_steps_until_decision: int
     obs_dp: bool  # Whether 'obs' is at a decision point
     action: np.ndarray  # the action taken after 'obs' that occurs concurrently with 'next_obs'
@@ -299,7 +288,6 @@ class Trajectory:
         attribute_list = [getattr(transition, attr).reshape(1, -1) for transition in self.transitions]
         return np.concatenate(attribute_list, axis=0)
 
-
     def split_at(self, idx: int):
         child_1 = Trajectory()
         child_2 = Trajectory()
@@ -314,3 +302,33 @@ class Trajectory:
         child_2.transitions = self.transitions[idx:]
 
         return child_1, child_2
+
+
+@dataclass
+class PipelineFrame:
+    data: DataFrame
+    missing_info: DataFrame = field(init=False)
+    data_gap: bool = False  # Revan: set by data
+    terminate: bool = False  # Revan: IDK where these will come from yet
+    truncate: bool = False  # Revan: IDK where these will come from yet
+    temporal_state: dict | None = None
+    transitions: list[Transition] | None = None
+
+    def __post_init__(self):
+        missing_info = DataFrame(index=self.data.index, dtype=SparseMissingType)
+        N = len(self.data)
+        # initialize filled with NULL (no memory cost)
+        null_cols = {col: [MissingType.NULL] * N for col in self.data.columns}
+        self.missing_info = missing_info.assign(**null_cols)
+
+    def get_last_timestamp(self) -> None | datetime.datetime:
+        if not len(self.data.index):
+            return None
+        else:
+            return self.data.index[-1]
+
+    def get_first_timestamp(self) -> None | datetime.datetime:
+        if not len(self.data.index):
+            return None
+        else:
+            return self.data.index[0]

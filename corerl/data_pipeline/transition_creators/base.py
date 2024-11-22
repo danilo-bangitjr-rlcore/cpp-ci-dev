@@ -2,9 +2,11 @@ from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from omegaconf import MISSING
 from corerl.utils.hydra import Group
+from datetime import datetime
 
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.datatypes import Transition
+from corerl.data_pipeline.pipeline import StageTemporalState
 
 
 @dataclass
@@ -12,12 +14,29 @@ class BaseTransitionCreatorConfig:
     name: str = MISSING
 
 
+@dataclass
+class TransitionCreatorTemporalState(StageTemporalState):
+    pass
+
+
 class BaseTransitionCreator(ABC):
     def __init__(self, cfg: BaseTransitionCreatorConfig):
         self.cfg = cfg
+        self.stage_name = 'tc'
+
+    def __call__(self, pf: PipelineFrame) -> PipelineFrame:
+        """
+        Gets the current temporal state
+        """
+        ts: TransitionCreatorTemporalState | None = pf.temporal_state[self.stage_name]
+        transitions, ts = self._inner_call(pf, ts)
+        pf.temporal_state[self.stage_name] = ts
+        pf.transitions = transitions
+        return pf
 
     @abstractmethod
-    def __call__(self, pf: PipelineFrame) -> list[Transition]:
+    def _inner_call(self, pf: PipelineFrame, ts: TransitionCreatorTemporalState | None) \
+            -> tuple[list[Transition], TransitionCreatorTemporalState]:
         raise NotImplementedError
 
 

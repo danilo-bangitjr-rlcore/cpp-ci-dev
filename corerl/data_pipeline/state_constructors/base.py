@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from omegaconf import MISSING
 from corerl.utils.hydra import Group
 
-from corerl.data_pipeline.datatypes import Transition
+from corerl.data_pipeline.datatypes import Transition, PipelineFrame
 
 
 @dataclass
@@ -16,7 +16,7 @@ class BaseStateConstructor(ABC):
         self.cfg = cfg
 
     @abstractmethod
-    def __call__(self, transitions: list[Transition], tag: str) -> list[Transition]:
+    def __call__(self, pf: PipelineFrame, tag: str) -> PipelineFrame:
         raise NotImplementedError
 
     @abstractmethod
