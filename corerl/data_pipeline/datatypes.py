@@ -334,13 +334,11 @@ class TemporalState:
         self.time_stamp: datetime.datetime | None = None
 
     def get_ts(self, stage_code: StageCode, tag: str | None = None) -> StageTemporalState | None:
-        print(stage_code, tag)
-
         if stage_code not in self._stage_dict:
             return None
         else:
             stage_val: TagDict | StageTemporalState = self._stage_dict[stage_code]
-            if isinstance(stage_val, dict): # is this right?
+            if isinstance(stage_val, dict):  # is this right?
                 return _get_tag_ts(stage_val, tag)
             elif isinstance(stage_val, StageTemporalState):
                 return stage_val
@@ -353,7 +351,9 @@ class TemporalState:
         else:
             if stage_code not in self._stage_dict:
                 self._stage_dict[stage_code] = {}
+            self._stage_dict[stage_code]: TagDict
             self._stage_dict[stage_code][tag] = ts
+
         return self
 
 
@@ -388,10 +388,12 @@ class PipelineFrame:
         if not len(self.data.index):
             return None
         else:
-            return self.data.index[-1]
+            last_index: datetime.datetime = self.data.index[-1]
+            return last_index
 
     def get_first_timestamp(self) -> None | datetime.datetime:
         if not len(self.data.index):
             return None
         else:
-            return self.data.index[0]
+            first_index: datetime.datetime = self.data.index[-1]
+            return first_index
