@@ -1,4 +1,4 @@
-from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.pipeline import PipelineFrame
 
 
 def warmup_pruning(pf: PipelineFrame, warmup: int) -> PipelineFrame:

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
-from corerl.data_pipeline.datatypes import PipelineFrame, Transition
+from corerl.data_pipeline.datatypes import Transition
+from corerl.data_pipeline.pipeline import PipelineFrame
 from corerl.data_pipeline.transition_creators.base import (
     BaseTransitionCreator,
     BaseTransitionCreatorConfig,
