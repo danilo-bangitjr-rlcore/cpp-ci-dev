@@ -3,6 +3,7 @@ import pandas as pd
 
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.datatypes import CallerCode
 from corerl.config import MainConfig
 from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
 
@@ -16,6 +17,7 @@ def test_construct_pipeline():
         agent_transition_creator=DummyTransitionCreatorConfig(),
     )
     _ = Pipeline(cfg)
+
 
 
 def test_passing_data_to_pipeline():
@@ -32,4 +34,4 @@ def test_passing_data_to_pipeline():
     data = pd.DataFrame(cols)
 
     # test that we can run the pf through the pipeline
-    _ = pipeline(data)
+    _ = pipeline(data, caller_code=CallerCode.OFFLINE)

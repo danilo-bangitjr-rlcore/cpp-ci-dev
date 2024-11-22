@@ -1,13 +1,17 @@
+from typing import Self, Dict
+
 import numpy as np
 from torch import Tensor
 from copy import deepcopy
 from math import isclose
-
-from dataclasses import dataclass, fields
-from corerl.state_constructor.base import BaseStateConstructor
 import pandas as pd
+import datetime
 
-from enum import IntFlag, auto
+from dataclasses import dataclass, fields, field
+
+from corerl.state_constructor.base import BaseStateConstructor
+
+from enum import IntFlag, auto, Enum
 
 
 class MissingType(IntFlag):
@@ -23,10 +27,10 @@ SparseMissingType = pd.SparseDtype(dtype=int, fill_value=MissingType.NULL)
 
 
 def update_existing_missing_info_col(
-    missing_info: pd.DataFrame,
-    name: str,
-    missing_mask: np.ndarray,
-    new_val: MissingType,
+        missing_info: pd.DataFrame,
+        name: str,
+        missing_mask: np.ndarray,
+        new_val: MissingType,
 ):
     """
     Updates a column of a dataframe filled with MissingType's to (prev_val | new_val).
@@ -46,6 +50,7 @@ def update_existing_missing_info_col(
         updated_val = MissingType(prev_val) | new_val
         missing_info.loc[idx, name] = updated_val
 
+
 def update_missing_info_col(missing_info: pd.DataFrame, name: str, missing_type_mask: np.ndarray, new_val: MissingType):
     # Update existing missing info
     existing_missing_mask = missing_info[name] != MissingType.NULL
@@ -60,6 +65,7 @@ def update_missing_info_col(missing_info: pd.DataFrame, name: str, missing_type_
     # Add new missing info
     new_missing_mask = ~existing_missing_mask & missing_type_mask
     missing_info.loc[new_missing_mask, name] = new_val
+
 
 @dataclass
 class OldObsTransition:
@@ -302,18 +308,77 @@ class Trajectory:
         return child_1, child_2
 
 
+class CallerCode(Enum):
+    OFFLINE = auto()
+    ONLINE = auto
+    REFRESH = auto()
+
+
+class StageCode(Enum):
+    TC = auto()
+    SC = auto()
+
+
+@dataclass
+class StageTemporalState:
+    pass
+
+
+type TagDict = Dict[str, StageTemporalState]
+type StageDict = Dict[StageCode, StageTemporalState | TagDict]
+
+
+class TemporalState:
+    def __init__(self):
+        self._stage_dict: StageDict = {}
+        self.time_stamp: datetime.datetime | None = None
+
+    def get_ts(self, stage_code: StageCode, tag: str | None = None) -> StageTemporalState | None:
+        print(stage_code, tag)
+
+        if stage_code not in self._stage_dict:
+            return None
+        else:
+            stage_val: TagDict | StageTemporalState = self._stage_dict[stage_code]
+            if isinstance(stage_val, dict): # is this right?
+                return _get_tag_ts(stage_val, tag)
+            elif isinstance(stage_val, StageTemporalState):
+                return stage_val
+            else:
+                raise AssertionError("Return type is invalid.")
+
+    def update(self, ts: StageTemporalState, stage_code: StageCode, tag: str | None = None) -> Self:
+        if tag is None:
+            self._stage_dict[stage_code] = ts
+        else:
+            if stage_code not in self._stage_dict:
+                self._stage_dict[stage_code] = {}
+            self._stage_dict[stage_code][tag] = ts
+        return self
+
+
+def _get_tag_ts(tag_dict: TagDict, tag: str | None) -> StageTemporalState | None:
+    if tag is None:
+        raise AssertionError("You are accessing the temporal state for a stage that has "
+                             "different temporal states per tag without specifying a tag.")
+    elif tag not in tag_dict:
+        return None
+    else:
+        return tag_dict[tag]
+
+
 @dataclass
 class PipelineFrame:
-    data: DataFrame
-    missing_info: DataFrame = field(init=False)
+    data: pd.DataFrame
+    missing_info: pd.DataFrame = field(init=False)
     data_gap: bool = False  # Revan: set by data
     terminate: bool = False  # Revan: IDK where these will come from yet
     truncate: bool = False  # Revan: IDK where these will come from yet
-    temporal_state: dict | None = None
+    temporal_state: TemporalState | None = None
     transitions: list[Transition] | None = None
 
     def __post_init__(self):
-        missing_info = DataFrame(index=self.data.index, dtype=SparseMissingType)
+        missing_info = pd.DataFrame(index=self.data.index, dtype=SparseMissingType)
         N = len(self.data)
         # initialize filled with NULL (no memory cost)
         null_cols = {col: [MissingType.NULL] * N for col in self.data.columns}

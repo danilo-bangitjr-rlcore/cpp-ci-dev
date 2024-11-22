@@ -3,8 +3,7 @@ from abc import ABC, abstractmethod
 from omegaconf import MISSING
 
 from corerl.utils.hydra import Group
-from corerl.data_pipeline.datatypes import Transition
-from corerl.data_pipeline.pipeline import StageTemporalState, StageCode, PipelineFrame
+from corerl.data_pipeline.datatypes import Transition, StageCode, StageTemporalState, PipelineFrame
 
 
 @dataclass

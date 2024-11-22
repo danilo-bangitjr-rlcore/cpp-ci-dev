@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from corerl.data_pipeline.outlier_detectors.base import BaseOutlierDetector, BaseOutlierDetectorConfig, outlier_group
-from corerl.data_pipeline.pipeline import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame
 
 
 @dataclass
