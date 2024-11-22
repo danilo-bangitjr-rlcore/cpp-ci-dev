@@ -319,52 +319,7 @@ class StageCode(Enum):
     SC = auto()
 
 
-@dataclass
-class StageTemporalState:
-    pass
-
-
-type TagDict = Dict[str, StageTemporalState]
-type StageDict = Dict[StageCode, StageTemporalState | TagDict]
-
-
-class TemporalState:
-    def __init__(self):
-        self._stage_dict: StageDict = {}
-        self.time_stamp: datetime.datetime | None = None
-
-    def get_ts(self, stage_code: StageCode, tag: str | None = None) -> StageTemporalState | None:
-        if stage_code not in self._stage_dict:
-            return None
-        else:
-            stage_val: TagDict | StageTemporalState = self._stage_dict[stage_code]
-            if isinstance(stage_val, dict):  # is this right?
-                return _get_tag_ts(stage_val, tag)
-            elif isinstance(stage_val, StageTemporalState):
-                return stage_val
-            else:
-                raise AssertionError("Return type is invalid.")
-
-    def update(self, ts: StageTemporalState, stage_code: StageCode, tag: str | None = None) -> Self:
-        if tag is None:
-            self._stage_dict[stage_code] = ts
-        else:
-            if stage_code not in self._stage_dict:
-                self._stage_dict[stage_code] = {}
-            self._stage_dict[stage_code]: TagDict
-            self._stage_dict[stage_code][tag] = ts
-
-        return self
-
-
-def _get_tag_ts(tag_dict: TagDict, tag: str | None) -> StageTemporalState | None:
-    if tag is None:
-        raise AssertionError("You are accessing the temporal state for a stage that has "
-                             "different temporal states per tag without specifying a tag.")
-    elif tag not in tag_dict:
-        return None
-    else:
-        return tag_dict[tag]
+type TemporalState = Dict[StageCode, object | None]
 
 
 @dataclass

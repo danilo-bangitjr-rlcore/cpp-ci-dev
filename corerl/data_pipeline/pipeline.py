@@ -13,7 +13,7 @@ from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
 from corerl.data_pipeline.state_constructors.factory import init_state_constructor
 
-from corerl.data_pipeline.datatypes import Transition, PipelineFrame, TemporalState, CallerCode
+from corerl.data_pipeline.datatypes import Transition, PipelineFrame, CallerCode, TemporalState
 from corerl.data_pipeline.pipeline_utils import warmup_pruning, handle_data_gaps
 
 WARMUP = 0
@@ -56,13 +56,14 @@ class Pipeline:
 
         self.warmup_pruning: WarmupPruner = warmup_pruning
         self.ts_dict: dict = {caller_code: None for caller_code in CallerCode}
+        self.dt_dict: dict = {caller_code: None for caller_code in CallerCode}
 
         self.valid_thresh: datetime.timedelta = datetime.timedelta(10)  # TODO: this comes from somewhere
 
     def _init_temporal_state(self, pf: PipelineFrame, caller_code: CallerCode, reset_ts: bool = False):
         ts = self.ts_dict[caller_code]
         if ts is None or reset_ts:
-            ts = TemporalState()
+            ts = dict()
         else:
             pf_first_time_stamp = pf.get_first_timestamp()
             if pf_first_time_stamp - ts.timestamp > self.valid_thresh:
@@ -91,10 +92,9 @@ class Pipeline:
         for pf in pfs:
             pf_with_transitions = self.transition_creator(pf)
             pf_with_transitions = invoke_stage_per_tag(pf_with_transitions, self.state_constructor)
-            pf_with_transitions = self.warmup_pruning(pf_with_transitions,
-                WARMUP)
+            pf_with_transitions = self.warmup_pruning(pf_with_transitions, WARMUP)
             transitions += pf_with_transitions.transitions
 
-        pf.temporal_state.time_stamp = pf.get_last_timestamp()
+        self.dt_dict['time_stamp'] = pf.get_last_timestamp()
         self._save_ts(pf.temporal_state, caller_code)
         return transitions

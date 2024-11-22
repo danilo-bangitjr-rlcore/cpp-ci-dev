@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from omegaconf import MISSING
 
 from corerl.utils.hydra import Group
-from corerl.data_pipeline.datatypes import Transition, StageCode, StageTemporalState, PipelineFrame
+from corerl.data_pipeline.datatypes import Transition, StageCode, PipelineFrame
 
 
 @dataclass
@@ -12,7 +12,7 @@ class BaseTransitionCreatorConfig:
 
 
 @dataclass
-class TransitionCreatorTemporalState(StageTemporalState):
+class TransitionCreatorTemporalState:
     pass
 
 
@@ -25,9 +25,9 @@ class BaseTransitionCreator(ABC):
         """
         Gets the current temporal state
         """
-        tc_ts: TransitionCreatorTemporalState | None = pf.temporal_state.get_ts(self.stage_code)
+        tc_ts = pf.temporal_state.get(self.stage_code)
         transitions, new_tc_ts = self._inner_call(pf, tc_ts)
-        pf.temporal_state = pf.temporal_state.update(new_tc_ts, self.stage_code)
+        pf.temporal_state[self.stage_code] = new_tc_ts
         pf.transitions = transitions
         return pf
 
