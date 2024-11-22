@@ -86,6 +86,9 @@ class Pipeline:
 
         return ts
 
+    def _save_ts(self, ts: StageTemporalState, caller_code : CallerCode):
+        self.ts_dict[caller_code] = ts
+
     def __call__(self, data: DataFrame,
                  caller_code: CallerCode,
                  reset_temporal_state: bool = False) -> list[Transition]:
@@ -101,7 +104,9 @@ class Pipeline:
         for pf in pfs:
             pf_with_transitions = self.transition_creator(pf)
             pf_with_transitions = invoke_stage_per_tag(pf_with_transitions, self.state_constructor)
-            pf_with_transitions = self.warmup_pruning(pf_with_transitions, WARMUP)  # placeholder for WARMUP. Comes from somewhere
+            pf_with_transitions = self.warmup_pruning(pf_with_transitions, WARMUP)  # TODO placeholder for WARMUP. Comes from somewhere
             transitions += pf_with_transitions.transitions
+
+        self._save_ts(pf.ts, caller_code)
 
         return transitions
