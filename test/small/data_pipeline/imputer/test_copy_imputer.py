@@ -21,7 +21,8 @@ def test_no_imputation():
         "tag_2": [1.9, -0.5, 7.3]
     })
     indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
-    data.set_index(indices)
+    indices = pd.to_datetime(indices)
+    data = data.set_index(indices)
 
     pf = PipelineFrame(data)
 
@@ -57,7 +58,8 @@ def test_all_nan_imputation():
         "tag_2": [np.nan, np.nan, np.nan]
     })
     indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
-    data.set_index(indices)
+    indices = pd.to_datetime(indices)
+    data = data.set_index(indices)
 
     pf = PipelineFrame(data)
 
@@ -93,7 +95,8 @@ def test_nan_first_ind_imputation():
         "tag_2": [-3.3, np.nan, 7.3]
     })
     indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
-    data.set_index(indices)
+    indices = pd.to_datetime(indices)
+    data = data.set_index(indices)
 
     pf = PipelineFrame(data)
 
@@ -129,7 +132,8 @@ def test_mixed_nan_imputation():
         "tag_2": [-0.5, np.nan, 7.3]
     })
     indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
-    data.set_index(indices)
+    indices = pd.to_datetime(indices)
+    data = data.set_index(indices)
 
     pf = PipelineFrame(data)
 

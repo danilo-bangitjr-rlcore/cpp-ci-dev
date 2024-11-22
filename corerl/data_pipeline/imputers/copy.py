@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -18,8 +19,9 @@ class CopyImputer(BaseImputer):
         super().__init__(cfg)
         self.default_val = cfg.default_val
 
-    def _get_copy(self, data: pd.Series, ind: pd.Timestamp) -> float:
-        first_valid_ind: pd.Timestamp = data.first_valid_index()
+    def _get_copy(self, data: pd.Series | pd.DataFrame, ind: pd.Timestamp) -> float:
+        first_valid_ind = data.first_valid_index()
+        assert isinstance(first_valid_ind, pd.Timestamp | None)
         if first_valid_ind is None:
             return self.default_val
         elif ind < first_valid_ind:
@@ -28,12 +30,12 @@ class CopyImputer(BaseImputer):
             copy_index = data.first_valid_index()
         else:
             # Otherwise, replace with the previous non-NaN entry
-            copy_index = data[first_valid_ind : ind].last_valid_index()
+            copy_index = data.loc[first_valid_ind : ind].last_valid_index()
 
-        return data[copy_index]
+        return float(data.loc[copy_index])
 
 
-    def _get_copies(self, data: pd.Series, inds: list[pd.Timestamp]) -> np.ndarray:
+    def _get_copies(self, data: pd.Series | pd.DataFrame, inds: pd.DatetimeIndex) -> np.ndarray:
         copied_vals = []
         for ind in inds:
             copied_val = self._get_copy(data, ind)
@@ -47,11 +49,14 @@ class CopyImputer(BaseImputer):
         tag_data = data[tag]
         tag_missing_info = missing_info[tag]
 
-        missing_inds: list[pd.Timestamp] = tag_missing_info.index[tag_missing_info > MissingType.NULL].to_list()
-        copied_vals = self._get_copies(tag_data, missing_inds)
-        data.loc[missing_inds, tag] = copied_vals
-
-        return pf
+        missing_inds: Any = tag_missing_info.index[tag_missing_info > MissingType.NULL]
+        if len(missing_inds) == 0:
+            return pf
+        else:
+            assert isinstance(missing_inds, pd.DatetimeIndex)
+            copied_vals = self._get_copies(tag_data, missing_inds)
+            data.loc[missing_inds, tag] = copied_vals
+            return pf
 
 
 imputer_group.dispatcher(CopyImputer)
