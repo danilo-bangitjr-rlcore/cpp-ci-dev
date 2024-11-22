@@ -96,5 +96,6 @@ class Pipeline:
             transitions += pf_with_transitions.transitions
 
         self.dt_dict['time_stamp'] = pf.get_last_timestamp()
-        self._save_ts(pf.temporal_state, caller_code)
+        self.ts_dict[caller_code] = pf.temporal_state
+
         return transitions

@@ -319,7 +319,6 @@ class StageCode(Enum):
     SC = auto()
 
 
-
 type TemporalState = Dict[StageCode, object | None]
 
 
@@ -344,12 +343,12 @@ class PipelineFrame:
         if not len(self.data.index):
             return None
         else:
-            last_index: datetime.datetime = self.data.index[-1]
+            last_index: datetime.datetime | None = self.data.index[-1] # Does this work???
             return last_index
 
     def get_first_timestamp(self) -> None | datetime.datetime:
         if not len(self.data.index):
             return None
         else:
-            first_index: datetime.datetime = self.data.index[-1]
+            first_index: datetime.datetime | None = self.data.index[-1]
             return first_index
