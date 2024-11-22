@@ -1,4 +1,4 @@
-from typing import Self, Dict
+from typing import Dict
 
 import numpy as np
 from torch import Tensor
