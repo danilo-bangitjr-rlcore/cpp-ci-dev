@@ -19,7 +19,7 @@ class CopyImputer(BaseImputer):
         super().__init__(cfg)
         self.default_val = cfg.default_val
 
-    def _get_copy(self, data: pd.Series | pd.DataFrame, ind: pd.Timestamp) -> float:
+    def _get_imputed_val(self, data: pd.Series | pd.DataFrame, ind: pd.Timestamp) -> float:
         first_valid_ind = data.first_valid_index()
         assert isinstance(first_valid_ind, pd.Timestamp | None)
         if first_valid_ind is None:
@@ -34,15 +34,6 @@ class CopyImputer(BaseImputer):
 
         return float(data.loc[copy_index])
 
-
-    def _get_copies(self, data: pd.Series | pd.DataFrame, inds: pd.DatetimeIndex) -> np.ndarray:
-        copied_vals = []
-        for ind in inds:
-            copied_val = self._get_copy(data, ind)
-            copied_vals.append(copied_val)
-
-        return np.array(copied_vals)
-
     def __call__(self, pf: PipelineFrame, tag: str) -> PipelineFrame:
         data = pf.data
         missing_info = pf.missing_info
@@ -54,7 +45,7 @@ class CopyImputer(BaseImputer):
             return pf
 
         assert isinstance(missing_inds, pd.DatetimeIndex)
-        copied_vals = self._get_copies(tag_data, missing_inds)
+        copied_vals = self._get_imputed_vals(tag_data, missing_inds)
         data.loc[missing_inds, tag] = copied_vals
         return pf
 
