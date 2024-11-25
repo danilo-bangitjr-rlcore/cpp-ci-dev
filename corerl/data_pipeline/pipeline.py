@@ -82,8 +82,8 @@ class Pipeline:
 
         pf = PipelineFrame(data)
         ts = self._init_temporal_state(pf, caller_code, reset_temporal_state)
-        assert pf.temporal_state is not None
         pf.temporal_state = ts
+        assert pf.temporal_state is not None
         pf = invoke_stage_per_tag(pf, self.missing_data)
         pf = invoke_stage_per_tag(pf, self.bound_checker)
         pf = invoke_stage_per_tag(pf, self.outlier_detector)

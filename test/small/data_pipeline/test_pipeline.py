@@ -19,7 +19,6 @@ def test_construct_pipeline():
     _ = Pipeline(cfg)
 
 
-
 def test_passing_data_to_pipeline():
     cfg = MainConfig(
         tags=[
