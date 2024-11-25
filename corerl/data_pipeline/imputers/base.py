@@ -19,7 +19,7 @@ class BaseImputer(ABC):
         self.cfg = cfg
 
     @abstractmethod
-    def _get_imputed_val(self, data: pd.Series | pd.DataFrame, ind: pd.Timestamp) -> float:
+    def _get_imputed_val(self, data: pd.Series | pd.DataFrame, impute_ind: pd.Timestamp) -> float:
         raise NotImplementedError
 
     def _get_imputed_vals(self, data: pd.Series | pd.DataFrame, imputed_inds: pd.DatetimeIndex) -> np.ndarray:
