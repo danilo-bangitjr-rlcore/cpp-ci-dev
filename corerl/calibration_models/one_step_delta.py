@@ -20,7 +20,7 @@ from corerl.utils.device import device
 log = logging.getLogger(__name__)
 
 
-class ShortHorizonDelta(BaseCalibrationModel):
+class OneStepDelta(BaseCalibrationModel):
     def __init__(self, cfg: DictConfig, train_info: dict):
         super().__init__(cfg, train_info)
         train_transitions = train_info['train_transitions_cm']
