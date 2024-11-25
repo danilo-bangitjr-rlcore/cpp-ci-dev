@@ -14,7 +14,7 @@ class BaseStateConstructorConfig:
 class StateConstructorTemporalState:
     pass
 
-from typing import Dict, Any, cast
+from typing import Dict, cast
 
 
 class BaseStateConstructor(ABC):
