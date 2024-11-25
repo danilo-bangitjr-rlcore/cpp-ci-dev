@@ -70,7 +70,7 @@ class Pipeline:
             warnings.warn(
                 "The temporal state is invalid. "
                 f"The temporal state has timestamp {ts.timestamp} "
-                f"while the current pipeframe has initial timestamp {pf_first_time_stamp}", 
+                f"while the current pipeframe has initial timestamp {pf_first_time_stamp}",
                 stacklevel=2,
             )
 

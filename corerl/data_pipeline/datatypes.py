@@ -329,7 +329,7 @@ class PipelineFrame:
     data_gap: bool = False  # Revan: set by data
     terminate: bool = False  # Revan: IDK where these will come from yet
     truncate: bool = False  # Revan: IDK where these will come from yet
-    temporal_state: TemporalState | None = None
+    temporal_state: TemporalState = field(default_factory=dict)
     transitions: list[Transition] | None = None
 
     def __post_init__(self):

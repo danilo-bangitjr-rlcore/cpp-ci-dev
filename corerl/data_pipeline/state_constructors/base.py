@@ -23,9 +23,6 @@ class BaseStateConstructor(ABC):
         self.stage_code = StageCode.SC
 
     def __call__(self, pf: PipelineFrame, tag: str) -> PipelineFrame:
-        assert pf.temporal_state is not None
-        assert isinstance(pf.temporal_state, dict)
-
         return_val = pf.temporal_state.get(self.stage_code)
         if return_val is None:
             pf.temporal_state[self.stage_code] = dict()
