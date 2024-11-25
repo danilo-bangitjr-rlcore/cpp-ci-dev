@@ -45,8 +45,10 @@ def test_no_imputation():
     assert imputed_data["tag_2"].iloc[2] == 7.3
 
 def test_all_nan_imputation():
-    imputer_cfg_1 = CopyImputerConfig(default_val=0.0)
-    imputer_cfg_2 = CopyImputerConfig(default_val=1.0)
+    tag_1_default = 0.0
+    tag_2_default = 1.0
+    imputer_cfg_1 = CopyImputerConfig(default_val=tag_1_default)
+    imputer_cfg_2 = CopyImputerConfig(default_val=tag_2_default)
     tag_1_imputer = CopyImputer(imputer_cfg_1)
     tag_2_imputer = CopyImputer(imputer_cfg_2)
 
@@ -74,16 +76,18 @@ def test_all_nan_imputation():
 
     imputed_data = imputed_pf.data
 
-    assert imputed_data["tag_1"].iloc[0] == 0.0
-    assert imputed_data["tag_1"].iloc[1] == 0.0
-    assert imputed_data["tag_1"].iloc[2] == 0.0
-    assert imputed_data["tag_2"].iloc[0] == 1.0
-    assert imputed_data["tag_2"].iloc[1] == 1.0
-    assert imputed_data["tag_2"].iloc[2] == 1.0
+    assert imputed_data["tag_1"].iloc[0] == tag_1_default
+    assert imputed_data["tag_1"].iloc[1] == tag_1_default
+    assert imputed_data["tag_1"].iloc[2] == tag_1_default
+    assert imputed_data["tag_2"].iloc[0] == tag_2_default
+    assert imputed_data["tag_2"].iloc[1] == tag_2_default
+    assert imputed_data["tag_2"].iloc[2] == tag_2_default
 
 def test_nan_first_ind_imputation():
-    imputer_cfg_1 = CopyImputerConfig(default_val=0.0)
-    imputer_cfg_2 = CopyImputerConfig(default_val=1.0)
+    tag_1_default = 0.0
+    tag_2_default = 1.0
+    imputer_cfg_1 = CopyImputerConfig(default_val=tag_1_default)
+    imputer_cfg_2 = CopyImputerConfig(default_val=tag_2_default)
     tag_1_imputer = CopyImputer(imputer_cfg_1)
     tag_2_imputer = CopyImputer(imputer_cfg_2)
 
@@ -119,8 +123,10 @@ def test_nan_first_ind_imputation():
     assert imputed_data["tag_2"].iloc[2] == 7.3
 
 def test_mixed_nan_imputation():
-    imputer_cfg_1 = CopyImputerConfig(default_val=0.0)
-    imputer_cfg_2 = CopyImputerConfig(default_val=1.0)
+    tag_1_default = 0.0
+    tag_2_default = 1.0
+    imputer_cfg_1 = CopyImputerConfig(default_val=tag_1_default)
+    imputer_cfg_2 = CopyImputerConfig(default_val=tag_2_default)
     tag_1_imputer = CopyImputer(imputer_cfg_1)
     tag_2_imputer = CopyImputer(imputer_cfg_2)
 

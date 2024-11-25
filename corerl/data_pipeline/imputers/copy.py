@@ -52,11 +52,11 @@ class CopyImputer(BaseImputer):
         missing_inds: Any = tag_missing_info.index[tag_missing_info > MissingType.NULL]
         if len(missing_inds) == 0:
             return pf
-        else:
-            assert isinstance(missing_inds, pd.DatetimeIndex)
-            copied_vals = self._get_copies(tag_data, missing_inds)
-            data.loc[missing_inds, tag] = copied_vals
-            return pf
+
+        assert isinstance(missing_inds, pd.DatetimeIndex)
+        copied_vals = self._get_copies(tag_data, missing_inds)
+        data.loc[missing_inds, tag] = copied_vals
+        return pf
 
 
 imputer_group.dispatcher(CopyImputer)
