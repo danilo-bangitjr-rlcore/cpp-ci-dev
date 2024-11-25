@@ -66,10 +66,10 @@ class Pipeline:
             return {}
 
         pf_first_time_stamp = pf.get_first_timestamp()
-        if pf_first_time_stamp - ts.timestamp > self.valid_thresh:
+        if pf_first_time_stamp - self.dt_dict[caller_code] > self.valid_thresh:
             warnings.warn(
                 "The temporal state is invalid. "
-                f"The temporal state has timestamp {ts.timestamp} "
+                f"The temporal state has timestamp {self.dt_dict[caller_code]} "
                 f"while the current pipeframe has initial timestamp {pf_first_time_stamp}",
                 stacklevel=2,
             )
@@ -92,14 +92,14 @@ class Pipeline:
         pf = invoke_stage_per_tag(pf, self.imputer)
         pfs = handle_data_gaps(pf)
         transitions: list[Transition] = []
-        for pf in pfs:
-            pf_with_transitions = self.transition_creator(pf)
-            pf_with_transitions = invoke_stage_per_tag(pf_with_transitions, self.state_constructor)
-            pf_with_transitions = self.warmup_pruning(pf_with_transitions, WARMUP)
-            assert pf_with_transitions.transitions is not None
-            transitions += pf_with_transitions.transitions
+        for gapless_pf in pfs:
+            gapless_pf = self.transition_creator(gapless_pf)
+            gapless_pf = invoke_stage_per_tag(gapless_pf, self.state_constructor)
+            gapless_pf = self.warmup_pruning(gapless_pf, WARMUP)
+            assert gapless_pf.transitions is not None
+            transitions += gapless_pf.transitions
 
-        self.dt_dict['time_stamp'] = pf.get_last_timestamp()
+        self.dt_dict[caller_code] = pf.get_last_timestamp()
         self.ts_dict[caller_code] = pf.temporal_state
 
         return transitions

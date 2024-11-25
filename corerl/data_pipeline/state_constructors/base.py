@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from omegaconf import MISSING
+from typing import Dict, cast
 
 from corerl.utils.hydra import Group
 from corerl.data_pipeline.datatypes import Transition, StageCode, PipelineFrame
+
 
 @dataclass
 class BaseStateConstructorConfig:
@@ -13,8 +15,6 @@ class BaseStateConstructorConfig:
 @dataclass
 class StateConstructorTemporalState:
     pass
-
-from typing import Dict, cast
 
 
 class BaseStateConstructor(ABC):
