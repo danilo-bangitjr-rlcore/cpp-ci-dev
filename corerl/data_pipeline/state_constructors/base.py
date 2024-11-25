@@ -30,10 +30,11 @@ class BaseStateConstructor(ABC):
         if return_val is None:
             pf.temporal_state[self.stage_code] = dict()
 
-        assert isinstance(return_val, dict)
+        stage_dict = pf.temporal_state[self.stage_code]
+        assert isinstance(stage_dict, dict)
         stage_dict = cast(
             Dict[str, StateConstructorTemporalState],
-            return_val
+            stage_dict
         )
 
         sc_ts = stage_dict.get(tag)

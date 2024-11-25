@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import datetime
 
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.tag_config import TagConfig
@@ -30,7 +31,12 @@ def test_passing_data_to_pipeline():
     pipeline = Pipeline(cfg)
 
     cols = {"sensor_x": [np.nan, 1.0], "sensor_y": [2.0, np.nan]}
-    data = pd.DataFrame(cols)
+    dates = [
+        datetime.datetime(2024, 1, 1, 1, 1 ),
+        datetime.datetime(2024, 1, 1, 1, 2)
+    ]
+    datetime_index = pd.DatetimeIndex(dates)
+    df = pd.DataFrame(cols, index=datetime_index)
 
     # test that we can run the pf through the pipeline
-    _ = pipeline(data, caller_code=CallerCode.OFFLINE)
+    _ = pipeline(df, caller_code=CallerCode.OFFLINE)

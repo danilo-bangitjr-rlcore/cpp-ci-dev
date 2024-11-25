@@ -25,7 +25,7 @@ class BaseTransitionCreator(ABC):
         assert pf.temporal_state is not None
         assert isinstance(pf.temporal_state, dict)
         tc_ts = pf.temporal_state.get(self.stage_code)
-        assert isinstance(tc_ts, TransitionCreatorTemporalState)
+        assert isinstance(tc_ts, TransitionCreatorTemporalState) or tc_ts is None
         transitions, new_tc_ts = self._inner_call(pf, tc_ts)
         pf.temporal_state[self.stage_code] = new_tc_ts
         pf.transitions = transitions
