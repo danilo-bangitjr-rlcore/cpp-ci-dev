@@ -14,6 +14,8 @@ class BaseStateConstructorConfig:
 class StateConstructorTemporalState:
     pass
 
+from typing import Dict, Any, cast
+
 
 class BaseStateConstructor(ABC):
     def __init__(self, cfg: BaseStateConstructorConfig):
@@ -21,12 +23,22 @@ class BaseStateConstructor(ABC):
         self.stage_code = StageCode.SC
 
     def __call__(self, pf: PipelineFrame, tag: str) -> PipelineFrame:
-        sc_ts = pf.temporal_state.get(self.stage_code)
-        if sc_ts is None:
+        assert pf.temporal_state is not None
+        assert isinstance(pf.temporal_state, dict)
+
+        return_val = pf.temporal_state.get(self.stage_code)
+        if return_val is None:
             pf.temporal_state[self.stage_code] = dict()
 
+        assert isinstance(return_val, dict)
+        stage_dict = cast(
+            Dict[str, StateConstructorTemporalState],
+            return_val
+        )
+
+        sc_ts = stage_dict.get(tag)
         transitions_with_state, new_sc_ts = self._inner_call(pf, sc_ts)
-        pf.temporal_state[self.stage_code][tag] = new_sc_ts
+        stage_dict[tag] = new_sc_ts
         pf.transitions = transitions_with_state
         return pf
 

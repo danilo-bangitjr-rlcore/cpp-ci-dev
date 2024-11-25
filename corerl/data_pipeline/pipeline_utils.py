@@ -2,6 +2,7 @@ from corerl.data_pipeline.datatypes import PipelineFrame
 
 
 def warmup_pruning(pf: PipelineFrame, warmup: int) -> PipelineFrame:
+    assert pf.transitions is not None
     pf.transitions = pf.transitions[warmup:]
     return pf
 

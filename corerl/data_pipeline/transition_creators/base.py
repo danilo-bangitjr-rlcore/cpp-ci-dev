@@ -22,10 +22,10 @@ class BaseTransitionCreator(ABC):
         self.stage_code = StageCode.TC
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
-        """
-        Gets the current temporal state
-        """
+        assert pf.temporal_state is not None
+        assert isinstance(pf.temporal_state, dict)
         tc_ts = pf.temporal_state.get(self.stage_code)
+        assert isinstance(tc_ts, TransitionCreatorTemporalState)
         transitions, new_tc_ts = self._inner_call(pf, tc_ts)
         pf.temporal_state[self.stage_code] = new_tc_ts
         pf.transitions = transitions

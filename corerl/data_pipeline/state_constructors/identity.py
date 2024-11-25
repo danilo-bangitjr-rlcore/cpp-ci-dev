@@ -23,6 +23,7 @@ class IdentityStateConstructor(BaseStateConstructor):
                     sc_ts: StateConstructorTemporalState | None) \
             -> tuple[list[Transition], StateConstructorTemporalState]:
         sc_ts = StateConstructorTemporalState()
+        assert pf.transitions is not None
         return pf.transitions, sc_ts
 
     def reset(self) -> None:

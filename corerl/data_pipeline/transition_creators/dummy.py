@@ -20,9 +20,10 @@ class DummyTransitionCreator(BaseTransitionCreator):
 
     def _inner_call(self,
                     pf: PipelineFrame,
-                    ts: TransitionCreatorTemporalState | None) \
+                    tc_ts: TransitionCreatorTemporalState | None) \
             -> tuple[list[Transition], TransitionCreatorTemporalState]:
-        return [], ts
+        tc_ts = TransitionCreatorTemporalState()
+        return [], tc_ts
 
 
 transition_creator_group.dispatcher(DummyTransitionCreator)

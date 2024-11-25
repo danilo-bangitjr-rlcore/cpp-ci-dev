@@ -82,17 +82,19 @@ class Pipeline:
 
         pf = PipelineFrame(data)
         ts = self._init_temporal_state(pf, caller_code, reset_temporal_state)
+        assert pf.temporal_state is not None
         pf.temporal_state = ts
         pf = invoke_stage_per_tag(pf, self.missing_data)
         pf = invoke_stage_per_tag(pf, self.bound_checker)
         pf = invoke_stage_per_tag(pf, self.outlier_detector)
         pf = invoke_stage_per_tag(pf, self.imputer)
         pfs = handle_data_gaps(pf)
-        transitions = []
+        transitions: list[Transition] = []
         for pf in pfs:
             pf_with_transitions = self.transition_creator(pf)
             pf_with_transitions = invoke_stage_per_tag(pf_with_transitions, self.state_constructor)
             pf_with_transitions = self.warmup_pruning(pf_with_transitions, WARMUP)
+            assert pf_with_transitions.transitions is not None
             transitions += pf_with_transitions.transitions
 
         self.dt_dict['time_stamp'] = pf.get_last_timestamp()

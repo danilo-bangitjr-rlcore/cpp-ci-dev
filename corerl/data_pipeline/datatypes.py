@@ -342,13 +342,25 @@ class PipelineFrame:
     def get_last_timestamp(self) -> None | datetime.datetime:
         if not len(self.data.index):
             return None
-        else:
-            last_index: datetime.datetime | None = self.data.index[-1] # Does this work???
-            return last_index
+
+        last_index = self.data.index[-1]
+        match last_index:  # matches on type
+            case datetime.datetime():
+                return last_index
+            case None:
+                return None
+            case _:
+                raise ValueError("Indices should datetime.datetime or None")
 
     def get_first_timestamp(self) -> None | datetime.datetime:
         if not len(self.data.index):
             return None
-        else:
-            first_index: datetime.datetime | None = self.data.index[-1]
-            return first_index
+
+        first_index = self.data.index[-1]
+        match first_index:  # matches on type
+            case datetime.datetime():
+                return first_index
+            case None:
+                return None
+            case _:
+                raise ValueError("Indices should datetime.datetime or None")
