@@ -64,10 +64,11 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             state, action, reward = states[i], actions[i], rewards[i]
             sar = SAR(state, action, reward)
 
-            if last_action is None or not np.allclose(action, last_action):
-                transitions += self._make_action_window_transitions(aw_sars, state)
-                aw_sars = []
-                last_action = action
+            if last_action is not None and (not np.allclose(action, last_action) or len(aw_sars) == self.steps_per_decision):
+                transitions += self._make_decision_window_transitions(aw_sars)
+                aw_sars = [sar]
+
+            last_action = action
             aw_sars.append(sar)
 
         tc_ts = AnytimeTemporalState(aw_sars, pf.data_gap)
@@ -82,7 +83,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         Restores the state of the transition creator from the temporal state (tc_ts).
         This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.aw_sars.
         If there are SARs in tc_ts.aw_sars, then there were SARs that did not get processed in the last call of
-        the transition creator. If there was not a datagap, we continue processing these SARs, so this funciton
+        the transition creator. If there was not a datagap, we continue processing these SARs, so this function
         will return aw_sars. If the previously processed pipeframe had a datagap, then we need to add these transitions
         """
 
@@ -102,54 +103,26 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             transitions = []
 
             if tc_ts.prev_data_gap:
-                last_state = aw_sars[-1].state
-                transitions = self._make_action_window_transitions(aw_sars[:-1], last_state)
+                transitions = self._make_decision_window_transitions(aw_sars)
                 aw_sars = []
 
         return aw_sars, last_action, transitions
 
-    def _make_action_window_transitions(
-            self,
-            aw_sars: list[SAR],
-            next_state: np.ndarray) -> list[NewTransition]:
-        """
-        Makes transitions for an action window (aw), which starts and ends with a change of action
-
-        aw_sars contains a list of (s, a, r) tuples for that action window
-        next_state is the immediate next state after aw_sars
-        """
-
-        decision_windows = split_list_with_remainder(aw_sars, self.steps_per_decision)
-        num_dws = len(decision_windows)
-        transitions = []
-        for dw_idx, dw_sars in enumerate(decision_windows):
-            is_last_dw = dw_idx == num_dws - 1
-            if is_last_dw:
-                boot_state = next_state
-            else:
-                first_obs_of_next_dw = decision_windows[dw_idx + 1][0].obs
-                boot_state = first_obs_of_next_dw
-
-            transitions += self._make_decision_window_transitions(dw_sars, boot_state)
-
-        return transitions
-
     def _make_decision_window_transitions(
-            self,
-            dw_sars: list[SAR],
-            next_state: np.ndarray) -> list[NewTransition]:
+            self, dw_sars: list[SAR]) -> list[NewTransition]:
         """
         Makes transitions for a decision window (dw), which starts and ends with a decision point.
 
-        dw_sars contains a list of (s, a, r) tuples for that decision window
-        next_state is the immediate next state after dw_sars
+        dw_sars contains a list of (s, a, r) tuples for that decision window.
         """
 
         next_state_queue = deque([], self.queue_len)
         reward_queue = deque([], self.queue_len)
+        next_state = dw_sars[-1].state
         next_state_queue.append(next_state)
         dw_transitions = []
 
+        dw_sars = dw_sars[:-1]
         dw_sars.reverse()
 
         for sar in dw_sars:
