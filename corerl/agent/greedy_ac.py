@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 torch.autograd.set_detect_anomaly(True)  # type: ignore
 
+EPSILON = 1e-6
 
 @dataclass
 class GreedyACConfig(BaseACConfig):
@@ -261,6 +262,7 @@ class GreedyAC(BaseAC):
             uniform_sample_actions = empty_action_onehot.scatter_(dim=-1, index=action_indices, value=1)
         else:
             uniform_sample_actions = torch.rand(batch_size, n_rand, self.action_dim)
+            uniform_sample_actions = torch.clip(uniform_sample_actions, EPSILON, 1)
 
         return uniform_sample_actions.to(device.device)
 
