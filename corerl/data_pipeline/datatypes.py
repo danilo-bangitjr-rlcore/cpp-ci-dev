@@ -82,6 +82,17 @@ class ObsTransition:
 
 
 @dataclass
+class NewTransition:
+    state: Tensor
+    action: Tensor
+    n_steps: int
+    n_step_reward: float
+    next_state: Tensor
+    # next_state_dp: bool # not sure if we need this yet.
+    terminated: bool
+    truncate: bool
+
+@dataclass
 class Transition:
     obs: np.ndarray | None  # the raw observation of state
     state: np.ndarray

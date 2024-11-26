@@ -1,10 +1,10 @@
-from idlelib.window import add_windows_to_menu
-
 import numpy as np
+from collections import deque
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from corerl.data_pipeline.datatypes import Transition, PipelineFrame
+from corerl.component.network.utils import tensor
+from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame
 from corerl.data_pipeline.transition_creators.base import (
     BaseTransitionCreator,
     BaseTransitionCreatorConfig,
@@ -16,61 +16,92 @@ from corerl.data_pipeline.transition_creators.base import (
 @dataclass
 class AnytimeTransitionCreatorConfig(BaseTransitionCreatorConfig):
     name: str = "identity"
-    steps_per_decision = 10  # TODO: fill this in
-
-
-@dataclass
-class AnytimeTemporalState(TransitionCreatorTemporalState):
-    pass
+    steps_per_decision: int = 10  # TODO: fill this in
+    gamma: float = 0.9  # TODO: fill this in
+    n_step: None | int = None
 
 
 @dataclass
 class SAR:
-    obs: np.ndarray
+    state: np.ndarray
     action: np.ndarray
     reward: float
+
+
+@dataclass
+class AnytimeTemporalState(TransitionCreatorTemporalState):
+    aw_sars: list[SAR] = field(default_factory=list)
+
+
+def _restore_from_ts(actions: np.ndarray, tc_ts: AnytimeTemporalState | None):
+    if tc_ts is None:
+        aw_sars = []
+    else:
+        _check_actions_equal(tc_ts.aw_sars)
+        aw_sars = tc_ts.aw_sars
+
+    if tc_ts is None:
+        last_action = actions[0]
+    else:
+        last_action = aw_sars[-1].action
+
+    return aw_sars, last_action
 
 
 class AnytimeTransitionCreator(BaseTransitionCreator):
     def __init__(self, cfg: AnytimeTransitionCreatorConfig):
         super().__init__(cfg)
         self.steps_per_decision = cfg.steps_per_decision
+        self.gamma = cfg.gamma
+        if cfg.n_step is None:
+            self.queue_len = self.steps_per_decision
+        else:
+            self.queue_len = cfg.n_step
 
     def _inner_call(self,
                     pf: PipelineFrame,
-                    tc_ts: TransitionCreatorTemporalState | None) \
-            -> tuple[list[Transition], TransitionCreatorTemporalState]:
+                    tc_ts: AnytimeTemporalState | None) \
+            -> tuple[list[NewTransition], AnytimeTemporalState]:
 
         actions = pf.data[pf.action_tags].to_numpy()
         states = pf.data['state'].to_numpy()
-        # TODO: worry about reward
-
+        rewards = pf.data['reward'].to_numpy()
         assert len(actions) == len(states)
-        aw_sars = []  # TODO: restore from the temporal state
-        last_action = None  # TODO: restore from the temporal state
-        for i in range(len(actions)):
-            curr_state, curr_action = states[i], actions[i]
-            sar = SAR(curr_state, curr_action, 0)
-            if curr_action != last_action:
-                transitions = self._make_action_window_transitions(aw_sars, curr_state)
 
+        aw_sars, last_action = _restore_from_ts(actions, tc_ts)
+
+        transitions = []
+        for i in range(len(actions)):
+            state, action, reward = states[i], actions[i], rewards[i]
+            sar = SAR(state, action, reward)
+
+            if not np.allclose(action, last_action):
+                transitions += self._make_action_window_transitions(aw_sars, state)
+                aw_sars = []
+                last_action = action
             aw_sars.append(sar)
 
-        # tc_ts = TransitionCreatorTemporalState()
-        return [], tc_ts
+        tc_ts = AnytimeTemporalState(aw_sars)
+        return transitions, tc_ts
 
-    def _make_action_window_transitions(self,
-                                        aw_sars: list[SAR],
-                                        final_boot_state: np.ndarray) -> list[Transition]:
+    def _make_action_window_transitions(
+            self,
+            aw_sars: list[SAR],
+            next_state: np.ndarray) -> list[NewTransition]:
+        """
+        Makes transitions for an action window (aw), which starts and ends with a change of action
+
+        aw_sars contains a list of (s, a, r) tuples for that action window
+        next_state is the immediate next state after aw_sars
+        """
 
         decision_windows = split_list_with_remainder(aw_sars, self.steps_per_decision)
         num_dws = len(decision_windows)
         transitions = []
         for dw_idx, dw_sars in enumerate(decision_windows):
             is_last_dw = dw_idx == num_dws - 1
-
             if is_last_dw:
-                boot_state = final_boot_state
+                boot_state = next_state
             else:
                 first_obs_of_next_dw = decision_windows[dw_idx + 1][0].obs
                 boot_state = first_obs_of_next_dw
@@ -79,13 +110,65 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
         return transitions
 
-    def _make_decision_window_transitions(self, aw_sars, boot_state):
-        pass
+    def _make_decision_window_transitions(
+            self,
+            dw_sars: list[SAR],
+            next_state: np.ndarray) -> list[NewTransition]:
+        """
+        Makes transitions for a decision window (dw), which starts and ends with a decision point.
+
+        dw_sars contains a list of (s, a, r) tuples for that decision window
+        next_state is the immediate next state after dw_sars
+        """
+
+        next_state_queue = deque([], self.queue_len)
+        reward_queue = deque([], self.queue_len)
+        next_state_queue.append(next_state)
+        dw_transitions = []
+
+        dw_sars.reverse()
+
+        for sar in dw_sars:
+            state, action, reward = sar.state, sar.action, sar.reward
+            reward_queue.appendleft(reward)
+            n_step_reward = _get_n_step_reward(reward_queue, self.gamma)
+
+            transition = NewTransition(
+                state=tensor(state),
+                action=tensor(action),
+                n_steps=len(reward_queue),
+                n_step_reward=n_step_reward,
+                next_state=tensor(next_state_queue[-1]),
+                terminated=False,
+                truncate=False
+            )
+
+            next_state_queue.appendleft(state)
+            dw_transitions.append(transition)
+
+        dw_transitions.reverse()
+        return dw_transitions
 
 
 def split_list_with_remainder(lst: list, n: int) -> list[list]:
     portions = [lst[i:i + n] for i in range(0, len(lst), n)]
     return portions
+
+
+def _check_actions_equal(sars: list[SAR]):
+    actions = [o.action for o in sars]
+    first_action = actions[0]
+    for action in actions[1:]:
+        assert first_action == action, "All actions within a decision window must be equal."
+
+
+def _get_n_step_reward(reward_queue: deque[float], gamma: float) -> float:
+    n_step_reward = 0
+    steps_until_bootstrap = len(reward_queue)
+    for step in range(steps_until_bootstrap):
+        cumulant_step = reward_queue[step]
+        n_step_reward += (gamma ** step) * cumulant_step
+    return n_step_reward
 
 
 transition_creator_group.dispatcher(AnytimeTransitionCreator)
