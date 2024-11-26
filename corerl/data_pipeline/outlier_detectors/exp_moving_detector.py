@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from pandas import DataFrame
 
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
-from corerl.data_pipeline.datatypes import PipelineFrame, update_missing_info_col, MissingType
+from corerl.data_pipeline.datatypes import PipelineFrame, MissingType
 from corerl.data_pipeline.outlier_detectors.base import BaseOutlierDetector, BaseOutlierDetectorConfig, outlier_group
+from corerl.data_pipeline.utils import update_missing_info_col
 
 
 @dataclass

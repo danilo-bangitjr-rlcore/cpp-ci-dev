@@ -1,45 +1,46 @@
-import random
-from typing import Any
-from sqlalchemy import Engine, Connection
-import time
-import logging
+from typing import cast
+import numpy as np
+import pandas as pd
 
-logger = logging.getLogger(__name__)
+from corerl.data_pipeline.datatypes import MissingType
 
+def update_existing_missing_info_col(
+        missing_info: pd.DataFrame,
+        name: str,
+        missing_mask: np.ndarray,
+        new_val: MissingType,
+):
+    """
+    Updates a column of a dataframe filled with MissingType's to (prev_val | new_val).
+        name: determines the column to update.
+        missing_mask: a mask that indicates which rows in the 'name' column to update
 
-def try_connect(engine: Engine, backoff_seconds: int = 5, max_tries: int = 5) -> Connection:
-    connection = None
-    tries = 0
-    while not connection is not None:
-        if tries >= max_tries:
-            raise Exception("sql engine connection failed")
-        try:
-            connection = engine.connect()
-        except Exception:
-            logger.warning(f"failed to connect sql engine, retrying in {backoff_seconds} seconds...")
-            time.sleep(backoff_seconds)
-        tries += 1
+    example -
+        with args: name='sensor_x', new_val=MissingType.OUTLIER,
+        if the existing MissingType at the row indicated by missing_mask was `MissingType.BOUNDS`,
+        this function will update it to `MissingType.BOUNDS | MissingType.OUTLIER`.
 
-    return connection
+    """
+    if not missing_mask.any():
+        return
 
-
-def train_test_split(*lsts, train_split: float = 0.9, shuffle: bool = True) -> list[tuple[Any, Any]]:
-    num_samples = len(lsts[0])
-    for a in lsts:
-        assert len(a) == num_samples
-
-    if shuffle:
-        lsts = parallel_shuffle(*lsts)
-
-    num_train_samples = int(train_split * num_samples)
-    train_samples = [lsts[:num_train_samples] for lsts in lsts]
-    test_samples = [lsts[num_train_samples:] for lsts in lsts]
-
-    return list(zip(train_samples, test_samples, strict=True))
+    for idx, prev_val in missing_info.loc[missing_mask, name].items():
+        idx = cast(int, idx)
+        updated_val = MissingType(prev_val) | new_val
+        missing_info.loc[idx, name] = updated_val
 
 
-def parallel_shuffle(*args):
-    zipped_list = list(zip(*args, strict=True))
-    random.shuffle(zipped_list)
-    unzipped = zip(*zipped_list, strict=True)
-    return list(unzipped)
+def update_missing_info_col(missing_info: pd.DataFrame, name: str, missing_type_mask: np.ndarray, new_val: MissingType):
+    # Update existing missing info
+    existing_missing_mask = missing_info[name] != MissingType.NULL
+    overlap_mask = existing_missing_mask & missing_type_mask  # <- Series & np.ndarray results in Series
+    update_existing_missing_info_col(
+        missing_info=missing_info,
+        name=name,
+        missing_mask=overlap_mask.to_numpy(),
+        new_val=new_val,
+    )
+
+    # Add new missing info
+    new_missing_mask = ~existing_missing_mask & missing_type_mask
+    missing_info.loc[new_missing_mask, name] = new_val
