@@ -17,14 +17,12 @@ def test_none_bounds():
     })
     pf = PipelineFrame(data)
 
-    filtered_pf = bound_checker(pf, 'tag_1', tag_1_cfg)
-    filtered_pf = bound_checker(pf, 'tag_2', tag_2_cfg)
-    filtered_data = filtered_pf.data
-    missing_info = filtered_pf.missing_info
-    oob_mask = missing_info == MissingType.BOUNDS.value
+    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
+    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
+    oob_mask = pf.missing_info == MissingType.BOUNDS.value
 
-    assert not np.any(filtered_data["tag_1"].isna())
-    assert not np.any(filtered_data["tag_2"].isna())
+    assert not np.any(pf.data["tag_1"].isna())
+    assert not np.any(pf.data["tag_2"].isna())
     assert not oob_mask.to_numpy().any()
 
 
@@ -38,19 +36,17 @@ def test_lower_bound_violation():
     })
     pf = PipelineFrame(data)
 
-    filtered_pf = bound_checker(pf, 'tag_1', tag_1_cfg)
-    filtered_pf = bound_checker(pf, 'tag_2', tag_2_cfg)
-    filtered_data = filtered_pf.data
-    missing_info = filtered_pf.missing_info
+    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
+    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
 
     assert np.all(
-        np.isnan(filtered_data["tag_1"]) == np.array([False, True, False])
+        np.isnan(pf.data["tag_1"]) == np.array([False, True, False])
     )
     assert np.all(
-        np.isnan(filtered_data["tag_2"]) == np.array([False, False, True])
+        np.isnan(pf.data["tag_2"]) == np.array([False, False, True])
     )
-    assert missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
-    assert missing_info["tag_2"].iloc[2] == MissingType.BOUNDS
+    assert pf.missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
+    assert pf.missing_info["tag_2"].iloc[2] == MissingType.BOUNDS
 
 
 def test_upper_bound_violation():
@@ -63,19 +59,17 @@ def test_upper_bound_violation():
     })
     pf = PipelineFrame(data)
 
-    filtered_pf = bound_checker(pf, 'tag_1', tag_1_cfg)
-    filtered_pf = bound_checker(pf, 'tag_2', tag_2_cfg)
-    filtered_data = filtered_pf.data
-    missing_info = filtered_pf.missing_info
+    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
+    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
 
     assert np.all(
-        np.isnan(filtered_data["tag_1"]) == [False, True, False]
+        np.isnan(pf.data["tag_1"]) == [False, True, False]
     )
     assert np.all(
-        np.isnan(filtered_data["tag_2"]) == [True, False, False]
+        np.isnan(pf.data["tag_2"]) == [True, False, False]
     )
-    assert missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
-    assert missing_info["tag_2"].iloc[0] == MissingType.BOUNDS
+    assert pf.missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
+    assert pf.missing_info["tag_2"].iloc[0] == MissingType.BOUNDS
 
 
 def test_multiple_missing_types():
@@ -88,21 +82,19 @@ def test_multiple_missing_types():
     })
     pf = PipelineFrame(data)
 
-    filtered_missing_pf = missing_data_checker(pf, 'tag_1')
-    filtered_missing_pf = missing_data_checker(filtered_missing_pf, 'tag_2')
+    pf = missing_data_checker(pf, 'tag_1')
+    pf = missing_data_checker(pf, 'tag_2')
 
-    filtered_bounds_pf = bound_checker(filtered_missing_pf, 'tag_1', tag_1_cfg)
-    filtered_bounds_pf = bound_checker(filtered_bounds_pf, 'tag_2', tag_2_cfg)
-    filtered_data = filtered_bounds_pf.data
-    missing_info = filtered_bounds_pf.missing_info
+    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
+    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
 
     assert np.all(
-        np.isnan(filtered_data["tag_1"]) == [True, True, False]
+        np.isnan(pf.data["tag_1"]) == [True, True, False]
     )
     assert np.all(
-        np.isnan(filtered_data["tag_2"]) == [True, False, True]
+        np.isnan(pf.data["tag_2"]) == [True, False, True]
     )
-    assert missing_info["tag_1"].iloc[0] == MissingType.MISSING
-    assert missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
-    assert missing_info["tag_2"].iloc[0] == MissingType.BOUNDS
-    assert missing_info["tag_2"].iloc[2] == MissingType.MISSING
+    assert pf.missing_info["tag_1"].iloc[0] == MissingType.MISSING
+    assert pf.missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
+    assert pf.missing_info["tag_2"].iloc[0] == MissingType.BOUNDS
+    assert pf.missing_info["tag_2"].iloc[2] == MissingType.MISSING
