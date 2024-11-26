@@ -52,7 +52,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                     tc_ts: TransitionCreatorTemporalState | None) \
             -> tuple[list[NewTransition], AnytimeTemporalState]:
 
-        assert isinstance(tc_ts, AnytimeTemporalState)
+        assert isinstance(tc_ts, AnytimeTemporalState) or tc_ts is None
         actions = pf.data[pf.action_tags].to_numpy()
         states = pf.data['state'].to_numpy()
         rewards = pf.data['reward'].to_numpy()
