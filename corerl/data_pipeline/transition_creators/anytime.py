@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 from corerl.component.network.utils import tensor
 from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame
+from corerl.utils.hydra import interpolate
 from corerl.data_pipeline.transition_creators.base import (
     BaseTransitionCreator,
     BaseTransitionCreatorConfig,
@@ -15,9 +16,9 @@ from corerl.data_pipeline.transition_creators.base import (
 
 @dataclass
 class AnytimeTransitionCreatorConfig(BaseTransitionCreatorConfig):
-    name: str = "identity"
-    steps_per_decision: int = 10  # TODO: fill this in
-    gamma: float = 0.9  # TODO: fill this in
+    name: str = "anytime"
+    steps_per_decision: int = interpolate('${interaction.steps_per_decision}')
+    gamma: float = interpolate('${experiment.gamma}')
     n_step: None | int = None
 
 
