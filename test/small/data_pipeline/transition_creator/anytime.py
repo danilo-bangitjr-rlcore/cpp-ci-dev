@@ -302,26 +302,35 @@ def test_anytime_ts_2_data_gap():
     pf_2 = PipelineFrame(df)
     pf_2.action_tags = ['action']
 
-    assert tc_ts is None
-
     transitions, tc_ts = tc._inner_call(pf_2, tc_ts=tc_ts)
 
-    assert len(transitions) == 2
+    assert len(transitions) == 3
     t_0 = transitions[0]
     t_1 = transitions[1]
+    t_2 = transitions[2]
 
-    assert torch.equal(t_0.state, Tensor([4.]))
+    assert torch.equal(t_0.state, Tensor([2.]))
     assert torch.equal(t_0.action, Tensor([1.]))
-    assert t_0.n_steps == 2
-    assert t_0.n_step_reward == 1.9
-    assert torch.equal(t_0.next_state, Tensor([6.]))
+    assert t_0.n_steps == 1
+    assert t_0.n_step_reward == 1
+    assert torch.equal(t_0.next_state, Tensor([3.]))
     assert not t_0.terminated
     assert not t_0.truncate
 
-    assert torch.equal(t_1.state, Tensor([5.]))
+    # NOTE: NO transition from 3->4 because of the data gap
+
+    assert torch.equal(t_1.state, Tensor([4.]))
     assert torch.equal(t_1.action, Tensor([1.]))
-    assert t_1.n_steps == 1
-    assert t_1.n_step_reward == 1.
+    assert t_1.n_steps == 2
+    assert t_1.n_step_reward == 1.9
     assert torch.equal(t_1.next_state, Tensor([6.]))
     assert not t_1.terminated
     assert not t_1.truncate
+
+    assert torch.equal(t_2.state, Tensor([5.]))
+    assert torch.equal(t_2.action, Tensor([1.]))
+    assert t_2.n_steps == 1
+    assert t_2.n_step_reward == 1
+    assert torch.equal(t_2.next_state, Tensor([6.]))
+    assert not t_2.terminated
+    assert not t_2.truncate

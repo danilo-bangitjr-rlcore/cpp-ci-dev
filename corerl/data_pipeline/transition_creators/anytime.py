@@ -31,21 +31,7 @@ class SAR:
 @dataclass
 class AnytimeTemporalState(TransitionCreatorTemporalState):
     aw_sars: list[SAR] = field(default_factory=list)
-
-
-def _restore_from_ts(actions: np.ndarray, tc_ts: AnytimeTemporalState | None):
-    if tc_ts is None:
-        aw_sars = []
-    else:
-        _check_actions_equal(tc_ts.aw_sars)
-        aw_sars = tc_ts.aw_sars
-
-    if tc_ts is None:
-        last_action = actions[0]
-    else:
-        last_action = aw_sars[-1].action
-
-    return aw_sars, last_action
+    prev_data_gap: bool = False
 
 
 class AnytimeTransitionCreator(BaseTransitionCreator):
@@ -58,6 +44,8 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         else:
             self.queue_len = cfg.n_step
 
+        self.prev_data_gap = False
+
     def _inner_call(self,
                     pf: PipelineFrame,
                     tc_ts: AnytimeTemporalState | None) \
@@ -68,25 +56,44 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         rewards = pf.data['reward'].to_numpy()
         assert len(actions) == len(states)
 
-        aw_sars, last_action = _restore_from_ts(actions, tc_ts)
+        aw_sars, last_action, transitions = self._restore_from_ts(actions, tc_ts)
 
-        transitions = []
         for i in range(len(actions)):
             state, action, reward = states[i], actions[i], rewards[i]
             sar = SAR(state, action, reward)
 
-            if not np.allclose(action, last_action):
+            if last_action is None or not np.allclose(action, last_action):
                 transitions += self._make_action_window_transitions(aw_sars, state)
                 aw_sars = []
                 last_action = action
             aw_sars.append(sar)
 
-        if not pf.data_gap:
-            tc_ts = AnytimeTemporalState(aw_sars)
-        else:
-            tc_ts = None
+        tc_ts = AnytimeTemporalState(aw_sars, pf.data_gap)
 
         return transitions, tc_ts
+
+    def _restore_from_ts(self, actions: np.ndarray, tc_ts: AnytimeTemporalState | None):
+        reset_ts = tc_ts is None
+
+        aw_sars = []
+        transitions = []
+        last_action = None
+
+        if reset_ts is None and len(actions):
+            last_action = actions[0]
+
+        elif not reset_ts:
+            aw_sars = tc_ts.aw_sars
+            _check_actions_equal(aw_sars)
+            last_action = aw_sars[-1].action
+            transitions = []
+
+            if tc_ts.prev_data_gap:  # need to add transitions from before the data gap
+                last_state = aw_sars[-1].state
+                transitions = self._make_action_window_transitions(aw_sars[:-1], last_state)
+                aw_sars = []
+
+        return aw_sars, last_action, transitions
 
     def _make_action_window_transitions(
             self,
