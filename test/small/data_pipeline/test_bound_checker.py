@@ -23,8 +23,8 @@ def test_none_bounds():
     missing_info = filtered_pf.missing_info
     oob_mask = missing_info == MissingType.BOUNDS.value
 
-    assert not np.isnan(filtered_data["tag_1"].iloc[[0, 1, 2]]).any()
-    assert not np.isnan(filtered_data["tag_2"].iloc[[0, 1, 2]]).any()
+    assert not np.any(filtered_data["tag_1"].isna())
+    assert not np.any(filtered_data["tag_2"].isna())
     assert not oob_mask.to_numpy().any()
 
 
@@ -43,10 +43,12 @@ def test_lower_bound_violation():
     filtered_data = filtered_pf.data
     missing_info = filtered_pf.missing_info
 
-    assert np.isnan(filtered_data["tag_1"].iloc[1])
-    assert np.isnan(filtered_data["tag_2"].iloc[2])
-    assert not np.isnan(filtered_data["tag_1"].iloc[[0, 2]]).any()
-    assert not np.isnan(filtered_data["tag_2"].iloc[[0, 1]]).any()
+    assert np.all(
+        np.isnan(filtered_data["tag_1"]) == np.array([False, True, False])
+    )
+    assert np.all(
+        np.isnan(filtered_data["tag_2"]) == np.array([False, False, True])
+    )
     assert missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
     assert missing_info["tag_2"].iloc[2] == MissingType.BOUNDS
 
@@ -66,10 +68,12 @@ def test_upper_bound_violation():
     filtered_data = filtered_pf.data
     missing_info = filtered_pf.missing_info
 
-    assert np.isnan(filtered_data["tag_1"].iloc[1])
-    assert np.isnan(filtered_data["tag_2"].iloc[0])
-    assert not np.isnan(filtered_data["tag_1"].iloc[[0, 2]]).any()
-    assert not np.isnan(filtered_data["tag_2"].iloc[[1, 2]]).any()
+    assert np.all(
+        np.isnan(filtered_data["tag_1"]) == [False, True, False]
+    )
+    assert np.all(
+        np.isnan(filtered_data["tag_2"]) == [True, False, False]
+    )
     assert missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
     assert missing_info["tag_2"].iloc[0] == MissingType.BOUNDS
 
@@ -92,10 +96,12 @@ def test_multiple_missing_types():
     filtered_data = filtered_bounds_pf.data
     missing_info = filtered_bounds_pf.missing_info
 
-    assert np.isnan(filtered_data["tag_1"].iloc[[0, 1]]).any()
-    assert np.isnan(filtered_data["tag_2"].iloc[[0, 2]]).any()
-    assert not np.isnan(filtered_data["tag_1"].iloc[2])
-    assert not np.isnan(filtered_data["tag_2"].iloc[1])
+    assert np.all(
+        np.isnan(filtered_data["tag_1"]) == [True, True, False]
+    )
+    assert np.all(
+        np.isnan(filtered_data["tag_2"]) == [True, False, True]
+    )
     assert missing_info["tag_1"].iloc[0] == MissingType.MISSING
     assert missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
     assert missing_info["tag_2"].iloc[0] == MissingType.BOUNDS
