@@ -2,8 +2,9 @@ import numpy as np
 import pandas as pd
 
 from typing import Hashable
-from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, update_missing_info_col
+from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.utils import update_missing_info_col
 
 
 def _get_oob_mask(data: pd.DataFrame, name: Hashable, cfg: TagConfig) -> np.ndarray:
