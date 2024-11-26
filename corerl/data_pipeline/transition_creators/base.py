@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from omegaconf import MISSING
 
 from corerl.utils.hydra import Group
-from corerl.data_pipeline.datatypes import Transition, StageCode, PipelineFrame
+from corerl.data_pipeline.datatypes import NewTransition, StageCode, PipelineFrame
 
 
 @dataclass
@@ -31,7 +31,7 @@ class BaseTransitionCreator(ABC):
 
     @abstractmethod
     def _inner_call(self, pf: PipelineFrame, tc_ts: TransitionCreatorTemporalState | None) \
-            -> tuple[list[Transition], TransitionCreatorTemporalState]:
+            -> tuple[list[NewTransition], TransitionCreatorTemporalState]:
         raise NotImplementedError
 
 

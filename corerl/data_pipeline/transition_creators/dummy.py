@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from corerl.data_pipeline.datatypes import Transition, PipelineFrame
+from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame
 from corerl.data_pipeline.transition_creators.base import (
     BaseTransitionCreator,
     BaseTransitionCreatorConfig,
@@ -21,7 +21,7 @@ class DummyTransitionCreator(BaseTransitionCreator):
     def _inner_call(self,
                     pf: PipelineFrame,
                     tc_ts: TransitionCreatorTemporalState | None) \
-            -> tuple[list[Transition], TransitionCreatorTemporalState]:
+            -> tuple[list[NewTransition], TransitionCreatorTemporalState]:
         tc_ts = TransitionCreatorTemporalState()
         return [], tc_ts
 

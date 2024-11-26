@@ -48,9 +48,10 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
     def _inner_call(self,
                     pf: PipelineFrame,
-                    tc_ts: AnytimeTemporalState | None) \
+                    tc_ts: TransitionCreatorTemporalState | None) \
             -> tuple[list[NewTransition], AnytimeTemporalState]:
 
+        assert isinstance(tc_ts, AnytimeTemporalState)
         actions = pf.data[pf.action_tags].to_numpy()
         states = pf.data['state'].to_numpy()
         rewards = pf.data['reward'].to_numpy()
@@ -72,7 +73,18 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
         return transitions, tc_ts
 
-    def _restore_from_ts(self, actions: np.ndarray, tc_ts: AnytimeTemporalState | None):
+    def _restore_from_ts(
+            self,
+            actions: np.ndarray,
+            tc_ts: AnytimeTemporalState | None) -> tuple[list[SAR], np.ndarray | None, list[NewTransition]]:
+        """
+        Restores the state of the transition creator from the temporal state (tc_ts).
+        This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.aw_sars.
+        If there are SARs in tc_ts.aw_sars, then there were SARs that did not get processed in the last call of
+        the transition creator. If there was not a datagap, we continue processing these SARs, so this funciton
+        will return aw_sars. If the previously processed pipeframe had a datagap, then we need to add these transitions
+        """
+
         reset_ts = tc_ts is None
 
         aw_sars = []
@@ -88,7 +100,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             last_action = aw_sars[-1].action
             transitions = []
 
-            if tc_ts.prev_data_gap:  # need to add transitions from before the data gap
+            if tc_ts.prev_data_gap:
                 last_state = aw_sars[-1].state
                 transitions = self._make_action_window_transitions(aw_sars[:-1], last_state)
                 aw_sars = []

@@ -335,7 +335,7 @@ class PipelineFrame:
     terminate: bool = False  # Revan: IDK where these will come from yet
     truncate: bool = False  # Revan: IDK where these will come from yet
     temporal_state: TemporalState = field(default_factory=dict)
-    transitions: list[Transition] | None = None
+    transitions: list[NewTransition] | None = None
 
     def __post_init__(self):
         missing_info = pd.DataFrame(index=self.data.index, dtype=SparseMissingType)
