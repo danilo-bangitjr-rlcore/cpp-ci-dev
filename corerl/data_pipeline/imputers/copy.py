@@ -16,7 +16,7 @@ class CopyImputerConfig(BaseImputerConfig):
 
 
 class CopyImputer(BaseImputer):
-    def __init__(self, cfg: CopyImputerConfig):
+    def __init__(self, cfg: CopyImputerConfig, **kwargs):
         super().__init__(cfg)
         self.imputation_horizon = cfg.imputation_horizon
 

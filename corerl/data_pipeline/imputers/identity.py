@@ -11,7 +11,7 @@ class IdentityImputerConfig(BaseImputerConfig):
 
 
 class IdentityImputer(BaseImputer):
-    def __init__(self, cfg: IdentityImputerConfig):
+    def __init__(self, cfg: IdentityImputerConfig, **kwargs):
         super().__init__(cfg)
 
     def __call__(self, pf: PipelineFrame, tag: str) -> PipelineFrame:

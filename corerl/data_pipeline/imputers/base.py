@@ -12,7 +12,7 @@ class BaseImputerConfig:
 
 
 class BaseImputer(ABC):
-    def __init__(self, cfg: BaseImputerConfig):
+    def __init__(self, cfg: BaseImputerConfig, **kwargs):
         self.cfg = cfg
 
     @abstractmethod
