@@ -4,16 +4,10 @@ import datetime
 from torch import Tensor
 import torch
 
-from corerl.data_pipeline.pipeline import Pipeline
-from corerl.data_pipeline.tag_config import TagConfig
-from corerl.config import MainConfig
-from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
 from corerl.data_pipeline.datatypes import PipelineFrame
-
 from corerl.data_pipeline.transition_creators.anytime import (
     AnytimeTransitionCreator,
     AnytimeTransitionCreatorConfig)
-import pytest
 
 
 def test_anytime_1():
