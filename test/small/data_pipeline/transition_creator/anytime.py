@@ -179,6 +179,7 @@ def test_anytime_ts_1():
 
     tc = AnytimeTransitionCreator(cfg)
     transitions, tc_ts = tc._inner_call(pf, tc_ts=None)
+    assert tc_ts is not None
 
     assert len(transitions) == 2
     t_0 = transitions[0]
