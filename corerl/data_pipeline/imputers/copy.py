@@ -12,7 +12,6 @@ from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, i
 @dataclass
 class CopyImputerConfig(BaseImputerConfig):
     name: str = "copy"
-    default_val: float = 0.0
     imputation_horizon: int = MISSING
 
 
@@ -46,6 +45,14 @@ class CopyImputer(BaseImputer):
 
         return float(imputed_val)
 
+    def _get_imputed_vals(self, data: pd.Series | pd.DataFrame, imputed_inds: pd.DatetimeIndex) -> np.ndarray:
+        imputed_vals = []
+        for ind in imputed_inds:
+            imputed_val = self._get_imputed_val(data, ind)
+            imputed_vals.append(imputed_val)
+
+        return np.array(imputed_vals)
+
     def __call__(self, pf: PipelineFrame, tag: str) -> PipelineFrame:
         data = pf.data
         missing_info = pf.missing_info
@@ -57,8 +64,8 @@ class CopyImputer(BaseImputer):
             return pf
 
         assert isinstance(missing_inds, pd.DatetimeIndex)
-        copied_vals = self._get_imputed_vals(tag_data, missing_inds)
-        data.loc[missing_inds, tag] = copied_vals
+        imputed_vals = self._get_imputed_vals(tag_data, missing_inds)
+        data.loc[missing_inds, tag] = imputed_vals
         return pf
 
 

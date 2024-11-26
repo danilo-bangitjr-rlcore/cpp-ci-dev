@@ -28,23 +28,21 @@ def test_no_imputation():
 
     pf = PipelineFrame(data)
 
-    filtered_missing_pf = missing_data_checker(pf, 'tag_1')
-    filtered_missing_pf = missing_data_checker(filtered_missing_pf, 'tag_2')
+    pf = missing_data_checker(pf, 'tag_1')
+    pf = missing_data_checker(pf, 'tag_2')
 
-    filtered_bounds_pf = bound_checker(filtered_missing_pf, 'tag_1', tag_1_cfg)
-    filtered_bounds_pf = bound_checker(filtered_bounds_pf, 'tag_2', tag_2_cfg)
+    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
+    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
 
-    imputed_pf = tag_1_imputer(filtered_bounds_pf, 'tag_1')
-    imputed_pf = tag_2_imputer(imputed_pf, 'tag_2')
+    pf = tag_1_imputer(pf, 'tag_1')
+    pf = tag_2_imputer(pf, 'tag_2')
 
-    imputed_data = imputed_pf.data
-
-    assert imputed_data["tag_1"].iloc[0] == 0.2
-    assert imputed_data["tag_1"].iloc[1] == 0.3
-    assert imputed_data["tag_1"].iloc[2] == 0.7
-    assert imputed_data["tag_2"].iloc[0] == 1.9
-    assert imputed_data["tag_2"].iloc[1] == -0.5
-    assert imputed_data["tag_2"].iloc[2] == 7.3
+    assert pf.data["tag_1"].iloc[0] == 0.2
+    assert pf.data["tag_1"].iloc[1] == 0.3
+    assert pf.data["tag_1"].iloc[2] == 0.7
+    assert pf.data["tag_2"].iloc[0] == 1.9
+    assert pf.data["tag_2"].iloc[1] == -0.5
+    assert pf.data["tag_2"].iloc[2] == 7.3
 
 def test_all_nan_imputation():
     tag_1_horizon = 1
@@ -67,19 +65,17 @@ def test_all_nan_imputation():
 
     pf = PipelineFrame(data)
 
-    filtered_missing_pf = missing_data_checker(pf, 'tag_1')
-    filtered_missing_pf = missing_data_checker(filtered_missing_pf, 'tag_2')
+    pf = missing_data_checker(pf, 'tag_1')
+    pf = missing_data_checker(pf, 'tag_2')
 
-    filtered_bounds_pf = bound_checker(filtered_missing_pf, 'tag_1', tag_1_cfg)
-    filtered_bounds_pf = bound_checker(filtered_bounds_pf, 'tag_2', tag_2_cfg)
+    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
+    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
 
-    imputed_pf = tag_1_imputer(filtered_bounds_pf, 'tag_1')
-    imputed_pf = tag_2_imputer(imputed_pf, 'tag_2')
+    pf = tag_1_imputer(pf, 'tag_1')
+    pf = tag_2_imputer(pf, 'tag_2')
 
-    imputed_data = imputed_pf.data
-
-    assert np.isnan(imputed_data["tag_1"]).all()
-    assert np.isnan(imputed_data["tag_2"]).all()
+    assert np.isnan(pf.data["tag_1"]).all()
+    assert np.isnan(pf.data["tag_2"]).all()
 
 def test_nan_first_ind_imputation():
     tag_1_horizon = 1
@@ -102,23 +98,21 @@ def test_nan_first_ind_imputation():
 
     pf = PipelineFrame(data)
 
-    filtered_missing_pf = missing_data_checker(pf, 'tag_1')
-    filtered_missing_pf = missing_data_checker(filtered_missing_pf, 'tag_2')
+    pf = missing_data_checker(pf, 'tag_1')
+    pf = missing_data_checker(pf, 'tag_2')
 
-    filtered_bounds_pf = bound_checker(filtered_missing_pf, 'tag_1', tag_1_cfg)
-    filtered_bounds_pf = bound_checker(filtered_bounds_pf, 'tag_2', tag_2_cfg)
+    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
+    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
 
-    imputed_pf = tag_1_imputer(filtered_bounds_pf, 'tag_1')
-    imputed_pf = tag_2_imputer(imputed_pf, 'tag_2')
+    pf = tag_1_imputer(pf, 'tag_1')
+    pf = tag_2_imputer(pf, 'tag_2')
 
-    imputed_data = imputed_pf.data
-
-    assert np.isnan(imputed_data["tag_1"].iloc[0])
-    assert imputed_data["tag_1"].iloc[1] == 0.7
-    assert imputed_data["tag_1"].iloc[2] == 0.7
-    assert imputed_data["tag_2"].iloc[0] == 7.3
-    assert imputed_data["tag_2"].iloc[1] == 7.3
-    assert imputed_data["tag_2"].iloc[2] == 7.3
+    assert np.isnan(pf.data["tag_1"].iloc[0])
+    assert pf.data["tag_1"].iloc[1] == 0.7
+    assert pf.data["tag_1"].iloc[2] == 0.7
+    assert pf.data["tag_2"].iloc[0] == 7.3
+    assert pf.data["tag_2"].iloc[1] == 7.3
+    assert pf.data["tag_2"].iloc[2] == 7.3
 
 def test_mixed_nan_imputation():
     tag_1_horizon = 1
@@ -141,20 +135,18 @@ def test_mixed_nan_imputation():
 
     pf = PipelineFrame(data)
 
-    filtered_missing_pf = missing_data_checker(pf, 'tag_1')
-    filtered_missing_pf = missing_data_checker(filtered_missing_pf, 'tag_2')
+    pf = missing_data_checker(pf, 'tag_1')
+    pf = missing_data_checker(pf, 'tag_2')
 
-    filtered_bounds_pf = bound_checker(filtered_missing_pf, 'tag_1', tag_1_cfg)
-    filtered_bounds_pf = bound_checker(filtered_bounds_pf, 'tag_2', tag_2_cfg)
+    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
+    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
 
-    imputed_pf = tag_1_imputer(filtered_bounds_pf, 'tag_1')
-    imputed_pf = tag_2_imputer(imputed_pf, 'tag_2')
+    pf = tag_1_imputer(pf, 'tag_1')
+    pf = tag_2_imputer(pf, 'tag_2')
 
-    imputed_data = imputed_pf.data
-
-    assert imputed_data["tag_1"].iloc[0] == 0.3
-    assert imputed_data["tag_1"].iloc[1] == 0.3
-    assert imputed_data["tag_1"].iloc[2] == 0.3
-    assert imputed_data["tag_2"].iloc[0] == -0.5
-    assert imputed_data["tag_2"].iloc[1] == 2.9
-    assert imputed_data["tag_2"].iloc[2] == 2.9
+    assert pf.data["tag_1"].iloc[0] == 0.3
+    assert pf.data["tag_1"].iloc[1] == 0.3
+    assert pf.data["tag_1"].iloc[2] == 0.3
+    assert pf.data["tag_2"].iloc[0] == -0.5
+    assert pf.data["tag_2"].iloc[1] == 2.9
+    assert pf.data["tag_2"].iloc[2] == 2.9
