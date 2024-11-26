@@ -81,7 +81,11 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                 last_action = action
             aw_sars.append(sar)
 
-        tc_ts = AnytimeTemporalState(aw_sars)
+        if not pf.data_gap:
+            tc_ts = AnytimeTemporalState(aw_sars)
+        else:
+            tc_ts = None
+
         return transitions, tc_ts
 
     def _make_action_window_transitions(

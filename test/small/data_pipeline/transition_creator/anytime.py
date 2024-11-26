@@ -255,3 +255,78 @@ def test_anytime_ts_1():
     assert torch.equal(t_3.next_state, Tensor([6.]))
     assert not t_3.terminated
     assert not t_3.truncate
+
+
+def test_anytime_ts_2_data_gap():
+    state_col = [np.array([i]) for i in range(4)]
+    cols = {"state": state_col, "action": [0, 0, 1, 1], "reward": [1, 1, 1, 1]}
+    dates = [
+        datetime.datetime(2024, 1, 1, 1, i) for i in range(4)
+    ]
+    datetime_index = pd.DatetimeIndex(dates)
+    df = pd.DataFrame(cols, index=datetime_index)
+    pf = PipelineFrame(df)
+    pf.action_tags = ['action']
+    pf.data_gap = True  # NOTE: there is now a data gap
+
+    cfg = AnytimeTransitionCreatorConfig()
+    cfg.steps_per_decision = 10
+    cfg.gamma = 0.9
+    cfg.n_step = None
+
+    tc = AnytimeTransitionCreator(cfg)
+    transitions, tc_ts = tc._inner_call(pf, tc_ts=None)
+
+    assert len(transitions) == 2
+    t_0 = transitions[0]
+    t_1 = transitions[1]
+
+    assert torch.equal(t_0.state, Tensor([0.]))
+    assert torch.equal(t_0.action, Tensor([0.]))
+    assert t_0.n_steps == 2
+    assert t_0.n_step_reward == 1.9
+    assert torch.equal(t_0.next_state, Tensor([2.]))
+    assert not t_0.terminated
+    assert not t_0.truncate
+
+    assert torch.equal(t_1.state, Tensor([1.]))
+    assert torch.equal(t_1.action, Tensor([0.]))
+    assert t_1.n_steps == 1
+    assert t_1.n_step_reward == 1.0
+    assert torch.equal(t_1.next_state, Tensor([2.]))
+    assert not t_1.terminated
+    assert not t_1.truncate
+
+    state_col = [np.array([i]) for i in range(4, 8)]
+    cols = {"state": state_col, "action": [1, 1, 0, 0], "reward": [1, 1, 1, 1]}
+    dates = [
+        datetime.datetime(2024, 1, 1, 1, i) for i in range(5, 9)
+    ]
+    datetime_index = pd.DatetimeIndex(dates)
+    df = pd.DataFrame(cols, index=datetime_index)
+    pf_2 = PipelineFrame(df)
+    pf_2.action_tags = ['action']
+
+    assert tc_ts is None
+
+    transitions, tc_ts = tc._inner_call(pf_2, tc_ts=tc_ts)
+
+    assert len(transitions) == 2
+    t_0 = transitions[0]
+    t_1 = transitions[1]
+
+    assert torch.equal(t_0.state, Tensor([4.]))
+    assert torch.equal(t_0.action, Tensor([1.]))
+    assert t_0.n_steps == 2
+    assert t_0.n_step_reward == 1.9
+    assert torch.equal(t_0.next_state, Tensor([6.]))
+    assert not t_0.terminated
+    assert not t_0.truncate
+
+    assert torch.equal(t_1.state, Tensor([5.]))
+    assert torch.equal(t_1.action, Tensor([1.]))
+    assert t_1.n_steps == 1
+    assert t_1.n_step_reward == 1.
+    assert torch.equal(t_1.next_state, Tensor([6.]))
+    assert not t_1.terminated
+    assert not t_1.truncate
