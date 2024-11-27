@@ -1,5 +1,5 @@
 # file path                                         # owners
-*                                                   @andy-rlcore @revan-macqueen-rlcore
+*                                                   @rlcoretech/rlcore-codeowners 
 /corerl/alerts                                      @alex-trudeau-rlcore
 /corerl/environment/influx_opc_env.py               @kerrick-rlcore
 /corerl/sql_logging/                                @kerrick-rlcore

@@ -2,8 +2,8 @@ from typing import Any
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from omegaconf import MISSING
-from corerl.utils.hydra import Group
 
+from corerl.utils.hydra import Group
 from corerl.data_pipeline.datatypes import PipelineFrame
 
 

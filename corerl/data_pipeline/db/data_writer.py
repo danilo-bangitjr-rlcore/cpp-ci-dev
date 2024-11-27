@@ -4,7 +4,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, UTC
 from corerl.sql_logging.sql_logging import get_sql_engine, table_exists, SQLEngineConfig
 from sqlalchemy import text, Engine
-from corerl.data_pipeline.utils import try_connect
+from corerl.data_pipeline.db.utils import try_connect
 from typing import NamedTuple
 
 
