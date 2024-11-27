@@ -22,5 +22,5 @@ class BaseImputer(ABC):
 
 
 imputer_group = Group[
-    [], BaseImputer
+    [Any], BaseImputer
 ]('pipeline/imputer')
