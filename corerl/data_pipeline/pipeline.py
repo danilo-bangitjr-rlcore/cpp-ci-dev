@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any, Callable
 from omegaconf import MISSING
 from pandas import DataFrame
+import logging
 
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.bound_checker import bound_checker_builder
@@ -18,6 +19,8 @@ from corerl.data_pipeline.state_constructors.sc import StateConstructor
 from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, TemporalState
 from corerl.data_pipeline.pipeline_utils import warmup_pruning, handle_data_gaps
 from corerl.utils.hydra import interpolate
+
+logger = logging.getLogger(__name__)
 
 WARMUP = 0
 

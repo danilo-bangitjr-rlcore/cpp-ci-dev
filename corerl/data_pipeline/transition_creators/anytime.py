@@ -58,15 +58,18 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         rewards = pf.data['reward'].to_numpy()
         assert len(actions) == len(states)
 
+
+        # TODO: I need to totally refactor this. RN SAR has the action and reward that occur AS the state happens.
+
         aw_sars, last_action, transitions = self._restore_from_ts(actions, tc_ts)
 
         for i in range(len(actions)):
             state, action, reward = states[i], actions[i], rewards[i]
-            sar = SAR(state, action, reward)
+            sar = SAR(state, action, reward)  # semantics: action and reward happen at the same time as state
 
             if last_action is not None and (not np.allclose(action, last_action) or len(aw_sars) == self.steps_per_decision):
                 transitions += self._make_decision_window_transitions(aw_sars)
-                aw_sars = [sar]
+                aw_sars = [aw_sars[-1]]
 
             last_action = action
             aw_sars.append(sar)
@@ -126,7 +129,11 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         dw_sars.reverse()
 
         for sar in dw_sars:
+            # TODO: the fix here
+            #
+
             state, action, reward = sar.state, sar.action, sar.reward
+
             reward_queue.appendleft(reward)
             n_step_reward = _get_n_step_reward(reward_queue, self.gamma)
 
