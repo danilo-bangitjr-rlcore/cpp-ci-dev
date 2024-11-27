@@ -12,11 +12,10 @@ def test_no_imputation():
     tag_2_horizon = 2
     imputer_cfg_1 = CopyImputerConfig(imputation_horizon=tag_1_horizon)
     imputer_cfg_2 = CopyImputerConfig(imputation_horizon=tag_2_horizon)
-    tag_1_imputer = CopyImputer(imputer_cfg_1)
-    tag_2_imputer = CopyImputer(imputer_cfg_2)
-
     tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
     tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
+    tag_1_imputer = CopyImputer(imputer_cfg_1, tag_1_cfg)
+    tag_2_imputer = CopyImputer(imputer_cfg_2, tag_2_cfg)
 
     data = pd.DataFrame({
         "tag_1": [0.2, 0.3, 0.7],
@@ -49,11 +48,10 @@ def test_all_nan_imputation():
     tag_2_horizon = 2
     imputer_cfg_1 = CopyImputerConfig(imputation_horizon=tag_1_horizon)
     imputer_cfg_2 = CopyImputerConfig(imputation_horizon=tag_2_horizon)
-    tag_1_imputer = CopyImputer(imputer_cfg_1)
-    tag_2_imputer = CopyImputer(imputer_cfg_2)
-
     tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
     tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
+    tag_1_imputer = CopyImputer(imputer_cfg_1, tag_1_cfg)
+    tag_2_imputer = CopyImputer(imputer_cfg_2, tag_2_cfg)
 
     data = pd.DataFrame({
         "tag_1": [np.nan, np.nan, np.nan],
@@ -82,11 +80,10 @@ def test_nan_first_ind_imputation():
     tag_2_horizon = 2
     imputer_cfg_1 = CopyImputerConfig(imputation_horizon=tag_1_horizon)
     imputer_cfg_2 = CopyImputerConfig(imputation_horizon=tag_2_horizon)
-    tag_1_imputer = CopyImputer(imputer_cfg_1)
-    tag_2_imputer = CopyImputer(imputer_cfg_2)
-
     tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
     tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
+    tag_1_imputer = CopyImputer(imputer_cfg_1, tag_1_cfg)
+    tag_2_imputer = CopyImputer(imputer_cfg_2, tag_2_cfg)
 
     data = pd.DataFrame({
         "tag_1": [np.nan, np.nan, 0.7],
@@ -119,11 +116,10 @@ def test_mixed_nan_imputation():
     tag_2_horizon = 2
     imputer_cfg_1 = CopyImputerConfig(imputation_horizon=tag_1_horizon)
     imputer_cfg_2 = CopyImputerConfig(imputation_horizon=tag_2_horizon)
-    tag_1_imputer = CopyImputer(imputer_cfg_1)
-    tag_2_imputer = CopyImputer(imputer_cfg_2)
-
     tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
     tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
+    tag_1_imputer = CopyImputer(imputer_cfg_1, tag_1_cfg)
+    tag_2_imputer = CopyImputer(imputer_cfg_2, tag_2_cfg)
 
     data = pd.DataFrame({
         "tag_1": [np.nan, 0.3, np.nan],

@@ -16,8 +16,8 @@ class CopyImputerConfig(BaseImputerConfig):
 
 
 class CopyImputer(BaseImputer):
-    def __init__(self, cfg: CopyImputerConfig, **kwargs):
-        super().__init__(cfg)
+    def __init__(self, cfg: CopyImputerConfig, tag_cfg: Any):
+        super().__init__(cfg, tag_cfg)
         self.imputation_horizon = cfg.imputation_horizon
 
     def _get_imputed_val(self, data: pd.Series | pd.DataFrame, impute_ind: pd.Timestamp) -> float:

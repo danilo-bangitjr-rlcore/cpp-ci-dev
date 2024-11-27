@@ -1,3 +1,4 @@
+from typing import Any
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from omegaconf import MISSING
@@ -12,7 +13,7 @@ class BaseImputerConfig:
 
 
 class BaseImputer(ABC):
-    def __init__(self, cfg: BaseImputerConfig, **kwargs):
+    def __init__(self, cfg: BaseImputerConfig, tag_cfg: Any):
         self.cfg = cfg
 
     @abstractmethod

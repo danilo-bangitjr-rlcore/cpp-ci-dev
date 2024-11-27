@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group
@@ -11,8 +12,8 @@ class IdentityImputerConfig(BaseImputerConfig):
 
 
 class IdentityImputer(BaseImputer):
-    def __init__(self, cfg: IdentityImputerConfig, **kwargs):
-        super().__init__(cfg)
+    def __init__(self, cfg: IdentityImputerConfig, tag_cfg: Any):
+        super().__init__(cfg, tag_cfg)
 
     def __call__(self, pf: PipelineFrame, tag: str) -> PipelineFrame:
         return pf
