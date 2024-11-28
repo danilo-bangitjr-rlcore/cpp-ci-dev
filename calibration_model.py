@@ -167,8 +167,8 @@ def main(cfg: MainConfig):
     offline_eval = CompositeEval(cfg.eval, offline_eval_args, offline=True)
 
     log.debug(f"Num agent train transitions: {len(train_transitions)}, "
-          f"Num agent plot transitions: {len(plot_transitions)}, "
-          f"num agent rollout transitions: {len(trajectories_to_transitions(rollout_trajectories_agent))}")
+        f"Num agent plot transitions: {len(plot_transitions)}, "
+        f"num agent rollout transitions: {len(trajectories_to_transitions(rollout_trajectories_agent))}")
 
     for transition in train_transitions:
         agent.update_buffer(transition)
@@ -188,8 +188,8 @@ def main(cfg: MainConfig):
         if i % cm_eval_freq == 0:
             utils.update_pbar(pbar, stats, cfg.experiment.offline_stat_keys)
             returns = cm.do_agent_rollouts(agent, rollout_trajectories_agent,
-                                           plot='post_training',
-                                           plot_save_path=save_path / 'agent_rollouts' / str(i))
+                                        plot='post_training',
+                                        plot_save_path=save_path / 'agent_rollouts' / str(i))
 
             log.info(f"Mean return post-training at iteration {i}: {np.mean(returns)}")
             all_returns.append(returns)
