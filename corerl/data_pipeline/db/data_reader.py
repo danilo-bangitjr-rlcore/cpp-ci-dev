@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from sqlalchemy import Engine
 
-from corerl.data_pipeline.utils import try_connect
+from corerl.data_pipeline.db.utils import try_connect
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 
 logger = logging.getLogger(__name__)

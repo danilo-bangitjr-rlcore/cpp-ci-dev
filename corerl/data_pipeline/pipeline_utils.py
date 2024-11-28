@@ -1,8 +1,10 @@
-from corerl.data_pipeline.datatypes import Transition, PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame
 
 
-def warmup_pruning(transitions: list[Transition], warmup: int) -> list[Transition]:
-    return transitions[warmup:]
+def warmup_pruning(pf: PipelineFrame, warmup: int) -> PipelineFrame:
+    assert pf.transitions is not None
+    pf.transitions = pf.transitions[warmup:]
+    return pf
 
 
 def handle_data_gaps(pf: PipelineFrame) -> list[PipelineFrame]:

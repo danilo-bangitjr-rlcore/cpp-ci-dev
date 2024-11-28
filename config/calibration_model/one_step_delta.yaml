@@ -1,0 +1,32 @@
+defaults:
+  - base
+  - override /state_constructor: multi_trace
+  - _self_
+
+name : one_step_delta
+
+buffer:
+  batch_size: 64
+  memory: 100000
+  name: uniform
+  device: cpu
+  seed: ${experiment.seed}
+  combined : False
+
+
+train_itr: 10000
+batch_size : 64
+
+model:
+  name: fc
+  hidden : [256, 256]
+  activation : [
+    {"name": "relu"}, {"name": "relu"},
+  ]
+  bias: True
+  layer_init : Xavier
+
+optimizer:
+  lr: 0.0001
+  weight_decay: 0.0
+  name: adam

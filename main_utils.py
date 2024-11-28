@@ -14,7 +14,7 @@ from omegaconf import OmegaConf
 from gymnasium.spaces.utils import flatdim
 from gymnasium import spaces, Env
 from pathlib import Path
-from typing import Any, Optional, TypeVar, overload
+from typing import Any, Optional, overload
 from warnings import warn
 
 from corerl.config import MainConfig
@@ -73,8 +73,7 @@ def update_pbar(pbar, stats: dict, keys: list) -> None:
     pbar.set_description(pbar_str)
 
 
-T = TypeVar('T')
-def load_or_create(
+def load_or_create[T](
     root: Path,
     cfgs: Sequence[Any],
     prefix: str,

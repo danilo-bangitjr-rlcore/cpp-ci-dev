@@ -1,14 +1,33 @@
 # core-rl
 
+[Wiki](https://github.com/rlcoretech/core-rl/wiki)
+
 This is the main repo containing code for our agents, environments, state constructors and interactions. 
 
 ## Installation
-Clone this repo, then run 
-```
-pip3 install -e .
-```
-inside `corerl/`.
 
+We are using the [`uv` Python package and project manager](https://docs.astral.sh/uv/).
+
+```bash
+# create virtual environment
+uv venv --python 3.12
+source ./venv/bin/activate
+
+# install project requirements
+uv pip sync requirements.txt
+
+# run linter
+uv run ruff check
+
+# run static type checker
+uv run pyright
+
+# run tests
+uv run pytest -n auto test/small
+
+# regenerate project requirements
+uv pip compile --extra=dev pyproject.toml -o requirements.txt
+```
 
 ## Running & Configs
 This repo uses [hydra](https://hydra.cc/docs/intro/). I recommend you read their tutorials starting  [here](https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/). 
