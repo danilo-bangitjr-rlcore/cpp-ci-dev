@@ -243,7 +243,7 @@ def test_backtrack_imputation_ts():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     # Create ImputerTemporalState
     tag_1_indices = pd.Series(["7/13/2023 9:00"])
@@ -305,7 +305,7 @@ def test_lookahead_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     pf.temporal_state[StageCode.IMPUTER] = dict()
     stage_ts = pf.temporal_state[StageCode.IMPUTER]
@@ -356,7 +356,7 @@ def test_lookahead_imputation_ts():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     # Create ImputerTemporalState
     tag_1_indices = pd.Series(["7/13/2023 9:00"])
@@ -418,7 +418,7 @@ def test_mixed_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     pf.temporal_state[StageCode.IMPUTER] = dict()
     stage_ts = pf.temporal_state[StageCode.IMPUTER]
@@ -471,7 +471,7 @@ def test_mixed_imputation_ts():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     # Create ImputerTemporalState
     tag_1_indices = pd.Series(["7/13/2023 9:00"])
