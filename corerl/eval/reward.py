@@ -17,8 +17,6 @@ class RewardConfig(EvalConfig):
 
 class RewardEval(BaseEval):
     def __init__(self, cfg: RewardConfig, **kwargs):
-        if 'transitions' not in kwargs:
-            raise KeyError("Missing required argument: 'transitions'")
         self.gamma = cfg.gamma
         self.episode_steps = 0
         self.episode_return = 0

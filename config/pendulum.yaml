@@ -1,5 +1,6 @@
 defaults:
   - gym
+  - eval@eval.reward : reward
   - override agent: greedy_ac
   - override env : pendulum
   - override interaction : anytime
