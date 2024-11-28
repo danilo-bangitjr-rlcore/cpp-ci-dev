@@ -18,7 +18,7 @@ from corerl.data_pipeline.factory import init_data_loader
 from corerl.data.factory import init_transition_creator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
-from corerl.data_pipeline.utils import train_test_split
+from corerl.data.utils import train_test_split
 from corerl.utils.plotting import make_online_plots, make_offline_plots
 
 import corerl.utils.freezer as fr

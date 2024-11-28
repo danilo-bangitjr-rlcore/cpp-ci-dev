@@ -1,0 +1,16 @@
+name: Large Tests
+
+on: 
+  workflow_run: 
+    workflows: ['Small and Medium Tests']
+    types:
+      - completed
+
+jobs:
+  large-tests:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    uses: ./.github/workflows/reusable-run-test.yml
+    secrets: inherit
+    with:
+      test-suite: test/large
+      #- run: uv run pytest test/large

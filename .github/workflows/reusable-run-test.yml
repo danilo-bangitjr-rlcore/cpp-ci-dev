@@ -1,6 +1,11 @@
-name: Small Tests
+name: Run Single Test Group
 
-on: [pull_request]
+on:
+  workflow_call:
+    inputs:
+      test-suite:
+        required: true
+        type: string
 
 jobs:
   test:
@@ -29,4 +34,7 @@ jobs:
           uv pip compile --extra=dev pyproject.toml -o deps.txt
           uv pip sync deps.txt
 
-      - run: uv run pytest -n auto test/small
+      - run: uv run pytest ${{ inputs.test-suite }} 
+     
+
+
