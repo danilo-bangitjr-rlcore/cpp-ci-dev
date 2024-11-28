@@ -315,7 +315,7 @@ class PipelineFrame:
         if not len(self.data.index):
             return None
 
-        first_index = self.data.index[-1]
+        first_index = self.data.index[0]
         match first_index:  # matches on type
             case datetime.datetime():
                 return first_index
