@@ -517,3 +517,4 @@ def test_mixed_imputation_ts():
     assert len(stage_ts["tag_2"].prev_pf_data) == 2
     assert stage_ts["tag_2"].prev_pf_data.iloc[0] == 7.3
     assert np.isnan(stage_ts["tag_2"].prev_pf_data.iloc[1])
+    
