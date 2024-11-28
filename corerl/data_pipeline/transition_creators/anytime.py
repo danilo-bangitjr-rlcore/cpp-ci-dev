@@ -80,7 +80,6 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             aw_goras.append(goras)
 
             decision_window_ends = len(aw_goras) == self.steps_per_decision + 1
-
             if decision_window_ends:
                 transitions += self._make_decision_window_transitions(aw_goras)
                 aw_goras = [aw_goras[-1]]
@@ -148,11 +147,10 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
         for step_backwards in range(len(dw_goras) - 2, -1, -1):
             goras = dw_goras[step_backwards]
-            state, reward = goras.state, goras.reward
             n_step_reward = _get_n_step_reward(goras_queue, self.gamma)
 
             transition = NewTransition(
-                state=tensor(state),
+                state=tensor(goras.state),
                 action=tensor(action),
                 n_steps=len(goras_queue),
                 n_step_reward=n_step_reward,
