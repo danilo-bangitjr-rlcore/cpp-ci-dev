@@ -248,18 +248,6 @@ class ContinuousIIDPolicy(Policy,ABC):
                 f"of {dist.support}, but got actions: \n{action}"
             )
 
-        print(params)
-
-        # assert torch.all((action >= 0) & (action <= 1))
-        if torch.any(action < 0):
-            print(action[action < 0])
-
-        if torch.any(action == 0):
-            print(action[action == 0])
-
-        assert not torch.any(action >= 1)
-
-
         lp = dist.log_prob(action)
         lp = lp.view(-1, 1)
         print(lp)
