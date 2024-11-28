@@ -4,7 +4,6 @@ from torch import Tensor
 from copy import deepcopy
 from math import isclose
 import pandas as pd
-import torch
 import datetime
 
 from dataclasses import dataclass, fields, field
@@ -85,59 +84,17 @@ class ObsTransition:
 @dataclass
 class GORAS:
     gamma: float
-    obs: np.ndarray
+    obs: Tensor
     reward: float
-    action: np.ndarray
-    state: np.ndarray
-
-
-@dataclass
-class NewTransition2:
-    pre: GORAS
-    post: GORAS
-    n_steps: int
+    action: Tensor
+    state: Tensor
 
 
 @dataclass
 class NewTransition:
-    state: Tensor
-    action: Tensor
+    pre: GORAS
+    post: GORAS
     n_steps: int
-    n_step_reward: float
-    next_state: Tensor
-    # next_state_dp: bool # not sure if we need this yet.
-    terminated: bool
-    truncate: bool
-
-    def __str__(self):
-        string = ''
-        for f in fields(self):
-            string += f"{f.name}: {getattr(self, f.name)}\n"
-        return string
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Transition):  # Not the same class, so not equal
-            return False
-
-        for f in fields(self):
-            attr_self = getattr(self, f.name)
-            attr_other = getattr(other, f.name)
-
-            if not isinstance(attr_self, type(attr_other)):  # attributes are not the same class
-                return False
-
-            if isinstance(attr_self, Tensor):
-                if not torch.allclose(attr_self, attr_other):
-                    return False
-
-            elif isinstance(attr_self, float):
-                if not isclose(attr_self, attr_other):
-                    return False
-
-            elif attr_self != attr_other:
-                return False
-
-        return True
 
 
 @dataclass
@@ -347,6 +304,7 @@ class PipelineFrame:
     caller_code: CallerCode
     action_tags: list[str] = field(default_factory=list)
     obs_tags: list[str] = field(default_factory=list)
+    state_tags: list[str] = field(default_factory=list)
     reward_tags: list[str] = field(default_factory=list)
     data_gap: bool = False  # Revan: set by data
     terminate: bool = False  # Revan: IDK where these will come from yet

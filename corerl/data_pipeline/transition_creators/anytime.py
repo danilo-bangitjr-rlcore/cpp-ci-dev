@@ -1,10 +1,11 @@
 import numpy as np
+import torch
 from collections import deque
 
 from dataclasses import dataclass, field
 
 from corerl.component.network.utils import tensor
-from corerl.data_pipeline.datatypes import PipelineFrame, GORAS, NewTransition2
+from corerl.data_pipeline.datatypes import PipelineFrame, GORAS, NewTransition
 from corerl.utils.hydra import interpolate
 from corerl.data_pipeline.transition_creators.base import (
     BaseTransitionCreator,
@@ -23,17 +24,14 @@ class AnytimeTransitionCreatorConfig(BaseTransitionCreatorConfig):
 
 
 @dataclass
-class SAR:
-    state: np.ndarray
-    action: np.ndarray
-    reward: float
-
-
-@dataclass
 class AnytimeTemporalState(TransitionCreatorTemporalState):
     aw_goras: list[GORAS] = field(default_factory=list)
     prev_data_gap: bool = False
     supress_aw_end: bool = False
+
+
+def _get_tags(pf, tags: list[str] | str) -> torch.Tensor:
+    return tensor(pf.data[tags].to_numpy())
 
 
 class AnytimeTransitionCreator(BaseTransitionCreator):
@@ -51,12 +49,13 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
     def _inner_call(self,
                     pf: PipelineFrame,
                     tc_ts: TransitionCreatorTemporalState | None) \
-            -> tuple[list[NewTransition2], AnytimeTemporalState]:
+            -> tuple[list[NewTransition], AnytimeTemporalState]:
 
         assert isinstance(tc_ts, AnytimeTemporalState) or tc_ts is None
-        actions = pf.data[pf.action_tags].to_numpy()
-        observations = pf.data[pf.obs_tags].to_numpy()
-        states = pf.data['state'].to_numpy()
+
+        actions = _get_tags(pf, pf.action_tags)
+        observations = _get_tags(pf, pf.obs_tags)
+        states = _get_tags(pf, pf.state_tags)
         rewards = pf.data['reward'].to_numpy()
         assert len(actions) == len(states)
 
@@ -72,7 +71,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                 state=states[i],
             )
 
-            action_window_ends = last_action is not None and not np.allclose(action, last_action)
+            action_window_ends = last_action is not None and not torch.allclose(action, last_action)
             if action_window_ends and not supress_aw_end:
                 transitions += self._make_decision_window_transitions(aw_goras)
                 aw_goras = [aw_goras[-1]]
@@ -95,8 +94,8 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
     def _restore_from_ts(
             self,
-            actions: np.ndarray,
-            tc_ts: AnytimeTemporalState | None) -> tuple[list[GORAS], np.ndarray | None, list[NewTransition2], bool]:
+            actions: torch.Tensor,
+            tc_ts: AnytimeTemporalState | None) -> tuple[list[GORAS], torch.Tensor | None, list[NewTransition], bool]:
         """
         Restores the state of the transition creator from the temporal state (tc_ts).
         This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.aw_sars.
@@ -132,7 +131,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         return aw_sars, last_action, transitions, supress_aw_end
 
     def _make_decision_window_transitions(
-            self, dw_goras: list[GORAS]) -> list[NewTransition2]:
+            self, dw_goras: list[GORAS]) -> list[NewTransition]:
         """
         Makes transitions for a decision window (dw), which starts and ends with a decision point.
 
@@ -140,8 +139,6 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         """
         _check_actions_valid(dw_goras)
         dw_transitions = []
-        action = dw_goras[1].action
-
         goras_queue = deque([], self.queue_len)
         goras_queue.appendleft(dw_goras[-1])
 
@@ -158,7 +155,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                 state=boot_goras.state,
             )
 
-            transition = NewTransition2(pre_goras, post_goras, len(goras_queue))
+            transition = NewTransition(pre_goras, post_goras, len(goras_queue))
             goras_queue.appendleft(pre_goras)
             dw_transitions.append(transition)
 
