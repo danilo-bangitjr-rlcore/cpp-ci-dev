@@ -250,7 +250,6 @@ class ContinuousIIDPolicy(Policy,ABC):
 
         lp = dist.log_prob(action)
         lp = lp.view(-1, 1)
-        print(lp)
 
         return lp, {}
 
