@@ -152,6 +152,8 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
         curr_action = action_df.loc[start_ind].to_numpy()
         curr_date = None
 
+        # flag to check if a new action has been taken
+        new_action_flag = False
         new_action = None
         new_action_start = None
 
@@ -166,17 +168,19 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
 
             # have to do some business with actions and such
             if not np.array_equal(curr_action, row_action):  # if the row action is not equal to the current action
-                if row_action != new_action:
+                if new_action is None or np.array_equal(row_action, new_action):
                     new_action_start = curr_date
                     new_action = row_action
 
                 # if the new action has been held for more than obs_length
                 assert new_action_start is not None
                 if curr_date - new_action_start >= timedelta(seconds=self.obs_length):
-                    new_action = True
+                    new_action_flag = True
+                else:
+                    new_action_flag = False
 
             # Has there been a change in action/truncation/termination/gap in data?
-            if data_gap or new_action:
+            if data_gap or new_action_flag:
                 return curr_action, prev_date, curr_date, data_gap
 
             prev_date = curr_date
@@ -280,7 +284,6 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
 
                     step_end = step_start + timedelta(seconds=self.obs_length)
                     next_obs = self.get_obs(obs_df, step_start, step_end)
-
                     # Any way to make the creation of reward_info more universal?
                     reward_info = {}
                     reward_info['prev_action'] = prev_action
@@ -304,6 +307,8 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
                             False,  # assume a continuing env
                             gap=(step == curr_action_steps - 1) and data_gap  # if the last step and there is a data gap
                         )
+                        # log.debug(f"obs_transition.obs: {obs_transition.obs}")
+                        # log.debug(f"obs_transition.next_obs: {obs_transition.next_obs}")
 
                         obs_transition = normalizer.normalize(obs_transition)
                         assert isinstance(obs_transition, OldObsTransition)
@@ -313,10 +318,13 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
                             obs_transition.obs_dp = True
                             transition_added = True
 
-                        if len(obs_transitions) > 0 and not obs_transitions[-1].gap:
-                            l_next_obs = obs_transition.obs
-                            assert l_next_obs is not None
-                            assert np.allclose(l_next_obs, obs_transitions[-1].next_obs)
+                        # Check if there is at least one obs transition
+                        if len(obs_transitions) > 0:
+                            # Check if the last obs transition is not a gap
+                            if not obs_transitions[-1].gap:
+                                l_next_obs = obs_transition.obs
+                                assert l_next_obs is not None
+                                assert np.allclose(l_next_obs, obs_transitions[-1].next_obs)
 
                         if step < (curr_action_steps - 1):
                             obs_transitions.append(obs_transition)
@@ -345,6 +353,7 @@ class OldDirectActionDataLoader(OldBaseDataLoader):
                     assert action_transitions[0].obs_dp
                 action_start = next_action_start
 
+        log.debug(f"Number of observation transitions: {len(obs_transitions)}")
         chunks = []
         curr_chunk = []
         for obs_transition in obs_transitions:
@@ -414,7 +423,7 @@ def get_action_windows(obs_transitions: list[OldObsTransition]):
     curr_action_obs_transitions = []
 
     for obs_transition in obs_transitions:
-        if obs_transition.action == curr_action:
+        if np.array_equal(obs_transition.action, curr_action):
             curr_action_obs_transitions.append(obs_transition)
 
         else:  # the action changed
@@ -430,8 +439,10 @@ def get_action_windows(obs_transitions: list[OldObsTransition]):
     for action_window in action_windows:
         action = action_window[0].action
         for obs_t in action_window:  # all elements of the action window has the same action
-            assert action == obs_t.action
-        assert action != prev_action  # neighbouring action windows have different actions
+            assert np.array_equal(action,obs_t.action)
+        # Check that neighboring actions are different, but only if prev_action exists
+        if prev_action is not None:
+            assert not np.array_equal(action, prev_action)  # neighbouring action windows have different actions
         prev_action = action
 
     return action_windows
@@ -664,7 +675,6 @@ class DirectActionDataLoader(BaseDataLoader):
                             False,  # assume a continuing env
                             gap=(step == curr_action_steps - 1) and data_gap  # if the last step and there is a data gap
                         )
-
                         if len(obs_transitions) > 0 and not obs_transitions[-1].gap:
                             assert np.allclose(obs_transition.obs, obs_transitions[-1].next_obs)
 
