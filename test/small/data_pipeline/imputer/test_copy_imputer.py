@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode
 from corerl.data_pipeline.bound_checker import bound_checker
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.imputers.copy import CopyImputer, CopyImputerConfig
@@ -24,7 +24,7 @@ def test_no_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     filtered_missing_pf = missing_data_checker(pf, 'tag_1')
     filtered_missing_pf = missing_data_checker(filtered_missing_pf, 'tag_2')
@@ -63,7 +63,7 @@ def test_all_nan_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     filtered_missing_pf = missing_data_checker(pf, 'tag_1')
     filtered_missing_pf = missing_data_checker(filtered_missing_pf, 'tag_2')
@@ -102,7 +102,7 @@ def test_nan_first_ind_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     filtered_missing_pf = missing_data_checker(pf, 'tag_1')
     filtered_missing_pf = missing_data_checker(filtered_missing_pf, 'tag_2')
@@ -141,7 +141,7 @@ def test_mixed_nan_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     filtered_missing_pf = missing_data_checker(pf, 'tag_1')
     filtered_missing_pf = missing_data_checker(filtered_missing_pf, 'tag_2')
