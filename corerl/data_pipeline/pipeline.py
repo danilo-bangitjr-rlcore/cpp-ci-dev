@@ -18,11 +18,12 @@ from corerl.data_pipeline.pipeline_utils import warmup_pruning, handle_data_gaps
 
 WARMUP = 0
 
-type PipelineStage[T] = Callable[[T, str], T]
+type TagName = str # alias to clarify semantics of PipelineStage and stage dict
+type PipelineStage[T] = Callable[[T, TagName], T]
 type WarmupPruner = Callable[[PipelineFrame, int], PipelineFrame]
 
 
-def invoke_stage_per_tag[T](carry: T, stage: Mapping[str, PipelineStage[T]]):
+def invoke_stage_per_tag[T](carry: T, stage: Mapping[TagName, PipelineStage[T]]) -> T:
     for tag, f in stage.items():
         carry = f(carry, tag)
 
@@ -32,25 +33,25 @@ def invoke_stage_per_tag[T](carry: T, stage: Mapping[str, PipelineStage[T]]):
 class Pipeline:
     def __init__(self, main_cfg: MainConfig):
         self.tags = main_cfg.tags
-        self.missing_data = {
+        self.missing_data_checkers = {
             cfg.name: missing_data_checker for cfg in self.tags
         }
 
-        self.bound_checker = {
+        self.bound_checkers = {
             cfg.name: bound_checker_builder(cfg) for cfg in self.tags
         }
 
         self.transition_creator = init_transition_creator(main_cfg.agent_transition_creator)
 
-        self.outlier_detector = {
+        self.outlier_detectors = {
             cfg.name: init_outlier_detector(cfg.outlier) for cfg in self.tags
         }
 
-        self.imputer = {
+        self.imputers = {
             cfg.name: init_imputer(cfg.imputer) for cfg in self.tags
         }
 
-        self.state_constructor = {
+        self.state_constructors = {
             cfg.name: init_state_constructor(cfg.state_constructor) for cfg in self.tags
         }
 
@@ -86,15 +87,15 @@ class Pipeline:
         pf = PipelineFrame(data)
         ts = self._init_temporal_state(pf, caller_code, reset_temporal_state)
         pf.temporal_state = ts
-        pf = invoke_stage_per_tag(pf, self.missing_data)
-        pf = invoke_stage_per_tag(pf, self.bound_checker)
-        pf = invoke_stage_per_tag(pf, self.outlier_detector)
-        pf = invoke_stage_per_tag(pf, self.imputer)
+        pf = invoke_stage_per_tag(pf, self.missing_data_checkers)
+        pf = invoke_stage_per_tag(pf, self.bound_checkers)
+        pf = invoke_stage_per_tag(pf, self.outlier_detectors)
+        pf = invoke_stage_per_tag(pf, self.imputers)
         pfs = handle_data_gaps(pf)
         transitions: list[Transition] = []
         for gapless_pf in pfs:
             gapless_pf = self.transition_creator(gapless_pf)
-            gapless_pf = invoke_stage_per_tag(gapless_pf, self.state_constructor)
+            gapless_pf = invoke_stage_per_tag(gapless_pf, self.state_constructors)
             gapless_pf = self.warmup_pruning(gapless_pf, WARMUP)
             assert gapless_pf.transitions is not None
             transitions += gapless_pf.transitions
