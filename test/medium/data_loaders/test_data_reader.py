@@ -4,8 +4,8 @@ from typing import Generator, List
 import pytest
 from pandas import DataFrame
 
-from corerl.data_loaders.data_reader import DataReader
-from corerl.data_loaders.data_writer import DataWriter
+from corerl.data_pipeline.db.data_reader import DataReader
+from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.sql_logging.sql_logging import SQLEngineConfig
 from test.medium.data_loaders.test_data_writer import data_writer, write_n_random_vals  # noqa: F401
 from test.medium.data_loaders.utils import timescale_docker  # noqa: F401

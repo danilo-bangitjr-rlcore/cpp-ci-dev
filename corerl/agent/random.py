@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig, group
-from corerl.data.data import Transition
+from corerl.data_pipeline.datatypes import Transition
 
 
 @dataclass

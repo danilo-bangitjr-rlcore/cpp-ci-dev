@@ -9,7 +9,7 @@ from corerl.component.network.utils import tensor
 from corerl.utils.device import device
 from corerl.alerts.base import BaseAlert
 from corerl.alerts.factory import init_alert
-from corerl.data.data import Transition
+from corerl.data_pipeline.datatypes import Transition
 
 
 log = logging.getLogger(__name__)

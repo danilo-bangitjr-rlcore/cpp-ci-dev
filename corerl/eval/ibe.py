@@ -11,7 +11,7 @@ from corerl.component.network.networks import NNTorsoConfig
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.optimizers.torch_opts import SgdConfig, OptimConfig
 from corerl.eval.base_eval import BaseEval, EvalConfig
-from corerl.data.data import TransitionBatch
+from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.component.network.utils import ensemble_mse, to_np
 from corerl.utils.hydra import config, interpolate
 

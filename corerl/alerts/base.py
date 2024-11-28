@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 import torch
 
-from corerl.data.data import Transition
+from corerl.data_pipeline.datatypes import Transition
 
 class BaseAlert(ABC):
     @abstractmethod

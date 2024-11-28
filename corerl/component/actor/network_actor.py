@@ -6,9 +6,10 @@ from typing import Any, Callable
 
 import corerl.component.policy as policy
 import corerl.utils.nullable as nullable
+from corerl.component.policy.factory import BaseNNConfig
 from corerl.component.actor.base_actor import BaseActor, group
-from corerl.component.optimizers.factory import init_optimizer
-from corerl.component.optimizers.linesearch_optimizer import LineSearchOpt
+from corerl.component.optimizers.factory import init_optimizer, OptimConfig
+from corerl.component.optimizers.linesearch_optimizer import LSOConfig, LineSearchOpt
 from corerl.utils.device import device
 
 
@@ -20,8 +21,8 @@ class NetworkActorConfig:
     action_min: float = 0
     action_max: float = 1
 
-    actor_network: Any = MISSING
-    actor_optimizer: Any = MISSING
+    actor_network: BaseNNConfig = MISSING
+    actor_optimizer: OptimConfig = MISSING
     buffer: Any = MISSING
 
     defaults: list[Any] = field(default_factory=lambda: [
@@ -117,6 +118,7 @@ group.dispatcher(NetworkActor)
 class NetworkActorLineSearchConfig(NetworkActorConfig):
     name: str = 'network_linesearch'
 
+    actor_optimizer: OptimConfig = field(default_factory=LSOConfig)
     error_threshold: float = 1e-4
     lr_lower_bound: float = 1e-6
     max_backtracking: int = 30
@@ -131,6 +133,7 @@ class NetworkActorLineSearch(NetworkActor):
         initializer: BaseActor | None = None,
     ):
         super().__init__(cfg, state_dim, action_dim, initializer)
+        assert isinstance(cfg.actor_optimizer, LSOConfig)
         self.optimizer = LineSearchOpt(
             cfg.actor_optimizer,
             [self.policy.model],

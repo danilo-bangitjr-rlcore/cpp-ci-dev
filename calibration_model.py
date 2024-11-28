@@ -9,12 +9,12 @@ from tqdm import tqdm
 
 from corerl.calibration_models.factory import init_calibration_model
 from corerl.config import MainConfig
-from corerl.data.data import Transition, Trajectory
+from corerl.data_pipeline.datatypes import Transition, Trajectory
 from corerl.agent.factory import init_agent
-from corerl.data_loaders.direct_action import OldDirectActionDataLoader
+from corerl.data_pipeline.direct_action import OldDirectActionDataLoader
 from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
-from corerl.data_loaders.factory import init_data_loader
+from corerl.data_pipeline.factory import init_data_loader
 from corerl.utils.device import device
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.alerts.composite_alert import CompositeAlert
@@ -78,7 +78,7 @@ def main(cfg: MainConfig):
                                                                                     dl, normalizer)
 
     agent_hash_cfgs = [cfg.data_loader, cfg.state_constructor, cfg.interaction]
-    warmup = cfg.state_constructor.warmup
+    warmup = getattr(cfg.state_constructor, 'warmup', 0)
 
     # these are the trajectories/transitions the agents will use to train
     train_trajectories_agent, test_trajectories_agent = utils.get_offline_trajectories(cfg,

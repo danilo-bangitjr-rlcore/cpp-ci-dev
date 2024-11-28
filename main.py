@@ -6,7 +6,7 @@ import random
 
 from corerl.config import MainConfig
 from corerl.data.transition_creator import BaseTransitionCreator
-from corerl.data_loaders.direct_action import DirectActionDataLoader
+from corerl.data_pipeline.direct_action import DirectActionDataLoader
 from corerl.interaction.anytime_interaction import AnytimeInteraction
 from corerl.utils.device import device
 from corerl.agent.factory import init_agent
@@ -14,11 +14,11 @@ from corerl.environment.factory import init_environment
 from corerl.state_constructor.factory import init_state_constructor
 from corerl.alerts.composite_alert import CompositeAlert
 from corerl.interaction.factory import init_interaction
-from corerl.data_loaders.factory import init_data_loader
+from corerl.data_pipeline.factory import init_data_loader
 from corerl.data.factory import init_transition_creator
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
-from corerl.data_loaders.utils import train_test_split
+from corerl.data_pipeline.utils import train_test_split
 from corerl.utils.plotting import make_online_plots, make_offline_plots
 
 import corerl.utils.freezer as fr
@@ -65,6 +65,7 @@ def main(cfg: MainConfig):
 
     alert_tc: BaseTransitionCreator | None = None
     if cfg.use_alerts:
+        assert cfg.alert_transition_creator is not None
         alert_tc = init_transition_creator(cfg.alert_transition_creator, sc)
         alert_tc.init_alerts(composite_alert)
 
@@ -135,7 +136,6 @@ def main(cfg: MainConfig):
         sc,
         agent_tc,
         obs_normalizer,
-        transitions=agent_test_transitions,
     )
 
     if alert_tc is not None:

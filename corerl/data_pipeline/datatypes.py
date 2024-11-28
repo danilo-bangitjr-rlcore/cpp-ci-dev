@@ -1,0 +1,316 @@
+import numpy as np
+from pandas import DataFrame
+from torch import Tensor
+from copy import deepcopy
+from math import isclose
+
+from dataclasses import dataclass, fields, field
+from corerl.state_constructor.base import BaseStateConstructor
+import pandas as pd
+
+from enum import IntFlag, auto
+class MissingType(IntFlag):
+    NULL = auto()
+    MISSING = auto() # indicates data did not exist in db
+    BOUNDS = auto()
+    OUTLIER = auto()
+
+# for use to create sparse pandas dataframes
+# for example: sparse_df = pd.DataFrame(..., dtype=SparseMissingType)
+SparseMissingType = pd.SparseDtype(dtype=int, fill_value=MissingType.NULL)
+
+
+def update_existing_missing_info_col(
+    missing_info: pd.DataFrame,
+    name: str,
+    missing_mask: np.ndarray,
+    new_val: MissingType,
+):
+    """
+    Updates a column of a dataframe filled with MissingType's to (prev_val | new_val).
+        name: determines the column to update.
+        missing_mask: a mask that indicates which rows in the 'name' column to update
+
+    example -
+        with args: name='sensor_x', new_val=MissingType.OUTLIER,
+        if the existing MissingType at the row indicated by missing_mask was `MissingType.BOUNDS`,
+        this function will update it to `MissingType.BOUNDS | MissingType.OUTLIER`.
+
+    """
+    if not missing_mask.any():
+        return
+
+    for idx, prev_val in missing_info.loc[missing_mask, name].items():
+        updated_val = MissingType(prev_val) | new_val
+        missing_info.loc[idx, name] = updated_val
+
+def update_missing_info_col(missing_info: pd.DataFrame, name: str, missing_type_mask: np.ndarray, new_val: MissingType):
+    # Update existing missing info
+    existing_missing_mask = missing_info[name] != MissingType.NULL
+    overlap_mask = existing_missing_mask & missing_type_mask  # <- Series & np.ndarray results in Series
+    update_existing_missing_info_col(
+        missing_info=missing_info,
+        name=name,
+        missing_mask=overlap_mask.to_numpy(),
+        new_val=new_val,
+    )
+
+    # Add new missing info
+    new_missing_mask = ~existing_missing_mask & missing_type_mask
+    missing_info.loc[new_missing_mask, name] = new_val
+
+@dataclass
+class PipelineFrame:
+    data: DataFrame
+    missing_info: DataFrame = field(init=False)
+    data_gap: bool = False  # Revan: set by data
+    terminate: bool = False  # Revan: IDK where these will come from yet
+    truncate: bool = False  # Revan: IDK where these will come from yet
+
+    def __post_init__(self):
+        missing_info = DataFrame(index=self.data.index, dtype=SparseMissingType)
+        N = len(self.data)
+        # initialize filled with NULL (no memory cost)
+        null_cols = {col: [MissingType.NULL] * N for col in self.data.columns}
+        self.missing_info = missing_info.assign(**null_cols)
+
+@dataclass
+class OldObsTransition:
+    # the action taken over the duration of 'obs'. 'prev_action' and 'obs' are passed to the state constructor
+    prev_action: np.ndarray | None
+    obs: np.ndarray | None # the raw observation of state
+    obs_steps_until_decision: int
+    obs_dp: bool  # Whether 'obs' is at a decision point
+    action: np.ndarray  # the action taken after 'obs' that occurs concurrently with 'next_obs'
+    reward: float
+    next_obs: np.ndarray | None  # the immediate next observation
+    next_obs_steps_until_decision: int
+    next_obs_dp: bool  # Whether 'next_obs' is at a decision point
+    terminated: bool
+    truncate: bool
+    gap: bool  # whether there is a gap in the dataset following next_obs
+
+    def __iter__(self):
+        for f in fields(self):
+            yield getattr(self, f.name)
+
+    @property
+    def field_names(self):
+        return [f.name for f in fields(self)]
+
+    def __str__(self):
+        string = ''
+        for f in fields(self):
+            string += f"{f.name}: {getattr(self, f.name)}\n"
+        return string
+
+
+@dataclass
+class ObsTransition:
+    obs: np.ndarray  # the raw observation of state
+    action: np.ndarray  # the action taken after 'obs' that occurs concurrently with 'next_obs'
+    reward: float
+    next_obs: np.ndarray  # the immediate next observation
+    terminated: bool = False
+    truncate: bool = False
+    gap: bool = False  # whether there is a gap in the dataset following next_obs
+
+    def __iter__(self):
+        for f in fields(self):
+            yield getattr(self, f.name)
+
+    @property
+    def field_names(self):
+        return [f.name for f in fields(self)]
+
+    def __str__(self):
+        string = ''
+        for f in fields(self):
+            string += f"{f.name}: {getattr(self, f.name)}\n"
+        return string
+
+
+@dataclass
+class Transition:
+    obs: np.ndarray | None  # the raw observation of state
+    state: np.ndarray
+    action: np.ndarray
+    next_obs: np.ndarray | None  # the immediate next observation
+    next_state: np.ndarray  # the next state in the
+    # NOTE: we distinguish between the next state and the next state which we bootstrap off of. All following
+    # attributes are defined w.r.t. the boot strap state.
+    reward: float  # one-step reward
+    n_step_reward: float
+    n_step_cumulants: np.ndarray | None = None
+    # the state which we bootstrap off of, which is not necesssarily the next state
+    # in the MDP
+    boot_obs: np.ndarray | None = None  # the raw observation of next_state
+    boot_state: np.ndarray | None = None
+    terminated: bool = False
+    truncate: bool = False
+    state_dp: bool = True  # whether state is a decision point
+    next_state_dp: bool = True  # Whether 'next_obs' is at a decision point
+    boot_state_dp: bool = True  # whether next_state is a decision point
+    gamma_exponent: int = 1  # the exponent of gamma used for bootstrapping
+    gap: bool = False  # whether there is a gap in the dataset following next_obs, always false online
+    steps_until_decision: int = 1
+    next_steps_until_decision: int = 1
+    boot_steps_until_decision: int = 1
+
+    def __iter__(self):
+        for f in fields(self):
+            yield getattr(self, f.name)
+
+    @property
+    def field_names(self):
+        return [f.name for f in fields(self)]
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Transition):  # Not the same class, so not equal
+            return False
+
+        for f in fields(self):
+            attr_self = getattr(self, f.name)
+            attr_other = getattr(other, f.name)
+
+            if not isinstance(attr_self, type(attr_other)):  # attributes are not the same class
+                return False
+
+            if isinstance(attr_self, np.ndarray):
+                if not np.allclose(attr_self, attr_other):
+                    return False
+
+            elif isinstance(attr_self, float):
+                if not isclose(attr_self, attr_other):
+                    return False
+
+            elif attr_self != attr_other:
+                return False
+
+        return True
+
+    def __str__(self):
+        string = ''
+        for f in fields(self):
+            string += f"{f.name}: {getattr(self, f.name)}\n"
+        return string
+
+
+@dataclass
+class TransitionBatch:
+    """
+    Like transition, but is a batch of the above attributions
+    """
+    obs: Tensor
+    state: Tensor
+    action: Tensor
+    next_obs: Tensor
+    next_state: Tensor
+    reward: Tensor
+    n_step_reward: Tensor
+    n_step_cumulants: Tensor
+    boot_obs: Tensor
+    boot_state: Tensor
+    terminated: Tensor
+    truncate: Tensor
+    state_dp: Tensor
+    next_state_dp: Tensor
+    boot_state_dp: Tensor
+    gamma_exponent: Tensor
+    gap: Tensor
+    steps_until_decision: Tensor
+    next_steps_until_decision: Tensor
+    boot_steps_until_decision: Tensor
+
+    def __post_init__(self):
+        # ensure all the attributes have the same dimension
+        state_batch_size = self.state.size(0)
+        for f in fields(self):
+            assert getattr(self, f.name).size(0) == state_batch_size, \
+                f"Element {f.name} does not have the same batch size as the state"
+
+    @property
+    def batch_size(self) -> int:
+        return self.state.size(0)
+
+
+@dataclass
+class Trajectory:
+    def __post_init__(self):
+        self.transitions: list[Transition] = []
+        self.start_sc: BaseStateConstructor | None = None
+        self.scs: list[BaseStateConstructor] | None = None
+
+    def add_transition(self, transition: Transition) -> None:
+        self.transitions.append(transition)
+
+    @property
+    def num_transitions(self):
+        return len(self.transitions)
+
+    def add_start_sc(self, sc: BaseStateConstructor) -> None:
+        self.start_sc = sc
+
+    def cache_scs(self) -> list[BaseStateConstructor]:
+        assert self.start_sc is not None
+        self.scs = []
+        sc = deepcopy(self.start_sc)
+        self.scs.append(deepcopy(sc))
+        for transition in self.transitions[:-1]:
+            assert transition.next_obs is not None
+            sc(transition.next_obs,
+                transition.action,
+                initial_state=False,  # assume the next state will never be an initial state.
+                decision_point=transition.next_state_dp,
+                steps_until_decision=transition.next_steps_until_decision)
+            self.scs.append(deepcopy(sc))
+
+        return self.scs
+
+    def get_sc_at_idx(self, idx: int) -> BaseStateConstructor:
+        """
+        rolls the initial state constructor forward to
+        """
+        assert self.start_sc is not None
+        if self.scs is not None:
+            return deepcopy(self.scs[idx])
+
+        sc = deepcopy(self.start_sc)
+        for transition in self.transitions[:idx]:
+            assert transition.next_obs is not None
+            sc(transition.next_obs,
+                transition.action,
+                initial_state=False,  # assume the next state will never be an initial state.
+                decision_point=transition.next_state_dp,
+                steps_until_decision=transition.next_steps_until_decision)
+        return sc
+
+    def get_transitions_attr(self, attr: str):
+        """
+        Returns a numpy array, which is the concatenation of all the transitions attribute for attr
+        """
+        if len(self.transitions) == 0:
+            raise AssertionError("Please ensure that transitions have been added")
+
+        if not hasattr(self.transitions[0], attr):
+            raise AttributeError("Invalid attribute for Trajectory")
+
+        # return array of that attribute for all transitions
+        attribute_list = [getattr(transition, attr).reshape(1, -1) for transition in self.transitions]
+        return np.concatenate(attribute_list, axis=0)
+
+
+    def split_at(self, idx: int):
+        child_1 = Trajectory()
+        child_2 = Trajectory()
+
+        child_2.start_sc = self.get_sc_at_idx(idx)
+
+        if self.scs is not None:
+            child_1.scs = self.scs[:idx]
+            child_2.scs = self.scs[idx:]
+
+        child_1.transitions = self.transitions[:idx]
+        child_2.transitions = self.transitions[idx:]
+
+        return child_1, child_2

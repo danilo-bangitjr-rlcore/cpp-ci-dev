@@ -1,5 +1,4 @@
-from corerl.agent.base import group
-from corerl.utils.hydra import DiscriminatedUnion
+from corerl.agent.base import group, BaseAgentConfig
 
 import corerl.agent.greedy_iql # noqa: F401
 import corerl.agent.inac # noqa: F401
@@ -13,5 +12,5 @@ import corerl.agent.action_schedule # noqa: F401
 import corerl.agent.sarsa # noqa: F401
 
 
-def init_agent(cfg: DiscriminatedUnion, state_dim: int, action_dim: int):
+def init_agent(cfg: BaseAgentConfig, state_dim: int, action_dim: int):
     return group.dispatch(cfg, state_dim, action_dim)

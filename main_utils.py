@@ -19,10 +19,10 @@ from warnings import warn
 
 from corerl.config import MainConfig
 from corerl.eval.composite_eval import CompositeEval
-from corerl.data_loaders.base import BaseDataLoader, OldBaseDataLoader
-from corerl.data_loaders.direct_action import DirectActionDataLoader, OldDirectActionDataLoader
+from corerl.data_pipeline.base import BaseDataLoader, OldBaseDataLoader
+from corerl.data_pipeline.direct_action import DirectActionDataLoader, OldDirectActionDataLoader
 from corerl.environment.reward.factory import init_reward_function
-from corerl.data.data import OldObsTransition, Transition, ObsTransition, Trajectory
+from corerl.data_pipeline.datatypes import OldObsTransition, Transition, ObsTransition, Trajectory
 from corerl.interaction.base import BaseInteraction
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.data.transition_normalizer import TransitionNormalizer
@@ -31,7 +31,7 @@ from corerl.data.transition_creator import OldAnytimeTransitionCreator, BaseTran
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.agent.base import BaseAgent
 from corerl.utils.plotting import make_actor_critic_plots, make_reseau_gvf_critic_plot
-from corerl.data_loaders.transition_load_funcs import make_transitions
+from corerl.data_pipeline.transition_load_funcs import make_transitions
 
 import corerl.utils.dict as dict_u
 import corerl.utils.nullable as nullable
@@ -39,7 +39,7 @@ import corerl.utils.nullable as nullable
 
 def prepare_save_dir(cfg: MainConfig):
     if cfg.experiment.param_from_hash:
-        cfg_hash = dict_u.hash(cfg, ignore={'experiment.seed'})
+        cfg_hash = dict_u.hash(cfg.__dict__, ignore={'experiment.seed'})
         log.debug("Creating experiment param from hash:", cfg_hash)
         cfg.experiment.param = cfg_hash
 
@@ -221,7 +221,7 @@ def old_get_offline_transitions(
     hash_cfgs = nullable.default(hash_cfgs, list)
     output_path = Path(cfg.offline_data.output_path)
 
-    warmup = cfg.state_constructor.warmup
+    warmup = getattr(cfg.state_constructor, 'warmup', 0)
     transitions = load_or_create(
         root=output_path,
         cfgs=hash_cfgs,
@@ -252,7 +252,7 @@ def get_offline_transitions(
     hash_cfgs = nullable.default(hash_cfgs, list)
     output_path = Path(cfg.offline_data.output_path)
 
-    warmup = cfg.state_constructor.warmup
+    warmup = getattr(cfg.state_constructor, 'warmup', 0)
     transitions = load_or_create(
         root=output_path,
         cfgs=hash_cfgs,

@@ -37,8 +37,6 @@ interaction :
   only_dp_transitions : False
   steps_per_decision: 7
   n_step : 0
-  action_normalizer:
-    use_cfg_values : False
 
 agent:
   tau : 0

@@ -7,7 +7,7 @@ import numpy as np
 import torch
 import random
 
-from corerl.data.data import Transition, TransitionBatch
+from corerl.data_pipeline.datatypes import Transition, TransitionBatch
 import pandas as pd
 from corerl.sql_logging import sql_logging
 from corerl.sql_logging.base_schema import SQLTransition
@@ -226,6 +226,22 @@ class EnsembleUniformBuffer:
     def reset(self) -> None:
         for i in range(self.ensemble):
             self.buffer_ensemble[i].reset()
+
+    def subsampling(self, idxs: list[list[int]]) -> None:
+        for i in range(len(self.buffer_ensemble)):
+            all_data = self.buffer_ensemble[i].data
+            if all_data is None:
+                continue
+            idx = list(set(idxs[i]))
+            new_data = []
+            for attr in range(len(all_data)):
+                new_data_attr = torch.empty(all_data[attr].size(),
+                                            device=device.device)
+                new_data_attr[np.arange(len(idx))] = all_data[attr][idx]
+                new_data.append(new_data_attr)
+            self.buffer_ensemble[i].pos = len(idx)
+            self.buffer_ensemble[i].full = False if len(idx) != self.buffer_ensemble[i].memory else True
+            self.buffer_ensemble[i].data = new_data
 
 
 def _to_tensor(elem):
