@@ -48,7 +48,7 @@ class Pipeline:
         }
 
         self.imputers = {
-            cfg.name: init_imputer(cfg.imputer) for cfg in self.tags
+            cfg.name: init_imputer(cfg.imputer, cfg) for cfg in self.tags
         }
 
         self.state_constructors = {
