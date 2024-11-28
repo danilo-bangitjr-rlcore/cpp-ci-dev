@@ -13,7 +13,7 @@ from corerl.data_pipeline.outlier_detectors.factory import init_outlier_detector
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
-from corerl.data_pipeline.state_constructors.factory import init_state_constructor
+from corerl.data_pipeline.state_constructors.sc import StateConstructor
 
 from corerl.data_pipeline.datatypes import Transition, PipelineFrame, CallerCode, TemporalState
 from corerl.data_pipeline.pipeline_utils import warmup_pruning, handle_data_gaps
@@ -63,7 +63,7 @@ class Pipeline:
         }
 
         self.state_constructors = {
-            cfg.name: init_state_constructor(cfg.state_constructor) for cfg in self.tags
+            cfg.name: StateConstructor(cfg.state_constructor) for cfg in self.tags
         }
 
         self.warmup_pruning: WarmupPruner = warmup_pruning
