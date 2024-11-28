@@ -274,6 +274,7 @@ class CallerCode(Enum):
 
 
 class StageCode(Enum):
+    IMPUTER = auto()
     TC = auto()
     SC = auto()
 
