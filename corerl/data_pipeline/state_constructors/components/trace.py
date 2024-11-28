@@ -1,4 +1,5 @@
 import numpy as np
+from numba import njit
 from dataclasses import dataclass
 from corerl.utils.hydra import list_
 from corerl.data_pipeline.state_constructors.interface import TransformCarry
@@ -48,6 +49,7 @@ class TraceConstructor:
 
 sc_group.dispatcher(TraceConstructor)
 
+@njit
 def compute_trace_with_nan(
     data: np.ndarray,
     decays: np.ndarray,
