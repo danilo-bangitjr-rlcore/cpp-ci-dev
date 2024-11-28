@@ -2,15 +2,14 @@ import numpy as np
 import pandas as pd
 import datetime
 
-from corerl.data_pipeline.pipeline import Pipeline
+from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import CallerCode
-from corerl.config import MainConfig
 from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
 
 
 def test_construct_pipeline():
-    cfg = MainConfig(
+    cfg = PipelineConfig(
         tags=[
             TagConfig(name='sensor_x'),
             TagConfig(name='sensor_y'),
@@ -21,7 +20,7 @@ def test_construct_pipeline():
 
 
 def test_passing_data_to_pipeline():
-    cfg = MainConfig(
+    cfg = PipelineConfig(
         tags=[
             TagConfig(name='sensor_x'),
             TagConfig(name='sensor_y'),

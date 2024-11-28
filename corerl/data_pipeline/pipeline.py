@@ -1,26 +1,37 @@
+from dataclasses import dataclass
 import warnings
 import datetime
 
 from collections.abc import Mapping
-from typing import Callable
+from typing import Any, Callable
+from omegaconf import MISSING
 from pandas import DataFrame
 
-from corerl.config import MainConfig
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.outlier_detectors.factory import init_outlier_detector
 from corerl.data_pipeline.imputers.factory import init_imputer
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
 from corerl.data_pipeline.state_constructors.factory import init_state_constructor
 
 from corerl.data_pipeline.datatypes import Transition, PipelineFrame, CallerCode, TemporalState
 from corerl.data_pipeline.pipeline_utils import warmup_pruning, handle_data_gaps
+from corerl.utils.hydra import interpolate
 
 WARMUP = 0
 
 type TagName = str # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
 type WarmupPruner = Callable[[PipelineFrame, int], PipelineFrame]
+
+
+@dataclass
+class PipelineConfig:
+    tags: list[TagConfig] = MISSING
+
+    state_constructor: Any = MISSING
+    agent_transition_creator: Any = interpolate('{agent_transition_creator}')
 
 
 def invoke_stage_per_tag[T](carry: T, stage: Mapping[TagName, PipelineStage[T]]) -> T:
@@ -31,8 +42,8 @@ def invoke_stage_per_tag[T](carry: T, stage: Mapping[TagName, PipelineStage[T]])
 
 
 class Pipeline:
-    def __init__(self, main_cfg: MainConfig):
-        self.tags = main_cfg.tags
+    def __init__(self, cfg: PipelineConfig):
+        self.tags = cfg.tags
         self.missing_data_checkers = {
             cfg.name: missing_data_checker for cfg in self.tags
         }
@@ -41,7 +52,7 @@ class Pipeline:
             cfg.name: bound_checker_builder(cfg) for cfg in self.tags
         }
 
-        self.transition_creator = init_transition_creator(main_cfg.agent_transition_creator)
+        self.transition_creator = init_transition_creator(cfg.agent_transition_creator)
 
         self.outlier_detectors = {
             cfg.name: init_outlier_detector(cfg.outlier) for cfg in self.tags
