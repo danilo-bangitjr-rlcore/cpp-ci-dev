@@ -1,32 +1,16 @@
 name: Large Tests
 
-on: [pull_request]
+on: 
+  workflow_run: 
+    workflows: ['Small and Medium Tests']
+    types:
+      - completed
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.12"]
-
-    steps:
-      # setup the repository
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.PRIVATE_DEPLOY_KEY }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v2
-
-      - run: |
-          uv venv
-          uv pip compile --extra=dev pyproject.toml -o deps.txt
-          uv pip sync deps.txt
-
-      - run: uv run pytest test/large
+  large-tests:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    uses: ./.github/workflows/reusable-run-test.yml
+    secrets: inherit
+    with:
+      test-suite: test/large
+      #- run: uv run pytest test/large

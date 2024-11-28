@@ -1,0 +1,24 @@
+name: Small and Medium Tests
+
+on: 
+  workflow_run: 
+    workflows: ['Style']
+    types:
+      - completed
+
+jobs:
+  small-test:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    uses: ./.github/workflows/reusable-run-test.yml
+    secrets: inherit
+    with:
+      test-suite: -n auto test/small
+     # - run: uv run pytest -n auto test/small
+     
+  medium-test:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    uses: ./.github/workflows/reusable-run-test.yml
+    secrets: inherit
+    with:
+      test-suite: test/medium
+      #- run: uv run pytest test/medium
