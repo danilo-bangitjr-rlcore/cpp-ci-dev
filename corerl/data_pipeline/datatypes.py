@@ -83,6 +83,21 @@ class ObsTransition:
 
 
 @dataclass
+class GORAS:
+    gamma: float
+    obs: np.ndarray
+    reward: float
+    action: np.ndarray
+    state: np.ndarray
+
+
+@dataclass
+class NewTransition2:
+    pre: GORAS
+    post: GORAS
+
+
+@dataclass
 class NewTransition:
     state: Tensor
     action: Tensor
@@ -122,6 +137,7 @@ class NewTransition:
                 return False
 
         return True
+
 
 @dataclass
 class Transition:

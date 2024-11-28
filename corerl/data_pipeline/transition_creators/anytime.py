@@ -4,7 +4,7 @@ from collections import deque
 from dataclasses import dataclass, field
 
 from corerl.component.network.utils import tensor
-from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame
+from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, GORAS, NewTransition2
 from corerl.utils.hydra import interpolate
 from corerl.data_pipeline.transition_creators.base import (
     BaseTransitionCreator,
@@ -31,8 +31,9 @@ class SAR:
 
 @dataclass
 class AnytimeTemporalState(TransitionCreatorTemporalState):
-    aw_sars: list[SAR] = field(default_factory=list)
+    aw_goras: list[GORAS] = field(default_factory=list)
     prev_data_gap: bool = False
+    supress_aw_end: bool = False
 
 
 class AnytimeTransitionCreator(BaseTransitionCreator):
@@ -54,34 +55,49 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
         assert isinstance(tc_ts, AnytimeTemporalState) or tc_ts is None
         actions = pf.data[pf.action_tags].to_numpy()
+        observations = pf.data[pf.obs_tags].to_numpy()
         states = pf.data['state'].to_numpy()
         rewards = pf.data['reward'].to_numpy()
         assert len(actions) == len(states)
 
-
-        # TODO: I need to totally refactor this. RN SAR has the action and reward that occur AS the state happens.
-
-        aw_sars, last_action, transitions = self._restore_from_ts(actions, tc_ts)
+        aw_goras, last_action, transitions, supress_aw_end = self._restore_from_ts(actions, tc_ts)
 
         for i in range(len(actions)):
-            state, action, reward = states[i], actions[i], rewards[i]
-            sar = SAR(state, action, reward)  # semantics: action and reward happen at the same time as state
+            action = actions[i]
+            goras = GORAS(
+                gamma=self.gamma,
+                obs=observations[i],
+                reward=rewards[i],
+                action=action,
+                state=states[i],
+            )
 
-            if last_action is not None and (not np.allclose(action, last_action) or len(aw_sars) == self.steps_per_decision):
-                transitions += self._make_decision_window_transitions(aw_sars)
-                aw_sars = [aw_sars[-1]]
+            action_window_ends = last_action is not None and not np.allclose(action, last_action)
+            if action_window_ends and not supress_aw_end:
+                transitions += self._make_decision_window_transitions(aw_goras)
+                aw_goras = [aw_goras[-1]]
+
+            aw_goras.append(goras)
+
+            decision_window_ends = len(aw_goras) == self.steps_per_decision + 1
+
+            if decision_window_ends:
+                transitions += self._make_decision_window_transitions(aw_goras)
+                aw_goras = [aw_goras[-1]]
+                supress_aw_end = True
+            else:
+                supress_aw_end = False
 
             last_action = action
-            aw_sars.append(sar)
 
-        tc_ts = AnytimeTemporalState(aw_sars, pf.data_gap)
+        tc_ts = AnytimeTemporalState(aw_goras, pf.data_gap, supress_aw_end)
 
         return transitions, tc_ts
 
     def _restore_from_ts(
             self,
             actions: np.ndarray,
-            tc_ts: AnytimeTemporalState | None) -> tuple[list[SAR], np.ndarray | None, list[NewTransition]]:
+            tc_ts: AnytimeTemporalState | None) -> tuple[list[GORAS], np.ndarray | None, list[NewTransition], bool]:
         """
         Restores the state of the transition creator from the temporal state (tc_ts).
         This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.aw_sars.
@@ -95,62 +111,61 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         aw_sars = []
         transitions = []
         last_action = None
+        supress_aw_end = False
 
         if reset_ts is None and len(actions):
             last_action = actions[0]
 
         elif not reset_ts:
-            aw_sars = tc_ts.aw_sars
-            _check_actions_equal(aw_sars)
+            aw_sars = tc_ts.aw_goras
+            supress_aw_end = tc_ts.supress_aw_end
+
+            _check_actions_valid(aw_sars[1:])
+
             last_action = aw_sars[-1].action
             transitions = []
 
             if tc_ts.prev_data_gap:
                 transitions = self._make_decision_window_transitions(aw_sars)
+                supress_aw_end = False
                 aw_sars = []
 
-        return aw_sars, last_action, transitions
+        return aw_sars, last_action, transitions, supress_aw_end
 
     def _make_decision_window_transitions(
-            self, dw_sars: list[SAR]) -> list[NewTransition]:
+            self, dw_goras: list[GORAS]) -> list[NewTransition]:
         """
         Makes transitions for a decision window (dw), which starts and ends with a decision point.
 
         dw_sars contains a list of (s, a, r) tuples for that decision window.
         """
-
-        next_state_queue = deque([], self.queue_len)
-        reward_queue = deque([], self.queue_len)
-        next_state = dw_sars[-1].state
-        next_state_queue.append(next_state)
+        _check_actions_valid(dw_goras)
         dw_transitions = []
+        action = dw_goras[1].action
 
-        dw_sars = dw_sars[:-1]
-        dw_sars.reverse()
+        goras_queue = deque([], self.queue_len)
+        goras_queue.appendleft(dw_goras[-1])
 
-        for sar in dw_sars:
-            # TODO: the fix here
-            #
-
-            state, action, reward = sar.state, sar.action, sar.reward
-
-            reward_queue.appendleft(reward)
-            n_step_reward = _get_n_step_reward(reward_queue, self.gamma)
+        for step_backwards in range(len(dw_goras) - 2, -1, -1):
+            goras = dw_goras[step_backwards]
+            state, reward = goras.state, goras.reward
+            n_step_reward = _get_n_step_reward(goras_queue, self.gamma)
 
             transition = NewTransition(
                 state=tensor(state),
                 action=tensor(action),
-                n_steps=len(reward_queue),
+                n_steps=len(goras_queue),
                 n_step_reward=n_step_reward,
-                next_state=tensor(next_state_queue[-1]),
+                next_state=tensor(goras_queue[-1].state),
                 terminated=False,
                 truncate=False
             )
 
-            next_state_queue.appendleft(state)
+            goras_queue.appendleft(goras)
             dw_transitions.append(transition)
 
         dw_transitions.reverse()
+
         return dw_transitions
 
 
@@ -159,18 +174,20 @@ def split_list_with_remainder(lst: list, n: int) -> list[list]:
     return portions
 
 
-def _check_actions_equal(sars: list[SAR]):
-    actions = [o.action for o in sars]
-    first_action = actions[0]
-    for action in actions[1:]:
-        assert first_action == action, "All actions within a decision window must be equal."
+def _check_actions_valid(goras_list: list[GORAS]):
+    if len(goras_list) < 2:
+        return
+    actions = [o.action for o in goras_list]
+    first_action = actions[1]
+    for action in actions[2:]:
+        assert np.allclose(first_action, action), "All actions within a decision window must be equal."
 
 
-def _get_n_step_reward(reward_queue: deque[float], gamma: float) -> float:
+def _get_n_step_reward(goras_queue: deque[GORAS], gamma: float) -> float:
     n_step_reward = 0
-    steps_until_bootstrap = len(reward_queue)
+    steps_until_bootstrap = len(goras_queue)
     for step in range(steps_until_bootstrap):
-        cumulant_step = reward_queue[step]
+        cumulant_step = goras_queue[step].reward
         n_step_reward += (gamma ** step) * cumulant_step
     return n_step_reward
 
