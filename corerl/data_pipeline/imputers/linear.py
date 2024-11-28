@@ -85,7 +85,6 @@ class LinearImputer(BaseImputer):
         ind_diff = (self.imputation_horizon - backtrack_ind_int) + (lookahead_ind_int + 1)
         slope = self._get_slope(backtrack_val, lookahead_val, ind_diff)
         imputed_val = slope * (self.imputation_horizon - backtrack_ind_int) + backtrack_val
-        imputed_val = np.clip(imputed_val, self.bounds[0], self.bounds[1])
 
         return imputed_val
 
