@@ -10,7 +10,7 @@ def test_get_last_timestamp():
     })
     df = df.set_index(pd.Series([now, now + delta, now + 2*delta]))
     pf = PipelineFrame(
-        data=df, 
+        data=df,
         caller_code=CallerCode.ONLINE
     )
 
@@ -27,7 +27,7 @@ def test_get_first_timestamp():
     })
     df = df.set_index(pd.Series([now, now + delta, now + 2*delta]))
     pf = PipelineFrame(
-        data=df, 
+        data=df,
         caller_code=CallerCode.ONLINE
     )
 

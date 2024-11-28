@@ -1,5 +1,3 @@
-from typing import Dict
-
 import numpy as np
 from torch import Tensor
 from copy import deepcopy
@@ -278,7 +276,7 @@ class StageCode(Enum):
     SC = auto()
 
 
-type TemporalState = object 
+type TemporalState = object
 
 
 @dataclass
