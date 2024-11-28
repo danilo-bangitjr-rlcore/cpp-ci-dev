@@ -30,17 +30,17 @@ def invoke_stage_per_tag[T](carry: T, stage: Mapping[str, PipelineStage[T]]):
 
 
 class Pipeline:
-    def __init__(self, cfg: MainConfig):
-        self.tags = cfg.tags
+    def __init__(self, main_cfg: MainConfig):
+        self.tags = main_cfg.tags
         self.missing_data = {
             cfg.name: missing_data_checker for cfg in self.tags
         }
 
         self.bound_checker = {
-            cfg.name: bound_checker_builder(cfg) for cfg in cfg.tags
+            cfg.name: bound_checker_builder(cfg) for cfg in self.tags
         }
 
-        self.transition_creator = init_transition_creator(cfg.agent_transition_creator)
+        self.transition_creator = init_transition_creator(main_cfg.agent_transition_creator)
 
         self.outlier_detector = {
             cfg.name: init_outlier_detector(cfg.outlier) for cfg in self.tags
