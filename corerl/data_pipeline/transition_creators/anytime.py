@@ -4,7 +4,7 @@ from collections import deque
 from dataclasses import dataclass, field
 
 from corerl.component.network.utils import tensor
-from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, GORAS, NewTransition2
+from corerl.data_pipeline.datatypes import PipelineFrame, GORAS, NewTransition2
 from corerl.utils.hydra import interpolate
 from corerl.data_pipeline.transition_creators.base import (
     BaseTransitionCreator,
@@ -51,7 +51,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
     def _inner_call(self,
                     pf: PipelineFrame,
                     tc_ts: TransitionCreatorTemporalState | None) \
-            -> tuple[list[NewTransition], AnytimeTemporalState]:
+            -> tuple[list[NewTransition2], AnytimeTemporalState]:
 
         assert isinstance(tc_ts, AnytimeTemporalState) or tc_ts is None
         actions = pf.data[pf.action_tags].to_numpy()
@@ -96,7 +96,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
     def _restore_from_ts(
             self,
             actions: np.ndarray,
-            tc_ts: AnytimeTemporalState | None) -> tuple[list[GORAS], np.ndarray | None, list[NewTransition], bool]:
+            tc_ts: AnytimeTemporalState | None) -> tuple[list[GORAS], np.ndarray | None, list[NewTransition2], bool]:
         """
         Restores the state of the transition creator from the temporal state (tc_ts).
         This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.aw_sars.
@@ -132,7 +132,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         return aw_sars, last_action, transitions, supress_aw_end
 
     def _make_decision_window_transitions(
-            self, dw_goras: list[GORAS]) -> list[NewTransition]:
+            self, dw_goras: list[GORAS]) -> list[NewTransition2]:
         """
         Makes transitions for a decision window (dw), which starts and ends with a decision point.
 
@@ -146,20 +146,20 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         goras_queue.appendleft(dw_goras[-1])
 
         for step_backwards in range(len(dw_goras) - 2, -1, -1):
-            goras = dw_goras[step_backwards]
+            pre_goras = dw_goras[step_backwards]
             n_step_reward = _get_n_step_reward(goras_queue, self.gamma)
 
-            transition = NewTransition(
-                state=tensor(goras.state),
-                action=tensor(action),
-                n_steps=len(goras_queue),
-                n_step_reward=n_step_reward,
-                next_state=tensor(goras_queue[-1].state),
-                terminated=False,
-                truncate=False
+            boot_goras = goras_queue[-1]
+            post_goras = GORAS(
+                gamma=boot_goras.gamma,
+                obs=boot_goras.obs,
+                reward=n_step_reward,
+                action=boot_goras.action,
+                state=boot_goras.state,
             )
 
-            goras_queue.appendleft(goras)
+            transition = NewTransition2(pre_goras, post_goras, len(goras_queue))
+            goras_queue.appendleft(pre_goras)
             dw_transitions.append(transition)
 
         dw_transitions.reverse()

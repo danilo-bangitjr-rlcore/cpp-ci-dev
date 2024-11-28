@@ -95,6 +95,7 @@ class GORAS:
 class NewTransition2:
     pre: GORAS
     post: GORAS
+    n_steps: int
 
 
 @dataclass
