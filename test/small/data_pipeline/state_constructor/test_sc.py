@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
 from corerl.data_pipeline.state_constructors.sc import StateConstructor
 from corerl.data_pipeline.state_constructors.components.trace import TraceConfig
 
@@ -12,6 +12,7 @@ def test_sc1():
 
     pf = PipelineFrame(
         data=raw_obs,
+        caller_code=CallerCode.REFRESH,
     )
 
     sc = StateConstructor(
