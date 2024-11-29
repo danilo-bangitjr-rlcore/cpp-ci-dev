@@ -2,7 +2,7 @@ import pandas as pd
 
 from typing import Any, Dict, cast
 from dataclasses import dataclass
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from omegaconf import MISSING
 
 from corerl.utils.hydra import Group
@@ -19,7 +19,7 @@ class ImputerTemporalState:
     prev_pf_data: pd.DataFrame | pd.Series | None = None
 
 
-class BaseImputer(ABC):
+class BaseImputer:
     def __init__(self, cfg: BaseImputerConfig, tag_cfg: Any):
         self.cfg = cfg
         self.stage_code = StageCode.IMPUTER
