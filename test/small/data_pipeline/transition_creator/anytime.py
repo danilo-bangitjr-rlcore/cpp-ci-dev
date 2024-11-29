@@ -6,7 +6,7 @@ from torch import Tensor
 from collections import deque
 import torch
 
-from corerl.data_pipeline.datatypes import PipelineFrame, GORAS, CallerCode, StageCode
+from corerl.data_pipeline.datatypes import PipelineFrame, GORAS, CallerCode
 from corerl.data_pipeline.transition_creators.anytime import (
     AnytimeTransitionCreator,
     AnytimeTransitionCreatorConfig,
