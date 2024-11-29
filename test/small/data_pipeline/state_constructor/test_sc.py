@@ -4,6 +4,7 @@ from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
 from corerl.data_pipeline.state_constructors.sc import StateConstructor
 from corerl.data_pipeline.state_constructors.components.trace import TraceConfig
 
+from test.infrastructure.utils.pandas import dfs_close
 
 def test_sc1():
     raw_obs = pd.DataFrame({
@@ -32,15 +33,4 @@ def test_sc1():
         'obs_2_trace-0.01': [1., 1.99, 2.9899, np.nan, 1., 1.99, np.nan],
     })
 
-    assert _dfs_close(pf.data, expected_data)
-
-
-def _dfs_close(df1: pd.DataFrame, df2: pd.DataFrame):
-    if set(df1.columns) != set(df2.columns):
-        return False
-
-    for col in df1.columns:
-        if not np.allclose(df1[col], df2[col], equal_nan=True):
-            return False
-
-    return True
+    assert dfs_close(pf.data, expected_data)
