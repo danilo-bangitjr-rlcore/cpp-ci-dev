@@ -6,7 +6,7 @@ from torch import Tensor
 from collections import deque
 import torch
 
-from corerl.data_pipeline.datatypes import PipelineFrame, GORAS
+from corerl.data_pipeline.datatypes import PipelineFrame, GORAS, CallerCode
 from corerl.data_pipeline.transition_creators.anytime import (
     AnytimeTransitionCreator,
     AnytimeTransitionCreatorConfig,
@@ -23,10 +23,10 @@ def test_anytime_1():
     dates = [
         datetime.datetime(2024, 1, 1, 1, i) for i in range(4)
     ]
-
+    
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
-    pf = PipelineFrame(df)
+    pf = PipelineFrame(df, CallerCode.OFFLINE)
     pf.action_tags = ['action']
     pf.obs_tags = ['state']
     pf.state_tags = ['state']
@@ -62,7 +62,7 @@ def test_anytime_2():
 
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
-    pf = PipelineFrame(df)
+    pf = PipelineFrame(df, CallerCode.OFFLINE)
     pf.action_tags = ['action']
     pf.obs_tags = ['action']
     pf.state_tags = ['state']
@@ -108,7 +108,7 @@ def test_anytime_3():
 
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
-    pf = PipelineFrame(df)
+    pf = PipelineFrame(df, CallerCode.OFFLINE)
     pf.action_tags = ['action']
     pf.obs_tags = ['state']
     pf.state_tags = ['state']
@@ -170,7 +170,7 @@ def test_anytime_ts_1():
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
 
-    pf = PipelineFrame(df)
+    pf = PipelineFrame(df, CallerCode.OFFLINE)
     pf.action_tags = ['action']
     pf.obs_tags = ['state']
     pf.state_tags = ['state']
@@ -201,7 +201,7 @@ def test_anytime_ts_1():
     ]
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
-    pf_2 = PipelineFrame(df)
+    pf_2 = PipelineFrame(df, CallerCode.OFFLINE)
     pf_2.action_tags = ['action']
     pf_2.obs_tags = ['state']
     pf_2.state_tags = ['state']
@@ -255,7 +255,7 @@ def test_anytime_ts_2_data_gap():
     ]
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
-    pf = PipelineFrame(df)
+    pf = PipelineFrame(df, CallerCode.OFFLINE)
     pf.action_tags = ['action']
     pf.obs_tags = ['state']
     pf.state_tags = ['state']
@@ -286,7 +286,7 @@ def test_anytime_ts_2_data_gap():
     ]
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
-    pf_2 = PipelineFrame(df)
+    pf_2 = PipelineFrame(df, CallerCode.OFFLINE)
     pf_2.action_tags = ['action']
     pf_2.obs_tags = ['state']
     pf_2.state_tags = ['state']
@@ -334,7 +334,7 @@ def test_anytime_ts_3_data_gap_with_action_change():
     ]
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
-    pf = PipelineFrame(df)
+    pf = PipelineFrame(df, CallerCode.OFFLINE)
     pf.action_tags = ['action']
     pf.obs_tags = ['state']
     pf.state_tags = ['state']
@@ -365,7 +365,7 @@ def test_anytime_ts_3_data_gap_with_action_change():
     ]
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
-    pf_2 = PipelineFrame(df)
+    pf_2 = PipelineFrame(df, CallerCode.OFFLINE)
     pf_2.action_tags = ['action']
     pf_2.obs_tags = ['state']
     pf_2.state_tags = ['state']
@@ -420,7 +420,7 @@ def test_anytime_online_1():
         dates = [datetime.datetime(2024, 1, 1, 1, i)]
         datetime_index = pd.DatetimeIndex(dates)
         df = pd.DataFrame(cols, index=datetime_index)
-        pf = PipelineFrame(df)
+        pf = PipelineFrame(df, CallerCode.ONLINE)
         pf.action_tags = ['action']
         pf.obs_tags = ['state']
         pf.state_tags = ['state']
@@ -483,7 +483,7 @@ def test_anytime_online_2():
         dates = [datetime.datetime(2024, 1, 1, 1, i)]
         datetime_index = pd.DatetimeIndex(dates)
         df = pd.DataFrame(cols, index=datetime_index)
-        pf = PipelineFrame(df)
+        pf = PipelineFrame(df, CallerCode.ONLINE)
         pf.action_tags = ['action']
         pf.obs_tags = ['state']
         pf.state_tags = ['state']
@@ -539,7 +539,7 @@ def test_anytime_online_3():
         dates = [datetime.datetime(2024, 1, 1, 1, i)]
         datetime_index = pd.DatetimeIndex(dates)
         df = pd.DataFrame(cols, index=datetime_index)
-        pf = PipelineFrame(df)
+        pf = PipelineFrame(df, CallerCode.ONLINE)
         pf.action_tags = ['action']
         pf.obs_tags = ['state']
         pf.state_tags = ['state']
@@ -594,7 +594,7 @@ def test_anytime_online_4():
         dates = [datetime.datetime(2024, 1, 1, 1, i)]
         datetime_index = pd.DatetimeIndex(dates)
         df = pd.DataFrame(cols, index=datetime_index)
-        pf = PipelineFrame(df)
+        pf = PipelineFrame(df, CallerCode.ONLINE)
         pf.action_tags = ['action']
         pf.obs_tags = ['state']
         pf.state_tags = ['state']
