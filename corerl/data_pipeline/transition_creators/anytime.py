@@ -115,7 +115,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                 return [], actions[0], [], False
             return [], None, [], False
 
-        # Case 2: Valid timestamp exists
+        # Case 2: Valid ts exists
         aw_goras = tc_ts.dw_goras
         supress_aw_end = tc_ts.supress_aw_end
 
@@ -152,15 +152,16 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             n_step_reward = _get_n_step_reward(goras_queue, self.gamma)
 
             boot_goras = goras_queue[-1]
+            n_steps = len(goras_queue)
             post_goras = GORAS(
-                gamma=boot_goras.gamma,
+                gamma=boot_goras.gamma**n_steps,
                 obs=boot_goras.obs,
                 reward=n_step_reward,
                 action=boot_goras.action,
                 state=boot_goras.state,
             )
 
-            transition = NewTransition(pre_goras, post_goras, len(goras_queue))
+            transition = NewTransition(pre_goras, post_goras, n_steps)
             goras_queue.appendleft(pre_goras)
             dw_transitions.append(transition)
 
@@ -187,8 +188,8 @@ def _get_n_step_reward(goras_queue: deque[GORAS], gamma: float) -> float:
     n_step_reward = 0
     steps_until_bootstrap = len(goras_queue)
     for step in range(steps_until_bootstrap):
-        cumulant_step = goras_queue[step].reward
-        n_step_reward += (gamma ** step) * cumulant_step
+        reward = goras_queue[step].reward
+        n_step_reward += (gamma ** step) * reward
     return n_step_reward
 
 

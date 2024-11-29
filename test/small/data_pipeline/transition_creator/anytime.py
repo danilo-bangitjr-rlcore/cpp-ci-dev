@@ -42,6 +42,7 @@ def test_anytime_1():
     assert torch.equal(t_0.post.action, Tensor([0.]))
     assert t_0.n_steps == 1
     assert t_0.post.reward == 1
+    assert t_0.post.gamma == 0.9
     assert torch.equal(t_0.post.state, Tensor([1.]))
 
 
@@ -78,12 +79,14 @@ def test_anytime_2():
     assert torch.equal(t_0.post.action, Tensor([0.]))
     assert t_0.n_steps == 1
     assert t_0.post.reward == 1.0
+    assert t_0.post.gamma == 0.9
     assert torch.equal(t_0.post.state, Tensor([1.]))
 
     assert torch.equal(t_1.pre.state, Tensor([1.]))
     assert torch.equal(t_1.post.action, Tensor([0.]))
     assert t_1.n_steps == 1
     assert t_1.post.reward == 1.0
+    assert t_1.post.gamma == 0.9
     assert torch.equal(t_1.post.state, Tensor([2.]))
 
 
@@ -125,24 +128,28 @@ def test_anytime_3():
     assert torch.equal(t_0.post.action, Tensor([0.]))
     assert t_0.n_steps == 1
     assert t_0.post.reward == 1.
+    assert t_0.post.gamma == 0.9
     assert torch.equal(t_0.post.state, Tensor([1.]))
 
     assert torch.equal(t_1.pre.state, Tensor([1.]))
     assert torch.equal(t_1.post.action, Tensor([1.]))
     assert t_1.n_steps == 3
     assert t_1.post.reward == 2.71
+    assert t_1.post.gamma == 0.9**3
     assert torch.equal(t_1.post.state, Tensor([4.]))
 
     assert torch.equal(t_2.pre.state, Tensor([2.]))
     assert torch.equal(t_2.post.action, Tensor([1.]))
     assert t_2.n_steps == 2
     assert t_2.post.reward == 1.9
+    assert t_2.post.gamma == 0.9 ** 2
     assert torch.equal(t_2.post.state, Tensor([4.]))
 
     assert torch.equal(t_3.pre.state, Tensor([3.]))
     assert torch.equal(t_3.post.action, Tensor([1.]))
     assert t_3.n_steps == 1
     assert t_3.post.reward == 1.
+    assert t_3.post.gamma == 0.9 ** 1
     assert torch.equal(t_3.post.state, Tensor([4.]))
 
 
@@ -180,6 +187,7 @@ def test_anytime_ts_1():
     assert torch.equal(t_0.post.action, Tensor([0.]))
     assert t_0.n_steps == 1
     assert t_0.post.reward == 1.0
+    assert t_0.post.gamma == 0.9 ** 1
     assert torch.equal(t_0.post.state, Tensor([1.]))
 
     state_col = np.arange(4, 8)
@@ -206,24 +214,28 @@ def test_anytime_ts_1():
     assert torch.equal(t_0.post.action, Tensor([1.]))
     assert t_0.n_steps == 4
     assert t_0.post.reward == 3.439
+    assert t_0.post.gamma == 0.9 ** 4
     assert torch.equal(t_0.post.state, Tensor([5.]))
 
     assert torch.equal(t_1.pre.state, Tensor([2.]))
     assert torch.equal(t_1.post.action, Tensor([1.]))
     assert t_1.n_steps == 3
     assert t_1.post.reward == 2.71
+    assert t_1.post.gamma == 0.9 ** 3
     assert torch.equal(t_1.post.state, Tensor([5.]))
 
     assert torch.equal(t_2.pre.state, Tensor([3.]))
     assert torch.equal(t_2.post.action, Tensor([1.]))
     assert t_2.n_steps == 2
     assert t_2.post.reward == 1.9
+    assert t_2.post.gamma == 0.9 ** 2
     assert torch.equal(t_2.post.state, Tensor([5.]))
 
     assert torch.equal(t_3.pre.state, Tensor([4.]))
     assert torch.equal(t_3.post.action, Tensor([1.]))
     assert t_3.n_steps == 1
     assert t_3.post.reward == 1.
+    assert t_3.post.gamma == 0.9 ** 1
     assert torch.equal(t_3.post.state, Tensor([5.]))
 
 
@@ -260,6 +272,7 @@ def test_anytime_ts_2_data_gap():
     assert torch.equal(t_0.post.action, Tensor([0.]))
     assert t_0.n_steps == 1
     assert t_0.post.reward == 1.
+    assert t_0.post.gamma == 0.9 ** 1
     assert torch.equal(t_0.post.state, Tensor([1.]))
 
     state_col = np.arange(4, 8)
@@ -286,18 +299,21 @@ def test_anytime_ts_2_data_gap():
     assert torch.equal(t_0.post.action, Tensor([1.]))
     assert t_0.n_steps == 2
     assert t_0.post.reward == 1.9
+    assert t_0.post.gamma == 0.9 ** 2
     assert torch.equal(t_0.post.state, Tensor([3.]))
 
     assert torch.equal(t_1.pre.state, Tensor([2.]))
     assert torch.equal(t_1.post.action, Tensor([1.]))
     assert t_1.n_steps == 1
     assert t_1.post.reward == 1.
+    assert t_1.post.gamma == 0.9 ** 1
     assert torch.equal(t_1.post.state, Tensor([3.]))
 
     assert torch.equal(t_2.pre.state, Tensor([4.]))
     assert torch.equal(t_2.post.action, Tensor([1.]))
     assert t_2.n_steps == 1
     assert t_2.post.reward == 1
+    assert t_2.post.gamma == 0.9 ** 1
     assert torch.equal(t_2.post.state, Tensor([5.]))
 
 
@@ -334,6 +350,7 @@ def test_anytime_ts_3_data_gap_with_action_change():
     assert torch.equal(t_0.post.action, Tensor([0.]))
     assert t_0.n_steps == 1
     assert t_0.post.reward == 1.
+    assert t_0.post.gamma == 0.9 ** 1
     assert torch.equal(t_0.post.state, Tensor([1.]))
 
     state_col = np.arange(4, 8)
@@ -360,18 +377,21 @@ def test_anytime_ts_3_data_gap_with_action_change():
     assert torch.equal(t_0.post.action, Tensor([1.]))
     assert t_0.n_steps == 2
     assert t_0.post.reward == 1.9
+    assert t_0.post.gamma == 0.9 ** 2
     assert torch.equal(t_0.post.state, Tensor([3.]))
 
     assert torch.equal(t_1.pre.state, Tensor([2.]))
     assert torch.equal(t_1.post.action, Tensor([1.]))
     assert t_1.n_steps == 1
     assert t_1.post.reward == 1.
+    assert t_1.post.gamma == 0.9 ** 1
     assert torch.equal(t_1.post.state, Tensor([3.]))
 
     assert torch.equal(t_2.pre.state, Tensor([4.]))
     assert torch.equal(t_2.post.action, Tensor([2.]))
     assert t_2.n_steps == 1
     assert t_2.post.reward == 1
+    assert t_2.post.gamma == 0.9 ** 1
     assert torch.equal(t_2.post.state, Tensor([5.]))
 
 
@@ -416,18 +436,21 @@ def test_anytime_online_1():
     assert torch.equal(t_0.post.action, Tensor([1.]))
     assert t_0.n_steps == 3
     assert t_0.post.reward == 2.71
+    assert t_0.post.gamma == 0.9 ** 3
     assert torch.equal(t_0.post.state, Tensor([3.]))
 
     assert torch.equal(t_1.pre.state, Tensor([1.]))
     assert torch.equal(t_1.post.action, Tensor([1.]))
     assert t_1.n_steps == 2
     assert t_1.post.reward == 1.9
+    assert t_1.post.gamma == 0.9 ** 2
     assert torch.equal(t_1.post.state, Tensor([3.]))
 
     assert torch.equal(t_2.pre.state, Tensor([2.]))
     assert torch.equal(t_2.post.action, Tensor([1.]))
     assert t_2.n_steps == 1
     assert t_2.post.reward == 1.0
+    assert t_2.post.gamma == 0.9 ** 1
     assert torch.equal(t_2.post.state, Tensor([3.]))
 
 
@@ -475,12 +498,14 @@ def test_anytime_online_2():
     assert torch.equal(t_0.post.action, Tensor([1.]))
     assert t_0.n_steps == 2
     assert t_0.post.reward == 1.9
+    assert t_0.post.gamma == 0.9 ** 2
     assert torch.equal(t_0.post.state, Tensor([2.]))
 
     assert torch.equal(t_1.pre.state, Tensor([1.]))
     assert torch.equal(t_1.post.action, Tensor([1.]))
     assert t_1.n_steps == 1
     assert t_1.post.reward == 1.
+    assert t_1.post.gamma == 0.9 ** 1
     assert torch.equal(t_1.post.state, Tensor([2.]))
 
 
@@ -529,18 +554,20 @@ def test_anytime_online_3():
     assert torch.equal(t_0.post.action, Tensor([1.]))
     assert t_0.n_steps == 2
     assert t_0.post.reward == 1.9
+    assert t_0.post.gamma == 0.9 ** 2
     assert torch.equal(t_0.post.state, Tensor([2.]))
 
     assert torch.equal(t_1.pre.state, Tensor([1.]))
     assert torch.equal(t_1.post.action, Tensor([1.]))
     assert t_1.n_steps == 1
     assert t_1.post.reward == 1.
+    assert t_1.post.gamma == 0.9 ** 1
     assert torch.equal(t_1.post.state, Tensor([2.]))
 
 
 def test_anytime_online_4():
     """
-    Sampe as test_anytime_online_3, but n_step is set to one.
+    Same as test_anytime_online_3, but n_step is set to one.
     """
     cfg = AnytimeTransitionCreatorConfig()
     cfg.steps_per_decision = 2
@@ -581,10 +608,12 @@ def test_anytime_online_4():
     assert torch.equal(t_0.post.action, Tensor([1.]))
     assert t_0.n_steps == 1
     assert t_0.post.reward == 1.
+    assert t_0.post.gamma == 0.9 ** 1
     assert torch.equal(t_0.post.state, Tensor([1.]))
 
     assert torch.equal(t_1.pre.state, Tensor([1.]))
     assert torch.equal(t_1.post.action, Tensor([1.]))
     assert t_1.n_steps == 1
     assert t_1.post.reward == 1.
+    assert t_1.post.gamma == 0.9 ** 1
     assert torch.equal(t_1.post.state, Tensor([2.]))
