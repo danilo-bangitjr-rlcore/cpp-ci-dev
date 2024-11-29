@@ -20,13 +20,18 @@ class AnytimeTransitionCreatorConfig(BaseTransitionCreatorConfig):
     name: str = "anytime"
     steps_per_decision: int = interpolate('${interaction.steps_per_decision}')
     gamma: float = interpolate('${experiment.gamma}')
-    n_step: None | int = None
+    n_step: None | int = None  # if n_step is None, will bootstrap off of the next decision point
 
 
 @dataclass
 class AnytimeTemporalState(TransitionCreatorTemporalState):
-    aw_goras: list[GORAS] = field(default_factory=list)
+    dw_goras: list[GORAS] = field(default_factory=list)  # the goras from the LAST decision window of the previous pf
     prev_data_gap: bool = False
+    """
+    This supress_aw_end flag is set when decision_window_ends is true. This means we will immediately return the 
+    newly produced transitions. However, in the next iteration, the action window will change. We don't want to re-add
+    transitions (since we did this already), so we have this flag to supress this case.
+    """
     supress_aw_end: bool = False
 
 
@@ -59,7 +64,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         rewards = pf.data['reward'].to_numpy()
         assert len(actions) == len(states)
 
-        aw_goras, last_action, transitions, supress_aw_end = self._restore_from_ts(actions, tc_ts)
+        dw_goras, last_action, transitions, supress_aw_end = self._restore_from_ts(actions, tc_ts)
 
         for i in range(len(actions)):
             action = actions[i]
@@ -73,22 +78,22 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
             action_window_ends = last_action is not None and not torch.allclose(action, last_action)
             if action_window_ends and not supress_aw_end:
-                transitions += self._make_decision_window_transitions(aw_goras)
-                aw_goras = [aw_goras[-1]]
+                transitions += self._make_decision_window_transitions(dw_goras)
+                dw_goras = [dw_goras[-1]]
 
-            aw_goras.append(goras)
+            dw_goras.append(goras)
 
-            decision_window_ends = len(aw_goras) == self.steps_per_decision + 1
+            decision_window_ends = len(dw_goras) == self.steps_per_decision + 1
             if decision_window_ends:
-                transitions += self._make_decision_window_transitions(aw_goras)
-                aw_goras = [aw_goras[-1]]
+                transitions += self._make_decision_window_transitions(dw_goras)
+                dw_goras = [dw_goras[-1]]
                 supress_aw_end = True
             else:
                 supress_aw_end = False
 
             last_action = action
 
-        tc_ts = AnytimeTemporalState(aw_goras, pf.data_gap, supress_aw_end)
+        tc_ts = AnytimeTemporalState(dw_goras, pf.data_gap, supress_aw_end)
 
         return transitions, tc_ts
 
@@ -98,44 +103,44 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             tc_ts: AnytimeTemporalState | None) -> tuple[list[GORAS], torch.Tensor | None, list[NewTransition], bool]:
         """
         Restores the state of the transition creator from the temporal state (tc_ts).
-        This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.aw_sars.
-        If there are SARs in tc_ts.aw_sars, then there were SARs that did not get processed in the last call of
-        the transition creator. If there was not a datagap, we continue processing these SARs, so this function
-        will return aw_sars. If the previously processed pipeframe had a datagap, then we need to add these transitions
+        This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.d_goras and supress_aw_end/
+        If there are GORASs in tc_ts.dw_goras, then there were GORASs that did not get processed in the last call of
+        the transition creator. If there was not a datagap, we continue processing these GORASs, so this function
+        will return dw_sars. If the previously processed pipeframe had a datagap, then we need to add these transitions.
         """
 
-        reset_ts = tc_ts is None
+        # Case 1: tc_ts is None
+        if tc_ts is None:
+            if len(actions):  # there are actions, so by convention return the first action as the previous action
+                return [], actions[0], [], False
+            return [], None, [], False
 
-        aw_sars = []
+        # Case 2: Valid timestamp exists
+        aw_goras = tc_ts.dw_goras
+        supress_aw_end = tc_ts.supress_aw_end
+
+        _check_actions_valid(aw_goras)
+
+        last_action = aw_goras[-1].action if aw_goras else None
         transitions = []
-        last_action = None
-        supress_aw_end = False
 
-        if reset_ts is None and len(actions):
-            last_action = actions[0]
+        # Handle data gap if present
+        if tc_ts.prev_data_gap:
+            transitions = self._make_decision_window_transitions(aw_goras)
+            supress_aw_end = False
+            aw_goras = []
+            # TODO: should the last action change here?
 
-        elif not reset_ts:
-            aw_sars = tc_ts.aw_goras
-            supress_aw_end = tc_ts.supress_aw_end
-
-            _check_actions_valid(aw_sars[1:])
-
-            last_action = aw_sars[-1].action
-            transitions = []
-
-            if tc_ts.prev_data_gap:
-                transitions = self._make_decision_window_transitions(aw_sars)
-                supress_aw_end = False
-                aw_sars = []
-
-        return aw_sars, last_action, transitions, supress_aw_end
+        return aw_goras, last_action, transitions, supress_aw_end
 
     def _make_decision_window_transitions(
             self, dw_goras: list[GORAS]) -> list[NewTransition]:
         """
         Makes transitions for a decision window (dw), which starts and ends with a decision point.
 
-        dw_sars contains a list of (s, a, r) tuples for that decision window.
+        dw_goras contains a list of GORAS for that decision window.
+
+        NOTE that the first GORAS may have a different action than the rest.
         """
         _check_actions_valid(dw_goras)
         dw_transitions = []

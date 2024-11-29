@@ -11,6 +11,9 @@ from corerl.data_pipeline.transition_creators.anytime import (
 
 
 def test_anytime_1():
+    """
+    Test with a single pipeframe. The tc should construct transitions when the action changes.
+    """
     state_col = np.arange(4)
     cols = {"state": state_col, "action": [0, 0, 1, 1], "reward": [1, 1, 1, 1]}
     dates = [
@@ -43,6 +46,9 @@ def test_anytime_1():
 
 
 def test_anytime_2():
+    """
+    Test with a single pipeframe. Identical test to test_anytime_2 but n_step is now set to one.
+    """
     state_col = np.arange(4)
     cols = {"state": state_col, "action": [0, 0, 0, 1], "reward": [1, 1, 1, 1]}
     dates = [
@@ -82,6 +88,10 @@ def test_anytime_2():
 
 
 def test_anytime_3():
+    """
+    Test with a single pipeframe. The tc should construct transitions when the action changes at first and then
+    when the decision window is done.
+    """
     state_col = np.arange(7)
     cols = {"state": state_col, "action": [0, 0, 1, 1, 1, 2, 2], "reward": [1, 1, 1, 1, 1, 1, 1]}
 
@@ -137,6 +147,10 @@ def test_anytime_3():
 
 
 def test_anytime_ts_1():
+    """
+    Test with a two pipeframes. The tc should use the temporal state from the first pipeframe to construct transitions
+    when given the second pipeframe, since there is a decision window spread over them.
+    """
     state_col = np.arange(4)
     cols = {"state": state_col, "action": [0, 0, 1, 1], "reward": [1, 1, 1, 1]}
     dates = [
@@ -188,8 +202,6 @@ def test_anytime_ts_1():
     t_2 = transitions[2]
     t_3 = transitions[3]
 
-    print(t_0)
-
     assert torch.equal(t_0.pre.state, Tensor([1.]))
     assert torch.equal(t_0.post.action, Tensor([1.]))
     assert t_0.n_steps == 4
@@ -216,6 +228,10 @@ def test_anytime_ts_1():
 
 
 def test_anytime_ts_2_data_gap():
+    """
+    Test with a two pipeframes. The tc should NOT use the temporal state from the first pipeframe to construct transitions
+    when given the second pipeframe, since there is data gap.
+    """
     state_col = np.arange(4)
     cols = {"state": state_col, "action": [0, 0, 1, 1], "reward": [1, 1, 1, 1]}
     dates = [
@@ -287,7 +303,7 @@ def test_anytime_ts_2_data_gap():
 
 def test_anytime_online_1():
     """
-    Adds actions up to the steps per decision, which triggers creating transitions.
+    Simulates online mode. Adds actions up to the steps per decision, which triggers creating transitions.
     """
     cfg = AnytimeTransitionCreatorConfig()
     cfg.steps_per_decision = 3
@@ -342,7 +358,7 @@ def test_anytime_online_1():
 
 def test_anytime_online_2():
     """
-    Adds actions until a change of action
+    Simulates online mode. Adds actions up to a change in action, which triggers creating transitions.
     """
     cfg = AnytimeTransitionCreatorConfig()
     cfg.steps_per_decision = 5
@@ -395,7 +411,8 @@ def test_anytime_online_2():
 
 def test_anytime_online_3():
     """
-    Adds actions until a change of action. But this time the steps per decision is 2
+    Adds actions until a change of action, which happens after two time steps.
+    But this time the steps per decision is also two. So we don't want to add redundant transitions.
     """
     cfg = AnytimeTransitionCreatorConfig()
     cfg.steps_per_decision = 2
@@ -448,7 +465,7 @@ def test_anytime_online_3():
 
 def test_anytime_online_4():
     """
-    Adds actions until a change of action. But this time the steps per decision is 2
+    Sampe as test_anytime_online_3, but n_step is set to one.
     """
     cfg = AnytimeTransitionCreatorConfig()
     cfg.steps_per_decision = 2
