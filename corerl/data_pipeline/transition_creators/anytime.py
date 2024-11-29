@@ -128,8 +128,8 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         if tc_ts.prev_data_gap:
             transitions = self._make_decision_window_transitions(aw_goras)
             supress_aw_end = False
+            last_action = None
             aw_goras = []
-            # TODO: should the last action change here?
 
         return aw_goras, last_action, transitions, supress_aw_end
 
