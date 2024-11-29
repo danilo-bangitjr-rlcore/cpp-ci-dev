@@ -31,7 +31,7 @@ class BaseTransitionCreator(ABC):
 
     @abstractmethod
     def _inner_call(self, pf: PipelineFrame, tc_ts: TransitionCreatorTemporalState | None) \
-            -> tuple[list[NewTransition], TransitionCreatorTemporalState]:
+            -> tuple[list[NewTransition], TransitionCreatorTemporalState | None]:
         raise NotImplementedError
 
 

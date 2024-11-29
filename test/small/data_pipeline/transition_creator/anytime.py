@@ -6,7 +6,7 @@ from torch import Tensor
 from collections import deque
 import torch
 
-from corerl.data_pipeline.datatypes import PipelineFrame, GORAS, CallerCode
+from corerl.data_pipeline.datatypes import PipelineFrame, GORAS, CallerCode, StageCode
 from corerl.data_pipeline.transition_creators.anytime import (
     AnytimeTransitionCreator,
     AnytimeTransitionCreatorConfig,
@@ -23,7 +23,6 @@ def test_anytime_1():
     dates = [
         datetime.datetime(2024, 1, 1, 1, i) for i in range(4)
     ]
-    
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
     pf = PipelineFrame(df, CallerCode.OFFLINE)
@@ -52,7 +51,7 @@ def test_anytime_1():
 
 def test_anytime_2():
     """
-    Test with a single pipeframe. Identical test to test_anytime_2 but n_step is now set to one.
+    Test with a single pipeframe. Identical test to test_anytime_1 but n_step is now set to one.
     """
     state_col = np.arange(4)
     cols = {"state": state_col, "action": [0, 0, 0, 1], "reward": [1, 1, 1, 1]}
@@ -75,9 +74,10 @@ def test_anytime_2():
     tc = AnytimeTransitionCreator(cfg)
     transitions, _ = tc._inner_call(pf, tc_ts=None)
 
-    assert len(transitions) == 2
+    assert len(transitions) == 3
     t_0 = transitions[0]
     t_1 = transitions[1]
+    t_2 = transitions[2]
 
     assert torch.equal(t_0.pre.state, Tensor([0.]))
     assert torch.equal(t_0.post.action, Tensor([0.]))
@@ -92,6 +92,14 @@ def test_anytime_2():
     assert t_1.post.reward == 1.0
     assert t_1.post.gamma == 0.9
     assert torch.equal(t_1.post.state, Tensor([2.]))
+
+    assert torch.equal(t_2.pre.state, Tensor([2.]))
+    assert torch.equal(t_2.post.action, Tensor([1.]))
+    assert t_2.n_steps == 1
+    assert t_2.post.reward == 1.0
+    assert t_2.post.gamma == 0.9
+    assert torch.equal(t_2.post.state, Tensor([3.]))
+
 
 
 def test_anytime_3():
@@ -602,12 +610,14 @@ def test_anytime_online_4():
         new_transitions, tc_ts = tc._inner_call(pf, tc_ts)
         transitions += new_transitions
 
-        if i == 2:
-            assert len(new_transitions) == 2
-        else:
+        if i == 0:
             assert len(new_transitions) == 0
+        else:
+            assert len(new_transitions) == 1
+
     t_0 = transitions[0]
     t_1 = transitions[1]
+    t_2 = transitions[2]
 
     assert torch.equal(t_0.pre.state, Tensor([0.]))
     assert torch.equal(t_0.post.action, Tensor([1.]))
@@ -623,6 +633,97 @@ def test_anytime_online_4():
     assert t_1.post.gamma == 0.9 ** 1
     assert torch.equal(t_1.post.state, Tensor([2.]))
 
+    assert torch.equal(t_2.pre.state, Tensor([2.]))
+    assert torch.equal(t_2.post.action, Tensor([2.]))
+    assert t_2.n_steps == 1
+    assert t_2.post.reward == 1.
+    assert t_2.post.gamma == 0.9 ** 1
+    assert torch.equal(t_2.post.state, Tensor([3.]))
+
+
+def test_different_modes():
+
+    """
+    Run in offline mode first
+    """
+    state_col = np.arange(4)
+    cols = {"state": state_col, "action": [0, 0, 1, 1], "reward": [1, 1, 1, 1]}
+    dates = [
+        datetime.datetime(2024, 1, 1, 1, i) for i in range(4)
+    ]
+    datetime_index = pd.DatetimeIndex(dates)
+    df = pd.DataFrame(cols, index=datetime_index)
+    pf = PipelineFrame(df, CallerCode.OFFLINE)
+    pf.action_tags = ['action']
+    pf.obs_tags = ['state']
+    pf.state_tags = ['state']
+    pf.data_gap = True  # NOTE: there is now a data gap
+    pf.temporal_state = {
+        StageCode.TC: None
+    }
+
+    cfg = AnytimeTransitionCreatorConfig()
+    cfg.steps_per_decision = 10
+    cfg.gamma = 0.9
+    cfg.n_step = None
+
+    tc = AnytimeTransitionCreator(cfg)
+    pf = tc(pf)
+    transitions = pf.transitions
+
+    assert len(transitions) == 1
+    t_0 = transitions[0]
+
+    assert torch.equal(t_0.pre.state, Tensor([0.]))
+    assert torch.equal(t_0.post.action, Tensor([0.]))
+    assert t_0.n_steps == 1
+    assert t_0.post.reward == 1.
+    assert t_0.post.gamma == 0.9 ** 1
+    assert torch.equal(t_0.post.state, Tensor([1.]))
+
+    # state_col = np.arange(4, 8)
+    # cols = {"state": state_col, "action": [1, 1, 0, 0], "reward": [1, 1, 1, 1]}
+    # dates = [
+    #     datetime.datetime(2024, 1, 1, 1, i) for i in range(5, 9)
+    # ]
+    # datetime_index = pd.DatetimeIndex(dates)
+    # df = pd.DataFrame(cols, index=datetime_index)
+    # pf_2 = PipelineFrame(df, CallerCode.OFFLINE)
+    # pf_2.action_tags = ['action']
+    # pf_2.obs_tags = ['state']
+    # pf_2.state_tags = ['state']
+    #
+    # transitions, tc_ts = tc._inner_call(pf_2, tc_ts=tc_ts)
+    #
+    # assert len(transitions) == 3
+    #
+    # t_0 = transitions[0]
+    # t_1 = transitions[1]
+    # t_2 = transitions[2]
+    #
+    # assert torch.equal(t_0.pre.state, Tensor([1.]))
+    # assert torch.equal(t_0.post.action, Tensor([1.]))
+    # assert t_0.n_steps == 2
+    # assert t_0.post.reward == 1.9
+    # assert t_0.post.gamma == 0.9 ** 2
+    # assert torch.equal(t_0.post.state, Tensor([3.]))
+    #
+    # assert torch.equal(t_1.pre.state, Tensor([2.]))
+    # assert torch.equal(t_1.post.action, Tensor([1.]))
+    # assert t_1.n_steps == 1
+    # assert t_1.post.reward == 1.
+    # assert t_1.post.gamma == 0.9 ** 1
+    # assert torch.equal(t_1.post.state, Tensor([3.]))
+    #
+    # assert torch.equal(t_2.pre.state, Tensor([4.]))
+    # assert torch.equal(t_2.post.action, Tensor([1.]))
+    # assert t_2.n_steps == 1
+    # assert t_2.post.reward == 1
+    # assert t_2.post.gamma == 0.9 ** 1
+    # assert torch.equal(t_2.post.state, Tensor([5.]))
+    #
+    #
+    #
 
 def test_gamma_reward_1():
     goras = GORAS(
