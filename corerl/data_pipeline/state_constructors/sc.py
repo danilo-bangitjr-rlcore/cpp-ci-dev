@@ -4,6 +4,10 @@ from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.interface import TransformCarry
 from corerl.data_pipeline.state_constructors.components.base import BaseTransformConfig, sc_group, StateTransform
 
+# ensure components are registered
+import corerl.data_pipeline.state_constructors.components.norm # noqa: F401
+import corerl.data_pipeline.state_constructors.components.trace # noqa: F401
+
 
 
 type SC_TS = dict[
