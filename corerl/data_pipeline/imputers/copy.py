@@ -98,10 +98,8 @@ class CopyImputer(BaseImputer):
                     pf: PipelineFrame,
                     tag: str,
                     imputer_ts: ImputerTemporalState | None) -> tuple[PipelineFrame, ImputerTemporalState]:
-        # Make sure imputer_ts is an ImputerTemporalState
-        if imputer_ts is None:
-            imputer_ts = ImputerTemporalState()
-        assert isinstance(imputer_ts, ImputerTemporalState)
+
+        imputer_ts = imputer_ts or ImputerTemporalState()
 
         data = pf.data
         missing_info = pf.missing_info
