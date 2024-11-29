@@ -126,6 +126,7 @@ def test_trace_first_data():
     carry = TransformCarry(
         obs=raw_obs,
         agent_state=raw_obs,
+        tag='obs',
     )
 
     trace_sc = TraceConstructor(
@@ -192,6 +193,7 @@ def test_trace_temporal_state():
     carry = TransformCarry(
         obs=raw_obs,
         agent_state=raw_obs,
+        tag='obs',
     )
 
     trace_sc = TraceConstructor(

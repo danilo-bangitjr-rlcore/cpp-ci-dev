@@ -5,3 +5,4 @@ from dataclasses import dataclass
 class TransformCarry:
     obs: pd.DataFrame
     agent_state: pd.DataFrame
+    tag: str
