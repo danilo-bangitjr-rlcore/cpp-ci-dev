@@ -21,12 +21,12 @@ class StateConstructor:
 
 
     def __call__(self, pf: PipelineFrame, tag_name: str) -> PipelineFrame:
-        tag = pf.data.get([tag_name])
-        assert tag is not None
+        tag_data = pf.data.get([tag_name])
+        assert tag_data is not None
 
         carry = TransformCarry(
             obs=pf.data,
-            agent_state=tag.copy(),
+            agent_state=tag_data.copy(),
         )
 
         ts = pf.temporal_state.get(StageCode.SC, None)
