@@ -180,6 +180,9 @@ def test_trace_first_data():
 
 def test_trace_temporal_state():
     """
+    Given a sequence of data _and_ an initial starting state
+    in the temporal state, the trace continues from the
+    temporal state.
     """
     raw_obs = pd.DataFrame({
         'obs_1': np.array([np.nan, 1, 2, 3, np.nan, 1, 2]),
