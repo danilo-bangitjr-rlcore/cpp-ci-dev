@@ -89,6 +89,8 @@ kiwisolver==1.4.7
     # via matplotlib
 linesearchopt @ git+ssh://git@github.com/rlcoretech/linesearchopt.git@16b78bf61c5b9515ee9bc3f75c90673eb0a2ed46
     # via corerl (pyproject.toml)
+llvmlite==0.43.0
+    # via numba
 markupsafe==3.0.2
     # via jinja2
 matplotlib==3.8.2
@@ -103,6 +105,8 @@ nltk==3.8.1
     # via corerl (pyproject.toml)
 nodeenv==1.9.1
     # via pyright
+numba==0.60.0
+    # via corerl (pyproject.toml)
 numpy==1.26.4
     # via
     #   corerl (pyproject.toml)
@@ -114,6 +118,7 @@ numpy==1.26.4
     #   jaxtyping
     #   linesearchopt
     #   matplotlib
+    #   numba
     #   pandas
     #   scikit-learn
     #   scipy

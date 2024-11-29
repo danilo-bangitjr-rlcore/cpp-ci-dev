@@ -53,6 +53,7 @@ dependencies = [
     "jaxtyping~=0.2",
     "matplotlib~=3.8",
     "nltk~=3.8",
+    "numba~=0.60",
     "numpy~=1.26",
     "pandas~=2.2",
     "pydantic~=2.9",
