@@ -72,16 +72,16 @@ class Pipeline:
 
         self.valid_thresh: datetime.timedelta = datetime.timedelta(10)  # TODO: this comes from somewhere
 
-    def _init_temporal_state(self, pf: PipelineFrame, caller_code: CallerCode, reset_ts: bool = False):
-        ts = self.ts_dict[caller_code]
+    def _init_temporal_state(self, pf: PipelineFrame, reset_ts: bool = False):
+        ts = self.ts_dict[pf.caller_code]
         if ts is None or reset_ts:
             return {}
 
         pf_first_time_stamp = pf.get_first_timestamp()
-        if pf_first_time_stamp - self.dt_dict[caller_code] > self.valid_thresh:
+        if pf_first_time_stamp - self.dt_dict[pf.caller_code] > self.valid_thresh:
             warnings.warn(
                 "The temporal state is invalid. "
-                f"The temporal state has timestamp {self.dt_dict[caller_code]} "
+                f"The temporal state has timestamp {self.dt_dict[pf.caller_code]} "
                 f"while the current pipeframe has initial timestamp {pf_first_time_stamp}",
                 stacklevel=2,
             )
@@ -95,8 +95,8 @@ class Pipeline:
                  caller_code: CallerCode,
                  reset_temporal_state: bool = False) -> list[Transition]:
 
-        pf = PipelineFrame(data)
-        ts = self._init_temporal_state(pf, caller_code, reset_temporal_state)
+        pf = PipelineFrame(data, caller_code)
+        ts = self._init_temporal_state(pf, reset_temporal_state)
         pf.temporal_state = ts
         pf = invoke_stage_per_tag(pf, self.missing_data_checkers)
         pf = invoke_stage_per_tag(pf, self.bound_checkers)

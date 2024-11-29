@@ -1,6 +1,6 @@
 import pandas as pd
 from datetime import datetime, timedelta, UTC
-from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode
 
 def test_get_last_timestamp():
     now = datetime.now(UTC)
@@ -11,6 +11,7 @@ def test_get_last_timestamp():
     df = df.set_index(pd.Series([now, now + delta, now + 2*delta]))
     pf = PipelineFrame(
         data=df,
+        caller_code=CallerCode.ONLINE
     )
 
     last_ts = pf.get_last_timestamp()
@@ -27,6 +28,7 @@ def test_get_first_timestamp():
     df = df.set_index(pd.Series([now, now + delta, now + 2*delta]))
     pf = PipelineFrame(
         data=df,
+        caller_code=CallerCode.ONLINE
     )
 
     first_ts = pf.get_first_timestamp()

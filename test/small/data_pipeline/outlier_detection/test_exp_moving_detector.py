@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from corerl.data_pipeline.datatypes import MissingType
-from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode
 from corerl.data_pipeline.outlier_detectors.exp_moving_detector import ExpMovingDetector, ExpMovingDetectorConfig
 
 
@@ -25,7 +25,7 @@ def test_obvious_outlier_in_first_batch():
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
     filtered_pf = outlier_detector(pf, name)
     filtered_data = filtered_pf.data
 
@@ -45,14 +45,14 @@ def test_obvious_outlier_in_second_batch():
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
     outlier_detector(pf, name)  # <- stats get initialized here
 
     values2 = [1] * 5
     values2[-1] = 100  # <- this is the outlier
 
     data2 = pd.DataFrame({name: values2})
-    pf2 = PipelineFrame(data2)
+    pf2 = PipelineFrame(data2, CallerCode.ONLINE)
     filtered_pf2 = outlier_detector(pf2, name)
     filtered_data2 = filtered_pf2.data
 
@@ -69,7 +69,7 @@ def test_obvious_outlier_in_stream():
     for _ in range(10):
         values = [1]
         data = pd.DataFrame({name: values})
-        pf = PipelineFrame(data)
+        pf = PipelineFrame(data, CallerCode.ONLINE)
 
         filtered_pf = outlier_detector(pf, name)
         filtered_data = filtered_pf.data
@@ -79,7 +79,7 @@ def test_obvious_outlier_in_stream():
     # catch the outlier
     values = [10]  # <- this is the outlier
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     filtered_pf = outlier_detector(pf, name)
     filtered_data = filtered_pf.data
@@ -100,7 +100,7 @@ def test_detection_with_multiple_cols():
         values_y = [2]
 
         data = pd.DataFrame({name_x: values_x, name_y: values_y})
-        pf = PipelineFrame(data)
+        pf = PipelineFrame(data, CallerCode.ONLINE)
 
         for tag, detector in zip([name_x, name_y], [outlier_detector_x, outlier_detector_y], strict=True):
             pf = detector(pf, tag)
@@ -115,7 +115,7 @@ def test_detection_with_multiple_cols():
     values_y = [2]  # <- this is not an outlier
 
     data = pd.DataFrame({name_x: values_x, name_y: values_y})
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     for tag, detector in zip([name_x, name_y], [outlier_detector_x, outlier_detector_y], strict=True):
         pf = detector(pf, tag)
@@ -136,7 +136,7 @@ def test_detector_does_not_change_indices():
     name = "sensor_x"
 
     data = pd.DataFrame({name: values}, index=pd.DatetimeIndex(timestamps))
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     filtered_pf = outlier_detector(pf, name)
     filtered_data = filtered_pf.data
@@ -149,7 +149,7 @@ def test_detector_does_not_change_indices():
     values = [10]  # <- this is the outlier
     outlier_ts = timestamps[-1] + timedelta(minutes=5)
     data = pd.DataFrame({name: values}, index=pd.DatetimeIndex([outlier_ts]))
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     filtered_pf = outlier_detector(pf, name)
     filtered_data = filtered_pf.data
@@ -170,7 +170,7 @@ def test_outlier_gets_correct_missingtype():
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
     outlier_detector(pf, name)  # <- stats get initialized here
 
     # create a batch with an outlier
@@ -178,7 +178,7 @@ def test_outlier_gets_correct_missingtype():
     values2[-1] = 100  # <- this is the outlier
 
     data2 = pd.DataFrame({name: values2})
-    pf2 = PipelineFrame(data2)
+    pf2 = PipelineFrame(data2, CallerCode.ONLINE)
 
     # filter the outlier
     filtered_pf2 = outlier_detector(pf2, name)
@@ -198,7 +198,7 @@ def test_outlier_missing_type_is_added_to_existing_missing():
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
     outlier_detector(pf, name)  # <- stats get initialized here
 
     # create a batch with an outlier
@@ -206,7 +206,7 @@ def test_outlier_missing_type_is_added_to_existing_missing():
     values2[-1] = 100  # <- this is the outlier
 
     data2 = pd.DataFrame({name: values2})
-    pf2 = PipelineFrame(data2)
+    pf2 = PipelineFrame(data2, CallerCode.ONLINE)
 
     # add an initial missing type to the outlier
     pf2.missing_info.loc[4, "sensor_x"] = MissingType.BOUNDS

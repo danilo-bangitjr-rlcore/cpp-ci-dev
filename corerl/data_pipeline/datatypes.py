@@ -1,5 +1,4 @@
 from typing import Dict
-
 import numpy as np
 from torch import Tensor
 from copy import deepcopy
@@ -286,6 +285,7 @@ type TemporalState = Dict[StageCode, object | None]
 class PipelineFrame:
     data: pd.DataFrame
     missing_info: pd.DataFrame = field(init=False)
+    caller_code: CallerCode
     data_gap: bool = False  # Revan: set by data
     terminate: bool = False  # Revan: IDK where these will come from yet
     truncate: bool = False  # Revan: IDK where these will come from yet

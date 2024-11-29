@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
+from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, CallerCode
 from corerl.data_pipeline.bound_checker import bound_checker
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.tag_config import TagConfig
@@ -15,7 +15,7 @@ def test_none_bounds():
         "tag_1": [3.4, -0.2, 2.7],
         "tag_2": [-0.4, 6.3, -3.8]
     })
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     pf = bound_checker(pf, 'tag_1', tag_1_cfg)
     pf = bound_checker(pf, 'tag_2', tag_2_cfg)
@@ -34,7 +34,7 @@ def test_lower_bound_violation():
         "tag_1": [3.4, -0.2, 2.7],
         "tag_2": [-0.4, 6.3, -3.8]
     })
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     pf = bound_checker(pf, 'tag_1', tag_1_cfg)
     pf = bound_checker(pf, 'tag_2', tag_2_cfg)
@@ -57,7 +57,7 @@ def test_upper_bound_violation():
         "tag_1": [0.4, 1.3, 0.7],
         "tag_2": [11.9, -0.5, 3.6]
     })
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     pf = bound_checker(pf, 'tag_1', tag_1_cfg)
     pf = bound_checker(pf, 'tag_2', tag_2_cfg)
@@ -80,7 +80,7 @@ def test_multiple_missing_types():
         "tag_1": [np.nan, 1.3, 0.7],
         "tag_2": [11.9, -0.5, np.nan]
     })
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     pf = missing_data_checker(pf, 'tag_1')
     pf = missing_data_checker(pf, 'tag_2')
