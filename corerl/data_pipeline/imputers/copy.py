@@ -39,12 +39,12 @@ class CopyImputer(BaseImputer):
 
         prev = np.nan if tag_ts.prev_val is None else tag_ts.prev_val
         forward, new_prev, new_hor = copy_forward(tag_data, prev, self.imputation_horizon, tag_ts.prev_horizon)
-        backward, _, _ = copy_forward(forward[::-1], np.nan, self.imputation_horizon, 0)
+        backward, _, _ = copy_backward(forward, np.nan, self.imputation_horizon, 0)
 
         tag_ts.prev_val = new_prev
         tag_ts.prev_horizon = new_hor
 
-        pf.data[tag] = backward[::-1]
+        pf.data[tag] = backward
         pf.temporal_state[StageCode.IMPUTER] = ts
 
         return pf
@@ -52,6 +52,12 @@ class CopyImputer(BaseImputer):
 
 imputer_group.dispatcher(CopyImputer)
 
+
+@njit
+def copy_backward(x: np.ndarray, prev: float, horizon: int, prev_horizon: int):
+    x = x[::-1]
+    x, new_prev, new_horizon = copy_forward(x, prev, horizon, prev_horizon)
+    return x[::-1], new_prev, new_horizon
 
 @njit
 def copy_forward(x: np.ndarray, prev: float, horizon: int, prev_horizon: int):
