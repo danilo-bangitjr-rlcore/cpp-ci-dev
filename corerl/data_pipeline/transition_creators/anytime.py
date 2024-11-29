@@ -106,7 +106,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.d_goras and supress_aw_end/
         If there are GORASs in tc_ts.dw_goras, then there were GORASs that did not get processed in the last call of
         the transition creator. If there was not a datagap, we continue processing these GORASs, so this function
-        will return dw_sars. If the previously processed pipeframe had a datagap, then we need to add these transitions.
+        will return dw_goras. If the previously processed pipeframe had a datagap, then we need to add these transitions.
         """
 
         # Case 1: tc_ts is None
@@ -115,31 +115,29 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                 return [], actions[0], [], False
             return [], None, [], False
 
-        # Case 2: Valid ts exists
-        aw_goras = tc_ts.dw_goras
+        # Case 2: Valid tc_ts exists
+        dw_goras = tc_ts.dw_goras
         supress_aw_end = tc_ts.supress_aw_end
 
-        _check_actions_valid(aw_goras)
+        _check_actions_valid(dw_goras)
 
-        last_action = aw_goras[-1].action if aw_goras else None
+        last_action = dw_goras[-1].action if dw_goras else None
         transitions = []
 
         # Handle data gap if present
         if tc_ts.prev_data_gap:
-            transitions = self._make_decision_window_transitions(aw_goras)
+            transitions = self._make_decision_window_transitions(dw_goras)
             supress_aw_end = False
             last_action = None
-            aw_goras = []
+            dw_goras = []
 
-        return aw_goras, last_action, transitions, supress_aw_end
+        return dw_goras, last_action, transitions, supress_aw_end
 
     def _make_decision_window_transitions(
             self, dw_goras: list[GORAS]) -> list[NewTransition]:
         """
         Makes transitions for a decision window (dw), which starts and ends with a decision point.
-
         dw_goras contains a list of GORAS for that decision window.
-
         NOTE that the first GORAS may have a different action than the rest.
         """
         _check_actions_valid(dw_goras)
@@ -149,10 +147,11 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
         for step_backwards in range(len(dw_goras) - 2, -1, -1):
             pre_goras = dw_goras[step_backwards]
-            n_step_reward = _get_n_step_reward(goras_queue, self.gamma)
+            n_step_reward, n_step_gamma = _get_n_step_reward_gamma(goras_queue)
 
             boot_goras = goras_queue[-1]
             n_steps = len(goras_queue)
+
             post_goras = GORAS(
                 gamma=boot_goras.gamma**n_steps,
                 obs=boot_goras.obs,
@@ -184,13 +183,22 @@ def _check_actions_valid(goras_list: list[GORAS]):
         assert np.allclose(first_action, action), "All actions within a decision window must be equal."
 
 
-def _get_n_step_reward(goras_queue: deque[GORAS], gamma: float) -> float:
-    n_step_reward = 0
-    steps_until_bootstrap = len(goras_queue)
-    for step in range(steps_until_bootstrap):
-        reward = goras_queue[step].reward
-        n_step_reward += (gamma ** step) * reward
-    return n_step_reward
+def _get_n_step_reward_gamma(goras_queue: deque[GORAS]) -> tuple[float, float]:
+    """
+    Gets discounted sum of rewards in the goras_queue and also the gamma for
+    bootstrapping off the final state in the queue
+    """
 
+    n_step_reward = 0
+    n_step_gamma = 1
+    steps_until_bootstrap = len(goras_queue)
+
+    for step in range(0, steps_until_bootstrap):
+        reward = goras_queue[step].reward
+        gamma = goras_queue[step].gamma
+        n_step_reward += n_step_gamma * reward
+        n_step_gamma *= gamma
+
+    return n_step_reward, n_step_gamma
 
 transition_creator_group.dispatcher(AnytimeTransitionCreator)

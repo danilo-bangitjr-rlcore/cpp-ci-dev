@@ -1,13 +1,17 @@
 import numpy as np
 import pandas as pd
 import datetime
+import math
 from torch import Tensor
+from collections import deque
 import torch
 
-from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame, GORAS
 from corerl.data_pipeline.transition_creators.anytime import (
     AnytimeTransitionCreator,
-    AnytimeTransitionCreatorConfig)
+    AnytimeTransitionCreatorConfig,
+    _get_n_step_reward_gamma
+)
 
 
 def test_anytime_1():
@@ -617,3 +621,116 @@ def test_anytime_online_4():
     assert t_1.post.reward == 1.
     assert t_1.post.gamma == 0.9 ** 1
     assert torch.equal(t_1.post.state, Tensor([2.]))
+
+
+def test_gamma_reward_1():
+    goras = GORAS(
+        gamma=0.9,
+        obs=Tensor([0.]),
+        reward=1,
+        action=Tensor([0.]),
+        state=Tensor([0.]),
+    )
+
+    goras_q = deque(maxlen=10)
+    goras_q.appendleft(goras)
+
+    n_step_reward, n_step_gamma = _get_n_step_reward_gamma(goras_q)
+    assert n_step_gamma == 0.9
+    assert n_step_reward == 1
+
+
+def test_gamma_reward_2():
+    goras1 = GORAS(
+        gamma=0.9,
+        obs=Tensor([0.]),
+        reward=1,
+        action=Tensor([0.]),
+        state=Tensor([0.]),
+    )
+
+    goras2 = GORAS(
+        gamma=0.9,
+        obs=Tensor([0.]),
+        reward=1,
+        action=Tensor([0.]),
+        state=Tensor([0.]),
+    )
+
+    goras_q = deque(maxlen=10)
+    goras_q.appendleft(goras1)
+    goras_q.appendleft(goras2)
+
+    n_step_reward, n_step_gamma = _get_n_step_reward_gamma(goras_q)
+    assert n_step_gamma == 0.81
+    assert n_step_reward == 1.9
+
+
+def test_gamma_reward_3():
+    goras1 = GORAS(
+        gamma=0.9,
+        obs=Tensor([0.]),
+        reward=1,
+        action=Tensor([0.]),
+        state=Tensor([0.]),
+    )
+
+    goras2 = GORAS(
+        gamma=0.9,
+        obs=Tensor([0.]),
+        reward=1,
+        action=Tensor([0.]),
+        state=Tensor([0.]),
+    )
+
+    goras3 = GORAS(
+        gamma=0.9,
+        obs=Tensor([0.]),
+        reward=1,
+        action=Tensor([0.]),
+        state=Tensor([0.]),
+    )
+
+    goras_q = deque(maxlen=10)
+    goras_q.appendleft(goras1)
+    goras_q.appendleft(goras2)
+    goras_q.appendleft(goras3)
+
+    n_step_reward, n_step_gamma = _get_n_step_reward_gamma(goras_q)
+    assert n_step_gamma == 0.9**3
+    assert n_step_reward == 2.71
+
+
+def test_gamma_reward_4():
+    goras1 = GORAS(
+        gamma=0.9,
+        obs=Tensor([0.]),
+        reward=1,
+        action=Tensor([0.]),
+        state=Tensor([0.]),
+    )
+
+    goras2 = GORAS(
+        gamma=0.1,
+        obs=Tensor([0.]),
+        reward=1,
+        action=Tensor([0.]),
+        state=Tensor([0.]),
+    )
+
+    goras3 = GORAS(
+        gamma=0.9,
+        obs=Tensor([0.]),
+        reward=1,
+        action=Tensor([0.]),
+        state=Tensor([0.]),
+    )
+
+    goras_q = deque(maxlen=10)
+    goras_q.appendleft(goras1)
+    goras_q.appendleft(goras2)
+    goras_q.appendleft(goras3)
+
+    n_step_reward, n_step_gamma = _get_n_step_reward_gamma(goras_q)
+    assert math.isclose(n_step_gamma, 0.081)
+    assert n_step_reward == 1.99
