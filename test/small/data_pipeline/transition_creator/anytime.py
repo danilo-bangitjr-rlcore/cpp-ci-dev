@@ -245,8 +245,8 @@ def test_anytime_ts_1():
 
 def test_anytime_ts_2_data_gap():
     """
-    Test with a two pipeframes. The tc should NOT use the temporal state from the first pipeframe to construct transitions
-    when given the second pipeframe, since there is data gap.
+    Test with a two pipeframes. The tc should NOT use the temporal state from the first pipeframe to construct
+    transitions when given the second pipeframe, since there is data gap.
     """
     state_col = np.arange(4)
     cols = {"state": state_col, "action": [0, 0, 1, 1], "reward": [1, 1, 1, 1]}
@@ -323,8 +323,9 @@ def test_anytime_ts_2_data_gap():
 
 def test_anytime_ts_3_data_gap_with_action_change():
     """
-    Test with a two pipeframes. The tc should NOT use the temporal state from the first pipeframe to construct transitions
-    when given the second pipeframe, since there is data gap. But the action also changes from the first pf to the second.
+    Test with a two pipeframes. The tc should NOT use the temporal state from the first pipeframe to
+    construct transitions when given the second pipeframe,
+    since there is data gap. But the action also changes from the first pf to the second.
     """
     state_col = np.arange(4)
     cols = {"state": state_col, "action": [0, 0, 1, 1], "reward": [1, 1, 1, 1]}

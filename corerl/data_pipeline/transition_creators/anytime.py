@@ -28,7 +28,7 @@ class AnytimeTemporalState(TransitionCreatorTemporalState):
     dw_goras: list[GORAS] = field(default_factory=list)  # the goras from the LAST decision window of the previous pf
     prev_data_gap: bool = False
     """
-    This supress_aw_end flag is set when decision_window_ends is true. This means we will immediately return the 
+    This supress_aw_end flag is set when decision_window_ends is true. This means we will immediately return the
     newly produced transitions. However, in the next iteration, the action window will change. We don't want to re-add
     transitions (since we did this already), so we have this flag to supress this case.
     """
@@ -106,7 +106,8 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.d_goras and supress_aw_end/
         If there are GORASs in tc_ts.dw_goras, then there were GORASs that did not get processed in the last call of
         the transition creator. If there was not a datagap, we continue processing these GORASs, so this function
-        will return dw_goras. If the previously processed pipeframe had a datagap, then we need to add these transitions.
+        will return dw_goras. If the previously processed pipeframe had a datagap,
+        then we need to add these transitions.
         """
 
         # Case 1: tc_ts is None
