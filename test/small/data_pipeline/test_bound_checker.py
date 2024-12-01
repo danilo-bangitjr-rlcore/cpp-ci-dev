@@ -31,8 +31,8 @@ def test_lower_bound_violation():
     tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
 
     data = pd.DataFrame({
-        "tag_1": [3.4, -0.2, 2.7],
-        "tag_2": [-0.4, 6.3, -3.8]
+        "tag_1": [3.4, -0.2, 2.7, -0.5],
+        "tag_2": [-0.4, 6.3, -3.8, 8.0]
     })
     pf = PipelineFrame(data, CallerCode.ONLINE)
 
@@ -40,10 +40,10 @@ def test_lower_bound_violation():
     pf = bound_checker(pf, 'tag_2', tag_2_cfg)
 
     assert np.all(
-        np.isnan(pf.data["tag_1"]) == np.array([False, True, False])
+        np.isnan(pf.data["tag_1"]) == np.array([False, True, False, True])
     )
     assert np.all(
-        np.isnan(pf.data["tag_2"]) == np.array([False, False, True])
+        np.isnan(pf.data["tag_2"]) == np.array([False, False, True, False])
     )
     assert pf.missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
     assert pf.missing_info["tag_2"].iloc[2] == MissingType.BOUNDS
