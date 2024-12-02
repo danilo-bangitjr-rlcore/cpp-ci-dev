@@ -1,4 +1,6 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
+import gymnasium as gym
 import torch
 import torch.nn as nn
 import torch.distributions as d
@@ -7,6 +9,7 @@ import logging
 from typing import Union, Optional, Any, Mapping, Iterator
 from typing_extensions import override
 
+from corerl.utils.gym import space_bounds
 import corerl.utils.nullable as nullable
 
 _BoundedAboveConstraint = constraints.less_than
@@ -122,12 +125,12 @@ class ContinuousIIDPolicy(Policy,ABC):
     ContinuousIIDPolicy represents a continuous-action policy, where each
     action dimension is IID.
     """
-    def __init__(self, model, dist):
+    def __init__(self, model: nn.Module, dist: type[Any]):
         super().__init__(model)
         self._dist = dist
 
     @classmethod
-    def from_(cls, model, dist, *args, **kwargs):
+    def from_(cls, model: nn.Module, dist: type[Any], *args, **kwargs):
         """
         Factory which returns a ContinuousIIDPolicy which supports the
         distribution `dist`.
@@ -162,7 +165,7 @@ class ContinuousIIDPolicy(Policy,ABC):
 
     @classmethod
     @abstractmethod
-    def from_env(cls, model, dist, env) -> 'ContinuousIIDPolicy':
+    def from_env(cls, model: nn.Module, dist: type[Any], env: gym.Env) -> 'ContinuousIIDPolicy':
         pass
 
     def _transform_from_params(self, *params) -> d.Distribution:
@@ -180,7 +183,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         return self._transform(self._dist(*params))
 
     @abstractmethod
-    def _transform(self, dist) -> d.Distribution:
+    def _transform(self, dist: type[Any]) -> d.Distribution:
         """
         Similar to _transform_from_params, but takes the underlying
         distribution object to transform, rather than its parameters.
@@ -228,10 +231,10 @@ class ContinuousIIDPolicy(Policy,ABC):
 
         return samples, info
 
-    def sample(self, state) -> tuple[torch.Tensor, dict]:
+    def sample(self, state: torch.Tensor) -> tuple[torch.Tensor, dict]:
         return self.forward(state, False)
 
-    def rsample(self, state) -> tuple[torch.Tensor, dict]:
+    def rsample(self, state: torch.Tensor) -> tuple[torch.Tensor, dict]:
         return self.forward(state, True)
 
     @override
@@ -278,7 +281,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         dist = self._transform_from_params(*params)
         return dist.entropy()
 
-    def kl(self, other, state) -> torch.Tensor:
+    def kl(self, other: ContinuousIIDPolicy, state) -> torch.Tensor:
         self_params = self._model(state)
         self_dist = self._transform_from_params(*self_params)
 
@@ -356,14 +359,15 @@ class Bounded(ContinuousIIDPolicy):
         return cls(model, dist, action_min, action_max)
 
     @override
-    def _transform(self, dist: d.Distribution) -> d.Distribution:
+    def _transform(self, dist: type[d.Distribution]) -> d.Distribution:
+        sub_dist: type[d.Distribution] | d.TransformedDistribution = dist
         if self._action_bias != 0 or self._action_scale != 1:
             transform = d.AffineTransform(
                 loc=self._action_bias, scale=self._action_scale,
             )
-            dist = d.TransformedDistribution(dist, [transform])
+            sub_dist = d.TransformedDistribution(dist, [transform])
 
-        return d.Independent(dist, 1)
+        return d.Independent(sub_dist, 1)
 
 
 class UnBounded(ContinuousIIDPolicy):
@@ -391,12 +395,12 @@ class UnBounded(ContinuousIIDPolicy):
         cls,
         model: nn.Module,
         dist: type[d.Distribution],
-        env: Any,
+        env: gym.Env,
     ) -> 'UnBounded':
         return cls(model, dist)
 
     @override
-    def _transform(self, dist: d.Distribution) -> d.Distribution:
+    def _transform(self, dist: type[d.Distribution]) -> d.Distribution:
         return d.Independent(dist, 1)
 
 
@@ -493,24 +497,23 @@ class HalfBounded(ContinuousIIDPolicy):
         cls,
         model: nn.Module,
         dist: type[d.Distribution],
-        env: Any,
+        env: gym.Env,
     ) -> 'HalfBounded':
-        action_min = torch.Tensor(env.action_space.low)
-        action_max = torch.Tensor(env.action_space.high)
-
-        return cls(model, dist, action_min, action_max)
+        action_min, action_max = space_bounds(env.action_space)
+        return cls(model, dist, torch.Tensor(action_min), torch.Tensor(action_max))
 
     @override
-    def _transform(self, dist: d.Distribution) -> d.Distribution:
+    def _transform(self, dist: type[d.Distribution]) -> d.Distribution:
+        sub_dist: type[d.Distribution] | d.TransformedDistribution = dist
         if self._bounded_below:
             transform = d.AffineTransform(loc=self._action_min, scale=1)
-            dist = d.TransformedDistribution(dist, [transform])
+            sub_dist = d.TransformedDistribution(dist, [transform])
         else:
             transform = d.AffineTransform(loc=self._action_max, scale=1)
 
-        dist = d.TransformedDistribution(dist, [transform])
+        sub_dist = d.TransformedDistribution(sub_dist, [transform])
 
-        return d.Independent(dist, 1)
+        return d.Independent(sub_dist, 1)
 
     def __repr__(self) -> str:
         return f"HalfBounded[{self._dist}, {self._model}]"
