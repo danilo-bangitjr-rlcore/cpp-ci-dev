@@ -1,6 +1,8 @@
 from . import Policy
 import torch
+import gymnasium as gym
 import torch.nn as nn
+import torch.distributions as d
 import torch.distributions.constraints as constraints
 
 
@@ -33,7 +35,10 @@ class Softmax(Policy):
         return tuple(f"logit_{i}" for i in range(self.output_dim))
 
     @classmethod
-    def from_env(cls, model, dist, env):
+    def from_env(cls, model: nn.Module, dist: type[d.Distribution], env: gym.Env):
+        assert env.action_space.shape is not None
+        assert env.observation_space.shape is not None
+
         output_dim = env.action_space.shape[0]
         input_dim = env.observation_space.shape[0]
 
