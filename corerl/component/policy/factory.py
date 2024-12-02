@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from omegaconf import MISSING
+from corerl.component.layer.activations import ActivationConfig
 import corerl.component.network.utils as utils
 from corerl.component.policy.softmax import Softmax, Policy
 from corerl.component.policy.policy import ContinuousIIDPolicy
@@ -14,7 +15,7 @@ from corerl.utils.device import device
 from corerl.utils.hydra import Group, list_
 
 
-HeadActivation = list[list[dict[str, Any]]]
+HeadActivation = list[list[ActivationConfig]]
 
 
 @dataclass

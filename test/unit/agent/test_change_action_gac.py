@@ -39,7 +39,7 @@ def actor_cfg(buffer_cfg):
     actor_cfg.actor_network.head_layer_init = 'Xavier'
     actor_cfg.actor_network.head_bias = True
     actor_cfg.actor_network.head_activation = [
-        [{"name": "softplus"}, {"name": "bias", "args": [1]}],
+        [{"name": "softplus"}, {"name": "bias", "args": (1,)}],
         [
             {
                 "name": "tanh_shift",
@@ -162,4 +162,3 @@ def test_get_action_from_state(gac):
 
     state = torch.tensor(np.arange(3))
     assert gac.get_action_from_state(state) == state[1]
-

@@ -10,9 +10,10 @@ import corerl.component.network.utils as utils
 from corerl.component.network.ensemble.reductions import MeanReduct, ensemble_bootstrap_reduct_group, ensemble_policy_reduct_group # noqa: E501
 from corerl.utils.device import device
 import corerl.component.layer as layer
+from corerl.component.layer.activations import ActivationConfig
 
 from omegaconf import DictConfig
-from typing import Any, Callable, Optional, TypedDict
+from typing import Any, Callable, Optional
 
 from corerl.utils.hydra import list_
 
@@ -20,10 +21,6 @@ from corerl.utils.hydra import list_
 # Differences of this size are representable up to ~ 15
 FLOAT32_EPS = 10 * np.finfo(np.float32).eps
 EPSILON = 1e-6
-
-
-class ActivationConfig(TypedDict):
-    name: str
 
 
 @dataclass
