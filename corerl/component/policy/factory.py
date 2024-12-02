@@ -82,7 +82,8 @@ def _create_continuous_mlp(
     assert cfg.base.name.lower() in ("mlp", "fc")
 
     dist = get_dist_type(cfg.name)
-    paths = ContinuousIIDPolicy.from_(None, dist, action_min, action_max).n_params
+    model: Any = None
+    paths = ContinuousIIDPolicy.from_(model, dist, action_min, action_max).n_params
 
     head_act = cfg.head_activation
     head_bias = cfg.head_bias
