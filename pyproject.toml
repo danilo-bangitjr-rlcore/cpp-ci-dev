@@ -83,3 +83,6 @@ dev = [
     "pytest-timeout",
     "pyright",
 ]
+
+[tool.coverage.run]
+omit = ["test/*",]

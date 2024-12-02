@@ -4,6 +4,7 @@ from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
 from corerl.data_pipeline.state_constructors.sc import StateConstructor
 from corerl.data_pipeline.state_constructors.components.trace import TraceConfig
 
+
 def test_sc1():
     raw_obs = pd.DataFrame({
         'obs_1': [np.nan, 1, 2, 3, np.nan, 1, 2],
@@ -32,7 +33,6 @@ def test_sc1():
     })
 
     assert _dfs_close(pf.data, expected_data)
-
 
 
 def _dfs_close(df1: pd.DataFrame, df2: pd.DataFrame):
