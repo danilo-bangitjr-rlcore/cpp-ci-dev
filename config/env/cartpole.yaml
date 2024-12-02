@@ -4,3 +4,10 @@ defaults:
 
 name : CartPole-v1
 discrete_control : True
+
+obs_names : ['cartpole']
+endo_obs_names : ['cartpole']
+action_names : ['action']
+obs_col_names : ["cartpole"]
+endo_inds : [0]
+sutton_barto_reward: True
