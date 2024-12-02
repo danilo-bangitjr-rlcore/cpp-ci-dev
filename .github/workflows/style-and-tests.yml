@@ -1,9 +1,9 @@
-name: Style
+name: Style and Tests
 
 on: [pull_request]
 
 jobs:
-  check:
+  style-check:
     runs-on: ubuntu-latest
     steps:
       # setup the repository
@@ -34,3 +34,28 @@ jobs:
       - uses: jakebailey/pyright-action@v2
         with:
           pylance-version: latest-release
+
+  small-test:
+    needs: [style-check]
+    uses: ./.github/workflows/reusable-run-test.yml
+    secrets: inherit
+    with:
+      test-suite: -n auto test/small
+     # - run: uv run pytest -n auto test/small
+     
+     #
+  medium-test:
+    needs: [style-check]
+    uses: ./.github/workflows/reusable-run-test.yml
+    secrets: inherit
+    with:
+      test-suite: test/medium
+      #- run: uv run pytest test/medium
+
+  large-test:
+    needs: [small-test, medium-test]
+    uses: ./.github/workflows/reusable-run-test.yml
+    secrets: inherit
+    with:
+      test-suite: test/large
+      #- run: uv run pytest test/large

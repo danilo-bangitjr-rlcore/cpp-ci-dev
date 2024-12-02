@@ -1,24 +1,22 @@
+import datetime
 import numpy as np
 import pandas as pd
 
-from typing import cast, Dict
-
-from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
-from corerl.data_pipeline.bound_checker import bound_checker
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, StageCode
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
-from corerl.data_pipeline.imputers.base import ImputerTemporalState
-from corerl.data_pipeline.imputers.copy import CopyImputer, CopyImputerConfig
+from corerl.data_pipeline.imputers.copy import CopyImputer, CopyImputerConfig, CopyImputerTemporalState
 from corerl.data_pipeline.tag_config import TagConfig
+from test.infrastructure.utils.pandas import dfs_close
 
 def test_no_imputation():
-    tag_1_horizon = 1
-    tag_2_horizon = 2
-    imputer_cfg_1 = CopyImputerConfig(imputation_horizon=tag_1_horizon)
-    imputer_cfg_2 = CopyImputerConfig(imputation_horizon=tag_2_horizon)
-    tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
-    tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
-    tag_1_imputer = CopyImputer(imputer_cfg_1, tag_1_cfg)
-    tag_2_imputer = CopyImputer(imputer_cfg_2, tag_2_cfg)
+    tag_1_imputer = CopyImputer(
+        CopyImputerConfig(imputation_horizon=1),
+        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
+    )
+    tag_2_imputer = CopyImputer(
+        CopyImputerConfig(imputation_horizon=2),
+        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
+    )
 
     data = pd.DataFrame({
         "tag_1": [0.2, 0.3, 0.7],
@@ -28,59 +26,29 @@ def test_no_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
-
-    # Create ImputerTemporalState
-    tag_1_indices = pd.Series(["7/13/2023 9:00"])
-    tag_1_indices = pd.to_datetime(tag_1_indices)
-    tag_1_prev_pf_vals = pd.Series([0.9], name="tag_1", index=tag_1_indices)
-    tag_2_indices = pd.Series(["7/13/2023 8:00", "7/13/2023 9:00"])
-    tag_2_indices = pd.to_datetime(tag_2_indices)
-    tag_2_prev_pf_vals = pd.Series([3.3, 4.5], name="tag_2", index=tag_2_indices)
-
-    pf.temporal_state[StageCode.IMPUTER] = dict()
-    stage_ts = pf.temporal_state[StageCode.IMPUTER]
-    assert isinstance(stage_ts, dict)
-    stage_ts = cast(
-        Dict[str, ImputerTemporalState],
-        stage_ts
-    )
-    stage_ts["tag_1"] = ImputerTemporalState()
-    stage_ts["tag_2"] = ImputerTemporalState()
-    stage_ts["tag_1"].prev_pf_data = tag_1_prev_pf_vals
-    stage_ts["tag_2"].prev_pf_data = tag_2_prev_pf_vals
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     # Start data pipeline
     pf = missing_data_checker(pf, 'tag_1')
     pf = missing_data_checker(pf, 'tag_2')
 
-    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
-    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
-
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
 
-    assert pf.data["tag_1"].iloc[0] == 0.2
-    assert pf.data["tag_1"].iloc[1] == 0.3
-    assert pf.data["tag_1"].iloc[2] == 0.7
-    assert pf.data["tag_2"].iloc[0] == 1.9
-    assert pf.data["tag_2"].iloc[1] == -0.5
-    assert pf.data["tag_2"].iloc[2] == 7.3
-    assert len(stage_ts["tag_1"].prev_pf_data) == 1
-    assert stage_ts["tag_1"].prev_pf_data.iloc[0] == 0.7
-    assert len(stage_ts["tag_2"].prev_pf_data) == 2
-    assert stage_ts["tag_2"].prev_pf_data.iloc[0] == -0.5
-    assert stage_ts["tag_2"].prev_pf_data.iloc[1] == 7.3
+    # with no missing data, expect imputation to
+    # be a no-op
+    assert dfs_close(pf.data, data)
+
 
 def test_all_nan_imputation():
-    tag_1_horizon = 1
-    tag_2_horizon = 2
-    imputer_cfg_1 = CopyImputerConfig(imputation_horizon=tag_1_horizon)
-    imputer_cfg_2 = CopyImputerConfig(imputation_horizon=tag_2_horizon)
-    tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
-    tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
-    tag_1_imputer = CopyImputer(imputer_cfg_1, tag_1_cfg)
-    tag_2_imputer = CopyImputer(imputer_cfg_2, tag_2_cfg)
+    tag_1_imputer = CopyImputer(
+        CopyImputerConfig(imputation_horizon=1),
+        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
+    )
+    tag_2_imputer = CopyImputer(
+        CopyImputerConfig(imputation_horizon=2),
+        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
+    )
 
     data = pd.DataFrame({
         "tag_1": [np.nan, np.nan, np.nan],
@@ -90,43 +58,26 @@ def test_all_nan_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
-
-    pf.temporal_state[StageCode.IMPUTER] = dict()
-    stage_ts = pf.temporal_state[StageCode.IMPUTER]
-    assert isinstance(stage_ts, dict)
-    stage_ts = cast(
-        Dict[str, ImputerTemporalState],
-        stage_ts
-    )
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     pf = missing_data_checker(pf, 'tag_1')
     pf = missing_data_checker(pf, 'tag_2')
-
-    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
-    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
 
     assert np.isnan(pf.data["tag_1"]).all()
     assert np.isnan(pf.data["tag_2"]).all()
-    assert isinstance(stage_ts["tag_1"].prev_pf_data, pd.Series | pd.DataFrame)
-    assert isinstance(stage_ts["tag_2"].prev_pf_data, pd.Series | pd.DataFrame)
-    assert len(stage_ts["tag_1"].prev_pf_data) == 1
-    assert np.isnan(stage_ts["tag_1"].prev_pf_data.iloc[0])
-    assert len(stage_ts["tag_2"].prev_pf_data) == 2
-    assert np.isnan(stage_ts["tag_1"].prev_pf_data).all()
 
 def test_all_nan_imputation_ts():
-    tag_1_horizon = 1
-    tag_2_horizon = 2
-    imputer_cfg_1 = CopyImputerConfig(imputation_horizon=tag_1_horizon)
-    imputer_cfg_2 = CopyImputerConfig(imputation_horizon=tag_2_horizon)
-    tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
-    tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
-    tag_1_imputer = CopyImputer(imputer_cfg_1, tag_1_cfg)
-    tag_2_imputer = CopyImputer(imputer_cfg_2, tag_2_cfg)
+    tag_1_imputer = CopyImputer(
+        CopyImputerConfig(imputation_horizon=1),
+        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
+    )
+    tag_2_imputer = CopyImputer(
+        CopyImputerConfig(imputation_horizon=2),
+        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
+    )
 
     data = pd.DataFrame({
         "tag_1": [np.nan, np.nan, np.nan],
@@ -136,105 +87,91 @@ def test_all_nan_imputation_ts():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
-    # Create ImputerTemporalState
-    tag_1_indices = pd.Series(["7/13/2023 9:00"])
-    tag_1_indices = pd.to_datetime(tag_1_indices)
-    tag_1_prev_pf_vals = pd.Series([np.nan], name="tag_1", index=tag_1_indices)
-    tag_2_indices = pd.Series(["7/13/2023 8:00", "7/13/2023 9:00"])
-    tag_2_indices = pd.to_datetime(tag_2_indices)
-    tag_2_prev_pf_vals = pd.Series([np.nan, np.nan], name="tag_2", index=tag_2_indices)
-
-    pf.temporal_state[StageCode.IMPUTER] = dict()
-    stage_ts = pf.temporal_state[StageCode.IMPUTER]
-    assert isinstance(stage_ts, dict)
-    stage_ts = cast(
-        Dict[str, ImputerTemporalState],
-        stage_ts
-    )
-    stage_ts["tag_1"] = ImputerTemporalState()
-    stage_ts["tag_2"] = ImputerTemporalState()
-    stage_ts["tag_1"].prev_pf_data = tag_1_prev_pf_vals
-    stage_ts["tag_2"].prev_pf_data = tag_2_prev_pf_vals
+    # Create temporal state
+    pf.temporal_state = {
+        StageCode.IMPUTER: {
+            'tag_1': CopyImputerTemporalState(prev_horizon=4),
+            'tag_2': CopyImputerTemporalState(prev_val=2.2),
+        },
+    }
 
     # Start data pipeline
     pf = missing_data_checker(pf, 'tag_1')
     pf = missing_data_checker(pf, 'tag_2')
 
-    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
-    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
-
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
 
-    assert np.isnan(pf.data["tag_1"]).all()
-    assert np.isnan(pf.data["tag_2"]).all()
-    assert len(stage_ts["tag_1"].prev_pf_data) == 1
-    assert np.isnan(stage_ts["tag_1"].prev_pf_data.iloc[0])
-    assert len(stage_ts["tag_2"].prev_pf_data) == 2
-    assert np.isnan(stage_ts["tag_1"].prev_pf_data).all()
+    expected = pd.DataFrame({
+        'tag_1': [np.nan, np.nan, np.nan],
+        'tag_2': [2.2, 2.2, np.nan],
+    })
+
+    assert dfs_close(pf.data, expected)
+    ts = pf.temporal_state[StageCode.IMPUTER]
+    assert ts is not None
+    assert isinstance(ts, dict)
+
+    tag_1_ts = ts['tag_1']
+    assert tag_1_ts is not None
+    assert isinstance(tag_1_ts, CopyImputerTemporalState)
+    assert tag_1_ts.prev_val is not None
+    assert np.isnan(tag_1_ts.prev_val)
+    assert tag_1_ts.prev_horizon == 7
+
+    tag_2_ts = ts['tag_2']
+    assert tag_2_ts is not None
+    assert isinstance(tag_2_ts, CopyImputerTemporalState)
+    assert tag_2_ts.prev_val == 2.2
+    assert tag_2_ts.prev_horizon == 3
+
 
 def test_backtrack_imputation():
-    tag_1_horizon = 1
-    tag_2_horizon = 2
-    imputer_cfg_1 = CopyImputerConfig(imputation_horizon=tag_1_horizon)
-    imputer_cfg_2 = CopyImputerConfig(imputation_horizon=tag_2_horizon)
-    tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
-    tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
-    tag_1_imputer = CopyImputer(imputer_cfg_1, tag_1_cfg)
-    tag_2_imputer = CopyImputer(imputer_cfg_2, tag_2_cfg)
+    tag_1_imputer = CopyImputer(
+        CopyImputerConfig(imputation_horizon=1),
+        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
+    )
+    tag_2_imputer = CopyImputer(
+        CopyImputerConfig(imputation_horizon=2),
+        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
+    )
 
     data = pd.DataFrame({
-        "tag_1": [0.1, 0.7, np.nan],
-        "tag_2": [-0.3, np.nan, 7.3]
+        "tag_1": [np.nan, 0.7, np.nan, np.nan, np.nan, 0.3, 0.1, np.nan],
+        "tag_2": [-0.3, np.nan, 7.3, 1.2, np.nan, np.nan, np.nan, 2.2]
     })
-    indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
+    now = datetime.datetime.now(datetime.UTC)
+    delta = datetime.timedelta(hours=1)
+    indices = pd.Series([now, now+delta, now+2*delta, now+3*delta, now+4*delta, now+5*delta, now+6*delta, now+7*delta])
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
-
-    pf.temporal_state[StageCode.IMPUTER] = dict()
-    stage_ts = pf.temporal_state[StageCode.IMPUTER]
-    assert isinstance(stage_ts, dict)
-    stage_ts = cast(
-        Dict[str, ImputerTemporalState],
-        stage_ts
-    )
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     pf = missing_data_checker(pf, 'tag_1')
     pf = missing_data_checker(pf, 'tag_2')
 
-    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
-    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
-
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
 
-    assert pf.data["tag_1"].iloc[0] == 0.1
-    assert pf.data["tag_1"].iloc[1] == 0.7
-    assert pf.data["tag_1"].iloc[2] == 0.7
-    assert pf.data["tag_2"].iloc[0] == -0.3
-    assert pf.data["tag_2"].iloc[1] == -0.3
-    assert pf.data["tag_2"].iloc[2] == 7.3
-    assert isinstance(stage_ts["tag_1"].prev_pf_data, pd.Series | pd.DataFrame)
-    assert isinstance(stage_ts["tag_2"].prev_pf_data, pd.Series | pd.DataFrame)
-    assert len(stage_ts["tag_1"].prev_pf_data) == 1
-    assert np.isnan(stage_ts["tag_1"].prev_pf_data.iloc[0])
-    assert len(stage_ts["tag_2"].prev_pf_data) == 2
-    assert np.isnan(stage_ts["tag_2"].prev_pf_data.iloc[0])
-    assert stage_ts["tag_2"].prev_pf_data.iloc[1] == 7.3
+    expected = pd.DataFrame({
+        'tag_1': [0.7, 0.7, 0.7, np.nan, 0.3, 0.3, 0.1, 0.1],
+        'tag_2': [-0.3, -0.3, 7.3, 1.2, 1.2, 1.2, 2.2, 2.2],
+    })
+    assert dfs_close(pf.data, expected)
+
 
 def test_backtrack_imputation_ts():
-    tag_1_horizon = 1
-    tag_2_horizon = 2
-    imputer_cfg_1 = CopyImputerConfig(imputation_horizon=tag_1_horizon)
-    imputer_cfg_2 = CopyImputerConfig(imputation_horizon=tag_2_horizon)
-    tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
-    tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
-    tag_1_imputer = CopyImputer(imputer_cfg_1, tag_1_cfg)
-    tag_2_imputer = CopyImputer(imputer_cfg_2, tag_2_cfg)
+    tag_1_imputer = CopyImputer(
+        CopyImputerConfig(imputation_horizon=1),
+        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
+    )
+    tag_2_imputer = CopyImputer(
+        CopyImputerConfig(imputation_horizon=2),
+        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
+    )
 
     data = pd.DataFrame({
         "tag_1": [np.nan, 0.7, np.nan],
@@ -244,276 +181,25 @@ def test_backtrack_imputation_ts():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data)
+    pf = PipelineFrame(data, CallerCode.ONLINE)
 
     # Create ImputerTemporalState
-    tag_1_indices = pd.Series(["7/13/2023 9:00"])
-    tag_1_indices = pd.to_datetime(tag_1_indices)
-    tag_1_prev_pf_vals = pd.Series([0.4], name="tag_1", index=tag_1_indices)
-    tag_2_indices = pd.Series(["7/13/2023 8:00", "7/13/2023 9:00"])
-    tag_2_indices = pd.to_datetime(tag_2_indices)
-    tag_2_prev_pf_vals = pd.Series([0.6, np.nan], name="tag_2", index=tag_2_indices)
-
-    pf.temporal_state[StageCode.IMPUTER] = dict()
-    stage_ts = pf.temporal_state[StageCode.IMPUTER]
-    assert isinstance(stage_ts, dict)
-    stage_ts = cast(
-        Dict[str, ImputerTemporalState],
-        stage_ts
-    )
-    stage_ts["tag_1"] = ImputerTemporalState()
-    stage_ts["tag_2"] = ImputerTemporalState()
-    stage_ts["tag_1"].prev_pf_data = tag_1_prev_pf_vals
-    stage_ts["tag_2"].prev_pf_data = tag_2_prev_pf_vals
+    pf.temporal_state = {
+        StageCode.IMPUTER: {
+            'tag_1': CopyImputerTemporalState(prev_val=1.0),
+            'tag_2': CopyImputerTemporalState(prev_val=2.0, prev_horizon=2),
+        },
+    }
 
     # Start data pipeline
     pf = missing_data_checker(pf, 'tag_1')
     pf = missing_data_checker(pf, 'tag_2')
 
-    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
-    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
-
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
 
-    assert pf.data["tag_1"].iloc[0] == 0.4
-    assert pf.data["tag_1"].iloc[1] == 0.7
-    assert pf.data["tag_1"].iloc[2] == 0.7
-    assert pf.data["tag_2"].iloc[0] == 0.6
-    assert pf.data["tag_2"].iloc[1] == 6.6
-    assert pf.data["tag_2"].iloc[2] == 6.6
-    assert len(stage_ts["tag_1"].prev_pf_data) == 1
-    assert np.isnan(stage_ts["tag_1"].prev_pf_data.iloc[0])
-    assert len(stage_ts["tag_2"].prev_pf_data) == 2
-    assert stage_ts["tag_2"].prev_pf_data.iloc[0] == 6.6
-    assert np.isnan(stage_ts["tag_2"].prev_pf_data.iloc[1])
-
-def test_lookahead_imputation():
-    tag_1_horizon = 1
-    tag_2_horizon = 2
-    imputer_cfg_1 = CopyImputerConfig(imputation_horizon=tag_1_horizon)
-    imputer_cfg_2 = CopyImputerConfig(imputation_horizon=tag_2_horizon)
-    tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
-    tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
-    tag_1_imputer = CopyImputer(imputer_cfg_1, tag_1_cfg)
-    tag_2_imputer = CopyImputer(imputer_cfg_2, tag_2_cfg)
-
-    data = pd.DataFrame({
-        "tag_1": [np.nan, np.nan, 0.1],
-        "tag_2": [np.nan, np.nan, 7.3]
+    expected = pd.DataFrame({
+        'tag_1': [1.0, 0.7, 0.7],
+        'tag_2': [6.6, 6.6, 6.6],
     })
-    indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
-    indices = pd.to_datetime(indices)
-    data = data.set_index(indices)
-
-    pf = PipelineFrame(data)
-
-    pf.temporal_state[StageCode.IMPUTER] = dict()
-    stage_ts = pf.temporal_state[StageCode.IMPUTER]
-    assert isinstance(stage_ts, dict)
-    stage_ts = cast(
-        Dict[str, ImputerTemporalState],
-        stage_ts
-    )
-
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
-
-    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
-    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
-
-    pf = tag_1_imputer(pf, 'tag_1')
-    pf = tag_2_imputer(pf, 'tag_2')
-
-    assert np.isnan(pf.data["tag_1"].iloc[0])
-    assert pf.data["tag_1"].iloc[1] == 0.1
-    assert pf.data["tag_1"].iloc[2] == 0.1
-    assert pf.data["tag_2"].iloc[0] == 7.3
-    assert pf.data["tag_2"].iloc[1] == 7.3
-    assert pf.data["tag_2"].iloc[2] == 7.3
-    assert isinstance(stage_ts["tag_1"].prev_pf_data, pd.Series | pd.DataFrame)
-    assert isinstance(stage_ts["tag_2"].prev_pf_data, pd.Series | pd.DataFrame)
-    assert len(stage_ts["tag_1"].prev_pf_data) == 1
-    assert stage_ts["tag_1"].prev_pf_data.iloc[0] == 0.1
-    assert len(stage_ts["tag_2"].prev_pf_data) == 2
-    assert np.isnan(stage_ts["tag_2"].prev_pf_data.iloc[0])
-    assert stage_ts["tag_2"].prev_pf_data.iloc[1] == 7.3
-
-def test_lookahead_imputation_ts():
-    tag_1_horizon = 1
-    tag_2_horizon = 2
-    imputer_cfg_1 = CopyImputerConfig(imputation_horizon=tag_1_horizon)
-    imputer_cfg_2 = CopyImputerConfig(imputation_horizon=tag_2_horizon)
-    tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
-    tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
-    tag_1_imputer = CopyImputer(imputer_cfg_1, tag_1_cfg)
-    tag_2_imputer = CopyImputer(imputer_cfg_2, tag_2_cfg)
-
-    data = pd.DataFrame({
-        "tag_1": [np.nan, np.nan, 0.1],
-        "tag_2": [np.nan, np.nan, 7.3]
-    })
-    indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
-    indices = pd.to_datetime(indices)
-    data = data.set_index(indices)
-
-    pf = PipelineFrame(data)
-
-    # Create ImputerTemporalState
-    tag_1_indices = pd.Series(["7/13/2023 9:00"])
-    tag_1_indices = pd.to_datetime(tag_1_indices)
-    tag_1_prev_pf_vals = pd.Series([np.nan], name="tag_1", index=tag_1_indices)
-    tag_2_indices = pd.Series(["7/13/2023 8:00", "7/13/2023 9:00"])
-    tag_2_indices = pd.to_datetime(tag_2_indices)
-    tag_2_prev_pf_vals = pd.Series([np.nan, np.nan], name="tag_2", index=tag_2_indices)
-
-    pf.temporal_state[StageCode.IMPUTER] = dict()
-    stage_ts = pf.temporal_state[StageCode.IMPUTER]
-    assert isinstance(stage_ts, dict)
-    stage_ts = cast(
-        Dict[str, ImputerTemporalState],
-        stage_ts
-    )
-    stage_ts["tag_1"] = ImputerTemporalState()
-    stage_ts["tag_2"] = ImputerTemporalState()
-    stage_ts["tag_1"].prev_pf_data = tag_1_prev_pf_vals
-    stage_ts["tag_2"].prev_pf_data = tag_2_prev_pf_vals
-
-    # Start data pipeline
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
-
-    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
-    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
-
-    pf = tag_1_imputer(pf, 'tag_1')
-    pf = tag_2_imputer(pf, 'tag_2')
-
-    assert np.isnan(pf.data["tag_1"].iloc[0])
-    assert pf.data["tag_1"].iloc[1] == 0.1
-    assert pf.data["tag_1"].iloc[2] == 0.1
-    assert pf.data["tag_2"].iloc[0] == 7.3
-    assert pf.data["tag_2"].iloc[1] == 7.3
-    assert pf.data["tag_2"].iloc[2] == 7.3
-    assert len(stage_ts["tag_1"].prev_pf_data) == 1
-    assert stage_ts["tag_1"].prev_pf_data.iloc[0] == 0.1
-    assert len(stage_ts["tag_2"].prev_pf_data) == 2
-    assert np.isnan(stage_ts["tag_2"].prev_pf_data.iloc[0])
-    assert stage_ts["tag_2"].prev_pf_data.iloc[1] == 7.3
-
-def test_mixed_imputation():
-    tag_1_horizon = 1
-    tag_2_horizon = 2
-    imputer_cfg_1 = CopyImputerConfig(imputation_horizon=tag_1_horizon)
-    imputer_cfg_2 = CopyImputerConfig(imputation_horizon=tag_2_horizon)
-    tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
-    tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
-    tag_1_imputer = CopyImputer(imputer_cfg_1, tag_1_cfg)
-    tag_2_imputer = CopyImputer(imputer_cfg_2, tag_2_cfg)
-
-    data = pd.DataFrame({
-        "tag_1": [np.nan, 0.1, np.nan, 0.4],
-        "tag_2": [np.nan, np.nan, 7.3, np.nan]
-    })
-    indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00", "7/13/2023 13:00"])
-    indices = pd.to_datetime(indices)
-    data = data.set_index(indices)
-
-    pf = PipelineFrame(data)
-
-    pf.temporal_state[StageCode.IMPUTER] = dict()
-    stage_ts = pf.temporal_state[StageCode.IMPUTER]
-    assert isinstance(stage_ts, dict)
-    stage_ts = cast(
-        Dict[str, ImputerTemporalState],
-        stage_ts
-    )
-
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
-
-    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
-    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
-
-    pf = tag_1_imputer(pf, 'tag_1')
-    pf = tag_2_imputer(pf, 'tag_2')
-
-    assert pf.data["tag_1"].iloc[0] == 0.1
-    assert pf.data["tag_1"].iloc[1] == 0.1
-    assert pf.data["tag_1"].iloc[2] == 0.1
-    assert pf.data["tag_1"].iloc[3] == 0.4
-    assert pf.data["tag_2"].iloc[0] == 7.3
-    assert pf.data["tag_2"].iloc[1] == 7.3
-    assert pf.data["tag_2"].iloc[2] == 7.3
-    assert pf.data["tag_2"].iloc[3] == 7.3
-    assert isinstance(stage_ts["tag_1"].prev_pf_data, pd.Series | pd.DataFrame)
-    assert isinstance(stage_ts["tag_2"].prev_pf_data, pd.Series | pd.DataFrame)
-    assert len(stage_ts["tag_1"].prev_pf_data) == 1
-    assert stage_ts["tag_1"].prev_pf_data.iloc[0] == 0.4
-    assert len(stage_ts["tag_2"].prev_pf_data) == 2
-    assert stage_ts["tag_2"].prev_pf_data.iloc[0] == 7.3
-    assert np.isnan(stage_ts["tag_2"].prev_pf_data.iloc[1])
-
-def test_mixed_imputation_ts():
-    tag_1_horizon = 1
-    tag_2_horizon = 2
-    imputer_cfg_1 = CopyImputerConfig(imputation_horizon=tag_1_horizon)
-    imputer_cfg_2 = CopyImputerConfig(imputation_horizon=tag_2_horizon)
-    tag_1_cfg = TagConfig(name="tag_1", bounds=(0.0, 1.0))
-    tag_2_cfg = TagConfig(name="tag_2", bounds=(-1.0, 10.0))
-    tag_1_imputer = CopyImputer(imputer_cfg_1, tag_1_cfg)
-    tag_2_imputer = CopyImputer(imputer_cfg_2, tag_2_cfg)
-
-    data = pd.DataFrame({
-        "tag_1": [np.nan, 0.1, np.nan, 0.4],
-        "tag_2": [np.nan, np.nan, 7.3, np.nan]
-    })
-    indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00", "7/13/2023 13:00"])
-    indices = pd.to_datetime(indices)
-    data = data.set_index(indices)
-
-    pf = PipelineFrame(data)
-
-    # Create ImputerTemporalState
-    tag_1_indices = pd.Series(["7/13/2023 9:00"])
-    tag_1_indices = pd.to_datetime(tag_1_indices)
-    tag_1_prev_pf_vals = pd.Series([np.nan], name="tag_1", index=tag_1_indices)
-    tag_2_indices = pd.Series(["7/13/2023 8:00", "7/13/2023 9:00"])
-    tag_2_indices = pd.to_datetime(tag_2_indices)
-    tag_2_prev_pf_vals = pd.Series([6.8, np.nan], name="tag_2", index=tag_2_indices)
-
-    pf.temporal_state[StageCode.IMPUTER] = dict()
-    stage_ts = pf.temporal_state[StageCode.IMPUTER]
-    assert isinstance(stage_ts, dict)
-    stage_ts = cast(
-        Dict[str, ImputerTemporalState],
-        stage_ts
-    )
-    stage_ts["tag_1"] = ImputerTemporalState()
-    stage_ts["tag_2"] = ImputerTemporalState()
-    stage_ts["tag_1"].prev_pf_data = tag_1_prev_pf_vals
-    stage_ts["tag_2"].prev_pf_data = tag_2_prev_pf_vals
-
-    # Start data pipeline
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
-
-    pf = bound_checker(pf, 'tag_1', tag_1_cfg)
-    pf = bound_checker(pf, 'tag_2', tag_2_cfg)
-
-    pf = tag_1_imputer(pf, 'tag_1')
-    pf = tag_2_imputer(pf, 'tag_2')
-
-    assert pf.data["tag_1"].iloc[0] == 0.1
-    assert pf.data["tag_1"].iloc[1] == 0.1
-    assert pf.data["tag_1"].iloc[2] == 0.1
-    assert pf.data["tag_1"].iloc[3] == 0.4
-    assert pf.data["tag_2"].iloc[0] == 6.8
-    assert pf.data["tag_2"].iloc[1] == 7.3
-    assert pf.data["tag_2"].iloc[2] == 7.3
-    assert pf.data["tag_2"].iloc[3] == 7.3
-    assert len(stage_ts["tag_1"].prev_pf_data) == 1
-    assert stage_ts["tag_1"].prev_pf_data.iloc[0] == 0.4
-    assert len(stage_ts["tag_2"].prev_pf_data) == 2
-    assert stage_ts["tag_2"].prev_pf_data.iloc[0] == 7.3
-    assert np.isnan(stage_ts["tag_2"].prev_pf_data.iloc[1])
+    assert dfs_close(pf.data, expected)

@@ -4,7 +4,6 @@ from omegaconf import MISSING
 from hydra.core.config_store import ConfigStore
 
 from corerl.data.base_tc import BaseTCConfig
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.data.normalizer.base import NormalizerConfig
 from corerl.data_pipeline.base import BaseDataLoaderConfig
@@ -29,7 +28,6 @@ class MainConfig:
     offline_data: Any = MISSING
     state_constructor: SCConfig = MISSING
 
-    tags: list[TagConfig] = MISSING
 
 cs = ConfigStore.instance()
 cs.store(name='base_config', node=MainConfig)
