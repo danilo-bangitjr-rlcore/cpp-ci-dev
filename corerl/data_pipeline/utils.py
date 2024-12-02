@@ -43,4 +43,4 @@ def update_missing_info_col(missing_info: pd.DataFrame, name: str, missing_type_
 
     # Add new missing info
     new_missing_mask = ~existing_missing_mask & missing_type_mask
-    missing_info.loc[new_missing_mask, name] = new_val
+    missing_info.loc[new_missing_mask, name] = [new_val] * sum(new_missing_mask)
