@@ -65,7 +65,9 @@ def _create_discrete_mlp(cfg: BaseNNConfig, input_dim: int, output_dim: int):
         placeholder_input,
     )
     net.append(head_layer)
-    net.append(init_activation(head_act))
+
+    for k in range(len(head_act[0])):
+        net.append(init_activation(head_act[0][k]))
 
     return nn.Sequential(*net).to(device.device)
 
