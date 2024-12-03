@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from collections import deque
 
 from dataclasses import dataclass, field
 
@@ -39,9 +38,9 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         self.steps_per_decision = cfg.steps_per_decision
         self.gamma = cfg.gamma
         if cfg.n_step is None:
-            self.queue_len = self.steps_per_decision
+            self.max_boot_len = self.steps_per_decision
         else:
-            self.queue_len = cfg.n_step
+            self.max_boot_len = cfg.n_step
 
         self.prev_data_gap = False
 
@@ -77,9 +76,9 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
             next_action = actions[i + 1] if i != len(actions) - 1 else action
             action_change = not torch.allclose(action, next_action)
-            reached_n_step = len(dw_goras) == self.queue_len + 1 if self.queue_len is not None else False
+            reached_n_step = len(dw_goras) == self.max_boot_len + 1 if self.max_boot_len is not None else False
             if reached_n_step or action_change:
-                transitions += self._make_decision_window_transitions(dw_goras)
+                transitions += self._make_transitions(dw_goras)
                 dw_goras = [dw_goras[-1]]
 
         tc_ts = AnytimeTemporalState(dw_goras, pf.data_gap)
@@ -112,46 +111,47 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         last_pf_action = dw_goras[-1].action
 
         if tc_ts.prev_data_gap:
-            transitions = self._make_decision_window_transitions(dw_goras)
+            transitions = self._make_transitions(dw_goras)
             dw_goras = []
         elif not torch.allclose(first_action, last_pf_action):
-            transitions = self._make_decision_window_transitions(dw_goras)
+            transitions = self._make_transitions(dw_goras)
             dw_goras = [dw_goras[-1]]
         else:
             transitions = []
 
         return dw_goras, transitions
 
-    def _make_decision_window_transitions(
+    def _make_transitions(
             self, dw_goras: list[GORAS]) -> list[NewTransition]:
         """
-        Makes transitions for a decision window (dw), which starts and ends with a decision point.
-        dw_goras contains a list of GORAS for that decision window.
+        Makes transitions for a list of GORAS.
         NOTE that the first GORAS may have a different action than the rest.
         """
         _check_actions_valid(dw_goras)
         dw_transitions = []
-        goras_queue = deque([], self.queue_len)
-        goras_queue.appendleft(dw_goras[-1])
+
+        assert len(dw_goras) <= self.max_boot_len + 1
+
+        boot_goras = dw_goras[-1]
+        n_step_reward = boot_goras.reward
+        n_step_gamma = boot_goras.gamma
+        last_goras_idx = len(dw_goras) - 1
 
         for step_backwards in range(len(dw_goras) - 2, -1, -1):
             pre_goras = dw_goras[step_backwards]
-            n_step_reward, n_step_gamma = _get_n_step_reward_gamma(goras_queue)
-
-            boot_goras = goras_queue[-1]
-            n_steps = len(goras_queue)
-
+            n_steps = last_goras_idx - step_backwards
             post_goras = GORAS(
-                gamma=boot_goras.gamma ** n_steps,
+                gamma=n_step_gamma,
                 obs=boot_goras.obs,
                 reward=n_step_reward,
                 action=boot_goras.action,
                 state=boot_goras.state,
             )
-
             transition = NewTransition(pre_goras, post_goras, n_steps)
-            goras_queue.appendleft(pre_goras)
             dw_transitions.append(transition)
+
+            n_step_reward = pre_goras.reward + boot_goras.gamma * n_step_reward
+            n_step_gamma *= boot_goras.gamma
 
         dw_transitions.reverse()
 
@@ -171,24 +171,6 @@ def _check_actions_valid(goras_list: list[GORAS]):
     for action in actions[2:]:
         assert np.allclose(first_action, action), "All actions within a decision window must be equal."
 
-
-def _get_n_step_reward_gamma(goras_queue: deque[GORAS]) -> tuple[float, float]:
-    """
-    Gets discounted sum of rewards in the goras_queue and also the gamma for
-    bootstrapping off the final state in the queue
-    """
-
-    n_step_reward = 0
-    n_step_gamma = 1
-    steps_until_bootstrap = len(goras_queue)
-
-    for step in range(0, steps_until_bootstrap):
-        reward = goras_queue[step].reward
-        gamma = goras_queue[step].gamma
-        n_step_reward += n_step_gamma * reward
-        n_step_gamma *= gamma
-
-    return n_step_reward, n_step_gamma
 
 
 transition_creator_group.dispatcher(AnytimeTransitionCreator)
