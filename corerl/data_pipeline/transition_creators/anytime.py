@@ -186,6 +186,11 @@ def _get_tags(df: pd.DataFrame, tags: list[str] | str) -> torch.Tensor:
 
 
 def _split_at_nans(df: pd.DataFrame) -> list[tuple[pd.DataFrame, bool]]:
+    """
+    Splits a df where any of the columns have nans and prunes out these nan rows.
+    Returns a list of tuples where the first entry of a tuple is the df and the second is whether there was a
+    data gap (nan row) after this df.
+    """
     nan_rows = df.isna().any(axis=1)
     split_indices = df[nan_rows].index.tolist()
 
