@@ -219,8 +219,6 @@ def test_anytime_ts_1():
     t_2 = transitions[2]
     t_3 = transitions[3]
 
-    print(t_0)
-
     assert torch.equal(t_0.pre.state, Tensor([1.]))
     assert torch.equal(t_0.post.action, Tensor([1.]))
     assert t_0.n_steps == 4
@@ -248,6 +246,42 @@ def test_anytime_ts_1():
     assert t_3.post.reward == 1.
     assert t_3.post.gamma == 0.9 ** 1
     assert torch.equal(t_3.post.state, Tensor([5.]))
+
+
+def test_anytime_4_only_dp():
+    """
+    Tests making only dp transitions. We will drop the remaining transitions.
+    """
+    state_col = np.arange(10)
+    cols = {"state": state_col, "action": [0] * 10, "reward": [1]*10}
+    dates = [
+        datetime.datetime(2024, 1, 1, 1, i) for i in range(10)
+    ]
+    datetime_index = pd.DatetimeIndex(dates)
+    df = pd.DataFrame(cols, index=datetime_index)
+    pf = PipelineFrame(df, CallerCode.OFFLINE)
+    pf.action_tags = ['action']
+    pf.obs_tags = ['state']
+    pf.state_tags = ['state']
+
+    cfg = AnytimeTransitionCreatorConfig()
+    cfg.steps_per_decision = 8
+    cfg.gamma = 0.9
+    cfg.n_step = None
+    cfg.only_dp_transitions = True
+
+    tc = AnytimeTransitionCreator(cfg)
+    transitions, _ = tc._inner_call(pf, tc_ts=None)
+
+    assert len(transitions) == 1
+    t_0 = transitions[0]
+
+    assert torch.equal(t_0.pre.state, Tensor([0.]))
+    assert torch.equal(t_0.post.action, Tensor([0.]))
+    assert t_0.n_steps == 8
+    assert math.isclose(t_0.post.reward, 5.6953279)
+    assert math.isclose(t_0.post.gamma, 0.9 ** 8)
+    assert torch.equal(t_0.post.state, Tensor([8.]))
 
 
 def test_anytime_ts_2_data_gap():

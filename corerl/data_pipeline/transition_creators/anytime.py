@@ -20,6 +20,7 @@ class AnytimeTransitionCreatorConfig(BaseTransitionCreatorConfig):
     steps_per_decision: int = interpolate('${interaction.steps_per_decision}')
     gamma: float = interpolate('${experiment.gamma}')
     n_step: None | int = None  # if n_step is None, will bootstrap off of the next decision point
+    only_dp_transitions = False  # whether we only want to return transitions between decision points
 
 
 @dataclass
@@ -42,7 +43,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         else:
             self.max_boot_len = cfg.n_step
 
-        self.prev_data_gap = False
+        self.only_dp_transitions = cfg.only_dp_transitions
 
     def _inner_call(self,
                     pf: PipelineFrame,
@@ -139,16 +140,22 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
         for step_backwards in range(len(dw_goras) - 2, -1, -1):
             pre_goras = dw_goras[step_backwards]
-            n_steps = last_goras_idx - step_backwards
-            post_goras = GORAS(
-                gamma=n_step_gamma,
-                obs=boot_goras.obs,
-                reward=n_step_reward,
-                action=boot_goras.action,
-                state=boot_goras.state,
-            )
-            transition = NewTransition(pre_goras, post_goras, n_steps)
-            dw_transitions.append(transition)
+            """
+            if only_dp_transitions is False, then make_transitions is always True
+            if only_dp_transitions is True, then make_transitions False except for the final transition
+            """
+            make_transition = not self.only_dp_transitions or step_backwards == 0
+            if make_transition:
+                n_steps = last_goras_idx - step_backwards
+                post_goras = GORAS(
+                    gamma=n_step_gamma,
+                    obs=boot_goras.obs,
+                    reward=n_step_reward,
+                    action=boot_goras.action,
+                    state=boot_goras.state,
+                )
+                transition = NewTransition(pre_goras, post_goras, n_steps)
+                dw_transitions.append(transition)
 
             n_step_reward = pre_goras.reward + boot_goras.gamma * n_step_reward
             n_step_gamma *= boot_goras.gamma
