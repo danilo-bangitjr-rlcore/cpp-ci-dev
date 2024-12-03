@@ -1,8 +1,20 @@
 import pytest
 import asyncio
 from test.medium.utils.fixture_opc import FakeOpcServer, OpcConnection
-from test.medium.utils.fixture_opc import * # noqa: F403
+from test.medium.utils.fixture_opc import *  # noqa: F403
 
+
+# Skip if coverage (--cov) option is enabled when calling pytest
+@pytest.fixture
+def skip_coverage_fixture(request):
+    if request.config.getoption("--cov"):
+        raise pytest.skip("Test skipped because coverage is emitted")
+
+
+skip_test_if_coverage = pytest.mark.usefixtures("skip_coverage_fixture")
+
+
+@skip_test_if_coverage
 async def test_connect1(server_and_client: tuple[FakeOpcServer, OpcConnection]):
     """
     Client should be able to connect to a running server.
@@ -11,14 +23,16 @@ async def test_connect1(server_and_client: tuple[FakeOpcServer, OpcConnection]):
     await client.connect()
 
 
+@skip_test_if_coverage
 async def test_connect2(client: OpcConnection):
     """
     Client should fail when no server is running.
     """
-    with pytest.raises(Exception): # noqa: B017 - OPC does not raise consistent exception
+    with pytest.raises(Exception):  # noqa: B017 - OPC does not raise consistent exception
         await client.connect()
 
 
+@skip_test_if_coverage
 async def test_read_values1(server_and_client: tuple[FakeOpcServer, OpcConnection]):
     """
     Client can read values for both sensors.
@@ -37,6 +51,7 @@ async def test_read_values1(server_and_client: tuple[FakeOpcServer, OpcConnectio
     assert values == [1.1, 2.1]
 
 
+@skip_test_if_coverage
 async def test_disconnect1(server_and_client: tuple[FakeOpcServer, OpcConnection]):
     """
     Client survives when a server goes offline after connection.
@@ -66,6 +81,7 @@ async def test_disconnect1(server_and_client: tuple[FakeOpcServer, OpcConnection
     assert got == [3.0]
 
 
+@skip_test_if_coverage
 async def test_disconnect2(server_and_client: tuple[FakeOpcServer, OpcConnection]):
     """
     Client survives when a server goes offline after connection.

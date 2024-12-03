@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Generator, List
 
 import pytest
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.db.data_writer import DataWriter
@@ -134,6 +134,6 @@ class TestDataReader:
         assert bool(result_df[missing_sensor_name].isnull().all())
         self._ensure_names_included(result_df)
 
-    def _ensure_names_included(self, data: DataFrame) -> None:
+    def _ensure_names_included(self, data: DataFrame | Series) -> None:
         for name in TestDataReader.sensor_names:
             assert name in data.columns

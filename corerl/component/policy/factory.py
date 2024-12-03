@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from omegaconf import MISSING
+from corerl.component.layer.activations import ActivationConfig
 import corerl.component.network.utils as utils
 from corerl.component.policy.softmax import Softmax, Policy
 from corerl.component.policy.policy import ContinuousIIDPolicy
@@ -14,7 +15,7 @@ from corerl.utils.device import device
 from corerl.utils.hydra import Group, list_
 
 
-HeadActivation = list[list[dict[str, Any]]]
+HeadActivation = list[list[ActivationConfig]]
 
 
 @dataclass
@@ -65,7 +66,9 @@ def _create_discrete_mlp(cfg: BaseNNConfig, input_dim: int, output_dim: int):
         placeholder_input,
     )
     net.append(head_layer)
-    net.append(init_activation(head_act))
+
+    for k in range(len(head_act[0])):
+        net.append(init_activation(head_act[0][k]))
 
     return nn.Sequential(*net).to(device.device)
 
@@ -80,7 +83,8 @@ def _create_continuous_mlp(
     assert cfg.base.name.lower() in ("mlp", "fc")
 
     dist = get_dist_type(cfg.name)
-    paths = ContinuousIIDPolicy.from_(None, dist, action_min, action_max).n_params
+    model: Any = None
+    paths = ContinuousIIDPolicy.from_(model, dist, action_min, action_max).n_params
 
     head_act = cfg.head_activation
     head_bias = cfg.head_bias

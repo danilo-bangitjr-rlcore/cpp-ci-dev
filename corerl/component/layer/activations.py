@@ -1,3 +1,4 @@
+from typing import Any, NotRequired, TypedDict
 import torch.nn as nn
 import torch
 
@@ -116,7 +117,13 @@ class TanhShift(nn.Module):
         return normalized * (self._high - self._low) + self._low
 
 
-def init_activation(cfg) -> nn.Module:
+class ActivationConfig(TypedDict):
+    name: str
+    args: NotRequired[tuple[Any, ...]]
+    kwargs: NotRequired[dict[str, Any]]
+
+
+def init_activation(cfg: ActivationConfig) -> nn.Module:
     name = cfg["name"]
     args = cfg.get("args", tuple())
     kwargs = cfg.get("kwargs", {})
@@ -170,5 +177,3 @@ def init_activation(cfg) -> nn.Module:
         )
 
     return activations[name.lower()](*args, **kwargs)
-
-
