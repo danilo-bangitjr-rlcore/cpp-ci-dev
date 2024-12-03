@@ -5,7 +5,7 @@ import pandas as pd
 
 from corerl.data_pipeline.datatypes import MissingType
 from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode
-from corerl.data_pipeline.outlier_detectors.exp_moving_detector import ExpMovingDetector, ExpMovingDetectorConfig
+from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilter, EMAFilterConfig
 
 
 def test_obvious_outlier_in_first_batch():
@@ -18,8 +18,8 @@ def test_obvious_outlier_in_first_batch():
     the outlier can be detected in a smaller subsequent batch
     """
 
-    cfg = ExpMovingDetectorConfig(alpha=0.99)
-    outlier_detector = ExpMovingDetector(cfg)
+    cfg = EMAFilterConfig(alpha=0.99)
+    outlier_detector = EMAFilter(cfg)
     values = [1] * 1000
     values[-1] = 100  # <- this is the outlier
     name = "sensor_x"
@@ -38,9 +38,9 @@ def test_obvious_outlier_in_second_batch():
     Note the batches here are smaller compared to the previous
     test (test_obvious_outlier_in_first_batch)
     """
-    cfg = ExpMovingDetectorConfig(alpha=0.99)
+    cfg = EMAFilterConfig(alpha=0.99)
 
-    outlier_detector = ExpMovingDetector(cfg)
+    outlier_detector = EMAFilter(cfg)
     values = [1] * 5
     name = "sensor_x"
 
@@ -61,9 +61,9 @@ def test_obvious_outlier_in_second_batch():
 
 
 def test_obvious_outlier_in_stream():
-    cfg = ExpMovingDetectorConfig(alpha=0.99)
+    cfg = EMAFilterConfig(alpha=0.99)
 
-    outlier_detector = ExpMovingDetector(cfg)
+    outlier_detector = EMAFilter(cfg)
     name = "sensor_x"
 
     for _ in range(10):
@@ -88,10 +88,10 @@ def test_obvious_outlier_in_stream():
 
 
 def test_detection_with_multiple_cols():
-    cfg = ExpMovingDetectorConfig(alpha=0.99)
+    cfg = EMAFilterConfig(alpha=0.99)
 
-    outlier_detector_x = ExpMovingDetector(cfg)
-    outlier_detector_y = ExpMovingDetector(cfg)
+    outlier_detector_x = EMAFilter(cfg)
+    outlier_detector_y = EMAFilter(cfg)
     name_x = "sensor_x"
     name_y = "sensor_y"
 
@@ -126,9 +126,9 @@ def test_detection_with_multiple_cols():
 
 
 def test_detector_does_not_change_indices():
-    cfg = ExpMovingDetectorConfig(alpha=0.99)
+    cfg = EMAFilterConfig(alpha=0.99)
 
-    outlier_detector = ExpMovingDetector(cfg)
+    outlier_detector = EMAFilter(cfg)
     n = 5
     values = [1] * n
     base_timestamp = datetime.strptime("31/01/24 23:59:59", "%d/%m/%y %H:%M:%S")
@@ -162,10 +162,10 @@ def test_detector_does_not_change_indices():
 
 def test_outlier_gets_correct_missingtype():
     # initialize outlier detector
-    cfg = ExpMovingDetectorConfig(alpha=0.99)
+    cfg = EMAFilterConfig(alpha=0.99)
 
     # prepare some data to warm up the stats
-    outlier_detector = ExpMovingDetector(cfg)
+    outlier_detector = EMAFilter(cfg)
     values = [1] * 5
     name = "sensor_x"
 
@@ -190,10 +190,10 @@ def test_outlier_gets_correct_missingtype():
 
 def test_outlier_missing_type_is_added_to_existing_missing():
     # initialize outlier detector
-    cfg = ExpMovingDetectorConfig(alpha=0.99)
+    cfg = EMAFilterConfig(alpha=0.99)
 
     # prepare some data to warm up the stats
-    outlier_detector = ExpMovingDetector(cfg)
+    outlier_detector = EMAFilter(cfg)
     values = [1] * 5
     name = "sensor_x"
 

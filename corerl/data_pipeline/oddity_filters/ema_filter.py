@@ -4,18 +4,18 @@ from pandas import DataFrame
 
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
 from corerl.data_pipeline.datatypes import PipelineFrame, MissingType
-from corerl.data_pipeline.outlier_detectors.base import BaseOutlierDetector, BaseOutlierDetectorConfig, outlier_group
+from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
 from corerl.data_pipeline.utils import update_missing_info_col
 
 
 @dataclass
-class ExpMovingDetectorConfig(BaseOutlierDetectorConfig):
+class EMAFilterConfig(BaseOddityFilterConfig):
     name: str = "exp_moving"
     alpha: float = 0.99
     tolerance: float = 2
 
 
-class ExpMovingDetector(BaseOutlierDetector):
+class EMAFilter(BaseOddityFilter):
     """
     Uses exponential moving average and variance to detect outliers
     Expected usage is to feed streams of dataframes to this class's filter function.
@@ -27,7 +27,7 @@ class ExpMovingDetector(BaseOutlierDetector):
     it will be replaced by a NaN.
     """
 
-    def __init__(self, cfg: ExpMovingDetectorConfig) -> None:
+    def __init__(self, cfg: EMAFilterConfig) -> None:
         super().__init__(cfg)
         self.alpha = cfg.alpha
         self.tolerance = cfg.tolerance
@@ -82,4 +82,4 @@ class ExpMovingDetector(BaseOutlierDetector):
         return pf
 
 
-outlier_group.dispatcher(ExpMovingDetector)
+outlier_group.dispatcher(EMAFilter)
