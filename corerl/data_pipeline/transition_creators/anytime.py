@@ -165,11 +165,6 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         return dw_transitions
 
 
-def split_list_with_remainder(lst: list, n: int) -> list[list]:
-    portions = [lst[i:i + n] for i in range(0, len(lst), n)]
-    return portions
-
-
 def _check_actions_valid(goras_list: list[GORAS]):
     if len(goras_list) < 2:
         return
