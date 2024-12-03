@@ -199,3 +199,38 @@ def test_sc_integration3():
         'tag-1_norm_trace-0.1':  [np.nan, 0, 0.18, 0.378, 0.5778, 0.77778, 0.977778, np.nan, 0.2, 0.38],
     })
     assert dfs_close(pf.data, expected)
+
+def test_sc_integration4():
+    """
+    Tests the integration of several state-constructor parts into a standard
+    expected state constructor pattern. Expected outcome is that we obtain
+    normalized traces *and* the normalized value.
+    """
+    raw_obs = pd.DataFrame({
+        'tag-1': [np.nan, 0, 1, 2, 3, 4, 5, np.nan, 1, 2],
+    })
+
+    pf = PipelineFrame(
+        data=raw_obs,
+        caller_code=CallerCode.OFFLINE,
+    )
+
+    sc = StateConstructor(
+        cfgs=[
+            NormalizerConfig(),
+            SplitConfig(
+                left=TraceConfig(trace_values=[0.1]),
+                right=TraceConfig(trace_values=[0.01]),
+                passthrough=True,
+            ),
+        ],
+    )
+
+    pf = sc(pf, 'tag-1')
+
+    expected = pd.DataFrame({
+        'tag-1_norm':             [np.nan, 0, 0.2, 0.4, 0.6, 0.8, 1.0, np.nan, 0.2, 0.4],
+        'tag-1_norm_trace-0.1':   [np.nan, 0, 0.18, 0.378, 0.5778, 0.77778, 0.977778, np.nan, 0.2, 0.38],
+        'tag-1_norm_trace-0.01':  [np.nan, 0, 0.198, 0.39798, 0.59798, 0.79798, 0.99798, np.nan, 0.2, 0.398],
+    })
+    assert dfs_close(pf.data, expected)
