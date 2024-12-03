@@ -2,12 +2,15 @@ import numpy as np
 import pandas as pd
 
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, CallerCode
-from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.imputers.linear import LinearImputer, LinearImputerConfig, LinearImputerTemporalState
 from corerl.data_pipeline.tag_config import TagConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 def test_no_imputation():
+    """
+    1. Test that pf.data remains unchanged when there are no NaNs
+    2. Ensure the temporal states produced by the imputer set 'prev_val' to the last non-NaN value
+    """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
         TagConfig(name="tag_1", bounds=(0.0, 1.0)),
@@ -26,10 +29,6 @@ def test_no_imputation():
     data = data.set_index(indices)
 
     pf = PipelineFrame(data, CallerCode.ONLINE)
-
-    # Start data pipeline
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
@@ -54,6 +53,10 @@ def test_no_imputation():
     assert tag_2_ts.num_nans == 0
 
 def test_all_nan_imputation():
+    """
+    1. Test that pf.data remains unchanged when it consists of all NaNs
+    2. Ensure the temporal states produced by the imputer have NaNs as their 'prev_val's
+    """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
         TagConfig(name="tag_1", bounds=(0.0, 1.0)),
@@ -72,9 +75,6 @@ def test_all_nan_imputation():
     data = data.set_index(indices)
 
     pf = PipelineFrame(data, CallerCode.ONLINE)
-
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
@@ -101,6 +101,10 @@ def test_all_nan_imputation():
     assert tag_2_ts.num_nans == 0
 
 def test_all_nan_imputation_ts():
+    """
+    1. Test that pf.data remains all NaNs - even if there are non-NaN values in the temporal state
+    2. Ensure the temporal states produced by the imputer have NaNs as their 'prev_val's
+    """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
         TagConfig(name="tag_1", bounds=(0.0, 1.0)),
@@ -124,13 +128,9 @@ def test_all_nan_imputation_ts():
     pf.temporal_state = {
         StageCode.IMPUTER: {
             'tag_1': LinearImputerTemporalState(prev_val=np.nan, num_nans=0),
-            'tag_2': LinearImputerTemporalState(prev_val=np.nan, num_nans=0),
+            'tag_2': LinearImputerTemporalState(prev_val=8.0, num_nans=1),
         },
     }
-
-    # Start data pipeline
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
@@ -157,6 +157,10 @@ def test_all_nan_imputation_ts():
     assert tag_2_ts.num_nans == 0
 
 def test_leading_nan_imputation():
+    """
+    1. Ensure the leading NaNs in pf.data remain NaNs
+    2. Ensure the temporal states produced by the imputer set 'prev_val' to the last non-NaN value
+    """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
         TagConfig(name="tag_1", bounds=(0.0, 1.0)),
@@ -175,9 +179,6 @@ def test_leading_nan_imputation():
     data = data.set_index(indices)
 
     pf = PipelineFrame(data, CallerCode.ONLINE)
-
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
@@ -205,6 +206,12 @@ def test_leading_nan_imputation():
     assert tag_2_ts.num_nans == 0
 
 def test_leading_nan_imputation_ts():
+    """
+    1. Ensure the leading NaNs in pf.data remain NaNs when the temporal state's 'prev_val' is a NaN
+    2. Ensure the leading NaNs are imputed when the first non-NaN value in the series
+    is within 'max_gap' of the non-NaN value in the temporal state
+    3. Ensure the temporal states produced by the imputer set 'prev_val' to the last non-NaN value
+    """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
         TagConfig(name="tag_1", bounds=(0.0, 1.0)),
@@ -228,20 +235,16 @@ def test_leading_nan_imputation_ts():
     pf.temporal_state = {
         StageCode.IMPUTER: {
             'tag_1': LinearImputerTemporalState(prev_val=np.nan, num_nans=0),
-            'tag_2': LinearImputerTemporalState(prev_val=np.nan, num_nans=0),
+            'tag_2': LinearImputerTemporalState(prev_val=1.3, num_nans=0),
         },
     }
-
-    # Start data pipeline
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
 
     expected = pd.DataFrame({
         'tag_1': [np.nan, 0.7, 0.8],
-        'tag_2': [np.nan, np.nan, 7.3],
+        'tag_2': [3.3, 5.3, 7.3],
     })
 
     assert dfs_close(pf.data, expected)
@@ -262,6 +265,11 @@ def test_leading_nan_imputation_ts():
     assert tag_2_ts.num_nans == 0
 
 def test_trailing_nan_imputation():
+    """
+    1. Ensure the trailing NaNs in pf.data remain NaNs
+    2. Ensure the temporal states produced by the imputer set 'prev_val' to the last non-NaN value
+    within 'max_gap' of the end of the series
+    """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
         TagConfig(name="tag_1", bounds=(0.0, 1.0)),
@@ -280,9 +288,6 @@ def test_trailing_nan_imputation():
     data = data.set_index(indices)
 
     pf = PipelineFrame(data, CallerCode.ONLINE)
-
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
@@ -310,6 +315,11 @@ def test_trailing_nan_imputation():
     assert tag_2_ts.num_nans == 2
 
 def test_trailing_nan_imputation_ts():
+    """
+    1. Ensure the trailing NaNs in pf.data remain NaNs despite there being data in the temporal state
+    2. Ensure the temporal states produced by the imputer set 'prev_val' to the last non-NaN value
+    within 'max_gap' of the end of the series
+    """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
         TagConfig(name="tag_1", bounds=(0.0, 1.0)),
@@ -337,10 +347,6 @@ def test_trailing_nan_imputation_ts():
         },
     }
 
-    # Start data pipeline
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
-
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
 
@@ -367,6 +373,11 @@ def test_trailing_nan_imputation_ts():
     assert tag_2_ts.num_nans == 2
 
 def test_linear_interpolation():
+    """
+    1. Ensure NaNs are imputed when they are between two non-NaN values that are separated by at most 'max_gap'
+    2. Ensure the temporal states produced by the imputer set 'prev_val' to the last non-NaN value
+    within 'max_gap' of the end of the series
+    """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
         TagConfig(name="tag_1", bounds=(0.0, 1.0)),
@@ -385,9 +396,6 @@ def test_linear_interpolation():
     data = data.set_index(indices)
 
     pf = PipelineFrame(data, CallerCode.ONLINE)
-
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
@@ -415,6 +423,12 @@ def test_linear_interpolation():
     assert tag_2_ts.num_nans == 0
 
 def test_linear_interpolation_ts():
+    """
+    1. Ensure NaNs are imputed when they are between two non-NaN values that are separated by at most 'max_gap'.
+    This includes leading NaNs that may now be imputed due to there being a non-NaN value in the temporal state
+    2. Ensure the temporal states produced by the imputer set 'prev_val' to the last non-NaN value
+    within 'max_gap' of the end of the series
+    """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
         TagConfig(name="tag_1", bounds=(0.0, 1.0)),
@@ -441,10 +455,6 @@ def test_linear_interpolation_ts():
             'tag_2': LinearImputerTemporalState(prev_val=-0.4, num_nans=1),
         },
     }
-
-    # Start data pipeline
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
