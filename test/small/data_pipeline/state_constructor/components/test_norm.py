@@ -15,6 +15,7 @@ def test_norm_part():
     carry = TransformCarry(
         obs=raw_obs,
         agent_state=raw_obs,
+        tag='obs',
     )
 
     norm_cfg = NormalizerConfig()
