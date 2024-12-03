@@ -1,6 +1,7 @@
 from typing import Dict
 import numpy as np
 from torch import Tensor
+import torch
 from copy import deepcopy
 from math import isclose
 import pandas as pd
@@ -89,12 +90,32 @@ class GORAS:
     action: Tensor
     state: Tensor
 
+    def __eq__(self, other: object):
+        if not isinstance(other, GORAS):
+            return False
+
+        return (
+                isclose(self.gamma, other.gamma)
+                and isclose(self.reward, other.reward)
+                and torch.equal(self.obs, other.obs)
+                and torch.equal(self.action, other.action)
+                and torch.equal(self.state, other.state)
+        )
+
 
 @dataclass
 class NewTransition:
     pre: GORAS
     post: GORAS
     n_steps: int
+
+
+def transitions_equal(t0: NewTransition, t1: NewTransition):
+    return (
+            t0.pre == t1.pre
+            and t0.post == t1.post
+            and t0.n_steps == t1.n_steps
+    )
 
 
 @dataclass
