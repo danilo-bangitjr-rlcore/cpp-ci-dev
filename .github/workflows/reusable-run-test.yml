@@ -3,6 +3,9 @@ name: Run Single Test Group
 on:
   workflow_call:
     inputs:
+      test-flags: 
+        required: false
+        type: string
       test-suite:
         required: true
         type: string
@@ -34,7 +37,14 @@ jobs:
           uv pip compile --extra=dev pyproject.toml -o deps.txt
           uv pip sync deps.txt
 
-      - run: uv run pytest ${{ inputs.test-suite }} 
+      - run: mkdir artifact
+      - run: uv run pytest --cov=. ${{ inputs.test-flags }} test/${{ inputs.test-suite }} 
+      - run: mv .coverage artifact/coverage_${{ inputs.test-suite }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage_${{ inputs.test-suite }}
+          path: artifact
      
 
 
