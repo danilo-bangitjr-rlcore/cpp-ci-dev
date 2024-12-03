@@ -306,9 +306,6 @@ class PipelineFrame:
     obs_tags: list[str] = field(default_factory=list)
     state_tags: list[str] = field(default_factory=list)
     reward_tags: list[str] = field(default_factory=list)
-    data_gap: bool = False  # Revan: set by data
-    terminate: bool = False  # Revan: IDK where these will come from yet
-    truncate: bool = False  # Revan: IDK where these will come from yet
     temporal_state: TemporalState = field(default_factory=dict)
     transitions: list[NewTransition] | None = None
 

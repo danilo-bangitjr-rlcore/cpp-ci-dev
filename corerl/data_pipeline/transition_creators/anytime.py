@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import pandas as pd
 
 from dataclasses import dataclass, field
 
@@ -25,12 +26,8 @@ class AnytimeTransitionCreatorConfig(BaseTransitionCreatorConfig):
 
 @dataclass
 class AnytimeTemporalState(TransitionCreatorTemporalState):
-    dw_goras: list[GORAS] = field(default_factory=list)  # the goras from the LAST decision window of the previous pf
+    goras_list: list[GORAS] = field(default_factory=list)  # left over goras from the last time we made transitions
     prev_data_gap: bool = False
-
-
-def _get_tags(pf, tags: list[str] | str) -> torch.Tensor:
-    return tensor(pf.data[tags].to_numpy())
 
 
 class AnytimeTransitionCreator(BaseTransitionCreator):
@@ -47,14 +44,33 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
     def _inner_call(self,
                     pf: PipelineFrame,
-                    tc_ts: TransitionCreatorTemporalState | None) \
+                    tc_ts: AnytimeTemporalState | None) \
             -> tuple[list[NewTransition], AnytimeTemporalState | None]:
 
         assert isinstance(tc_ts, AnytimeTemporalState) or tc_ts is None
 
-        actions = _get_tags(pf, pf.action_tags)
-        observations = _get_tags(pf, pf.obs_tags)
-        states = _get_tags(pf, pf.state_tags)
+        transitions = []
+        for df, post_df_data_gap in _split_at_nans(pf.data):
+            new_transitions, tc_ts = self._process_df(df, pf, tc_ts, post_df_data_gap)
+            transitions += new_transitions
+
+        return transitions, tc_ts
+
+    def _process_df(self,
+                    df: pd.DataFrame,
+                    pf: PipelineFrame,
+                    tc_ts: AnytimeTemporalState,
+                    post_df_data_gap: bool) \
+            -> tuple[list[NewTransition], AnytimeTemporalState | None]:
+        """
+        Produces transitions for a dataframe without data gaps. post_df_data_gap tells us whether a datagap
+        follows this df. This is needed for producing the temporal state for the NEXT df
+
+        """
+
+        actions = _get_tags(df, pf.action_tags)
+        observations = _get_tags(df, pf.obs_tags)
+        states = _get_tags(df, pf.state_tags)
         rewards = pf.data['reward'].to_numpy()
 
         if not len(actions):
@@ -62,7 +78,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
         assert len(actions) == len(states)
 
-        dw_goras, transitions = self._restore_from_ts(actions, tc_ts)
+        goras_list, transitions = self._restore_from_ts(actions, tc_ts)
 
         for i in range(len(actions)):
             action = actions[i]
@@ -73,16 +89,16 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                 action=action,
                 state=states[i],
             )
-            dw_goras.append(goras)
+            goras_list.append(goras)
 
             next_action = actions[i + 1] if i != len(actions) - 1 else action
             action_change = not torch.allclose(action, next_action)
-            reached_n_step = len(dw_goras) == self.max_boot_len + 1 if self.max_boot_len is not None else False
+            reached_n_step = len(goras_list) == self.max_boot_len + 1 if self.max_boot_len is not None else False
             if reached_n_step or action_change:
-                transitions += self._make_transitions(dw_goras)
-                dw_goras = [dw_goras[-1]]
+                transitions += self._make_transitions(goras_list)
+                goras_list = [goras_list[-1]]
 
-        tc_ts = AnytimeTemporalState(dw_goras, pf.data_gap)
+        tc_ts = AnytimeTemporalState(goras_list, post_df_data_gap)
 
         return transitions, tc_ts
 
@@ -92,8 +108,8 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             tc_ts: AnytimeTemporalState | None) -> tuple[list[GORAS], list[NewTransition]]:
         """
         Restores the state of the transition creator from the temporal state (tc_ts).
-        This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.d_goras and supress_aw_end/
-        If there are GORASs in tc_ts.dw_goras, then there were GORASs that did not get processed in the last call of
+        This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.goras_list
+        If there are GORASs in tc_ts.goras_list, then there were GORASs that did not get processed in the last call of
         the transition creator. If there was not a datagap, we continue processing these GORASs, so this function
         will return dw_goras. If the previously processed pipeframe had a datagap,
         then we need to add these transitions.
@@ -104,42 +120,42 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             return [], []
 
         # Case 2: Valid tc_ts exists
-        dw_goras = tc_ts.dw_goras
-        if not len(dw_goras):
+        goras_list = tc_ts.goras_list
+        if not len(goras_list):
             return [], []
 
         first_action = actions[0]
-        last_pf_action = dw_goras[-1].action
+        last_pf_action = goras_list[-1].action
 
         if tc_ts.prev_data_gap:
-            transitions = self._make_transitions(dw_goras)
-            dw_goras = []
+            transitions = self._make_transitions(goras_list)
+            goras_list = []
         elif not torch.allclose(first_action, last_pf_action):
-            transitions = self._make_transitions(dw_goras)
-            dw_goras = [dw_goras[-1]]
+            transitions = self._make_transitions(goras_list)
+            goras_list = [goras_list[-1]]
         else:
             transitions = []
 
-        return dw_goras, transitions
+        return goras_list, transitions
 
     def _make_transitions(
-            self, dw_goras: list[GORAS]) -> list[NewTransition]:
+            self, goras_list: list[GORAS]) -> list[NewTransition]:
         """
         Makes transitions for a list of GORAS.
         NOTE that the first GORAS may have a different action than the rest.
         """
-        _check_actions_valid(dw_goras)
+        _check_actions_valid(goras_list)
         dw_transitions = []
 
-        assert len(dw_goras) <= self.max_boot_len + 1
+        assert len(goras_list) <= self.max_boot_len + 1
 
-        boot_goras = dw_goras[-1]
+        boot_goras = goras_list[-1]
         n_step_reward = boot_goras.reward
         n_step_gamma = boot_goras.gamma
-        last_goras_idx = len(dw_goras) - 1
+        last_goras_idx = len(goras_list) - 1
 
-        for step_backwards in range(len(dw_goras) - 2, -1, -1):
-            pre_goras = dw_goras[step_backwards]
+        for step_backwards in range(len(goras_list) - 2, -1, -1):
+            pre_goras = goras_list[step_backwards]
             """
             if only_dp_transitions is False, then make_transitions is always True
             if only_dp_transitions is True, then make_transitions False except for the final transition
@@ -165,6 +181,38 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         return dw_transitions
 
 
+def _get_tags(df, tags: list[str] | str) -> torch.Tensor:
+    return tensor(df[tags].to_numpy())
+
+
+def _split_at_nans(df: pd.DataFrame) -> list[tuple[pd.DataFrame, bool]]:
+    nan_rows = df.isna().any(axis=1)
+    split_indices = nan_rows[nan_rows].index.tolist()
+
+    if not split_indices:
+        return [(df, False)]
+
+    result = []
+
+    if split_indices[0] > df.index[0]:
+        first_chunk = df.loc[:split_indices[0]].iloc[:-1]
+        result.append((first_chunk, True))
+
+    for i in range(len(split_indices) - 1):
+        start = split_indices[i]
+        end = split_indices[i + 1]
+        if end > start:
+            chunk = df.loc[start:end].iloc[1:-1]
+            if not chunk.empty:
+                result.append((chunk, True))
+
+    if split_indices[-1] < df.index[-1]:
+        last_chunk = df.loc[split_indices[-1]:].iloc[1:]
+        result.append((last_chunk, False))
+
+    return [(subdf, has_nan) for subdf, has_nan in result if not subdf.empty]
+
+
 def _check_actions_valid(goras_list: list[GORAS]):
     if len(goras_list) < 2:
         return
@@ -172,7 +220,6 @@ def _check_actions_valid(goras_list: list[GORAS]):
     first_action = actions[1]
     for action in actions[2:]:
         assert np.allclose(first_action, action), "All actions within a decision window must be equal."
-
 
 
 transition_creator_group.dispatcher(AnytimeTransitionCreator)
