@@ -155,7 +155,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         last_argos_idx = len(argos_list) - 1
 
         for step_backwards in range(len(argos_list) - 2, -1, -1):
-            pre_argos = argos_list[step_backwards]
+            prior_argos = argos_list[step_backwards]
             """
             if only_dp_transitions is False, then make_transitions is always True
             if only_dp_transitions is True, then make_transitions False except for the final transition
@@ -170,10 +170,10 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                     action=boot_argos.action,
                     state=boot_argos.state,
                 )
-                transition = NewTransition(pre_argos, post_argos, n_steps)
+                transition = NewTransition(prior_argos, post_argos, n_steps)
                 dw_transitions.append(transition)
 
-            n_step_reward = pre_argos.reward + boot_argos.gamma * n_step_reward
+            n_step_reward = prior_argos.reward + boot_argos.gamma * n_step_reward
             n_step_gamma *= boot_argos.gamma
 
         dw_transitions.reverse()
