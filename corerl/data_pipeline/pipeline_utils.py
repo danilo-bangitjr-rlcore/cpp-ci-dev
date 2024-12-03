@@ -11,5 +11,5 @@ def handle_data_gaps(pf: PipelineFrame) -> list[PipelineFrame]:
     """
     Will split a single pipeline frame into multiple pfs where each does not have a data gap
     """
-    pf.data_gap = False  # placeholder
+    # pf.data_gap = False  # placeholder
     return [pf]

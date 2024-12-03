@@ -44,10 +44,10 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
     def _inner_call(self,
                     pf: PipelineFrame,
-                    tc_ts: AnytimeTemporalState | None) \
-            -> tuple[list[NewTransition], AnytimeTemporalState | None]:
+                    tc_ts: TransitionCreatorTemporalState | None) \
+            -> tuple[list[NewTransition], TransitionCreatorTemporalState | None]:
 
-        assert isinstance(tc_ts, AnytimeTemporalState) or tc_ts is None
+        assert isinstance(tc_ts, AnytimeTemporalState | None)
 
         transitions = []
         for df, post_df_data_gap in _split_at_nans(pf.data):
@@ -59,7 +59,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
     def _process_df(self,
                     df: pd.DataFrame,
                     pf: PipelineFrame,
-                    tc_ts: AnytimeTemporalState,
+                    tc_ts: AnytimeTemporalState | None,
                     post_df_data_gap: bool) \
             -> tuple[list[NewTransition], AnytimeTemporalState | None]:
         """
@@ -187,7 +187,7 @@ def _get_tags(df: pd.DataFrame, tags: list[str] | str) -> torch.Tensor:
 
 def _split_at_nans(df: pd.DataFrame) -> list[tuple[pd.DataFrame, bool]]:
     nan_rows = df.isna().any(axis=1)
-    split_indices = nan_rows[nan_rows].index.tolist()
+    split_indices = df[nan_rows].index.tolist()
 
     if not split_indices:
         return [(df, False)]

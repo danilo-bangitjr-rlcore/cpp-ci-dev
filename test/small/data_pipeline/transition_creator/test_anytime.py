@@ -1,11 +1,9 @@
 import numpy as np
 import pandas as pd
 import datetime
-import math
 from torch import Tensor
-import torch
 
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, transitions_equal, NewTransition, GORAS, StageCode
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, GORAS, StageCode, TemporalState
 from corerl.data_pipeline.transition_creators.anytime import (
     AnytimeTransitionCreator,
     AnytimeTransitionCreatorConfig,
@@ -59,7 +57,7 @@ def test_anytime_1():
 
     pf = tc(pf)
     transitions = pf.transitions
-
+    assert isinstance(transitions, list)
     assert len(transitions) == 1
     t_0 = transitions[0]
 
@@ -104,7 +102,7 @@ def test_anytime_2_n_step_1():
     )
     tc = AnytimeTransitionCreator(cfg)
     transitions = tc(pf).transitions
-
+    assert isinstance(transitions, list)
     assert len(transitions) == 3
     t_0 = transitions[0]
     expected_0 = NewTransition(
@@ -182,7 +180,7 @@ def test_anytime_3_action_change():
 
     tc = AnytimeTransitionCreator(cfg)
     transitions = tc(pf).transitions
-
+    assert isinstance(transitions, list)
     assert len(transitions) == 4
 
     t_0 = transitions[0]
@@ -273,7 +271,7 @@ def test_anytime_4_only_dp():
 
     tc = AnytimeTransitionCreator(cfg)
     transitions = tc(pf).transitions
-
+    assert isinstance(transitions, list)
     assert len(transitions) == 1
     t_0 = transitions[0]
     expected_0 = NewTransition(
@@ -322,7 +320,7 @@ def test_anytime_ts_1():
     pf = tc(pf)
     assert pf.temporal_state[StageCode.TC] is not None
     transitions = pf.transitions
-
+    assert isinstance(transitions, list)
     assert len(transitions) == 1
     t_0 = transitions[0]
     expected_0 = NewTransition(
@@ -356,6 +354,7 @@ def test_anytime_ts_1():
     pf_2.temporal_state[StageCode.TC] = pf.temporal_state[StageCode.TC]
 
     transitions = tc(pf_2).transitions
+    assert isinstance(transitions, list)
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
@@ -448,7 +447,7 @@ def test_anytime_ts_2_data_gap():
 
     pf = tc(pf)
     transitions = pf.transitions
-
+    assert isinstance(transitions, list)
     assert len(transitions) == 4
     t_0 = transitions[0]
     expected_0 = NewTransition(
@@ -540,6 +539,7 @@ def test_anytime_ts_3_data_gap_with_action_change():
 
     tc = AnytimeTransitionCreator(cfg)
     transitions = tc(pf).transitions
+    assert isinstance(transitions, list)
 
     assert len(transitions) == 4
     t_0 = transitions[0]
@@ -614,7 +614,7 @@ def test_anytime_online_1():
     )
     tc = AnytimeTransitionCreator(cfg)
 
-    tc_ts = {
+    tc_ts: TemporalState = {
         StageCode.TC: None
     }
 
@@ -634,6 +634,7 @@ def test_anytime_online_1():
         )
 
         pf = tc(pf)
+        assert isinstance(pf.transitions, list)
         transitions += pf.transitions
 
         if i != 3:
@@ -701,7 +702,7 @@ def test_anytime_online_2():
 
     tc = AnytimeTransitionCreator(cfg)
 
-    tc_ts = {
+    tc_ts: TemporalState = {
         StageCode.TC: None
     }
 
@@ -726,6 +727,7 @@ def test_anytime_online_2():
         )
 
         pf = tc(pf)
+        assert isinstance(pf.transitions, list)
         transitions += pf.transitions
 
         if i != 3:
@@ -778,7 +780,7 @@ def test_anytime_online_3():
     )
     tc = AnytimeTransitionCreator(cfg)
 
-    tc_ts = {
+    tc_ts: TemporalState = {
         StageCode.TC: None
     }
 
@@ -803,6 +805,8 @@ def test_anytime_online_3():
         )
 
         pf = tc(pf)
+
+        assert isinstance(pf.transitions, list)
         transitions += pf.transitions
 
         if i == 2:
@@ -855,7 +859,7 @@ def test_anytime_online_4():
 
     tc = AnytimeTransitionCreator(cfg)
 
-    tc_ts = {
+    tc_ts: TemporalState = {
         StageCode.TC: None
     }
 
@@ -880,6 +884,8 @@ def test_anytime_online_4():
         )
 
         pf = tc(pf)
+
+        assert isinstance(pf.transitions, list)
         transitions += pf.transitions
 
         if i == 0:
@@ -937,7 +943,7 @@ def test_split_at_nans_single_nan():
     df = pd.DataFrame({
         'A': [1, 2, np.nan, 4, 5],
         'B': [10, np.nan, 30, 40, 50]
-    }, index=dates)
+    }, index=pd.DatetimeIndex(dates))
 
     result = _split_at_nans(df)
     assert len(result) == 2
@@ -955,7 +961,7 @@ def test_split_at_nans_no_nans():
     df = pd.DataFrame({
         'A': [1, 2, 3],
         'B': [10, 20, 30]
-    }, index=dates)
+    }, index=pd.DatetimeIndex(dates))
 
     result = _split_at_nans(df)
     assert len(result) == 1
@@ -968,7 +974,7 @@ def test_split_at_nans_multiple_nans():
     df = pd.DataFrame({
         'A': [1, 2, 3, 4, np.nan, 6],
         'B': [10, np.nan, 30, 40, 50, 60]
-    }, index=dates)
+    }, index=pd.DatetimeIndex(dates))
 
     result = _split_at_nans(df)
     assert len(result) == 3
