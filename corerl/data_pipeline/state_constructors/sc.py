@@ -31,6 +31,7 @@ class StateConstructor:
         carry = TransformCarry(
             obs=pf.data,
             agent_state=tag_data.copy(),
+            tag=tag_name,
         )
 
         ts = pf.temporal_state.get(StageCode.SC, None)
