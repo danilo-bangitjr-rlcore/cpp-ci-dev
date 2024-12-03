@@ -181,7 +181,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         return dw_transitions
 
 
-def _get_tags(df, tags: list[str] | str) -> torch.Tensor:
+def _get_tags(df: pd.DataFrame, tags: list[str] | str) -> torch.Tensor:
     return tensor(df[tags].to_numpy())
 
 
