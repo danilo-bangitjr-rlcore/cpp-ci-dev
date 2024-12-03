@@ -83,7 +83,7 @@ class ObsTransition:
 
 
 @dataclass
-class GORAS:
+class ARGOS:
     gamma: float
     obs: Tensor
     reward: float
@@ -91,7 +91,7 @@ class GORAS:
     state: Tensor
 
     def __eq__(self, other: object):
-        if not isinstance(other, GORAS):
+        if not isinstance(other, ARGOS):
             return False
 
         return (
@@ -105,14 +105,14 @@ class GORAS:
 
 @dataclass
 class NewTransition:
-    pre: GORAS
-    post: GORAS
+    prior: ARGOS
+    post: ARGOS
     n_steps: int
 
 
 def transitions_equal(t0: NewTransition, t1: NewTransition):
     return (
-            t0.pre == t1.pre
+            t0.prior == t1.prior
             and t0.post == t1.post
             and t0.n_steps == t1.n_steps
     )

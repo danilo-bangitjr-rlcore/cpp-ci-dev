@@ -3,7 +3,7 @@ import pandas as pd
 import datetime
 from torch import Tensor
 
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, GORAS, StageCode, TemporalState
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, ARGOS, StageCode, TemporalState
 from corerl.data_pipeline.transition_creators.anytime import (
     AnytimeTransitionCreator,
     AnytimeTransitionCreatorConfig,
@@ -11,8 +11,8 @@ from corerl.data_pipeline.transition_creators.anytime import (
 )
 
 
-def get_test_pre_goras(state: Tensor) -> GORAS:
-    return GORAS(
+def get_test_pre_argos(state: Tensor) -> ARGOS:
+    return ARGOS(
         state=state,
         gamma=0,
         obs=state,
@@ -23,7 +23,7 @@ def get_test_pre_goras(state: Tensor) -> GORAS:
 
 def transitions_equal_test(t0: NewTransition, t1: NewTransition):
     return (
-            t0.pre.state == t1.pre.state
+            t0.prior.state == t1.prior.state
             and t0.post == t1.post
             and t0.n_steps == t1.n_steps
     )
@@ -62,8 +62,8 @@ def test_anytime_1():
     t_0 = transitions[0]
 
     expected = NewTransition(
-        pre=get_test_pre_goras(Tensor([0.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([0.])),
+        post=ARGOS(
             state=Tensor([1.]),
             obs=Tensor([1.]),
             action=Tensor([0.]),
@@ -106,8 +106,8 @@ def test_anytime_2_n_step_1():
     assert len(transitions) == 3
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        pre=get_test_pre_goras(Tensor([0.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([0.])),
+        post=ARGOS(
             state=Tensor([1.]),
             obs=Tensor([1.]),
             action=Tensor([0.]),
@@ -121,8 +121,8 @@ def test_anytime_2_n_step_1():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        pre=get_test_pre_goras(Tensor([1.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([1.])),
+        post=ARGOS(
             state=Tensor([2.]),
             obs=Tensor([2.]),
             action=Tensor([0.]),
@@ -136,8 +136,8 @@ def test_anytime_2_n_step_1():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        pre=get_test_pre_goras(Tensor([2.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([2.])),
+        post=ARGOS(
             state=Tensor([3.]),
             obs=Tensor([3.]),
             action=Tensor([1.]),
@@ -185,8 +185,8 @@ def test_anytime_3_action_change():
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        pre=get_test_pre_goras(Tensor([0.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([0.])),
+        post=ARGOS(
             state=Tensor([1.]),
             obs=Tensor([1.]),
             action=Tensor([0.]),
@@ -200,8 +200,8 @@ def test_anytime_3_action_change():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        pre=get_test_pre_goras(Tensor([1.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([1.])),
+        post=ARGOS(
             state=Tensor([4.]),
             obs=Tensor([4.]),
             action=Tensor([1.]),
@@ -215,8 +215,8 @@ def test_anytime_3_action_change():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        pre=get_test_pre_goras(Tensor([2.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([2.])),
+        post=ARGOS(
             state=Tensor([4.]),
             obs=Tensor([4.]),
             action=Tensor([1.]),
@@ -230,8 +230,8 @@ def test_anytime_3_action_change():
 
     t_3 = transitions[3]
     expected_3 = NewTransition(
-        pre=get_test_pre_goras(Tensor([3.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([3.])),
+        post=ARGOS(
             state=Tensor([4.]),
             obs=Tensor([4.]),
             action=Tensor([1.]),
@@ -275,8 +275,8 @@ def test_anytime_4_only_dp():
     assert len(transitions) == 1
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        pre=get_test_pre_goras(Tensor([0.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([0.])),
+        post=ARGOS(
             state=Tensor([8.]),
             obs=Tensor([8.]),
             action=Tensor([0.]),
@@ -324,8 +324,8 @@ def test_anytime_ts_1():
     assert len(transitions) == 1
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        pre=get_test_pre_goras(Tensor([0.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([0.])),
+        post=ARGOS(
             state=Tensor([1.]),
             obs=Tensor([1.]),
             action=Tensor([0.]),
@@ -358,8 +358,8 @@ def test_anytime_ts_1():
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        pre=get_test_pre_goras(Tensor([1.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([1.])),
+        post=ARGOS(
             state=Tensor([5.]),
             obs=Tensor([5.]),
             action=Tensor([1.]),
@@ -373,8 +373,8 @@ def test_anytime_ts_1():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        pre=get_test_pre_goras(Tensor([2.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([2.])),
+        post=ARGOS(
             state=Tensor([5.]),
             obs=Tensor([5.]),
             action=Tensor([1.]),
@@ -388,8 +388,8 @@ def test_anytime_ts_1():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        pre=get_test_pre_goras(Tensor([3.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([3.])),
+        post=ARGOS(
             state=Tensor([5.]),
             obs=Tensor([5.]),
             action=Tensor([1.]),
@@ -403,8 +403,8 @@ def test_anytime_ts_1():
 
     t_3 = transitions[3]
     expected_3 = NewTransition(
-        pre=get_test_pre_goras(Tensor([4.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([4.])),
+        post=ARGOS(
             state=Tensor([5.]),
             obs=Tensor([5.]),
             action=Tensor([1.]),
@@ -451,8 +451,8 @@ def test_anytime_ts_2_data_gap():
     assert len(transitions) == 4
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        pre=get_test_pre_goras(Tensor([0.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([0.])),
+        post=ARGOS(
             state=Tensor([1.]),
             obs=Tensor([1.]),
             action=Tensor([0.]),
@@ -466,8 +466,8 @@ def test_anytime_ts_2_data_gap():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        pre=get_test_pre_goras(Tensor([1.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([1.])),
+        post=ARGOS(
             state=Tensor([3.]),
             obs=Tensor([3.]),
             action=Tensor([1.]),
@@ -481,8 +481,8 @@ def test_anytime_ts_2_data_gap():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        pre=get_test_pre_goras(Tensor([2.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([2.])),
+        post=ARGOS(
             state=Tensor([3.]),
             obs=Tensor([3.]),
             action=Tensor([1.]),
@@ -496,8 +496,8 @@ def test_anytime_ts_2_data_gap():
 
     t_3 = transitions[3]
     expected_3 = NewTransition(
-        pre=get_test_pre_goras(Tensor([5.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([5.])),
+        post=ARGOS(
             state=Tensor([6.]),
             obs=Tensor([6.]),
             action=Tensor([1.]),
@@ -544,8 +544,8 @@ def test_anytime_ts_3_data_gap_with_action_change():
     assert len(transitions) == 4
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        pre=get_test_pre_goras(Tensor([0.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([0.])),
+        post=ARGOS(
             state=Tensor([1.]),
             obs=Tensor([1.]),
             action=Tensor([0.]),
@@ -559,8 +559,8 @@ def test_anytime_ts_3_data_gap_with_action_change():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        pre=get_test_pre_goras(Tensor([1.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([1.])),
+        post=ARGOS(
             state=Tensor([3.]),
             obs=Tensor([3.]),
             action=Tensor([1.]),
@@ -574,8 +574,8 @@ def test_anytime_ts_3_data_gap_with_action_change():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        pre=get_test_pre_goras(Tensor([2.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([2.])),
+        post=ARGOS(
             state=Tensor([3.]),
             obs=Tensor([3.]),
             action=Tensor([1.]),
@@ -589,8 +589,8 @@ def test_anytime_ts_3_data_gap_with_action_change():
 
     t_3 = transitions[3]
     expected_3 = NewTransition(
-        pre=get_test_pre_goras(Tensor([5.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([5.])),
+        post=ARGOS(
             state=Tensor([6.]),
             obs=Tensor([6.]),
             action=Tensor([2.]),
@@ -646,8 +646,8 @@ def test_anytime_online_1():
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        pre=get_test_pre_goras(Tensor([0.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([0.])),
+        post=ARGOS(
             state=Tensor([3.]),
             obs=Tensor([3.]),
             action=Tensor([1.]),
@@ -661,8 +661,8 @@ def test_anytime_online_1():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        pre=get_test_pre_goras(Tensor([1.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([1.])),
+        post=ARGOS(
             state=Tensor([3.]),
             obs=Tensor([3.]),
             action=Tensor([1.]),
@@ -676,8 +676,8 @@ def test_anytime_online_1():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        pre=get_test_pre_goras(Tensor([2.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([2.])),
+        post=ARGOS(
             state=Tensor([3.]),
             obs=Tensor([3.]),
             action=Tensor([1.]),
@@ -739,8 +739,8 @@ def test_anytime_online_2():
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        pre=get_test_pre_goras(Tensor([0.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([0.])),
+        post=ARGOS(
             state=Tensor([2.]),
             obs=Tensor([2.]),
             action=Tensor([1.]),
@@ -754,8 +754,8 @@ def test_anytime_online_2():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        pre=get_test_pre_goras(Tensor([1.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([1.])),
+        post=ARGOS(
             state=Tensor([2.]),
             obs=Tensor([2.]),
             action=Tensor([1.]),
@@ -818,8 +818,8 @@ def test_anytime_online_3():
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        pre=get_test_pre_goras(Tensor([0.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([0.])),
+        post=ARGOS(
             state=Tensor([2.]),
             obs=Tensor([2.]),
             action=Tensor([1.]),
@@ -833,8 +833,8 @@ def test_anytime_online_3():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        pre=get_test_pre_goras(Tensor([1.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([1.])),
+        post=ARGOS(
             state=Tensor([2.]),
             obs=Tensor([2.]),
             action=Tensor([1.]),
@@ -897,8 +897,8 @@ def test_anytime_online_4():
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        pre=get_test_pre_goras(Tensor([0.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([0.])),
+        post=ARGOS(
             state=Tensor([1.]),
             obs=Tensor([1]),
             action=Tensor([1.]),
@@ -911,8 +911,8 @@ def test_anytime_online_4():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        pre=get_test_pre_goras(Tensor([1.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([1.])),
+        post=ARGOS(
             state=Tensor([2.]),
             obs=Tensor([2.]),
             action=Tensor([1.]),
@@ -925,8 +925,8 @@ def test_anytime_online_4():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        pre=get_test_pre_goras(Tensor([2.])),
-        post=GORAS(
+        prior=get_test_pre_argos(Tensor([2.])),
+        post=ARGOS(
             state=Tensor([3.]),
             obs=Tensor([3.]),
             action=Tensor([2.]),
