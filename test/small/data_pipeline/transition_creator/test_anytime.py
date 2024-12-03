@@ -646,7 +646,7 @@ def test_split_at_nans_single_nan():
     dates = [datetime.datetime(2024, 1, i) for i in range(1, 6)]
     df = pd.DataFrame({
         'A': [1, 2, np.nan, 4, 5],
-        'B': [10, 20, 30, 40, 50]
+        'B': [10, np.nan, 30, 40, 50]
     }, index=dates)
 
     result = _split_at_nans(df)
@@ -654,7 +654,7 @@ def test_split_at_nans_single_nan():
     df1, has_nan1 = result[0]
     df2, has_nan2 = result[1]
 
-    assert len(df1) == 2 and has_nan1
+    assert len(df1) == 1 and has_nan1
     assert len(df2) == 2 and not has_nan2
     assert df1.index[0] == datetime.datetime(2024, 1, 1)
     assert df2.index[-1] == datetime.datetime(2024, 1, 5)
@@ -693,3 +693,6 @@ def test_split_at_nans_multiple_nans():
     assert df1.index[0] == datetime.datetime(2024, 1, 1)
     assert df2.index[0] == datetime.datetime(2024, 1, 3)
     assert df3.index[0] == datetime.datetime(2024, 1, 6)
+
+
+

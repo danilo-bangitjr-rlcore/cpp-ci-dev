@@ -201,10 +201,8 @@ def _split_at_nans(df: pd.DataFrame) -> list[tuple[pd.DataFrame, bool]]:
     for i in range(len(split_indices) - 1):
         start = split_indices[i]
         end = split_indices[i + 1]
-        if end > start:
-            chunk = df.loc[start:end].iloc[1:-1]
-            if not chunk.empty:
-                result.append((chunk, True))
+        chunk = df.loc[start:end].iloc[1:-1]
+        result.append((chunk, True))
 
     if split_indices[-1] < df.index[-1]:
         last_chunk = df.loc[split_indices[-1]:].iloc[1:]
