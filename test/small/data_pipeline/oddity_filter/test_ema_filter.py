@@ -41,14 +41,14 @@ def test_obvious_outlier_in_second_batch():
     cfg = EMAFilterConfig(alpha=0.99)
 
     outlier_detector = EMAFilter(cfg)
-    values = [1.0] * 5
+    values = [1.0] * 10
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, CallerCode.ONLINE)
     pf = outlier_detector(pf, name)  # <- stats get initialized here
 
-    values2 = [1.0] * 5
+    values2 = [1.0] * 10
     values2[-1] = 100.0  # <- this is the outlier
 
     data2 = pd.DataFrame({name: values2})
@@ -125,7 +125,7 @@ def test_detector_does_not_change_indices():
     cfg = EMAFilterConfig(alpha=0.99)
 
     outlier_detector = EMAFilter(cfg)
-    n = 5
+    n = 10
     values = [1.0] * n
     base_timestamp = datetime.strptime("31/01/24 23:59:59", "%d/%m/%y %H:%M:%S")
     timestamps = [base_timestamp + i * timedelta(minutes=5) for i in range(n)]
@@ -162,7 +162,7 @@ def test_outlier_gets_correct_missingtype():
 
     # prepare some data to warm up the stats
     outlier_detector = EMAFilter(cfg)
-    values = [1.0] * 5
+    values = [1.0] * 10
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
@@ -170,7 +170,7 @@ def test_outlier_gets_correct_missingtype():
     outlier_detector(pf, name)  # <- stats get initialized here
 
     # create a batch with an outlier
-    values2 = [1.0] * 5
+    values2 = [1.0] * 10
     values2[-1] = 100.0  # <- this is the outlier
 
     data = pd.DataFrame({name: values2})
@@ -190,7 +190,7 @@ def test_outlier_missing_type_is_added_to_existing_missing():
 
     # prepare some data to warm up the stats
     outlier_detector = EMAFilter(cfg)
-    values = [1.0] * 5
+    values = [1.0] * 10
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
@@ -198,14 +198,14 @@ def test_outlier_missing_type_is_added_to_existing_missing():
     outlier_detector(pf, name)  # <- stats get initialized here
 
     # create a batch with an outlier
-    values2 = [1.0] * 5
+    values2 = [1.0] * 10
     values2[-1] = 100.0  # <- this is the outlier
 
     data = pd.DataFrame({name: values2})
     pf = PipelineFrame(data=data, caller_code=CallerCode.ONLINE, temporal_state=pf.temporal_state)
 
     # add an initial missing type to the outlier
-    pf.missing_info.loc[4, "sensor_x"] = MissingType.BOUNDS
+    pf.missing_info.loc[9, "sensor_x"] = MissingType.BOUNDS
 
     # filter the outlier
     filtered_pf = outlier_detector(pf, name)
