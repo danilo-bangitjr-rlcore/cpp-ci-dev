@@ -4,7 +4,7 @@ import pandas as pd
 
 from corerl.data_pipeline.datatypes import MissingType
 
-def update_existing_missing_info_col(
+def _update_existing_missing_info_col(
         missing_info: pd.DataFrame,
         name: str,
         missing_mask: np.ndarray,
@@ -30,11 +30,11 @@ def update_existing_missing_info_col(
         missing_info.loc[idx, name] = updated_val
 
 
-def update_missing_info_col(missing_info: pd.DataFrame, name: str, missing_type_mask: np.ndarray, new_val: MissingType):
+def update_missing_info(missing_info: pd.DataFrame, name: str, missing_mask: np.ndarray, new_val: MissingType):
     # Update existing missing info
     existing_missing_mask = missing_info[name] != MissingType.NULL
-    overlap_mask = existing_missing_mask & missing_type_mask  # <- Series & np.ndarray results in Series
-    update_existing_missing_info_col(
+    overlap_mask = existing_missing_mask & missing_mask  # <- Series & np.ndarray results in Series
+    _update_existing_missing_info_col(
         missing_info=missing_info,
         name=name,
         missing_mask=overlap_mask.to_numpy(),
@@ -42,5 +42,6 @@ def update_missing_info_col(missing_info: pd.DataFrame, name: str, missing_type_
     )
 
     # Add new missing info
-    new_missing_mask = ~existing_missing_mask & missing_type_mask
-    missing_info.loc[new_missing_mask, name] = [new_val] * sum(new_missing_mask)
+    new_missing_mask = ~existing_missing_mask & missing_mask
+    if new_missing_mask.any():
+        missing_info.loc[new_missing_mask, name] = [new_val] * sum(new_missing_mask)

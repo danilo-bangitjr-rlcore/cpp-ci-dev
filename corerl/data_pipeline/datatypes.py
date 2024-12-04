@@ -318,6 +318,7 @@ class CallerCode(Enum):
 
 class StageCode(Enum):
     IMPUTER = auto()
+    ODDITY = auto()
     TC = auto()
     SC = auto()
 

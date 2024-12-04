@@ -3,8 +3,8 @@ from omegaconf import MISSING
 
 from corerl.data_pipeline.imputers.base import BaseImputerConfig
 from corerl.data_pipeline.imputers.identity import IdentityImputerConfig
-from corerl.data_pipeline.outlier_detectors.base import BaseOutlierDetectorConfig
-from corerl.data_pipeline.outlier_detectors.exp_moving_detector import ExpMovingDetectorConfig
+from corerl.data_pipeline.oddity_filters.base import BaseOddityFilterConfig
+from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilterConfig
 from corerl.data_pipeline.state_constructors.components.base import BaseTransformConfig
 from corerl.utils.hydra import list_
 
@@ -14,6 +14,6 @@ class TagConfig:
     name: str = MISSING
 
     bounds: tuple[float | None, float | None] = (None, None)
-    outlier: BaseOutlierDetectorConfig = field(default_factory=ExpMovingDetectorConfig)
+    outlier: BaseOddityFilterConfig = field(default_factory=EMAFilterConfig)
     imputer: BaseImputerConfig = field(default_factory=IdentityImputerConfig)
     state_constructor: list[BaseTransformConfig] = list_()

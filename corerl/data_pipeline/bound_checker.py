@@ -4,7 +4,7 @@ import pandas as pd
 from typing import Hashable
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.utils import update_missing_info_col
+from corerl.data_pipeline.utils import update_missing_info
 
 
 def _get_oob_mask(data: pd.DataFrame, name: Hashable, cfg: TagConfig) -> np.ndarray:
@@ -37,7 +37,7 @@ def bound_checker(pf: PipelineFrame, tag: str, cfg: TagConfig) -> PipelineFrame:
     data.loc[oob_mask, tag] = np.nan
 
     # Update pf.missing_info
-    update_missing_info_col(pf.missing_info, tag, oob_mask, MissingType.BOUNDS)
+    update_missing_info(pf.missing_info, tag, oob_mask, MissingType.BOUNDS)
 
     return pf
 

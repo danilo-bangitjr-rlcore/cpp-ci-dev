@@ -7,12 +7,12 @@ from corerl.data_pipeline.datatypes import PipelineFrame
 
 
 @dataclass
-class BaseOutlierDetectorConfig:
+class BaseOddityFilterConfig:
     name: str = MISSING
 
 
-class BaseOutlierDetector(ABC):
-    def __init__(self, cfg: BaseOutlierDetectorConfig):
+class BaseOddityFilter(ABC):
+    def __init__(self, cfg: BaseOddityFilterConfig):
         self.cfg = cfg
 
     @abstractmethod
@@ -21,5 +21,5 @@ class BaseOutlierDetector(ABC):
 
 
 outlier_group = Group[
-    [], BaseOutlierDetector
+    [], BaseOddityFilter
 ]('pipeline/outlier_detector')

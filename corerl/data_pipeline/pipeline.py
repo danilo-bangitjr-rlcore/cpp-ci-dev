@@ -10,7 +10,7 @@ import logging
 
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.bound_checker import bound_checker_builder
-from corerl.data_pipeline.outlier_detectors.factory import init_outlier_detector
+from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
@@ -57,7 +57,7 @@ class Pipeline:
         self.transition_creator = init_transition_creator(cfg.agent_transition_creator)
 
         self.outlier_detectors = {
-            cfg.name: init_outlier_detector(cfg.outlier) for cfg in self.tags
+            cfg.name: init_oddity_filter(cfg.outlier) for cfg in self.tags
         }
 
         self.imputers = {
