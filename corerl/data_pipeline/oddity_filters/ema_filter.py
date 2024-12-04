@@ -13,13 +13,15 @@ from corerl.data_pipeline.utils import update_missing_info_col
 class EMAFilterConfig(BaseOddityFilterConfig):
     name: str = "exp_moving"
     alpha: float = 0.99
-    tolerance: float = 2
+    tolerance: float = 2.0
+    warmup: int = 10  #  number of warmup steps before rejecting
 
 
 @dataclass
 class EMAFilterTemporalState:
     ema: ExpMovingAvg
     emv: ExpMovingVar
+    n_obs: int = 0
 
 
 type TagName = str
@@ -41,6 +43,7 @@ class EMAFilter(BaseOddityFilter):
         super().__init__(cfg)
         self.alpha = cfg.alpha
         self.tolerance = cfg.tolerance
+        self.warmup = cfg.warmup
 
     def _get_tag_ts(self, stage_ts: Dict[TagName, EMAFilterTemporalState], tag: TagName) -> EMAFilterTemporalState:
         """
@@ -67,13 +70,14 @@ class EMAFilter(BaseOddityFilter):
             _update_stats(tag_data, tag_ts)
 
         oddity_mask = _get_oddity_mask(x=tag_data, mu=tag_ts.ema(), var=tag_ts.emv(), tolerance=self.tolerance)
-        update_missing_info_col(
-            missing_info=pf.missing_info, name=tag, missing_type_mask=oddity_mask, new_val=MissingType.OUTLIER
-        )
-        tag_data[oddity_mask] = np.nan
+        post_warmup_mask = _get_post_warmup_mask(prev_n_obs=tag_ts.n_obs, data_len=len(tag_data), warmup=self.warmup)
+        filter_mask = oddity_mask & post_warmup_mask
 
-        pf.data[tag] = tag_data
-        pf.temporal_state[StageCode.ODDITY] = stage_ts  # TODO: is this necessary?
+        update_missing_info_col(
+            missing_info=pf.missing_info, name=tag, missing_type_mask=filter_mask, new_val=MissingType.OUTLIER
+        )
+        tag_data[filter_mask] = np.nan
+        tag_ts.n_obs += len(tag_data)
 
         return pf
 
@@ -81,10 +85,21 @@ class EMAFilter(BaseOddityFilter):
 outlier_group.dispatcher(EMAFilter)
 
 
+def _get_post_warmup_mask(prev_n_obs: int, data_len: int, warmup: int) -> np.ndarray:
+    """
+    Returns mask with False for points before warmup period and True after
+    """
+    n_observed = np.array([prev_n_obs + i for i in range(data_len)])
+    post_warmup_mask = n_observed >= warmup
+
+    return post_warmup_mask
+
+
 def _get_ts(pf: PipelineFrame) -> Dict[TagName, EMAFilterTemporalState]:
     ts = pf.temporal_state.get(StageCode.ODDITY)
     ts = ts or {}
     assert isinstance(ts, dict)
+    pf.temporal_state[StageCode.ODDITY] = ts
     return ts
 
 
