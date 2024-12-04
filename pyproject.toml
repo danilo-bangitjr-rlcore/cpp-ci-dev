@@ -82,6 +82,7 @@ dev = [
     "pytest-xdist",
     "pytest-timeout",
     "pyright",
+    "debugpy",
 ]
 
 [tool.coverage.run]

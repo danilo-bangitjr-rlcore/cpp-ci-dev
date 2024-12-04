@@ -38,6 +38,8 @@ cryptography==43.0.3
     #   pyopenssl
 cycler==0.12.1
     # via matplotlib
+debugpy==1.8.9
+    # via corerl (pyproject.toml)
 docker==7.1.0
     # via corerl (pyproject.toml)
 execnet==2.1.1
@@ -87,7 +89,7 @@ joblib==1.4.2
     #   scikit-learn
 kiwisolver==1.4.7
     # via matplotlib
-linesearchopt @ git+ssh://git@github.com/rlcoretech/linesearchopt.git@16b78bf61c5b9515ee9bc3f75c90673eb0a2ed46
+linesearchopt @ git+ssh://git@github.com/rlcoretech/linesearchopt.git@5a3aaa5aa35e8d05d1f8d2e0612b5611cf72af26
     # via corerl (pyproject.toml)
 llvmlite==0.43.0
     # via numba
@@ -231,7 +233,9 @@ scipy==1.13.0
     #   gym-electric-motor
     #   scikit-learn
 setuptools==69.2.0
-    # via influxdb-client
+    # via
+    #   influxdb-client
+    #   torch
 six==1.16.0
     # via python-dateutil
 sortedcontainers==2.4.0
