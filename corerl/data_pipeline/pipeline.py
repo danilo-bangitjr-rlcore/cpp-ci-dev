@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 import warnings
 import datetime
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any, Callable
 from omegaconf import MISSING
 from pandas import DataFrame
@@ -17,6 +17,7 @@ from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreato
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
 from corerl.data_pipeline.state_constructors.sc import StateConstructor
 from corerl.data_pipeline.db.data_reader import TagDBConfig
+from corerl.data_pipeline.utils import invoke_stage_per_tag
 
 from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, StageCode, TemporalState
 
@@ -35,13 +36,7 @@ class PipelineConfig:
     db: TagDBConfig = field(default_factory=TagDBConfig)
     obs_interval_minutes: float = MISSING
     agent_transition_creator: Any = field(default_factory=DummyTransitionCreatorConfig)
-
-
-def invoke_stage_per_tag[T](carry: T, stage: Mapping[TagName, PipelineStage[T]]) -> T:
-    for tag, f in stage.items():
-        carry = f(carry, tag)
-
-    return carry
+    state_constructor: Any = MISSING
 
 
 @dataclass
