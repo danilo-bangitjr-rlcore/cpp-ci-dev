@@ -13,6 +13,7 @@ class SplitConfig(BaseTransformConfig):
 
     left: BaseTransformConfig = MISSING
     right: BaseTransformConfig = MISSING
+    passthrough: bool | None = None
 
 
 @dataclass
@@ -31,6 +32,8 @@ class SplitTransform:
     def __call__(self, carry: TransformCarry, ts: object | None):
         assert isinstance(ts, SplitTemporalState | None)
 
+        original_state = carry.agent_state.copy()
+
         # shallow copy all attributes, but ensure agent_state is a deep copy
         r_carry = copy.copy(carry)
         r_carry.agent_state = carry.agent_state.copy()
@@ -43,8 +46,26 @@ class SplitTransform:
 
         # reconcile the two carry objects by concatenating agent
         # state and relying on the fact that all other attributes
-        # should "read-only"
+        # should be "read-only"
         carry.agent_state = pd.concat((l_carry.agent_state, r_carry.agent_state), axis=1)
+
+        if self._cfg.passthrough:
+            dup_cols = set(original_state.columns).intersection(carry.agent_state.columns)
+            if dup_cols:
+                carry.agent_state.drop(list(dup_cols), axis=1, inplace=True)
+
+            carry.agent_state = pd.concat((carry.agent_state, original_state), axis=1)
+
+        # Note a distinction in behavior between passthrough == False
+        # and passthrough == None.
+        # If the user did not specify a passthrough preference, then
+        # defer to the left/right handlers to decide what is passed.
+        # If the user specified "do not passthrough", then filter
+        # out the original columns.
+        elif self._cfg.passthrough is False:
+            orig_cols = set(carry.agent_state.columns).intersection(original_state.columns)
+            if orig_cols:
+                carry.agent_state.drop(list(orig_cols), axis=1, inplace=True)
 
         return carry, SplitTemporalState(
             left_state=l_state,
