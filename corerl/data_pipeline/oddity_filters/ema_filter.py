@@ -1,9 +1,10 @@
-import numpy as np
 from dataclasses import dataclass
-from pandas import DataFrame
+from typing import Dict
+
+import numpy as np
 
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
-from corerl.data_pipeline.datatypes import PipelineFrame, MissingType
+from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
 from corerl.data_pipeline.utils import update_missing_info_col
 
@@ -13,6 +14,15 @@ class EMAFilterConfig(BaseOddityFilterConfig):
     name: str = "exp_moving"
     alpha: float = 0.99
     tolerance: float = 2
+
+
+@dataclass
+class EMAFilterTemporalState:
+    ema: ExpMovingAvg
+    emv: ExpMovingVar
+
+
+type TagName = str
 
 
 class EMAFilter(BaseOddityFilter):
@@ -32,39 +42,15 @@ class EMAFilter(BaseOddityFilter):
         self.alpha = cfg.alpha
         self.tolerance = cfg.tolerance
 
-        self.ema = ExpMovingAvg(alpha=self.alpha)
-        self.emv = ExpMovingVar(alpha=self.alpha)
-
-    def _get_outlier_mask(self, name: str, data: DataFrame, update_stats: bool) -> np.ndarray:
+    def _get_tag_ts(self, stage_ts: Dict[TagName, EMAFilterTemporalState], tag: TagName) -> EMAFilterTemporalState:
         """
-        Columns of df are mutable, this function takes a Series
-        and mutates the data (by possible setting some values to NaN)
+        Gets tag temporal state. If tag temporal state is not initialized, sets default
+        and updates the stage temporal state.
+        This is a class method because it uses self.alpha in construction of the default temporal state.
         """
-        x = data[name].to_numpy()
-
-        # update stats
-        if update_stats:
-            self.ema.feed(x)
-            self.emv.feed(x)
-
-        # collect stats
-        mu = self.ema()
-        var = self.emv()
-        std = np.sqrt(var)
-
-        # find outliers
-        outliers = np.abs(mu - x) > self.tolerance * std
-
-        return outliers
-
-    def _filter_col(self, name: str, pf: PipelineFrame, update_stats: bool) -> None:
-        outlier_mask = self._get_outlier_mask(name=name, data=pf.data, update_stats=update_stats)
-
-        # set outliers to NaN
-        pf.data.loc[outlier_mask, name] = np.nan
-
-        # update missing info
-        update_missing_info_col(pf.missing_info, name, outlier_mask, MissingType.OUTLIER)
+        tag_ts = stage_ts.get(tag, EMAFilterTemporalState(ExpMovingAvg(self.alpha), ExpMovingVar(self.alpha)))
+        stage_ts[tag] = tag_ts
+        return tag_ts
 
     def __call__(self, pf: PipelineFrame, tag: str, update_stats: bool = True) -> PipelineFrame:
         """
@@ -73,13 +59,46 @@ class EMAFilter(BaseOddityFilter):
         statistics if, for example, historical data should be re-processed with
         the most up-to-date running statistics.
         """
-        data = pf.data
-        if data.shape[0] == 0:
-            # empty dataframe, do nothing
-            return pf
+        stage_ts = _get_ts(pf)
+        tag_ts = self._get_tag_ts(stage_ts, tag)
+        tag_data = pf.data[tag].to_numpy()
 
-        self._filter_col(tag, pf, update_stats)
+        if update_stats:
+            _update_stats(tag_data, tag_ts)
+
+        oddity_mask = _get_oddity_mask(x=tag_data, mu=tag_ts.ema(), var=tag_ts.emv(), tolerance=self.tolerance)
+        update_missing_info_col(
+            missing_info=pf.missing_info, name=tag, missing_type_mask=oddity_mask, new_val=MissingType.OUTLIER
+        )
+        tag_data[oddity_mask] = np.nan
+
+        pf.data[tag] = tag_data
+        pf.temporal_state[StageCode.ODDITY] = stage_ts  # TODO: is this necessary?
+
         return pf
 
 
 outlier_group.dispatcher(EMAFilter)
+
+
+def _get_ts(pf: PipelineFrame) -> Dict[TagName, EMAFilterTemporalState]:
+    ts = pf.temporal_state.get(StageCode.ODDITY)
+    ts = ts or {}
+    assert isinstance(ts, dict)
+    return ts
+
+
+def _update_stats(tag_data: np.ndarray, tag_ts: EMAFilterTemporalState):
+    tag_ts.ema.feed(tag_data)
+    tag_ts.emv.feed(tag_data)
+
+
+def _get_oddity_mask(x: np.ndarray, mu: float, var: float, tolerance: float) -> np.ndarray:
+    """
+    Columns of df are mutable, this function takes a Series
+    and mutates the data (by possible setting some values to NaN)
+    """
+    std = np.sqrt(var)
+    oddity_mask = np.abs(mu - x) > tolerance * std
+
+    return oddity_mask
