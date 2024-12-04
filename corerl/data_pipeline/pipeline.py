@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any, Callable
 from omegaconf import MISSING
 from pandas import DataFrame
+import logging
 
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.bound_checker import bound_checker_builder
@@ -15,9 +16,11 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
 from corerl.data_pipeline.state_constructors.sc import StateConstructor
 
-from corerl.data_pipeline.datatypes import Transition, PipelineFrame, CallerCode, TemporalState
+from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, TemporalState
 from corerl.data_pipeline.pipeline_utils import warmup_pruning, handle_data_gaps
 from corerl.utils.hydra import interpolate
+
+logger = logging.getLogger(__name__)
 
 WARMUP = 0
 
@@ -93,7 +96,7 @@ class Pipeline:
 
     def __call__(self, data: DataFrame,
                  caller_code: CallerCode,
-                 reset_temporal_state: bool = False) -> list[Transition]:
+                 reset_temporal_state: bool = False) -> list[NewTransition]:
 
         pf = PipelineFrame(data, caller_code)
         ts = self._init_temporal_state(pf, reset_temporal_state)
@@ -103,7 +106,7 @@ class Pipeline:
         pf = invoke_stage_per_tag(pf, self.outlier_detectors)
         pf = invoke_stage_per_tag(pf, self.imputers)
         pfs = handle_data_gaps(pf)
-        transitions: list[Transition] = []
+        transitions: list[NewTransition] = []
         for gapless_pf in pfs:
             gapless_pf = self.transition_creator(gapless_pf)
             gapless_pf = invoke_stage_per_tag(gapless_pf, self.state_constructors)
