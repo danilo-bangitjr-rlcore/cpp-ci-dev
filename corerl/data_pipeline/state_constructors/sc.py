@@ -1,5 +1,4 @@
 import pandas as pd
-from collections import defaultdict
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.interface import TransformCarry
 from corerl.data_pipeline.state_constructors.components.base import BaseTransformConfig, sc_group, StateTransform
@@ -35,8 +34,7 @@ class StateConstructor:
         )
 
         ts = pf.temporal_state.get(StageCode.SC, None)
-        ts = self._sanitize_temporal_state(ts)
-        tag_ts = ts[tag_name]
+        tag_ts = self._sanitize_temporal_state(ts, tag_name)
 
         for i in range(len(self._components)):
             transform = self._components[i]
@@ -54,9 +52,12 @@ class StateConstructor:
         return pf
 
 
-    def _sanitize_temporal_state(self, ts: object | None) -> SC_TS:
+    def _sanitize_temporal_state(self, ts: object | None, tag_name: str):
         if ts is None:
-            ts = defaultdict(lambda: [None] * len(self._components))
+            ts = {}
 
         assert isinstance(ts, dict)
-        return ts
+        if tag_name not in ts:
+            ts[tag_name] = [None] * len(self._components)
+
+        return ts[tag_name]
