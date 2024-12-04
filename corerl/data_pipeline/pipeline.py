@@ -32,6 +32,7 @@ type WarmupPruner = Callable[[PipelineFrame, int], PipelineFrame]
 class PipelineConfig:
     tags: list[TagConfig] = MISSING
 
+    obs_interval_minutes: float = MISSING
     state_constructor: Any = MISSING
     agent_transition_creator: Any = interpolate('{agent_transition_creator}')
 
@@ -71,7 +72,7 @@ class Pipeline:
         self.ts_dict: dict = {caller_code: None for caller_code in CallerCode}
         self.dt_dict: dict = {caller_code: None for caller_code in CallerCode}
 
-        self.valid_thresh: datetime.timedelta = datetime.timedelta(10)  # TODO: this comes from somewhere
+        self.valid_thresh: datetime.timedelta = datetime.timedelta(minutes=cfg.obs_interval_minutes)
 
     def _init_temporal_state(self, pf: PipelineFrame, reset_ts: bool = False):
         ts = self.ts_dict[pf.caller_code]
