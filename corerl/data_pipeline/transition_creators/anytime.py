@@ -93,7 +93,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
             next_action = actions[i + 1] if i != len(actions) - 1 else action
             action_change = not torch.allclose(action, next_action)
-            reached_n_step = len(argos_list) == self.max_boot_len + 1 if self.max_boot_len is not None else False
+            reached_n_step = len(argos_list) == self.max_boot_len + 1
             if reached_n_step or action_change:
                 transitions += self._make_transitions(argos_list)
                 argos_list = [argos_list[-1]]
