@@ -15,8 +15,8 @@ class AddRaw:
     def __call__(self, carry: TransformCarry, ts: object | None):
         raw_obs = carry.obs[carry.tag]
 
-        if carry.tag not in carry.agent_state:
-            carry.agent_state[carry.tag] = raw_obs
+        if carry.tag not in carry.transform_data:
+            carry.transform_data[carry.tag] = raw_obs
 
         return carry, None
 

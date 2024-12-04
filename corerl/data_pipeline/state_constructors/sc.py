@@ -2,7 +2,7 @@ from collections import defaultdict
 import pandas as pd
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.interface import TransformCarry
-from corerl.data_pipeline.state_constructors.components.base import BaseTransformConfig, sc_group, StateTransform
+from corerl.data_pipeline.state_constructors.components.base import BaseTransformConfig, sc_group, Transform
 
 # ensure components are registered
 import corerl.data_pipeline.state_constructors.components.norm # noqa: F401
@@ -19,7 +19,7 @@ type SC_TS = dict[
 
 class StateConstructor:
     def __init__(self, cfgs: list[BaseTransformConfig]):
-        self._components: list[StateTransform] = [
+        self._components: list[Transform] = [
             sc_group.dispatch(sub_cfg) for sub_cfg in cfgs
         ]
 
@@ -43,7 +43,7 @@ class StateConstructor:
 
         carry = TransformCarry(
             obs=pf.data,
-            agent_state=tag_data.copy(),
+            transform_data=tag_data.copy(),
             tag=tag_name,
         )
 
@@ -59,7 +59,7 @@ class StateConstructor:
 
         # put resultant data on PipeFrame
         df = pf.data.drop(tag_name, axis=1, inplace=False)
-        pf.data = pd.concat((df, carry.agent_state), axis=1, copy=False)
+        pf.data = pd.concat((df, carry.transform_data), axis=1, copy=False)
 
         # put new temporal state on PipeFrame
         pf.temporal_state[StageCode.SC] = ts

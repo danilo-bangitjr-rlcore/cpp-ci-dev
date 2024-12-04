@@ -14,7 +14,7 @@ def test_norm_part():
 
     carry = TransformCarry(
         obs=raw_obs,
-        agent_state=raw_obs,
+        transform_data=raw_obs,
         tag='obs',
     )
 
@@ -28,4 +28,4 @@ def test_norm_part():
         'obs-2_norm': [0, 0.2, 0.4, np.nan, 0.6, 0.8, np.nan, 1.0],
     })
 
-    assert dfs_close(new_carry.agent_state, expected)
+    assert dfs_close(new_carry.transform_data, expected)

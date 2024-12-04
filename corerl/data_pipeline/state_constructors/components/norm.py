@@ -22,9 +22,9 @@ class Normalizer:
         self._maxs = defaultdict(lambda: cfg.max)
 
     def __call__(self, carry: TransformCarry, ts: object | None):
-        cols = set(carry.agent_state.columns)
+        cols = set(carry.transform_data.columns)
         for col in cols:
-            x = carry.agent_state[col].to_numpy()
+            x = carry.transform_data[col].to_numpy()
 
             if self._cfg.from_data:
                 mi = self._mins[col]
@@ -45,8 +45,8 @@ class Normalizer:
             new_x = _norm(x, mi, ma)
 
             new_name = f'{col}_norm'
-            carry.agent_state.drop(col, axis=1, inplace=True)
-            carry.agent_state[new_name] = new_x
+            carry.transform_data.drop(col, axis=1, inplace=True)
+            carry.transform_data[new_name] = new_x
 
         return carry, None
 

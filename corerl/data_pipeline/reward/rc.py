@@ -10,7 +10,7 @@ import corerl.data_pipeline.state_constructors.components.scale  # noqa: F401
 import corerl.data_pipeline.state_constructors.components.split  # noqa: F401
 import corerl.data_pipeline.state_constructors.components.trace  # noqa: F401
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TagName
-from corerl.data_pipeline.state_constructors.components.base import BaseTransformConfig, StateTransform, sc_group
+from corerl.data_pipeline.state_constructors.components.base import BaseTransformConfig, Transform, sc_group
 from corerl.data_pipeline.state_constructors.interface import TransformCarry
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 
@@ -24,7 +24,7 @@ type RC_TS = dict[
 
 class RewardComponentConstructor:
     def __init__(self, cfgs: list[BaseTransformConfig]):
-        self._components: list[StateTransform] = [sc_group.dispatch(sub_cfg) for sub_cfg in cfgs]
+        self._components: list[Transform] = [sc_group.dispatch(sub_cfg) for sub_cfg in cfgs]
 
     def __call__(self, pf: PipelineFrame, tag_name: str) -> PipelineFrame:
         tag_data = pf.data.get([tag_name])
@@ -32,7 +32,7 @@ class RewardComponentConstructor:
 
         carry = TransformCarry(
             obs=pf.data,
-            agent_state=tag_data.copy(),  # will rename
+            transform_data=tag_data.copy(),  # will rename
             tag=tag_name,
         )
 
@@ -49,8 +49,8 @@ class RewardComponentConstructor:
 
         # put resultant data on PipeFrame
         df = pf.data.drop(tag_name, axis=1, inplace=False)
-        carry.agent_state = carry.agent_state.rename(columns=lambda x: "(reward)" + x)
-        pf.data = pd.concat((df, carry.agent_state), axis=1, copy=False)
+        carry.transform_data = carry.transform_data.rename(columns=lambda x: "(reward)" + x)
+        pf.data = pd.concat((df, carry.transform_data), axis=1, copy=False)
 
         # put new temporal state on PipeFrame
         pf.temporal_state[StageCode.SC] = ts

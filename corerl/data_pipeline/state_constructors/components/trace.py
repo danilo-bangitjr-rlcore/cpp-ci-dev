@@ -26,9 +26,9 @@ class TraceConstructor:
         assert isinstance(ts, TraceTemporalState | None)
         mu = ts and ts.mu or {}
 
-        cols = set(carry.agent_state.columns)
+        cols = set(carry.transform_data.columns)
         for col in cols:
-            x = carry.agent_state[col].to_numpy()
+            x = carry.transform_data[col].to_numpy()
 
             trace_vals, new_mu = compute_trace_with_nan(
                 data=x,
@@ -37,12 +37,12 @@ class TraceConstructor:
             )
 
             mu[col] = new_mu
-            carry.agent_state.drop(col, axis=1, inplace=True)
+            carry.transform_data.drop(col, axis=1, inplace=True)
 
             for i in range(len(self._decays)):
                 decay = self._decays[i]
                 new_name = f'{col}_trace-{decay}'
-                carry.agent_state[new_name] = trace_vals[:, i]
+                carry.transform_data[new_name] = trace_vals[:, i]
 
         return carry, TraceTemporalState(mu)
 

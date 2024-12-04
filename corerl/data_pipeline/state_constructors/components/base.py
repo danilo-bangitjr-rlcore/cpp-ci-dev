@@ -5,7 +5,7 @@ from omegaconf import MISSING
 from corerl.utils.hydra import Group
 from corerl.data_pipeline.state_constructors.interface import TransformCarry
 
-class StateTransform(Protocol):
+class Transform(Protocol):
     def __call__(self, carry: TransformCarry, ts: object | None) -> tuple[TransformCarry, object | None]: ...
 
 @dataclass
@@ -13,7 +13,7 @@ class BaseTransformConfig:
     name: str = MISSING
 
 sc_group = Group[
-    [], StateTransform,
+    [], Transform,
 # As far as I am aware, there is no way to do group overrides
 # in a nested list of lists of groups.
 ]('sc')
