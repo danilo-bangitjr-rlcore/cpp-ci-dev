@@ -1,6 +1,7 @@
 from typing import Dict
 import numpy as np
 from torch import Tensor
+import torch
 from copy import deepcopy
 from math import isclose
 import pandas as pd
@@ -79,6 +80,49 @@ class ObsTransition:
         for f in fields(self):
             string += f"{f.name}: {getattr(self, f.name)}\n"
         return string
+
+
+@dataclass
+class ARGOS:
+    """
+    Dataclass for storing the information of a single step.
+    The acronym comes from the set of objects it holds (action, reward, gamma, observation, state)
+    Two of these make up a transition.
+    """
+    action: Tensor
+    reward: float
+    gamma: float
+    obs: Tensor
+    state: Tensor
+
+    def __eq__(self, other: object):
+        if not isinstance(other, ARGOS):
+            return False
+
+        return (
+                isclose(self.gamma, other.gamma)
+                and isclose(self.reward, other.reward)
+                and torch.equal(self.obs, other.obs)
+                and torch.equal(self.action, other.action)
+                and torch.equal(self.state, other.state)
+        )
+
+
+@dataclass
+class NewTransition:
+    prior: ARGOS
+    post: ARGOS
+    n_steps: int
+
+
+def __eq__(self, other: object):
+    if not isinstance(other, NewTransition):
+        return False
+    return (
+            self.prior == other.prior
+            and self.post == other.post
+            and self.n_steps == other.n_steps
+    )
 
 
 @dataclass
@@ -286,11 +330,12 @@ class PipelineFrame:
     data: pd.DataFrame
     missing_info: pd.DataFrame = field(init=False)
     caller_code: CallerCode
-    data_gap: bool = False  # Revan: set by data
-    terminate: bool = False  # Revan: IDK where these will come from yet
-    truncate: bool = False  # Revan: IDK where these will come from yet
+    action_tags: list[str] = field(default_factory=list)
+    obs_tags: list[str] = field(default_factory=list)
+    state_tags: list[str] = field(default_factory=list)
+    reward_tags: list[str] = field(default_factory=list)
     temporal_state: TemporalState = field(default_factory=dict)
-    transitions: list[Transition] | None = None
+    transitions: list[NewTransition] | None = None
 
     def __post_init__(self):
         missing_info = pd.DataFrame(index=self.data.index, dtype=SparseMissingType)
