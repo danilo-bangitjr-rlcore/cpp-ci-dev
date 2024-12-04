@@ -1,8 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import warnings
 import datetime
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any, Callable
 from omegaconf import MISSING
 from pandas import DataFrame
@@ -13,11 +13,11 @@ from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
 from corerl.data_pipeline.state_constructors.sc import StateConstructor
 
-from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, TemporalState
-from corerl.utils.hydra import interpolate
+from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, StageCode, TemporalState
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,6 @@ WARMUP = 0
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
-type WarmupPruner = Callable[[PipelineFrame, int], PipelineFrame]
 
 
 @dataclass
@@ -33,8 +32,7 @@ class PipelineConfig:
     tags: list[TagConfig] = MISSING
 
     obs_interval_minutes: float = MISSING
-    state_constructor: Any = MISSING
-    agent_transition_creator: Any = interpolate('{agent_transition_creator}')
+    agent_transition_creator: Any = field(default_factory=DummyTransitionCreatorConfig)
 
 
 def invoke_stage_per_tag[T](carry: T, stage: Mapping[TagName, PipelineStage[T]]) -> T:
@@ -42,6 +40,12 @@ def invoke_stage_per_tag[T](carry: T, stage: Mapping[TagName, PipelineStage[T]])
         carry = f(carry, tag)
 
     return carry
+
+
+@dataclass
+class PipelineReturn:
+    df: DataFrame
+    transitions: list[NewTransition] | None
 
 
 class Pipeline:
@@ -74,6 +78,14 @@ class Pipeline:
 
         self.valid_thresh: datetime.timedelta = datetime.timedelta(minutes=cfg.obs_interval_minutes)
 
+        self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
+            StageCode.BOUNDS:  lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
+            StageCode.ODDITY:  lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
+            StageCode.IMPUTER: lambda pf: invoke_stage_per_tag(pf, self.imputers),
+            StageCode.SC:      lambda pf: invoke_stage_per_tag(pf, self.state_constructors),
+            StageCode.TC:      self.transition_creator,
+        }
+
     def _init_temporal_state(self, pf: PipelineFrame, reset_ts: bool = False):
         ts = self.ts_dict[pf.caller_code]
         if ts is None or reset_ts:
@@ -93,20 +105,26 @@ class Pipeline:
     def _save_ts(self, ts: TemporalState, caller_code: CallerCode):
         self.ts_dict[caller_code] = ts
 
-    def __call__(self, data: DataFrame,
-                 caller_code: CallerCode,
-                 reset_temporal_state: bool = False) -> list[NewTransition]:
+    def __call__(
+            self, data: DataFrame,
+            caller_code: CallerCode,
+            reset_temporal_state: bool = False,
+            stages: Sequence[StageCode] | None = None,
+    ) -> PipelineReturn:
+        if stages is None:
+            stages = tuple(s for s in StageCode)
 
         pf = PipelineFrame(data, caller_code)
         ts = self._init_temporal_state(pf, reset_temporal_state)
         pf.temporal_state = ts
-        pf = invoke_stage_per_tag(pf, self.missing_data_checkers)
-        pf = invoke_stage_per_tag(pf, self.bound_checkers)
-        pf = invoke_stage_per_tag(pf, self.outlier_detectors)
-        pf = invoke_stage_per_tag(pf, self.imputers)
-        pf = invoke_stage_per_tag(pf, self.state_constructors)
-        pf = self.transition_creator(pf)
+
+        for stage in stages:
+            pf = self._stage_invokers[stage](pf)
+
         self.dt_dict[caller_code] = pf.get_last_timestamp()
         self.ts_dict[caller_code] = pf.temporal_state
-        assert pf.transitions is not None
-        return pf.transitions
+
+        return PipelineReturn(
+            df=pf.data,
+            transitions=pf.transitions,
+        )
