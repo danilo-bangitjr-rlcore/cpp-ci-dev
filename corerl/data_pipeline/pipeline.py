@@ -17,14 +17,13 @@ from corerl.data_pipeline.transition_creators.factory import init_transition_cre
 from corerl.data_pipeline.state_constructors.sc import StateConstructor
 
 from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, TemporalState
-from corerl.data_pipeline.pipeline_utils import warmup_pruning, handle_data_gaps
 from corerl.utils.hydra import interpolate
 
 logger = logging.getLogger(__name__)
 
 WARMUP = 0
 
-type TagName = str # alias to clarify semantics of PipelineStage and stage dict
+type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
 type WarmupPruner = Callable[[PipelineFrame, int], PipelineFrame]
 
@@ -69,7 +68,6 @@ class Pipeline:
             cfg.name: StateConstructor(cfg.state_constructor) for cfg in self.tags
         }
 
-        self.warmup_pruning: WarmupPruner = warmup_pruning
         self.ts_dict: dict = {caller_code: None for caller_code in CallerCode}
         self.dt_dict: dict = {caller_code: None for caller_code in CallerCode}
 
@@ -105,16 +103,9 @@ class Pipeline:
         pf = invoke_stage_per_tag(pf, self.bound_checkers)
         pf = invoke_stage_per_tag(pf, self.outlier_detectors)
         pf = invoke_stage_per_tag(pf, self.imputers)
-        pfs = handle_data_gaps(pf)
-        transitions: list[NewTransition] = []
-        for gapless_pf in pfs:
-            gapless_pf = self.transition_creator(gapless_pf)
-            gapless_pf = invoke_stage_per_tag(gapless_pf, self.state_constructors)
-            gapless_pf = self.warmup_pruning(gapless_pf, WARMUP)
-            assert gapless_pf.transitions is not None
-            transitions += gapless_pf.transitions
-
+        pf = invoke_stage_per_tag(pf, self.state_constructors)
+        pf = self.transition_creator(pf)
         self.dt_dict[caller_code] = pf.get_last_timestamp()
         self.ts_dict[caller_code] = pf.temporal_state
-
-        return transitions
+        assert pf.transitions is not None
+        return pf.transitions
