@@ -84,10 +84,15 @@ class ObsTransition:
 
 @dataclass
 class ARGOS:
+    """
+    Dataclass for storing the information of a single step.
+    The acronym comes from the set of objects it holds (action, reward, gamma, observation, state)
+    Two of these make up a transition.
+    """
+    action: Tensor
+    reward: float
     gamma: float
     obs: Tensor
-    reward: float
-    action: Tensor
     state: Tensor
 
     def __eq__(self, other: object):
@@ -110,11 +115,13 @@ class NewTransition:
     n_steps: int
 
 
-def transitions_equal(t0: NewTransition, t1: NewTransition):
+def __eq__(self, other: object):
+    if not isinstance(other, NewTransition):
+        return False
     return (
-            t0.prior == t1.prior
-            and t0.post == t1.post
-            and t0.n_steps == t1.n_steps
+            self.prior == other.prior
+            and self.post == other.post
+            and self.n_steps == other.n_steps
     )
 
 
