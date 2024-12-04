@@ -6,7 +6,7 @@ import numpy as np
 from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
-from corerl.data_pipeline.utils import update_missing_info_col
+from corerl.data_pipeline.utils import update_missing_info
 
 
 @dataclass
@@ -66,17 +66,18 @@ class EMAFilter(BaseOddityFilter):
         tag_ts = self._get_tag_ts(stage_ts, tag)
         tag_data = pf.data[tag].to_numpy()
 
-        if update_stats:
-            _update_stats(tag_data, tag_ts)
+        if update_stats: _update_stats(tag_data, tag_ts)
 
+        # get filter mask
         oddity_mask = _get_oddity_mask(x=tag_data, mu=tag_ts.ema(), var=tag_ts.emv(), tolerance=self.tolerance)
         post_warmup_mask = _get_post_warmup_mask(prev_n_obs=tag_ts.n_obs, data_len=len(tag_data), warmup=self.warmup)
         filter_mask = oddity_mask & post_warmup_mask
 
-        update_missing_info_col(
-            missing_info=pf.missing_info, name=tag, missing_type_mask=filter_mask, new_val=MissingType.OUTLIER
-        )
+        # update missing info and set nans
+        update_missing_info(pf.missing_info, name=tag, missing_mask=filter_mask, new_val=MissingType.OUTLIER)
         tag_data[filter_mask] = np.nan
+
+        # update temporal state
         tag_ts.n_obs += len(tag_data)
 
         return pf
