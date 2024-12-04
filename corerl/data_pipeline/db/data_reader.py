@@ -48,7 +48,19 @@ class DataReader:
         missing_cols = set(names) - set(sensor_data.columns)
         sensor_data[list(missing_cols)] = np.nan
 
-        return sensor_data
+        t = start_time
+        while t <= end_time:
+            if t not in sensor_data.index:
+                idx = pd.DatetimeIndex([t])
+
+                # type erasure because pandas...
+                cols: Any = names
+                row = pd.DataFrame([[np.nan] * len(names)], columns=cols, index=idx)
+                sensor_data = pd.concat((sensor_data, row), axis=0, copy=False)
+
+            t += bucket_width
+
+        return sensor_data.sort_index()
 
     def single_aggregated_read(
         self,
