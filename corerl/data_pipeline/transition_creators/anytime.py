@@ -115,9 +115,9 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         """
         Restores the state of the transition creator from the temporal state (tc_ts).
         This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.rags_list
-        If there are GORASs in tc_ts.rags_list, then there were GORASs that did not get processed in the last call of
-        the transition creator. If there was not a datagap, we continue processing these GORASs, so this function
-        will return dw_rags. If the previously processed pipeframe had a datagap,
+        If there are RAGSs in tc_ts.rags_list, then there were RAGSs that did not get processed in the last call of
+        the transition creator. If there was not a datagap, we continue processing these RAGSs, so this function
+        will return rags_list. If the previously processed pipeframe had a datagap,
         then we need to add these transitions.
         """
 
@@ -147,11 +147,11 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
     def _make_transitions(
             self, rags_list: list[RAGS]) -> list[NewTransition]:
         """
-        Makes transitions for a list of GORAS.
-        NOTE that the first GORAS may have a different action than the rest.
+        Makes transitions for a list of RAGS.
+        NOTE that the first RAGS may have a different action than the rest.
         """
         _check_actions_valid(rags_list)
-        dw_transitions = []
+        transitions = []
 
         assert len(rags_list) <= self.max_boot_len + 1
 
@@ -176,14 +176,14 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                     state=boot_rags.state,
                 )
                 transition = NewTransition(prior_rags, post_rags, n_steps)
-                dw_transitions.append(transition)
+                transitions.append(transition)
 
             n_step_reward = prior_rags.reward + boot_rags.gamma * n_step_reward
             n_step_gamma *= boot_rags.gamma
 
-        dw_transitions.reverse()
+        transitions.reverse()
 
-        return dw_transitions
+        return transitions
 
 
 def _get_tags(df: pd.DataFrame, tags: list[str] | str) -> torch.Tensor:
