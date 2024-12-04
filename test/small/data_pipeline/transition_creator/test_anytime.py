@@ -3,7 +3,8 @@ import pandas as pd
 import datetime
 from torch import Tensor
 
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, ARGOS, StageCode, TemporalState
+from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, RAGS, StageCode, TemporalState
 from corerl.data_pipeline.transition_creators.anytime import (
     AnytimeTransitionCreator,
     AnytimeTransitionCreatorConfig,
@@ -11,11 +12,10 @@ from corerl.data_pipeline.transition_creators.anytime import (
 )
 
 
-def get_test_prior_argos(state: Tensor) -> ARGOS:
-    return ARGOS(
+def get_test_prior_argos(state: Tensor) -> RAGS:
+    return RAGS(
         state=state,
         gamma=0,
-        obs=state,
         action=Tensor([0.]),
         reward=0,
     )
@@ -43,17 +43,26 @@ def test_anytime_1():
     pf = PipelineFrame(
         df,
         caller_code=CallerCode.OFFLINE,
-        action_tags=['action'],
-        obs_tags=['state'],
-        state_tags=['state'],
     )
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
 
     cfg = AnytimeTransitionCreatorConfig(
         steps_per_decision=10,
         gamma=0.9,
         n_step=None,
     )
-    tc = AnytimeTransitionCreator(cfg)
+    tc = AnytimeTransitionCreator(cfg, tags)
 
     pf = tc(pf)
     transitions = pf.transitions
@@ -63,9 +72,8 @@ def test_anytime_1():
 
     expected = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([1.]),
-            obs=Tensor([1.]),
             action=Tensor([0.]),
             reward=1,
             gamma=0.9
@@ -91,25 +99,33 @@ def test_anytime_2_n_step_1():
     pf = PipelineFrame(
         df,
         caller_code=CallerCode.OFFLINE,
-        action_tags=['action'],
-        obs_tags=['state'],
-        state_tags=['state'],
     )
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
     cfg = AnytimeTransitionCreatorConfig(
         steps_per_decision=10,
         gamma=0.9,
         n_step=1,
     )
-    tc = AnytimeTransitionCreator(cfg)
+    tc = AnytimeTransitionCreator(cfg, tags)
     transitions = tc(pf).transitions
     assert isinstance(transitions, list)
     assert len(transitions) == 3
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([1.]),
-            obs=Tensor([1.]),
             action=Tensor([0.]),
             reward=1,
             gamma=0.9
@@ -122,9 +138,8 @@ def test_anytime_2_n_step_1():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([2.]),
-            obs=Tensor([2.]),
             action=Tensor([0.]),
             reward=1.0,
             gamma=0.9
@@ -137,9 +152,8 @@ def test_anytime_2_n_step_1():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([2.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([3.]),
-            obs=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.0,
             gamma=0.9
@@ -167,18 +181,26 @@ def test_anytime_3_action_change():
     pf = PipelineFrame(
         df,
         caller_code=CallerCode.OFFLINE,
-        action_tags=['action'],
-        obs_tags=['state'],
-        state_tags=['state'],
     )
-
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
     cfg = AnytimeTransitionCreatorConfig(
         steps_per_decision=3,
         gamma=0.9,
         n_step=None,
     )
 
-    tc = AnytimeTransitionCreator(cfg)
+    tc = AnytimeTransitionCreator(cfg, tags)
     transitions = tc(pf).transitions
     assert isinstance(transitions, list)
     assert len(transitions) == 4
@@ -186,9 +208,8 @@ def test_anytime_3_action_change():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([1.]),
-            obs=Tensor([1.]),
             action=Tensor([0.]),
             reward=1.0,
             gamma=0.9
@@ -201,9 +222,8 @@ def test_anytime_3_action_change():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([4.]),
-            obs=Tensor([4.]),
             action=Tensor([1.]),
             reward=2.71,
             gamma=0.9 ** 3,
@@ -216,9 +236,8 @@ def test_anytime_3_action_change():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([2.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([4.]),
-            obs=Tensor([4.]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
@@ -231,9 +250,8 @@ def test_anytime_3_action_change():
     t_3 = transitions[3]
     expected_3 = NewTransition(
         prior=get_test_prior_argos(Tensor([3.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([4.]),
-            obs=Tensor([4.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
@@ -258,27 +276,36 @@ def test_anytime_4_only_dp():
     pf = PipelineFrame(
         df,
         caller_code=CallerCode.OFFLINE,
-        action_tags=['action'],
-        obs_tags=['state'],
-        state_tags=['state']
+    )
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
+
+    cfg = AnytimeTransitionCreatorConfig(
+        steps_per_decision=8,
+        gamma=0.9,
+        n_step=None,
+        only_dp_transitions=True
     )
 
-    cfg = AnytimeTransitionCreatorConfig()
-    cfg.steps_per_decision = 8
-    cfg.gamma = 0.9
-    cfg.n_step = None
-    cfg.only_dp_transitions = True
-
-    tc = AnytimeTransitionCreator(cfg)
+    tc = AnytimeTransitionCreator(cfg, tags)
     transitions = tc(pf).transitions
     assert isinstance(transitions, list)
     assert len(transitions) == 1
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([8.]),
-            obs=Tensor([8.]),
             action=Tensor([0.]),
             reward=5.6953279,
             gamma=0.9 ** 8,
@@ -305,18 +332,26 @@ def test_anytime_ts_1():
     pf = PipelineFrame(
         df,
         caller_code=CallerCode.OFFLINE,
-        action_tags=['action'],
-        obs_tags=['state'],
-        state_tags=['state'],
     )
-
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
     cfg = AnytimeTransitionCreatorConfig(
         steps_per_decision=10,
         gamma=0.9,
         n_step=None,
     )
 
-    tc = AnytimeTransitionCreator(cfg)
+    tc = AnytimeTransitionCreator(cfg, tags)
     pf = tc(pf)
     assert pf.temporal_state[StageCode.TC] is not None
     transitions = pf.transitions
@@ -325,9 +360,8 @@ def test_anytime_ts_1():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([1.]),
-            obs=Tensor([1.]),
             action=Tensor([0.]),
             reward=1.,
             gamma=0.9,
@@ -347,10 +381,8 @@ def test_anytime_ts_1():
     pf_2 = PipelineFrame(
         df,
         caller_code=CallerCode.OFFLINE,
-        action_tags=['action'],
-        obs_tags=['state'],
-        state_tags=['state'],
     )
+
     pf_2.temporal_state[StageCode.TC] = pf.temporal_state[StageCode.TC]
 
     transitions = tc(pf_2).transitions
@@ -359,9 +391,8 @@ def test_anytime_ts_1():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([5.]),
-            obs=Tensor([5.]),
             action=Tensor([1.]),
             reward=3.439,
             gamma=0.9 ** 4,
@@ -374,9 +405,8 @@ def test_anytime_ts_1():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([2.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([5.]),
-            obs=Tensor([5.]),
             action=Tensor([1.]),
             reward=2.71,
             gamma=0.9 ** 3,
@@ -389,9 +419,8 @@ def test_anytime_ts_1():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([3.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([5.]),
-            obs=Tensor([5.]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
@@ -404,9 +433,8 @@ def test_anytime_ts_1():
     t_3 = transitions[3]
     expected_3 = NewTransition(
         prior=get_test_prior_argos(Tensor([4.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([5.]),
-            obs=Tensor([5.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
@@ -432,10 +460,19 @@ def test_anytime_ts_2_data_gap():
     pf = PipelineFrame(
         df,
         caller_code=CallerCode.OFFLINE,
-        action_tags=['action'],
-        obs_tags=['state'],
-        state_tags=['state']
     )
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
 
     cfg = AnytimeTransitionCreatorConfig(
         steps_per_decision=10,
@@ -443,7 +480,7 @@ def test_anytime_ts_2_data_gap():
         n_step=None,
     )
 
-    tc = AnytimeTransitionCreator(cfg)
+    tc = AnytimeTransitionCreator(cfg, tags)
 
     pf = tc(pf)
     transitions = pf.transitions
@@ -452,9 +489,8 @@ def test_anytime_ts_2_data_gap():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([1.]),
-            obs=Tensor([1.]),
             action=Tensor([0.]),
             reward=1,
             gamma=0.9 ** 1,
@@ -467,9 +503,8 @@ def test_anytime_ts_2_data_gap():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([3.]),
-            obs=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
@@ -482,9 +517,8 @@ def test_anytime_ts_2_data_gap():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([2.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([3.]),
-            obs=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
@@ -497,9 +531,8 @@ def test_anytime_ts_2_data_gap():
     t_3 = transitions[3]
     expected_3 = NewTransition(
         prior=get_test_prior_argos(Tensor([5.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([6.]),
-            obs=Tensor([6.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
@@ -526,18 +559,26 @@ def test_anytime_ts_3_data_gap_with_action_change():
     pf = PipelineFrame(
         df,
         caller_code=CallerCode.OFFLINE,
-        action_tags=['action'],
-        obs_tags=['state'],
-        state_tags=['state']
     )
-
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
     cfg = AnytimeTransitionCreatorConfig(
         steps_per_decision=10,
         gamma=0.9,
         n_step=None,
     )
 
-    tc = AnytimeTransitionCreator(cfg)
+    tc = AnytimeTransitionCreator(cfg, tags)
     transitions = tc(pf).transitions
     assert isinstance(transitions, list)
 
@@ -545,9 +586,8 @@ def test_anytime_ts_3_data_gap_with_action_change():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([1.]),
-            obs=Tensor([1.]),
             action=Tensor([0.]),
             reward=1,
             gamma=0.9 ** 1,
@@ -560,9 +600,8 @@ def test_anytime_ts_3_data_gap_with_action_change():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([3.]),
-            obs=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
@@ -575,9 +614,8 @@ def test_anytime_ts_3_data_gap_with_action_change():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([2.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([3.]),
-            obs=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
@@ -590,9 +628,8 @@ def test_anytime_ts_3_data_gap_with_action_change():
     t_3 = transitions[3]
     expected_3 = NewTransition(
         prior=get_test_prior_argos(Tensor([5.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([6.]),
-            obs=Tensor([6.]),
             action=Tensor([2.]),
             reward=1.,
             gamma=0.9,
@@ -612,7 +649,21 @@ def test_anytime_online_1():
         gamma=0.9,
         n_step=None,
     )
-    tc = AnytimeTransitionCreator(cfg)
+
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
+
+    tc = AnytimeTransitionCreator(cfg, tags)
 
     tc_ts: TemporalState = {
         StageCode.TC: None
@@ -627,9 +678,6 @@ def test_anytime_online_1():
         pf = PipelineFrame(
             df,
             caller_code=CallerCode.OFFLINE,
-            action_tags=['action'],
-            obs_tags=['state'],
-            state_tags=['state'],
             temporal_state=tc_ts
         )
 
@@ -647,9 +695,8 @@ def test_anytime_online_1():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([3.]),
-            obs=Tensor([3.]),
             action=Tensor([1.]),
             reward=2.71,
             gamma=0.9 ** 3,
@@ -662,9 +709,8 @@ def test_anytime_online_1():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([3.]),
-            obs=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
@@ -677,9 +723,8 @@ def test_anytime_online_1():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([2.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([3.]),
-            obs=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
@@ -699,8 +744,20 @@ def test_anytime_online_2():
         gamma=0.9,
         n_step=None,
     )
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
 
-    tc = AnytimeTransitionCreator(cfg)
+    tc = AnytimeTransitionCreator(cfg, tags)
 
     tc_ts: TemporalState = {
         StageCode.TC: None
@@ -720,9 +777,6 @@ def test_anytime_online_2():
         pf = PipelineFrame(
             df,
             caller_code=CallerCode.OFFLINE,
-            action_tags=['action'],
-            obs_tags=['state'],
-            state_tags=['state'],
             temporal_state=tc_ts
         )
 
@@ -740,9 +794,8 @@ def test_anytime_online_2():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([2.]),
-            obs=Tensor([2.]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
@@ -755,9 +808,8 @@ def test_anytime_online_2():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([2.]),
-            obs=Tensor([2.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
@@ -778,7 +830,21 @@ def test_anytime_online_3():
         gamma=0.9,
         n_step=None,
     )
-    tc = AnytimeTransitionCreator(cfg)
+
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
+
+    tc = AnytimeTransitionCreator(cfg, tags)
 
     tc_ts: TemporalState = {
         StageCode.TC: None
@@ -798,9 +864,6 @@ def test_anytime_online_3():
         pf = PipelineFrame(
             df,
             caller_code=CallerCode.OFFLINE,
-            action_tags=['action'],
-            obs_tags=['state'],
-            state_tags=['state'],
             temporal_state=tc_ts
         )
 
@@ -819,9 +882,8 @@ def test_anytime_online_3():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([2.]),
-            obs=Tensor([2.]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
@@ -834,9 +896,8 @@ def test_anytime_online_3():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([2.]),
-            obs=Tensor([2.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
@@ -857,7 +918,20 @@ def test_anytime_online_4():
         n_step=1,
     )
 
-    tc = AnytimeTransitionCreator(cfg)
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
+
+    tc = AnytimeTransitionCreator(cfg, tags)
 
     tc_ts: TemporalState = {
         StageCode.TC: None
@@ -877,9 +951,6 @@ def test_anytime_online_4():
         pf = PipelineFrame(
             df,
             caller_code=CallerCode.OFFLINE,
-            action_tags=['action'],
-            obs_tags=['state'],
-            state_tags=['state'],
             temporal_state=tc_ts
         )
 
@@ -898,9 +969,8 @@ def test_anytime_online_4():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([1.]),
-            obs=Tensor([1]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
@@ -912,9 +982,8 @@ def test_anytime_online_4():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([2.]),
-            obs=Tensor([2.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
@@ -926,9 +995,8 @@ def test_anytime_online_4():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([2.])),
-        post=ARGOS(
+        post=RAGS(
             state=Tensor([3.]),
-            obs=Tensor([3.]),
             action=Tensor([2.]),
             reward=1.,
             gamma=0.9,
