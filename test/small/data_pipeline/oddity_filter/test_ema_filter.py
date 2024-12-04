@@ -8,6 +8,79 @@ from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode
 from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilter, EMAFilterConfig
 
 
+def test_leading_nan_data():
+    cfg = EMAFilterConfig(alpha=0.99)
+    outlier_detector = EMAFilter(cfg)
+
+    name = "sensor_x"
+    values = np.array([np.nan] + [1.0]*10 + [5.0]) # 5 at the end is outlier
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    pf = outlier_detector(pf, name)
+    filtered_data = pf.data
+
+    assert np.isnan(filtered_data[name].iloc[0]) # first val remains nan
+    assert not np.isnan(filtered_data[name].iloc[1:10]).all()
+    assert np.isnan(filtered_data[name].iloc[-1]) # filter outlier
+
+def test_trailing_nan_data():
+    cfg = EMAFilterConfig(alpha=0.99)
+    outlier_detector = EMAFilter(cfg)
+
+    name = "sensor_x"
+    values = np.array([1.0]*10 + [5.0] + [np.nan]) # 5 at the end is outlier
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    pf = outlier_detector(pf, name)
+    filtered_data = pf.data
+
+    assert not np.isnan(filtered_data[name].iloc[:10]).all()
+    assert np.isnan(filtered_data[name].iloc[-2]) # filter outlier
+    assert np.isnan(filtered_data[name].iloc[-1]) # trailing nan remains nan
+
+def test_full_nan_data():
+    cfg = EMAFilterConfig(alpha=0.99)
+    outlier_detector = EMAFilter(cfg)
+    name = "sensor_x"
+
+    values = np.array([np.nan]*10) # full nan
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    pf = outlier_detector(pf, name)
+    filtered_data = pf.data
+
+    assert np.isnan(filtered_data[name]).all()
+
+    # verify oddity filter still works as expected after receiving all nans
+    values = np.array([1.0]*10 + [5.0]) # 5 at the end is outlier
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    pf = outlier_detector(pf, name)
+    filtered_data = pf.data
+
+    assert not np.isnan(filtered_data[name].iloc[:10]).all()
+    assert np.isnan(filtered_data[name].iloc[-1]) # filter outlier
+
+def test_interspersed_nan_data():
+    cfg = EMAFilterConfig(alpha=0.99)
+    outlier_detector = EMAFilter(cfg)
+    name = "sensor_x"
+
+    values = np.array([np.nan, 1, 1, np.nan, 1, np.nan, np.nan, 1, 1, 1, 1, 1, 1, 1, 5, np.nan])
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    # feed oddity filter
+    pf = outlier_detector(pf, name)
+
+    expected = np.array([np.nan, 1, 1, np.nan, 1, np.nan, np.nan, 1, 1, 1, 1, 1, 1, 1, np.nan, np.nan])
+    filtered_data = pf.data[name].to_numpy()
+    assert np.allclose(filtered_data, expected, equal_nan=True)
+
 def test_obvious_outlier_in_first_batch():
     """
     The initial variance is calculated using the first batch,
