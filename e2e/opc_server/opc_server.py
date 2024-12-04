@@ -158,7 +158,7 @@ async def connect(cert_path: Path, env_cfg_path: Path):
     )
 
     # load the servers pub+private keys
-    await server.load_certificate(cert_path / "certificates/server/cert.der")
+    await server.load_certificate(str(cert_path / "certificates/server/cert.der"))
     await server.load_private_key(
         cert_path / "certificates/server/key.pem", password=None, format=".pem"
     )
