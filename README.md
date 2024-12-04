@@ -11,7 +11,7 @@ We are using the [`uv` Python package and project manager](https://docs.astral.s
 ```bash
 # create virtual environment
 uv venv --python 3.12
-source ./venv/bin/activate
+source .venv/bin/activate
 
 # install project requirements
 uv pip sync requirements.txt
@@ -28,6 +28,9 @@ uv run pytest -n auto test/small
 # regenerate project requirements
 uv pip compile --extra=dev pyproject.toml -o requirements.txt
 ```
+
+If using VSCode, ensure that the python interpreter is set to the virtual environment initialized in the above steps.
+- `ctrl+shift+p`, "Python: Select Interpreter" > `./.venv/bin/python`.
 
 ## Running & Configs
 This repo uses [hydra](https://hydra.cc/docs/intro/). I recommend you read their tutorials starting  [here](https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/). 
