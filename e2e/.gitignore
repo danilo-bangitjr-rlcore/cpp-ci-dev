@@ -1,0 +1,4 @@
+*.pem
+*.der
+env.yaml
+telegraf/env.yaml
