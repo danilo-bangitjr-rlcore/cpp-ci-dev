@@ -112,7 +112,7 @@ class Pipeline:
             stages: Sequence[StageCode] | None = None,
     ) -> PipelineReturn:
         if stages is None:
-            stages = tuple(s for s in StageCode)
+            stages = (StageCode.BOUNDS, StageCode.ODDITY, StageCode.IMPUTER, StageCode.SC, StageCode.TC)
 
         pf = PipelineFrame(data, caller_code)
         ts = self._init_temporal_state(pf, reset_temporal_state)
