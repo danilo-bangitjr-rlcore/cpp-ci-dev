@@ -7,6 +7,41 @@ from corerl.data_pipeline.datatypes import CallerCode, MissingType, PipelineFram
 from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilter, EMAFilterConfig
 
 
+def test_filter_warmup():
+    name = "sensor_x"
+
+    # filter with no warmup
+    cfg = EMAFilterConfig(alpha=0.99, warmup=0)
+    outlier_detector = EMAFilter(cfg)
+
+    values = np.array([np.nan, 1, 1, np.nan, 5, np.nan, np.nan, 1, 1, 1, 10, np.nan])
+    expected = np.array([np.nan, 1, 1, np.nan, np.nan, np.nan, np.nan, 1, 1, 1, np.nan, np.nan])
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    # feed oddity filter
+    pf = outlier_detector(pf, name)
+
+    filtered_data = pf.data[name].to_numpy()
+    assert np.allclose(filtered_data, expected, equal_nan=True)
+
+
+    # filter with warmup = 5
+    cfg = EMAFilterConfig(alpha=0.99, warmup=5)
+    outlier_detector = EMAFilter(cfg)
+
+    values = np.array([np.nan, 1, 1, np.nan, 5, np.nan, np.nan, 1, 1, 1, 10, np.nan])
+    # 5 should not be removed because warmup has not finished
+    expected = np.array([np.nan, 1, 1, np.nan, 5, np.nan, np.nan, 1, 1, 1, np.nan, np.nan])
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    # feed oddity filter
+    pf = outlier_detector(pf, name)
+
+    filtered_data = pf.data[name].to_numpy()
+    assert np.allclose(filtered_data, expected, equal_nan=True)
+
 def test_leading_nan_data():
     cfg = EMAFilterConfig(alpha=0.99)
     outlier_detector = EMAFilter(cfg)
