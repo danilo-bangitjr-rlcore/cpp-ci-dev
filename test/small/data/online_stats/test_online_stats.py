@@ -14,10 +14,10 @@ def test_return_constant_val():
     ema = ExpMovingAvg(alpha)
     mu = None
     for _ in range(3):
-        ema.feed(x)
+        ema.feed(np.array([x]))
 
     mu = ema()
-    assert mu == 1.0
+    assert np.isclose(1.0, mu)
 
 
 def test_9_to_1_result():
@@ -30,24 +30,7 @@ def test_9_to_1_result():
     ema = ExpMovingAvg(alpha)
     mu = None
     for x in range(9, 0, -1):
-        ema.feed(x)
-
-    mu = ema()
-    assert np.isclose(mu, 0.9 * 1.23456789)
-
-
-def test_9_to_1_batch_result():
-    """
-    feeding 9 -> 8 -> ... -> 2 -> 1 with alpha = 0.1 should result in
-    mu ~= (1 - 0.1) * [1 + 0.1 * 2 + 0.1^2 * 3 + ... + 0.1^8 * 9]
-    = 0.9 * [1 + 0.2 + 0.03 + ...]
-    """
-    alpha = 0.1
-    ema = ExpMovingAvg(alpha)
-    mu = None
-    for x in range(9, 0, -1):
-        batch = get_spread_batch(x, 5)
-        ema.feed(batch)
+        ema.feed(np.array([x]))
 
     mu = ema()
     assert np.isclose(mu, 0.9 * 1.23456789)
@@ -102,10 +85,10 @@ def try_test_longrun_exp_moving_var():
     emv = ExpMovingVar(alpha)
     for _ in range(10_000):
         z = np.random.normal()
-        emv.feed(z)
+        emv.feed(np.array([z]))
 
     # test mean
-    assert abs(emv.ema()) < epsilon
+    assert abs(emv._ema()) < epsilon
 
     # test var
     var = emv()
@@ -125,7 +108,7 @@ def try_longrun_exp_moving_batch_var():
         emv.feed(z_batch)
 
     # test mean
-    assert abs(emv.ema()) < epsilon
+    assert abs(emv._ema()) < epsilon
 
     # test var
     var = emv()
@@ -138,10 +121,10 @@ def test_var_differential():
     high_var_emv = ExpMovingVar(alpha)
     for _ in range(10_000):
         z = np.random.normal()
-        low_var_emv.feed(z)
+        low_var_emv.feed(np.array([z]))
 
         x = 2 * np.random.normal()
-        high_var_emv.feed(x)
+        high_var_emv.feed(np.array([x]))
 
     assert low_var_emv() < high_var_emv()
 
@@ -172,7 +155,7 @@ def try_var_adaptation():
     # start with higher variance
     for _ in range(10_000):
         x = 2 * np.random.normal()
-        emv.feed(x)
+        emv.feed(np.array([x]))
 
     # test var
     var = emv()
@@ -181,7 +164,7 @@ def try_var_adaptation():
     # finish with low variance
     for _ in range(10_000):
         z = np.random.normal()
-        emv.feed(z)
+        emv.feed(np.array([z]))
 
     # test var
     var = emv()

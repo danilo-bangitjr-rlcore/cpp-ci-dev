@@ -3,9 +3,160 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import MissingType
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode
+from corerl.data_pipeline.datatypes import CallerCode, MissingType, PipelineFrame
 from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilter, EMAFilterConfig
+
+
+def test_filter_warmup():
+    name = "sensor_x"
+
+    # filter with no warmup
+    cfg = EMAFilterConfig(alpha=0.99, warmup=0)
+    outlier_detector = EMAFilter(cfg)
+
+    values = np.array([np.nan, 1, 1, np.nan, 5, np.nan, np.nan, 1, 1, 1, 10, np.nan])
+    expected = np.array([np.nan, 1, 1, np.nan, np.nan, np.nan, np.nan, 1, 1, 1, np.nan, np.nan])
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    # feed oddity filter
+    pf = outlier_detector(pf, name)
+
+    filtered_data = pf.data[name].to_numpy()
+    assert np.allclose(filtered_data, expected, equal_nan=True)
+
+
+    # filter with warmup = 5
+    cfg = EMAFilterConfig(alpha=0.99, warmup=5)
+    outlier_detector = EMAFilter(cfg)
+
+    values = np.array([np.nan, 1, 1, np.nan, 5, np.nan, np.nan, 1, 1, 1, 10, np.nan])
+    # 5 should not be removed because warmup has not finished
+    expected = np.array([np.nan, 1, 1, np.nan, 5, np.nan, np.nan, 1, 1, 1, np.nan, np.nan])
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    # feed oddity filter
+    pf = outlier_detector(pf, name)
+
+    filtered_data = pf.data[name].to_numpy()
+    assert np.allclose(filtered_data, expected, equal_nan=True)
+
+def test_leading_nan_data():
+    cfg = EMAFilterConfig(alpha=0.99)
+    outlier_detector = EMAFilter(cfg)
+
+    name = "sensor_x"
+    values = np.array([np.nan] + [1.0] * 10 + [5.0])  # 5 at the end is outlier
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    pf = outlier_detector(pf, name)
+    filtered_data = pf.data
+
+    assert np.isnan(filtered_data[name].iloc[0])  # first val remains nan
+    assert not np.isnan(filtered_data[name].iloc[1:10]).all()
+    assert np.isnan(filtered_data[name].iloc[-1])  # filter outlier
+
+    missing_info = pf.missing_info
+    # should not mark existing nan as oddity
+    assert missing_info["sensor_x"].iloc[0] == MissingType.NULL
+    assert missing_info["sensor_x"].iloc[-1] == MissingType.OUTLIER
+
+
+def test_trailing_nan_data():
+    cfg = EMAFilterConfig(alpha=0.99)
+    outlier_detector = EMAFilter(cfg)
+
+    name = "sensor_x"
+    values = np.array([1.0] * 10 + [5.0] + [np.nan])  # 5 at the end is outlier
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    pf = outlier_detector(pf, name)
+    filtered_data = pf.data
+
+    assert not np.isnan(filtered_data[name].iloc[:10]).all()
+    assert np.isnan(filtered_data[name].iloc[-2])  # filter outlier
+    assert np.isnan(filtered_data[name].iloc[-1])  # trailing nan remains nan
+
+    missing_info = pf.missing_info
+    # should not mark existing nan as oddity
+    assert missing_info["sensor_x"].iloc[-1] == MissingType.NULL
+    assert missing_info["sensor_x"].iloc[-2] == MissingType.OUTLIER
+
+
+def test_full_nan_data():
+    cfg = EMAFilterConfig(alpha=0.99)
+    outlier_detector = EMAFilter(cfg)
+    name = "sensor_x"
+
+    values = np.array([np.nan] * 10)  # full nan
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    pf = outlier_detector(pf, name)
+    filtered_data = pf.data
+
+    assert np.isnan(filtered_data[name]).all()
+
+    # verify oddity filter still works as expected after receiving all nans
+    values = np.array([1.0] * 10 + [5.0])  # 5 at the end is outlier
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    pf = outlier_detector(pf, name)
+    filtered_data = pf.data
+
+    assert not np.isnan(filtered_data[name].iloc[:10]).all()
+    assert np.isnan(filtered_data[name].iloc[-1])  # filter outlier
+
+
+def test_interspersed_nan_data():
+    cfg = EMAFilterConfig(alpha=0.99)
+    outlier_detector = EMAFilter(cfg)
+    name = "sensor_x"
+
+    values = np.array([np.nan, 1, 1, np.nan, 1, np.nan, np.nan, 1, 1, 1, 1, 1, 1, 1, 5, np.nan])
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+
+    # feed oddity filter
+    pf = outlier_detector(pf, name)
+
+    expected = np.array([np.nan, 1, 1, np.nan, 1, np.nan, np.nan, 1, 1, 1, 1, 1, 1, 1, np.nan, np.nan])
+    filtered_data = pf.data[name].to_numpy()
+    assert np.allclose(filtered_data, expected, equal_nan=True)
+
+    missing_info = pf.missing_info
+    # should not mark existing nan as oddity
+    assert missing_info["sensor_x"].iloc[0] == MissingType.NULL
+    assert missing_info["sensor_x"].iloc[-2] == MissingType.OUTLIER
+
+
+def test_streamed_nans():
+    cfg = EMAFilterConfig(alpha=0.99)
+    outlier_detector = EMAFilter(cfg)
+    name = "sensor_x"
+
+    values = np.array([np.nan, 1, 1, np.nan, 1, np.nan, np.nan, 1, 1, 1, 1, 1, 1, 1, 5, np.nan])
+    expected = np.array([np.nan, 1, 1, np.nan, 1, np.nan, np.nan, 1, 1, 1, 1, 1, 1, 1, np.nan, np.nan])
+    expected_missing_types = np.array([MissingType.NULL] * len(values))
+    expected_missing_types[-2] = MissingType.OUTLIER
+
+    ts = {}
+    for in_val, expected_val, expected_missing_type in zip(values, expected, expected_missing_types, strict=True):
+        data = pd.DataFrame({name: [in_val]})
+        pf = PipelineFrame(data, CallerCode.ONLINE, temporal_state=ts)
+
+        # feed oddity filter
+        pf = outlier_detector(pf, name)
+        out_val = pf.data[name].to_numpy()[0]
+        assert np.isclose(out_val, expected_val, equal_nan=True)
+
+        missing_info = pf.missing_info
+        assert missing_info[name].iloc[0] == expected_missing_type
+        ts = pf.temporal_state
 
 
 def test_obvious_outlier_in_first_batch():

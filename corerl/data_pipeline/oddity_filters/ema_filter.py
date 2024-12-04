@@ -73,13 +73,14 @@ class EMAFilter(BaseOddityFilter):
         post_warmup_mask = _get_post_warmup_mask(prev_n_obs=tag_ts.n_obs, data_len=len(tag_data), warmup=self.warmup)
         filter_mask = oddity_mask & post_warmup_mask
 
+        # update number of observed points
+        tag_ts.n_obs += len(tag_data) - np.isnan(tag_data).sum()
+
         # update missing info and set nans
         update_missing_info(pf.missing_info, name=tag, missing_mask=filter_mask, new_val=MissingType.OUTLIER)
         tag_data[filter_mask] = np.nan
 
         # update temporal state
-        tag_ts.n_obs += len(tag_data)
-
         return pf
 
 
