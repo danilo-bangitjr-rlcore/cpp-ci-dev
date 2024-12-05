@@ -40,3 +40,9 @@ experiment:
   test_epochs : []
   offline_stat_keys: []
   online_stat_keys: []
+
+pipeline:
+  tags:
+    - name: "x"
+    - name: "y"
+    - name: "ang_vel"

@@ -31,5 +31,16 @@ agent:
     host: ''
     port: ''
 
+pipeline:
+  obs_interval_minutes: 5
+  db:
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: "password"
+    ip: "localhost"
+    port: 5433
+    db_name: "pytest"
+    sensor_table_name: "sensors"
+
 alerts:
 eval:

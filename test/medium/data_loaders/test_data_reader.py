@@ -6,24 +6,24 @@ from pandas import DataFrame, Series
 
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.db.data_writer import DataWriter
-from corerl.sql_logging.sql_logging import SQLEngineConfig
+from corerl.data_pipeline.db.data_reader import TagDBConfig
 from test.medium.data_loaders.test_data_writer import data_writer, write_n_random_vals  # noqa: F401
 from test.medium.data_loaders.utils import timescale_docker  # noqa: F401
 
 
 @pytest.fixture(scope="module")
 def data_reader(timescale_docker) -> Generator[DataReader, None, None]:  # noqa: F811
-    db_cfg = SQLEngineConfig(
+    db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",
         username="postgres",
         password="password",
         ip="localhost",
         port=5433,  # default is 5432, but we want to use different port for test db
+        db_name="pytest",
+        sensor_table_name="sensors",
     )
 
-    db_name = "pytest"
-    sensor_table_name = "sensors"
-    data_reader = DataReader(db_cfg=db_cfg, db_name=db_name, sensor_table_name=sensor_table_name)
+    data_reader = DataReader(db_cfg=db_cfg)
 
     yield data_reader
 

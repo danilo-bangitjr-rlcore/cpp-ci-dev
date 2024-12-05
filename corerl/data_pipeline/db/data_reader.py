@@ -2,6 +2,7 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, List, Literal, assert_never
+from omegaconf import MISSING
 
 import numpy as np
 import pandas as pd
@@ -14,11 +15,16 @@ from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 
 logger = logging.getLogger(__name__)
 
+@dataclass
+class TagDBConfig(SQLEngineConfig):
+    db_name: str = MISSING
+    sensor_table_name: str = MISSING
+
 
 class DataReader:
-    def __init__(self, db_cfg: SQLEngineConfig, db_name: str, sensor_table_name: str) -> None:
-        self.engine: Engine = get_sql_engine(db_data=db_cfg, db_name=db_name)
-        self.sensor_table_name = sensor_table_name
+    def __init__(self, db_cfg: TagDBConfig) -> None:
+        self.engine: Engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name)
+        self.sensor_table_name = db_cfg.sensor_table_name
         self.connection = try_connect(self.engine)
 
     def batch_aggregated_read(

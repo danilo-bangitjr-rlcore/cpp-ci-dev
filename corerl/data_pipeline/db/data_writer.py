@@ -2,9 +2,10 @@ import logging
 
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime, UTC
-from corerl.sql_logging.sql_logging import get_sql_engine, table_exists, SQLEngineConfig
+from corerl.sql_logging.sql_logging import get_sql_engine, table_exists
 from sqlalchemy import text, Engine
 from corerl.data_pipeline.db.utils import try_connect
+from corerl.data_pipeline.db.data_reader import TagDBConfig
 from typing import NamedTuple
 
 
@@ -23,14 +24,12 @@ class Point(NamedTuple):
 class DataWriter:
     def __init__(
         self,
-        db_cfg: SQLEngineConfig,
-        db_name: str,
-        sensor_table_name: str,
+        db_cfg: TagDBConfig,
         low_watermark: int = 1024,
         high_watermark: int = 2048,
     ) -> None:
-        self.engine: Engine = get_sql_engine(db_data=db_cfg, db_name=db_name)
-        self.sensor_table_name = sensor_table_name
+        self.engine: Engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name)
+        self.sensor_table_name = db_cfg.sensor_table_name
         self.host = "localhost"
         self.connection = try_connect(self.engine)
 

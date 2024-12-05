@@ -16,6 +16,7 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
 from corerl.data_pipeline.state_constructors.sc import StateConstructor
+from corerl.data_pipeline.db.data_reader import TagDBConfig
 
 from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, StageCode, TemporalState
 
@@ -25,12 +26,13 @@ WARMUP = 0
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
+type WarmupPruner = Callable[[PipelineFrame, int], PipelineFrame]
 
 
 @dataclass
 class PipelineConfig:
     tags: list[TagConfig] = MISSING
-
+    db: TagDBConfig = field(default_factory=TagDBConfig)
     obs_interval_minutes: float = MISSING
     agent_transition_creator: Any = field(default_factory=DummyTransitionCreatorConfig)
 
