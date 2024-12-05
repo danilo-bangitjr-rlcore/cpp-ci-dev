@@ -4,8 +4,9 @@ import pandas as pd
 
 from dataclasses import dataclass, field
 
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.component.network.utils import tensor
-from corerl.data_pipeline.datatypes import PipelineFrame, ARGOS, NewTransition
+from corerl.data_pipeline.datatypes import PipelineFrame, RAGS, NewTransition
 from corerl.utils.hydra import interpolate
 from corerl.data_pipeline.transition_creators.base import (
     BaseTransitionCreator,
@@ -21,18 +22,22 @@ class AnytimeTransitionCreatorConfig(BaseTransitionCreatorConfig):
     steps_per_decision: int = interpolate('${interaction.steps_per_decision}')
     gamma: float = interpolate('${experiment.gamma}')
     n_step: None | int = None  # if n_step is None, will bootstrap off of the next decision point
-    only_dp_transitions = False  # whether we only want to return transitions between decision points
+    only_dp_transitions: bool = False  # whether we only want to return transitions between decision points
 
 
 @dataclass
 class AnytimeTemporalState(TransitionCreatorTemporalState):
-    argos_list: list[ARGOS] = field(default_factory=list)  # left over argos from the last time we made transitions
+    rags_list: list[RAGS] = field(default_factory=list)  # left over rags from the last time we made transitions
     prev_data_gap: bool = False
 
 
 class AnytimeTransitionCreator(BaseTransitionCreator):
-    def __init__(self, cfg: AnytimeTransitionCreatorConfig):
-        super().__init__(cfg)
+    def __init__(
+            self,
+            cfg: AnytimeTransitionCreatorConfig,
+            tag_configs: list[TagConfig],
+    ):
+        super().__init__(cfg, tag_configs)
         self.steps_per_decision = cfg.steps_per_decision
         self.gamma = cfg.gamma
         if cfg.n_step is None:
@@ -68,9 +73,11 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
         """
 
-        actions = _get_tags(df, pf.action_tags)
-        observations = _get_tags(df, pf.obs_tags)
-        states = _get_tags(df, pf.state_tags)
+        actions = _get_tags(df, self.action_tags)
+        state_tags = list(
+            set(pf.data.columns) - set(self.action_tags + ['reward'])
+        )
+        states = _get_tags(df, state_tags)
         rewards = pf.data['reward'].to_numpy()
 
         if not len(actions):
@@ -78,40 +85,39 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
         assert len(actions) == len(states)
 
-        argos_list, transitions = self._restore_from_ts(actions, tc_ts)
+        rags_list, transitions = self._restore_from_ts(actions, tc_ts)
 
         for i in range(len(actions)):
             action = actions[i]
-            argos = ARGOS(
-                gamma=self.gamma,
-                obs=observations[i],
+            rags = RAGS(
                 reward=rewards[i],
                 action=action,
+                gamma=self.gamma,
                 state=states[i],
             )
-            argos_list.append(argos)
+            rags_list.append(rags)
 
             next_action = actions[i + 1] if i != len(actions) - 1 else action
             action_change = not torch.allclose(action, next_action)
-            reached_n_step = len(argos_list) == self.max_boot_len + 1
+            reached_n_step = len(rags_list) == self.max_boot_len + 1
             if reached_n_step or action_change:
-                transitions += self._make_transitions(argos_list)
-                argos_list = [argos_list[-1]]
+                transitions += self._make_transitions(rags_list)
+                rags_list = [rags_list[-1]]
 
-        tc_ts = AnytimeTemporalState(argos_list, post_df_data_gap)
+        tc_ts = AnytimeTemporalState(rags_list, post_df_data_gap)
 
         return transitions, tc_ts
 
     def _restore_from_ts(
             self,
             actions: torch.Tensor,
-            tc_ts: AnytimeTemporalState | None) -> tuple[list[ARGOS], list[NewTransition]]:
+            tc_ts: AnytimeTemporalState | None) -> tuple[list[RAGS], list[NewTransition]]:
         """
         Restores the state of the transition creator from the temporal state (tc_ts).
-        This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.argos_list
-        If there are GORASs in tc_ts.argos_list, then there were GORASs that did not get processed in the last call of
-        the transition creator. If there was not a datagap, we continue processing these GORASs, so this function
-        will return dw_argos. If the previously processed pipeframe had a datagap,
+        This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.rags_list
+        If there are RAGSs in tc_ts.rags_list, then there were RAGSs that did not get processed in the last call of
+        the transition creator. If there was not a datagap, we continue processing these RAGSs, so this function
+        will return rags_list. If the previously processed pipeframe had a datagap,
         then we need to add these transitions.
         """
 
@@ -120,65 +126,64 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             return [], []
 
         # Case 2: Valid tc_ts exists
-        argos_list = tc_ts.argos_list
-        if not len(argos_list):
+        rags_list = tc_ts.rags_list
+        if not len(rags_list):
             return [], []
 
         first_action = actions[0]
-        last_pf_action = argos_list[-1].action
+        last_pf_action = rags_list[-1].action
 
         if tc_ts.prev_data_gap:
-            transitions = self._make_transitions(argos_list)
-            argos_list = []
+            transitions = self._make_transitions(rags_list)
+            rags_list = []
         elif not torch.allclose(first_action, last_pf_action):
-            transitions = self._make_transitions(argos_list)
-            argos_list = [argos_list[-1]]
+            transitions = self._make_transitions(rags_list)
+            rags_list = [rags_list[-1]]
         else:
             transitions = []
 
-        return argos_list, transitions
+        return rags_list, transitions
 
     def _make_transitions(
-            self, argos_list: list[ARGOS]) -> list[NewTransition]:
+            self, rags_list: list[RAGS]) -> list[NewTransition]:
         """
-        Makes transitions for a list of GORAS.
-        NOTE that the first GORAS may have a different action than the rest.
+        Makes transitions for a list of RAGS.
+        NOTE that the first RAGS may have a different action than the rest.
         """
-        _check_actions_valid(argos_list)
-        dw_transitions = []
+        _check_actions_valid(rags_list)
+        transitions = []
 
-        assert len(argos_list) <= self.max_boot_len + 1
+        assert len(rags_list) <= self.max_boot_len + 1
 
-        boot_argos = argos_list[-1]
-        n_step_reward = boot_argos.reward
-        n_step_gamma = boot_argos.gamma
-        last_argos_idx = len(argos_list) - 1
+        boot_rags = rags_list[-1]
+        n_step_reward = boot_rags.reward
+        n_step_gamma = boot_rags.gamma
+        last_rags_idx = len(rags_list) - 1
 
-        for step_backwards in range(len(argos_list) - 2, -1, -1):
-            prior_argos = argos_list[step_backwards]
+        for step_backwards in range(len(rags_list) - 2, -1, -1):
+            prior_rags = rags_list[step_backwards]
             """
             if only_dp_transitions is False, then make_transitions is always True
             if only_dp_transitions is True, then make_transitions False except for the final transition
             """
             make_transition = not self.only_dp_transitions or step_backwards == 0
             if make_transition:
-                n_steps = last_argos_idx - step_backwards
-                post_argos = ARGOS(
-                    gamma=n_step_gamma,
-                    obs=boot_argos.obs,
+                n_steps = last_rags_idx - step_backwards
+                post_rags = RAGS(
                     reward=n_step_reward,
-                    action=boot_argos.action,
-                    state=boot_argos.state,
+                    action=boot_rags.action,
+                    gamma=n_step_gamma,
+                    state=boot_rags.state,
                 )
-                transition = NewTransition(prior_argos, post_argos, n_steps)
-                dw_transitions.append(transition)
+                transition = NewTransition(prior_rags, post_rags, n_steps)
+                transitions.append(transition)
 
-            n_step_reward = prior_argos.reward + boot_argos.gamma * n_step_reward
-            n_step_gamma *= boot_argos.gamma
+            n_step_reward = prior_rags.reward + boot_rags.gamma * n_step_reward
+            n_step_gamma *= boot_rags.gamma
 
-        dw_transitions.reverse()
+        transitions.reverse()
 
-        return dw_transitions
+        return transitions
 
 
 def _get_tags(df: pd.DataFrame, tags: list[str] | str) -> torch.Tensor:
@@ -216,10 +221,10 @@ def _split_at_nans(df: pd.DataFrame) -> list[tuple[pd.DataFrame, bool]]:
     return [(subdf, has_nan) for subdf, has_nan in result if not subdf.empty]
 
 
-def _check_actions_valid(argos_list: list[ARGOS]):
-    if len(argos_list) < 2:
+def _check_actions_valid(rags_list: list[RAGS]):
+    if len(rags_list) < 2:
         return
-    actions = [o.action for o in argos_list]
+    actions = [o.action for o in rags_list]
     first_action = actions[1]
     for action in actions[2:]:
         assert np.allclose(first_action, action), "All actions within a decision window must be equal."

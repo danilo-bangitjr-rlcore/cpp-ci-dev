@@ -40,7 +40,7 @@ class Normalizer:
             assert mi is not None and ma is not None
 
             den = ma - mi
-            assert den > 1e-12, 'Not enough variability in the data to normalize'
+            assert den > 1e-12, f'Not enough variability in the data to normalize: {carry.tag}'
 
             new_x = _norm(x, mi, ma)
 

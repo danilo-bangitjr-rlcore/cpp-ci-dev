@@ -71,10 +71,10 @@ class DataWriter:
         ))
 
         if len(self._buffer) > self._hi_wm:
+            logger.warning('Buffer reached high watermark')
             # forcibly pause main thread until writer is finished
             assert self._write_future is not None
             self._write_future.result()
-            logger.warning('Buffer reached high watermark')
 
             # kick off a new background sync, since buffer is full
             self.background_sync()
@@ -142,11 +142,15 @@ def maybe_create_sensor_table(engine: Engine, sensor_table_name: str):
             "Quality" text,
             fields jsonb
         );
+
+        SELECT create_hypertable('{sensor_table_name}', 'time', chunk_time_interval => INTERVAL '7d');
+        CREATE INDEX name_idx ON {sensor_table_name} (name);
+        ALTER TABLE {sensor_table_name} SET (
+            timescaledb.compress,
+            timescaledb.compress_segmentby='name'
+        );
     """
-    create_hypertable_stmt = f"""
-        SELECT create_hypertable('{sensor_table_name}', 'time', chunk_time_interval => INTERVAL '1h');
-    """
+
     with engine.connect() as con:
         con.execute(text(create_table_stmt))
-        con.execute(text(create_hypertable_stmt))
         con.commit()

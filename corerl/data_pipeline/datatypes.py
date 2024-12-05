@@ -83,26 +83,24 @@ class ObsTransition:
 
 
 @dataclass
-class ARGOS:
+class RAGS:
     """
     Dataclass for storing the information of a single step.
-    The acronym comes from the set of objects it holds (action, reward, gamma, observation, state)
+    The acronym comes from the set of objects it holds (reward, action,  gamma, state)
     Two of these make up a transition.
     """
-    action: Tensor
     reward: float
+    action: Tensor
     gamma: float
-    obs: Tensor
     state: Tensor
 
     def __eq__(self, other: object):
-        if not isinstance(other, ARGOS):
+        if not isinstance(other, RAGS):
             return False
 
         return (
                 isclose(self.gamma, other.gamma)
                 and isclose(self.reward, other.reward)
-                and torch.equal(self.obs, other.obs)
                 and torch.equal(self.action, other.action)
                 and torch.equal(self.state, other.state)
         )
@@ -110,8 +108,8 @@ class ARGOS:
 
 @dataclass
 class NewTransition:
-    prior: ARGOS
-    post: ARGOS
+    prior: RAGS
+    post: RAGS
     n_steps: int
 
 
@@ -317,6 +315,7 @@ class CallerCode(Enum):
 
 
 class StageCode(Enum):
+    BOUNDS = auto()
     IMPUTER = auto()
     ODDITY = auto()
     TC = auto()
@@ -331,10 +330,6 @@ class PipelineFrame:
     data: pd.DataFrame
     missing_info: pd.DataFrame = field(init=False)
     caller_code: CallerCode
-    action_tags: list[str] = field(default_factory=list)
-    obs_tags: list[str] = field(default_factory=list)
-    state_tags: list[str] = field(default_factory=list)
-    reward_tags: list[str] = field(default_factory=list)
     temporal_state: TemporalState = field(default_factory=dict)
     transitions: list[NewTransition] | None = None
 
