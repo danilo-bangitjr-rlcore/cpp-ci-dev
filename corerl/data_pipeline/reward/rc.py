@@ -32,13 +32,12 @@ class RewardComponentConstructor:
 
         carry = TransformCarry(
             obs=pf.data,
-            transform_data=tag_data.copy(),  # will rename
+            transform_data=tag_data.copy(),
             tag=tag_name,
         )
 
         ts = pf.temporal_state.get(StageCode.RC, None)
-        ts = self._sanitize_temporal_state(ts)
-        tag_ts = ts[tag_name]
+        tag_ts = self._sanitize_temporal_state(ts, tag_name)
 
         for i in range(len(self._components)):
             transform = self._components[i]
@@ -56,12 +55,15 @@ class RewardComponentConstructor:
         pf.temporal_state[StageCode.SC] = ts
         return pf
 
-    def _sanitize_temporal_state(self, ts: object | None) -> RC_TS:
+    def _sanitize_temporal_state(self, ts: object | None, tag_name: str):
         if ts is None:
-            ts = defaultdict(lambda: [None] * len(self._components))
+            ts = {}
 
         assert isinstance(ts, dict)
-        return ts
+        if tag_name not in ts:
+            ts[tag_name] = [None] * len(self._components)
+
+        return ts[tag_name]
 
 
 class RewardConstructor:
@@ -74,7 +76,9 @@ class RewardConstructor:
         reward_component_names = [col for col in pf.data.columns if "(reward)" in col]
         reward_components = pf.data[reward_component_names]
         # add final reward column
-        initial_data["reward"] = reward_components.sum(axis=1)
+        if not reward_components.empty:
+            initial_data["reward"] = reward_components.sum(axis=1, skipna=False)
+
         pf.data = initial_data
 
         return pf

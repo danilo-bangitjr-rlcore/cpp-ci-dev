@@ -17,6 +17,7 @@ from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreato
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
 from corerl.data_pipeline.state_constructors.sc import StateConstructor
 from corerl.data_pipeline.db.data_reader import TagDBConfig
+from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 
 from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, StageCode, TemporalState
@@ -36,7 +37,6 @@ class PipelineConfig:
     db: TagDBConfig = field(default_factory=TagDBConfig)
     obs_interval_minutes: float = MISSING
     agent_transition_creator: Any = field(default_factory=DummyTransitionCreatorConfig)
-    state_constructor: Any = MISSING
 
 
 @dataclass
@@ -69,6 +69,9 @@ class Pipeline:
             tag.name: init_imputer(tag.imputer, tag) for tag in self.tags
         }
 
+        reward_components = {cfg.name: RewardComponentConstructor(cfg.reward_constructor) for cfg in self.tags}
+        self.reward_constructor = RewardConstructor(reward_components)
+
         self.state_constructors = {
             tag.name: StateConstructor(tag.state_constructor)
             for tag in self.tags
@@ -84,6 +87,7 @@ class Pipeline:
             StageCode.BOUNDS:  lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
             StageCode.ODDITY:  lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
             StageCode.IMPUTER: lambda pf: invoke_stage_per_tag(pf, self.imputers),
+            StageCode.RC:      self.reward_constructor,
             StageCode.SC:      lambda pf: invoke_stage_per_tag(pf, self.state_constructors),
             StageCode.TC:      self.transition_creator,
         }

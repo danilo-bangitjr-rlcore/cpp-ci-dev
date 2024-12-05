@@ -7,6 +7,7 @@ from corerl.data_pipeline.imputers.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.components.norm import NormalizerConfig
 from corerl.data_pipeline.state_constructors.components.trace import TraceConfig
+from corerl.data_pipeline.state_constructors.components.affine import AffineConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import CallerCode, StageCode
 from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
@@ -205,5 +206,158 @@ def test_sub_pipeline2():
         index=idx,
     )
 
+    assert dfs_close(got.df, expected_df)
+    assert got.transitions is None
+
+def test_sub_pipeline3():
+    """
+    Same as test_sub_pipeline1, but adds reward constructor.
+
+    Since the reward constructor isn't explicitly added to any of
+    the tag configs, this should have the same result as test_sub_pipeline1.
+    """
+    cfg = PipelineConfig(
+        tags=[
+            TagConfig(
+                name='tag-1',
+                state_constructor=[],
+            ),
+            TagConfig(
+                name='tag-2',
+                bounds=(None, 10),
+                imputer=LinearImputerConfig(max_gap=2),
+                state_constructor=[
+                    NormalizerConfig(),
+                    TraceConfig(trace_values=[0.1]),
+                ],
+            ),
+        ],
+        obs_interval_minutes=5,
+    )
+
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(7)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols: Any = ['tag-1', 'tag-2']
+    df = pd.DataFrame(
+        data=[
+            [np.nan, 0],
+            [0,      2],
+            [1,      4],
+            [2,      6],
+            [np.nan, np.nan],
+            [4,      10],
+            [5,      12],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    pipeline = Pipeline(cfg)
+    got = pipeline(
+        df,
+        caller_code=CallerCode.ONLINE,
+        stages=(StageCode.BOUNDS, StageCode.ODDITY, StageCode.IMPUTER, StageCode.RC, StageCode.SC),
+    )
+
+    cols: Any = ['tag-1', 'tag-2_norm_trace-0.1']
+    expected_df = pd.DataFrame(
+        data=[
+            [np.nan, 0],
+            [0,      0.18],
+            [1,      0.378],
+            [2,      0.5778],
+            [np.nan, 0.77778],
+            [4,      0.977778],
+            [5,      np.nan],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    print(got.df)
+    assert dfs_close(got.df, expected_df)
+    assert got.transitions is None
+
+
+def test_sub_pipeline4():
+    """
+    Same as test_sub_pipeline1, but adds reward constructor.
+
+    Since the reward constructor isn't explicitly added to any of
+    the tag configs, this should have the same result as test_sub_pipeline1.
+    """
+    cfg = PipelineConfig(
+        tags=[
+            TagConfig(
+                name='tag-1',
+                state_constructor=[],
+                reward_constructor=[
+                    AffineConfig(
+                        scale=-1,
+                        bias=5
+                    ),
+                ]
+            ),
+            TagConfig(
+                name='tag-2',
+                bounds=(None, 10),
+                imputer=LinearImputerConfig(max_gap=2),
+                state_constructor=[
+                    NormalizerConfig(),
+                    TraceConfig(trace_values=[0.1]),
+                ],
+            ),
+        ],
+        obs_interval_minutes=5,
+    )
+
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(7)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols: Any = ['tag-1', 'tag-2']
+    df = pd.DataFrame(
+        data=[
+            [np.nan, 0],
+            [0,      2],
+            [1,      4],
+            [2,      6],
+            [np.nan, np.nan],
+            [4,      10],
+            [5,      12],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    pipeline = Pipeline(cfg)
+    got = pipeline(
+        df,
+        caller_code=CallerCode.ONLINE,
+        stages=(StageCode.BOUNDS, StageCode.ODDITY, StageCode.IMPUTER, StageCode.RC, StageCode.SC),
+    )
+
+    cols: Any = ['reward', 'tag-1', 'tag-2_norm_trace-0.1']
+    expected_df = pd.DataFrame(
+        data=[
+            [np.nan, np.nan, 0],
+            [5,      0,      0.18],
+            [4,      1,      0.378],
+            [3,      2,      0.5778],
+            [np.nan, np.nan, 0.77778],
+            [1,      4,      0.977778],
+            [0,      5,      np.nan],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    print(got.df)
     assert dfs_close(got.df, expected_df)
     assert got.transitions is None
