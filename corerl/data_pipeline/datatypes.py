@@ -106,7 +106,7 @@ class RAGS:
                 isclose(self.gamma, other.gamma)
                 and isclose(self.reward, other.reward)
                 and torch.allclose(self.action, other.action)
-                and torch.allclose(self.state, other.state,)
+                and torch.allclose(self.state, other.state)
         )
 
 

@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import datetime
+
+import torch
 from torch import Tensor
 
 from corerl.data_pipeline.tag_config import TagConfig
@@ -8,7 +10,10 @@ from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransit
 from corerl.data_pipeline.transition_creators.anytime import (
     AnytimeTransitionCreator,
     AnytimeTransitionCreatorConfig,
-    _split_at_nans
+    _split_at_nans,
+    add_one_hot_countdown,
+    add_float_countdown,
+    add_null_countdown,
 )
 
 
@@ -23,7 +28,7 @@ def get_test_prior_argos(state: Tensor) -> RAGS:
 
 def transitions_equal_test(t0: NewTransition, t1: NewTransition):
     return (
-            t0.prior.state == t1.prior.state
+            torch.allclose(t0.prior.state, t1.prior.state)
             and t0.post == t1.post
             and t0.n_steps == t1.n_steps
     )
@@ -32,6 +37,8 @@ def transitions_equal_test(t0: NewTransition, t1: NewTransition):
 def test_anytime_1():
     """
     Test with a single pipeframe. The tc should construct transitions when the action changes.
+
+    Also tests that the countdown is set to the right value.
     """
     state_col = np.arange(4)
     cols = {"state": state_col, "action": [0, 0, 1, 1], "reward": [1, 1, 1, 1]}
@@ -61,6 +68,7 @@ def test_anytime_1():
         steps_per_decision=10,
         gamma=0.9,
         n_step=None,
+        countdown='int',
     )
     tc = AnytimeTransitionCreator(cfg, tags)
 
@@ -71,9 +79,9 @@ def test_anytime_1():
     t_0 = transitions[0]
 
     expected = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
+        prior=get_test_prior_argos(Tensor([0., 10.])),  # countdown (last entry) should be 10 steps until decision
         post=RAGS(
-            state=Tensor([1.]),
+            state=Tensor([1., 9.]),  # countdown (last entry) should now be 9 steps until decision
             action=Tensor([0.]),
             reward=1,
             gamma=0.9
@@ -116,6 +124,7 @@ def test_anytime_2_n_step_1():
         steps_per_decision=10,
         gamma=0.9,
         n_step=1,
+        countdown='int',
     )
     tc = AnytimeTransitionCreator(cfg, tags)
     transitions = tc(pf).transitions
@@ -123,9 +132,9 @@ def test_anytime_2_n_step_1():
     assert len(transitions) == 3
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
+        prior=get_test_prior_argos(Tensor([0., 10.])),
         post=RAGS(
-            state=Tensor([1.]),
+            state=Tensor([1., 9.0]),
             action=Tensor([0.]),
             reward=1,
             gamma=0.9
@@ -137,9 +146,9 @@ def test_anytime_2_n_step_1():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        prior=get_test_prior_argos(Tensor([1.])),
+        prior=get_test_prior_argos(Tensor([1., 9.])),
         post=RAGS(
-            state=Tensor([2.]),
+            state=Tensor([2., 8.]),
             action=Tensor([0.]),
             reward=1.0,
             gamma=0.9
@@ -151,9 +160,9 @@ def test_anytime_2_n_step_1():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        prior=get_test_prior_argos(Tensor([2.])),
+        prior=get_test_prior_argos(Tensor([2., 10.])),
         post=RAGS(
-            state=Tensor([3.]),
+            state=Tensor([3., 9.]),
             action=Tensor([1.]),
             reward=1.0,
             gamma=0.9
@@ -198,6 +207,7 @@ def test_anytime_3_action_change():
         steps_per_decision=3,
         gamma=0.9,
         n_step=None,
+        countdown='int',
     )
 
     tc = AnytimeTransitionCreator(cfg, tags)
@@ -207,9 +217,9 @@ def test_anytime_3_action_change():
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
+        prior=get_test_prior_argos(Tensor([0., 3])),
         post=RAGS(
-            state=Tensor([1.]),
+            state=Tensor([1., 2]),
             action=Tensor([0.]),
             reward=1.0,
             gamma=0.9
@@ -221,9 +231,9 @@ def test_anytime_3_action_change():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        prior=get_test_prior_argos(Tensor([1.])),
+        prior=get_test_prior_argos(Tensor([1., 3])),
         post=RAGS(
-            state=Tensor([4.]),
+            state=Tensor([4., 3]),
             action=Tensor([1.]),
             reward=2.71,
             gamma=0.9 ** 3,
@@ -235,9 +245,9 @@ def test_anytime_3_action_change():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        prior=get_test_prior_argos(Tensor([2.])),
+        prior=get_test_prior_argos(Tensor([2., 2])),
         post=RAGS(
-            state=Tensor([4.]),
+            state=Tensor([4., 3]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
@@ -249,9 +259,9 @@ def test_anytime_3_action_change():
 
     t_3 = transitions[3]
     expected_3 = NewTransition(
-        prior=get_test_prior_argos(Tensor([3.])),
+        prior=get_test_prior_argos(Tensor([3., 1.])),
         post=RAGS(
-            state=Tensor([4.]),
+            state=Tensor([4., 3]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
@@ -294,7 +304,8 @@ def test_anytime_4_only_dp():
         steps_per_decision=8,
         gamma=0.9,
         n_step=None,
-        only_dp_transitions=True
+        only_dp_transitions=True,
+        countdown='null',
     )
 
     tc = AnytimeTransitionCreator(cfg, tags)
@@ -349,6 +360,7 @@ def test_anytime_ts_1():
         steps_per_decision=10,
         gamma=0.9,
         n_step=None,
+        countdown='null',
     )
 
     tc = AnytimeTransitionCreator(cfg, tags)
@@ -478,6 +490,7 @@ def test_anytime_ts_2_data_gap():
         steps_per_decision=10,
         gamma=0.9,
         n_step=None,
+        countdown='null',
     )
 
     tc = AnytimeTransitionCreator(cfg, tags)
@@ -576,6 +589,7 @@ def test_anytime_ts_3_data_gap_with_action_change():
         steps_per_decision=10,
         gamma=0.9,
         n_step=None,
+        countdown='null',
     )
 
     tc = AnytimeTransitionCreator(cfg, tags)
@@ -648,6 +662,7 @@ def test_anytime_online_1():
         steps_per_decision=3,
         gamma=0.9,
         n_step=None,
+        countdown='null',
     )
 
     tags = [
@@ -743,6 +758,7 @@ def test_anytime_online_2():
         steps_per_decision=5,
         gamma=0.9,
         n_step=None,
+        countdown='null',
     )
     tags = [
         TagConfig(
@@ -829,6 +845,7 @@ def test_anytime_online_3():
         steps_per_decision=2,
         gamma=0.9,
         n_step=None,
+        countdown='null',
     )
 
     tags = [
@@ -916,6 +933,7 @@ def test_anytime_online_4():
         steps_per_decision=2,
         gamma=0.9,
         n_step=1,
+        countdown='null',
     )
 
     tags = [
@@ -1057,3 +1075,118 @@ def test_split_at_nans_multiple_nans():
     assert df1.index[0] == datetime.datetime(2024, 1, 1)
     assert df2.index[0] == datetime.datetime(2024, 1, 3)
     assert df3.index[0] == datetime.datetime(2024, 1, 6)
+
+
+def test_one_hot_countdown_1():
+    rags = RAGS(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+    )
+
+    rags = add_one_hot_countdown(
+        rags,
+        steps_until_decision=1,
+        steps_per_decision=2)
+
+    assert torch.allclose(rags.state, Tensor([0., 1., 0.]))
+
+
+def test_one_hot_countdown_2():
+    rags = RAGS(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+    )
+
+    rags = add_one_hot_countdown(
+        rags,
+        steps_until_decision=2,
+        steps_per_decision=2)
+
+    assert torch.allclose(rags.state, Tensor([0., 0., 1.]))
+
+
+def test_one_hot_countdown_3():
+    rags = RAGS(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+    )
+
+    rags = add_one_hot_countdown(
+        rags,
+        # note that steps_until_decision is now 0, but we get the same output
+        # as the above test where it is 2.
+        steps_until_decision=0,
+        steps_per_decision=2)
+
+    assert torch.allclose(rags.state, Tensor([0., 0., 1.]))
+
+
+def test_float_countdown_1():
+    rags = RAGS(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+    )
+
+    rags = add_float_countdown(
+        rags,
+        steps_until_decision=2,
+        steps_per_decision=2)
+
+    assert torch.allclose(rags.state, Tensor([0., 1.]))
+
+
+def test_float_countdown_2():
+    rags = RAGS(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+    )
+
+    rags = add_float_countdown(
+        rags,
+        steps_until_decision=0,
+        steps_per_decision=2)
+
+    assert torch.allclose(rags.state, Tensor([0., 1.]))
+
+
+def test_float_countdown_3():
+    rags = RAGS(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+    )
+
+    rags = add_float_countdown(
+        rags,
+        steps_until_decision=1,
+        steps_per_decision=2)
+
+    assert torch.allclose(rags.state, Tensor([0., 0.5]))
+
+
+
+def test_null_countdown():
+    rags = RAGS(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+    )
+
+    rags = add_null_countdown(
+        rags,
+        steps_until_decision=1,
+        steps_per_decision=2)
+
+    assert torch.allclose(rags.state, Tensor([0.]))
