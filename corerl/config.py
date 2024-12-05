@@ -7,6 +7,7 @@ from corerl.data.base_tc import BaseTCConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.data.normalizer.base import NormalizerConfig
 from corerl.data_pipeline.base import BaseDataLoaderConfig
+from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.interaction.anytime_interaction import AnytimeInteractionConfig
 from corerl.interaction.base import BaseInteractionConfig
 from corerl.state_constructor.base import SCConfig
@@ -26,6 +27,7 @@ class MainConfig:
     interaction: BaseInteractionConfig = field(default_factory=AnytimeInteractionConfig)
     normalizer: NormalizerConfig = field(default_factory=NormalizerConfig)
     offline_data: Any = MISSING
+    pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     state_constructor: SCConfig = MISSING
 
 

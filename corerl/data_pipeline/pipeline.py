@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import warnings
 import datetime
 
@@ -15,6 +15,7 @@ from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
 from corerl.data_pipeline.state_constructors.sc import StateConstructor
+from corerl.data_pipeline.db.data_reader import TagDBConfig
 
 from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, TemporalState
 from corerl.utils.hydra import interpolate
@@ -31,8 +32,7 @@ type WarmupPruner = Callable[[PipelineFrame, int], PipelineFrame]
 @dataclass
 class PipelineConfig:
     tags: list[TagConfig] = MISSING
-
-    state_constructor: Any = MISSING
+    db: TagDBConfig = field(default_factory=TagDBConfig)
     agent_transition_creator: Any = interpolate('{agent_transition_creator}')
 
 
