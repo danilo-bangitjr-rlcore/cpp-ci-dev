@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import pandas as pd
 
-from typing import Callable, Protocol
-from dataclasses import dataclass, field
+from typing import Protocol
+from dataclasses import dataclass
 
 from corerl.utils.device import device
 from corerl.data_pipeline.tag_config import TagConfig
@@ -281,12 +281,12 @@ transition_creator_group.dispatcher(AnytimeTransitionCreator)
 
 class CountDownAdder(Protocol):
     def __call__(self, rags: RAGS, steps_until_decision: int, steps_per_decision: int) -> RAGS:
-        pass
+        ...
 
 
 class CountDownCaller(Protocol):
     def __call__(self, step_info: StepInfo, steps_per_decision: int) -> RAGS:
-        pass
+        ...
 
 
 def init_countdown_adder(name: str) -> CountDownCaller:
