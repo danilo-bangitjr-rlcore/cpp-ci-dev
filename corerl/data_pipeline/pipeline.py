@@ -52,11 +52,11 @@ class Pipeline:
     def __init__(self, cfg: PipelineConfig):
         self.tags = cfg.tags
         self.missing_data_checkers = {
-            cfg.name: missing_data_checker for cfg in self.tags
+            tag.name: missing_data_checker for tag in self.tags
         }
 
         self.bound_checkers = {
-            cfg.name: bound_checker_builder(cfg) for cfg in self.tags
+            tag.name: bound_checker_builder(tag) for tag in self.tags
         }
 
         self.transition_creator = init_transition_creator(
@@ -65,15 +65,17 @@ class Pipeline:
         )
 
         self.outlier_detectors = {
-            cfg.name: init_oddity_filter(cfg.outlier) for cfg in self.tags
+            tag.name: init_oddity_filter(tag.outlier) for tag in self.tags
         }
 
         self.imputers = {
-            cfg.name: init_imputer(cfg.imputer, cfg) for cfg in self.tags
+            tag.name: init_imputer(tag.imputer, tag) for tag in self.tags
         }
 
         self.state_constructors = {
-            cfg.name: StateConstructor(cfg.state_constructor) for cfg in self.tags
+            tag.name: StateConstructor(tag.state_constructor)
+            for tag in self.tags
+            if not tag.is_action
         }
 
         self.ts_dict: dict = {caller_code: None for caller_code in CallerCode}
@@ -131,3 +133,16 @@ class Pipeline:
             df=pf.data,
             transitions=pf.transitions,
         )
+
+    def get_state_action_dims(self):
+        num_actions = sum(
+            tag.is_action for tag in self.tags
+        )
+
+        state_dim = sum(
+            self.state_constructors[tag.name].state_dim(tag.name)
+            for tag in self.tags
+            if not tag.is_action
+        )
+
+        return state_dim, num_actions
