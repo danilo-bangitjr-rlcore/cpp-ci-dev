@@ -113,14 +113,15 @@ class NewTransition:
     n_steps: int
 
 
-def __eq__(self, other: object):
-    if not isinstance(other, NewTransition):
-        return False
-    return (
-            self.prior == other.prior
-            and self.post == other.post
-            and self.n_steps == other.n_steps
-    )
+    def __eq__(self, other: object):
+        if not isinstance(other, NewTransition):
+            return False
+
+        return (
+                self.prior == other.prior
+                and self.post == other.post
+                and self.n_steps == other.n_steps
+        )
 
 
 @dataclass
