@@ -48,6 +48,32 @@ def test_passing_data_to_pipeline():
     _ = pipeline(df, caller_code=CallerCode.OFFLINE)
 
 
+def test_state_action_dim():
+    cfg = PipelineConfig(
+        tags=[
+            TagConfig(name='tag-1'),
+            TagConfig(
+                name='tag-2',
+                bounds=(None, 10),
+                imputer=LinearImputerConfig(max_gap=2),
+                state_constructor=[
+                    NormalizerConfig(),
+                    TraceConfig(trace_values=[0.1, 0.9]),
+                ],
+            ),
+            TagConfig(name='tag-3', is_action=True),
+            TagConfig(name='tag-4', is_action=True),
+        ],
+        obs_interval_minutes=5,
+    )
+
+    pipeline = Pipeline(cfg)
+
+    state_dim, action_dim = pipeline.get_state_action_dims()
+    assert state_dim == 3
+    assert action_dim == 2
+
+
 def test_sub_pipeline1():
     cfg = PipelineConfig(
         tags=[

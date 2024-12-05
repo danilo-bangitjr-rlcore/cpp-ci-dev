@@ -1,5 +1,6 @@
+from collections import defaultdict
 import pandas as pd
-from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.interface import TransformCarry
 from corerl.data_pipeline.state_constructors.components.base import BaseTransformConfig, sc_group, StateTransform
 
@@ -21,6 +22,19 @@ class StateConstructor:
         self._components: list[StateTransform] = [
             sc_group.dispatch(sub_cfg) for sub_cfg in cfgs
         ]
+
+
+    def state_dim(self, tag_name: str):
+        fake_data = pd.DataFrame({ tag_name: [0., 1.] })
+
+        pf = PipelineFrame(
+            data=fake_data,
+            caller_code=CallerCode.OFFLINE,
+            temporal_state=defaultdict(lambda: None),
+        )
+
+        pf = self(pf, tag_name)
+        return len(pf.data.columns)
 
 
     def __call__(self, pf: PipelineFrame, tag_name: str) -> PipelineFrame:
