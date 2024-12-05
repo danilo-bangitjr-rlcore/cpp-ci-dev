@@ -17,3 +17,4 @@ class TagConfig:
     outlier: BaseOddityFilterConfig = field(default_factory=EMAFilterConfig)
     imputer: BaseImputerConfig = field(default_factory=IdentityImputerConfig)
     state_constructor: list[BaseTransformConfig] = list_()
+    is_action: bool = False

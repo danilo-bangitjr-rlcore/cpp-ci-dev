@@ -1,0 +1,42 @@
+services:
+  timescale-db:
+    # image: timescale/timescaledb:latest-pg16
+    image: timescale/timescaledb:2.17.2-pg16
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+  opc-server:
+    build: ./e2e/opc_server
+    ports:
+      - 4840:4840
+    depends_on:
+      timescale-db:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: rebuild
+          path: ./e2e/opc_server
+  telegraf:
+    # image: telegraf:latest
+    image: telegraf:1.32.3
+    depends_on:
+      timescale-db:
+        condition: service_healthy
+      opc-server:
+        condition: service_started
+    volumes:
+      - ./e2e/telegraf/base_telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    restart: unless-stopped
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./e2e/telegraf/base_telegraf.conf
+          target: /etc/telegraf/telegraf.conf
