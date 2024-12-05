@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, List, Literal, assert_never
 
@@ -118,6 +119,34 @@ class DataReader:
             con=self.connection,
             params=params,
         )
+
+    def get_tag_stats(self, tag_name: str):
+        q = """
+            SELECT
+              MIN(:val) as min,
+              MAX(:val) as max,
+              AVG(:val) as avg,
+              VARIANCE(:val) as var
+            FROM :table
+            WHERE name=:tag
+        """
+        df = self.query(q, { 'tag': tag_name })
+        return TagStats(
+            tag=tag_name,
+            min=df['min'].item(),
+            max=df['max'].item(),
+            avg=df['avg'].item(),
+            var=df['var'].item(),
+        )
+
+
+@dataclass
+class TagStats:
+    tag: str
+    min: float | None
+    max: float | None
+    avg: float | None
+    var: float | None
 
 
 def _time_bucket(bucket_width: timedelta, time_col: str, origin: datetime | None = None) -> str:
