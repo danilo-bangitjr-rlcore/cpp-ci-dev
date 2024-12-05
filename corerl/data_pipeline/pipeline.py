@@ -54,7 +54,10 @@ class Pipeline:
             cfg.name: bound_checker_builder(cfg) for cfg in self.tags
         }
 
-        self.transition_creator = init_transition_creator(cfg.agent_transition_creator)
+        self.transition_creator = init_transition_creator(
+            cfg.agent_transition_creator,
+            self.tags,
+        )
 
         self.outlier_detectors = {
             cfg.name: init_oddity_filter(cfg.outlier) for cfg in self.tags
