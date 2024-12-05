@@ -74,7 +74,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         """
 
         actions = _get_tags(df, self.action_tags)
-        state_tags = list(
+        state_tags = sorted(
             set(pf.data.columns) - set(self.action_tags + ['reward'])
         )
         states = _get_tags(df, state_tags)
