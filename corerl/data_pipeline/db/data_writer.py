@@ -72,10 +72,10 @@ class DataWriter:
         ))
 
         if len(self._buffer) > self._hi_wm:
+            logger.warning('Buffer reached high watermark')
             # forcibly pause main thread until writer is finished
             assert self._write_future is not None
             self._write_future.result()
-            logger.warning('Buffer reached high watermark')
 
             # kick off a new background sync, since buffer is full
             self.background_sync()
