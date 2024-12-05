@@ -36,10 +36,11 @@ def test_passing_data_to_pipeline():
     )
     pipeline = Pipeline(cfg)
 
-    cols = {"sensor_x": [np.nan, 1.0], "sensor_y": [2.0, np.nan]}
+    cols = {"sensor_x": [np.nan, 1.0, 2.0], "sensor_y": [2.0, np.nan, 3.0]}
     dates = [
-        datetime.datetime(2024, 1, 1, 1, 1 ),
-        datetime.datetime(2024, 1, 1, 1, 2)
+        datetime.datetime(2024, 1, 1, 1, 1),
+        datetime.datetime(2024, 1, 1, 1, 2),
+        datetime.datetime(2024, 1, 1, 1, 3),
     ]
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
@@ -51,7 +52,10 @@ def test_passing_data_to_pipeline():
 def test_sub_pipeline1():
     cfg = PipelineConfig(
         tags=[
-            TagConfig(name='tag-1'),
+            TagConfig(
+                name='tag-1',
+                state_constructor=[],
+            ),
             TagConfig(
                 name='tag-2',
                 bounds=(None, 10),
@@ -115,7 +119,10 @@ def test_sub_pipeline1():
 def test_sub_pipeline2():
     cfg = PipelineConfig(
         tags=[
-            TagConfig(name='tag-1'),
+            TagConfig(
+                name='tag-1',
+                state_constructor=[],
+            ),
             TagConfig(
                 name='tag-2',
                 bounds=(1, 2),
