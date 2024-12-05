@@ -1,0 +1,54 @@
+defaults:
+  - base_env
+  - reward : scrubber
+  - _self_
+
+name: OnlineScrubber
+
+data_file: offline_data/scrubber/renamed_clean_data.csv
+
+reward_high : 1.0
+reward_low : 0.8
+
+opc:
+  ip_address: "localhost"
+  port: "49320"
+  conn_stats: False
+  url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
+  namespace: "http://simuation_opc_server.test.rlcore.ai"
+  dropout: True
+
+constant_sp:
+  ns=3;i=16: 2.4
+
+special_tags:
+  - "ns=2;i=3" # heartbeat
+  - OBSERVATION_MODE_1  
+  - OBSERVATION_MODE_2 
+
+obs_col_names: 
+  - OBSERVATION_1
+  - OBSERVATION_2
+
+endo_obs_names:
+  - OBSERVATION_1
+
+endo_inds: [0]
+
+# We write to control tags (RL Core setpoints)
+control_tags:
+  - "ns=2;i=14" 
+  - "ns=2;i=15"
+
+action_names:
+  - SETPOINT_1
+  - SETPOINT_2
+
+initial_setpoints:
+  "SETPOINT_1": 9.7
+  "SETPOINT_2": 675.0
+
+ctl_map:
+  "ns=2;i=14": "SETPOINT_1"
+  "ns=2;i=15": "SETPOINT_2"
+
