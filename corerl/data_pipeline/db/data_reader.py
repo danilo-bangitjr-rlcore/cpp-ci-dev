@@ -5,6 +5,7 @@ from typing import Any, List, Literal, assert_never
 import numpy as np
 import pandas as pd
 from sqlalchemy import Engine
+import sqlalchemy
 
 from corerl.data_pipeline.db.utils import try_connect
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
@@ -104,6 +105,19 @@ class DataReader:
 
     def close(self) -> None:
         self.connection.close()
+
+
+    def query(self, q: str, params: dict[str, Any] | None = None) -> pd.DataFrame:
+        params = params or {}
+
+        q = q.replace(':table', self.sensor_table_name)
+        q = q.replace(':val', _parse_jsonb('fields'))
+
+        return pd.read_sql(
+            sql=sqlalchemy.text(q),
+            con=self.connection,
+            params=params,
+        )
 
 
 def _time_bucket(bucket_width: timedelta, time_col: str, origin: datetime | None = None) -> str:
