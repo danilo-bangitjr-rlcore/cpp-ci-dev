@@ -8,6 +8,7 @@ import pandas as pd
 from sqlalchemy import Engine
 import sqlalchemy
 
+import corerl.utils.pandas as pd_util
 from corerl.data_pipeline.db.utils import try_connect
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 
@@ -139,6 +140,24 @@ class DataReader:
             var=df['var'].item(),
         )
 
+    def get_time_stats(self):
+        q = """
+            SELECT
+              MIN(time) as start,
+              MAX(time) as end
+            FROM :table
+        """
+        df = self.query(q)
+        return TimeStats(
+            start=pd_util.get_datetime(df, 'start', 0),
+            end=pd_util.get_datetime(df, 'end', 0),
+        )
+
+
+@dataclass
+class TimeStats:
+    start: datetime
+    end: datetime
 
 @dataclass
 class TagStats:
