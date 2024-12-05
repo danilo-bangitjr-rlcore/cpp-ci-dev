@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, List, Literal, assert_never
 
@@ -7,6 +8,7 @@ import pandas as pd
 from sqlalchemy import Engine
 import sqlalchemy
 
+import corerl.utils.pandas as pd_util
 from corerl.data_pipeline.db.utils import try_connect
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 
@@ -118,6 +120,52 @@ class DataReader:
             con=self.connection,
             params=params,
         )
+
+    def get_tag_stats(self, tag_name: str):
+        q = """
+            SELECT
+              MIN(:val) as min,
+              MAX(:val) as max,
+              AVG(:val) as avg,
+              VARIANCE(:val) as var
+            FROM :table
+            WHERE name=:tag
+        """
+        df = self.query(q, { 'tag': tag_name })
+        return TagStats(
+            tag=tag_name,
+            min=df['min'].item(),
+            max=df['max'].item(),
+            avg=df['avg'].item(),
+            var=df['var'].item(),
+        )
+
+    def get_time_stats(self):
+        q = """
+            SELECT
+              MIN(time) as start,
+              MAX(time) as end
+            FROM :table
+        """
+        df = self.query(q)
+        return TimeStats(
+            start=pd_util.get_datetime(df, 'start', 0),
+            end=pd_util.get_datetime(df, 'end', 0),
+        )
+
+
+@dataclass
+class TimeStats:
+    start: datetime
+    end: datetime
+
+@dataclass
+class TagStats:
+    tag: str
+    min: float | None
+    max: float | None
+    avg: float | None
+    var: float | None
 
 
 def _time_bucket(bucket_width: timedelta, time_col: str, origin: datetime | None = None) -> str:
