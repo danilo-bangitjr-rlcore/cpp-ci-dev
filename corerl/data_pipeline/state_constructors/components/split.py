@@ -32,11 +32,11 @@ class SplitTransform:
     def __call__(self, carry: TransformCarry, ts: object | None):
         assert isinstance(ts, SplitTemporalState | None)
 
-        original_state = carry.agent_state.copy()
+        original_state = carry.transform_data.copy()
 
         # shallow copy all attributes, but ensure agent_state is a deep copy
         r_carry = copy.copy(carry)
-        r_carry.agent_state = carry.agent_state.copy()
+        r_carry.transform_data = carry.transform_data.copy()
 
         l_state = None if ts is None else ts.left_state
         l_carry, l_state = self._left(carry, l_state)
@@ -47,14 +47,14 @@ class SplitTransform:
         # reconcile the two carry objects by concatenating agent
         # state and relying on the fact that all other attributes
         # should be "read-only"
-        carry.agent_state = pd.concat((l_carry.agent_state, r_carry.agent_state), axis=1)
+        carry.transform_data = pd.concat((l_carry.transform_data, r_carry.transform_data), axis=1)
 
         if self._cfg.passthrough:
-            dup_cols = set(original_state.columns).intersection(carry.agent_state.columns)
+            dup_cols = set(original_state.columns).intersection(carry.transform_data.columns)
             if dup_cols:
-                carry.agent_state.drop(list(dup_cols), axis=1, inplace=True)
+                carry.transform_data.drop(list(dup_cols), axis=1, inplace=True)
 
-            carry.agent_state = pd.concat((carry.agent_state, original_state), axis=1)
+            carry.transform_data = pd.concat((carry.transform_data, original_state), axis=1)
 
         # Note a distinction in behavior between passthrough == False
         # and passthrough == None.
@@ -63,9 +63,9 @@ class SplitTransform:
         # If the user specified "do not passthrough", then filter
         # out the original columns.
         elif self._cfg.passthrough is False:
-            orig_cols = set(carry.agent_state.columns).intersection(original_state.columns)
+            orig_cols = set(carry.transform_data.columns).intersection(original_state.columns)
             if orig_cols:
-                carry.agent_state.drop(list(orig_cols), axis=1, inplace=True)
+                carry.transform_data.drop(list(orig_cols), axis=1, inplace=True)
 
         return carry, SplitTemporalState(
             left_state=l_state,

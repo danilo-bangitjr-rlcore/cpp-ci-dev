@@ -1,8 +1,14 @@
-from typing import cast
+from typing import cast, Mapping
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import MissingType
+from corerl.data_pipeline.datatypes import MissingType, TagName, PipelineStage
+
+def invoke_stage_per_tag[T](carry: T, stage: Mapping[TagName, PipelineStage[T]]) -> T:
+    for tag, f in stage.items():
+        carry = f(carry, tag)
+
+    return carry
 
 def _update_existing_missing_info_col(
         missing_info: pd.DataFrame,

@@ -7,12 +7,16 @@ from math import isclose
 import pandas as pd
 import datetime
 
+from typing import Callable
 from dataclasses import dataclass, fields, field
 
 from corerl.state_constructor.base import BaseStateConstructor
 
 from enum import IntFlag, auto, Enum
 
+type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
+type PipelineStage[T] = Callable[[T, TagName], T]
+type WarmupPruner = Callable[[PipelineFrame, int], PipelineFrame]
 
 class MissingType(IntFlag):
     NULL = auto()
@@ -321,6 +325,7 @@ class StageCode(Enum):
     ODDITY = auto()
     TC = auto()
     SC = auto()
+    RC = auto()
 
 
 type TemporalState = Dict[StageCode, object | None]

@@ -125,7 +125,7 @@ def test_trace_first_data():
 
     carry = TransformCarry(
         obs=raw_obs,
-        agent_state=raw_obs,
+        transform_data=raw_obs,
         tag='obs',
     )
 
@@ -137,30 +137,30 @@ def test_trace_first_data():
 
     new_carry, new_ts = trace_sc(carry, ts=None)
 
-    assert set(new_carry.agent_state.columns) == {
+    assert set(new_carry.transform_data.columns) == {
         'obs_1_trace-0.1',
         'obs_1_trace-0.01',
         'obs_2_trace-0.1',
         'obs_2_trace-0.01',
     }
-    assert new_carry.agent_state.shape == (7, 4)
+    assert new_carry.transform_data.shape == (7, 4)
     assert np.allclose(
-        new_carry.agent_state['obs_1_trace-0.1'],
+        new_carry.transform_data['obs_1_trace-0.1'],
         np.array([np.nan, 1., 1.9, 2.89, np.nan, 1., 1.9]),
         equal_nan=True,
     )
     assert np.allclose(
-        new_carry.agent_state['obs_1_trace-0.01'],
+        new_carry.transform_data['obs_1_trace-0.01'],
         np.array([np.nan, 1., 1.99, 2.9899, np.nan, 1., 1.99]),
         equal_nan=True,
     )
     assert np.allclose(
-        new_carry.agent_state['obs_2_trace-0.1'],
+        new_carry.transform_data['obs_2_trace-0.1'],
         np.array([1., 1.9, np.nan, 1., 1.9, 2.89, np.nan]),
         equal_nan=True,
     )
     assert np.allclose(
-        new_carry.agent_state['obs_2_trace-0.01'],
+        new_carry.transform_data['obs_2_trace-0.01'],
         np.array([1., 1.99, np.nan, 1., 1.99, 2.9899, np.nan]),
         equal_nan=True,
     )
@@ -192,7 +192,7 @@ def test_trace_temporal_state():
 
     carry = TransformCarry(
         obs=raw_obs,
-        agent_state=raw_obs,
+        transform_data=raw_obs,
         tag='obs',
     )
 
@@ -212,22 +212,22 @@ def test_trace_temporal_state():
     new_carry, new_ts = trace_sc(carry, ts)
 
     assert np.allclose(
-        new_carry.agent_state['obs_1_trace-0.1'],
+        new_carry.transform_data['obs_1_trace-0.1'],
         [np.nan, 1., 1.9, 2.89, np.nan, 1., 1.9],
         equal_nan=True,
     )
     assert np.allclose(
-        new_carry.agent_state['obs_1_trace-0.01'],
+        new_carry.transform_data['obs_1_trace-0.01'],
         [np.nan, 1., 1.99, 2.9899, np.nan, 1., 1.99],
         equal_nan=True,
     )
     assert np.allclose(
-        new_carry.agent_state['obs_2_trace-0.1'],
+        new_carry.transform_data['obs_2_trace-0.1'],
         [2.9, 2.09, np.nan, np.nan, np.nan, np.nan, np.nan],
         equal_nan=True,
     )
     assert np.allclose(
-        new_carry.agent_state['obs_2_trace-0.01'],
+        new_carry.transform_data['obs_2_trace-0.01'],
         [1.39, 1.9939, np.nan, np.nan, np.nan, np.nan, np.nan],
         equal_nan=True,
     )
