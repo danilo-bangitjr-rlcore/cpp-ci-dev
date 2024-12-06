@@ -256,7 +256,6 @@ def test_greaterthan_penalty_reward():
     assert dfs_close(pf.data, expected_df)
 
 
-
 def test_product_transform():
     start = datetime.datetime.now(datetime.UTC)
     Δ = datetime.timedelta(minutes=5)
