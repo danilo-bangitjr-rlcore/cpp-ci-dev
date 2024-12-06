@@ -178,11 +178,11 @@ def test_anytime_3_action_change():
     Test with a single pipeframe. The tc should construct transitions when the action changes at first and then
     when the decision window is done.
     """
-    state_col = np.arange(7)
-    cols = {"state": state_col, "action": [0, 0, 1, 1, 1, 2, 2], "reward": [1, 1, 1, 1, 1, 1, 1]}
+    state_col = np.arange(8)
+    cols = {"state": state_col, "action": [0, 0, 1, 1, 1, 2, 2, 3], "reward": [1, 1, 1, 1, 1, 1, 1, 1]}
 
     dates = [
-        datetime.datetime(2024, 1, 1, 1, i) for i in range(7)
+        datetime.datetime(2024, 1, 1, 1, i) for i in range(8)
     ]
 
     datetime_index = pd.DatetimeIndex(dates)
@@ -213,7 +213,7 @@ def test_anytime_3_action_change():
     tc = AnytimeTransitionCreator(cfg, tags)
     transitions = tc(pf).transitions
     assert isinstance(transitions, list)
-    assert len(transitions) == 4
+    assert len(transitions) == 6
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
@@ -270,6 +270,34 @@ def test_anytime_3_action_change():
     )
 
     assert transitions_equal_test(t_3, expected_3)
+
+    t_4 = transitions[4]
+    expected_4 = NewTransition(
+        prior=get_test_prior_argos(Tensor([4., 3.])),
+        post=RAGS(
+            state=Tensor([6., 1]),
+            action=Tensor([2.]),
+            reward=1.9,
+            gamma=0.9 ** 2,
+        ),
+        n_steps=2
+    )
+
+    assert transitions_equal_test(t_4, expected_4)
+
+    t_5 = transitions[5]
+    expected_5 = NewTransition(
+        prior=get_test_prior_argos(Tensor([5., 2.])),
+        post=RAGS(
+            state=Tensor([6., 1]),
+            action=Tensor([2.]),
+            reward=1.,
+            gamma=0.9,
+        ),
+        n_steps=1
+    )
+
+    assert transitions_equal_test(t_5, expected_5)
 
 
 def test_anytime_4_only_dp():
@@ -1024,6 +1052,133 @@ def test_anytime_online_4():
     assert transitions_equal_test(t_2, expected_2)
 
 
+def test_online_5():
+    """
+    Expecting exactly the same output as test_anytime_ts_2_data_gap, but now is online
+    """
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
+
+    cfg = AnytimeTransitionCreatorConfig(
+        steps_per_decision=10,
+        gamma=0.9,
+        n_step=None,
+        countdown='null',
+    )
+
+    tc = AnytimeTransitionCreator(cfg, tags)
+
+    states = list(range(9))
+    actions = [0, 0, 1, 1, np.nan, 1, 1, 0, 0]
+    rewards = [1] * 9
+
+    transitions = []
+    ts = {
+        StageCode.TC: None
+    }
+    for i in range(9):
+        cols = {"state": states[i], "action": actions[i], "reward": rewards[i]}
+        dates = [
+            datetime.datetime(2024, 1, 1, 1, i)
+        ]
+        datetime_index = pd.DatetimeIndex(dates)
+        df = pd.DataFrame(cols, index=datetime_index)
+
+        pf = PipelineFrame(
+            df,
+            caller_code=CallerCode.ONLINE,
+            temporal_state=ts
+        )
+        pf = tc(pf)
+        new_transitions = pf.transitions
+        assert isinstance(new_transitions, list)
+
+        transitions += new_transitions
+        ts = pf.temporal_state
+
+        # on the second iteration, feed an extra empty pipeframe thru,
+        # this shouldn't affect anything but should raise a warning.
+        if i == 1:
+            cols = {"state": [], "action": [], "reward": []}
+            dates = []
+            datetime_index = pd.DatetimeIndex(dates)
+            df = pd.DataFrame(cols, index=datetime_index)
+
+            pf = PipelineFrame(
+                df,
+                caller_code=CallerCode.ONLINE,
+                temporal_state=ts
+            )
+            pf = tc(pf)
+
+    assert len(transitions) == 4
+    t_0 = transitions[0]
+    expected_0 = NewTransition(
+        prior=get_test_prior_argos(Tensor([0.])),
+        post=RAGS(
+            state=Tensor([1.]),
+            action=Tensor([0.]),
+            reward=1,
+            gamma=0.9 ** 1,
+        ),
+        n_steps=1
+    )
+
+    assert transitions_equal_test(t_0, expected_0)
+
+    t_1 = transitions[1]
+    expected_1 = NewTransition(
+        prior=get_test_prior_argos(Tensor([1.])),
+        post=RAGS(
+            state=Tensor([3.]),
+            action=Tensor([1.]),
+            reward=1.9,
+            gamma=0.9 ** 2,
+        ),
+        n_steps=2
+    )
+
+    assert transitions_equal_test(t_1, expected_1)
+
+    t_2 = transitions[2]
+    expected_2 = NewTransition(
+        prior=get_test_prior_argos(Tensor([2.])),
+        post=RAGS(
+            state=Tensor([3.]),
+            action=Tensor([1.]),
+            reward=1.,
+            gamma=0.9,
+        ),
+        n_steps=1
+    )
+
+    assert transitions_equal_test(t_2, expected_2)
+
+    t_3 = transitions[3]
+    expected_3 = NewTransition(
+        prior=get_test_prior_argos(Tensor([5.])),
+        post=RAGS(
+            state=Tensor([6.]),
+            action=Tensor([1.]),
+            reward=1.,
+            gamma=0.9,
+        ),
+        n_steps=1
+    )
+
+    assert transitions_equal_test(t_3, expected_3)
+
+
 def test_split_at_nans_single_nan():
     dates = [datetime.datetime(2024, 1, i) for i in range(1, 6)]
     df = pd.DataFrame({
@@ -1173,7 +1328,6 @@ def test_float_countdown_3():
         steps_per_decision=2)
 
     assert torch.allclose(rags.state, Tensor([0., 0.5]))
-
 
 
 def test_null_countdown():

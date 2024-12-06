@@ -1,8 +1,11 @@
+import warnings
+
 import numpy as np
 import torch
 import pandas as pd
 
 from typing import Protocol
+from copy import copy
 from dataclasses import dataclass
 
 from corerl.utils.device import device
@@ -65,37 +68,45 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         assert isinstance(tc_ts, AnytimeTemporalState | None)
 
         transitions = []
+
+        if pf.data.empty:  # pretend like nothing happened but raise a warning...
+            warnings.warn("Empty dataframe passed to transition creator", stacklevel=2)
+            return transitions, tc_ts
+
+        result = _split_at_nans(pf.data)
+        # if the entire dataframe was nan, we have now detected a datagap
+        if not len(result):
+            tc_ts.prev_data_gap = True
+
         for df, post_df_data_gap in _split_at_nans(pf.data):
-            new_transitions, tc_ts = self._process_df(df, pf, tc_ts, post_df_data_gap)
+            new_transitions, tc_ts = self._process_df(df, tc_ts, post_df_data_gap)
             transitions += new_transitions
 
         return transitions, tc_ts
 
     def _process_df(self,
                     df: pd.DataFrame,
-                    pf: PipelineFrame,
                     tc_ts: AnytimeTemporalState | None,
                     post_df_data_gap: bool) \
             -> tuple[list[NewTransition], AnytimeTemporalState | None]:
         """
-        Produces transitions for a dataframe without data gaps. post_df_data_gap tells us whether a datagap
+        Produces transitions for a df without data gaps. post_df_data_gap tells us whether a datagap
         follows this df. This is needed for producing the temporal state for the NEXT df
         """
 
         actions = _get_tags(df, self.action_tags)
         state_tags = sorted(
-            set(pf.data.columns) - set(self.action_tags + ['reward'])
+            set(df.columns) - set(self.action_tags + ['reward'])
         )
         states = _get_tags(df, state_tags)
-        rewards = pf.data['reward'].to_numpy()
+        rewards = df['reward'].to_numpy()
 
         if not len(actions):
             return [], tc_ts
 
-        assert len(actions) == len(states)
+        assert len(actions) == len(states) and len(states) == len(rewards)
 
         step_info_list, transitions, steps_until_decision = self._restore_from_ts(actions, tc_ts)
-
         for i in range(len(actions)):
             action = actions[i]
             rags = RAGS(
@@ -109,7 +120,6 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                 rags,
                 steps_until_decision
             )
-
             step_info_list.append(si)
 
             next_action = actions[i + 1] if i != len(actions) - 1 else action
@@ -117,16 +127,20 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             reached_n_step = len(step_info_list) == self.max_boot_len + 1
             if reached_n_step or action_change:
                 transitions += self._make_transitions(step_info_list)
+                """
+                If the action changes, we will restart the countdown in update_countdown.
+                But we also need to make sue that si.sud is consistent with this updated countdown.
+                """
                 if action_change:
                     si.sud = self.steps_per_decision
+
                 step_info_list = [si]
 
-            steps_until_decision = update_countdown(
+            steps_until_decision = update_sud(
                 steps_until_decision,
                 self.steps_per_decision,
                 action_change,
             )
-
         tc_ts = AnytimeTemporalState(
             prev_step_info_list=step_info_list,
             prev_data_gap=post_df_data_gap,
@@ -140,7 +154,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             tc_ts: AnytimeTemporalState | None) -> tuple[list[StepInfo], list[NewTransition], int]:
         """
         Restores the state of the transition creator from the temporal state (tc_ts).
-        This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.rags_list
+        This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.step_info_list
         If there are RAGSs in tc_ts.rags_list, then there were RAGSs that did not get processed in the last call of
         the transition creator. If there was not a datagap, we continue processing these RAGSs, so this function
         will return rags_list. If the previously processed pipeframe had a datagap,
@@ -157,20 +171,20 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             return [], [], self.steps_per_decision
 
         first_action = actions[0]
-        last_pf_action = step_info_list[-1].rags.action
+        last_action = step_info_list[-1].rags.action
 
         steps_until_decision = self.steps_per_decision
+        transitions = []
+        action_change = not torch.allclose(last_action, first_action)
         if tc_ts.prev_data_gap:
             transitions = self._make_transitions(step_info_list)
             step_info_list = []
 
-        elif not torch.allclose(first_action, last_pf_action):
+        elif action_change:
             transitions = self._make_transitions(step_info_list)
-            step_info_list = [step_info_list[-1]]
-            steps_until_decision = step_info_list[-1].sud
-
-        else:
-            transitions = []
+            last_si = step_info_list[-1]
+            last_si.sud = self.steps_per_decision
+            step_info_list = [last_si]
 
         return step_info_list, transitions, steps_until_decision
 
@@ -231,6 +245,7 @@ def _split_at_nans(df: pd.DataFrame) -> list[tuple[pd.DataFrame, bool]]:
     Returns a list of tuples where the first entry of a tuple is the df and the second is whether there was a
     data gap (nan row) after this df.
     """
+
     nan_rows = df.isna().any(axis=1)
     split_indices = df[nan_rows].index.tolist()
 
@@ -253,7 +268,7 @@ def _split_at_nans(df: pd.DataFrame) -> list[tuple[pd.DataFrame, bool]]:
         last_chunk = df.loc[split_indices[-1]:].iloc[1:]
         result.append((last_chunk, False))
 
-    return [(subdf, has_nan) for subdf, has_nan in result if not subdf.empty]
+    return [(sub_df, has_nan) for sub_df, has_nan in result if not sub_df.empty]
 
 
 def _check_actions_valid(step_info_list: list[StepInfo]) -> None:
@@ -265,15 +280,15 @@ def _check_actions_valid(step_info_list: list[StepInfo]) -> None:
         assert np.allclose(first_action, action), "All actions within a decision window must be equal."
 
 
-def update_countdown(
-        countdown: int,
+def update_sud(
+        steps_until_decision: int,
         steps_per_decision: int,
         action_change) -> int:
     if action_change:
         return steps_per_decision - 1
-    if countdown == 0:
+    elif steps_until_decision == 0:
         return steps_per_decision
-    return countdown - 1
+    return steps_until_decision - 1
 
 
 transition_creator_group.dispatcher(AnytimeTransitionCreator)
@@ -304,9 +319,6 @@ def init_countdown_adder(name: str) -> CountDownCaller:
             raise NotImplementedError
 
     return lambda step_info, steps_per_decision: count_down_adder(step_info, steps_per_decision, f)
-
-
-from copy import copy
 
 
 def count_down_adder(step_info: StepInfo, steps_per_decision: int, func: CountDownAdder) -> RAGS:
