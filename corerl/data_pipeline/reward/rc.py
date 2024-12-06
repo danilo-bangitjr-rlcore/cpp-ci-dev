@@ -9,6 +9,7 @@ import corerl.data_pipeline.transforms.null  # noqa: F401
 import corerl.data_pipeline.transforms.scale  # noqa: F401
 import corerl.data_pipeline.transforms.split  # noqa: F401
 import corerl.data_pipeline.transforms.trace  # noqa: F401
+from corerl.data_pipeline.transforms.null import Null
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TagName
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, Transform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
@@ -24,7 +25,7 @@ type RC_TS = dict[
 
 class RewardComponentConstructor:
     def __init__(self, cfgs: list[BaseTransformConfig]):
-        self._components: list[Transform] = [transform_group.dispatch(sub_cfg) for sub_cfg in cfgs]
+        self._transforms: list[Transform] = [transform_group.dispatch(sub_cfg) for sub_cfg in cfgs]
 
     def __call__(self, pf: PipelineFrame, tag_name: str) -> PipelineFrame:
         tag_data = pf.data.get([tag_name])
@@ -39,8 +40,8 @@ class RewardComponentConstructor:
         ts = pf.temporal_state.get(StageCode.RC, None)
         tag_ts = self._sanitize_temporal_state(ts, tag_name)
 
-        for i in range(len(self._components)):
-            transform = self._components[i]
+        for i in range(len(self._transforms)):
+            transform = self._transforms[i]
             transform_ts = tag_ts[i]
 
             carry, transform_ts = transform(carry, transform_ts)
@@ -61,14 +62,14 @@ class RewardComponentConstructor:
 
         assert isinstance(ts, dict)
         if tag_name not in ts:
-            ts[tag_name] = [None] * len(self._components)
+            ts[tag_name] = [None] * len(self._transforms)
 
         return ts[tag_name]
 
 
 class RewardConstructor:
     def __init__(self, component_constructors: dict[TagName, RewardComponentConstructor]):
-        self.component_constructors = component_constructors
+        self.component_constructors = _filter_null_components(component_constructors)
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         initial_data = pf.data.copy(deep=True)
@@ -82,3 +83,16 @@ class RewardConstructor:
         pf.data = initial_data
 
         return pf
+
+
+def _filter_null_components(
+    component_constructors: dict[TagName, RewardComponentConstructor],
+) -> dict[TagName, RewardComponentConstructor]:
+    nonnull_ccs = {}
+    for tagname, cc in component_constructors.items():
+        xforms = cc._transforms
+        null_cc = len(xforms) == 1 and isinstance(xforms[0], Null)
+        if not null_cc:
+            nonnull_ccs[tagname] = cc
+
+    return nonnull_ccs
