@@ -52,7 +52,7 @@ class RewardComponentConstructor:
         pf.data = pd.concat((df, carry.transform_data), axis=1, copy=False)
 
         # put new temporal state on PipeFrame
-        pf.temporal_state[StageCode.SC] = ts
+        pf.temporal_state[StageCode.RC] = ts
         return pf
 
     def _sanitize_temporal_state(self, ts: object | None, tag_name: str):
