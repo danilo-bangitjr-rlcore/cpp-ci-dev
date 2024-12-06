@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.state_constructors.sc import sc_group
+from corerl.data_pipeline.state_constructors.sc import transform_group
 
 from test.infrastructure.utils.pandas import dfs_close
 
@@ -19,7 +19,7 @@ def test_norm_part():
     )
 
     norm_cfg = NormalizerConfig()
-    normalizer = sc_group.dispatch(norm_cfg)
+    normalizer = transform_group.dispatch(norm_cfg)
 
     new_carry, _ = normalizer(carry, None)
 

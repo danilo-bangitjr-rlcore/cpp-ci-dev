@@ -3,7 +3,7 @@ import pandas as pd
 from dataclasses import dataclass
 from omegaconf import MISSING
 
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, sc_group
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
@@ -26,8 +26,8 @@ class SplitTransform:
     def __init__(self, cfg: SplitConfig):
         self._cfg = cfg
 
-        self._left = sc_group.dispatch(cfg.left)
-        self._right = sc_group.dispatch(cfg.right)
+        self._left = transform_group.dispatch(cfg.left)
+        self._right = transform_group.dispatch(cfg.right)
 
     def __call__(self, carry: TransformCarry, ts: object | None):
         assert isinstance(ts, SplitTemporalState | None)
@@ -72,4 +72,4 @@ class SplitTransform:
             right_state=r_state,
         )
 
-sc_group.dispatcher(SplitTransform)
+transform_group.dispatcher(SplitTransform)

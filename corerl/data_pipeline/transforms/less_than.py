@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit
 from dataclasses import dataclass
 
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, sc_group
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
@@ -29,7 +29,7 @@ class LessThan:
 
         return carry, None
 
-sc_group.dispatcher(LessThan)
+transform_group.dispatcher(LessThan)
 
 @njit
 def _less_than(x: np.ndarray, threshold: float):

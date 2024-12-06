@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, sc_group
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
@@ -20,4 +20,4 @@ class AddRaw:
 
         return carry, None
 
-sc_group.dispatcher(AddRaw)
+transform_group.dispatcher(AddRaw)

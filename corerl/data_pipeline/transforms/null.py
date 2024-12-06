@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, sc_group
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 import pandas as pd
 
@@ -17,4 +17,4 @@ class Null:
         carry.transform_data = pd.DataFrame()
         return carry, None
 
-sc_group.dispatcher(Null)
+transform_group.dispatcher(Null)

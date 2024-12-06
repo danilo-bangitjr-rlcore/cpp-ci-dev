@@ -10,7 +10,7 @@ import corerl.data_pipeline.transforms.scale  # noqa: F401
 import corerl.data_pipeline.transforms.split  # noqa: F401
 import corerl.data_pipeline.transforms.trace  # noqa: F401
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TagName
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, Transform, sc_group
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, Transform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 
@@ -24,7 +24,7 @@ type RC_TS = dict[
 
 class RewardComponentConstructor:
     def __init__(self, cfgs: list[BaseTransformConfig]):
-        self._components: list[Transform] = [sc_group.dispatch(sub_cfg) for sub_cfg in cfgs]
+        self._components: list[Transform] = [transform_group.dispatch(sub_cfg) for sub_cfg in cfgs]
 
     def __call__(self, pf: PipelineFrame, tag_name: str) -> PipelineFrame:
         tag_data = pf.data.get([tag_name])

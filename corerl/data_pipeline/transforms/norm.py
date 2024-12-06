@@ -3,7 +3,7 @@ from numba import njit
 from collections import defaultdict
 from dataclasses import dataclass
 
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, sc_group
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
@@ -50,7 +50,7 @@ class Normalizer:
 
         return carry, None
 
-sc_group.dispatcher(Normalizer)
+transform_group.dispatcher(Normalizer)
 
 @njit
 def _norm(x: np.ndarray, mi: float, ma: float):

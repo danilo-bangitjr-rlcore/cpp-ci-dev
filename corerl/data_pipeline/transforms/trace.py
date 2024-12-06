@@ -3,7 +3,7 @@ from numba import njit
 from dataclasses import dataclass
 from corerl.utils.hydra import list_
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, sc_group
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 
 
 @dataclass
@@ -47,7 +47,7 @@ class TraceConstructor:
         return carry, TraceTemporalState(mu)
 
 
-sc_group.dispatcher(TraceConstructor)
+transform_group.dispatcher(TraceConstructor)
 
 @njit
 def compute_trace_with_nan(

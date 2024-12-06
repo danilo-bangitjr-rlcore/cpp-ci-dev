@@ -12,8 +12,8 @@ class Transform(Protocol):
 class BaseTransformConfig:
     name: str = MISSING
 
-sc_group = Group[
+transform_group = Group[
     [], Transform,
 # As far as I am aware, there is no way to do group overrides
 # in a nested list of lists of groups.
-]('sc')
+]('transform')
