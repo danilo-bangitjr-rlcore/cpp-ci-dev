@@ -87,7 +87,7 @@ class ObsTransition:
 
 
 @dataclass
-class RAGS:
+class Step:
     """
     Dataclass for storing the information of a single step.
     The acronym comes from the set of objects it holds (reward, action,  gamma, state)
@@ -97,9 +97,10 @@ class RAGS:
     action: Tensor
     gamma: float
     state: Tensor
+    dp: bool = False
 
     def __eq__(self, other: object):
-        if not isinstance(other, RAGS):
+        if not isinstance(other, Step):
             return False
 
         return (
@@ -112,8 +113,8 @@ class RAGS:
 
 @dataclass
 class NewTransition:
-    prior: RAGS
-    post: RAGS
+    prior: Step
+    post: Step
     n_steps: int
 
 

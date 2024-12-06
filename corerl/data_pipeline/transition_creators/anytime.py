@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from corerl.utils.device import device
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.component.network.utils import tensor
-from corerl.data_pipeline.datatypes import PipelineFrame, RAGS, NewTransition
+from corerl.data_pipeline.datatypes import PipelineFrame, Step, NewTransition
 from corerl.utils.hydra import interpolate
 from corerl.data_pipeline.transition_creators.base import (
     BaseTransitionCreator,
@@ -33,13 +33,13 @@ class AnytimeTransitionCreatorConfig(BaseTransitionCreatorConfig):
 
 @dataclass
 class StepInfo:
-    rags: RAGS
+    step: Step
     sud: int
 
 
 @dataclass
 class AnytimeTemporalState(TransitionCreatorTemporalState):
-    prev_step_info_list: list[StepInfo]  # left over rags from the last time we made transitions
+    prev_step_info_list: list[StepInfo]  # left over step from the last time we made transitions
     prev_data_gap: bool
 
 
@@ -109,7 +109,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         step_info_list, transitions, steps_until_decision = self._restore_from_ts(actions, tc_ts)
         for i in range(len(actions)):
             action = actions[i]
-            rags = RAGS(
+            step = Step(
                 reward=rewards[i],
                 action=action,
                 gamma=self.gamma,
@@ -117,7 +117,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             )
 
             si = StepInfo(
-                rags,
+                step,
                 steps_until_decision
             )
             step_info_list.append(si)
@@ -155,9 +155,9 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         """
         Restores the state of the transition creator from the temporal state (tc_ts).
         This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.step_info_list
-        If there are RAGSs in tc_ts.rags_list, then there were RAGSs that did not get processed in the last call of
-        the transition creator. If there was not a datagap, we continue processing these RAGSs, so this function
-        will return rags_list. If the previously processed pipeframe had a datagap,
+        If there are STEPs in tc_ts.step_list, then there were STEPs that did not get processed in the last call of
+        the transition creator. If there was not a datagap, we continue processing these STEPs, so this function
+        will return step_list. If the previously processed pipeframe had a datagap,
         then we need to add these transitions.
         """
 
@@ -171,7 +171,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             return [], [], self.steps_per_decision
 
         first_action = actions[0]
-        last_action = step_info_list[-1].rags.action
+        last_action = step_info_list[-1].step.action
 
         steps_until_decision = self.steps_per_decision
         transitions = []
@@ -191,25 +191,25 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
     def _make_transitions(
             self, step_info_list: list[StepInfo]) -> list[NewTransition]:
         """
-        Makes transitions for a list of RAGS.
-        NOTE that the first RAGS may have a different action than the rest.
+        Makes transitions for a list of STEP.
+        NOTE that the first STEP may have a different action than the rest.
         """
         _check_actions_valid(step_info_list)
         transitions = []
 
         assert len(step_info_list) <= self.max_boot_len + 1
 
-        boot_rags = self.countdown_adder(
+        boot_step = self.countdown_adder(
             step_info_list[-1],
             steps_per_decision=self.steps_per_decision)
 
-        n_step_reward = boot_rags.reward
-        n_step_gamma = boot_rags.gamma
-        last_rags_idx = len(step_info_list) - 1
+        n_step_reward = boot_step.reward
+        n_step_gamma = boot_step.gamma
+        last_step_idx = len(step_info_list) - 1
         for step_backwards in range(len(step_info_list) - 2, -1, -1):
 
             step_info = step_info_list[step_backwards]
-            prior_rags = self.countdown_adder(step_info, steps_per_decision=self.steps_per_decision)
+            prior_step = self.countdown_adder(step_info, steps_per_decision=self.steps_per_decision)
 
             """
             if only_dp_transitions is False, then make_transitions is always True
@@ -217,18 +217,18 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             """
             make_transition = not self.only_dp_transitions or step_backwards == 0
             if make_transition:
-                n_steps = last_rags_idx - step_backwards
-                post_rags = RAGS(
+                n_steps = last_step_idx - step_backwards
+                post_step = Step(
                     reward=n_step_reward,
-                    action=boot_rags.action,
+                    action=boot_step.action,
                     gamma=n_step_gamma,
-                    state=boot_rags.state,  # has the countdown added already
+                    state=boot_step.state,  # has the countdown added already
                 )
-                transition = NewTransition(prior_rags, post_rags, n_steps)
+                transition = NewTransition(prior_step, post_step, n_steps)
                 transitions.append(transition)
 
-            n_step_reward = prior_rags.reward + boot_rags.gamma * n_step_reward
-            n_step_gamma *= boot_rags.gamma
+            n_step_reward = prior_step.reward + boot_step.gamma * n_step_reward
+            n_step_gamma *= boot_step.gamma
 
         transitions.reverse()
 
@@ -274,7 +274,7 @@ def _split_at_nans(df: pd.DataFrame) -> list[tuple[pd.DataFrame, bool]]:
 def _check_actions_valid(step_info_list: list[StepInfo]) -> None:
     if len(step_info_list) < 2:
         return
-    actions = [si.rags.action for si in step_info_list]
+    actions = [si.step.action for si in step_info_list]
     first_action = actions[1]
     for action in actions[2:]:
         assert np.allclose(first_action, action), "All actions within a decision window must be equal."
@@ -295,12 +295,12 @@ transition_creator_group.dispatcher(AnytimeTransitionCreator)
 
 
 class CountDownAdder(Protocol):
-    def __call__(self, rags: RAGS, steps_until_decision: int, steps_per_decision: int) -> RAGS:
+    def __call__(self, step: Step, steps_until_decision: int, steps_per_decision: int) -> Step:
         ...
 
 
 class CountDownCaller(Protocol):
-    def __call__(self, step_info: StepInfo, steps_per_decision: int) -> RAGS:
+    def __call__(self, step_info: StepInfo, steps_per_decision: int) -> Step:
         ...
 
 
@@ -321,54 +321,54 @@ def init_countdown_adder(name: str) -> CountDownCaller:
     return lambda step_info, steps_per_decision: count_down_adder(step_info, steps_per_decision, f)
 
 
-def count_down_adder(step_info: StepInfo, steps_per_decision: int, func: CountDownAdder) -> RAGS:
-    rags = copy(step_info.rags)
+def count_down_adder(step_info: StepInfo, steps_per_decision: int, func: CountDownAdder) -> Step:
+    step = copy(step_info.step)
 
     return func(
-        rags,
+        step,
         step_info.sud,
         steps_per_decision,
     )
 
 
 def add_null_countdown(
-        rags: RAGS,
+        step: Step,
         steps_until_decision: int,
-        steps_per_decision: int) -> RAGS:
+        steps_per_decision: int) -> Step:
     assert steps_until_decision <= steps_per_decision
-    return rags
+    return step
 
 
 def add_one_hot_countdown(
-        rags: RAGS,
+        step: Step,
         steps_until_decision: int,
-        steps_per_decision: int) -> RAGS:
+        steps_per_decision: int) -> Step:
     assert steps_until_decision <= steps_per_decision
     one_hot = torch.zeros((steps_per_decision,), device=device.device)
     one_hot[steps_until_decision - 1] = 1
-    rags.state = torch.cat([rags.state, one_hot])
-    return rags
+    step.state = torch.cat([step.state, one_hot])
+    return step
 
 
 def add_float_countdown(
-        rags: RAGS,
+        step: Step,
         steps_until_decision: int,
-        steps_per_decision: int) -> RAGS:
+        steps_per_decision: int) -> Step:
     assert steps_until_decision <= steps_per_decision
     if steps_until_decision == 0:
         steps_until_decision = steps_per_decision
     countdown = tensor(np.array([steps_until_decision / steps_per_decision]))
-    rags.state = torch.cat([rags.state, countdown])
-    return rags
+    step.state = torch.cat([step.state, countdown])
+    return step
 
 
 def add_int_countdown(
-        rags: RAGS,
+        step: Step,
         steps_until_decision: int,
-        steps_per_decision: int) -> RAGS:
+        steps_per_decision: int) -> Step:
     assert steps_until_decision <= steps_per_decision
     if steps_until_decision == 0:
         steps_until_decision = steps_per_decision
     countdown = tensor(np.array([steps_until_decision]))
-    rags.state = torch.cat([rags.state, countdown])
-    return rags
+    step.state = torch.cat([step.state, countdown])
+    return step

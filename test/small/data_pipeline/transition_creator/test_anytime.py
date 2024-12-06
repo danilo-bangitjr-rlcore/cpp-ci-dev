@@ -6,7 +6,7 @@ import torch
 from torch import Tensor
 
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, RAGS, StageCode, TemporalState
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, Step, StageCode, TemporalState
 from corerl.data_pipeline.transition_creators.anytime import (
     AnytimeTransitionCreator,
     AnytimeTransitionCreatorConfig,
@@ -17,8 +17,8 @@ from corerl.data_pipeline.transition_creators.anytime import (
 )
 
 
-def get_test_prior_argos(state: Tensor) -> RAGS:
-    return RAGS(
+def get_test_prior_argos(state: Tensor) -> Step:
+    return Step(
         state=state,
         gamma=0,
         action=Tensor([0.]),
@@ -80,7 +80,7 @@ def test_anytime_1():
 
     expected = NewTransition(
         prior=get_test_prior_argos(Tensor([0., 10.])),  # countdown (last entry) should be 10 steps until decision
-        post=RAGS(
+        post=Step(
             state=Tensor([1., 9.]),  # countdown (last entry) should now be 9 steps until decision
             action=Tensor([0.]),
             reward=1,
@@ -133,7 +133,7 @@ def test_anytime_2_n_step_1():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0., 10.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([1., 9.0]),
             action=Tensor([0.]),
             reward=1,
@@ -147,7 +147,7 @@ def test_anytime_2_n_step_1():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1., 9.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([2., 8.]),
             action=Tensor([0.]),
             reward=1.0,
@@ -161,7 +161,7 @@ def test_anytime_2_n_step_1():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([2., 10.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([3., 9.]),
             action=Tensor([1.]),
             reward=1.0,
@@ -218,7 +218,7 @@ def test_anytime_3_action_change():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0., 3])),
-        post=RAGS(
+        post=Step(
             state=Tensor([1., 2]),
             action=Tensor([0.]),
             reward=1.0,
@@ -232,7 +232,7 @@ def test_anytime_3_action_change():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1., 3])),
-        post=RAGS(
+        post=Step(
             state=Tensor([4., 3]),
             action=Tensor([1.]),
             reward=2.71,
@@ -246,7 +246,7 @@ def test_anytime_3_action_change():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([2., 2])),
-        post=RAGS(
+        post=Step(
             state=Tensor([4., 3]),
             action=Tensor([1.]),
             reward=1.9,
@@ -260,7 +260,7 @@ def test_anytime_3_action_change():
     t_3 = transitions[3]
     expected_3 = NewTransition(
         prior=get_test_prior_argos(Tensor([3., 1.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([4., 3]),
             action=Tensor([1.]),
             reward=1.,
@@ -274,7 +274,7 @@ def test_anytime_3_action_change():
     t_4 = transitions[4]
     expected_4 = NewTransition(
         prior=get_test_prior_argos(Tensor([4., 3.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([6., 1]),
             action=Tensor([2.]),
             reward=1.9,
@@ -288,7 +288,7 @@ def test_anytime_3_action_change():
     t_5 = transitions[5]
     expected_5 = NewTransition(
         prior=get_test_prior_argos(Tensor([5., 2.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([6., 1]),
             action=Tensor([2.]),
             reward=1.,
@@ -343,7 +343,7 @@ def test_anytime_4_only_dp():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([8.]),
             action=Tensor([0.]),
             reward=5.6953279,
@@ -400,7 +400,7 @@ def test_anytime_ts_1():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([1.]),
             action=Tensor([0.]),
             reward=1.,
@@ -431,7 +431,7 @@ def test_anytime_ts_1():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([5.]),
             action=Tensor([1.]),
             reward=3.439,
@@ -445,7 +445,7 @@ def test_anytime_ts_1():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([2.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([5.]),
             action=Tensor([1.]),
             reward=2.71,
@@ -459,7 +459,7 @@ def test_anytime_ts_1():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([3.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([5.]),
             action=Tensor([1.]),
             reward=1.9,
@@ -473,7 +473,7 @@ def test_anytime_ts_1():
     t_3 = transitions[3]
     expected_3 = NewTransition(
         prior=get_test_prior_argos(Tensor([4.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([5.]),
             action=Tensor([1.]),
             reward=1.,
@@ -530,7 +530,7 @@ def test_anytime_ts_2_data_gap():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([1.]),
             action=Tensor([0.]),
             reward=1,
@@ -544,7 +544,7 @@ def test_anytime_ts_2_data_gap():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.9,
@@ -558,7 +558,7 @@ def test_anytime_ts_2_data_gap():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([2.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.,
@@ -572,7 +572,7 @@ def test_anytime_ts_2_data_gap():
     t_3 = transitions[3]
     expected_3 = NewTransition(
         prior=get_test_prior_argos(Tensor([5.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([6.]),
             action=Tensor([1.]),
             reward=1.,
@@ -628,7 +628,7 @@ def test_anytime_ts_3_data_gap_with_action_change():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([1.]),
             action=Tensor([0.]),
             reward=1,
@@ -642,7 +642,7 @@ def test_anytime_ts_3_data_gap_with_action_change():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.9,
@@ -656,7 +656,7 @@ def test_anytime_ts_3_data_gap_with_action_change():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([2.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.,
@@ -670,7 +670,7 @@ def test_anytime_ts_3_data_gap_with_action_change():
     t_3 = transitions[3]
     expected_3 = NewTransition(
         prior=get_test_prior_argos(Tensor([5.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([6.]),
             action=Tensor([2.]),
             reward=1.,
@@ -738,7 +738,7 @@ def test_anytime_online_1():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([3.]),
             action=Tensor([1.]),
             reward=2.71,
@@ -752,7 +752,7 @@ def test_anytime_online_1():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.9,
@@ -766,7 +766,7 @@ def test_anytime_online_1():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([2.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.,
@@ -838,7 +838,7 @@ def test_anytime_online_2():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([2.]),
             action=Tensor([1.]),
             reward=1.9,
@@ -852,7 +852,7 @@ def test_anytime_online_2():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([2.]),
             action=Tensor([1.]),
             reward=1.,
@@ -927,7 +927,7 @@ def test_anytime_online_3():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([2.]),
             action=Tensor([1.]),
             reward=1.9,
@@ -941,7 +941,7 @@ def test_anytime_online_3():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([2.]),
             action=Tensor([1.]),
             reward=1.,
@@ -1015,7 +1015,7 @@ def test_anytime_online_4():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([1.]),
             action=Tensor([1.]),
             reward=1.,
@@ -1028,7 +1028,7 @@ def test_anytime_online_4():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([2.]),
             action=Tensor([1.]),
             reward=1.,
@@ -1041,7 +1041,7 @@ def test_anytime_online_4():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([2.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([3.]),
             action=Tensor([2.]),
             reward=1.,
@@ -1125,7 +1125,7 @@ def test_online_5():
     t_0 = transitions[0]
     expected_0 = NewTransition(
         prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([1.]),
             action=Tensor([0.]),
             reward=1,
@@ -1139,7 +1139,7 @@ def test_online_5():
     t_1 = transitions[1]
     expected_1 = NewTransition(
         prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.9,
@@ -1153,7 +1153,7 @@ def test_online_5():
     t_2 = transitions[2]
     expected_2 = NewTransition(
         prior=get_test_prior_argos(Tensor([2.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([3.]),
             action=Tensor([1.]),
             reward=1.,
@@ -1167,7 +1167,7 @@ def test_online_5():
     t_3 = transitions[3]
     expected_3 = NewTransition(
         prior=get_test_prior_argos(Tensor([5.])),
-        post=RAGS(
+        post=Step(
             state=Tensor([6.]),
             action=Tensor([1.]),
             reward=1.,
@@ -1233,7 +1233,7 @@ def test_split_at_nans_multiple_nans():
 
 
 def test_one_hot_countdown_1():
-    rags = RAGS(
+    rags = Step(
         state=Tensor([0.]),
         action=Tensor([0.]),
         reward=0.,
@@ -1249,7 +1249,7 @@ def test_one_hot_countdown_1():
 
 
 def test_one_hot_countdown_2():
-    rags = RAGS(
+    rags = Step(
         state=Tensor([0.]),
         action=Tensor([0.]),
         reward=0.,
@@ -1265,7 +1265,7 @@ def test_one_hot_countdown_2():
 
 
 def test_one_hot_countdown_3():
-    rags = RAGS(
+    rags = Step(
         state=Tensor([0.]),
         action=Tensor([0.]),
         reward=0.,
@@ -1283,7 +1283,7 @@ def test_one_hot_countdown_3():
 
 
 def test_float_countdown_1():
-    rags = RAGS(
+    rags = Step(
         state=Tensor([0.]),
         action=Tensor([0.]),
         reward=0.,
@@ -1299,7 +1299,7 @@ def test_float_countdown_1():
 
 
 def test_float_countdown_2():
-    rags = RAGS(
+    rags = Step(
         state=Tensor([0.]),
         action=Tensor([0.]),
         reward=0.,
@@ -1315,7 +1315,7 @@ def test_float_countdown_2():
 
 
 def test_float_countdown_3():
-    rags = RAGS(
+    rags = Step(
         state=Tensor([0.]),
         action=Tensor([0.]),
         reward=0.,
@@ -1331,7 +1331,7 @@ def test_float_countdown_3():
 
 
 def test_null_countdown():
-    rags = RAGS(
+    rags = Step(
         state=Tensor([0.]),
         action=Tensor([0.]),
         reward=0.,
