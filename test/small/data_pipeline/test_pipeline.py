@@ -286,9 +286,6 @@ def test_sub_pipeline3():
 def test_sub_pipeline4():
     """
     Same as test_sub_pipeline1, but adds reward constructor.
-
-    Since the reward constructor isn't explicitly added to any of
-    the tag configs, this should have the same result as test_sub_pipeline1.
     """
     cfg = PipelineConfig(
         tags=[
