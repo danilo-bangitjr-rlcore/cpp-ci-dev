@@ -170,21 +170,25 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         if not len(step_info_list):
             return [], [], self.steps_per_decision
 
-        first_action = actions[0]
-        last_action = step_info_list[-1].step.action
-
-        steps_until_decision = self.steps_per_decision
-        transitions = []
+        first_action = actions[0]  # first action of the next df
+        last_action = step_info_list[-1].step.action  # last action of the prev df
         action_change = not torch.allclose(last_action, first_action)
+
         if tc_ts.prev_data_gap:
             transitions = self._make_transitions(step_info_list)
             step_info_list = []
+            steps_until_decision = self.steps_per_decision
 
         elif action_change:
             transitions = self._make_transitions(step_info_list)
             last_si = step_info_list[-1]
             last_si.sud = self.steps_per_decision
             step_info_list = [last_si]
+            steps_until_decision = self.steps_per_decision - 1  # minus one is because this is for the NEXT step
+
+        else:  # no data gap or action change, just continue processing steps
+            transitions = []
+            steps_until_decision = step_info_list[-1].sud - 1  # minus one is because this is for the NEXT step
 
         return step_info_list, transitions, steps_until_decision
 
@@ -203,14 +207,16 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             step_info_list[-1],
             steps_per_decision=self.steps_per_decision)
 
+        boot_sud = step_info_list[-1].sud
+        boot_dp = boot_sud == self.steps_per_decision or boot_sud == 0
+
         n_step_reward = boot_step.reward
         n_step_gamma = boot_step.gamma
         last_step_idx = len(step_info_list) - 1
         for step_backwards in range(len(step_info_list) - 2, -1, -1):
-
             step_info = step_info_list[step_backwards]
             prior_step = self.countdown_adder(step_info, steps_per_decision=self.steps_per_decision)
-
+            prior_step.dp = step_info.sud == self.steps_per_decision
             """
             if only_dp_transitions is False, then make_transitions is always True
             if only_dp_transitions is True, then make_transitions False except for the final transition
@@ -222,7 +228,8 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                     reward=n_step_reward,
                     action=boot_step.action,
                     gamma=n_step_gamma,
-                    state=boot_step.state,  # has the countdown added already
+                    state=boot_step.state,
+                    dp=boot_dp,
                 )
                 transition = NewTransition(prior_step, post_step, n_steps)
                 transitions.append(transition)

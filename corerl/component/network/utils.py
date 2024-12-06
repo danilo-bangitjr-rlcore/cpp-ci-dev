@@ -170,6 +170,12 @@ def to_np(t: numpy.ndarray | torch.Tensor) -> numpy.ndarray:
         raise AssertionError("")
 
 
+def tensor_allclose(t1, t2, rtol=1e-05, atol=1e-08):
+    if t1.shape != t2.shape:
+        return False
+    return torch.allclose(t1, t2, rtol=rtol, atol=atol)
+
+
 def init_activation(name: str) -> type[nn.Module]:
     warnings.warn(
         "init_activation in module utils is deprecated and will be removed, " +
