@@ -101,8 +101,8 @@ class RAGS:
         return (
                 isclose(self.gamma, other.gamma)
                 and isclose(self.reward, other.reward)
-                and torch.equal(self.action, other.action)
-                and torch.equal(self.state, other.state)
+                and torch.allclose(self.action, other.action)
+                and torch.allclose(self.state, other.state,)
         )
 
 
@@ -113,14 +113,15 @@ class NewTransition:
     n_steps: int
 
 
-def __eq__(self, other: object):
-    if not isinstance(other, NewTransition):
-        return False
-    return (
-            self.prior == other.prior
-            and self.post == other.post
-            and self.n_steps == other.n_steps
-    )
+    def __eq__(self, other: object):
+        if not isinstance(other, NewTransition):
+            return False
+
+        return (
+                self.prior == other.prior
+                and self.post == other.post
+                and self.n_steps == other.n_steps
+        )
 
 
 @dataclass
