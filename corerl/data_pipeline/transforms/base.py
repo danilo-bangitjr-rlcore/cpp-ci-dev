@@ -3,7 +3,7 @@ from typing import Protocol
 
 from omegaconf import MISSING
 from corerl.utils.hydra import Group
-from corerl.data_pipeline.state_constructors.interface import TransformCarry
+from corerl.data_pipeline.transforms.interface import TransformCarry
 
 class Transform(Protocol):
     def __call__(self, carry: TransformCarry, ts: object | None) -> tuple[TransformCarry, object | None]: ...

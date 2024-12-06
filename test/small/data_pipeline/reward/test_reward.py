@@ -3,9 +3,9 @@ import pandas as pd
 
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
 from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
-from corerl.data_pipeline.state_constructors.components.norm import NormalizerConfig
-from corerl.data_pipeline.state_constructors.components.trace import TraceConfig
-from corerl.data_pipeline.state_constructors.components.null import NullConfig
+from corerl.data_pipeline.transforms.norm import NormalizerConfig
+from corerl.data_pipeline.transforms.trace import TraceConfig
+from corerl.data_pipeline.transforms.null import NullConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 

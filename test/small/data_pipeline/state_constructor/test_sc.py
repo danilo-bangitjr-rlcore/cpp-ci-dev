@@ -1,11 +1,11 @@
 import numpy as np
 import pandas as pd
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
-from corerl.data_pipeline.state_constructors.components.norm import NormalizerConfig
-from corerl.data_pipeline.state_constructors.components.add_raw import AddRawConfig
-from corerl.data_pipeline.state_constructors.components.split import SplitConfig
+from corerl.data_pipeline.transforms.norm import NormalizerConfig
+from corerl.data_pipeline.transforms.add_raw import AddRawConfig
+from corerl.data_pipeline.transforms.split import SplitConfig
 from corerl.data_pipeline.state_constructors.sc import StateConstructor
-from corerl.data_pipeline.state_constructors.components.trace import TraceConfig
+from corerl.data_pipeline.transforms.trace import TraceConfig
 
 from test.infrastructure.utils.pandas import dfs_close
 

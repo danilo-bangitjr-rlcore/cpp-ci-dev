@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from corerl.data_pipeline.state_constructors.components.norm import NormalizerConfig
-from corerl.data_pipeline.state_constructors.interface import TransformCarry
+from corerl.data_pipeline.transforms.norm import NormalizerConfig
+from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.state_constructors.sc import sc_group
 
 from test.infrastructure.utils.pandas import dfs_close

@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
-from corerl.data_pipeline.state_constructors.components.split import SplitConfig, SplitTemporalState
-from corerl.data_pipeline.state_constructors.components.trace import TraceConfig, TraceTemporalState
+from corerl.data_pipeline.transforms.split import SplitConfig, SplitTemporalState
+from corerl.data_pipeline.transforms.trace import TraceConfig, TraceTemporalState
 from corerl.data_pipeline.state_constructors.sc import StateConstructor
 
 from test.infrastructure.utils.pandas import dfs_close

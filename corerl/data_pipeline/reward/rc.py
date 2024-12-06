@@ -1,17 +1,17 @@
 import pandas as pd
 
 # ensure components are registered
-import corerl.data_pipeline.state_constructors.components.add_raw  # noqa: F401
-import corerl.data_pipeline.state_constructors.components.affine  # noqa: F401
-import corerl.data_pipeline.state_constructors.components.identity  # noqa: F401
-import corerl.data_pipeline.state_constructors.components.norm  # noqa: F401
-import corerl.data_pipeline.state_constructors.components.null  # noqa: F401
-import corerl.data_pipeline.state_constructors.components.scale  # noqa: F401
-import corerl.data_pipeline.state_constructors.components.split  # noqa: F401
-import corerl.data_pipeline.state_constructors.components.trace  # noqa: F401
+import corerl.data_pipeline.transforms.add_raw  # noqa: F401
+import corerl.data_pipeline.transforms.affine  # noqa: F401
+import corerl.data_pipeline.transforms.identity  # noqa: F401
+import corerl.data_pipeline.transforms.norm  # noqa: F401
+import corerl.data_pipeline.transforms.null  # noqa: F401
+import corerl.data_pipeline.transforms.scale  # noqa: F401
+import corerl.data_pipeline.transforms.split  # noqa: F401
+import corerl.data_pipeline.transforms.trace  # noqa: F401
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TagName
-from corerl.data_pipeline.state_constructors.components.base import BaseTransformConfig, Transform, sc_group
-from corerl.data_pipeline.state_constructors.interface import TransformCarry
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, Transform, sc_group
+from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 
 type RC_TS = dict[

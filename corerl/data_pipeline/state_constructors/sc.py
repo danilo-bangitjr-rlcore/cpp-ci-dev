@@ -1,12 +1,12 @@
 from collections import defaultdict
 import pandas as pd
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
-from corerl.data_pipeline.state_constructors.interface import TransformCarry
-from corerl.data_pipeline.state_constructors.components.base import BaseTransformConfig, sc_group, Transform
+from corerl.data_pipeline.transforms.interface import TransformCarry
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, sc_group, Transform
 
-# ensure components are registered
-import corerl.data_pipeline.state_constructors.components.norm # noqa: F401
-import corerl.data_pipeline.state_constructors.components.trace # noqa: F401
+# ensure transforms are registered
+import corerl.data_pipeline.transforms.norm # noqa: F401
+import corerl.data_pipeline.transforms.trace # noqa: F401
 
 
 
