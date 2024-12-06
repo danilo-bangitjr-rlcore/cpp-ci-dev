@@ -91,7 +91,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             -> tuple[list[NewTransition], AnytimeTemporalState | None]:
         """
         Produces transitions for a df without data gaps. post_df_data_gap tells us whether a datagap
-        follows this df. This is needed for producing the temporal state for the NEXT df
+        follows this df. This is needed for producing the temporal state for the NEXT df.
         """
 
         actions = _get_tags(df, self.action_tags)
@@ -155,10 +155,15 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         """
         Restores the state of the transition creator from the temporal state (tc_ts).
         This temporal state is summarized in tc_ts.prev_data_gap and tc_ts.step_info_list
-        If there are STEPs in tc_ts.step_list, then there were STEPs that did not get processed in the last call of
-        the transition creator. If there was not a datagap, we continue processing these STEPs, so this function
+        If there are steps in tc_ts.step_list, then there were steps that did not get processed in the last call of
+        the transition creator. If there was not a datagap, we continue processing these steps, so this function
         will return step_list. If the previously processed pipeframe had a datagap,
-        then we need to add these transitions.
+        then we need to also return these transitions.
+
+        Returns:
+                step_info_list : unprocessed list of step_infos
+                transitions: transitions (only produced if there was a datagap)
+                steps_until_decision: the steps_until_decision counter for the NEXT step
         """
 
         # Case 1: tc_ts is None
@@ -195,8 +200,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
     def _make_transitions(
             self, step_info_list: list[StepInfo]) -> list[NewTransition]:
         """
-        Makes transitions for a list of STEP.
-        NOTE that the first STEP may have a different action than the rest.
+        Makes transitions for a list of StepInfo objects.
         """
         _check_actions_valid(step_info_list)
         transitions = []
