@@ -1221,7 +1221,7 @@ def test_anytime_online_5():
     rewards = [1] * 9
 
     transitions = []
-    ts = {
+    ts: TemporalState = {
         StageCode.TC: None
     }
     for i in range(9):

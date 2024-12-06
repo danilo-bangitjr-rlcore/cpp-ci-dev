@@ -76,7 +76,8 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         result = _split_at_nans(pf.data)
         # if the entire dataframe was nan, we have now detected a datagap
         if not len(result):
-            tc_ts.prev_data_gap = True
+            if isinstance(tc_ts, AnytimeTemporalState):
+                tc_ts.prev_data_gap = True
 
         for df, post_df_data_gap in _split_at_nans(pf.data):
             new_transitions, tc_ts = self._process_df(df, tc_ts, post_df_data_gap)
