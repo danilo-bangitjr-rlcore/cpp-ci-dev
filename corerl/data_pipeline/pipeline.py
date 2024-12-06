@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass, field
 import warnings
 import datetime
@@ -83,6 +84,7 @@ class Pipeline:
 
         self.valid_thresh: datetime.timedelta = datetime.timedelta(minutes=cfg.obs_interval_minutes)
 
+        self._hooks: dict[StageCode, list[Callable[[PipelineFrame], Any]]] = defaultdict(list)
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
             StageCode.BOUNDS:  lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
             StageCode.ODDITY:  lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
@@ -127,6 +129,9 @@ class Pipeline:
         for stage in stages:
             pf = self._stage_invokers[stage](pf)
 
+            for hook in self._hooks[stage]:
+                hook(pf)
+
         self.dt_dict[caller_code] = pf.get_last_timestamp()
         self.ts_dict[caller_code] = pf.temporal_state
 
@@ -147,3 +152,6 @@ class Pipeline:
         )
 
         return state_dim, num_actions
+
+    def register_hook(self, stage: StageCode, f: Callable[[PipelineFrame], Any]):
+        self._hooks[stage].append(f)
