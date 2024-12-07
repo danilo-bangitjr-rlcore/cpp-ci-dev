@@ -10,7 +10,7 @@ from typing import Callable
 from dataclasses import dataclass, fields, field
 
 from corerl.state_constructor.base import BaseStateConstructor
-from corerl.component.network.utils import tensor_allclose
+from corerl.utils.torch import tensor_allclose
 
 from enum import IntFlag, auto, Enum
 

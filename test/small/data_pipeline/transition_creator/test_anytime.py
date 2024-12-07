@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import datetime
 
-from corerl.component.network.utils import tensor_allclose
+from corerl.utils.torch import tensor_allclose
 from torch import Tensor
 
 from corerl.data_pipeline.tag_config import TagConfig
