@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from corerl.data_pipeline.state_constructors.interface import TransformCarry
-from corerl.data_pipeline.state_constructors.components.trace import (
+from corerl.data_pipeline.transforms.interface import TransformCarry
+from corerl.data_pipeline.transforms.trace import (
     compute_trace_with_nan, TraceConfig, TraceConstructor, TraceTemporalState
 )
 

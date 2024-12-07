@@ -5,9 +5,9 @@ import datetime
 
 from corerl.data_pipeline.imputers.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
-from corerl.data_pipeline.state_constructors.components.norm import NormalizerConfig
-from corerl.data_pipeline.state_constructors.components.trace import TraceConfig
-from corerl.data_pipeline.state_constructors.components.affine import AffineConfig
+from corerl.data_pipeline.transforms.norm import NormalizerConfig
+from corerl.data_pipeline.transforms.trace import TraceConfig
+from corerl.data_pipeline.transforms.affine import AffineConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import CallerCode, StageCode
 from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig

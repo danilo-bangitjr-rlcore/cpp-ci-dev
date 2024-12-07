@@ -1,8 +1,8 @@
 
 from dataclasses import dataclass
 
-from corerl.data_pipeline.state_constructors.components.base import BaseTransformConfig, sc_group
-from corerl.data_pipeline.state_constructors.interface import TransformCarry
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
+from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
 @dataclass
@@ -27,4 +27,4 @@ class Affine:
         return carry, None
 
 
-sc_group.dispatcher(Affine)
+transform_group.dispatcher(Affine)

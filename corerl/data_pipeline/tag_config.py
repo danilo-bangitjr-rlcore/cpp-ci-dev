@@ -5,9 +5,9 @@ from corerl.data_pipeline.imputers.base import BaseImputerConfig
 from corerl.data_pipeline.imputers.identity import IdentityImputerConfig
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilterConfig
 from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilterConfig
-from corerl.data_pipeline.state_constructors.components.base import BaseTransformConfig
-from corerl.data_pipeline.state_constructors.components.norm import NormalizerConfig
-from corerl.data_pipeline.state_constructors.components.null import NullConfig
+from corerl.data_pipeline.transforms.base import BaseTransformConfig
+from corerl.data_pipeline.transforms.norm import NormalizerConfig
+from corerl.data_pipeline.transforms.null import NullConfig
 from corerl.utils.hydra import list_
 
 
