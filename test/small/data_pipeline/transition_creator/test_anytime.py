@@ -1,29 +1,36 @@
 import numpy as np
 import pandas as pd
 import datetime
+
+from corerl.utils.torch import tensor_allclose
 from torch import Tensor
 
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, RAGS, StageCode, TemporalState
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, Step, StageCode, TemporalState
 from corerl.data_pipeline.transition_creators.anytime import (
     AnytimeTransitionCreator,
     AnytimeTransitionCreatorConfig,
-    _split_at_nans
+    _split_at_nans,
+    add_one_hot_countdown,
+    add_float_countdown,
+    add_null_countdown,
 )
 
 
-def get_test_prior_argos(state: Tensor) -> RAGS:
-    return RAGS(
+def get_test_prior_step(state: Tensor, dp=False) -> Step:
+    return Step(
         state=state,
         gamma=0,
         action=Tensor([0.]),
         reward=0,
+        dp=dp,
     )
 
 
 def transitions_equal_test(t0: NewTransition, t1: NewTransition):
     return (
-            t0.prior.state == t1.prior.state
+            tensor_allclose(t0.prior.state, t1.prior.state)
+            and t0.prior.dp == t1.prior.dp
             and t0.post == t1.post
             and t0.n_steps == t1.n_steps
     )
@@ -32,6 +39,8 @@ def transitions_equal_test(t0: NewTransition, t1: NewTransition):
 def test_anytime_1():
     """
     Test with a single pipeframe. The tc should construct transitions when the action changes.
+
+    Also tests that the countdown is set to the right value.
     """
     state_col = np.arange(4)
     cols = {"state": state_col, "action": [0, 0, 1, 1], "reward": [1, 1, 1, 1]}
@@ -61,6 +70,7 @@ def test_anytime_1():
         steps_per_decision=10,
         gamma=0.9,
         n_step=None,
+        countdown='int',
     )
     tc = AnytimeTransitionCreator(cfg, tags)
 
@@ -71,12 +81,16 @@ def test_anytime_1():
     t_0 = transitions[0]
 
     expected = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
-            state=Tensor([1.]),
+        prior=get_test_prior_step(
+            Tensor([0., 10.]),# countdown (last entry) should be 10 steps until decision
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([1., 9.]),  # countdown (last entry) should now be 9 steps until decision
             action=Tensor([0.]),
             reward=1,
-            gamma=0.9
+            gamma=0.9,
+            dp=False
         ),
         n_steps=1
     )
@@ -116,6 +130,7 @@ def test_anytime_2_n_step_1():
         steps_per_decision=10,
         gamma=0.9,
         n_step=1,
+        countdown='int',
     )
     tc = AnytimeTransitionCreator(cfg, tags)
     transitions = tc(pf).transitions
@@ -123,12 +138,16 @@ def test_anytime_2_n_step_1():
     assert len(transitions) == 3
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
-            state=Tensor([1.]),
+        prior=get_test_prior_step(
+            Tensor([0., 10.]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([1., 9.0]),
             action=Tensor([0.]),
             reward=1,
-            gamma=0.9
+            gamma=0.9,
+            dp=False,
         ),
         n_steps=1
     )
@@ -137,12 +156,16 @@ def test_anytime_2_n_step_1():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
-            state=Tensor([2.]),
+        prior=get_test_prior_step(
+            Tensor([1., 9.]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([2., 8.]),
             action=Tensor([0.]),
             reward=1.0,
-            gamma=0.9
+            gamma=0.9,
+            dp=False
         ),
         n_steps=1
     )
@@ -151,12 +174,16 @@ def test_anytime_2_n_step_1():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        prior=get_test_prior_argos(Tensor([2.])),
-        post=RAGS(
-            state=Tensor([3.]),
+        prior=get_test_prior_step(
+            Tensor([2., 10.]),
+            dp=True
+        ),
+        post=Step(
+            state=Tensor([3., 9.]),
             action=Tensor([1.]),
             reward=1.0,
-            gamma=0.9
+            gamma=0.9,
+            dp=False,
         ),
         n_steps=1
     )
@@ -169,11 +196,11 @@ def test_anytime_3_action_change():
     Test with a single pipeframe. The tc should construct transitions when the action changes at first and then
     when the decision window is done.
     """
-    state_col = np.arange(7)
-    cols = {"state": state_col, "action": [0, 0, 1, 1, 1, 2, 2], "reward": [1, 1, 1, 1, 1, 1, 1]}
+    state_col = np.arange(8)
+    cols = {"state": state_col, "action": [0, 0, 1, 1, 1, 2, 2, 3], "reward": [1, 1, 1, 1, 1, 1, 1, 1]}
 
     dates = [
-        datetime.datetime(2024, 1, 1, 1, i) for i in range(7)
+        datetime.datetime(2024, 1, 1, 1, i) for i in range(8)
     ]
 
     datetime_index = pd.DatetimeIndex(dates)
@@ -198,21 +225,26 @@ def test_anytime_3_action_change():
         steps_per_decision=3,
         gamma=0.9,
         n_step=None,
+        countdown='int',
     )
 
     tc = AnytimeTransitionCreator(cfg, tags)
     transitions = tc(pf).transitions
     assert isinstance(transitions, list)
-    assert len(transitions) == 4
+    assert len(transitions) == 6
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
-            state=Tensor([1.]),
+        prior=get_test_prior_step(
+            Tensor([0., 3]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([1., 2]),
             action=Tensor([0.]),
             reward=1.0,
-            gamma=0.9
+            gamma=0.9,
+            dp=False,
         ),
         n_steps=1
     )
@@ -221,12 +253,16 @@ def test_anytime_3_action_change():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
-            state=Tensor([4.]),
+        prior=get_test_prior_step(
+            Tensor([1., 3]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([4., 3]),
             action=Tensor([1.]),
             reward=2.71,
             gamma=0.9 ** 3,
+            dp=True,
         ),
         n_steps=3
     )
@@ -235,12 +271,16 @@ def test_anytime_3_action_change():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        prior=get_test_prior_argos(Tensor([2.])),
-        post=RAGS(
-            state=Tensor([4.]),
+        prior=get_test_prior_step(
+            Tensor([2., 2]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([4., 3]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
+            dp=True,
         ),
         n_steps=2
     )
@@ -249,17 +289,57 @@ def test_anytime_3_action_change():
 
     t_3 = transitions[3]
     expected_3 = NewTransition(
-        prior=get_test_prior_argos(Tensor([3.])),
-        post=RAGS(
-            state=Tensor([4.]),
+        prior=get_test_prior_step(
+            Tensor([3., 1.]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([4., 3]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
+            dp=True,
         ),
         n_steps=1
     )
 
     assert transitions_equal_test(t_3, expected_3)
+
+    t_4 = transitions[4]
+    expected_4 = NewTransition(
+        prior=get_test_prior_step(
+            Tensor([4., 3.]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([6., 1]),
+            action=Tensor([2.]),
+            reward=1.9,
+            gamma=0.9 ** 2,
+            dp=False
+        ),
+        n_steps=2
+    )
+
+    assert transitions_equal_test(t_4, expected_4)
+
+    t_5 = transitions[5]
+    expected_5 = NewTransition(
+        prior=get_test_prior_step(
+            Tensor([5., 2.]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([6., 1]),
+            action=Tensor([2.]),
+            reward=1.,
+            gamma=0.9,
+            dp=False
+        ),
+        n_steps=1
+    )
+
+    assert transitions_equal_test(t_5, expected_5)
 
 
 def test_anytime_4_only_dp():
@@ -294,7 +374,8 @@ def test_anytime_4_only_dp():
         steps_per_decision=8,
         gamma=0.9,
         n_step=None,
-        only_dp_transitions=True
+        only_dp_transitions=True,
+        countdown='null',
     )
 
     tc = AnytimeTransitionCreator(cfg, tags)
@@ -303,12 +384,16 @@ def test_anytime_4_only_dp():
     assert len(transitions) == 1
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
+        prior=get_test_prior_step(
+            Tensor([0.]),
+            dp=True,
+        ),
+        post=Step(
             state=Tensor([8.]),
             action=Tensor([0.]),
             reward=5.6953279,
             gamma=0.9 ** 8,
+            dp=True,
         ),
         n_steps=8
     )
@@ -349,6 +434,7 @@ def test_anytime_ts_1():
         steps_per_decision=10,
         gamma=0.9,
         n_step=None,
+        countdown='int',
     )
 
     tc = AnytimeTransitionCreator(cfg, tags)
@@ -359,12 +445,16 @@ def test_anytime_ts_1():
     assert len(transitions) == 1
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
-            state=Tensor([1.]),
+        prior=get_test_prior_step(
+            Tensor([0., 10]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([1., 9.]),
             action=Tensor([0.]),
             reward=1.,
             gamma=0.9,
+            dp=False,
         ),
         n_steps=1
     )
@@ -390,12 +480,16 @@ def test_anytime_ts_1():
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
-            state=Tensor([5.]),
+        prior=get_test_prior_step(
+            Tensor([1., 10]),
+            dp=True
+        ),
+        post=Step(
+            state=Tensor([5., 6.]),
             action=Tensor([1.]),
             reward=3.439,
             gamma=0.9 ** 4,
+            dp=False,
         ),
         n_steps=4
     )
@@ -404,12 +498,16 @@ def test_anytime_ts_1():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        prior=get_test_prior_argos(Tensor([2.])),
-        post=RAGS(
-            state=Tensor([5.]),
+        prior=get_test_prior_step(
+            Tensor([2., 9.]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([5., 6.]),
             action=Tensor([1.]),
             reward=2.71,
             gamma=0.9 ** 3,
+            dp=False
         ),
         n_steps=3
     )
@@ -418,12 +516,16 @@ def test_anytime_ts_1():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        prior=get_test_prior_argos(Tensor([3.])),
-        post=RAGS(
-            state=Tensor([5.]),
+        prior=get_test_prior_step(
+            Tensor([3., 8.]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([5., 6.]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
+            dp=False,
         ),
         n_steps=2
     )
@@ -432,12 +534,16 @@ def test_anytime_ts_1():
 
     t_3 = transitions[3]
     expected_3 = NewTransition(
-        prior=get_test_prior_argos(Tensor([4.])),
-        post=RAGS(
-            state=Tensor([5.]),
+        prior=get_test_prior_step(
+            Tensor([4., 7.]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([5., 6.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
+            dp=False,
         ),
         n_steps=1
     )
@@ -478,6 +584,7 @@ def test_anytime_ts_2_data_gap():
         steps_per_decision=10,
         gamma=0.9,
         n_step=None,
+        countdown='int',
     )
 
     tc = AnytimeTransitionCreator(cfg, tags)
@@ -488,12 +595,16 @@ def test_anytime_ts_2_data_gap():
     assert len(transitions) == 4
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
-            state=Tensor([1.]),
+        prior=get_test_prior_step(
+            Tensor([0., 10.]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([1., 9.]),
             action=Tensor([0.]),
             reward=1,
             gamma=0.9 ** 1,
+            dp=False,
         ),
         n_steps=1
     )
@@ -502,12 +613,16 @@ def test_anytime_ts_2_data_gap():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
-            state=Tensor([3.]),
+        prior=get_test_prior_step(
+            Tensor([1., 10]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([3., 8.]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
+            dp=False,
         ),
         n_steps=2
     )
@@ -516,12 +631,16 @@ def test_anytime_ts_2_data_gap():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        prior=get_test_prior_argos(Tensor([2.])),
-        post=RAGS(
-            state=Tensor([3.]),
+        prior=get_test_prior_step(
+            Tensor([2., 9.]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([3., 8.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
+            dp=False,
         ),
         n_steps=1
     )
@@ -530,12 +649,16 @@ def test_anytime_ts_2_data_gap():
 
     t_3 = transitions[3]
     expected_3 = NewTransition(
-        prior=get_test_prior_argos(Tensor([5.])),
-        post=RAGS(
-            state=Tensor([6.]),
+        prior=get_test_prior_step(
+            Tensor([5., 10.]),
+            dp=True
+        ),
+        post=Step(
+            state=Tensor([6., 9.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
+            dp=False
         ),
         n_steps=1
     )
@@ -576,6 +699,7 @@ def test_anytime_ts_3_data_gap_with_action_change():
         steps_per_decision=10,
         gamma=0.9,
         n_step=None,
+        countdown='int',
     )
 
     tc = AnytimeTransitionCreator(cfg, tags)
@@ -585,12 +709,16 @@ def test_anytime_ts_3_data_gap_with_action_change():
     assert len(transitions) == 4
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
-            state=Tensor([1.]),
+        prior=get_test_prior_step(
+            Tensor([0., 10.]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([1., 9.]),
             action=Tensor([0.]),
             reward=1,
             gamma=0.9 ** 1,
+            dp=False
         ),
         n_steps=1
     )
@@ -599,12 +727,16 @@ def test_anytime_ts_3_data_gap_with_action_change():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
-            state=Tensor([3.]),
+        prior=get_test_prior_step(
+            Tensor([1., 10]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([3., 8.]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
+            dp=False,
         ),
         n_steps=2
     )
@@ -613,12 +745,16 @@ def test_anytime_ts_3_data_gap_with_action_change():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        prior=get_test_prior_argos(Tensor([2.])),
-        post=RAGS(
-            state=Tensor([3.]),
+        prior=get_test_prior_step(
+            Tensor([2., 9.]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([3., 8.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
+            dp=False,
         ),
         n_steps=1
     )
@@ -627,12 +763,16 @@ def test_anytime_ts_3_data_gap_with_action_change():
 
     t_3 = transitions[3]
     expected_3 = NewTransition(
-        prior=get_test_prior_argos(Tensor([5.])),
-        post=RAGS(
-            state=Tensor([6.]),
+        prior=get_test_prior_step(
+            Tensor([5., 10.]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([6., 9.]),
             action=Tensor([2.]),
             reward=1.,
             gamma=0.9,
+            dp=False,
         ),
         n_steps=1
     )
@@ -648,6 +788,7 @@ def test_anytime_online_1():
         steps_per_decision=3,
         gamma=0.9,
         n_step=None,
+        countdown='int',
     )
 
     tags = [
@@ -694,12 +835,17 @@ def test_anytime_online_1():
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
-            state=Tensor([3.]),
+        prior=get_test_prior_step(
+            Tensor([0., 3.]),
+            dp=True,
+
+        ),
+        post=Step(
+            state=Tensor([3., 3.]),
             action=Tensor([1.]),
             reward=2.71,
             gamma=0.9 ** 3,
+            dp=True,
         ),
         n_steps=3
     )
@@ -708,12 +854,16 @@ def test_anytime_online_1():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
-            state=Tensor([3.]),
+        prior=get_test_prior_step(
+            Tensor([1., 2.]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([3., 3.]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
+            dp=True,
         ),
         n_steps=2
     )
@@ -722,12 +872,16 @@ def test_anytime_online_1():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        prior=get_test_prior_argos(Tensor([2.])),
-        post=RAGS(
-            state=Tensor([3.]),
+        prior=get_test_prior_step(
+            Tensor([2., 1.]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([3., 3.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
+            dp=True
         ),
         n_steps=1
     )
@@ -738,11 +892,11 @@ def test_anytime_online_2():
     """
     Simulates online mode. Adds actions up to a change in action, which triggers creating transitions.
     """
-
     cfg = AnytimeTransitionCreatorConfig(
         steps_per_decision=5,
         gamma=0.9,
         n_step=None,
+        countdown='int',
     )
     tags = [
         TagConfig(
@@ -793,12 +947,16 @@ def test_anytime_online_2():
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
-            state=Tensor([2.]),
+        prior=get_test_prior_step(
+            Tensor([0., 5.]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([2., 3.]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
+            dp=False,
         ),
         n_steps=2
     )
@@ -807,14 +965,18 @@ def test_anytime_online_2():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
-            state=Tensor([2.]),
+        prior=get_test_prior_step(
+            Tensor([1., 4.]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([2., 3.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
+            dp=False,
         ),
-        n_steps=1
+        n_steps=1,
     )
 
     assert transitions_equal_test(t_1, expected_1)
@@ -829,6 +991,7 @@ def test_anytime_online_3():
         steps_per_decision=2,
         gamma=0.9,
         n_step=None,
+        countdown='int',
     )
 
     tags = [
@@ -881,12 +1044,16 @@ def test_anytime_online_3():
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
-            state=Tensor([2.]),
+        prior=get_test_prior_step(
+            Tensor([0., 2.]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([2., 2.]),
             action=Tensor([1.]),
             reward=1.9,
             gamma=0.9 ** 2,
+            dp=True,
         ),
         n_steps=2
     )
@@ -895,12 +1062,16 @@ def test_anytime_online_3():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
-            state=Tensor([2.]),
+        prior=get_test_prior_step(
+            Tensor([1., 1.]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([2., 2.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
+            dp=True
         ),
         n_steps=1
     )
@@ -916,6 +1087,7 @@ def test_anytime_online_4():
         steps_per_decision=2,
         gamma=0.9,
         n_step=1,
+        countdown='int',
     )
 
     tags = [
@@ -968,12 +1140,16 @@ def test_anytime_online_4():
 
     t_0 = transitions[0]
     expected_0 = NewTransition(
-        prior=get_test_prior_argos(Tensor([0.])),
-        post=RAGS(
-            state=Tensor([1.]),
+        prior=get_test_prior_step(
+            Tensor([0., 2.]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([1., 1.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
+            dp=False,
         ),
         n_steps=1
     )
@@ -981,12 +1157,16 @@ def test_anytime_online_4():
 
     t_1 = transitions[1]
     expected_1 = NewTransition(
-        prior=get_test_prior_argos(Tensor([1.])),
-        post=RAGS(
-            state=Tensor([2.]),
+        prior=get_test_prior_step(
+            Tensor([1., 1.]),
+            dp=False
+        ),
+        post=Step(
+            state=Tensor([2., 2.]),
             action=Tensor([1.]),
             reward=1.,
             gamma=0.9,
+            dp=True
         ),
         n_steps=1
     )
@@ -994,16 +1174,163 @@ def test_anytime_online_4():
 
     t_2 = transitions[2]
     expected_2 = NewTransition(
-        prior=get_test_prior_argos(Tensor([2.])),
-        post=RAGS(
-            state=Tensor([3.]),
+        prior=get_test_prior_step(
+            Tensor([2., 2.]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([3., 1.]),
             action=Tensor([2.]),
             reward=1.,
             gamma=0.9,
+            dp=False,
         ),
         n_steps=1
     )
     assert transitions_equal_test(t_2, expected_2)
+
+
+def test_anytime_online_5():
+    """
+    Expecting exactly the same output as test_anytime_ts_2_data_gap, but now is online
+    """
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
+
+    cfg = AnytimeTransitionCreatorConfig(
+        steps_per_decision=10,
+        gamma=0.9,
+        n_step=None,
+        countdown='int',
+    )
+
+    tc = AnytimeTransitionCreator(cfg, tags)
+
+    states = list(range(9))
+    actions = [0, 0, 1, 1, np.nan, 1, 1, 0, 0]
+    rewards = [1] * 9
+
+    transitions = []
+    ts: TemporalState = {
+        StageCode.TC: None
+    }
+    for i in range(9):
+        cols = {"state": states[i], "action": actions[i], "reward": rewards[i]}
+        dates = [
+            datetime.datetime(2024, 1, 1, 1, i)
+        ]
+        datetime_index = pd.DatetimeIndex(dates)
+        df = pd.DataFrame(cols, index=datetime_index)
+
+        pf = PipelineFrame(
+            df,
+            caller_code=CallerCode.ONLINE,
+            temporal_state=ts
+        )
+        pf = tc(pf)
+        new_transitions = pf.transitions
+        assert isinstance(new_transitions, list)
+
+        transitions += new_transitions
+        ts = pf.temporal_state
+
+        # on the second iteration, feed an extra empty pipeframe thru,
+        # this shouldn't affect anything but should raise a warning.
+        if i == 1:
+            cols = {"state": [], "action": [], "reward": []}
+            dates = []
+            datetime_index = pd.DatetimeIndex(dates)
+            df = pd.DataFrame(cols, index=datetime_index)
+
+            pf = PipelineFrame(
+                df,
+                caller_code=CallerCode.ONLINE,
+                temporal_state=ts
+            )
+            _ = tc(pf)
+
+    assert len(transitions) == 4
+    t_0 = transitions[0]
+    expected_0 = NewTransition(
+        prior=get_test_prior_step(
+            Tensor([0., 10.]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([1., 9.]),
+            action=Tensor([0.]),
+            reward=1,
+            gamma=0.9 ** 1,
+            dp=False,
+        ),
+        n_steps=1
+    )
+
+    assert transitions_equal_test(t_0, expected_0)
+
+    t_1 = transitions[1]
+    expected_1 = NewTransition(
+        prior=get_test_prior_step(
+            Tensor([1., 10.]),
+            dp=True,
+        ),
+        post=Step(
+            state=Tensor([3., 8.]),
+            action=Tensor([1.]),
+            reward=1.9,
+            gamma=0.9 ** 2,
+            dp=False,
+        ),
+        n_steps=2
+    )
+
+    assert transitions_equal_test(t_1, expected_1)
+
+    t_2 = transitions[2]
+    expected_2 = NewTransition(
+        prior=get_test_prior_step(
+            Tensor([2., 9.]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([3., 8.]),
+            action=Tensor([1.]),
+            reward=1.,
+            gamma=0.9,
+            dp=False,
+        ),
+        n_steps=1
+    )
+
+    assert transitions_equal_test(t_2, expected_2)
+
+    t_3 = transitions[3]
+    expected_3 = NewTransition(
+        prior=get_test_prior_step(
+            Tensor([5., 10.]),
+            dp=True
+        ),
+        post=Step(
+            state=Tensor([6., 9.]),
+            action=Tensor([1.]),
+            reward=1.,
+            gamma=0.9,
+            dp=False
+        ),
+        n_steps=1
+    )
+
+    assert transitions_equal_test(t_3, expected_3)
 
 
 def test_split_at_nans_single_nan():
@@ -1057,3 +1384,124 @@ def test_split_at_nans_multiple_nans():
     assert df1.index[0] == datetime.datetime(2024, 1, 1)
     assert df2.index[0] == datetime.datetime(2024, 1, 3)
     assert df3.index[0] == datetime.datetime(2024, 1, 6)
+
+
+def test_one_hot_countdown_1():
+    rags = Step(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+        dp=False,
+    )
+
+    rags = add_one_hot_countdown(
+        rags,
+        steps_until_decision=1,
+        steps_per_decision=2)
+
+    assert tensor_allclose(rags.state, Tensor([0., 1., 0.]))
+
+
+def test_one_hot_countdown_2():
+    rags = Step(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+        dp=False,
+    )
+
+    rags = add_one_hot_countdown(
+        rags,
+        steps_until_decision=2,
+        steps_per_decision=2)
+
+    assert tensor_allclose(rags.state, Tensor([0., 0., 1.]))
+
+
+def test_one_hot_countdown_3():
+    rags = Step(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+        dp=False,
+    )
+
+    rags = add_one_hot_countdown(
+        rags,
+        # note that steps_until_decision is now 0, but we get the same output
+        # as the above test where it is 2.
+        steps_until_decision=0,
+        steps_per_decision=2)
+
+    assert tensor_allclose(rags.state, Tensor([0., 0., 1.]))
+
+
+def test_float_countdown_1():
+    rags = Step(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+        dp=False,
+    )
+
+    rags = add_float_countdown(
+        rags,
+        steps_until_decision=2,
+        steps_per_decision=2)
+
+    assert tensor_allclose(rags.state, Tensor([0., 1.]))
+
+
+def test_float_countdown_2():
+    rags = Step(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+        dp=False,
+    )
+
+    rags = add_float_countdown(
+        rags,
+        steps_until_decision=0,
+        steps_per_decision=2)
+
+    assert tensor_allclose(rags.state, Tensor([0., 1.]))
+
+
+def test_float_countdown_3():
+    rags = Step(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+        dp=False,
+    )
+
+    rags = add_float_countdown(
+        rags,
+        steps_until_decision=1,
+        steps_per_decision=2)
+
+    assert tensor_allclose(rags.state, Tensor([0., 0.5]))
+
+
+def test_null_countdown():
+    rags = Step(
+        state=Tensor([0.]),
+        action=Tensor([0.]),
+        reward=0.,
+        gamma=0.,
+        dp=False,
+    )
+
+    rags = add_null_countdown(
+        rags,
+        steps_until_decision=1,
+        steps_per_decision=2)
+
+    assert tensor_allclose(rags.state, Tensor([0.]))

@@ -1,7 +1,6 @@
 from typing import Dict
 import numpy as np
 from torch import Tensor
-import torch
 from copy import deepcopy
 from math import isclose
 import pandas as pd
@@ -11,6 +10,7 @@ from typing import Callable
 from dataclasses import dataclass, fields, field
 
 from corerl.state_constructor.base import BaseStateConstructor
+from corerl.utils.torch import tensor_allclose
 
 from enum import IntFlag, auto, Enum
 
@@ -87,35 +87,42 @@ class ObsTransition:
 
 
 @dataclass
-class RAGS:
+class Step:
     """
     Dataclass for storing the information of a single step.
-    The acronym comes from the set of objects it holds (reward, action,  gamma, state)
     Two of these make up a transition.
+
     """
     reward: float
     action: Tensor
     gamma: float
     state: Tensor
+    dp: bool
 
     def __eq__(self, other: object):
-        if not isinstance(other, RAGS):
+        if not isinstance(other, Step):
             return False
 
         return (
                 isclose(self.gamma, other.gamma)
                 and isclose(self.reward, other.reward)
-                and torch.allclose(self.action, other.action)
-                and torch.allclose(self.state, other.state,)
+                and tensor_allclose(self.action, other.action)
+                and tensor_allclose(self.state, other.state)
+                and self.dp == other.dp
         )
+
+    def __str__(self):
+        string = ''
+        for f in fields(self):
+            string += f"{f.name}: {getattr(self, f.name)}\n"
+        return string
 
 
 @dataclass
 class NewTransition:
-    prior: RAGS
-    post: RAGS
+    prior: Step
+    post: Step
     n_steps: int
-
 
     def __eq__(self, other: object):
         if not isinstance(other, NewTransition):
