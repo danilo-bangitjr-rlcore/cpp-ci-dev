@@ -1392,6 +1392,7 @@ def test_one_hot_countdown_1():
         action=Tensor([0.]),
         reward=0.,
         gamma=0.,
+        dp=False,
     )
 
     rags = add_one_hot_countdown(
@@ -1408,6 +1409,7 @@ def test_one_hot_countdown_2():
         action=Tensor([0.]),
         reward=0.,
         gamma=0.,
+        dp=False,
     )
 
     rags = add_one_hot_countdown(
@@ -1424,6 +1426,7 @@ def test_one_hot_countdown_3():
         action=Tensor([0.]),
         reward=0.,
         gamma=0.,
+        dp=False,
     )
 
     rags = add_one_hot_countdown(
@@ -1442,6 +1445,7 @@ def test_float_countdown_1():
         action=Tensor([0.]),
         reward=0.,
         gamma=0.,
+        dp=False,
     )
 
     rags = add_float_countdown(
@@ -1458,6 +1462,7 @@ def test_float_countdown_2():
         action=Tensor([0.]),
         reward=0.,
         gamma=0.,
+        dp=False,
     )
 
     rags = add_float_countdown(
@@ -1474,6 +1479,7 @@ def test_float_countdown_3():
         action=Tensor([0.]),
         reward=0.,
         gamma=0.,
+        dp=False,
     )
 
     rags = add_float_countdown(
@@ -1490,6 +1496,7 @@ def test_null_countdown():
         action=Tensor([0.]),
         reward=0.,
         gamma=0.,
+        dp=False,
     )
 
     rags = add_null_countdown(

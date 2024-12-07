@@ -89,13 +89,13 @@ def test_pipeline1():
     assert got.transitions == [
         # notice that the first row of the DF was skipped due to the np.nan
         NewTransition(
-            prior=Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([0., 0.18])),
-            post=Step(reward=3, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0.378])),
+            prior=Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0., 0.18, 0, 1]), dp=True),
+            post=Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0.378, 1, 0]), dp=False),
             n_steps=1,
         ),
         NewTransition(
-            prior=Step(reward=3, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0.378])),
-            post=Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([2.0, 0.5778])),
+            prior=Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0.378, 0, 1]), dp=True),
+            post=Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([2.0, 0.5778, 1, 0]), dp=False),
             n_steps=1,
         )
     ]
@@ -176,28 +176,28 @@ def test_pipeline2():
     assert got.transitions == [
         # notice that the first row of the DF was skipped due to the np.nan
         NewTransition(
-            prior=Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 0.0])),
-            post=Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0., 0.15])),
+            prior=Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 0.0, 0, 1]), dp=True),
+            post=Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0., 0.15, 1, 0]), dp=False),
             n_steps=1,
         ),
         NewTransition(
-            prior=Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0., 0.15])),
-            post=Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 0.315])),
+            prior=Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0., 0.15, 0, 1]), dp=True),
+            post=Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 0.315, 1, 0]), dp=False),
             n_steps=1,
         ),
         NewTransition(
-            prior=Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 0.315])),
-            post=Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 0.4815])),
+            prior=Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 0.315, 0, 1]), dp=True),
+            post=Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 0.4815, 1, 0]), dp=False),
             n_steps=1,
         ),
         NewTransition(
-            prior=Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 0.4815])),
-            post=Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 0.64815])),
+            prior=Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 0.4815, 0, 1]), dp=True),
+            post=Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 0.64815, 1, 0]), dp=False),
             n_steps=1,
         ),
         NewTransition(
-            prior=Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 0.64815])),
-            post=Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([4., 0.814815])),
+            prior=Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 0.64815, 0, 1]), dp=True),
+            post=Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([4., 0.814815, 1, 0]), dp=False),
             n_steps=1,
         ),
     ]

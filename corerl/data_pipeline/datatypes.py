@@ -97,7 +97,7 @@ class Step:
     action: Tensor
     gamma: float
     state: Tensor
-    dp: bool = False
+    dp: bool
 
     def __eq__(self, other: object):
         if not isinstance(other, Step):

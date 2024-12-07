@@ -115,6 +115,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
                 action=action,
                 gamma=self.gamma,
                 state=states[i],
+                dp=False,
             )
 
             si = StepInfo(
