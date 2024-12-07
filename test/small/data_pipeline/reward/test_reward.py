@@ -253,3 +253,23 @@ def test_greaterthan_penalty_reward():
     expected_df = pd.concat((df, expected_reward_df), axis=1, copy=True)
 
     assert dfs_close(pf.data, expected_df)
+
+def test_null_filter():
+    tag_cfgs = [
+        TagConfig(
+            name="tag-1",
+            # default null reward config
+        ),
+        TagConfig(
+            name="tag-2",
+            reward_constructor=[
+                GreaterThanConfig(threshold=5),
+            ],
+        ),
+    ]
+
+    reward_components = {cfg.name: RewardComponentConstructor(cfg.reward_constructor) for cfg in tag_cfgs}
+    reward_constructor = RewardConstructor(reward_components)
+
+    assert "tag-1" not in reward_constructor.component_constructors
+    assert "tag-2" in reward_constructor.component_constructors
