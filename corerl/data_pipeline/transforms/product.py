@@ -1,9 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from omegaconf import MISSING
 
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
+from corerl.data_pipeline.transforms.identity import IdentityConfig
 
 
 @dataclass
@@ -11,7 +12,7 @@ class ProductConfig(BaseTransformConfig):
     name: str = "product"
 
     other: str = MISSING
-    other_transform: BaseTransformConfig = MISSING
+    other_transform: BaseTransformConfig = field(default_factory=IdentityConfig)
 
 
 @dataclass
