@@ -2,3 +2,6 @@
 *.der
 env.yaml
 telegraf/env.yaml
+downloads/
+*.db
+telegraf/generated_telegraf.conf
