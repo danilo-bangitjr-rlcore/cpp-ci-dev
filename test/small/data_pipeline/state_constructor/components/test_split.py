@@ -4,7 +4,7 @@ import pandas as pd
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.transforms.split import SplitConfig, SplitTemporalState
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceTemporalState
-from corerl.data_pipeline.state_constructors.sc import StateConstructor
+from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
 
 from corerl.data_pipeline.tag_config import TagConfig
 from test.infrastructure.utils.pandas import dfs_close
@@ -21,15 +21,17 @@ def test_split1():
     )
 
     sc = StateConstructor(
-        cfgs=[
+        tag_cfgs=[
             TagConfig(name='tag_1'),
         ],
-        default_cfg=[
-            SplitConfig(
-                left=TraceConfig(trace_values=[0.1]),
-                right=TraceConfig(trace_values=[0.01]),
-            ),
-        ],
+        cfg=SCConfig(
+            defaults=[
+                SplitConfig(
+                    left=TraceConfig(trace_values=[0.1]),
+                    right=TraceConfig(trace_values=[0.01]),
+                ),
+            ],
+        ),
     )
 
     pf = sc(pf)
@@ -66,15 +68,17 @@ def test_split_ts1():
     )
 
     sc = StateConstructor(
-        cfgs=[
+        tag_cfgs=[
             TagConfig(name='tag_1'),
         ],
-        default_cfg=[
-            SplitConfig(
-                left=TraceConfig(trace_values=[0.1]),
-                right=TraceConfig(trace_values=[0.01]),
-            ),
-        ],
+        cfg=SCConfig(
+            defaults=[
+                SplitConfig(
+                    left=TraceConfig(trace_values=[0.1]),
+                    right=TraceConfig(trace_values=[0.01]),
+                ),
+            ],
+        ),
     )
 
     pf = sc(pf)

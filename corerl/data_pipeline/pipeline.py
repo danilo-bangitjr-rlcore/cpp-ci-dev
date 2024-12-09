@@ -13,18 +13,15 @@ from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
 from corerl.data_pipeline.imputers.factory import init_imputer
-from corerl.data_pipeline.transforms.base import BaseTransformConfig
-from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
-from corerl.data_pipeline.state_constructors.sc import StateConstructor
+from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 
 from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, StageCode, TemporalState
-from corerl.utils.hydra import list_
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +37,7 @@ class PipelineConfig:
     tags: list[TagConfig] = MISSING
     db: TagDBConfig = field(default_factory=TagDBConfig)
     obs_interval_minutes: float = MISSING
-    state_constructor: list[BaseTransformConfig] = list_([NormalizerConfig()])
+    state_constructor: SCConfig = field(default_factory=SCConfig)
     agent_transition_creator: Any = field(default_factory=DummyTransitionCreatorConfig)
 
 

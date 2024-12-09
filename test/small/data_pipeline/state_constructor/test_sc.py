@@ -4,7 +4,7 @@ from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.split import SplitConfig
-from corerl.data_pipeline.state_constructors.sc import StateConstructor
+from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.transforms.trace import TraceConfig
 
 from corerl.data_pipeline.tag_config import TagConfig
@@ -22,13 +22,15 @@ def test_sc1():
     )
 
     sc = StateConstructor(
-        cfgs=[
+        tag_cfgs=[
             TagConfig(name='obs_1'),
             TagConfig(name='obs_2'),
         ],
-        default_cfg=[
-            TraceConfig(trace_values=[0.1, 0.01]),
-        ]
+        cfg=SCConfig(
+            defaults=[
+                TraceConfig(trace_values=[0.1, 0.01]),
+            ]
+        ),
     )
 
     pf = sc(pf)
@@ -52,7 +54,7 @@ def test_norm_sc():
     )
 
     sc = StateConstructor(
-        cfgs=[
+        tag_cfgs=[
             TagConfig(
                 name='tag-1',
                 state_constructor=[
@@ -61,7 +63,9 @@ def test_norm_sc():
                 ],
             ),
         ],
-        default_cfg=[],
+        cfg=SCConfig(
+            defaults=[],
+        ),
     )
     pf = sc(pf)
 
@@ -84,14 +88,16 @@ def test_sc_add_raw():
     )
 
     sc = StateConstructor(
-        cfgs=[
+        tag_cfgs=[
             TagConfig(name='tag_1'),
             TagConfig(name='tag_2'),
         ],
-        default_cfg=[
-            TraceConfig(trace_values=[0.1, 0.01]),
-            AddRawConfig(),
-        ],
+        cfg=SCConfig(
+            defaults=[
+                TraceConfig(trace_values=[0.1, 0.01]),
+                AddRawConfig(),
+            ],
+        ),
     )
 
     pf = sc(pf)
@@ -123,16 +129,18 @@ def test_sc_integration1():
     )
 
     sc = StateConstructor(
-        cfgs=[
+        tag_cfgs=[
             TagConfig(name='tag-1'),
         ],
-        default_cfg=[
-            NormalizerConfig(),
-            SplitConfig(
-                left=TraceConfig(trace_values=[0.1]),
-                right=AddRawConfig(),
-            ),
-        ],
+        cfg=SCConfig(
+            defaults=[
+                NormalizerConfig(),
+                SplitConfig(
+                    left=TraceConfig(trace_values=[0.1]),
+                    right=AddRawConfig(),
+                ),
+            ],
+        ),
     )
 
     pf = sc(pf)
@@ -161,7 +169,7 @@ def test_sc_integration2():
     )
 
     sc = StateConstructor(
-        cfgs=[
+        tag_cfgs=[
             TagConfig(
                 name='tag-1',
                 state_constructor=[
@@ -174,7 +182,9 @@ def test_sc_integration2():
                 ],
             ),
         ],
-        default_cfg=[],
+        cfg=SCConfig(
+            defaults=[],
+        ),
     )
 
     pf = sc(pf)
@@ -202,17 +212,19 @@ def test_sc_integration3():
     )
 
     sc = StateConstructor(
-        cfgs=[
+        tag_cfgs=[
             TagConfig(name='tag-1'),
         ],
-        default_cfg=[
-            NormalizerConfig(),
-            SplitConfig(
-                left=TraceConfig(trace_values=[0.1]),
-                right=AddRawConfig(),
-                passthrough=True,
-            ),
-        ],
+        cfg=SCConfig(
+            defaults=[
+                NormalizerConfig(),
+                SplitConfig(
+                    left=TraceConfig(trace_values=[0.1]),
+                    right=AddRawConfig(),
+                    passthrough=True,
+                ),
+            ],
+        ),
     )
 
     pf = sc(pf)
@@ -240,17 +252,19 @@ def test_sc_integration4():
     )
 
     sc = StateConstructor(
-        cfgs=[
+        tag_cfgs=[
             TagConfig(name='tag-1'),
         ],
-        default_cfg=[
-            NormalizerConfig(),
-            SplitConfig(
-                left=TraceConfig(trace_values=[0.1]),
-                right=TraceConfig(trace_values=[0.01]),
-                passthrough=True,
-            ),
-        ],
+        cfg=SCConfig(
+            defaults=[
+                NormalizerConfig(),
+                SplitConfig(
+                    left=TraceConfig(trace_values=[0.1]),
+                    right=TraceConfig(trace_values=[0.01]),
+                    passthrough=True,
+                ),
+            ],
+        ),
     )
 
     pf = sc(pf)

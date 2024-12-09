@@ -1,30 +1,26 @@
 from collections import defaultdict
+from dataclasses import dataclass
 import pandas as pd
+from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group, Transform
-
-# ensure transforms are registered
-import corerl.data_pipeline.transforms.norm # noqa: F401
-import corerl.data_pipeline.transforms.trace # noqa: F401
-from corerl.data_pipeline.tag_config import TagConfig # noqa: F401
+from corerl.data_pipeline.tag_config import TagConfig
+from corerl.utils.hydra import list_
 
 
 
-type SC_TS = dict[
-    # tag name
-    str,
-    # transform steps
-    list[object | None],
-]
+@dataclass
+class SCConfig:
+    defaults: list[BaseTransformConfig] = list_([NormalizerConfig()])
 
 class StateConstructor:
-    def __init__(self, cfgs: list[TagConfig], default_cfg: list[BaseTransformConfig]):
+    def __init__(self, tag_cfgs: list[TagConfig], cfg: SCConfig):
         # get sc pipeline configs for each tag
         # if a tag has no specified pipeline config, then use the default
         sc_cfgs = {
-            tag.name: tag.state_constructor if tag.state_constructor is not None else default_cfg
-            for tag in cfgs
+            tag.name: tag.state_constructor if tag.state_constructor is not None else cfg.defaults
+            for tag in tag_cfgs
             if not tag.is_action
         }
 
