@@ -12,6 +12,7 @@ from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.null import NullConfig
 from corerl.data_pipeline.transforms.scale import ScaleConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
+from corerl.data_pipeline.transforms.product import ProductConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 
@@ -213,7 +214,7 @@ def test_greaterthan_penalty_reward():
             name="tag-2",
             reward_constructor=[
                 GreaterThanConfig(threshold=5),
-                ScaleConfig(factor=-10) # penalty
+                ScaleConfig(factor=-10),  # penalty
             ],
         ),
     ]
@@ -253,6 +254,64 @@ def test_greaterthan_penalty_reward():
     expected_df = pd.concat((df, expected_reward_df), axis=1, copy=True)
 
     assert dfs_close(pf.data, expected_df)
+
+
+
+def test_product_transform():
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(7)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols = pd.Index(["tag-1", "tag-2"])
+    df = pd.DataFrame(
+        data=[
+            [np.nan, 0],
+            [0,      2],
+            [1,      4],
+            [2,      6],
+            [np.nan, np.nan],
+            [4,      10],
+            [5,      12],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    transform_cfgs = {
+        "tag-1": [ProductConfig(other="tag-2", other_transform=GreaterThanConfig(threshold=5))],
+        "tag-2": [NullConfig()],
+    }
+    reward_component_constructors = {
+        tag_name: RewardComponentConstructor(transform_cfgs[tag_name]) for tag_name in cols
+    }
+    rc = RewardConstructor(reward_component_constructors)
+
+    pf = PipelineFrame(
+        data=df,
+        caller_code=CallerCode.ONLINE,
+    )
+    # call reward constructor
+    pf = rc(pf)
+
+    expected_cols = pd.Index(["tag-1", "tag-2", "reward"])
+    expected_df = pd.DataFrame(
+        data=[
+            [np.nan, 0,      np.nan],
+            [0,      2,      0],
+            [1,      4,      0],
+            [2,      6,      2],
+            [np.nan, np.nan, np.nan],
+            [4,      10,     4],
+            [5,      12,     5],
+        ],
+        columns=expected_cols,
+        index=idx,
+    )
+
+    assert dfs_close(pf.data, expected_df)
+
 
 def test_null_filter():
     tag_cfgs = [
