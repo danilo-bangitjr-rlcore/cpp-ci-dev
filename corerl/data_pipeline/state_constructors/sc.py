@@ -83,8 +83,7 @@ class StateConstructor:
 
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
-        ts = pf.temporal_state.get(StageCode.SC, None)
-        ts = ts or {}
+        ts = pf.temporal_state.get(StageCode.SC, {})
         assert isinstance(ts, dict)
 
         tag_names = list(self._components.keys())
