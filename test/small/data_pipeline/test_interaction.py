@@ -7,8 +7,8 @@ from torch import tensor
 from corerl.data_pipeline.imputers.linear import LinearImputerConfig
 from corerl.data_pipeline.interaction import InteractionWrapper
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
-from corerl.data_pipeline.state_constructors.components.norm import NormalizerConfig
-from corerl.data_pipeline.state_constructors.components.trace import TraceConfig
+from corerl.data_pipeline.transforms.norm import NormalizerConfig
+from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import Step, CallerCode, NewTransition
 from corerl.data_pipeline.transition_creators.anytime import AnytimeTransitionCreatorConfig

@@ -6,7 +6,6 @@ from corerl.data_pipeline.imputers.identity import IdentityImputerConfig
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilterConfig
 from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilterConfig
 from corerl.data_pipeline.transforms.base import BaseTransformConfig
-from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.null import NullConfig
 from corerl.utils.hydra import list_
 
@@ -19,5 +18,5 @@ class TagConfig:
     outlier: BaseOddityFilterConfig = field(default_factory=EMAFilterConfig)
     imputer: BaseImputerConfig = field(default_factory=IdentityImputerConfig)
     reward_constructor: list[BaseTransformConfig] = list_([NullConfig()])
-    state_constructor: list[BaseTransformConfig] = list_([NormalizerConfig()])
+    state_constructor: list[BaseTransformConfig] | None = None
     is_action: bool = False

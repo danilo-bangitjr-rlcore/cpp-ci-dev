@@ -6,6 +6,7 @@ from corerl.data_pipeline.transforms.split import SplitConfig, SplitTemporalStat
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceTemporalState
 from corerl.data_pipeline.state_constructors.sc import StateConstructor
 
+from corerl.data_pipeline.tag_config import TagConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 
@@ -21,6 +22,9 @@ def test_split1():
 
     sc = StateConstructor(
         cfgs=[
+            TagConfig(name='tag_1'),
+        ],
+        default_cfg=[
             SplitConfig(
                 left=TraceConfig(trace_values=[0.1]),
                 right=TraceConfig(trace_values=[0.01]),
@@ -28,7 +32,7 @@ def test_split1():
         ],
     )
 
-    pf = sc(pf, 'tag_1')
+    pf = sc(pf)
     expected_data = pd.DataFrame({
         'tag_1_trace-0.1':  [1., 1.9, 2.89, 3.889, np.nan, 1., 1.9, 2.89, 3.889],
         'tag_1_trace-0.01': [1., 1.99, 2.9899, 3.989899, np.nan, 1., 1.99, 2.9899, 3.989899],
@@ -63,6 +67,9 @@ def test_split_ts1():
 
     sc = StateConstructor(
         cfgs=[
+            TagConfig(name='tag_1'),
+        ],
+        default_cfg=[
             SplitConfig(
                 left=TraceConfig(trace_values=[0.1]),
                 right=TraceConfig(trace_values=[0.01]),
@@ -70,7 +77,7 @@ def test_split_ts1():
         ],
     )
 
-    pf = sc(pf, 'tag_1')
+    pf = sc(pf)
     expected_data = pd.DataFrame({
         'tag_1_trace-0.1':  [10.9, 2.89, 2.989, 3.8989, np.nan, 1.0, 1.9, 2.89, 3.889],
         'tag_1_trace-0.01': [1., 1.99, 2.9899, 3.989899, np.nan, 1., 1.99, 2.9899, 3.989899],
