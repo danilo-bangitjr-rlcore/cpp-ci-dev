@@ -41,10 +41,7 @@ async def main(args: Namespace):
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(
-        description="",
-        formatter_class=ArgumentDefaultsHelpFormatter
-    )
+    parser = ArgumentParser(description="", formatter_class=ArgumentDefaultsHelpFormatter)
     # we set up a server, this is a bit different from other tool, so we do not reuse common arguments
     parser.add_argument(
         "-u",
@@ -54,23 +51,16 @@ if __name__ == "__main__":
         metavar="URL",
     )
     parser.add_argument(
-        "-n",
-        "--name",
-        help="Name of OPC UA server",
-        default="RLCore OPC-UA E2E Server",
-        metavar="NAME"
+        "-n", "--name", help="Name of OPC UA server", default="RLCore OPC-UA E2E Server", metavar="NAME"
     )
     parser.add_argument(
         "-i",
         "--uri",
         help="Server URI, should be unique in system and prefixed with urn:",
-        default="urn:rlcore:opc:e2e:server"
+        default="urn:rlcore:opc:e2e:server",
     )
     parser.add_argument(
-        "-s",
-        "--namespace",
-        help="Namespace of OPC UA server",
-        default="http://simulation.e2e.rlcore.ai"
+        "-s", "--namespace", help="Namespace of OPC UA server", default="http://simulation.e2e.rlcore.ai"
     )
     parser.add_argument(
         "-v",
@@ -86,14 +76,8 @@ if __name__ == "__main__":
         action="store_true",
         help="Disable clock, to avoid seeing many write if debugging an application",
     )
-    parser.add_argument(
-        "--certificate",
-        help="path to certificate, either .pem or .der"
-    )
-    parser.add_argument(
-        "--private_key",
-        help="path to private key, either .pem or .der"
-    )
+    parser.add_argument("--certificate", help="path to certificate, either .pem or .der")
+    parser.add_argument("--private_key", help="path to private key, either .pem or .der")
     args = parser.parse_args()
 
     logging.basicConfig(level=getattr(logging, args.loglevel))

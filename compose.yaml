@@ -33,10 +33,10 @@ services:
       opc-server:
         condition: service_started
     volumes:
-      - ./e2e/telegraf/base_telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - ./e2e/telegraf/generated_telegraf.conf:/etc/telegraf/telegraf.conf:ro
     restart: unless-stopped
     develop:
       watch:
         - action: sync+restart
-          path: ./e2e/telegraf/base_telegraf.conf
+          path: ./e2e/telegraf/generated_telegraf.conf
           target: /etc/telegraf/telegraf.conf

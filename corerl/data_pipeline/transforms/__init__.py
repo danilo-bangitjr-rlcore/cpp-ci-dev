@@ -9,4 +9,3 @@ from corerl.data_pipeline.transforms.scale import ScaleConfig # noqa: F401
 from corerl.data_pipeline.transforms.split import SplitConfig # noqa: F401
 from corerl.data_pipeline.transforms.trace import TraceConfig # noqa: F401
 from corerl.data_pipeline.transforms.product import ProductConfig # noqa: F401
-
