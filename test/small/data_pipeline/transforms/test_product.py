@@ -95,7 +95,7 @@ def test_product_other_transform():
     )
 
     # call transform
-    tf = tf(tf_carry, ts=None)
+    tf_carry, _ = tf(tf_carry, ts=None)
 
     expected_cols = pd.Index(["tag-1"])
     expected_df = pd.DataFrame(
