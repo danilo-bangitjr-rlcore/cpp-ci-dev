@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import pandas as pd
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
+from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, CountdownAdder
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group, Transform
 from corerl.data_pipeline.tag_config import TagConfig
@@ -13,6 +14,8 @@ from corerl.utils.hydra import list_
 @dataclass
 class SCConfig:
     defaults: list[BaseTransformConfig] = list_([NormalizerConfig()])
+    countdown: CountdownConfig | None = None
+
 
 class StateConstructor:
     def __init__(self, tag_cfgs: list[TagConfig], cfg: SCConfig):
@@ -29,6 +32,7 @@ class StateConstructor:
             for tag_name, parts in sc_cfgs.items()
         }
 
+        self._cd_adder = CountdownAdder(tag_cfgs, cfg.countdown) if cfg.countdown else None
 
     def _construct_components(self, sub_cfgs: list[BaseTransformConfig]):
         return [
@@ -82,8 +86,10 @@ class StateConstructor:
         ts = pf.temporal_state.get(StageCode.SC, {})
         assert isinstance(ts, dict)
 
-        tag_names = list(self._components.keys())
+        if self._cd_adder is not None:
+            pf = self._cd_adder(pf)
 
+        tag_names = list(self._components.keys())
         transformed_parts = [
             self._invoke_per_tag(pf.data, tag_name, ts)
             for tag_name in tag_names
