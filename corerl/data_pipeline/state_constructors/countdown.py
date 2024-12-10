@@ -21,7 +21,7 @@ class CountdownConfig:
 @dataclass
 class CountdownTS:
     clock: int
-    steps_since_dp: int
+    steps_until_dp: int
     last_row: np.ndarray | None
 
 
@@ -48,7 +48,7 @@ class CountdownAdder:
             ts=pf.temporal_state,
             default=lambda: CountdownTS(
                 clock=self._cfg.action_period - 1,
-                steps_since_dp=0,
+                steps_until_dp=0,
                 last_row=None,
             ),
         )
@@ -56,17 +56,17 @@ class CountdownAdder:
         clock_feats = self._init_feature_builder(n_rows)
 
         for i in range(n_rows):
-            is_dp = ts.steps_since_dp == 0
+            is_dp = ts.steps_until_dp == 0
             is_ac = self._is_action_change(pf.data, ts, i)
 
             if is_dp or is_ac:
-                ts.steps_since_dp = self._cfg.action_period
+                ts.steps_until_dp = self._cfg.action_period
 
-            clock_feats.tick(i, ts.clock, ts.steps_since_dp)
+            clock_feats.tick(i, ts.clock, ts.steps_until_dp)
 
             # loop carry state
             ts.clock = (ts.clock - 1) % self._cfg.action_period
-            ts.steps_since_dp -= 1
+            ts.steps_until_dp -= 1
 
         clock_representation = clock_feats.get()
         n_clock_feats = clock_representation.shape[1]
@@ -116,7 +116,7 @@ class CountdownFeatureBuilder:
     def __init__(self, n_rows: int, period: int):
         self._period = period
 
-    def tick(self, row: int, clock: int, steps_since_dp: int) -> None:
+    def tick(self, row: int, clock: int, steps_until_dp: int) -> None:
         ...
 
     def get(self) -> np.ndarray:
@@ -128,11 +128,11 @@ class TwoClockCountdown(CountdownFeatureBuilder):
         self._period = period
         self._x = np.zeros((n_rows, 2), dtype=np.int_)
 
-    def tick(self, row: int, clock: int, steps_since_dp: int):
+    def tick(self, row: int, clock: int, steps_until_dp: int):
         # shift clock to be [1, period]
         # instead of        [0, period)
         self._x[row, 0] = clock + 1
-        self._x[row, 1] = steps_since_dp
+        self._x[row, 1] = steps_until_dp
 
     def get(self):
         return self._x
@@ -143,8 +143,8 @@ class OneHotCountdown(CountdownFeatureBuilder):
         self._period = period
         self._x = np.zeros((n_rows, period), dtype=np.bool_)
 
-    def tick(self, row: int, clock: int, steps_since_dp: int):
-        hot = steps_since_dp - 1
+    def tick(self, row: int, clock: int, steps_until_dp: int):
+        hot = steps_until_dp - 1
         self._x[row, hot] = 1
 
     def get(self):
@@ -156,8 +156,8 @@ class IntCountdown(CountdownFeatureBuilder):
         self._period = period
         self._x = np.zeros((n_rows, 1), dtype=np.int_)
 
-    def tick(self, row: int, clock: int, steps_since_dp: int):
-        self._x[row, 0] = steps_since_dp
+    def tick(self, row: int, clock: int, steps_until_dp: int):
+        self._x[row, 0] = steps_until_dp
 
     def get(self):
         return self._x
