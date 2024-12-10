@@ -8,7 +8,7 @@ import numpy
 import random
 import pickle as pkl
 
-from corerl.agent.base import BaseAgent, BaseAgentConfig, group
+from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor
@@ -154,6 +154,3 @@ class EpsilonGreedySarsa(BaseAgent):
 
     def load_buffer(self, transitions: list[Transition]) -> None:
         ...
-
-
-group.dispatcher(EpsilonGreedySarsa)

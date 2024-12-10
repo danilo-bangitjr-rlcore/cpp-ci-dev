@@ -13,7 +13,7 @@ import numpy
 import pickle as pkl
 import logging
 
-from corerl.agent.base import BaseAC, BaseACConfig, group
+from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
@@ -715,9 +715,6 @@ class GreedyAC(BaseAC):
         }
 
 
-group.dispatcher(GreedyAC)
-
-
 @dataclass
 class GreedyACLineSearchConfig(GreedyACConfig):
     name: str = 'greedy_ac_linesearch'
@@ -765,9 +762,6 @@ class GreedyACLineSearch(GreedyAC):
         return -logp.mean().detach()
 
 
-group.dispatcher(GreedyACLineSearch)
-
-
 @dataclass
 class ExploreLSGACConfig(GreedyACLineSearchConfig):
     name: str = 'greedy_ac_linesearch_explore'
@@ -811,6 +805,3 @@ class ExploreLSGAC(GreedyACLineSearch):
         q_values = q_values.reshape(batch_size, self.num_samples, 1)
         sorted_q = torch.argsort(q_values, dim=1, descending=True)
         return sorted_q
-
-
-group.dispatcher(ExploreLSGAC)

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy
 
-from corerl.agent.base import BaseAgent, BaseAgentConfig, group
+from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.data_pipeline.datatypes import Transition
 
 
@@ -36,5 +36,3 @@ class RandomAgent(BaseAgent):
 
     def load(self, path: Path) -> None:
         pass
-
-group.dispatcher(RandomAgent)

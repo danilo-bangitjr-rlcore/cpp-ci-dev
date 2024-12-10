@@ -1,4 +1,5 @@
-from corerl.agent.base import group, BaseAgentConfig
+from corerl.agent import agent_group
+from corerl.agent.base import BaseAgentConfig
 
 import corerl.agent.greedy_iql # noqa: F401
 import corerl.agent.inac # noqa: F401
@@ -13,4 +14,4 @@ import corerl.agent.sarsa # noqa: F401
 
 
 def init_agent(cfg: BaseAgentConfig, state_dim: int, action_dim: int):
-    return group.dispatch(cfg, state_dim, action_dim)
+    return agent_group.dispatch(cfg, state_dim, action_dim)

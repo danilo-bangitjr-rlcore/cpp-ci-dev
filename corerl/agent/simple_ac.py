@@ -5,7 +5,7 @@ import numpy
 import torch
 import pickle as pkl
 
-from corerl.agent.base import BaseAC, BaseACConfig, group
+from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic
 from corerl.component.buffer.factory import init_buffer
@@ -158,5 +158,3 @@ class SimpleAC(BaseAC):
 
     def load_buffer(self, transitions: list[Transition]) -> None:
         ...
-
-group.dispatcher(SimpleAC)
