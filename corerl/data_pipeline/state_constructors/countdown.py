@@ -1,5 +1,6 @@
 from typing import Type
 import numpy as np
+import pandas as pd
 
 from collections.abc import Hashable
 from dataclasses import dataclass
@@ -21,6 +22,7 @@ class CountdownConfig:
 class CountdownTS:
     clock: int
     steps_since_dp: int
+    last_row: np.ndarray | None
 
 
 class CountdownAdder:
@@ -47,23 +49,17 @@ class CountdownAdder:
             default=lambda: CountdownTS(
                 clock=self._cfg.action_period - 1,
                 steps_since_dp=0,
+                last_row=None,
             ),
         )
-
-        action_rows = pf.data.get(self._action_tags)
-        assert action_rows is not None
-
-        n_rows = len(action_rows)
+        n_rows = len(pf.data)
         clock_feats = self._init_feature_builder(n_rows)
 
-        last_row = action_rows.iloc[0].to_numpy()
         for i in range(n_rows):
-            row = action_rows.iloc[i].to_numpy()
-
-            is_action_change = not np.all(last_row == row)
             is_dp = ts.steps_since_dp == 0
+            is_ac = self._is_action_change(pf.data, ts, i)
 
-            if is_action_change or is_dp:
+            if is_dp or is_ac:
                 ts.steps_since_dp = self._cfg.action_period
 
             clock_feats.tick(i, ts.clock, ts.steps_since_dp)
@@ -71,7 +67,6 @@ class CountdownAdder:
             # loop carry state
             ts.clock = (ts.clock - 1) % self._cfg.action_period
             ts.steps_since_dp -= 1
-            last_row = row
 
         clock_representation = clock_feats.get()
         n_clock_feats = clock_representation.shape[1]
@@ -79,6 +74,26 @@ class CountdownAdder:
             pf.data[f'countdown.[{feat_col}]'] = clock_representation[:, feat_col]
 
         return pf
+
+
+    def _is_action_change(self, df: pd.DataFrame, ts: CountdownTS, idx: int):
+        # define the no action case as never having an action change
+        if len(self._action_tags) == 0:
+            return False
+
+        # if we don't have data for the actions, also define as not an action change
+        action_rows = df.get(self._action_tags)
+        if action_rows is None:
+            return False
+
+        if ts.last_row is None:
+            ts.last_row = action_rows.iloc[0].to_numpy()
+
+        row = action_rows.iloc[idx].to_numpy()
+        is_ac = not np.all(ts.last_row == row)
+        ts.last_row = row
+
+        return is_ac
 
 
     def _init_feature_builder(self, n_rows: int):
