@@ -275,3 +275,42 @@ def test_sc_integration4():
         'tag-1_norm_trace-0.01':  [np.nan, 0, 0.198, 0.39798, 0.59798, 0.79798, 0.99798, np.nan, 0.2, 0.398],
     })
     assert dfs_close(pf.data, expected)
+
+
+def test_per_tag_overrides():
+    raw_obs = pd.DataFrame({
+        'tag_1': [np.nan, 1, 2, 3, np.nan, 1, 2],
+        'tag_2': [1, 2, 3, np.nan, 1, 2, np.nan],
+    })
+
+    pf = PipelineFrame(
+        data=raw_obs,
+        caller_code=CallerCode.REFRESH,
+    )
+
+    sc = StateConstructor(
+        tag_cfgs=[
+            TagConfig(name='tag_1'),
+            TagConfig(
+                name='tag_2',
+                state_constructor=[
+                    TraceConfig(trace_values=[0.1])
+                ]
+            ),
+        ],
+        cfg=SCConfig(
+            defaults=[
+                TraceConfig(trace_values=[0.1, 0.01]),
+                AddRawConfig(),
+            ],
+        ),
+    )
+
+    pf = sc(pf)
+    expected = pd.DataFrame({
+        'tag_1':            [np.nan, 1, 2, 3, np.nan, 1, 2],
+        'tag_1_trace-0.1':  [np.nan, 1., 1.9, 2.89, np.nan, 1., 1.9],
+        'tag_1_trace-0.01': [np.nan, 1., 1.99, 2.9899, np.nan, 1., 1.99],
+        'tag_2_trace-0.1':  [1., 1.9, 2.89, np.nan, 1., 1.9, np.nan],
+    })
+    assert dfs_close(pf.data, expected)
