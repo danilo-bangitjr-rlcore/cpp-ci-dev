@@ -59,6 +59,7 @@ class CountdownAdder:
             is_ac = self._is_action_change(pf.data, ts, i)
 
             if is_dp or is_ac:
+                pf.decision_points[i] = True
                 ts.steps_until_dp = self._cfg.action_period
 
             clock_feats.tick(i, ts.clock, ts.steps_until_dp)

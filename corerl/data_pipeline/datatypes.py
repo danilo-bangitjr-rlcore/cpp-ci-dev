@@ -342,6 +342,7 @@ type TemporalState = Dict[StageCode, object | None]
 class PipelineFrame:
     data: pd.DataFrame
     missing_info: pd.DataFrame = field(init=False)
+    decision_points: np.ndarray = field(init=False)
     caller_code: CallerCode
     temporal_state: TemporalState = field(default_factory=dict)
     transitions: list[NewTransition] | None = None
@@ -352,6 +353,9 @@ class PipelineFrame:
         # initialize filled with NULL (no memory cost)
         null_cols = {col: [MissingType.NULL] * N for col in self.data.columns}
         self.missing_info = missing_info.assign(**null_cols)
+
+        # initialize dp flags
+        self.decision_points = np.zeros(N, dtype=np.bool_)
 
     def get_last_timestamp(self) -> None | datetime.datetime:
         if not len(self.data.index):
