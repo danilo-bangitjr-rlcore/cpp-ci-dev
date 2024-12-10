@@ -14,8 +14,7 @@ from corerl.utils.hydra import interpolate
 @dataclass
 class CountdownConfig:
     action_period: int = interpolate('${action_period}')
-    kind: str = 'one_hot'
-
+    kind: str = 'no_countdown'
 
 
 @dataclass
@@ -68,6 +67,11 @@ class CountdownAdder:
             ts.clock = (ts.clock - 1) % self._cfg.action_period
             ts.steps_until_dp -= 1
 
+        # special case if no countdown features are needed
+        if isinstance(clock_feats, NoCountdown):
+            return pf
+
+        # otherwise add features to df
         clock_representation = clock_feats.get()
         n_clock_feats = clock_representation.shape[1]
         for feat_col in range(n_clock_feats):
@@ -98,6 +102,7 @@ class CountdownAdder:
 
     def _init_feature_builder(self, n_rows: int):
         builders: dict[str, Type[CountdownFeatureBuilder]] = {
+            'no_countdown': NoCountdown,
             'two_clock': TwoClockCountdown,
             'one_hot': OneHotCountdown,
             'int': IntCountdown,
@@ -117,15 +122,23 @@ class CountdownFeatureBuilder:
         self._period = period
 
     def tick(self, row: int, clock: int, steps_until_dp: int) -> None:
-        ...
+        raise NotImplementedError()
 
     def get(self) -> np.ndarray:
+        raise NotImplementedError()
+
+
+class NoCountdown(CountdownFeatureBuilder):
+    def __init__(self, n_rows: int, period: int):
+        super().__init__(n_rows, period)
+
+    def tick(self, row: int, clock: int, steps_until_dp: int) -> None:
         ...
 
 
 class TwoClockCountdown(CountdownFeatureBuilder):
     def __init__(self, n_rows: int, period: int):
-        self._period = period
+        super().__init__(n_rows, period)
         self._x = np.zeros((n_rows, 2), dtype=np.int_)
 
     def tick(self, row: int, clock: int, steps_until_dp: int):
@@ -140,7 +153,7 @@ class TwoClockCountdown(CountdownFeatureBuilder):
 
 class OneHotCountdown(CountdownFeatureBuilder):
     def __init__(self, n_rows: int, period: int):
-        self._period = period
+        super().__init__(n_rows, period)
         self._x = np.zeros((n_rows, period), dtype=np.bool_)
 
     def tick(self, row: int, clock: int, steps_until_dp: int):
@@ -153,7 +166,7 @@ class OneHotCountdown(CountdownFeatureBuilder):
 
 class IntCountdown(CountdownFeatureBuilder):
     def __init__(self, n_rows: int, period: int):
-        self._period = period
+        super().__init__(n_rows, period)
         self._x = np.zeros((n_rows, 1), dtype=np.int_)
 
     def tick(self, row: int, clock: int, steps_until_dp: int):

@@ -28,6 +28,7 @@ defaults:
 #  - eval@eval.ensemble : ensemble
 
 use_alerts : False
+action_period: 1
 
 agent:
   message_bus:
