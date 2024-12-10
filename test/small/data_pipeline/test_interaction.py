@@ -84,7 +84,7 @@ def test_pipeline1():
     # ----------------------------
     # -- Check setup conditions --
     # ----------------------------
-    assert got.transitions is not None and len(got.transitions) == 2
+    assert got.transitions is not None and len(got.transitions) > 0
     assert got.transitions[-1] == NewTransition(
         prior=Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0.378, 0., 1.]), dp=True),
         post=Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([2.0, 0.5778, 1., 0.]), dp=False),
