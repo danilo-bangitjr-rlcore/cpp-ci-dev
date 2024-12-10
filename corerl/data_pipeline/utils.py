@@ -1,8 +1,8 @@
-from typing import cast, Mapping
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import MissingType, TagName, PipelineStage
+from typing import cast, Callable, Mapping
+from corerl.data_pipeline.datatypes import MissingType, TagName, PipelineStage, StageCode
 
 def invoke_stage_per_tag[T](carry: T, stage: Mapping[TagName, PipelineStage[T]]) -> T:
     for tag, f in stage.items():
@@ -10,6 +10,30 @@ def invoke_stage_per_tag[T](carry: T, stage: Mapping[TagName, PipelineStage[T]])
 
     return carry
 
+
+def get_tag_temporal_state[T](
+        stage: StageCode,
+        tag: str,
+        ts: dict[StageCode, object | None],
+        default: Callable[[], T],
+    ) -> T:
+    # if this stage does not have a state on the ts
+    # create it and attach to the ts
+    stage_ts = ts.get(stage, {})
+    ts[stage] = stage_ts
+    assert isinstance(stage_ts, dict)
+
+    # if a tag_ts does not exist, create it and attach
+    # it to the stage_ts
+    tag_ts = stage_ts.get(tag, default())
+    stage_ts[tag] = tag_ts
+
+    return tag_ts
+
+
+# ------------------------
+# -- Missing Data Utils --
+# ------------------------
 def _update_existing_missing_info_col(
         missing_info: pd.DataFrame,
         name: str,

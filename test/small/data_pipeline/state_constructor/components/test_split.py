@@ -4,8 +4,9 @@ import pandas as pd
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.transforms.split import SplitConfig, SplitTemporalState
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceTemporalState
-from corerl.data_pipeline.state_constructors.sc import StateConstructor
+from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
 
+from corerl.data_pipeline.tag_config import TagConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 
@@ -20,15 +21,20 @@ def test_split1():
     )
 
     sc = StateConstructor(
-        cfgs=[
-            SplitConfig(
-                left=TraceConfig(trace_values=[0.1]),
-                right=TraceConfig(trace_values=[0.01]),
-            ),
+        tag_cfgs=[
+            TagConfig(name='tag_1'),
         ],
+        cfg=SCConfig(
+            defaults=[
+                SplitConfig(
+                    left=TraceConfig(trace_values=[0.1]),
+                    right=TraceConfig(trace_values=[0.01]),
+                ),
+            ],
+        ),
     )
 
-    pf = sc(pf, 'tag_1')
+    pf = sc(pf)
     expected_data = pd.DataFrame({
         'tag_1_trace-0.1':  [1., 1.9, 2.89, 3.889, np.nan, 1., 1.9, 2.89, 3.889],
         'tag_1_trace-0.01': [1., 1.99, 2.9899, 3.989899, np.nan, 1., 1.99, 2.9899, 3.989899],
@@ -62,15 +68,20 @@ def test_split_ts1():
     )
 
     sc = StateConstructor(
-        cfgs=[
-            SplitConfig(
-                left=TraceConfig(trace_values=[0.1]),
-                right=TraceConfig(trace_values=[0.01]),
-            ),
+        tag_cfgs=[
+            TagConfig(name='tag_1'),
         ],
+        cfg=SCConfig(
+            defaults=[
+                SplitConfig(
+                    left=TraceConfig(trace_values=[0.1]),
+                    right=TraceConfig(trace_values=[0.01]),
+                ),
+            ],
+        ),
     )
 
-    pf = sc(pf, 'tag_1')
+    pf = sc(pf)
     expected_data = pd.DataFrame({
         'tag_1_trace-0.1':  [10.9, 2.89, 2.989, 3.8989, np.nan, 1.0, 1.9, 2.89, 3.889],
         'tag_1_trace-0.01': [1., 1.99, 2.9899, 3.989899, np.nan, 1., 1.99, 2.9899, 3.989899],

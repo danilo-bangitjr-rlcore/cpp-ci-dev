@@ -4,9 +4,10 @@ from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.split import SplitConfig
-from corerl.data_pipeline.state_constructors.sc import StateConstructor
+from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.transforms.trace import TraceConfig
 
+from corerl.data_pipeline.tag_config import TagConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 def test_sc1():
@@ -21,13 +22,18 @@ def test_sc1():
     )
 
     sc = StateConstructor(
-        cfgs=[
-            TraceConfig(trace_values=[0.1, 0.01]),
-        ]
+        tag_cfgs=[
+            TagConfig(name='obs_1'),
+            TagConfig(name='obs_2'),
+        ],
+        cfg=SCConfig(
+            defaults=[
+                TraceConfig(trace_values=[0.1, 0.01]),
+            ]
+        ),
     )
 
-    for tag_name in ('obs_1', 'obs_2'):
-        pf = sc(pf, tag_name)
+    pf = sc(pf)
 
     expected_data = pd.DataFrame({
         'obs_1_trace-0.1':  [np.nan, 1., 1.9, 2.89, np.nan, 1., 1.9],
@@ -48,12 +54,20 @@ def test_norm_sc():
     )
 
     sc = StateConstructor(
-        cfgs=[
-            NormalizerConfig(),
-            TraceConfig(trace_values=[0.1, 0.01]),
-        ]
+        tag_cfgs=[
+            TagConfig(
+                name='tag-1',
+                state_constructor=[
+                    NormalizerConfig(),
+                    TraceConfig(trace_values=[0.1, 0.01]),
+                ],
+            ),
+        ],
+        cfg=SCConfig(
+            defaults=[],
+        ),
     )
-    pf = sc(pf, 'tag-1')
+    pf = sc(pf)
 
     expected = pd.DataFrame({
         'tag-1_norm_trace-0.1':  [np.nan, 0, .225, .4725, .72225, .972225, np.nan, .25, .475],
@@ -74,15 +88,19 @@ def test_sc_add_raw():
     )
 
     sc = StateConstructor(
-        cfgs=[
-            TraceConfig(trace_values=[0.1, 0.01]),
-            AddRawConfig(),
-        ]
+        tag_cfgs=[
+            TagConfig(name='tag_1'),
+            TagConfig(name='tag_2'),
+        ],
+        cfg=SCConfig(
+            defaults=[
+                TraceConfig(trace_values=[0.1, 0.01]),
+                AddRawConfig(),
+            ],
+        ),
     )
 
-    for tag_name in ('tag_1', 'tag_2'):
-        pf = sc(pf, tag_name)
-
+    pf = sc(pf)
     expected = pd.DataFrame({
         'tag_1':            [np.nan, 1, 2, 3, np.nan, 1, 2],
         'tag_2':            [1, 2, 3, np.nan, 1, 2, np.nan],
@@ -111,16 +129,21 @@ def test_sc_integration1():
     )
 
     sc = StateConstructor(
-        cfgs=[
-            NormalizerConfig(),
-            SplitConfig(
-                left=TraceConfig(trace_values=[0.1]),
-                right=AddRawConfig(),
-            ),
+        tag_cfgs=[
+            TagConfig(name='tag-1'),
         ],
+        cfg=SCConfig(
+            defaults=[
+                NormalizerConfig(),
+                SplitConfig(
+                    left=TraceConfig(trace_values=[0.1]),
+                    right=AddRawConfig(),
+                ),
+            ],
+        ),
     )
 
-    pf = sc(pf, 'tag-1')
+    pf = sc(pf)
 
     expected = pd.DataFrame({
         'tag-1':                [np.nan, 0, 1, 2, 3, 4, 5, np.nan, 1, 2],
@@ -146,17 +169,25 @@ def test_sc_integration2():
     )
 
     sc = StateConstructor(
-        cfgs=[
-            NormalizerConfig(),
-            SplitConfig(
-                left=TraceConfig(trace_values=[0.1]),
-                right=AddRawConfig(),
-                passthrough=False
+        tag_cfgs=[
+            TagConfig(
+                name='tag-1',
+                state_constructor=[
+                    NormalizerConfig(),
+                    SplitConfig(
+                        left=TraceConfig(trace_values=[0.1]),
+                        right=AddRawConfig(),
+                        passthrough=False
+                    ),
+                ],
             ),
         ],
+        cfg=SCConfig(
+            defaults=[],
+        ),
     )
 
-    pf = sc(pf, 'tag-1')
+    pf = sc(pf)
 
     expected = pd.DataFrame({
         'tag-1':                [np.nan, 0, 1, 2, 3, 4, 5, np.nan, 1, 2],
@@ -181,17 +212,22 @@ def test_sc_integration3():
     )
 
     sc = StateConstructor(
-        cfgs=[
-            NormalizerConfig(),
-            SplitConfig(
-                left=TraceConfig(trace_values=[0.1]),
-                right=AddRawConfig(),
-                passthrough=True,
-            ),
+        tag_cfgs=[
+            TagConfig(name='tag-1'),
         ],
+        cfg=SCConfig(
+            defaults=[
+                NormalizerConfig(),
+                SplitConfig(
+                    left=TraceConfig(trace_values=[0.1]),
+                    right=AddRawConfig(),
+                    passthrough=True,
+                ),
+            ],
+        ),
     )
 
-    pf = sc(pf, 'tag-1')
+    pf = sc(pf)
 
     expected = pd.DataFrame({
         'tag-1':                 [np.nan, 0, 1, 2, 3, 4, 5, np.nan, 1, 2],
@@ -216,21 +252,65 @@ def test_sc_integration4():
     )
 
     sc = StateConstructor(
-        cfgs=[
-            NormalizerConfig(),
-            SplitConfig(
-                left=TraceConfig(trace_values=[0.1]),
-                right=TraceConfig(trace_values=[0.01]),
-                passthrough=True,
-            ),
+        tag_cfgs=[
+            TagConfig(name='tag-1'),
         ],
+        cfg=SCConfig(
+            defaults=[
+                NormalizerConfig(),
+                SplitConfig(
+                    left=TraceConfig(trace_values=[0.1]),
+                    right=TraceConfig(trace_values=[0.01]),
+                    passthrough=True,
+                ),
+            ],
+        ),
     )
 
-    pf = sc(pf, 'tag-1')
+    pf = sc(pf)
 
     expected = pd.DataFrame({
         'tag-1_norm':             [np.nan, 0, 0.2, 0.4, 0.6, 0.8, 1.0, np.nan, 0.2, 0.4],
         'tag-1_norm_trace-0.1':   [np.nan, 0, 0.18, 0.378, 0.5778, 0.77778, 0.977778, np.nan, 0.2, 0.38],
         'tag-1_norm_trace-0.01':  [np.nan, 0, 0.198, 0.39798, 0.59798, 0.79798, 0.99798, np.nan, 0.2, 0.398],
+    })
+    assert dfs_close(pf.data, expected)
+
+
+def test_per_tag_overrides():
+    raw_obs = pd.DataFrame({
+        'tag_1': [np.nan, 1, 2, 3, np.nan, 1, 2],
+        'tag_2': [1, 2, 3, np.nan, 1, 2, np.nan],
+    })
+
+    pf = PipelineFrame(
+        data=raw_obs,
+        caller_code=CallerCode.REFRESH,
+    )
+
+    sc = StateConstructor(
+        tag_cfgs=[
+            TagConfig(name='tag_1'),
+            TagConfig(
+                name='tag_2',
+                state_constructor=[
+                    TraceConfig(trace_values=[0.1])
+                ]
+            ),
+        ],
+        cfg=SCConfig(
+            defaults=[
+                TraceConfig(trace_values=[0.1, 0.01]),
+                AddRawConfig(),
+            ],
+        ),
+    )
+
+    pf = sc(pf)
+    expected = pd.DataFrame({
+        'tag_1':            [np.nan, 1, 2, 3, np.nan, 1, 2],
+        'tag_1_trace-0.1':  [np.nan, 1., 1.9, 2.89, np.nan, 1., 1.9],
+        'tag_1_trace-0.01': [np.nan, 1., 1.99, 2.9899, np.nan, 1., 1.99],
+        'tag_2_trace-0.1':  [1., 1.9, 2.89, np.nan, 1., 1.9, np.nan],
     })
     assert dfs_close(pf.data, expected)

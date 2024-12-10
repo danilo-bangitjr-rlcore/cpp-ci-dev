@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass, field
 import warnings
 import datetime
@@ -15,7 +16,7 @@ from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
-from corerl.data_pipeline.state_constructors.sc import StateConstructor
+from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.utils import invoke_stage_per_tag
@@ -36,6 +37,7 @@ class PipelineConfig:
     tags: list[TagConfig] = MISSING
     db: TagDBConfig = field(default_factory=TagDBConfig)
     obs_interval_minutes: float = MISSING
+    state_constructor: SCConfig = field(default_factory=SCConfig)
     agent_transition_creator: Any = field(default_factory=DummyTransitionCreatorConfig)
 
 
@@ -72,23 +74,20 @@ class Pipeline:
         reward_components = {cfg.name: RewardComponentConstructor(cfg.reward_constructor) for cfg in self.tags}
         self.reward_constructor = RewardConstructor(reward_components)
 
-        self.state_constructors = {
-            tag.name: StateConstructor(tag.state_constructor)
-            for tag in self.tags
-            if not tag.is_action
-        }
+        self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
 
         self.ts_dict: dict = {caller_code: None for caller_code in CallerCode}
         self.dt_dict: dict = {caller_code: None for caller_code in CallerCode}
 
         self.valid_thresh: datetime.timedelta = datetime.timedelta(minutes=cfg.obs_interval_minutes)
 
+        self._hooks: dict[StageCode, list[Callable[[PipelineFrame], Any]]] = defaultdict(list)
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
             StageCode.BOUNDS:  lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
             StageCode.ODDITY:  lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
             StageCode.IMPUTER: lambda pf: invoke_stage_per_tag(pf, self.imputers),
             StageCode.RC:      self.reward_constructor,
-            StageCode.SC:      lambda pf: invoke_stage_per_tag(pf, self.state_constructors),
+            StageCode.SC:      self.state_constructor,
             StageCode.TC:      self.transition_creator,
         }
 
@@ -127,6 +126,9 @@ class Pipeline:
         for stage in stages:
             pf = self._stage_invokers[stage](pf)
 
+            for hook in self._hooks[stage]:
+                hook(pf)
+
         self.dt_dict[caller_code] = pf.get_last_timestamp()
         self.ts_dict[caller_code] = pf.temporal_state
 
@@ -140,10 +142,8 @@ class Pipeline:
             tag.is_action for tag in self.tags
         )
 
-        state_dim = sum(
-            self.state_constructors[tag.name].state_dim(tag.name)
-            for tag in self.tags
-            if not tag.is_action
-        )
-
+        state_dim = self.state_constructor.state_dim()
         return state_dim, num_actions
+
+    def register_hook(self, stage: StageCode, f: Callable[[PipelineFrame], Any]):
+        self._hooks[stage].append(f)
