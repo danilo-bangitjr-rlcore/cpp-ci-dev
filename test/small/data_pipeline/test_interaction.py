@@ -101,3 +101,4 @@ def test_pipeline1():
     # notice this state does not correspond to the last complete transition
     # instead it corresponds with the last complete _state_
     assert np.allclose(state, [0, 0, 5, 0.9977778])
+    assert np.allclose(state, got.df.iloc[-1])
