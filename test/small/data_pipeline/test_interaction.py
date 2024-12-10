@@ -72,7 +72,7 @@ def test_pipeline1():
     # -----------------------------
     interaction = InteractionWrapper(
         pipeline,
-        action_period=datetime.timedelta(minutes=15),
+        action_period=datetime.timedelta(minutes=5),
         tol=datetime.timedelta(minutes=5),
     )
 
