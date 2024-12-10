@@ -1,4 +1,4 @@
-from corerl.data.transition_creator import tc_group
+from corerl.data import tc_group
 from corerl.state_constructor.base import BaseStateConstructor
 from corerl.utils.hydra import DiscriminatedUnion
 
