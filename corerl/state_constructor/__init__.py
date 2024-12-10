@@ -1,12 +1,12 @@
-from corerl.utils.hydra import Group
 from corerl.state_constructor.base import CompositeStateConstructor
 from corerl.state_constructor.examples import (
-    MultiTrace,
     AnytimeMultiTrace,
     Identity,
+    MultiTrace,
+    ReseauAnytime,
     SimpleReseauAnytime,
-    ReseauAnytime
 )
+from corerl.utils.hydra import Group
 
 # set up config groups
 sc_group = Group[[],CompositeStateConstructor,]('state_constructor')

@@ -1,7 +1,6 @@
-from corerl.utils.hydra import Group
-from corerl.agent.base import BaseAgent
 from corerl.agent.action_schedule import ActionScheduleAgent
-from corerl.agent.greedy_ac import (GreedyAC, GreedyACLineSearch, ExploreLSGAC)
+from corerl.agent.base import BaseAgent
+from corerl.agent.greedy_ac import ExploreLSGAC, GreedyAC, GreedyACLineSearch
 from corerl.agent.greedy_iql import GreedyIQL
 from corerl.agent.inac import InAC
 from corerl.agent.iql import IQL
@@ -10,6 +9,7 @@ from corerl.agent.reinforce import Reinforce
 from corerl.agent.sac import SAC
 from corerl.agent.sarsa import EpsilonGreedySarsa
 from corerl.agent.simple_ac import SimpleAC
+from corerl.utils.hydra import Group
 
 agent_group = Group[[int, int],BaseAgent,]('agent')
 

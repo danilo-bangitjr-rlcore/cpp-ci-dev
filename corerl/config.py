@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
@@ -27,7 +27,7 @@ class MainConfig:
     calibration_model: Any = MISSING
     data_loader: BaseDataLoaderConfig = MISSING
     env: Any = MISSING
-    eval: Optional[Dict[str, EvalConfig]] = MISSING
+    eval: Optional[dict[str, EvalConfig]] = field(default_factory=dict)
     experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
     interaction: BaseInteractionConfig = field(default_factory=AnytimeInteractionConfig)
     normalizer: NormalizerConfig = field(default_factory=NormalizerConfig)
