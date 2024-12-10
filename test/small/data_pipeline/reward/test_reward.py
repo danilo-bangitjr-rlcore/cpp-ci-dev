@@ -6,7 +6,7 @@ import pandas as pd
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
 from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.tag_config import TagConfig
-import corerl.data_pipeline.transforms as xforms
+import corerl.data_pipeline.transforms as xform
 from test.infrastructure.utils.pandas import dfs_close
 
 
@@ -24,8 +24,8 @@ def test_rc1():
     )
 
     transform_cfgs = [
-        xforms.NormalizerConfig(min=0.0, max=1.0, from_data=False),
-        xforms.TraceConfig(trace_values=[0.1]),
+        xform.NormalizerConfig(min=0.0, max=1.0, from_data=False),
+        xform.TraceConfig(trace_values=[0.1]),
     ]
     reward_component_constructors = {
         tag_name: RewardComponentConstructor(transform_cfgs) for tag_name in raw_obs.columns
@@ -63,14 +63,14 @@ def test_null_xform():
     )
 
     transform_cfgs = [
-        xforms.NormalizerConfig(min=0.0, max=1.0, from_data=False),
-        xforms.TraceConfig(trace_values=[0.1]),
+        xform.NormalizerConfig(min=0.0, max=1.0, from_data=False),
+        xform.TraceConfig(trace_values=[0.1]),
     ]
     reward_component_constructors = {
         tag_name: RewardComponentConstructor(transform_cfgs) for tag_name in raw_obs.columns
     }
     # change final xform to null
-    reward_component_constructors["obs_3"] = RewardComponentConstructor([xforms.NullConfig()])
+    reward_component_constructors["obs_3"] = RewardComponentConstructor([xform.NullConfig()])
     rc = RewardConstructor(reward_component_constructors)
 
     # call reward constructor
@@ -98,7 +98,7 @@ def test_lessthan_xform():
         TagConfig(
             name="tag-2",
             reward_constructor=[
-                xforms.LessThanConfig(threshold=5),
+                xform.LessThanConfig(threshold=5),
             ],
         ),
     ]
@@ -149,7 +149,7 @@ def test_greaterthan_xform():
         TagConfig(
             name="tag-2",
             reward_constructor=[
-                xforms.GreaterThanConfig(threshold=5),
+                xform.GreaterThanConfig(threshold=5),
             ],
         ),
     ]
@@ -207,8 +207,8 @@ def test_greaterthan_penalty_reward():
         TagConfig(
             name="tag-2",
             reward_constructor=[
-                xforms.GreaterThanConfig(threshold=5),
-                xforms.ScaleConfig(factor=-10) # penalty
+                xform.GreaterThanConfig(threshold=5),
+                xform.ScaleConfig(factor=-10) # penalty
             ],
         ),
     ]
@@ -249,6 +249,63 @@ def test_greaterthan_penalty_reward():
 
     assert dfs_close(pf.data, expected_df)
 
+
+def test_product_transform():
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(7)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols = pd.Index(["tag-1", "tag-2"])
+    df = pd.DataFrame(
+        data=[
+            [np.nan, 0],
+            [0,      2],
+            [1,      4],
+            [2,      6],
+            [np.nan, np.nan],
+            [4,      10],
+            [5,      12],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    transform_cfgs = {
+        "tag-1": [xform.ProductConfig(other="tag-2", other_transform=xform.GreaterThanConfig(threshold=5))],
+        "tag-2": [xform.NullConfig()],
+    }
+    reward_component_constructors = {
+        tag_name: RewardComponentConstructor(transform_cfgs[tag_name]) for tag_name in cols
+    }
+    rc = RewardConstructor(reward_component_constructors)
+
+    pf = PipelineFrame(
+        data=df,
+        caller_code=CallerCode.ONLINE,
+    )
+    # call reward constructor
+    pf = rc(pf)
+
+    expected_cols = pd.Index(["tag-1", "tag-2", "reward"])
+    expected_df = pd.DataFrame(
+        data=[
+            [np.nan, 0,      np.nan],
+            [0,      2,      0],
+            [1,      4,      0],
+            [2,      6,      2],
+            [np.nan, np.nan, np.nan],
+            [4,      10,     4],
+            [5,      12,     5],
+        ],
+        columns=expected_cols,
+        index=idx,
+    )
+
+    assert dfs_close(pf.data, expected_df)
+
+
 def test_null_filter():
     tag_cfgs = [
         TagConfig(
@@ -258,7 +315,7 @@ def test_null_filter():
         TagConfig(
             name="tag-2",
             reward_constructor=[
-                xforms.GreaterThanConfig(threshold=5),
+                xform.GreaterThanConfig(threshold=5),
             ],
         ),
     ]
