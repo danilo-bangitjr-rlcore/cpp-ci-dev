@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
+from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.split import SplitConfig
@@ -29,7 +30,8 @@ def test_sc1():
         cfg=SCConfig(
             defaults=[
                 TraceConfig(trace_values=[0.1, 0.01]),
-            ]
+            ],
+            countdown=CountdownConfig(action_period=1),
         ),
     )
 
@@ -65,6 +67,7 @@ def test_norm_sc():
         ],
         cfg=SCConfig(
             defaults=[],
+            countdown=CountdownConfig(action_period=1),
         ),
     )
     pf = sc(pf)
@@ -97,6 +100,7 @@ def test_sc_add_raw():
                 TraceConfig(trace_values=[0.1, 0.01]),
                 AddRawConfig(),
             ],
+            countdown=CountdownConfig(action_period=1),
         ),
     )
 
@@ -140,6 +144,7 @@ def test_sc_integration1():
                     right=AddRawConfig(),
                 ),
             ],
+            countdown=CountdownConfig(action_period=1),
         ),
     )
 
@@ -184,6 +189,7 @@ def test_sc_integration2():
         ],
         cfg=SCConfig(
             defaults=[],
+            countdown=CountdownConfig(action_period=1),
         ),
     )
 
@@ -224,6 +230,7 @@ def test_sc_integration3():
                     passthrough=True,
                 ),
             ],
+            countdown=CountdownConfig(action_period=1),
         ),
     )
 
@@ -264,6 +271,7 @@ def test_sc_integration4():
                     passthrough=True,
                 ),
             ],
+            countdown=CountdownConfig(action_period=1),
         ),
     )
 
@@ -275,6 +283,52 @@ def test_sc_integration4():
         'tag-1_norm_trace-0.01':  [np.nan, 0, 0.198, 0.39798, 0.59798, 0.79798, 0.99798, np.nan, 0.2, 0.398],
     })
     assert dfs_close(pf.data, expected)
+
+
+def test_sc_decision_point_detection():
+    """
+    Tests the integration of the decision point detector
+    and the broader state constructor. Expect action interrupts
+    and the action period to both produce valid decision points
+    and the sc transforms non-action tags.
+    """
+    raw_obs = pd.DataFrame({
+        'tag-1': [np.nan, 0, 1, 2, 3, 4, 5, np.nan, 1, 2],
+        'tag-action': [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+    })
+
+    pf = PipelineFrame(
+        data=raw_obs,
+        caller_code=CallerCode.OFFLINE,
+    )
+
+    sc = StateConstructor(
+        tag_cfgs=[
+            TagConfig(name='tag-1'),
+            TagConfig(name='tag-action', is_action=True),
+        ],
+        cfg=SCConfig(
+            defaults=[
+                NormalizerConfig(),
+            ],
+            countdown=CountdownConfig(
+                kind='int',
+                action_period=4,
+            ),
+        ),
+    )
+
+    pf = sc(pf)
+
+    expected = pd.DataFrame({
+        'tag-1_norm':             [np.nan, 0, 0.2, 0.4, 0.6, 0.8, 1.0, np.nan, 0.2, 0.4],
+        'tag-action':             [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+        'countdown.[0]':          [4, 3, 2, 4, 3, 2, 1, 4, 3, 2],
+    })
+    assert dfs_close(pf.data, expected)
+    assert np.all(
+        pf.decision_points == np.array([1, 0, 0, 1, 0, 0, 0, 1, 0, 0])
+    )
 
 
 def test_per_tag_overrides():
@@ -303,6 +357,7 @@ def test_per_tag_overrides():
                 TraceConfig(trace_values=[0.1, 0.01]),
                 AddRawConfig(),
             ],
+            countdown=CountdownConfig(action_period=4),
         ),
     )
 

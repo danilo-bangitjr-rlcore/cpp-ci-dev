@@ -5,6 +5,8 @@ import datetime
 
 from corerl.data_pipeline.imputers.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
+from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
+from corerl.data_pipeline.state_constructors.sc import SCConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.transforms.affine import AffineConfig
@@ -22,6 +24,9 @@ def test_construct_pipeline():
         ],
         obs_interval_minutes=15,
         agent_transition_creator=DummyTransitionCreatorConfig(),
+        state_constructor=SCConfig(
+            countdown=CountdownConfig(action_period=1),
+        ),
     )
     _ = Pipeline(cfg)
 
@@ -34,6 +39,9 @@ def test_passing_data_to_pipeline():
         ],
         obs_interval_minutes=15,
         agent_transition_creator=DummyTransitionCreatorConfig(),
+        state_constructor=SCConfig(
+            countdown=CountdownConfig(action_period=1),
+        ),
     )
     pipeline = Pipeline(cfg)
 
@@ -66,6 +74,9 @@ def test_state_action_dim():
             TagConfig(name='tag-3', is_action=True),
             TagConfig(name='tag-4', is_action=True),
         ],
+        state_constructor=SCConfig(
+            countdown=CountdownConfig(action_period=1),
+        ),
         obs_interval_minutes=5,
     )
 
@@ -93,6 +104,9 @@ def test_sub_pipeline1():
                 ],
             ),
         ],
+        state_constructor=SCConfig(
+            countdown=CountdownConfig(action_period=1),
+        ),
         obs_interval_minutes=5,
     )
 
@@ -160,6 +174,9 @@ def test_sub_pipeline2():
                 ],
             ),
         ],
+        state_constructor=SCConfig(
+            countdown=CountdownConfig(action_period=1),
+        ),
         obs_interval_minutes=5,
     )
 
@@ -232,6 +249,9 @@ def test_sub_pipeline3():
                 ],
             ),
         ],
+        state_constructor=SCConfig(
+            countdown=CountdownConfig(action_period=1),
+        ),
         obs_interval_minutes=5,
     )
 
@@ -309,6 +329,9 @@ def test_sub_pipeline4():
                 ],
             ),
         ],
+        state_constructor=SCConfig(
+            countdown=CountdownConfig(action_period=1),
+        ),
         obs_interval_minutes=5,
     )
 

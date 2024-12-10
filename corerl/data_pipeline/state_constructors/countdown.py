@@ -24,7 +24,7 @@ class CountdownTS:
     last_row: np.ndarray | None
 
 
-class CountdownAdder:
+class DecisionPointDetector:
     cd_tag = '__countdown__'
 
     def __init__(self, tag_cfgs: list[TagConfig], cfg: CountdownConfig):

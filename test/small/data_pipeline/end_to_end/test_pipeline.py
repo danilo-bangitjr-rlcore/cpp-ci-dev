@@ -7,6 +7,8 @@ from torch import tensor
 from corerl.data_pipeline.imputers.linear import LinearImputerConfig
 from corerl.data_pipeline.imputers.copy import CopyImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
+from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
+from corerl.data_pipeline.state_constructors.sc import SCConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.tag_config import TagConfig
@@ -37,6 +39,9 @@ def test_pipeline1():
             gamma=0.9,
             n_step=None,
             only_dp_transitions=False,
+        ),
+        state_constructor=SCConfig(
+            countdown=CountdownConfig(action_period=1),
         ),
         obs_interval_minutes=5,
     )
@@ -125,6 +130,9 @@ def test_pipeline2():
             gamma=0.9,
             n_step=None,
             only_dp_transitions=False,
+        ),
+        state_constructor=SCConfig(
+            countdown=CountdownConfig(action_period=1),
         ),
         obs_interval_minutes=5,
     )

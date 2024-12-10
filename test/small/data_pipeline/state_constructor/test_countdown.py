@@ -1,6 +1,7 @@
+import numpy as np
 import pandas as pd
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
-from corerl.data_pipeline.state_constructors.countdown import CountdownAdder, CountdownConfig
+from corerl.data_pipeline.state_constructors.countdown import DecisionPointDetector, CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from test.infrastructure.utils.pandas import dfs_close
 
@@ -25,7 +26,7 @@ def test_int_countdown1():
         kind='int',
     )
 
-    cd_adder = CountdownAdder(tag_cfgs, cd_cfg)
+    cd_adder = DecisionPointDetector(tag_cfgs, cd_cfg)
     pf = cd_adder(pf)
 
     expected = pd.DataFrame({
@@ -34,6 +35,7 @@ def test_int_countdown1():
         'countdown.[0]': [4, 3, 2, 1, 4, 3, 2],
     })
     assert dfs_close(pf.data, expected)
+    assert np.all(pf.decision_points == [1, 0, 0, 0, 1, 0, 0])
 
 
     # -----------------
@@ -59,6 +61,7 @@ def test_int_countdown1():
         'countdown.[0]': [1, 4, 3, 2, 1],
     })
     assert dfs_close(pf.data, expected)
+    assert np.all(pf.decision_points == [0, 1, 0, 0, 0])
 
 
 def test_int_countdown2():
@@ -87,7 +90,7 @@ def test_int_countdown2():
         kind='int',
     )
 
-    cd_adder = CountdownAdder(tag_cfgs, cd_cfg)
+    cd_adder = DecisionPointDetector(tag_cfgs, cd_cfg)
     pf = cd_adder(pf)
 
     expected = pd.DataFrame({
@@ -96,6 +99,7 @@ def test_int_countdown2():
         'countdown.[0]': [4, 3, 4, 3, 4, 3, 4, 3],
     })
     assert dfs_close(pf.data, expected)
+    assert np.all(pf.decision_points == [1, 0, 1, 0, 1, 0, 1, 0])
 
 
 def test_int_countdown3():
@@ -122,7 +126,7 @@ def test_int_countdown3():
         kind='int',
     )
 
-    cd_adder = CountdownAdder(tag_cfgs, cd_cfg)
+    cd_adder = DecisionPointDetector(tag_cfgs, cd_cfg)
     pf = cd_adder(pf)
 
     expected = pd.DataFrame({
@@ -130,6 +134,7 @@ def test_int_countdown3():
         'countdown.[0]': [4, 3, 2, 1, 4, 3, 2, 1],
     })
     assert dfs_close(pf.data, expected)
+    assert np.all(pf.decision_points == [1, 0, 0, 0, 1, 0, 0, 0])
 
 
 def test_two_clock1():
@@ -151,7 +156,7 @@ def test_two_clock1():
         kind='two_clock',
     )
 
-    cd_adder = CountdownAdder(tag_cfgs, cd_cfg)
+    cd_adder = DecisionPointDetector(tag_cfgs, cd_cfg)
     pf = cd_adder(pf)
 
     expected = pd.DataFrame({
@@ -160,3 +165,4 @@ def test_two_clock1():
         'countdown.[1]': [4, 3, 4, 3, 2, 1, 4, 3],
     })
     assert dfs_close(pf.data, expected)
+    assert np.all(pf.decision_points == [1, 0, 1, 0, 0, 0, 1, 0])
