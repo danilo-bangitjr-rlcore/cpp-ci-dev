@@ -84,7 +84,7 @@ def test_product_other_transform():
         index=idx,
     )
 
-    tf = ProductTransform(ProductConfig(other="tag-2", other_transform=GreaterThanConfig(threshold=5)))
+    tf = ProductTransform(ProductConfig(other="tag-2", other_xform=[GreaterThanConfig(threshold=5)]))
     tf_data = df.get(["tag-1"])
     assert tf_data is not None
 

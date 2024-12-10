@@ -273,7 +273,7 @@ def test_product_transform():
     )
 
     transform_cfgs = {
-        "tag-1": [xform.ProductConfig(other="tag-2", other_transform=xform.GreaterThanConfig(threshold=5))],
+        "tag-1": [xform.ProductConfig(other="tag-2", other_xform=[xform.GreaterThanConfig(threshold=5)])],
         "tag-2": [xform.NullConfig()],
     }
     reward_component_constructors = {

@@ -3,8 +3,9 @@ from dataclasses import dataclass, field
 from omegaconf import MISSING
 
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
-from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.identity import IdentityConfig
+from corerl.data_pipeline.transforms.interface import TransformCarry
+from corerl.utils.hydra import list_
 
 
 @dataclass
@@ -12,7 +13,7 @@ class ProductConfig(BaseTransformConfig):
     name: str = "product"
 
     other: str = MISSING
-    other_transform: BaseTransformConfig = field(default_factory=IdentityConfig)
+    other_xform: list[BaseTransformConfig] = list_([IdentityConfig])
 
 
 @dataclass
@@ -24,7 +25,7 @@ class ProductTransform:
     def __init__(self, cfg: ProductConfig):
         self._cfg = cfg
         self._other = cfg.other
-        self._other_transform = transform_group.dispatch(cfg.other_transform)
+        self._other_xform = [transform_group.dispatch(xform) for xform in cfg.other_xform]
 
     def __call__(self, carry: TransformCarry, ts: object | None):
         assert isinstance(ts, ProductTemporalState | None)
@@ -41,7 +42,9 @@ class ProductTransform:
         )
 
         # execute other transform
-        other_carry, other_ts = self._other_transform(other_carry, other_ts)
+        for xform in self._other_xform:
+            other_carry, other_ts = xform(other_carry, other_ts)
+
         assert len(other_carry.transform_data.columns) == 1
 
         # take product with other
