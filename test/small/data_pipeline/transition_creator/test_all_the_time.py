@@ -230,7 +230,6 @@ def test_all_the_time_1():
     ]
 
     cfg = AllTheTimeTCConfig(
-        steps_per_decision=2,
         gamma=0.9,
         max_n_step=2,
     )
@@ -291,6 +290,133 @@ def test_all_the_time_1():
         n_steps=2
     )
     assert transitions_equal_test(t_2, expected_2)
+
+
+def test_all_the_time_2():
+    state_col = np.arange(3)
+    cols = {"state": state_col, "action": [0, 0, 0], "reward": [1, 1, 1]}
+    dates = [
+        datetime.datetime(2024, 1, 1, 1, i) for i in range(3)
+    ]
+    datetime_index = pd.DatetimeIndex(dates)
+    df = pd.DataFrame(cols, index=datetime_index)
+    pf = PipelineFrame(
+        df,
+        caller_code=CallerCode.OFFLINE,
+    )
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
+
+    cfg = AllTheTimeTCConfig(
+        gamma=0.9,
+        max_n_step=1,
+    )
+
+    tc = AllTheTimeTC(cfg, tags)
+    pf = tc(pf)
+    transitions = pf.transitions
+    assert isinstance(transitions, list)
+    assert len(transitions) == 2
+
+    t_0 = transitions[0]
+    expected_0 = NewTransition(
+        prior=get_test_prior_step(
+            Tensor([0.,]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([1.]),
+            action=Tensor([0.]),
+            reward=1.0,
+            gamma=0.9,
+            dp=False
+        ),
+        n_steps=1
+    )
+    assert transitions_equal_test(t_0, expected_0)
+
+    t_1 = transitions[1]
+    expected_1 = NewTransition(
+        prior=get_test_prior_step(
+            Tensor([1.,]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([2.]),
+            action=Tensor([0.]),
+            reward=1.0,
+            gamma=0.9,
+            dp=False
+        ),
+        n_steps=1
+    )
+    assert transitions_equal_test(t_1, expected_1)
+
+
+def test_all_the_time_3_data_gap():
+    state_col = np.arange(4)
+    cols = {"state": state_col, "action": [0, np.nan, 0, 0], "reward": [1, 1, 1, 1]}
+    dates = [
+        datetime.datetime(2024, 1, 1, 1, i) for i in range(4)
+    ]
+    datetime_index = pd.DatetimeIndex(dates)
+    df = pd.DataFrame(cols, index=datetime_index)
+    pf = PipelineFrame(
+        df,
+        caller_code=CallerCode.OFFLINE,
+    )
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
+
+    cfg = AllTheTimeTCConfig(
+        gamma=0.9,
+        max_n_step=1,
+    )
+
+    tc = AllTheTimeTC(cfg, tags)
+    pf = tc(pf)
+    transitions = pf.transitions
+    assert isinstance(transitions, list)
+    assert len(transitions) == 1
+
+    t_0 = transitions[0]
+    expected_0 = NewTransition(
+        prior=get_test_prior_step(
+            Tensor([2., ]),
+            dp=False,
+        ),
+        post=Step(
+            state=Tensor([3.]),
+            action=Tensor([0.]),
+            reward=1.0,
+            gamma=0.9,
+            dp=False
+        ),
+        n_steps=1
+    )
+    assert transitions_equal_test(t_0, expected_0)
+
+
 
 
 

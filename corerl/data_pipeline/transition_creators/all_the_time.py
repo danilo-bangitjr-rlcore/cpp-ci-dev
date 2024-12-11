@@ -21,7 +21,6 @@ from corerl.data_pipeline.transition_creators.base import (
 @dataclass
 class AllTheTimeTCConfig(BaseTransitionCreatorConfig):
     name: str = "all-the-time"
-    steps_per_decision: int = interpolate('${interaction.steps_per_decision}')
     gamma: float = interpolate('${experiment.gamma}')
     min_n_step: int = 1
     max_n_step: int = interpolate('${interaction.steps_per_decision}')
@@ -117,7 +116,6 @@ class AllTheTimeTC(BaseTransitionCreator):
     ):
         super().__init__(cfg, tag_configs)
 
-        self.steps_per_decision = cfg.steps_per_decision
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
         self.max_n_step = cfg.max_n_step
