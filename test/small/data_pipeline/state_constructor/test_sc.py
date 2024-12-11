@@ -323,11 +323,11 @@ def test_sc_decision_point_detection():
     expected = pd.DataFrame({
         'tag-1_norm':             [np.nan, 0, 0.2, 0.4, 0.6, 0.8, 1.0, np.nan, 0.2, 0.4],
         'tag-action':             [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-        'countdown.[0]':          [4, 3, 2, 4, 3, 2, 1, 4, 3, 2],
+        'countdown.[0]':          [3, 2, 1, 4, 3, 2, 1, 4, 3, 2],
     })
     assert dfs_close(pf.data, expected)
     assert np.all(
-        pf.decision_points == np.array([1, 0, 0, 1, 0, 0, 0, 1, 0, 0])
+        pf.decision_points == np.array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0])
     )
 
 

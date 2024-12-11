@@ -51,6 +51,10 @@ class DecisionPointDetector:
                 last_row=None,
             ),
         )
+
+        if ts.last_row is None:
+            ts = self._warmup_ts(pf.data, ts)
+
         n_rows = len(pf.data)
         clock_feats = self._init_feature_builder(n_rows)
 
@@ -80,6 +84,25 @@ class DecisionPointDetector:
 
         return pf
 
+
+    def _warmup_ts(self, df: pd.DataFrame, ts: CountdownTS):
+        """
+        Look forward in time for first action change. Use that
+        to set the starting point for the clock.
+        """
+        n_rows = len(df)
+
+        for i in range(n_rows):
+            is_ac = self._is_action_change(df, ts, i)
+            if is_ac:
+                ts.steps_until_dp = i % self._cfg.action_period
+                ts.clock = (i - 1) % self._cfg.action_period
+                break
+
+        # make sure we haven't mutated irrelevant
+        # ts states
+        ts.last_row = None
+        return ts
 
     def _is_action_change(self, df: pd.DataFrame, ts: CountdownTS, idx: int):
         # define the no action case as never having an action change

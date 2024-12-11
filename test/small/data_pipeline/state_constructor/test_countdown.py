@@ -96,10 +96,10 @@ def test_int_countdown2():
     expected = pd.DataFrame({
         'tag-1':         [1, 1, 1, 1, 2, 2, 2, 2],
         'tag-2':         [0, 0, 1, 1, 1, 1, 0, 0],
-        'countdown.[0]': [4, 3, 4, 3, 4, 3, 4, 3],
+        'countdown.[0]': [2, 1, 4, 3, 4, 3, 4, 3],
     })
     assert dfs_close(pf.data, expected)
-    assert np.all(pf.decision_points == [1, 0, 1, 0, 1, 0, 1, 0])
+    assert np.all(pf.decision_points == [0, 0, 1, 0, 1, 0, 1, 0])
 
 
 def test_int_countdown3():
@@ -161,8 +161,8 @@ def test_two_clock1():
 
     expected = pd.DataFrame({
         'tag-1':         [1, 1, 2, 2, 2, 2, 3, 3],
-        'countdown.[0]': [4, 3, 2, 1, 4, 3, 2, 1],
-        'countdown.[1]': [4, 3, 4, 3, 2, 1, 4, 3],
+        'countdown.[0]': [2, 1, 4, 3, 2, 1, 4, 3],
+        'countdown.[1]': [2, 1, 4, 3, 2, 1, 4, 3],
     })
     assert dfs_close(pf.data, expected)
-    assert np.all(pf.decision_points == [1, 0, 1, 0, 0, 0, 1, 0])
+    assert np.all(pf.decision_points == [0, 0, 1, 0, 0, 0, 1, 0])
