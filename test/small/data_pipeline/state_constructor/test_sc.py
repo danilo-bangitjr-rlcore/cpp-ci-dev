@@ -321,9 +321,9 @@ def test_sc_decision_point_detection():
     pf = sc(pf)
 
     expected = pd.DataFrame({
-        'tag-1_norm':             [np.nan, 0, 0.2, 0.4, 0.6, 0.8, 1.0, np.nan, 0.2, 0.4],
-        'tag-action':             [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-        'countdown.[0]':          [3, 2, 1, 4, 3, 2, 1, 4, 3, 2],
+        'tag-1_norm':    [np.nan, 0, 0.2, 0.4, 0.6, 0.8, 1.0, np.nan, 0.2, 0.4],
+        'tag-action':    [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+        'countdown.[0]': [3, 2, 1, 4, 3, 2, 1, 4, 3, 2],
     })
     assert dfs_close(pf.data, expected)
     assert np.all(
