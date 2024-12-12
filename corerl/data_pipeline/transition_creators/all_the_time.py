@@ -27,6 +27,7 @@ class AllTheTimeTCConfig(BaseTransitionCreatorConfig):
 
     # FILTERS
     only_dp_transitions: bool = False  # whether we only want to return transitions between decision points
+    single_action: bool = True  # whether all actions should have the same action.
 
 
 class NStepInfo:
@@ -99,6 +100,8 @@ def make_transition(
         dp=False,  #TODO: set this
     )
 
+
+
     transition = NewTransition(
         pre_step,
         post_step,
@@ -149,6 +152,7 @@ class AllTheTimeTC(BaseTransitionCreator):
         )
         states = get_tags(df, state_tags)
         rewards = df['reward'].to_numpy()
+        dps = pf.decision_points
         assert len(actions) == len(states) and len(states) == len(rewards)
 
         for i in range(len(actions)):
