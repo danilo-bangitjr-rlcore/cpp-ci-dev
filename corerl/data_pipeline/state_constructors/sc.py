@@ -1,9 +1,9 @@
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import pandas as pd
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
-from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, CountdownAdder
+from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group, Transform
 from corerl.data_pipeline.tag_config import TagConfig
@@ -14,7 +14,7 @@ from corerl.utils.hydra import list_
 @dataclass
 class SCConfig:
     defaults: list[BaseTransformConfig] = list_([NormalizerConfig()])
-    countdown: CountdownConfig | None = None
+    countdown: CountdownConfig = field(default_factory=CountdownConfig)
 
 
 class StateConstructor:
@@ -32,7 +32,7 @@ class StateConstructor:
             for tag_name, parts in sc_cfgs.items()
         }
 
-        self._cd_adder = CountdownAdder(tag_cfgs, cfg.countdown) if cfg.countdown else None
+        self._cd_adder = DecisionPointDetector(tag_cfgs, cfg.countdown)
 
     def _construct_components(self, sub_cfgs: list[BaseTransformConfig]):
         return [

@@ -14,8 +14,7 @@ from corerl.utils.hydra import interpolate
 @dataclass
 class CountdownConfig:
     action_period: int = interpolate('${action_period}')
-    kind: str = 'one_hot'
-
+    kind: str = 'no_countdown'
 
 
 @dataclass
@@ -25,7 +24,7 @@ class CountdownTS:
     last_row: np.ndarray | None
 
 
-class CountdownAdder:
+class DecisionPointDetector:
     cd_tag = '__countdown__'
 
     def __init__(self, tag_cfgs: list[TagConfig], cfg: CountdownConfig):
@@ -52,6 +51,10 @@ class CountdownAdder:
                 last_row=None,
             ),
         )
+
+        if ts.last_row is None:
+            ts = self._warmup_ts(pf.data, ts)
+
         n_rows = len(pf.data)
         clock_feats = self._init_feature_builder(n_rows)
 
@@ -60,6 +63,7 @@ class CountdownAdder:
             is_ac = self._is_action_change(pf.data, ts, i)
 
             if is_dp or is_ac:
+                pf.decision_points[i] = True
                 ts.steps_until_dp = self._cfg.action_period
 
             clock_feats.tick(i, ts.clock, ts.steps_until_dp)
@@ -68,6 +72,11 @@ class CountdownAdder:
             ts.clock = (ts.clock - 1) % self._cfg.action_period
             ts.steps_until_dp -= 1
 
+        # special case if no countdown features are needed
+        if isinstance(clock_feats, NoCountdown):
+            return pf
+
+        # otherwise add features to df
         clock_representation = clock_feats.get()
         n_clock_feats = clock_representation.shape[1]
         for feat_col in range(n_clock_feats):
@@ -75,6 +84,25 @@ class CountdownAdder:
 
         return pf
 
+
+    def _warmup_ts(self, df: pd.DataFrame, ts: CountdownTS):
+        """
+        Look forward in time for first action change. Use that
+        to set the starting point for the clock.
+        """
+        n_rows = len(df)
+
+        for i in range(n_rows):
+            is_ac = self._is_action_change(df, ts, i)
+            if is_ac:
+                ts.steps_until_dp = i % self._cfg.action_period
+                ts.clock = (i - 1) % self._cfg.action_period
+                break
+
+        # make sure we haven't mutated irrelevant
+        # ts states
+        ts.last_row = None
+        return ts
 
     def _is_action_change(self, df: pd.DataFrame, ts: CountdownTS, idx: int):
         # define the no action case as never having an action change
@@ -98,6 +126,7 @@ class CountdownAdder:
 
     def _init_feature_builder(self, n_rows: int):
         builders: dict[str, Type[CountdownFeatureBuilder]] = {
+            'no_countdown': NoCountdown,
             'two_clock': TwoClockCountdown,
             'one_hot': OneHotCountdown,
             'int': IntCountdown,
@@ -117,15 +146,23 @@ class CountdownFeatureBuilder:
         self._period = period
 
     def tick(self, row: int, clock: int, steps_until_dp: int) -> None:
-        ...
+        raise NotImplementedError()
 
     def get(self) -> np.ndarray:
+        raise NotImplementedError()
+
+
+class NoCountdown(CountdownFeatureBuilder):
+    def __init__(self, n_rows: int, period: int):
+        super().__init__(n_rows, period)
+
+    def tick(self, row: int, clock: int, steps_until_dp: int) -> None:
         ...
 
 
 class TwoClockCountdown(CountdownFeatureBuilder):
     def __init__(self, n_rows: int, period: int):
-        self._period = period
+        super().__init__(n_rows, period)
         self._x = np.zeros((n_rows, 2), dtype=np.int_)
 
     def tick(self, row: int, clock: int, steps_until_dp: int):
@@ -140,7 +177,7 @@ class TwoClockCountdown(CountdownFeatureBuilder):
 
 class OneHotCountdown(CountdownFeatureBuilder):
     def __init__(self, n_rows: int, period: int):
-        self._period = period
+        super().__init__(n_rows, period)
         self._x = np.zeros((n_rows, period), dtype=np.bool_)
 
     def tick(self, row: int, clock: int, steps_until_dp: int):
@@ -153,7 +190,7 @@ class OneHotCountdown(CountdownFeatureBuilder):
 
 class IntCountdown(CountdownFeatureBuilder):
     def __init__(self, n_rows: int, period: int):
-        self._period = period
+        super().__init__(n_rows, period)
         self._x = np.zeros((n_rows, 1), dtype=np.int_)
 
     def tick(self, row: int, clock: int, steps_until_dp: int):

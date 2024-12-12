@@ -14,6 +14,8 @@ from corerl.state_constructor.base import SCConfig
 
 @dataclass
 class MainConfig:
+    action_period: int = MISSING
+
     use_alerts: bool = False
     agent: Any = MISSING
     agent_transition_creator: Any = MISSING

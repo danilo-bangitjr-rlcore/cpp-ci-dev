@@ -24,6 +24,7 @@ calibration_model: null
 offline_data: null
 
 use_alerts: False
+action_period: 1
 
 agent:
   message_bus:
