@@ -97,10 +97,14 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
 
         actions = _get_tags(df, self.action_tags)
         state_tags = sorted(
-            set(df.columns) - set(self.action_tags + ['reward'])
+            set(df.columns) - set(self.action_tags) - {'reward', 'trunc', 'term'}
         )
         states = _get_tags(df, state_tags)
         rewards = df['reward'].to_numpy()
+
+        gammas = np.ones(len(rewards))
+        if 'term' in df.columns:
+            gammas = 1 - df['term'].to_numpy()
 
         if not len(actions):
             return [], tc_ts
@@ -113,7 +117,7 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             step = Step(
                 reward=rewards[i],
                 action=action,
-                gamma=self.gamma,
+                gamma=self.gamma * gammas[i],
                 state=states[i],
                 dp=False,
             )
