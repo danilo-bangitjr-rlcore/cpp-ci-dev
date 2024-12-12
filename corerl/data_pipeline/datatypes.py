@@ -62,19 +62,34 @@ class Step:
 
 @dataclass
 class NewTransition:
-    prior: Step
-    post: Step
-    n_steps: int
+    steps: list[Step]
+    n_step_reward: float
+    n_step_gamma: float
+
+    @property
+    def prior(self):
+        return self.steps[0]
+
+    @property
+    def post(self):
+        return self.steps[-1]
+
+    @property
+    def n_steps(self):
+        return len(self.steps) - 1
 
     def __eq__(self, other: object):
         if not isinstance(other, NewTransition):
             return False
 
-        return (
-                self.prior == other.prior
-                and self.post == other.post
-                and self.n_steps == other.n_steps
-        )
+        if len(self.steps) != len(other.steps):
+            return False
+
+        for i in range(len(self.steps)):
+            if self.steps[i] != other.steps[i]:
+                return False
+
+        return True
 
     def __iter__(self):
         for f in fields(self):

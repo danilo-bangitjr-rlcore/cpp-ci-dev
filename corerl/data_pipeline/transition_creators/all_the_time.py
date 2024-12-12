@@ -91,19 +91,10 @@ def make_transition(
         n_step_gamma: float | None = None) -> tuple[NewTransition, float, float]:
     n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, step_q)
 
-    pre_step = step_q[0]
-    post_step = Step(
-        reward=n_step_reward,
-        action=step_q[-1].action,
-        gamma=n_step_gamma,
-        state=step_q[-1].state,
-        dp=step_q[-1].dp,
-    )
-
     transition = NewTransition(
-        pre_step,
-        post_step,
-        n_steps=len(step_q) - 1
+        list(step_q),
+        n_step_reward=n_step_reward,
+        n_step_gamma=n_step_gamma,
     )
 
     return transition, n_step_reward, n_step_gamma
