@@ -5,5 +5,4 @@ telegraf/env.yaml
 downloads/
 *.db
 telegraf/generated_telegraf.conf
-htmlcov
-artifacts
+generated_tags.yaml

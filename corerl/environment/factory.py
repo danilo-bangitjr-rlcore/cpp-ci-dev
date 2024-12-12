@@ -22,7 +22,6 @@ from corerl.environment.wrapper.one_hot_wrapper import OneHotWrapper
 from corerl.environment.saturation import Saturation
 from corerl.environment.delayed_saturation import DelayedSaturation
 
-
 def init_environment(cfg: DictConfig) -> gym.Env:
     seed = cfg.seed
     name = cfg.name
@@ -32,6 +31,17 @@ def init_environment(cfg: DictConfig) -> gym.Env:
     # Prototype and spell out the desired contract, or we could fix
     # downstream implementations to inherit `gym.Env`.
     env: Any | None = None
+
+    # proposed syntax, env defined directly in config
+    if 'environment' in cfg:
+        match cfg.environment.type:
+            case 'gym.make':
+                return gym.make(*cfg.environment.args, **cfg.environment.kwargs)
+            case _:
+                raise NotImplementedError
+
+
+    # prior syntax, lookup based on config.name
     if name == "three_tanks_v2":
         if cfg.discrete_control:
             raise NotImplementedError

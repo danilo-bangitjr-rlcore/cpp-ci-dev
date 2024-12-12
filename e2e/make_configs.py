@@ -1,74 +1,94 @@
 import pandas as pd
-import sqlite3
 from pathlib import Path
-import argparse
 import shutil
 import logging
 
-from opc_clients.opc_client import insert_csv_into_db, initialize_db
+# Creating env from file
+import hydra
+from omegaconf import DictConfig, OmegaConf
+import gymnasium as gym
+from itertools import chain
 
+# Imports from main
+from corerl.environment.factory import init_environment
+from corerl.config import MainConfig  # noqa: F401
+from corerl.interaction.anytime_interaction import AnytimeInteraction  # noqa: F401
+from corerl.utils.device import device  # noqa: F401
+from corerl.agent.factory import init_agent  # noqa: F401
+from corerl.state_constructor.factory import init_state_constructor  # noqa: F401
+from corerl.data_pipeline.factory import init_data_loader  # noqa: F401
+from corerl.data.factory import init_transition_creator  # noqa: F401
+from corerl.utils.plotting import make_online_plots, make_offline_plots  # noqa: F401
+from corerl.eval.composite_eval import CompositeEval  # noqa: F401
+from corerl.data_pipeline.base import BaseDataLoader, OldBaseDataLoader  # noqa: F401
+from corerl.data_pipeline.direct_action import DirectActionDataLoader, OldDirectActionDataLoader  # noqa: F401
+from corerl.environment.reward.factory import init_reward_function  # noqa: F401
+from corerl.data_pipeline.datatypes import OldObsTransition, Transition, ObsTransition, Trajectory  # noqa: F401
+from corerl.interaction.base import BaseInteraction  # noqa: F401
+from corerl.data.obs_normalizer import ObsTransitionNormalizer  # noqa: F401
+from corerl.data.transition_normalizer import TransitionNormalizer  # noqa: F401
+from corerl.alerts.composite_alert import CompositeAlert  # noqa: F401
+from corerl.data.transition_creator import OldAnytimeTransitionCreator, BaseTransitionCreator  # noqa: F401
+from corerl.state_constructor.base import BaseStateConstructor  # noqa: F401
+from corerl.agent.base import BaseAgent  # noqa: F401
+from corerl.utils.plotting import make_actor_critic_plots, make_reseau_gvf_critic_plot  # noqa: F401
+from corerl.data_pipeline.transition_load_funcs import make_transitions  # noqa: F401
+import corerl.utils.dict as dict_u  # noqa: F401
+import corerl.utils.nullable as nullable  # noqa: F401
 
-def read_from_sqlite(sqlite_path: Path, query: str):
-    conn = sqlite3.connect(sqlite_path)
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-    return df
+from corerl.utils.gymnasium import gen_tag_configs_from_env
+from corerl.data_pipeline.tag_config import TagConfig
 
-
-def generate_telegraf_conf(path, df_distinct):
+def generate_telegraf_conf(path: Path, df_ids):
     _logger = logging.getLogger(__name__)
     shutil.copyfile(path / "telegraf/base_telegraf.conf", path / "telegraf/generated_telegraf.conf")
     block = ""
     with open(path / "telegraf/generated_telegraf.conf", "a") as f:
-        for row in df_distinct.itertuples():
-            block += " " * 2 + "[[inputs.opcua.nodes]]\n"
-            block += " " * 4 + f'namespace = "{row.ns}"\n'
-            block += " " * 4 + f'identifier_type = "{row.id_type}"\n'
-            block += " " * 4 + f'identifier = "{row.id_name}"\n'
-            block += " " * 4 + 'name = "val"\n'
-            block += " " * 4 + f'default_tags = {{ name = "{row.name}" }}\n'
+        for row in df_ids.itertuples():
+            block += "[[inputs.opcua.nodes]]\n"
+            block += " " * 2 + f'namespace = "{row.ns}"\n'
+            block += " " * 2 + f'identifier_type = "{row.id_type}"\n'
+            block += " " * 2 + f'identifier = "{row.id_name}"\n'
+            block += " " * 2 + 'name = "val"\n'
+            block += " " * 2 + f'default_tags = {{ name = "{row.name}" }}\n'
             block += "\n"
         f.write(block)
 
     _logger.info(f"Generetad {path}/telegraf/generated_telegraf.conf")
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+def generate_omegaconf_yaml(path: Path, tags: dict[str, list[TagConfig]]):
+    omegaconf_fp = path / "generated_tags.yaml"
+    with open(omegaconf_fp, "+w") as f:
+        OmegaConf.save(tags, f)
+    _logger.info(f"Generated {omegaconf_fp}")
 
-    parser.add_argument("-d", "--db", help="Path to sqlite3 db", default="opc_clients/opcua.db")
-    parser.add_argument("-c", "--csv", help="Path to timescaledb CSV dump", default=None)
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        dest="loglevel",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        default="INFO",
-        help="Set log level",
-    )
 
-    # Parsing input for S3
+@hydra.main(version_base=None, config_name='config', config_path="../config/")
+def main(cfg: DictConfig):
+    env: gym.Env = init_environment(cfg.env)
+    _logger.info(f"Generating config with env {env}")
+
+    tags = gen_tag_configs_from_env(env)
+
+    ns = 2
+    if "ns" in cfg:
+        ns = cfg.env.ns
+
+    string_ids = (tag.name for tag in chain.from_iterable(tags.values()))
+
+    df_ids = pd.DataFrame(data=string_ids, columns=pd.Index(["id_name"]))
+    df_ids["ns"] = ns
+    df_ids["id_type"] = "s"
+    df_ids["name"] = df_ids["id_name"]
     current_path = Path(__file__).parent.absolute()
-    args = parser.parse_args()
 
-    logging.basicConfig(level=getattr(logging, args.loglevel))
+    _logger.info(f"Found {len(df_ids)} distinct nodes")
+    _logger.info(df_ids)
+    generate_telegraf_conf(current_path, df_ids)
+    generate_omegaconf_yaml(current_path, tags)
+
+
+if __name__ == "__main__":
     _logger = logging.getLogger(__name__)
-    _logger.info(f"Initializing db {args.db}")
-    initialize_db(current_path / args.db)
-
-    if args.csv:
-        _logger.info(f"Loading {args.csv} into db...")
-        num_rows = insert_csv_into_db(current_path / args.db, current_path / args.csv)
-        _logger.info(f"Processed {num_rows} rows")
-
-    # SQLite Query
-    query = "SELECT DISTINCT id, name FROM opcua;"
-    df_distinct = read_from_sqlite(current_path / args.db, query)
-
-    df_distinct["ns"] = df_distinct["id"].apply(lambda x: x.split(";")[0].split("=")[1])
-    df_distinct["id_type"] = df_distinct["id"].apply(lambda x: x.split(";")[1].split("=")[0])
-    df_distinct["id_name"] = df_distinct["id"].apply(lambda x: x.split(";")[1].split("=")[1])
-
-    _logger.info(f"Found {len(df_distinct)} distinct nodes")
-
-    generate_telegraf_conf(current_path, df_distinct)
+    main()
