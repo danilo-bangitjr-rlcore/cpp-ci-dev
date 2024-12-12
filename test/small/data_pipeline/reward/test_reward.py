@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import datetime
 
 import numpy as np
@@ -325,3 +326,194 @@ def test_null_filter():
 
     assert "tag-1" not in reward_constructor.component_constructors
     assert "tag-2" in reward_constructor.component_constructors
+
+
+@dataclass
+class EpcorRewardConfig:
+    e_min: float = 85
+    e_target: float = 95
+    c_min: float = 0
+    orp_pumpspeed_max: float = 60
+    ph_pumpspeed_max: float = 60
+    orp_cost_factor: float = 1.355 # $/(rpm*hr)
+    ph_cost_factor: float = 0.5455 # $/(rpm*hr)
+    r_e_min: float = 0 # r_e(e_min)
+    r_e_target: float = 0.5 # r_e(e_max)
+    r_c_min: float = 1.0 # r_c(c_min)
+    r_c_max: float = 0.5 # r_c(c_max)
+    high_pumpspeed_penalty: float = -1
+
+def get_max_cost(cfg: EpcorRewardConfig) -> float:
+    orp_cost_max = cfg.orp_pumpspeed_max * cfg.orp_cost_factor # $/hr
+    ph_cost_max = cfg.ph_pumpspeed_max * cfg.ph_cost_factor # $/hr
+    c_max = orp_cost_max + ph_cost_max # $/hr
+
+    return c_max
+
+
+def epcor_scrubber_reward(
+    efficiency: float, orp_pumpspeed: float, ph_pumpspeed: float, cfg: EpcorRewardConfig
+) -> float:
+    m_e = (cfg.r_e_target - cfg.r_e_min) / (cfg.e_target - cfg.e_min)
+    b_e = cfg.r_e_min - m_e * cfg.e_min
+
+    def r_e(efficiency: float) -> float:
+        return m_e * efficiency + b_e
+
+    c_max = get_max_cost(cfg)
+    m_c = (cfg.r_c_max - cfg.r_c_min) / (c_max - cfg.c_min)
+    b_c = cfg.r_c_min - m_c * cfg.c_min
+
+    def r_c(cost: float) -> float:
+        return m_c * cost + b_c
+
+    def r() -> float:
+        penalty = 0
+        if orp_pumpspeed > cfg.orp_pumpspeed_max:
+            penalty += cfg.high_pumpspeed_penalty
+        if ph_pumpspeed > cfg.ph_pumpspeed_max:
+            penalty += cfg.high_pumpspeed_penalty
+        if efficiency < cfg.e_target:
+            return r_e(efficiency) + penalty
+        else:
+            cost = orp_pumpspeed * cfg.orp_cost_factor + ph_pumpspeed * cfg.ph_cost_factor
+            return r_c(cost) + penalty
+
+    return r()
+
+
+def test_epcor_reward():
+
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(8)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols = pd.Index(["efficiency", "orp_pumpspeed", "ph_pumpspeed"])
+    df = pd.DataFrame(
+        data=[
+            [np.nan, np.nan,   16],
+            [85,      10,      10],
+            [90,      20,      15],
+            [95,      30,      25],
+            [np.nan, np.nan, np.nan],
+            [97,      45,      50],
+            [98,      60,      65],
+            [99,      70,      80],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    r_cfg = EpcorRewardConfig()
+    m_e = (r_cfg.r_e_target - r_cfg.r_e_min) / (r_cfg.e_target - r_cfg.e_min)
+    b_e = r_cfg.r_e_min - m_e * r_cfg.e_min
+
+    c_max = get_max_cost(r_cfg)
+    m_c = (r_cfg.r_c_max - r_cfg.r_c_min) / (c_max - r_cfg.c_min)
+    b_c = r_cfg.r_c_min - m_c * r_cfg.c_min
+
+    transform_cfgs = {
+        "efficiency": [
+            xform.AffineConfig(scale=m_e, bias=b_e),
+            xform.ProductConfig(
+                other="efficiency",
+                other_xform=[
+                    xform.LessThanConfig(
+                        threshold=r_cfg.e_target,
+                    ),
+                ],
+            ),
+        ],
+        "ph_pumpspeed": [
+            xform.SplitConfig(
+                passthrough=False,
+                # passthrough=True,
+                # left is high pumpspeed penalty
+                left=[
+                    xform.GreaterThanConfig(
+                        threshold=r_cfg.ph_pumpspeed_max,
+                    ),
+                    xform.ScaleConfig(
+                        factor=r_cfg.high_pumpspeed_penalty,
+                    ),
+                ],
+                # right is ph component of cost reward
+                right=[
+                    xform.ScaleConfig(
+                        factor=r_cfg.ph_cost_factor
+                    ),
+                    xform.AffineConfig(
+                        scale=m_c,
+                        bias=b_c/2 # add half of b to each pump
+                    ),
+                    xform.ProductConfig(
+                        other="efficiency",
+                        other_xform=[
+                            xform.GreaterThanConfig(
+                                threshold=r_cfg.e_target,
+                                equal=True,
+                            ),
+                        ],
+                    ),
+                ],
+            ), # end ph pumpspeed split config
+        ],
+        "orp_pumpspeed": [
+            xform.SplitConfig(
+                passthrough=False,
+                # passthrough=True,
+                # left is high pumpspeed penalty
+                left=[
+                    xform.GreaterThanConfig(
+                        threshold=r_cfg.orp_pumpspeed_max,
+                    ),
+                    xform.ScaleConfig(
+                        factor=r_cfg.high_pumpspeed_penalty,
+                    ),
+                ],
+                # right is orp component of cost reward
+                right=[
+                    xform.ScaleConfig(
+                        factor=r_cfg.orp_cost_factor
+                    ),
+                    xform.AffineConfig(
+                        scale=m_c,
+                        bias=b_c/2 # add half of b to each pump
+                    ),
+                    xform.ProductConfig(
+                        other="efficiency",
+                        other_xform=[
+                            xform.GreaterThanConfig(
+                                threshold=r_cfg.e_target,
+                                equal=True,
+                            ),
+                        ],
+                    ),
+                ],
+            ), # end ph pumpspeed split config
+        ],
+    }
+    reward_component_constructors = {
+        tag_name: RewardComponentConstructor(transform_cfgs[tag_name]) for tag_name in cols
+    }
+    rc = RewardConstructor(reward_component_constructors)
+
+    pf = PipelineFrame(
+        data=df,
+        caller_code=CallerCode.ONLINE,
+    )
+    # call reward constructor
+    pf = rc(pf)
+
+    r = epcor_scrubber_reward
+    expected_rewards = [r(**row, cfg=r_cfg) for row in df.to_dict(orient="records")]
+    expected_reward_df = pd.DataFrame(
+        data=expected_rewards,
+        columns=pd.Index(["reward"]),
+        index=idx
+    )
+    expected_df = pd.concat([df, expected_reward_df], axis=1)
+
+    assert dfs_close(pf.data, expected_df)
