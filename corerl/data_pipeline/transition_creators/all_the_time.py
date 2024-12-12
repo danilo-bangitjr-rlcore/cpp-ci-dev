@@ -40,7 +40,7 @@ class AllTheTimeTS(TransitionCreatorTemporalState):
 
 
 def has_nan(obj):
-    for attr_name, value in vars(obj).items():
+    for _, value in vars(obj).items():
         if isinstance(value, torch.Tensor):
             if torch.isnan(value).any():
                 return True

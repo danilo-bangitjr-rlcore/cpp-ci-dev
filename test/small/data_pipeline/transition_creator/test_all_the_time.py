@@ -4,19 +4,15 @@ import datetime
 from collections import deque
 from math import comb
 
-from corerl.utils.torch import tensor_allclose
 from torch import Tensor
 
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, Step, StageCode, TemporalState
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, Step
 from corerl.data_pipeline.transition_creators.all_the_time import (
     get_n_step_reward,
     update_n_step_reward_gamma,
-    make_transition,
     AllTheTimeTCConfig,
     AllTheTimeTC,
-    AllTheTimeTS
-
 )
 
 
@@ -665,7 +661,7 @@ def test_all_the_time_7_online():
 
     expected_4 = NewTransition(
         steps=[
-            make_test_step(7), # wrong here
+            make_test_step(7),
             make_test_step(8),
             make_test_step(9),
         ],
