@@ -30,14 +30,17 @@ jobs:
           ssh-private-key: ${{ secrets.PRIVATE_DEPLOY_KEY }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v2
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "requirements**.txt"
 
       - run: |
           uv venv
           uv pip compile --extra=dev pyproject.toml -o deps.txt
           uv pip sync deps.txt
 
-      - run: mkdir artifact
+      - run: mkdir -p artifact
       - run: uv run pytest --cov=. ${{ inputs.test-flags }} test/${{ inputs.test-suite }} 
       - run: mv .coverage artifact/coverage_${{ inputs.test-suite }}
 
@@ -45,6 +48,3 @@ jobs:
         with:
           name: coverage_${{ inputs.test-suite }}
           path: artifact
-     
-
-

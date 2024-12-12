@@ -15,7 +15,10 @@ jobs:
             python-version: 3.12
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "requirements**.txt"
 
       - uses: webfactory/ssh-agent@v0.7.0
         with:
@@ -71,7 +74,10 @@ jobs:
             python-version: 3.12
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "requirements**.txt"
 
       - uses: webfactory/ssh-agent@v0.7.0
         with:
@@ -84,31 +90,36 @@ jobs:
 
       - run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
-      - uses: actions/download-artifact@v4
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: coverage_small
           path: artifact
+          merge-multiple: true
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: coverage_medium
-          path: artifact
+      - name: Combine coverage and generate reports
+        run: |
+          uv run coverage combine artifact/coverage_*
+          uv run coverage html
+          echo "COV_PERCENTAGE=$(uv run coverage report --format=total)" >> "$GITHUB_ENV"
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/upload-artifact@v4
+        id: htmlcov-upload-step
         with:
-          name: coverage_large
-          path: artifact
+          name: htmlcov
+          path: htmlcov/
+          overwrite: true
 
       - run: |
-          uv run coverage combine artifact/coverage_small artifact/coverage_medium artifact/coverage_large
-          uv run coverage report >> report.txt
-          echo "percentage=$(cat report.txt | tail -n 1 | awk {'print $4'})" >> $GITHUB_ENV
-          
-      - run: echo "🏁 Test ran with ${{ env.percentage }} coverage 🏁"
+          echo "🏁 Test ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
+          echo "${{ steps.htmlcov-upload-step.outputs.artifact-url }}"
 
       - uses: thollander/actions-comment-pull-request@v3
         with:
-          message: 🏁 Test ran with ${{ env.percentage }} coverage 🏁
+          message: |
+            _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
+            🏁 Test ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁
+            ${{ steps.htmlcov-upload-step.outputs.artifact-url }}
+          comment-tag: execution
 
       - uses: geekyeggo/delete-artifact@v5
         with:
