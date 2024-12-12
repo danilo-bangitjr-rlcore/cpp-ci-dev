@@ -1,6 +1,7 @@
 import warnings
 import torch
 import pandas as pd
+import numpy as np
 import math
 
 from collections import deque
@@ -24,10 +25,6 @@ class AllTheTimeTCConfig(BaseTransitionCreatorConfig):
     gamma: float = interpolate('${experiment.gamma}')
     min_n_step: int = 1
     max_n_step: int = interpolate('${interaction.steps_per_decision}')
-
-    # FILTERS
-    only_dp_transitions: bool = False  # whether we only want to return transitions between decision points
-    single_action: bool = True  # whether all actions should have the same action.
 
 
 class NStepInfo:
@@ -89,8 +86,8 @@ def make_transition(
         step_q: deque[Step],
         n_step_reward: float | None = None,
         n_step_gamma: float | None = None) -> tuple[NewTransition, float, float]:
-    n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, step_q)
 
+    n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, step_q)
     transition = NewTransition(
         list(step_q),
         n_step_reward=n_step_reward,
@@ -114,8 +111,6 @@ class AllTheTimeTC(BaseTransitionCreator):
         self.step_info = None
         self.init_step_info()
 
-        self.only_dp_transitions = cfg.only_dp_transitions
-
     def init_step_info(self):
         self.step_info: dict[int, NStepInfo] = {
             n: NStepInfo(n) for n in range(self.min_n_step, self.max_n_step + 1)
@@ -137,18 +132,22 @@ class AllTheTimeTC(BaseTransitionCreator):
         df = pf.data
         actions = get_tags(df, self.action_tags)
         state_tags = sorted(
-            set(df.columns) - set(self.action_tags + ['reward'])
+            set(df.columns) - set(self.action_tags) - {'reward', 'trunc', 'term'}
         )
         states = get_tags(df, state_tags)
         rewards = df['reward'].to_numpy()
+        gammas = np.ones(len(rewards))
+        if 'term' in df.columns:
+            gammas = 1 - df['term'].to_numpy()
         dps = pf.decision_points
-        assert len(actions) == len(states) and len(states) == len(rewards)
+
+        assert len(actions) == len(states) and len(states) == len(rewards) == len(gammas) == len(dps)
 
         for i in range(len(actions)):
             step = Step(
                 reward=rewards[i],
                 action=actions[i],
-                gamma=self.gamma,
+                gamma=float(self.gamma*gammas[i]),
                 state=states[i],
                 dp=bool(dps[i]),
             )
