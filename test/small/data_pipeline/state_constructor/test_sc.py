@@ -136,8 +136,8 @@ def test_sc_integration1():
             defaults=[
                 NormalizerConfig(),
                 SplitConfig(
-                    left=TraceConfig(trace_values=[0.1]),
-                    right=AddRawConfig(),
+                    left=[TraceConfig(trace_values=[0.1])],
+                    right=[AddRawConfig()],
                 ),
             ],
         ),
@@ -175,8 +175,8 @@ def test_sc_integration2():
                 state_constructor=[
                     NormalizerConfig(),
                     SplitConfig(
-                        left=TraceConfig(trace_values=[0.1]),
-                        right=AddRawConfig(),
+                        left=[TraceConfig(trace_values=[0.1])],
+                        right=[AddRawConfig()],
                         passthrough=False
                     ),
                 ],
@@ -219,8 +219,8 @@ def test_sc_integration3():
             defaults=[
                 NormalizerConfig(),
                 SplitConfig(
-                    left=TraceConfig(trace_values=[0.1]),
-                    right=AddRawConfig(),
+                    left=[TraceConfig(trace_values=[0.1])],
+                    right=[AddRawConfig()],
                     passthrough=True,
                 ),
             ],
@@ -259,8 +259,8 @@ def test_sc_integration4():
             defaults=[
                 NormalizerConfig(),
                 SplitConfig(
-                    left=TraceConfig(trace_values=[0.1]),
-                    right=TraceConfig(trace_values=[0.01]),
+                    left=[TraceConfig(trace_values=[0.1])],
+                    right=[TraceConfig(trace_values=[0.01])],
                     passthrough=True,
                 ),
             ],

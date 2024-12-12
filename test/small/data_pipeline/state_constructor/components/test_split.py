@@ -27,8 +27,8 @@ def test_split1():
         cfg=SCConfig(
             defaults=[
                 SplitConfig(
-                    left=TraceConfig(trace_values=[0.1]),
-                    right=TraceConfig(trace_values=[0.01]),
+                    left=[TraceConfig(trace_values=[0.1])],
+                    right=[TraceConfig(trace_values=[0.01])],
                 ),
             ],
         ),
@@ -74,8 +74,8 @@ def test_split_ts1():
         cfg=SCConfig(
             defaults=[
                 SplitConfig(
-                    left=TraceConfig(trace_values=[0.1]),
-                    right=TraceConfig(trace_values=[0.01]),
+                    left=[TraceConfig(trace_values=[0.1])],
+                    right=[TraceConfig(trace_values=[0.01])],
                 ),
             ],
         ),

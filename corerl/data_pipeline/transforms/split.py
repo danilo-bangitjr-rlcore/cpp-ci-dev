@@ -1,8 +1,9 @@
 import copy
 import pandas as pd
 from dataclasses import dataclass
-from omegaconf import MISSING
 
+from corerl.utils.hydra import list_
+from corerl.data_pipeline.transforms.identity import IdentityConfig
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
@@ -11,8 +12,8 @@ from corerl.data_pipeline.transforms.interface import TransformCarry
 class SplitConfig(BaseTransformConfig):
     name: str = 'split'
 
-    left: BaseTransformConfig = MISSING
-    right: BaseTransformConfig = MISSING
+    left: list[BaseTransformConfig] = list_([IdentityConfig])
+    right: list[BaseTransformConfig] = list_([IdentityConfig])
     passthrough: bool | None = None
 
 
@@ -26,8 +27,8 @@ class SplitTransform:
     def __init__(self, cfg: SplitConfig):
         self._cfg = cfg
 
-        self._left = transform_group.dispatch(cfg.left)
-        self._right = transform_group.dispatch(cfg.right)
+        self._left = [transform_group.dispatch(xform) for xform in cfg.left]
+        self._right = [transform_group.dispatch(xform) for xform in cfg.right]
 
     def __call__(self, carry: TransformCarry, ts: object | None):
         assert isinstance(ts, SplitTemporalState | None)
@@ -37,12 +38,14 @@ class SplitTransform:
         # shallow copy all attributes, but ensure agent_state is a deep copy
         r_carry = copy.copy(carry)
         r_carry.transform_data = carry.transform_data.copy()
-
-        l_state = None if ts is None else ts.left_state
-        l_carry, l_state = self._left(carry, l_state)
-
         r_state = None if ts is None else ts.right_state
-        r_carry, r_state = self._right(r_carry, r_state)
+        for xform in self._right:
+            r_carry, r_state = xform(r_carry, r_state)
+
+        l_carry = carry
+        l_state = None if ts is None else ts.left_state
+        for xform in self._left:
+            l_carry, l_state = xform(l_carry, l_state)
 
         # reconcile the two carry objects by concatenating agent
         # state and relying on the fact that all other attributes
