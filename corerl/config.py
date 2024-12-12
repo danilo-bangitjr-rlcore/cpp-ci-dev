@@ -4,14 +4,18 @@ from typing import Any, Optional
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
 
+from corerl.agent import register as register_agent
+from corerl.data import register as register_data
 from corerl.data.base_tc import BaseTCConfig
 from corerl.data.normalizer.base import NormalizerConfig
+from corerl.data_pipeline import register as register_data_pipeline
 from corerl.data_pipeline.base import BaseDataLoaderConfig
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.eval.base_eval import EvalConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.interaction.anytime_interaction import AnytimeInteractionConfig
 from corerl.interaction.base import BaseInteractionConfig
+from corerl.state_constructor import register as register_state_constructor
 from corerl.state_constructor.base import SCConfig
 
 
@@ -38,3 +42,8 @@ class MainConfig:
 
 cs = ConfigStore.instance()
 cs.store(name='base_config', node=MainConfig)
+
+register_agent()
+register_data()
+register_data_pipeline()
+register_state_constructor()
