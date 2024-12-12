@@ -97,10 +97,8 @@ def make_transition(
         action=step_q[-1].action,
         gamma=n_step_gamma,
         state=step_q[-1].state,
-        dp=False,  #TODO: set this
+        dp=step_q[-1].dp,
     )
-
-
 
     transition = NewTransition(
         pre_step,
@@ -161,7 +159,7 @@ class AllTheTimeTC(BaseTransitionCreator):
                 action=actions[i],
                 gamma=self.gamma,
                 state=states[i],
-                dp=False,
+                dp=bool(dps[i]),
             )
 
             if has_nan(step):
