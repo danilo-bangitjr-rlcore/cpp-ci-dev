@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from omegaconf import MISSING
 
@@ -33,7 +33,7 @@ class ProductTransform:
 
         # get data from "other" column and create carry object
         other_data = carry.obs.get([self._other])
-        assert other_data is not None
+        assert other_data is not None, f"carry obs cols: {carry.obs.columns}, other name: {self._other}"
 
         other_carry = TransformCarry(
             obs=carry.obs,
@@ -48,7 +48,13 @@ class ProductTransform:
         assert len(other_carry.transform_data.columns) == 1
 
         # take product with other
-        carry.transform_data = carry.transform_data.mul(other_carry.transform_data.values, axis="index")
+        cols = set(carry.transform_data.columns)
+        other_name = other_carry.transform_data.columns[0]
+        other_vals = other_carry.transform_data[other_name]
+        for col in cols:
+            new_name = f"({col})*({other_name})"
+            carry.transform_data[new_name] = carry.transform_data[col] * other_vals
+            carry.transform_data.drop(col, axis=1, inplace=True)
 
         return carry, ProductTemporalState(other_ts=other_ts)
 
