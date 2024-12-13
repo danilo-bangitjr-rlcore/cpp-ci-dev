@@ -32,7 +32,7 @@ def call_filter(transitions, filter_name):
         raise NotImplementedError(f"Invalid transition filter name {filter_name}")
 
     results = [transition_filter(transition) for transition in transitions]
-    filtered = [transition for transition, keep in zip(transitions, results) if keep]
+    filtered = [transition for transition, keep in zip(transitions, results, strict=True) if keep]
     return filtered
 
 
