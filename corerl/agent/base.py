@@ -8,7 +8,7 @@ from omegaconf import MISSING
 from corerl.data_pipeline.datatypes import Transition
 from corerl.utils.hook import Hooks, when
 from corerl.messages.client import MessageBusClientConfig, make_msg_bus_client
-from corerl.utils.hydra import Group, interpolate
+from corerl.utils.hydra import interpolate
 
 @dataclass
 class BaseAgentConfig:
@@ -105,9 +105,3 @@ class BaseAC(BaseAgent):
     @abstractmethod
     def update_critic(self) -> None:
         raise NotImplementedError
-
-
-group = Group[
-    [int, int],
-    BaseAgent,
-]('agent')

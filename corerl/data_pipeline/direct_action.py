@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 
 from corerl.environment.reward.base import BaseReward
-from corerl.data_pipeline.base import BaseDataLoader, OldBaseDataLoader, BaseDataLoaderConfig, dl_group
+from corerl.data_pipeline.base import BaseDataLoader, OldBaseDataLoader, BaseDataLoaderConfig
 from corerl.data_pipeline.datatypes import OldObsTransition, ObsTransition
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.utils.hydra import list_, interpolate
@@ -448,9 +448,6 @@ def get_action_windows(obs_transitions: list[OldObsTransition]):
     return action_windows
 
 
-dl_group.dispatcher(OldDirectActionDataLoader)
-
-
 @dataclass
 class DirectActionDataLoaderConfig(OldDirectActionDataLoaderConfig):
     name: str = 'direct_action'
@@ -697,6 +694,3 @@ class DirectActionDataLoader(BaseDataLoader):
 
         log.debug(f"Number of observation transitions: {len(obs_transitions)}")
         return obs_transitions
-
-
-dl_group.dispatcher(DirectActionDataLoader)

@@ -12,7 +12,7 @@ from corerl.state_constructor.base import BaseStateConstructor
 from corerl.interaction.anytime_interaction import OldAnytimeInteraction
 from corerl.utils.hydra import interpolate
 
-from corerl.data.base_tc import BaseTransitionCreator, BaseTCConfig, tc_group
+from corerl.data.base_tc import BaseTransitionCreator, BaseTCConfig
 
 
 @dataclass
@@ -501,9 +501,6 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         return new_transitions
 
 
-tc_group.dispatcher(AnytimeTransitionCreator)
-
-
 @dataclass
 class RegularRLTCConfig(BaseTCConfig):
     name: str = 'regular_rl'
@@ -579,8 +576,6 @@ class RegularRLTransitionCreator(BaseTransitionCreator):
         )
 
         return [transition]
-
-tc_group.dispatcher(RegularRLTransitionCreator)
 
 
 def check_actions_equal(curr_obs_transitions):

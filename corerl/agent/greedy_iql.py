@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from corerl.agent.base import group
 from corerl.agent.iql import IQL, IQLConfig
 from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig
 from pathlib import Path
@@ -74,5 +73,3 @@ class GreedyIQL(GreedyAC, IQL):
         policy_buffer_path = path / "policy_buffer.pkl"
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
-
-group.dispatcher(GreedyIQL)

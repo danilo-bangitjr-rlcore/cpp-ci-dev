@@ -9,7 +9,7 @@ import pandas as pd
 from corerl.data_pipeline.datatypes import ObsTransition, OldObsTransition
 from corerl.data.obs_normalizer import ObsTransitionNormalizer
 from corerl.environment.reward.base import BaseReward
-from corerl.utils.hydra import Group, list_
+from corerl.utils.hydra import list_
 
 
 @dataclass
@@ -91,9 +91,3 @@ class OldBaseDataLoader(ABC):
         df: pd.DataFrame,
     ) -> tuple[np.ndarray, np.ndarray]:
         raise NotImplementedError
-
-
-# set up config groups
-dl_group = Group[[], OldBaseDataLoader | BaseDataLoader](
-    'data_loader',
-)

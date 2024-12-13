@@ -5,7 +5,7 @@ import torch
 import numpy as np
 import pickle as pkl
 
-from corerl.agent.base import BaseAC, BaseACConfig, group
+from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
@@ -230,6 +230,3 @@ class SAC(BaseAC):
         policy_buffer_path = path / "policy_buffer.pkl"
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
-
-
-group.dispatcher(SAC)

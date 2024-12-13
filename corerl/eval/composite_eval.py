@@ -1,4 +1,5 @@
 import pickle as pkl
+from typing import Optional
 from functools import reduce
 from pathlib import Path
 from corerl.eval.base_eval import BaseEval, EvalConfig
@@ -10,7 +11,13 @@ class CompositeEval(BaseEval):
     This class is used when we wish to use multiple evaluators
     """
 
-    def __init__(self, cfg: dict[str, EvalConfig], eval_args: dict, online: bool = False, offline: bool = False):
+    def __init__(
+        self,
+        cfg: Optional[dict[str, EvalConfig]],
+        eval_args: dict,
+        online: bool = False,
+        offline: bool = False
+    ):
         self.evaluators = _instantiate_evaluators(cfg, eval_args, online=online, offline=offline)
 
     def do_eval(self, **kwargs) -> None:
@@ -34,7 +41,12 @@ class CompositeEval(BaseEval):
             pkl.dump(stats, f)
 
 
-def _instantiate_evaluators(eval_cfg: dict[str, EvalConfig], eval_args, online=False, offline=False) -> list[BaseEval]:
+def _instantiate_evaluators(
+    eval_cfg: Optional[dict[str, EvalConfig]],
+    eval_args,
+    online=False,
+    offline=False
+) -> list[BaseEval]:
     assert online != offline, "Set either online or offline arg to True"
     evaluators = []
     if eval_cfg is not None:

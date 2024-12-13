@@ -4,7 +4,7 @@ from pathlib import Path
 import torch
 import numpy as np
 
-from corerl.agent.base import BaseAC, BaseACConfig, group
+from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic
 from corerl.component.network.utils import to_np, state_to_tensor, tensor, ensemble_mse
@@ -123,5 +123,3 @@ class Reinforce(BaseAC):
 
         v_critic_path = path / "v_critic"
         self.v_critic.load(v_critic_path)
-
-group.dispatcher(Reinforce)

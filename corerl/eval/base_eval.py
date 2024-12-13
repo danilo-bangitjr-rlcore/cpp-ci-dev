@@ -1,11 +1,14 @@
 import json
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
 
-from abc import ABC, abstractmethod
+from omegaconf import MISSING
 
+@dataclass
 class EvalConfig:
-    offline_eval: bool
-    online_eval: bool
+    offline_eval: bool = MISSING
+    online_eval: bool = MISSING
 
 
 class BaseEval(ABC):

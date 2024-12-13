@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from corerl.state_constructor.base import CompositeStateConstructor, SCConfig, sc_group
+from corerl.state_constructor.base import CompositeStateConstructor, SCConfig
 import corerl.state_constructor.components as comp
 
 from corerl.utils.hydra import interpolate, list_
@@ -34,8 +34,6 @@ class MultiTrace(CompositeStateConstructor):
         concat_parents = [start_sc] + trace_components  # the parents are normalized values and the trace's outputs
         concat_sc = comp.Concatenate(parents=concat_parents)
         self.sc = concat_sc
-
-sc_group.dispatcher(MultiTrace)
 
 # -----------------------
 # -- AnytimeMultiTrace --
@@ -82,8 +80,6 @@ class AnytimeMultiTrace(CompositeStateConstructor):
         concat_sc = comp.Concatenate(parents=concat_parents)
         self.sc = concat_sc
 
-sc_group.dispatcher(AnytimeMultiTrace)
-
 # --------------
 # -- Identity --
 # --------------
@@ -97,8 +93,6 @@ class Identity(CompositeStateConstructor):
         super().__init__()
         sc = comp.Identity()
         self.sc = sc
-
-sc_group.dispatcher(Identity)
 
 # ------------------
 # -- SimpleReseau --
@@ -117,9 +111,6 @@ class SimpleReseauAnytime(CompositeStateConstructor):
         anytime_sc = comp.AnytimeCountDown(cfg.steps_per_decision, parents=[identity_sc])
         concat_sc = comp.Concatenate(parents=[identity_sc, anytime_sc])
         self.sc = concat_sc
-
-
-sc_group.dispatcher(SimpleReseauAnytime)
 
 # -------------------
 # -- ReseauAnytime --
@@ -162,5 +153,3 @@ class ReseauAnytime(CompositeStateConstructor):
         concat_parents = [identity_sc] + fpm_avgs + orp_diffs + flow_diffs + [anytime_sc]
         concat_sc = comp.Concatenate(parents=concat_parents)
         self.sc = concat_sc
-
-sc_group.dispatcher(ReseauAnytime)

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy
 
-from corerl.agent.base import BaseAgent, BaseAgentConfig, group
+from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.data_pipeline.datatypes import Transition
 from corerl.utils.hydra import list_
 
@@ -57,5 +57,3 @@ class ActionScheduleAgent(BaseAgent):
 
     def load(self, path: Path) -> None:
         pass
-
-group.dispatcher(ActionScheduleAgent)

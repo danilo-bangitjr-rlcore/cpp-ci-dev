@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from corerl.alerts.base import BaseAlert
 from corerl.data_pipeline.datatypes import Transition, ObsTransition
 from corerl.state_constructor.base import BaseStateConstructor
-from corerl.utils.hydra import interpolate, Group
+from corerl.utils.hydra import interpolate
 
 
 @dataclass
@@ -103,10 +103,3 @@ class BaseTransitionCreator(ABC):
             cumulants.append(curr_cumulants)
 
         return cumulants
-
-
-
-tc_group = Group[
-    [BaseStateConstructor],
-    BaseTransitionCreator,
-](['agent_transition_creator', 'alert_transition_creator'])
