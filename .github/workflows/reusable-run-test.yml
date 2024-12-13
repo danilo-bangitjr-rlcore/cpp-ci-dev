@@ -40,6 +40,10 @@ jobs:
           uv pip compile --extra=dev pyproject.toml -o deps.txt
           uv pip sync deps.txt
 
+      - name: Install corerl if large
+        if: ${{ inputs.test-suite == 'large' }}
+        run: uv pip install .
+
       - run: mkdir -p artifact
       - run: uv run pytest --cov=. ${{ inputs.test-flags }} test/${{ inputs.test-suite }} 
       - run: mv .coverage artifact/coverage_${{ inputs.test-suite }}

@@ -33,7 +33,7 @@ def test_run_main_saturation(tmp_path, request):
     assert result.returncode == 0, f"Script failed with stderr: {result.stderr}"
 
     # Verify standard out contains training string
-    test_string = "[main_utils][INFO] - Starting online training..."
+    test_string = "[INFO] - Starting online training..."
     assert test_string in result.stdout, f"'{test_string}' not found in stdout: {result.stdout}"
 
     # Check for artifacts created within experiment save_path directory

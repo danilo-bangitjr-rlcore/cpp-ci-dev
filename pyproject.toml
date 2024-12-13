@@ -67,7 +67,7 @@ dependencies = [
     "scikit-learn~=1.5",
     "websockets~=13.1",
     "psycopg2-binary~=2.9",
-    "linesearchopt@git+ssh://git@github.com/rlcoretech/linesearchopt.git"
+    "linesearchopt~=0.0.1"
 ]
 readme = "README.md"
 
@@ -83,7 +83,11 @@ dev = [
     "pytest-timeout",
     "pyright",
     "debugpy",
+    "linesearchopt@git+ssh://git@github.com/rlcoretech/linesearchopt.git"
 ]
+
+[project.scripts]
+corerl_main = "corerl.main:main"
 
 [tool.coverage.run]
 omit = ["test/*",]

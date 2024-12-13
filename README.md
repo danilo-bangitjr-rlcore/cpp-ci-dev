@@ -16,6 +16,9 @@ source .venv/bin/activate
 # install project requirements
 uv pip sync requirements.txt
 
+# install corerl as editable package
+uv pip install -e .
+
 # run linter
 uv run ruff check
 

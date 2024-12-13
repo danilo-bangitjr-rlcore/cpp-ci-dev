@@ -19,7 +19,7 @@ from corerl.data.factory import init_transition_creator
 from corerl.eval.composite_eval import CompositeEval
 
 import corerl.utils.freezer as fr
-import main_utils as utils
+import corerl.main_utils as utils
 
 log = logging.getLogger(__name__)
 
