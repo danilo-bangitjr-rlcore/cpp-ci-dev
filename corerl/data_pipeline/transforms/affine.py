@@ -22,7 +22,9 @@ class Affine:
         cols = set(carry.transform_data.columns)
         for col in cols:
             x = carry.transform_data[col].to_numpy()
-            carry.transform_data[col] = self._scale * x + self._bias
+            new_name = f"{self._scale}*{col}+{self._bias}"
+            carry.transform_data[new_name] = self._scale * x + self._bias
+            carry.transform_data.drop(col, axis=1, inplace=True)
 
         return carry, None
 

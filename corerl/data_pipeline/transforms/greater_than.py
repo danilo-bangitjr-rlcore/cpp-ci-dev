@@ -10,20 +10,23 @@ from corerl.data_pipeline.transforms.interface import TransformCarry
 class GreaterThanConfig(BaseTransformConfig):
     name: str = 'greater_than'
     threshold: float = 0.0
+    equal: bool = False # if true, >=
 
 
 class GreaterThan:
     def __init__(self, cfg: GreaterThanConfig):
         self._cfg = cfg
         self._threshold = cfg.threshold
+        self._equal = cfg.equal
 
     def __call__(self, carry: TransformCarry, ts: object | None):
         cols = set(carry.transform_data.columns)
         for col in cols:
             x = carry.transform_data[col].to_numpy()
-            new_x = _greater_than(x, self._threshold)
+            new_x = _greater_than(x, self._threshold, self._equal)
 
-            new_name = f'{col}_lessthan_{self._threshold}'
+            symbol = ">" if not self._equal else ">="
+            new_name = f'{col}{symbol}{self._threshold}'
             carry.transform_data.drop(col, axis=1, inplace=True)
             carry.transform_data[new_name] = new_x
 
@@ -32,7 +35,7 @@ class GreaterThan:
 transform_group.dispatcher(GreaterThan)
 
 @njit
-def _greater_than(x: np.ndarray, threshold: float):
+def _greater_than(x: np.ndarray, threshold: float, equal: bool):
     n = len(x)
     out = np.zeros(n, dtype=np.float_)
 
@@ -41,6 +44,9 @@ def _greater_than(x: np.ndarray, threshold: float):
             out[i] = np.nan
             continue
 
-        out[i] = x[i] > threshold
+        if equal:
+            out[i] = x[i] >= threshold
+        else:
+            out[i] = x[i] > threshold
 
     return out

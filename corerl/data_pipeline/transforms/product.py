@@ -1,10 +1,11 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from omegaconf import MISSING
 
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
-from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.identity import IdentityConfig
+from corerl.data_pipeline.transforms.interface import TransformCarry
+from corerl.utils.hydra import list_
 
 
 @dataclass
@@ -12,7 +13,7 @@ class ProductConfig(BaseTransformConfig):
     name: str = "product"
 
     other: str = MISSING
-    other_transform: BaseTransformConfig = field(default_factory=IdentityConfig)
+    other_xform: list[BaseTransformConfig] = list_([IdentityConfig])
 
 
 @dataclass
@@ -24,7 +25,7 @@ class ProductTransform:
     def __init__(self, cfg: ProductConfig):
         self._cfg = cfg
         self._other = cfg.other
-        self._other_transform = transform_group.dispatch(cfg.other_transform)
+        self._other_xform = [transform_group.dispatch(xform) for xform in cfg.other_xform]
 
     def __call__(self, carry: TransformCarry, ts: object | None):
         assert isinstance(ts, ProductTemporalState | None)
@@ -32,7 +33,7 @@ class ProductTransform:
 
         # get data from "other" column and create carry object
         other_data = carry.obs.get([self._other])
-        assert other_data is not None
+        assert other_data is not None, f"carry obs cols: {carry.obs.columns}, other name: {self._other}"
 
         other_carry = TransformCarry(
             obs=carry.obs,
@@ -41,11 +42,19 @@ class ProductTransform:
         )
 
         # execute other transform
-        other_carry, other_ts = self._other_transform(other_carry, other_ts)
+        for xform in self._other_xform:
+            other_carry, other_ts = xform(other_carry, other_ts)
+
         assert len(other_carry.transform_data.columns) == 1
 
         # take product with other
-        carry.transform_data = carry.transform_data.mul(other_carry.transform_data.values, axis="index")
+        cols = set(carry.transform_data.columns)
+        other_name = other_carry.transform_data.columns[0]
+        other_vals = other_carry.transform_data[other_name]
+        for col in cols:
+            new_name = f"({col})*({other_name})"
+            carry.transform_data[new_name] = carry.transform_data[col] * other_vals
+            carry.transform_data.drop(col, axis=1, inplace=True)
 
         return carry, ProductTemporalState(other_ts=other_ts)
 

@@ -19,7 +19,9 @@ class Scale:
         cols = set(carry.transform_data.columns)
         for col in cols:
             x = carry.transform_data[col].to_numpy()
-            carry.transform_data[col] = self._factor * x
+            new_name = f"({col})*{self._factor}"
+            carry.transform_data[new_name] = self._factor * x
+            carry.transform_data.drop(col, axis=1, inplace=True)
 
         return carry, None
 

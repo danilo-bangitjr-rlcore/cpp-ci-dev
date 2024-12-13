@@ -48,9 +48,8 @@ class RewardComponentConstructor:
             tag_ts[i] = transform_ts
 
         # put resultant data on PipeFrame
-        df = pf.data.drop(tag_name, axis=1, inplace=False)
-        carry.transform_data = carry.transform_data.rename(columns=lambda x: "(reward)" + x)
-        pf.data = pd.concat((df, carry.transform_data), axis=1, copy=False)
+        carry.transform_data = carry.transform_data.rename(columns=lambda x: "[reward]" + x)
+        pf.data = pd.concat((pf.data, carry.transform_data), axis=1, copy=False)
 
         # put new temporal state on PipeFrame
         pf.temporal_state[StageCode.RC] = ts
@@ -74,7 +73,7 @@ class RewardConstructor:
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         initial_data = pf.data.copy(deep=True)
         pf = invoke_stage_per_tag(pf, self.component_constructors)
-        reward_component_names = [col for col in pf.data.columns if "(reward)" in col]
+        reward_component_names = [col for col in pf.data.columns if "[reward]" in col]
         reward_components = pf.data[reward_component_names]
         # add final reward column
         if not reward_components.empty:

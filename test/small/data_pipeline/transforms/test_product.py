@@ -44,7 +44,7 @@ def test_product():
     # call transform
     tf_carry, _ = tf(tf_carry, ts=None)
 
-    expected_cols = pd.Index(["tag-1"])
+    expected_cols = pd.Index(["(tag-1)*(tag-2)"])
     expected_df = pd.DataFrame(
         data=[
             [np.nan],
@@ -84,7 +84,7 @@ def test_product_other_transform():
         index=idx,
     )
 
-    tf = ProductTransform(ProductConfig(other="tag-2", other_transform=GreaterThanConfig(threshold=5)))
+    tf = ProductTransform(ProductConfig(other="tag-2", other_xform=[GreaterThanConfig(threshold=5)]))
     tf_data = df.get(["tag-1"])
     assert tf_data is not None
 
@@ -97,7 +97,7 @@ def test_product_other_transform():
     # call transform
     tf_carry, _ = tf(tf_carry, ts=None)
 
-    expected_cols = pd.Index(["tag-1"])
+    expected_cols = pd.Index(["(tag-1)*(tag-2>5)"])
     expected_df = pd.DataFrame(
         data=[
             [np.nan],
