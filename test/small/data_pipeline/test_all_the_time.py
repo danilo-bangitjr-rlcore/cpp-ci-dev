@@ -8,7 +8,7 @@ from torch import Tensor
 
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, Step
-from corerl.data_pipeline.transition_creators.all_the_time import (
+from corerl.data_pipeline.all_the_time import (
     get_n_step_reward,
     update_n_step_reward_gamma,
     AllTheTimeTCConfig,

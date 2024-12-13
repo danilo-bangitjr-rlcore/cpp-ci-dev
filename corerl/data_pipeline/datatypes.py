@@ -178,6 +178,7 @@ class StageCode(Enum):
     TC = auto()
     SC = auto()
     RC = auto()
+    TF = auto()
 
 
 type TemporalState = dict[StageCode, object | None]

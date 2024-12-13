@@ -9,18 +9,12 @@ from dataclasses import dataclass
 
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.component.network.utils import tensor
-from corerl.data_pipeline.datatypes import PipelineFrame, Step, NewTransition
+from corerl.data_pipeline.datatypes import PipelineFrame, Step, NewTransition, StageCode
 from corerl.utils.hydra import interpolate
-from corerl.data_pipeline.transition_creators.base import (
-    BaseTransitionCreator,
-    BaseTransitionCreatorConfig,
-    transition_creator_group,
-    TransitionCreatorTemporalState,
-)
 
 
 @dataclass
-class AllTheTimeTCConfig(BaseTransitionCreatorConfig):
+class AllTheTimeTCConfig:
     name: str = "all-the-time"
     gamma: float = interpolate('${experiment.gamma}')
     min_n_step: int = 1
@@ -35,7 +29,7 @@ class NStepInfo:
 
 
 @dataclass
-class AllTheTimeTS(TransitionCreatorTemporalState):
+class AllTheTimeTS:
     step_info: dict[int, NStepInfo]
 
 
@@ -86,7 +80,6 @@ def make_transition(
         step_q: deque[Step],
         n_step_reward: float | None = None,
         n_step_gamma: float | None = None) -> tuple[NewTransition, float, float]:
-
     n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, step_q)
     transition = NewTransition(
         list(step_q),
@@ -97,13 +90,16 @@ def make_transition(
     return transition, n_step_reward, n_step_gamma
 
 
-class AllTheTimeTC(BaseTransitionCreator):
+class AllTheTimeTC:
     def __init__(
             self,
             cfg: AllTheTimeTCConfig,
             tag_configs: list[TagConfig],
     ):
-        super().__init__(cfg, tag_configs)
+        self.cfg = cfg
+        self.stage_code = StageCode.TC
+        self.tag_configs = tag_configs
+        self._init_action_tags()
 
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
@@ -112,6 +108,21 @@ class AllTheTimeTC(BaseTransitionCreator):
             n: NStepInfo(n) for n in range(self.min_n_step, self.max_n_step + 1)
         }
 
+    def _init_action_tags(self):
+        self.action_tags = []
+        for tag_config in self.tag_configs:
+            name = tag_config.name
+            if tag_config.is_action:
+                self.action_tags.append(name)
+
+    def __call__(self, pf: PipelineFrame) -> PipelineFrame:
+        tc_ts = pf.temporal_state.get(self.stage_code)
+        assert isinstance(tc_ts, AllTheTimeTS | None)
+        transitions, new_tc_ts = self._inner_call(pf, tc_ts)
+        pf.temporal_state[self.stage_code] = new_tc_ts
+        pf.transitions = transitions
+        return pf
+
     def reset_step_info(self):
         self.step_info = {
             n: NStepInfo(n) for n in range(self.min_n_step, self.max_n_step + 1)
@@ -119,8 +130,8 @@ class AllTheTimeTC(BaseTransitionCreator):
 
     def _inner_call(self,
                     pf: PipelineFrame,
-                    tc_ts: TransitionCreatorTemporalState | None) \
-            -> tuple[list[NewTransition], TransitionCreatorTemporalState | None]:
+                    tc_ts: AllTheTimeTS | None) \
+            -> tuple[list[NewTransition], AllTheTimeTS | None]:
 
         assert isinstance(tc_ts, AllTheTimeTS | None)
 
@@ -148,7 +159,7 @@ class AllTheTimeTC(BaseTransitionCreator):
             step = Step(
                 reward=rewards[i],
                 action=actions[i],
-                gamma=float(self.gamma*gammas[i]),
+                gamma=float(self.gamma * gammas[i]),
                 state=states[i],
                 dp=bool(dps[i]),
             )
@@ -182,6 +193,3 @@ class AllTheTimeTC(BaseTransitionCreator):
                 n_step_info.n_step_gamma = n_step_gamma
 
         return new_transitions
-
-
-transition_creator_group.dispatcher(AllTheTimeTC)

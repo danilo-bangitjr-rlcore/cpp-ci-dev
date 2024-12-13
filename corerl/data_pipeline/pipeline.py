@@ -14,11 +14,11 @@ from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
-from corerl.data_pipeline.transition_creators.factory import TransitionCreatorConfig, init_transition_creator
+from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
+from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, StageCode
 
@@ -32,7 +32,8 @@ class PipelineConfig:
     db: TagDBConfig = field(default_factory=TagDBConfig)
     obs_interval_minutes: float = 0
     state_constructor: SCConfig = field(default_factory=SCConfig)
-    transition_creator: TransitionCreatorConfig = field(default_factory=DummyTransitionCreatorConfig)
+    agent_transition_creator: Any = field(default_factory=AllTheTimeTCConfig)
+    agent_transition_filter: Any = field(default_factory=TransitionFilterConfig)
 
 
 @dataclass
@@ -52,10 +53,12 @@ class Pipeline:
             tag.name: bound_checker_builder(tag.bounds) for tag in self.tags
         }
 
-        self.transition_creator = init_transition_creator(
-            cfg.transition_creator,
+        self.transition_creator = AllTheTimeTC(
+            cfg.agent_transition_creator,
             self.tags,
         )
+
+        self.transition_filter = TransitionFilter(cfg.agent_transition_filter)
 
         self.outlier_detectors = {
             tag.name: init_oddity_filter(tag.outlier) for tag in self.tags
@@ -83,6 +86,7 @@ class Pipeline:
             StageCode.RC:      self.reward_constructor,
             StageCode.SC:      self.state_constructor,
             StageCode.TC:      self.transition_creator,
+            StageCode.TF:      self.transition_filter,
         }
 
         self._default_stages = (
@@ -92,6 +96,7 @@ class Pipeline:
             StageCode.RC,
             StageCode.SC,
             StageCode.TC,
+            StageCode.TF
         )
 
     def _init_temporal_state(self, pf: PipelineFrame, reset_ts: bool = False):
@@ -130,7 +135,6 @@ class Pipeline:
         # by each stage of the pipeline
         pf = PipelineFrame(data, caller_code)
         pf.temporal_state = self._init_temporal_state(pf, reset_temporal_state)
-
 
         pf = invoke_stage_per_tag(pf, self.missing_data_checkers)
         for stage in stages:
