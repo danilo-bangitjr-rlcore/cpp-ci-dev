@@ -211,12 +211,12 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             step_info_list[-1],
             steps_per_decision=self.steps_per_decision)
 
-        boot_sud = step_info_list[-1].sud
-        boot_dp = boot_sud == self.steps_per_decision or boot_sud == 0
+        # boot_sud = step_info_list[-1].sud
+        # boot_dp = boot_sud == self.steps_per_decision or boot_sud == 0
 
         n_step_reward = boot_step.reward
         n_step_gamma = boot_step.gamma
-        last_step_idx = len(step_info_list) - 1
+        # last_step_idx = len(step_info_list) - 1
         for step_backwards in range(len(step_info_list) - 2, -1, -1):
             step_info = step_info_list[step_backwards]
             prior_step = self.countdown_adder(step_info, steps_per_decision=self.steps_per_decision)
@@ -227,15 +227,11 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
             """
             make_transition = not self.only_dp_transitions or step_backwards == 0
             if make_transition:
-                n_steps = last_step_idx - step_backwards
-                post_step = Step(
-                    reward=n_step_reward,
-                    action=boot_step.action,
-                    gamma=n_step_gamma,
-                    state=boot_step.state,
-                    dp=boot_dp,
-                )
-                transition = NewTransition(prior_step, post_step, n_steps)
+                transition = NewTransition(
+                    steps=[prior_step, boot_step],
+                    n_step_reward=n_step_reward,
+                    n_step_gamma=n_step_gamma,
+                    )
                 transitions.append(transition)
 
             n_step_reward = prior_step.reward + boot_step.gamma * n_step_reward

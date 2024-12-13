@@ -30,8 +30,8 @@ class AllTheTimeTCConfig(BaseTransitionCreatorConfig):
 class NStepInfo:
     def __init__(self, n: int):
         self.step_q = deque(maxlen=n + 1)
-        self.n_step_reward: int | None = None
-        self.n_step_gamma: int | None = None
+        self.n_step_reward: float | None = None
+        self.n_step_gamma: float | None = None
 
 
 @dataclass
@@ -108,11 +108,12 @@ class AllTheTimeTC(BaseTransitionCreator):
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
         self.max_n_step = cfg.max_n_step
-        self.step_info = None
-        self.init_step_info()
+        self.step_info = {
+            n: NStepInfo(n) for n in range(self.min_n_step, self.max_n_step + 1)
+        }
 
-    def init_step_info(self):
-        self.step_info: dict[int, NStepInfo] = {
+    def reset_step_info(self):
+        self.step_info = {
             n: NStepInfo(n) for n in range(self.min_n_step, self.max_n_step + 1)
         }
 
@@ -153,7 +154,7 @@ class AllTheTimeTC(BaseTransitionCreator):
             )
 
             if has_nan(step):
-                self.init_step_info()  # nuke the step info
+                self.reset_step_info()  # nuke the step info
             else:
                 transitions += self._update(step)
 
