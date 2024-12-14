@@ -1,4 +1,5 @@
 import hashlib
+from typing import Any
 import corerl.utils.dict as dict_u
 
 
@@ -362,3 +363,61 @@ def test_merge3():
     }
 
 
+# -----------------
+# -- set_at_path --
+# -----------------
+
+def test_set_at_path1():
+    d = {}
+    path = 'a.b.c'
+    got = dict_u.set_at_path(d, path, val=22)
+
+    assert got == {
+        'a': {
+            'b': {
+                'c': 22,
+            },
+        },
+    }
+
+def test_set_at_path2():
+    d: dict[str, Any] = { 'a': {} }
+    path = 'a.b.c'
+    got = dict_u.set_at_path(d, path, val=22)
+
+    assert got == {
+        'a': {
+            'b': {
+                'c': 22,
+            },
+        },
+    }
+
+def test_set_at_path3():
+    d: dict[str, Any] = {}
+    path = 'a.b[1].c'
+    got = dict_u.set_at_path(d, path, val=22)
+
+    assert got == {
+        'a': {
+            'b': [
+                {},
+                {'c': 22},
+            ],
+        },
+    }
+
+def test_set_at_path4():
+    d: dict[str, Any] = {
+        'ls': [
+            { 'name': 'thing', 'val': 1 },
+        ]
+    }
+    path = 'ls[0].name'
+    got = dict_u.set_at_path(d, path, val='hello')
+
+    assert got == {
+        'ls': [
+            { 'name': 'hello', 'val': 1 },
+        ],
+    }

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import hashlib
 from collections.abc import Callable, Iterable, MutableMapping, Sequence
 from typing import Any
@@ -97,6 +98,48 @@ def merge(d1: dict[str, Any], d2: dict[str, Any], _path: list[str] | None = None
 
     return out
 
+
+def set_at_path[T](d: dict[str, T], path: str, val: T) -> dict[str, T]:
+    if '.' not in path:
+        d[path] = val
+        return d
+
+    parts = path.split('.')
+
+    sub: Any = d
+    for i in range(len(parts)):
+        part = parts[i]
+        is_last = i == len(parts) - 1
+
+        # check if this path component is a list index
+        # e.g. b[0] or hi[1] ...
+        ls_part = re.match(r'(.+)\[(\d+)\]', part)
+
+        # if last part, then do mutable assignment
+        # otherwise keep walking, building subdicts as needed
+        if is_last and part not in sub:
+            sub[part] = val
+        elif is_last and part in sub:
+            # if there is already a value
+            # ensure the override has a matching type
+            t = type(sub[part])
+            sub[part] = t(val)
+        elif part not in sub and not ls_part:
+            sub[part] = {}
+            sub = sub[part]
+        elif ls_part is not None and ls_part.group(1) not in sub:
+            key = ls_part.group(1)
+            idx = int(ls_part.group(2))
+            sub[key] = [{} for _ in range(idx + 1)]
+            sub = sub[key][idx]
+        elif ls_part is not None:
+            key = ls_part.group(1)
+            idx = int(ls_part.group(2))
+            sub = sub[key][idx]
+        else:
+            sub = sub[part]
+
+    return d
 
 
 # ------------------------
