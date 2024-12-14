@@ -267,3 +267,98 @@ def test_hash_many1():
 
     assert dict_u.hash_many(ds1) == dict_u.hash_many(ds1)
     assert dict_u.hash_many(ds1) != dict_u.hash_many(ds2)
+
+
+# -----------
+# -- merge --
+# -----------
+
+def test_merge1():
+    d1 = {
+        'a': 1,
+        'b': 2,
+        'd': 4,
+    }
+
+    d2 = {
+        'a': 5,
+        'c': 3,
+    }
+
+    # right-most dict takes precedence
+    got = dict_u.merge(d1, d2)
+    assert got == {
+        'a': 5,
+        'b': 2,
+        'c': 3,
+        'd': 4,
+    }
+
+    # no dicts are harmed in the merging
+    assert d1 == {
+        'a': 1,
+        'b': 2,
+        'd': 4,
+    }
+    assert d2 == {
+        'a': 5,
+        'c': 3,
+    }
+
+
+def test_merge2():
+    d1 = {
+        'a': 1,
+        'b': {
+            'c': 2,
+            'd': ['hi', 'there'],
+        },
+        'f': [1, 2, 3],
+    }
+
+    d2 = {
+        'a': 5,
+        'b': {
+            'c': 3,
+            'e': 4,
+        },
+        'f': [4, 5, 6],
+    }
+
+    # right-most dict takes precedence
+    got = dict_u.merge(d1, d2)
+    assert got == {
+        'a': 5,
+        'b': {
+            'c': 3,
+            'd': ['hi', 'there'],
+            'e': 4,
+        },
+        'f': [4, 5, 6],
+    }
+
+
+def test_merge3():
+    d1 = {
+        'list': [
+            {'a': 22},
+            {'b': 33},
+        ],
+    }
+
+    d2 = {
+        'list': [
+            {'a': 44},
+            {'c': 55},
+        ],
+    }
+
+    got = dict_u.merge(d1, d2)
+    assert got == {
+        'list': [
+            {'a': 44},
+            {'b': 33, 'c': 55},
+        ],
+    }
+
+

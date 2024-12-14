@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Iterable, MutableMapping, Sequence
+from collections.abc import Callable, Iterable, MutableMapping, Sequence
 from typing import Any
 
 import corerl.utils.nullable as nullable
@@ -75,3 +75,46 @@ def hash_many(
         hash(d, ignore, _hash=hasher)
 
     return hasher.hexdigest()
+
+
+def merge(d1: dict[str, Any], d2: dict[str, Any], _path: list[str] | None = None) -> dict[str, Any]:
+    out: dict[str, Any] = d1.copy()
+    _path = _path or []
+
+    for k, v in d2.items():
+        if k not in out:
+            out[k] = v
+
+        elif isinstance(v, dict):
+            assert isinstance(d1[k], dict), f"Key type mismatch at {'.'.join(_path)}. Expected dict."
+            out[k] = merge(d1[k], d2[k], _path + [k])
+
+        elif isinstance(v, list) and len(v) > 0 and isinstance(v[0], dict):
+            out[k] = _zip_longest(merge, d1[k], v)
+
+        else:
+            out[k] = v
+
+    return out
+
+
+
+# ------------------------
+# -- Internal Utilities --
+# ------------------------
+def _zip_longest[T](
+    f: Callable[[T, T], T],
+    l1: Sequence[T],
+    l2: Sequence[T],
+) -> list[T]:
+
+    out: list[T] = []
+    for i in range(max(len(l1), len(l2))):
+        if i >= len(l1):
+            out.append(l2[i])
+        elif i >= len(l2):
+            out.append(l1[i])
+        else:
+            out.append(f(l1[i], l2[i]))
+
+    return out
