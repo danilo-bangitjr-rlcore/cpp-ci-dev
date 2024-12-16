@@ -22,6 +22,15 @@ class AllTheTimeTCConfig:
 
 
 class NStepInfo:
+    """
+    Dataclass for holding on to information for producing transitions for each bootstrap length (n)
+    Holds:
+     * a queue of steps
+     * the discounted sum of rewards from step_q[1] to step_q[-1]. We don't include the first step since the bootstrap
+     goes from its state to step_q[-1].state
+     * the discount fact for bootstrapping off step_q[-1].state
+    """
+
     def __init__(self, n: int):
         self.step_q = deque(maxlen=n + 1)
         self.n_step_reward: float | None = None
@@ -77,20 +86,6 @@ def update_n_step_reward_gamma(n_step_reward, n_step_gamma, step_q):
     return n_step_reward, n_step_gamma
 
 
-def make_transition(
-        step_q: deque[Step],
-        n_step_reward: float | None = None,
-        n_step_gamma: float | None = None) -> tuple[NewTransition, float, float]:
-    n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, step_q)
-    transition = NewTransition(
-        list(step_q),
-        n_step_reward=n_step_reward,
-        n_step_gamma=n_step_gamma,
-    )
-
-    return transition, n_step_reward, n_step_gamma
-
-
 class AllTheTimeTC:
     def __init__(
             self,
@@ -105,6 +100,8 @@ class AllTheTimeTC:
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
         self.max_n_step = cfg.max_n_step
+        assert self.min_n_step > 0
+        assert self.max_n_step >= self.min_n_step
         self.step_info = {
             n: NStepInfo(n) for n in range(self.min_n_step, self.max_n_step + 1)
         }
@@ -116,32 +113,15 @@ class AllTheTimeTC:
             if tag_config.is_action:
                 self.action_tags.append(name)
 
-    def __call__(self, pf: PipelineFrame) -> PipelineFrame:
-        tc_ts = pf.temporal_state.get(self.stage_code)
-        assert isinstance(tc_ts, AllTheTimeTS | None)
-        transitions, new_tc_ts = self._inner_call(pf, tc_ts)
-        pf.temporal_state[self.stage_code] = new_tc_ts
-        pf.transitions = transitions
-        return pf
-
-    def reset_step_info(self):
+    def _reset_step_info(self):
         self.step_info = {
             n: NStepInfo(n) for n in range(self.min_n_step, self.max_n_step + 1)
         }
 
-    def _inner_call(self,
-                    pf: PipelineFrame,
-                    tc_ts: AllTheTimeTS | None) \
-            -> tuple[list[NewTransition], AllTheTimeTS | None]:
-
-        assert isinstance(tc_ts, AllTheTimeTS | None)
-
-        transitions = []
-
-        if pf.data.empty:  # pretend like nothing happened but raise a warning...
-            warnings.warn("Empty dataframe passed to transition creator", stacklevel=2)
-            return transitions, tc_ts
-
+    def _make_steps(self, pf) -> list[Step]:
+        """
+        Makes the steps for the pf
+        """
         df = pf.data
         actions = get_tags(df, self.action_tags)
         state_tags = sorted(
@@ -155,6 +135,7 @@ class AllTheTimeTC:
         dps = pf.decision_points
         assert len(actions) == len(states) and len(states) == len(rewards) == len(gammas) == len(dps)
 
+        steps = []
         for i in range(len(actions)):
             step = Step(
                 reward=rewards[i],
@@ -163,9 +144,22 @@ class AllTheTimeTC:
                 state=states[i],
                 dp=bool(dps[i]),
             )
+            steps.append(step)
+        return steps
 
+    def __call__(self, pf: PipelineFrame) -> PipelineFrame:
+        if pf.data.empty:  # pretend like nothing happened but raise a warning...
+            warnings.warn("Empty dataframe passed to transition creator", stacklevel=2)
+            return pf
+
+        tc_ts = pf.temporal_state.get(self.stage_code)
+        assert isinstance(tc_ts, AllTheTimeTS | None)
+
+        steps = self._make_steps(pf)
+        transitions = []
+        for step in steps:
             if has_nan(step):
-                self.reset_step_info()  # nuke the step info
+                self._reset_step_info()  # nuke the step info
             else:
                 transitions += self._update(step)
 
@@ -174,9 +168,16 @@ class AllTheTimeTC:
         else:
             tc_ts.step_info = self.step_info
 
-        return transitions, tc_ts
+        pf.temporal_state[self.stage_code] = tc_ts
+        pf.transitions = transitions
+
+        return pf
 
     def _update(self, step: Step) -> list[NewTransition]:
+        """
+        Updates the all step queues, n_step_rewards, and n_step_gamma with the new step,
+        then returns any produced transitions.
+        """
         new_transitions = []
         for n in range(self.min_n_step, self.max_n_step + 1):
             n_step_info = self.step_info[n]
@@ -185,11 +186,18 @@ class AllTheTimeTC:
 
             is_full = len(step_q) == n + 1
             if is_full:
-                n_step_reward = n_step_info.n_step_reward
-                n_step_gamma = n_step_info.n_step_gamma
-                new_transition, n_step_reward, n_step_gamma = make_transition(step_q, n_step_reward, n_step_gamma)
+                n_step_info.n_step_reward, n_step_info.n_step_gamma = update_n_step_reward_gamma(
+                    n_step_info.n_step_reward,
+                    n_step_info.n_step_gamma,
+                    step_q,
+                )
+
+                new_transition = NewTransition(
+                    list(step_q),
+                    n_step_reward=n_step_info.n_step_reward,
+                    n_step_gamma=n_step_info.n_step_gamma,
+                )
+
                 new_transitions.append(new_transition)
-                n_step_info.n_step_reward = n_step_reward
-                n_step_info.n_step_gamma = n_step_gamma
 
         return new_transitions
