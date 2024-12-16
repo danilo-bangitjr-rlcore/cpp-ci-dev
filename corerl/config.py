@@ -1,6 +1,8 @@
 from dataclasses import field
 from typing import Any
 
+from pydantic import Field
+
 from corerl.agent import AgentConfig
 from corerl.agent.random import RandomAgentConfig
 from corerl.configs.config import MISSING, config
@@ -17,6 +19,6 @@ class MainConfig:
     use_alerts: bool = False
     env: SimAsyncEnvConfig = field(default_factory=SimAsyncEnvConfig)
 
-    agent: AgentConfig = field(default_factory=GreedyACConfig)
+    agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')
     experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
