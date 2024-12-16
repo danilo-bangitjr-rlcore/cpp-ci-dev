@@ -1,5 +1,6 @@
 import re
 import sys
+from pydantic_core import PydanticUndefined
 import yaml
 from collections.abc import Callable
 from typing import Any, Concatenate
@@ -7,6 +8,7 @@ from pydantic import TypeAdapter
 from pathlib import Path
 
 
+from corerl.configs.config import MISSING
 import corerl.utils.dict as dict_u
 
 # -------------------
@@ -158,8 +160,11 @@ def _load_config[T](Config: type[T], base: str | None = None, config_name: str |
     raw_config = _load_raw_config(base, config_name)
 
     # grab defaults from python-side configs
+    schema_defaults = dict_u.dataclass_to_dict(Config)
+    schema_defaults = dict_u.filter(lambda v: v != MISSING, schema_defaults)
+    schema_defaults = dict_u.filter(lambda v: v != PydanticUndefined, schema_defaults)
     raw_config = dict_u.merge(
-        dict_u.dataclass_to_dict(Config),
+        schema_defaults,
         raw_config,
     )
 
@@ -187,3 +192,8 @@ def load_config[T](Config: type[T], base: str | None = None, config_name: str | 
             return f(config, *args, **kwargs)
         return __inner
     return _inner
+
+
+def config_to_dict(Config: type[object], config: object):
+    ta = TypeAdapter(Config)
+    return ta.dump_python(config, warnings=False)

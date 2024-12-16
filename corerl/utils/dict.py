@@ -85,7 +85,7 @@ def merge(d1: dict[str, Any], d2: dict[str, Any], _path: list[str] | None = None
     _path = _path or []
 
     for k, v in d2.items():
-        if k not in out:
+        if k not in out or out[k] is None:
             out[k] = v
 
         elif isinstance(v, dict):
@@ -97,6 +97,26 @@ def merge(d1: dict[str, Any], d2: dict[str, Any], _path: list[str] | None = None
 
         else:
             out[k] = v
+
+    return out
+
+
+def filter(pred: Callable[[Any], bool], d: dict[str, Any]) -> dict[str, Any]:
+    out = {}
+
+    for k, v in d.items():
+        if isinstance(v, dict):
+            out[k] = filter(pred, v)
+
+        elif isinstance(v, list) and len(v) > 0 and isinstance(v[0], dict):
+            out[k] = [
+                filter(pred, sub)
+                for sub in v
+            ]
+
+        else:
+            if pred(v):
+                out[k] = v
 
     return out
 
@@ -178,7 +198,7 @@ def dataclass_to_dict(o: Any) -> Any:
             out[v.name] = dataclass_to_dict(v.default_factory())
 
         elif isinstance(v.default, FieldInfo):
-            out[v.name] = dataclass_to_dict(v.default.default_factory)
+            out[v.name] = dataclass_to_dict(v.default.default)
 
         elif not isinstance(v.default, _MISSING_TYPE):
             out[v.name] = dataclass_to_dict(v.default)
