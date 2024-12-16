@@ -4,7 +4,7 @@ defaults:
 deployment:
   python_executable: python
   python_entrypoint: main.py
-  config_name: saturation.yaml
+  config_name: pendulum
   options: [experiment.max_steps=25]
 
 event_bus:

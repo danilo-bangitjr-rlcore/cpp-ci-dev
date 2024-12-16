@@ -68,7 +68,7 @@ def _flags_from_cli():
         flags = (
             flags
             | _get_equals_or_next('base', i)
-            | _get_equals_or_next('config_name', i)
+            | _get_equals_or_next('config-name', i)
             | _get_anonymous_equals(i)
         )
 
@@ -151,7 +151,7 @@ def _load_config[T](Config: type[T], base: str | None = None, config_name: str |
     # give precedence to cli overrides
     # else, require function args to be specified
     base = flags.get('base', base)
-    config_name = flags.get('config_name', config_name)
+    config_name = flags.get('config-name', config_name)
     assert base is not None and config_name is not None, 'Must specify a base path for configs and a config name'
 
     # load the raw config with defaults resolved
@@ -164,7 +164,7 @@ def _load_config[T](Config: type[T], base: str | None = None, config_name: str |
     )
 
     # handle any cli overrides
-    cli_overrides = dict_u.drop(flags, ['base', 'config_name'])
+    cli_overrides = dict_u.drop(flags, ['base', 'config-name'])
     for override_key, override_value in cli_overrides.items():
         dict_u.set_at_path(raw_config, override_key, override_value)
 

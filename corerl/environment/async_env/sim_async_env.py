@@ -27,7 +27,7 @@ class StepData:
 
 class SimAsyncEnv(AsyncEnv):
     def __init__(self, cfg: SimAsyncEnvConfig, tags: list[TagConfig]):
-        self._env = gym.make(cfg.name, render_mode='human')
+        self._env = gym.make(cfg.name)
         self._cfg = cfg
 
         shape = self._env.observation_space.shape
@@ -92,7 +92,6 @@ class SimAsyncEnv(AsyncEnv):
         assert len(action) == 1
 
         obs, r, term, trunc, _ = self._env.step(action)
-        self._env.render()
         self._last_step = StepData(
             obs=obs,
             r=float(r),
