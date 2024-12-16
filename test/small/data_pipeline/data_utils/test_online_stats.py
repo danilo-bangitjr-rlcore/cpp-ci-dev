@@ -2,7 +2,7 @@ from typing import Callable
 
 import numpy as np
 
-from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
+from corerl.data_pipeline.data_utils.exp_moving import ExpMovingAvg, ExpMovingVar
 
 
 #######################################

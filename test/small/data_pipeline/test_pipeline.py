@@ -138,7 +138,7 @@ def test_sub_pipeline1():
         stages=(StageCode.BOUNDS, StageCode.ODDITY, StageCode.IMPUTER, StageCode.SC),
     )
 
-    cols: Any = ['tag-1', 'tag-2_norm_trace-0.1']
+    cols = ['tag-1', 'tag-2_norm_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
             [np.nan, 0],
@@ -208,7 +208,7 @@ def test_sub_pipeline2():
         stages=(StageCode.IMPUTER, StageCode.SC),
     )
 
-    cols: Any = ['tag-1', 'tag-2_norm_trace-0.1']
+    cols = ['tag-1', 'tag-2_norm_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
             [np.nan, 0],
@@ -283,7 +283,7 @@ def test_sub_pipeline3():
         stages=(StageCode.BOUNDS, StageCode.ODDITY, StageCode.IMPUTER, StageCode.RC, StageCode.SC),
     )
 
-    cols: Any = ['tag-1', 'tag-2_norm_trace-0.1']
+    cols = ['tag-1', 'tag-2_norm_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
             [np.nan, 0],
@@ -363,7 +363,7 @@ def test_sub_pipeline4():
         stages=(StageCode.BOUNDS, StageCode.ODDITY, StageCode.IMPUTER, StageCode.RC, StageCode.SC),
     )
 
-    cols: Any = ['reward', 'tag-1', 'tag-2_norm_trace-0.1']
+    cols = ['reward', 'tag-1', 'tag-2_norm_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
             [np.nan, np.nan, 0],

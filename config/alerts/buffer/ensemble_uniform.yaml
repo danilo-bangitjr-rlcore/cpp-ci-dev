@@ -1,7 +1,0 @@
-defaults:
-  - uniform
-  - _self_
-
-name: ensemble_uniform
-ensemble: 10
-data_subset: 0.9 # Percentage of all data stored in each buffer in the ensemble

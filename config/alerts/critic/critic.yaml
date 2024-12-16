@@ -1,8 +1,0 @@
-defaults:
-  - critic_network: ensemble
-  - critic_optimizer : adam
-  -  _self_
-
-name : ${agent.critic.critic_network.name} # Revan: this works for getting the networks name, but isn't the fanciest
-polyak : 0.99
-target_sync_freq : 1

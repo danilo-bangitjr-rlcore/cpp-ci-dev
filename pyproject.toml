@@ -30,7 +30,6 @@ exclude = [
     'corerl/environment/third_party',
     'corerl/sql_logging/examples',
 ]
-stubPath = "./typings"
 venvPath = '.'
 venv = '.venv'
 typeCheckingMode = 'standard'

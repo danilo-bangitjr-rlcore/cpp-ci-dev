@@ -4,8 +4,8 @@ from pathlib import Path
 
 import numpy
 
+from corerl.data_pipeline.datatypes import NewTransition
 from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.data_pipeline.datatypes import Transition
 from corerl.utils.hydra import list_
 
 
@@ -36,10 +36,10 @@ class ActionScheduleAgent(BaseAgent):
         self.action_schedule = cfg.action_schedule
         self.step = 0
 
-    def update_buffer(self, transition: Transition) -> None:
+    def update_buffer(self, transition: NewTransition) -> None:
         pass
 
-    def load_buffer(self, transitions: list[Transition]) -> None:
+    def load_buffer(self, transitions: list[NewTransition]) -> None:
         pass
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:

@@ -11,7 +11,7 @@ from corerl.component.critic.factory import init_v_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import TransitionBatch, Transition
+from corerl.data_pipeline.datatypes import NewTransitionBatch, NewTransition
 
 @dataclass
 class SimpleACConfig(BaseACConfig):
@@ -37,24 +37,23 @@ class SimpleAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transition: Transition) -> None:
+    def update_buffer(self, transition: NewTransition) -> None:
         self.critic_buffer.feed(transition)
         # Only train policy on states at decision points
-        if transition.state_dp:
+        if transition.prior.dp:
             self.policy_buffer.feed(transition)
 
-    def compute_actor_loss(self, batch: TransitionBatch) -> torch.Tensor:
-        states = batch.state
-        actions = batch.action
-        next_states = batch.boot_state
-        rewards = batch.n_step_reward
-        dones = batch.terminated
-        gamma_exps = batch.gamma_exponent
+    def compute_actor_loss(self, batch: NewTransitionBatch) -> torch.Tensor:
+        states = batch.prior.state
+        actions = batch.prior.action
+        next_states = batch.post.state
+        rewards = batch.post.reward
+        gammas = batch.post.gamma
 
         log_prob, _ = self.actor.get_log_prob(states, actions, with_grad=True)
         v = self.critic.get_v([states], with_grad=False)
         v_next = self.critic.get_v([next_states], with_grad=False)
-        target = rewards + (self.gamma ** gamma_exps) * (1.0 - dones) * v_next
+        target = rewards + gammas * v_next
         ent = -log_prob
         loss_actor = -(self.tau * ent + log_prob * (target - v.detach())).mean()
         return loss_actor
@@ -70,20 +69,18 @@ class SimpleAC(BaseAC):
 
         return tuple()
 
-    def compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_critic_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         reward_batches = []
         next_state_batches = []
-        mask_batches = []
-        gamma_exp_batches = []
+        gamma_batches = []
         next_vs = []
         for batch in ensemble_batch:
-            state_batch = batch.state
-            reward_batch = batch.n_step_reward
-            next_state_batch = batch.boot_state
-            mask_batch = 1 - batch.terminated
-            gamma_exp_batch = batch.gamma_exponent
+            state_batch = batch.prior.state
+            reward_batch = batch.post.reward
+            next_state_batch = batch.post.state
+            gamma_batch = batch.post.gamma
 
             # Option 1: Using the reduction of the ensemble in the update target
             if not self.ensemble_targets:
@@ -93,8 +90,7 @@ class SimpleAC(BaseAC):
             state_batches.append(state_batch)
             reward_batches.append(reward_batch)
             next_state_batches.append(next_state_batch)
-            mask_batches.append(mask_batch)
-            gamma_exp_batches.append(gamma_exp_batch)
+            gamma_batches.append(gamma_batch)
 
         # Option 2: Using the corresponding target function in the ensemble in the update target
         if self.ensemble_targets:
@@ -107,7 +103,7 @@ class SimpleAC(BaseAC):
         _, vs = self.critic.get_vs(state_batches, with_grad=True)
         losses = []
         for i in range(ensemble):
-            target = reward_batches[i] + mask_batches[i] * (self.gamma ** gamma_exp_batches[i]) * next_vs[i]
+            target = reward_batches[i] + gamma_batches[i] * next_vs[i]
             losses.append(torch.nn.functional.mse_loss(target, vs[i]))
 
         return losses
@@ -156,5 +152,5 @@ class SimpleAC(BaseAC):
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
 
-    def load_buffer(self, transitions: list[Transition]) -> None:
+    def load_buffer(self, transitions: list[NewTransition]) -> None:
         ...

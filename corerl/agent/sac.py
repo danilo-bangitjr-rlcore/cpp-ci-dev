@@ -11,7 +11,7 @@ from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, Float
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import TransitionBatch, Transition
+from corerl.data_pipeline.datatypes import NewTransitionBatch, NewTransition
 
 @dataclass
 class SACConfig(BaseACConfig):
@@ -50,13 +50,13 @@ class SAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transition: Transition) -> None:
+    def update_buffer(self, transition: NewTransition) -> None:
         self.critic_buffer.feed(transition)
         # Only train policy on states at decision points
-        if transition.state_dp:
+        if transition.prior.dp:
             self.policy_buffer.feed(transition)
 
-    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_q_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
@@ -64,17 +64,15 @@ class SAC(BaseAC):
         next_state_batches = []
         next_action_batches = []
         next_log_probs_batches = []
-        mask_batches = []
-        gamma_exp_batches = []
+        gamma_batches = []
         next_qs = []
         for batch in ensemble_batch:
-            state_batch = batch.state
-            action_batch = batch.action
-            reward_batch = batch.n_step_reward
-            next_state_batch = batch.boot_state
-            mask_batch = 1 - batch.terminated
-            gamma_exp_batch = batch.gamma_exponent
-            dp_mask = batch.boot_state_dp
+            state_batch = batch.prior.state
+            action_batch = batch.prior.action
+            reward_batch = batch.post.reward
+            next_state_batch = batch.post.state
+            gamma_batch = batch.post.gamma
+            dp_mask = batch.post.dp
 
             next_actions, info = self.actor.get_action(next_state_batch, with_grad=False)
             with torch.no_grad():
@@ -93,8 +91,7 @@ class SAC(BaseAC):
             next_state_batches.append(next_state_batch)
             next_action_batches.append(next_actions)
             next_log_probs_batches.append(next_state_log_pi)
-            mask_batches.append(mask_batch)
-            gamma_exp_batches.append(gamma_exp_batch)
+            gamma_batches.append(gamma_batch)
 
         # Option 2: Using the corresponding target function in the ensemble in the update target
         if self.ensemble_targets:
@@ -108,15 +105,15 @@ class SAC(BaseAC):
         losses = []
         for i in range(ensemble):
             q_pi_target = next_qs[i] - self.alpha * next_log_probs_batches[i]
-            target = reward_batches[i] + mask_batches[i] * (self.gamma ** gamma_exp_batches[i]) * q_pi_target
+            target = reward_batches[i] + gamma_batches[i] * q_pi_target
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
 
         return losses
 
-    def compute_actor_loss(self, batch: TransitionBatch) -> tuple[torch.Tensor, torch.Tensor]:
-        state_batch = batch.state
-        action_batch = batch.action
-        dp_mask = batch.boot_state_dp
+    def compute_actor_loss(self, batch: NewTransitionBatch) -> tuple[torch.Tensor, torch.Tensor]:
+        state_batch = batch.prior.state
+        action_batch = batch.prior.action
+        dp_mask = batch.post.dp
 
         actions, info = self.actor.get_action(state_batch, with_grad=True)
         actions = (dp_mask * actions) + ((1.0 - dp_mask) * action_batch)
@@ -132,9 +129,9 @@ class SAC(BaseAC):
             # Assuming we don't have an ensemble of policies
             assert len(batches) == 1
             batch = batches[0]
-            state_batch = batch.state
-            action_batch = batch.action
-            dp_mask = batch.boot_state_dp
+            state_batch = batch.prior.state
+            action_batch = batch.prior.action
+            dp_mask = batch.post.dp
 
             actions, info = self.actor.get_action(state_batch, with_grad=False)
             with torch.no_grad():

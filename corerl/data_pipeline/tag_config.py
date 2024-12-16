@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Any
 from omegaconf import MISSING
 
 from corerl.data_pipeline.imputers.base import BaseImputerConfig
@@ -18,5 +19,5 @@ class TagConfig:
     outlier: BaseOddityFilterConfig = field(default_factory=EMAFilterConfig)
     imputer: BaseImputerConfig = field(default_factory=IdentityImputerConfig)
     reward_constructor: list[BaseTransformConfig] = list_([NullConfig()])
-    state_constructor: list[BaseTransformConfig] | None = None
+    state_constructor: list[Any] | None = None
     is_action: bool = False

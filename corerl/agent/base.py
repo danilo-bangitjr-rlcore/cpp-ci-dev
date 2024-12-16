@@ -5,7 +5,7 @@ import numpy
 from pathlib import Path
 
 from omegaconf import MISSING
-from corerl.data_pipeline.datatypes import Transition
+from corerl.data_pipeline.datatypes import NewTransition
 from corerl.utils.hook import Hooks, when
 from corerl.messages.client import MessageBusClientConfig, make_msg_bus_client
 from corerl.utils.hydra import interpolate
@@ -52,11 +52,11 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update_buffer(self, transition: Transition) -> None:
+    def update_buffer(self, transition: NewTransition) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def load_buffer(self, transitions: list[Transition]) -> None:
+    def load_buffer(self, transitions: list[NewTransition]) -> None:
         raise NotImplementedError
 
     @abstractmethod

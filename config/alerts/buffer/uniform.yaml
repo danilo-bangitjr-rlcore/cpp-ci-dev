@@ -1,6 +1,0 @@
-batch_size: 512
-memory: 100000
-name: uniform
-combined : False
-device : ${experiment.device}
-seed : ${experiment.seed}

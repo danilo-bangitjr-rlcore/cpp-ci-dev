@@ -1,27 +1,29 @@
-from collections.abc import Iterable
-
-from torch import Tensor
-from corerl.utils.device import device
-from omegaconf import DictConfig
-import numpy as np
 import torch
 import random
-
-from corerl.data_pipeline.datatypes import Transition, TransitionBatch
-import pandas as pd
-from corerl.sql_logging import sql_logging
-from corerl.sql_logging.base_schema import SQLTransition
-from sqlalchemy.orm import Session
-from sqlalchemy import select
 import logging
-from typing import List
-from corerl.sql_logging.base_schema import TransitionInfo
+import numpy as np
+
+from torch import Tensor
+from dataclasses import dataclass
+
+from corerl.utils.device import device
+from corerl.data_pipeline.datatypes import NewTransition, NewTransitionBatch, StepBatch
+from corerl.utils.hydra import interpolate, Group
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass
+class UniformReplayBufferConfig:
+    name: str = "uniform"
+    seed: int = interpolate('${experiment.seed}')
+    memory: int = 1000000
+    batch_size: int = 256
+    combined: bool = True
+
+
 class UniformBuffer:
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: UniformReplayBufferConfig):
         self.seed = cfg.seed
         self.rng = np.random.RandomState(self.seed)
         self.memory = cfg.memory
@@ -47,7 +49,7 @@ class UniformBuffer:
         else:
             return self.pos - 1
 
-    def feed(self, experience: Transition) -> None:
+    def feed(self, experience: NewTransition) -> None:
         if self.data is None:
             # Lazy instantiation
             data_size = _get_size(experience)
@@ -61,7 +63,7 @@ class UniformBuffer:
             self.full = True
         self.pos %= self.memory
 
-    def load(self, transitions: list[Transition]) -> None:
+    def load(self, transitions: list[NewTransition]) -> None:
         assert len(transitions) > 0
 
         data_size = _get_size(transitions[0])
@@ -79,8 +81,8 @@ class UniformBuffer:
         for i in range(len(self.data)):
             self.data[i] = self.data[i].to(device.device)
 
-    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
-        if self.size == 0 or self.data is None:
+    def sample_mini_batch(self, batch_size: int | None = None) -> list[NewTransitionBatch]:
+        if self.size == [0] or self.data is None:
             return []
 
         if batch_size is None:
@@ -95,14 +97,14 @@ class UniformBuffer:
 
         return [self._prepare(sampled_data)]
 
-    def sample_batch(self) -> list[TransitionBatch]:
-        if self.size == 0 or self.data is None:
+    def sample_batch(self) -> list[NewTransitionBatch]:
+        if self.size == [0] or self.data is None:
             return []
 
         if self.full:
             sampled_data = self.data
         else:
-            sampled_data = (self.data[i][: self.pos] for i in range(len(self.data)))
+            sampled_data = [self.data[i][: self.pos] for i in range(len(self.data))]
 
         return [self._prepare(sampled_data)]
 
@@ -120,19 +122,40 @@ class UniformBuffer:
     def update_priorities(self, priority=None):
         pass
 
-    def _prepare(self, batch: Iterable[Tensor]) -> TransitionBatch:
-        return TransitionBatch(*batch)
+    def _prepare(self, batch: list[Tensor]) -> NewTransitionBatch:
+        step_attrs = len(StepBatch.__annotations__.keys())
+        prior_step_batch = StepBatch(*batch[:step_attrs])
+        post_step_batch = StepBatch(*batch[step_attrs : step_attrs * 2])
+        return NewTransitionBatch(prior_step_batch, post_step_batch, batch[-1])
+
+
+buffer_group = Group[
+    [], UniformBuffer
+]('agent/buffer')
+
+buffer_group.dispatcher(UniformBuffer)
+
+
+@dataclass
+class PriorityReplayBufferConfig(UniformReplayBufferConfig):
+    name: str = "priority"
 
 
 class PriorityBuffer(UniformBuffer):
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: PriorityReplayBufferConfig):
         super(PriorityBuffer, self).__init__(cfg)
         self.priority = torch.zeros((self.memory,))
         logger.warning("Priority buffer has not been tested yet")
 
-    def feed(self, experience: Transition) -> None:
+    def feed(self, experience: NewTransition) -> None:
         super(PriorityBuffer, self).feed(experience)
+        # UniformBuffer.feed() already increments self.pos. Need to take this into account
+        self.pos = (self.pos - 1) % self.memory
+
         self.priority[self.pos] = 1.0
+
+        self.pos += 1
+        self.pos %= self.memory
 
         if self.full:
             scale = self.priority.sum()
@@ -141,15 +164,15 @@ class PriorityBuffer(UniformBuffer):
 
         self.priority /= scale
 
-    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
-        if self.size == 0 or self.data is None:
+    def sample_mini_batch(self, batch_size: int | None = None) -> list[NewTransitionBatch]:
+        if self.size == [0] or self.data is None:
             return []
 
         if batch_size is None:
             batch_size = self.batch_size
 
         sampled_indices = self.rng.choice(
-            self.size,
+            self.size[0],
             batch_size,
             replace=False,
             p=(self.priority if self.full else self.priority[: self.pos]),
@@ -167,28 +190,30 @@ class PriorityBuffer(UniformBuffer):
             self.priority = torch.tensor(priority)
 
 
-class EnsembleUniformBuffer:
-    def __init__(self, cfg: DictConfig):
-        self.seed = cfg.seed
-        self.rng = np.random.RandomState(self.seed)
-        random.seed(self.seed)
-        self.batch_size = cfg.batch_size
-        self.ensemble = cfg.ensemble  # Size of the ensemble
-        self.data_subset = cfg.data_subset  # Percentage of all transitions added to a given buffer in the ensemble
+buffer_group.dispatcher(PriorityBuffer)
 
+
+@dataclass
+class EnsembleUniformReplayBufferConfig(UniformReplayBufferConfig):
+    name: str = "ensemble_uniform"
+    ensemble: int = 10 # Size of the ensemble
+    data_subset: float = 0.5 # Proportion of all transitions added to a given buffer in the ensemble
+
+
+class EnsembleUniformBuffer(UniformBuffer):
+    def __init__(self, cfg: EnsembleUniformReplayBufferConfig):
+        super(EnsembleUniformBuffer, self).__init__(cfg)
+        random.seed(self.seed)
+        self.ensemble = cfg.ensemble
+        self.data_subset = cfg.data_subset
         self.buffer_ensemble = [UniformBuffer(cfg) for _ in range(self.ensemble)]
 
-        if self.batch_size == 0:
-            self.sample = self.sample_batch
-        else:
-            self.sample = self.sample_mini_batch
-
-    def feed(self, experience: Transition) -> None:
+    def feed(self, experience: NewTransition) -> None:
         for i in range(self.ensemble):
             if self.rng.rand() < self.data_subset:
                 self.buffer_ensemble[i].feed(experience)
 
-    def load(self, transitions: list[Transition]) -> None:
+    def load(self, transitions: list[NewTransition]) -> None:
         num_transitions = len(transitions)
         assert num_transitions > 0
 
@@ -199,7 +224,7 @@ class EnsembleUniformBuffer:
         for i in range(self.ensemble):
             self.buffer_ensemble[i].load(ensemble_transitions[i])
 
-    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
+    def sample_mini_batch(self, batch_size: int | None = None) -> list[NewTransitionBatch]:
         ensemble_batch = []
         for i in range(self.ensemble):
             part = self.buffer_ensemble[i].sample_mini_batch(batch_size)
@@ -209,7 +234,7 @@ class EnsembleUniformBuffer:
 
         return ensemble_batch
 
-    def sample_batch(self) -> list[TransitionBatch]:
+    def sample_batch(self) -> list[NewTransitionBatch]:
         ensemble_batch = []
         for i in range(self.ensemble):
             part = self.buffer_ensemble[i].sample_batch()
@@ -228,7 +253,7 @@ class EnsembleUniformBuffer:
             self.buffer_ensemble[i].reset()
 
     def subsampling(self, idxs: list[list[int]]) -> None:
-        for i in range(len(self.buffer_ensemble)):
+        for i in range(self.ensemble):
             all_data = self.buffer_ensemble[i].data
             if all_data is None:
                 continue
@@ -244,24 +269,29 @@ class EnsembleUniformBuffer:
             self.buffer_ensemble[i].data = new_data
 
 
+buffer_group.dispatcher(EnsembleUniformBuffer)
+
+
 def _to_tensor(elem):
     if (
-            isinstance(elem, torch.Tensor)
+            isinstance(elem, Tensor)
             or isinstance(elem, np.ndarray)
             or isinstance(elem, list)
     ):
-        return torch.tensor(elem)
+        return Tensor(elem)
     elif elem is None:
         return torch.empty((1, 0))
     else:
-        return torch.tensor([elem])
+        return Tensor([elem])
 
 
-def _get_size(experience: Transition) -> list[tuple]:
+def _get_size(experience: NewTransition) -> list[tuple]:
     size = []
     for elem in experience:
         if isinstance(elem, np.ndarray):
             size.append(elem.shape)
+        elif isinstance(elem, Tensor):
+            size.append(tuple(elem.shape))
         elif elem is None:
             size.append((0,))
         elif isinstance(elem, int) or isinstance(elem, float) or isinstance(elem, bool):
@@ -272,157 +302,3 @@ def _get_size(experience: Transition) -> list[tuple]:
             raise TypeError(f"unknown type {type(elem)}")
 
     return size
-
-
-class SQLBuffer(UniformBuffer):
-    def __init__(self, cfg: DictConfig):
-        super(SQLBuffer, self).__init__(cfg)
-
-        # Temp for debugging: TODO get from buffer cfg
-        con_cfg = cfg.con_cfg
-        self.engine = sql_logging.get_sql_engine(con_cfg, db_name=cfg["db_name"])
-
-        self.session = Session(self.engine)
-        self.transition_ids = []
-        self._initial_idx = None
-        self.only_new_transitions = cfg.only_new_transitions
-
-    def register_session(self, session: Session):
-        """
-        Can be called if we need to override session
-        """
-        self.session = session
-        self.engine = session.get_bind().engine
-        self._initial_idx = self.get_initial_idx()
-
-    @property
-    def initial_idx(self):
-        if not self.only_new_transitions:
-            initial_idx = 0
-        else:
-            if self._initial_idx is None:
-                initial_idx = self.get_initial_idx()
-                self._initial_idx = initial_idx
-            else:
-                initial_idx = self._initial_idx
-        return initial_idx
-
-    def get_initial_idx(self):
-        idx = self.session.scalar(
-            select(SQLTransition.id).order_by(SQLTransition.id.desc())
-        )
-        if idx is None:
-            idx = 0
-        return idx
-
-    def _transition_feed(self, experience: Transition, transition_infos: List[TransitionInfo] | None = None) -> None:
-        sql_transition = SQLTransition(
-            state=list(experience.state),
-            action=list(experience.action),
-            reward=experience.reward,
-            next_state=list(experience.next_state),
-        )
-        if transition_infos is not None:
-            sql_transition.transition_info.extend(transition_infos)
-            sql_transition = self.session.merge(sql_transition)
-        else:
-            sql_transition = self.session.merge(sql_transition)
-            self.session.add(sql_transition)
-
-        self.session.commit()
-        self.update_data()
-
-    def _sql_transition_feed(self, experience: SQLTransition):
-
-        # experience = self.session.merge(experience)
-        self.session.add(experience)
-        self.session.commit()
-        self.update_data()
-
-    def feed(self, experience: Transition, transition_infos: List[TransitionInfo] | None = None) -> None:
-        if isinstance(experience, Transition):
-            self._transition_feed(experience, transition_infos)
-        elif isinstance(experience, SQLTransition):
-            self._sql_transition_feed(experience)
-        else:
-            raise TypeError
-
-    def _feed(self, experience: Transition) -> None:
-        return super().feed(experience)
-
-    def row_to_transition(self, row: pd.DataFrame | pd.Series) -> Transition:
-        transition = Transition(
-            obs=None,
-            state=row.state.item(),
-            action=row.action.item(),
-            reward=row.reward.item(),
-            n_step_reward=row.reward.item(),
-            next_state=row.next_state.item(),
-            boot_state=row.next_state.item(),  # WARNING: sql buffer only supports 1 step
-            next_obs=None,
-        )
-        return transition
-
-    def add_transitions(self, add_ids):
-        add_df = pd.read_sql(
-            select(SQLTransition).filter(SQLTransition.id.in_(add_ids)),
-            con=self.engine,
-        )
-
-        for id in add_ids:
-            row = add_df[add_df.id == id]
-            if len(self.transition_ids) == self.memory:
-                self.transition_ids[self.pos] = id
-            else:
-                self.transition_ids.append(id)
-
-            self._feed(self.row_to_transition(row))
-
-    def remove_transitions(self, remove_ids):
-        if self.data is None:
-            return
-
-        keep_positions = []
-        # TODO: Find a way to make this more efficient
-        for pos, id in enumerate(self.transition_ids):
-            if id not in remove_ids:
-                keep_positions.append(pos)
-
-        self.transition_ids = [self.transition_ids[pos] for pos in keep_positions]
-        self.pos = len(keep_positions)
-        for i in range(len(self.data)):
-            self.data[i][: self.pos] = self.data[i][keep_positions]
-
-    # def update_transition_ids(self):
-    def update_data(self):
-        """
-        Queries transitions table to see if active trans_ids
-        is different from self.transition_ids.
-
-        If there is a difference, updates self.transition_ids to
-        reflect new state of the table.
-        """
-
-        # get ids of active transitions in sql table
-        df = pd.read_sql(
-            select(SQLTransition.id).where(SQLTransition.exclude == False), # noqa: E712
-            con=self.engine,
-        )
-
-        # resolve differences
-        table_ids = set(df[df["id"] > self.initial_idx]["id"])
-        tid_set = set(self.transition_ids)
-        if tid_set != table_ids:
-            remove_ids = tid_set - table_ids  # ids that should be removed from buffer
-
-            if len(remove_ids) > 0:
-                self.remove_transitions(remove_ids)
-                tid_set = set(self.transition_ids)  # recompute tid set after removal
-
-            add_ids = table_ids - tid_set  # ids from table that arent in transition_ids
-            if len(add_ids) > 0:
-                self.add_transitions(add_ids)
-
-    def load(self, transitions: list) -> None:
-        for transition in transitions:
-            self._feed(transition)

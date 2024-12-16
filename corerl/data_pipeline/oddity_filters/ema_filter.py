@@ -3,7 +3,7 @@ from typing import Dict
 
 import numpy as np
 
-from corerl.data.online_stats.exp_moving import ExpMovingAvg, ExpMovingVar
+from corerl.data_pipeline.data_utils.exp_moving import ExpMovingAvg, ExpMovingVar
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
 from corerl.data_pipeline.utils import update_missing_info

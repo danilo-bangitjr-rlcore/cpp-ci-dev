@@ -1,9 +1,9 @@
 defaults:
   - gym
-  - eval@eval.reward : reward
+  # - eval@eval.reward : reward
+  - pipeline/agent_transition_creator: anytime
   - override agent: greedy_ac
   - override env : pendulum
-  - override interaction : anytime
   - override hydra/job_logging: custom
   - override agent/actor/actor_network: squashed_gaussian
   - _self_
@@ -17,6 +17,10 @@ agent:
   critic:
     critic_network:
       ensemble: 2
+
+  actor:
+    actor_optimizer:
+      lr: 0.00001
 
 experiment:
   exp_name: pendulum_test/
@@ -42,7 +46,58 @@ experiment:
   online_stat_keys: []
 
 pipeline:
+  state_constructor:
+    defaults: []
+
+  obs_interval_minutes: 5
+  agent_transition_creator:
+    steps_per_decision: 1
+    countdown: 'null'
+
   tags:
+  # observations
     - name: "x"
+      outlier:
+        name: identity
+      state_constructor:
+        - name: multi_trace
+          trace_values: [0.95]
+
     - name: "y"
+      outlier:
+        name: identity
+      state_constructor:
+        - name: multi_trace
+          trace_values: [0.95]
+
     - name: "ang_vel"
+      outlier:
+        name: identity
+      state_constructor:
+        - name: multi_trace
+          trace_values: [0.95]
+
+  # rl stuff
+    - name: action
+      is_action: True
+      outlier:
+        name: identity
+      state_constructor:
+        - name: normalizer
+          min: -2
+          max: 2
+          from_data: False
+
+    - name: reward
+      outlier:
+        name: identity
+
+    - name: term
+      outlier:
+        name: identity
+
+    - name: trunc
+      outlier:
+        name: identity
+      state_constructor:
+        - name: 'null'

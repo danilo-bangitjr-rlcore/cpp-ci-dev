@@ -1,6 +1,7 @@
 from corerl.utils.hydra import DiscriminatedUnion
 from corerl.component.actor.base_actor import group, BaseActor
 
+import corerl.component.actor.network_actor # noqa: F401
 
 def init_actor(
     cfg: DiscriminatedUnion,

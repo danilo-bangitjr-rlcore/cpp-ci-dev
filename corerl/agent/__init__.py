@@ -5,7 +5,7 @@ agent_group = Group[[int, int],BaseAgent,]('agent')
 
 def register():
     from corerl.agent.action_schedule import ActionScheduleAgent
-    from corerl.agent.greedy_ac import ExploreLSGAC, GreedyAC, GreedyACLineSearch
+    from corerl.agent.greedy_ac import GreedyAC
     from corerl.agent.greedy_iql import GreedyIQL
     from corerl.agent.inac import InAC
     from corerl.agent.iql import IQL
@@ -17,8 +17,6 @@ def register():
 
     agent_group.dispatcher(ActionScheduleAgent)
     agent_group.dispatcher(GreedyAC)
-    agent_group.dispatcher(GreedyACLineSearch)
-    agent_group.dispatcher(ExploreLSGAC)
     agent_group.dispatcher(GreedyIQL)
     agent_group.dispatcher(InAC)
     agent_group.dispatcher(IQL)

@@ -1,23 +1,20 @@
 import numpy as np
-import pandas as pd
 
-from typing import Hashable
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.utils import update_missing_info
 
 
-def _get_oob_mask(data: pd.DataFrame, name: Hashable, cfg: TagConfig) -> np.ndarray:
-    np_tag_col = data[name].to_numpy()
+def _get_oob_mask(data: np.ndarray, cfg: TagConfig) -> np.ndarray:
     if cfg.bounds[0] is None:
-        lower_bound_mask = np.array([False] * len(np_tag_col))
+        lower_bound_mask = np.array([False] * len(data))
     else:
-        lower_bound_mask = np_tag_col < cfg.bounds[0]
+        lower_bound_mask = data < cfg.bounds[0]
 
     if cfg.bounds[1] is None:
-        upper_bound_mask = np.array([False] * len(np_tag_col))
+        upper_bound_mask = np.array([False] * len(data))
     else:
-        upper_bound_mask = np_tag_col > cfg.bounds[1]
+        upper_bound_mask = data > cfg.bounds[1]
 
     oob_mask = lower_bound_mask | upper_bound_mask
 
@@ -30,8 +27,12 @@ def bound_checker(pf: PipelineFrame, tag: str, cfg: TagConfig) -> PipelineFrame:
         # empty dataframe, do nothing
         return pf
 
+    tag_data = data[tag].to_numpy()
+    if tag_data.dtype == np.bool_:
+        return pf
+
     # Get OOB mask
-    oob_mask = _get_oob_mask(data, tag, cfg)
+    oob_mask = _get_oob_mask(tag_data, cfg)
 
     # Set OOB to NaN
     data.loc[oob_mask, tag] = np.nan

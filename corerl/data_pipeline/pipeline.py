@@ -14,6 +14,7 @@ from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transition_creators.base import BaseTransitionCreatorConfig
 from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
 from corerl.data_pipeline.transition_creators.factory import init_transition_creator
 from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
@@ -38,7 +39,7 @@ class PipelineConfig:
     db: TagDBConfig = field(default_factory=TagDBConfig)
     obs_interval_minutes: float = MISSING
     state_constructor: SCConfig = field(default_factory=SCConfig)
-    agent_transition_creator: Any = field(default_factory=DummyTransitionCreatorConfig)
+    agent_transition_creator: BaseTransitionCreatorConfig = field(default_factory=DummyTransitionCreatorConfig)
 
 
 @dataclass
@@ -117,7 +118,14 @@ class Pipeline:
             stages: Sequence[StageCode] | None = None,
     ) -> PipelineReturn:
         if stages is None:
-            stages = (StageCode.BOUNDS, StageCode.ODDITY, StageCode.IMPUTER, StageCode.SC, StageCode.TC)
+            stages = (
+                StageCode.BOUNDS,
+                StageCode.ODDITY,
+                StageCode.IMPUTER,
+                StageCode.RC,
+                StageCode.SC,
+                StageCode.TC,
+            )
 
         pf = PipelineFrame(data, caller_code)
         ts = self._init_temporal_state(pf, reset_temporal_state)

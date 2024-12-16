@@ -13,7 +13,7 @@ from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import TransitionBatch, Transition
+from corerl.data_pipeline.datatypes import NewTransitionBatch, NewTransition
 
 
 @dataclass
@@ -43,7 +43,7 @@ class EpsilonGreedySarsa(BaseAgent):
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.critic_buffer = init_buffer(cfg.critic.buffer)
 
-    def update_buffer(self, transition: Transition) -> None:
+    def update_buffer(self, transition: NewTransition) -> None:
         self.critic_buffer.feed(transition)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
@@ -72,24 +72,22 @@ class EpsilonGreedySarsa(BaseAgent):
         greedy_action = action_samples[max_q_idx, :]
         return greedy_action
 
-    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_q_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
         reward_batches = []
         next_state_batches = []
         next_action_batches = []
-        mask_batches = []
-        gamma_exp_batches = []
+        gamma_batches = []
         next_qs = []
         for batch in ensemble_batch:
-            state_batch = batch.state
-            action_batch = batch.action
-            reward_batch = batch.n_step_reward
-            next_state_batch = batch.boot_state
-            mask_batch = 1 - batch.terminated
-            gamma_exp_batch = batch.gamma_exponent
-            dp_mask = batch.boot_state_dp
+            state_batch = batch.prior.state
+            action_batch = batch.prior.action
+            reward_batch = batch.post.reward
+            next_state_batch = batch.post.state
+            gamma_batch = batch.post.gamma
+            dp_mask = batch.post.dp
 
             next_actions = self._get_action(next_state_batch)
             with torch.no_grad():
@@ -105,8 +103,7 @@ class EpsilonGreedySarsa(BaseAgent):
             reward_batches.append(reward_batch)
             next_state_batches.append(next_state_batch)
             next_action_batches.append(next_actions)
-            mask_batches.append(mask_batch)
-            gamma_exp_batches.append(gamma_exp_batch)
+            gamma_batches.append(gamma_batch)
 
         # Option 2: Using the corresponding target function in the ensemble in the update target
         if self.ensemble_targets:
@@ -119,7 +116,7 @@ class EpsilonGreedySarsa(BaseAgent):
         _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
         losses = []
         for i in range(ensemble):
-            target = reward_batches[i] + mask_batches[i] * (self.gamma ** gamma_exp_batches[i]) * next_qs[i]
+            target = reward_batches[i] + gamma_batches[i] * next_qs[i]
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
 
         return losses
@@ -152,5 +149,5 @@ class EpsilonGreedySarsa(BaseAgent):
         with open(critic_buffer_path, "rb") as f:
             self.critic_buffer = pkl.load(f)
 
-    def load_buffer(self, transitions: list[Transition]) -> None:
+    def load_buffer(self, transitions: list[NewTransition]) -> None:
         ...

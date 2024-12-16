@@ -1,2 +1,1 @@
 seed : ${experiment.seed}
-obs_length : ${interaction.obs_length}

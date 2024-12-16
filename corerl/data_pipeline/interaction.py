@@ -5,16 +5,29 @@ import pandas as pd
 from datetime import UTC, datetime, timedelta
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
+from corerl.data_pipeline.tag_config import TagConfig
 
 
 logger = logging.getLogger(__file__)
 
 class InteractionWrapper:
-    def __init__(self, pipeline: Pipeline, action_period: timedelta, tol: timedelta):
+    def __init__(
+        self,
+        pipeline: Pipeline,
+        tag_configs: list[TagConfig],
+        action_period: timedelta,
+        tol: timedelta,
+    ):
         self._pipeline = pipeline
         self._action_period = action_period
         self._tol = tol
 
+        self._non_state_tags = set(
+            tag.name
+            for tag in tag_configs
+            if tag.is_action
+        )
+        self._non_state_tags.add('reward')
 
         self._last_time: datetime | None = None
         self._last_state: np.ndarray | None = None
@@ -30,14 +43,16 @@ class InteractionWrapper:
 
         timestamp = row.index[0]
         assert isinstance(timestamp, pd.Timestamp)
-        state = row.iloc[0].to_numpy()
+        tags = set(row.columns) - self._non_state_tags
+        state = row[list(tags)].iloc[0].to_numpy()
 
         self._last_time = timestamp.to_pydatetime()
         self._last_state = state
 
 
-    def get_latest_state(self) -> np.ndarray | None:
-        now = datetime.now(UTC)
+    def get_latest_state(self, time: datetime | None = None) -> np.ndarray | None:
+        if time is None:
+            time = datetime.now(UTC)
 
         if self._last_time is None:
             logger.error("Tried to get interaction state, but have no prior timestamp")
@@ -51,7 +66,7 @@ class InteractionWrapper:
             logger.error("Tried to get interaction state, but there were nan values")
             return None
 
-        if now - self._last_time > self._action_period + self._tol:
+        if time - self._last_time > self._action_period + self._tol:
             logger.error("Got a stale interaction state")
             return self._last_state
 

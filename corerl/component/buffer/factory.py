@@ -1,22 +1,6 @@
-import corerl.component.buffer.buffers as buffers
-from omegaconf import DictConfig
+from corerl.component.buffer.buffers import buffer_group, UniformReplayBufferConfig, UniformBuffer # noqa: F401
+from corerl.component.buffer.buffers import PriorityBuffer, EnsembleUniformBuffer # noqa: F401
 
 
-def init_buffer(cfg: DictConfig):
-    """
-    corresponding configs: part of config/agent
-    """
-
-    name = cfg.name
-    if name == 'prioritized':
-        buffer = buffers.PriorityBuffer(cfg)
-    elif name == 'uniform':
-        buffer = buffers.UniformBuffer(cfg)
-    elif name == 'ensemble_uniform':
-        buffer = buffers.EnsembleUniformBuffer(cfg)
-    elif name == 'sql_buffer':
-        buffer = buffers.SQLBuffer(cfg)
-    else:
-        raise NotImplementedError
-
-    return buffer
+def init_buffer(cfg: UniformReplayBufferConfig) -> UniformBuffer:
+    return buffer_group.dispatch(cfg)

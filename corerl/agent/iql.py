@@ -11,7 +11,7 @@ from corerl.component.critic.factory import init_v_critic, init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, expectile_loss
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import TransitionBatch, Transition
+from corerl.data_pipeline.datatypes import NewTransitionBatch, NewTransition
 
 
 @dataclass
@@ -41,10 +41,10 @@ class IQL(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transition: Transition) -> None:
+    def update_buffer(self, transition: NewTransition) -> None:
         self.critic_buffer.feed(transition)
         # Only train policy on states at decision points
-        if transition.state_dp:
+        if transition.prior.dp:
             self.policy_buffer.feed(transition)
 
     def compute_actor_loss(
@@ -69,14 +69,14 @@ class IQL(BaseAC):
         return value_loss
     """
 
-    def compute_v_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_v_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
         qs = []
         for batch in ensemble_batch:
-            state_batch = batch.state
-            action_batch = batch.action
+            state_batch = batch.prior.state
+            action_batch = batch.prior.action
 
             state_batches.append(state_batch)
             action_batches.append(action_batch)
@@ -91,35 +91,32 @@ class IQL(BaseAC):
 
         return losses
 
-    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_q_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
         reward_batches = []
         next_state_batches = []
-        mask_batches = []
-        gamma_exp_batches = []
+        gamma_batches = []
         next_vs = []
         for batch in ensemble_batch:
-            state_batch = batch.state
-            action_batch = batch.action
-            reward_batch = batch.n_step_reward
-            next_state_batch = batch.boot_state
-            mask_batch = 1 - batch.terminated
-            gamma_exp_batch = batch.gamma_exponent
+            state_batch = batch.prior.state
+            action_batch = batch.prior.action
+            reward_batch = batch.post.reward
+            next_state_batch = batch.post.state
+            gamma_batch = batch.post.gamma
 
             state_batches.append(state_batch)
             action_batches.append(action_batch)
             reward_batches.append(reward_batch)
             next_state_batches.append(next_state_batch)
-            mask_batches.append(mask_batch)
-            gamma_exp_batches.append(gamma_exp_batch)
+            gamma_batches.append(gamma_batch)
 
         _, next_vs = self.v_critic.get_vs(next_state_batches)
         _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
         losses = []
         for i in range(ensemble):
-            target = reward_batches[i] + ((self.gamma ** gamma_exp_batches[i]) * mask_batches[i] * next_vs[i])
+            target = reward_batches[i] + gamma_batches[i] * next_vs[i]
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
 
         return losses
@@ -142,7 +139,7 @@ class IQL(BaseAC):
             batch = batches[0]
             empty = torch.empty(0)
             actor_loss = self.compute_actor_loss((
-                empty, empty, empty, empty, batch.state, batch.action, 0,
+                empty, empty, empty, empty, batch.prior.state, batch.prior.action, 0,
             ))
             self.actor.update(actor_loss)
 
@@ -192,5 +189,5 @@ class IQL(BaseAC):
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
 
-    def load_buffer(self, transitions: list[Transition]) -> None:
+    def load_buffer(self, transitions: list[NewTransition]) -> None:
         ...

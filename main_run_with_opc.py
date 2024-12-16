@@ -10,27 +10,12 @@ from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 # Imports from main
 # from corerl.environment.factory import init_environment
 from corerl.config import MainConfig  # noqa: F401
-from corerl.interaction.anytime_interaction import AnytimeInteraction  # noqa: F401
 from corerl.utils.device import device  # noqa: F401
 from corerl.agent.factory import init_agent  # noqa: F401
-from corerl.state_constructor.factory import init_state_constructor  # noqa: F401
-from corerl.data_pipeline.factory import init_data_loader  # noqa: F401
-from corerl.data.factory import init_transition_creator  # noqa: F401
 from corerl.utils.plotting import make_online_plots, make_offline_plots  # noqa: F401
-from corerl.eval.composite_eval import CompositeEval  # noqa: F401
-from corerl.data_pipeline.base import BaseDataLoader, OldBaseDataLoader  # noqa: F401
-from corerl.data_pipeline.direct_action import DirectActionDataLoader, OldDirectActionDataLoader  # noqa: F401
 from corerl.environment.reward.factory import init_reward_function  # noqa: F401
-from corerl.data_pipeline.datatypes import OldObsTransition, Transition, ObsTransition, Trajectory  # noqa: F401
-from corerl.interaction.base import BaseInteraction  # noqa: F401
-from corerl.data.obs_normalizer import ObsTransitionNormalizer  # noqa: F401
-from corerl.data.transition_normalizer import TransitionNormalizer  # noqa: F401
-from corerl.alerts.composite_alert import CompositeAlert  # noqa: F401
-from corerl.data.transition_creator import OldAnytimeTransitionCreator, BaseTransitionCreator  # noqa: F401
-from corerl.state_constructor.base import BaseStateConstructor  # noqa: F401
 from corerl.agent.base import BaseAgent  # noqa: F401
 from corerl.utils.plotting import make_actor_critic_plots, make_reseau_gvf_critic_plot  # noqa: F401
-from corerl.data_pipeline.transition_load_funcs import make_transitions  # noqa: F401
 import corerl.utils.dict as dict_u  # noqa: F401
 import corerl.utils.nullable as nullable  # noqa: F401
 
@@ -68,4 +53,3 @@ def main(cfg: DictConfig):
 if __name__ == "__main__":
     _logger = logging.getLogger(__name__)
     main()
-

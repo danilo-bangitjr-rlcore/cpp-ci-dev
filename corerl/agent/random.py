@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.data_pipeline.datatypes import Transition
+from corerl.data_pipeline.datatypes import NewTransition
 
 
 @dataclass
@@ -17,10 +17,10 @@ class RandomAgent(BaseAgent):
         super().__init__(cfg, state_dim, action_dim)
         self.rng = np.random.RandomState(cfg.seed)
 
-    def update_buffer(self, transition: Transition) -> None:
+    def update_buffer(self, transition: NewTransition) -> None:
         pass
 
-    def load_buffer(self, transitions: list[Transition]) -> None:
+    def load_buffer(self, transitions: list[NewTransition]) -> None:
         pass
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:

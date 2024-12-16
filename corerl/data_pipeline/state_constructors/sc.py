@@ -1,6 +1,7 @@
+import pandas as pd
+
 from collections import defaultdict
 from dataclasses import dataclass, field
-import pandas as pd
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
@@ -8,6 +9,10 @@ from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group, Transform
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.utils.hydra import list_
+
+# ensure transforms are registered
+import corerl.data_pipeline.transforms.norm # noqa: F401
+import corerl.data_pipeline.transforms.trace # noqa: F401
 
 
 
@@ -24,7 +29,7 @@ class StateConstructor:
         sc_cfgs = {
             tag.name: tag.state_constructor if tag.state_constructor is not None else cfg.defaults
             for tag in tag_cfgs
-            if not tag.is_action
+            if not tag.is_action and tag.name not in {'reward', 'trunc', 'term'}
         }
 
         self._components: dict[str, list[Transform]] = {

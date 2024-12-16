@@ -3,15 +3,6 @@ defaults:
   - _self_
   - agent: greedy_ac
   - env : three_tanks
-  - interaction : anytime
-  - data_loader : direct_action
-  - state_constructor : identity
-  - calibration_model : anytime
-  - normalizer/action_normalizer : scale
-  - normalizer/obs_normalizer : maxmin
-  - normalizer/reward_normalizer : scale
-  - agent_transition_creator: anytime
-  - alert_transition_creator: anytime
 #  - alerts@alerts.action_value_trace : action_value_trace
 #  - alerts@alerts.action_value_uncertainty : action_value_uncertainty
 #  - alerts@alerts.gvf_trace : gvf_trace
@@ -19,7 +10,6 @@ defaults:
 #  - eval@eval.ibe : ibe # this lets us have multiple subconfigs rooted at eval
 #  - eval@eval.train_loss : train_loss
 #  - eval@eval.test_loss : test_loss
-  - eval@eval.reward : reward
 #  - eval@eval.action_gap : action_gap
 #  - eval@eval.trace_alerts : trace_alerts
 #  - eval@eval.uncertainty_alerts : uncertainty_alerts
@@ -38,5 +28,3 @@ agent:
 
 # Uncomment the alerts or evals you'd like to use in the defaults list above
 alerts:
-
-eval:

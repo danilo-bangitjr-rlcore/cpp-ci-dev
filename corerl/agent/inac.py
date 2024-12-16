@@ -12,7 +12,7 @@ from corerl.component.critic.factory import init_v_critic, init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import TransitionBatch, Transition
+from corerl.data_pipeline.datatypes import NewTransitionBatch, NewTransition
 
 
 @dataclass
@@ -40,10 +40,10 @@ class InAC(BaseAC):
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)
 
-    def update_buffer(self, transition: Transition) -> None:
+    def update_buffer(self, transition: NewTransition) -> None:
         self.critic_buffer.feed(transition)
         # Only train policy on states at decision points
-        if transition.state_dp:
+        if transition.prior.dp:
             self.policy_buffer.feed(transition)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
@@ -52,22 +52,22 @@ class InAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def compute_beh_loss(self, batch: TransitionBatch) -> torch.Tensor:
-        states, actions = batch.state, batch.action
+    def compute_beh_loss(self, batch: NewTransitionBatch) -> torch.Tensor:
+        states, actions = batch.prior.state, batch.prior.action
         beh_log_probs, _ = self.behaviour.get_log_prob(states, actions)
         beh_loss = -beh_log_probs.mean()
         return beh_loss
 
-    def compute_v_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_v_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
         log_probs_batches = []
         qs = []
         for batch in ensemble_batch:
-            state_batch = batch.state
-            action_batch = batch.action
-            dp_mask = batch.boot_state_dp
+            state_batch = batch.prior.state
+            action_batch = batch.prior.action
+            dp_mask = batch.post.dp
 
             sampled_actions, _ = self.actor.get_action(state_batch, with_grad=False)
             # Is this what we should be doing for InAC?
@@ -103,7 +103,7 @@ class InAC(BaseAC):
         return losses
 
 
-    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_q_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
@@ -111,17 +111,15 @@ class InAC(BaseAC):
         next_state_batches = []
         next_action_batches = []
         next_log_probs_batches = []
-        mask_batches = []
-        gamma_exp_batches = []
+        gamma_batches = []
         next_qs = []
         for batch in ensemble_batch:
-            state_batch = batch.state
-            action_batch = batch.action
-            reward_batch = batch.n_step_reward
-            next_state_batch = batch.boot_state
-            mask_batch = 1 - batch.terminated
-            gamma_exp_batch = batch.gamma_exponent
-            dp_mask = batch.boot_state_dp
+            state_batch = batch.prior.state
+            action_batch = batch.prior.action
+            reward_batch = batch.post.reward
+            next_state_batch = batch.post.state
+            gamma_batch = batch.post.gamma
+            dp_mask = batch.post.dp
 
             next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
             with torch.no_grad():
@@ -141,8 +139,7 @@ class InAC(BaseAC):
             next_state_batches.append(next_state_batch)
             next_action_batches.append(next_actions)
             next_log_probs_batches.append(next_log_probs)
-            mask_batches.append(mask_batch)
-            gamma_exp_batches.append(gamma_exp_batch)
+            gamma_batches.append(gamma_batch)
 
         # Option 2: Using the corresponding target function in the ensemble in the update target
         if self.ensemble_targets:
@@ -156,13 +153,13 @@ class InAC(BaseAC):
         losses = []
         for i in range(ensemble):
             q_pi_target = next_qs[i] - self.temp * next_log_probs_batches[i]
-            target = reward_batches[i] + mask_batches[i] * (self.gamma ** gamma_exp_batches[i]) * q_pi_target
+            target = reward_batches[i] + gamma_batches[i] * q_pi_target
             losses.append(nn.functional.mse_loss(target, qs[i]))
 
         return losses
 
-    def compute_actor_loss(self, batch):
-        states, actions = batch.state, batch.action
+    def compute_actor_loss(self, batch: NewTransitionBatch):
+        states, actions = batch.prior.state, batch.prior.action
         log_probs, _ = self.actor.get_log_prob(states, actions, with_grad=True)
         q = self.q_critic.get_q([states], [actions], with_grad=False)
         v = self.v_critic.get_v([states], with_grad=False)
@@ -252,5 +249,5 @@ class InAC(BaseAC):
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
 
-    def load_buffer(self, transitions: list[Transition]) -> None:
+    def load_buffer(self, transitions: list[NewTransition]) -> None:
         ...

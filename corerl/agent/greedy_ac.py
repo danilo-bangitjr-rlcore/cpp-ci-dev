@@ -3,9 +3,6 @@ from functools import partial
 import numpy as np
 from omegaconf import MISSING
 from pathlib import Path
-from corerl.component.actor.network_actor import NetworkActorLineSearch
-from corerl.component.critic.ensemble_critic import EnsembleQCriticLineSearch
-from corerl.component.exploration.random_network import RndNetworkExploreLineSearch
 from corerl.messages.events import EventType
 from corerl.utils.hook import when
 import torch
@@ -18,11 +15,8 @@ from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, tensor, state_to_tensor
-from corerl.component.exploration.factory import init_exploration_module
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import TransitionBatch, Transition
-from corerl.data.normalizer.base import InvertibleNormalizer
-import corerl.utils.freezer as fr
+from corerl.data_pipeline.datatypes import NewTransition, NewTransitionBatch
 from jaxtyping import Float
 from typing import Any, Optional
 
@@ -114,17 +108,10 @@ class GreedyAC(BaseAC):
         self.delta_critic = cfg.delta_critic
         assert not self.delta_critic # delta_critic==True hasn't been tested
 
-        self.action_normalizer: InvertibleNormalizer
-        self.delta_action_normalizer: InvertibleNormalizer
         self.interaction_get_action = lambda action, state: action
         self.interaction_get_action_inverse = lambda action, state: action
-        if self.delta_actor:
-            self.interaction_get_action = self.delta_to_direct
-            self.interaction_get_action_inverse = self.direct_to_delta
 
         self.get_action_for_critic = lambda out, prev_action: out
-        if self.delta_actor and (not self.delta_critic):
-            self.get_action_for_critic = self.delta_to_direct
 
         if (getattr(cfg, 'guardrail_low', None) is not None) and \
                 (getattr(cfg, 'guardrail_high', None) is not None):
@@ -132,44 +119,6 @@ class GreedyAC(BaseAC):
             self.guardrail_high = tensor(numpy.array(cfg.guardrail_high), 'cpu')
 
         self._hooks(when.Agent.AfterCreate, self)
-
-    def set_normalizer(self,
-                       action_normalizer: InvertibleNormalizer,
-                       delta_action_normalizer: InvertibleNormalizer):
-        self.action_normalizer = action_normalizer
-        self.delta_action_normalizer = delta_action_normalizer
-
-    def delta_to_direct(self,
-                        delta_action: torch.Tensor,
-                        prev_action: torch.Tensor) \
-            -> torch.Tensor:
-        if len(delta_action.shape) == 3: # [batch_size, n_samples, action_dim]
-            prev_action = prev_action.reshape(delta_action.shape)
-        delta_action = delta_action.cpu()
-        prev_action = prev_action.cpu()
-        new_action = self.action_normalizer(
-            (self.delta_action_normalizer.denormalize(delta_action) +
-             self.action_normalizer.denormalize(prev_action)).clip(self.guardrail_low, self.guardrail_high)
-        )
-        new_action = new_action.type(type(delta_action))
-        new_action = new_action.to(device=device.device)
-        return new_action
-
-    def direct_to_delta(self,
-                        direct_action: torch.Tensor,
-                        prev_action: torch.Tensor) \
-            -> torch.Tensor:
-
-        if len(direct_action.shape) == 3: # [batch_size, n_samples, action_dim]
-            prev_action = prev_action.reshape(direct_action.shape)
-        direct_action = direct_action.cpu()
-        prev_action = prev_action.cpu()
-        new_action = self.delta_action_normalizer(
-            self.action_normalizer.denormalize(direct_action) -
-            self.action_normalizer.denormalize(prev_action)
-        )
-        new_action = new_action.to(device=device.device)
-        return new_action
 
     def get_action_from_state(self, state: torch.Tensor) \
             -> torch.Tensor:
@@ -198,11 +147,9 @@ class GreedyAC(BaseAC):
         tensor_action = self.interaction_get_action(tensor_actor_action, prev_action)
         action = to_np(tensor_action)[0]
 
-        # log the action_info to the freezer
-        fr.freezer.store('action_info', action_info)
         return action
 
-    def update_buffer(self, transition: Transition) -> None:
+    def update_buffer(self, transition: NewTransition) -> None:
         self._msg_bus.emit_event_sync(EventType.agent_update_buffer)
 
         args, _ = self._hooks(
@@ -212,17 +159,18 @@ class GreedyAC(BaseAC):
         self.critic_buffer.feed(critic_transition)
 
         # Only train policy on states at decision points
-        if transition.state_dp:
+        # Assume Step object has 'is_dp' attribute
+        if transition.prior.dp:
             args, _ = self._hooks(
                 when.Agent.BeforeUpdateActorBuffer, self, transition,
             )
             actor_transition = args[1]
             self.policy_buffer.feed(actor_transition)
 
-    def load_buffer(self, transitions: list[Transition]) -> None:
+    def load_buffer(self, transitions: list[NewTransition]) -> None:
         policy_transitions = []
         for transition in transitions:
-            if transition.state_dp:
+            if transition.prior.dp:
                 policy_transitions.append(transition)
 
         self.policy_buffer.load(policy_transitions)
@@ -354,24 +302,22 @@ class GreedyAC(BaseAC):
 
         return state_batch, repeated_states, sample_actions, sorted_q_inds, stacked_s_batch, best_actions, batch_size
 
-    def compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_critic_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
         reward_batches = []
         next_state_batches = []
         next_action_batches = []
-        mask_batches = []
-        gamma_exp_batches = []
+        gamma_batches = []
         next_qs = []
         for batch in ensemble_batch:
-            state_batch = batch.state
-            action_batch = batch.action
-            reward_batch = batch.n_step_reward
-            next_state_batch = batch.boot_state
-            mask_batch = 1 - batch.terminated
-            gamma_exp_batch = batch.gamma_exponent
-            dp_mask = batch.boot_state_dp
+            state_batch = batch.prior.state
+            action_batch = batch.prior.action
+            reward_batch = batch.post.reward
+            next_state_batch = batch.post.state
+            gamma_batch = batch.post.gamma
+            dp_mask = batch.post.dp
 
             next_actor_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
             next_actions = self.get_action_for_critic(next_actor_actions, action_batch)
@@ -390,8 +336,7 @@ class GreedyAC(BaseAC):
             reward_batches.append(reward_batch)
             next_state_batches.append(next_state_batch)
             next_action_batches.append(next_actions)
-            mask_batches.append(mask_batch)
-            gamma_exp_batches.append(gamma_exp_batch)
+            gamma_batches.append(gamma_batch)
 
         # Option 2: Using the corresponding target function in the ensemble in the update target
         if self.ensemble_targets:
@@ -406,7 +351,7 @@ class GreedyAC(BaseAC):
         for i in range(ensemble):
             # N-Step SARSA update with variable 'N', thus 'reward_batch' is an n_step reward
             # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
-            target = reward_batches[i] + mask_batches[i] * (self.gamma ** gamma_exp_batches[i]) * next_qs[i]
+            target = reward_batches[i] + gamma_batches[i] * next_qs[i]
 
             _, _ = self._hooks(
               when.Agent.BeforeCriticLossComputed, self, ensemble_batch[i], target, qs[i], i
@@ -513,7 +458,7 @@ class GreedyAC(BaseAC):
         )
         batch = args[1]
 
-        update_info = self.get_policy_update_info(batch.state)
+        update_info = self.get_policy_update_info(batch.prior.state)
         args, _ = self._hooks(
             when.Agent.BeforeActorLossComputed, self, update_info,
         )
@@ -583,7 +528,7 @@ class GreedyAC(BaseAC):
             )
             batch = args[1]
 
-            update_info = self.get_policy_update_info(batch.state)
+            update_info = self.get_policy_update_info(batch.prior.state)
             args, _ = self._hooks(
                 when.Agent.BeforeProposalLossComputed, self, update_info,
             )
@@ -713,95 +658,3 @@ class GreedyAC(BaseAC):
             'critic': self.critic_buffer.size,
             'policy': self.policy_buffer.size,
         }
-
-
-@dataclass
-class GreedyACLineSearchConfig(GreedyACConfig):
-    name: str = 'greedy_ac_linesearch'
-
-    defaults: list[Any] = field(default_factory=lambda: [
-        'base_agent',
-        { 'critic': 'critic_linesearch' },
-        { 'actor': 'network_linesearch' },
-        { 'buffer': 'uniform' },
-        '_self_',
-    ])
-
-
-class GreedyACLineSearch(GreedyAC):
-    def __init__(self, cfg: GreedyACLineSearchConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
-
-        assert isinstance(self.actor, NetworkActorLineSearch)
-        assert isinstance(self.sampler, NetworkActorLineSearch)
-        assert isinstance(self.q_critic, EnsembleQCriticLineSearch)
-
-        self.actor.set_parameters(id(self.policy_buffer), eval_error_fn=self.actor_eval_error_fn)
-        self.sampler.set_parameters(id(self.policy_buffer), eval_error_fn=self.sampler_eval_error_fn)
-        self.q_critic.set_parameters(id(self.critic_buffer), eval_error_fn=self.critic_eval_error_fn)
-
-    def critic_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
-        state_batch, action_batch, reward_batch, next_state_batch, mask_batch = args
-        q = self.q_critic.get_q([state_batch], [action_batch], with_grad=False, bootstrap_reduct=True)
-        next_action, _ = self.actor.get_action(next_state_batch, with_grad=False)
-        next_q = self.q_critic.get_q_target([next_state_batch], [next_action], bootstrap_reduct=True)
-        target = reward_batch + mask_batch * self.gamma * next_q
-        error = torch.nn.functional.mse_loss(q.detach(), target.detach())
-        return error
-
-    def actor_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
-        state_batch, _, _, _, _ = args
-        _, _, _, _, stacked_s_batch, best_actions, _ = self.get_policy_update_info(state_batch)
-        logp, _ = self.actor.get_log_prob(stacked_s_batch.detach(), best_actions.detach(), with_grad=False)
-        return -logp.mean().detach()
-
-    def sampler_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
-        state_batch, _, _, _, _ = args
-        _, _, _, _, stacked_s_batch, best_actions, _ = self.get_policy_update_info(state_batch)
-        logp, _ = self.sampler.get_log_prob(stacked_s_batch.detach(), best_actions.detach(), with_grad=False)
-        return -logp.mean().detach()
-
-
-@dataclass
-class ExploreLSGACConfig(GreedyACLineSearchConfig):
-    name: str = 'greedy_ac_linesearch_explore'
-    exploration_weight: float = 0.1
-
-    exploration: Any = MISSING
-
-    defaults: list[Any] = field(default_factory=lambda: [
-        'base_agent',
-        { 'critic': 'critic_linesearch' },
-        { 'actor': 'network_linesearch' },
-        { 'buffer': 'uniform' },
-        { 'exploration': 'random_linear_linesearch' },
-        '_self_',
-    ])
-
-
-class ExploreLSGAC(GreedyACLineSearch):
-    def __init__(self, cfg: ExploreLSGACConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
-        # initialize exploration module
-        self.exploration = init_exploration_module(cfg.exploration, state_dim, action_dim)
-        assert isinstance(self.exploration, RndNetworkExploreLineSearch)
-
-        self.exploration.set_parameters(id(self.critic_buffer))
-        self.exploration_weight = cfg.exploration_weight
-
-    def update(self) -> None:
-        super().update()
-        # update exploration module
-        self.exploration.update()
-
-    def sort_q_value(self, repeated_states: torch.Tensor, sample_actions: torch.Tensor,
-                     batch_size: int) -> torch.Tensor:
-        q_values = self.q_critic.get_q([repeated_states], [sample_actions], with_grad=False, bootstrap_reduct=True)
-
-        # query the exploration bonus
-        exp_b = self.exploration.get_exploration_bonus(repeated_states, sample_actions)
-        q_values += self.exploration_weight * exp_b
-
-        q_values = q_values.reshape(batch_size, self.num_samples, 1)
-        sorted_q = torch.argsort(q_values, dim=1, descending=True)
-        return sorted_q

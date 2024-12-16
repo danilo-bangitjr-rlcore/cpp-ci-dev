@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import pandas as pd
 
+from omegaconf import MISSING
 from typing import Protocol
 from copy import copy
 from dataclasses import dataclass
@@ -13,18 +14,18 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.component.network.utils import tensor
 from corerl.data_pipeline.datatypes import PipelineFrame, Step, NewTransition
 from corerl.utils.hydra import interpolate
+from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
 from corerl.data_pipeline.transition_creators.base import (
     BaseTransitionCreator,
-    BaseTransitionCreatorConfig,
     transition_creator_group,
     TransitionCreatorTemporalState,
 )
 
 
 @dataclass
-class AnytimeTransitionCreatorConfig(BaseTransitionCreatorConfig):
+class AnytimeTransitionCreatorConfig(DummyTransitionCreatorConfig):
     name: str = "anytime"
-    steps_per_decision: int = interpolate('${interaction.steps_per_decision}')
+    steps_per_decision: int = MISSING
     gamma: float = interpolate('${experiment.gamma}')
     n_step: None | int = None  # if n_step is None, will bootstrap off of the next decision point
     only_dp_transitions: bool = False  # whether we only want to return transitions between decision points
