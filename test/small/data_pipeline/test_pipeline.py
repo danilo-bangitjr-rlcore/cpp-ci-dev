@@ -12,7 +12,7 @@ from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.transforms.affine import AffineConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import CallerCode, StageCode
-from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
+from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 
@@ -23,7 +23,12 @@ def test_construct_pipeline():
             TagConfig(name='sensor_y'),
         ],
         obs_interval_minutes=15,
-        transition_creator=DummyTransitionCreatorConfig(),
+        agent_transition_creator=AllTheTimeTCConfig(
+            # set arbitrarily
+            gamma=0.9,
+            min_n_step=1,
+            max_n_step=30
+        ),
         state_constructor=SCConfig(
             countdown=CountdownConfig(action_period=1),
         ),
@@ -38,14 +43,19 @@ def test_passing_data_to_pipeline():
             TagConfig(name='sensor_y'),
         ],
         obs_interval_minutes=15,
-        transition_creator=DummyTransitionCreatorConfig(),
+        agent_transition_creator=AllTheTimeTCConfig(
+            # set arbitrarily
+            gamma=0.9,
+            min_n_step=1,
+            max_n_step=30
+        ),
         state_constructor=SCConfig(
             countdown=CountdownConfig(action_period=1),
         ),
     )
     pipeline = Pipeline(cfg)
 
-    cols = {"sensor_x": [np.nan, 1.0, 2.0], "sensor_y": [2.0, np.nan, 3.0]}
+    cols = {"sensor_x": [np.nan, 1.0, 2.0], "sensor_y": [2.0, np.nan, 3.0], "reward": [1., 2., 3.]}
     dates = [
         datetime.datetime(2024, 1, 1, 1, 1),
         datetime.datetime(2024, 1, 1, 1, 2),
@@ -78,6 +88,12 @@ def test_state_action_dim():
             countdown=CountdownConfig(action_period=1),
         ),
         obs_interval_minutes=5,
+        agent_transition_creator=AllTheTimeTCConfig(
+            # set arbitrarily
+            gamma=0.9,
+            min_n_step=1,
+            max_n_step=30
+        ),
     )
 
     pipeline = Pipeline(cfg)
@@ -104,6 +120,12 @@ def test_sub_pipeline1():
                 ],
             ),
         ],
+        agent_transition_creator=AllTheTimeTCConfig(
+            # set arbitrarily
+            gamma=0.9,
+            min_n_step=1,
+            max_n_step=30
+        ),
         state_constructor=SCConfig(
             countdown=CountdownConfig(action_period=1),
         ),
@@ -174,6 +196,12 @@ def test_sub_pipeline2():
                 ],
             ),
         ],
+        agent_transition_creator=AllTheTimeTCConfig(
+            # set arbitrarily
+            gamma=0.9,
+            min_n_step=1,
+            max_n_step=30
+        ),
         state_constructor=SCConfig(
             countdown=CountdownConfig(action_period=1),
         ),
@@ -249,6 +277,12 @@ def test_sub_pipeline3():
                 ],
             ),
         ],
+        agent_transition_creator=AllTheTimeTCConfig(
+            # set arbitrarily
+            gamma=0.9,
+            min_n_step=1,
+            max_n_step=30
+        ),
         state_constructor=SCConfig(
             countdown=CountdownConfig(action_period=1),
         ),
@@ -298,7 +332,6 @@ def test_sub_pipeline3():
         index=idx,
     )
 
-    print(got.df)
     assert dfs_close(got.df, expected_df)
     assert got.transitions is None
 
@@ -329,6 +362,12 @@ def test_sub_pipeline4():
                 ],
             ),
         ],
+        agent_transition_creator=AllTheTimeTCConfig(
+            # set arbitrarily
+            gamma=0.9,
+            min_n_step=1,
+            max_n_step=30
+        ),
         state_constructor=SCConfig(
             countdown=CountdownConfig(action_period=1),
         ),
@@ -378,6 +417,5 @@ def test_sub_pipeline4():
         index=idx,
     )
 
-    print(got.df)
     assert dfs_close(got.df, expected_df)
     assert got.transitions is None

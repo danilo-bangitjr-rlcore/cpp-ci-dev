@@ -13,7 +13,8 @@ from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import Step, CallerCode, NewTransition
-from corerl.data_pipeline.transition_creators.anytime import AnytimeTransitionCreatorConfig
+from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
+from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 def test_pipeline1():
@@ -34,14 +35,20 @@ def test_pipeline1():
             ),
             TagConfig(name='action-1', is_action=True),
         ],
-        transition_creator=AnytimeTransitionCreatorConfig(
-            steps_per_decision=2,
+        agent_transition_creator=AllTheTimeTCConfig(
+            max_n_step=2,
             gamma=0.9,
-            n_step=None,
-            only_dp_transitions=False,
+        ),
+        agent_transition_filter=TransitionFilterConfig(
+            filters=[
+                'only_no_action_change',
+            ],
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=1,
+                kind='int'
+            ),
         ),
         obs_interval_minutes=5,
     )
@@ -75,16 +82,16 @@ def test_pipeline1():
         caller_code=CallerCode.ONLINE,
     )
 
-    cols = ['tag-1', 'tag-2_norm_trace-0.1', 'reward', 'action-1']
+    cols: Any = ['tag-1', 'tag-2_norm_trace-0.1', 'reward', 'action-1', 'countdown.[0]']
     expected_df = pd.DataFrame(
         data=[
-            [np.nan, 0,         0,    0],
-            [0,      0.18,      3,    1],
-            [1,      0.378,     0,    0],
-            [2,      0.5778,    0,    1],
-            [np.nan, 0.77778,   0,    0],
-            [4,      0.977778,  1,    1],
-            [5,      np.nan,    0,    0],
+            [np.nan, 0,         0,    0,   1],
+            [0,      0.18,      3,    1,   1],
+            [1,      0.378,     0,    0,   1],
+            [2,      0.5778,    0,    1,   1],
+            [np.nan, 0.77778,   0,    0,   1],
+            [4,      0.977778,  1,    1,   1],
+            [5,      np.nan,    0,    0,   1],
         ],
         columns=cols,
         index=idx,
@@ -95,16 +102,17 @@ def test_pipeline1():
         # notice that the first row of the DF was skipped due to the np.nan
         NewTransition(
             steps=[
-                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0., 0.18, 0, 1]), dp=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0.378, 1, 0]), dp=False),
+                # countdown is first in the state
+                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1, 0., 0.18]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 1.0, 0.378]), dp=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9
         ),
         NewTransition(
             steps=[
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0.378, 0, 1]), dp=True),
-                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([2.0, 0.5778, 1, 0]), dp=False),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 1.0, 0.378]), dp=True),
+                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1, 2.0, 0.5778]), dp=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9
@@ -131,14 +139,21 @@ def test_pipeline2():
             ),
             TagConfig(name='action-1', is_action=True),
         ],
-        transition_creator=AnytimeTransitionCreatorConfig(
-            steps_per_decision=2,
+        agent_transition_creator=AllTheTimeTCConfig(
+            max_n_step=1,
             gamma=0.9,
-            n_step=None,
-            only_dp_transitions=False,
+        ),
+        agent_transition_filter=TransitionFilterConfig(
+            filters=[
+                'only_no_action_change',
+                'only_post_dp',
+            ],
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=1,
+                kind='int',
+            ),
         ),
         obs_interval_minutes=5,
     )
@@ -171,16 +186,16 @@ def test_pipeline2():
         caller_code=CallerCode.ONLINE,
     )
 
-    cols = ['tag-1', 'tag-2_norm_trace-0.1', 'reward', 'action-1']
+    cols: Any = ['tag-1', 'tag-2_norm_trace-0.1', 'reward', 'action-1', 'countdown.[0]']
     expected_df = pd.DataFrame(
         data=[
-            [0,      0,         0,    0],
-            [0,      0.15,      3,    1],
-            [1,      0.315,     0,    0],
-            [1,      0.4815,    0,    1],
-            [1,      0.64815,   0,    0],
-            [4,      0.814815,  1,    1],
-            [4,      0.981482,  0,    0],
+            [0,      0,         0,    0,   1],
+            [0,      0.15,      3,    1,   1],
+            [1,      0.315,     0,    0,   1],
+            [1,      0.4815,    0,    1,   1],
+            [1,      0.64815,   0,    0,   1],
+            [4,      0.814815,  1,    1,   1],
+            [4,      0.981482,  0,    0,   1],
         ],
         columns=cols,
         index=idx,
@@ -191,40 +206,49 @@ def test_pipeline2():
         # notice that the first row of the DF was skipped due to the np.nan
         NewTransition(
             steps=[
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 0.0, 0, 1]), dp=True),
-                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0., 0.15, 1, 0]), dp=False),
+                # countdown comes first in the state
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 0., 0.0]), dp=True),
+                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1, 0., 0.15]), dp=True),
             ],
             n_step_reward=3.,
             n_step_gamma=0.9,
         ),
         NewTransition(
             steps=[
-                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0., 0.15, 0, 1]), dp=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 0.315, 1, 0]), dp=False),
+                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1, 0., 0.15]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 1., 0.315]), dp=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         NewTransition(
             steps=[
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 0.315, 0, 1]), dp=True),
-                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 0.4815, 1, 0]), dp=False),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 1., 0.315]), dp=True),
+                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1, 1., 0.4815]), dp=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         NewTransition(
             steps=[
-                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 0.4815, 0, 1]), dp=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 0.64815, 1, 0]), dp=False),
+                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1, 1., 0.4815]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 1., 0.64815]), dp=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         NewTransition(
             steps=[
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 0.64815, 0, 1]), dp=True),
-                Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([4., 0.814815, 1, 0]), dp=False),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 1., 0.64815]), dp=True),
+                Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1, 4., 0.814815]), dp=True),
+            ],
+            n_step_reward=1.,
+            n_step_gamma=0.9,
+        ),
+        NewTransition(
+            steps=[
+                Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1, 4., 0.814815]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 4., 0.981482]), dp=True),
             ],
             n_step_reward=1.,
             n_step_gamma=0.9,
