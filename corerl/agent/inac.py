@@ -117,9 +117,9 @@ class InAC(BaseAC):
         for batch in ensemble_batch:
             state_batch = batch.prior.state
             action_batch = batch.prior.action
-            reward_batch = batch.post.reward
+            reward_batch = batch.n_step_reward
             next_state_batch = batch.post.state
-            gamma_batch = batch.post.gamma
+            gamma_batch = batch.n_step_gamma
             dp_mask = batch.post.dp
 
             next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
