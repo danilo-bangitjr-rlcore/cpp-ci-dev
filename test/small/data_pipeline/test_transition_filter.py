@@ -4,9 +4,9 @@ from torch import Tensor
 
 from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, Step
 from corerl.data_pipeline.transition_filter import (
-    only_dp_transition,
+    only_dp,
     only_no_action_change,
-    only_post_dp_transition,
+    only_post_dp,
     TransitionFilterConfig,
     TransitionFilter
 
@@ -33,7 +33,7 @@ def test_only_dp_transitions_1():
         n_step_gamma=0.81,
         n_step_reward=1.9
     )
-    assert only_dp_transition(transition)
+    assert only_dp(transition)
 
 
 def test_only_dp_transitions_2():
@@ -46,7 +46,7 @@ def test_only_dp_transitions_2():
         n_step_gamma=0.81,
         n_step_reward=1.9
     )
-    assert not only_dp_transition(transition)
+    assert not only_dp(transition)
 
 
 def test_only_dp_transitions_3():
@@ -59,7 +59,7 @@ def test_only_dp_transitions_3():
         n_step_gamma=0.81,
         n_step_reward=1.9
     )
-    assert not only_dp_transition(transition)
+    assert not only_dp(transition)
 
 
 def test_only_post_transitions_3():
@@ -72,7 +72,7 @@ def test_only_post_transitions_3():
         n_step_gamma=0.81,
         n_step_reward=1.9
     )
-    assert only_post_dp_transition(transition)
+    assert only_post_dp(transition)
 
 
 def test_only_post_transitions_4():
@@ -85,7 +85,7 @@ def test_only_post_transitions_4():
         n_step_gamma=0.81,
         n_step_reward=1.9
     )
-    assert not only_post_dp_transition(transition)
+    assert not only_post_dp(transition)
 
 
 def test_only_no_action_change_1():
@@ -130,7 +130,7 @@ def test_only_no_action_change_3():
 def test_transition_filter_1():
     cfg = TransitionFilterConfig(
         filters=[
-            'only_post_dp_transition',
+            'only_post_dp',
             'only_no_action_change',
         ],
     )

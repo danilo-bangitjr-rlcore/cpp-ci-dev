@@ -22,12 +22,12 @@ class TransitionFilter:
 
 
 def call_filter(transitions, filter_name):
-    if filter_name == 'only_dp_transition':
-        transition_filter = only_dp_transition
+    if filter_name == 'only_dp':
+        transition_filter = only_dp
     elif filter_name == 'only_no_action_change':
         transition_filter = only_no_action_change
-    elif filter_name == 'only_post_dp_transition':
-        transition_filter = only_post_dp_transition
+    elif filter_name == 'only_post_dp':
+        transition_filter = only_post_dp
     else:
         raise NotImplementedError(f"Invalid transition filter name {filter_name}")
 
@@ -36,14 +36,14 @@ def call_filter(transitions, filter_name):
     return filtered
 
 
-def only_dp_transition(transition):
+def only_dp(transition):
     if transition.prior.dp and transition.post.dp:
         return True
     else:
         return False
 
 
-def only_post_dp_transition(transition):
+def only_post_dp(transition):
     if transition.post.dp:
         return True
     else:
