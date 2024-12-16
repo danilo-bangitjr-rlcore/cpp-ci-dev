@@ -1,3 +1,9 @@
+## 0.2.0 (2024-12-16)
+
+### Feat
+
+- merging `staging2` changes onto `master` (#315)
+
 ## 0.1.0 (2024-12-16)
 
 ### Feat
