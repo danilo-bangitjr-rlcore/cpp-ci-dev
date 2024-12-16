@@ -192,6 +192,9 @@ class AllTheTimeTC:
                     step_q,
                 )
 
+                assert isinstance(n_step_info.n_step_reward, float)
+                assert isinstance(n_step_info.n_step_gamma, float)
+
                 new_transition = NewTransition(
                     list(step_q),
                     n_step_reward=n_step_info.n_step_reward,
