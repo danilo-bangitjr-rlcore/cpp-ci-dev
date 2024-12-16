@@ -94,8 +94,11 @@ class NewTransition:
     def __iter__(self):
         for f in fields(self):
             attr = getattr(self, f.name)
-            if isinstance(attr, Step):
-                yield from iter(attr)
+            if isinstance(attr, list):  # if attr = steps
+                prior = attr[0]
+                post = attr[-1]
+                yield from iter(prior)
+                yield from iter(post)
             else:
                 yield attr
 
@@ -135,7 +138,8 @@ class StepBatch:
 class NewTransitionBatch:
     prior: StepBatch
     post: StepBatch
-    n_steps: Tensor
+    n_step_reward: Tensor
+    n_step_gamma: Tensor
 
     def __post_init__(self):
         # ensure all the attributes have the same dimension
@@ -157,12 +161,9 @@ class NewTransitionBatch:
         return (
                 self.prior == other.prior
                 and self.post == other.post
-                and torch.equal(self.n_steps, other.n_steps)
+                and torch.equal(self.n_step_reward, other.n_step_reward)
+                and torch.equal(self.n_step_gamma, other.n_step_gamma)
         )
-
-    @property
-    def batch_size(self) -> int:
-        return self.n_steps.size(0)
 
 
 class CallerCode(Enum):

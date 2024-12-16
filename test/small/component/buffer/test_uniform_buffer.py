@@ -3,17 +3,58 @@ from torch import Tensor
 from corerl.component.buffer.buffers import UniformBuffer, UniformReplayBufferConfig
 from corerl.data_pipeline.datatypes import NewTransition, NewTransitionBatch, Step, StepBatch
 
+
 def test_sample_mini_batch():
     cfg = UniformReplayBufferConfig(seed=0, memory=5, batch_size=2, combined=True)
     buffer = UniformBuffer(cfg)
 
-    step_1 = Step(1.0, Tensor([0.5]), 0.99, Tensor([0.2, 0.4, 0.6, 0.8]), True)
-    step_2 = Step(0.9, Tensor([0.6]), 0.99, Tensor([0.3, 0.5, 0.7, 0.9]), True)
-    step_3 = Step(0.8, Tensor([0.7]), 0.99, Tensor([0.4, 0.6, 0.8, 1.0]), True)
+    step_1 = Step(
+        reward=1.0,
+        action=Tensor([0.5]),
+        gamma=0.99,
+        state=Tensor([0.2, 0.4, 0.6, 0.8]),
+        dp=True,
+    )
+    step_2 = Step(
+        reward=0.9,
+        action=Tensor([0.6]),
+        gamma=0.99,
+        state=Tensor([0.3, 0.5, 0.7, 0.9]),
+        dp=True,
+    )
+    step_3 = Step(
+        reward=0.8,
+        action=Tensor([0.7]),
+        gamma=0.99,
+        state=Tensor([0.4, 0.6, 0.8, 1.0]),
+        dp=True,
+    )
 
-    trans_1 = NewTransition(step_1, step_2, 1)
-    trans_2 = NewTransition(step_2, step_3, 1)
-    trans_3 = NewTransition(step_1, step_3, 2)
+    trans_1 = NewTransition(
+        steps=[
+            step_1,
+            step_2,
+        ],
+        n_step_reward=0.9,
+        n_step_gamma=0.99,
+    )
+    trans_2 = NewTransition(
+        steps=[
+            step_2,
+            step_3,
+        ],
+        n_step_reward=0.8,
+        n_step_gamma=0.99,
+    )
+    trans_3 = NewTransition(
+        steps=[
+            step_1,
+            step_2,
+            step_3,
+        ],
+        n_step_reward=0.9+0.99*0.8,
+        n_step_gamma=0.99**2,
+    )
 
     buffer.feed(trans_1)
     buffer.feed(trans_2)
@@ -39,7 +80,8 @@ def test_sample_mini_batch():
             Tensor([[0.4, 0.6, 0.8, 1.0], [0.4, 0.6, 0.8, 1.0]]),
             Tensor([[True], [True]]),
         ),
-        Tensor([[2], [1]]),
+        Tensor([[0.9+0.99*0.8], [0.8]]),
+        Tensor([[0.99**2], [0.99]]),
     )
 
     assert batch == expected
