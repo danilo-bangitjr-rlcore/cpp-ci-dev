@@ -44,7 +44,8 @@ def has_nan(obj):
 
 
 def get_tags(df: pd.DataFrame, tags: list[str] | str) -> torch.Tensor:
-    return tensor(df[tags].to_numpy())
+    data_np = df[tags].to_numpy().astype(np.float32)
+    return tensor(data_np)
 
 
 def get_n_step_reward(step_q):
@@ -152,7 +153,6 @@ class AllTheTimeTC:
         if 'term' in df.columns:
             gammas = 1 - df['term'].to_numpy()
         dps = pf.decision_points
-
         assert len(actions) == len(states) and len(states) == len(rewards) == len(gammas) == len(dps)
 
         for i in range(len(actions)):
