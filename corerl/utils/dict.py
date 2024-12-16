@@ -99,6 +99,24 @@ def merge(d1: dict[str, Any], d2: dict[str, Any], _path: list[str] | None = None
     return out
 
 
+def get_at_path[T](d: dict[str, T], path: str) -> T:
+    if '.' not in path:
+        return d[path]
+
+    parts = path.split('.')
+    sub: Any = d
+    for i, part in enumerate(parts):
+        if i == len(parts) - 1:
+            return sub[part]
+
+        if part not in sub:
+            raise Exception(f'Item not found at path: {path}')
+
+        sub = sub[part]
+
+    raise Exception(f'Item not found at path: {path}')
+
+
 def set_at_path[T](d: dict[str, T], path: str, val: T) -> dict[str, T]:
     if '.' not in path:
         d[path] = val

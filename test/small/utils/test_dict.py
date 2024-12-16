@@ -421,3 +421,17 @@ def test_set_at_path4():
             { 'name': 'hello', 'val': 1 },
         ],
     }
+
+# -----------------
+# -- get_at_path --
+# -----------------
+def test_get_at_path1():
+    d: dict[str, Any] = {
+        'a': {
+            'b': 'hi'
+        },
+    }
+
+    path = 'a.b'
+    got = dict_u.get_at_path(d, path)
+    assert got == 'hi'
