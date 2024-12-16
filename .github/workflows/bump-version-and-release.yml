@@ -1,0 +1,75 @@
+name: Bump Version on Push to Master
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  bump-version:
+    if: ${{ !startsWith(github.event.head_commit.message, 'bump:') }}
+    runs-on: ubuntu-latest
+    name: Bump version and create changelog with commitizen
+
+    steps:
+    - name: Generate a token
+      id: generate-token
+      uses: actions/create-github-app-token@v1
+      with:
+        app-id: ${{ vars.APP_ID }}
+        private-key: ${{ secrets.APP_PRIVATE_KEY }}
+  
+    - name: Use the token
+      env:
+        GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+      run: |
+        gh api octocat
+
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ steps.generate-token.outputs.token }}
+
+    - id: cz
+      name: Create bump and changelog
+      uses: commitizen-tools/commitizen-action@master
+      with:
+        github_token: ${{ steps.generate-token.outputs.token }}
+        changelog_increment_filename: body.md
+
+    # Commitizen stores previous version as PREVIOUS_VERSION
+    # and post-bump version as REVISION within the environment
+    # If these are equal, we should skip subsequent steps
+    # related to Github releases and asset generation
+    - if: ${{ env.PREVIOUS_REVISION != env.REVISION }}
+      name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        enable-cache: true
+        cache-dependency-glob: "requirements**.txt"
+
+    - uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.PRIVATE_DEPLOY_KEY }}
+
+    - if: ${{ env.PREVIOUS_REVISION != env.REVISION }}
+      run: |
+        uv venv
+        uv pip compile --extra=dev pyproject.toml -o deps.txt
+        uv pip sync deps.txt
+        uv build
+
+    # Github's Release action is deprecated, so instead we use gh cli to make the release
+    # https://cli.github.com/manual/gh_release_create
+    - if: ${{ env.PREVIOUS_REVISION != env.REVISION }}
+      name: Create Release on GitHub
+      id: create_release
+      env:
+        GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+      run: |
+        gh release create \
+          --notes-file body.md \
+          --title "Release ${{ steps.cz.outputs.version }}" \
+          "${{ steps.cz.outputs.version }}" \
+          ./dist/*
