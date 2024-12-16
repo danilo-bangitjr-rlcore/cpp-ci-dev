@@ -1,14 +1,14 @@
-from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from omegaconf import MISSING
-from corerl.utils.hydra import Group
+from typing import Any
 
+from corerl.configs.group import Group
+from corerl.configs.config import config, MISSING
 from corerl.data_pipeline.datatypes import PipelineFrame
 
 
-@dataclass
+@config()
 class BaseOddityFilterConfig:
-    name: str = MISSING
+    name: Any = MISSING
 
 
 class BaseOddityFilter(ABC):
@@ -22,4 +22,4 @@ class BaseOddityFilter(ABC):
 
 outlier_group = Group[
     [], BaseOddityFilter
-]('pipeline/outlier_detector')
+]()

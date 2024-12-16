@@ -1,7 +1,7 @@
-from dataclasses import dataclass
-from corerl.utils.hydra import list_
+from corerl.configs.config import config, list_
 
-@dataclass
+
+@config()
 class ExperimentConfig:
     cm_eval_freq: int = 0
     debug: bool = False

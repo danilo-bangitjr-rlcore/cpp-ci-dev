@@ -2,16 +2,18 @@ import numpy as np
 import pandas as pd
 import gymnasium as gym
 from datetime import datetime, timedelta
+from corerl.configs.config import config, MISSING
 from dataclasses import dataclass
-from omegaconf import MISSING
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.utils.gym import space_bounds
 
 
-@dataclass
+@config()
 class SimAsyncEnvConfig:
     name: str = MISSING
+    discrete_control: bool = False
+    seed: int = 0
 
 
 @dataclass

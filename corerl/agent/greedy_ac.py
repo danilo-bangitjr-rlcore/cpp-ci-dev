@@ -1,15 +1,18 @@
-from dataclasses import dataclass, field
+from dataclasses import field
 from functools import partial
 import numpy as np
-from omegaconf import MISSING
 from pathlib import Path
-from corerl.messages.events import EventType
-from corerl.utils.hook import when
 import torch
 import numpy
 import pickle as pkl
 import logging
 
+
+from corerl.configs.config import config
+from corerl.component.actor.network_actor import NetworkActorConfig
+from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
+from corerl.messages.events import EventType
+from corerl.utils.hook import when
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
@@ -18,7 +21,7 @@ from corerl.component.network.utils import to_np, tensor, state_to_tensor
 from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import NewTransition, NewTransitionBatch
 from jaxtyping import Float
-from typing import Any, Optional
+from typing import Literal, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +29,9 @@ torch.autograd.set_detect_anomaly(True)  # type: ignore
 
 EPSILON = 1e-6
 
-@dataclass
+@config(frozen=True)
 class GreedyACConfig(BaseACConfig):
-    name: str = 'greedy_ac'
+    name: Literal['greedy_ac'] = 'greedy_ac'
 
     average_entropy: bool = True
     ensemble_targets: bool = False
@@ -43,16 +46,11 @@ class GreedyACConfig(BaseACConfig):
     delta_actor: bool = False
     delta_critic: bool = False
 
-    actor: Any = MISSING
-    critic: Any = MISSING
+    actor: NetworkActorConfig = field(default_factory=NetworkActorConfig)
+    critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
 
-    guardrail_low: Optional[list[float] | None] = None
-    guardrail_high: Optional[list[float] | None] = None
-
-    defaults: list[Any] = field(default_factory=lambda: [
-        'base_ac',
-        '_self_',
-    ])
+    guardrail_low: list[float] | None = None
+    guardrail_high: list[float] | None = None
 
 
 class GreedyAC(BaseAC):

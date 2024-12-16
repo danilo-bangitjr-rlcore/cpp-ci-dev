@@ -1,13 +1,15 @@
-from dataclasses import dataclass
-
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
-from corerl.data_pipeline.transforms.interface import TransformCarry
+from typing import Literal
 import pandas as pd
 
+from corerl.configs.config import config
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
+from corerl.data_pipeline.transforms.interface import TransformCarry
 
-@dataclass
+
+@config(frozen=True)
 class NullConfig(BaseTransformConfig):
-    name: str = 'null'
+    name: Literal['null'] = 'null'
+
 
 class Null:
     def __init__(self, cfg: NullConfig):

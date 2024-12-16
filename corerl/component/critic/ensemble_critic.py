@@ -1,20 +1,40 @@
+from dataclasses import field
 import torch
 from pathlib import Path
-from omegaconf import DictConfig
-from typing import Callable
+from typing import Any, Literal
 
-from corerl.component.critic.base_critic import BaseQ, BaseV
-from corerl.component.optimizers.factory import init_optimizer
-from corerl.component.network.factory import init_critic_network
+from corerl.configs.config import config
+from corerl.component.buffer.buffers import EnsembleUniformReplayBufferConfig
+from corerl.component.buffer.factory import BufferConfig
+from corerl.component.critic.base_critic import BaseQ, BaseQConfig, BaseV
+from corerl.component.network.networks import EnsembleCriticNetworkConfig
+from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
+from corerl.component.network.factory import NetworkConfig, init_critic_network
 from corerl.component.network.factory import init_critic_target
-from corerl.component.optimizers.linesearch_optimizer import LineSearchOpt
+from corerl.component.optimizers.torch_opts import AdamConfig
+from corerl.configs.config import MISSING
 from corerl.utils.device import device
 
 import corerl.utils.nullable as nullable
 
 
+@config()
+class _SharedEnsembleConfig:
+    name: Any = MISSING
+    critic_network: NetworkConfig = field(default_factory=EnsembleCriticNetworkConfig)
+    critic_optimizer: OptimizerConfig = field(default_factory=AdamConfig)
+    buffer: BufferConfig = field(default_factory=EnsembleUniformReplayBufferConfig)
+    polyak: float = 0.99
+    target_sync_freq: int = 1
+
+
+@config()
+class EnsembleCriticConfig(BaseQConfig, _SharedEnsembleConfig):
+    name: Literal['ensemble'] = 'ensemble'
+
+
 class EnsembleQCritic(BaseQ):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, output_dim: int = 1):
+    def __init__(self, cfg: EnsembleCriticConfig, state_dim: int, action_dim: int, output_dim: int = 1):
         state_action_dim = state_dim + action_dim
         self.model = init_critic_network(
             cfg.critic_network, input_dim=state_action_dim, output_dim=output_dim,
@@ -157,8 +177,9 @@ class EnsembleQCritic(BaseQ):
         )
 
 
+
 class EnsembleVCritic(BaseV):
-    def __init__(self, cfg: DictConfig, state_dim: int, output_dim: int = 1):
+    def __init__(self, cfg: EnsembleCriticConfig, state_dim: int, output_dim: int = 1):
         self.model = init_critic_network(
             cfg.critic_network, input_dim=state_dim, output_dim=output_dim,
         )
@@ -274,52 +295,4 @@ class EnsembleVCritic(BaseV):
         opt_path = path / 'critic_opt'
         self.optimizer.load_state_dict(
             torch.load(opt_path, map_location=device.device),
-        )
-
-
-class EnsembleQCriticLineSearch(EnsembleQCritic):
-    def __init__(self, cfg: DictConfig, state_dim: int, action_dim: int, output_dim: int = 1):
-        super().__init__(cfg, state_dim, action_dim, output_dim)
-        # linesearch does not need to know how many independent networks are
-        # there
-        self.optimizer = LineSearchOpt(
-            cfg.critic_optimizer, [self.model], cfg.critic_optimizer.lr,
-            cfg.max_backtracking, cfg.error_threshold, cfg.lr_lower_bound,
-            cfg.critic_optimizer.name,
-        )
-        self.model_copy = init_critic_network(
-            cfg.critic_network, input_dim=state_dim + action_dim, output_dim=output_dim,
-        )
-
-    def set_parameters(
-        self,
-        buffer_address: int,
-        eval_error_fn: Callable[[list[torch.Tensor]], torch.Tensor],
-    ) -> None:
-        self.optimizer.set_params(
-            buffer_address, [self.model_copy], eval_error_fn, ensemble=True,
-        )
-
-
-class EnsembleVCriticLineSearch(EnsembleVCritic):
-    def __init__(self, cfg: DictConfig, state_dim: int, output_dim: int = 1):
-        super().__init__(cfg, state_dim, output_dim)
-        # linesearch does not need to know how many independent networks are
-        # there
-        self.optimizer = LineSearchOpt(
-            cfg.critic_optimizer, [self.model], cfg.critic_optimizer.lr,
-            cfg.max_backtracking, cfg.error_threshold, cfg.lr_lower_bound,
-            cfg.critic_optimizer.name,
-        )
-        self.model_copy = init_critic_network(
-            cfg.critic_network, state_dim, output_dim=output_dim,
-        )
-
-    def set_parameters(
-        self,
-        buffer_address: int,
-        eval_error_fn: Callable[[list[torch.Tensor]], torch.Tensor],
-    ) -> None:
-        self.optimizer.set_params(
-            buffer_address, [self.model_copy], eval_error_fn, ensemble=True,
         )

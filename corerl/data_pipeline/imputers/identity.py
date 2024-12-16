@@ -1,14 +1,12 @@
-from dataclasses import dataclass
-from typing import Any
-
+from typing import Any, Literal
+from pydantic.dataclasses import dataclass as config
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group, ImputerTemporalState
 
 
-
-@dataclass
+@config(config={'extra': 'forbid'})
 class IdentityImputerConfig(BaseImputerConfig):
-    name: str = "identity"
+    name: Literal['identity'] = "identity"
 
 
 class IdentityImputer(BaseImputer):

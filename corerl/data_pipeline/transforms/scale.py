@@ -1,12 +1,12 @@
-from dataclasses import dataclass
-
+from typing import Literal
+from corerl.configs.config import config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
-@dataclass
+@config(frozen=True)
 class ScaleConfig(BaseTransformConfig):
-    name: str = "scale"
+    name: Literal['scale'] = "scale"
     factor: float = 1.0
 
 

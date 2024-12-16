@@ -1,17 +1,17 @@
+from typing import Any, Literal
 import numpy as np
 
+from pydantic.dataclasses import dataclass as config
 from dataclasses import dataclass
 from numba import njit
-from typing import Any
-from omegaconf import MISSING
 
+from corerl.configs.config import MISSING
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group
 
-
-@dataclass
+@config(config={'extra': 'forbid'})
 class LinearImputerConfig(BaseImputerConfig):
-    name: str = "linear"
+    name: Literal['linear'] = "linear"
     max_gap: int = MISSING # Maximum number of NaNs between the two values used in linear interpolation
 
 

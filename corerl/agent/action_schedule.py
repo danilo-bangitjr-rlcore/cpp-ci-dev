@@ -1,12 +1,10 @@
-from dataclasses import dataclass
+from typing import Literal
 import numpy as np
 from pathlib import Path
 
-import numpy
-
+from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import NewTransition
 from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.utils.hydra import list_
 
 
 def step(start: float, end: float, step: float):
@@ -20,9 +18,9 @@ def step(start: float, end: float, step: float):
     return out
 
 
-@dataclass
+@config(frozen=True)
 class ActionScheduleConfig(BaseAgentConfig):
-    name: str = 'action_schedule'
+    name: Literal['action_schedule'] = 'action_schedule'
     action_schedule: list[list[float]] = list_([
         step(0.5, 1.0, 0.05)
         + step(0.95, 0.0, -0.05)
@@ -42,7 +40,7 @@ class ActionScheduleAgent(BaseAgent):
     def load_buffer(self, transitions: list[NewTransition]) -> None:
         pass
 
-    def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
+    def get_action(self, state: np.ndarray) -> np.ndarray:
         action_ind = self.step % len(self.action_schedule)
         action_np = np.array(self.action_schedule[action_ind])
         self.step += 1

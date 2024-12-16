@@ -1,12 +1,6 @@
 defaults:
   - gym
-  # - eval@eval.reward : reward
-  - pipeline/agent_transition_creator: anytime
-  - override agent: greedy_ac
-  - override env : pendulum
-  - override hydra/job_logging: custom
-  - override agent/actor/actor_network: squashed_gaussian
-  - _self_
+  - env: env/pendulum
 
 agent:
   n_critic_updates : 1
@@ -14,11 +8,17 @@ agent:
   n_sampler_updates : 1
   num_samples: 32
   uniform_sampling_percentage: 0.8
+  gamma: ${experiment.gamma}
+  discrete_control: ${env.discrete_control}
+  seed: ${experiment.seed}
+
   critic:
-    critic_network:
-      ensemble: 2
+    buffer:
+      seed: ${experiment.seed}
 
   actor:
+    buffer:
+      seed: ${experiment.seed}
     actor_optimizer:
       lr: 0.00001
 
@@ -30,7 +30,6 @@ experiment:
   online_learning : True
   debug : 0
   seed : 1
-  param : 0
   device : cpu
   timeout : 0
   offline_steps : 0
@@ -49,10 +48,11 @@ pipeline:
   state_constructor:
     defaults: []
 
-  obs_interval_minutes: 5
   agent_transition_creator:
+    name: anytime
     steps_per_decision: 1
     countdown: 'null'
+    gamma: ${experiment.gamma}
 
   tags:
   # observations
@@ -83,7 +83,7 @@ pipeline:
       outlier:
         name: identity
       state_constructor:
-        - name: normalizer
+        - name: normalize
           min: -2
           max: 2
           from_data: False

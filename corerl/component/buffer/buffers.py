@@ -1,25 +1,31 @@
+from typing import Any, Literal, cast
 import torch
 import random
 import logging
 import numpy as np
 
 from torch import Tensor
-from dataclasses import dataclass
-
+from corerl.configs.config import config
 from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import NewTransition, NewTransitionBatch, StepBatch
-from corerl.utils.hydra import interpolate, Group
+from corerl.configs.group import Group
+from corerl.configs.config import MISSING
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class UniformReplayBufferConfig:
-    name: str = "uniform"
-    seed: int = interpolate('${experiment.seed}')
+@config()
+class BaseReplayBufferConfig:
+    name: Any = MISSING
+    seed: int = MISSING
     memory: int = 1000000
     batch_size: int = 256
     combined: bool = True
+
+
+@config()
+class UniformReplayBufferConfig(BaseReplayBufferConfig):
+    name: Literal['uniform'] = "uniform"
 
 
 class UniformBuffer:
@@ -131,19 +137,19 @@ class UniformBuffer:
 
 buffer_group = Group[
     [], UniformBuffer
-]('agent/buffer')
+]()
 
 buffer_group.dispatcher(UniformBuffer)
 
 
-@dataclass
-class PriorityReplayBufferConfig(UniformReplayBufferConfig):
+@config()
+class PriorityReplayBufferConfig(BaseReplayBufferConfig):
     name: str = "priority"
 
 
 class PriorityBuffer(UniformBuffer):
     def __init__(self, cfg: PriorityReplayBufferConfig):
-        super(PriorityBuffer, self).__init__(cfg)
+        super(PriorityBuffer, self).__init__(cast(Any, cfg))
         self.priority = torch.zeros((self.memory,))
         logger.warning("Priority buffer has not been tested yet")
 
@@ -193,20 +199,27 @@ class PriorityBuffer(UniformBuffer):
 buffer_group.dispatcher(PriorityBuffer)
 
 
-@dataclass
-class EnsembleUniformReplayBufferConfig(UniformReplayBufferConfig):
-    name: str = "ensemble_uniform"
+@config()
+class EnsembleUniformReplayBufferConfig(BaseReplayBufferConfig):
+    name: Literal["ensemble_uniform"] = "ensemble_uniform"
     ensemble: int = 10 # Size of the ensemble
     data_subset: float = 0.5 # Proportion of all transitions added to a given buffer in the ensemble
 
 
 class EnsembleUniformBuffer(UniformBuffer):
     def __init__(self, cfg: EnsembleUniformReplayBufferConfig):
-        super(EnsembleUniformBuffer, self).__init__(cfg)
+        super(EnsembleUniformBuffer, self).__init__(cast(Any,  cfg))
         random.seed(self.seed)
         self.ensemble = cfg.ensemble
         self.data_subset = cfg.data_subset
-        self.buffer_ensemble = [UniformBuffer(cfg) for _ in range(self.ensemble)]
+
+        sub_cfg = UniformReplayBufferConfig(
+            seed=cfg.seed,
+            memory=cfg.memory,
+            batch_size=cfg.batch_size,
+            combined=cfg.combined,
+        )
+        self.buffer_ensemble = [UniformBuffer(sub_cfg) for _ in range(self.ensemble)]
 
     def feed(self, experience: NewTransition) -> None:
         for i in range(self.ensemble):

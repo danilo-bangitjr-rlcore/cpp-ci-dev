@@ -1,16 +1,10 @@
-defaults:
-  - base_config
-  - agent: greedy_ac
-  - env : base_gym_env
-  # - db: credentials
-  - _self_
-
 experiment:
   plotting: False
   online_updates : True # Whether to update the agent online in deployment
 
 use_alerts: False
 action_period: 1
+obs_period: 1
 
 agent:
   message_bus:

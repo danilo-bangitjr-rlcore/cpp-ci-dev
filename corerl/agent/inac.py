@@ -1,11 +1,12 @@
-from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import torch.nn as nn
 import torch
 import numpy
 import pickle as pkl
 
+from corerl.configs.config import config
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic, init_q_critic
@@ -15,9 +16,9 @@ from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import NewTransitionBatch, NewTransition
 
 
-@dataclass
+@config(frozen=True)
 class InACConfig(BaseACConfig):
-    name: str = 'inac'
+    name: Literal['inac'] = 'inac'
 
     ensemble_targets: bool = False
     eps: float = 1e-8

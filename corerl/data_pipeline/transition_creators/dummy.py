@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-
+from typing import Literal
+from corerl.configs.config import config
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame
 from corerl.data_pipeline.transition_creators.base import (
@@ -10,9 +10,9 @@ from corerl.data_pipeline.transition_creators.base import (
 )
 
 
-@dataclass
+@config(frozen=True)
 class DummyTransitionCreatorConfig(BaseTransitionCreatorConfig):
-    name: str = "identity"
+    name: Literal['identity'] = "identity"
 
 
 class DummyTransitionCreator(BaseTransitionCreator):

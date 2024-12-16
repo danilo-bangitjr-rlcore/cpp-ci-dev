@@ -5,13 +5,13 @@ import pandas as pd
 from collections.abc import Hashable
 from dataclasses import dataclass
 
+from corerl.configs.config import config, interpolate
 from corerl.data_pipeline.utils import get_tag_temporal_state
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.utils.hydra import interpolate
 
 
-@dataclass
+@config()
 class CountdownConfig:
     action_period: int = interpolate('${action_period}')
     kind: str = 'no_countdown'

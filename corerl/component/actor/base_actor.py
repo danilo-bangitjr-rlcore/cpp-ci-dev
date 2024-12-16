@@ -3,7 +3,7 @@ import torch
 from pathlib import Path
 from abc import ABC, abstractmethod
 
-from corerl.utils.hydra import Group
+from corerl.configs.group import Group
 from corerl.component.policy.policy import Policy
 
 class BaseActor(ABC):
@@ -42,4 +42,4 @@ class BaseActor(ABC):
 group = Group[
     [int, int, BaseActor | None],
     BaseActor,
-]('agent/actor')
+]()

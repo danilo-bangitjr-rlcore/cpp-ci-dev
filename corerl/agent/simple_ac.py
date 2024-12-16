@@ -1,10 +1,11 @@
-from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import numpy
 import torch
 import pickle as pkl
 
+from corerl.configs.config import config
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic
@@ -13,12 +14,14 @@ from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import NewTransitionBatch, NewTransition
 
-@dataclass
+
+@config(frozen=True)
 class SimpleACConfig(BaseACConfig):
-    name: str = 'simple_ac'
+    name: Literal['simple_ac'] = 'simple_ac'
 
     ensemble_targets: bool = False
     tau: float = 0.0
+
 
 class SimpleAC(BaseAC):
     def __init__(self, cfg: SimpleACConfig, state_dim: int, action_dim: int):

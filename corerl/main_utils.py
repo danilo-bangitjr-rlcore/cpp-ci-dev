@@ -1,11 +1,11 @@
 import logging
+import yaml
 import corerl.utils.pickle as pkl_u
 import corerl.utils.dict as dict_u
 
 from tqdm import tqdm
 from typing import Any
 from collections.abc import Callable, Sequence
-from omegaconf import OmegaConf
 from pathlib import Path
 from corerl.config import MainConfig
 
@@ -27,7 +27,7 @@ def prepare_save_dir(cfg: MainConfig):
 
     save_path.mkdir(parents=True, exist_ok=True)
     with open(save_path / "config.yaml", "w") as f:
-        OmegaConf.save(cfg, f)
+        yaml.safe_dump(dict_u.dataclass_to_dict(cfg), f)
 
     return save_path
 

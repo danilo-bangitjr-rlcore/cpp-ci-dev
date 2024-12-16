@@ -1,12 +1,13 @@
-from dataclasses import dataclass
+from typing import Literal
 
+from corerl.configs.config import config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
-@dataclass
+@config(frozen=True)
 class AddRawConfig(BaseTransformConfig):
-    name: str = 'add_raw'
+    name: Literal['add_raw'] = 'add_raw'
 
 class AddRaw:
     def __init__(self, cfg: AddRawConfig):

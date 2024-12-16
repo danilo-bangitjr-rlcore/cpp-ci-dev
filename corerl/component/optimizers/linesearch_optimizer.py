@@ -6,36 +6,36 @@ from collections.abc import Iterable
 import torch
 import numpy as np
 import ctypes
-from dataclasses import dataclass, field
-from typing import Any, Callable
+from dataclasses import field
+from typing import Any, Callable, Literal
 from torch.optim.optimizer import Optimizer
+from corerl.configs.config import config, list_
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.custom_torch_opts import CustomAdam
 from corerl.component.optimizers.torch_opts import OptimConfig, AdamConfig, optim_group
-from corerl.utils.hydra import list_
 import linesearchopt as lso
 
 
-@dataclass
+@config()
 class LSOInitConfig:
     name: str = 'to'
     args: list[Any] = list_([0.1])
 
-@dataclass
+@config()
 class SearchConditionKwargsConfig:
     c: float = 0.1
     beta: float = 0.9
     min_step_size: float = 0
     max_step_size: float = 1
 
-@dataclass
+@config()
 class SearchConditionConfig:
     name: str = 'Armijo'
     kwargs: SearchConditionKwargsConfig = field(default_factory=SearchConditionKwargsConfig)
 
-@dataclass
+@config(frozen=True)
 class LSOConfig(OptimConfig):
-    name: str = 'lso'
+    name: Literal['lso'] = 'lso'
 
     init_step_size: float = 0.1
     max_backtracking_steps: int = 30

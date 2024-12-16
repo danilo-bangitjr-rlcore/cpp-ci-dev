@@ -1,36 +1,36 @@
+from dataclasses import field
 import torch
-from dataclasses import dataclass, field
 from pathlib import Path
-from omegaconf import MISSING
-from typing import Any, Callable
+from typing import Any, Callable, Literal, cast
 
+from corerl.configs.config import config
+from corerl.component.buffer.buffers import EnsembleUniformReplayBufferConfig
+from corerl.component.buffer.factory import BufferConfig
+from corerl.component.optimizers.torch_opts import AdamConfig
+from corerl.component.policy.factory import BaseNNConfig, SquashedGaussianPolicyConfig
+from corerl.component.actor.base_actor import BaseActor, group
+from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
+from corerl.component.optimizers.linesearch_optimizer import LSOConfig, LineSearchOpt
+from corerl.configs.config import MISSING
+from corerl.utils.device import device
 import corerl.component.policy as policy
 import corerl.utils.nullable as nullable
-from corerl.component.policy.factory import BaseNNConfig
-from corerl.component.actor.base_actor import BaseActor, group
-from corerl.component.optimizers.factory import init_optimizer, OptimConfig
-from corerl.component.optimizers.linesearch_optimizer import LSOConfig, LineSearchOpt
-from corerl.utils.device import device
 
 
-
-@dataclass
-class NetworkActorConfig:
-    name: str = 'network'
-
+@config(frozen=True)
+class _SharedNetworkActorConfig:
+    name: Any = MISSING
     action_min: float = 0
     action_max: float = 1
 
-    actor_network: BaseNNConfig = MISSING
-    actor_optimizer: OptimConfig = MISSING
-    buffer: Any = MISSING
+    actor_network: BaseNNConfig = field(default_factory=SquashedGaussianPolicyConfig)
+    actor_optimizer: OptimizerConfig = field(default_factory=AdamConfig)
+    buffer: BufferConfig = field(default_factory=EnsembleUniformReplayBufferConfig)
 
-    defaults: list[Any] = field(default_factory=lambda: [
-        {'actor_network': 'beta'},
-        {'actor_optimizer': 'adam'},
-        {'buffer': 'ensemble_uniform'},
-        '_self_',
-    ])
+
+@config(frozen=True)
+class NetworkActorConfig(_SharedNetworkActorConfig):
+    name: Literal['network'] = 'network'
 
 
 class NetworkActor(BaseActor):
@@ -114,11 +114,11 @@ class NetworkActor(BaseActor):
 group.dispatcher(NetworkActor)
 
 
-@dataclass
-class NetworkActorLineSearchConfig(NetworkActorConfig):
-    name: str = 'network_linesearch'
+@config(frozen=True)
+class NetworkActorLineSearchConfig(_SharedNetworkActorConfig):
+    name: Literal['network_linesearch'] = 'network_linesearch'
 
-    actor_optimizer: OptimConfig = field(default_factory=LSOConfig)
+    actor_optimizer: LSOConfig = field(default_factory=LSOConfig)
     error_threshold: float = 1e-4
     lr_lower_bound: float = 1e-6
     max_backtracking: int = 30
@@ -132,7 +132,7 @@ class NetworkActorLineSearch(NetworkActor):
         action_dim: int,
         initializer: BaseActor | None = None,
     ):
-        super().__init__(cfg, state_dim, action_dim, initializer)
+        super().__init__(cast(Any, cfg), state_dim, action_dim, initializer)
         assert isinstance(cfg.actor_optimizer, LSOConfig)
         self.optimizer = LineSearchOpt(
             cfg.actor_optimizer,

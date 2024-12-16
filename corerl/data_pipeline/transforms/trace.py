@@ -1,14 +1,15 @@
 import numpy as np
+from typing import Literal
 from numba import njit
 from dataclasses import dataclass
-from corerl.utils.hydra import list_
+from corerl.configs.config import config, list_
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 
 
-@dataclass
+@config(frozen=True)
 class TraceConfig(BaseTransformConfig):
-    name: str = 'multi_trace'
+    name: Literal['multi_trace'] = 'multi_trace'
     trace_values: list[float] = list_([0.9, 0.95])
 
 

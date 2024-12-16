@@ -1,15 +1,16 @@
+from typing import Literal
 import numpy as np
 from numba import njit
 from collections import defaultdict
-from dataclasses import dataclass
 
+from corerl.configs.config import config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
-@dataclass
+@config(frozen=True)
 class NormalizerConfig(BaseTransformConfig):
-    name: str = 'normalize'
+    name: Literal['normalize'] = 'normalize'
     min: float | None = None
     max: float | None = None
     from_data: bool = True

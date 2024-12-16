@@ -2,7 +2,6 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any, List, Literal, assert_never
-from omegaconf import MISSING
 
 import numpy as np
 import pandas as pd
@@ -10,12 +9,13 @@ from sqlalchemy import Engine
 import sqlalchemy
 
 import corerl.utils.pandas as pd_util
+from corerl.configs.config import config, MISSING
 from corerl.data_pipeline.db.utils import try_connect
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 
 logger = logging.getLogger(__name__)
 
-@dataclass
+@config()
 class TagDBConfig(SQLEngineConfig):
     db_name: str = MISSING
     sensor_table_name: str = MISSING

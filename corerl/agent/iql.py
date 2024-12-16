@@ -1,10 +1,11 @@
-from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import torch
 import numpy
 import pickle as pkl
 
+from corerl.configs.config import config
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic, init_q_critic
@@ -14,9 +15,9 @@ from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import NewTransitionBatch, NewTransition
 
 
-@dataclass
+@config(frozen=True)
 class IQLConfig(BaseACConfig):
-    name: str = 'iql'
+    name: Literal['iql'] = 'iql'
 
     temp: float = 1.0
     expectile: float = 0.8

@@ -1,17 +1,17 @@
+from typing import Any, Literal
 import numpy as np
 
 from dataclasses import dataclass
 from numba import njit
-from omegaconf import MISSING
-from typing import Any
 
+from corerl.configs.config import config, MISSING
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group
 
 
-@dataclass
+@config()
 class CopyImputerConfig(BaseImputerConfig):
-    name: str = "copy"
+    name: Literal['copy'] = "copy"
     imputation_horizon: int = MISSING
 
 

@@ -1,18 +1,20 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import field
 from typing import Any
 import numpy
 from pathlib import Path
 
-from omegaconf import MISSING
+from corerl.component.actor.network_actor import NetworkActorConfig
+from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
+from corerl.configs.config import MISSING, interpolate, config
 from corerl.data_pipeline.datatypes import NewTransition
 from corerl.utils.hook import Hooks, when
 from corerl.messages.client import MessageBusClientConfig, make_msg_bus_client
-from corerl.utils.hydra import interpolate
 
-@dataclass
+
+@config(frozen=True)
 class BaseAgentConfig:
-    name: str = MISSING
+    name: Any = MISSING
 
     discrete_control: bool = interpolate('${env.discrete_control}')
     freezer_freq: int = 1
@@ -78,18 +80,13 @@ class BaseAgent(ABC):
 
 
 
-@dataclass
+@config(frozen=True)
 class BaseACConfig(BaseAgentConfig):
-    critic: Any = MISSING
-    actor: Any = MISSING
+    critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
+    actor: NetworkActorConfig = field(default_factory=NetworkActorConfig)
 
     n_actor_updates: int = 1
     n_critic_updates: int = 1
-    defaults: list[Any] = field(default_factory=lambda: [
-        'base_agent',
-        { 'critic': 'critic' },
-        { 'actor': 'network' },
-    ])
 
 
 class BaseAC(BaseAgent):

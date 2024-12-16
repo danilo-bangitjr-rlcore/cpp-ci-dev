@@ -2,13 +2,12 @@ import asyncio
 import logging
 from collections import defaultdict
 from collections.abc import Callable
-from dataclasses import dataclass
 from asyncio import AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor, Future
-from omegaconf import MISSING
 from websockets import ConnectionClosed
 from websockets.asyncio.client import connect, ClientConnection
 
+from corerl.configs.config import config, MISSING
 from corerl.messages.events import Event, EventType, SubscribeEvent, maybe_parse_event
 from corerl.utils.asyncio import MaybeAwaitable, maybe_await
 
@@ -227,7 +226,7 @@ class DummyWebsocketClient(WebsocketClient):
 # -----------------
 # -- Message Bus --
 # -----------------
-@dataclass
+@config()
 class MessageBusClientConfig:
     enable: bool = False
     host: str = MISSING

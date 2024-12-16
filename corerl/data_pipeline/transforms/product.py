@@ -1,16 +1,15 @@
 from dataclasses import dataclass
+from typing import Literal
 
-from omegaconf import MISSING
-
+from corerl.configs.config import config, MISSING, list_
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.identity import IdentityConfig
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.utils.hydra import list_
 
 
-@dataclass
+@config(frozen=True)
 class ProductConfig(BaseTransformConfig):
-    name: str = "product"
+    name: Literal['product'] = "product"
 
     other: str = MISSING
     other_xform: list[BaseTransformConfig] = list_([IdentityConfig])

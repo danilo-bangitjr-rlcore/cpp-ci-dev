@@ -1,14 +1,15 @@
+from typing import Literal
 import numpy as np
 from numba import njit
-from dataclasses import dataclass
 
+from corerl.configs.config import config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
-@dataclass
+@config(frozen=True)
 class LessThanConfig(BaseTransformConfig):
-    name: str = 'less_than'
+    name: Literal['less_than'] = 'less_than'
     threshold: float = 0.0
     equal: bool = False # if true, <=
 

@@ -3,15 +3,15 @@ import pandas as pd
 from typing import Any, Dict, cast
 from dataclasses import dataclass
 from abc import abstractmethod
-from omegaconf import MISSING
 
-from corerl.utils.hydra import Group
+from corerl.configs.group import Group
+from corerl.configs.config import config, MISSING
 from corerl.data_pipeline.datatypes import StageCode, PipelineFrame
 
 
-@dataclass
+@config()
 class BaseImputerConfig:
-    name: str = MISSING
+    name: Any = MISSING
 
 
 @dataclass
@@ -50,4 +50,4 @@ class BaseImputer:
 
 imputer_group = Group[
     [Any], BaseImputer
-]('pipeline/imputer')
+]()

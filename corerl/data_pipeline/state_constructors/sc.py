@@ -1,24 +1,20 @@
 import pandas as pd
 
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import field
+from corerl.configs.config import config, list_
+from corerl.data_pipeline.transforms import TransformConfig
+from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
-from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group, Transform
+from corerl.data_pipeline.transforms.base import transform_group, Transform
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.utils.hydra import list_
-
-# ensure transforms are registered
-import corerl.data_pipeline.transforms.norm # noqa: F401
-import corerl.data_pipeline.transforms.trace # noqa: F401
 
 
-
-@dataclass
+@config()
 class SCConfig:
-    defaults: list[BaseTransformConfig] = list_([NormalizerConfig()])
+    defaults: list[TransformConfig] = list_([NormalizerConfig()])
     countdown: CountdownConfig = field(default_factory=CountdownConfig)
 
 
@@ -39,7 +35,7 @@ class StateConstructor:
 
         self._cd_adder = DecisionPointDetector(tag_cfgs, cfg.countdown)
 
-    def _construct_components(self, sub_cfgs: list[BaseTransformConfig]):
+    def _construct_components(self, sub_cfgs: list[TransformConfig]):
         return [
             transform_group.dispatch(sub_cfg) for sub_cfg in sub_cfgs
         ]

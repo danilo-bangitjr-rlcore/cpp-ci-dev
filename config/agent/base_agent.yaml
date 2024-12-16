@@ -1,7 +1,0 @@
-replay_ratio : 1
-update_freq : 1
-discrete_control : ${env.discrete_control}
-seed : ${experiment.seed}
-n_updates : 1
-freezer_freq : 1
-gamma : ${experiment.gamma}
