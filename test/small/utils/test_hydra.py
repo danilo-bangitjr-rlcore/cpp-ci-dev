@@ -1,37 +1,31 @@
-from dataclasses import dataclass, field
-from typing import Any
-from hydra.core.config_store import ConfigStore
-from hydra import initialize, compose
-from omegaconf import MISSING
-
-from corerl.utils.hydra import Group
+from typing import Literal
+from pydantic import Field
+from corerl.configs.config import config
+from corerl.configs.group import Group
 
 def test_group1():
     # -------------------------
     # -- Setup dummy configs --
     # -------------------------
-    @dataclass
+    @config()
     class Sub1:
-        name: str = 'sub1'
+        name: Literal['sub1'] = 'sub1'
         test_a: str = 'a'
 
-    @dataclass
+    @config()
     class Sub2:
-        name: str = 'sub2'
+        name: Literal['sub2'] = 'sub2'
         test_b: int = 22
 
-    @dataclass
+    @config()
     class MainConfig:
-        sub: Any = MISSING
-        defaults: list[Any] = field(default_factory=lambda: [
-            {'sub': 'sub1'},
-        ])
+        sub: Sub1 | Sub2 = Field(default_factory=Sub1, discriminator='name')
 
 
     # --------------------
     # -- Setup handlers --
     # --------------------
-    group = Group[[], str]('sub')
+    group = Group[[], str]()
     @group.dispatcher
     def _sub1_handler(cfg: Sub1):
         return f'Sub1 handler <{cfg.test_a}>'
@@ -45,23 +39,19 @@ def test_group1():
     # -----------------------
     # -- Setup main config --
     # -----------------------
-    cs = ConfigStore.instance()
-    cs.store(name='main', node=MainConfig)
-
-
     # test: if group uses config `sub1`
     # then the _sub1_handler is called
-    with initialize(version_base=None):
-        cfg = compose(config_name='main', overrides=['sub=sub1'])
-
-        got = group.dispatch(cfg.sub)
-        assert got == 'Sub1 handler <a>'
+    cfg = MainConfig(
+        sub=Sub1(),
+    )
+    got = group.dispatch(cfg.sub)
+    assert got == 'Sub1 handler <a>'
 
 
     # test: if group uses config `sub2`
     # then the _sub2_handler is called
-    with initialize(version_base=None):
-        cfg = compose(config_name='main', overrides=['sub=sub2'])
-
-        got = group.dispatch(cfg.sub)
-        assert got == 'Sub2 handler <22>'
+    cfg = MainConfig(
+        sub=Sub2(),
+    )
+    got = group.dispatch(cfg.sub)
+    assert got == 'Sub2 handler <22>'
