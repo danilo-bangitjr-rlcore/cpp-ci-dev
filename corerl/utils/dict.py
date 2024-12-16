@@ -3,7 +3,9 @@ from __future__ import annotations
 import re
 import hashlib
 from collections.abc import Callable, Iterable, MutableMapping, Sequence
+from dataclasses import fields, is_dataclass, _MISSING_TYPE
 from typing import Any
+from pydantic.fields import FieldInfo
 
 import corerl.utils.nullable as nullable
 
@@ -142,6 +144,7 @@ def set_at_path[T](d: dict[str, T], path: str, val: T) -> dict[str, T]:
             # ensure the override has a matching type
             t = type(sub[part])
             sub[part] = t(val)
+        # otherwise, keep walking and building subdicts
         elif part not in sub and not ls_part:
             sub[part] = {}
             sub = sub[part]
@@ -158,6 +161,29 @@ def set_at_path[T](d: dict[str, T], path: str, val: T) -> dict[str, T]:
             sub = sub[part]
 
     return d
+
+
+def dataclass_to_dict(o: Any) -> Any:
+    if isinstance(o, list):
+        return [
+            dataclass_to_dict(sub) for sub in o
+        ]
+
+    if not is_dataclass(o):
+        return o
+
+    out = {}
+    for v in fields(o):
+        if not isinstance(v.default_factory, _MISSING_TYPE):
+            out[v.name] = dataclass_to_dict(v.default_factory())
+
+        elif isinstance(v.default, FieldInfo):
+            out[v.name] = dataclass_to_dict(v.default.default_factory)
+
+        elif not isinstance(v.default, _MISSING_TYPE):
+            out[v.name] = dataclass_to_dict(v.default)
+
+    return out
 
 
 # ------------------------
