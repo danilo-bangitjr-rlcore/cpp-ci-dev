@@ -112,7 +112,7 @@ class Pipeline:
 
     def __call__(
             self, data: DataFrame,
-            caller_code: CallerCode,
+            caller_code: CallerCode = CallerCode.OFFLINE,
             reset_temporal_state: bool = False,
             stages: Sequence[StageCode] | None = None,
     ) -> PipelineReturn:

@@ -104,7 +104,7 @@ class DataReader:
             logger.warning(
                 f"single_aggregated_read returned {n_rows}, expected 1. Taking the last row (newest data)..."
             )
-            sensor_data = sensor_data.iloc[-1]
+            sensor_data = pd.DataFrame(sensor_data.iloc[-1], columns=sensor_data.columns)
 
         missing_cols = set(names) - set(sensor_data.columns)
         sensor_data[list(missing_cols)] = np.nan
@@ -180,11 +180,12 @@ def _time_bucket(bucket_width: timedelta, time_col: str, origin: datetime | None
     for the time buckets align with the end of the bucket rather than the beginnning.
     """
     if origin is None:
-        return f"time_bucket(INTERVAL '{bucket_width}', {time_col}) + '{bucket_width}'"
+        return f"time_bucket(INTERVAL '{bucket_width}', {time_col}, timezone => 'UTC') + '{bucket_width}'"
     else:
         assert origin.tzinfo == UTC
         origin_ts = f"TIMESTAMP '{origin.isoformat()}'"
-        return f"time_bucket(INTERVAL '{bucket_width}', {time_col}, origin => {origin_ts}) + '{bucket_width}'"
+        return (f"time_bucket(INTERVAL '{bucket_width}', {time_col}, origin => " +
+            f"{origin_ts}, timezone => 'UTC') + '{bucket_width}'")
 
 
 def _aggregator(aggregation: Literal["avg"] | Literal["last"], val_col: str, time_col: str | None = None) -> str:
