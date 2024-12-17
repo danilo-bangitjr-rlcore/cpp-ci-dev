@@ -1,3 +1,9 @@
+## 0.3.1 (2024-12-17)
+
+### Fix
+
+- support ordering of tz naive time buckets, default offline pipeline kwarg (#318)
+
 ## 0.3.0 (2024-12-17)
 
 ### Feat
