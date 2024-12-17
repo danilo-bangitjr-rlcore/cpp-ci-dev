@@ -5,7 +5,7 @@ import numpy as np
 import math
 
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.component.network.utils import tensor
@@ -21,6 +21,7 @@ class AllTheTimeTCConfig:
     max_n_step: int = interpolate('${interaction.steps_per_decision}')
 
 
+@dataclass(init=False)
 class NStepInfo:
     """
     Dataclass for holding on to information for producing transitions for each bootstrap length (n)
@@ -32,7 +33,7 @@ class NStepInfo:
     """
 
     def __init__(self, n: int):
-        self.step_q = deque(maxlen=n + 1)
+        self.step_q: deque = deque(maxlen=n + 1)
         self.n_step_reward: float | None = None
         self.n_step_gamma: float | None = None
 
