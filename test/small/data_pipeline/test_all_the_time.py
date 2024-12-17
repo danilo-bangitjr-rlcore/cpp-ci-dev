@@ -33,9 +33,9 @@ def test_get_n_step_reward_1():
     step_1 = make_test_step(1)
     step_2 = make_test_step(2)
 
-    q.appendleft(step_0)
-    q.appendleft(step_1)
-    q.appendleft(step_2)
+    q.append(step_0)
+    q.append(step_1)
+    q.append(step_2)
 
     n_step_reward, n_step_gamma = get_n_step_reward(q)
 
@@ -50,9 +50,9 @@ def test_update_n_step_reward_gamma_1():
     step_1 = make_test_step(1)
     step_2 = make_test_step(2)
 
-    q.appendleft(step_0)
-    q.appendleft(step_1)
-    q.appendleft(step_2)
+    q.append(step_0)
+    q.append(step_1)
+    q.append(step_2)
 
     n_step_reward, n_step_gamma = None, None
 
@@ -62,14 +62,14 @@ def test_update_n_step_reward_gamma_1():
 
     step_3 = make_test_step(3)
 
-    q.appendleft(step_3)
+    q.append(step_3)
     n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, q)
     assert n_step_reward == 1.9
     assert n_step_gamma == 0.81
 
     step_4 = make_test_step(4)
 
-    q.appendleft(step_4)
+    q.append(step_4)
     n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, q)
     assert n_step_reward == 1.9
     assert n_step_gamma == 0.81
@@ -82,9 +82,9 @@ def test_update_n_step_reward_gamma_2():
     step_1 = make_test_step(1)
     step_2 = make_test_step(2)
 
-    q.appendleft(step_0)
-    q.appendleft(step_1)
-    q.appendleft(step_2)
+    q.append(step_0)
+    q.append(step_1)
+    q.append(step_2)
 
     n_step_reward, n_step_gamma = None, None
 
@@ -94,14 +94,14 @@ def test_update_n_step_reward_gamma_2():
 
     step_3 = make_test_step(3, gamma=0.5)
 
-    q.appendleft(step_3)
+    q.append(step_3)
     n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, q)
     assert n_step_reward == 1.9
     assert n_step_gamma == 0.45
 
     step_4 = make_test_step(4, gamma=0.5)
 
-    q.appendleft(step_4)
+    q.append(step_4)
     n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, q)
     assert n_step_reward == 1.5
     assert n_step_gamma == 0.25

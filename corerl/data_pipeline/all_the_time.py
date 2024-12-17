@@ -72,6 +72,12 @@ def get_n_step_reward(step_q):
 
 
 def update_n_step_reward_gamma(n_step_reward, n_step_gamma, step_q):
+    """
+    Updates the n_step_reward and n_step_gamma as new steps are added to the queue.
+    * step_q has the oldest transitions first (i.e. happened first).
+    * If n_step_reward, n_step_gamma are None, initialize them by iterating backwards through the queue
+        (get_n_step_reward). Otherwise, update n_step_reward and n_step_gamma recursively.
+    """
     assert (n_step_reward is None) == (n_step_gamma is None)
 
     if n_step_gamma is None:
@@ -79,10 +85,15 @@ def update_n_step_reward_gamma(n_step_reward, n_step_gamma, step_q):
 
     else:  # update n_step_reward online with a recurrence relation
         assert n_step_reward is not None
-        discount = n_step_gamma / step_q[-1].gamma
-        n_step_gamma = discount * step_q[0].gamma
-        n_step_reward = (n_step_reward - step_q[-1].reward) / step_q[-1].gamma
-        n_step_reward = n_step_reward + discount * step_q[0].reward
+        latest_reward_discount = n_step_gamma / step_q[0].gamma
+        # subtract out the first (oldest) reward from the n_step_reward
+        n_step_reward = n_step_reward - step_q[0].reward
+        # Then un-discount all remaining rewards in the sum by the oldest discount factor
+        n_step_reward = n_step_reward / step_q[0].gamma
+        # discount and add the latest_reward to the sum
+        n_step_reward = n_step_reward + latest_reward_discount * step_q[-1].reward
+        # produce the gamma for discounting after the final step
+        n_step_gamma = latest_reward_discount * step_q[-1].gamma
 
     return n_step_reward, n_step_gamma
 
@@ -176,7 +187,7 @@ class AllTheTimeTC:
 
     def _update(self, step: Step) -> list[NewTransition]:
         """
-        Updates the all step queues, n_step_rewards, and n_step_gamma with the new step,
+        Updates all the step queues, n_step_rewards, and n_step_gammas stored in self.step_info with the new step,
         then returns any produced transitions.
         """
         new_transitions = []
