@@ -27,11 +27,10 @@ class NStepInfo:
     Dataclass for holding on to information for producing transitions for each bootstrap length (n)
     Holds:
      * a queue of steps
-     * the discounted sum of rewards from step_q[1] to step_q[-1]. We don't include the first step since the bootstrap
-     goes from its state to step_q[-1].state
-     * the discount fact for bootstrapping off step_q[-1].state
+     * the discounted sum of rewards for steps in step_q. The first step's reward is ignored since it occurred
+        prior to the first step's state being created
+     * the discount factor for bootstrapping off step_q[-1].state
     """
-
     def __init__(self, n: int):
         self.step_q: deque = deque(maxlen=n + 1)
         self.n_step_reward: float | None = None
