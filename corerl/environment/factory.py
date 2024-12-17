@@ -182,7 +182,7 @@ def init_environment(cfg: DictConfig) -> gym.Env:
     elif name == 'reseau':
         env = ReseauEnv(cfg)
     elif name == 'saturation':
-        env = Saturation(seed)
+        env = Saturation()
     elif name == 'delayed_saturation':
         env = DelayedSaturation(seed, cfg)
     else:

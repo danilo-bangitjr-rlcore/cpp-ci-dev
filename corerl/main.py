@@ -11,6 +11,8 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.sim_async_env import SimAsyncEnv, SimAsyncEnvConfig
 from corerl.interaction.sim_interaction import SimInteraction
 
+from corerl.environment.registry import register_custom_envs
+
 import corerl.utils.freezer as fr
 import corerl.main_utils as utils
 
@@ -22,6 +24,9 @@ def main(cfg: MainConfig):
     fr.init_freezer(save_path / 'logs')
 
     device.update_device(cfg.experiment.device)
+
+    # get custom gym environments
+    register_custom_envs()
 
     # set the random seeds
     seed = cfg.experiment.seed
