@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 
 from torch import Tensor
 
@@ -23,108 +24,70 @@ def make_test_step(i, action=0., gamma=0.9, reward=1.0, dp=False) -> Step:
     )
 
 
-def test_only_dp_transitions_1():
+def make_test_dp_transition(dps: list[bool]):
     transition = NewTransition(
         steps=[
-            make_test_step(0, dp=True),
-            make_test_step(1),
-            make_test_step(2, dp=True),
+            make_test_step(i, dp=dp) for i, dp in enumerate(dps)
         ],
         n_step_gamma=0.81,
         n_step_reward=1.9
     )
-    assert only_dp(transition)
+    return transition
 
 
-def test_only_dp_transitions_2():
+@pytest.mark.parametrize(
+    "dps, expected",
+    [
+        ([True, False, True], True),
+        ([True, True, False], False),
+        ([False, True, False], False),
+
+    ]
+)
+def test_only_dp_transitions(dps, expected):
+    transition = make_test_dp_transition(dps)
+    assert only_dp(transition) == expected
+
+
+@pytest.mark.parametrize(
+    "dps, expected",
+    [
+        ([False, True, True], True),
+        ([True, False, False], False),
+        ([False, True, False], False),
+
+    ]
+)
+def test_only_post_transitions(dps, expected):
+    transition = make_test_dp_transition(dps)
+    assert only_post_dp(transition) == expected
+
+
+def make_action_change_transition(
+        dps: list[bool],
+        actions: list[int]):
     transition = NewTransition(
         steps=[
-            make_test_step(0, dp=True),
-            make_test_step(1, True),
-            make_test_step(2, dp=False),
+            make_test_step(i, dp=dps[i], action=actions[i]) for i in range(len(dps))
         ],
         n_step_gamma=0.81,
         n_step_reward=1.9
     )
-    assert not only_dp(transition)
+    return transition
 
 
-def test_only_dp_transitions_3():
-    transition = NewTransition(
-        steps=[
-            make_test_step(0, dp=False),
-            make_test_step(1, True),
-            make_test_step(2, dp=False),
-        ],
-        n_step_gamma=0.81,
-        n_step_reward=1.9
-    )
-    assert not only_dp(transition)
+@pytest.mark.parametrize(
+    "dps, actions, expected",
+    [
+        ([False, False, False], [0, 1, 0], False),
+        ([False, False, False], [0, 0, 0], True),
+        ([False, False, False], [1, 0, 0], True),
 
-
-def test_only_post_transitions_3():
-    transition = NewTransition(
-        steps=[
-            make_test_step(0, dp=False),
-            make_test_step(1, True),
-            make_test_step(2, dp=True),
-        ],
-        n_step_gamma=0.81,
-        n_step_reward=1.9
-    )
-    assert only_post_dp(transition)
-
-
-def test_only_post_transitions_4():
-    transition = NewTransition(
-        steps=[
-            make_test_step(0, dp=True),
-            make_test_step(1, False),
-            make_test_step(2, dp=False),
-        ],
-        n_step_gamma=0.81,
-        n_step_reward=1.9
-    )
-    assert not only_post_dp(transition)
-
-
-def test_only_no_action_change_1():
-    transition = NewTransition(
-        steps=[
-            make_test_step(0, action=0),
-            make_test_step(1, action=1),
-            make_test_step(2, action=0),
-        ],
-        n_step_gamma=0.81,
-        n_step_reward=1.9
-    )
-    assert not only_no_action_change(transition)
-
-
-def test_only_no_action_change_2():
-    transition = NewTransition(
-        steps=[
-            make_test_step(0, action=0),
-            make_test_step(1, action=0),
-            make_test_step(2, action=0),
-        ],
-        n_step_gamma=0.81,
-        n_step_reward=1.9
-    )
-    assert only_no_action_change(transition)
-
-
-def test_only_no_action_change_3():
-    transition = NewTransition(
-        steps=[
-            make_test_step(0, action=1),
-            make_test_step(1, action=0),
-            make_test_step(2, action=0),
-        ],
-        n_step_gamma=0.81,
-        n_step_reward=1.9
-    )
-    assert only_no_action_change(transition)
+    ]
+)
+def test_only_no_action_change(dps, actions, expected):
+    transition = make_action_change_transition(dps, actions)
+    assert only_no_action_change(transition) == expected
 
 
 def test_transition_filter_1():
