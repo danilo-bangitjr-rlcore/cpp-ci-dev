@@ -1,0 +1,199 @@
+import re
+import sys
+from pydantic_core import PydanticUndefined
+import yaml
+from collections.abc import Callable
+from typing import Any, Concatenate
+from pydantic import TypeAdapter
+from pathlib import Path
+
+
+from corerl.configs.config import MISSING
+import corerl.utils.dict as dict_u
+
+# -------------------
+# -- CLI Overrides --
+# -------------------
+def _get_equals_or_next(flag: str, idx: int):
+    """
+    Two valid command line syntax:
+      --flag=val
+      --flag val
+
+    The first is parsed by `sys.argv` as a single entry
+    that needs to be split. The second is parsed as two
+    adjacent entries.
+
+    This function returns a {flag: val} dict if either
+    syntax is used, or an empty {} if neither is detected.
+    """
+    chunk = sys.argv[idx]
+
+    if not chunk.startswith(f'--{flag}'):
+        return {}
+
+    chunk = chunk.removeprefix(f'--{flag}')
+    if chunk.startswith('='):
+        return { flag: chunk.removeprefix('=') }
+
+    return { flag: sys.argv[idx + 1] }
+
+
+def _get_anonymous_equals(idx: int):
+    """
+    Parse any cli flags that are not prefixed
+    by two hyphens (--) and that contain an
+    equal sign (=).
+      flag=val
+      a.b.c=val
+
+    Ignore flags of the form
+      --flag=val
+      --flag val
+      flag val
+    """
+    chunk = sys.argv[idx]
+
+    if chunk.startswith('--'):
+        return {}
+
+    if '=' not in chunk:
+        return {}
+
+    name, val = chunk.split('=')
+    return { name: val }
+
+
+def _flags_from_cli():
+    flags: dict[str, str] = {}
+    for i in range(1, len(sys.argv)):
+        flags = (
+            flags
+            | _get_equals_or_next('base', i)
+            | _get_equals_or_next('config-name', i)
+            | _get_anonymous_equals(i)
+        )
+
+    return flags
+
+
+# --------------------
+# -- Interpolations --
+# --------------------
+def _walk_config_and_interpolate(root: dict[str, Any]):
+    def _inner(part: dict[str, object]):
+        if not isinstance(part, dict):
+            return
+
+        for k, v in part.items():
+            if isinstance(v, str):
+                # check if value matches the pattern:
+                #   ${some.path.to.config.value}
+                # and give back the group:
+                #   some.path.to.config.value
+                path = re.match(r'\$\{(.+)\}', v)
+                if path:
+                    part[k] = dict_u.get_at_path(root, path.group(1))
+
+            elif isinstance(v, dict):
+                _inner(v)
+
+            elif isinstance(v, list):
+                list(map(_inner, v))
+
+    _inner(root)
+    return root
+
+
+# --------------------------
+# -- YAML Default Merging --
+# --------------------------
+def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
+    path = Path(base) / f'{config_name}.yaml'
+
+    with open(path, 'r') as f:
+        config = yaml.safe_load(f)
+
+    # if a config does not load subfiles
+    # then our work here is done
+    if 'defaults' not in config:
+        return config
+
+    # otherwise recursively load each subfile
+    # and merge using the parent as precedent
+    for default in config['defaults']:
+        # if the subfile path is just a string,
+        # then merge with the entire parent
+        if isinstance(default, str):
+            def_config = _load_raw_config(base, default)
+            config = dict_u.merge(def_config, config)
+
+        # if the subfile is a key-value pair,
+        # the key specifies the sub-dictionary to
+        # merge the subfile into.
+        elif isinstance(default, dict):
+            k = list(default.keys())[0]
+            v = list(default.values())[0]
+
+            if k not in config or config[k] is None:
+                config[k] = {}
+
+            def_config = _load_raw_config(base, v)
+            config[k] = dict_u.merge(def_config, config[k])
+
+    del config['defaults']
+    return config
+
+
+def _load_config[T](Config: type[T], base: str | None = None, config_name: str | None = None):
+    # parse all of the command line flags
+    # gracefully ignore those we can't parse
+    flags = _flags_from_cli()
+
+    # give precedence to cli overrides
+    # else, require function args to be specified
+    base = flags.get('base', base)
+    config_name = flags.get('config-name', config_name)
+    assert base is not None and config_name is not None, 'Must specify a base path for configs and a config name'
+
+    # load the raw config with defaults resolved
+    raw_config = _load_raw_config(base, config_name)
+
+    # grab defaults from python-side configs
+    schema_defaults = dict_u.dataclass_to_dict(Config)
+    schema_defaults = dict_u.filter(lambda v: v != MISSING, schema_defaults)
+    schema_defaults = dict_u.filter(lambda v: v != PydanticUndefined, schema_defaults)
+    raw_config = dict_u.merge(
+        schema_defaults,
+        raw_config,
+    )
+
+    # handle any cli overrides
+    cli_overrides = dict_u.drop(flags, ['base', 'config-name'])
+    for override_key, override_value in cli_overrides.items():
+        dict_u.set_at_path(raw_config, override_key, override_value)
+
+    # handle any interpolations
+    raw_config = _walk_config_and_interpolate(raw_config)
+
+    # validate config against provided schema, Config.
+    # raise exception on extra values not in schema
+    ta = TypeAdapter(Config)
+    config = ta.validate_python(raw_config)
+    return config
+
+# ----------------
+# -- Public API --
+# ----------------
+def load_config[T](Config: type[T], base: str | None = None, config_name: str | None = None):
+    def _inner[**U, R](f: Callable[Concatenate[T, U], R]):
+        def __inner(*args: U.args, **kwargs: U.kwargs) -> R:
+            config = _load_config(Config, base, config_name)
+            return f(config, *args, **kwargs)
+        return __inner
+    return _inner
+
+
+def config_to_dict(Config: type[object], config: object):
+    ta = TypeAdapter(Config)
+    return ta.dump_python(config, warnings=False)

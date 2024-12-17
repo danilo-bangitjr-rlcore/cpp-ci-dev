@@ -1,21 +1,21 @@
-from dataclasses import dataclass, field
+from dataclasses import field
 import torch
 import torch.nn as nn
 import ctypes
-from typing import Optional, Callable
+from typing import Literal, Optional, Callable
+from corerl.configs.config import config
 from corerl.component.network.networks import NNTorsoConfig, RndLinearUncertaintyConfig
 from corerl.component.network.utils import clone_model_0to1
 from corerl.component.exploration.base import BaseExploration, explore_group
 from corerl.component.network.factory import BaseNetworkConfig, init_custom_network
-from corerl.component.optimizers.linesearch_optimizer import LSOConfig, LineSearchOpt
 from corerl.component.optimizers.factory import init_optimizer
 from corerl.component.optimizers.torch_opts import CustomAdamConfig, OptimConfig
-from corerl.utils.hydra import DiscriminatedUnion, interpolate
+from corerl.configs.config import interpolate
 
 
-@dataclass(frozen=True)
-class RndNetworkExploreConfig(DiscriminatedUnion):
-    name: str = 'random_linear'
+@config(frozen=True)
+class RndNetworkExploreConfig:
+    name: Literal['random_linear'] = 'random_linear'
     gamma: float = interpolate('${agent.gamma}')
 
     exploration_network: BaseNetworkConfig = field(default_factory=RndLinearUncertaintyConfig)
@@ -99,57 +99,3 @@ class RndNetworkExplore(BaseExploration):
 
 
 explore_group.dispatcher(RndNetworkExplore)
-
-
-@dataclass(frozen=True)
-class RndNetworkExploreLSConfig(RndNetworkExploreConfig):
-    name: str = 'random_linear_linesearch'
-
-    max_backtracking: int = 30
-    error_threshold: float = 1e-4
-    lr_lower_bound: float = 1e-6
-
-    exploration_optimizer: LSOConfig = field(default_factory=LSOConfig)
-
-
-class RndNetworkExploreLineSearch(RndNetworkExplore):
-    def __init__(self, cfg: RndNetworkExploreLSConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
-        self.fbonus0_copy = init_custom_network(cfg.exploration_network, state_dim+action_dim, state_dim+action_dim)
-        self.fbonus1_copy = init_custom_network(cfg.exploration_network, state_dim+action_dim, state_dim+action_dim)
-
-        clone_model_0to1(self.fbonus0, self.fbonus0_copy)
-        clone_model_0to1(self.fbonus1, self.fbonus1_copy)
-        self.optimizer = LineSearchOpt(cfg.exploration_optimizer, [self.fbonus0, self.fbonus1],
-                                       cfg.exploration_optimizer.lr, cfg.max_backtracking,
-                                       cfg.error_threshold, cfg.lr_lower_bound,
-                                       cfg.exploration_optimizer.name)
-
-    def set_parameters(self, buffer_address: int, eval_error_fn: Optional['Callable'] = None) -> None:
-        assert eval_error_fn is None # Define the eval function inside the class
-        self.optimizer.set_params(buffer_address, [self.fbonus0_copy, self.fbonus1_copy],
-                                  self.exploration_eval_error_fn)
-        self.buffer = ctypes.cast(buffer_address, ctypes.py_object).value
-
-    def exploration_eval_error_fn(self, args: list[torch.Tensor]) -> torch.Tensor:
-        state, action, _, _, _ = args
-        return self.get_exploration_bonus(state, action).mean()
-
-    def update(self) -> None:
-        batch = self.buffer.sample()
-        state_batch = batch.state
-        action_batch = batch.action
-        next_state_batch = batch.boot_state
-        mask_batch = 1 - batch.terminated
-        random_next_action, _ = self.random_policy(next_state_batch)
-        loss0, loss1 = self.explore_bonus_loss(state_batch, action_batch, next_state_batch,
-                                               random_next_action, mask_batch, self.gamma)
-        self.optimizer.zero_grad()
-        loss0.backward()
-        loss1.backward()
-        self.optimizer.step()
-
-    def get_networks(self) -> list[torch.nn.Module]:
-        return [self.fbonus0, self.fbonus1, self.fbonus0_copy, self.fbonus1_copy]
-
-explore_group.dispatcher(RndNetworkExploreLineSearch)

@@ -1,4 +1,5 @@
 import hashlib
+from typing import Any
 import corerl.utils.dict as dict_u
 
 
@@ -267,3 +268,170 @@ def test_hash_many1():
 
     assert dict_u.hash_many(ds1) == dict_u.hash_many(ds1)
     assert dict_u.hash_many(ds1) != dict_u.hash_many(ds2)
+
+
+# -----------
+# -- merge --
+# -----------
+
+def test_merge1():
+    d1 = {
+        'a': 1,
+        'b': 2,
+        'd': 4,
+    }
+
+    d2 = {
+        'a': 5,
+        'c': 3,
+    }
+
+    # right-most dict takes precedence
+    got = dict_u.merge(d1, d2)
+    assert got == {
+        'a': 5,
+        'b': 2,
+        'c': 3,
+        'd': 4,
+    }
+
+    # no dicts are harmed in the merging
+    assert d1 == {
+        'a': 1,
+        'b': 2,
+        'd': 4,
+    }
+    assert d2 == {
+        'a': 5,
+        'c': 3,
+    }
+
+
+def test_merge2():
+    d1 = {
+        'a': 1,
+        'b': {
+            'c': 2,
+            'd': ['hi', 'there'],
+        },
+        'f': [1, 2, 3],
+    }
+
+    d2 = {
+        'a': 5,
+        'b': {
+            'c': 3,
+            'e': 4,
+        },
+        'f': [4, 5, 6],
+    }
+
+    # right-most dict takes precedence
+    got = dict_u.merge(d1, d2)
+    assert got == {
+        'a': 5,
+        'b': {
+            'c': 3,
+            'd': ['hi', 'there'],
+            'e': 4,
+        },
+        'f': [4, 5, 6],
+    }
+
+
+def test_merge3():
+    d1 = {
+        'list': [
+            {'a': 22},
+            {'b': 33},
+        ],
+    }
+
+    d2 = {
+        'list': [
+            {'a': 44},
+            {'c': 55},
+        ],
+    }
+
+    got = dict_u.merge(d1, d2)
+    assert got == {
+        'list': [
+            {'a': 44},
+            {'b': 33, 'c': 55},
+        ],
+    }
+
+
+# -----------------
+# -- set_at_path --
+# -----------------
+
+def test_set_at_path1():
+    d = {}
+    path = 'a.b.c'
+    got = dict_u.set_at_path(d, path, val=22)
+
+    assert got == {
+        'a': {
+            'b': {
+                'c': 22,
+            },
+        },
+    }
+
+def test_set_at_path2():
+    d: dict[str, Any] = { 'a': {} }
+    path = 'a.b.c'
+    got = dict_u.set_at_path(d, path, val=22)
+
+    assert got == {
+        'a': {
+            'b': {
+                'c': 22,
+            },
+        },
+    }
+
+def test_set_at_path3():
+    d: dict[str, Any] = {}
+    path = 'a.b[1].c'
+    got = dict_u.set_at_path(d, path, val=22)
+
+    assert got == {
+        'a': {
+            'b': [
+                {},
+                {'c': 22},
+            ],
+        },
+    }
+
+def test_set_at_path4():
+    d: dict[str, Any] = {
+        'ls': [
+            { 'name': 'thing', 'val': 1 },
+        ]
+    }
+    path = 'ls[0].name'
+    got = dict_u.set_at_path(d, path, val='hello')
+
+    assert got == {
+        'ls': [
+            { 'name': 'hello', 'val': 1 },
+        ],
+    }
+
+# -----------------
+# -- get_at_path --
+# -----------------
+def test_get_at_path1():
+    d: dict[str, Any] = {
+        'a': {
+            'b': 'hi'
+        },
+    }
+
+    path = 'a.b'
+    got = dict_u.get_at_path(d, path)
+    assert got == 'hi'

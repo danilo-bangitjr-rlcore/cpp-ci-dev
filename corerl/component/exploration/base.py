@@ -1,9 +1,17 @@
 import torch
-from typing import Protocol
-from corerl.utils.hydra import DiscriminatedUnion, Group
+from typing import Any, Protocol
+from corerl.configs.config import config
+from corerl.configs.config import MISSING
+from corerl.configs.group import Group
+
+
+@config()
+class BaseExplorationConfig:
+    name: Any = MISSING
+
 
 class BaseExploration(Protocol):
-    def __init__(self, cfg: DiscriminatedUnion, state_dim: int, action_dim: int):
+    def __init__(self, cfg: BaseExplorationConfig, state_dim: int, action_dim: int):
         ...
 
     def update(self) -> None:
@@ -23,4 +31,4 @@ class BaseExploration(Protocol):
 explore_group = Group[
     [int, int],
     BaseExploration,
-]('agent/exploration')
+]()

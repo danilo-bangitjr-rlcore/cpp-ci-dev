@@ -1,15 +1,15 @@
-from dataclasses import dataclass
 import logging
 import sqlalchemy
 import time
 import corerl.utils.dict as dict_u
 
 from typing import Any
-from omegaconf import MISSING, OmegaConf
+from omegaconf import OmegaConf
 from collections.abc import MutableMapping
 from sqlalchemy import Table, Column, DateTime, Engine, MetaData, URL, select, inspect
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
+from corerl.configs.config import config, MISSING
 from sqlalchemy_utils import database_exists, drop_database, create_database
 from corerl.sql_logging.base_schema import (
     Base,
@@ -20,7 +20,7 @@ from corerl.sql_logging.base_schema import (
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@config()
 class SQLEngineConfig:
     drivername: str = MISSING
     username: str = MISSING

@@ -1,20 +1,36 @@
 from corerl.agent.base import BaseAgent
-from corerl.utils.hydra import Group
+from corerl.configs.group import Group
 
-agent_group = Group[[int, int],BaseAgent,]('agent')
+from corerl.agent.action_schedule import ActionScheduleAgent, ActionScheduleConfig
+from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig
+from corerl.agent.greedy_iql import GreedyIQL, GreedyIQLConfig
+from corerl.agent.inac import InAC, InACConfig
+from corerl.agent.iql import IQL, IQLConfig
+from corerl.agent.random import RandomAgent, RandomAgentConfig
+from corerl.agent.reinforce import Reinforce, ReinforceConfig
+from corerl.agent.sac import SAC, SACConfig
+from corerl.agent.sarsa import EpsilonGreedySarsa, EpsilonGreedySarsaConfig
+from corerl.agent.simple_ac import SimpleAC, SimpleACConfig
+
+agent_group = Group[
+    [int, int],
+    BaseAgent,
+]()
+
+AgentConfig = (
+    ActionScheduleConfig
+    | GreedyACConfig
+    | GreedyIQLConfig
+    | InACConfig
+    | IQLConfig
+    | RandomAgentConfig
+    | ReinforceConfig
+    | SACConfig
+    | EpsilonGreedySarsaConfig
+    | SimpleACConfig
+)
 
 def register():
-    from corerl.agent.action_schedule import ActionScheduleAgent
-    from corerl.agent.greedy_ac import GreedyAC
-    from corerl.agent.greedy_iql import GreedyIQL
-    from corerl.agent.inac import InAC
-    from corerl.agent.iql import IQL
-    from corerl.agent.random import RandomAgent
-    from corerl.agent.reinforce import Reinforce
-    from corerl.agent.sac import SAC
-    from corerl.agent.sarsa import EpsilonGreedySarsa
-    from corerl.agent.simple_ac import SimpleAC
-
     agent_group.dispatcher(ActionScheduleAgent)
     agent_group.dispatcher(GreedyAC)
     agent_group.dispatcher(GreedyIQL)

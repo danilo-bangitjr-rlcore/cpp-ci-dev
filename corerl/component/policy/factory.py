@@ -1,7 +1,8 @@
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import field
+from typing import Any, Literal
 
-from omegaconf import MISSING
+from corerl.configs.config import config, MISSING, list_
+from corerl.configs.group import Group
 from corerl.component.layer.activations import ActivationConfig
 import corerl.component.network.utils as utils
 from corerl.component.policy.softmax import Softmax, Policy
@@ -12,13 +13,12 @@ from corerl.component.layer import init_activation, Parallel
 import torch.nn as nn
 import torch
 from corerl.utils.device import device
-from corerl.utils.hydra import Group, list_
 
 
 HeadActivation = list[list[ActivationConfig]]
 
 
-@dataclass
+@config(frozen=True)
 class BaseNNConfig:
     name: str = MISSING
 
@@ -116,12 +116,12 @@ def _create_continuous_mlp(
 policy_group = Group[
     [int, int, torch.Tensor | float | None, torch.Tensor | float | None],
     Policy,
-]('agent/actor/actor_network')
+]()
 
 
-@dataclass
+@config(frozen=True)
 class BetaPolicyConfig(BaseNNConfig):
-    name: str = 'beta'
+    name: Literal['beta'] = 'beta'
 
     head_activation: HeadActivation = list_([
         [{'name': 'softplus'}, {'name': 'bias', 'args': [1]}],
@@ -148,9 +148,9 @@ def _beta(
     )
 
 
-@dataclass
+@config(frozen=True)
 class GammaPolicyConfig(BaseNNConfig):
-    name: str = 'gamma'
+    name: Literal['gamma'] = 'gamma'
 
     # Since policies should always return actions in [0, 1], we can force the
     # mean to stay within this range
@@ -175,9 +175,9 @@ def _gamma(
 
 
 
-@dataclass
+@config(frozen=True)
 class LaplacePolicyConfig(BaseNNConfig):
-    name: str = 'laplace'
+    name: Literal['laplace'] = 'laplace'
 
     head_activation: HeadActivation = list_([
         [{"name": "functional", "args": ["sigmoid"]}],
@@ -198,9 +198,9 @@ def _laplace(
     )
 
 
-@dataclass
+@config(frozen=True)
 class NormalPolicyConfig(BaseNNConfig):
-    name: str = 'normal'
+    name: Literal['normal'] = 'normal'
 
     head_activation: HeadActivation = list_([
         [{"name": "functional", "args": ["sigmoid"]}],
@@ -221,9 +221,9 @@ def _normal(
     )
 
 
-@dataclass
+@config(frozen=True)
 class SquashedGaussianPolicyConfig(BaseNNConfig):
-    name: str = 'squashed_gaussian'
+    name: Literal['squashed_gaussian'] = 'squashed_gaussian'
 
     head_activation: HeadActivation = list_([
         [{"name": "identity"}],
@@ -247,9 +247,9 @@ def _squashed_gaussian(
     )
 
 
-@dataclass
+@config(frozen=True)
 class SoftmaxPolicyConfig(BaseNNConfig):
-    name: str = 'softmax'
+    name: Literal['softmax'] = 'softmax'
 
     head_activation: HeadActivation = list_([
         [{"name": "identity"}],

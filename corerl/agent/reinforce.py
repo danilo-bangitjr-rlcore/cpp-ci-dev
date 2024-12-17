@@ -1,9 +1,10 @@
-from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import torch
 import numpy as np
 
+from pydantic.dataclasses import dataclass as config
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic
@@ -11,9 +12,10 @@ from corerl.component.network.utils import to_np, state_to_tensor, tensor, ensem
 from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import NewTransition
 
-@dataclass
+
+@config(frozen=True)
 class ReinforceConfig(BaseACConfig):
-    name: str = 'reinforce'
+    name: Literal['reinforce'] = 'reinforce'
     ensemble_targets: bool = False
 
 class Reinforce(BaseAC):

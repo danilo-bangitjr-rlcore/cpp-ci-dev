@@ -1,0 +1,29 @@
+import copy
+from typing import Any, dataclass_transform
+from dataclasses import field
+
+from pydantic import Field, PrivateAttr
+from pydantic.dataclasses import dataclass as pydantic_dataclass
+
+
+MISSING: Any = "|???|"
+
+def list_(vals: list[Any] | None = None) -> Any:
+    if vals is None:
+        return field(default_factory=list)
+
+    return field(default_factory=lambda: copy.deepcopy(vals))
+
+
+def interpolate(path: str) -> Any:
+    return path
+
+
+@dataclass_transform(field_specifiers=(field, Field, PrivateAttr))
+def config(
+    *,
+    frozen: bool = False,
+):
+    def _inner(cls):
+        return pydantic_dataclass(cls, frozen=frozen, config={'extra': 'forbid'})
+    return _inner

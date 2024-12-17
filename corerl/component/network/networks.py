@@ -1,21 +1,20 @@
 import copy
 import torch
 import torch.nn as nn
-from dataclasses import dataclass, field
+from dataclasses import field
 from collections.abc import Iterable
 from torch.func import stack_module_state, functional_call # type: ignore
 import numpy as np
 from corerl.component.network.base import BaseNetworkConfig
 import corerl.component.network.utils as utils
-from corerl.component.network.ensemble.reductions import MeanReduct, ensemble_bootstrap_reduct_group, ensemble_policy_reduct_group # noqa: E501
+from corerl.component.network.ensemble.reductions import MeanReduct, bootstrap_reduct_group
 from corerl.utils.device import device
 import corerl.component.layer as layer
+from corerl.configs.config import config, list_
 from corerl.component.layer.activations import ActivationConfig
 
 from omegaconf import DictConfig
-from typing import Any, Callable, Optional
-
-from corerl.utils.hydra import list_
+from typing import Any, Callable, Literal, Optional, cast
 
 
 # Differences of this size are representable up to ~ 15
@@ -23,9 +22,9 @@ FLOAT32_EPS = 10 * np.finfo(np.float32).eps
 EPSILON = 1e-6
 
 
-@dataclass
+@config(frozen=True)
 class NNTorsoConfig(BaseNetworkConfig):
-    name: str = 'fc'
+    name: Literal['fc'] = 'fc'
 
     bias: bool = True
     layer_init: str = 'Xavier'
@@ -36,9 +35,9 @@ class NNTorsoConfig(BaseNetworkConfig):
     ])
 
 
-@dataclass
-class EnsembleCriticConfig(BaseNetworkConfig):
-    name: str = 'ensemble'
+@config(frozen=True)
+class EnsembleCriticNetworkConfig(BaseNetworkConfig):
+    name: Literal['ensemble'] = 'ensemble'
     ensemble: int = 1
     bootstrap_reduct: Any = field(default_factory=MeanReduct)
     policy_reduct: Any = field(default_factory=MeanReduct)
@@ -48,12 +47,12 @@ class EnsembleCriticConfig(BaseNetworkConfig):
 
 
 
-def _init_ensemble_reducts(cfg: EnsembleCriticConfig):
+def _init_ensemble_reducts(cfg: EnsembleCriticNetworkConfig):
     def bs_reduct(x: torch.Tensor, dim: int):
-        return ensemble_bootstrap_reduct_group.dispatch(cfg.bootstrap_reduct, x, dim)
+        return bootstrap_reduct_group.dispatch(cfg.bootstrap_reduct, x, dim)
 
     def p_reduct(x: torch.Tensor, dim: int):
-        return ensemble_policy_reduct_group.dispatch(cfg.policy_reduct, x, dim)
+        return bootstrap_reduct_group.dispatch(cfg.policy_reduct, x, dim)
 
     return bs_reduct, p_reduct
 
@@ -182,7 +181,7 @@ class EnsembleFC(nn.Module):
 
 
 class EnsembleCritic(nn.Module):
-    def __init__(self, cfg: EnsembleCriticConfig, input_dim: int, output_dim: int):
+    def __init__(self, cfg: EnsembleCriticNetworkConfig, input_dim: int, output_dim: int):
         super(EnsembleCritic, self).__init__()
         self.ensemble = cfg.ensemble
         self.vmap = cfg.vmap
@@ -263,17 +262,24 @@ class EnsembleCritic(nn.Module):
 
 
 
-@dataclass
-class RndLinearUncertaintyConfig(NNTorsoConfig):
-    name: str = 'rnd'
+@config(frozen=True)
+class RndLinearUncertaintyConfig(BaseNetworkConfig):
+    name: Literal['rnd'] = 'rnd'
     arch: list[Any] = list_()
+    bias: bool = True
+    layer_init: str = 'Xavier'
+    hidden: list[int] = list_([64, 64])
+    activation: list[ActivationConfig] = list_([
+        {'name': 'relu'},
+        {'name': 'relu'},
+    ])
 
 class RndLinearUncertainty(nn.Module):
     def __init__(self, cfg: RndLinearUncertaintyConfig, input_dim: int, output_dim: int):
         super(RndLinearUncertainty, self).__init__()
         self.output_dim = output_dim
         arch = cfg.arch
-        self.random_network = create_base(cfg, input_dim, arch[-1])
+        self.random_network = create_base(cast(Any, cfg), input_dim, arch[-1])
         layer_init = utils.init_layer(cfg.layer_init)
         self.linear_head = layer_init(
             nn.Linear(arch[-1], output_dim, bias=cfg.bias),
@@ -291,9 +297,9 @@ class RndLinearUncertainty(nn.Module):
         return out, info
 
 
-@dataclass
+@config(frozen=True)
 class GRUConfig(BaseNetworkConfig):
-    name: str = 'gru'
+    name: Literal['gru'] = 'gru'
 
     gru_hidden_dim: int = -1
     num_gru_layers: int = 1

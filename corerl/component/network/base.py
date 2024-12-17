@@ -1,19 +1,19 @@
 import torch.nn as nn
-from dataclasses import dataclass
-from omegaconf import MISSING
-from corerl.utils.hydra import Group
+from corerl.configs.config import config
+from corerl.configs.config import MISSING
+from corerl.configs.group import Group
 
 
-@dataclass
+@config(frozen=True)
 class BaseNetworkConfig:
     name: str = MISSING
 
 critic_group = Group[
     [int, int],
     nn.Module,
-]('agent/critic/critic_network')
+]()
 
 custom_network_group = Group[
     [int, int],
     nn.Module,
-]('model')
+]()

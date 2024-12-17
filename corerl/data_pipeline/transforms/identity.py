@@ -1,12 +1,12 @@
-from dataclasses import dataclass
-
+from typing import Literal
+from corerl.configs.config import config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
-@dataclass
+@config(frozen=True)
 class IdentityConfig(BaseTransformConfig):
-    name: str = "identity"
+    name: Literal["identity"] = "identity"
 
 
 class Identity:

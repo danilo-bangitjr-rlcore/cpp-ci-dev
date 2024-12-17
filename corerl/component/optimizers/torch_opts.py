@@ -1,18 +1,18 @@
+from typing import Literal
 import torch
 from collections.abc import Iterable
-from dataclasses import dataclass
-from omegaconf import MISSING
+from corerl.configs.config import config, MISSING
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.custom_torch_opts import CustomAdam
-from corerl.utils.hydra import Group
+from corerl.configs.group import Group
 
 
 optim_group = Group[
     [Iterable[torch.nn.Parameter], bool],
     torch.optim.Optimizer | EnsembleOptimizer,
-](['agent/critic/critic_optimizer', 'agent/actor/actor_optimizer'])
+]()
 
-@dataclass
+@config(frozen=True)
 class OptimConfig:
     name: str = MISSING
 
@@ -39,9 +39,9 @@ def _base_optim(
 # -------------
 # -- RMSProp --
 # -------------
-@dataclass
+@config(frozen=True)
 class RmspropConfig(OptimConfig):
-    name: str = 'rms_prop'
+    name: Literal['rms_prop'] = 'rms_prop'
 
 
 @optim_group.dispatcher
@@ -55,9 +55,9 @@ def _rmsprop(cfg: RmspropConfig, param: Iterable[torch.nn.Parameter], ensemble: 
 # ----------
 # -- Adam --
 # ----------
-@dataclass
+@config(frozen=True)
 class AdamConfig(OptimConfig):
-    name: str = 'adam'
+    name: Literal['adam'] = 'adam'
 
 
 @optim_group.dispatcher
@@ -71,9 +71,9 @@ def _adam(cfg: AdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
 # ----------------
 # -- CustomAdam --
 # ----------------
-@dataclass
+@config(frozen=True)
 class CustomAdamConfig(OptimConfig):
-    name: str = 'custom_adam'
+    name: Literal['custom_adam'] = 'custom_adam'
 
 
 @optim_group.dispatcher
@@ -87,9 +87,9 @@ def _custom_adam(cfg: CustomAdamConfig, param: Iterable[torch.nn.Parameter], ens
 # ---------
 # -- SGD --
 # ---------
-@dataclass
+@config(frozen=True)
 class SgdConfig(OptimConfig):
-    name: str = 'sgd'
+    name: Literal['sgd'] = 'sgd'
 
 
 @optim_group.dispatcher

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import re
 import hashlib
-from collections.abc import Iterable, MutableMapping, Sequence
+from collections.abc import Callable, Iterable, MutableMapping, Sequence
+from dataclasses import fields, is_dataclass, _MISSING_TYPE
 from typing import Any
+from pydantic.fields import FieldInfo
 
 import corerl.utils.nullable as nullable
 
@@ -75,3 +78,150 @@ def hash_many(
         hash(d, ignore, _hash=hasher)
 
     return hasher.hexdigest()
+
+
+def merge(d1: dict[str, Any], d2: dict[str, Any], _path: list[str] | None = None) -> dict[str, Any]:
+    out: dict[str, Any] = d1.copy()
+    _path = _path or []
+
+    for k, v in d2.items():
+        if k not in out or out[k] is None:
+            out[k] = v
+
+        elif isinstance(v, dict):
+            assert isinstance(d1[k], dict), f"Key type mismatch at {'.'.join(_path)}. Expected dict."
+            out[k] = merge(d1[k], d2[k], _path + [k])
+
+        elif isinstance(v, list) and len(v) > 0 and isinstance(v[0], dict):
+            out[k] = _zip_longest(merge, d1[k], v)
+
+        else:
+            out[k] = v
+
+    return out
+
+
+def filter(pred: Callable[[Any], bool], d: dict[str, Any]) -> dict[str, Any]:
+    out = {}
+
+    for k, v in d.items():
+        if isinstance(v, dict):
+            out[k] = filter(pred, v)
+
+        elif isinstance(v, list) and len(v) > 0 and isinstance(v[0], dict):
+            out[k] = [
+                filter(pred, sub)
+                for sub in v
+            ]
+
+        else:
+            if pred(v):
+                out[k] = v
+
+    return out
+
+
+def get_at_path[T](d: dict[str, T], path: str) -> T:
+    if '.' not in path:
+        return d[path]
+
+    parts = path.split('.')
+    sub: Any = d
+    for i, part in enumerate(parts):
+        if i == len(parts) - 1:
+            return sub[part]
+
+        if part not in sub:
+            raise Exception(f'Item not found at path: {path}')
+
+        sub = sub[part]
+
+    raise Exception(f'Item not found at path: {path}')
+
+
+def set_at_path[T](d: dict[str, T], path: str, val: T) -> dict[str, T]:
+    if '.' not in path:
+        d[path] = val
+        return d
+
+    parts = path.split('.')
+
+    sub: Any = d
+    for i in range(len(parts)):
+        part = parts[i]
+        is_last = i == len(parts) - 1
+
+        # check if this path component is a list index
+        # e.g. b[0] or hi[1] ...
+        ls_part = re.match(r'(.+)\[(\d+)\]', part)
+
+        # if last part, then do mutable assignment
+        # otherwise keep walking, building subdicts as needed
+        if is_last and part not in sub:
+            sub[part] = val
+        elif is_last and part in sub:
+            # if there is already a value
+            # ensure the override has a matching type
+            t = type(sub[part])
+            sub[part] = t(val)
+        # otherwise, keep walking and building subdicts
+        elif part not in sub and not ls_part:
+            sub[part] = {}
+            sub = sub[part]
+        elif ls_part is not None and ls_part.group(1) not in sub:
+            key = ls_part.group(1)
+            idx = int(ls_part.group(2))
+            sub[key] = [{} for _ in range(idx + 1)]
+            sub = sub[key][idx]
+        elif ls_part is not None:
+            key = ls_part.group(1)
+            idx = int(ls_part.group(2))
+            sub = sub[key][idx]
+        else:
+            sub = sub[part]
+
+    return d
+
+
+def dataclass_to_dict(o: Any) -> Any:
+    if isinstance(o, list):
+        return [
+            dataclass_to_dict(sub) for sub in o
+        ]
+
+    if not is_dataclass(o):
+        return o
+
+    out = {}
+    for v in fields(o):
+        if not isinstance(v.default_factory, _MISSING_TYPE):
+            out[v.name] = dataclass_to_dict(v.default_factory())
+
+        elif isinstance(v.default, FieldInfo):
+            out[v.name] = dataclass_to_dict(v.default.default)
+
+        elif not isinstance(v.default, _MISSING_TYPE):
+            out[v.name] = dataclass_to_dict(v.default)
+
+    return out
+
+
+# ------------------------
+# -- Internal Utilities --
+# ------------------------
+def _zip_longest[T](
+    f: Callable[[T, T], T],
+    l1: Sequence[T],
+    l2: Sequence[T],
+) -> list[T]:
+
+    out: list[T] = []
+    for i in range(max(len(l1), len(l2))):
+        if i >= len(l1):
+            out.append(l2[i])
+        elif i >= len(l2):
+            out.append(l1[i])
+        else:
+            out.append(f(l1[i], l2[i]))
+
+    return out

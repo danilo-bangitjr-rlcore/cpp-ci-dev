@@ -1,16 +1,17 @@
 import copy
 import pandas as pd
+from typing import Literal
 from dataclasses import dataclass
 
-from corerl.utils.hydra import list_
+from corerl.configs.config import config, list_
 from corerl.data_pipeline.transforms.identity import IdentityConfig
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
-@dataclass
+@config(frozen=True)
 class SplitConfig(BaseTransformConfig):
-    name: str = 'split'
+    name: Literal['split'] = 'split'
 
     left: list[BaseTransformConfig] = list_([IdentityConfig])
     right: list[BaseTransformConfig] = list_([IdentityConfig])

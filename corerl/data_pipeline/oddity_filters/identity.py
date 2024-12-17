@@ -1,12 +1,12 @@
-from dataclasses import dataclass
-
+from typing import Literal
+from corerl.configs.config import config
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
 from corerl.data_pipeline.datatypes import PipelineFrame
 
 
-@dataclass
+@config()
 class IdentityFilterConfig(BaseOddityFilterConfig):
-    name: str = 'identity'
+    name: Literal['identity'] = 'identity'
 
 
 class IdentityFilter(BaseOddityFilter):

@@ -1,8 +1,15 @@
+from typing import Any
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group
-import corerl.data_pipeline.imputers.identity  # noqa: F401
-import corerl.data_pipeline.imputers.copy # noqa: F401
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.imputers.copy import CopyImputerConfig
+from corerl.data_pipeline.imputers.identity import IdentityImputerConfig
+from corerl.data_pipeline.imputers.linear import LinearImputerConfig
+
+ImputerConfig = (
+    IdentityImputerConfig
+    | CopyImputerConfig
+    | LinearImputerConfig
+)
 
 
-def init_imputer(cfg: BaseImputerConfig, tag_cfg: TagConfig) -> BaseImputer:
+def init_imputer(cfg: BaseImputerConfig, tag_cfg: Any) -> BaseImputer:
     return imputer_group.dispatch(cfg, tag_cfg)

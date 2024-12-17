@@ -2,16 +2,18 @@ import numpy as np
 import pandas as pd
 import gymnasium as gym
 from datetime import datetime, timedelta
+from corerl.configs.config import config, MISSING
 from dataclasses import dataclass
-from omegaconf import MISSING
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.utils.gym import space_bounds
 
 
-@dataclass
+@config()
 class SimAsyncEnvConfig:
     name: str = MISSING
+    discrete_control: bool = False
+    seed: int = 0
 
 
 @dataclass
@@ -25,7 +27,7 @@ class StepData:
 
 class SimAsyncEnv(AsyncEnv):
     def __init__(self, cfg: SimAsyncEnvConfig, tags: list[TagConfig]):
-        self._env = gym.make(cfg.name, render_mode='human')
+        self._env = gym.make(cfg.name)
         self._cfg = cfg
 
         shape = self._env.observation_space.shape
@@ -90,7 +92,6 @@ class SimAsyncEnv(AsyncEnv):
         assert len(action) == 1
 
         obs, r, term, trunc, _ = self._env.step(action)
-        self._env.render()
         self._last_step = StepData(
             obs=obs,
             r=float(r),

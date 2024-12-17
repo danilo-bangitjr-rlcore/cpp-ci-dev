@@ -1,11 +1,10 @@
 import logging
-import hydra
 import numpy as np
 import torch
 import random
-from os import getcwd, path
 
 from corerl.config import MainConfig
+from corerl.configs.loader import load_config
 from corerl.utils.device import device
 from corerl.agent.factory import init_agent
 from corerl.data_pipeline.pipeline import Pipeline
@@ -16,9 +15,8 @@ import corerl.utils.freezer as fr
 import corerl.main_utils as utils
 
 log = logging.getLogger(__name__)
-cwd = getcwd()
 
-@hydra.main(version_base=None, config_name='config', config_path=path.join(cwd, 'config'))
+@load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
     save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
@@ -53,7 +51,7 @@ def main(cfg: MainConfig):
         cfg.pipeline.tags,
     )
 
-    for _ in range(cfg.experiment.online_updates):
+    for _ in range(cfg.experiment.max_steps):
         interaction.step()
 
 if __name__ == "__main__":

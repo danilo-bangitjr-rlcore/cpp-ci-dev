@@ -1,13 +1,15 @@
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from typing import Any
 
+from corerl.configs.config import config
+from corerl.configs.group import Group
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.utils.hydra import Group
 from corerl.data_pipeline.datatypes import NewTransition, StageCode, PipelineFrame
 
-@dataclass
+@config(frozen=True)
 class BaseTransitionCreatorConfig:
-    name: str = 'base'
+    name: Any = 'base'
 
 
 @dataclass
@@ -48,4 +50,4 @@ class BaseTransitionCreator(ABC):
 
 transition_creator_group = Group[
     [list[TagConfig]], BaseTransitionCreator
-]('pipeline/agent_transition_creator')
+]()

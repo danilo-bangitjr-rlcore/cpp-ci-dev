@@ -1,17 +1,10 @@
 import pandas as pd
 
 # ensure components are registered
-import corerl.data_pipeline.transforms.add_raw  # noqa: F401
-import corerl.data_pipeline.transforms.affine  # noqa: F401
-import corerl.data_pipeline.transforms.identity  # noqa: F401
-import corerl.data_pipeline.transforms.norm  # noqa: F401
-import corerl.data_pipeline.transforms.null  # noqa: F401
-import corerl.data_pipeline.transforms.scale  # noqa: F401
-import corerl.data_pipeline.transforms.split  # noqa: F401
-import corerl.data_pipeline.transforms.trace  # noqa: F401
+from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.null import Null
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TagName
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, Transform, transform_group
+from corerl.data_pipeline.transforms.base import Transform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 
@@ -24,7 +17,7 @@ type RC_TS = dict[
 
 
 class RewardComponentConstructor:
-    def __init__(self, cfgs: list[BaseTransformConfig]):
+    def __init__(self, cfgs: list[TransformConfig]):
         self._transforms: list[Transform] = [transform_group.dispatch(sub_cfg) for sub_cfg in cfgs]
 
     def __call__(self, pf: PipelineFrame, tag_name: str) -> PipelineFrame:

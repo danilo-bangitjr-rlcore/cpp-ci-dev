@@ -1,10 +1,11 @@
-from corerl.utils.hydra import DiscriminatedUnion
 from corerl.component.actor.base_actor import group, BaseActor
+from corerl.component.actor.network_actor import NetworkActorConfig, NetworkActorLineSearchConfig
 
-import corerl.component.actor.network_actor # noqa: F401
+
+ActorConfig = NetworkActorConfig | NetworkActorLineSearchConfig
 
 def init_actor(
-    cfg: DiscriminatedUnion,
+    cfg: ActorConfig,
     state_dim: int,
     action_dim: int,
     initializer: BaseActor | None = None,

@@ -1,26 +1,26 @@
 import numpy as np
 
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.utils import update_missing_info
 
+Bounds = tuple[float | None, float | None]
 
-def _get_oob_mask(data: np.ndarray, cfg: TagConfig) -> np.ndarray:
-    if cfg.bounds[0] is None:
+def _get_oob_mask(data: np.ndarray, bounds: Bounds) -> np.ndarray:
+    if bounds[0] is None:
         lower_bound_mask = np.array([False] * len(data))
     else:
-        lower_bound_mask = data < cfg.bounds[0]
+        lower_bound_mask = data < bounds[0]
 
-    if cfg.bounds[1] is None:
+    if bounds[1] is None:
         upper_bound_mask = np.array([False] * len(data))
     else:
-        upper_bound_mask = data > cfg.bounds[1]
+        upper_bound_mask = data > bounds[1]
 
     oob_mask = lower_bound_mask | upper_bound_mask
 
     return oob_mask
 
-def bound_checker(pf: PipelineFrame, tag: str, cfg: TagConfig) -> PipelineFrame:
+def bound_checker(pf: PipelineFrame, tag: str, bounds: Bounds) -> PipelineFrame:
     data = pf.data
 
     if data.shape[0] == 0:
@@ -32,7 +32,7 @@ def bound_checker(pf: PipelineFrame, tag: str, cfg: TagConfig) -> PipelineFrame:
         return pf
 
     # Get OOB mask
-    oob_mask = _get_oob_mask(tag_data, cfg)
+    oob_mask = _get_oob_mask(tag_data, bounds)
 
     # Set OOB to NaN
     data.loc[oob_mask, tag] = np.nan
@@ -43,8 +43,8 @@ def bound_checker(pf: PipelineFrame, tag: str, cfg: TagConfig) -> PipelineFrame:
     return pf
 
 
-def bound_checker_builder(cfg: TagConfig):
+def bound_checker_builder(bounds: Bounds):
     def _inner(pf: PipelineFrame, tag: str):
-        return bound_checker(pf, tag, cfg)
+        return bound_checker(pf, tag, bounds)
 
     return _inner

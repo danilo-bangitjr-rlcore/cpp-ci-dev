@@ -1,17 +1,18 @@
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Literal
 
 import numpy as np
 
+from corerl.configs.config import config
 from corerl.data_pipeline.data_utils.exp_moving import ExpMovingAvg, ExpMovingVar
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
 from corerl.data_pipeline.utils import update_missing_info
 
 
-@dataclass
+@config()
 class EMAFilterConfig(BaseOddityFilterConfig):
-    name: str = "exp_moving"
+    name: Literal['exp_moving'] = "exp_moving"
     alpha: float = 0.99
     tolerance: float = 2.0
     warmup: int = 10  #  number of warmup steps before rejecting

@@ -1,69 +1,60 @@
+from typing import Literal
 import torch
 import numpy as np
 
-from dataclasses import dataclass
-from corerl.utils.hydra import Group
+from corerl.configs.config import config
+from corerl.configs.group import Group
 
-ensemble_bootstrap_reduct_group = Group[
+bootstrap_reduct_group = Group[
     [torch.Tensor, int],
     torch.Tensor,
-]('agent/critic/critic_network/bootstrap_reduct')
-
-ensemble_policy_reduct_group = Group[
-    [torch.Tensor, int],
-    torch.Tensor,
-]('agent/critic/critic_network/policy_reduct')
+]()
 
 
-@dataclass
+@config(frozen=True)
 class MinReduct:
-    name: str = 'min'
+    name: Literal['min'] = 'min'
 
-@ensemble_bootstrap_reduct_group.dispatcher
-@ensemble_policy_reduct_group.dispatcher
+@bootstrap_reduct_group.dispatcher
 def _min_reduct(cfg: MinReduct, x: torch.Tensor, dim: int):
     return torch.min(x, dim=dim)[0]
 
 
-@dataclass
+@config(frozen=True)
 class MaxReduct:
-    name: str = 'max'
+    name: Literal['max'] = 'max'
 
-@ensemble_bootstrap_reduct_group.dispatcher
-@ensemble_policy_reduct_group.dispatcher
+@bootstrap_reduct_group.dispatcher
 def _max_reduct(cfg: MaxReduct, x: torch.Tensor, dim: int):
     return torch.max(x, dim=dim)[0]
 
 
-@dataclass
+@config(frozen=True)
 class MeanReduct:
-    name: str = 'mean'
+    name: Literal['mean'] = 'mean'
 
-@ensemble_bootstrap_reduct_group.dispatcher
-@ensemble_policy_reduct_group.dispatcher
+@bootstrap_reduct_group.dispatcher
 def _mean_reduct(cfg: MeanReduct, x: torch.Tensor, dim: int):
     return torch.mean(x, dim=dim)
 
 
-@dataclass
+@config(frozen=True)
 class MedianReduct:
-    name: str = 'median'
+    name: Literal['median'] = 'median'
 
-@ensemble_bootstrap_reduct_group.dispatcher
-@ensemble_policy_reduct_group.dispatcher
+@bootstrap_reduct_group.dispatcher
 def _median_reduct(cfg: MedianReduct, x: torch.Tensor, dim: int):
     return torch.quantile(x, q=0.5, dim=dim)
 
 
-@dataclass
+@config(frozen=True)
 class PercentileReduct:
-    name: str = 'percentile'
+    name: Literal['percentile'] = 'percentile'
     bootstrap_batch_size: int = 10
     bootstrap_samples: int = 10
     percentile: float = 0.5
 
-@ensemble_bootstrap_reduct_group.dispatcher
-@ensemble_policy_reduct_group.dispatcher
+@bootstrap_reduct_group.dispatcher
 def _percentile_bootstrap(
     cfg: PercentileReduct,
     x: torch.Tensor,

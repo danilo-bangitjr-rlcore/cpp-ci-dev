@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import field
+from typing import Any, Literal
 from omegaconf import MISSING
 from pathlib import Path
 
@@ -8,6 +8,7 @@ import numpy
 import random
 import pickle as pkl
 
+from corerl.configs.config import config
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
@@ -16,9 +17,9 @@ from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import NewTransitionBatch, NewTransition
 
 
-@dataclass
+@config(frozen=True)
 class EpsilonGreedySarsaConfig(BaseAgentConfig):
-    name: str = 'epsilon_greedy_sarsa'
+    name: Literal['epsilon_greedy_sarsa'] = 'epsilon_greedy_sarsa'
 
     ensemble_targets: bool = False
     epsilon: float = 0.1

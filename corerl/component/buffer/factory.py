@@ -1,6 +1,18 @@
-from corerl.component.buffer.buffers import buffer_group, UniformReplayBufferConfig, UniformBuffer # noqa: F401
-from corerl.component.buffer.buffers import PriorityBuffer, EnsembleUniformBuffer # noqa: F401
+from corerl.component.buffer.buffers import (
+    EnsembleUniformReplayBufferConfig,
+    PriorityReplayBufferConfig,
+    buffer_group,
+    UniformReplayBufferConfig,
+    UniformBuffer,
+)
 
 
-def init_buffer(cfg: UniformReplayBufferConfig) -> UniformBuffer:
+BufferConfig = (
+    UniformReplayBufferConfig
+    | PriorityReplayBufferConfig
+    | EnsembleUniformReplayBufferConfig
+)
+
+
+def init_buffer(cfg: BufferConfig) -> UniformBuffer:
     return buffer_group.dispatch(cfg)

@@ -11,4 +11,3 @@ class Parallel(nn.Module):
 
     def string(self):
         return f"Parallel[{self._paths}]"
-

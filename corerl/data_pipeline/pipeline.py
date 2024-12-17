@@ -5,18 +5,17 @@ import datetime
 
 from collections.abc import Sequence
 from typing import Any, Callable
-from omegaconf import MISSING
 from pandas import DataFrame
 import logging
 
+from corerl.configs.config import config, list_
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transition_creators.base import BaseTransitionCreatorConfig
 from corerl.data_pipeline.transition_creators.dummy import DummyTransitionCreatorConfig
-from corerl.data_pipeline.transition_creators.factory import init_transition_creator
+from corerl.data_pipeline.transition_creators.factory import TransitionCreatorConfig, init_transition_creator
 from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
@@ -33,13 +32,13 @@ type PipelineStage[T] = Callable[[T, TagName], T]
 type WarmupPruner = Callable[[PipelineFrame, int], PipelineFrame]
 
 
-@dataclass
+@config()
 class PipelineConfig:
-    tags: list[TagConfig] = MISSING
+    tags: list[TagConfig] = list_()
     db: TagDBConfig = field(default_factory=TagDBConfig)
-    obs_interval_minutes: float = MISSING
+    obs_interval_minutes: float = 0
     state_constructor: SCConfig = field(default_factory=SCConfig)
-    agent_transition_creator: BaseTransitionCreatorConfig = field(default_factory=DummyTransitionCreatorConfig)
+    agent_transition_creator: TransitionCreatorConfig = field(default_factory=DummyTransitionCreatorConfig)
 
 
 @dataclass
@@ -56,7 +55,7 @@ class Pipeline:
         }
 
         self.bound_checkers = {
-            tag.name: bound_checker_builder(tag) for tag in self.tags
+            tag.name: bound_checker_builder(tag.bounds) for tag in self.tags
         }
 
         self.transition_creator = init_transition_creator(

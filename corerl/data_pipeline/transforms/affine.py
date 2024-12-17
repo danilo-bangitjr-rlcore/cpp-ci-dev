@@ -1,13 +1,13 @@
+from typing import Literal
 
-from dataclasses import dataclass
-
+from corerl.configs.config import config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
-@dataclass
+@config(frozen=True)
 class AffineConfig(BaseTransformConfig):
-    name: str = "affine"
+    name: Literal["affine"] = "affine"
     scale: float = 1.0
     bias: float = 0.0
 

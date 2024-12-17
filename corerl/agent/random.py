@@ -1,16 +1,17 @@
-from dataclasses import dataclass
+from typing import Literal
 import numpy as np
 from pathlib import Path
 
 import numpy
 
+from corerl.configs.config import config
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.data_pipeline.datatypes import NewTransition
 
 
-@dataclass
+@config(frozen=True)
 class RandomAgentConfig(BaseAgentConfig):
-    name: str = 'random'
+    name: Literal['random'] = 'random'
 
 class RandomAgent(BaseAgent):
     def __init__(self, cfg: RandomAgentConfig, state_dim: int, action_dim: int):

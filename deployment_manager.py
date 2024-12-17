@@ -1,23 +1,52 @@
-import hydra
 import asyncio
+from dataclasses import field
 import datetime as dt
 
-from omegaconf import DictConfig
 from corerl.messages.client import WebsocketClient
 from corerl.messages.events import EventType
+from corerl.messages.server import WebsocketServerConfig
 from corerl.utils.processes import keep_alive
+from corerl.configs.loader import load_config
+from corerl.configs.config import MISSING, config, list_
 
 
-def parse_python_executable(cfg: DictConfig):
+@config()
+class EventBusDeploymentConfig(WebsocketServerConfig):
+    python_entrypoint: str = MISSING
+    base: str = MISSING
+    config_name: str = MISSING
+
+
+@config()
+class DeploymentConfig:
+    python_executable: str = MISSING
+    python_entrypoint: str = MISSING
+    base: str = MISSING
+    config_name: str = MISSING
+    options: list[str] = list_()
+
+
+@config()
+class DeploymentMangerConfig:
+    deployment: DeploymentConfig = field(default_factory=DeploymentConfig)
+    event_bus: EventBusDeploymentConfig = field(default_factory=EventBusDeploymentConfig)
+
+
+def parse_python_executable(cfg: DeploymentMangerConfig):
     # the python executable could actually be a nested command, such as:
     #    uv run python
     # where we want to pass
     #    [ 'uv', 'run', 'python' ]
     # to subprocess
-    return str(cfg.deployment.python_executable).split(' ')
+    return (
+        str(cfg.deployment.python_executable)
+        .removeprefix('"')
+        .removesuffix('"')
+        .split(' ')
+    )
 
 
-async def start_agent(cfg: DictConfig):
+async def start_agent(cfg: DeploymentMangerConfig):
     exec = parse_python_executable(cfg)
     python_entrypoint = cfg.deployment.python_entrypoint
     config_name = cfg.deployment.config_name
@@ -32,18 +61,18 @@ async def start_agent(cfg: DictConfig):
     )
 
 
-async def start_event_bus(cfg: DictConfig):
+async def start_event_bus(cfg: DeploymentMangerConfig):
     exec = parse_python_executable(cfg)
     python_entrypoint = cfg.event_bus.python_entrypoint
 
     await keep_alive(
-        cmd=[*exec, python_entrypoint, '--config-name', 'deployment_manager.yaml'],
+        cmd=[*exec, python_entrypoint, '--base', cfg.event_bus.base, '--config-name', cfg.event_bus.config_name],
         base_backoff=2,
         max_backoff=dt.timedelta(minutes=5),
     )
 
 
-async def start_event_client(cfg: DictConfig):
+async def start_event_client(cfg: DeploymentMangerConfig):
     host = cfg.event_bus.host
     port = cfg.event_bus.port
 
@@ -53,7 +82,7 @@ async def start_event_client(cfg: DictConfig):
     return client
 
 
-async def async_main(cfg: DictConfig):
+async def async_main(cfg: DeploymentMangerConfig):
     # give the event bus a brief headstart before
     # kicking off other services.
     # We know the bus has successfully started if we can
@@ -73,8 +102,8 @@ async def async_main(cfg: DictConfig):
     eb_future.cancel()
 
 
-@hydra.main(version_base=None, config_name='config', config_path="config/")
-def main(cfg: DictConfig):
+@load_config(DeploymentMangerConfig)
+def main(cfg: DeploymentMangerConfig):
     loop = asyncio.get_event_loop()
     loop.run_until_complete(async_main(cfg))
 
