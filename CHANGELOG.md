@@ -1,3 +1,32 @@
+## 0.3.0 (2024-12-17)
+
+### Feat
+
+- add utility to walk a dataclass and convert to dict
+- add utility to get deeply nested values from dict
+- add utility to set a value at a deeply nested dict key
+- add utility to perform deep merges of dictionaries
+
+### Fix
+
+- everyone gets an __init__.py
+- add __init__.py to environments
+- add __init__.py to configs
+- add agent type name to config
+- cleanup extraneous objects in configs
+- correctly label agent config as a discriminated union
+- ensure config is importable with no modifications
+- re-enable a subset of the e2e tests
+- ensure consistent datatypes of cols in tests
+- remove reactor test
+
+### Refactor
+
+- migrate deployment_manager and event_bus to new config system
+- migrate all hydra configs over to new config system
+- have bound checker only take bounds as inputs instead of full config
+- replace hydra with interal config lib
+
 ## 0.2.0 (2024-12-16)
 
 ### Feat
