@@ -5,7 +5,7 @@ import numpy as np
 import math
 
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.component.network.utils import tensor
