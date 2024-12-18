@@ -96,12 +96,12 @@ class Pipeline:
         if ts is None or reset_ts:
             return {}
 
-        pf_first_time_stamp = pf.get_first_timestamp()
-        if pf_first_time_stamp - self.dt_dict[pf.caller_code] > self.valid_thresh:
+        first_time = pf.get_first_timestamp()
+        if first_time - self.dt_dict[pf.caller_code] > self.valid_thresh:
             warnings.warn(
                 "The temporal state is invalid. "
                 f"The temporal state has timestamp {self.dt_dict[pf.caller_code]} "
-                f"while the current pipeframe has initial timestamp {pf_first_time_stamp}",
+                f"while the current pipeframe has initial timestamp {first_time}",
                 stacklevel=2,
             )
 
