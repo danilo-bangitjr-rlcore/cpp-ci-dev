@@ -57,7 +57,7 @@ def get_tags(df: pd.DataFrame, tags: list[str] | str) -> torch.Tensor:
     return tensor(data_np)
 
 
-def get_n_step_reward(step_q):
+def get_n_step_reward(step_q: deque[Step]):
     last_step = step_q[-1]
     n_step_reward = last_step.reward
     n_step_gamma = last_step.gamma
