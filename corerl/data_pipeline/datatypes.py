@@ -85,6 +85,12 @@ class NewTransition:
         if len(self.steps) != len(other.steps):
             return False
 
+        if self.n_steps != other.n_steps:
+            return False
+
+        if self.n_step_gamma != other.n_step_gamma:
+            return False
+
         for i in range(len(self.steps)):
             if self.steps[i] != other.steps[i]:
                 return False
