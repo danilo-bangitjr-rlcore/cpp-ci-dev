@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Literal
 import numpy as np
 
 from dataclasses import dataclass
@@ -22,8 +22,8 @@ class CopyImputerTemporalState:
 
 
 class CopyImputer(BaseImputer):
-    def __init__(self, cfg: CopyImputerConfig, tag_cfg: Any):
-        super().__init__(cfg, tag_cfg)
+    def __init__(self, cfg: CopyImputerConfig):
+        super().__init__(cfg)
         self.imputation_horizon = cfg.imputation_horizon
 
     def __call__(self, pf: PipelineFrame, tag: str):

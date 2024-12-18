@@ -20,9 +20,8 @@ class ImputerTemporalState:
 
 
 class BaseImputer:
-    def __init__(self, cfg: BaseImputerConfig, tag_cfg: Any):
+    def __init__(self, cfg: BaseImputerConfig):
         self.cfg = cfg
-        self.stage_code = StageCode.IMPUTER
 
     def __call__(self, pf: PipelineFrame, tag: str) -> PipelineFrame:
         stage_ts = pf.temporal_state.get(self.stage_code)

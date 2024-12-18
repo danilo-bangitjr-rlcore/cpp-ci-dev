@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Literal
 import numpy as np
 
 from pydantic.dataclasses import dataclass as config
@@ -22,8 +22,8 @@ class LinearImputerTemporalState:
 
 
 class LinearImputer(BaseImputer):
-    def __init__(self, cfg: LinearImputerConfig, tag_cfg: Any):
-        super().__init__(cfg, tag_cfg)
+    def __init__(self, cfg: LinearImputerConfig):
+        super().__init__(cfg)
         self.max_gap = cfg.max_gap
 
     def __call__(self, pf: PipelineFrame, tag: str):

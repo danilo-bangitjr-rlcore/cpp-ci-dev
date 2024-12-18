@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Literal
 from pydantic.dataclasses import dataclass as config
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group, ImputerTemporalState
@@ -10,8 +10,8 @@ class IdentityImputerConfig(BaseImputerConfig):
 
 
 class IdentityImputer(BaseImputer):
-    def __init__(self, cfg: IdentityImputerConfig, tag_cfg: Any):
-        super().__init__(cfg, tag_cfg)
+    def __init__(self, cfg: IdentityImputerConfig):
+        super().__init__(cfg)
 
     def _inner_call(self, pf: PipelineFrame, tag: str, imputer_ts: ImputerTemporalState | None) \
             -> tuple[PipelineFrame, ImputerTemporalState]:

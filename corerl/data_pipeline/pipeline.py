@@ -68,7 +68,7 @@ class Pipeline:
         }
 
         self.imputers = {
-            tag.name: init_imputer(tag.imputer, tag) for tag in self.tags
+            tag.name: init_imputer(tag.imputer) for tag in self.tags
         }
 
         reward_components = {cfg.name: RewardComponentConstructor(cfg.reward_constructor) for cfg in self.tags}
