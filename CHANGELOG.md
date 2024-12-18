@@ -1,3 +1,9 @@
+## 0.3.3 (2024-12-18)
+
+### Fix
+
+- **datareader**: agg read should not raise exception if df is empty (#320)
+
 ## 0.3.2 (2024-12-18)
 
 ### Fix
