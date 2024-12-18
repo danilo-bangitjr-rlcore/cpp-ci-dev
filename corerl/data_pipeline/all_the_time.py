@@ -163,8 +163,9 @@ class AllTheTimeTC:
             warnings.warn("Empty dataframe passed to transition creator", stacklevel=2)
             return pf
 
-        tc_ts = pf.temporal_state.get(self.stage_code)
-        assert isinstance(tc_ts, AllTheTimeTS | None)
+        tc_ts = pf.temporal_state.get(self.stage_code, AllTheTimeTS())
+        pf.temporal_state[StageCode.TC] = tc_ts
+        assert isinstance(tc_ts, AllTheTimeTS)
 
         steps = self._make_steps(pf)
         transitions = []
