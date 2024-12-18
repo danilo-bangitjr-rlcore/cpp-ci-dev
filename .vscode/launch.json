@@ -32,7 +32,10 @@
             "console": "integratedTerminal",
             "args": [
                 "${command:pickArgs}"
-            ]
+            ],
+            "env": {
+                "NUMBA_DISABLE_JIT": "1"
+            }
         }
     ]
 }

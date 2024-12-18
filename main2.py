@@ -110,7 +110,8 @@ def main():
         db= db_cfg,
         obs_interval_minutes=1.1,
         agent_transition_creator=AnytimeTransitionCreatorConfig(
-            steps_per_decision=1
+            steps_per_decision=1,
+            gamma=1,
         ),
         state_constructor=SCConfig(
             countdown=CountdownConfig(
@@ -129,7 +130,8 @@ def main():
         res,
         stages=(
             StageCode.BOUNDS,
-            StageCode.ODDITY, #todo: when this is uncommented and passed as stages, many `NaN` values are introduced
+            # todo: when this is uncommented and passed into stages, many `NaN` values are introduced
+            # StageCode.ODDITY,
             StageCode.IMPUTER,
             StageCode.RC,
             StageCode.SC, # appears to reorder the dataframe, putting actions first?
