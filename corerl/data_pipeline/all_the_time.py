@@ -32,7 +32,7 @@ class NStepInfo:
      * the discount factor for bootstrapping off step_q[-1].state
     """
     def __init__(self, n: int):
-        self.step_q: deque = deque(maxlen=n + 1)
+        self.step_q = deque[Step](maxlen=n + 1)
         self.n_step_reward: float | None = None
         self.n_step_gamma: float | None = None
 
