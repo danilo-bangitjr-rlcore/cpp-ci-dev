@@ -127,8 +127,7 @@ class Pipeline:
             )
 
         pf = PipelineFrame(data, caller_code)
-        ts = self._init_temporal_state(pf, reset_temporal_state)
-        pf.temporal_state = ts
+        pf.temporal_state = self._init_temporal_state(pf, reset_temporal_state)
 
         for stage in stages:
             pf = self._stage_invokers[stage](pf)
