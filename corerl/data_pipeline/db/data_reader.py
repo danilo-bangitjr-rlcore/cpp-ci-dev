@@ -1,15 +1,16 @@
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any, List, Literal, assert_never
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import Engine
-import sqlalchemy
+from sqlalchemy import TEXT, TIMESTAMP, Column, Engine, Float, MetaData, Table, cast, func, select
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.sql import text
 
 import corerl.utils.pandas as pd_util
-from corerl.configs.config import config, MISSING
+from corerl.configs.config import config
 from corerl.data_pipeline.db.utils import try_connect
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 
@@ -17,15 +18,32 @@ logger = logging.getLogger(__name__)
 
 @config()
 class TagDBConfig(SQLEngineConfig):
-    db_name: str = MISSING
-    sensor_table_name: str = MISSING
+    """Configuration to setup the tag database connection.
+    """
+    db_name: str = "postgres"
+    sensor_table_name: str = "scrubber4"
+    sensor_table_schema: str = "public"
 
 
 class DataReader:
     def __init__(self, db_cfg: TagDBConfig) -> None:
         self.engine: Engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name)
-        self.sensor_table_name = db_cfg.sensor_table_name
         self.connection = try_connect(self.engine)
+
+        self.db_metadata = MetaData()
+        self.db_metadata.reflect(bind=self.engine)
+        self.sensor_table = Table(
+            db_cfg.sensor_table_name,
+            self.db_metadata,
+            Column("time", TIMESTAMP, nullable=False, default= None, autoincrement= False, comment=None),
+            Column("host", TEXT, nullable=True, default= None, autoincrement= False, comment="tag"),
+            Column("id", TEXT, nullable=True, default= None, autoincrement= False, comment="tag"),
+            Column("name", TEXT, nullable=True, default= None, autoincrement= False, comment="tag"),
+            Column("Quality", TEXT, nullable=True, default= None, autoincrement= False, comment="tag"),
+            Column("fields", JSONB, nullable=True, default= None, autoincrement= False, comment=None),
+            schema=db_cfg.sensor_table_schema,
+            extend_existing=True
+        )
 
     def batch_aggregated_read(
         self,
@@ -35,21 +53,42 @@ class DataReader:
         bucket_width: timedelta,
         aggregation: Literal["avg"] | Literal["last"] = "avg",
     ):
-        query_str = f"""
-            SELECT
-                {_time_bucket(bucket_width=bucket_width, time_col='time')} as time_bucket,
-                name,
-                {_aggregator(aggregation=aggregation, val_col=_parse_jsonb('fields'), time_col='time')} AS val
-            FROM {self.sensor_table_name}
-            WHERE {_time_between('time', start_time, end_time)}
-            AND {_filter_any('name', names)}
-            GROUP BY time_bucket, name
-            ORDER BY time_bucket ASC, name ASC;
-        """
+        # https://docs.timescale.com/api/latest/hyperfunctions/time_bucket/#time_bucket
+        time_bucket_stmt = func.time_bucket(
+            text(f"INTERVAL '{bucket_width}'"),
+            self.sensor_table.c["time"],
+            text(f"origin => '{start_time.isoformat()}'"),
+            text("timezone => 'UTC'")
+        )
 
-        sensor_data = pd.read_sql(sql=query_str, con=self.connection)
+        match(aggregation):
+            case "avg":
+                # https://www.postgresql.org/docs/17/functions-aggregate.html
+                agg_stmt = func.avg(cast(self.sensor_table.c["fields"]["val"], Float))
+            case "last":
+                # https://docs.timescale.com/api/latest/hyperfunctions/last/#last
+                agg_stmt = func.last(self.sensor_table.c["fields"]["val"], self.sensor_table.c["time"])
+            case _:
+                assert_never(aggregation)
+
+        stmt = select(
+            time_bucket_stmt.label("time_bucket"),
+            self.sensor_table.c["name"],
+            agg_stmt.label("val")
+        ).filter(
+            self.sensor_table.c["time"] >= text(f"TIMESTAMP '{start_time.isoformat()}'"),
+            self.sensor_table.c["time"] < text(f"TIMESTAMP '{end_time.isoformat()}'"),
+            self.sensor_table.c["name"].in_(names)
+        ).group_by(
+            text("time_bucket"), self.sensor_table.c["name"]
+        ).order_by(
+            text("time_bucket ASC"), self.sensor_table.c["name"].asc()
+        )
+
+        logger.debug(stmt.compile(self.engine, compile_kwargs={"literal_binds": True}))
+
+        sensor_data = pd.read_sql(sql=stmt, con=self.connection)
         if sensor_data.empty:
-            logger.warning(f"failed query:\n{query_str}")
             raise Exception("dataframe returned from timescale was empty.")
 
         sensor_data = sensor_data.pivot(columns="name", values="val", index="time_bucket")
@@ -58,7 +97,7 @@ class DataReader:
         sensor_data[list(missing_cols)] = np.nan
 
         t = start_time
-        while t <= end_time:
+        while t < end_time:
             if t not in sensor_data.index:
                 idx = pd.DatetimeIndex([t])
 
@@ -79,50 +118,19 @@ class DataReader:
         aggregation: Literal["avg"] | Literal["last"] = "avg",
     ):
         bucket_width = end_time - start_time
-
-        query_str = f"""
-            SELECT
-                {_time_bucket(bucket_width=bucket_width, time_col='time', origin=start_time)} as time_bucket,
-                name,
-                {_aggregator(aggregation=aggregation, val_col=_parse_jsonb('fields'), time_col='time')} AS val
-            FROM {self.sensor_table_name}
-            WHERE {_time_between('time', start_time, end_time)}
-            AND {_filter_any('name', names)}
-            GROUP BY time_bucket, name
-            ORDER BY time_bucket ASC, name ASC;
-        """
-
-        sensor_data = pd.read_sql(sql=query_str, con=self.connection)
-        if sensor_data.empty:
-            logger.warning(f"failed query:\n{query_str}")
-            raise Exception("dataframe returned from timescale was empty.")
-
-        # add time column to enable pivot
-        sensor_data = sensor_data.pivot(columns="name", values="val", index="time_bucket")
-        n_rows = sensor_data.shape[0]
-        if n_rows != 1:
-            logger.warning(
-                f"single_aggregated_read returned {n_rows}, expected 1. Taking the last row (newest data)..."
-            )
-            sensor_data = pd.DataFrame(sensor_data.iloc[-1], columns=sensor_data.columns)
-
-        missing_cols = set(names) - set(sensor_data.columns)
-        sensor_data[list(missing_cols)] = np.nan
-
-        return sensor_data
+        return self.batch_aggregated_read(names, start_time, end_time, bucket_width, aggregation)
 
     def close(self) -> None:
         self.connection.close()
 
-
     def query(self, q: str, params: dict[str, Any] | None = None) -> pd.DataFrame:
         params = params or {}
 
-        q = q.replace(':table', self.sensor_table_name)
-        q = q.replace(':val', _parse_jsonb('fields'))
+        q = q.replace(":table", self.sensor_table.name)
+        q = q.replace(":val", _parse_jsonb("fields"))
 
         return pd.read_sql(
-            sql=sqlalchemy.text(q),
+            sql=text(q),
             con=self.connection,
             params=params,
         )
@@ -137,13 +145,13 @@ class DataReader:
             FROM :table
             WHERE name=:tag
         """
-        df = self.query(q, { 'tag': tag_name })
+        df = self.query(q, { "tag": tag_name })
         return TagStats(
             tag=tag_name,
-            min=df['min'].item(),
-            max=df['max'].item(),
-            avg=df['avg'].item(),
-            var=df['var'].item(),
+            min=df["min"].item(),
+            max=df["max"].item(),
+            avg=df["avg"].item(),
+            var=df["var"].item(),
         )
 
     def get_time_stats(self):
@@ -155,8 +163,8 @@ class DataReader:
         """
         df = self.query(q)
         return TimeStats(
-            start=pd_util.get_datetime(df, 'start', 0),
-            end=pd_util.get_datetime(df, 'end', 0),
+            start=pd_util.get_datetime(df, "start", 0),
+            end=pd_util.get_datetime(df, "end", 0),
         )
 
 
@@ -174,47 +182,8 @@ class TagStats:
     var: float | None
 
 
-def _time_bucket(bucket_width: timedelta, time_col: str, origin: datetime | None = None) -> str:
-    """
-    NOTE: Addition of bucket_width in the timebucket definition ensures that the labels
-    for the time buckets align with the end of the bucket rather than the beginnning.
-    """
-    if origin is None:
-        return f"time_bucket(INTERVAL '{bucket_width}', {time_col}, timezone => 'UTC') + '{bucket_width}'"
-    else:
-        assert origin.tzinfo == UTC
-        origin_ts = f"TIMESTAMP '{origin.isoformat()}'"
-        return (f"time_bucket(INTERVAL '{bucket_width}', {time_col}, origin => " +
-            f"{origin_ts}, timezone => 'UTC') + '{bucket_width}'")
-
-
-def _aggregator(aggregation: Literal["avg"] | Literal["last"], val_col: str, time_col: str | None = None) -> str:
-    match aggregation:
-        case "avg":
-            return f"avg({val_col})"
-        case "last":
-            assert time_col is not None
-            return f"last({val_col}, {time_col})"
-        case _:
-            assert_never(aggregation)
-
-
-def _time_between(time_col: str, start: datetime, end: datetime) -> str:
-    assert start.tzinfo == UTC
-    assert end.tzinfo == UTC
-    return f"""
-        {time_col} > TIMESTAMP '{start.isoformat()}'
-        AND {time_col} < TIMESTAMP '{end.isoformat()}'
-    """
-
-
 def _parse_jsonb(col: str, attribute: str = "val", type_str: str = "float") -> str:
     return f"({col}->'{attribute}')::{type_str}"
-
-
-def _filter_any(col: str, vals: list[str]) -> str:
-    s = "\tOR ".join([f"{col} = '{v}'\n" for v in vals])
-    return f"({s})"
 
 
 def fill_data_for_changed_setpoint(
