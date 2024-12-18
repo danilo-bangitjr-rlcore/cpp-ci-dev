@@ -129,6 +129,7 @@ class Pipeline:
         pf = PipelineFrame(data, caller_code)
         pf.temporal_state = self._init_temporal_state(pf, reset_temporal_state)
 
+        pf = invoke_stage_per_tag(pf, self.missing_data_checkers)
         for stage in stages:
             pf = self._stage_invokers[stage](pf)
 
