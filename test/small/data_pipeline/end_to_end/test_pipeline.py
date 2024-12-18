@@ -34,7 +34,7 @@ def test_pipeline1():
             ),
             TagConfig(name='action-1', is_action=True),
         ],
-        agent_transition_creator=AnytimeTransitionCreatorConfig(
+        transition_creator=AnytimeTransitionCreatorConfig(
             steps_per_decision=2,
             gamma=0.9,
             n_step=None,
@@ -125,7 +125,7 @@ def test_pipeline2():
             ),
             TagConfig(name='action-1', is_action=True),
         ],
-        agent_transition_creator=AnytimeTransitionCreatorConfig(
+        transition_creator=AnytimeTransitionCreatorConfig(
             steps_per_decision=2,
             gamma=0.9,
             n_step=None,

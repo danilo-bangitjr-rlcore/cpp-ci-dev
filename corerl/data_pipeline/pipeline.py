@@ -38,7 +38,7 @@ class PipelineConfig:
     db: TagDBConfig = field(default_factory=TagDBConfig)
     obs_interval_minutes: float = 0
     state_constructor: SCConfig = field(default_factory=SCConfig)
-    agent_transition_creator: TransitionCreatorConfig = field(default_factory=DummyTransitionCreatorConfig)
+    transition_creator: TransitionCreatorConfig = field(default_factory=DummyTransitionCreatorConfig)
 
 
 @dataclass
@@ -59,7 +59,7 @@ class Pipeline:
         }
 
         self.transition_creator = init_transition_creator(
-            cfg.agent_transition_creator,
+            cfg.transition_creator,
             self.tags,
         )
 

@@ -23,7 +23,7 @@ def test_construct_pipeline():
             TagConfig(name='sensor_y'),
         ],
         obs_interval_minutes=15,
-        agent_transition_creator=DummyTransitionCreatorConfig(),
+        transition_creator=DummyTransitionCreatorConfig(),
         state_constructor=SCConfig(
             countdown=CountdownConfig(action_period=1),
         ),
@@ -38,7 +38,7 @@ def test_passing_data_to_pipeline():
             TagConfig(name='sensor_y'),
         ],
         obs_interval_minutes=15,
-        agent_transition_creator=DummyTransitionCreatorConfig(),
+        transition_creator=DummyTransitionCreatorConfig(),
         state_constructor=SCConfig(
             countdown=CountdownConfig(action_period=1),
         ),
