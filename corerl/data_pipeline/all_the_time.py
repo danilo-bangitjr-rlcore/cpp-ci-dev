@@ -129,7 +129,7 @@ class AllTheTimeTC:
             n: NStepInfo(n) for n in range(self.min_n_step, self.max_n_step + 1)
         }
 
-    def _make_steps(self, pf) -> list[Step]:
+    def _make_steps(self, pf: PipelineFrame) -> list[Step]:
         """
         Makes the steps for the pf
         """
