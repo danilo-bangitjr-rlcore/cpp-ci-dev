@@ -88,9 +88,6 @@ class DataReader:
         logger.debug(stmt.compile(self.engine, compile_kwargs={"literal_binds": True}))
 
         sensor_data = pd.read_sql(sql=stmt, con=self.connection)
-        if sensor_data.empty:
-            raise Exception("dataframe returned from timescale was empty.")
-
         sensor_data = sensor_data.pivot(columns="name", values="val", index="time_bucket")
 
         missing_cols = set(names) - set(sensor_data.columns)
