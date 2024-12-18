@@ -1,3 +1,9 @@
+## 0.3.2 (2024-12-18)
+
+### Fix
+
+- **datareader**: addressed aggregated_read NaN, use orm query builder (#319)
+
 ## 0.3.1 (2024-12-17)
 
 ### Fix
