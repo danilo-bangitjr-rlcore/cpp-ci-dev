@@ -42,7 +42,7 @@ class AllTheTimeTS:
     step_info: dict[int, NStepInfo]
 
 
-def has_nan(obj):
+def has_nan(obj: object):
     for _, value in vars(obj).items():
         if isinstance(value, torch.Tensor):
             if torch.isnan(value).any():
