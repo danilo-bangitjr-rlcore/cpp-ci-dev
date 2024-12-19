@@ -5,17 +5,14 @@ import pandas as pd
 from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, StageCode
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.imputers.copy import CopyImputer, CopyImputerConfig, CopyImputerTemporalState
-from corerl.data_pipeline.tag_config import TagConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 def test_no_imputation():
     tag_1_imputer = CopyImputer(
         CopyImputerConfig(imputation_horizon=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = CopyImputer(
         CopyImputerConfig(imputation_horizon=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({
@@ -43,11 +40,9 @@ def test_no_imputation():
 def test_all_nan_imputation():
     tag_1_imputer = CopyImputer(
         CopyImputerConfig(imputation_horizon=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = CopyImputer(
         CopyImputerConfig(imputation_horizon=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({
@@ -72,11 +67,9 @@ def test_all_nan_imputation():
 def test_all_nan_imputation_ts():
     tag_1_imputer = CopyImputer(
         CopyImputerConfig(imputation_horizon=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = CopyImputer(
         CopyImputerConfig(imputation_horizon=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({
@@ -131,11 +124,9 @@ def test_all_nan_imputation_ts():
 def test_backtrack_imputation():
     tag_1_imputer = CopyImputer(
         CopyImputerConfig(imputation_horizon=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = CopyImputer(
         CopyImputerConfig(imputation_horizon=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({
@@ -166,11 +157,9 @@ def test_backtrack_imputation():
 def test_backtrack_imputation_ts():
     tag_1_imputer = CopyImputer(
         CopyImputerConfig(imputation_horizon=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = CopyImputer(
         CopyImputerConfig(imputation_horizon=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({

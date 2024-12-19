@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Literal
 import numpy as np
 
 from pydantic.dataclasses import dataclass as config
@@ -8,6 +8,7 @@ from numba import njit
 from corerl.configs.config import MISSING
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group
+from corerl.data_pipeline.utils import get_tag_temporal_state
 
 @config(config={'extra': 'forbid'})
 class LinearImputerConfig(BaseImputerConfig):
@@ -22,32 +23,30 @@ class LinearImputerTemporalState:
 
 
 class LinearImputer(BaseImputer):
-    def __init__(self, cfg: LinearImputerConfig, tag_cfg: Any):
-        super().__init__(cfg, tag_cfg)
+    def __init__(self, cfg: LinearImputerConfig):
+        super().__init__(cfg)
         self.max_gap = cfg.max_gap
 
     def __call__(self, pf: PipelineFrame, tag: str):
-        ts = pf.temporal_state.get(StageCode.IMPUTER)
-        ts = ts or {}
-        assert isinstance(ts, dict)
-
-        tag_ts = ts.get(tag, LinearImputerTemporalState())
-        ts[tag] = tag_ts
-        assert isinstance(tag_ts, LinearImputerTemporalState)
+        tag_ts = get_tag_temporal_state(
+            StageCode.IMPUTER,
+            tag,
+            pf.temporal_state,
+            default=LinearImputerTemporalState,
+        )
 
         tag_data = pf.data[tag].to_numpy()
-
-        new_tag_data, new_prev, new_num_nans = linear_interpolation(tag_data,
-                                                                    tag_ts.prev_val,
-                                                                    tag_ts.num_nans,
-                                                                    self.max_gap)
+        new_tag_data, new_prev, new_num_nans = linear_interpolation(
+            tag_data,
+            tag_ts.prev_val,
+            tag_ts.num_nans,
+            self.max_gap,
+        )
 
         tag_ts.prev_val = new_prev
         tag_ts.num_nans = new_num_nans
 
         pf.data[tag] = new_tag_data
-        pf.temporal_state[StageCode.IMPUTER] = ts
-
         return pf
 
 

@@ -3,7 +3,6 @@ import pandas as pd
 
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, CallerCode
 from corerl.data_pipeline.imputers.linear import LinearImputer, LinearImputerConfig, LinearImputerTemporalState
-from corerl.data_pipeline.tag_config import TagConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 def test_no_imputation():
@@ -13,11 +12,9 @@ def test_no_imputation():
     """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = LinearImputer(
         LinearImputerConfig(max_gap=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({
@@ -59,11 +56,9 @@ def test_all_nan_imputation():
     """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = LinearImputer(
         LinearImputerConfig(max_gap=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({
@@ -107,11 +102,9 @@ def test_all_nan_imputation_ts():
     """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = LinearImputer(
         LinearImputerConfig(max_gap=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({
@@ -163,11 +156,9 @@ def test_leading_nan_imputation():
     """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = LinearImputer(
         LinearImputerConfig(max_gap=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({
@@ -214,11 +205,9 @@ def test_leading_nan_imputation_ts():
     """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = LinearImputer(
         LinearImputerConfig(max_gap=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({
@@ -272,11 +261,9 @@ def test_trailing_nan_imputation():
     """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = LinearImputer(
         LinearImputerConfig(max_gap=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({
@@ -322,11 +309,9 @@ def test_trailing_nan_imputation_ts():
     """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = LinearImputer(
         LinearImputerConfig(max_gap=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({
@@ -380,11 +365,9 @@ def test_linear_interpolation():
     """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = LinearImputer(
         LinearImputerConfig(max_gap=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({
@@ -431,11 +414,9 @@ def test_linear_interpolation_ts():
     """
     tag_1_imputer = LinearImputer(
         LinearImputerConfig(max_gap=1),
-        TagConfig(name="tag_1", bounds=(0.0, 1.0)),
     )
     tag_2_imputer = LinearImputer(
         LinearImputerConfig(max_gap=2),
-        TagConfig(name="tag_2", bounds=(-1.0, 10.0)),
     )
 
     data = pd.DataFrame({

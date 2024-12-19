@@ -1,4 +1,3 @@
-from typing import Any
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group
 from corerl.data_pipeline.imputers.copy import CopyImputerConfig
 from corerl.data_pipeline.imputers.identity import IdentityImputerConfig
@@ -11,5 +10,5 @@ ImputerConfig = (
 )
 
 
-def init_imputer(cfg: BaseImputerConfig, tag_cfg: Any) -> BaseImputer:
-    return imputer_group.dispatch(cfg, tag_cfg)
+def init_imputer(cfg: BaseImputerConfig) -> BaseImputer:
+    return imputer_group.dispatch(cfg)

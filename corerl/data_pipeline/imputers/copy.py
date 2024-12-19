@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Literal
 import numpy as np
 
 from dataclasses import dataclass
@@ -7,6 +7,7 @@ from numba import njit
 from corerl.configs.config import config, MISSING
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group
+from corerl.data_pipeline.utils import get_tag_temporal_state
 
 
 @config()
@@ -22,18 +23,17 @@ class CopyImputerTemporalState:
 
 
 class CopyImputer(BaseImputer):
-    def __init__(self, cfg: CopyImputerConfig, tag_cfg: Any):
-        super().__init__(cfg, tag_cfg)
+    def __init__(self, cfg: CopyImputerConfig):
+        super().__init__(cfg)
         self.imputation_horizon = cfg.imputation_horizon
 
     def __call__(self, pf: PipelineFrame, tag: str):
-        ts = pf.temporal_state.get(StageCode.IMPUTER)
-        ts = ts or {}
-        assert isinstance(ts, dict)
-
-        tag_ts = ts.get(tag, CopyImputerTemporalState())
-        ts[tag] = tag_ts
-        assert isinstance(tag_ts, CopyImputerTemporalState)
+        tag_ts = get_tag_temporal_state(
+            StageCode.IMPUTER,
+            tag,
+            pf.temporal_state,
+            default=CopyImputerTemporalState,
+        )
 
         tag_data = pf.data[tag].to_numpy()
 
@@ -45,8 +45,6 @@ class CopyImputer(BaseImputer):
         tag_ts.prev_horizon = new_hor
 
         pf.data[tag] = backward
-        pf.temporal_state[StageCode.IMPUTER] = ts
-
         return pf
 
 

@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import random
 
+from tqdm import tqdm
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
 from corerl.utils.device import device
@@ -56,7 +57,7 @@ def main(cfg: MainConfig):
         cfg.pipeline.tags,
     )
 
-    for _ in range(cfg.experiment.max_steps):
+    for _ in tqdm(range(cfg.experiment.max_steps)):
         interaction.step()
 
 if __name__ == "__main__":

@@ -38,7 +38,7 @@ class PipelineConfig:
     db: TagDBConfig = field(default_factory=TagDBConfig)
     obs_interval_minutes: float = 0
     state_constructor: SCConfig = field(default_factory=SCConfig)
-    agent_transition_creator: TransitionCreatorConfig = field(default_factory=DummyTransitionCreatorConfig)
+    transition_creator: TransitionCreatorConfig = field(default_factory=DummyTransitionCreatorConfig)
 
 
 @dataclass
@@ -59,7 +59,7 @@ class Pipeline:
         }
 
         self.transition_creator = init_transition_creator(
-            cfg.agent_transition_creator,
+            cfg.transition_creator,
             self.tags,
         )
 
@@ -68,7 +68,7 @@ class Pipeline:
         }
 
         self.imputers = {
-            tag.name: init_imputer(tag.imputer, tag) for tag in self.tags
+            tag.name: init_imputer(tag.imputer) for tag in self.tags
         }
 
         reward_components = {cfg.name: RewardComponentConstructor(cfg.reward_constructor) for cfg in self.tags}
@@ -96,12 +96,12 @@ class Pipeline:
         if ts is None or reset_ts:
             return {}
 
-        pf_first_time_stamp = pf.get_first_timestamp()
-        if pf_first_time_stamp - self.dt_dict[pf.caller_code] > self.valid_thresh:
+        first_time = pf.get_first_timestamp()
+        if first_time - self.dt_dict[pf.caller_code] > self.valid_thresh:
             warnings.warn(
                 "The temporal state is invalid. "
                 f"The temporal state has timestamp {self.dt_dict[pf.caller_code]} "
-                f"while the current pipeframe has initial timestamp {pf_first_time_stamp}",
+                f"while the current pipeframe has initial timestamp {first_time}",
                 stacklevel=2,
             )
 
@@ -127,9 +127,9 @@ class Pipeline:
             )
 
         pf = PipelineFrame(data, caller_code)
-        ts = self._init_temporal_state(pf, reset_temporal_state)
-        pf.temporal_state = ts
+        pf.temporal_state = self._init_temporal_state(pf, reset_temporal_state)
 
+        pf = invoke_stage_per_tag(pf, self.missing_data_checkers)
         for stage in stages:
             pf = self._stage_invokers[stage](pf)
 
