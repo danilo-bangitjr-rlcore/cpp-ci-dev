@@ -7,10 +7,11 @@ from math import comb
 from torch import Tensor
 
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, Step
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, Step, StageCode
 from corerl.data_pipeline.all_the_time import (
     AllTheTimeTCConfig,
     AllTheTimeTC,
+    get_n_step_reward
 )
 
 
@@ -39,70 +40,6 @@ def test_get_n_step_reward_1():
 
     assert n_step_reward == 1.9
     assert n_step_gamma == 0.81
-
-
-def test_update_n_step_reward_gamma_1():
-    q = deque(maxlen=3)
-
-    step_0 = make_test_step(0)
-    step_1 = make_test_step(1)
-    step_2 = make_test_step(2)
-
-    q.append(step_0)
-    q.append(step_1)
-    q.append(step_2)
-
-    n_step_reward, n_step_gamma = None, None
-
-    n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, q)
-    assert n_step_reward == 1.9
-    assert n_step_gamma == 0.81
-
-    step_3 = make_test_step(3)
-
-    q.append(step_3)
-    n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, q)
-    assert n_step_reward == 1.9
-    assert n_step_gamma == 0.81
-
-    step_4 = make_test_step(4)
-
-    q.append(step_4)
-    n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, q)
-    assert n_step_reward == 1.9
-    assert n_step_gamma == 0.81
-
-
-def test_update_n_step_reward_gamma_2():
-    q = deque(maxlen=3)
-
-    step_0 = make_test_step(0)
-    step_1 = make_test_step(1)
-    step_2 = make_test_step(2)
-
-    q.append(step_0)
-    q.append(step_1)
-    q.append(step_2)
-
-    n_step_reward, n_step_gamma = None, None
-
-    n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, q)
-    assert n_step_reward == 1.9
-    assert n_step_gamma == 0.81
-
-    step_3 = make_test_step(3, gamma=0.5)
-
-    q.append(step_3)
-    n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, q)
-    assert n_step_reward == 1.9
-    assert n_step_gamma == 0.45
-
-    step_4 = make_test_step(4, gamma=0.5)
-
-    q.append(step_4)
-    n_step_reward, n_step_gamma = update_n_step_reward_gamma(n_step_reward, n_step_gamma, q)
-    assert n_step_reward == 1.5
-    assert n_step_gamma == 0.25
 
 
 def test_all_the_time_1():
@@ -358,6 +295,7 @@ def test_all_the_time_4_ts():
         n_step_gamma=0.9,
     )
     assert t_0 == expected_0
+    ts = pf.temporal_state
 
     # Pass in the next pf, which continues from the above pf
     state_col = np.arange(2, 4)
@@ -367,9 +305,11 @@ def test_all_the_time_4_ts():
     ]
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
+
     pf = PipelineFrame(
         df,
         caller_code=CallerCode.OFFLINE,
+        temporal_state=ts
     )
     pf = tc(pf)
     transitions = pf.transitions
@@ -428,8 +368,8 @@ def test_all_the_time_4_ts():
 
 def test_all_the_time_5_ts():
     """
-    Like the above test, not the nan at the end of the first pf should prevent the
-    temporal states from being linked
+    Like the above test, but the nan at the end of the first pf should prevent the
+    transitions from the two pfs to be linked
     """
     state_col = np.arange(2)
     cols = {"state": state_col, "action": [0, 0], "reward": [1, np.nan]}
@@ -465,6 +405,7 @@ def test_all_the_time_5_ts():
     transitions = pf.transitions
     assert isinstance(transitions, list)
     assert len(transitions) == 0
+    ts = pf.temporal_state
 
     # Pass in the next pf, which continues from the above pf
     state_col = np.arange(2, 4)
@@ -477,6 +418,7 @@ def test_all_the_time_5_ts():
     pf = PipelineFrame(
         df,
         caller_code=CallerCode.OFFLINE,
+        temporal_state=ts
     )
     pf = tc(pf)
     transitions = pf.transitions
@@ -503,7 +445,7 @@ def test_all_the_time_6_online():
     Tests online creation of transitions
     """
 
-    def _get_pf(i):
+    def _get_pf(i, ts=None):
         state_col = np.arange(i, i + 1)
         cols = {"state": state_col, "action": [0], "reward": [1]}
         dates = [
@@ -514,6 +456,7 @@ def test_all_the_time_6_online():
         pf = PipelineFrame(
             df,
             caller_code=CallerCode.OFFLINE,
+            temporal_state=ts
         )
         return pf
 
@@ -538,12 +481,14 @@ def test_all_the_time_6_online():
     tc = AllTheTimeTC(cfg, tags)
 
     transitions = []
+    ts = {}
     for i in range(10):
-        pf = _get_pf(i)
+        pf = _get_pf(i, ts=ts)
         pf = tc(pf)
         new_transitions = pf.transitions
         assert isinstance(new_transitions, list)
         transitions += new_transitions
+        ts = pf.temporal_state
 
     assert len(transitions) == 8
 
@@ -565,7 +510,7 @@ def test_all_the_time_7_online():
     Like the above test, but iteration 4 has a nan, so should reset the temporal state.
     """
 
-    def _get_pf(i):
+    def _get_pf(i, ts):
         state_col = np.arange(i, i + 1)
         if i == 4:
             cols = {"state": state_col, "action": [np.nan], "reward": [1]}
@@ -580,6 +525,7 @@ def test_all_the_time_7_online():
         pf = PipelineFrame(
             df,
             caller_code=CallerCode.OFFLINE,
+            temporal_state=ts
         )
         return pf
 
@@ -604,12 +550,14 @@ def test_all_the_time_7_online():
     tc = AllTheTimeTC(cfg, tags)
 
     transitions = []
+    ts = {}
     for i in range(10):
-        pf = _get_pf(i)
+        pf = _get_pf(i, ts)
         pf = tc(pf)
         new_transitions = pf.transitions
         assert isinstance(new_transitions, list)
         transitions += new_transitions
+        ts = pf.temporal_state
 
     assert len(transitions) == 5
 
@@ -667,3 +615,96 @@ def test_all_the_time_7_online():
         n_step_gamma=0.81,
     )
     assert transitions[4] == expected_4
+
+
+def test_all_the_time_8_caller_codes():
+    # make the TC
+    tags = [
+        TagConfig(
+            name='state',
+        ),
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+        TagConfig(
+            name='reward',
+        )
+    ]
+
+    cfg = AllTheTimeTCConfig(
+        gamma=0.9,
+        max_n_step=2,
+    )
+
+    tc = AllTheTimeTC(cfg, tags)
+
+    # make a pf from one caller code
+    state_col = np.arange(1)
+    cols = {"state": state_col, "action": [0], "reward": [1]}
+    dates = [
+        datetime.datetime(2024, 1, 1, 1, i) for i in range(1)
+    ]
+    datetime_index = pd.DatetimeIndex(dates)
+    df = pd.DataFrame(cols, index=datetime_index)
+    pf = PipelineFrame(
+        df,
+        caller_code=CallerCode.OFFLINE,
+    )
+
+    pf = tc(pf)
+    transitions = pf.transitions
+    assert isinstance(transitions, list)
+    assert len(transitions) == 0
+    ts1 = pf.temporal_state
+
+    # make a pf from another caller code
+    state_col = np.arange(1)
+    cols = {"state": state_col, "action": [0], "reward": [1]}
+    dates = [
+        datetime.datetime(2024, 1, 1, 1, i) for i in range(1)
+    ]
+    datetime_index = pd.DatetimeIndex(dates)
+    df = pd.DataFrame(cols, index=datetime_index)
+    pf = PipelineFrame(
+        df,
+        caller_code=CallerCode.ONLINE,
+    )
+
+    pf = tc(pf)
+    transitions = pf.transitions
+    assert isinstance(transitions, list)
+    assert len(transitions) == 0
+
+    # now, pass in a pf which is a continuation of the first pf
+    # make a pf from another caller code
+    state_col = np.arange(1, 2)
+    cols = {"state": state_col, "action": [0], "reward": [1]}
+    dates = [
+        datetime.datetime(2024, 1, 1, 1, i) for i in range(1, 2)
+    ]
+    datetime_index = pd.DatetimeIndex(dates)
+    df = pd.DataFrame(cols, index=datetime_index)
+    pf = PipelineFrame(
+        df,
+        caller_code=CallerCode.OFFLINE,
+        temporal_state=ts1,  # we give it the temporal state of the first dataframe
+    )
+
+    pf = tc(pf)
+    transitions = pf.transitions
+    assert isinstance(transitions, list)
+    assert len(transitions) == 1
+
+    expected_0 = NewTransition(
+        steps=[
+            make_test_step(0),
+            make_test_step(1),
+        ],
+        n_step_reward=1.,
+        n_step_gamma=0.9,
+    )
+    assert transitions[0] == expected_0
+
+
+

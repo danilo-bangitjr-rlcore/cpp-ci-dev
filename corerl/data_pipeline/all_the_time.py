@@ -31,18 +31,17 @@ class NStepInfo:
         prior to the first step's state being created
      * the discount factor for bootstrapping off step_q[-1].state
     """
+
     def __init__(self, n: int):
         self.step_q = deque[Step](maxlen=n + 1)
         self.n_step_reward: float = 0
         self.n_step_gamma: float = 1
 
 
-@dataclass
-class AllTheTimeTS:
-    step_info: dict[int, NStepInfo]
+type StepInfo = dict[int, NStepInfo]
 
 
-def has_nan(obj: object):
+def has_nan(obj: object) -> bool:
     for _, value in vars(obj).items():
         if isinstance(value, torch.Tensor):
             if torch.isnan(value).any():
@@ -57,7 +56,7 @@ def get_tags(df: pd.DataFrame, tags: list[str] | str) -> torch.Tensor:
     return tensor(data_np)
 
 
-def get_n_step_reward(step_q: deque[Step]):
+def get_n_step_reward(step_q: deque[Step]) -> tuple[float, float]:
     last_step = step_q[-1]
     n_step_reward = last_step.reward
     n_step_gamma = last_step.gamma
@@ -70,31 +69,11 @@ def get_n_step_reward(step_q: deque[Step]):
     return n_step_reward, n_step_gamma
 
 
-def update_n_step_reward_gamma(n_step_reward, n_step_gamma, step_q):
-    """
-    Updates the n_step_reward and n_step_gamma as new steps are added to the queue.
-    * step_q has the oldest transitions first (i.e. happened first).
-    * If n_step_reward, n_step_gamma are None, initialize them by iterating backwards through the queue
-        (get_n_step_reward). Otherwise, update n_step_reward and n_step_gamma recursively.
-    """
-    assert (n_step_reward is None) == (n_step_gamma is None)
-
-    if n_step_gamma is None:
-        n_step_reward, n_step_gamma = get_n_step_reward(step_q)
-
-    else:  # update n_step_reward online with a recurrence relation
-        assert n_step_reward is not None
-        latest_reward_discount = n_step_gamma / step_q[0].gamma
-        # subtract out the first (oldest) reward from the n_step_reward
-        n_step_reward = n_step_reward - step_q[0].reward
-        # Then un-discount all remaining rewards in the sum by the oldest discount factor
-        n_step_reward = n_step_reward / step_q[0].gamma
-        # discount and add the latest_reward to the sum
-        n_step_reward = n_step_reward + latest_reward_discount * step_q[-1].reward
-        # produce the gamma for discounting after the final step
-        n_step_gamma = latest_reward_discount * step_q[-1].gamma
-
-    return n_step_reward, n_step_gamma
+def _reset_step_info(min_n_step: int, max_n_step: int) -> StepInfo:
+    step_info: StepInfo = {
+        n: NStepInfo(n) for n in range(min_n_step, max_n_step + 1)
+    }
+    return step_info
 
 
 class AllTheTimeTC:
@@ -112,9 +91,6 @@ class AllTheTimeTC:
         self.max_n_step = cfg.max_n_step
         assert self.min_n_step > 0
         assert self.max_n_step >= self.min_n_step
-        self.step_info = {
-            n: NStepInfo(n) for n in range(self.min_n_step, self.max_n_step + 1)
-        }
 
     def _init_action_tags(self):
         self.action_tags = []
@@ -122,11 +98,6 @@ class AllTheTimeTC:
             name = tag_config.name
             if tag_config.is_action:
                 self.action_tags.append(name)
-
-    def _reset_step_info(self):
-        self.step_info = {
-            n: NStepInfo(n) for n in range(self.min_n_step, self.max_n_step + 1)
-        }
 
     def _make_steps(self, pf: PipelineFrame) -> list[Step]:
         """
@@ -162,36 +133,35 @@ class AllTheTimeTC:
             warnings.warn("Empty dataframe passed to transition creator", stacklevel=2)
             return pf
 
-        tc_ts = pf.temporal_state.get(StageCode.TC, AllTheTimeTS({}))
-        pf.temporal_state[StageCode.TC] = tc_ts
-        assert isinstance(tc_ts, AllTheTimeTS)
+        step_info = pf.temporal_state.get(
+            StageCode.TC,
+            _reset_step_info(self.min_n_step, self.max_n_step)
+        )
+
+        assert isinstance(step_info, dict)
 
         steps = self._make_steps(pf)
         transitions = []
         for step in steps:
             if has_nan(step):
-                self._reset_step_info()  # nuke the step info
+                step_info = _reset_step_info(self.min_n_step, self.max_n_step)  # nuke the step info
             else:
-                transitions += self._update(step)
+                new_transitions, step_info = self._update(step, step_info)
+                transitions += new_transitions
 
-        if tc_ts is None:
-            tc_ts = AllTheTimeTS(self.step_info)
-        else:
-            tc_ts.step_info = self.step_info
-
-        pf.temporal_state[StageCode.TC] = tc_ts
+        pf.temporal_state[StageCode.TC] = step_info
         pf.transitions = transitions
 
         return pf
 
-    def _update(self, step: Step) -> list[NewTransition]:
+    def _update(self, step: Step, step_info: StepInfo) -> tuple[list[NewTransition], StepInfo]:
         """
         Updates all the step queues, n_step_rewards, and n_step_gammas stored in self.step_info with the new step,
         then returns any produced transitions.
         """
         new_transitions = []
         for n in range(self.min_n_step, self.max_n_step + 1):
-            n_step_info = self.step_info[n]
+            n_step_info = step_info[n]
             step_q = n_step_info.step_q
             step_q.append(step)
 
@@ -210,4 +180,4 @@ class AllTheTimeTC:
 
                 new_transitions.append(new_transition)
 
-        return new_transitions
+        return new_transitions, step_info
