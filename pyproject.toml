@@ -83,6 +83,7 @@ dev = [
     "ruff",
     "pytest",
     "pytest-asyncio",
+    "pytest-coverage",
     "pytest-xdist",
     "pytest-timeout",
     "pyright",
