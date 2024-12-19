@@ -10,12 +10,17 @@ from corerl.utils.device import device
 from corerl.agent.factory import init_agent
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.sim_async_env import SimAsyncEnv, SimAsyncEnvConfig
+from corerl.environment.async_env.offline_async_env import OfflineAsyncEnvConfig, OfflineAsyncEnv
+from corerl.environment.async_env.factory import init_async_env
+
+from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
 from corerl.interaction.sim_interaction import SimInteraction
 
 from corerl.environment.registry import register_custom_envs
 
 import corerl.utils.freezer as fr
 import corerl.main_utils as utils
+import yaml
 
 log = logging.getLogger(__name__)
 
@@ -37,11 +42,7 @@ def main(cfg: MainConfig):
 
     pipeline = Pipeline(cfg.pipeline)
 
-    env_cfg = SimAsyncEnvConfig(name=cfg.env.name)
-    env = SimAsyncEnv(
-        env_cfg,
-        cfg.pipeline.tags,
-    )
+    env = init_async_env(cfg.env, cfg.pipeline.tags)
 
     state_dim, action_dim = pipeline.get_state_action_dims()
     agent = init_agent(
@@ -60,5 +61,7 @@ def main(cfg: MainConfig):
     for _ in tqdm(range(cfg.experiment.max_steps)):
         interaction.step()
 
+
 if __name__ == "__main__":
     main()
+

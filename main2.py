@@ -92,7 +92,6 @@ def main():
                 ))
                 rtc['tag_configs'] = tag_configs
 
-
     end_date = datetime(2024, 12, 15, tzinfo=UTC)
     start_date = datetime(2024, 12, 14, tzinfo=UTC)
 
@@ -120,7 +119,7 @@ def main():
 
     pipeline_config = PipelineConfig(
         tags=tag_configs,
-        db= db_cfg,
+        db=db_cfg,
         obs_interval_minutes=1.1,
         agent_transition_creator=AnytimeTransitionCreatorConfig(
             steps_per_decision=1,
@@ -157,5 +156,8 @@ def main():
     print(pipeline.get_state_action_dims())
     print(res.shape)
     print(len(names))
+
+
 if __name__ == "__main__":
     main()
+

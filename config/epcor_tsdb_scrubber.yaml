@@ -1,6 +1,17 @@
 defaults:
   - 
 
+
+env:
+  name: offline_async_env
+  discrete_control: False
+  seed: 1
+  db: ${pipeline.db}
+  env_start_time: "2024-10-11 00:00:00"
+  env_end_time: "2024-12-16 07:38:50"
+  bucket_width: "15m"
+  env_step_time: "1h"
+
 agent:
   name: greedy_ac
   n_critic_updates : 1
@@ -49,14 +60,14 @@ pipeline:
     defaults: []
     countdown:
       action_period : 1
-      kind : 'no countdown'
+      kind : 'no_countdown'
 
-  agent_transition_creator:
+  transition_creator:
     name: anytime
     steps_per_decision: 1
     gamma: ${experiment.gamma}
 
-  db:
+  db: 
     drivername: "postgresql+psycopg2"
     username: "postgres"
     password: "password"

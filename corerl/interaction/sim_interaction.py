@@ -5,7 +5,7 @@ from corerl.agent.base import BaseAgent
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.sim_async_env import SimAsyncEnv
+from corerl.environment.async_env.async_env import AsyncEnv
 
 
 logger = logging.getLogger(__file__)
@@ -14,7 +14,7 @@ class SimInteraction:
     def __init__(
         self,
         agent: BaseAgent,
-        env: SimAsyncEnv,
+        env: AsyncEnv,
         pipeline: Pipeline,
         tag_configs: list[TagConfig],
     ):
