@@ -1,10 +1,11 @@
 from corerl.utils.torch import tensor_allclose
-from dataclasses import dataclass, field
+from dataclasses import field
 
 from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.configs.config import config
 
 
-@dataclass
+@config()
 class TransitionFilterConfig:
     # doing it this way instead of list so that we can specify some default strings when we agree on them
     filters: list[str] = field(default_factory=lambda: [])
