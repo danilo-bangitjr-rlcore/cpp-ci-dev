@@ -27,7 +27,7 @@ import corerl.utils.dict as dict_u  # noqa: F401
 import corerl.utils.nullable as nullable  # noqa: F401
 from corerl.utils.gymnasium import gen_tag_configs_from_env
 
-def make_opc_node_id(str_id: str, namespace=0):
+def make_opc_node_id(str_id: str, namespace: int = 0):
     return f"ns={namespace};s={str_id}"
 
 
@@ -47,7 +47,7 @@ def run(env: gym.Env, client: Client, cfg: DictConfig):
     tag_configs = gen_tag_configs_from_env(env)
 
     # create OPC nodes based on tags
-    opc_nodes = {}
+    opc_nodes: dict[str, list[SyncNode]] = {}
 
     initial_observation, info = env.reset(seed=seed)
     initial_action = env.action_space.sample()

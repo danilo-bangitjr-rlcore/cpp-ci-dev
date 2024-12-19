@@ -24,13 +24,13 @@ import corerl.utils.nullable as nullable  # noqa: F401
 # We need this for our dumb agent, but right now it is a little cheat
 def get_action_and_obs_spaces(cfg):
     env = gym.make(*cfg.environment.args, **cfg.environment.kwargs)
-    action_space: gym.Space = env.action_space
-    observation_space: gym.Space = env.observation_space
+    action_space = env.action_space
+    observation_space = env.observation_space
     env.close()
     return action_space, observation_space
 
 
-def dumb_policy(action_space):
+def dumb_policy(action_space: gym.Space):
     return action_space.sample()
 
 
