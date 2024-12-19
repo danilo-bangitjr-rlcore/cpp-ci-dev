@@ -1,19 +1,11 @@
 import pandas as pd
 
-# ensure components are registered
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.null import Null
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TagName
 from corerl.data_pipeline.transforms.base import Transform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.utils import invoke_stage_per_tag
-
-type RC_TS = dict[
-    # tag name
-    str,
-    # transform steps
-    list[object | None],
-]
+from corerl.data_pipeline.utils import get_tag_temporal_state, invoke_stage_per_tag
 
 
 class RewardComponentConstructor:
@@ -30,8 +22,10 @@ class RewardComponentConstructor:
             tag=tag_name,
         )
 
-        ts = pf.temporal_state.get(StageCode.RC, None)
-        tag_ts = self._sanitize_temporal_state(ts, tag_name)
+        tag_ts: list[object | None] = get_tag_temporal_state(
+            StageCode.RC, tag_name, pf.temporal_state,
+            default=lambda: [None] * len(self._transforms),
+        )
 
         for i in range(len(self._transforms)):
             transform = self._transforms[i]
@@ -44,19 +38,7 @@ class RewardComponentConstructor:
         carry.transform_data = carry.transform_data.rename(columns=lambda x: "[reward]" + x)
         pf.data = pd.concat((pf.data, carry.transform_data), axis=1, copy=False)
 
-        # put new temporal state on PipeFrame
-        pf.temporal_state[StageCode.RC] = ts
         return pf
-
-    def _sanitize_temporal_state(self, ts: object | None, tag_name: str):
-        if ts is None:
-            ts = {}
-
-        assert isinstance(ts, dict)
-        if tag_name not in ts:
-            ts[tag_name] = [None] * len(self._transforms)
-
-        return ts[tag_name]
 
 
 class RewardConstructor:
