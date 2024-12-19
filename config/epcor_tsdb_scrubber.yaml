@@ -11,6 +11,7 @@ env:
   env_end_time: "2024-12-16 07:38:50"
   bucket_width: "15m"
   env_step_time: "1h"
+  gym_name: epcor_tsdb_scrubber
 
 agent:
   name: greedy_ac
