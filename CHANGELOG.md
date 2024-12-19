@@ -1,3 +1,13 @@
+## 0.4.0 (2024-12-19)
+
+### Feat
+
+- register saturation as a gym environment
+
+### Fix
+
+- rewrite saturation configs to new config system
+
 ## 0.3.3 (2024-12-18)
 
 ### Fix
