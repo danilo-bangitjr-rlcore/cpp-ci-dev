@@ -41,10 +41,7 @@ def only_dp(transition):
 
 
 def only_post_dp(transition):
-    if transition.post.dp:
-        return True
-    else:
-        return False
+    return transition.post.dp
 
 
 def only_no_action_change(transition):
