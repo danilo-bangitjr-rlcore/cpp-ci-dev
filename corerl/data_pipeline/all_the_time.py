@@ -18,7 +18,7 @@ class AllTheTimeTCConfig:
     name: str = "all-the-time"
     gamma: float = interpolate('${experiment.gamma}')
     min_n_step: int = 1
-    max_n_step: int = interpolate('${interaction.steps_per_decision}')
+    max_n_step: int = interpolate('${action_period}')
 
 
 @dataclass(init=False)
