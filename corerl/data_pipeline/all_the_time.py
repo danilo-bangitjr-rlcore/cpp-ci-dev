@@ -33,8 +33,8 @@ class NStepInfo:
     """
     def __init__(self, n: int):
         self.step_q = deque[Step](maxlen=n + 1)
-        self.n_step_reward: float | None = None
-        self.n_step_gamma: float | None = None
+        self.n_step_reward: float = 0
+        self.n_step_gamma: float = 1
 
 
 @dataclass
