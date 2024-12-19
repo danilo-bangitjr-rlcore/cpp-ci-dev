@@ -32,8 +32,8 @@ class PipelineConfig:
     db: TagDBConfig = field(default_factory=TagDBConfig)
     obs_interval_minutes: float = 0
     state_constructor: SCConfig = field(default_factory=SCConfig)
-    agent_transition_creator: Any = field(default_factory=AllTheTimeTCConfig)
-    agent_transition_filter: Any = field(default_factory=TransitionFilterConfig)
+    transition_creator: Any = field(default_factory=AllTheTimeTCConfig)
+    transition_filter: Any = field(default_factory=TransitionFilterConfig)
 
 
 @dataclass
@@ -54,11 +54,11 @@ class Pipeline:
         }
 
         self.transition_creator = AllTheTimeTC(
-            cfg.agent_transition_creator,
+            cfg.transition_creator,
             self.tags,
         )
 
-        self.transition_filter = TransitionFilter(cfg.agent_transition_filter)
+        self.transition_filter = TransitionFilter(cfg.transition_filter)
 
         self.outlier_detectors = {
             tag.name: init_oddity_filter(tag.outlier) for tag in self.tags

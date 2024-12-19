@@ -35,11 +35,11 @@ def test_pipeline1():
             ),
             TagConfig(name='action-1', is_action=True),
         ],
-        agent_transition_creator=AllTheTimeTCConfig(
+        transition_creator=AllTheTimeTCConfig(
             max_n_step=2,
             gamma=0.9,
         ),
-        agent_transition_filter=TransitionFilterConfig(
+        transition_filter=TransitionFilterConfig(
             filters=[
                 'only_no_action_change',
             ],
@@ -139,11 +139,11 @@ def test_pipeline2():
             ),
             TagConfig(name='action-1', is_action=True),
         ],
-        agent_transition_creator=AllTheTimeTCConfig(
+        transition_creator=AllTheTimeTCConfig(
             max_n_step=1,
             gamma=0.9,
         ),
-        agent_transition_filter=TransitionFilterConfig(
+        transition_filter=TransitionFilterConfig(
             filters=[
                 'only_no_action_change',
                 'only_post_dp',

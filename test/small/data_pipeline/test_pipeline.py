@@ -23,7 +23,7 @@ def test_construct_pipeline():
             TagConfig(name='sensor_y'),
         ],
         obs_interval_minutes=15,
-        agent_transition_creator=AllTheTimeTCConfig(
+        transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
             min_n_step=1,
@@ -43,7 +43,7 @@ def test_passing_data_to_pipeline():
             TagConfig(name='sensor_y'),
         ],
         obs_interval_minutes=15,
-        agent_transition_creator=AllTheTimeTCConfig(
+        transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
             min_n_step=1,
@@ -88,7 +88,7 @@ def test_state_action_dim():
             countdown=CountdownConfig(action_period=1),
         ),
         obs_interval_minutes=5,
-        agent_transition_creator=AllTheTimeTCConfig(
+        transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
             min_n_step=1,
@@ -120,7 +120,7 @@ def test_sub_pipeline1():
                 ],
             ),
         ],
-        agent_transition_creator=AllTheTimeTCConfig(
+        transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
             min_n_step=1,
@@ -196,7 +196,7 @@ def test_sub_pipeline2():
                 ],
             ),
         ],
-        agent_transition_creator=AllTheTimeTCConfig(
+        transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
             min_n_step=1,
@@ -277,7 +277,7 @@ def test_sub_pipeline3():
                 ],
             ),
         ],
-        agent_transition_creator=AllTheTimeTCConfig(
+        transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
             min_n_step=1,
@@ -362,7 +362,7 @@ def test_sub_pipeline4():
                 ],
             ),
         ],
-        agent_transition_creator=AllTheTimeTCConfig(
+        transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
             min_n_step=1,
