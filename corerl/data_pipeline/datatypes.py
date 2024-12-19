@@ -51,10 +51,10 @@ class Step:
         )
 
     def __str__(self):
-        string = ''
-        for f in fields(self):
-            string += f"{f.name}: {getattr(self, f.name)}\n"
-        return string
+        return '\n'.join(
+            f'{f.name}: {getattr(self, f.name)}'
+            for f in fields(self)
+        )
 
     def __iter__(self):
         for f in fields(self):
