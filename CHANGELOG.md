@@ -1,3 +1,17 @@
+## 0.5.1 (2024-12-19)
+
+### Fix
+
+- ensure fundamental missingness stage is never skipped
+- add tqdm to main.py for logging
+
+### Refactor
+
+- use shared temporal_state accessor util for copy and linear imputers
+- remove unused boilerplate code from imputers
+- remove unused tag_cfg from imputer constructors
+- rename agent_transition_creator -> transition_creator
+
 ## 0.5.0 (2024-12-19)
 
 ### Feat
