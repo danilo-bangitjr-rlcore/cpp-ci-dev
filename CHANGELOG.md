@@ -1,3 +1,22 @@
+## 0.6.0 (2024-12-19)
+
+### Feat
+
+- use config schema for deployment async env
+- add explicit config schemas for environments
+- add config option to allow extra fields
+
+### Fix
+
+- handle both dataclass instances and types in dict conversion
+- dont prepend 'public' to table schema
+
+### Refactor
+
+- move tagdbconfig defaults into parent class
+- move opc simulation scripts to new config framework
+- move opc_client to new config framework
+
 ## 0.5.2 (2024-12-19)
 
 ### Refactor
