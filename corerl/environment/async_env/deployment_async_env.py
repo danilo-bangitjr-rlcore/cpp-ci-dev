@@ -29,11 +29,6 @@ class DepAsyncEnvConfig(EnvironmentConfig):
 
     db: TagDBConfig = field(
         default_factory=lambda: TagDBConfig(
-            drivername="postgresql+psycopg2",
-            username="postgres",
-            password="password",
-            ip="localhost",
-            port=5432,  # default is 5432, but we want to use different port for test db
             db_name="postgres",
             sensor_table_name="opcua",
         )
