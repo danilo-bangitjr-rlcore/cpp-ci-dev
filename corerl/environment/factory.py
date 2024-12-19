@@ -13,8 +13,6 @@ from corerl.environment.smpl.envs.beerfmtenv import BeerFMTEnvGym
 from corerl.environment.smpl.envs.reactorenv import ReactorEnvGym
 from corerl.environment.wrapper.discrete_control_wrapper import DiscreteControlWrapper, \
     SparseDiscreteControlWrapper
-from corerl.environment.third_party.pendulum_env import PendulumEnv
-from corerl.environment.third_party.cartpole_env import CartPoleEnv
 from corerl.environment.wrapper.one_hot_wrapper import OneHotWrapper
 from corerl.environment.saturation import Saturation
 from corerl.environment.delayed_saturation import DelayedSaturation
@@ -116,19 +114,6 @@ def init_environment(cfg: EnvironmentConfig) -> gym.Env:
         if "reward_variance" in cfg.keys():
             reward_v = cfg.reward_variance
         env = Bimodal(seed, reward_v)
-    elif name == "Pendulum-v1":
-        # continual learning task. No timeout
-        env = PendulumEnv(
-            render_mode="human", continuous_action=(not cfg.discrete_control),
-        )
-        env.reset(seed=seed)
-    elif name == "CartPole-v1":
-        env = CartPoleEnv(
-            continuous_action=(not cfg.discrete_control),
-            sutton_barto_reward=cfg.sutton_barto_reward,
-            render_mode=cfg.get("render_mode", "human"),
-        )
-        env.reset(seed=seed)
     elif name == "HalfCheetah-v4":
         env = gym.make("HalfCheetah-v4")
         env._max_episode_steps = np.inf # type: ignore
