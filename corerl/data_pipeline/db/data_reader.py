@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, List, Literal, assert_never
 
 import numpy as np
@@ -53,6 +53,16 @@ class DataReader:
         bucket_width: timedelta,
         aggregation: Literal["avg"] | Literal["last"] = "avg",
     ):
+        # If timezone unaware, assume we are using naive system timezone and convert to UTC.
+        if start_time.tzinfo is None:
+            start_tz = start_time.astimezone().tzinfo
+            logger.warning(f"naive start_time passed, assuming {start_tz} and converting to UTC")
+            start_time = start_time.replace(tzinfo=start_tz).astimezone(UTC)
+        if end_time.tzinfo is None:
+            end_tz = end_time.astimezone().tzinfo
+            logger.warning(f"naive end_time passed, assuming {end_tz} and converting to UTC")
+            end_time = end_time.replace(tzinfo=end_tz).astimezone(UTC)
+
         # https://docs.timescale.com/api/latest/hyperfunctions/time_bucket/#time_bucket
         time_bucket_stmt = func.time_bucket(
             text(f"INTERVAL '{bucket_width}'"),
@@ -90,7 +100,7 @@ class DataReader:
         sensor_data = pd.read_sql(sql=stmt, con=self.connection)
         sensor_data = sensor_data.pivot(columns="name", values="val", index="time_bucket")
 
-        missing_cols = set(names) - set(sensor_data.columns)
+        missing_cols = [name for name in names if name not in set(sensor_data.columns)]
         sensor_data[list(missing_cols)] = np.nan
 
         t = start_time
@@ -98,10 +108,11 @@ class DataReader:
             if t not in sensor_data.index:
                 idx = pd.DatetimeIndex([t])
 
-                # type erasure because pandas...
-                cols: Any = names
-                row = pd.DataFrame([[np.nan] * len(names)], columns=cols, index=idx)
-                sensor_data = pd.concat((sensor_data, row), axis=0, copy=False)
+                row = pd.DataFrame([[np.nan] * len(names)], columns=pd.Index(names), index=idx)
+                if not sensor_data.empty:
+                    sensor_data = pd.concat((sensor_data, row), axis=0, copy=False)
+                else:
+                    sensor_data = row.copy()
 
             t += bucket_width
 

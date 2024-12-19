@@ -47,17 +47,30 @@ class TestDataReader:
         for name in names:
             write_n_random_vals(n=n_vals, name=name, data_writer=data_writer, end_time=now)
 
-    @pytest.mark.skip(reason="github actions do not yet support docker")
-    def test_read_with_non_UTC(self, data_reader: DataReader, populate_db):
-        end_time = datetime.now()  # didn't explicitly add UTC timezone
+    def test_read_with_no_data(self, data_reader: DataReader, populate_db, now: datetime):
+        end_time = now - timedelta(hours=2) # preceeds all sensor readings
         start_time = end_time - timedelta(minutes=5)
 
-        with pytest.raises(AssertionError):
-            data_reader.single_aggregated_read(
-                names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time
-            )
+        result_df = data_reader.single_aggregated_read(
+            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time
+        )
+        assert TestDataReader.sensor_names == result_df.columns.tolist()
+        series_all_nan = result_df.isnull().all()
+        assert isinstance(series_all_nan, Series)
+        assert series_all_nan.all()
 
-    @pytest.mark.skip(reason="github actions do not yet support docker")
+    def test_read_with_non_UTC(self, data_reader: DataReader, populate_db):
+        end_time = datetime.now() # didn't explicitly add UTC timezone
+        start_time = end_time - timedelta(minutes=5)
+
+        result_df = data_reader.single_aggregated_read(
+            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time
+        )
+        assert TestDataReader.sensor_names == result_df.columns.tolist()
+        series_all_not_nan = result_df.notna().all()
+        assert isinstance(series_all_not_nan, Series)
+        assert series_all_not_nan.all()
+
     def test_single_avg_read(self, data_reader: DataReader, populate_db, now):
         end_time = now
         start_time = end_time - timedelta(minutes=5)
@@ -66,7 +79,6 @@ class TestDataReader:
         )
         assert TestDataReader.sensor_names == result_df.columns.tolist()
 
-    @pytest.mark.skip(reason="github actions do not yet support docker")
     def test_single_last_read(self, data_reader: DataReader, populate_db, now):
         end_time = now
         start_time = end_time - timedelta(minutes=5)
@@ -75,7 +87,6 @@ class TestDataReader:
         )
         assert TestDataReader.sensor_names == result_df.columns.tolist()
 
-    @pytest.mark.skip(reason="github actions do not yet support docker")
     def test_batch_avg_read(self, data_reader: DataReader, populate_db, now):
         end_time = now + timedelta(minutes=1)
         start_time = end_time - timedelta(minutes=30)
@@ -89,7 +100,6 @@ class TestDataReader:
 
         self._ensure_names_included(result_df)
 
-    @pytest.mark.skip(reason="github actions do not yet support docker")
     def test_batch_last_read(self, data_reader: DataReader, populate_db, now):
         end_time = now + timedelta(minutes=1)
         start_time = end_time - timedelta(minutes=30)
@@ -103,7 +113,6 @@ class TestDataReader:
 
         self._ensure_names_included(result_df)
 
-    @pytest.mark.skip(reason="github actions do not yet support docker")
     def test_missing_col_batch_aggregated_read(self, data_reader: DataReader, populate_db, now):
         end_time = now + timedelta(minutes=1)
         start_time = end_time - timedelta(minutes=30)
@@ -119,7 +128,6 @@ class TestDataReader:
         assert bool(result_df[missing_sensor_name].isnull().all())
         self._ensure_names_included(result_df)
 
-    @pytest.mark.skip(reason="github actions do not yet support docker")
     def test_missing_col_single_aggregated_read(self, data_reader: DataReader, populate_db, now):
         end_time = now + timedelta(minutes=1)
         start_time = end_time - timedelta(minutes=30)
@@ -133,6 +141,9 @@ class TestDataReader:
 
         assert bool(result_df[missing_sensor_name].isnull().all())
         self._ensure_names_included(result_df)
+        series_all_not_nan = result_df[TestDataReader.sensor_names].notna().all()
+        assert isinstance(series_all_not_nan, Series)
+        assert series_all_not_nan.all()
 
     def _ensure_names_included(self, data: DataFrame | Series) -> None:
         for name in TestDataReader.sensor_names:

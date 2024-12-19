@@ -42,7 +42,6 @@ def write_n_random_vals(
         data_writer.blocking_sync()
 
 
-@pytest.mark.skip(reason="github actions do not yet support docker")
 def test_writing_datapt(data_writer: DataWriter):
     ts = datetime.now(tz=UTC)
     sensor_name = "orp"
@@ -51,7 +50,6 @@ def test_writing_datapt(data_writer: DataWriter):
     data_writer.write(timestamp=ts, name=sensor_name, val=sensor_val)
 
 
-@pytest.mark.skip(reason="github actions do not yet support docker")
 def test_batch_write(data_writer: DataWriter):
     ts = datetime.now(tz=UTC)
     sensor_name = "orp"
