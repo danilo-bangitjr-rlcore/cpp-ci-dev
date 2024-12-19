@@ -4,7 +4,6 @@ import time
 import corerl.utils.dict as dict_u
 
 from typing import Any
-from omegaconf import OmegaConf
 from collections.abc import MutableMapping
 from sqlalchemy import Table, Column, DateTime, Engine, MetaData, URL, select, inspect
 from sqlalchemy.orm import Session
@@ -243,7 +242,7 @@ def setup_sql_logging(cfg, restart_db=False):
 
 
 def prep_cfg_for_db(cfg: Any, to_remove: list[str]) -> dict:
-    cfg_dict = OmegaConf.to_container(cfg)
+    cfg_dict = dict_u.dataclass_to_dict(cfg)
     assert isinstance(cfg_dict, MutableMapping)
 
     cgf_dict = dict_u.drop(cfg_dict, to_remove)

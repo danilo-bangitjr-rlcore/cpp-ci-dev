@@ -1,9 +1,6 @@
-from dataclasses import dataclass
 from influxdb_client.client.influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
 from abc import ABC, abstractmethod
-
-from omegaconf import MISSING
 
 from corerl.utils.hook import when, Hooks
 
@@ -15,6 +12,7 @@ from typing import Any, Tuple, Generator, List
 import asyncio
 import random
 
+from corerl.configs.config import config, MISSING
 from corerl.utils.opc_connection import OpcConnection
 from corerl.sql_logging.sql_logging import get_sql_engine, SQLEngineConfig
 import logging
@@ -22,7 +20,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@config()
 class DBClientConfig(SQLEngineConfig):
     sensor_table: str = MISSING
     sensor_db_name: str = MISSING

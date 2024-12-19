@@ -51,10 +51,7 @@ authors = []
 dependencies = [
     "asyncua~=1.0",
     "casadi~=3.6",
-    "gym_electric_motor~=2.0",
-    "gymnasium~=0.29",
-    "hydra-core~=1.3",
-    "hydra-joblib-launcher~=1.2",
+    "gymnasium~=1.0",
     "influxdb_client~=1.39",
     "jaxtyping~=0.2",
     "matplotlib~=3.8",
@@ -64,6 +61,7 @@ dependencies = [
     "pandas~=2.2",
     "pydantic~=2.9",
     "pygame~=2.5",
+    "pyyaml~=6.0",
     "requests~=2.31",
     "scipy~=1.13",
     "sqlalchemy~=2.0",
@@ -71,7 +69,7 @@ dependencies = [
     "torch~=2.5",
     "tqdm~=4.66",
     "scikit-learn~=1.5",
-    "websockets~=13.1",
+    "websockets~=14.1",
     "psycopg2-binary~=2.9",
     "linesearchopt~=0.0.1"
 ]
@@ -85,6 +83,7 @@ dev = [
     "ruff",
     "pytest",
     "pytest-asyncio",
+    "pytest-coverage",
     "pytest-xdist",
     "pytest-timeout",
     "pyright",

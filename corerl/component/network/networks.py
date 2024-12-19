@@ -13,7 +13,6 @@ import corerl.component.layer as layer
 from corerl.configs.config import config, list_
 from corerl.component.layer.activations import ActivationConfig
 
-from omegaconf import DictConfig
 from typing import Any, Callable, Literal, Optional, cast
 
 
@@ -144,7 +143,7 @@ def _get_output_shape(
 
 
 class EnsembleFC(nn.Module):
-    def __init__(self, cfg: DictConfig, input_dim: int, output_dim: int):
+    def __init__(self, cfg: EnsembleCriticNetworkConfig, input_dim: int, output_dim: int):
         super(EnsembleFC, self).__init__()
         self.ensemble = cfg.ensemble
         self.subnetworks = [

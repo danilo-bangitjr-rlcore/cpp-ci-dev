@@ -1,6 +1,5 @@
 from dataclasses import field
-from typing import Any, Literal
-from omegaconf import MISSING
+from typing import Literal
 from pathlib import Path
 
 import torch
@@ -8,6 +7,7 @@ import numpy
 import random
 import pickle as pkl
 
+from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.configs.config import config
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.component.critic.factory import init_q_critic
@@ -25,13 +25,7 @@ class EpsilonGreedySarsaConfig(BaseAgentConfig):
     epsilon: float = 0.1
     samples: int = 10_000
 
-    critic: Any = MISSING
-
-    defaults: list[Any] = field(default_factory=lambda: [
-        'base_agent',
-        { 'critic': 'critic' },
-        '_self_',
-    ])
+    critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
 
 
 class EpsilonGreedySarsa(BaseAgent):
