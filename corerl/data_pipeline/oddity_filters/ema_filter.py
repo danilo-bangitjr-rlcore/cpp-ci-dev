@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Literal
+from typing import Literal
 
 import numpy as np
 
@@ -7,7 +7,7 @@ from corerl.configs.config import config
 from corerl.data_pipeline.data_utils.exp_moving import ExpMovingAvg, ExpMovingVar
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
-from corerl.data_pipeline.utils import update_missing_info
+from corerl.data_pipeline.utils import get_tag_temporal_state, update_missing_info
 
 
 @config()
@@ -23,9 +23,6 @@ class EMAFilterTemporalState:
     ema: ExpMovingAvg
     emv: ExpMovingVar
     n_obs: int = 0
-
-
-type TagName = str
 
 
 class EMAFilter(BaseOddityFilter):
@@ -46,16 +43,6 @@ class EMAFilter(BaseOddityFilter):
         self.tolerance = cfg.tolerance
         self.warmup = cfg.warmup
 
-    def _get_tag_ts(self, stage_ts: Dict[TagName, EMAFilterTemporalState], tag: TagName) -> EMAFilterTemporalState:
-        """
-        Gets tag temporal state. If tag temporal state is not initialized, sets default
-        and updates the stage temporal state.
-        This is a class method because it uses self.alpha in construction of the default temporal state.
-        """
-        tag_ts = stage_ts.get(tag, EMAFilterTemporalState(ExpMovingAvg(self.alpha), ExpMovingVar(self.alpha)))
-        stage_ts[tag] = tag_ts
-        return tag_ts
-
     def __call__(self, pf: PipelineFrame, tag: str, update_stats: bool = True) -> PipelineFrame:
         """
         If update_stats is True, data in the DataFrame is used to update
@@ -63,8 +50,10 @@ class EMAFilter(BaseOddityFilter):
         statistics if, for example, historical data should be re-processed with
         the most up-to-date running statistics.
         """
-        stage_ts = _get_ts(pf)
-        tag_ts = self._get_tag_ts(stage_ts, tag)
+        tag_ts = get_tag_temporal_state(
+            StageCode.ODDITY, tag, pf.temporal_state,
+            default=lambda: EMAFilterTemporalState(ExpMovingAvg(self.alpha), ExpMovingVar(self.alpha)),
+        )
         tag_data = pf.data[tag].to_numpy()
 
         if update_stats: _update_stats(tag_data, tag_ts)
@@ -96,14 +85,6 @@ def _get_post_warmup_mask(prev_n_obs: int, data_len: int, warmup: int) -> np.nda
     post_warmup_mask = n_observed >= warmup
 
     return post_warmup_mask
-
-
-def _get_ts(pf: PipelineFrame) -> Dict[TagName, EMAFilterTemporalState]:
-    ts = pf.temporal_state.get(StageCode.ODDITY)
-    ts = ts or {}
-    assert isinstance(ts, dict)
-    pf.temporal_state[StageCode.ODDITY] = ts
-    return ts
 
 
 def _update_stats(tag_data: np.ndarray, tag_ts: EMAFilterTemporalState):

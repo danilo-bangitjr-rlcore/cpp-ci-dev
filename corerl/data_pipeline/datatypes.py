@@ -13,7 +13,6 @@ from corerl.utils.torch import tensor_allclose
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
-type WarmupPruner = Callable[[PipelineFrame, int], PipelineFrame]
 
 class MissingType(IntFlag):
     NULL = auto()
@@ -51,10 +50,10 @@ class Step:
         )
 
     def __str__(self):
-        string = ''
-        for f in fields(self):
-            string += f"{f.name}: {getattr(self, f.name)}\n"
-        return string
+        return '\n'.join(
+            f'{f.name}: {getattr(self, f.name)}'
+            for f in fields(self)
+        )
 
     def __iter__(self):
         for f in fields(self):
@@ -172,9 +171,9 @@ type TemporalState = dict[StageCode, object | None]
 @dataclass
 class PipelineFrame:
     data: pd.DataFrame
+    caller_code: CallerCode
     missing_info: pd.DataFrame = field(init=False)
     decision_points: np.ndarray = field(init=False)
-    caller_code: CallerCode
     temporal_state: TemporalState = field(default_factory=dict)
     transitions: list[NewTransition] | None = None
 

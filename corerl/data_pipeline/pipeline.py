@@ -20,16 +20,10 @@ from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructo
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.utils import invoke_stage_per_tag
+from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, StageCode
 
-from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, StageCode, TemporalState
 
 logger = logging.getLogger(__name__)
-
-WARMUP = 0
-
-type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
-type PipelineStage[T] = Callable[[T, TagName], T]
-type WarmupPruner = Callable[[PipelineFrame, int], PipelineFrame]
 
 
 @config()
@@ -91,6 +85,15 @@ class Pipeline:
             StageCode.TC:      self.transition_creator,
         }
 
+        self._default_stages = (
+            StageCode.BOUNDS,
+            StageCode.ODDITY,
+            StageCode.IMPUTER,
+            StageCode.RC,
+            StageCode.SC,
+            StageCode.TC,
+        )
+
     def _init_temporal_state(self, pf: PipelineFrame, reset_ts: bool = False):
         ts = self.ts_dict[pf.caller_code]
         if ts is None or reset_ts:
@@ -107,9 +110,6 @@ class Pipeline:
 
         return ts
 
-    def _save_ts(self, ts: TemporalState, caller_code: CallerCode):
-        self.ts_dict[caller_code] = ts
-
     def __call__(
             self, data: DataFrame,
             caller_code: CallerCode = CallerCode.OFFLINE,
@@ -117,17 +117,20 @@ class Pipeline:
             stages: Sequence[StageCode] | None = None,
     ) -> PipelineReturn:
         if stages is None:
-            stages = (
-                StageCode.BOUNDS,
-                StageCode.ODDITY,
-                StageCode.IMPUTER,
-                StageCode.RC,
-                StageCode.SC,
-                StageCode.TC,
+            stages = self._default_stages
+
+        # handle the no data case with an empty return
+        if data.empty:
+            return PipelineReturn(
+                df=data,
+                transitions=[],
             )
 
+        # construct the internal carry object that is mutated
+        # by each stage of the pipeline
         pf = PipelineFrame(data, caller_code)
         pf.temporal_state = self._init_temporal_state(pf, reset_temporal_state)
+
 
         pf = invoke_stage_per_tag(pf, self.missing_data_checkers)
         for stage in stages:

@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import torch
 import pandas as pd
@@ -68,10 +66,6 @@ class AnytimeTransitionCreator(BaseTransitionCreator):
         assert isinstance(tc_ts, AnytimeTemporalState | None)
 
         transitions = []
-
-        if pf.data.empty:  # pretend like nothing happened but raise a warning...
-            warnings.warn("Empty dataframe passed to transition creator", stacklevel=2)
-            return transitions, tc_ts
 
         result = _split_at_nans(pf.data)
         # if the entire dataframe was nan, we have now detected a datagap
