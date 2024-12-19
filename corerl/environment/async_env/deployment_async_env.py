@@ -35,7 +35,7 @@ class DepAsyncEnvConfig(EnvironmentConfig):
             ip="localhost",
             port=5432,  # default is 5432, but we want to use different port for test db
             db_name="postgres",
-            sensor_table_name="public.opcua",
+            sensor_table_name="opcua",
         )
     )
 
