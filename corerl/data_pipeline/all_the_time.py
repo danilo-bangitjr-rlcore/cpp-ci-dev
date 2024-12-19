@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.component.network.utils import tensor
 from corerl.data_pipeline.datatypes import PipelineFrame, Step, NewTransition, StageCode
-from corerl.utils.hydra import interpolate
+from corerl.configs.config import interpolate
 
 
 @dataclass
