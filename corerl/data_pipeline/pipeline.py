@@ -25,12 +25,8 @@ from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerC
 
 logger = logging.getLogger(__name__)
 
-WARMUP = 0
-
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
-type WarmupPruner = Callable[[PipelineFrame, int], PipelineFrame]
-
 
 @config()
 class PipelineConfig:

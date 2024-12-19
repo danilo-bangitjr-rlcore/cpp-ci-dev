@@ -13,7 +13,6 @@ from corerl.utils.torch import tensor_allclose
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
-type WarmupPruner = Callable[[PipelineFrame, int], PipelineFrame]
 
 class MissingType(IntFlag):
     NULL = auto()
