@@ -1,10 +1,7 @@
 import importlib.util
 from pathlib import Path
-from omegaconf import OmegaConf
 from typing import Callable
 import pandas as pd
-import pickle as pkl
-import json
 
 def add_key_to_run(run: dict, key: str, values: list):
     run_list = []
@@ -79,39 +76,6 @@ def get_nested_value(d: dict, path: str) -> object:
         else:
             return None  # or raise an error
     return current
-
-
-def get_sweep_results(path: Path, config_keys: list[str], steps: list[int], step_keys: list[str]) -> list[dict]:
-    config_list = []
-    for p in path.rglob("*"):
-        if 'seed' in p.name.split("/")[-1]:
-            # first get config info
-            return_dict = {}
-            config = OmegaConf.load(p / 'config.yaml')
-            for key in config_keys:
-                return_dict[key] = OmegaConf.select(config, key)
-
-            # next, retrieve step log info
-            return_dict['step_logs'] = {}
-            for step_log_path in (p / 'logs').iterdir():
-                s = step_log_path.name
-                step = int(s[s.find('-') + len('-'):s.rfind('.pkl')])  # https://stackoverflow.com/a/18790509
-                if step in steps:
-                    step_log_ = pkl.load(open(step_log_path, 'rb'))
-                    step_log = {}
-                    for key in step_keys:
-                        step_log[key] = get_nested_value(step_log_, key)
-                    return_dict['step_logs'][step] = step_log
-
-            # last, grab the stats
-            with open(p / 'stats.json', 'r') as f:
-                stats = json.load(f)
-                for k in stats.keys():
-                    return_dict[k] = stats[k]
-
-            config_list.append(return_dict)
-
-    return config_list
 
 
 def list_to_df(lst: list[dict], ignore_step_logs: bool = True) -> pd.DataFrame:
