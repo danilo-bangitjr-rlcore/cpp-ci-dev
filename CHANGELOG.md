@@ -1,3 +1,12 @@
+## 0.5.2 (2024-12-19)
+
+### Refactor
+
+- pull empty dataframe handling out of stages and into pipeline
+- simplify bound_checker implementation
+- use shared tag_ts accessor utility
+- move all pipeline type def'ns to datatypes
+
 ## 0.5.1 (2024-12-19)
 
 ### Fix
