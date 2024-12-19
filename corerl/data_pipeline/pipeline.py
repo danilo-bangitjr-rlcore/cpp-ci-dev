@@ -103,9 +103,6 @@ class Pipeline:
 
         return ts
 
-    def _save_ts(self, ts: TemporalState, caller_code: CallerCode):
-        self.ts_dict[caller_code] = ts
-
     def __call__(
             self, data: DataFrame,
             caller_code: CallerCode = CallerCode.OFFLINE,
