@@ -1,3 +1,9 @@
+## 0.6.1 (2024-12-19)
+
+### Fix
+
+- **test**: enable data loader tests, address warnings (#327)
+
 ## 0.6.0 (2024-12-19)
 
 ### Feat
