@@ -2,10 +2,10 @@ from typing import Any
 import numpy as np
 import gymnasium as gym
 import gym_electric_motor as gem
-from omegaconf import DictConfig
 from gymnasium.wrappers.flatten_observation import FlattenObservation
 
 from corerl.environment.bimodal import Bimodal
+from corerl.environment.config import EnvironmentConfig
 from corerl.environment.reseau_env import ReseauEnv
 import corerl.environment.three_tanks_v2 as TTv2
 from corerl.environment.four_rooms import FourRoomsEnv
@@ -22,7 +22,7 @@ from corerl.environment.wrapper.one_hot_wrapper import OneHotWrapper
 from corerl.environment.saturation import Saturation
 from corerl.environment.delayed_saturation import DelayedSaturation
 
-def init_environment(cfg: DictConfig) -> gym.Env:
+def init_environment(cfg: EnvironmentConfig) -> gym.Env:
     seed = cfg.seed
     name = cfg.name
 
@@ -33,12 +33,11 @@ def init_environment(cfg: DictConfig) -> gym.Env:
     env: Any | None = None
 
     # proposed syntax, env defined directly in config
-    if 'environment' in cfg:
-        match cfg.environment.type:
-            case 'gym.make':
-                return gym.make(*cfg.environment.args, **cfg.environment.kwargs)
-            case _:
-                raise NotImplementedError
+    match cfg.type:
+        case 'gym.make':
+            return gym.make(cfg.name, render_mode=cfg.render_mode)
+        case _:
+            raise NotImplementedError
 
 
     # prior syntax, lookup based on config.name
