@@ -17,10 +17,6 @@ def _get_oob_mask(data: np.ndarray, bounds: Bounds) -> np.ndarray:
 def bound_checker(pf: PipelineFrame, tag: str, bounds: Bounds) -> PipelineFrame:
     data = pf.data
 
-    if data.shape[0] == 0:
-        # empty dataframe, do nothing
-        return pf
-
     tag_data = data[tag].to_numpy()
     if tag_data.dtype == np.bool_:
         return pf

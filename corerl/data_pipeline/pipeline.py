@@ -85,6 +85,15 @@ class Pipeline:
             StageCode.TC:      self.transition_creator,
         }
 
+        self._default_stages = (
+            StageCode.BOUNDS,
+            StageCode.ODDITY,
+            StageCode.IMPUTER,
+            StageCode.RC,
+            StageCode.SC,
+            StageCode.TC,
+        )
+
     def _init_temporal_state(self, pf: PipelineFrame, reset_ts: bool = False):
         ts = self.ts_dict[pf.caller_code]
         if ts is None or reset_ts:
@@ -108,17 +117,20 @@ class Pipeline:
             stages: Sequence[StageCode] | None = None,
     ) -> PipelineReturn:
         if stages is None:
-            stages = (
-                StageCode.BOUNDS,
-                StageCode.ODDITY,
-                StageCode.IMPUTER,
-                StageCode.RC,
-                StageCode.SC,
-                StageCode.TC,
+            stages = self._default_stages
+
+        # handle the no data case with an empty return
+        if data.empty:
+            return PipelineReturn(
+                df=data,
+                transitions=[],
             )
 
+        # construct the internal carry object that is mutated
+        # by each stage of the pipeline
         pf = PipelineFrame(data, caller_code)
         pf.temporal_state = self._init_temporal_state(pf, reset_temporal_state)
+
 
         pf = invoke_stage_per_tag(pf, self.missing_data_checkers)
         for stage in stages:
