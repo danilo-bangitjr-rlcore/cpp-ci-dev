@@ -1,3 +1,12 @@
+## 0.6.2 (2024-12-19)
+
+### Refactor
+
+- remove third-party gym environments
+- cleanup final uses of hydra and omegaconf
+- migrate entirely from gym to gymnasium
+- delete more unused code
+
 ## 0.6.1 (2024-12-19)
 
 ### Fix
