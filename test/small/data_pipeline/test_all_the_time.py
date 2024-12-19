@@ -7,7 +7,7 @@ from math import comb
 from torch import Tensor
 
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, Step, StageCode
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, Step
 from corerl.data_pipeline.all_the_time import (
     AllTheTimeTCConfig,
     AllTheTimeTC,
@@ -42,21 +42,26 @@ def test_get_n_step_reward_1():
     assert n_step_gamma == 0.81
 
 
-def test_all_the_time_1():
-    """
-    Tests to see if all the time tc will return the correct transitions.
-    """
-    state_col = np.arange(3)
-    cols = {"state": state_col, "action": [0, 0, 0], "reward": [1, 1, 1]}
+def make_pf(start_state: int, end_state: int, ts=None) -> PipelineFrame:
+    if ts is None:
+        ts = dict()
+    state_col = np.arange(start_state, end_state)
+    length = end_state - start_state
+    cols = {"state": state_col, "action": [0] * length, "reward": [1] * length}
     dates = [
-        datetime.datetime(2024, 1, 1, 1, i) for i in range(3)
+        datetime.datetime(2024, 1, 1, 1, i) for i in range(start_state, end_state)
     ]
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
     pf = PipelineFrame(
         df,
         caller_code=CallerCode.OFFLINE,
+        temporal_state=ts
     )
+    return pf
+
+
+def make_tc(max_n_step: int, min_n_step: int = 1) -> AllTheTimeTC:
     tags = [
         TagConfig(
             name='state',
@@ -72,10 +77,20 @@ def test_all_the_time_1():
 
     cfg = AllTheTimeTCConfig(
         gamma=0.9,
-        max_n_step=2,
+        max_n_step=max_n_step,
+        min_n_step=min_n_step,
     )
 
     tc = AllTheTimeTC(cfg, tags)
+    return tc
+
+
+def test_all_the_time_1():
+    """
+    Tests to see if all the time tc will return the correct transitions.
+    """
+    tc = make_tc(2)
+    pf = make_pf(0, 3)
     pf = tc(pf)
     transitions = pf.transitions
     assert isinstance(transitions, list)
@@ -125,36 +140,8 @@ def test_all_the_time_2_max_n_1():
     Tests to see if all the time tc will return the correct transitions.
     However, max_n_step is set to 1, so there should only be two transitions
     """
-    state_col = np.arange(3)
-    cols = {"state": state_col, "action": [0, 0, 0], "reward": [1, 1, 1]}
-    dates = [
-        datetime.datetime(2024, 1, 1, 1, i) for i in range(3)
-    ]
-    datetime_index = pd.DatetimeIndex(dates)
-    df = pd.DataFrame(cols, index=datetime_index)
-    pf = PipelineFrame(
-        df,
-        caller_code=CallerCode.OFFLINE,
-    )
-    tags = [
-        TagConfig(
-            name='state',
-        ),
-        TagConfig(
-            name='action',
-            is_action=True,
-        ),
-        TagConfig(
-            name='reward',
-        )
-    ]
-
-    cfg = AllTheTimeTCConfig(
-        gamma=0.9,
-        max_n_step=1,
-    )
-
-    tc = AllTheTimeTC(cfg, tags)
+    tc = make_tc(1)
+    pf = make_pf(0, 3)
     pf = tc(pf)
     transitions = pf.transitions
     assert isinstance(transitions, list)
@@ -193,36 +180,12 @@ def test_all_the_time_3_gap():
     max_n_step is set to 1, so there should only be one transition,
     since there is a datagap following that transition
     """
-    state_col = np.arange(4)
-    cols = {"state": state_col, "action": [0, 0, np.nan, 0], "reward": [1, 1, 1, 1]}
-    dates = [
-        datetime.datetime(2024, 1, 1, 1, i) for i in range(4)
-    ]
-    datetime_index = pd.DatetimeIndex(dates)
-    df = pd.DataFrame(cols, index=datetime_index)
-    pf = PipelineFrame(
-        df,
-        caller_code=CallerCode.OFFLINE,
-    )
-    tags = [
-        TagConfig(
-            name='state',
-        ),
-        TagConfig(
-            name='action',
-            is_action=True,
-        ),
-        TagConfig(
-            name='reward',
-        )
-    ]
 
-    cfg = AllTheTimeTCConfig(
-        gamma=0.9,
-        max_n_step=2,
-    )
+    tc = make_tc(2)
 
-    tc = AllTheTimeTC(cfg, tags)
+    pf = make_pf(0, 4)
+    pf.data.loc[pf.data.index[-2], 'action'] = np.nan  # second last action is nan
+
     pf = tc(pf)
     transitions = pf.transitions
     assert isinstance(transitions, list)
@@ -247,38 +210,11 @@ def test_all_the_time_4_ts():
     """
     Tests to see if the temporal state will be linked between two successive calls to the TC
     """
-    state_col = np.arange(2)
-    cols = {"state": state_col, "action": [0, 0], "reward": [1, 1]}
-    dates = [
-        datetime.datetime(2024, 1, 1, 1, i) for i in range(2)
-    ]
-    datetime_index = pd.DatetimeIndex(dates)
-    df = pd.DataFrame(cols, index=datetime_index)
-    pf = PipelineFrame(
-        df,
-        caller_code=CallerCode.OFFLINE,
-    )
-    tags = [
-        TagConfig(
-            name='state',
-        ),
-        TagConfig(
-            name='action',
-            is_action=True,
-        ),
-        TagConfig(
-            name='reward',
-        )
-    ]
 
-    cfg = AllTheTimeTCConfig(
-        gamma=0.9,
-        max_n_step=2,
-    )
-
-    tc = AllTheTimeTC(cfg, tags)
-    pf = tc(pf)
-    transitions = pf.transitions
+    tc = make_tc(2)
+    pf_1 = make_pf(0, 2)
+    pf_1 = tc(pf_1)
+    transitions = pf_1.transitions
     assert isinstance(transitions, list)
     assert len(transitions) == 1
 
@@ -295,24 +231,13 @@ def test_all_the_time_4_ts():
         n_step_gamma=0.9,
     )
     assert t_0 == expected_0
-    ts = pf.temporal_state
+    ts_1 = pf_1.temporal_state
 
     # Pass in the next pf, which continues from the above pf
-    state_col = np.arange(2, 4)
-    cols = {"state": state_col, "action": [0, 0], "reward": [1, 1]}
-    dates = [
-        datetime.datetime(2024, 1, 1, 1, i) for i in range(2, 4)
-    ]
-    datetime_index = pd.DatetimeIndex(dates)
-    df = pd.DataFrame(cols, index=datetime_index)
+    pf_2 = make_pf(2, 4, ts=ts_1)
 
-    pf = PipelineFrame(
-        df,
-        caller_code=CallerCode.OFFLINE,
-        temporal_state=ts
-    )
-    pf = tc(pf)
-    transitions = pf.transitions
+    pf_2 = tc(pf_2)
+    transitions = pf_2.transitions
     assert isinstance(transitions, list)
     assert len(transitions) == 4
 
@@ -371,57 +296,19 @@ def test_all_the_time_5_ts():
     Like the above test, but the nan at the end of the first pf should prevent the
     transitions from the two pfs to be linked
     """
-    state_col = np.arange(2)
-    cols = {"state": state_col, "action": [0, 0], "reward": [1, np.nan]}
-    dates = [
-        datetime.datetime(2024, 1, 1, 1, i) for i in range(2)
-    ]
-    datetime_index = pd.DatetimeIndex(dates)
-    df = pd.DataFrame(cols, index=datetime_index)
-    pf = PipelineFrame(
-        df,
-        caller_code=CallerCode.OFFLINE,
-    )
-    tags = [
-        TagConfig(
-            name='state',
-        ),
-        TagConfig(
-            name='action',
-            is_action=True,
-        ),
-        TagConfig(
-            name='reward',
-        )
-    ]
+    tc = make_tc(2)
+    pf_1 = make_pf(0, 2)
+    pf_1.data.loc[pf_1.data.index[-1], 'reward'] = np.nan  # last reward is nan
 
-    cfg = AllTheTimeTCConfig(
-        gamma=0.9,
-        max_n_step=2,
-    )
-
-    tc = AllTheTimeTC(cfg, tags)
-    pf = tc(pf)
-    transitions = pf.transitions
+    pf_1 = tc(pf_1)
+    transitions = pf_1.transitions
     assert isinstance(transitions, list)
     assert len(transitions) == 0
-    ts = pf.temporal_state
 
     # Pass in the next pf, which continues from the above pf
-    state_col = np.arange(2, 4)
-    cols = {"state": state_col, "action": [0, 0], "reward": [1, 1]}
-    dates = [
-        datetime.datetime(2024, 1, 1, 1, i) for i in range(2, 4)
-    ]
-    datetime_index = pd.DatetimeIndex(dates)
-    df = pd.DataFrame(cols, index=datetime_index)
-    pf = PipelineFrame(
-        df,
-        caller_code=CallerCode.OFFLINE,
-        temporal_state=ts
-    )
-    pf = tc(pf)
-    transitions = pf.transitions
+    pf_2 = make_pf(2, 4, ts=pf_1.temporal_state)
+    pf_2 = tc(pf_2)
+    transitions = pf_2.transitions
     assert isinstance(transitions, list)
     assert len(transitions) == 1
 
@@ -445,45 +332,12 @@ def test_all_the_time_6_online():
     Tests online creation of transitions
     """
 
-    def _get_pf(i, ts=None):
-        state_col = np.arange(i, i + 1)
-        cols = {"state": state_col, "action": [0], "reward": [1]}
-        dates = [
-            datetime.datetime(2024, 1, 1, 1, j) for j in range(i, i + 1)
-        ]
-        datetime_index = pd.DatetimeIndex(dates)
-        df = pd.DataFrame(cols, index=datetime_index)
-        pf = PipelineFrame(
-            df,
-            caller_code=CallerCode.OFFLINE,
-            temporal_state=ts
-        )
-        return pf
-
-    tags = [
-        TagConfig(
-            name='state',
-        ),
-        TagConfig(
-            name='action',
-            is_action=True,
-        ),
-        TagConfig(
-            name='reward',
-        )
-    ]
-
-    cfg = AllTheTimeTCConfig(
-        gamma=0.9,
-        max_n_step=2,
-        min_n_step=2,
-    )
-    tc = AllTheTimeTC(cfg, tags)
+    tc = make_tc(2, 2)
 
     transitions = []
     ts = {}
     for i in range(10):
-        pf = _get_pf(i, ts=ts)
+        pf = make_pf(i, i+1, ts=ts)
         pf = tc(pf)
         new_transitions = pf.transitions
         assert isinstance(new_transitions, list)
@@ -494,8 +348,8 @@ def test_all_the_time_6_online():
 
     for i in range(8):
         step_0 = make_test_step(i)
-        step_1 = make_test_step(i+1)
-        step_2 = make_test_step(i+2)
+        step_1 = make_test_step(i + 1)
+        step_2 = make_test_step(i + 2)
 
         expected = NewTransition(
             [step_0, step_1, step_2],
@@ -507,52 +361,16 @@ def test_all_the_time_6_online():
 
 def test_all_the_time_7_online():
     """
-    Like the above test, but iteration 4 has a nan, so should reset the temporal state.
+    Like the above test, but iteration i=4 has a nan, so should reset the temporal state.
     """
-
-    def _get_pf(i, ts):
-        state_col = np.arange(i, i + 1)
-        if i == 4:
-            cols = {"state": state_col, "action": [np.nan], "reward": [1]}
-        else:
-            cols = {"state": state_col, "action": [0], "reward": [1]}
-
-        dates = [
-            datetime.datetime(2024, 1, 1, 1, j) for j in range(i, i + 1)
-        ]
-        datetime_index = pd.DatetimeIndex(dates)
-        df = pd.DataFrame(cols, index=datetime_index)
-        pf = PipelineFrame(
-            df,
-            caller_code=CallerCode.OFFLINE,
-            temporal_state=ts
-        )
-        return pf
-
-    tags = [
-        TagConfig(
-            name='state',
-        ),
-        TagConfig(
-            name='action',
-            is_action=True,
-        ),
-        TagConfig(
-            name='reward',
-        )
-    ]
-
-    cfg = AllTheTimeTCConfig(
-        gamma=0.9,
-        max_n_step=2,
-        min_n_step=2,
-    )
-    tc = AllTheTimeTC(cfg, tags)
+    tc = make_tc(2, 2)
 
     transitions = []
     ts = {}
     for i in range(10):
-        pf = _get_pf(i, ts)
+        pf = make_pf(i, i+1, ts=ts)
+        if i == 4:
+            pf.data.loc[pf.data.index[0], 'action'] = np.nan
         pf = tc(pf)
         new_transitions = pf.transitions
         assert isinstance(new_transitions, list)
@@ -618,81 +436,34 @@ def test_all_the_time_7_online():
 
 
 def test_all_the_time_8_caller_codes():
-    # make the TC
-    tags = [
-        TagConfig(
-            name='state',
-        ),
-        TagConfig(
-            name='action',
-            is_action=True,
-        ),
-        TagConfig(
-            name='reward',
-        )
-    ]
+    """
+    Checks to see if the ts from one caller code is kept separate from the ts of another caller code.
+    """
+    tc = make_tc(2)
 
-    cfg = AllTheTimeTCConfig(
-        gamma=0.9,
-        max_n_step=2,
-    )
+    pf_1 = make_pf(0, 1)
+    pf_1.caller_code = CallerCode.OFFLINE
 
-    tc = AllTheTimeTC(cfg, tags)
-
-    # make a pf from one caller code
-    state_col = np.arange(1)
-    cols = {"state": state_col, "action": [0], "reward": [1]}
-    dates = [
-        datetime.datetime(2024, 1, 1, 1, i) for i in range(1)
-    ]
-    datetime_index = pd.DatetimeIndex(dates)
-    df = pd.DataFrame(cols, index=datetime_index)
-    pf = PipelineFrame(
-        df,
-        caller_code=CallerCode.OFFLINE,
-    )
-
-    pf = tc(pf)
-    transitions = pf.transitions
+    pf_1 = tc(pf_1)
+    transitions = pf_1.transitions
     assert isinstance(transitions, list)
     assert len(transitions) == 0
-    ts1 = pf.temporal_state
+    ts_1 = pf_1.temporal_state
 
-    # make a pf from another caller code
-    state_col = np.arange(1)
-    cols = {"state": state_col, "action": [0], "reward": [1]}
-    dates = [
-        datetime.datetime(2024, 1, 1, 1, i) for i in range(1)
-    ]
-    datetime_index = pd.DatetimeIndex(dates)
-    df = pd.DataFrame(cols, index=datetime_index)
-    pf = PipelineFrame(
-        df,
-        caller_code=CallerCode.ONLINE,
-    )
+    pf_2 = make_pf(1, 2)
+    pf_2.caller_code = CallerCode.ONLINE
 
-    pf = tc(pf)
-    transitions = pf.transitions
+    pf_2 = tc(pf_2)
+    transitions = pf_2.transitions
     assert isinstance(transitions, list)
     assert len(transitions) == 0
 
     # now, pass in a pf which is a continuation of the first pf
     # make a pf from another caller code
-    state_col = np.arange(1, 2)
-    cols = {"state": state_col, "action": [0], "reward": [1]}
-    dates = [
-        datetime.datetime(2024, 1, 1, 1, i) for i in range(1, 2)
-    ]
-    datetime_index = pd.DatetimeIndex(dates)
-    df = pd.DataFrame(cols, index=datetime_index)
-    pf = PipelineFrame(
-        df,
-        caller_code=CallerCode.OFFLINE,
-        temporal_state=ts1,  # we give it the temporal state of the first dataframe
-    )
-
-    pf = tc(pf)
-    transitions = pf.transitions
+    pf_3 = make_pf(1, 2, ts=ts_1)
+    pf_3.caller_code = CallerCode.OFFLINE
+    pf_3 = tc(pf_3)
+    transitions = pf_3.transitions
     assert isinstance(transitions, list)
     assert len(transitions) == 1
 
@@ -705,6 +476,3 @@ def test_all_the_time_8_caller_codes():
         n_step_gamma=0.9,
     )
     assert transitions[0] == expected_0
-
-
-
