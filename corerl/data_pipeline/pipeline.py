@@ -32,8 +32,8 @@ class PipelineConfig:
     db: TagDBConfig = field(default_factory=TagDBConfig)
     obs_interval_minutes: float = 0
     state_constructor: SCConfig = field(default_factory=SCConfig)
-    transition_creator: Any = field(default_factory=AllTheTimeTCConfig)
-    transition_filter: Any = field(default_factory=TransitionFilterConfig)
+    transition_creator: AllTheTimeTCConfig = field(default_factory=AllTheTimeTCConfig)
+    transition_filter: TransitionFilterConfig = field(default_factory=TransitionFilterConfig)
 
 
 @dataclass
