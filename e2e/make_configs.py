@@ -1,26 +1,18 @@
+from dataclasses import field
 import pandas as pd
 from pathlib import Path
 import shutil
 import logging
+import yaml
 
 # Creating env from file
-import hydra
-from omegaconf import DictConfig, OmegaConf
 import gymnasium as gym
 from itertools import chain
 
-# Imports from main
+from corerl.configs.config import config
+from corerl.configs.loader import load_config, config_to_dict
+from corerl.environment.async_env.deployment_async_env import DepAsyncEnvConfig
 from corerl.environment.factory import init_environment
-from corerl.config import MainConfig  # noqa: F401
-from corerl.utils.device import device  # noqa: F401
-from corerl.agent.factory import init_agent  # noqa: F401
-from corerl.utils.plotting import make_online_plots, make_offline_plots  # noqa: F401
-from corerl.environment.reward.factory import init_reward_function  # noqa: F401
-from corerl.agent.base import BaseAgent  # noqa: F401
-from corerl.utils.plotting import make_actor_critic_plots, make_reseau_gvf_critic_plot  # noqa: F401
-import corerl.utils.dict as dict_u  # noqa: F401
-import corerl.utils.nullable as nullable  # noqa: F401
-
 from corerl.utils.gymnasium import gen_tag_configs_from_env
 from corerl.data_pipeline.tag_config import TagConfig
 
@@ -42,23 +34,35 @@ def generate_telegraf_conf(path: Path, df_ids):
     _logger.info(f"Generetad {path}/telegraf/generated_telegraf.conf")
 
 
-def generate_omegaconf_yaml(path: Path, tags: dict[str, list[TagConfig]]):
-    omegaconf_fp = path / "generated_tags.yaml"
-    with open(omegaconf_fp, "+w") as f:
-        OmegaConf.save(tags, f)
-    _logger.info(f"Generated {omegaconf_fp}")
+def generate_tag_yaml(path: Path, tags: dict[str, list[TagConfig]]):
+    tag_path = path / "generated_tags.yaml"
+
+    conf = {
+        category: [
+            config_to_dict(TagConfig, tag)
+            for tag in tag_list
+        ]
+        for category, tag_list in tags.items()
+    }
+
+    with open(tag_path, "+w") as f:
+        yaml.safe_dump(conf, f)
+
+    _logger.info(f"Generated {tag_path}")
 
 
-@hydra.main(version_base=None, config_name='config', config_path="../config/")
-def main(cfg: DictConfig):
+@config(allow_extra=True)
+class Config:
+    env: DepAsyncEnvConfig = field(default_factory=DepAsyncEnvConfig)
+
+
+@load_config(Config, base='config')
+def main(cfg: Config):
     env: gym.Env = init_environment(cfg.env)
     _logger.info(f"Generating config with env {env}")
 
     tags = gen_tag_configs_from_env(env)
-
-    ns = 2
-    if "ns" in cfg:
-        ns = cfg.env.ns
+    ns = cfg.env.ns
 
     string_ids = (tag.name for tag in chain.from_iterable(tags.values()))
 
@@ -71,7 +75,7 @@ def main(cfg: DictConfig):
     _logger.info(f"Found {len(df_ids)} distinct nodes")
     _logger.info(df_ids)
     generate_telegraf_conf(current_path, df_ids)
-    generate_omegaconf_yaml(current_path, tags)
+    generate_tag_yaml(current_path, tags)
 
 
 if __name__ == "__main__":

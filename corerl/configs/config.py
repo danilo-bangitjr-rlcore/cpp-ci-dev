@@ -23,7 +23,14 @@ def interpolate(path: str) -> Any:
 def config(
     *,
     frozen: bool = False,
+    allow_extra: bool = False,
 ):
     def _inner(cls):
-        return pydantic_dataclass(cls, frozen=frozen, config={'extra': 'forbid'})
+        return pydantic_dataclass(
+            cls,
+            frozen=frozen,
+            config={
+                'extra': 'ignore' if allow_extra else 'forbid',
+            },
+        )
     return _inner

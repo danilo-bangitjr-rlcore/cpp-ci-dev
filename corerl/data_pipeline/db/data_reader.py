@@ -22,7 +22,7 @@ class TagDBConfig(SQLEngineConfig):
     """
     db_name: str = "postgres"
     sensor_table_name: str = "scrubber4"
-    sensor_table_schema: str = "public"
+    sensor_table_schema: str = ""
 
 
 class DataReader:

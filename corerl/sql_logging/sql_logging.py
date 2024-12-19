@@ -9,7 +9,7 @@ from collections.abc import MutableMapping
 from sqlalchemy import Table, Column, DateTime, Engine, MetaData, URL, select, inspect
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
-from corerl.configs.config import config, MISSING
+from corerl.configs.config import config
 from sqlalchemy_utils import database_exists, drop_database, create_database
 from corerl.sql_logging.base_schema import (
     Base,
@@ -22,11 +22,11 @@ logger = logging.getLogger(__name__)
 
 @config()
 class SQLEngineConfig:
-    drivername: str = MISSING
-    username: str = MISSING
-    password: str = MISSING
-    ip: str = MISSING
-    port: int = MISSING
+    drivername: str = "postgresql+psycopg2"
+    username: str = "postgres"
+    password: str = "password"
+    ip: str = "localhost"
+    port: int = 5432
 
 
 def get_sql_engine(db_data: SQLEngineConfig, db_name: str, force_drop=False) -> Engine:
