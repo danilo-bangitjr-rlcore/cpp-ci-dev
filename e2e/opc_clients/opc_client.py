@@ -4,37 +4,35 @@
 # all gym environment actions have side effects that interact with OPC client
 # all agent observations are performed through timescale DB
 
-import hydra
-from omegaconf import DictConfig
+from dataclasses import field
 import logging
 from time import sleep
 
 import gymnasium as gym
-from asyncua.sync import Client
+from asyncua.sync import Client, SyncNode
 from asyncua.ua.uaerrors import BadNodeIdExists, BadNodeIdUnknown
 from asyncua.ua.uatypes import VariantType
 
-# Imports from main
+from corerl.configs.config import config
+from corerl.configs.loader import load_config
+from corerl.environment.async_env.deployment_async_env import DepAsyncEnvConfig
 from corerl.environment.factory import init_environment
-from corerl.config import MainConfig  # noqa: F401
-from corerl.utils.device import device  # noqa: F401
-from corerl.agent.factory import init_agent  # noqa: F401
-from corerl.utils.plotting import make_online_plots, make_offline_plots  # noqa: F401
-from corerl.environment.reward.factory import init_reward_function  # noqa: F401
-from corerl.agent.base import BaseAgent  # noqa: F401
-from corerl.utils.plotting import make_actor_critic_plots, make_reseau_gvf_critic_plot  # noqa: F401
-import corerl.utils.dict as dict_u  # noqa: F401
-import corerl.utils.nullable as nullable  # noqa: F401
 from corerl.utils.gymnasium import gen_tag_configs_from_env
+
+
+@config(allow_extra=True)
+class Config:
+    env: DepAsyncEnvConfig = field(default_factory=DepAsyncEnvConfig)
+
 
 def make_opc_node_id(str_id: str, namespace: int = 0):
     return f"ns={namespace};s={str_id}"
 
 
-def run(env: gym.Env, client: Client, cfg: DictConfig):
-    seed = cfg.env.seed if "seed" in cfg.env else None
-    ns = cfg.env.ns if "ns" in cfg.env else 2
-    sleep_sec = cfg.env.sleep_sec if "sleep_sec" in cfg.env else 0.1
+def run(env: gym.Env, client: Client, cfg: Config):
+    seed = cfg.env.seed
+    ns = cfg.env.ns
+    sleep_sec = cfg.env.sleep_sec
 
     # create folder containing environment variables
     folder_node_id = make_opc_node_id(cfg.env.name)
@@ -100,14 +98,12 @@ def run(env: gym.Env, client: Client, cfg: DictConfig):
             sleep(sleep_sec)
 
 
-@hydra.main(version_base=None, config_name='config', config_path="../../config/")
-def main(cfg: DictConfig):
+@load_config(Config, base='config/')
+def main(cfg: Config):
     env: gym.Env = init_environment(cfg.env)
     _logger.info(f"Running OPC env simulation {env}")
 
-    opc_url = "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
-    if 'opc_url' in cfg.env:
-        opc_url = cfg.env.opc_url
+    opc_url = cfg.env.opc_url
 
     # make OPC client (sync)
     client = Client(opc_url)
