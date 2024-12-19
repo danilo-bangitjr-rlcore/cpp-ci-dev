@@ -37,10 +37,7 @@ def call_filter(transitions, filter_name):
 
 
 def only_dp(transition):
-    if transition.prior.dp and transition.post.dp:
-        return True
-    else:
-        return False
+    return transition.prior.dp and transition.post.dp
 
 
 def only_post_dp(transition):
