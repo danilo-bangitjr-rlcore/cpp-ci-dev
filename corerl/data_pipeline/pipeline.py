@@ -20,13 +20,11 @@ from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructo
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.utils import invoke_stage_per_tag
+from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, StageCode
 
-from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, StageCode, TemporalState
 
 logger = logging.getLogger(__name__)
 
-type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
-type PipelineStage[T] = Callable[[T, TagName], T]
 
 @config()
 class PipelineConfig:
