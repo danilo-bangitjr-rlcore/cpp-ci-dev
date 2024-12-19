@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from inspect import isclass
 import re
 import hashlib
 from collections.abc import Callable, Iterable, MutableMapping, Sequence
@@ -184,6 +185,19 @@ def set_at_path[T](d: dict[str, T], path: str, val: T) -> dict[str, T]:
 
 
 def dataclass_to_dict(o: Any) -> Any:
+    # For dataclass Thing and instance t=Thing()
+    # is_dataclass(Thing) *and* is_dataclass(t)
+    # both return True. Therefore
+    #   (not isclass(o) and is_dataclass(o))
+    # lets us distinguish between the type and the instance
+    if not isclass(o) and is_dataclass(o):
+        return {
+            k: dataclass_to_dict(v)
+            for k, v in o.__dict__.items()
+        }
+
+    # In the case that an instance instead of a class
+    # is given, just return back the underlying values
     if isinstance(o, list):
         return [
             dataclass_to_dict(sub) for sub in o
@@ -192,6 +206,8 @@ def dataclass_to_dict(o: Any) -> Any:
     if not is_dataclass(o):
         return o
 
+    # In the case a class is given, we need to reason
+    # about its default values and factories.
     out = {}
     for v in fields(o):
         if not isinstance(v.default_factory, _MISSING_TYPE):
