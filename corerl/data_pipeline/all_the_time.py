@@ -129,10 +129,6 @@ class AllTheTimeTC:
         return steps
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
-        if pf.data.empty:  # pretend like nothing happened but raise a warning...
-            warnings.warn("Empty dataframe passed to transition creator", stacklevel=2)
-            return pf
-
         step_info = pf.temporal_state.get(
             StageCode.TC,
             _reset_step_info(self.min_n_step, self.max_n_step)
