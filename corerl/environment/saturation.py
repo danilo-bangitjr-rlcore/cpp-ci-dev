@@ -4,8 +4,8 @@ import numpy as np
 
 
 class Saturation(gym.Env):
-    def __init__(self, seed):
-        self._random = np.random.default_rng(seed)
+    def __init__(self, **kwargs):
+        self._random = np.random.default_rng()
         self.observation_dim = 1
         self._obs_min = np.array([0.])
         self._obs_max = np.array([1.])
@@ -57,7 +57,12 @@ class Saturation(gym.Env):
         seed: int | None = None,
         options: dict[str, Any] | None = None,
     ):
+        if seed is not None:
+            self.seed(seed)
+
         return self.saturation, {}
 
     def close(self):
         pass
+
+gym.register('Saturation-v0', Saturation)

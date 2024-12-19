@@ -1,24 +1,8 @@
 defaults:
-  - config
-  - alerts@alerts.gvf_trace : gvf_trace
-  - override agent: greedy_ac
-  - override env: delayed_saturation
-  - override data_loader: direct_action
-  - override interaction: anytime
-  - override calibration_model : one_step
-  - override state_constructor: anytime_multi_trace
-  - override hydra/launcher: joblib
-  - _self_
+  - gym
+  - env: env/saturation
 
 use_alerts : True
-
-offline_data:
-  load_from : transition
-  output_path : offline_data/saturation
-
-state_constructor:
-  use_indicator : True
-  representation : thermometer
 
 experiment :
   exp_name : "delayed_saturation_debug"
@@ -28,36 +12,69 @@ experiment :
   timeout: 0
   cm_eval_freq: 100
 
-env:
-  opc : null
-  db : null
-
-interaction :
-  obs_length: 1
-  only_dp_transitions : False
-  steps_per_decision: 7
-  n_step : 0
-
 agent:
+  name: greedy_ac
   tau : 0
   rho : 0.05
   num_samples: 100
+  seed: ${experiment.seed}
+  gamma: ${experiment.gamma}
+  discrete_control: ${env.discrete_control}
+
   critic:
     polyak: 0.995
     critic_optimizer:
       lr : 0.0003
       weight_decay : 0.0
+    buffer:
+      seed: ${experiment.seed}
+
   actor:
     actor_optimizer:
       lr : 0.0005
+    buffer:
+      seed: ${experiment.seed}
 
-data_loader:
-  offline_data_path: offline_data/saturation/csv
-  train_filenames: ["data.csv"]
-  test_filenames: ["data.csv"]
-  skip_rows: 0
-  header: 0
-  df_col_names: ["index", "saturation", "action", "time"]
-  date_col_name : "time"
-  action_col_names: ["action"]
-  obs_col_names: ["saturation"]
+pipeline:
+  state_constructor:
+    defaults: []
+
+  agent_transition_creator:
+    name: anytime
+    steps_per_decision: 1
+    countdown: 'null'
+    gamma: ${experiment.gamma}
+
+  tags:
+  # observations
+    - name: tag-1
+      outlier:
+        name: identity
+      state_constructor:
+        - name: multi_trace
+          trace_values: [0.95]
+
+  # rl stuff
+    - name: action
+      is_action: True
+      outlier:
+        name: identity
+      state_constructor:
+        - name: normalize
+          min: -2
+          max: 2
+          from_data: False
+
+    - name: reward
+      outlier:
+        name: identity
+
+    - name: term
+      outlier:
+        name: identity
+
+    - name: trunc
+      outlier:
+        name: identity
+      state_constructor:
+        - name: 'null'

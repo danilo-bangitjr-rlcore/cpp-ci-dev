@@ -1,18 +1,5 @@
 defaults:
-  - base_env
-  - reward: saturation
-  - _self_
+  - env/base_gym_env
 
-name : saturation
+name : Saturation-v0
 discrete_control : False
-action_low : 0
-action_high : 1
-
-reward_high : 0
-reward_low : -0.5
-
-obs_names : ['saturation']
-endo_obs_names : ['saturation']
-action_names : ['action']
-obs_col_names : ["saturation"]
-endo_inds : [0]
