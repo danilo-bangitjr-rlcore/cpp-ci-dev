@@ -1,12 +1,11 @@
-from omegaconf import DictConfig
-
+from typing import Any
 import numpy as np
 
 from corerl.environment.reward.base import BaseReward
 
 
 class ReseauReward(BaseReward):
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: Any):
         self.orp_sp = cfg.orp_sp
         self.orp_col = cfg.orp_col
         self.penalty_weight = cfg.penalty_weight
