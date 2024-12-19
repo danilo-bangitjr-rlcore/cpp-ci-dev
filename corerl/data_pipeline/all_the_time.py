@@ -104,7 +104,6 @@ class AllTheTimeTC:
             tag_configs: list[TagConfig],
     ):
         self.cfg = cfg
-        self.stage_code = StageCode.TC
         self.tag_configs = tag_configs
         self._init_action_tags()
 
@@ -163,7 +162,7 @@ class AllTheTimeTC:
             warnings.warn("Empty dataframe passed to transition creator", stacklevel=2)
             return pf
 
-        tc_ts = pf.temporal_state.get(self.stage_code, AllTheTimeTS())
+        tc_ts = pf.temporal_state.get(StageCode.TC, AllTheTimeTS({}))
         pf.temporal_state[StageCode.TC] = tc_ts
         assert isinstance(tc_ts, AllTheTimeTS)
 
@@ -180,7 +179,7 @@ class AllTheTimeTC:
         else:
             tc_ts.step_info = self.step_info
 
-        pf.temporal_state[self.stage_code] = tc_ts
+        pf.temporal_state[StageCode.TC] = tc_ts
         pf.transitions = transitions
 
         return pf
