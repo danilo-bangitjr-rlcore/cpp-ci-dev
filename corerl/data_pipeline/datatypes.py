@@ -172,9 +172,9 @@ type TemporalState = dict[StageCode, object | None]
 @dataclass
 class PipelineFrame:
     data: pd.DataFrame
+    caller_code: CallerCode
     missing_info: pd.DataFrame = field(init=False)
     decision_points: np.ndarray = field(init=False)
-    caller_code: CallerCode
     temporal_state: TemporalState = field(default_factory=dict)
     transitions: list[NewTransition] | None = None
 
