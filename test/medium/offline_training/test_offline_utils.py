@@ -2,6 +2,7 @@ import pytest
 import datetime as dt
 
 from torch import Tensor
+from typing import Generator
 
 from corerl.agent.factory import init_agent
 from corerl.agent.greedy_ac import GreedyACConfig
@@ -17,13 +18,35 @@ from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.sc import SCConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transition_creators.anytime import AnytimeTransitionCreatorConfig
+from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
+from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.transforms import LessThanConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.offline.utils import load_offline_transitions, offline_training
 
-from test.medium.data_loaders.test_data_writer import data_writer, test_db_config
+from test.medium.data_loaders.utils import timescale_docker  # noqa: F401
 
+@pytest.fixture(scope="module")
+def test_db_config() -> TagDBConfig:
+    db_cfg = TagDBConfig(
+        drivername="postgresql+psycopg2",
+        username="postgres",
+        password="password",
+        ip="localhost",
+        port=5433,  # default is 5432, but we want to use different port for test db
+        db_name="offline_test",
+        sensor_table_name="tags",
+    )
+
+    return db_cfg
+
+@pytest.fixture(scope="module")
+def data_writer(timescale_docker, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]:
+    data_writer = DataWriter(db_cfg=test_db_config)
+
+    yield data_writer
+
+    data_writer.close()
 
 @pytest.fixture
 def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
@@ -75,9 +98,13 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
                 defaults=[],
                 countdown=CountdownConfig(action_period=action_period),
             ),
-            agent_transition_creator=AnytimeTransitionCreatorConfig(
-                steps_per_decision=action_period,
-                gamma=0.9
+            transition_creator=AllTheTimeTCConfig(
+                gamma=0.9,
+                min_n_step=1,
+                max_n_step=2,
+            ),
+            transition_filter=TransitionFilterConfig(
+                filters=['only_no_action_change']
             )
         )
     )
@@ -93,7 +120,7 @@ def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, step
         timestamps.append(start_time + (delta * i))
 
     # Generate tag data and write to tsdb
-    steps_per_decision = offline_cfg.pipeline.agent_transition_creator.steps_per_decision
+    steps_per_decision = offline_cfg.action_period / offline_cfg.obs_period
     for i in range(steps):
         for tag_cfg in offline_cfg.pipeline.tags:
             tag = tag_cfg.name
@@ -123,14 +150,16 @@ def test_load_offline_transitions(offline_cfg: MainConfig, data_writer: DataWrit
 
     # Expected transitions
     gamma = offline_cfg.experiment.gamma
-    step_0 = Step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([0.0, 0.0, 1.0]), dp=True)
-    step_1_initial = Step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([1.0, 1.0, 0.0]), dp=False)
-    step_1_revised = Step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([1.0, 0.0, 1.0]), dp=True)
-    step_2 = Step(reward=1.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([2.0, 1.0, 0.0]), dp=False)
-    step_3_one_step = Step(reward=0.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([3.0, 0.0, 1.0]), dp=True)
-    step_3_two_step = Step(reward=1.0, action=Tensor([1.0]), gamma=gamma**2.0, state=Tensor([3.0, 0.0, 1.0]), dp=True)
-    expected_transitions = [NewTransition(step_0, step_1_initial, 1), NewTransition(step_1_revised, step_3_two_step, 2),
-                            NewTransition(step_2, step_3_one_step, 1)]
+    step_0 = Step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([0.0]), dp=True)
+    step_1 = Step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([1.0]), dp=False)
+    step_2 = Step(reward=1.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([2.0]), dp=True)
+    step_3 = Step(reward=0.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([3.0]), dp=False)
+    step_4 = Step(reward=0.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([4.0]), dp=True)
+    expected_transitions = [NewTransition([step_0, step_1], 1.0, gamma),
+                            NewTransition([step_1, step_2], 1.0, gamma),
+                            NewTransition([step_2, step_3], 0.0, gamma),
+                            NewTransition([step_1, step_2, step_3], 1.0, gamma**2.0),
+                            NewTransition([step_3, step_4], 0.0, gamma)]
 
     assert len(created_transitions) == len(expected_transitions)
     for i in range(len(created_transitions)):
@@ -148,8 +177,6 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
 
     pipeline = Pipeline(offline_cfg.pipeline)
     state_dim, action_dim = pipeline.get_state_action_dims()
-    # TODO: state_dim doesn't take into account the countdown
-    state_dim = len(offline_transitions[0].prior.state)
     agent = init_agent(offline_cfg.agent, state_dim, action_dim)
 
     # Offline training
