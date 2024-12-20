@@ -1,20 +1,20 @@
 import logging
-import numpy as np
-import torch
 import random
 
+import numpy as np
+import torch
 from tqdm import tqdm
+
+import corerl.main_utils as utils
+import corerl.utils.freezer as fr
+from corerl.agent.factory import init_agent
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
-from corerl.utils.device import device
-from corerl.agent.factory import init_agent
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
-from corerl.interaction.sim_interaction import SimInteraction
 from corerl.environment.registry import register_custom_envs
-
-import corerl.utils.freezer as fr
-import corerl.main_utils as utils
+from corerl.interaction.sim_interaction import SimInteraction
+from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
 
@@ -56,7 +56,5 @@ def main(cfg: MainConfig):
     for _ in tqdm(range(cfg.experiment.max_steps)):
         interaction.step()
 
-
 if __name__ == "__main__":
     main()
-

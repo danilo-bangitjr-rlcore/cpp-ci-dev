@@ -1,6 +1,7 @@
 defaults:
   - 
 
+action_period: 1
 
 env:
   name: offline_async_env
@@ -58,13 +59,9 @@ experiment:
 pipeline:
   state_constructor:
     defaults: []
-    countdown:
-      action_period : 1
-      kind : 'no_countdown'
 
   transition_creator:
     name: anytime
-    steps_per_decision: 1
     gamma: ${experiment.gamma}
 
   db: 

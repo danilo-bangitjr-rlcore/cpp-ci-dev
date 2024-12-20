@@ -1,13 +1,12 @@
 import numpy as np
 import pandas as pd
-from omegaconf import DictConfig
 from datetime import datetime, UTC
 
 from corerl.configs.config import config, MISSING
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig, TimeStats
-from corerl.environment.reward.scrubber import ScrubberReward
+from corerl.environment.reward.scrubber import ScrubberReward, ScrubberRewardConfig
 
 
 @config()
@@ -99,12 +98,12 @@ class OfflineAsyncEnv(AsyncEnv):
     def _init_reward(self):
         match self.gym_name:
             case "epcor_tsdb_scrubber":
-                reward_cfg = DictConfig({
-                    'reward_tags': None,
-                    'steps_per_interaction': 1,
-                    'only_dp_transitions': False,
-                    'type': 'mean_efficiency_cost',
-                })
+                reward_cfg = ScrubberRewardConfig(
+                    reward_tags = None,
+                    steps_per_interaction = 1,
+                    only_dp_transitions = False,
+                    type = 'mean_efficiency_cost',
+                )
                 scrubber_reward = ScrubberReward(reward_cfg)
 
                 # This wrapper is for calling scrubber_reward in a simpler manner

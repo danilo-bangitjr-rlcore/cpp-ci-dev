@@ -1,11 +1,12 @@
 import logging
+from typing import Any
 from warnings import warn
 
 import numpy as np
 import torch
 import pandas as pd
-from omegaconf import DictConfig
 
+from corerl.configs.config import MISSING, config
 from corerl.environment.reward.base import BaseReward
 
 logger = logging.getLogger(__name__)
@@ -19,12 +20,18 @@ def contains_nan(arr: np.ndarray | pd.DataFrame | torch.Tensor) -> bool:
     elif isinstance(arr, torch.Tensor):
         return bool(torch.isnan(arr).any())
 
+@config()
+class ScrubberRewardConfig:
+    reward_tags: Any = MISSING
+    steps_per_interaction: Any = MISSING
+    only_dp_transitions: bool = False
+    type: str = 'mean_efficiency_cost'
 
 class ScrubberReward(BaseReward):
     """
     Reward for scrubber4 EPCOR data
     """
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: Any):
         self.reward_tags = cfg.reward_tags
         self._steps_per_interaction = cfg.steps_per_interaction
         self._only_dp_transitions = cfg.only_dp_transitions

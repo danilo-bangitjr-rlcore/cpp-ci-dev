@@ -26,4 +26,3 @@ def init_async_env(cfg: AsyncEnvConfig, tag_config: list[TagConfig]):
     register()
     return async_env_group.dispatch(cfg, tag_config)
 
-
