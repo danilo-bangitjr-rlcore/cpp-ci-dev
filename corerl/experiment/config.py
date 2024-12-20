@@ -16,6 +16,7 @@ class ExperimentConfig:
     online_learning: bool = True
     online_stat_keys: list[str] = list_()
     online_updates: bool = True
+    pf_data_dur: int = 7  # The maximum number of days pf.data should span
     render: int = 0
     render_after: int = 0
     param: str = ''
