@@ -9,20 +9,15 @@ from corerl.configs.loader import load_config
 from corerl.utils.device import device
 from corerl.agent.factory import init_agent
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.environment.async_env.sim_async_env import SimAsyncEnv, SimAsyncEnvConfig
-from corerl.environment.async_env.offline_async_env import OfflineAsyncEnvConfig, OfflineAsyncEnv
 from corerl.environment.async_env.factory import init_async_env
-
-from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
 from corerl.interaction.sim_interaction import SimInteraction
-
 from corerl.environment.registry import register_custom_envs
 
 import corerl.utils.freezer as fr
 import corerl.main_utils as utils
-import yaml
 
 log = logging.getLogger(__name__)
+
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):

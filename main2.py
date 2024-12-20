@@ -121,10 +121,10 @@ def main():
         tags=tag_configs,
         db=db_cfg,
         obs_interval_minutes=1.1,
-        agent_transition_creator=AnytimeTransitionCreatorConfig(
-            steps_per_decision=1,
-            gamma=1,
-        ),
+        # agent_transition_creator=AnytimeTransitionCreatorConfig(
+        #     steps_per_decision=1,
+        #     gamma=1,
+        # ),
         state_constructor=SCConfig(
             countdown=CountdownConfig(
                  # without specifying an int, this will fail because hydra cannot

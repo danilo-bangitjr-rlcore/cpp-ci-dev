@@ -6,7 +6,7 @@ from datetime import datetime, UTC
 from corerl.configs.config import config, MISSING
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv
-from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
+from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig, TimeStats
 from corerl.environment.reward.scrubber import ScrubberReward
 
 
@@ -16,7 +16,6 @@ class OfflineAsyncEnvConfig:
     seed: int = 0
     discrete_control: bool = False
     gym_name: str = MISSING
-    bucket_width: str = MISSING
     aggregation: str = MISSING
     env_start_time: str = MISSING
     env_end_time: str = MISSING
@@ -28,15 +27,19 @@ class OfflineAsyncEnv(AsyncEnv):
     def __init__(self, cfg: OfflineAsyncEnvConfig, tags: list[TagConfig]):
         self.gym_name = cfg.gym_name
 
-        self.bucket_width = pd.Timedelta(cfg.bucket_width).to_pytimedelta()
-        self.env_step_time = pd.Timedelta(cfg.env_step_time).to_pytimedelta()
+        pd_env_step_time = pd.Timedelta(cfg.env_step_time)
+        assert isinstance(pd_env_step_time, pd.Timedelta), "Failed parsing of env_step_time"
+        self.env_step_time = pd_env_step_time.to_pytimedelta()
+
         self._data_reader = DataReader(db_cfg=cfg.db)
 
         # Getting defaults for start and end time
+        time_stats: TimeStats | None = None
         if cfg.env_start_time == MISSING or cfg.env_end_time == MISSING:
             time_stats = self._data_reader.get_time_stats()
 
         if cfg.env_start_time == MISSING:
+            assert isinstance(time_stats, TimeStats), "Error getting time stats"
             self.env_start_time = time_stats.start
         else:
             self.env_start_time = datetime.strptime(
@@ -44,6 +47,7 @@ class OfflineAsyncEnv(AsyncEnv):
                 '%Y-%m-%d %H:%M:%S').replace(tzinfo=UTC)
 
         if cfg.env_end_time == MISSING:
+            assert isinstance(time_stats, TimeStats), "Error getting time stats"
             self.env_end_time = time_stats.end
         else:
             self.env_end_time = datetime.strptime(
@@ -72,7 +76,7 @@ class OfflineAsyncEnv(AsyncEnv):
 
     def get_latest_obs(self) -> pd.DataFrame:
 
-        # Since this is ONLINE, we use single aggregated read
+        # Since the pipeline is set to ONLINE, we use single aggregated read
         res = self._data_reader.single_aggregated_read(
             self.names,
             self.current_start_time,

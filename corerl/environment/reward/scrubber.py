@@ -84,9 +84,12 @@ class ScrubberReward(BaseReward):
         return mean_eff, chem_cost
 
     def _learned_reward(self, df_rows):
-        warn("learned reward is deprecated and will be removed in the future")
+        warn("learned reward is deprecated and will be removed in the future",
+             stacklevel=1)
+
         eff, cost = ScrubberReward._compute_eff_cost(df_rows)
 
+        assert isinstance(eff, (list, pd.Series, np.ndarray))
         if len(eff) == 0:
             r = 0.0
         else:

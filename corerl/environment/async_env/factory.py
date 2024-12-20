@@ -22,7 +22,7 @@ def register():
     async_env_group.dispatcher(OfflineAsyncEnv)
 
 
-def init_async_env(cfg: AsyncEnvConfig, tag_config: TagConfig):
+def init_async_env(cfg: AsyncEnvConfig, tag_config: list[TagConfig]):
     register()
     return async_env_group.dispatch(cfg, tag_config)
 

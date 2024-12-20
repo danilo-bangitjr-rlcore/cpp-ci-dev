@@ -9,7 +9,6 @@ env:
   db: ${pipeline.db}
   env_start_time: "2024-10-11 00:00:00"
   env_end_time: "2024-12-16 07:38:50"
-  bucket_width: "15m"
   env_step_time: "1h"
   gym_name: epcor_tsdb_scrubber
 
