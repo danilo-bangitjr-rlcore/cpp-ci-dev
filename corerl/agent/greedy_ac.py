@@ -102,15 +102,6 @@ class GreedyAC(BaseAC):
                 self.num_samples = self.action_dim
                 self.top_actions_proposal = self.action_dim
 
-        self.delta_actor = cfg.delta_actor
-        self.delta_critic = cfg.delta_critic
-        assert not self.delta_critic # delta_critic==True hasn't been tested
-
-        self.interaction_get_action = lambda action, state: action
-        self.interaction_get_action_inverse = lambda action, state: action
-
-        self.get_action_for_critic = lambda out, prev_action: out
-
         if (getattr(cfg, 'guardrail_low', None) is not None) and \
                 (getattr(cfg, 'guardrail_high', None) is not None):
             self.guardrail_low = tensor(numpy.array(cfg.guardrail_low), 'cpu')
@@ -118,12 +109,6 @@ class GreedyAC(BaseAC):
 
         self._hooks(when.Agent.AfterCreate, self)
 
-    def get_action_from_state(self, state: torch.Tensor) \
-            -> torch.Tensor:
-        if len(state.shape) == 1:
-            return state[1: self.action_dim+1]
-        else:
-            return state[:, 1: self.action_dim+1]
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         self._msg_bus.emit_event_sync(EventType.agent_get_action)
@@ -132,20 +117,15 @@ class GreedyAC(BaseAC):
 
         args, _ = self._hooks(when.Agent.BeforeGetAction, self, tensor_state)
         tensor_state = args[1]
-        tensor_actor_action, action_info = self.actor.get_action(
+        action, action_info = self.actor.get_action(
             tensor_state, with_grad=False,
         )
 
         args, _ = self._hooks(
-            when.Agent.AfterGetAction, self, tensor_state, tensor_actor_action,
+            when.Agent.AfterGetAction, self, tensor_state, action,
         )
-        tensor_state, tensor_actor_action = args[1:]
-
-        prev_action = self.get_action_from_state(tensor_state)
-        tensor_action = self.interaction_get_action(tensor_actor_action, prev_action)
-        action = to_np(tensor_action)[0]
-
-        return action
+        tensor_state, action = args[1:]
+        return to_np(action)[0]
 
     def update_buffer(self, transition: NewTransition) -> None:
         self._msg_bus.emit_event_sync(EventType.agent_update_buffer)
@@ -287,10 +267,8 @@ class GreedyAC(BaseAC):
         # recall that if self.sample_all_discrete_actions then self.num_samples = self.action_dim
         repeated_states: Float[torch.Tensor, 'batch_size*num_samples state_dim']
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
-        prev_action_batch = self.get_action_from_state(repeated_states)
 
         sample_actions = self.get_sampled_actions(state_batch)
-        sample_actions = self.get_action_for_critic(sample_actions, prev_action_batch)
         sorted_q_inds = self.get_sorted_q_values(state_batch, sample_actions)
         best_actions = self.get_top_actions(sample_actions, sorted_q_inds, n_top_actions=self.top_actions)
 
@@ -317,8 +295,7 @@ class GreedyAC(BaseAC):
             gamma_batch = batch.n_step_gamma
             dp_mask = batch.post.dp
 
-            next_actor_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
-            next_actions = self.get_action_for_critic(next_actor_actions, action_batch)
+            next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
             # For the 'Anytime' paradigm, only states at decision points can sample next_actions
             # If a state isn't at a decision point, its next_action is set to the current action
             with torch.no_grad():
@@ -553,18 +530,14 @@ class GreedyAC(BaseAC):
             )
 
     def actor_err(self, stacked_s_batch, best_actions) -> torch.Tensor:
-        prev_actions = self.get_action_from_state(stacked_s_batch)
-        best_actor_actions = self.interaction_get_action_inverse(best_actions, prev_actions)
         logp, _ = self.actor.get_log_prob(
-            stacked_s_batch, best_actor_actions, with_grad=True,
+            stacked_s_batch, best_actions, with_grad=True,
         )
         return -logp.mean()
 
     def sampler_err(self, stacked_s_batch, best_actions) -> torch.Tensor:
-        prev_actions = self.get_action_from_state(stacked_s_batch)
-        best_actor_actions = self.interaction_get_action_inverse(best_actions, prev_actions)
         logp, _ = self.sampler.get_log_prob(
-            stacked_s_batch, best_actor_actions, with_grad=True,
+            stacked_s_batch, best_actions, with_grad=True,
         )
         return -logp.mean()
 
