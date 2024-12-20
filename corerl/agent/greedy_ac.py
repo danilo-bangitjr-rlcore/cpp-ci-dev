@@ -19,7 +19,7 @@ from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import NewTransition, NewTransitionBatch
+from corerl.data_pipeline.datatypes import Transition, TransitionBatch
 from jaxtyping import Float
 from typing import Literal, Optional
 
@@ -109,7 +109,7 @@ class GreedyAC(BaseAC):
         )
         return to_np(action)[0]
 
-    def update_buffer(self, transitions: Sequence[NewTransition]) -> None:
+    def update_buffer(self, transitions: Sequence[Transition]) -> None:
         self._msg_bus.emit_event_sync(EventType.agent_update_buffer)
 
         self.critic_buffer.feed(transitions)
@@ -118,7 +118,7 @@ class GreedyAC(BaseAC):
         ])
 
 
-    def load_buffer(self, transitions: Sequence[NewTransition]) -> None:
+    def load_buffer(self, transitions: Sequence[Transition]) -> None:
         policy_transitions = []
         for transition in transitions:
             if transition.prior.dp:
@@ -250,7 +250,7 @@ class GreedyAC(BaseAC):
 
         return state_batch, repeated_states, sample_actions, sorted_q_inds, stacked_s_batch, best_actions, batch_size
 
-    def compute_critic_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
+    def compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []

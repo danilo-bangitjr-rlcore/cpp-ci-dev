@@ -1,7 +1,7 @@
 from torch import Tensor
 
 from corerl.component.buffer.buffers import EnsembleUniformBuffer, EnsembleUniformReplayBufferConfig
-from corerl.data_pipeline.datatypes import NewTransition, NewTransitionBatch, Step, StepBatch
+from corerl.data_pipeline.datatypes import Transition, TransitionBatch, Step, StepBatch
 
 def test_sample_mini_batch():
     cfg = EnsembleUniformReplayBufferConfig(seed=0, memory=5, batch_size=2, combined=True, ensemble=2, data_subset=0.6)
@@ -29,7 +29,7 @@ def test_sample_mini_batch():
         dp=True,
     )
 
-    trans_1 = NewTransition(
+    trans_1 = Transition(
         steps=[
             step_1,
             step_2,
@@ -37,7 +37,7 @@ def test_sample_mini_batch():
         n_step_reward=0.9,
         n_step_gamma=0.99,
     )
-    trans_2 = NewTransition(
+    trans_2 = Transition(
         steps=[
             step_2,
             step_3,
@@ -45,7 +45,7 @@ def test_sample_mini_batch():
         n_step_reward=0.8,
         n_step_gamma=0.99,
     )
-    trans_3 = NewTransition(
+    trans_3 = Transition(
         steps=[
             step_1,
             step_2,
@@ -67,7 +67,7 @@ def test_sample_mini_batch():
     batch_2 = ensemble_batch[1]
 
     # With seed=0 and combined=True, the first buffer of the ensemble's sampled indices are [1, 1]
-    expected_1 = NewTransitionBatch(
+    expected_1 = TransitionBatch(
         StepBatch(
             Tensor([[1.0], [1.0]]),
             Tensor([[0.5], [0.5]]),
@@ -87,7 +87,7 @@ def test_sample_mini_batch():
     )
 
     # The second buffer of the ensemble's sampled indices are [0, 0]
-    expected_2 = NewTransitionBatch(
+    expected_2 = TransitionBatch(
         StepBatch(
             Tensor([[0.9], [0.9]]),
             Tensor([[0.6], [0.6]]),

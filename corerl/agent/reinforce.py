@@ -11,7 +11,7 @@ from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_v_critic
 from corerl.component.network.utils import to_np, state_to_tensor, tensor, ensemble_mse
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import NewTransition
+from corerl.data_pipeline.datatypes import Transition
 
 
 @config(frozen=True)
@@ -48,7 +48,7 @@ class Reinforce(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transitions: Sequence[NewTransition]) -> None:
+    def update_buffer(self, transitions: Sequence[Transition]) -> None:
         return
 
     def compute_returns(self) -> None:

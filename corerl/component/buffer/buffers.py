@@ -8,7 +8,7 @@ import numpy as np
 from torch import Tensor
 from corerl.configs.config import config
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import NewTransition, NewTransitionBatch, StepBatch
+from corerl.data_pipeline.datatypes import Transition, TransitionBatch, StepBatch
 from corerl.configs.group import Group
 from corerl.configs.config import MISSING
 
@@ -56,7 +56,7 @@ class UniformBuffer:
         else:
             return self.pos - 1
 
-    def feed(self, transitions: Sequence[NewTransition]) -> None:
+    def feed(self, transitions: Sequence[Transition]) -> None:
         for transition in transitions:
             if self.data is None:
                 # Lazy instantiation
@@ -71,7 +71,7 @@ class UniformBuffer:
                 self.full = True
             self.pos %= self.memory
 
-    def load(self, transitions: Sequence[NewTransition]) -> None:
+    def load(self, transitions: Sequence[Transition]) -> None:
         assert len(transitions) > 0
 
         data_size = _get_size(transitions[0])
@@ -89,7 +89,7 @@ class UniformBuffer:
         for i in range(len(self.data)):
             self.data[i] = self.data[i].to(device.device)
 
-    def sample_mini_batch(self, batch_size: int | None = None) -> list[NewTransitionBatch]:
+    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
             return []
 
@@ -105,7 +105,7 @@ class UniformBuffer:
 
         return [self._prepare(sampled_data)]
 
-    def sample_batch(self) -> list[NewTransitionBatch]:
+    def sample_batch(self) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
             return []
 
@@ -130,11 +130,11 @@ class UniformBuffer:
     def update_priorities(self, priority=None):
         pass
 
-    def _prepare(self, batch: list[Tensor]) -> NewTransitionBatch:
+    def _prepare(self, batch: list[Tensor]) -> TransitionBatch:
         step_attrs = len(StepBatch.__annotations__.keys())
         prior_step_batch = StepBatch(*batch[:step_attrs])
         post_step_batch = StepBatch(*batch[step_attrs: step_attrs * 2])
-        return NewTransitionBatch(
+        return TransitionBatch(
             prior_step_batch,
             post_step_batch,
             n_step_reward=batch[-2],
@@ -159,7 +159,7 @@ class PriorityBuffer(UniformBuffer):
         self.priority = torch.zeros((self.memory,))
         logger.warning("Priority buffer has not been tested yet")
 
-    def feed(self, transitions: Sequence[NewTransition]) -> None:
+    def feed(self, transitions: Sequence[Transition]) -> None:
         super(PriorityBuffer, self).feed(transitions)
         # UniformBuffer.feed() already increments self.pos. Need to take this into account
         self.pos = (self.pos - 1) % self.memory
@@ -176,7 +176,7 @@ class PriorityBuffer(UniformBuffer):
 
         self.priority /= scale
 
-    def sample_mini_batch(self, batch_size: int | None = None) -> list[NewTransitionBatch]:
+    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
             return []
 
@@ -227,12 +227,12 @@ class EnsembleUniformBuffer(UniformBuffer):
         )
         self.buffer_ensemble = [UniformBuffer(sub_cfg) for _ in range(self.ensemble)]
 
-    def feed(self, transitions: Sequence[NewTransition]) -> None:
+    def feed(self, transitions: Sequence[Transition]) -> None:
         for i in range(self.ensemble):
             if self.rng.rand() < self.data_subset:
                 self.buffer_ensemble[i].feed(transitions)
 
-    def load(self, transitions: Sequence[NewTransition]) -> None:
+    def load(self, transitions: Sequence[Transition]) -> None:
         num_transitions = len(transitions)
         assert num_transitions > 0
 
@@ -243,7 +243,7 @@ class EnsembleUniformBuffer(UniformBuffer):
         for i in range(self.ensemble):
             self.buffer_ensemble[i].load(ensemble_transitions[i])
 
-    def sample_mini_batch(self, batch_size: int | None = None) -> list[NewTransitionBatch]:
+    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
         ensemble_batch = []
         for i in range(self.ensemble):
             part = self.buffer_ensemble[i].sample_mini_batch(batch_size)
@@ -253,7 +253,7 @@ class EnsembleUniformBuffer(UniformBuffer):
 
         return ensemble_batch
 
-    def sample_batch(self) -> list[NewTransitionBatch]:
+    def sample_batch(self) -> list[TransitionBatch]:
         ensemble_batch = []
         for i in range(self.ensemble):
             part = self.buffer_ensemble[i].sample_batch()
@@ -304,7 +304,7 @@ def _to_tensor(elem):
         return Tensor([elem])
 
 
-def _get_size(experience: NewTransition) -> list[tuple]:
+def _get_size(experience: Transition) -> list[tuple]:
     size = []
     for elem in experience:
         if isinstance(elem, np.ndarray):

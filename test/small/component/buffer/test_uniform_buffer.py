@@ -1,7 +1,7 @@
 from torch import Tensor
 
 from corerl.component.buffer.buffers import UniformBuffer, UniformReplayBufferConfig
-from corerl.data_pipeline.datatypes import NewTransition, NewTransitionBatch, Step, StepBatch
+from corerl.data_pipeline.datatypes import Transition, TransitionBatch, Step, StepBatch
 
 
 def test_sample_mini_batch():
@@ -30,7 +30,7 @@ def test_sample_mini_batch():
         dp=True,
     )
 
-    trans_1 = NewTransition(
+    trans_1 = Transition(
         steps=[
             step_1,
             step_2,
@@ -38,7 +38,7 @@ def test_sample_mini_batch():
         n_step_reward=0.9,
         n_step_gamma=0.99,
     )
-    trans_2 = NewTransition(
+    trans_2 = Transition(
         steps=[
             step_2,
             step_3,
@@ -46,7 +46,7 @@ def test_sample_mini_batch():
         n_step_reward=0.8,
         n_step_gamma=0.99,
     )
-    trans_3 = NewTransition(
+    trans_3 = Transition(
         steps=[
             step_1,
             step_2,
@@ -64,8 +64,8 @@ def test_sample_mini_batch():
 
     # With seed=0, the sampled indices are [0, 1].
     # With combined=True, the first sampled index is replaced with the index of the last added transition.
-    # So sampled indices becomes [2, 1], yielding the following NewTransitionBatch
-    expected = NewTransitionBatch(
+    # So sampled indices becomes [2, 1], yielding the following TransitionBatch
+    expected = TransitionBatch(
         StepBatch(
             Tensor([[1.0], [0.9]]),
             Tensor([[0.5], [0.6]]),

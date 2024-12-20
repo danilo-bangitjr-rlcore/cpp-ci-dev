@@ -14,7 +14,7 @@ from corerl.component.critic.factory import init_v_critic, init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import NewTransitionBatch, NewTransition
+from corerl.data_pipeline.datatypes import TransitionBatch, Transition
 
 
 @config(frozen=True)
@@ -42,7 +42,7 @@ class InAC(BaseAC):
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)
 
-    def update_buffer(self, transitions: Sequence[NewTransition]) -> None:
+    def update_buffer(self, transitions: Sequence[Transition]) -> None:
         self.critic_buffer.feed(transitions)
         self.policy_buffer.feed([
             t for t in transitions if t.prior.dp
@@ -54,13 +54,13 @@ class InAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def compute_beh_loss(self, batch: NewTransitionBatch) -> torch.Tensor:
+    def compute_beh_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states, actions = batch.prior.state, batch.prior.action
         beh_log_probs, _ = self.behaviour.get_log_prob(states, actions)
         beh_loss = -beh_log_probs.mean()
         return beh_loss
 
-    def compute_v_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
+    def compute_v_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
@@ -105,7 +105,7 @@ class InAC(BaseAC):
         return losses
 
 
-    def compute_q_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
+    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
@@ -160,7 +160,7 @@ class InAC(BaseAC):
 
         return losses
 
-    def compute_actor_loss(self, batch: NewTransitionBatch):
+    def compute_actor_loss(self, batch: TransitionBatch):
         states, actions = batch.prior.state, batch.prior.action
         log_probs, _ = self.actor.get_log_prob(states, actions, with_grad=True)
         q = self.q_critic.get_q([states], [actions], with_grad=False)
@@ -251,5 +251,5 @@ class InAC(BaseAC):
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
 
-    def load_buffer(self, transitions: Sequence[NewTransition]) -> None:
+    def load_buffer(self, transitions: Sequence[Transition]) -> None:
         ...
