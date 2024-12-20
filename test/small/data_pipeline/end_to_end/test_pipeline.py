@@ -82,7 +82,7 @@ def test_pipeline1():
         caller_code=CallerCode.ONLINE,
     )
 
-    cols: Any = ['tag-1', 'tag-2_norm_trace-0.1', 'reward', 'action-1', 'countdown.[0]']
+    cols = ['tag-1', 'tag-2_norm_trace-0.1', 'reward', 'action-1', 'countdown.[0]']
     expected_df = pd.DataFrame(
         data=[
             [np.nan, 0,         0,    0,   1],
@@ -186,7 +186,7 @@ def test_pipeline2():
         caller_code=CallerCode.ONLINE,
     )
 
-    cols: Any = ['tag-1', 'tag-2_norm_trace-0.1', 'reward', 'action-1', 'countdown.[0]']
+    cols = ['tag-1', 'tag-2_norm_trace-0.1', 'reward', 'action-1', 'countdown.[0]']
     expected_df = pd.DataFrame(
         data=[
             [0,      0,         0,    0,   1],
