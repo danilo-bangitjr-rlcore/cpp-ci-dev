@@ -1,4 +1,4 @@
-name: Bump Version on Push to Master
+name: CI on Push to Master
 
 on:
   push:
@@ -9,7 +9,7 @@ jobs:
   bump-version:
     if: ${{ !startsWith(github.event.head_commit.message, 'bump:') }}
     runs-on: ubuntu-latest
-    name: Bump version and create changelog with commitizen
+    name: Bump version and create changelog with Commitizen
 
     steps:
     - name: Generate a token
@@ -18,12 +18,6 @@ jobs:
       with:
         app-id: ${{ vars.APP_ID }}
         private-key: ${{ secrets.APP_PRIVATE_KEY }}
-  
-    - name: Use the token
-      env:
-        GH_TOKEN: ${{ steps.generate-token.outputs.token }}
-      run: |
-        gh api octocat
 
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -32,7 +26,7 @@ jobs:
         token: ${{ steps.generate-token.outputs.token }}
 
     - id: cz
-      name: Create bump and changelog
+      name: Create bump commit, tag, and changelog
       uses: commitizen-tools/commitizen-action@master
       with:
         github_token: ${{ steps.generate-token.outputs.token }}
@@ -50,7 +44,8 @@ jobs:
         enable-cache: true
         cache-dependency-glob: "requirements**.txt"
 
-    - uses: webfactory/ssh-agent@v0.7.0
+    - if: ${{ env.PREVIOUS_REVISION != env.REVISION }}
+      uses: webfactory/ssh-agent@v0.7.0
       with:
         ssh-private-key: ${{ secrets.PRIVATE_DEPLOY_KEY }}
 
@@ -74,3 +69,56 @@ jobs:
           --title "Release ${{ steps.cz.outputs.version }}" \
           "${{ steps.cz.outputs.version }}" \
           ./dist/*
+
+  generate-docs:
+    if: ${{ startsWith(github.event.head_commit.message, 'bump:') }}
+    runs-on: ubuntu-latest
+    name: Generate Sphinx documentation
+
+    steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate-token.outputs.token }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "requirements**.txt"
+
+      - uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.PRIVATE_DEPLOY_KEY }}
+
+      - name: Build and Install corerl
+        run: |
+          uv venv
+          uv pip compile --extra=dev pyproject.toml -o deps.txt
+          uv pip sync deps.txt
+          uv pip install .
+
+      - name: Build Documentation
+        working-directory: ./docs
+        run: |
+          source ../.venv/bin/activate
+          uv pip install sphinx
+          uv run sphinx-apidoc -o ./source/api ../corerl
+          uv run sphinx-build -M html source build
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ steps.generate-token.outputs.token }}
+          publish_dir: ./docs/build/html
