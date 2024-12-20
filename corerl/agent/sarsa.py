@@ -116,15 +116,23 @@ class EpsilonGreedySarsa(BaseAgent):
 
         return losses
 
-    def atomic_critic_update(self) -> None:
+    def atomic_critic_update(self) -> float:
         batches = self.critic_buffer.sample()
         q_loss = self.compute_q_loss(batches)
         self.q_critic.update(q_loss)
 
-    def update(self) -> None:
+        float_losses = [float(loss) for loss in q_loss]
+
+        return sum(float_losses) / len(float_losses)
+
+    def update(self) -> list[float]:
+        critic_losses = []
         if min(self.critic_buffer.size) > 0:
             for _ in range(self.n_updates):
-                self.atomic_critic_update()
+                critic_loss = self.atomic_critic_update()
+                critic_losses.append(critic_loss)
+
+        return critic_losses
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

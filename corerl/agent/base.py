@@ -50,7 +50,7 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update(self) -> None:
+    def update(self) -> list[float]:
         raise NotImplementedError
 
     @abstractmethod

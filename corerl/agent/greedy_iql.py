@@ -33,8 +33,8 @@ class GreedyIQL(GreedyAC, IQL):
     def update_critic(self):
         IQL.update_critic(self)
 
-    def update(self) -> None:
-        GreedyAC.update(self)
+    def update(self) -> list[float]:
+        return GreedyAC.update(self)
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

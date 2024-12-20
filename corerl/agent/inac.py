@@ -169,7 +169,7 @@ class InAC(BaseAC):
         pi_loss = -(clipped * log_probs).mean()
         return pi_loss
 
-    def update_critic(self) -> None:
+    def update_critic(self) -> list[float]:
         for _ in range(self.n_critic_updates):
             batches = self.critic_buffer.sample()
 
@@ -178,6 +178,10 @@ class InAC(BaseAC):
 
             q_loss = self.compute_q_loss(batches)
             self.q_critic.update(q_loss)
+
+            float_losses = [float(loss) for loss in q_loss]
+
+            return [sum(float_losses) / len(float_losses)]
 
     def update_actor(self) -> tuple:
         for _ in range(self.n_actor_updates):
@@ -198,13 +202,16 @@ class InAC(BaseAC):
         beh_loss = self.compute_beh_loss(batch)
         self.behaviour.update(beh_loss)
 
-    def update(self) -> None:
+    def update(self) -> list[float]:
+        critic_losses = []
         if min(self.critic_buffer.size) > 0:
-            self.update_critic()
+            critic_losses = self.update_critic()
 
         if min(self.policy_buffer.size) > 0:
             self.update_actor()
         # unsure if beh updates should go here. Han please advise.
+
+        return critic_losses
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

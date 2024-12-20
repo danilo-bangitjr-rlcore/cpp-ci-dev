@@ -111,17 +111,26 @@ class SimpleAC(BaseAC):
 
         return losses
 
-    def update_critic(self) -> None:
+    def update_critic(self) -> list[float]:
+        critic_losses = []
         for _ in range(self.n_critic_updates):
             batches = self.critic_buffer.sample()
             loss_critic = self.compute_critic_loss(batches)
             self.critic.update(loss_critic)
 
-    def update(self) -> None:
+            float_losses = [float(loss) for loss in loss_critic]
+            critic_losses.append(sum(float_losses) / len(float_losses))
+
+        return critic_losses
+
+    def update(self) -> list[float]:
+        critic_losses = []
         if min(self.critic_buffer.size) > 0:
-            self.update_critic()
+            critic_losses = self.update_critic()
         if min(self.policy_buffer.size) > 0:
             self.update_actor()
+
+        return critic_losses
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
