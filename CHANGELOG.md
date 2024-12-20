@@ -1,3 +1,9 @@
+## 0.6.4 (2024-12-20)
+
+### Fix
+
+- fix redundant variable declaration (again)
+
 ## 0.6.3 (2024-12-20)
 
 ### Fix
