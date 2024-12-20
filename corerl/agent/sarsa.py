@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import field
 from typing import Literal
 from pathlib import Path
@@ -38,8 +39,8 @@ class EpsilonGreedySarsa(BaseAgent):
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.critic_buffer = init_buffer(cfg.critic.buffer)
 
-    def update_buffer(self, transition: NewTransition) -> None:
-        self.critic_buffer.feed(transition)
+    def update_buffer(self, transitions: Sequence[NewTransition]) -> None:
+        self.critic_buffer.feed(transitions)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device.device)
@@ -144,5 +145,5 @@ class EpsilonGreedySarsa(BaseAgent):
         with open(critic_buffer_path, "rb") as f:
             self.critic_buffer = pkl.load(f)
 
-    def load_buffer(self, transitions: list[NewTransition]) -> None:
+    def load_buffer(self, transitions: Sequence[NewTransition]) -> None:
         ...

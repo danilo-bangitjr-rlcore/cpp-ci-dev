@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -47,7 +48,7 @@ class Reinforce(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transition: NewTransition) -> None:
+    def update_buffer(self, transitions: Sequence[NewTransition]) -> None:
         return
 
     def compute_returns(self) -> None:

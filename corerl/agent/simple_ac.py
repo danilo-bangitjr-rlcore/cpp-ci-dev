@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -40,11 +41,11 @@ class SimpleAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transition: NewTransition) -> None:
-        self.critic_buffer.feed(transition)
-        # Only train policy on states at decision points
-        if transition.prior.dp:
-            self.policy_buffer.feed(transition)
+    def update_buffer(self, transitions: Sequence[NewTransition]) -> None:
+        self.critic_buffer.feed(transitions)
+        self.policy_buffer.feed([
+            t for t in transitions if t.prior.dp
+        ])
 
     def compute_actor_loss(self, batch: NewTransitionBatch) -> torch.Tensor:
         states = batch.prior.state
@@ -155,5 +156,5 @@ class SimpleAC(BaseAC):
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
 
-    def load_buffer(self, transitions: list[NewTransition]) -> None:
+    def load_buffer(self, transitions: Sequence[NewTransition]) -> None:
         ...

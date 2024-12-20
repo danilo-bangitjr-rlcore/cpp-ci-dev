@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Literal
 import numpy as np
 from pathlib import Path
@@ -18,10 +19,10 @@ class RandomAgent(BaseAgent):
         super().__init__(cfg, state_dim, action_dim)
         self.rng = np.random.RandomState(cfg.seed)
 
-    def update_buffer(self, transition: NewTransition) -> None:
+    def update_buffer(self, transitions: Sequence[NewTransition]) -> None:
         pass
 
-    def load_buffer(self, transitions: list[NewTransition]) -> None:
+    def load_buffer(self, transitions: Sequence[NewTransition]) -> None:
         pass
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:

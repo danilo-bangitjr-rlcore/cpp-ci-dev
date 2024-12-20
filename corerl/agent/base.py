@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import field
 from typing import Any
 import numpy
@@ -54,11 +55,11 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update_buffer(self, transition: NewTransition) -> None:
+    def update_buffer(self, transitions: Sequence[NewTransition]) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def load_buffer(self, transitions: list[NewTransition]) -> None:
+    def load_buffer(self, transitions: Sequence[NewTransition]) -> None:
         raise NotImplementedError
 
     @abstractmethod

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Any, Literal, cast
 import torch
 import random
@@ -55,21 +56,22 @@ class UniformBuffer:
         else:
             return self.pos - 1
 
-    def feed(self, experience: NewTransition) -> None:
-        if self.data is None:
-            # Lazy instantiation
-            data_size = _get_size(experience)
-            self.data = [torch.empty((self.memory, *s), device=device.device) for s in data_size]
+    def feed(self, transitions: Sequence[NewTransition]) -> None:
+        for transition in transitions:
+            if self.data is None:
+                # Lazy instantiation
+                data_size = _get_size(transition)
+                self.data = [torch.empty((self.memory, *s), device=device.device) for s in data_size]
 
-        for i, elem in enumerate(experience):
-            self.data[i][self.pos] = _to_tensor(elem)
+            for i, elem in enumerate(transition):
+                self.data[i][self.pos] = _to_tensor(elem)
 
-        self.pos += 1
-        if not self.full and self.pos == self.memory:
-            self.full = True
-        self.pos %= self.memory
+            self.pos += 1
+            if not self.full and self.pos == self.memory:
+                self.full = True
+            self.pos %= self.memory
 
-    def load(self, transitions: list[NewTransition]) -> None:
+    def load(self, transitions: Sequence[NewTransition]) -> None:
         assert len(transitions) > 0
 
         data_size = _get_size(transitions[0])
@@ -157,8 +159,8 @@ class PriorityBuffer(UniformBuffer):
         self.priority = torch.zeros((self.memory,))
         logger.warning("Priority buffer has not been tested yet")
 
-    def feed(self, experience: NewTransition) -> None:
-        super(PriorityBuffer, self).feed(experience)
+    def feed(self, transitions: Sequence[NewTransition]) -> None:
+        super(PriorityBuffer, self).feed(transitions)
         # UniformBuffer.feed() already increments self.pos. Need to take this into account
         self.pos = (self.pos - 1) % self.memory
 
@@ -225,12 +227,12 @@ class EnsembleUniformBuffer(UniformBuffer):
         )
         self.buffer_ensemble = [UniformBuffer(sub_cfg) for _ in range(self.ensemble)]
 
-    def feed(self, experience: NewTransition) -> None:
+    def feed(self, transitions: Sequence[NewTransition]) -> None:
         for i in range(self.ensemble):
             if self.rng.rand() < self.data_subset:
-                self.buffer_ensemble[i].feed(experience)
+                self.buffer_ensemble[i].feed(transitions)
 
-    def load(self, transitions: list[NewTransition]) -> None:
+    def load(self, transitions: Sequence[NewTransition]) -> None:
         num_transitions = len(transitions)
         assert num_transitions > 0
 

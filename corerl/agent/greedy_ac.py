@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import field
 from functools import partial
 import numpy as np
@@ -108,17 +109,16 @@ class GreedyAC(BaseAC):
         )
         return to_np(action)[0]
 
-    def update_buffer(self, transition: NewTransition) -> None:
+    def update_buffer(self, transitions: Sequence[NewTransition]) -> None:
         self._msg_bus.emit_event_sync(EventType.agent_update_buffer)
 
-        self.critic_buffer.feed(transition)
+        self.critic_buffer.feed(transitions)
+        self.policy_buffer.feed([
+            t for t in transitions if t.prior.dp
+        ])
 
-        # Only train policy on states at decision points
-        if transition.prior.dp:
-            self.policy_buffer.feed(transition)
 
-
-    def load_buffer(self, transitions: list[NewTransition]) -> None:
+    def load_buffer(self, transitions: Sequence[NewTransition]) -> None:
         policy_transitions = []
         for transition in transitions:
             if transition.prior.dp:

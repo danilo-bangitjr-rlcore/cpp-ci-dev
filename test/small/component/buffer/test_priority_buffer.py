@@ -55,9 +55,9 @@ def test_sample_mini_batch():
         n_step_gamma=0.99**2,
     )
 
-    buffer.feed(trans_1)
-    buffer.feed(trans_2)
-    buffer.feed(trans_3)
+    buffer.feed([trans_1])
+    buffer.feed([trans_2])
+    buffer.feed([trans_3])
 
     batch = buffer.sample()[0]
 

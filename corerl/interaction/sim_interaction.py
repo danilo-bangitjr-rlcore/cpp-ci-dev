@@ -38,9 +38,7 @@ class SimInteraction:
         o = self._env.get_latest_obs()
         pr = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
         assert pr.transitions is not None
-        for t in pr.transitions:
-            self._agent.update_buffer(t)
-
+        self._agent.update_buffer(pr.transitions)
         self._agent.update()
 
         self._should_reset = bool(o['trunc'].item() or o['term'].item())

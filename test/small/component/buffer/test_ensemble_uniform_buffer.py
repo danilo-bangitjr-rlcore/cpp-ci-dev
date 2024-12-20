@@ -57,9 +57,9 @@ def test_sample_mini_batch():
 
     # With seed=0 and data_subset=0.6, the first buffer in the ensemble is fed trans_1, trans_3
     # and the second buffer in the ensemble is fed trans_2
-    buffer.feed(trans_1)
-    buffer.feed(trans_2)
-    buffer.feed(trans_3)
+    buffer.feed([trans_1])
+    buffer.feed([trans_2])
+    buffer.feed([trans_3])
 
     ensemble_batch = buffer.sample()
     assert len(ensemble_batch) == 2
