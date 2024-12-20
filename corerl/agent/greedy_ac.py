@@ -25,7 +25,7 @@ from typing import Literal, Optional
 
 logger = logging.getLogger(__name__)
 
-torch.autograd.set_detect_anomaly(True)  # type: ignore
+torch.autograd.set_detect_anomaly(True)
 
 EPSILON = 1e-6
 
