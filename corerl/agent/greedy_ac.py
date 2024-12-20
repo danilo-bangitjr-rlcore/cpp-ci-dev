@@ -17,7 +17,7 @@ from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, tensor, state_to_tensor
+from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import NewTransition, NewTransitionBatch
 from jaxtyping import Float
@@ -48,10 +48,6 @@ class GreedyACConfig(BaseACConfig):
 
     actor: NetworkActorConfig = field(default_factory=NetworkActorConfig)
     critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
-
-    guardrail_low: list[float] | None = None
-    guardrail_high: list[float] | None = None
-
 
 class GreedyAC(BaseAC):
     def __init__(self, cfg: GreedyACConfig, state_dim: int, action_dim: int):
@@ -101,11 +97,6 @@ class GreedyAC(BaseAC):
             if self.num_samples >= self.action_dim:
                 self.num_samples = self.action_dim
                 self.top_actions_proposal = self.action_dim
-
-        if (getattr(cfg, 'guardrail_low', None) is not None) and \
-                (getattr(cfg, 'guardrail_high', None) is not None):
-            self.guardrail_low = tensor(numpy.array(cfg.guardrail_low), 'cpu')
-            self.guardrail_high = tensor(numpy.array(cfg.guardrail_high), 'cpu')
 
         self._hooks(when.Agent.AfterCreate, self)
 
