@@ -20,6 +20,7 @@ class OfflineAsyncEnvConfig:
     env_end_time: str = MISSING
     env_step_time: str = MISSING
     db: TagDBConfig = MISSING
+    bucket_width: str = MISSING
 
 
 class OfflineAsyncEnv(AsyncEnv):
@@ -29,6 +30,10 @@ class OfflineAsyncEnv(AsyncEnv):
         pd_env_step_time = pd.Timedelta(cfg.env_step_time)
         assert isinstance(pd_env_step_time, pd.Timedelta), "Failed parsing of env_step_time"
         self.env_step_time = pd_env_step_time.to_pytimedelta()
+
+        pd_bucket_width = pd.Timedelta(cfg.bucket_width)
+        assert isinstance(pd_bucket_width, pd.Timedelta), "Failed parsing of bucket_width"
+        self.bucket_width = pd_bucket_width.to_pytimedelta()
 
         self._data_reader = DataReader(db_cfg=cfg.db)
 
@@ -74,20 +79,24 @@ class OfflineAsyncEnv(AsyncEnv):
         pass
 
     def get_latest_obs(self) -> pd.DataFrame:
+        read_start = self.current_start_time
+        if read_start >= self.env_start_time:
+            # temporal state pipeline logic requires last step's latest time bucket
+            read_start = read_start - self.env_step_time
 
-        # Since the pipeline is set to ONLINE, we use single aggregated read
-        res = self._data_reader.single_aggregated_read(
+        res = self._data_reader.batch_aggregated_read(
             self.names,
-            self.current_start_time,
+            read_start,
             self.current_start_time + self.env_step_time,
+            self.bucket_width
         )
 
         self.current_start_time += self.env_step_time
+        term = False
+
         if self.current_start_time >= self.env_end_time:
             self.current_start_time = self.env_start_time
             term = True
-        else:
-            term = False
 
         res["reward"] = self._reward_func(res)
         res["trunc"] = 0.0

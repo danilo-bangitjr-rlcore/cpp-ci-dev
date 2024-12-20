@@ -8,6 +8,7 @@ env:
   discrete_control: False
   seed: 1
   db: ${pipeline.db}
+  bucket_width: "1h"
   env_start_time: "2024-10-11 00:00:00"
   env_end_time: "2024-12-16 07:38:50"
   env_step_time: "1h"

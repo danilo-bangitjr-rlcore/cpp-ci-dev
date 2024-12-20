@@ -41,7 +41,7 @@ class SimInteraction:
         self._agent.update_buffer(pr.transitions)
         self._agent.update()
 
-        self._should_reset = bool(o['trunc'].item() or o['term'].item())
+        self._should_reset = bool(o['trunc'].any() or o['term'].any())
 
         s = self._get_latest_state()
         assert s is not None
