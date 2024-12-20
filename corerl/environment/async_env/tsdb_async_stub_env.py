@@ -10,8 +10,8 @@ from corerl.environment.reward.scrubber import ScrubberReward, ScrubberRewardCon
 
 
 @config()
-class OfflineAsyncEnvConfig:
-    name: str = "offline_async_env"
+class TSDBAsyncStubEnvConfig:
+    name: str = "tsdb_async_stub_env"
     seed: int = 0
     discrete_control: bool = False
     gym_name: str = MISSING
@@ -23,8 +23,17 @@ class OfflineAsyncEnvConfig:
     bucket_width: str = MISSING
 
 
-class OfflineAsyncEnv(AsyncEnv):
-    def __init__(self, cfg: OfflineAsyncEnvConfig, tags: list[TagConfig]):
+class TSDBAsyncStubEnv(AsyncEnv):
+    """The TSDBAsyncStubEnv is a sanity check environment that only serves to verify that our pipeline can consume data
+    from our timescale database without exception. **It is not intended to train any models.**
+
+
+    TODO:
+        * Build an async environment such that the `emit_action` call writes to OPC and the timescale database is live
+          updated with observations from the environment.
+    """
+
+    def __init__(self, cfg: TSDBAsyncStubEnvConfig, tags: list[TagConfig]):
         self.gym_name = cfg.gym_name
 
         pd_env_step_time = pd.Timedelta(cfg.env_step_time)
@@ -76,6 +85,11 @@ class OfflineAsyncEnv(AsyncEnv):
         self._reward_func = self._init_reward()
 
     def emit_action(self, action: np.ndarray) -> None:
+        """
+        Because this environment is intended to verify correctness of the interaction
+        between the TSDB data source and our pipeline and not intended to train an agent
+        emiting an action here is a no-op.
+        """
         pass
 
     def get_latest_obs(self) -> pd.DataFrame:

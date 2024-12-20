@@ -4,7 +4,7 @@ defaults:
 action_period: 1
 
 env:
-  name: offline_async_env
+  name: tsdb_async_stub_env
   discrete_control: False
   seed: 1
   db: ${pipeline.db}
