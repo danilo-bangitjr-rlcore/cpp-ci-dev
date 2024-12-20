@@ -12,7 +12,6 @@ from corerl.configs.config import config
 from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.messages.events import EventType
-from corerl.utils.hook import when
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
@@ -98,43 +97,26 @@ class GreedyAC(BaseAC):
                 self.num_samples = self.action_dim
                 self.top_actions_proposal = self.action_dim
 
-        self._hooks(when.Agent.AfterCreate, self)
-
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         self._msg_bus.emit_event_sync(EventType.agent_get_action)
 
         tensor_state = state_to_tensor(state, device.device)
 
-        args, _ = self._hooks(when.Agent.BeforeGetAction, self, tensor_state)
-        tensor_state = args[1]
         action, action_info = self.actor.get_action(
             tensor_state, with_grad=False,
         )
-
-        args, _ = self._hooks(
-            when.Agent.AfterGetAction, self, tensor_state, action,
-        )
-        tensor_state, action = args[1:]
         return to_np(action)[0]
 
     def update_buffer(self, transition: NewTransition) -> None:
         self._msg_bus.emit_event_sync(EventType.agent_update_buffer)
 
-        args, _ = self._hooks(
-            when.Agent.BeforeUpdateCriticBuffer, self, transition,
-        )
-        critic_transition = args[1]
-        self.critic_buffer.feed(critic_transition)
+        self.critic_buffer.feed(transition)
 
         # Only train policy on states at decision points
-        # Assume Step object has 'is_dp' attribute
         if transition.prior.dp:
-            args, _ = self._hooks(
-                when.Agent.BeforeUpdateActorBuffer, self, transition,
-            )
-            actor_transition = args[1]
-            self.policy_buffer.feed(actor_transition)
+            self.policy_buffer.feed(transition)
+
 
     def load_buffer(self, transitions: list[NewTransition]) -> None:
         policy_transitions = []
@@ -158,7 +140,6 @@ class GreedyAC(BaseAC):
 
         repeated_states = state_batch.repeat_interleave(num_samples, dim=0)
         flattened_actions = sample_actions.view(batch_size * num_samples, action_dim)
-        # flattened_actions = sample_actions.reshape(batch_size * num_samples, action_dim)
 
         q_values: Float[torch.Tensor, "batch_size*num_samples 1"]
         q_values = self.q_critic.get_q(
@@ -319,10 +300,6 @@ class GreedyAC(BaseAC):
             # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
             target = reward_batches[i] + gamma_batches[i] * next_qs[i]
 
-            _, _ = self._hooks(
-              when.Agent.BeforeCriticLossComputed, self, ensemble_batch[i], target, qs[i], i
-            )
-
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
 
         return losses
@@ -397,16 +374,8 @@ class GreedyAC(BaseAC):
 
 
         q_loss = closure()
-        args, _ = self._hooks(
-            when.Agent.AfterCriticLossComputed, self, batches, q_loss,
-        )
-        batches, q_loss = args[1:]
         self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
 
-        args, _ = self._hooks(
-            when.Agent.AfterCriticUpdate, self, batches, q_loss,
-        )
-        batches, q_loss = args[1:]
 
     def update_actor(self) -> tuple:
         self._msg_bus.emit_event_sync(EventType.agent_update_actor)
@@ -419,23 +388,8 @@ class GreedyAC(BaseAC):
         assert len(batches) == 1
         batch = batches[0]
 
-        args, _ = self._hooks(
-            when.Agent.AfterActorBufferSample, self, batch,
-        )
-        batch = args[1]
-
         update_info = self.get_policy_update_info(batch.prior.state)
-        args, _ = self._hooks(
-            when.Agent.BeforeActorLossComputed, self, update_info,
-        )
-        update_info = args[1]
-
         actor_loss = self.compute_actor_loss(update_info)
-        args, _ = self._hooks(
-            when.Agent.AfterActorLossComputed, self, batch, update_info,
-            actor_loss,
-        )
-        batch, update_info, actor_loss = args[1:]
 
         stacked_s_batch = update_info[4]
         best_actions = update_info[5]
@@ -446,28 +400,13 @@ class GreedyAC(BaseAC):
             },
         )
 
-        args, _ = self._hooks(
-            when.Agent.AfterActorUpdate, self, batch, actor_loss,
-        )
-        actor_loss = args[1]
-
         return update_info
 
 
     def update_sampler(self, update_infos: Optional[list[tuple]]) -> None:
         if update_infos is not None:
             for update_info in update_infos:
-                args, _ = self._hooks(
-                    when.Agent.BeforeProposalLossComputed, self, update_info,
-                )
-                update_info = args[1]
-
                 sampler_loss = self.compute_sampler_loss(update_info)
-                args, _ = self._hooks(
-                    when.Agent.AfterProposalLossComputed, self, None,
-                    update_info, sampler_loss,
-                )
-                batch, update_info, sampler_loss = args[1:]
 
                 stacked_s_batch = update_info[4]
                 best_actions = update_info[5]
@@ -478,9 +417,6 @@ class GreedyAC(BaseAC):
                     },
                 )
 
-                self._hooks(
-                    when.Agent.AfterProposalUpdate, self, batch, sampler_loss,
-                )
         else:
             if min(self.policy_buffer.size) <= 0:
                 return
@@ -489,23 +425,9 @@ class GreedyAC(BaseAC):
             assert len(batches) == 1
             batch = batches[0]
 
-            args, _ = self._hooks(
-                when.Agent.AfterProposalBufferSample, self, batch,
-            )
-            batch = args[1]
-
             update_info = self.get_policy_update_info(batch.prior.state)
-            args, _ = self._hooks(
-                when.Agent.BeforeProposalLossComputed, self, update_info,
-            )
-            update_info = args[1]
 
             sampler_loss = self.compute_sampler_loss(update_info)
-            args, _ = self._hooks(
-                when.Agent.AfterProposalLossComputed, self, batch,
-                update_info, sampler_loss,
-            )
-            batch, update_info, sampler_loss = args[1:]
 
             stacked_s_batch = update_info[4]
             best_actions = update_info[5]
@@ -516,9 +438,6 @@ class GreedyAC(BaseAC):
                 },
             )
 
-            self._hooks(
-                when.Agent.AfterProposalUpdate, self, batch, sampler_loss,
-            )
 
     def actor_err(self, stacked_s_batch, best_actions) -> torch.Tensor:
         logp, _ = self.actor.get_log_prob(
