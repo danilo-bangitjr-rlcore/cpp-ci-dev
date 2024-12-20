@@ -1,10 +1,10 @@
 import logging
-import hydra
 import numpy as np
 import torch
 import random
 
 from corerl.config import MainConfig
+from corerl.configs.loader import load_config
 from corerl.utils.device import device
 from corerl.agent.factory import init_agent
 from corerl.offline.utils import load_offline_transitions, offline_training
@@ -16,7 +16,7 @@ import corerl.main_utils as utils
 log = logging.getLogger(__name__)
 
 
-@hydra.main(version_base=None, config_name='config', config_path="config/")
+@load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
     """
     Assuming offline data has already been written to TimescaleDB

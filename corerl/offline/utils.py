@@ -16,8 +16,7 @@ def load_offline_transitions(cfg: MainConfig, pipeline: Pipeline) -> list[NewTra
     data_reader = DataReader(db_cfg=cfg.pipeline.db)
     db_time_stats = data_reader.get_time_stats()
     chunk_width = dt.timedelta(cfg.experiment.pf_data_dur)
-    obs_period = dt.timedelta(seconds=cfg.obs_period)
-    time_chunks = split_into_chunks(db_time_stats.start, db_time_stats.end, chunk_width, obs_period)
+    time_chunks = split_into_chunks(db_time_stats.start, db_time_stats.end, chunk_width)
     tag_names = [tag_cfg.name for tag_cfg in cfg.pipeline.tags]
     obs_period = dt.timedelta(seconds=cfg.obs_period)
 
