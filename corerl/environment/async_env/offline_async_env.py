@@ -108,7 +108,7 @@ class OfflineAsyncEnv(AsyncEnv):
 
                 # This wrapper is for calling scrubber_reward in a simpler manner
                 def wrapped_scrubber_reward(res: pd.DataFrame):
-                    return scrubber_reward(None, df_rows=res)
+                    return scrubber_reward(np.ndarray(0), df_rows=res)
 
                 return wrapped_scrubber_reward
             case _:
