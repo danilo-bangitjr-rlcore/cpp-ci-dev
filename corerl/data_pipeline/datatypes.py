@@ -62,25 +62,49 @@ class Step:
 
 @dataclass
 class NewTransition:
-    prior: Step
-    post: Step
-    n_steps: int
+    steps: list[Step]
+    n_step_reward: float
+    n_step_gamma: float
+
+    @property
+    def prior(self):
+        return self.steps[0]
+
+    @property
+    def post(self):
+        return self.steps[-1]
+
+    @property
+    def n_steps(self):
+        return len(self.steps) - 1
 
     def __eq__(self, other: object):
         if not isinstance(other, NewTransition):
             return False
 
-        return (
-                self.prior == other.prior
-                and self.post == other.post
-                and self.n_steps == other.n_steps
-        )
+        if len(self.steps) != len(other.steps):
+            return False
+
+        if self.n_steps != other.n_steps:
+            return False
+
+        if self.n_step_gamma != other.n_step_gamma:
+            return False
+
+        for i in range(len(self.steps)):
+            if self.steps[i] != other.steps[i]:
+                return False
+
+        return True
 
     def __iter__(self):
         for f in fields(self):
             attr = getattr(self, f.name)
-            if isinstance(attr, Step):
-                yield from iter(attr)
+            if isinstance(attr, list):  # if attr = steps
+                prior = attr[0]
+                post = attr[-1]
+                yield from iter(prior)
+                yield from iter(post)
             else:
                 yield attr
 
@@ -120,7 +144,8 @@ class StepBatch:
 class NewTransitionBatch:
     prior: StepBatch
     post: StepBatch
-    n_steps: Tensor
+    n_step_reward: Tensor
+    n_step_gamma: Tensor
 
     def __post_init__(self):
         # ensure all the attributes have the same dimension
@@ -142,12 +167,9 @@ class NewTransitionBatch:
         return (
                 self.prior == other.prior
                 and self.post == other.post
-                and torch.equal(self.n_steps, other.n_steps)
+                and torch.equal(self.n_step_reward, other.n_step_reward)
+                and torch.equal(self.n_step_gamma, other.n_step_gamma)
         )
-
-    @property
-    def batch_size(self) -> int:
-        return self.n_steps.size(0)
 
 
 class CallerCode(Enum):
@@ -163,6 +185,7 @@ class StageCode(Enum):
     TC = auto()
     SC = auto()
     RC = auto()
+    TF = auto()
 
 
 type TemporalState = dict[StageCode, object | None]

@@ -50,8 +50,8 @@ class SimpleAC(BaseAC):
         states = batch.prior.state
         actions = batch.prior.action
         next_states = batch.post.state
-        rewards = batch.post.reward
-        gammas = batch.post.gamma
+        rewards = batch.n_step_reward
+        gammas = batch.n_step_gamma
 
         log_prob, _ = self.actor.get_log_prob(states, actions, with_grad=True)
         v = self.critic.get_v([states], with_grad=False)
@@ -81,9 +81,9 @@ class SimpleAC(BaseAC):
         next_vs = []
         for batch in ensemble_batch:
             state_batch = batch.prior.state
-            reward_batch = batch.post.reward
+            reward_batch = batch.n_step_reward
             next_state_batch = batch.post.state
-            gamma_batch = batch.post.gamma
+            gamma_batch = batch.n_step_gamma
 
             # Option 1: Using the reduction of the ensemble in the update target
             if not self.ensemble_targets:

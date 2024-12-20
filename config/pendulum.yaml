@@ -51,8 +51,6 @@ pipeline:
 
   transition_creator:
     name: anytime
-    steps_per_decision: 1
-    countdown: 'null'
     gamma: ${experiment.gamma}
 
   tags:

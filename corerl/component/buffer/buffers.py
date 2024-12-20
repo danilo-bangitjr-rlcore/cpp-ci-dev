@@ -131,8 +131,12 @@ class UniformBuffer:
     def _prepare(self, batch: list[Tensor]) -> NewTransitionBatch:
         step_attrs = len(StepBatch.__annotations__.keys())
         prior_step_batch = StepBatch(*batch[:step_attrs])
-        post_step_batch = StepBatch(*batch[step_attrs : step_attrs * 2])
-        return NewTransitionBatch(prior_step_batch, post_step_batch, batch[-1])
+        post_step_batch = StepBatch(*batch[step_attrs: step_attrs * 2])
+        return NewTransitionBatch(
+            prior_step_batch,
+            post_step_batch,
+            n_step_reward=batch[-2],
+            n_step_gamma=batch[-1])
 
 
 buffer_group = Group[
