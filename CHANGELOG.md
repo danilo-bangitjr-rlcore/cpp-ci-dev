@@ -1,3 +1,9 @@
+## 0.6.3 (2024-12-20)
+
+### Fix
+
+- remove extra fields from transition_creator configs
+
 ## 0.6.2 (2024-12-19)
 
 ### Refactor
