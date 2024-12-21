@@ -11,7 +11,7 @@ from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.buffer.buffers import UniformReplayBufferConfig
 from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import Step, NewTransition
+from corerl.data_pipeline.datatypes import Step, Transition
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
@@ -111,7 +111,7 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
 
     return cfg
 
-def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, steps: int = 5) -> list[NewTransition]:
+def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, steps: int = 5) -> list[Transition]:
     # Generate timestamps
     timestamps = []
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.timezone.utc)
@@ -155,11 +155,11 @@ def test_load_offline_transitions(offline_cfg: MainConfig, data_writer: DataWrit
     step_2 = Step(reward=1.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([2.0]), dp=True)
     step_3 = Step(reward=0.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([3.0]), dp=False)
     step_4 = Step(reward=0.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([4.0]), dp=True)
-    expected_transitions = [NewTransition([step_0, step_1], 1.0, gamma),
-                            NewTransition([step_1, step_2], 1.0, gamma),
-                            NewTransition([step_2, step_3], 0.0, gamma),
-                            NewTransition([step_1, step_2, step_3], 1.0, gamma**2.0),
-                            NewTransition([step_3, step_4], 0.0, gamma)]
+    expected_transitions = [Transition([step_0, step_1], 1.0, gamma),
+                            Transition([step_1, step_2], 1.0, gamma),
+                            Transition([step_2, step_3], 0.0, gamma),
+                            Transition([step_1, step_2, step_3], 1.0, gamma**2.0),
+                            Transition([step_3, step_4], 0.0, gamma)]
 
     assert len(created_transitions) == len(expected_transitions)
     for i in range(len(created_transitions)):
