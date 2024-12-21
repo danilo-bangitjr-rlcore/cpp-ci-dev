@@ -7,7 +7,7 @@ from math import comb
 from torch import Tensor
 
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, Step
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, Transition, Step
 from corerl.data_pipeline.all_the_time import (
     AllTheTimeTCConfig,
     AllTheTimeTC,
@@ -101,7 +101,7 @@ def test_all_the_time_1():
     step_2 = make_test_step(2)
 
     t_0 = transitions[0]
-    expected_0 = NewTransition(
+    expected_0 = Transition(
         steps=[
             step_0,
             step_1,
@@ -112,7 +112,7 @@ def test_all_the_time_1():
     assert t_0 == expected_0
 
     t_1 = transitions[1]
-    expected_1 = NewTransition(
+    expected_1 = Transition(
         steps=[
             step_1,
             step_2,
@@ -123,7 +123,7 @@ def test_all_the_time_1():
     assert t_1 == expected_1
 
     t_2 = transitions[2]
-    expected_2 = NewTransition(
+    expected_2 = Transition(
         steps=[
             step_0,
             step_1,
@@ -152,7 +152,7 @@ def test_all_the_time_2_max_n_1():
     step_2 = make_test_step(2)
 
     t_0 = transitions[0]
-    expected_0 = NewTransition(
+    expected_0 = Transition(
         steps=[
             step_0,
             step_1,
@@ -163,7 +163,7 @@ def test_all_the_time_2_max_n_1():
     assert t_0 == expected_0
 
     t_1 = transitions[1]
-    expected_1 = NewTransition(
+    expected_1 = Transition(
         steps=[
             step_1,
             step_2,
@@ -195,7 +195,7 @@ def test_all_the_time_3_gap():
     step_1 = make_test_step(1)
 
     t_0 = transitions[0]
-    expected_0 = NewTransition(
+    expected_0 = Transition(
         steps=[
             step_0,
             step_1,
@@ -222,7 +222,7 @@ def test_all_the_time_4_ts():
     step_1 = make_test_step(1)
 
     t_0 = transitions[0]
-    expected_0 = NewTransition(
+    expected_0 = Transition(
         steps=[
             step_0,
             step_1,
@@ -245,7 +245,7 @@ def test_all_the_time_4_ts():
     step_3 = make_test_step(3)
 
     t_0 = transitions[0]
-    expected_0 = NewTransition(
+    expected_0 = Transition(
         steps=[
             step_1,
             step_2,
@@ -256,7 +256,7 @@ def test_all_the_time_4_ts():
     assert t_0 == expected_0
 
     t_1 = transitions[1]
-    expected_1 = NewTransition(
+    expected_1 = Transition(
         steps=[
             step_0,
             step_1,
@@ -268,7 +268,7 @@ def test_all_the_time_4_ts():
     assert t_1 == expected_1
 
     t_2 = transitions[2]
-    expected_2 = NewTransition(
+    expected_2 = Transition(
         steps=[
             step_2,
             step_3,
@@ -279,7 +279,7 @@ def test_all_the_time_4_ts():
     assert t_2 == expected_2
 
     t_3 = transitions[3]
-    expected_3 = NewTransition(
+    expected_3 = Transition(
         steps=[
             step_1,
             step_2,
@@ -316,7 +316,7 @@ def test_all_the_time_5_ts():
     step_3 = make_test_step(3)
 
     t_0 = transitions[0]
-    expected_0 = NewTransition(
+    expected_0 = Transition(
         steps=[
             step_2,
             step_3,
@@ -351,7 +351,7 @@ def test_all_the_time_6_online():
         step_1 = make_test_step(i + 1)
         step_2 = make_test_step(i + 2)
 
-        expected = NewTransition(
+        expected = Transition(
             [step_0, step_1, step_2],
             n_step_reward=1.9,
             n_step_gamma=0.81,
@@ -379,7 +379,7 @@ def test_all_the_time_7_online():
 
     assert len(transitions) == 5
 
-    expected_0 = NewTransition(
+    expected_0 = Transition(
         steps=[
             make_test_step(0),
             make_test_step(1),
@@ -390,7 +390,7 @@ def test_all_the_time_7_online():
     )
     assert transitions[0] == expected_0
 
-    expected_1 = NewTransition(
+    expected_1 = Transition(
         steps=[
             make_test_step(1),
             make_test_step(2),
@@ -401,7 +401,7 @@ def test_all_the_time_7_online():
     )
     assert transitions[1] == expected_1
 
-    expected_2 = NewTransition(
+    expected_2 = Transition(
         steps=[
             make_test_step(5),
             make_test_step(6),
@@ -412,7 +412,7 @@ def test_all_the_time_7_online():
     )
     assert transitions[2] == expected_2
 
-    expected_3 = NewTransition(
+    expected_3 = Transition(
         steps=[
             make_test_step(6),
             make_test_step(7),
@@ -423,7 +423,7 @@ def test_all_the_time_7_online():
     )
     assert transitions[3] == expected_3
 
-    expected_4 = NewTransition(
+    expected_4 = Transition(
         steps=[
             make_test_step(7),
             make_test_step(8),
@@ -467,7 +467,7 @@ def test_all_the_time_8_caller_codes():
     assert isinstance(transitions, list)
     assert len(transitions) == 1
 
-    expected_0 = NewTransition(
+    expected_0 = Transition(
         steps=[
             make_test_step(0),
             make_test_step(1),

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -12,7 +13,7 @@ from corerl.component.critic.factory import init_v_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import NewTransitionBatch, NewTransition
+from corerl.data_pipeline.datatypes import TransitionBatch, Transition
 
 
 @config(frozen=True)
@@ -40,13 +41,13 @@ class SimpleAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transition: NewTransition) -> None:
-        self.critic_buffer.feed(transition)
-        # Only train policy on states at decision points
-        if transition.prior.dp:
-            self.policy_buffer.feed(transition)
+    def update_buffer(self, transitions: Sequence[Transition]) -> None:
+        self.critic_buffer.feed(transitions)
+        self.policy_buffer.feed([
+            t for t in transitions if t.prior.dp
+        ])
 
-    def compute_actor_loss(self, batch: NewTransitionBatch) -> torch.Tensor:
+    def compute_actor_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states = batch.prior.state
         actions = batch.prior.action
         next_states = batch.post.state
@@ -72,7 +73,7 @@ class SimpleAC(BaseAC):
 
         return tuple()
 
-    def compute_critic_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
+    def compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         reward_batches = []
@@ -155,5 +156,5 @@ class SimpleAC(BaseAC):
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
 
-    def load_buffer(self, transitions: list[NewTransition]) -> None:
+    def load_buffer(self, transitions: Sequence[Transition]) -> None:
         ...

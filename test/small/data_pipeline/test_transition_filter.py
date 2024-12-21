@@ -3,7 +3,7 @@ import pytest
 
 from torch import Tensor
 
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, NewTransition, Step
+from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, Transition, Step
 from corerl.data_pipeline.transition_filter import (
     only_dp,
     only_no_action_change,
@@ -25,7 +25,7 @@ def make_test_step(i, action=0., gamma=0.9, reward=1.0, dp=False) -> Step:
 
 
 def make_test_dp_transition(dps: list[bool]):
-    transition = NewTransition(
+    transition = Transition(
         steps=[
             make_test_step(i, dp=dp) for i, dp in enumerate(dps)
         ],
@@ -66,7 +66,7 @@ def test_only_post_transitions(dps, expected):
 def make_action_change_transition(
         dps: list[bool],
         actions: list[int]):
-    transition = NewTransition(
+    transition = Transition(
         steps=[
             make_test_step(i, dp=dps[i], action=actions[i]) for i in range(len(dps))
         ],
@@ -100,7 +100,7 @@ def test_transition_filter_1():
     transition_filter = TransitionFilter(cfg)
 
     # no action change and dp is true
-    transition_0 = NewTransition(
+    transition_0 = Transition(
         steps=[
             make_test_step(0, action=0),
             make_test_step(1, action=0),
@@ -111,7 +111,7 @@ def test_transition_filter_1():
     )
 
     # no action change and dp is True
-    transition_1 = NewTransition(
+    transition_1 = Transition(
         steps=[
             make_test_step(0, action=0),
             make_test_step(1, action=0),
@@ -122,7 +122,7 @@ def test_transition_filter_1():
     )
 
     # action change and dp is True
-    transition_2 = NewTransition(
+    transition_2 = Transition(
         steps=[
             make_test_step(0, action=0),
             make_test_step(1, action=1),
@@ -133,7 +133,7 @@ def test_transition_filter_1():
     )
 
     # action change and dp is False
-    transition_3 = NewTransition(
+    transition_3 = Transition(
         steps=[
             make_test_step(0, action=0),
             make_test_step(1, action=1),
