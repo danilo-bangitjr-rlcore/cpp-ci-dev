@@ -90,6 +90,8 @@ class Reinforce(BaseAC):
             float_losses = [float(loss) for loss in v_loss]
             critic_losses.append(sum(float_losses) / len(float_losses))
 
+        return critic_losses
+
     def compute_actor_loss(self) -> torch.Tensor:
         states = [torch.Tensor(self.ep_states, device.device)]
         v_base = self.v_critic.get_v(states, with_grad=False)
@@ -113,6 +115,8 @@ class Reinforce(BaseAC):
         self.compute_returns()
         critic_loss = self.update_critic()
         self.update_actor()
+
+        return critic_loss
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)

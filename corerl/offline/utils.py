@@ -51,7 +51,7 @@ def offline_training(cfg: MainConfig,
     offline_steps = cfg.experiment.offline_steps
     q_losses = []
     pbar = tqdm(range(offline_steps))
-    for i in pbar:
+    for _ in pbar:
         critic_loss = agent.update()
         q_losses += critic_loss
 

@@ -24,7 +24,6 @@ def main(cfg: MainConfig):
     save_path = utils.prepare_save_dir(cfg)
     fr.init_freezer(save_path / 'logs')
 
-    test_epochs = cfg.experiment.test_epochs
     device.update_device(cfg.experiment.device)
 
     # set the random seeds

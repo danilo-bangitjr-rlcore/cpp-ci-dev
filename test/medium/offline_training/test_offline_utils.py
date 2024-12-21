@@ -18,13 +18,13 @@ from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.sc import SCConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
-from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
+from corerl.data_pipeline.transition_filter import TransitionFilterConfig
+from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.transforms import LessThanConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.offline.utils import load_offline_transitions, offline_training
 
-from test.medium.data_loaders.utils import timescale_docker  # noqa: F401
+from test.medium.data_loaders.utils import timescale_docker
 
 @pytest.fixture(scope="module")
 def test_db_config() -> TagDBConfig:
