@@ -100,5 +100,5 @@ class BaseAC(BaseAgent):
         raise NotImplementedError
 
     @abstractmethod
-    def update_critic(self) -> None:
+    def update_critic(self) -> list[float]:
         raise NotImplementedError
