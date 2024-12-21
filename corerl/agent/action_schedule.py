@@ -1,9 +1,10 @@
+from collections.abc import Sequence
 from typing import Literal
 import numpy as np
 from pathlib import Path
 
 from corerl.configs.config import config, list_
-from corerl.data_pipeline.datatypes import NewTransition
+from corerl.data_pipeline.datatypes import Transition
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 
 
@@ -34,10 +35,10 @@ class ActionScheduleAgent(BaseAgent):
         self.action_schedule = cfg.action_schedule
         self.step = 0
 
-    def update_buffer(self, transition: NewTransition) -> None:
+    def update_buffer(self, transitions: Sequence[Transition]) -> None:
         pass
 
-    def load_buffer(self, transitions: list[NewTransition]) -> None:
+    def load_buffer(self, transitions: Sequence[Transition]) -> None:
         pass
 
     def get_action(self, state: np.ndarray) -> np.ndarray:

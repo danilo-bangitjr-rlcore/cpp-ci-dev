@@ -61,7 +61,7 @@ class Step:
 
 
 @dataclass
-class NewTransition:
+class Transition:
     steps: list[Step]
     n_step_reward: float
     n_step_gamma: float
@@ -79,7 +79,7 @@ class NewTransition:
         return len(self.steps) - 1
 
     def __eq__(self, other: object):
-        if not isinstance(other, NewTransition):
+        if not isinstance(other, Transition):
             return False
 
         if len(self.steps) != len(other.steps):
@@ -141,7 +141,7 @@ class StepBatch:
 
 
 @dataclass
-class NewTransitionBatch:
+class TransitionBatch:
     prior: StepBatch
     post: StepBatch
     n_step_reward: Tensor
@@ -161,7 +161,7 @@ class NewTransitionBatch:
                     f"Element {f.name} does not have the same batch size as the state"
 
     def __eq__(self, other: object):
-        if not isinstance(other, NewTransitionBatch):
+        if not isinstance(other, TransitionBatch):
             return False
 
         return (
@@ -198,7 +198,7 @@ class PipelineFrame:
     missing_info: pd.DataFrame = field(init=False)
     decision_points: np.ndarray = field(init=False)
     temporal_state: TemporalState = field(default_factory=dict)
-    transitions: list[NewTransition] | None = None
+    transitions: list[Transition] | None = None
 
     def __post_init__(self):
         missing_info = pd.DataFrame(index=self.data.index, dtype=SparseMissingType)

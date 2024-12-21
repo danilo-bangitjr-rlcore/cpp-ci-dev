@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.component.network.utils import tensor
-from corerl.data_pipeline.datatypes import PipelineFrame, Step, NewTransition, StageCode
+from corerl.data_pipeline.datatypes import PipelineFrame, Step, Transition, StageCode
 from corerl.configs.config import interpolate, config
 
 
@@ -149,7 +149,7 @@ class AllTheTimeTC:
 
         return pf
 
-    def _update(self, step: Step, step_info: StepInfo) -> tuple[list[NewTransition], StepInfo]:
+    def _update(self, step: Step, step_info: StepInfo) -> tuple[list[Transition], StepInfo]:
         """
         Updates all the step queues, n_step_rewards, and n_step_gammas stored in self.step_info with the new step,
         then returns any produced transitions.
@@ -167,7 +167,7 @@ class AllTheTimeTC:
                 assert n_step_info.n_step_reward is not None
                 assert n_step_info.n_step_gamma is not None
 
-                new_transition = NewTransition(
+                new_transition = Transition(
                     list(step_q),
                     n_step_reward=n_step_info.n_step_reward,
                     n_step_gamma=n_step_info.n_step_gamma,

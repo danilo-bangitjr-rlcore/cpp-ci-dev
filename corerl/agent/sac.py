@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -12,7 +13,7 @@ from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, Float
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import NewTransitionBatch, NewTransition
+from corerl.data_pipeline.datatypes import TransitionBatch, Transition
 
 
 @config(frozen=True)
@@ -52,13 +53,13 @@ class SAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transition: NewTransition) -> None:
-        self.critic_buffer.feed(transition)
-        # Only train policy on states at decision points
-        if transition.prior.dp:
-            self.policy_buffer.feed(transition)
+    def update_buffer(self, transitions: Sequence[Transition]) -> None:
+        self.critic_buffer.feed(transitions)
+        self.policy_buffer.feed([
+            t for t in transitions if t.prior.dp
+        ])
 
-    def compute_q_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
+    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
@@ -112,7 +113,7 @@ class SAC(BaseAC):
 
         return losses
 
-    def compute_actor_loss(self, batch: NewTransitionBatch) -> tuple[torch.Tensor, torch.Tensor]:
+    def compute_actor_loss(self, batch: TransitionBatch) -> tuple[torch.Tensor, torch.Tensor]:
         state_batch = batch.prior.state
         action_batch = batch.prior.action
         dp_mask = batch.post.dp

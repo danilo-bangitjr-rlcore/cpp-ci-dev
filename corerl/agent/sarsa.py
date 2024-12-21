@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import field
 from typing import Literal
 from pathlib import Path
@@ -14,7 +15,7 @@ from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import NewTransitionBatch, NewTransition
+from corerl.data_pipeline.datatypes import TransitionBatch, Transition
 
 
 @config(frozen=True)
@@ -38,8 +39,8 @@ class EpsilonGreedySarsa(BaseAgent):
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
         self.critic_buffer = init_buffer(cfg.critic.buffer)
 
-    def update_buffer(self, transition: NewTransition) -> None:
-        self.critic_buffer.feed(transition)
+    def update_buffer(self, transitions: Sequence[Transition]) -> None:
+        self.critic_buffer.feed(transitions)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device.device)
@@ -67,7 +68,7 @@ class EpsilonGreedySarsa(BaseAgent):
         greedy_action = action_samples[max_q_idx, :]
         return greedy_action
 
-    def compute_q_loss(self, ensemble_batch: list[NewTransitionBatch]) -> list[torch.Tensor]:
+    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
@@ -152,5 +153,5 @@ class EpsilonGreedySarsa(BaseAgent):
         with open(critic_buffer_path, "rb") as f:
             self.critic_buffer = pkl.load(f)
 
-    def load_buffer(self, transitions: list[NewTransition]) -> None:
+    def load_buffer(self, transitions: Sequence[Transition]) -> None:
         ...

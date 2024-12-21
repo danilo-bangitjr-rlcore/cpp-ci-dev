@@ -12,7 +12,7 @@ from corerl.data_pipeline.state_constructors.sc import SCConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.datatypes import Step, CallerCode, NewTransition
+from corerl.data_pipeline.datatypes import Step, CallerCode, Transition
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from test.infrastructure.utils.pandas import dfs_close
@@ -100,7 +100,7 @@ def test_pipeline1():
     assert dfs_close(got.df, expected_df)
     assert got.transitions == [
         # notice that the first row of the DF was skipped due to the np.nan
-        NewTransition(
+        Transition(
             steps=[
                 # countdown is first in the state
                 Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1, 0., 0.18]), dp=True),
@@ -109,7 +109,7 @@ def test_pipeline1():
             n_step_reward=0.,
             n_step_gamma=0.9
         ),
-        NewTransition(
+        Transition(
             steps=[
                 Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 1.0, 0.378]), dp=True),
                 Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1, 2.0, 0.5778]), dp=True),
@@ -204,7 +204,7 @@ def test_pipeline2():
     assert dfs_close(got.df, expected_df)
     assert got.transitions == [
         # notice that the first row of the DF was skipped due to the np.nan
-        NewTransition(
+        Transition(
             steps=[
                 # countdown comes first in the state
                 Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 0., 0.0]), dp=True),
@@ -213,7 +213,7 @@ def test_pipeline2():
             n_step_reward=3.,
             n_step_gamma=0.9,
         ),
-        NewTransition(
+        Transition(
             steps=[
                 Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1, 0., 0.15]), dp=True),
                 Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 1., 0.315]), dp=True),
@@ -221,7 +221,7 @@ def test_pipeline2():
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
-        NewTransition(
+        Transition(
             steps=[
                 Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 1., 0.315]), dp=True),
                 Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1, 1., 0.4815]), dp=True),
@@ -229,7 +229,7 @@ def test_pipeline2():
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
-        NewTransition(
+        Transition(
             steps=[
                 Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1, 1., 0.4815]), dp=True),
                 Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 1., 0.64815]), dp=True),
@@ -237,7 +237,7 @@ def test_pipeline2():
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
-        NewTransition(
+        Transition(
             steps=[
                 Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 1., 0.64815]), dp=True),
                 Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1, 4., 0.814815]), dp=True),
@@ -245,7 +245,7 @@ def test_pipeline2():
             n_step_reward=1.,
             n_step_gamma=0.9,
         ),
-        NewTransition(
+        Transition(
             steps=[
                 Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1, 4., 0.814815]), dp=True),
                 Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 4., 0.981482]), dp=True),

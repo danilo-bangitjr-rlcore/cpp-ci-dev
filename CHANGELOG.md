@@ -1,3 +1,13 @@
+## 0.6.5 (2024-12-21)
+
+### Refactor
+
+- rename NewTransition -> Transition
+- allow feeding a list of transitions to buffer
+- remove hooks from greedy_ac
+- remove unused guardrail bounds
+- unthread several unused functions now that gac doesn't own delta actions
+
 ## 0.6.4 (2024-12-20)
 
 ### Fix

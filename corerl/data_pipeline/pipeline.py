@@ -20,7 +20,7 @@ from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
-from corerl.data_pipeline.datatypes import NewTransition, PipelineFrame, CallerCode, StageCode
+from corerl.data_pipeline.datatypes import Transition, PipelineFrame, CallerCode, StageCode
 
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class PipelineConfig:
 @dataclass
 class PipelineReturn:
     df: DataFrame
-    transitions: list[NewTransition] | None
+    transitions: list[Transition] | None
 
 
 class Pipeline:

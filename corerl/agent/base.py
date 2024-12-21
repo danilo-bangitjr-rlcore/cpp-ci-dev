@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import field
 from typing import Any
 import numpy
@@ -7,7 +8,7 @@ from pathlib import Path
 from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.configs.config import MISSING, interpolate, config
-from corerl.data_pipeline.datatypes import NewTransition
+from corerl.data_pipeline.datatypes import Transition
 from corerl.utils.hook import Hooks, when
 from corerl.messages.client import MessageBusClientConfig, make_msg_bus_client
 
@@ -54,11 +55,11 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update_buffer(self, transition: NewTransition) -> None:
+    def update_buffer(self, transitions: Sequence[Transition]) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def load_buffer(self, transitions: list[NewTransition]) -> None:
+    def load_buffer(self, transitions: Sequence[Transition]) -> None:
         raise NotImplementedError
 
     @abstractmethod
