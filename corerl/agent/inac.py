@@ -170,6 +170,7 @@ class InAC(BaseAC):
         return pi_loss
 
     def update_critic(self) -> list[float]:
+        critic_losses = []
         for _ in range(self.n_critic_updates):
             batches = self.critic_buffer.sample()
 
@@ -180,8 +181,9 @@ class InAC(BaseAC):
             self.q_critic.update(q_loss)
 
             float_losses = [float(loss) for loss in q_loss]
+            critic_losses.append(sum(float_losses) / len(float_losses))
 
-            return [sum(float_losses) / len(float_losses)]
+        return critic_losses
 
     def update_actor(self) -> tuple:
         for _ in range(self.n_actor_updates):
