@@ -51,7 +51,7 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update(self) -> None:
+    def update(self) -> list[float]:
         raise NotImplementedError
 
     @abstractmethod
@@ -101,5 +101,5 @@ class BaseAC(BaseAgent):
         raise NotImplementedError
 
     @abstractmethod
-    def update_critic(self) -> None:
+    def update_critic(self) -> list[float]:
         raise NotImplementedError

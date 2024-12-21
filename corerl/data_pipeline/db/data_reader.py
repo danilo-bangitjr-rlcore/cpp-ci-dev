@@ -23,6 +23,7 @@ class TagDBConfig(SQLEngineConfig):
     db_name: str = "postgres"
     sensor_table_name: str = "scrubber4"
     sensor_table_schema: str = ""
+    data_agg: Literal["avg"] | Literal["last"] = "avg"
 
 
 class DataReader:
@@ -87,7 +88,7 @@ class DataReader:
             agg_stmt.label("val")
         ).filter(
             self.sensor_table.c["time"] >= text(f"TIMESTAMP '{start_time.isoformat()}'"),
-            self.sensor_table.c["time"] < text(f"TIMESTAMP '{end_time.isoformat()}'"),
+            self.sensor_table.c["time"] <= text(f"TIMESTAMP '{end_time.isoformat()}'"),
             self.sensor_table.c["name"].in_(names)
         ).group_by(
             text("time_bucket"), self.sensor_table.c["name"]

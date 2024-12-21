@@ -360,9 +360,9 @@ class GreedyAC(BaseAC):
 
         return sampler_loss
 
-    def update_critic(self) -> None:
+    def update_critic(self) -> list[float]:
         if min(self.critic_buffer.size) <= 0:
-            return
+            return []
 
         self._msg_bus.emit_event_sync(EventType.agent_update_critic)
 
@@ -376,6 +376,8 @@ class GreedyAC(BaseAC):
         q_loss = closure()
         self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
 
+
+        return [float(q_loss)]
 
     def update_actor(self) -> tuple:
         self._msg_bus.emit_event_sync(EventType.agent_update_actor)
@@ -451,18 +453,22 @@ class GreedyAC(BaseAC):
         )
         return -logp.mean()
 
-    def update(self) -> None:
+    def update(self) -> list[float]:
         if self._interleave_updates:
-            self._update_interleave()
-            return None
+            q_losses = self._update_interleave()
+            return q_losses
 
-        self._update_sequential()
+        q_losses = self._update_sequential()
 
-    def _update_interleave(self) -> None:
+        return q_losses
+
+    def _update_interleave(self) -> list[float]:
         n_sampler_updates = 0
+        q_losses = []
         for _ in range(self.n_actor_updates):
             for _ in range(self.n_critic_updates):
-                self.update_critic()
+                q_loss = self.update_critic()
+                q_losses += q_loss
 
             update_info = self.update_actor()
             if (
@@ -475,9 +481,13 @@ class GreedyAC(BaseAC):
                 )
                 n_sampler_updates += 1
 
-    def _update_sequential(self) -> None:
+        return q_losses
+
+    def _update_sequential(self) -> list[float]:
+        q_losses = []
         for _ in range(self.n_critic_updates):
-            self.update_critic()
+            q_loss = self.update_critic()
+            q_losses += q_loss
 
         update_infos = []
         for _ in range(self.n_actor_updates):
@@ -491,7 +501,7 @@ class GreedyAC(BaseAC):
             else:
                 self.update_sampler(update_infos=None)
 
-        return None
+        return q_losses
 
     def save(self, path: Path) -> None:
         self._msg_bus.emit_event_sync(EventType.agent_save)

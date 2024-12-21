@@ -48,8 +48,8 @@ class ActionScheduleAgent(BaseAgent):
 
         return action_np
 
-    def update(self) -> None:
-        pass
+    def update(self) -> list[float]:
+        return []
 
     def save(self, path: Path) -> None:
         pass
