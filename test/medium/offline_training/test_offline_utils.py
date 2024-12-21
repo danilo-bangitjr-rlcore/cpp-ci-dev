@@ -24,7 +24,7 @@ from corerl.data_pipeline.transforms import LessThanConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.offline.utils import load_offline_transitions, offline_training
 
-from test.medium.data_loaders.utils import timescale_docker
+from test.medium.data_loaders.utils import timescale_docker # noqa: F401
 
 @pytest.fixture(scope="module")
 def test_db_config() -> TagDBConfig:
