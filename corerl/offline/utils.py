@@ -6,12 +6,12 @@ from tqdm import tqdm
 
 from corerl.config import MainConfig
 from corerl.agent.base import BaseAgent
-from corerl.data_pipeline.datatypes import NewTransition, CallerCode
+from corerl.data_pipeline.datatypes import Transition, CallerCode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.utils.time import split_into_chunks
 
-def load_offline_transitions(cfg: MainConfig, pipeline: Pipeline) -> list[NewTransition]:
+def load_offline_transitions(cfg: MainConfig, pipeline: Pipeline) -> list[Transition]:
     # Configure DataReader
     data_reader = DataReader(db_cfg=cfg.pipeline.db)
     db_time_stats = data_reader.get_time_stats()
@@ -40,7 +40,7 @@ def load_offline_transitions(cfg: MainConfig, pipeline: Pipeline) -> list[NewTra
 
 def offline_training(cfg: MainConfig,
                      agent: BaseAgent,
-                     train_transitions: list[NewTransition]) -> list[float]:
+                     train_transitions: list[Transition]) -> list[float]:
     log.info('Starting offline agent training...')
 
     agent.load_buffer(train_transitions)
