@@ -31,8 +31,7 @@ def load_offline_transitions(cfg: MainConfig, pipeline: Pipeline) -> list[NewTra
         # Setting 'stages' to None executes all the stages of the data pipeline
         pipeline_out = pipeline(data=chunk_data,
                                 caller_code=CallerCode.OFFLINE,
-                                reset_temporal_state=False,
-                                stages=None)
+                                reset_temporal_state=False)
 
         if pipeline_out.transitions is not None:
             offline_transitions += pipeline_out.transitions

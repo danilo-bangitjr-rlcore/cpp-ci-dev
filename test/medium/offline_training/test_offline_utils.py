@@ -131,7 +131,7 @@ def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, step
 
             data_writer.write(timestamp=timestamps[i], name=tag, val=val)
 
-    data_writer.background_sync()
+    data_writer.blocking_sync()
 
     # Produce offline transitions
     pipeline = Pipeline(offline_cfg.pipeline)
