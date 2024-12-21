@@ -11,7 +11,7 @@ from test.infrastructure.utils.docker import init_docker_container
 
 @pytest.fixture(scope="module")
 def init_data_writer_tsdb_container():
-    container = init_docker_container()
+    container = init_docker_container(ports={"5432": 5433})
     yield container
     container.stop()
     container.remove()
