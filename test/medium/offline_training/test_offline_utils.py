@@ -41,7 +41,7 @@ def test_db_config() -> TagDBConfig:
     return db_cfg
 
 @pytest.fixture(scope="module")
-def data_writer(timescale_docker, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]:
+def data_writer(timescale_docker, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]: # noqa: F811
     data_writer = DataWriter(db_cfg=test_db_config)
 
     yield data_writer
