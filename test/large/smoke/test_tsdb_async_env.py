@@ -3,31 +3,40 @@ from os import path, makedirs
 
 import boto3
 import pytest
+from botocore.exceptions import NoCredentialsError
 from sqlalchemy import URL
 
 from corerl.sql_logging.sql_logging import try_create_engine
 from corerl.data_pipeline.db.utils import try_connect
 from test.infrastructure.utils.docker import init_docker_container
 
-@pytest.fixture
-def skip_aws_s3_fixture_or_no_data(request):
-    repo_root = request.config.rootpath
-    offline_data_dir = path.join(repo_root, "offline_data")
-    scrubber_raw_sql_dump_file = path.join(offline_data_dir, "scrubber4_2024_12_15.sql")
+def should_skip_test():
+    try:
+        boto3.Session().get_credentials()
+    except NoCredentialsError:
+        # no credentials, skip test
+        return True
 
-    if not path.exists(scrubber_raw_sql_dump_file):
-        s3 = boto3.client('s3')
-        try:
-            # will throw if not found or no permission to access bucket
-            s3.head_object(
-                Bucket="rlcore-shared",
-                Key="epcor/Epcor_Scrubber-DB_Exports/partial/scrubber4_2024_12_15.sql"
-            )
-        except Exception as e:
-            raise pytest.skip("Test skipped because boto3 S3 call failed to get object") from e
+    sts = boto3.client('sts')
+    try:
+        sts.get_caller_identity()
+    except Exception:
+        # credentials cannot get identity, skip test
+        return True
 
 
-skip_test_if_aws_s3_fails_or_no_data = pytest.mark.usefixtures("skip_aws_s3_fixture_or_no_data")
+    s3 = boto3.client('s3')
+    try:
+        # will throw if not found or no permission to access bucket
+        s3.head_object(
+            Bucket="rlcore-shared",
+            Key="epcor/Epcor_Scrubber-DB_Exports/partial/scrubber4_2024_12_15.sql"
+        )
+    except Exception:
+        # credentials cannot access s3 rlcore-shared bucket, skip test
+        return True
+
+    return False
 
 
 @pytest.fixture(scope="module")
@@ -39,7 +48,6 @@ def init_epcor_tsdb_container():
     yield container
     container.stop()
     container.remove()
-
 
 @pytest.fixture(scope="module")
 def dl_epcor_partial_data_if_not_exists(init_epcor_tsdb_container, request):
@@ -97,7 +105,10 @@ def dl_epcor_partial_data_if_not_exists(init_epcor_tsdb_container, request):
         assert result.check_returncode() is None
 
 
-@skip_test_if_aws_s3_fails_or_no_data
+@pytest.mark.skipif(
+    should_skip_test(),
+    reason="Skipping test because boto3 credentials invalid and stub file doesn't exist"
+)
 def test_epcor_tsdb_scrubber(
     request,
     dl_epcor_partial_data_if_not_exists,
