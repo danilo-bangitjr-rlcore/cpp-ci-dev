@@ -22,6 +22,9 @@ class TransitionFilter:
         self.filter_names = cfg.filters
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
+        if pf.transitions is None:
+            return pf
+
         for filter_name in self.filter_names:
             pf.transitions = call_filter(pf.transitions, filter_name)
 
