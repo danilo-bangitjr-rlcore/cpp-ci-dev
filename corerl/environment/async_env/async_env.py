@@ -1,23 +1,13 @@
-from dataclasses import field
-from typing import Any
-
 import numpy as np
 import pandas as pd
 
 from corerl.configs.config import MISSING, config
+from corerl.environment.config import EnvironmentConfig
 
 
 @config()
-class BaseAsyncEnvConfig:
-    name: str = MISSING
+class BaseAsyncEnvConfig(EnvironmentConfig):
     gym_name: str = MISSING
-    seed: int = 0
-    discrete_control: bool = False
-
-    # gym environment init args and kwargs, ignored for deployment_async_env
-    args: list[Any] = field(default_factory=list)
-    kwargs: dict[str, Any] = field(default_factory=dict)
-
 
 class AsyncEnv:
     def emit_action(self, action: np.ndarray) -> None: ...
