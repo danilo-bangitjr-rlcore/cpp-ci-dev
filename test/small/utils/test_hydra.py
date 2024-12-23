@@ -27,12 +27,12 @@ def test_group1():
     # --------------------
     group = Group[[], str]()
     @group.dispatcher
-    def _sub1_handler(cfg: Sub1):
+    def _(cfg: Sub1):
         return f'Sub1 handler <{cfg.test_a}>'
 
 
     @group.dispatcher
-    def _sub2_handler(cfg: Sub2):
+    def _(cfg: Sub2):
         return f'Sub2 handler <{cfg.test_b}>'
 
 
@@ -40,7 +40,7 @@ def test_group1():
     # -- Setup main config --
     # -----------------------
     # test: if group uses config `sub1`
-    # then the _sub1_handler is called
+    # then the Sub1 handler is called
     cfg = MainConfig(
         sub=Sub1(),
     )
@@ -49,7 +49,7 @@ def test_group1():
 
 
     # test: if group uses config `sub2`
-    # then the _sub2_handler is called
+    # then the Sub2 handler is called
     cfg = MainConfig(
         sub=Sub2(),
     )
