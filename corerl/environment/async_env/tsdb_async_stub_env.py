@@ -94,7 +94,7 @@ class TSDBAsyncStubEnv(AsyncEnv):
 
     def get_latest_obs(self) -> pd.DataFrame:
         read_start = self.current_start_time
-        if read_start >= self.env_start_time:
+        if read_start > self.env_start_time:
             # temporal state pipeline logic requires last step's latest time bucket
             read_start = read_start - self.env_step_time
 

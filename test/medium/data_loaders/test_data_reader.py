@@ -8,11 +8,20 @@ from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from test.medium.data_loaders.test_data_writer import data_writer, write_n_random_vals  # noqa: F401
-from test.medium.data_loaders.utils import timescale_docker  # noqa: F401
+from test.infrastructure.utils.docker import init_docker_container
 
 
 @pytest.fixture(scope="module")
-def data_reader(timescale_docker) -> Generator[DataReader, None, None]:  # noqa: F811
+def init_data_reader_tsdb_container():
+    container = init_docker_container()
+    yield container
+    container.stop()
+    container.remove()
+
+
+@pytest.fixture(scope="module")
+def data_reader(init_data_reader_tsdb_container) -> Generator[DataReader, None, None]:
+    assert init_data_reader_tsdb_container.name == "test_timescale"
     db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",
         username="postgres",

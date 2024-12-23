@@ -6,10 +6,20 @@ from typing import Generator
 from random import random
 
 import corerl.utils.nullable as nullable
+from test.infrastructure.utils.docker import init_docker_container
 
 
 @pytest.fixture(scope="module")
-def data_writer() -> Generator[DataWriter, None, None]:
+def init_data_writer_tsdb_container():
+    container = init_docker_container()
+    yield container
+    container.stop()
+    container.remove()
+
+
+@pytest.fixture(scope="module")
+def data_writer(init_data_writer_tsdb_container) -> Generator[DataWriter, None, None]:
+    assert init_data_writer_tsdb_container.name == "test_timescale"
     db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",
         username="postgres",
