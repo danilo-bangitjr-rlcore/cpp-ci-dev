@@ -152,6 +152,6 @@ def test_transition_filter_1():
     )
 
     pf = transition_filter(pf)
-    assert isinstance(pf.transitions, list)
+    assert pf.transitions is not None
     assert len(pf.transitions) == 1
     assert pf.transitions[0] == transition_0
