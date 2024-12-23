@@ -84,7 +84,7 @@ class CustomAdam(Optimizer):
             return math.sqrt(x)
 
     def state_dict(self) -> dict[str, Any]:
-        hard_copy = {
+        hard_copy: dict[str, Any] = {
             'state': {},
             'param_groups': []
         }
