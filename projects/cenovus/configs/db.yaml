@@ -1,0 +1,2 @@
+db_name: postgres
+sensor_table_name: cenovus
