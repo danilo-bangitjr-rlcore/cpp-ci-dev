@@ -1,5 +1,6 @@
 import pandas as pd
 
+from collections.abc import Sequence
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.null import Null
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TagName
@@ -9,7 +10,7 @@ from corerl.data_pipeline.utils import get_tag_temporal_state, invoke_stage_per_
 
 
 class RewardComponentConstructor:
-    def __init__(self, cfgs: list[TransformConfig]):
+    def __init__(self, cfgs: Sequence[TransformConfig]):
         self._transforms: list[Transform] = [transform_group.dispatch(sub_cfg) for sub_cfg in cfgs]
 
     def __call__(self, pf: PipelineFrame, tag_name: str) -> PipelineFrame:
