@@ -1,0 +1,47 @@
+defaults:
+ - pipeline: tags
+ - pipeline.db: db
+
+
+action_period: 60
+obs_period: 300
+
+agent:
+  name: greedy_ac
+  n_critic_updates: 1
+  n_actor_updates: 1
+  n_sampler_updates: 1
+  num_samples: 32
+  uniform_sampling_percentage: 0.8
+  gamma: ${experiment.gamma}
+  discrete_control: ${env.discrete_control}
+  seed: ${experiment.seed}
+
+  critic:
+    buffer:
+      seed: ${experiment.seed}
+
+  actor:
+    buffer:
+      seed: ${experiment.seed}
+    actor_optimizer:
+      lr: 0.00001
+
+experiment:
+  exp_name: cenovus
+  save_path: output
+  max_steps: 10000
+  debug: 0
+  seed: 1
+  timeout: 0
+  offline_steps: 10
+  pipeline_batch_duration_days: 1
+  gamma: 0.99
+
+pipeline:
+  state_constructor:
+    defaults: []
+
+  transition_creator:
+    name: anytime
+    gamma: ${experiment.gamma}
