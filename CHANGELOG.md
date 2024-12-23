@@ -1,3 +1,18 @@
+## 0.7.0 (2024-12-23)
+
+### Feat
+
+- epcor tsdb scrubber is working with main
+
+### Fix
+
+- **test**: addressed offline test use of docker container initialization
+- **test**: improve boto credential test/skip logic
+- **test**: do not share module/class fixture of tsdb docker container
+- **env**: support temporal state, batch reads with previous ts
+- updated saturation config to match gym_name config change
+- enable running epcor_tsdb_scrubber with main
+
 ## 0.6.5 (2024-12-21)
 
 ### Refactor
