@@ -1,8 +1,9 @@
+from collections.abc import Iterable
 from typing import Literal, assert_never
 from corerl.utils.torch import tensor_allclose
 
 from corerl.configs.config import config, list_
-from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame, Transition
 
 
 type TransitionFilterType = (
@@ -30,7 +31,8 @@ class TransitionFilter:
 
         return pf
 
-def call_filter(transitions, filter_name):
+
+def call_filter(transitions: Iterable[Transition], filter_name: TransitionFilterType):
     if filter_name == 'only_dp':
         transition_filter = only_dp
     elif filter_name == 'only_no_action_change':
@@ -40,20 +42,18 @@ def call_filter(transitions, filter_name):
     else:
         assert_never(filter_name)
 
-    results = [transition_filter(transition) for transition in transitions]
-    filtered = [transition for transition, keep in zip(transitions, results, strict=True) if keep]
-    return filtered
+    return list(filter(transition_filter, transitions))
 
 
-def only_dp(transition):
+def only_dp(transition: Transition):
     return transition.prior.dp and transition.post.dp
 
 
-def only_post_dp(transition):
+def only_post_dp(transition: Transition):
     return transition.post.dp
 
 
-def only_no_action_change(transition):
+def only_no_action_change(transition: Transition):
     action = transition.steps[1].action
     for i in range(1, len(transition.steps)):
         if not tensor_allclose(transition.steps[i].action, action):
