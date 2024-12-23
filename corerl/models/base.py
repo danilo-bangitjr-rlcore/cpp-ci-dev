@@ -23,5 +23,5 @@ class BaseModel:
 
 
 model_group = Group[
-    [], BaseModelConfig
+    [], BaseModel
 ]()

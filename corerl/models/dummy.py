@@ -1,4 +1,3 @@
-from typing import Literal
 from torch import Tensor
 
 from corerl.data_pipeline.datatypes import Transition
@@ -8,7 +7,7 @@ from corerl.models.base import BaseModel, BaseModelConfig, model_group
 
 @config()
 class DummyModelConfig(BaseModelConfig):
-    name: Literal['dummy'] = 'dummy'
+    name: str = 'dummy'
 
 
 class DummyModel(BaseModel):
