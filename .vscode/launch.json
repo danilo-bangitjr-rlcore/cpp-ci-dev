@@ -5,6 +5,34 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python Debugger: main.py --config-name epcor_tsdb_scrubber",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--config-name",
+                "epcor_tsdb_scrubber"
+            ],
+            "env": {
+                "NUMBA_DISABLE_JIT": "1"
+            }
+        },
+        {
+            "name": "Python Debugger: main.py --config-name pendulum",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--config-name",
+                "pendulum"
+            ],
+            "env": {
+                "NUMBA_DISABLE_JIT": "1"
+            }
+        },
+        {
             "name": "Python Debugger: main.py env=saturation.yaml",
             "type": "debugpy",
             "request": "launch",
@@ -32,7 +60,10 @@
             "console": "integratedTerminal",
             "args": [
                 "${command:pickArgs}"
-            ]
+            ],
+            "env": {
+                "NUMBA_DISABLE_JIT": "1"
+            }
         }
     ]
 }

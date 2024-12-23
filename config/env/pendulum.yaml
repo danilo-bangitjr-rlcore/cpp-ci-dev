@@ -1,5 +1,6 @@
 defaults:
   - env/base_gym_env
 
-name : Pendulum-v1
+name: sim_async_env
+gym_name : Pendulum-v1
 discrete_control : True

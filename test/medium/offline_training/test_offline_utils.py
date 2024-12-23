@@ -24,7 +24,7 @@ from corerl.data_pipeline.transforms import LessThanConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.offline.utils import load_offline_transitions, offline_training
 
-from test.medium.data_loaders.utils import timescale_docker # noqa: F401
+from test.infrastructure.utils.docker import init_docker_container # noqa: F401
 
 @pytest.fixture(scope="module")
 def test_db_config() -> TagDBConfig:
@@ -40,8 +40,17 @@ def test_db_config() -> TagDBConfig:
 
     return db_cfg
 
+
 @pytest.fixture(scope="module")
-def data_writer(timescale_docker, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]: # noqa: F811
+def init_offline_tsdb_container():
+    container = init_docker_container()
+    yield container
+    container.stop()
+    container.remove()
+
+
+@pytest.fixture(scope="module")
+def data_writer(init_offline_tsdb_container, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]: # noqa: F811
     data_writer = DataWriter(db_cfg=test_db_config)
 
     yield data_writer

@@ -3,7 +3,7 @@ name: Run Single Test Group
 on:
   workflow_call:
     inputs:
-      test-flags: 
+      test-flags:
         required: false
         type: string
       test-suite:

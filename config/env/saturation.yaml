@@ -1,5 +1,6 @@
 defaults:
   - env/base_gym_env
 
-name : Saturation-v0
+name: sim_async_env
+gym_name : Saturation-v0
 discrete_control : False

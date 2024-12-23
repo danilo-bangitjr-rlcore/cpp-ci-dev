@@ -19,6 +19,9 @@ ignore = [
     'F722',
 ]
 
+[tool.ruff.format]
+quote-style = "double"
+
 [tool.pyright]
 include = ['.']
 exclude = [
@@ -88,6 +91,7 @@ dev = [
     "pytest-timeout",
     "pyright",
     "debugpy",
+    "boto3",
     "linesearchopt@git+ssh://git@github.com/rlcoretech/linesearchopt.git"
 ]
 

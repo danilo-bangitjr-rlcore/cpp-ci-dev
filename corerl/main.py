@@ -1,23 +1,25 @@
+#!/usr/bin/env python3
+
 import logging
-import numpy as np
-import torch
 import random
 
+import numpy as np
+import torch
 from tqdm import tqdm
+
+import corerl.main_utils as utils
+import corerl.utils.freezer as fr
+from corerl.agent.factory import init_agent
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
-from corerl.utils.device import device
-from corerl.agent.factory import init_agent
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.environment.async_env.sim_async_env import SimAsyncEnv, SimAsyncEnvConfig
-from corerl.interaction.sim_interaction import SimInteraction
-
+from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
-
-import corerl.utils.freezer as fr
-import corerl.main_utils as utils
+from corerl.interaction.sim_interaction import SimInteraction
+from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
+
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
@@ -37,11 +39,7 @@ def main(cfg: MainConfig):
 
     pipeline = Pipeline(cfg.pipeline)
 
-    env_cfg = SimAsyncEnvConfig(name=cfg.env.name)
-    env = SimAsyncEnv(
-        env_cfg,
-        cfg.pipeline.tags,
-    )
+    env = init_async_env(cfg.env, cfg.pipeline.tags)
 
     state_dim, action_dim = pipeline.get_state_action_dims()
     agent = init_agent(
