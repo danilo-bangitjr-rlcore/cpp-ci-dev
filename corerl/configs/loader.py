@@ -82,7 +82,7 @@ def _flags_from_cli():
 # -- Interpolations --
 # --------------------
 def _walk_config_and_interpolate(root: dict[str, Any]):
-    def _inner(part: dict[str, object]):
+    def _inner(part: object):
         if not isinstance(part, dict):
             return
 
