@@ -1,8 +1,16 @@
-from corerl.utils.torch import tensor_allclose
 from dataclasses import field
+from typing import Literal, assert_never
+from corerl.utils.torch import tensor_allclose
 
-from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.configs.config import config
+from corerl.data_pipeline.datatypes import PipelineFrame
+
+
+type TransitionFilterType = (
+    Literal['only_dp']
+    | Literal['only_no_action_change']
+    | Literal['only_post_dp']
+)
 
 
 @config()
@@ -21,7 +29,6 @@ class TransitionFilter:
 
         return pf
 
-
 def call_filter(transitions, filter_name):
     if filter_name == 'only_dp':
         transition_filter = only_dp
@@ -30,7 +37,7 @@ def call_filter(transitions, filter_name):
     elif filter_name == 'only_post_dp':
         transition_filter = only_post_dp
     else:
-        raise NotImplementedError(f"Invalid transition filter name {filter_name}")
+        assert_never(filter_name)
 
     results = [transition_filter(transition) for transition in transitions]
     filtered = [transition for transition, keep in zip(transitions, results, strict=True) if keep]
