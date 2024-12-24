@@ -1,6 +1,4 @@
-defaults:
-  - env/base_gym_env
-
+seed : ${experiment.seed}
 name: sim_async_env
 gym_name : Pendulum-v1
 discrete_control : True

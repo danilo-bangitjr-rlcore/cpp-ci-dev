@@ -1,6 +1,0 @@
-defaults:
-  - base_env
-  - _self_
-
-name : HalfCheetah-v4
-discrete_control : False
