@@ -37,6 +37,7 @@ def test_pipeline1():
                     NormalizerConfig(),
                     TraceConfig(trace_values=[0.1]),
                 ],
+                is_endogenous=True
             ),
             TagConfig(name='action-1', action_constructor=[], state_constructor=[NullConfig()]),
             TagConfig(name="reward", is_meta=True),
@@ -136,6 +137,7 @@ def test_pipeline2():
                 name='tag-1',
                 imputer=CopyImputerConfig(imputation_horizon=2),
                 state_constructor=[],
+                is_endogenous=False,
             ),
             TagConfig(
                 name='tag-2',
@@ -145,6 +147,7 @@ def test_pipeline2():
                     NormalizerConfig(),
                     TraceConfig(trace_values=[0.1]),
                 ],
+                is_endogenous=True
             ),
             TagConfig(name='action-1', action_constructor=[], state_constructor=[]),
             TagConfig(name="reward", is_meta=True),

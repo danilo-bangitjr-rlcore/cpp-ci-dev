@@ -3,6 +3,7 @@ from torch import Tensor
 from corerl.environment.model_env import ModelEnv, ModelEnvConfig
 from corerl.models.dummy import DummyModel, DummyModelConfig
 from corerl.utils.torch import tensor_allclose
+from corerl.data_pipeline.tag_config import TagConfig
 
 
 def get_dummy_model_env(
@@ -12,8 +13,20 @@ def get_dummy_model_env(
     cfg = ModelEnvConfig(rollout_len=rollout_len)
     env = ModelEnv(cfg)
 
+    tags = [
+        TagConfig(
+            name='state',
+            is_endogenous=True,
+        ),
+
+        TagConfig(
+            name='action',
+            is_action=True,
+        ),
+    ]
+
     model_cfg = DummyModelConfig()
-    model = DummyModel(model_cfg)
+    model = DummyModel(model_cfg, tags)
 
     env.set_model(model)
     env.set_initial_states(
