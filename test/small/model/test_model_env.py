@@ -1,4 +1,4 @@
-from torch import Tensor
+from torch import Tensor, concat
 
 from corerl.environment.model_env import ModelEnv, ModelEnvConfig
 from corerl.models.dummy import DummyModel, DummyModelConfig
@@ -8,7 +8,8 @@ from corerl.data_pipeline.tag_config import TagConfig
 
 def get_dummy_model_env(
         rollout_len: int,
-        initial_states: list[Tensor]
+        initial_states: list[Tensor],
+        exo_seqs: list[list[Tensor]] | None = None,
 ) -> ModelEnv:
     cfg = ModelEnvConfig(rollout_len=rollout_len)
     env = ModelEnv(cfg)
@@ -30,7 +31,8 @@ def get_dummy_model_env(
 
     env.set_model(model)
     env.set_initial_states(
-        initial_states
+        initial_states,
+        exo_seqs
     )
     return env
 
@@ -57,3 +59,25 @@ def test_rollout_counter():
             assert term
         else:
             assert not term
+
+
+def test_exo_sequence():
+    """
+    Tests to see if exogenous observations are correctly concatenated to the observation.
+    """
+    rollout_len = 10
+    exp_initial_state = Tensor([0.0])
+    initial_states = [exp_initial_state]
+    exo_seqs = [
+        [Tensor([i]) for i in range(rollout_len)]
+    ]
+    env = get_dummy_model_env(rollout_len, initial_states, exo_seqs)
+
+    initial_state, _ = env.reset()
+    assert tensor_allclose(initial_state, exp_initial_state)
+
+    action = Tensor([1.])
+    for i in range(rollout_len):
+        obs, reward, term, truncate, _ = env.step(action)
+        exp_obs = concat([exp_initial_state, Tensor([i])])
+        assert tensor_allclose(obs, exp_obs)
