@@ -1,9 +1,10 @@
-from torch import Tensor, concat
+from torch import Tensor
 
-from corerl.environment.model_env import ModelEnv, ModelEnvConfig
-from corerl.models.dummy import DummyModel, DummyModelConfig
-from corerl.utils.torch import tensor_allclose
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transforms import NullConfig
+from corerl.environment.model_env import ModelEnv, ModelEnvConfig
+from corerl.models.dummy import DummyEndoModel, DummyEndoModelConfig, DummyModel, DummyModelConfig
+from corerl.utils.torch import tensor_allclose
 
 
 def get_dummy_model_env(
@@ -16,18 +17,28 @@ def get_dummy_model_env(
 
     tags = [
         TagConfig(
-            name='state',
+            name='endo',
             is_endogenous=True,
         ),
 
         TagConfig(
+            name='exo',
+            is_endogenous=False,
+        ),
+
+        TagConfig(
             name='action',
-            is_action=True,
+            action_constructor=[],
+            state_constructor=[NullConfig()]
         ),
     ]
 
-    model_cfg = DummyModelConfig()
-    model = DummyModel(model_cfg, tags)
+    if exo_seqs is not None:
+        model_cfg = DummyEndoModelConfig()
+        model = DummyEndoModel(model_cfg, tags)
+    else:
+        model_cfg = DummyModelConfig()
+        model = DummyModel(model_cfg, tags)
 
     env.set_model(model)
     env.set_initial_states(
@@ -38,13 +49,15 @@ def get_dummy_model_env(
 
 
 def test_init():
-    initial_states = [Tensor([0.0])]
+    initial_states = [
+        Tensor([0.0, 0.0])
+    ]
     _ = get_dummy_model_env(10, initial_states)
 
 
 def test_rollout_counter():
     rollout_len = 10
-    exp_initial_state = Tensor([0.0])
+    exp_initial_state = Tensor([0.0, 0.0])
     initial_states = [exp_initial_state]
     env = get_dummy_model_env(rollout_len, initial_states)
     initial_state, _ = env.reset()
@@ -66,7 +79,7 @@ def test_exo_sequence():
     Tests to see if exogenous observations are correctly concatenated to the observation.
     """
     rollout_len = 10
-    exp_initial_state = Tensor([0.0])
+    exp_initial_state = Tensor([0.0, 0.0])
     initial_states = [exp_initial_state]
     exo_seqs = [
         [Tensor([i]) for i in range(rollout_len)]
@@ -79,5 +92,5 @@ def test_exo_sequence():
     action = Tensor([1.])
     for i in range(rollout_len):
         obs, reward, term, truncate, _ = env.step(action)
-        exp_obs = concat([exp_initial_state, Tensor([i])])
+        exp_obs = Tensor([0., i])
         assert tensor_allclose(obs, exp_obs)

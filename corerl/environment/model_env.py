@@ -42,11 +42,15 @@ class ModelEnv(gym.Env):
         The first element in each list in exo_obs_seqs comes one timestep AFTER the corresponding state.
         """
         self.initial_states = states
+        assert self.model is not None
+        assert self.model.endogenous == (exo_obs_seqs is not None), ("Please only include exo_obs_sequences when using "
+                                                                     "an endogenous model.")
+
         if exo_obs_seqs is not None:
             assert len(states) == len(exo_obs_seqs)
             for exo_obs_seq in exo_obs_seqs:
                 assert len(exo_obs_seq) == self.rollout_len, ("Please give sequences of exogenous observations "
-                                                              "at least as long as rollout_len")
+                                                              "at least as long as rollout_len.")
         self.exo_obs_seqs = exo_obs_seqs
 
     def step(self, action: torch.Tensor) -> Tuple[torch.Tensor, float, bool, bool, dict]:
@@ -78,8 +82,6 @@ class ModelEnv(gym.Env):
         rollout_idx = random.choice(range(len(self.initial_states)))
         self.curr_state = self.initial_states[rollout_idx]
         if self.exo_obs_seqs is not None:
-            assert self.model.endogenous, ("You included exogenous observations but are not using an endogenous model,"
-                                           "exogenous observations would be duplicated.")
             self.curr_exo_seq = self.exo_obs_seqs[rollout_idx]
 
         assert self.curr_state is not None

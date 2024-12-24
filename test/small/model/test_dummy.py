@@ -1,12 +1,12 @@
 from torch import Tensor
 
-from corerl.models.dummy import DummyModel, DummyModelConfig
+from corerl.models.dummy import DummyEndoModel, DummyEndoModelConfig
 from corerl.utils.torch import tensor_allclose
 from corerl.data_pipeline.tag_config import TagConfig
 
 
 def test_dummy():
-    cfg = DummyModelConfig()
+    cfg = DummyEndoModelConfig()
     tags = [
         TagConfig(
             name='state1',
@@ -23,7 +23,7 @@ def test_dummy():
         ),
     ]
 
-    model = DummyModel(cfg, tags)
+    model = DummyEndoModel(cfg, tags)
     model.fit([])
 
     state = Tensor([2, 3])
