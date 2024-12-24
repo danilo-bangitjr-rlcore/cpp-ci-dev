@@ -36,7 +36,10 @@ class ModelEnv(gym.Env):
                            exo_obs_seqs: list[list[torch.Tensor]] | None = None,
                            ):
         """
-        Sets initial starting points for rollouts. If using an endogenous model
+        Sets initial starting points for rollouts. If using an endogenous model,
+        specify exo_obs_seqs as the sequence of exogenous observations for the rollouts.
+        There should be the same number of states and exo_obs_seqs.
+        The first element in each list in exo_obs_seqs comes one timestep AFTER the corresponding state.
         """
         self.initial_states = states
         if exo_obs_seqs is not None:
