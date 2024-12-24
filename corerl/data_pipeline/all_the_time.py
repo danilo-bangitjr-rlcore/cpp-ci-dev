@@ -83,7 +83,8 @@ class AllTheTimeTC:
     ):
         self.cfg = cfg
         self.tag_configs = tag_configs
-        self._init_action_tags()
+        self.action_tags = [tag.name for tag in tag_configs if tag.tag_type == "action"]
+        self.meta_tags = [tag.name for tag in tag_configs if tag.tag_type == "meta"]
 
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
@@ -91,27 +92,24 @@ class AllTheTimeTC:
         assert self.min_n_step > 0
         assert self.max_n_step >= self.min_n_step
 
-    def _init_action_tags(self):
-        self.action_tags = []
-        for tag_config in self.tag_configs:
-            name = tag_config.name
-            if tag_config.is_action:
-                self.action_tags.append(name)
-
     def _make_steps(self, pf: PipelineFrame) -> list[Step]:
         """
         Makes the steps for the pf
         """
         df = pf.data
         actions = get_tags(df, self.action_tags)
-        state_tags = sorted(
-            set(df.columns) - set(self.action_tags) - {'reward', 'trunc', 'term'}
-        )
+
+        # NOTE: cannot use tag configs here because state dataframe columns
+        # may have been mutated by a pipeline stage (e.g. suffix norm_trace)
+        # state_tags = [
+        #     tag_config.name for tag_config in self.tag_configs if tag_config.tag_type == "observation"
+        # ]
+        state_tags = sorted(set(df.columns) - set(self.action_tags) - set(self.meta_tags))
         states = get_tags(df, state_tags)
         rewards = df['reward'].to_numpy()
         gammas = np.ones(len(rewards))
-        if 'term' in df.columns:
-            gammas = 1 - df['term'].to_numpy()
+        if 'terminated' in df.columns:
+            gammas = 1 - df['terminated'].to_numpy()
         dps = pf.decision_points
         assert len(actions) == len(states) and len(states) == len(rewards) == len(gammas) == len(dps)
 

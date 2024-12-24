@@ -1,0 +1,127 @@
+defaults:
+  -
+
+experiment:
+  online_updates : True # Whether to update the agent online in deployment
+  seed: 1
+  gamma: 0.99
+
+use_alerts: False
+action_period: 1
+obs_period: 1
+
+env:
+  name: sim_async_env
+  gym_name: MountainCarContinuous-v0
+  kwargs:
+    render_mode: human
+    goal_velocity: 0.1
+  discrete_control: False
+  seed: 1
+  db: ${pipeline.db}
+
+agent:
+  name: greedy_ac
+  n_critic_updates: 1
+  n_actor_updates: 1
+  n_sampler_updates: 1
+  num_samples: 32
+  uniform_sampling_percentage: 0.8
+  discrete_control: ${env.discrete_control}
+  seed: ${experiment.seed}
+
+  critic:
+    buffer:
+      seed: ${experiment.seed}
+
+  actor:
+    buffer:
+      seed: ${experiment.seed}
+    actor_optimizer:
+      lr: 0.00001
+
+
+pipeline:
+  obs_interval_minutes: 5
+  db:
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: "password"
+    ip: "localhost"
+    port: 5432
+    db_name: "public"
+    sensor_table_name: "sensors"
+
+  state_constructor:
+    defaults: []
+
+  transition_creator:
+    name: anytime
+
+  tags:
+  - name: action_0
+    tag_type: action
+    bounds:
+    - -1.0
+    - 1.0
+    imputer:
+      name: identity
+    outlier:
+      name: identity
+    state_constructor:
+    - name: normalize
+
+  - name: observation_0
+    tag_type: observation
+    bounds:
+    - -1.0
+    - 1.0
+    imputer:
+      name: identity
+    outlier:
+      name: identity
+    state_constructor: null
+
+  - name: observation_1
+    tag_type: observation
+    bounds:
+    - -1.0
+    - 1.0
+    imputer:
+      name: identity
+    outlier:
+      name: identity
+    state_constructor: null
+
+  - name: reward
+    tag_type: meta
+    bounds:
+    - null
+    - null
+    imputer:
+      name: identity
+    outlier:
+      name: identity
+    state_constructor: null
+
+  - name: terminated
+    tag_type: meta
+    bounds:
+    - null
+    - null
+    imputer:
+      name: identity
+    outlier:
+      name: identity
+    state_constructor: null
+
+  - name: truncated
+    tag_type: meta
+    bounds:
+    - null
+    - null
+    imputer:
+      name: identity
+    outlier:
+      name: identity
+    state_constructor: null

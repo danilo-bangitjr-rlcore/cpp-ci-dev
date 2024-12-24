@@ -1,10 +1,8 @@
 from corerl.configs.group import Group
-
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.sim_async_env import SimAsyncEnv, SimAsyncEnvConfig
-from corerl.environment.async_env.tsdb_async_stub_env import TSDBAsyncStubEnvConfig, TSDBAsyncStubEnv
-from corerl.data_pipeline.tag_config import TagConfig
-
+from corerl.environment.async_env.tsdb_async_stub_env import TSDBAsyncStubEnv, TSDBAsyncStubEnvConfig
 
 async_env_group = Group[
     [list[TagConfig]],

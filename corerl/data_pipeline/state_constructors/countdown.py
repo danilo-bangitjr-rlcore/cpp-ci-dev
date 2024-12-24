@@ -36,7 +36,7 @@ class DecisionPointDetector:
         self._action_tags: list[Hashable] = [
             tag.name
             for tag in tag_cfgs
-            if tag.is_action
+            if tag.tag_type == "action"
         ]
 
 

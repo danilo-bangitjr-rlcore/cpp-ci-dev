@@ -30,7 +30,7 @@ def init_environment(cfg: EnvironmentConfig) -> gym.Env:
     # proposed syntax, env defined directly in config
     match cfg.type:
         case 'gym.make':
-            return gym.make(cfg.name, render_mode=cfg.render_mode)
+            return gym.make(cfg.name, *cfg.args, **cfg.kwargs)
         case _:
             raise NotImplementedError
 

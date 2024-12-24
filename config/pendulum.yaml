@@ -54,49 +54,55 @@ pipeline:
     gamma: ${experiment.gamma}
 
   tags:
-  # observations
-    - name: "x"
-      outlier:
-        name: identity
-      state_constructor:
-        - name: multi_trace
-          trace_values: [0.95]
-
-    - name: "y"
-      outlier:
-        name: identity
-      state_constructor:
-        - name: multi_trace
-          trace_values: [0.95]
-
-    - name: "ang_vel"
-      outlier:
-        name: identity
-      state_constructor:
-        - name: multi_trace
-          trace_values: [0.95]
-
   # rl stuff
-    - name: action
-      is_action: True
-      outlier:
-        name: identity
-      state_constructor:
-        - name: normalize
-          min: -2
-          max: 2
-          from_data: False
+  - name: action
+    tag_type: action
+    outlier:
+      name: identity
+    state_constructor:
+    - name: normalize
+      min: -2
+      max: 2
+      from_data: False
 
-    - name: reward
-      outlier:
-        name: identity
+  # observations
+  - name: "x"
+    tag_type: observation
+    outlier:
+      name: identity
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0.95]
 
-    - name: term
-      outlier:
-        name: identity
+  - name: "y"
+    tag_type: observation
+    outlier:
+      name: identity
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0.95]
 
-    - name: trunc
-      outlier:
-        name: identity
-      state_constructor:
-        - name: 'null'
+  - name: "ang_vel"
+    tag_type: observation
+    outlier:
+      name: identity
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0.95]
+
+
+  - name: reward
+    tag_type: meta
+    outlier:
+      name: identity
+
+  - name: terminated
+    tag_type: meta
+    outlier:
+      name: identity
+
+  - name: truncated
+    tag_type: meta
+    outlier:
+      name: identity
+    state_constructor: null

@@ -44,35 +44,40 @@ pipeline:
     gamma: ${experiment.gamma}
 
   tags:
+  # meta tags
+  - name: reward
+    tag_type: meta
+    outlier:
+      name: identity
+
+  - name: terminated
+    tag_type: meta
+    outlier:
+      name: identity
+
+  - name: truncated
+    tag_type: meta
+    outlier:
+      name: identity
+    state_constructor:
+    - name: 'null'
+
   # observations
-    - name: tag-1
-      outlier:
-        name: identity
-      state_constructor:
-        - name: multi_trace
-          trace_values: [0.95]
+  - name: tag-1
+    tag_type: observation
+    outlier:
+      name: identity
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0.95]
 
-  # rl stuff
-    - name: action
-      is_action: True
-      outlier:
-        name: identity
-      state_constructor:
-        - name: normalize
-          min: -2
-          max: 2
-          from_data: False
-
-    - name: reward
-      outlier:
-        name: identity
-
-    - name: term
-      outlier:
-        name: identity
-
-    - name: trunc
-      outlier:
-        name: identity
-      state_constructor:
-        - name: 'null'
+  # actions
+  - name: action
+    tag_type: action
+    outlier:
+      name: identity
+    state_constructor:
+    - name: normalize
+      min: -2
+      max: 2
+      from_data: False

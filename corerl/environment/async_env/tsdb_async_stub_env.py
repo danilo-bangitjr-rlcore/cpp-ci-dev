@@ -1,11 +1,14 @@
+from dataclasses import field
+from datetime import UTC, datetime
+from typing import Any
+
 import numpy as np
 import pandas as pd
-from datetime import datetime, UTC
 
-from corerl.configs.config import config, MISSING
+from corerl.configs.config import MISSING, config
+from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig, TimeStats
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv
-from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig, TimeStats
 from corerl.environment.reward.scrubber import ScrubberReward, ScrubberRewardConfig
 
 
@@ -21,6 +24,8 @@ class TSDBAsyncStubEnvConfig:
     env_step_time: str = MISSING
     db: TagDBConfig = MISSING
     bucket_width: str = MISSING
+    args: list[str] = field(default_factory=list)
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 class TSDBAsyncStubEnv(AsyncEnv):
@@ -74,11 +79,11 @@ class TSDBAsyncStubEnv(AsyncEnv):
         ]
 
         self.obs_names = [
-            tag.name for tag in tags if not tag.is_action
+            tag.name for tag in tags if tag.tag_type == "observation"
         ]
 
         self.action_names = [
-            tag.name for tag in tags if tag.is_action
+            tag.name for tag in tags if tag.tag_type == "action"
         ]
 
         # This could come from a corerl reward function factory
@@ -113,8 +118,8 @@ class TSDBAsyncStubEnv(AsyncEnv):
             term = True
 
         res["reward"] = self._reward_func(res)
-        res["trunc"] = 0.0
-        res["term"] = term
+        res["truncated"] = 0.0
+        res["terminated"] = term
 
         return res
 

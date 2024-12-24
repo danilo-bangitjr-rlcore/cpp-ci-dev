@@ -1,22 +1,19 @@
 from dataclasses import field
-import numpy as np
-import pandas as pd
-import gymnasium as gym
-
 from datetime import UTC, datetime, timedelta
 
+import gymnasium as gym
+import numpy as np
+import pandas as pd
 from asyncua.sync import Client
 from asyncua.ua.uatypes import VariantType
 
 from corerl.configs.config import config
-from corerl.environment.async_env.async_env import AsyncEnv
-
-from corerl.environment.config import EnvironmentConfig
-from corerl.utils.gymnasium import gen_tag_configs_from_env
 
 # Data Pipline
-from corerl.data_pipeline.db.data_reader import DataReader
-from corerl.data_pipeline.db.data_reader import TagDBConfig
+from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
+from corerl.environment.async_env.async_env import AsyncEnv
+from corerl.environment.config import EnvironmentConfig
+from corerl.utils.gymnasium import gen_tag_configs_from_env
 
 
 @config()
@@ -54,8 +51,8 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         self.timedelta = cfg.timedelta # in minutes
 
-        self.action_tags = self.tags["action"]
-        self.observation_tags = self.tags["observation"]
+        self.action_tags = [tag for tag in self.tags if tag.tag_type == "action"]
+        self.observation_tags = [tag for tag in self.tags if tag.tag_type == "observation"]
 
         self.client = Client(self.url)
         self.client.connect()
@@ -84,5 +81,5 @@ class DeploymentAsyncEnv(AsyncEnv):
         now = datetime.now(UTC)
         end_time = now
         start_time = end_time - timedelta(minutes=self.timedelta)
-        sensor_names = [f"{tag.name}" for tag in self.observation_tags]
+        sensor_names = [tag.name for tag in self.observation_tags]
         return self.data_reader.single_aggregated_read(sensor_names, start_time=start_time, end_time=end_time)

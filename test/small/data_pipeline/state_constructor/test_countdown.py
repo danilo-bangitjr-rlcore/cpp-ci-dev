@@ -17,8 +17,8 @@ def test_int_countdown1():
     )
 
     tag_cfgs = [
-        TagConfig('tag-1', is_action=True),
-        TagConfig('tag-2', is_action=True),
+        TagConfig('tag-1', tag_type="action"),
+        TagConfig('tag-2', tag_type="action"),
     ]
 
     cd_cfg = CountdownConfig(
@@ -81,8 +81,8 @@ def test_int_countdown2():
     )
 
     tag_cfgs = [
-        TagConfig('tag-1', is_action=True),
-        TagConfig('tag-2', is_action=True),
+        TagConfig('tag-1', tag_type="action"),
+        TagConfig('tag-2', tag_type="action"),
     ]
 
     cd_cfg = CountdownConfig(
@@ -118,7 +118,7 @@ def test_int_countdown3():
     )
 
     tag_cfgs = [
-        TagConfig('tag-1', is_action=True),
+        TagConfig('tag-1', tag_type="action"),
     ]
 
     cd_cfg = CountdownConfig(
@@ -148,7 +148,7 @@ def test_two_clock1():
     )
 
     tag_cfgs = [
-        TagConfig('tag-1', is_action=True),
+        TagConfig('tag-1', tag_type="action"),
     ]
 
     cd_cfg = CountdownConfig(

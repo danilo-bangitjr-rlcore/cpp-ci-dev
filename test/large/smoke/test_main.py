@@ -5,6 +5,7 @@ import subprocess
 @pytest.mark.parametrize('config', [
     'pendulum',
     'saturation',
+    'mountain_car_continuous',
 ])
 @pytest.mark.timeout(120)
 def test_main_configs(config: str):

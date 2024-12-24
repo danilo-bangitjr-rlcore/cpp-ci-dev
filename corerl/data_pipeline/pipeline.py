@@ -153,7 +153,7 @@ class Pipeline:
 
     def get_state_action_dims(self):
         num_actions = sum(
-            tag.is_action for tag in self.tags
+            tag.tag_type == "action" for tag in self.tags
         )
 
         state_dim = self.state_constructor.state_dim()

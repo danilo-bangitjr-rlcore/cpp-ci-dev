@@ -33,23 +33,25 @@
             }
         },
         {
-            "name": "Python Debugger: main.py env=saturation.yaml",
+            "name": "Python Debugger: main.py --config-name saturation",
             "type": "debugpy",
             "request": "launch",
             "program": "main.py",
             "console": "integratedTerminal",
             "args": [
-                "env=saturation.yaml",
+                "--config-name",
+                "saturation"
             ]
         },
         {
-            "name": "Python Debugger: main.py env=mountain_car_continuous",
+            "name": "Python Debugger: main.py --config-name mountain_car_continuous",
             "type": "debugpy",
             "request": "launch",
             "program": "main.py",
             "console": "integratedTerminal",
             "args": [
-                "env=mountain_car_continuous",
+                "--config-name",
+                "mountain_car_continuous",
             ]
         },
         {

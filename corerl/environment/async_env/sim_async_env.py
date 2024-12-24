@@ -1,12 +1,15 @@
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta, UTC
+from typing import Any, SupportsFloat
+
+import gymnasium as gym
 import numpy as np
 import pandas as pd
-import gymnasium as gym
-from datetime import datetime, timedelta
-from corerl.configs.config import config, MISSING
-from dataclasses import dataclass
+
+from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv
-from corerl.utils.gym import space_bounds
+from corerl.utils.gym import space_bounds, space_shape
 
 
 @config()
@@ -15,15 +18,17 @@ class SimAsyncEnvConfig:
     gym_name: str = MISSING
     discrete_control: bool = False
     seed: int = 0
+    args: list[str] = field(default_factory=list)
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class StepData:
-    obs: np.ndarray
-    r: float
-    a: np.ndarray
-    trunc: bool
-    term: bool
+    observation: np.ndarray
+    reward: SupportsFloat
+    action: np.ndarray
+    truncated: bool
+    terminated: bool
 
 
 class SimAsyncEnv(AsyncEnv):
@@ -33,25 +38,22 @@ class SimAsyncEnv(AsyncEnv):
 
         shape = self._env.observation_space.shape
         assert shape is not None
-        assert len(shape) == 1, 'Cannot handle environments with non-vector observations'
+        assert len(shape) == 1, "Cannot handle environments with non-vector observations"
 
         self._action_bounds = space_bounds(self._env.action_space)
+        self._action_shape = space_shape(self._env.action_space)
 
-        # len(tags) should be the observation length
-        # + one tag for action, reward, trunc, term
-        assert shape[0] + 4 == len(tags), 'Received an unexpected number of tag configs'
+        self.tags = tags
 
-        self._tag_names = [
-            tag.name for tag in tags
-            if tag.name not in {'reward', 'action', 'trunc', 'term'}
-        ]
+        self._action_tag_names = [tag.name for tag in tags if tag.tag_type == "action"]
+        self._observation_tag_names = [tag.name for tag in tags if tag.tag_type == "observation"]
+        self._meta_tag_names = [tag.name for tag in tags if tag.tag_type == "meta"]
 
-        self.clock = datetime(1984, 1, 1)
+        self.clock = datetime(1984, 1, 1, tzinfo=UTC)
         self._clock_inc = timedelta(minutes=5)
 
         self._action: np.ndarray | None = None
         self._last_step: StepData | None = None
-
 
     # ------------------
     # -- AsyncEnv API --
@@ -62,13 +64,11 @@ class SimAsyncEnv(AsyncEnv):
         bias = lo
         self._action = scale * action + bias
 
-
     def get_latest_obs(self) -> pd.DataFrame:
         self.clock += self._clock_inc
 
-        if self._action is None or self._last_step is None or (self._last_step.term or self._last_step.trunc):
+        if self._action is None or self._last_step is None or (self._last_step.terminated or self._last_step.truncated):
             step = self._reset()
-
         else:
             step = self._step(self._action)
 
@@ -78,44 +78,48 @@ class SimAsyncEnv(AsyncEnv):
     # -- Gym API Translation --
     # -------------------------
     def _reset(self):
-        obs, *_ = self._env.reset()
+        observation, _info = self._env.reset()
 
         self._last_step = StepData(
-            obs=obs,
-            r=np.nan,
-            a=np.array([np.nan]),
-            trunc=False,
-            term=False,
+            observation=observation,
+            reward=np.nan,
+            action=np.full(self._action_shape, np.nan),
+            truncated=False,
+            terminated=False,
         )
+
         return self._last_step
 
     def _step(self, action: np.ndarray):
-        assert len(action) == 1
-
-        obs, r, term, trunc, _ = self._env.step(action)
+        observation, reward, terminated, truncated, _info = self._env.step(action)
         self._last_step = StepData(
-            obs=obs,
-            r=float(r),
-            a=action,
-            trunc=trunc,
-            term=term,
+            observation=observation,
+            reward=reward,
+            action=action,
+            truncated=truncated,
+            terminated=terminated,
         )
         return self._last_step
-
 
     def _obs_as_df(self, step: StepData):
         obs_data = {
             tag: val
-            for tag, val in zip(self._tag_names, step.obs, strict=True)
+            for tag, val
+            in zip(self._observation_tag_names, step.observation, strict=True)
         }
 
-        non_obs_data = {
-            'reward': step.r,
-            'action': step.a,
-            'trunc': step.trunc,
-            'term': step.term,
+        action_data = {
+            tag: val
+            for tag, val
+            in zip(self._action_tag_names, step.action, strict=True)
+        }
+
+        meta_data = {
+            "reward": step.reward,
+            "truncated": step.truncated,
+            "terminated": step.terminated,
         }
 
         idx = pd.DatetimeIndex([self.clock])
-        df = pd.DataFrame(obs_data | non_obs_data, index=idx)
+        df = pd.DataFrame(obs_data | action_data | meta_data, index=idx)
         return df
