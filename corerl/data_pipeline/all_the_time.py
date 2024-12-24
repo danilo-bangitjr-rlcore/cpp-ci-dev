@@ -51,7 +51,8 @@ def has_nan(obj: object) -> bool:
 
 
 def get_tags(df: pd.DataFrame, tags: list[str] | str) -> torch.Tensor:
-    data_np = df[tags].to_numpy().astype(np.float32)
+    valid_tags = [tag for tag in tags if tag in df.columns]
+    data_np = df[valid_tags].to_numpy().astype(np.float32)
     return tensor(data_np)
 
 
@@ -75,6 +76,11 @@ def _reset_step_info(min_n_step: int, max_n_step: int) -> StepInfo:
     return step_info
 
 
+def sort_df(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    valid_columns = [col for col in columns if col in df.columns]
+    return df.loc[:, valid_columns]
+
+
 class AllTheTimeTC:
     def __init__(
             self,
@@ -94,8 +100,9 @@ class AllTheTimeTC:
 
     def _make_steps(self, pf: PipelineFrame) -> list[Step]:
         """
-        Makes the steps for the pf
+        Sorts the columns of the pf, then extracts the relevant columns to make steps
         """
+        pf, actions, states = self._sort_columns(pf)
         df = pf.data
         actions = get_tags(df, self.action_tags)
 
@@ -120,7 +127,24 @@ class AllTheTimeTC:
                 dp=bool(dps[i]),
             )
             steps.append(step)
-        return steps
+        return pf, steps
+
+    def _sort_columns(self, pf: PipelineFrame) -> tuple[PipelineFrame, torch.Tensor, torch.Tensor]:
+        # already sorted in _init_tag_info...
+        pre_ordered_cols = self.action_tags + self.endo_tags + self.exo_tags
+        # state_cols are state columns WITHOUT observations
+        state_cols = sorted(
+            set(pf.data.columns) - set(pre_ordered_cols) - {'reward', 'trunc', 'term'})
+
+        sorted_cols = pre_ordered_cols + state_cols + ['reward', 'trunc', 'term']
+        assert set(pf.data.columns).issubset(set(sorted_cols))
+        pf.data = sort_df(pf.data, sorted_cols)
+
+        actions = get_tags(pf.data, self.action_tags)
+        state_tags = self.endo_tags + self.exo_tags + state_cols
+
+        states = get_tags(pf.data, state_tags)
+        return pf, actions, states
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         step_info = pf.temporal_state.get(
@@ -130,7 +154,8 @@ class AllTheTimeTC:
 
         assert isinstance(step_info, dict)
 
-        steps = self._make_steps(pf)
+        pf, steps = self._sort_and_make_steps(pf)
+
         transitions = []
         for step in steps:
             if has_nan(step):
