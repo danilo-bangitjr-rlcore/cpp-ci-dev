@@ -1,9 +1,9 @@
-import logging
-import shutil
+from dataclasses import dataclass
 from pathlib import Path
+import shutil
+import logging
 
 import gymnasium as gym
-import pandas as pd
 import yaml
 
 from corerl.configs.config import MISSING, config
@@ -15,11 +15,21 @@ from corerl.environment.factory import init_environment
 from corerl.utils.gymnasium import gen_tag_configs_from_env
 
 
-def generate_telegraf_conf(path: Path, df_ids):
+
+@dataclass
+class TagData:
+    id_name: str
+    name: str
+    ns: int
+    id_type: str = 's'
+
+
+def generate_telegraf_conf(path: Path, tag_data: list[TagData]):
+    _logger = logging.getLogger(__name__)
     shutil.copyfile(path / "telegraf/base_telegraf.conf", path / "telegraf/generated_telegraf.conf")
     block = ""
     with open(path / "telegraf/generated_telegraf.conf", "a") as f:
-        for row in df_ids.itertuples():
+        for row in tag_data:
             block += "[[inputs.opcua.nodes]]\n"
             block += " " * 2 + f'namespace = "{row.ns}"\n'
             block += " " * 2 + f'identifier_type = "{row.id_type}"\n'
@@ -66,18 +76,19 @@ def main(cfg: Config):
     _logger.info(f"Generating config with env {env}")
 
     tags = gen_tag_configs_from_env(env)
+    tag_data = [
+        TagData(
+            id_name=tag.name,
+            name=tag.name,
+            ns=cfg.env.opc_ns,
+        )
+        for tag in tags
+    ]
 
-    string_ids = (tag.name for tag in tags)
-
-    df_ids = pd.DataFrame(data=string_ids, columns=pd.Index(["id_name"]))
-    df_ids["ns"] = cfg.env.opc_ns
-    df_ids["id_type"] = "s"
-    df_ids["name"] = df_ids["id_name"]
     current_path = Path(__file__).parent.absolute()
 
-    _logger.info(f"Found {len(df_ids)} distinct nodes")
-    _logger.info(df_ids)
-    generate_telegraf_conf(current_path, df_ids)
+    _logger.info(f"Found {len(tag_data)} distinct nodes")
+    generate_telegraf_conf(current_path, tag_data)
     generate_tag_yaml(current_path, tags)
 
 
