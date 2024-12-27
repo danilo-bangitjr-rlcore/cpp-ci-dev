@@ -18,7 +18,6 @@ class TSDBAsyncStubEnvConfig:
     seed: int = 0
     discrete_control: bool = False
     gym_name: str = MISSING
-    aggregation: str = MISSING
     env_start_time: str = MISSING
     env_end_time: str = MISSING
     env_step_time: str = MISSING

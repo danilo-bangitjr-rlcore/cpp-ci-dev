@@ -14,7 +14,7 @@ env:
   name: sim_async_env
   gym_name: MountainCarContinuous-v0
   kwargs:
-    render_mode: human
+    # render_mode: human
     goal_velocity: 0.1
   discrete_control: False
   seed: 1

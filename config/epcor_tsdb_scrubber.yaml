@@ -13,6 +13,7 @@ env:
   env_end_time: "2024-12-15 23:00:00"
   env_step_time: "1h"
   gym_name: epcor_tsdb_scrubber
+  # aggregation: "avg"
 
 agent:
   name: greedy_ac

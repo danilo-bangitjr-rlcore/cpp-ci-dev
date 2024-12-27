@@ -4,19 +4,19 @@ from pathlib import Path
 import shutil
 import logging
 import yaml
+import json
 
 # Creating env from file
 import gymnasium as gym
 
+from corerl.config import MainConfig
 from corerl.configs.config import config
 from corerl.configs.loader import load_config
 from corerl.environment.async_env.deployment_async_env import DepAsyncEnvConfig
-from corerl.environment.factory import init_environment
 from corerl.utils.gymnasium import gen_tag_configs_from_env
 from corerl.data_pipeline.tag_config import TagConfig
 
 def generate_telegraf_conf(path: Path, df_ids):
-    _logger = logging.getLogger(__name__)
     shutil.copyfile(path / "telegraf/base_telegraf.conf", path / "telegraf/generated_telegraf.conf")
     block = ""
     with open(path / "telegraf/generated_telegraf.conf", "a") as f:
@@ -30,14 +30,20 @@ def generate_telegraf_conf(path: Path, df_ids):
             block += "\n"
         f.write(block)
 
-    _logger.info(f"Generetad {path}/telegraf/generated_telegraf.conf")
+    _logger.info(f"Generated {path}/telegraf/generated_telegraf.conf")
 
 
 def generate_tag_yaml(path: Path, tags: list[TagConfig]):
     tag_path = path / "generated_tags.yaml"
 
     with open(tag_path, "w+") as f:
-        yaml.safe_dump(tags, f)
+        # TagConfig is not serializable, so force conversion to json then to object then to yaml
+        raw_json_tags = json.dumps(
+            tags,
+            default=lambda o:o.__dict__,
+        )
+        raw_tags = json.loads(raw_json_tags)
+        yaml.safe_dump(raw_tags, f, sort_keys=False)
 
     _logger.info(f"Generated {tag_path}")
 
@@ -47,13 +53,13 @@ class Config:
     env: DepAsyncEnvConfig = field(default_factory=DepAsyncEnvConfig)
 
 
-@load_config(Config, base='config')
-def main(cfg: Config):
-    env: gym.Env = init_environment(cfg.env)
+@load_config(MainConfig, base='config')
+def main(cfg: MainConfig):
+    env: gym.Env = gym.make(cfg.env.gym_name)
     _logger.info(f"Generating config with env {env}")
 
     tags = gen_tag_configs_from_env(env)
-    ns = cfg.env.ns
+    ns = 2
 
     string_ids = (tag.name for tag in tags)
 
@@ -71,4 +77,5 @@ def main(cfg: Config):
 
 if __name__ == "__main__":
     _logger = logging.getLogger(__name__)
+    logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
     main()
