@@ -10,7 +10,7 @@ env:
   db: ${pipeline.db}
   bucket_width: "1h"
   env_start_time: "2024-12-15 00:00:00"
-  env_end_time: "2024-12-16 00:00:00"
+  env_end_time: "2024-12-15 23:00:00"
   env_step_time: "1h"
   gym_name: epcor_tsdb_scrubber
 
@@ -171,6 +171,7 @@ pipeline:
       reward_constructor:
         - name: "null"
       state_constructor: null
+      tag_type: action
 
     - name: "AIC3730_SPRL"
       bounds:
@@ -231,6 +232,7 @@ pipeline:
       reward_constructor:
         - name: "null"
       state_constructor: null
+      tag_type: action
 
     - name: "AIC3731_SPRL"
       bounds:
@@ -303,6 +305,7 @@ pipeline:
       reward_constructor:
         - name: "null"
       state_constructor: null
+      tag_type: action
 
     - name: "FIC3734_SPRL"
       bounds:
@@ -459,6 +462,7 @@ pipeline:
       reward_constructor:
         - name: "null"
       state_constructor: null
+      tag_type: action
 
     - name: "PDIC3738_SPRL"
       bounds:
@@ -519,3 +523,24 @@ pipeline:
       reward_constructor:
         - name: "null"
       state_constructor: null
+
+    - name: "reward"
+      tag_type: meta
+      outlier:
+        name: "identity"
+      imputer:
+        name: "identity"
+
+    - name: "terminated"
+      tag_type: meta
+      outlier:
+        name: "identity"
+      imputer:
+        name: "identity"
+
+    - name: "truncated"
+      tag_type: meta
+      outlier:
+        name: "identity"
+      imputer:
+        name: "identity"

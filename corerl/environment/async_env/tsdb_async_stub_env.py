@@ -104,7 +104,7 @@ class TSDBAsyncStubEnv(AsyncEnv):
             read_start = read_start - self.env_step_time
 
         res = self._data_reader.batch_aggregated_read(
-            self.names,
+            self.obs_names + self.action_names,
             read_start,
             self.current_start_time + self.env_step_time,
             self.bucket_width
@@ -118,7 +118,7 @@ class TSDBAsyncStubEnv(AsyncEnv):
             term = True
 
         res["reward"] = self._reward_func(res)
-        res["truncated"] = 0.0
+        res["truncated"] = False
         res["terminated"] = term
 
         return res

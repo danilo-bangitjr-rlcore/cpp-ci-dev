@@ -64,6 +64,10 @@ class DataReader:
             logger.warning(f"naive end_time passed, assuming {end_tz} and converting to UTC")
             end_time = end_time.replace(tzinfo=end_tz).astimezone(UTC)
 
+        # Add the width of the bucket to the end time for aggregation, otherwise
+        # latest bucket will aggregate only initially observed values
+        end_time = end_time + bucket_width
+
         # https://docs.timescale.com/api/latest/hyperfunctions/time_bucket/#time_bucket
         time_bucket_stmt = func.time_bucket(
             text(f"INTERVAL '{bucket_width}'"),
@@ -88,7 +92,7 @@ class DataReader:
             agg_stmt.label("val")
         ).filter(
             self.sensor_table.c["time"] >= text(f"TIMESTAMP '{start_time.isoformat()}'"),
-            self.sensor_table.c["time"] <= text(f"TIMESTAMP '{end_time.isoformat()}'"),
+            self.sensor_table.c["time"] < text(f"TIMESTAMP '{end_time.isoformat()}'"),
             self.sensor_table.c["name"].in_(names)
         ).group_by(
             text("time_bucket"), self.sensor_table.c["name"]
@@ -127,7 +131,9 @@ class DataReader:
         aggregation: Literal["avg"] | Literal["last"] = "avg",
     ):
         bucket_width = end_time - start_time
-        return self.batch_aggregated_read(names, start_time, end_time, bucket_width, aggregation)
+        df = self.batch_aggregated_read(names, start_time, end_time, bucket_width, aggregation)
+
+        return df.iloc[:1]
 
     def close(self) -> None:
         self.connection.close()
