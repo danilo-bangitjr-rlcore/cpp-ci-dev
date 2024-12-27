@@ -24,7 +24,7 @@ class TSDBAsyncStubEnvConfig:
     env_step_time: str = MISSING
     db: TagDBConfig = MISSING
     bucket_width: str = MISSING
-    args: list[str] = field(default_factory=list)
+    args: list[Any] = field(default_factory=list)
     kwargs: dict[str, Any] = field(default_factory=dict)
 
 

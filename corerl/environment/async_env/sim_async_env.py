@@ -18,7 +18,7 @@ class SimAsyncEnvConfig:
     gym_name: str = MISSING
     discrete_control: bool = False
     seed: int = 0
-    args: list[str] = field(default_factory=list)
+    args: list[Any] = field(default_factory=list)
     kwargs: dict[str, Any] = field(default_factory=dict)
 
 
@@ -33,7 +33,7 @@ class StepData:
 
 class SimAsyncEnv(AsyncEnv):
     def __init__(self, cfg: SimAsyncEnvConfig, tags: list[TagConfig]):
-        self._env = gym.make(cfg.gym_name)
+        self._env = gym.make(cfg.gym_name, *cfg.args, **cfg.kwargs)
         self._cfg = cfg
 
         shape = self._env.observation_space.shape
