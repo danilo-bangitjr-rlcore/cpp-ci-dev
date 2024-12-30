@@ -46,17 +46,20 @@ pipeline:
   tags:
   # meta tags
   - name: reward
-    tag_type: meta
+    is_action: False
+    is_meta: True
     outlier:
       name: identity
 
   - name: terminated
-    tag_type: meta
+    is_action: False
+    is_meta: True
     outlier:
       name: identity
 
   - name: truncated
-    tag_type: meta
+    is_action: False
+    is_meta: True
     outlier:
       name: identity
     state_constructor:
@@ -64,7 +67,8 @@ pipeline:
 
   # observations
   - name: tag-1
-    tag_type: observation
+    is_action: False
+    is_meta: False
     outlier:
       name: identity
     state_constructor:
@@ -73,7 +77,8 @@ pipeline:
 
   # actions
   - name: action
-    tag_type: action
+    is_action: True
+    is_meta: False
     outlier:
       name: identity
     state_constructor:

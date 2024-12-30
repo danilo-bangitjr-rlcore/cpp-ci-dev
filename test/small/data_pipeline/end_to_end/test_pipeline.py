@@ -33,8 +33,8 @@ def test_pipeline1():
                     TraceConfig(trace_values=[0.1]),
                 ],
             ),
-            TagConfig(name='action-1', tag_type="action"),
-            TagConfig(name="reward", tag_type="meta"),
+            TagConfig(name='action-1', is_action=True),
+            TagConfig(name="reward", is_meta=True),
         ],
         transition_creator=AllTheTimeTCConfig(
             max_n_step=2,
@@ -138,8 +138,8 @@ def test_pipeline2():
                     TraceConfig(trace_values=[0.1]),
                 ],
             ),
-            TagConfig(name='action-1', tag_type="action"),
-            TagConfig(name="reward", tag_type="meta"),
+            TagConfig(name='action-1', is_action=True),
+            TagConfig(name="reward", is_meta=True),
         ],
         transition_creator=AllTheTimeTCConfig(
             max_n_step=1,

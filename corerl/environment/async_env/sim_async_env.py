@@ -45,9 +45,9 @@ class SimAsyncEnv(AsyncEnv):
 
         self.tags = tags
 
-        self._action_tag_names = [tag.name for tag in tags if tag.tag_type == "action"]
-        self._observation_tag_names = [tag.name for tag in tags if tag.tag_type == "observation"]
-        self._meta_tag_names = [tag.name for tag in tags if tag.tag_type == "meta"]
+        self._action_tag_names = [tag.name for tag in tags if tag.is_action]
+        self._observation_tag_names = [tag.name for tag in tags if not tag.is_action and not tag.is_meta]
+        self._meta_tag_names = [tag.name for tag in tags if tag.is_meta]
 
         self.clock = datetime(1984, 1, 1, tzinfo=UTC)
         self._clock_inc = timedelta(minutes=5)

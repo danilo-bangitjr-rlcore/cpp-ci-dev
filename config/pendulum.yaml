@@ -56,7 +56,8 @@ pipeline:
   tags:
   # rl stuff
   - name: action
-    tag_type: action
+    is_action: True
+    is_meta: False
     outlier:
       name: identity
     state_constructor:
@@ -67,7 +68,8 @@ pipeline:
 
   # observations
   - name: "x"
-    tag_type: observation
+    is_action: False
+    is_meta: False
     outlier:
       name: identity
     state_constructor:
@@ -75,7 +77,8 @@ pipeline:
       trace_values: [0.95]
 
   - name: "y"
-    tag_type: observation
+    is_action: False
+    is_meta: False
     outlier:
       name: identity
     state_constructor:
@@ -83,7 +86,8 @@ pipeline:
       trace_values: [0.95]
 
   - name: "ang_vel"
-    tag_type: observation
+    is_action: False
+    is_meta: False
     outlier:
       name: identity
     state_constructor:
@@ -92,17 +96,20 @@ pipeline:
 
 
   - name: reward
-    tag_type: meta
+    is_action: False
+    is_meta: True
     outlier:
       name: identity
 
   - name: terminated
-    tag_type: meta
+    is_action: False
+    is_meta: True
     outlier:
       name: identity
 
   - name: truncated
-    tag_type: meta
+    is_action: False
+    is_meta: True
     outlier:
       name: identity
     state_constructor: null

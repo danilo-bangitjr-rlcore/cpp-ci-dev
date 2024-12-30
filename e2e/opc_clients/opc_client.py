@@ -52,7 +52,13 @@ def run(env: gym.Env, client: Client, cfg: Config):
 
     # for key, tags in tag_configs.items():
     for tag_idx, tag in enumerate(tag_configs):
-        opc_nodes[tag.tag_type] = opc_nodes.get(tag.tag_type, [])
+        tag_type = "observation"
+        if tag.is_action:
+            tag_type = "action"
+        elif tag.is_meta:
+            tag_type = "meta"
+
+        opc_nodes[tag_type] = opc_nodes.get(tag_type, [])
         id = make_opc_node_id(tag.name, ns)
         node = client.get_node(id)
         try:
@@ -62,11 +68,11 @@ def run(env: gym.Env, client: Client, cfg: Config):
             # instantiate first action as random sample, store in OPC
             val = 0.0
             var_type = VariantType.Double
-            if tag.tag_type == 'action':
+            if tag_type == 'action':
                 val = initial_action[tag_idx]
-            elif tag.tag_type == 'observation':
+            elif tag_type == 'observation':
                 val = initial_observation[tag_idx]
-            elif tag.tag_type == 'meta':
+            elif tag_type == 'meta':
                 if tag.name == 'reward':
                     val = 0.0
                 elif tag.name == 'truncated':
@@ -76,7 +82,7 @@ def run(env: gym.Env, client: Client, cfg: Config):
                     val = False
                     var_type = VariantType.Boolean
             node = folder.add_variable(id, tag.name, val, var_type)
-        opc_nodes[tag.tag_type].append(node)
+        opc_nodes[tag_type].append(node)
 
     # Run env forever using OPC for actions, observations, and rewards
     while True:

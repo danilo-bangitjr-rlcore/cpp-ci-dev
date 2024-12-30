@@ -65,15 +65,18 @@ def make_tc(max_n_step: int, min_n_step: int = 1) -> AllTheTimeTC:
     tags = [
         TagConfig(
             name='state',
-            tag_type="observation",
+            is_action=False,
+            is_meta=False,
         ),
         TagConfig(
             name='action',
-            tag_type="action",
+            is_action=True,
+            is_meta=False,
         ),
         TagConfig(
             name='reward',
-            tag_type="meta",
+            is_action=False,
+            is_meta=True,
         )
     ]
 

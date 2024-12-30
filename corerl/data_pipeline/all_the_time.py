@@ -83,8 +83,8 @@ class AllTheTimeTC:
     ):
         self.cfg = cfg
         self.tag_configs = tag_configs
-        self.action_tags = [tag.name for tag in tag_configs if tag.tag_type == "action"]
-        self.meta_tags = [tag.name for tag in tag_configs if tag.tag_type == "meta"]
+        self.action_tags = [tag.name for tag in tag_configs if tag.is_action]
+        self.meta_tags = [tag.name for tag in tag_configs if tag.is_meta]
 
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
@@ -102,7 +102,7 @@ class AllTheTimeTC:
         # NOTE: cannot use tag configs here because state dataframe columns
         # may have been mutated by a pipeline stage (e.g. suffix norm_trace)
         # state_tags = [
-        #     tag_config.name for tag_config in self.tag_configs if tag_config.tag_type == "observation"
+        #     tag_config.name for tag_config in self.tag_configs if not tag.is_action and not tag.is_meta
         # ]
         state_tags = sorted(set(df.columns) - set(self.action_tags) - set(self.meta_tags))
         states = get_tags(df, state_tags)

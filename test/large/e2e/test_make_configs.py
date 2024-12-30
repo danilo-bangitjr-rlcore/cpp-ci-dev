@@ -37,7 +37,8 @@ def test_make_configs(request):
             "imputer": {"name": "identity"},
             "reward_constructor": [{"name": "null"}],
             "state_constructor": None,
-            "tag_type": "meta",
+            "is_action": False,
+            "is_meta": True,
         },
         {
             "name": "terminated",
@@ -46,7 +47,8 @@ def test_make_configs(request):
             "imputer": {"name": "identity"},
             "reward_constructor": [{"name": "null"}],
             "state_constructor": None,
-            "tag_type": "meta",
+            "is_action": False,
+            "is_meta": True,
         },
         {
             "name": "truncated",
@@ -55,7 +57,8 @@ def test_make_configs(request):
             "imputer": {"name": "identity"},
             "reward_constructor": [{"name": "null"}],
             "state_constructor": None,
-            "tag_type": "meta",
+            "is_action": False,
+            "is_meta": True,
         },
         {
             "name": "action_0",
@@ -64,8 +67,9 @@ def test_make_configs(request):
             "imputer": {"name": "identity"},
             "reward_constructor": [{"name": "null"}],
             "state_constructor": None,
-            "tag_type": "action",
-        },
+            "is_action": True,
+            "is_meta": False,
+         },
         {
             "name": "observation_0",
             "bounds": [-1.0, 1.0],
@@ -73,8 +77,9 @@ def test_make_configs(request):
             "imputer": {"name": "identity"},
             "reward_constructor": [{"name": "null"}],
             "state_constructor": None,
-            "tag_type": "observation",
-        },
+            "is_action": False,
+            "is_meta": False,
+         },
         {
             "name": "observation_1",
             "bounds": [-1.0, 1.0],
@@ -82,6 +87,7 @@ def test_make_configs(request):
             "imputer": {"name": "identity"},
             "reward_constructor": [{"name": "null"}],
             "state_constructor": None,
-            "tag_type": "observation",
+            "is_action": False,
+            "is_meta": False,
         },
     ]

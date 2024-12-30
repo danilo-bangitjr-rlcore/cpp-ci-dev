@@ -91,17 +91,18 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
             tags=[
                 TagConfig(
                     name="Action",
-                    tag_type="action",
+                    is_action=True,
                     bounds=(0.0, 1.0)
                 ),
                 TagConfig(
                     name="Tag_1",
-                    tag_type="observation",
+                    is_action=False,
+                    is_meta=False,
                     reward_constructor=[
                         LessThanConfig(threshold=3),
                     ],
                 ),
-                TagConfig(name="reward", tag_type="meta"),
+                TagConfig(name="reward", is_meta=True),
             ],
             db=test_db_config,
             obs_interval_minutes=int(obs_period_sec / 60),
@@ -135,7 +136,7 @@ def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, step
     for i in range(steps):
         for tag_cfg in offline_cfg.pipeline.tags:
             tag = tag_cfg.name
-            if tag_cfg.tag_type == "action":
+            if tag_cfg.is_action:
                 val = int(i / steps_per_decision) % 2
             else:
                 val = i

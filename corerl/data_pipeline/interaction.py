@@ -25,7 +25,7 @@ class InteractionWrapper:
         self._non_state_tags = set(
             tag.name
             for tag in tag_configs
-            if tag.tag_type != "observation"
+            if tag.is_action or tag.is_meta
         )
 
         self._last_time: datetime | None = None

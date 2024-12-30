@@ -1,4 +1,3 @@
-from typing import Literal
 from pydantic import Field
 from corerl.configs.config import config, MISSING, list_
 from corerl.data_pipeline.imputers.factory import ImputerConfig
@@ -24,4 +23,5 @@ class TagConfig:
     imputer: ImputerConfig = Field(default_factory=IdentityImputerConfig, discriminator='name')
     reward_constructor: list[TransformConfig] = list_([NullConfig()])
     state_constructor: list[TransformConfig] | None = None
-    tag_type: Literal['action', 'observation', 'meta'] = 'observation'
+    is_action: bool = False
+    is_meta: bool = False

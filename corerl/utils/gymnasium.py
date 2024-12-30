@@ -33,7 +33,8 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
             # imputer= None,
             # reward_constructor= None,
             state_constructor=None,
-            tag_type="meta",
+            is_action=False,
+            is_meta=True,
         )
     )
     tag_configs.append(
@@ -44,7 +45,8 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
             # imputer= None,
             # reward_constructor= None,
             state_constructor=None,
-            tag_type="meta",
+            is_action=False,
+            is_meta=True,
         )
     )
     tag_configs.append(
@@ -55,10 +57,10 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
             # imputer= None,
             # reward_constructor= None,
             state_constructor=None,
-            tag_type="meta",
+            is_action=False,
+            is_meta=True,
         )
     )
-
 
     for i in range(n_actions):
         tag_configs.append(
@@ -69,7 +71,7 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
                 # imputer= None,
                 # reward_constructor= None,
                 state_constructor=None,
-                tag_type="action",
+                is_action=True,
             )
         )
 
@@ -82,9 +84,9 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
                 # imputer= None,
                 # reward_constructor= None,
                 state_constructor=None,
-                tag_type="observation",
+                is_action=False,
+                is_meta=False,
             )
         )
-
 
     return tag_configs

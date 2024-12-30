@@ -45,11 +45,11 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
         ]
 
         self.obs_names = [
-            tag.name for tag in tags if tag.tag_type == "observation"
+            tag.name for tag in tags if not tag.is_action and not tag.is_meta
         ]
 
         self.action_names = [
-            tag.name for tag in tags if tag.tag_type == "action"
+            tag.name for tag in tags if tag.is_action
         ]
 
     def emit_action(self, action: np.ndarray) -> None:

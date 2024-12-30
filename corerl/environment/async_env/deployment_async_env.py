@@ -51,8 +51,8 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         self.timedelta = cfg.timedelta # in minutes
 
-        self.action_tags = [tag for tag in self.tags if tag.tag_type == "action"]
-        self.observation_tags = [tag for tag in self.tags if tag.tag_type == "observation"]
+        self.action_tags = [tag for tag in self.tags if tag.is_action]
+        self.observation_tags = [tag for tag in self.tags if not tag.is_action and not tag.is_meta]
 
         self.client = Client(self.url)
         self.client.connect()
