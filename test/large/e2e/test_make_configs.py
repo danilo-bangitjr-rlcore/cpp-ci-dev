@@ -21,7 +21,7 @@ def test_make_configs(request):
             "python",
             "e2e/make_configs.py",
             "--config-name",
-            "mountain_car_continuous",
+            "opc_mountain_car_continuous",
         ],
         cwd=root_path,
     )

@@ -66,6 +66,17 @@
             ]
         },
         {
+            "name": "python main.py --config-name opc_mountain_car_continuous",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--config-name",
+                "opc_mountain_car_continuous",
+            ]
+        },
+        {
             "name": "Python Debugger: Current File",
             "type": "debugpy",
             "request": "launch",

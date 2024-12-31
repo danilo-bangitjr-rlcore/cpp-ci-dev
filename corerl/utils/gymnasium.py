@@ -1,6 +1,7 @@
 import gymnasium as gym
 
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 
 
 def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
@@ -29,7 +30,7 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
     tag_configs.append(
         TagConfig(
             name="reward",
-            # outlier= None,
+            outlier=IdentityFilterConfig(),
             # imputer= None,
             # reward_constructor= None,
             state_constructor=None,
@@ -41,7 +42,7 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
         TagConfig(
             name="terminated",
             # note: bounds is (None, None) but these are booleans
-            # outlier= None,
+            outlier=IdentityFilterConfig(),
             # imputer= None,
             # reward_constructor= None,
             state_constructor=None,
@@ -53,7 +54,7 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
         TagConfig(
             name="truncated",
             # note: bounds is (None, None) but these are booleans
-            # outlier= None,
+            outlier=IdentityFilterConfig(),
             # imputer= None,
             # reward_constructor= None,
             state_constructor=None,
@@ -67,7 +68,7 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
             TagConfig(
                 name=f"action_{i}",
                 bounds=(action_space.low[0].item(), action_space.high[0].item()),
-                # outlier= None,
+                outlier=IdentityFilterConfig(),
                 # imputer= None,
                 # reward_constructor= None,
                 state_constructor=None,
@@ -80,7 +81,7 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
             TagConfig(
                 name=f"observation_{i}",
                 bounds=(action_space.low[0].item(), action_space.high[0].item()),
-                # outlier= None,
+                outlier=IdentityFilterConfig(),
                 # imputer= None,
                 # reward_constructor= None,
                 state_constructor=None,

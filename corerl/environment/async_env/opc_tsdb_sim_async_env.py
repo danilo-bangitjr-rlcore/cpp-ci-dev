@@ -1,13 +1,16 @@
+import atexit
 from datetime import UTC, datetime, timedelta
 from time import sleep
 
 import numpy as np
 import pandas as pd
+from asyncua.sync import Client
 
 from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv, BaseAsyncEnvConfig
+from corerl.utils.opc_connection import make_opc_node_id
 
 
 @config()
@@ -16,11 +19,23 @@ class OPCTSDBSimAsyncEnvConfig(BaseAsyncEnvConfig):
     db: TagDBConfig = MISSING
     bucket_width: str = MISSING
     opc_conn_url: str = MISSING
+    opc_ns: int = MISSING  # OPC node namespace, this is almost always going to be `2`
+    sleep_sec: int = 10
 
 
 class OPCTSDBSimAsyncEnv(AsyncEnv):
     """The OPC TSDB Sim Async Env exposes a mechanism to interact with a farama gym environment using OPC to represent
     writing actions and TSDB to read observations/state.
+
+    This environment may be used with config **env.name: opc_tsdb_sim_async_env**.
+
+    1. Create a new config with a farama gym environment within **env.gym_name** that contains continuous actions.
+    2. Run **e2e/make_configs.py** with the configuration to generate the telegraf and OPC yaml tag configs.
+    3. Add the generated yaml tag configs stub to the new config.
+    4. Run **docker compose up** to create the OPC server, postgres DB, and configured telegraf service.
+    5. Run **e2e/opc_client.py** with the configuration to start the farama gym environment.
+    6. Run **main.py** with the configuration to start the agent that communicates using TSDB/OPC.
+
     """
 
     def __init__(self, cfg: OPCTSDBSimAsyncEnvConfig, tag_configs: list[TagConfig]):
@@ -33,19 +48,28 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
         self.env_start_time = datetime.now(UTC)
         self.current_start_time = self.env_start_time
 
-        self.tag_configs = tag_configs
+        self.names = [tag.name for tag in tag_configs]
 
         self.obs_names = [tag.name for tag in tag_configs if not tag.is_action and not tag.is_meta]
         self.action_names = [tag.name for tag in tag_configs if tag.is_action]
         self.meta_names = [tag.name for tag in tag_configs if tag.is_meta]
 
+        self.opc_client = Client(cfg.opc_conn_url)
+        self.opc_client.connect()
+        atexit.register(self.opc_client.disconnect)
+
+        # define opc action nodes
+        self.action_nodes = []
+        for tag in tag_configs:
+            if not tag.is_action:
+                continue
+            id = make_opc_node_id(tag.name, cfg.opc_ns)
+            node = self.opc_client.get_node(id)
+            self.action_nodes.append(node)
+
+
     def emit_action(self, action: np.ndarray) -> None:
-        """
-        Because this environment is intended to verify correctness of the interaction
-        between the TSDB data source and our pipeline and not intended to train an agent
-        emiting an action here is a no-op.
-        """
-        pass
+        self.opc_client.write_values(self.action_nodes, action.tolist())
 
     def get_latest_obs(self) -> pd.DataFrame:
         read_start = self.current_start_time
