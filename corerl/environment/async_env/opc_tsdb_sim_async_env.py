@@ -1,5 +1,4 @@
-import atexit
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from time import sleep
 
 import numpy as np
@@ -54,9 +53,8 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
         self.action_names = [tag.name for tag in tag_configs if tag.is_action]
         self.meta_names = [tag.name for tag in tag_configs if tag.is_meta]
 
-        self.opc_client = Client(cfg.opc_conn_url)
-        self.opc_client.connect()
-        atexit.register(self.opc_client.disconnect)
+        self._opc_client = Client(cfg.opc_conn_url)
+        self._opc_client.connect()
 
         # define opc action nodes
         self.action_nodes = []
@@ -64,12 +62,11 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
             if not tag.is_action:
                 continue
             id = make_opc_node_id(tag.name, cfg.opc_ns)
-            node = self.opc_client.get_node(id)
+            node = self._opc_client.get_node(id)
             self.action_nodes.append(node)
 
-
     def emit_action(self, action: np.ndarray) -> None:
-        self.opc_client.write_values(self.action_nodes, action.tolist())
+        self._opc_client.write_values(self.action_nodes, action.tolist())
 
     def get_latest_obs(self) -> pd.DataFrame:
         read_start = self.current_start_time
@@ -102,3 +99,10 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
         res = get_obs_df()
         self.current_start_time += self.bucket_width
         return res
+
+    def cleanup(self):
+        """
+        Close the OPC client and datareader sql connection
+        """
+        self._data_reader.close()
+        self._opc_client.disconnect()

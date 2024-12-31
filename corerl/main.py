@@ -40,23 +40,29 @@ def main(cfg: MainConfig):
     pipeline = Pipeline(cfg.pipeline)
 
     env = init_async_env(cfg.env, cfg.pipeline.tags)
+    try:
+        state_dim, action_dim = pipeline.get_state_action_dims()
+        agent = init_agent(
+            cfg.agent,
+            state_dim,
+            action_dim,
+        )
 
-    state_dim, action_dim = pipeline.get_state_action_dims()
-    agent = init_agent(
-        cfg.agent,
-        state_dim,
-        action_dim,
-    )
+        interaction = SimInteraction(
+            agent,
+            env,
+            pipeline,
+            cfg.pipeline.tags,
+        )
 
-    interaction = SimInteraction(
-        agent,
-        env,
-        pipeline,
-        cfg.pipeline.tags,
-    )
+        for _ in tqdm(range(cfg.experiment.max_steps)):
+            interaction.step()
 
-    for _ in tqdm(range(cfg.experiment.max_steps)):
-        interaction.step()
+    except Exception as e:
+        log.exception(e)
+
+    finally:
+        env.cleanup()
 
 if __name__ == "__main__":
     main()
