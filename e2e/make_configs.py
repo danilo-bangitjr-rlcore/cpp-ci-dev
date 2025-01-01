@@ -11,9 +11,9 @@ from corerl.configs.config import MISSING, config
 from corerl.configs.loader import config_to_dict, load_config
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.factory import AsyncEnvConfig
-from corerl.utils.gymnasium import gen_tag_configs_from_env
 from corerl.environment.async_env.opc_tsdb_sim_async_env import OPCTSDBSimAsyncEnvConfig
 from corerl.environment.factory import init_environment
+from corerl.utils.gymnasium import gen_tag_configs_from_env
 
 
 def generate_telegraf_conf(path: Path, df_ids):

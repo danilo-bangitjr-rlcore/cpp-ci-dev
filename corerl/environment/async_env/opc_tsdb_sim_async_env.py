@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime
 from time import sleep
 
@@ -11,6 +12,7 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv, BaseAsyncEnvConfig
 from corerl.utils.opc_connection import make_opc_node_id
 
+log = logging.getLogger(__name__)
 
 @config()
 class OPCTSDBSimAsyncEnvConfig(BaseAsyncEnvConfig):
@@ -20,7 +22,7 @@ class OPCTSDBSimAsyncEnvConfig(BaseAsyncEnvConfig):
     opc_conn_url: str = MISSING
     opc_ns: int = MISSING  # OPC node namespace, this is almost always going to be `2`
     sleep_sec: int = 10
-
+    obs_fetch_attempts: int = 20
 
 class OPCTSDBSimAsyncEnv(AsyncEnv):
     """The OPC TSDB Sim Async Env exposes a mechanism to interact with a farama gym environment using OPC to represent
@@ -43,6 +45,7 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
         self.bucket_width = pd_bucket_width.to_pytimedelta()
 
         self._data_reader = DataReader(db_cfg=cfg.db)
+        self.obs_fetch_attempts = cfg.obs_fetch_attempts
 
         self.env_start_time = datetime.now(UTC)
         self.current_start_time = self.env_start_time

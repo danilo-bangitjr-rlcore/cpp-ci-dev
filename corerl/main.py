@@ -2,6 +2,8 @@
 
 import logging
 import random
+import sys
+import os
 
 import numpy as np
 import torch
@@ -19,7 +21,11 @@ from corerl.interaction.sim_interaction import SimInteraction
 from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
-
+# logging.basicConfig(
+#     format="%(asctime)s %(levelname)s: %(message)s",
+#     encoding="utf-8",
+#     level=logging.DEBUG,
+# )
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
@@ -60,6 +66,7 @@ def main(cfg: MainConfig):
 
     except Exception as e:
         log.exception(e)
+        sys.exit(os.EX_SOFTWARE)
 
     finally:
         env.cleanup()
