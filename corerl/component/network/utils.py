@@ -166,10 +166,8 @@ def state_to_tensor(state: numpy.ndarray,  device: str | torch.device | None = N
 def to_np(t: numpy.ndarray | torch.Tensor) -> numpy.ndarray:
     if isinstance(t, torch.Tensor):
         return t.cpu().detach().numpy()
-    elif isinstance(t, numpy.ndarray):
-        return t
     else:
-        raise AssertionError("")
+        return t
 
 
 def init_activation(name: str) -> type[nn.Module]:
