@@ -1,17 +1,18 @@
-import pandas as pd
-from pathlib import Path
-import shutil
 import logging
-import yaml
+import shutil
+from pathlib import Path
 
 # Creating env from file
 import gymnasium as gym
+import pandas as pd
+import yaml
 
-from corerl.environment.async_env.factory import AsyncEnvConfig
-from corerl.configs.config import config, MISSING
-from corerl.configs.loader import load_config, config_to_dict
-from corerl.utils.gymnasium import gen_tag_configs_from_env
+from corerl.configs.config import MISSING, config
+from corerl.configs.loader import config_to_dict, load_config
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.environment.async_env.factory import AsyncEnvConfig
+from corerl.utils.gymnasium import gen_tag_configs_from_env
+
 
 def generate_telegraf_conf(path: Path, df_ids):
     shutil.copyfile(path / "telegraf/base_telegraf.conf", path / "telegraf/generated_telegraf.conf")
@@ -34,7 +35,6 @@ def generate_tag_yaml(path: Path, tags: list[TagConfig]):
     tag_path = path / "generated_tags.yaml"
 
     with open(tag_path, "w+") as f:
-        # TagConfig is not serializable, so force conversion to json then to object then to yaml
         raw_tags = config_to_dict(list[TagConfig], tags)
         yaml.safe_dump(raw_tags, f, sort_keys=False)
 
