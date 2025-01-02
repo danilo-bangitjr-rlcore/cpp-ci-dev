@@ -1,8 +1,13 @@
-import pytest
 import subprocess
 from os import path
 
+import gymnasium as gym
+import pytest
 import yaml
+
+from corerl.configs.loader import config_to_dict, dict_to_config
+from corerl.data_pipeline.tag_config import TagConfig
+from corerl.utils.gymnasium import gen_tag_configs_from_env
 
 
 @pytest.mark.timeout(240)
@@ -29,65 +34,8 @@ def test_make_configs(request):
     with open(path.join(root_path, "e2e", "generated_tags.yaml")) as f:
         raw_tag_configs = yaml.safe_load(f)
 
-    assert raw_tag_configs == [
-        {
-            "name": "reward",
-            "bounds": [None, None],
-            "outlier": {"name": "exp_moving", "alpha": 0.99, "tolerance": 2.0, "warmup": 10},
-            "imputer": {"name": "identity"},
-            "reward_constructor": [{"name": "null"}],
-            "state_constructor": None,
-            "is_action": False,
-            "is_meta": True,
-        },
-        {
-            "name": "terminated",
-            "bounds": [None, None],
-            "outlier": {"name": "exp_moving", "alpha": 0.99, "tolerance": 2.0, "warmup": 10},
-            "imputer": {"name": "identity"},
-            "reward_constructor": [{"name": "null"}],
-            "state_constructor": None,
-            "is_action": False,
-            "is_meta": True,
-        },
-        {
-            "name": "truncated",
-            "bounds": [None, None],
-            "outlier": {"name": "exp_moving", "alpha": 0.99, "tolerance": 2.0, "warmup": 10},
-            "imputer": {"name": "identity"},
-            "reward_constructor": [{"name": "null"}],
-            "state_constructor": None,
-            "is_action": False,
-            "is_meta": True,
-        },
-        {
-            "name": "action_0",
-            "bounds": [-1.0, 1.0],
-            "outlier": {"name": "exp_moving", "alpha": 0.99, "tolerance": 2.0, "warmup": 10},
-            "imputer": {"name": "identity"},
-            "reward_constructor": [{"name": "null"}],
-            "state_constructor": None,
-            "is_action": True,
-            "is_meta": False,
-         },
-        {
-            "name": "observation_0",
-            "bounds": [-1.0, 1.0],
-            "outlier": {"name": "exp_moving", "alpha": 0.99, "tolerance": 2.0, "warmup": 10},
-            "imputer": {"name": "identity"},
-            "reward_constructor": [{"name": "null"}],
-            "state_constructor": None,
-            "is_action": False,
-            "is_meta": False,
-         },
-        {
-            "name": "observation_1",
-            "bounds": [-1.0, 1.0],
-            "outlier": {"name": "exp_moving", "alpha": 0.99, "tolerance": 2.0, "warmup": 10},
-            "imputer": {"name": "identity"},
-            "reward_constructor": [{"name": "null"}],
-            "state_constructor": None,
-            "is_action": False,
-            "is_meta": False,
-        },
-    ]
+    env = gym.make("MountainCarContinuous-v0")
+    tag_configs = gen_tag_configs_from_env(env)
+    expected_raw_tag_configs = config_to_dict(list[TagConfig], tag_configs)
+
+    assert dict_to_config(list[TagConfig], raw_tag_configs) == dict_to_config(list[TagConfig], expected_raw_tag_configs)
