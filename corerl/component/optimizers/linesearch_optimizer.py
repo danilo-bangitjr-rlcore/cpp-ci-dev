@@ -273,7 +273,7 @@ class LineSearchOpt:
         self.inner_count += 1
         return
 
-    def __reset_lr(self, opt: Optimizer | EnsembleOptimizer, new_lr) -> None:
+    def __reset_lr(self, opt: Optimizer | EnsembleOptimizer, new_lr: float) -> None:
         for g in opt.param_groups:
             g['lr'] = new_lr
 

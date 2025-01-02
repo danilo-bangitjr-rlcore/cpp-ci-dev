@@ -15,7 +15,7 @@ class EnsembleOptimizer:
             opt.zero_grad()
         return
 
-    def step(self, *args, **kwargs) -> None:
+    def step(self, *args: Any, **kwargs: Any) -> None:
         for opt in self.optim:
             opt.step(*args, **kwargs)
         return
