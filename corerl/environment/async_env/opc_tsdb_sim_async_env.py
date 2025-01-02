@@ -50,7 +50,7 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
         self.env_start_time = datetime.now(UTC)
         self.current_start_time = self.env_start_time
 
-        self.names = [tag.name for tag in tag_configs]
+        self.tag_configs = tag_configs
 
         self.obs_names = [tag.name for tag in tag_configs if not tag.is_action and not tag.is_meta]
         self.action_names = [tag.name for tag in tag_configs if tag.is_action]
@@ -69,7 +69,23 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
             self.action_nodes.append(node)
 
     def emit_action(self, action: np.ndarray) -> None:
-        self._opc_client.write_values(self.action_nodes, action.tolist())
+        denormalized_actions = []
+        action_tag_configs = [tag for tag in self.tag_configs if tag.is_action]
+        assert len(action.flatten()) == len(action_tag_configs)
+
+        for act_i in range(len(action.flatten())):
+            # denormalize the action if possible, otherwise emit normalized action
+            raw_action = action.flatten()[act_i]
+            try:
+                action_tag_config = action_tag_configs[act_i]
+                lo, hi = action_tag_config.bounds
+                assert isinstance(lo, float) and isinstance(hi, float)
+                scale = hi - lo
+                bias = lo
+                denormalized_actions.append(scale * raw_action + bias)
+            except AssertionError:
+                denormalized_actions.append(raw_action)
+        self._opc_client.write_values(self.action_nodes, denormalized_actions)
 
     def get_latest_obs(self) -> pd.DataFrame:
         read_start = self.current_start_time
