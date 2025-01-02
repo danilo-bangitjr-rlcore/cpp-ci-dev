@@ -1,9 +1,10 @@
-import time
-from datetime import datetime, UTC, timedelta
-import subprocess
 import multiprocessing
+import subprocess
+import time
+from datetime import UTC, datetime, timedelta
 
 import pytest
+
 from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
 
 raw_service_names = [
@@ -75,7 +76,8 @@ def run_make_configs(request):
 
 @pytest.fixture(scope="module")
 def run_docker_compose(run_make_configs, request):
-    """Run docker compose up to spin up services, cleanup after yield"""
+    """Run docker compose up to spin up services, cleanup after yield
+    """
     proc = subprocess.run(
         ["docker", "compose", "up", "-d"],
         stdout=subprocess.DEVNULL,
@@ -99,8 +101,9 @@ def run_docker_compose(run_make_configs, request):
 
 @pytest.fixture(scope="module")
 def check_opc_server_ready(run_docker_compose, request):
-    # check for the 'counter' stub value that is emitted within the
-    # OPC server, ensure that it's being picked up by telegraf
+    """Check for the 'counter' stub value that is emitted within the OPC server,
+    ensure that it's being picked up by telegraf.
+    """
     start = datetime.now(UTC)
     successful_query = False
     query_attempts = 0
@@ -127,10 +130,8 @@ def check_opc_server_ready(run_docker_compose, request):
 @pytest.fixture(scope="module")
 def run_background_opc_client(check_opc_server_ready, request):
     """Run the OPC Client simulated farama environment"""
-    # for some reason Popen does keep the simulation farama gym running
-    # proc = subprocess.Popen(
-
-    # instead, use subprocess.run within multiprocessing
+    # for some reason Popen failes to keep the simulation farama gym running as daemon
+    # using proc = subprocess.Popen, use subprocess.run within multiprocessing process instead
     def subproc_run():
         subprocess.run(
             ["uv", "run", "python", "e2e/opc_clients/opc_client.py", "--config-name", "opc_mountain_car_continuous"],
@@ -148,8 +149,9 @@ def run_background_opc_client(check_opc_server_ready, request):
 
 @pytest.fixture(scope="module")
 def check_sim_farama_environment_ready(run_background_opc_client, request):
-    # check for the opc_client values that are emitted within the
-    # farama gym environment simulation, ensure that it's being picked up by telegraf
+    """Check for the opc_client values that are emitted within the farama gym environment simulation,
+    ensure that it's being picked up by telegraf.
+    """
     successful_query = False
     query_attempts = 0
     while not successful_query:

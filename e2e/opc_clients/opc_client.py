@@ -4,6 +4,7 @@
 # all agent observations are performed through timescale DB
 
 import logging
+from dataclasses import field
 from time import sleep
 
 import gymnasium as gym
@@ -11,12 +12,20 @@ from asyncua.sync import Client, SyncNode
 from asyncua.ua.uaerrors import BadNodeIdExists, BadNodeIdUnknown
 from asyncua.ua.uatypes import VariantType
 
-from corerl.config import MainConfig
+from corerl.configs.config import MISSING, config
 from corerl.configs.loader import load_config
-from corerl.environment.factory import init_environment
-from corerl.environment.async_env.opc_tsdb_sim_async_env import OPCTSDBSimAsyncEnvConfig
+from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.environment.async_env.factory import AsyncEnvConfig
+from corerl.environment.async_env.opc_tsdb_sim_async_env import OPCTSDBSimAsyncEnvConfig
+from corerl.environment.factory import init_environment
 from corerl.utils.opc_connection import make_opc_node_id
+
+
+@config(allow_extra=True)
+class Config:
+    env: AsyncEnvConfig = MISSING
+    pipeline: PipelineConfig = field(default_factory=PipelineConfig)
 
 
 def initialize_opc_folder(client, cfg_env):
@@ -116,8 +125,8 @@ def run(env: gym.Env, client: Client, cfg_env: OPCTSDBSimAsyncEnvConfig, tag_con
         step_counter += 1
 
 
-@load_config(MainConfig, base="config/")
-def main(cfg: MainConfig):
+@load_config(Config, base="config/")
+def main(cfg: Config):
     assert isinstance(cfg.env, OPCTSDBSimAsyncEnvConfig), "opc client sim only supported for OPCTSDBSimAsyncEnvConfig"
     env: gym.Env = init_environment(cfg.env)
     _logger.info(f"Running OPC env simulation {env}")
