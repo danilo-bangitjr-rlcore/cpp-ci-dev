@@ -6,7 +6,7 @@ from gymnasium import spaces
 
 # Observation = setpoint
 # Action = [kp1, ti1]
-class ThreeTankEnvBase(object):
+class ThreeTankEnvBase:
     def __init__(self, isoffline: bool, seed: int | None = None, random_sp: list[int] | None = None):
         if random_sp is None:
             random_sp = [3]
@@ -15,11 +15,10 @@ class ThreeTankEnvBase(object):
         self.W2 = 0.025
         self.W3 = 1000#6000
         self.W4 = 1000#6000
-        if seed is not None:
-            self.rng = np.random.RandomState(seed)
 
+        self.rng = np.random.RandomState(seed)
         self.random_sp = random_sp
-        self.setpoint = self.rng.choice(random_sp)  # the list of set points for tank 1
+        self.setpoint: int = self.rng.choice(random_sp)  # the list of set points for tank 1
 
         self.Lambda = 0
         self.C1 = 0  # Kp penalty # bug
@@ -38,11 +37,11 @@ class ThreeTankEnvBase(object):
         self.KP_MAX, self.TAU_MAX, self.MV_MAX, self.CV_MAX = 20, 20, 0.6, self.setpoint * 1.1
         self.KP_MIN, self.TAU_MIN, self.MV_MIN, self.CV_MIN = 0, 0, 0, 0
 
-        self.height_T1_record = []  # list of Tank1 level
-        self.flowrate_T1_record = []  # list of Tank1 Flowrate
-        self.setpoint_T1_record = []  # list of Tank1 setpoints
-        self.kp_record = []  # list of Tank1 Kp
-        self.ti_record = []  # list of Tank1 Ti
+        self.height_T1_record: list[float] = []  # list of Tank1 level
+        self.flowrate_T1_record: list[float] = []  # list of Tank1 Flowrate
+        self.setpoint_T1_record: list[float] = []  # list of Tank1 setpoints
+        self.kp_record: list[float] = []  # list of Tank1 Kp
+        self.ti_record: list[float] = []  # list of Tank1 Ti
         self.ep_num = 1  # episode number
         self.old_error1 = 0
         self.new_error1 = 0
@@ -53,8 +52,8 @@ class ThreeTankEnvBase(object):
         self.time_step = 0  # initial time_step
 
         # To calculate Variance
-        self.flowrate_buffer = []
-        self.del_pids = []
+        self.flowrate_buffer: list[float] = []
+        self.del_pids: list[float] = []
 
         # initialize kp1 and ti1 values
         self.kp1 = 1.2
@@ -175,7 +174,7 @@ class ThreeTankEnvBase(object):
         current_state = [self.setpoint / self.state_normalizer]  # 100. is the max level
         return np.asarray(current_state)
 
-    def update_pid(self, pi_parameters):
+    def update_pid(self, pi_parameters: np.ndarray):
         # This method update the pid settings based on the action
         self.kp1 = pi_parameters[0]
         self.ti1 = pi_parameters[1]
@@ -194,12 +193,12 @@ class ThreeTankEnvBase(object):
         return self.setpoint
 
     # changes the set points
-    def set_setpoints(self, setpoints_T1=None):
+    def set_setpoints(self, setpoints_T1: int | None = None):
         if setpoints_T1 is not None:
             self.setpoint = setpoints_T1
 
     # the environment reacts to the inputted action
-    def inner_step(self, delta_flow_rate, disturbance=0):
+    def inner_step(self, delta_flow_rate: np.ndarray, disturbance: float = 0):
         # if no value for the valves is given, the valves default to this configuration
         pump_bound = 0
         self.flowrate_T1 += delta_flow_rate[0]  # updating the flow rate of pump 1 given the change in flow rate
@@ -332,7 +331,7 @@ class ThreeTankEnv(ThreeTankEnvBase):
                 self.ep_constrain_info[k] = [v]
         return
 
-    def step(self, a) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
+    def step(self, a: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
         pid = a
         self.update_pid(pid)
         sp = None
@@ -377,7 +376,7 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.reinit_the_system()
         return s
 
-    def get_action_samples(self, n=10):
+    def get_action_samples(self, n: int = 10):
         max_a = self.action_space.high/2 #/ self.action_multiplier # re-scale to the range of agent action
         min_a = self.action_space.low #/ self.action_multiplier # re-scale to the range of agent action
         xs = np.linspace(min_a[0], max_a[0], n)
@@ -473,12 +472,12 @@ class TTChangeAction(ThreeTankEnv):
         options: dict[str, Any] | None = None,
     ):
         if self.internal_count == 0:
-            _, info = super().reset()
+            super().reset()
 
         s = self.observation(self.prev_a, self.prev_pid)
         return s
 
-    def pid_clip(self, pid):
+    def pid_clip(self, pid: np.ndarray):
         C1, C2 = 0, 0
         if pid[0] > self.KP_MAX:
             C1 = abs(pid[0] - self.KP_MAX)
@@ -494,13 +493,13 @@ class TTChangeAction(ThreeTankEnv):
         pid[1] = np.clip(pid[1], 0.2, 10)#self.KP_MIN, self.TAU_MAX) # clip at 0.2, 10, follow the direct action setting
         return pid, extra_action_constrain
 
-    def observation(self, prev_a, pid):
+    def observation(self, prev_a: np.ndarray, pid: np.ndarray):
         pid, _ = self.pid_clip(pid)
         # obs = np.concatenate([prev_a, pid], axis=0)
         obs = pid
         return obs
 
-    def get_action_samples(self, n=10):
+    def get_action_samples(self, n: int = 10):
         min_a = self.agent_action_min
         max_a = self.agent_action_max
         xs = np.linspace(min_a, max_a, n)
@@ -541,7 +540,7 @@ class TTChangeActionDiscrete(TTChangeAction):
             np.array([delta_step, -delta_step]),
             np.array([delta_step, delta_step]),
         ]
-        self.prev_a = [1]
+        self.prev_a = np.array([1])
         self.action_space = spaces.Discrete(9, start=0)
         self.reward_stay = reward_stay
 
@@ -560,7 +559,7 @@ class TTChangeActionDiscrete(TTChangeAction):
         pid, self.extra_action_penalty = self.pid_clip(pid)
         return pid #, norm_pid
 
-    def observation(self, prev_a, pid):
+    def observation(self, prev_a: np.ndarray, pid: np.ndarray):
         prev_a = prev_a[0]
         pid, _ = self.pid_clip(pid)
         # obs = np.concatenate([self.action_list[prev_a], pid], axis=0)
@@ -574,15 +573,13 @@ class TTChangeActionDiscrete(TTChangeAction):
         options: dict[str, Any] | None = None,
     ):
         if self.internal_count == 0:
-            _, info = super().reset()
+            _, _ = super().reset()
             # self.prev_pid = np.zeros(2)
             # self.prev_a = 1
-        else:
-            info = {}
         s = self.observation(self.prev_a, self.prev_pid)
-        return s, info
+        return s
 
-    def get_action_samples(self, n=None):
+    def get_action_samples(self, n: int | None = None):
         samples = np.arange(9).reshape(-1, 1)
         shape = samples.shape
         return samples, shape
@@ -607,7 +604,7 @@ class TTAction(TTChangeAction):
             dtype=np.float32,
         )
 
-    def preprocess_action(self, a):
+    def preprocess_action(self, a: np.ndarray):
         pid = a
         return pid
 
@@ -617,16 +614,16 @@ class TTAction(TTChangeAction):
         seed: int | None = None,
         options: dict[str, Any] | None = None,
     ):
-        s, info = super().reset()
+        s = super().reset()
         s[:2] = 0
-        return s, info
+        return s
 
-    def step(self, a):
+    def step(self, a: np.ndarray):
         sp, r, done, trunc, info = super().step(a)
         sp[:2] = 0
         return sp, r, done, trunc, info
 
-    def get_action_samples(self, n=10):
+    def get_action_samples(self, n: int = 10):
         max_a = self.action_space.high/2 #/ self.action_multiplier # re-scale to the range of agent action
         min_a = self.action_space.low #/ self.action_multiplier # re-scale to the range of agent action
         xs = np.linspace(min_a[0], max_a[0], n)
@@ -638,12 +635,11 @@ class TTAction(TTChangeAction):
 
 
 class NonContexTT(ThreeTankEnv):
-    def __init__(self, seed=None, lr_constrain=0, obs=0.):
+    def __init__(self, seed: int | None = None, lr_constrain: float = 0, obs: float = 0.):
         """With non-contextual setting, the setpoint must be fixed"""
         super().__init__(seed, lr_constrain, random_sp=[3])
-        obs = [obs]
-        self.observation_space = spaces.Box(low=np.array(obs),
-                                            high=np.array(obs), shape=(len(obs),), dtype=np.float32)
+        self.observation_space = spaces.Box(low=np.array([obs]),
+                                            high=np.array([obs]), shape=(1,), dtype=np.float32)
         self.obs = obs
 
     def reset(
@@ -652,10 +648,10 @@ class NonContexTT(ThreeTankEnv):
         seed: int | None = None,
         options: dict[str, Any] | None = None,
     ):
-        _, _ = super().reset(seed=seed)
+        super().reset(seed=seed)
         return np.array(self.obs)
 
-    def step(self, a):
+    def step(self, a: np.ndarray):
         sp, r, done, trunc, info = super().step(a)
         sp = np.array(self.obs)
         return sp, r, done, trunc, info

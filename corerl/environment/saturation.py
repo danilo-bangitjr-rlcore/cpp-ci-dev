@@ -4,7 +4,7 @@ import numpy as np
 
 
 class Saturation(gym.Env):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         self._random = np.random.default_rng()
         self.observation_dim = 1
         self._obs_min = np.array([0.])
@@ -27,10 +27,10 @@ class Saturation(gym.Env):
         self.decays = []
         self.actions = []
 
-    def seed(self, seed):
+    def seed(self, seed: int):
         self._random = np.random.default_rng(seed)
 
-    def step(self, action):
+    def step(self, action: np.ndarray):
         self.time_step += 1
         decay = 0.15 * np.cos(self.time_step * np.pi * (2 / self.decay_period)) + 0.75
         self.saturation = self.saturation * decay + action

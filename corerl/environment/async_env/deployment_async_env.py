@@ -51,7 +51,8 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         self.data_reader = DataReader(db_cfg=cfg.db)
 
-    def _make_opc_node_id(self, str_id: str, namespace=0):
+
+    def _make_opc_node_id(self, str_id: str, namespace: int = 0):
         return f"ns={namespace};s={str_id}"
 
     def close(self):

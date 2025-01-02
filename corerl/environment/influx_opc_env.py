@@ -3,7 +3,7 @@ from influxdb_client.client.influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
 from abc import ABC, abstractmethod
 
-from corerl.utils.hook import when, Hooks
+from corerl.utils.hook import Hook, when, Hooks
 
 import numpy as np
 import gymnasium as gym
@@ -181,11 +181,25 @@ def generate_times(ts: datetime, interval: timedelta):
         yield ts
 
 
+
+@config()
+class InfluxOPCConfig:
+    db: DBClientConfig = field(default_factory=DBClientConfig)
+    opc: OpcConfig = field(default_factory=OpcConfig)
+    control_tags: list[str] = list_()
+    obs_col_names: list[str] = list_()
+    obs_length: int = MISSING
+    constant_sp: dict[str, float] = MISSING
+    heartbeat_interval: int = 15
+    telegraf_collection_interval: int = MISSING
+    telegraf_flush_interval: int = MISSING
+
+
 class InfluxOPCEnv(ABC, gym.Env):
     clock: Generator
 
-    def __init__(self, cfg):
-        self._hooks = Hooks(keys=[e.value for e in when.Env])
+    def __init__(self, cfg: InfluxOPCConfig):
+        self._hooks = Hooks(keys=when.Env)
         self.db_client = DBClientWrapper(cfg.db)
 
         self.opc_connection = OpcConnection(cfg.opc)
@@ -228,7 +242,7 @@ class InfluxOPCEnv(ABC, gym.Env):
         raise NotImplementedError
 
     @abstractmethod
-    async def async_reset(self, *, seed=None, options=None) -> Tuple[np.ndarray, dict]:
+    async def async_reset(self, *, seed: int | None = None, options: dict | None = None) -> Tuple[np.ndarray, dict]:
         raise NotImplementedError
 
     async def check_opc_client(self) -> None:
@@ -274,7 +288,8 @@ class InfluxOPCEnv(ABC, gym.Env):
         obs: np.ndarray,
         obs_series: pd.Series,
         steps_until_decision: int | None,
-        **kwargs,
+        action: np.ndarray,
+        decision_point: bool,
     ):
         raise NotImplementedError
 
@@ -422,7 +437,7 @@ class InfluxOPCEnv(ABC, gym.Env):
         logger.info("Signaling need for new warmup")
         self.needs_warmup = True
 
-    def reset(self, *, seed=None, options=None) -> Tuple[np.ndarray, dict]:
+    def reset(self, *, seed: int | None = None, options: dict | None = None) -> Tuple[np.ndarray, dict]:
         super().reset(seed=seed)
         self.options = options
         now = datetime.now(tz=UTC)
@@ -436,5 +451,5 @@ class InfluxOPCEnv(ABC, gym.Env):
     def get_all_data(self):
         return {}
 
-    def register_hook(self, hook, when: when.Env):
+    def register_hook(self, hook: Hook, when: when.Env):
         self._hooks.register(hook, when)

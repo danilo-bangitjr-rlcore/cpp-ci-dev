@@ -3,7 +3,7 @@ from typing import Optional
 
 import matplotlib.pyplot as plt
 
-from corerl.utils.hook import Hooks, when
+from corerl.utils.hook import Hook, Hooks, when
 import numpy as np
 
 import gymnasium as gym
@@ -93,7 +93,7 @@ class FourRoomsEnv(gym.Env):
 
         self._hooks(when.Env.AfterCreate, self)
 
-    def register_hook(self, hook, when: when.Env):
+    def register_hook(self, hook: Hook, when: when.Env):
         self._hooks.register(hook, when)
 
     @classmethod
@@ -133,7 +133,7 @@ class FourRoomsEnv(gym.Env):
         next_state = np.clip(next_state, 0, 1)
         next_x, next_y = next_state
 
-        def line(t):
+        def line(t: float):
             return prev_state + t * (next_state - prev_state)
 
         # Take the line segment from prev_state -> next_state:
