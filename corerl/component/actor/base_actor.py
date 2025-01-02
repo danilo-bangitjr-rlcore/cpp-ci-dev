@@ -27,7 +27,12 @@ class BaseActor(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_log_prob(self, states: torch.Tensor, actions: torch.Tensor, with_grad=False) -> tuple[torch.Tensor, dict]:
+    def get_log_prob(
+        self,
+        states: torch.Tensor,
+        actions: torch.Tensor,
+        with_grad: bool = False,
+    ) -> tuple[torch.Tensor, dict]:
         raise NotImplementedError
 
     @abstractmethod

@@ -350,7 +350,10 @@ class GreedyAC(BaseAC):
         actor_loss = -logp.mean()  # BUG: This is negative?
         return actor_loss
 
-    def compute_sampler_loss(self, update_info) -> torch.Tensor:
+    def compute_sampler_loss(
+        self,
+        update_info: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, int],
+    ) -> torch.Tensor:
         if self.tau != 0:  # Entropy version of proposal policy update
             sampler_loss = self.compute_sampler_entropy_loss(update_info)
         else:
@@ -441,13 +444,13 @@ class GreedyAC(BaseAC):
             )
 
 
-    def actor_err(self, stacked_s_batch, best_actions) -> torch.Tensor:
+    def actor_err(self, stacked_s_batch: torch.Tensor, best_actions: torch.Tensor) -> torch.Tensor:
         logp, _ = self.actor.get_log_prob(
             stacked_s_batch, best_actions, with_grad=True,
         )
         return -logp.mean()
 
-    def sampler_err(self, stacked_s_batch, best_actions) -> torch.Tensor:
+    def sampler_err(self, stacked_s_batch: torch.Tensor, best_actions: torch.Tensor) -> torch.Tensor:
         logp, _ = self.sampler.get_log_prob(
             stacked_s_batch, best_actions, with_grad=True,
         )

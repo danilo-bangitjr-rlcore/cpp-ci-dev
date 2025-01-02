@@ -65,7 +65,7 @@ class NetworkActor(BaseActor):
     def update(
         self,
         loss: torch.Tensor,
-        opt_args=tuple(),
+        opt_args: tuple = tuple(),
         opt_kwargs: dict | None = None,
     ) -> None:
         opt_kwargs = nullable.default(opt_kwargs, dict)
@@ -80,7 +80,7 @@ class NetworkActor(BaseActor):
     def get_action(
         self,
         state: torch.Tensor,
-        with_grad=False,
+        with_grad: bool = False,
     ) -> tuple[torch.Tensor, dict]:
         if with_grad:
             return self.policy.forward(state)
@@ -88,7 +88,12 @@ class NetworkActor(BaseActor):
             with torch.no_grad():
                 return self.policy.forward(state)
 
-    def get_log_prob(self, states: torch.Tensor, actions: torch.Tensor, with_grad=False) -> tuple[torch.Tensor, dict]:
+    def get_log_prob(
+        self,
+        states: torch.Tensor,
+        actions: torch.Tensor,
+        with_grad: bool = False,
+    ) -> tuple[torch.Tensor, dict]:
         if with_grad:
             return self.policy.log_prob(states, actions)
         else:
