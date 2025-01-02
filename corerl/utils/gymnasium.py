@@ -67,7 +67,7 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
         tag_configs.append(
             TagConfig(
                 name=f"action_{i}",
-                bounds=(action_space.low[0].item(), action_space.high[0].item()),
+                bounds=(action_space.low[i].item(), action_space.high[i].item()),
                 outlier=IdentityFilterConfig(),
                 # imputer= None,
                 # reward_constructor= None,
@@ -80,7 +80,7 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
         tag_configs.append(
             TagConfig(
                 name=f"observation_{i}",
-                bounds=(action_space.low[0].item(), action_space.high[0].item()),
+                bounds=(observation_space.low[i].item(), observation_space.high[i].item()),
                 outlier=IdentityFilterConfig(),
                 # imputer= None,
                 # reward_constructor= None,

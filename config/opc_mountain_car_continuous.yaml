@@ -131,8 +131,8 @@ pipeline:
     is_meta: false
   - name: observation_0
     bounds:
-    - -1.0
-    - 1.0
+    - -1.2000000476837158
+    - 0.6000000238418579
     outlier:
       name: identity
     imputer:
@@ -144,8 +144,8 @@ pipeline:
     is_meta: false
   - name: observation_1
     bounds:
-    - -1.0
-    - 1.0
+    - -0.07000000029802322
+    - 0.07000000029802322
     outlier:
       name: identity
     imputer:

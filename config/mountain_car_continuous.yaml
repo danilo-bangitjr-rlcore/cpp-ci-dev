@@ -56,75 +56,81 @@ pipeline:
     name: anytime
 
   tags:
-  - name: action_0
-    is_action: True
-    is_meta: False
-    bounds:
-    - -1.0
-    - 1.0
-    imputer:
-      name: identity
-    outlier:
-      name: identity
-    state_constructor:
-    - name: normalize
-
-  - name: observation_0
-    is_action: False
-    is_meta: False
-    bounds:
-    - -1.0
-    - 1.0
-    imputer:
-      name: identity
-    outlier:
-      name: identity
-    state_constructor: null
-
-  - name: observation_1
-    is_action: False
-    is_meta: False
-    bounds:
-    - -1.0
-    - 1.0
-    imputer:
-      name: identity
-    outlier:
-      name: identity
-    state_constructor: null
-
   - name: reward
-    is_action: False
-    is_meta: True
     bounds:
     - null
     - null
-    imputer:
-      name: identity
     outlier:
       name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
     state_constructor: null
-
+    is_action: false
+    is_meta: true
   - name: terminated
-    is_action: False
-    is_meta: True
     bounds:
     - null
     - null
-    imputer:
-      name: identity
     outlier:
       name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
     state_constructor: null
-
+    is_action: false
+    is_meta: true
   - name: truncated
-    is_action: False
-    is_meta: True
     bounds:
     - null
     - null
-    imputer:
-      name: identity
     outlier:
       name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
     state_constructor: null
+    is_action: false
+    is_meta: true
+  - name: action_0
+    bounds:
+    - -1.0
+    - 1.0
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
+    state_constructor: null
+    is_action: true
+    is_meta: false
+  - name: observation_0
+    bounds:
+    - -1.2000000476837158
+    - 0.6000000238418579
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
+    state_constructor: null
+    is_action: false
+    is_meta: false
+  - name: observation_1
+    bounds:
+    - -0.07000000029802322
+    - 0.07000000029802322
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
+    state_constructor: null
+    is_action: false
+    is_meta: false
