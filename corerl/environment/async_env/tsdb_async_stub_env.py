@@ -1,5 +1,5 @@
 from dataclasses import field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import numpy as np
@@ -105,7 +105,7 @@ class TSDBAsyncStubEnv(AsyncEnv):
         res = self._data_reader.batch_aggregated_read(
             self.obs_names + self.action_names,
             read_start,
-            self.current_start_time + self.env_step_time,
+            self.current_start_time + self.env_step_time - timedelta(microseconds=1),
             self.bucket_width
         )
 
