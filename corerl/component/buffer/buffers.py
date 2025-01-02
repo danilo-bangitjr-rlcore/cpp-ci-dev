@@ -127,9 +127,6 @@ class UniformBuffer:
     def get_all_data(self) -> list | None:
         return self.data
 
-    def update_priorities(self, priority=None):
-        pass
-
     def _prepare(self, batch: list[Tensor]) -> TransitionBatch:
         step_attrs = len(StepBatch.__annotations__.keys())
         prior_step_batch = StepBatch(*batch[:step_attrs])
