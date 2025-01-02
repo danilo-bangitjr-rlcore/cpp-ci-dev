@@ -1,4 +1,3 @@
-from dataclasses import field
 import pandas as pd
 from pathlib import Path
 import shutil
@@ -8,10 +7,9 @@ import yaml
 # Creating env from file
 import gymnasium as gym
 
-from corerl.config import MainConfig
-from corerl.configs.config import config
+from corerl.environment.async_env.factory import AsyncEnvConfig
+from corerl.configs.config import config, MISSING
 from corerl.configs.loader import load_config, config_to_dict
-from corerl.environment.async_env.deployment_async_env import DepAsyncEnvConfig
 from corerl.utils.gymnasium import gen_tag_configs_from_env
 from corerl.data_pipeline.tag_config import TagConfig
 
@@ -45,11 +43,11 @@ def generate_tag_yaml(path: Path, tags: list[TagConfig]):
 
 @config(allow_extra=True)
 class Config:
-    env: DepAsyncEnvConfig = field(default_factory=DepAsyncEnvConfig)
+    env: AsyncEnvConfig = MISSING
 
 
-@load_config(MainConfig, base='config')
-def main(cfg: MainConfig):
+@load_config(Config, base='config')
+def main(cfg: Config):
     env: gym.Env = gym.make(cfg.env.gym_name)
     _logger.info(f"Generating config with env {env}")
 
