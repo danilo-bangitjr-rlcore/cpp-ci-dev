@@ -1,3 +1,5 @@
+from __future__ import annotations
+from collections.abc import Iterable
 import torch
 import torch.distributions as d
 from torch.types import _size
@@ -18,7 +20,7 @@ class ArctanhNormal(d.Distribution):
         "loc": d.constraints.real, "scale": d.constraints.positive,     # pyright: ignore [reportAttributeAccessIssue]
     }
 
-    def __init__(self, loc, scale, validate_args=None):
+    def __init__(self, loc: torch.Tensor, scale: torch.Tensor, validate_args: object | None = None):
         self._underlying = d.Normal(loc, scale, validate_args)
 
     @property
@@ -28,7 +30,7 @@ class ArctanhNormal(d.Distribution):
         return self._underlying.loc
 
     @loc.setter
-    def loc(self, value):
+    def loc(self, value: float):
         """Set the location parameters
         """
         self._underlying.loc = value
@@ -40,7 +42,7 @@ class ArctanhNormal(d.Distribution):
         return self._underlying.scale
 
     @scale.setter
-    def scale(self, value):
+    def scale(self, value: float):
         """Set the scale parameters
         """
         self._underlying.scale = value
@@ -60,7 +62,7 @@ class ArctanhNormal(d.Distribution):
         return self._underlying.event_shape
 
     @override
-    def expand(self, batch_shape, _instance=None):
+    def expand(self, batch_shape: Iterable[int], _instance: ArctanhNormal | None = None):
         new = self._get_checked_instance(ArctanhNormal, _instance)
         batch_shape = torch.Size(batch_shape)
         new.loc = self.loc.expand(batch_shape)
@@ -85,7 +87,7 @@ class ArctanhNormal(d.Distribution):
         return torch.tanh(samples)
 
     @override
-    def log_prob(self, value):
+    def log_prob(self, value: torch.Tensor):
         normal_samples = torch.atanh(torch.clamp(
             value, -1.0 + ArctanhNormal._EPSILON, 1.0 - ArctanhNormal._EPSILON,
         ))
@@ -99,7 +101,7 @@ class ArctanhNormal(d.Distribution):
         return normal_logp - offset
 
     @override
-    def cdf(self, value):
+    def cdf(self, value: torch.Tensor):
         less_than_mask = torch.where(value <= -1)
         greater_than_mask = torch.where(value >= 1)
 
@@ -114,7 +116,7 @@ class ArctanhNormal(d.Distribution):
         return normal_cdf
 
     @override
-    def icdf(self, value):
+    def icdf(self, value: torch.Tensor):
         less_than_mask = torch.where(value <= -1)
         greater_than_mask = torch.where(value >= 1)
 

@@ -14,7 +14,7 @@ _dist_types: dict[str, type[d.Distribution]] = {
 }
 
 
-def get_dist_type(type_) -> type[d.Distribution]:
+def get_dist_type(type_: str) -> type[d.Distribution]:
     if type_.lower() in _dist_types.keys():
         return _dist_types[type_.lower()]
 
