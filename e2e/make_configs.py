@@ -4,14 +4,13 @@ from pathlib import Path
 import shutil
 import logging
 import yaml
-import json
 
 # Creating env from file
 import gymnasium as gym
 
 from corerl.config import MainConfig
 from corerl.configs.config import config
-from corerl.configs.loader import load_config
+from corerl.configs.loader import load_config, config_to_dict
 from corerl.environment.async_env.deployment_async_env import DepAsyncEnvConfig
 from corerl.utils.gymnasium import gen_tag_configs_from_env
 from corerl.data_pipeline.tag_config import TagConfig
@@ -38,11 +37,7 @@ def generate_tag_yaml(path: Path, tags: list[TagConfig]):
 
     with open(tag_path, "w+") as f:
         # TagConfig is not serializable, so force conversion to json then to object then to yaml
-        raw_json_tags = json.dumps(
-            tags,
-            default=lambda o:o.__dict__,
-        )
-        raw_tags = json.loads(raw_json_tags)
+        raw_tags = config_to_dict(list[TagConfig], tags)
         yaml.safe_dump(raw_tags, f, sort_keys=False)
 
     _logger.info(f"Generated {tag_path}")
