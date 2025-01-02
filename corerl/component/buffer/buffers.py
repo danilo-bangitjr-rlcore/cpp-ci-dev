@@ -191,12 +191,9 @@ class PriorityBuffer(UniformBuffer):
 
         return [self._prepare(sampled_data)]
 
-    def update_priorities(self, priority=None):
-        if priority is None:
-            raise NotImplementedError
-        else:
-            assert priority.shape == self.priority.shape
-            self.priority = torch.tensor(priority)
+    def update_priorities(self, priority: torch.Tensor):
+        assert priority.shape == self.priority.shape
+        self.priority = torch.tensor(priority)
 
 
 buffer_group.dispatcher(PriorityBuffer)
@@ -288,7 +285,7 @@ class EnsembleUniformBuffer(UniformBuffer):
 buffer_group.dispatcher(EnsembleUniformBuffer)
 
 
-def _to_tensor(elem):
+def _to_tensor(elem: object):
     if (
             isinstance(elem, Tensor)
             or isinstance(elem, np.ndarray)
