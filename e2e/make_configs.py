@@ -2,7 +2,6 @@ import logging
 import shutil
 from pathlib import Path
 
-# Creating env from file
 import gymnasium as gym
 import pandas as pd
 import yaml
@@ -36,9 +35,21 @@ def generate_telegraf_conf(path: Path, df_ids):
 def generate_tag_yaml(path: Path, tags: list[TagConfig]):
     tag_path = path / "generated_tags.yaml"
 
+    class CustomTagYamlDumper(yaml.SafeDumper):
+        pass
+
+    def represent_float(dumper, value):
+        # round floating point numbers for serialization
+        text = '{0:.4f}'.format(value).rstrip('0').rstrip('.')
+        if '.' not in text:
+            text += '.0'
+        return dumper.represent_scalar(u'tag:yaml.org,2002:float', text)
+
+    CustomTagYamlDumper.add_representer(float, represent_float)
+
     with open(tag_path, "w+") as f:
         raw_tags = config_to_dict(list[TagConfig], tags)
-        yaml.safe_dump(raw_tags, f, sort_keys=False)
+        yaml.dump(raw_tags, f, Dumper=CustomTagYamlDumper, sort_keys=False)
 
     _logger.info(f"Generated {tag_path}")
 
