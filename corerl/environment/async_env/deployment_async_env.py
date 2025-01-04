@@ -1,7 +1,6 @@
 from dataclasses import field
 from datetime import UTC, datetime, timedelta
 
-import gymnasium as gym
 import numpy as np
 import pandas as pd
 from asyncua.sync import Client
@@ -11,18 +10,18 @@ from corerl.configs.config import config
 
 # Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
-from corerl.environment.async_env.async_env import AsyncEnv
-from corerl.environment.config import EnvironmentConfig
-from corerl.utils.gymnasium import gen_tag_configs_from_env
+from corerl.data_pipeline.tag_config import TagConfig
+from corerl.environment.async_env.async_env import AsyncEnv, BaseAsyncEnvConfig
 
 
 @config()
-class DepAsyncEnvConfig(EnvironmentConfig):
+class DepAsyncEnvConfig(BaseAsyncEnvConfig):
+    name: str = "dep_async_env"
     ns: int = 2
     timedelta: int = 1
     sleep_sec: int = 1
 
-    opc_url: str = "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
+    opc_conn_url: str = "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
 
     db: TagDBConfig = field(
         default_factory=lambda: TagDBConfig(
@@ -33,23 +32,16 @@ class DepAsyncEnvConfig(EnvironmentConfig):
 
 
 class DeploymentAsyncEnv(AsyncEnv):
-    '''
+    """
     It's going to be sync for now
-    '''
-    def __init__(self, cfg: DepAsyncEnvConfig):
-        self.url = "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
+    """
 
+    def __init__(self, cfg: DepAsyncEnvConfig, tags: list[TagConfig]):
+        self.url = cfg.opc_conn_url
         self.ns = cfg.ns
 
-        match cfg.type:
-            case 'gym.make':
-                # A little cheat to get the tags, hopefully in the future we have a more robust method
-                env = gym.make(cfg.name)
-                self.tags = gen_tag_configs_from_env(env)
-            case _:
-                raise NotImplementedError
-
-        self.timedelta = cfg.timedelta # in minutes
+        self.tags = tags
+        self.timedelta = cfg.timedelta  # in minutes
 
         self.action_tags = [tag for tag in self.tags if tag.is_action]
         self.observation_tags = [tag for tag in self.tags if not tag.is_action and not tag.is_meta]
@@ -59,20 +51,18 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         self.data_reader = DataReader(db_cfg=cfg.db)
 
-
     def _make_opc_node_id(self, str_id: str, namespace=0):
         return f"ns={namespace};s={str_id}"
 
     def close(self):
-        '''Closes the opc client and data reader
+        """Closes the opc client and data reader
         Can also use __exit__ or cleanup
-        '''
+        """
         self.client.disconnect()
         self.data_reader.close()
 
-
     def emit_action(self, action: np.ndarray) -> None:
-        '''Writes directly to the OPC server'''
+        """Writes directly to the OPC server"""
         for action_val, action_tag in zip(action, self.action_tags, strict=True):
             node = self.client.get_node(self._make_opc_node_id(action_tag.name, namespace=self.ns))
             node.write_value(action_val, VariantType.Double)  # Assuming that all are doubles

@@ -101,9 +101,6 @@ class AllTheTimeTC:
 
         # NOTE: cannot use tag configs here because state dataframe columns
         # may have been mutated by a pipeline stage (e.g. suffix norm_trace)
-        # state_tags = [
-        #     tag_config.name for tag_config in self.tag_configs if not tag.is_action and not tag.is_meta
-        # ]
         state_tags = sorted(set(df.columns) - set(self.action_tags) - set(self.meta_tags))
         states = get_tags(df, state_tags)
         rewards = df['reward'].to_numpy()

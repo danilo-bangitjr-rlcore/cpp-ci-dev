@@ -1,26 +1,20 @@
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta, UTC
-from typing import Any, SupportsFloat
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from typing import SupportsFloat
 
 import gymnasium as gym
 import numpy as np
 import pandas as pd
 
-from corerl.configs.config import MISSING, config
+from corerl.configs.config import config
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.async_env import AsyncEnv
+from corerl.environment.async_env.async_env import AsyncEnv, BaseAsyncEnvConfig
 from corerl.utils.gym import space_bounds, space_shape
 
 
 @config()
-class SimAsyncEnvConfig:
+class SimAsyncEnvConfig(BaseAsyncEnvConfig):
     name: str = "sim_async_env"
-    gym_name: str = MISSING
-    discrete_control: bool = False
-    seed: int = 0
-    args: list[Any] = field(default_factory=list)
-    kwargs: dict[str, Any] = field(default_factory=dict)
-
 
 @dataclass
 class StepData:
@@ -102,17 +96,9 @@ class SimAsyncEnv(AsyncEnv):
         return self._last_step
 
     def _obs_as_df(self, step: StepData):
-        obs_data = {
-            tag: val
-            for tag, val
-            in zip(self._observation_tag_names, step.observation, strict=True)
-        }
+        obs_data = {tag: val for tag, val in zip(self._observation_tag_names, step.observation, strict=True)}
 
-        action_data = {
-            tag: val
-            for tag, val
-            in zip(self._action_tag_names, step.action, strict=True)
-        }
+        action_data = {tag: val for tag, val in zip(self._action_tag_names, step.action, strict=True)}
 
         meta_data = {
             "reward": step.reward,

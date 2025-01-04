@@ -109,7 +109,7 @@ def main(cfg: Config):
     env: gym.Env = init_environment(cfg.env)
     _logger.info(f"Running OPC env simulation {env}")
 
-    opc_url = cfg.env.opc_url
+    opc_url = cfg.env.opc_conn_url
 
     # make OPC client (sync)
     client = Client(opc_url)

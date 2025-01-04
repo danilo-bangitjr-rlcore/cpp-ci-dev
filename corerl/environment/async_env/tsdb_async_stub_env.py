@@ -1,6 +1,4 @@
-from dataclasses import field
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -8,23 +6,18 @@ import pandas as pd
 from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig, TimeStats
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.async_env import AsyncEnv
+from corerl.environment.async_env.async_env import AsyncEnv, BaseAsyncEnvConfig
 from corerl.environment.reward.scrubber import ScrubberReward, ScrubberRewardConfig
 
 
 @config()
-class TSDBAsyncStubEnvConfig:
+class TSDBAsyncStubEnvConfig(BaseAsyncEnvConfig):
     name: str = "tsdb_async_stub_env"
-    seed: int = 0
-    discrete_control: bool = False
-    gym_name: str = MISSING
     env_start_time: str = MISSING
     env_end_time: str = MISSING
     env_step_time: str = MISSING
     db: TagDBConfig = MISSING
     bucket_width: str = MISSING
-    args: list[Any] = field(default_factory=list)
-    kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 class TSDBAsyncStubEnv(AsyncEnv):

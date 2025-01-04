@@ -1,7 +1,5 @@
-from dataclasses import field
 from datetime import UTC, datetime
 from time import sleep
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -9,20 +7,15 @@ import pandas as pd
 from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.async_env import AsyncEnv
+from corerl.environment.async_env.async_env import AsyncEnv, BaseAsyncEnvConfig
 
 
 @config()
-class OPCTSDBSimAsyncEnvConfig:
+class OPCTSDBSimAsyncEnvConfig(BaseAsyncEnvConfig):
     name: str = "opc_tsdb_sim_async_env"
-    gym_name: str = MISSING
-    seed: int = 0
-    discrete_control: bool = False
     db: TagDBConfig = MISSING
     bucket_width: str = MISSING
     opc_conn_url: str = MISSING
-    args: list[Any] = field(default_factory=list)
-    kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 class OPCTSDBSimAsyncEnv(AsyncEnv):
