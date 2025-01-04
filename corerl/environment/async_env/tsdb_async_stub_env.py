@@ -95,11 +95,10 @@ class TSDBAsyncStubEnv(AsyncEnv):
             # temporal state pipeline logic requires last step's latest time bucket
             read_start = read_start - self.env_step_time
 
-        res = self._data_reader.batch_aggregated_read(
+        res = self._data_reader.single_aggregated_read(
             self.obs_names + self.action_names,
             read_start,
             self.current_start_time + self.env_step_time - timedelta(microseconds=1),
-            self.bucket_width
         )
 
         self.current_start_time += self.env_step_time
@@ -109,9 +108,9 @@ class TSDBAsyncStubEnv(AsyncEnv):
             self.current_start_time = self.env_start_time
             term = True
 
-        res["reward"] = self._reward_func(res)
-        res["truncated"] = False
-        res["terminated"] = term
+        res = res.assign(reward = self._reward_func(res))
+        res = res.assign(truncated = False)
+        res = res.assign(terminated = term)
 
         return res
 
