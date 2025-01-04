@@ -24,8 +24,8 @@ env:
   discrete_control: False
   seed: 1
   db: ${pipeline.db}
-  bucket_width: "10s"
-  sleep_sec: 10
+  bucket_width: "1s"
+  sleep_sec: 1
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
 
