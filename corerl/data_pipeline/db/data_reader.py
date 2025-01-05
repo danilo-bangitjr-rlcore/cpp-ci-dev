@@ -5,7 +5,7 @@ from typing import Any, List, Literal, assert_never
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import TEXT, TIMESTAMP, Column, Engine, Float, MetaData, Table, cast, func, select
+from sqlalchemy import TEXT, TIMESTAMP, Column, Engine, Float, MetaData, Table, cast, func, select, Boolean
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import text
 
@@ -23,7 +23,7 @@ class TagDBConfig(SQLEngineConfig):
     db_name: str = "postgres"
     sensor_table_name: str = "scrubber4"
     sensor_table_schema: str = ""
-    data_agg: Literal["avg"] | Literal["last"] = "avg"
+    data_agg: Literal["avg", "last", "bool_or"] = "avg"
 
 
 class DataReader:
@@ -52,7 +52,7 @@ class DataReader:
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
-        aggregation: Literal["avg"] | Literal["last"] = "avg",
+        aggregation: Literal["avg", "last", "bool_or"] = "avg",
     ):
         # If timezone unaware, assume we are using naive system timezone and convert to UTC.
         if start_time.tzinfo is None:
@@ -79,6 +79,9 @@ class DataReader:
             case "last":
                 # https://docs.timescale.com/api/latest/hyperfunctions/last/#last
                 agg_stmt = func.last(self.sensor_table.c["fields"]["val"], self.sensor_table.c["time"])
+            case "bool_or":
+                # needed to support truncated/terminated booleans
+                agg_stmt = func.bool_or(cast(self.sensor_table.c["fields"]["val"], Boolean))
             case _:
                 assert_never(aggregation)
 
@@ -124,7 +127,7 @@ class DataReader:
         names: List[str],
         start_time: datetime,
         end_time: datetime,
-        aggregation: Literal["avg"] | Literal["last"] = "avg",
+        aggregation: Literal["avg", "last", "bool_or"] = "avg",
     ):
         bucket_width = end_time - start_time
         df = self.batch_aggregated_read(names, start_time, end_time, bucket_width, aggregation)

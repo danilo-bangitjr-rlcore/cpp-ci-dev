@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from time import sleep
 
 import numpy as np
@@ -23,7 +23,7 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
     writing actions and TSDB to read observations/state.
     """
 
-    def __init__(self, cfg: OPCTSDBSimAsyncEnvConfig, tags: list[TagConfig]):
+    def __init__(self, cfg: OPCTSDBSimAsyncEnvConfig, tag_configs: list[TagConfig]):
         pd_bucket_width = pd.Timedelta(cfg.bucket_width)
         assert isinstance(pd_bucket_width, pd.Timedelta), "Failed parsing of bucket_width"
         self.bucket_width = pd_bucket_width.to_pytimedelta()
@@ -33,17 +33,11 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
         self.env_start_time = datetime.now(UTC)
         self.current_start_time = self.env_start_time
 
-        self.names = [
-            tag.name for tag in tags
-        ]
+        self.tag_configs = tag_configs
 
-        self.obs_names = [
-            tag.name for tag in tags if not tag.is_action and not tag.is_meta
-        ]
-
-        self.action_names = [
-            tag.name for tag in tags if tag.is_action
-        ]
+        self.obs_names = [tag.name for tag in tag_configs if not tag.is_action and not tag.is_meta]
+        self.action_names = [tag.name for tag in tag_configs if tag.is_action]
+        self.meta_names = [tag.name for tag in tag_configs if tag.is_meta]
 
     def emit_action(self, action: np.ndarray) -> None:
         """
@@ -59,21 +53,28 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
             # temporal state pipeline logic requires last step's latest time bucket
             read_start = read_start - self.bucket_width
 
-        res = self._data_reader.batch_aggregated_read(
-            self.names,
-            read_start,
-            self.current_start_time + self.bucket_width,
-            self.bucket_width
-        )
-        while res.isnull().values.any():
-            # sleep until all batch aggregated read values are defined (e.g. running simulation, sensor data)
-            sleep(2)
-            res = self._data_reader.batch_aggregated_read(
-                self.obs_names + self.action_names,
-                read_start,
-                self.current_start_time + self.bucket_width,
-                self.bucket_width
-            )
+        read_end = self.current_start_time + self.bucket_width - timedelta(microseconds=1)
 
+        def get_obs_df():
+            act_obs_reward = self._data_reader.single_aggregated_read(
+                self.action_names + self.obs_names + ["reward"],
+                read_start,
+                read_end,
+            )
+            meta = self._data_reader.single_aggregated_read(
+                [name for name in self.meta_names if name != "reward"],
+                read_start,
+                read_end,
+                "bool_or",
+            )
+            return pd.concat([act_obs_reward, meta], axis=1)
+
+        now = datetime.now(UTC)
+        if now <= read_end:
+            # the query end time is in the future, wait until this has elapsed before requesting observations from TSDB
+            wait_time_delta = read_end - now
+            sleep(wait_time_delta.total_seconds())
+
+        res = get_obs_df()
         self.current_start_time += self.bucket_width
         return res
