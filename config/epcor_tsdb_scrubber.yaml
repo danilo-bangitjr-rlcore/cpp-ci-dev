@@ -58,6 +58,7 @@ experiment:
   online_stat_keys: []
 
 pipeline:
+  obs_interval_minutes: 60
   state_constructor:
     defaults: []
 
