@@ -54,6 +54,11 @@ reportUnusedExpression = true
 reportUnusedFunction = true
 
 
+[tool.deadcode]
+exclude = [".venv", "docs", "test", "build", "corerl/environment/smpl"]
+ignore-names = ["_*"]
+ignore-names-in-files = []
+
 [tool.commitizen]
 name = "cz_conventional_commits"
 version_scheme = "pep440"
