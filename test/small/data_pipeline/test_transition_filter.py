@@ -14,7 +14,7 @@ from corerl.data_pipeline.transition_filter import (
 )
 
 
-def make_test_step(i, action=0., gamma=0.9, reward=1.0, dp=False) -> Step:
+def make_test_step(i: int, action: float = 0., gamma: float = 0.9, reward: float = 1.0, dp: bool = False) -> Step:
     return Step(
         state=Tensor([i]),
         action=Tensor([action]),
@@ -44,7 +44,7 @@ def make_test_dp_transition(dps: list[bool]):
 
     ]
 )
-def test_only_dp_transitions(dps, expected):
+def test_only_dp_transitions(dps: list[bool], expected: bool):
     transition = make_test_dp_transition(dps)
     assert only_dp(transition) == expected
 
@@ -58,14 +58,14 @@ def test_only_dp_transitions(dps, expected):
 
     ]
 )
-def test_only_post_transitions(dps, expected):
+def test_only_post_transitions(dps: list[bool], expected: bool):
     transition = make_test_dp_transition(dps)
     assert only_post_dp(transition) == expected
 
 
 def make_action_change_transition(
         dps: list[bool],
-        actions: list[int]):
+        actions: list[float]):
     transition = Transition(
         steps=[
             make_test_step(i, dp=dps[i], action=actions[i]) for i in range(len(dps))
@@ -85,7 +85,7 @@ def make_action_change_transition(
 
     ]
 )
-def test_only_no_action_change(dps, actions, expected):
+def test_only_no_action_change(dps: list[bool], actions: list[float], expected: bool):
     transition = make_action_change_transition(dps, actions)
     assert only_no_action_change(transition) == expected
 

@@ -2,6 +2,7 @@ import multiprocessing
 import subprocess
 import time
 from datetime import UTC, datetime, timedelta
+from pytest import FixtureRequest
 
 import pytest
 
@@ -54,7 +55,7 @@ def should_skip_test():
 
 
 @pytest.fixture(scope="module")
-def run_make_configs(request):
+def run_make_configs(request: FixtureRequest):
     """Generate the configurations for opc_mountain_car_continuous.
     Emitted `generated_telegraf.conf` file needed for docker compose up telegraf service
     """
@@ -75,7 +76,7 @@ def run_make_configs(request):
 
 
 @pytest.fixture(scope="module")
-def run_docker_compose(run_make_configs, request):
+def run_docker_compose(run_make_configs: None, request: FixtureRequest):
     """Run docker compose up to spin up services, cleanup after yield
     """
     proc = subprocess.run(
@@ -100,7 +101,7 @@ def run_docker_compose(run_make_configs, request):
 
 
 @pytest.fixture(scope="module")
-def check_opc_server_ready(run_docker_compose, request):
+def check_opc_server_ready(run_docker_compose: None, request: FixtureRequest):
     """Check for the 'counter' stub value that is emitted within the OPC server,
     ensure that it's being picked up by telegraf.
     """
@@ -128,7 +129,7 @@ def check_opc_server_ready(run_docker_compose, request):
 
 
 @pytest.fixture(scope="module")
-def run_background_opc_client(check_opc_server_ready, request):
+def run_background_opc_client(check_opc_server_ready: None, request: FixtureRequest):
     """Run the OPC Client simulated farama environment"""
     # for some reason Popen failes to keep the simulation farama gym running as daemon
     # using proc = subprocess.Popen, use subprocess.run within multiprocessing process instead
@@ -148,7 +149,7 @@ def run_background_opc_client(check_opc_server_ready, request):
 
 
 @pytest.fixture(scope="module")
-def check_sim_farama_environment_ready(run_background_opc_client, request):
+def check_sim_farama_environment_ready(run_background_opc_client: None, request: FixtureRequest):
     """Check for the opc_client values that are emitted within the farama gym environment simulation,
     ensure that it's being picked up by telegraf.
     """
@@ -183,7 +184,7 @@ def check_sim_farama_environment_ready(run_background_opc_client, request):
     should_skip_test(), reason="Docker compose ps saw core-rl services, or failed to run, do not run opc tsdb test"
 )
 @pytest.mark.timeout(500)
-def test_opc_tsdb_mountain_car_continuous(check_sim_farama_environment_ready, request):
+def test_opc_tsdb_mountain_car_continuous(check_sim_farama_environment_ready: None, request: FixtureRequest):
     proc = subprocess.run(
         ["corerl_main", "--config-name", "opc_mountain_car_continuous", "experiment.max_steps=25"],
         stdout=subprocess.PIPE,

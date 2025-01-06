@@ -5,9 +5,9 @@ from docker import from_env, errors
 
 
 def init_docker_container(
-    name = "test_timescale",
-    repository = "timescale/timescaledb-ha",
-    tag = "pg16",
+    name: str = "test_timescale",
+    repository: str = "timescale/timescaledb-ha",
+    tag: str = "pg16",
     env: Mapping[str, str] = MappingProxyType({"POSTGRES_PASSWORD": "password"}),
     ports: Mapping[str, Any] = MappingProxyType({"5432": 5433})
 ):
