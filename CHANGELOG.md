@@ -1,3 +1,14 @@
+## 0.9.0 (2025-01-06)
+
+### Feat
+
+- working opc_tsdb continuous mountain car
+
+### Fix
+
+- denormalize the ndarray action during emit_action
+- make_configs should respect env action & obs bounds
+
 ## 0.8.0 (2025-01-06)
 
 ### Feat
