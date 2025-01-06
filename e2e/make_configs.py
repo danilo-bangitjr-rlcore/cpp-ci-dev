@@ -2,7 +2,6 @@ import logging
 import shutil
 from pathlib import Path
 
-# Creating env from file
 import gymnasium as gym
 import pandas as pd
 import yaml
@@ -11,6 +10,8 @@ from corerl.configs.config import MISSING, config
 from corerl.configs.loader import config_to_dict, load_config
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.factory import AsyncEnvConfig
+from corerl.environment.async_env.opc_tsdb_sim_async_env import OPCTSDBSimAsyncEnvConfig
+from corerl.environment.factory import init_environment
 from corerl.utils.gymnasium import gen_tag_configs_from_env
 
 
@@ -34,9 +35,21 @@ def generate_telegraf_conf(path: Path, df_ids):
 def generate_tag_yaml(path: Path, tags: list[TagConfig]):
     tag_path = path / "generated_tags.yaml"
 
+    class CustomTagYamlDumper(yaml.SafeDumper):
+        pass
+
+    def represent_float(dumper, value):
+        # round floating point numbers for serialization
+        text = '{0:.4f}'.format(value).rstrip('0').rstrip('.')
+        if '.' not in text:
+            text += '.0'
+        return dumper.represent_scalar(u'tag:yaml.org,2002:float', text)
+
+    CustomTagYamlDumper.add_representer(float, represent_float)
+
     with open(tag_path, "w+") as f:
         raw_tags = config_to_dict(list[TagConfig], tags)
-        yaml.safe_dump(raw_tags, f, sort_keys=False)
+        yaml.dump(raw_tags, f, Dumper=CustomTagYamlDumper, sort_keys=False)
 
     _logger.info(f"Generated {tag_path}")
 
@@ -46,18 +59,18 @@ class Config:
     env: AsyncEnvConfig = MISSING
 
 
-@load_config(Config, base='config')
+@load_config(Config, base="config")
 def main(cfg: Config):
-    env: gym.Env = gym.make(cfg.env.gym_name)
+    assert isinstance(cfg.env, OPCTSDBSimAsyncEnvConfig), "make configs only supported for OPCTSDBSimAsyncEnvConfig"
+    env: gym.Env = init_environment(cfg.env)
     _logger.info(f"Generating config with env {env}")
 
     tags = gen_tag_configs_from_env(env)
-    ns = 2
 
     string_ids = (tag.name for tag in tags)
 
     df_ids = pd.DataFrame(data=string_ids, columns=pd.Index(["id_name"]))
-    df_ids["ns"] = ns
+    df_ids["ns"] = cfg.env.opc_ns
     df_ids["id_type"] = "s"
     df_ids["name"] = df_ids["id_name"]
     current_path = Path(__file__).parent.absolute()
@@ -70,5 +83,9 @@ def main(cfg: Config):
 
 if __name__ == "__main__":
     _logger = logging.getLogger(__name__)
-    logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s: %(message)s",
+        encoding="utf-8",
+        level=logging.DEBUG,
+    )
     main()

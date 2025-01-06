@@ -13,6 +13,10 @@ _logger = logging.getLogger(__name__)
 PREFIX = "opctest"
 
 
+def make_opc_node_id(str_id: str, namespace: str|int = 0):
+    return f"ns={namespace};s={str_id}"
+
+
 def linear_backoff(direction: str, attempts: int = 50):
     def _inner[T, **P](f: Callable[Concatenate[OpcConnection, P], Coroutine[None, None, T]]):
         async def wrapper(self: OpcConnection, *args: P.args, **kwargs: P.kwargs) -> T:

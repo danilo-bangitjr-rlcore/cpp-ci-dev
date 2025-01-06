@@ -39,7 +39,7 @@ def init_environment(cfg: AsyncEnvConfig) -> gym.Env:
         log.warning("Environment args or kwargs set in confinguration for DeploymentAsyncEnv. This will be ignored!")
         args = []
         kwargs = {}
-    return gym.make(cfg.name, *args, **kwargs)
+    return gym.make(cfg.gym_name, *args, **kwargs)
 
     # prior syntax, lookup based on config.name
     if name == "three_tanks_v2":

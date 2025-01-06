@@ -23,3 +23,6 @@ class AsyncEnv:
     def emit_action(self, action: np.ndarray) -> None: ...
 
     def get_latest_obs(self) -> pd.DataFrame: ...
+
+    def cleanup(self) -> None:
+        return

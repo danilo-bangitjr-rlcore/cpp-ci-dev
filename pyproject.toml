@@ -100,3 +100,4 @@ corerl_main = "corerl.main:main"
 
 [tool.coverage.run]
 omit = ["test/*",]
+concurrency = ["thread", "multiprocessing"]

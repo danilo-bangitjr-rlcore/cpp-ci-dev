@@ -1,7 +1,12 @@
+# This variant of mountain_car_continuous requires that the OPC server and client be running.
+# All interactions to the mountain car continuous environment is performed through OPC, all state observations are read
+# through TSDB.
 defaults:
   -
 
 experiment:
+  exp_name: OPC_MountainCarContinuous
+  param_from_hash: True
   online_updates : True # Whether to update the agent online in deployment
   seed: 1
   gamma: 0.99
@@ -11,11 +16,16 @@ action_period: 1
 obs_period: 1
 
 env:
-  name: sim_async_env
+  name: opc_tsdb_sim_async_env
   gym_name: MountainCarContinuous-v0
   discrete_control: False
   seed: 1
   db: ${pipeline.db}
+  bucket_width: "1s"
+  sleep_sec: 1
+  opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
+  opc_ns: 2
+
 
 agent:
   name: greedy_ac
@@ -39,15 +49,16 @@ agent:
 
 
 pipeline:
-  obs_interval_minutes: 5
+  obs_interval_minutes: 1
   db:
     drivername: "postgresql+psycopg2"
     username: "postgres"
     password: "password"
     ip: "localhost"
     port: 5432
-    db_name: "public"
-    sensor_table_name: "sensors"
+    db_name: "postgres"
+    sensor_table_schema: "public"
+    sensor_table_name: "opcua"
 
   state_constructor:
     defaults: []
@@ -56,6 +67,13 @@ pipeline:
     name: anytime
 
   tags:
+  # For new gym environments where these tags are not yet known, leave `tags` undefined and
+  # populate the environment/env values with the gym_name. Then pass the configuration to the
+  # e2e/make_configs.py script, e.g.:
+  #
+  #    python3 e2e/make_configs.py --config-name opc_mountain_car_continuous
+  #
+  # and copy the e2e/generated_tags.yaml contents into this tags field.
   - name: reward
     bounds:
     - null
