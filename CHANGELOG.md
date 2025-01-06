@@ -1,3 +1,14 @@
+## 0.8.0 (2025-01-06)
+
+### Feat
+
+- define meta tags, support multi dim actions
+
+### Fix
+
+- made make_configs work with MainConfig, added make config test
+- **test**: updated to address epcor tsdb stub test issues
+
 ## 0.7.0 (2024-12-23)
 
 ### Feat
