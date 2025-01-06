@@ -49,7 +49,7 @@ major_version_zero = true
 name = "corerl"
 version = "0.9.0"
 description = ""
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.12,<3.13"
 authors = []
 dependencies = [
     "asyncua~=1.0",
