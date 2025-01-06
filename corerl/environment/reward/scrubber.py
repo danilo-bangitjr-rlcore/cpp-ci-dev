@@ -17,7 +17,7 @@ def contains_nan(arr: np.ndarray | pd.DataFrame | torch.Tensor) -> bool:
         return bool(np.isnan(arr).any())
     elif isinstance(arr, pd.DataFrame):
         return bool(arr.isnull().values.any())
-    elif isinstance(arr, torch.Tensor):
+    else:
         return bool(torch.isnan(arr).any())
 
 @config()
