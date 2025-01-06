@@ -15,7 +15,7 @@ from corerl.data_pipeline.all_the_time import (
 )
 
 
-def make_test_step(i, action=0., gamma=0.9, reward=1.0, dp=False) -> Step:
+def make_test_step(i: int, action: float = 0., gamma: float = 0.9, reward: float = 1.0, dp: bool = False) -> Step:
     return Step(
         state=Tensor([i]),
         action=Tensor([action]),
@@ -42,7 +42,7 @@ def test_get_n_step_reward_1():
     assert n_step_gamma == 0.81
 
 
-def make_pf(start_state: int, end_state: int, ts=None) -> PipelineFrame:
+def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> PipelineFrame:
     if ts is None:
         ts = dict()
     state_col = np.arange(start_state, end_state)
