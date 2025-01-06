@@ -3,7 +3,6 @@ from typing import Optional
 
 import matplotlib.pyplot as plt
 
-from corerl.utils.hook import Hook, Hooks, when
 import numpy as np
 
 import gymnasium as gym
@@ -89,13 +88,6 @@ class FourRoomsEnv(gym.Env):
 
         self._current_state = np.array([0.05, 0.05])
 
-        self._hooks = Hooks(keys=[e.value for e in when.Env])
-
-        self._hooks(when.Env.AfterCreate, self)
-
-    def register_hook(self, hook: Hook, when: when.Env):
-        self._hooks.register(hook, when)
-
     @classmethod
     def _discrete_to_continuous(cls, action: np.ndarray):
         if action.item() == 0:
@@ -122,10 +114,6 @@ class FourRoomsEnv(gym.Env):
             eps = self._rng.uniform()
             if eps < self._positive_action_decay_prob:
                 action[np.where(action > 0)] *= self._positive_action_decay
-
-        args, _ = self._hooks(
-            when.Env.BeforeStep, self, self._current_state, action,
-        )
 
         prev_state = self._current_state
         prev_x, prev_y = prev_state
@@ -192,24 +180,15 @@ class FourRoomsEnv(gym.Env):
 
         reward = 0
 
-        args, _ = self._hooks(
-            when.Env.AfterStep,
-            self, self._current_state, action, reward, prev_state, False,
-            False,
-        )
-
         return self._current_state, reward, False, False, {}
 
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[dict] = None,
     ):
-        args, _ = self._hooks(when.Env.BeforeReset, self, self._current_state)
         self._fig = None
         self._ax = None
         self._current_state = np.array([0.05, 0.05])
-
-        args, _ = self._hooks(when.Env.AfterReset, self, self._current_state)
-        self.state = args[1]
+        self.state = self._current_state
 
         return self._current_state, {}
 
