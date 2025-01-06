@@ -8,6 +8,7 @@ from dataclasses import field
 from time import sleep
 
 import gymnasium as gym
+import numpy as np
 from asyncua.sync import Client, SyncNode
 from asyncua.ua.uaerrors import BadNodeIdExists, BadNodeIdUnknown
 from asyncua.ua.uatypes import VariantType
@@ -28,7 +29,7 @@ class Config:
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
 
 
-def initialize_opc_folder(client, cfg_env):
+def initialize_opc_folder(client: Client, cfg_env: OPCTSDBSimAsyncEnvConfig):
     # create folder containing environment variables
     folder_node_id = make_opc_node_id(cfg_env.name)
     try:
@@ -40,7 +41,11 @@ def initialize_opc_folder(client, cfg_env):
 
 
 def initialize_opc_nodes_from_tags(
-    client: Client, cfg_env: OPCTSDBSimAsyncEnvConfig, tag_configs: list[TagConfig], initial_observation, initial_action
+    client: Client,
+    cfg_env: OPCTSDBSimAsyncEnvConfig,
+    tag_configs: list[TagConfig],
+    initial_observation: np.ndarray,
+    initial_action: np.ndarray,
 ):
     folder = initialize_opc_folder(client, cfg_env)
     # create OPC nodes based on tags

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import shutil
 import logging
+from typing import Any
 
 import gymnasium as gym
 import yaml
@@ -48,7 +49,7 @@ def generate_tag_yaml(path: Path, tags: list[TagConfig]):
     class CustomTagYamlDumper(yaml.SafeDumper):
         pass
 
-    def represent_float(dumper, value):
+    def represent_float(dumper: Any, value: object):
         # round floating point numbers for serialization
         text = '{0:.4f}'.format(value).rstrip('0').rstrip('.')
         if '.' not in text:
