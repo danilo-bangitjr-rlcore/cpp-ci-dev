@@ -34,6 +34,7 @@ def test_pipeline1():
                 ],
             ),
             TagConfig(name='action-1', is_action=True),
+            TagConfig(name="reward", is_meta=True),
         ],
         transition_creator=AllTheTimeTCConfig(
             max_n_step=2,
@@ -138,6 +139,7 @@ def test_pipeline2():
                 ],
             ),
             TagConfig(name='action-1', is_action=True),
+            TagConfig(name="reward", is_meta=True),
         ],
         transition_creator=AllTheTimeTCConfig(
             max_n_step=1,

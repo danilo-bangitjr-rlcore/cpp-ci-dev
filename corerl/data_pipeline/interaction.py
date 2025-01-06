@@ -25,9 +25,8 @@ class InteractionWrapper:
         self._non_state_tags = set(
             tag.name
             for tag in tag_configs
-            if tag.is_action
+            if tag.is_action or tag.is_meta
         )
-        self._non_state_tags.add('reward')
 
         self._last_time: datetime | None = None
         self._last_state: np.ndarray | None = None

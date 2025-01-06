@@ -96,10 +96,13 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
                 ),
                 TagConfig(
                     name="Tag_1",
+                    is_action=False,
+                    is_meta=False,
                     reward_constructor=[
                         LessThanConfig(threshold=3),
                     ],
                 ),
+                TagConfig(name="reward", is_meta=True),
             ],
             db=test_db_config,
             obs_interval_minutes=int(obs_period_sec / 60),

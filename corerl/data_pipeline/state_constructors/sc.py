@@ -25,7 +25,7 @@ class StateConstructor:
         sc_cfgs = {
             tag.name: tag.state_constructor if tag.state_constructor is not None else cfg.defaults
             for tag in tag_cfgs
-            if not tag.is_action and tag.name not in {'reward', 'trunc', 'term'}
+            if not tag.is_action and not tag.is_meta
         }
 
         self._components: dict[str, list[Transform]] = {

@@ -25,9 +25,8 @@ class SimInteraction:
         self._non_state_tags = set(
             tag.name
             for tag in tag_configs
-            if tag.is_action
+            if tag.is_action or tag.is_meta
         )
-        self._non_state_tags |= {'reward', 'action', 'trunc', 'term'}
 
         self._should_reset = True
         self._last_state: np.ndarray | None = None
@@ -41,7 +40,7 @@ class SimInteraction:
         self._agent.update_buffer(pr.transitions)
         self._agent.update()
 
-        self._should_reset = bool(o['trunc'].any() or o['term'].any())
+        self._should_reset = bool(o['truncated'].any() or o['terminated'].any())
 
         s = self._get_latest_state()
         assert s is not None

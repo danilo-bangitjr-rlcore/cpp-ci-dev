@@ -8,3 +8,7 @@ def space_bounds(space: gymnasium.Space[Any]):
         space.low,
         space.high,
     )
+
+def space_shape(space: gymnasium.Space[Any]):
+    assert isinstance(space, gymnasium.spaces.Box)
+    return space.shape

@@ -50,33 +50,39 @@ def run(env: gym.Env, client: Client, cfg: Config):
     initial_observation, info = env.reset(seed=seed)
     initial_action = env.action_space.sample()
 
-    for key, tags in tag_configs.items():
-        opc_nodes[key] = []
-        for tag_idx, tag in enumerate(tags):
-            id = make_opc_node_id(tag.name, ns)
-            node = client.get_node(id)
-            try:
-                _ = node.read_browse_name()
-            except BadNodeIdUnknown:
-                # node does not exist in OPC server, create it
-                # instantiate first action as random sample, store in OPC
-                val = 0.0
-                var_type = VariantType.Double
-                if key == 'action':
-                    val = initial_action[tag_idx]
-                elif key == 'observation':
-                    val = initial_observation[tag_idx]
-                elif key == 'meta':
-                    if tag.name == 'reward':
-                        val = 0.0
-                    elif tag.name == 'truncated':
-                        val = False
-                        var_type = VariantType.Boolean
-                    elif tag.name == 'terminated':
-                        val = False
-                        var_type = VariantType.Boolean
-                node = folder.add_variable(id, tag.name, val, var_type)
-            opc_nodes[key].append(node)
+    # for key, tags in tag_configs.items():
+    for tag_idx, tag in enumerate(tag_configs):
+        tag_type = "observation"
+        if tag.is_action:
+            tag_type = "action"
+        elif tag.is_meta:
+            tag_type = "meta"
+
+        opc_nodes[tag_type] = opc_nodes.get(tag_type, [])
+        id = make_opc_node_id(tag.name, ns)
+        node = client.get_node(id)
+        try:
+            _ = node.read_browse_name()
+        except BadNodeIdUnknown:
+            # node does not exist in OPC server, create it
+            # instantiate first action as random sample, store in OPC
+            val = 0.0
+            var_type = VariantType.Double
+            if tag_type == 'action':
+                val = initial_action[tag_idx]
+            elif tag_type == 'observation':
+                val = initial_observation[tag_idx]
+            elif tag_type == 'meta':
+                if tag.name == 'reward':
+                    val = 0.0
+                elif tag.name == 'truncated':
+                    val = False
+                    var_type = VariantType.Boolean
+                elif tag.name == 'terminated':
+                    val = False
+                    var_type = VariantType.Boolean
+            node = folder.add_variable(id, tag.name, val, var_type)
+        opc_nodes[tag_type].append(node)
 
     # Run env forever using OPC for actions, observations, and rewards
     while True:
@@ -103,7 +109,7 @@ def main(cfg: Config):
     env: gym.Env = init_environment(cfg.env)
     _logger.info(f"Running OPC env simulation {env}")
 
-    opc_url = cfg.env.opc_url
+    opc_url = cfg.env.opc_conn_url
 
     # make OPC client (sync)
     client = Client(opc_url)

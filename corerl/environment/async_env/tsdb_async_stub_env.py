@@ -1,21 +1,18 @@
+from datetime import UTC, datetime, timedelta
+
 import numpy as np
 import pandas as pd
-from datetime import datetime, UTC
 
-from corerl.configs.config import config, MISSING
-from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.async_env import AsyncEnv
+from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig, TimeStats
+from corerl.data_pipeline.tag_config import TagConfig
+from corerl.environment.async_env.async_env import AsyncEnv, BaseAsyncEnvConfig
 from corerl.environment.reward.scrubber import ScrubberReward, ScrubberRewardConfig
 
 
 @config()
-class TSDBAsyncStubEnvConfig:
+class TSDBAsyncStubEnvConfig(BaseAsyncEnvConfig):
     name: str = "tsdb_async_stub_env"
-    seed: int = 0
-    discrete_control: bool = False
-    gym_name: str = MISSING
-    aggregation: str = MISSING
     env_start_time: str = MISSING
     env_end_time: str = MISSING
     env_step_time: str = MISSING
@@ -74,7 +71,7 @@ class TSDBAsyncStubEnv(AsyncEnv):
         ]
 
         self.obs_names = [
-            tag.name for tag in tags if not tag.is_action
+            tag.name for tag in tags if not tag.is_action and not tag.is_meta
         ]
 
         self.action_names = [
@@ -98,11 +95,10 @@ class TSDBAsyncStubEnv(AsyncEnv):
             # temporal state pipeline logic requires last step's latest time bucket
             read_start = read_start - self.env_step_time
 
-        res = self._data_reader.batch_aggregated_read(
-            self.names,
+        res = self._data_reader.single_aggregated_read(
+            self.obs_names + self.action_names,
             read_start,
-            self.current_start_time + self.env_step_time,
-            self.bucket_width
+            self.current_start_time + self.env_step_time - timedelta(microseconds=1),
         )
 
         self.current_start_time += self.env_step_time
@@ -112,9 +108,9 @@ class TSDBAsyncStubEnv(AsyncEnv):
             self.current_start_time = self.env_start_time
             term = True
 
-        res["reward"] = self._reward_func(res)
-        res["trunc"] = 0.0
-        res["term"] = term
+        res = res.assign(reward = self._reward_func(res))
+        res = res.assign(truncated = False)
+        res = res.assign(terminated = term)
 
         return res
 

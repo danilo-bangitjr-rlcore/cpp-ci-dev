@@ -1,23 +1,20 @@
-from dataclasses import field
-import pandas as pd
-from pathlib import Path
-import shutil
 import logging
-import yaml
+import shutil
+from pathlib import Path
 
 # Creating env from file
 import gymnasium as gym
-from itertools import chain
+import pandas as pd
+import yaml
 
-from corerl.configs.config import config
-from corerl.configs.loader import load_config, config_to_dict
-from corerl.environment.async_env.deployment_async_env import DepAsyncEnvConfig
-from corerl.environment.factory import init_environment
-from corerl.utils.gymnasium import gen_tag_configs_from_env
+from corerl.configs.config import MISSING, config
+from corerl.configs.loader import config_to_dict, load_config
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.environment.async_env.factory import AsyncEnvConfig
+from corerl.utils.gymnasium import gen_tag_configs_from_env
+
 
 def generate_telegraf_conf(path: Path, df_ids):
-    _logger = logging.getLogger(__name__)
     shutil.copyfile(path / "telegraf/base_telegraf.conf", path / "telegraf/generated_telegraf.conf")
     block = ""
     with open(path / "telegraf/generated_telegraf.conf", "a") as f:
@@ -31,40 +28,33 @@ def generate_telegraf_conf(path: Path, df_ids):
             block += "\n"
         f.write(block)
 
-    _logger.info(f"Generetad {path}/telegraf/generated_telegraf.conf")
+    _logger.info(f"Generated {path}/telegraf/generated_telegraf.conf")
 
 
-def generate_tag_yaml(path: Path, tags: dict[str, list[TagConfig]]):
+def generate_tag_yaml(path: Path, tags: list[TagConfig]):
     tag_path = path / "generated_tags.yaml"
 
-    conf = {
-        category: [
-            config_to_dict(TagConfig, tag)
-            for tag in tag_list
-        ]
-        for category, tag_list in tags.items()
-    }
-
-    with open(tag_path, "+w") as f:
-        yaml.safe_dump(conf, f)
+    with open(tag_path, "w+") as f:
+        raw_tags = config_to_dict(list[TagConfig], tags)
+        yaml.safe_dump(raw_tags, f, sort_keys=False)
 
     _logger.info(f"Generated {tag_path}")
 
 
 @config(allow_extra=True)
 class Config:
-    env: DepAsyncEnvConfig = field(default_factory=DepAsyncEnvConfig)
+    env: AsyncEnvConfig = MISSING
 
 
 @load_config(Config, base='config')
 def main(cfg: Config):
-    env: gym.Env = init_environment(cfg.env)
+    env: gym.Env = gym.make(cfg.env.gym_name)
     _logger.info(f"Generating config with env {env}")
 
     tags = gen_tag_configs_from_env(env)
-    ns = cfg.env.ns
+    ns = 2
 
-    string_ids = (tag.name for tag in chain.from_iterable(tags.values()))
+    string_ids = (tag.name for tag in tags)
 
     df_ids = pd.DataFrame(data=string_ids, columns=pd.Index(["id_name"]))
     df_ids["ns"] = ns
@@ -80,4 +70,5 @@ def main(cfg: Config):
 
 if __name__ == "__main__":
     _logger = logging.getLogger(__name__)
+    logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
     main()

@@ -1,15 +1,16 @@
 import re
 import sys
-from pydantic_core import PydanticUndefined
-import yaml
 from collections.abc import Callable
-from typing import Any, Concatenate
-from pydantic import TypeAdapter
 from pathlib import Path
+from typing import Any, Concatenate
 
+import yaml
+from pydantic import TypeAdapter
+from pydantic_core import PydanticUndefined
 
-from corerl.configs.config import MISSING
 import corerl.utils.dict as dict_u
+from corerl.configs.config import MISSING
+
 
 # -------------------
 # -- CLI Overrides --
@@ -197,3 +198,8 @@ def load_config[T](Config: type[T], base: str | None = None, config_name: str | 
 def config_to_dict(Config: type[object], config: object):
     ta = TypeAdapter(Config)
     return ta.dump_python(config, warnings=False)
+
+
+def dict_to_config(Config: type[object], config: object):
+    ta = TypeAdapter(Config)
+    return ta.validate_python(config)

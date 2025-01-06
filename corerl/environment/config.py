@@ -1,5 +1,6 @@
 from corerl.configs.config import MISSING, config
 
+
 @config()
 class EnvironmentConfig:
     type: str = 'gym.make'
