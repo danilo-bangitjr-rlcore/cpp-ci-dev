@@ -1,3 +1,4 @@
+from dataclasses import field
 from influxdb_client.client.influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
 from abc import ABC, abstractmethod
@@ -12,8 +13,8 @@ from typing import Any, Tuple, Generator, List
 import asyncio
 import random
 
-from corerl.configs.config import config, MISSING
-from corerl.utils.opc_connection import OpcConnection
+from corerl.configs.config import config, MISSING, list_
+from corerl.utils.opc_connection import OpcConfig, OpcConnection
 from corerl.sql_logging.sql_logging import get_sql_engine, SQLEngineConfig
 import logging
 

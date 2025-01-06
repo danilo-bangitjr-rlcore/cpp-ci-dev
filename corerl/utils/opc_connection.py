@@ -7,6 +7,7 @@ from typing import Any, Concatenate
 
 import numpy as np
 from asyncua import Client, Node, ua
+from corerl.configs.config import MISSING, config
 
 _logger = logging.getLogger(__name__)
 
@@ -38,17 +39,27 @@ def linear_backoff(direction: str, attempts: int = 50):
     return _inner
 
 
+@config()
+class OpcConfig:
+    ip_address: str = MISSING
+    port: int = MISSING
+    vendor: str = 'kepware'
+
+    timeout: float = 2.
+    conn_stats: bool = True
+
+
 class OpcConnection:
     """Wrapper class around the asyncua library to make life easier for the rlai group"""
 
-    def __init__(self, cfg) -> None:
+    def __init__(self, cfg: OpcConfig):
         self.ip_address = cfg.ip_address
         self.port = cfg.port
         self.conn_attempts = 0
         self.values_read = 0
         self.conn_stats = cfg.conn_stats
-        self._conn_timeout = getattr(cfg, 'timeout', 2.)
-        self.vendor = cfg.vendor if hasattr(cfg, "vendor") else "kepware"
+        self._conn_timeout = cfg.timeout
+        self.vendor = cfg.vendor
 
     async def connect(self) -> None:
         """Connects to the OPC server and opens any log files"""
