@@ -1,6 +1,5 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-import gymnasium as gym
 import torch
 import torch.nn as nn
 import torch.distributions as d
@@ -9,7 +8,6 @@ import logging
 from typing import Union, Optional, Any, Mapping, Iterator
 from typing_extensions import override
 
-from corerl.utils.gym import space_bounds
 import corerl.utils.nullable as nullable
 
 _BoundedAboveConstraint = constraints.less_than
@@ -78,21 +76,6 @@ class Policy(ABC):
         The number of parameters that the policy distribution has
         """
         return len(self.param_names)
-
-    @classmethod
-    @abstractmethod
-    def continuous(cls) -> bool:
-        """
-        Whether the policy class represents a continuous-action policy or not
-        """
-        pass
-
-    @classmethod
-    def discrete(cls) -> bool:
-        """
-        Whether the policy class represents a discrete-action policy or not
-        """
-        return not cls.continuous
 
     @property
     @abstractmethod
@@ -163,11 +146,6 @@ class ContinuousIIDPolicy(Policy,ABC):
         """
         return _get_type_from_dist(dist)(model, dist, *args, **kwargs)
 
-    @classmethod
-    @abstractmethod
-    def from_env(cls, model: nn.Module, dist: type[Any], env: gym.Env) -> 'ContinuousIIDPolicy':
-        pass
-
     def _transform_from_params(self, *params: torch.Tensor) -> d.Distribution:
         """
         Given a tuple of policy parameters, return the underlying policy
@@ -198,11 +176,6 @@ class ContinuousIIDPolicy(Policy,ABC):
     @Policy.n_params.getter
     def n_params(self):
         return len(self.param_names)
-
-    @override
-    @classmethod
-    def continuous(cls):
-        return True
 
     @Policy.support.getter
     @abstractmethod
@@ -346,19 +319,6 @@ class Bounded(ContinuousIIDPolicy):
         return tuple(self._dist.arg_constraints.keys())
 
     @override
-    @classmethod
-    def from_env(
-        cls,
-        model: nn.Module,
-        dist: type[d.Distribution],
-        env: Any,
-    ) -> 'Bounded':
-        action_min = torch.Tensor(env.action_space.low)
-        action_max = torch.Tensor(env.action_space.high)
-
-        return cls(model, dist, action_min, action_max)
-
-    @override
     def _transform(self, dist: type[d.Distribution]) -> d.Distribution:
         sub_dist: type[d.Distribution] | d.TransformedDistribution = dist
         if self._action_bias != 0 or self._action_scale != 1:
@@ -388,16 +348,6 @@ class UnBounded(ContinuousIIDPolicy):
     @ContinuousIIDPolicy.param_names.getter
     def param_names(self) -> tuple[str, ...]:
         return tuple(self._dist.arg_constraints.keys())
-
-    @override
-    @classmethod
-    def from_env(
-        cls,
-        model: nn.Module,
-        dist: type[d.Distribution],
-        env: gym.Env,
-    ) -> 'UnBounded':
-        return cls(model, dist)
 
     @override
     def _transform(self, dist: type[d.Distribution]) -> d.Distribution:
@@ -490,17 +440,6 @@ class HalfBounded(ContinuousIIDPolicy):
     @ContinuousIIDPolicy.param_names.getter
     def param_names(self) -> tuple[str, ...]:
         return tuple(self._dist.arg_constraints.keys())
-
-    @override
-    @classmethod
-    def from_env(
-        cls,
-        model: nn.Module,
-        dist: type[d.Distribution],
-        env: gym.Env,
-    ) -> 'HalfBounded':
-        action_min, action_max = space_bounds(env.action_space)
-        return cls(model, dist, torch.Tensor(action_min), torch.Tensor(action_max))
 
     @override
     def _transform(self, dist: type[d.Distribution]) -> d.Distribution:

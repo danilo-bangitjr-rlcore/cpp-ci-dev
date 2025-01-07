@@ -1,8 +1,6 @@
 from . import Policy
 import torch
-import gymnasium as gym
 import torch.nn as nn
-import torch.distributions as d
 import torch.distributions.constraints as constraints
 
 
@@ -13,10 +11,6 @@ class Softmax(Policy):
 
     @Policy.has_rsample.getter
     def has_rsample(self) -> bool:
-        return False
-
-    @classmethod
-    def continuous(cls):
         return False
 
     def get_probs(
@@ -33,16 +27,6 @@ class Softmax(Policy):
     @property
     def param_names(self) -> tuple[str, ...]:
         return tuple(f"logit_{i}" for i in range(self.output_dim))
-
-    @classmethod
-    def from_env(cls, model: nn.Module, dist: type[d.Distribution], env: gym.Env):
-        assert env.action_space.shape is not None
-        assert env.observation_space.shape is not None
-
-        output_dim = env.action_space.shape[0]
-        input_dim = env.observation_space.shape[0]
-
-        return cls(model, input_dim, output_dim)
 
     def forward(
         self,
