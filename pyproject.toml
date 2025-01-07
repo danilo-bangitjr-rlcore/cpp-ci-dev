@@ -36,7 +36,23 @@ exclude = [
 venvPath = '.'
 venv = '.venv'
 typeCheckingMode = 'standard'
+
+# common overrides
 useLibraryCodeForTypes = true
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+enableReachabilityAnalysis = true
+
+# stricter overrides
+reportInconsistentConstructor = true
+reportMissingParameterType = true
+reportUnnecessaryCast = true
+reportUnnecessaryIsInstance = true
+reportUnusedClass = true
+reportUnusedExpression = true
+reportUnusedFunction = true
+
 
 [tool.commitizen]
 name = "cz_conventional_commits"
@@ -49,7 +65,7 @@ major_version_zero = true
 name = "corerl"
 version = "0.9.1"
 description = ""
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.12,<3.13"
 authors = []
 dependencies = [
     "asyncua~=1.0",
