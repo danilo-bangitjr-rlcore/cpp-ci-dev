@@ -1,3 +1,35 @@
+## 0.9.1 (2025-01-07)
+
+### Fix
+
+- fully widen internal recursion type and force type-guarding
+- tighten up data utility type annotations
+- prefer type-narrowing by elimination
+- add type annotations for interior HOFs
+- add missing type annotations to deprecated scrubber reward
+- add missing type annotations for optimizers
+- add missing type annotations to tests
+- add missing type annotations to sql_logging
+- add missing type annotations for environments
+- migrate OpcConnection to schematized configs
+- add missing type annotations for networks
+- add missing type annotations for distributions
+- add missing type annotations to buffer
+- remove update_priorities function from non-prioritized buffer
+- add missing type annotations in agents
+- annotate hooks/when types
+- annotate missing policy argument types
+- add missing type annotations to tests
+- add type annotations to transition filter
+- add type guard for pf.transitions is None in transition filter
+- use literal string names for transition filters
+- widen dictionary type
+- use covariant Sequence[T] over list[T]
+
+### Refactor
+
+- unthread hooks from four_rooms env
+
 ## 0.9.0 (2025-01-06)
 
 ### Feat
