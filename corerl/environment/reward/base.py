@@ -1,6 +1,7 @@
+import pandas as pd
 from abc import ABC, abstractmethod
+from typing import Any
 
-import numpy as np
 
 class BaseReward(ABC):
     """
@@ -9,5 +10,5 @@ class BaseReward(ABC):
     used interchangeably in the dataloader.
     """
     @abstractmethod
-    def __call__(self, obs: np.ndarray, **kwargs) -> float:
+    def __call__(self, obs: pd.DataFrame | pd.Series, **kwargs: Any) -> float:
         raise NotImplementedError

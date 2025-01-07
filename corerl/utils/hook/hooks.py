@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections.abc import Iterable
 from typing import Any, Callable, Union, List, Tuple
 from corerl.utils.hook.when import Agent, Env
 
@@ -6,13 +7,13 @@ from corerl.utils.hook.when import Agent, Env
 When = Agent | Env
 
 class Hooks:
-    def __init__(self, keys=None):
+    def __init__(self, keys: Iterable[When] | None = None):
         self._hooks: dict[When, list[Callable[..., Any]]] = {}
         if keys is not None:
             for k in keys:
                 self._hooks[k] = []
 
-    def __call__(self, when: When, *args, **kwargs):
+    def __call__(self, when: When, *args: Any, **kwargs: Any):
         if when not in self._hooks.keys() or len(self._hooks[when]) == 0:
             return args, kwargs
         for f in self._hooks[when]:
@@ -20,7 +21,7 @@ class Hooks:
             args, kwargs = f(*args, **kwargs)
         return args, kwargs
 
-    def call(self, when: When, *args, **kwargs):
+    def call(self, when: When, *args: Any, **kwargs: Any):
         return self(when, *args, **kwargs)
 
     def register(self, hook: Hook | Callable[..., Any], when: When):
@@ -53,7 +54,7 @@ class Hook:
     def name(self):
         return self._name
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         _args, _kwargs = self._f(*args, **kwargs)
         msg = (
             "expected hook output at position 0 to be a tuple, list, or " +

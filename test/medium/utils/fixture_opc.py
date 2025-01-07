@@ -1,6 +1,6 @@
 import pytest
 from asyncua import Server, Node
-from corerl.utils.opc_connection import OpcConnection
+from corerl.utils.opc_connection import OpcConfig, OpcConnection
 from test.infrastructure.networking import get_free_port
 
 
@@ -44,19 +44,13 @@ async def server():
     await s.close()
 
 
-
-class OpcConfigStub:
-    def __init__(self):
-        self.ip_address = 'localhost'
-        self.port = 4840
-        self.conn_stats = None
-        self.vendor = 'ignition'
-        self.timeout = 1
-
-
 @pytest.fixture
 async def client():
-    config = OpcConfigStub()
+    config = OpcConfig(
+        ip_address='localhost',
+        port=4840,
+        timeout=1.,
+    )
 
     client = OpcConnection(config)
     yield client
@@ -70,8 +64,11 @@ async def server_and_client():
     await server.start()
 
     # let the client's config know what port we are using
-    config = OpcConfigStub()
-    config.port = server._port
+    config = OpcConfig(
+        ip_address='localhost',
+        port=server._port,
+        timeout=1.,
+    )
 
     client = OpcConnection(config)
     yield (server, client)

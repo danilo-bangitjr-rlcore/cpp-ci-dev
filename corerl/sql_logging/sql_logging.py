@@ -28,7 +28,7 @@ class SQLEngineConfig:
     port: int = 5432
 
 
-def get_sql_engine(db_data: SQLEngineConfig, db_name: str, force_drop=False) -> Engine:
+def get_sql_engine(db_data: SQLEngineConfig, db_name: str, force_drop: bool = False) -> Engine:
     url_object = sqlalchemy.URL.create(
         drivername=db_data.drivername,
         username=db_data.username,
@@ -148,7 +148,7 @@ def table_exists(engine: Engine, table_name: str) -> bool:
 
     return table_name in exisiting_tables
 
-def is_sane_database(engine):
+def is_sane_database(engine: Engine):
     """
     adapted from stackoverflow:
       https://stackoverflow.com/questions/30428639/check-database-schema-matches-sqlalchemy-models-on-application-startup
@@ -198,7 +198,7 @@ def is_sane_database(engine):
     return not errors
 
 # utils
-def setup_sql_logging(cfg, restart_db=False):
+def setup_sql_logging(cfg: Any, restart_db: bool = False):
     logger.info("Setting up sql db...")
 
     con_cfg = cfg.agent.buffer.con_cfg

@@ -1,6 +1,7 @@
 import subprocess
 import math
 from os import path
+from pytest import FixtureRequest
 
 import gymnasium as gym
 import pytest
@@ -11,7 +12,7 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.utils.gymnasium import gen_tag_configs_from_env
 
 
-def assert_equal_with_tolerance(obj1, obj2, tolerance=1e-4):
+def assert_equal_with_tolerance(obj1: object, obj2: object, tolerance: float = 1e-4):
     """
     Custom equality assertion with support for float comparison up to specified decimal places and list/tuple equality.
     """
@@ -29,7 +30,7 @@ def assert_equal_with_tolerance(obj1, obj2, tolerance=1e-4):
         assert obj1 == obj2, f"Objects differ: {obj1} != {obj2}"
 
 @pytest.mark.timeout(240)
-def test_make_configs(request):
+def test_make_configs(request: FixtureRequest):
     root_path = request.config.rootpath
 
     proc = subprocess.run(

@@ -66,7 +66,7 @@ class ScrubberReward(BaseReward):
 
     @classmethod
     def _compute_eff_cost(
-        cls, df_rows: pd.DataFrame, eff_tag="AI0879C", orp_tag="AIC3731_OUT", ph_tag="AIC3730_OUT"
+        cls, df_rows: pd.DataFrame, eff_tag: str = "AI0879C", orp_tag: str = "AIC3731_OUT", ph_tag: str = "AIC3730_OUT"
     ):
         """
         Compute and return the efficiency and cost given some rows from the
@@ -90,7 +90,7 @@ class ScrubberReward(BaseReward):
 
         return mean_eff, chem_cost
 
-    def _learned_reward(self, df_rows):
+    def _learned_reward(self, df_rows: Any):
         warn("learned reward is deprecated and will be removed in the future",
              stacklevel=1)
 
@@ -104,7 +104,7 @@ class ScrubberReward(BaseReward):
 
         return r
 
-    def _efficiency_reward_step(self, df_rows):
+    def _efficiency_reward_step(self, df_rows: Any):
         """
         This function will return as reward the mean efficiency across
         `only_dp_transitions`, which should be the mean efficiency over 1 hour
@@ -157,7 +157,7 @@ class ScrubberReward(BaseReward):
         r_max = 1.90
         return float(np.mean((r - r_min) / (r_max - r_min)))
 
-    def _efficiency_reward_final(self, df_rows) -> float:
+    def _efficiency_reward_final(self, df_rows: Any) -> float:
         """
         This function will return as reward the final efficiency after
         `only_dp_transitions`, which should be the final efficiency after 1
@@ -177,7 +177,7 @@ class ScrubberReward(BaseReward):
         else:
             return r
 
-    def __call__(self, obs, *args, **kwargs) -> float:
+    def __call__(self, obs: Any, *args: Any, **kwargs: Any) -> float:
         df_rows = kwargs["df_rows"]
         assert not contains_nan(df_rows)
         reward = self._reward_fn(df_rows)

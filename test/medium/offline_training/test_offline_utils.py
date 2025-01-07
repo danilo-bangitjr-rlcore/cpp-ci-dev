@@ -3,6 +3,7 @@ import datetime as dt
 
 from torch import Tensor
 from typing import Generator
+from docker.models.containers import Container
 
 from corerl.agent.factory import init_agent
 from corerl.agent.greedy_ac import GreedyACConfig
@@ -50,7 +51,7 @@ def init_offline_tsdb_container():
 
 
 @pytest.fixture(scope="module")
-def data_writer(init_offline_tsdb_container, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]: # noqa: F811
+def data_writer(init_offline_tsdb_container: Container, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]: # noqa: F811, E501
     data_writer = DataWriter(db_cfg=test_db_config)
 
     yield data_writer

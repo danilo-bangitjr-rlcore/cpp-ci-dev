@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from typing import List
 
 import pytest
+from docker.models.containers import Container
 from pandas import DataFrame, Series
 
 from corerl.data_pipeline.db.data_reader import DataReader
@@ -19,7 +20,7 @@ def init_data_reader_tsdb_container():
     container.remove()
 
 @pytest.fixture(scope="class")
-def data_reader_writer(init_data_reader_tsdb_container):
+def data_reader_writer(init_data_reader_tsdb_container: Container):
     assert init_data_reader_tsdb_container.name == "test_timescale"
     db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",
@@ -50,14 +51,14 @@ class TestDataReader:
         return datetime.now(UTC)
 
     @pytest.fixture(autouse=False, scope="class")
-    def populate_db(self, data_reader_writer, now):
+    def populate_db(self, data_reader_writer: tuple[DataReader, DataWriter], now: datetime):
         n_vals = 50
         names = TestDataReader.sensor_names
         _, data_writer = data_reader_writer
         for name in names:
             write_n_random_vals(n=n_vals, name=name, data_writer=data_writer, end_time=now)
 
-    def test_read_with_no_data(self, data_reader_writer, populate_db, now: datetime):
+    def test_read_with_no_data(self, data_reader_writer: tuple[DataReader, DataWriter], populate_db: None, now: datetime): # noqa: E501
         data_reader, _ = data_reader_writer
         end_time = now - timedelta(hours=2) # preceeds all sensor readings
         start_time = end_time - timedelta(minutes=5)
@@ -70,7 +71,7 @@ class TestDataReader:
         assert isinstance(series_all_nan, Series)
         assert series_all_nan.all()
 
-    def test_read_with_non_UTC(self, data_reader_writer, populate_db):
+    def test_read_with_non_UTC(self, data_reader_writer: tuple[DataReader, DataWriter], populate_db: None):
         data_reader, _ = data_reader_writer
         end_time = datetime.now() # didn't explicitly add UTC timezone
         start_time = end_time - timedelta(minutes=5)
@@ -83,7 +84,7 @@ class TestDataReader:
         assert isinstance(series_all_not_nan, Series)
         assert series_all_not_nan.all()
 
-    def test_single_avg_read(self, data_reader_writer, populate_db, now):
+    def test_single_avg_read(self, data_reader_writer: tuple[DataReader, DataWriter], populate_db: None, now: datetime):
         data_reader, _ = data_reader_writer
         end_time = now
         start_time = end_time - timedelta(minutes=5)
@@ -92,7 +93,7 @@ class TestDataReader:
         )
         assert TestDataReader.sensor_names == result_df.columns.tolist()
 
-    def test_single_last_read(self, data_reader_writer, populate_db, now):
+    def test_single_last_read(self, data_reader_writer: tuple[DataReader, DataWriter], populate_db: None, now: datetime): # noqa: E501
         data_reader, _ = data_reader_writer
         end_time = now
         start_time = end_time - timedelta(minutes=5)
@@ -101,7 +102,7 @@ class TestDataReader:
         )
         assert TestDataReader.sensor_names == result_df.columns.tolist()
 
-    def test_batch_avg_read(self, data_reader_writer, populate_db, now):
+    def test_batch_avg_read(self, data_reader_writer: tuple[DataReader, DataWriter], populate_db: None, now: datetime):
         data_reader, _ = data_reader_writer
         end_time = now + timedelta(minutes=1)
         start_time = end_time - timedelta(minutes=30)
@@ -115,7 +116,7 @@ class TestDataReader:
 
         self._ensure_names_included(result_df)
 
-    def test_batch_last_read(self, data_reader_writer, populate_db, now):
+    def test_batch_last_read(self, data_reader_writer: tuple[DataReader, DataWriter], populate_db: None, now: datetime):
         data_reader, _ = data_reader_writer
         end_time = now + timedelta(minutes=1)
         start_time = end_time - timedelta(minutes=30)
@@ -129,7 +130,7 @@ class TestDataReader:
 
         self._ensure_names_included(result_df)
 
-    def test_missing_col_batch_aggregated_read(self, data_reader_writer, populate_db, now):
+    def test_missing_col_batch_aggregated_read(self, data_reader_writer: tuple[DataReader, DataWriter], populate_db: None, now: datetime): # noqa: E501
         data_reader, _ = data_reader_writer
         end_time = now + timedelta(minutes=1)
         start_time = end_time - timedelta(minutes=30)
@@ -145,7 +146,7 @@ class TestDataReader:
         assert bool(result_df[missing_sensor_name].isnull().all())
         self._ensure_names_included(result_df)
 
-    def test_missing_col_single_aggregated_read(self, data_reader_writer, populate_db, now):
+    def test_missing_col_single_aggregated_read(self, data_reader_writer: tuple[DataReader, DataWriter], populate_db: None, now: datetime): # noqa: E501
         data_reader, _ = data_reader_writer
         end_time = now + timedelta(minutes=1)
         start_time = end_time - timedelta(minutes=30)

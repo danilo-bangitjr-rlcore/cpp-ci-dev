@@ -1,6 +1,7 @@
 import numpy
 import torch
 import torch.nn as nn
+import numpy as np
 from corerl.utils.device import Device, device as global_device
 from collections.abc import Callable
 import warnings
@@ -32,7 +33,7 @@ def ensemble_expectile_loss(q: torch.Tensor, vs: list[torch.Tensor], expectile: 
     return losses
 
 
-def ensemble_mse(target, q_ens) -> list[torch.Tensor]:
+def ensemble_mse(target: torch.Tensor | np.ndarray, q_ens: torch.Tensor) -> list[torch.Tensor]:
     """
     Calculate the MSE of an ensemble of q values
 
@@ -45,6 +46,7 @@ def ensemble_mse(target, q_ens) -> list[torch.Tensor]:
         in `q_ens` should have a different target for prediction, then `target`
         should have batch dimension 0 with `target.shape == q_ens.shape`.
     """
+    target = tensor(target)
     assert q_ens.ndim == 3
     ensemble_target = target.ndim == 3
     if ensemble_target:

@@ -1,10 +1,23 @@
+from pathlib import Path
 from typing import Any
 import gymnasium as gym
 import numpy as np
 
+from corerl.configs.config import config, list_
+
+
+@config()
+class DelayedSaturationConfig:
+    effect_period: float = 500
+    decay: float = 0.75
+    trace_val: float = 0.9
+    action_names: list[str] = list_()
+    endo_inds: list[int] = list_()
+    endo_obs_names: list[str] = list_()
+
 
 class DelayedSaturation(gym.Env):
-    def __init__(self, seed, cfg):
+    def __init__(self, cfg: DelayedSaturationConfig, seed: int | None = None):
         self._random = np.random.default_rng(seed)
         self.observation_dim = 1
         self._obs_min = np.array([0.])
@@ -34,10 +47,10 @@ class DelayedSaturation(gym.Env):
         self.endo_inds = cfg.endo_inds
         self.endo_obs_names = cfg.endo_obs_names
 
-    def seed(self, seed):
+    def seed(self, seed: int):
         self._random = np.random.default_rng(seed)
 
-    def step(self, action):
+    def step(self, action: np.ndarray):
         self.time_step += 1
 
         self.action_trace = self.trace_val * self.action_trace + (1 - self.trace_val) * action
@@ -54,7 +67,7 @@ class DelayedSaturation(gym.Env):
 
         return self.saturation, reward, False, False, {}
 
-    def plot(self, save_path):
+    def plot(self, save_path: Path):
         import matplotlib.pyplot as plt
         plt.plot(self.raw_actions, label="raw actions")
         plt.plot(self.actions, label="actions")

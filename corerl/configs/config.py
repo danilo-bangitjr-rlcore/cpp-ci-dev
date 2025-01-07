@@ -25,7 +25,7 @@ def config(
     frozen: bool = False,
     allow_extra: bool = False,
 ):
-    def _inner(cls):
+    def _inner(cls: Any):
         return pydantic_dataclass(
             cls,
             frozen=frozen,

@@ -9,7 +9,7 @@ class Bimodal(gym.Env):
     The bimodal bandit environment from https://arxiv.org/abs/2107.08285, with
     state dimensions scaled by 2.
     """
-    def __init__(self, seed, reward_variance=False):
+    def __init__(self, seed: int | None = None, reward_variance: bool = False):
         self._random = np.random.default_rng(seed)
 
         self._reward_variance = reward_variance
@@ -31,10 +31,10 @@ class Bimodal(gym.Env):
 
         self.action_space = gym.spaces.Box(self._action_min, self._action_max)
 
-    def seed(self, seed):
+    def seed(self, seed: int):
         self._random = np.random.default_rng(seed)
 
-    def step(self, action):
+    def step(self, action: np.ndarray):
         action = action.item()
         self._state = self._state + action  # Terminal state
 

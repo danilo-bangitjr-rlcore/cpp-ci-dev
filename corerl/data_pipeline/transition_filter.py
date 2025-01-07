@@ -1,14 +1,21 @@
+from collections.abc import Iterable
+from typing import Literal, assert_never
 from corerl.utils.torch import tensor_allclose
-from dataclasses import field
 
-from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.configs.config import config
+from corerl.configs.config import config, list_
+from corerl.data_pipeline.datatypes import PipelineFrame, Transition
+
+
+type TransitionFilterType = (
+    Literal['only_dp']
+    | Literal['only_no_action_change']
+    | Literal['only_post_dp']
+)
 
 
 @config()
 class TransitionFilterConfig:
-    # doing it this way instead of list so that we can specify some default strings when we agree on them
-    filters: list[str] = field(default_factory=lambda: [])
+    filters: list[TransitionFilterType] = list_()
 
 
 class TransitionFilter:
@@ -16,13 +23,16 @@ class TransitionFilter:
         self.filter_names = cfg.filters
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
+        if pf.transitions is None:
+            return pf
+
         for filter_name in self.filter_names:
             pf.transitions = call_filter(pf.transitions, filter_name)
 
         return pf
 
 
-def call_filter(transitions, filter_name):
+def call_filter(transitions: Iterable[Transition], filter_name: TransitionFilterType):
     if filter_name == 'only_dp':
         transition_filter = only_dp
     elif filter_name == 'only_no_action_change':
@@ -30,22 +40,20 @@ def call_filter(transitions, filter_name):
     elif filter_name == 'only_post_dp':
         transition_filter = only_post_dp
     else:
-        raise NotImplementedError(f"Invalid transition filter name {filter_name}")
+        assert_never(filter_name)
 
-    results = [transition_filter(transition) for transition in transitions]
-    filtered = [transition for transition, keep in zip(transitions, results, strict=True) if keep]
-    return filtered
+    return list(filter(transition_filter, transitions))
 
 
-def only_dp(transition):
+def only_dp(transition: Transition):
     return transition.prior.dp and transition.post.dp
 
 
-def only_post_dp(transition):
+def only_post_dp(transition: Transition):
     return transition.post.dp
 
 
-def only_no_action_change(transition):
+def only_no_action_change(transition: Transition):
     action = transition.steps[1].action
     for i in range(1, len(transition.steps)):
         if not tensor_allclose(transition.steps[i].action, action):

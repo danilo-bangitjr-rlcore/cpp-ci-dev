@@ -1,12 +1,14 @@
 import pytest
 import asyncio
+
+from pytest import FixtureRequest
 from test.medium.utils.fixture_opc import FakeOpcServer, OpcConnection
 from test.medium.utils.fixture_opc import *  # noqa: F403
 
 
 # Skip if coverage (--cov) option is enabled when calling pytest
 @pytest.fixture
-def skip_coverage_fixture(request):
+def skip_coverage_fixture(request: FixtureRequest):
     if request.config.getoption("--cov"):
         raise pytest.skip("Test skipped because coverage is emitted")
 

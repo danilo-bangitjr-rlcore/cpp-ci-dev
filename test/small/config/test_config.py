@@ -1,14 +1,16 @@
 import importlib
+from typing import Any
 from pytest import fixture
+from collections.abc import Callable
 
 
 @fixture
 def import_module():
-    def _import(module_name):
+    def _import(module_name: str):
         return importlib.import_module(module_name)
     return _import
 
-def test_initialize_config(import_module):
+def test_initialize_config(import_module: Callable[[str], Any]):
     """
     We should be able to instantiate our configuration object
     with only one import: corerl.config.

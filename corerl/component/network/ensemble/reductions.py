@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Protocol
 import torch
 import numpy as np
 
@@ -47,6 +47,10 @@ def _median_reduct(cfg: MedianReduct, x: torch.Tensor, dim: int):
     return torch.quantile(x, q=0.5, dim=dim)
 
 
+class Statistic(Protocol):
+    def __call__(self, input: torch.Tensor, dim: int) -> torch.Tensor:
+        ...
+
 @config(frozen=True)
 class PercentileReduct:
     name: Literal['percentile'] = 'percentile'
@@ -59,7 +63,7 @@ def _percentile_bootstrap(
     cfg: PercentileReduct,
     x: torch.Tensor,
     dim: int,
-    statistic=torch.mean,
+    statistic: Statistic = torch.mean,
 ):
     size = (
         *x.shape[:dim],

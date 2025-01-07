@@ -1,15 +1,30 @@
 from datetime import datetime
+from typing import Any
 import numpy as np
 import pandas as pd
 import time
 from gymnasium.spaces import Box
 
+from corerl.configs.config import MISSING, config, list_
 from corerl.environment.reward.factory import init_reward_function
-from corerl.environment.influx_opc_env import InfluxOPCEnv
+from corerl.environment.influx_opc_env import InfluxOPCConfig, InfluxOPCEnv
+
+
+@config()
+class ReseauConfig(InfluxOPCConfig):
+    reward: Any = MISSING
+    action_low: float = MISSING
+    action_high: float = MISSING
+    obs_space_low: list[float] = list_()
+    obs_space_high: list[float] = list_()
+    col_names: list[str] = list_()
+    action_names: list[str] = list_()
+    endo_obs_names: list[str] = list_()
+    endo_inds: list[int] = list_()
 
 
 class ReseauEnv(InfluxOPCEnv):
-    def __init__(self, cfg):
+    def __init__(self, cfg: ReseauConfig):
         super().__init__(cfg)
         self.reward_func = init_reward_function(cfg.reward)
         self.prev_action = None
@@ -21,13 +36,19 @@ class ReseauEnv(InfluxOPCEnv):
         self.endo_obs_names = cfg.endo_obs_names
         self.endo_inds = cfg.endo_inds
 
-    def _get_reward(self, s: np.ndarray | pd.DataFrame, a: np.ndarray): # type: ignore
-        assert isinstance(s, np.ndarray)
+    def _get_reward(
+        self,
+        obs: np.ndarray,
+        obs_series: pd.Series,
+        steps_until_decision: int | None,
+        action: np.ndarray,
+        decision_point: bool,
+    ):
         if self.prev_action is None:
-            r = self.reward_func(s, prev_action=a, curr_action=a)
+            r = self.reward_func(obs_series, prev_action=action, curr_action=action)
         else:
-            r = self.reward_func(s, prev_action=self.prev_action, curr_action=a)
-            self.prev_action = a
+            r = self.reward_func(obs_series, prev_action=self.prev_action, curr_action=action)
+            self.prev_action = action
         return r
 
     def step(self, action: np.ndarray):
@@ -43,7 +64,7 @@ class ReseauEnv(InfluxOPCEnv):
     async def healthcheck(self):
         ...
 
-    async def async_reset(self, *, seed=None, options=None) -> tuple[np.ndarray, dict]:
+    async def async_reset(self, *, seed: int | None = None, options: dict | None = None) -> tuple[np.ndarray, dict]:
         ...
 
     async def get_deployed_action(self, time: datetime | None = None) -> np.ndarray:

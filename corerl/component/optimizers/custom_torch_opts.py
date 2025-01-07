@@ -84,7 +84,7 @@ class CustomAdam(Optimizer):
             return math.sqrt(x)
 
     def state_dict(self) -> dict[str, Any]:
-        hard_copy = {
+        hard_copy: dict[str, Any] = {
             'state': {},
             'param_groups': []
         }
@@ -105,7 +105,7 @@ class CustomAdam(Optimizer):
         return hard_copy
 
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
-        def inposition_fill(ref, data):
+        def inposition_fill(ref: torch.Tensor, data: torch.Tensor):
             if len(ref.data.size()) == 2:
                 idx = torch.arange(ref.data.size()[1])
                 idx = torch.tile(idx, (ref.data.size()[0], 1))

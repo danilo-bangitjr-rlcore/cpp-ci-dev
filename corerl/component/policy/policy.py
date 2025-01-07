@@ -103,7 +103,7 @@ class Policy(ABC):
         pass
 
     @abstractmethod
-    def forward(self, state, rsample=True) -> tuple[torch.Tensor, dict]:
+    def forward(self, state: torch.Tensor, rsample: bool = True) -> tuple[torch.Tensor, dict]:
         """
         Return a sample from the policy in state `state`
         """
@@ -130,7 +130,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         self._dist = dist
 
     @classmethod
-    def from_(cls, model: nn.Module, dist: type[Any], *args, **kwargs):
+    def from_(cls, model: nn.Module, dist: type[Any], *args: Any, **kwargs: Any):
         """
         Factory which returns a ContinuousIIDPolicy which supports the
         distribution `dist`.
@@ -168,7 +168,7 @@ class ContinuousIIDPolicy(Policy,ABC):
     def from_env(cls, model: nn.Module, dist: type[Any], env: gym.Env) -> 'ContinuousIIDPolicy':
         pass
 
-    def _transform_from_params(self, *params) -> d.Distribution:
+    def _transform_from_params(self, *params: torch.Tensor) -> d.Distribution:
         """
         Given a tuple of policy parameters, return the underlying policy
         distribution transformed to cover the correct support region.
@@ -281,7 +281,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         dist = self._transform_from_params(*params)
         return dist.entropy()
 
-    def kl(self, other: ContinuousIIDPolicy, state) -> torch.Tensor:
+    def kl(self, other: ContinuousIIDPolicy, state: torch.Tensor) -> torch.Tensor:
         self_params = self._model(state)
         self_dist = self._transform_from_params(*self_params)
 

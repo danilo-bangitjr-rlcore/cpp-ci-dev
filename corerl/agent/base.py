@@ -9,7 +9,7 @@ from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.configs.config import MISSING, interpolate, config
 from corerl.data_pipeline.datatypes import Transition
-from corerl.utils.hook import Hooks, when
+from corerl.utils.hook import Hook, Hooks, when
 from corerl.messages.client import MessageBusClientConfig, make_msg_bus_client
 
 
@@ -29,7 +29,7 @@ class BaseAgentConfig:
 
 class BaseAgent(ABC):
     def __init__(self, cfg: BaseAgentConfig, state_dim: int, action_dim: int):
-        self._hooks = Hooks(keys=[e.value for e in when.Agent])
+        self._hooks = Hooks(keys=when.Agent)
         self.replay_ratio = cfg.replay_ratio
         self.update_freq = cfg.update_freq
         self.state_dim = state_dim
@@ -70,7 +70,7 @@ class BaseAgent(ABC):
     def load(self, path: Path) -> None:
         raise NotImplementedError
 
-    def register_hook(self, hook, when: when.Agent):
+    def register_hook(self, hook: Hook, when: when.Agent):
         self._hooks.register(hook, when)
 
     def get_buffer_sizes(self) -> dict[str, list[int]]:

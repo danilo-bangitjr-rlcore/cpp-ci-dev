@@ -3,6 +3,8 @@ from os import path, makedirs
 
 import boto3
 import pytest
+from pytest import FixtureRequest
+from docker.models.containers import Container
 from botocore.exceptions import NoCredentialsError
 from sqlalchemy import URL
 
@@ -50,7 +52,7 @@ def init_epcor_tsdb_container():
     container.remove()
 
 @pytest.fixture(scope="module")
-def dl_epcor_partial_data_if_not_exists(init_epcor_tsdb_container, request):
+def dl_epcor_partial_data_if_not_exists(init_epcor_tsdb_container: Container, request: FixtureRequest):
     repo_root = request.config.rootpath
     offline_data_dir = path.join(repo_root, "offline_data")
 
@@ -110,8 +112,8 @@ def dl_epcor_partial_data_if_not_exists(init_epcor_tsdb_container, request):
     reason="Skipping test because boto3 credentials invalid and stub file doesn't exist"
 )
 def test_epcor_tsdb_scrubber(
-    request,
-    dl_epcor_partial_data_if_not_exists,
+    request: FixtureRequest,
+    dl_epcor_partial_data_if_not_exists: None,
 ): # noqa: F811
     """This test loads the partial scrubber4 data into a TSDB instance
     and ensures that we can run the TSDBAsyncStubEnv without any error.

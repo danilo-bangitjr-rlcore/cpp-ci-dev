@@ -1,3 +1,4 @@
+from collections.abc import Hashable
 from dataclasses import dataclass
 import datetime
 
@@ -508,7 +509,10 @@ def test_epcor_reward():
     pf = rc(pf)
 
     r = epcor_scrubber_reward
-    expected_rewards = [r(**row, cfg=r_cfg) for row in df.to_dict(orient="records")]
+    expected_rewards = [
+        r(**_sanitize_dict(row), cfg=r_cfg)
+        for row in df.to_dict(orient="records")
+    ]
     expected_reward_df = pd.DataFrame(
         data=expected_rewards,
         columns=pd.Index(["reward"]),
@@ -517,3 +521,16 @@ def test_epcor_reward():
     expected_df = pd.concat([df, expected_reward_df], axis=1)
 
     assert dfs_close(pf.data, expected_df)
+
+
+def _sanitize_dict[T](d: dict[Hashable, T]) -> dict[str, T]:
+    """
+    Because dict is invariant, passing a dict[A, ...] to a method expecting
+    dict[B, ...] is invalid -- regardless of whether A is a subset or superset of B.
+    This method converts `Hashable`s (typically coming from pandas) into `str`s
+    in order to satisfy methods expecting a `dict[str, T]`
+    """
+    return {
+        str(k): v
+        for k, v in d.items()
+    }

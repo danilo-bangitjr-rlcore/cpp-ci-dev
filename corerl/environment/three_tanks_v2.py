@@ -178,7 +178,7 @@ class ThreeTankEnvBase(object):
     def update_pid(
         self,
         pi_parameters: np.ndarray[int, np.dtype[np.float32]] | List[float],
-        KI=False,
+        KI: bool = False,
     ):
         # This method update the pid settings based on the action
         self.kp1 = pi_parameters[0]
@@ -287,7 +287,7 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.reset()
 
     def step(
-        self, a: np.ndarray, cache=True, use_baseline=True,
+        self, a: np.ndarray, cache: bool = True, use_baseline: bool = True,
     ) -> tuple[np.ndarray, float, bool, bool, dict]:
         pid = a
         self.update_pid(pid, KI=True)

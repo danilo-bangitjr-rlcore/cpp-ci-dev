@@ -7,7 +7,7 @@ import torch.distributions.constraints as constraints
 
 
 class Softmax(Policy):
-    def __init__(self, net, input_dim: int, output_dim: int):
+    def __init__(self, net: nn.Module, input_dim: int, output_dim: int):
         super(Softmax, self).__init__(net)
         self.output_dim = output_dim
 
@@ -50,7 +50,7 @@ class Softmax(Policy):
         rsample: bool = True,
     ) -> tuple[torch.Tensor, dict]:
         assert not rsample, "Softmax does not support the reparameterization trick"
-        probs, x = self.get_probs(state)
+        probs, _ = self.get_probs(state)
         dist = torch.distributions.Categorical(probs=probs)
         actions = dist.sample()
 

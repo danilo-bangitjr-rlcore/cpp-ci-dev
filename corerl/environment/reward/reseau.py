@@ -1,5 +1,6 @@
-from typing import Any
 import numpy as np
+import pandas as pd
+from typing import Any
 
 from corerl.environment.reward.base import BaseReward
 
@@ -11,7 +12,7 @@ class ReseauReward(BaseReward):
         self.penalty_weight = cfg.penalty_weight
         self.action_scale = cfg.action_scale
 
-    def __call__(self, obs, **kwargs) -> float:
+    def __call__(self, obs: pd.DataFrame | pd.Series, **kwargs: Any) -> float:
         prev_action = kwargs['prev_action']
         curr_action = kwargs['curr_action']
         mae = np.abs(self.orp_sp - obs[self.orp_col])

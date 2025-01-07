@@ -1,3 +1,4 @@
+from docker.models.containers import Container
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from datetime import datetime, UTC, timedelta
@@ -18,7 +19,7 @@ def init_data_writer_tsdb_container():
 
 
 @pytest.fixture(scope="module")
-def data_writer(init_data_writer_tsdb_container) -> Generator[DataWriter, None, None]:
+def data_writer(init_data_writer_tsdb_container: Container) -> Generator[DataWriter, None, None]:
     assert init_data_writer_tsdb_container.name == "test_timescale"
     db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",

@@ -198,7 +198,7 @@ class EnsembleCritic(nn.Module):
         self.bootstrap_reduct, self.policy_reduct = _init_ensemble_reducts(cfg)
         self.to(device.device)
 
-    def fmodel(self, params, buffers, x: torch.Tensor):
+    def fmodel(self, params: dict[str, torch.Tensor], buffers: dict[str, torch.Tensor], x: torch.Tensor):
         return functional_call(self.base_model, (params, buffers), (x,))
 
     def forward(
@@ -317,7 +317,7 @@ class GRU(nn.Module):
         self.gru = nn.RNN(input_dim, self.gru_hidden_dim, self.num_gru_layers, batch_first=True)
         self.to(device.device)
 
-    def forward(self, x: torch.Tensor, prediction_start=None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, prediction_start: int | None = None) -> torch.Tensor:
         batch_size, seq_length, _ = x.size()
         h = torch.zeros(self.num_gru_layers, batch_size, self.gru_hidden_dim).to(device.device)
         if prediction_start is None:

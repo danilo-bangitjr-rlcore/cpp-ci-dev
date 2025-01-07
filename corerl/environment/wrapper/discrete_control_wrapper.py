@@ -3,7 +3,7 @@ import gymnasium as gym
 import numpy as np
 
 class DiscreteControlWrapper(gym.Env):
-    def __init__(self, name, seed):
+    def __init__(self, name: str, seed: int | None):
         self.env = gym.make(name, render_mode="human")
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
@@ -11,7 +11,7 @@ class DiscreteControlWrapper(gym.Env):
         self.env._max_episode_steps = np.inf # type: ignore
         self.env.reset(seed=seed)
 
-    def step(self, action):
+    def step(self, action: np.ndarray):
         action_ = action[0]
         return self.env.step(action_)
 
@@ -34,11 +34,11 @@ class DiscreteControlWrapper(gym.Env):
 
 
 class SparseDiscreteControlWrapper(DiscreteControlWrapper):
-    def __init__(self, name, seed):
+    def __init__(self, name: str, seed: int | None):
         super(SparseDiscreteControlWrapper, self).__init__(name, seed)
         assert name in ['MountainCar-v0', 'Acrobot-v1'], "Only works for episodic tasks"
 
-    def step(self, action):
+    def step(self, action: np.ndarray):
         action_ = action[0]
         state, reward, done, truncate, env_info = self.env.step(action_)
         if reward == 0. or done:
