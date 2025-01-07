@@ -4,8 +4,6 @@ import torch.nn as nn
 import numpy as np
 from corerl.utils.device import Device, device as global_device
 from collections.abc import Callable
-import warnings
-import corerl.component.layer.activations as activations
 
 
 class Float(torch.nn.Module):
@@ -168,26 +166,6 @@ def to_np(t: numpy.ndarray | torch.Tensor) -> numpy.ndarray:
         return t.cpu().detach().numpy()
     else:
         return t
-
-
-def init_activation(name: str) -> type[nn.Module]:
-    warnings.warn(
-        "init_activation in module utils is deprecated and will be removed, " +
-        "use activations.init_activation instead",
-        stacklevel=1,
-    )
-
-    return type(activations.init_activation({"name": name}))
-
-
-def init_activation_function(name: str) -> nn.Module:
-    warnings.warn(
-        "init_activation in module utils is deprecated and will be removed, " +
-        "use activations.init_activation instead",
-        stacklevel=1,
-    )
-
-    return activations.init_activation({"name": name})()
 
 
 def init_layer(init: str) -> Callable[[torch.nn.modules.Module], torch.nn.modules.Module]:
