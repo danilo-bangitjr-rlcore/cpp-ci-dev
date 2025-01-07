@@ -1,3 +1,17 @@
+## 0.10.1 (2025-01-07)
+
+### Fix
+
+- ensure behavior policy is updated for InAC
+
+### Refactor
+
+- remove several unused properties on three_tanks
+- remove several unused properties on three_tanks_v2
+- remove several unused status variables in LSO
+- remove reinforce algorithm
+- nuke hooks subsystem
+
 ## 0.10.0 (2025-01-07)
 
 ### Feat
