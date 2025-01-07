@@ -212,7 +212,7 @@ class InAC(BaseAC):
 
         if min(self.policy_buffer.size) > 0:
             self.update_actor()
-        # unsure if beh updates should go here. Han please advise.
+            self.update_beh()
 
         return critic_losses
 
