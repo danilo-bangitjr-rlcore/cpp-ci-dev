@@ -4,7 +4,6 @@ import torch.nn as nn
 from dataclasses import field
 from collections.abc import Iterable
 from torch.func import stack_module_state, functional_call # type: ignore
-import numpy as np
 from corerl.component.network.base import BaseNetworkConfig
 import corerl.component.network.utils as utils
 from corerl.component.network.ensemble.reductions import MeanReduct, bootstrap_reduct_group
@@ -16,8 +15,6 @@ from corerl.component.layer.activations import ActivationConfig
 from typing import Any, Callable, Literal, Optional
 
 
-# Differences of this size are representable up to ~ 15
-FLOAT32_EPS = 10 * np.finfo(np.float32).eps
 EPSILON = 1e-6
 
 
