@@ -1,7 +1,6 @@
 import numpy
 import torch
 import torch.nn as nn
-import numpy as np
 from corerl.utils.device import Device, device as global_device
 from collections.abc import Callable
 
@@ -19,91 +18,6 @@ class Float(torch.nn.Module):
 def expectile_loss(diff: torch.Tensor, expectile: float = 0.9) -> torch.Tensor:
     weight = torch.where(diff > 0, expectile, (1 - expectile)).to(global_device.device)
     return (weight * (diff ** 2)).to(global_device.device)
-
-
-def ensemble_expectile_loss(q: torch.Tensor, vs: list[torch.Tensor], expectile: float = 0.9) -> list[torch.Tensor]:
-    losses = []
-    for v in vs:
-        diff = (q - v).to(global_device.device)
-        weight = torch.where(diff > 0, expectile, (1 - expectile)).to(global_device.device)
-        loss_v = (weight * (diff ** 2)).mean()
-        losses.append(loss_v.to(global_device.device))
-    return losses
-
-
-def ensemble_mse(target: torch.Tensor | np.ndarray, q_ens: torch.Tensor) -> list[torch.Tensor]:
-    """
-    Calculate the MSE of an ensemble of q values
-
-    Parameters
-    ----------
-    q_ens : torch.Tensor
-        An ensemble of predicted q values, with batch dimension 0
-    target : torch.Tensor
-        The targets of prediction for each q value in `q_ens`. If each q value
-        in `q_ens` should have a different target for prediction, then `target`
-        should have batch dimension 0 with `target.shape == q_ens.shape`.
-    """
-    target = tensor(target)
-    assert q_ens.ndim == 3
-    ensemble_target = target.ndim == 3
-    if ensemble_target:
-        mses = [nn.functional.mse_loss(t, q).to(global_device.device) for (t, q) in zip(target, q_ens, strict=False)]
-    else:
-        mses = [nn.functional.mse_loss(target, q).to(global_device.device) for q in q_ens]
-    return mses
-
-
-def reset_weight_random(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
-    return new_net.to(global_device.device)
-
-
-def reset_weight_shift(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
-    with torch.no_grad():
-        for p, p_new in zip(old_net.parameters(), new_net.parameters(), strict=False):
-            p_new.data.mul_(0)
-            p_new.data.add_(p.data + param)
-    return new_net
-
-
-def reset_weight_shrink(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
-    with torch.no_grad():
-        for p, p_new in zip(old_net.parameters(), new_net.parameters(), strict=False):
-            p_new.data.mul_(0)
-            p_new.data.add_(p.data * param)
-    return new_net
-
-
-def reset_weight_shrink_rnd(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
-    with torch.no_grad():
-        for p, p_new in zip(old_net.parameters(), new_net.parameters(), strict=False):
-            p_new.data.mul_(0.5)
-            p_new.data.add_(p.data * param * 0.5)
-    return new_net
-
-
-def reset_weight_pass(old_net: nn.Module, new_net: nn.Module, param: list[torch.Tensor]) -> nn.Module:
-    return old_net
-
-
-def clone_model_0to1(net0: nn.Module, net1: nn.Module) -> nn.Module:
-    with torch.no_grad():
-        net1.load_state_dict(net0.state_dict())
-    return net1
-
-
-def clone_gradient(model: nn.Module) -> dict:
-    grad_rec = {}
-    for idx, param in enumerate(model.parameters()):
-        grad_rec[idx] = param.grad
-    return grad_rec
-
-
-def move_gradient_to_network(model: nn.Module, grad_rec: dict, weight: float) -> nn.Module:
-    for idx, param in enumerate(model.parameters()):
-        if grad_rec[idx] is not None:
-            param.grad = grad_rec[idx] * weight
-    return model
 
 
 def layer_init_normal(layer: nn.Module, bias: bool = True) -> nn.Module:

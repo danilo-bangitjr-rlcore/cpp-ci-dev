@@ -153,8 +153,5 @@ class NetworkActorLineSearch(NetworkActor):
         self.policy = policy.create(
             cfg.actor_network, state_dim, action_dim, action_min, action_max,
         )
-        self.policy_copy = policy.create(
-            cfg.actor_network, state_dim, action_dim, action_min, action_max,
-        )
 
 group.dispatcher(NetworkActorLineSearch)
