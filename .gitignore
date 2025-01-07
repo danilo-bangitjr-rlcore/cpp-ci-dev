@@ -197,3 +197,4 @@ multirun/
 /test/unit/utils/test_stuff.ipynb
 htmlcov
 artifacts
+vendor
