@@ -6,7 +6,6 @@ import numpy as np
 class Saturation(gym.Env):
     def __init__(self, **kwargs: Any):
         self._random = np.random.default_rng()
-        self.observation_dim = 1
         self._obs_min = np.array([0.])
         self._obs_max = np.array([1.])
         self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max)
