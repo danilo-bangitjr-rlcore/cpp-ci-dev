@@ -25,7 +25,6 @@ class ThreeTankEnvBase:
         self.C2 = 0  # taui penalty # bug
         self.C3 = 0  # CV penalty # bug
         self.C4 = 0  # MV penalty # bug
-        self.breach = 0
         self.constrain_contribution = 0  # constrain to be multiplied by lambda
 
         # Make Three Tank Env an OpenAI Gym Env
@@ -42,7 +41,6 @@ class ThreeTankEnvBase:
         self.setpoint_T1_record: list[float] = []  # list of Tank1 setpoints
         self.kp_record: list[float] = []  # list of Tank1 Kp
         self.ti_record: list[float] = []  # list of Tank1 Ti
-        self.ep_num = 1  # episode number
         self.old_error1 = 0
         self.new_error1 = 0
 
@@ -50,10 +48,6 @@ class ThreeTankEnvBase:
         self.error_sum = 0
         self.no_of_error = 0
         self.time_step = 0  # initial time_step
-
-        # To calculate Variance
-        self.flowrate_buffer: list[float] = []
-        self.del_pids: list[float] = []
 
         # initialize kp1 and ti1 values
         self.kp1 = 1.2
@@ -88,11 +82,7 @@ class ThreeTankEnvBase:
         self.flowrate_T1 = (self.C - self.A) / self.B
         self.state_normalizer = 1. #10.
 
-        # Define this parameter for keeping the action penalty in clipping action setting
-        self.extra_action_penalty = 0
-
     # resets the environment to initial values
-
     def reinit_the_system(self):
         timespan = np.linspace(0, 100, 101)
         omega = 0.3
@@ -123,7 +113,6 @@ class ThreeTankEnvBase:
     def reset_reward(self):
         self.error_sum = 0
         self.no_of_error = 0
-        self.flowrate_buffer = []
 
     def reset(
         self,
@@ -147,7 +136,6 @@ class ThreeTankEnvBase:
         self.C2 = 0  # taui penalty
         self.C3 = 0  # CV penalty
         self.C4 = 0  # MV penalty
-        self.breach = 0
         self.constrain_contribution = 0  # constrain to be multiplied by lambda
 
         # initialize PID settings
@@ -159,7 +147,6 @@ class ThreeTankEnvBase:
         # normalized error between the water level in tank 1 and the set point
         self.error_sum = 0
         self.no_of_error = 0
-        self.flowrate_buffer = []
         error_T1 = self.setpoint - self.height_T1
         self.no_of_error += 1  # Increament the number of error stored by 1
         self.error_sum += np.square(error_T1)  # Sum of error square
@@ -189,24 +176,9 @@ class ThreeTankEnvBase:
         # self.flowrate_1_buffer.append(del_fr_1)
         return np.asarray(del_flow_rate)
 
-    def get_setpoints(self):
-        return self.setpoint
-
-    # changes the set points
-    def set_setpoints(self, setpoints_T1: int | None = None):
-        if setpoints_T1 is not None:
-            self.setpoint = setpoints_T1
-
     # the environment reacts to the inputted action
     def inner_step(self, delta_flow_rate: np.ndarray, disturbance: float = 0):
-        # if no value for the valves is given, the valves default to this configuration
-        pump_bound = 0
         self.flowrate_T1 += delta_flow_rate[0]  # updating the flow rate of pump 1 given the change in flow rate
-
-        if self.flowrate_T1 > 100:
-            pump_bound += abs(self.flowrate_T1 - 100)
-        elif self.flowrate_T1 < 0:
-            pump_bound += abs(self.flowrate_T1)
 
         if disturbance != 5:
             self.height_T1 = self.height_T1
@@ -280,11 +252,7 @@ class ThreeTankEnvBase:
         next_state = [self.setpoint / self.state_normalizer]
 
         self.time_step += 1  # updates elapsed time
-        if self.time_step >= 1000:  # terminates the process if the time elapsed reaches the maximum
-            done = True
-            self.ep_num += 1
-        else:
-            done = False
+        done = self.time_step >= 1000
         # returns the next state, reward, and if the episode has terminated or not
         return np.asarray(next_state), done
 
@@ -303,7 +271,6 @@ class ThreeTankEnvBase:
         reward = - mse.item() * 100 # type: ignore
         self.error_sum = 0
         self.no_of_error = 0
-        self.flowrate_buffer = []
         return reward
 
 # Observation: setpoint -> 1
@@ -321,7 +288,6 @@ class ThreeTankEnv(ThreeTankEnvBase):
             start=int(np.array(self.random_sp).min()),
         )
         self.action_space = spaces.Box(low=self.min_actions, high=self.max_actions, shape=(2,), dtype=np.float32)
-        self.visualization_range = [-1, max(15, np.array(random_sp).max()+1)]
 
     def sum_constrain_info(self):
         for k,v in self.constrain_info.items():
@@ -376,17 +342,6 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.reinit_the_system()
         return s
 
-    def get_action_samples(self, n: int = 10):
-        max_a = self.action_space.high/2 #/ self.action_multiplier # re-scale to the range of agent action
-        min_a = self.action_space.low #/ self.action_multiplier # re-scale to the range of agent action
-        xs = np.linspace(min_a[0], max_a[0], n)
-        ys = np.linspace(min_a[1], max_a[1], n)
-        xaxis, yaxis = np.meshgrid(xs, ys)
-        shape = xaxis.shape
-        xaxis, yaxis = xaxis.reshape((-1, 1)), yaxis.reshape((-1, 1))
-        return np.array(np.concatenate([xaxis, yaxis], axis=1)), shape
-
-
 # Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
 # Action: [delta_kp1, delta_ti1] -> continuous version -> 2
 class TTChangeAction(ThreeTankEnv):
@@ -421,7 +376,7 @@ class TTChangeAction(ThreeTankEnv):
 
     def preprocess_action(self, a: np.ndarray):
         pid = a + self.prev_pid
-        pid, self.extra_action_penalty = self.pid_clip(pid)
+        pid = self.pid_clip(pid)
         return pid
 
     def step(self, a: np.ndarray):
@@ -478,36 +433,15 @@ class TTChangeAction(ThreeTankEnv):
         return s
 
     def pid_clip(self, pid: np.ndarray):
-        C1, C2 = 0, 0
-        if pid[0] > self.KP_MAX:
-            C1 = abs(pid[0] - self.KP_MAX)
-        elif pid[0] < self.KP_MIN:
-            C1 = abs(pid[0] - self.KP_MIN)
-        if pid[1] > self.TAU_MAX:
-            C2 = abs(pid[1] - self.TAU_MAX)
-        elif pid[1] < self.TAU_MIN:
-            C2 = abs(pid[1] - self.TAU_MIN)
-        extra_action_constrain = np.float64(abs(self.W1 * C1 + self.W2 * C2))
-
         pid[0] = np.clip(pid[0], 0.2,10)#self.KP_MIN, self.KP_MAX) # clip at 0.2, 10, follow the direct action setting
         pid[1] = np.clip(pid[1], 0.2, 10)#self.KP_MIN, self.TAU_MAX) # clip at 0.2, 10, follow the direct action setting
-        return pid, extra_action_constrain
+        return pid
 
     def observation(self, prev_a: np.ndarray, pid: np.ndarray):
         pid, _ = self.pid_clip(pid)
-        # obs = np.concatenate([prev_a, pid], axis=0)
         obs = pid
         return obs
 
-    def get_action_samples(self, n: int = 10):
-        min_a = self.agent_action_min
-        max_a = self.agent_action_max
-        xs = np.linspace(min_a, max_a, n)
-        ys = np.linspace(min_a, max_a, n)
-        xaxis, yaxis = np.meshgrid(xs, ys)
-        shape = xaxis.shape
-        xaxis, yaxis = xaxis.reshape((-1, 1)), yaxis.reshape((-1, 1))
-        return np.array(np.concatenate([xaxis, yaxis], axis=1)), shape
 
 # Observation: [delta_kp1, delta_ti1, prev_kp1, prev_ti1] -> 4
 # Action: cross product of [delta_kp1, delta_ti1] -> discrete version (three choices per dimension) -> 1
@@ -556,7 +490,7 @@ class TTChangeActionDiscrete(TTChangeAction):
         # norm_pid = self.action_list[a] + self.prev_pid
         # pid = self.action_multiplier * norm_pid
         pid = self.action_list[a] + self.prev_pid
-        pid, self.extra_action_penalty = self.pid_clip(pid)
+        pid = self.pid_clip(pid)
         return pid #, norm_pid
 
     def observation(self, prev_a: np.ndarray, pid: np.ndarray):
@@ -578,12 +512,6 @@ class TTChangeActionDiscrete(TTChangeAction):
             # self.prev_a = 1
         s = self.observation(self.prev_a, self.prev_pid)
         return s
-
-    def get_action_samples(self, n: int | None = None):
-        samples = np.arange(9).reshape(-1, 1)
-        shape = samples.shape
-        return samples, shape
-
 
 
 # Observation: [0, 0, prev_kp1, prev_ti1] -> 4
@@ -622,16 +550,6 @@ class TTAction(TTChangeAction):
         sp, r, done, trunc, info = super().step(a)
         sp[:2] = 0
         return sp, r, done, trunc, info
-
-    def get_action_samples(self, n: int = 10):
-        max_a = self.action_space.high/2 #/ self.action_multiplier # re-scale to the range of agent action
-        min_a = self.action_space.low #/ self.action_multiplier # re-scale to the range of agent action
-        xs = np.linspace(min_a[0], max_a[0], n)
-        ys = np.linspace(min_a[1], max_a[1], n)
-        xaxis, yaxis = np.meshgrid(xs, ys)
-        shape = xaxis.shape
-        xaxis, yaxis = xaxis.reshape((-1, 1)), yaxis.reshape((-1, 1))
-        return np.array(np.concatenate([xaxis, yaxis], axis=1)), shape
 
 
 class NonContexTT(ThreeTankEnv):
