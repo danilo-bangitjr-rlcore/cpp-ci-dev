@@ -113,6 +113,7 @@ dev = [
 
 [project.scripts]
 corerl_main = "corerl.main:main"
+corerl_convertdb_backup = "corerl.bin.convert_db_backup:main"
 
 [tool.coverage.run]
 omit = ["test/*",]
