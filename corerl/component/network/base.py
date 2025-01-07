@@ -12,8 +12,3 @@ critic_group = Group[
     [int, int],
     nn.Module,
 ]()
-
-custom_network_group = Group[
-    [int, int],
-    nn.Module,
-]()
