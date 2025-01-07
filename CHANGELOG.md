@@ -1,3 +1,9 @@
+## 0.10.0 (2025-01-07)
+
+### Feat
+
+- Utility to convert Drayton Valley DB Backups into a format usable by our OPC Client (#340)
+
 ## 0.9.2 (2025-01-07)
 
 ### Fix
