@@ -3,8 +3,6 @@ from influxdb_client.client.influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
 from abc import ABC, abstractmethod
 
-from corerl.utils.hook import Hook, when, Hooks
-
 import numpy as np
 import gymnasium as gym
 import pandas as pd
@@ -199,7 +197,6 @@ class InfluxOPCEnv(ABC, gym.Env):
     clock: Generator
 
     def __init__(self, cfg: InfluxOPCConfig):
-        self._hooks = Hooks(keys=when.Env)
         self.db_client = DBClientWrapper(cfg.db)
 
         self.opc_connection = OpcConnection(cfg.opc)
@@ -393,20 +390,6 @@ class InfluxOPCEnv(ABC, gym.Env):
             info,
         )
 
-        _kwargs = self.get_all_data()
-
-        self._hooks(
-            when.Env.AfterStep,
-            self,
-            None,
-            action,
-            r,
-            s,
-            term,
-            trunc,
-            **_kwargs,
-        )
-
         return s, r, term, trunc, info
 
     async def async_step(
@@ -447,9 +430,3 @@ class InfluxOPCEnv(ABC, gym.Env):
 
     def close(self):
         asyncio.run(self.opc_connection.disconnect())
-
-    def get_all_data(self):
-        return {}
-
-    def register_hook(self, hook: Hook, when: when.Env):
-        self._hooks.register(hook, when)
