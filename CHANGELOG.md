@@ -1,3 +1,18 @@
+## 0.9.2 (2025-01-07)
+
+### Fix
+
+- add missing type annotations to activations
+- add missing type annotations to e2e directory
+- make dispatch target functions anonymous
+- remove pandas for temporary data structures
+- remove unreachable code branch in to_np utility
+- remove unnecessary isinstance in scrubber reward
+
+### Refactor
+
+- nuke plotting utilities
+
 ## 0.9.1 (2025-01-07)
 
 ### Fix
