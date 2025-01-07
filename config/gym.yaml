@@ -1,8 +1,3 @@
-experiment:
-  plotting: False
-  online_updates : True # Whether to update the agent online in deployment
-
-use_alerts: False
 action_period: 1
 obs_period: 1
 
@@ -22,5 +17,3 @@ pipeline:
     port: 5433
     db_name: "pytest"
     sensor_table_name: "sensors"
-
-alerts:

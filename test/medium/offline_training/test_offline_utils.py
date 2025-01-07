@@ -85,7 +85,6 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
             )
         ),
         experiment=ExperimentConfig(
-            load_env_obs_space_from_data=True,
             offline_steps=100
         ),
         pipeline=PipelineConfig(
