@@ -10,7 +10,6 @@ from corerl.agent.factory import init_agent
 from corerl.offline.utils import load_offline_transitions, offline_training
 from corerl.data_pipeline.pipeline import Pipeline
 
-import corerl.utils.freezer as fr
 import corerl.main_utils as utils
 
 log = logging.getLogger(__name__)
@@ -22,8 +21,6 @@ def main(cfg: MainConfig):
     Assuming offline data has already been written to TimescaleDB
     """
     save_path = utils.prepare_save_dir(cfg)
-    fr.init_freezer(save_path / 'logs')
-
     device.update_device(cfg.experiment.device)
 
     # set the random seeds

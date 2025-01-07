@@ -1,7 +1,7 @@
 from dataclasses import field
 import torch
 from pathlib import Path
-from typing import Any, Callable, Literal, cast
+from typing import Any, Literal, cast
 
 from corerl.configs.config import config
 from corerl.component.buffer.buffers import EnsembleUniformReplayBufferConfig
@@ -152,17 +152,6 @@ class NetworkActorLineSearch(NetworkActor):
         action_min, action_max = 0, 1
         self.policy = policy.create(
             cfg.actor_network, state_dim, action_dim, action_min, action_max,
-        )
-        self.policy_copy = policy.create(
-            cfg.actor_network, state_dim, action_dim, action_min, action_max,
-        )
-
-    def set_parameters(
-        self, buffer_address: int,
-        eval_error_fn: Callable[[list[torch.Tensor]], torch.Tensor],
-    ) -> None:
-        self.optimizer.set_params(
-            buffer_address, [self.policy_copy.model], eval_error_fn,
         )
 
 group.dispatcher(NetworkActorLineSearch)

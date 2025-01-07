@@ -1,7 +1,6 @@
 import importlib.util
 from pathlib import Path
 from typing import Callable
-import pandas as pd
 
 def add_key_to_run(run: dict, key: str, values: list):
     run_list = []
@@ -65,21 +64,3 @@ def get_sweep_params(name: str, path: Path) -> list[dict] | tuple[list[dict], li
     sweep_params = module.SWEEP_PARAMS
     sweep_params = params_to_list(sweep_params)
     return sweep_params
-
-
-def get_nested_value(d: dict, path: str) -> object:
-    keys = path.split('.')
-    current = d
-    for key in keys:
-        if isinstance(current, dict) and key in current:
-            current = current[key]
-        else:
-            return None  # or raise an error
-    return current
-
-
-def list_to_df(lst: list[dict], ignore_step_logs: bool = True) -> pd.DataFrame:
-    df = pd.DataFrame(lst)
-    if ignore_step_logs:
-        df.drop('step_logs', axis=1, inplace=True)
-    return df

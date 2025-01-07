@@ -4,7 +4,6 @@ Linesearch library: https://github.com/rlcoretech/LineSearchOpt
 """
 from collections.abc import Iterable
 import torch
-import numpy as np
 import ctypes
 from dataclasses import field
 from typing import Any, Callable, Literal
@@ -64,16 +63,11 @@ class LineSearchOpt:
         self.cfg = cfg
         self.opt_copy_dict = {}
         self.net_lst = net_lst
-        self.net_copy_dict = {}
 
         self.lr_main = lr
         self.lr_weight = 1.
         self.lr_weight_copy = 1.
         self.lr_decay_rate = 0.5
-        self.last_scaler = 1.0
-        self.last_change = np.inf
-
-        self.inner_count = 0
 
         self.max_backtracking = max_backtracking
         self.error_threshold = error_threshold
@@ -228,11 +222,8 @@ class LineSearchOpt:
                 break
 
         assert after_error is not None
-        self.last_scaler = self.lr_weight
         self.lr_weight = self.lr_weight_copy
-        self.last_change = (after_error - before_error).detach().numpy()
-        self.inner_count += 1
-        return
+
 
     def __backtrack_momentum(
         self,
@@ -267,34 +258,13 @@ class LineSearchOpt:
                 break
             else:
                 break
-        self.last_scaler = self.lr_weight
         self.lr_weight = self.lr_weight_copy
-        self.last_change = (after_error - before_error).detach().numpy()
-        self.inner_count += 1
-        return
+
 
     def __reset_lr(self, opt: Optimizer | EnsembleOptimizer, new_lr: float) -> None:
         for g in opt.param_groups:
             g['lr'] = new_lr
 
-    @property
-    def latest_change(self) -> float:
-        return float(self.last_change)
-
-    @property
-    def latest_lr_main(self) -> float:
-        return self.lr_main
-
-    @property
-    def latest_lr_scaler(self) -> float:
-        return self.lr_weight
-
-    def debug_info(self) -> dict:
-        i_log = {
-            "lr": self.lr_main,
-            "lr_weight": self.last_scaler,
-        }
-        return i_log
 
 
 # -------------------------------

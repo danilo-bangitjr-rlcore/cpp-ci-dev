@@ -124,9 +124,6 @@ class UniformBuffer:
         self.pos = 0
         self.full = False
 
-    def get_all_data(self) -> list | None:
-        return self.data
-
     def _prepare(self, batch: list[Tensor]) -> TransitionBatch:
         step_attrs = len(StepBatch.__annotations__.keys())
         prior_step_batch = StepBatch(*batch[:step_attrs])
@@ -264,23 +261,6 @@ class EnsembleUniformBuffer(UniformBuffer):
     def reset(self) -> None:
         for i in range(self.ensemble):
             self.buffer_ensemble[i].reset()
-
-    def subsampling(self, idxs: list[list[int]]) -> None:
-        for i in range(self.ensemble):
-            all_data = self.buffer_ensemble[i].data
-            if all_data is None:
-                continue
-            idx = list(set(idxs[i]))
-            new_data = []
-            for attr in range(len(all_data)):
-                new_data_attr = torch.empty(all_data[attr].size(),
-                                            device=device.device)
-                new_data_attr[np.arange(len(idx))] = all_data[attr][idx]
-                new_data.append(new_data_attr)
-            self.buffer_ensemble[i].pos = len(idx)
-            self.buffer_ensemble[i].full = False if len(idx) != self.buffer_ensemble[i].memory else True
-            self.buffer_ensemble[i].data = new_data
-
 
 buffer_group.dispatcher(EnsembleUniformBuffer)
 

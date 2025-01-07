@@ -9,6 +9,3 @@ class Parallel(nn.Module):
 
     def forward(self, x: torch.Tensor):
         return tuple(path(x) for path in self._paths)
-
-    def string(self):
-        return f"Parallel[{self._paths}]"

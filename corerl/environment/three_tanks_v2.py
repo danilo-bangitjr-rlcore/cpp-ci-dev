@@ -1,4 +1,3 @@
-import copy
 from typing import List, Optional, Sequence
 
 import numpy as np
@@ -38,7 +37,6 @@ class ThreeTankEnvBase(object):
         self.setpoint_T1_record = []  # list of Tank1 setpoints
         self.kp_record = []  # list of Tank1 Kp
         self.ti_record = []  # list of Tank1 Ti
-        self.ep_num = 1  # episode number
         self.old_error1 = 0
         self.new_error1 = 0
 
@@ -47,19 +45,11 @@ class ThreeTankEnvBase(object):
         self.no_of_error = 0
         self.time_step = 0  # initial time_step
 
-        # To calculate Variance
-        self.flowrate_buffer = []
-        self.del_pids = []
-
         # initialize kp1 and ti1 values
         self.kp1 = 1.2
         self.ti1 = 10
         timespan = np.linspace(0, 100, 101)
         omega = 0.3
-
-        self.cached_flowrate = None
-        self.cached_height_T1 = None
-        self.cached_setpoint_T1 = None
 
         # SP varying gain
         # self.sinfunction = 10 * np.sin(omega * timespan) + 2
@@ -92,12 +82,7 @@ class ThreeTankEnvBase(object):
         self.flowrate_T1 = (self.C - self.A) / self.B
         self.state_normalizer = 1.  # 10.
 
-        # Define this parameter for keeping the action penalty in clipping
-        # action setting
-        self.extra_action_penalty = 0
-
     # resets the environment to initial values
-
     def reinit_the_system(self):
         timespan = np.linspace(0, 100, 101)
         omega = 0.3
@@ -129,7 +114,6 @@ class ThreeTankEnvBase(object):
     def reset_reward(self):
         self.error_sum = 0
         self.no_of_error = 0
-        self.flowrate_buffer = []
 
     def reset(self, seed: Optional[int]=None) -> tuple[np.ndarray, dict]:
         # Overwriting old seed
@@ -149,8 +133,6 @@ class ThreeTankEnvBase(object):
         self.xprime = np.asarray([[self.setpoint - 1.]]) / self.C
         self.flowrate_T1 = (self.C - self.A) / self.B
 
-        self.breach = 0
-
         # initialize PID settings
         self.kp1 = 1.2  # 1.2
         self.ti1 = 10  # 15
@@ -160,7 +142,6 @@ class ThreeTankEnvBase(object):
         # normalized error between the water level in tank 1 and the set point
         self.error_sum = 0
         self.no_of_error = 0
-        self.flowrate_buffer = []
         error_T1 = self.setpoint - self.height_T1
         self.no_of_error += 1  # Increament the number of error stored by 1
         self.error_sum += np.square(error_T1).item()  # Sum of error square
@@ -200,14 +181,6 @@ class ThreeTankEnvBase(object):
         del_flow_rate = [del_fr_1]
         # self.flowrate_1_buffer.append(del_fr_1)
         return np.asarray(del_flow_rate)
-
-    def get_setpoints(self) -> float:
-        return self.setpoint
-
-    # changes the set points
-    def set_setpoints(self, setpoints_T1: Optional[int]=None):
-        if setpoints_T1 is not None:
-            self.setpoint = setpoints_T1
 
     # the environment reacts to the inputted action
     def inner_step(self, delta_flow_rate: np.ndarray) -> np.ndarray:
@@ -287,7 +260,7 @@ class ThreeTankEnv(ThreeTankEnvBase):
         self.reset()
 
     def step(
-        self, a: np.ndarray, cache: bool = True, use_baseline: bool = True,
+        self, a: np.ndarray,
     ) -> tuple[np.ndarray, float, bool, bool, dict]:
         pid = a
         self.update_pid(pid, KI=True)
@@ -310,11 +283,6 @@ class ThreeTankEnv(ThreeTankEnvBase):
                 ], KI=True)
                 params_reset = True
                 reset_at = self.time_step
-
-        if cache:
-            self.cached_flowrate = copy.deepcopy(self.flowrate_T1_record)
-            self.cached_height_T1 = copy.deepcopy(self.height_T1_record)
-            self.cached_setpoint_T1 = copy.deepcopy(self.setpoint_T1_record)
 
         # The normalization step from
         # https://github.com/oguzhan-dogru/RL_PID_Tuning/blob/main/main.py
@@ -400,7 +368,7 @@ class TTChangeAction(ThreeTankEnvBase):
 
             self.tracking_threshold = -np.inf
             self.start_state = np.array([self.default_Kp, self.default_KI])
-            self.start_state_r = self._step(self.start_state, False, False)[1]
+            self.start_state_r = self._step(self.start_state, False)[1]
             self.tracking_threshold = int(self.start_state_r) - 1
 
             self._reset_buffer[0, :] = self.start_state
@@ -436,14 +404,11 @@ class TTChangeAction(ThreeTankEnvBase):
         self.xprime = np.asarray([[self.setpoint - 1.]]) / self.C
         self.flowrate_T1 = (self.C - self.A) / self.B
 
-        self.breach = 0
-
         self.time_step = 0  # initial time_step
         self.old_error1 = 0  # initialize errors as zeros
         # normalized error between the water level in tank 1 and the set point
         self.error_sum = 0
         self.no_of_error = 0
-        self.flowrate_buffer = []
         error_T1 = self.setpoint - self.height_T1
         self.no_of_error += 1  # Increament the number of error stored by 1
         self.error_sum += np.square(error_T1).item()  # Sum of error square
@@ -550,16 +515,11 @@ class TTChangeAction(ThreeTankEnvBase):
         return self._reset_buffer[ind, :]
 
     def _step(
-        self, pid_params: np.ndarray, cache: bool=True, add: bool=True,
+        self, pid_params: np.ndarray, add: bool=True,
     ) -> tuple[np.ndarray, float, bool, bool, dict]:
         self.update_pid(pid_params, KI=True)
         for _ in range(self.internal_iterations):
             self.inner_step(self.pid_controller())
-
-        if cache:
-            self.cached_flowrate = copy.deepcopy(self.flowrate_T1_record)
-            self.cached_height_T1 = copy.deepcopy(self.height_T1_record)
-            self.cached_setpoint_T1 = copy.deepcopy(self.setpoint_T1_record)
 
         r = self.get_reward()
 
@@ -597,7 +557,7 @@ class TTChangeAction(ThreeTankEnvBase):
         return s_next, r, False, False, info
 
     def step(
-        self, a: np.ndarray, cache: bool=True,
+        self, a: np.ndarray,
     ) -> tuple[np.ndarray, float, bool, bool, dict]:
         assert self.action_space.contains(a)
         assert np.all(a <= 1)
@@ -608,7 +568,7 @@ class TTChangeAction(ThreeTankEnvBase):
         ) + self.min_actions
         pid_params = self.get_next_pid_params(pid_change)
 
-        return self._step(pid_params, cache=cache)
+        return self._step(pid_params)
 
     def reset(self, seed: Optional[int]=None) -> tuple[np.ndarray, dict]:
         s = self.observation(self.prev_pid_params)

@@ -1,6 +1,4 @@
 from dataclasses import field
-from typing import Any
-
 from pydantic import Field
 
 from corerl.agent import AgentConfig
@@ -16,8 +14,6 @@ from corerl.data_pipeline.pipeline import PipelineConfig
 class MainConfig:
     action_period: int = MISSING
     obs_period: int = MISSING
-    alerts: Any = None
-    use_alerts: bool = False
 
     env: AsyncEnvConfig = MISSING # field(default_factory=SimAsyncEnvConfig)
     agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')

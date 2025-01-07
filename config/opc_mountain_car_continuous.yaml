@@ -7,11 +7,9 @@ defaults:
 experiment:
   exp_name: OPC_MountainCarContinuous
   param_from_hash: True
-  online_updates : True # Whether to update the agent online in deployment
   seed: 1
   gamma: 0.99
 
-use_alerts: False
 action_period: 1
 obs_period: 1
 

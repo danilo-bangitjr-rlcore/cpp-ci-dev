@@ -4,7 +4,6 @@ import torch.nn as nn
 from dataclasses import field
 from collections.abc import Iterable
 from torch.func import stack_module_state, functional_call # type: ignore
-import numpy as np
 from corerl.component.network.base import BaseNetworkConfig
 import corerl.component.network.utils as utils
 from corerl.component.network.ensemble.reductions import MeanReduct, bootstrap_reduct_group
@@ -13,11 +12,9 @@ import corerl.component.layer as layer
 from corerl.configs.config import config, list_
 from corerl.component.layer.activations import ActivationConfig
 
-from typing import Any, Callable, Literal, Optional, cast
+from typing import Any, Callable, Literal, Optional
 
 
-# Differences of this size are representable up to ~ 15
-FLOAT32_EPS = 10 * np.finfo(np.float32).eps
 EPSILON = 1e-6
 
 
@@ -259,41 +256,6 @@ class EnsembleCritic(nn.Module):
                     param_list += list(self.subnetworks[i].parameters())
             return param_list
 
-
-
-@config(frozen=True)
-class RndLinearUncertaintyConfig(BaseNetworkConfig):
-    name: Literal['rnd'] = 'rnd'
-    arch: list[Any] = list_()
-    bias: bool = True
-    layer_init: str = 'Xavier'
-    hidden: list[int] = list_([64, 64])
-    activation: list[ActivationConfig] = list_([
-        {'name': 'relu'},
-        {'name': 'relu'},
-    ])
-
-class RndLinearUncertainty(nn.Module):
-    def __init__(self, cfg: RndLinearUncertaintyConfig, input_dim: int, output_dim: int):
-        super(RndLinearUncertainty, self).__init__()
-        self.output_dim = output_dim
-        arch = cfg.arch
-        self.random_network = create_base(cast(Any, cfg), input_dim, arch[-1])
-        layer_init = utils.init_layer(cfg.layer_init)
-        self.linear_head = layer_init(
-            nn.Linear(arch[-1], output_dim, bias=cfg.bias),
-        )
-        self.to(device.device)
-
-    def forward(self, input_tensor: torch.Tensor) -> tuple[torch.Tensor, dict[str, Any]]:
-        with torch.no_grad():
-            base = self.random_network(input_tensor)
-        out = self.linear_head(base)
-        info = {
-            "rep": base.squeeze().detach().numpy(),
-            "out": out.squeeze().detach().numpy(),
-        }
-        return out, info
 
 
 @config(frozen=True)

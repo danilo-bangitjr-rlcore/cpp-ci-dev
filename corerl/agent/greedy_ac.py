@@ -43,8 +43,6 @@ class GreedyACConfig(BaseACConfig):
     share_batch: bool = True
     tau: float = 0.0
     uniform_sampling_percentage: float = 0.5
-    delta_actor: bool = False
-    delta_critic: bool = False
 
     actor: NetworkActorConfig = field(default_factory=NetworkActorConfig)
     critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
@@ -91,7 +89,6 @@ class GreedyAC(BaseAC):
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)
 
-        self.sample_all_discrete_actions = False
         if self.discrete_control:
             self.top_actions = 1
             if self.num_samples >= self.action_dim:
@@ -104,7 +101,7 @@ class GreedyAC(BaseAC):
 
         tensor_state = state_to_tensor(state, device.device)
 
-        action, action_info = self.actor.get_action(
+        action, _action_info = self.actor.get_action(
             tensor_state, with_grad=False,
         )
         return to_np(action)[0]

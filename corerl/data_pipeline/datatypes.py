@@ -136,10 +136,6 @@ class StepBatch:
                 and torch.equal(self.dp, other.dp)
         )
 
-    def num_attrs(self) -> int:
-        return len(fields(self))
-
-
 @dataclass
 class TransitionBatch:
     prior: StepBatch
