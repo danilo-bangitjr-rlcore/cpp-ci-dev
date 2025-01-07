@@ -301,7 +301,7 @@ class LineSearchOpt:
 # -- LSO Config Initialization --
 # -------------------------------
 @optim_group.dispatcher
-def _lso(cfg: LSOConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def _(cfg: LSOConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
     if not ensemble:
         return construct_lso(param, cfg)
 

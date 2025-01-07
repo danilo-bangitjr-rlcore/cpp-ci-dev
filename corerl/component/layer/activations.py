@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any, NotRequired, TypedDict
 import torch.nn as nn
 import torch
@@ -52,7 +53,7 @@ class Multiply(nn.Module):
     """
     Multiply is an arbitrary scalar multiplication activation function
     """
-    def __init__(self, by):
+    def __init__(self, by: float):
         super().__init__()
         self._by = by
 
@@ -65,7 +66,7 @@ class Functional(nn.Module):
     Functional converts a function from torch.nn.functional to a
     torch.nn.Module
     """
-    def __init__(self, f, *args, **kwargs):
+    def __init__(self, f: Callable | str, *args: Any, **kwargs: Any):
         super().__init__()
         if isinstance(f, str):
             self._f = getattr(torch.nn.functional, f)
@@ -83,7 +84,7 @@ class Bias(nn.Module):
     """
     Bias is an arbitrary scalar addition activation function
     """
-    def __init__(self, value=1):
+    def __init__(self, value: float = 1):
         super().__init__()
         self._value = value
 
@@ -103,7 +104,7 @@ class Identity(nn.Module):
 
 
 class TanhShift(nn.Module):
-    def __init__(self, shift, denom, high, low):
+    def __init__(self, shift: float, denom: float, high: float, low: float):
         super().__init__()
         self._shift = shift
         self._denom = denom

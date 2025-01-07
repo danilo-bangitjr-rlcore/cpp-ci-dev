@@ -45,7 +45,7 @@ class RmspropConfig(OptimConfig):
 
 
 @optim_group.dispatcher
-def _rmsprop(cfg: RmspropConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def rmsprop(cfg: RmspropConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         torch.optim.RMSprop,
         cfg, param, ensemble,
@@ -61,7 +61,7 @@ class AdamConfig(OptimConfig):
 
 
 @optim_group.dispatcher
-def _adam(cfg: AdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def adam(cfg: AdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         torch.optim.Adam,
         cfg, param, ensemble,
@@ -77,7 +77,7 @@ class CustomAdamConfig(OptimConfig):
 
 
 @optim_group.dispatcher
-def _custom_adam(cfg: CustomAdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def custom_adam(cfg: CustomAdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         CustomAdam,
         cfg, param, ensemble,
@@ -93,7 +93,7 @@ class SgdConfig(OptimConfig):
 
 
 @optim_group.dispatcher
-def _sgd(cfg: SgdConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def sgd(cfg: SgdConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         torch.optim.SGD,
         cfg, param, ensemble,

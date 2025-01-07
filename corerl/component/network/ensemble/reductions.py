@@ -16,7 +16,7 @@ class MinReduct:
     name: Literal['min'] = 'min'
 
 @bootstrap_reduct_group.dispatcher
-def _min_reduct(cfg: MinReduct, x: torch.Tensor, dim: int):
+def min_reduct(cfg: MinReduct, x: torch.Tensor, dim: int):
     return torch.min(x, dim=dim)[0]
 
 
@@ -25,7 +25,7 @@ class MaxReduct:
     name: Literal['max'] = 'max'
 
 @bootstrap_reduct_group.dispatcher
-def _max_reduct(cfg: MaxReduct, x: torch.Tensor, dim: int):
+def max_reduct(cfg: MaxReduct, x: torch.Tensor, dim: int):
     return torch.max(x, dim=dim)[0]
 
 
@@ -34,7 +34,7 @@ class MeanReduct:
     name: Literal['mean'] = 'mean'
 
 @bootstrap_reduct_group.dispatcher
-def _mean_reduct(cfg: MeanReduct, x: torch.Tensor, dim: int):
+def mean_reduct(cfg: MeanReduct, x: torch.Tensor, dim: int):
     return torch.mean(x, dim=dim)
 
 
@@ -43,7 +43,7 @@ class MedianReduct:
     name: Literal['median'] = 'median'
 
 @bootstrap_reduct_group.dispatcher
-def _median_reduct(cfg: MedianReduct, x: torch.Tensor, dim: int):
+def median_reduct(cfg: MedianReduct, x: torch.Tensor, dim: int):
     return torch.quantile(x, q=0.5, dim=dim)
 
 
@@ -59,7 +59,7 @@ class PercentileReduct:
     percentile: float = 0.5
 
 @bootstrap_reduct_group.dispatcher
-def _percentile_bootstrap(
+def percentile_bootstrap(
     cfg: PercentileReduct,
     x: torch.Tensor,
     dim: int,

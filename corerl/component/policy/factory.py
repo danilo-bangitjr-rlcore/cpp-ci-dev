@@ -133,7 +133,7 @@ class BetaPolicyConfig(BaseNNConfig):
 
 
 @policy_group.dispatcher
-def _beta(
+def _(
     cfg: BetaPolicyConfig,
     input_dim: int,
     output_dim: int,
@@ -160,7 +160,7 @@ class GammaPolicyConfig(BaseNNConfig):
     ])
 
 @policy_group.dispatcher
-def _gamma(
+def _(
     cfg: GammaPolicyConfig,
     input_dim: int,
     output_dim: int,
@@ -185,7 +185,7 @@ class LaplacePolicyConfig(BaseNNConfig):
     ])
 
 @policy_group.dispatcher
-def _laplace(
+def _(
     cfg: LaplacePolicyConfig,
     input_dim: int,
     output_dim: int,
@@ -208,7 +208,7 @@ class NormalPolicyConfig(BaseNNConfig):
     ])
 
 @policy_group.dispatcher
-def _normal(
+def _(
     cfg: NormalPolicyConfig,
     input_dim: int,
     output_dim: int,
@@ -232,7 +232,7 @@ class SquashedGaussianPolicyConfig(BaseNNConfig):
 
 
 @policy_group.dispatcher
-def _squashed_gaussian(
+def _(
     cfg: SquashedGaussianPolicyConfig,
     input_dim: int,
     output_dim: int,
@@ -256,7 +256,7 @@ class SoftmaxPolicyConfig(BaseNNConfig):
     ])
 
 @policy_group.dispatcher
-def _softmax(
+def _(
     cfg: SoftmaxPolicyConfig,
     input_dim: int,
     output_dim: int,
