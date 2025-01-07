@@ -1,6 +1,0 @@
-defaults:
-  - base_env
-  - _self_
-
-name : Cont-CC-PermExDc-v0
-discrete_control : False

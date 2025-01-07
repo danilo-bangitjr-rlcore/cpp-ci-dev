@@ -1,3 +1,5 @@
+from typing import Any
+from dataclasses import field
 from corerl.configs.config import MISSING, config
 
 
@@ -8,4 +10,6 @@ class EnvironmentConfig:
     seed: int = MISSING
     discrete_control: bool = MISSING
 
-    render_mode: str | None = None
+    # gym environment init args and kwargs, ignored for deployment_async_env
+    args: list[Any] = field(default_factory=list)
+    kwargs: dict[str, Any] = field(default_factory=dict)
