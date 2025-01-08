@@ -68,7 +68,7 @@ major_version_zero = true
 
 [project]
 name = "corerl"
-version = "0.11.0"
+version = "0.12.0"
 description = ""
 requires-python = ">=3.12,<3.13"
 authors = []

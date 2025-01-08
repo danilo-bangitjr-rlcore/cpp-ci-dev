@@ -1,3 +1,17 @@
+## 0.12.0 (2025-01-08)
+
+### Feat
+
+- add placeholder offline training config for Cenovus
+- add utility script to generate Cenovus tags.yaml
+- add ability to use paths for default configs
+- add ability to download cenovus data from s3
+
+### Fix
+
+- **cenovus**: add script guards to cenovus scripts
+- make calling offline_training.py with 0 offline steps an error
+
 ## 0.11.0 (2025-01-08)
 
 ### BREAKING CHANGE
