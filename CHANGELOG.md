@@ -1,3 +1,14 @@
+## 0.11.0 (2025-01-08)
+
+### BREAKING CHANGE
+
+- this commit removes the Quality column from our
+telegraf configuration as well as from our data reader and writer.
+
+### Refactor
+
+- remove "Quality" column from telegraf, data reader & writer
+
 ## 0.10.1 (2025-01-07)
 
 ### Fix
