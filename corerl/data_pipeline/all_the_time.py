@@ -146,7 +146,12 @@ class AllTheTimeTC:
             if col not in self.action_tags and col not in self.meta_tags
         ]
         states = get_tags(pf.data, state_cols)
-        actions = get_tags(pf.data, self.action_tags)
+
+        action_cols = [
+            col for col in sorted_cols
+            if col in self.action_tags
+        ]
+        actions = get_tags(pf.data, action_cols)
         return pf, actions, states
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
