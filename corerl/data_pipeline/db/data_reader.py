@@ -40,7 +40,6 @@ class DataReader:
             Column("host", TEXT, nullable=True, default= None, autoincrement= False, comment="tag"),
             Column("id", TEXT, nullable=True, default= None, autoincrement= False, comment="tag"),
             Column("name", TEXT, nullable=True, default= None, autoincrement= False, comment="tag"),
-            Column("Quality", TEXT, nullable=True, default= None, autoincrement= False, comment="tag"),
             Column("fields", JSONB, nullable=True, default= None, autoincrement= False, comment=None),
             schema=db_cfg.sensor_table_schema,
             extend_existing=True

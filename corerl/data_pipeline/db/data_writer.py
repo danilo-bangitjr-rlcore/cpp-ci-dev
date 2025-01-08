@@ -18,7 +18,6 @@ class Point(NamedTuple):
     jsonb: str
     host: str
     id: str
-    quality: str
 
 
 class DataWriter:
@@ -55,8 +54,7 @@ class DataWriter:
         name: str,
         val: float,
         host: str | None = None,
-        id: str | None = None,
-        quality: str | None = None,
+        id: str | None = None
     ) -> None:
         self._init()
         assert timestamp.tzinfo == UTC
@@ -67,7 +65,6 @@ class DataWriter:
             jsonb=f'{{"val": {val}}}',
             host=host or self.host,
             id=id or name,
-            quality=quality or "The operation succeeded. StatusGood (0x0)",
         ))
 
         if len(self._buffer) > self._hi_wm:
@@ -113,8 +110,8 @@ class DataWriter:
 
         insert_stmt = f"""
             INSERT INTO {self.sensor_table_name}
-            (time, host, id, name, \"Quality\", fields)
-            VALUES (TIMESTAMP :ts, :host, :id, :name, :quality, :jsonb);
+            (time, host, id, name, fields)
+            VALUES (TIMESTAMP :ts, :host, :id, :name, :jsonb);
         """
 
         self.connection.execute(
@@ -139,7 +136,6 @@ def maybe_create_sensor_table(engine: Engine, sensor_table_name: str):
             host text,
             id text,
             name text,
-            "Quality" text,
             fields jsonb
         );
 
