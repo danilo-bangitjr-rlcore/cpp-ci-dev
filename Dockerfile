@@ -44,11 +44,11 @@ LABEL org.opencontainers.image.source=https://github.com/rlcoretech/core-rl
 COPY --from=base /app/dist /app/dist
 WORKDIR /app
 
+# Our corerl image is quite large with default cuda dependencies.
 # RUN pip install /app/dist/corerl-*.whl
-# Our corerl image is quite large, mostly due to our python dependencies. The following flags are added:
-# --no-cache-dir (reduces our image size by ~3.3G)
-# --no-compile (reduces our image size by ~0.2G)
-RUN pip --no-cache-dir install --no-compile /app/dist/corerl-*.whl
+# Minimal CPU supported installation is used instead.
+RUN pip install torch --index-url https://download.pytorch.org/whl/cpu &&\
+  pip --no-cache-dir install --no-compile /app/dist/corerl-*.whl
 
 # Set up the entrypoint to reference our corerl main script, dynamically pass arguments on run
 ENTRYPOINT ["corerl_main"]
