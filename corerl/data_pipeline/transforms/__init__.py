@@ -1,17 +1,45 @@
+from __future__ import annotations
+from typing import cast, Any, Literal
+from pydantic.dataclasses import rebuild_dataclass
 from typing_extensions import Annotated
 from pydantic import Field
 
+from corerl.configs.config import MISSING, config, list_
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.affine import AffineConfig
+from corerl.data_pipeline.transforms.base import BaseTransformConfig
 from corerl.data_pipeline.transforms.greater_than import GreaterThanConfig
 from corerl.data_pipeline.transforms.identity import IdentityConfig
 from corerl.data_pipeline.transforms.less_than import LessThanConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.null import NullConfig
 from corerl.data_pipeline.transforms.scale import ScaleConfig
-from corerl.data_pipeline.transforms.split import SplitConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
-from corerl.data_pipeline.transforms.product import ProductConfig
+
+
+
+"""
+To avoid circular imports and partially defined types
+that result in partially defined schemas, these two
+configs are defined in the same place as the union
+type TransformConfig.
+"""
+@config(frozen=True)
+class ProductConfig(BaseTransformConfig):
+    name: Literal['product'] = "product"
+
+    other: str = MISSING
+    other_xform: list[TransformConfig] = list_([IdentityConfig])
+
+
+
+@config(frozen=True)
+class SplitConfig(BaseTransformConfig):
+    name: Literal['split'] = 'split'
+
+    left: list[TransformConfig] = list_([IdentityConfig])
+    right: list[TransformConfig] = list_([IdentityConfig])
+    passthrough: bool | None = None
 
 
 TransformConfig = Annotated[
@@ -27,3 +55,10 @@ TransformConfig = Annotated[
     | SplitConfig
     | TraceConfig
 , Field(discriminator='name')]
+
+
+# Because TransformConfig was only partially known when
+# pydantic first parsed these schemas, rebuild them
+# now that they are completely known.
+rebuild_dataclass(cast(Any, ProductConfig))
+rebuild_dataclass(cast(Any, SplitConfig))

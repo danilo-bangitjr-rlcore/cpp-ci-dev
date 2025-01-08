@@ -1,22 +1,9 @@
-from __future__ import annotations
 from dataclasses import dataclass
-from typing import Literal, TYPE_CHECKING
 
-from corerl.configs.config import config, MISSING, list_
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
-from corerl.data_pipeline.transforms.identity import IdentityConfig
+from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
-if TYPE_CHECKING:
-    from corerl.data_pipeline.transforms import TransformConfig
-
-
-@config(frozen=True)
-class ProductConfig(BaseTransformConfig):
-    name: Literal['product'] = "product"
-
-    other: str = MISSING
-    other_xform: list[TransformConfig] = list_([IdentityConfig])
+from corerl.data_pipeline.transforms import ProductConfig
 
 
 @dataclass

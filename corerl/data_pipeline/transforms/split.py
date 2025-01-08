@@ -1,26 +1,10 @@
-from __future__ import annotations
-
 import copy
 import pandas as pd
-from typing import Literal, TYPE_CHECKING
 from dataclasses import dataclass
 
-from corerl.configs.config import config, list_
-from corerl.data_pipeline.transforms.identity import IdentityConfig
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
+from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
-
-if TYPE_CHECKING:
-    from corerl.data_pipeline.transforms import TransformConfig
-
-
-@config(frozen=True)
-class SplitConfig(BaseTransformConfig):
-    name: Literal['split'] = 'split'
-
-    left: list[TransformConfig] = list_([IdentityConfig])
-    right: list[TransformConfig] = list_([IdentityConfig])
-    passthrough: bool | None = None
+from corerl.data_pipeline.transforms import SplitConfig
 
 
 @dataclass
