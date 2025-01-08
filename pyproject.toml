@@ -66,6 +66,25 @@ version_provider = "pep621"
 update_changelog_on_bump = true
 major_version_zero = true
 
+[tool.coverage.run]
+omit = ["test/*"]
+concurrency = ["thread", "multiprocessing"]
+
+# If the vendor directory exists and contains linesearchopt dependency
+# this will be included in our generated wheel. Otherwise linesearchopt
+# will need to be installed manually prior to corerl. This is necessary
+# to support our docker image for running corerl.
+[tool.setuptools.packages.find]
+where = [".", "vendor"]
+include = ["corerl*", "linesearchopt*"]
+
+[tool.setuptools.package-dir]
+"linesearchopt" = "vendor/linesearchopt"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "corerl"
 version = "0.12.0"
@@ -97,11 +116,14 @@ dependencies = [
     "scikit-learn~=1.5",
     "websockets~=14.1",
     "psycopg2-binary~=2.9",
-    "linesearchopt~=0.0.1"
 ]
 readme = "README.md"
 
 [project.optional-dependencies]
+linesearchopt_gh = [
+    "linesearchopt@git+ssh://git@github.com/rlcoretech/linesearchopt.git",
+]
+
 dev = [
     "pip",
     "uv",
@@ -115,13 +137,9 @@ dev = [
     "pyright",
     "debugpy",
     "boto3",
-    "linesearchopt@git+ssh://git@github.com/rlcoretech/linesearchopt.git"
+    "linesearchopt@git+ssh://git@github.com/rlcoretech/linesearchopt.git",
 ]
 
 [project.scripts]
 corerl_main = "corerl.main:main"
 corerl_convertdb_backup = "corerl.bin.convert_db_backup:main"
-
-[tool.coverage.run]
-omit = ["test/*",]
-concurrency = ["thread", "multiprocessing"]
