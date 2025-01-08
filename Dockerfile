@@ -25,11 +25,16 @@ RUN --mount=type=ssh \
   # which can be referenced within setuptools and added to our generated corerl wheel
   uv pip install --system --target /app/vendor -r deps.txt
 
-# Build corerl package which emits build artifacts into /app/dist
-RUN uv build
+# Build corerl package which emits built .whl into /app/dist
+RUN uv build --wheel
+
+# See also: https://github.com/rlcoretech/core-rl/pull/347#discussion_r1906215954
+# Convert our wheel such that we only include .pyc files
+RUN uv pip install --system pyc_wheel &&\
+  whl_file_name=$(ls /app/dist/corerl-*.whl) &&\
+  python -m pyc_wheel "$whl_file_name"
 
 # Stage 2, install corerl to minimal Python 3 image
-# FROM python:3.12-alpine AS corerl # alpine image throws a build exception for pygame dependency
 FROM python:3.12-slim AS corerl
 
 # This label is used by Github to link the package to our repository,
