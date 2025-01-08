@@ -1,3 +1,9 @@
+## 0.13.0 (2025-01-08)
+
+### Feat
+
+- **docker**: first pass at dockerization of corerl
+
 ## 0.12.0 (2025-01-08)
 
 ### Feat
