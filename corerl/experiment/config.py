@@ -9,7 +9,7 @@ class ExperimentConfig:
     gamma: float = 0.9
     max_steps: int = 200
     offline_steps: int = 0
-    pf_data_dur: int = 7  # The maximum number of days pf.data should span
+    pipeline_batch_duration_days: int = 7
     render: int = 0
     param: str = ''
     param_from_hash: bool = False

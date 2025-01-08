@@ -35,11 +35,10 @@ def main(cfg: MainConfig):
     transitions = []
 
     # Offline training
-    should_train_offline = cfg.experiment.offline_steps > 0
-    if should_train_offline:
-        offline_transitions = load_offline_transitions(cfg, pipeline)
-        transitions += offline_transitions
-        offline_training(cfg, agent, transitions)
+    assert cfg.experiment.offline_steps > 0
+    offline_transitions = load_offline_transitions(cfg, pipeline)
+    transitions += offline_transitions
+    offline_training(cfg, agent, transitions)
 
     agent.close()
     agent.save(save_path / 'agent')

@@ -140,6 +140,24 @@ def get_at_path[T](d: dict[str, T], path: str) -> T:
     raise Exception(f'Item not found at path: {path}')
 
 
+def has_path(d: dict[str, Any], path: str) -> bool:
+    if '.' not in path:
+        return path in d
+
+    parts = path.split('.')
+    sub: Any = d
+    for i, part in enumerate(parts):
+        if i == len(parts) - 1:
+            return part in sub
+
+        if part not in sub:
+            return False
+
+        sub = sub[part]
+
+    return False
+
+
 def set_at_path[T](d: dict[str, T], path: str, val: T) -> dict[str, T]:
     if '.' not in path:
         d[path] = val

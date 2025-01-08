@@ -1,3 +1,6 @@
+# project caches
+projects/**/.cache
+
 # Ignore vim files
 *.swp
 *.un~

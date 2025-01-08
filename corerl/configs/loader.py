@@ -136,11 +136,12 @@ def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
             k = list(default.keys())[0]
             v = list(default.values())[0]
 
-            if k not in config or config[k] is None:
-                config[k] = {}
+            if not dict_u.has_path(config, k):
+                config = dict_u.set_at_path(config, k, {})
 
-            def_config = _load_raw_config(base, v)
-            config[k] = dict_u.merge(def_config, config[k])
+            raw_def_config = _load_raw_config(base, v)
+            def_config = dict_u.set_at_path({}, k, raw_def_config)
+            config = dict_u.merge(def_config, config)
 
     del config['defaults']
     return config

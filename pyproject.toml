@@ -74,7 +74,9 @@ requires-python = ">=3.12,<3.13"
 authors = []
 dependencies = [
     "asyncua~=1.0",
+    "boto3~=1.35",
     "casadi~=3.6",
+    "cloudpathlib[s3]~=0.20",
     "gymnasium~=1.0",
     "influxdb_client~=1.39",
     "jaxtyping~=0.2",
