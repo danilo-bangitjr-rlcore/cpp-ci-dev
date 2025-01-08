@@ -23,7 +23,7 @@ def test_pipeline1():
             TagConfig(
                 name='tag-1',
                 state_constructor=[],
-                is_exogenous=True
+                is_endogenous=False
             ),
             TagConfig(
                 name='tag-2',
