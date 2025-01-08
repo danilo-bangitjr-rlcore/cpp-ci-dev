@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-def dfs_close(df1: pd.DataFrame, df2: pd.DataFrame, col_order_matters=False):
+def dfs_close(df1: pd.DataFrame, df2: pd.DataFrame, col_order_matters: bool = False):
     if col_order_matters:
         if not df1.columns.equals(df2.columns):
             return False
