@@ -1,3 +1,6 @@
+from typing_extensions import Annotated
+from pydantic import Field
+
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.affine import AffineConfig
 from corerl.data_pipeline.transforms.greater_than import GreaterThanConfig
@@ -11,7 +14,7 @@ from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.transforms.product import ProductConfig
 
 
-TransformConfig = (
+TransformConfig = Annotated[
     AddRawConfig
     | AffineConfig
     | GreaterThanConfig
@@ -23,4 +26,4 @@ TransformConfig = (
     | ScaleConfig
     | SplitConfig
     | TraceConfig
-)
+, Field(discriminator='name')]
