@@ -43,8 +43,8 @@ def load_dataset(cfg: TagDBConfig):
     writer.close()
 
 
-
-cfg = TagDBConfig(
-    sensor_table_name='cenovus',
-)
-load_dataset(cfg)
+if __name__ == '__main__':
+    cfg = TagDBConfig(
+        sensor_table_name='cenovus',
+    )
+    load_dataset(cfg)

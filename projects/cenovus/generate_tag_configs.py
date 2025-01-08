@@ -53,4 +53,5 @@ def generate(cfg: Config):
             f.write('\n')
 
 
-generate()
+if __name__ == '__main__':
+    generate()
