@@ -1,3 +1,9 @@
+## 0.14.0 (2025-01-09)
+
+### Feat
+
+- Mockup OPC configuration wizard  (#348)
+
 ## 0.13.0 (2025-01-08)
 
 ### Feat
