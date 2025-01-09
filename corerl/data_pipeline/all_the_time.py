@@ -3,8 +3,11 @@ import pandas as pd
 import numpy as np
 import math
 
+from collections.abc import Iterable
 from collections import deque
 from dataclasses import dataclass
+
+import corerl.utils.list as list_u
 
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.component.network.utils import tensor
@@ -50,8 +53,8 @@ def has_nan(obj: object) -> bool:
     return False
 
 
-def get_tags(df: pd.DataFrame, tags: list[str] | str) -> torch.Tensor:
-    data_np = df[tags].to_numpy().astype(np.float32)
+def get_tags(df: pd.DataFrame, tags: Iterable[str]) -> torch.Tensor:
+    data_np = df[list(tags)].to_numpy().astype(np.float32)
     return tensor(data_np)
 
 
@@ -74,7 +77,6 @@ def _reset_step_info(min_n_step: int, max_n_step: int) -> StepInfo:
     }
     return step_info
 
-
 class AllTheTimeTC:
     def __init__(
             self,
@@ -83,8 +85,8 @@ class AllTheTimeTC:
     ):
         self.cfg = cfg
         self.tag_configs = tag_configs
-        self.action_tags = [tag.name for tag in tag_configs if tag.is_action]
-        self.meta_tags = [tag.name for tag in tag_configs if tag.is_meta]
+        self.action_tags = {tag.name for tag in tag_configs if tag.is_action}
+        self.meta_tags = {tag.name for tag in tag_configs if tag.is_meta}
 
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
@@ -92,17 +94,12 @@ class AllTheTimeTC:
         assert self.min_n_step > 0
         assert self.max_n_step >= self.min_n_step
 
-    def _make_steps(self, pf: PipelineFrame) -> list[Step]:
+    def _make_steps(self, pf: PipelineFrame) -> tuple[PipelineFrame, list[Step]]:
         """
-        Makes the steps for the pf
+        Sorts the columns of the pf, then extracts the relevant columns to make steps
         """
+        pf, actions, states = self._sort_columns(pf)
         df = pf.data
-        actions = get_tags(df, self.action_tags)
-
-        # NOTE: cannot use tag configs here because state dataframe columns
-        # may have been mutated by a pipeline stage (e.g. suffix norm_trace)
-        state_tags = sorted(set(df.columns) - set(self.action_tags) - set(self.meta_tags))
-        states = get_tags(df, state_tags)
         rewards = df['reward'].to_numpy()
         gammas = np.ones(len(rewards))
         if 'terminated' in df.columns:
@@ -110,7 +107,7 @@ class AllTheTimeTC:
         dps = pf.decision_points
         assert len(actions) == len(states) and len(states) == len(rewards) == len(gammas) == len(dps)
 
-        steps = []
+        steps: list[Step] = []
         for i in range(len(actions)):
             step = Step(
                 reward=rewards[i],
@@ -120,7 +117,42 @@ class AllTheTimeTC:
                 dp=bool(dps[i]),
             )
             steps.append(step)
-        return steps
+        return pf, steps
+
+    def _sort_columns(self, pf: PipelineFrame) -> tuple[PipelineFrame, torch.Tensor, torch.Tensor]:
+        tag_cfgs = {
+            tag.name: tag
+            for tag in self.tag_configs
+        }
+
+        sorted_cols = list_u.multi_level_sort(
+            list(pf.data.columns),
+            categories=[
+                # actions
+                lambda tag: tag in tag_cfgs and tag_cfgs[tag].is_action,
+                # endo observations
+                lambda tag: tag in tag_cfgs and tag_cfgs[tag].is_endogenous and not tag_cfgs[tag].is_meta,
+                # exo observations
+                lambda tag: tag in tag_cfgs and not tag_cfgs[tag].is_meta,
+                # states
+                lambda tag: not (tag in tag_cfgs and tag_cfgs[tag].is_meta),
+                # meta tags should be all that are left
+            ],
+        )
+        pf.data = pf.data.loc[:, sorted_cols]
+
+        state_cols = [
+            col for col in sorted_cols
+            if col not in self.action_tags and col not in self.meta_tags
+        ]
+        states = get_tags(pf.data, state_cols)
+
+        action_cols = [
+            col for col in sorted_cols
+            if col in self.action_tags
+        ]
+        actions = get_tags(pf.data, action_cols)
+        return pf, actions, states
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         step_info = pf.temporal_state.get(
@@ -130,7 +162,8 @@ class AllTheTimeTC:
 
         assert isinstance(step_info, dict)
 
-        steps = self._make_steps(pf)
+        pf, steps = self._make_steps(pf)
+
         transitions = []
         for step in steps:
             if has_nan(step):
