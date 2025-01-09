@@ -199,3 +199,7 @@ def load_config[T](Config: type[T], base: str | None = None, config_name: str | 
 def config_to_dict(Config: type[object], config: object):
     ta = TypeAdapter(Config)
     return ta.dump_python(config, warnings=False)
+
+def config_to_json(Config: type[object], config: object):
+    ta = TypeAdapter(Config)
+    return ta.dump_json(config, warnings=False)
