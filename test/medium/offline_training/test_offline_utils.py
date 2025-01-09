@@ -229,8 +229,8 @@ def test_normalizer_bounds_reset(offline_cfg: MainConfig):
             transforms = pipeline.state_constructor._components[tag.name]
             for transform in transforms:
                 if isinstance(transform, Normalizer):
-                    assert transform._mins[tag.name] == None
-                    assert transform._maxs[tag.name] == None
+                    assert transform._mins[tag.name] is None
+                    assert transform._maxs[tag.name] is None
 
     # create test data and run through pipeline
     dates = [dt.datetime(2024, 1, 1, 1, i, tzinfo=dt.timezone.utc) for i in range(5)]
