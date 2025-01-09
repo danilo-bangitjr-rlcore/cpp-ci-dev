@@ -1,7 +1,6 @@
 defaults:
   -
 
-action_period: 1
 
 env:
   name: tsdb_async_stub_env
@@ -49,7 +48,6 @@ experiment:
   gamma: 0.99
 
 pipeline:
-  obs_interval_minutes: 60
   state_constructor:
     defaults: []
 
