@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import numpy as np
 import pandas as pd
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
@@ -31,7 +33,10 @@ def test_sc1():
             defaults=[
                 TraceConfig(trace_values=[0.1, 0.01]),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -67,7 +72,10 @@ def test_norm_sc():
         ],
         cfg=SCConfig(
             defaults=[],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
     pf = sc(pf)
@@ -100,7 +108,10 @@ def test_sc_add_raw():
                 TraceConfig(trace_values=[0.1, 0.01]),
                 AddRawConfig(),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -144,7 +155,10 @@ def test_sc_integration1():
                     right=[AddRawConfig()],
                 ),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -189,7 +203,10 @@ def test_sc_integration2():
         ],
         cfg=SCConfig(
             defaults=[],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -230,7 +247,10 @@ def test_sc_integration3():
                     passthrough=True,
                 ),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -271,7 +291,10 @@ def test_sc_integration4():
                     passthrough=True,
                 ),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -313,7 +336,8 @@ def test_sc_decision_point_detection():
             ],
             countdown=CountdownConfig(
                 kind='int',
-                action_period=4,
+                action_period=timedelta(minutes=4),
+                obs_period=timedelta(minutes=1),
             ),
         ),
     )
@@ -357,7 +381,10 @@ def test_per_tag_overrides():
                 TraceConfig(trace_values=[0.1, 0.01]),
                 AddRawConfig(),
             ],
-            countdown=CountdownConfig(action_period=4),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=4),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 

@@ -4,20 +4,17 @@ import numpy as np
 import pandas as pd
 
 from corerl.configs.config import MISSING, config
-from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig, TimeStats
+from corerl.data_pipeline.db.data_reader import DataReader, TimeStats
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.async_env import AsyncEnv, BaseAsyncEnvConfig
+from corerl.environment.async_env.async_env import AsyncEnv, GymEnvConfig, TSDBEnvConfig
 from corerl.environment.reward.scrubber import ScrubberReward, ScrubberRewardConfig
 
 
 @config()
-class TSDBAsyncStubEnvConfig(BaseAsyncEnvConfig):
+class TSDBAsyncStubEnvConfig(TSDBEnvConfig, GymEnvConfig):
     name: str = "tsdb_async_stub_env"
     env_start_time: str = MISSING
     env_end_time: str = MISSING
-    env_step_time: str = MISSING
-    db: TagDBConfig = MISSING
-    bucket_width: str = MISSING
 
 
 class TSDBAsyncStubEnv(AsyncEnv):
@@ -33,13 +30,8 @@ class TSDBAsyncStubEnv(AsyncEnv):
     def __init__(self, cfg: TSDBAsyncStubEnvConfig, tags: list[TagConfig]):
         self.gym_name = cfg.gym_name
 
-        pd_env_step_time = pd.Timedelta(cfg.env_step_time)
-        assert isinstance(pd_env_step_time, pd.Timedelta), "Failed parsing of env_step_time"
-        self.env_step_time = pd_env_step_time.to_pytimedelta()
-
-        pd_bucket_width = pd.Timedelta(cfg.bucket_width)
-        assert isinstance(pd_bucket_width, pd.Timedelta), "Failed parsing of bucket_width"
-        self.bucket_width = pd_bucket_width.to_pytimedelta()
+        self.env_step_time = cfg.obs_period
+        self.bucket_width = cfg.obs_period
 
         self._data_reader = DataReader(db_cfg=cfg.db)
 

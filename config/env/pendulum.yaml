@@ -1,4 +1,6 @@
 seed : ${experiment.seed}
+action_period: 00:00:01
+obs_period: 00:00:01
 name: sim_async_env
 gym_name : Pendulum-v1
 discrete_control : True

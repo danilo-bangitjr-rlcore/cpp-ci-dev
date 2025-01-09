@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import numpy as np
 import pandas as pd
 
@@ -32,7 +34,10 @@ def test_split1():
                     right=[TraceConfig(trace_values=[0.01])],
                 ),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -80,7 +85,10 @@ def test_split_ts1():
                     right=[TraceConfig(trace_values=[0.01])],
                 ),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 

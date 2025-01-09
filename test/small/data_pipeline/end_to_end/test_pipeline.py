@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any
 import numpy as np
 import pandas as pd
@@ -48,11 +49,13 @@ def test_pipeline1():
         ),
         state_constructor=SCConfig(
             countdown=CountdownConfig(
-                action_period=1,
+                action_period=timedelta(minutes=5),
+                obs_period=timedelta(minutes=5),
                 kind='int'
             ),
         ),
-        obs_interval_minutes=5,
+        obs_period=timedelta(minutes=5),
+        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
@@ -155,11 +158,13 @@ def test_pipeline2():
         ),
         state_constructor=SCConfig(
             countdown=CountdownConfig(
-                action_period=1,
+                action_period=timedelta(minutes=5),
+                obs_period=timedelta(minutes=5),
                 kind='int',
             ),
         ),
-        obs_interval_minutes=5,
+        obs_period=timedelta(minutes=5),
+        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)

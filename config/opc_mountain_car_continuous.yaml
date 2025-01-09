@@ -10,16 +10,14 @@ experiment:
   seed: 1
   gamma: 0.99
 
-action_period: 1
-obs_period: 1
-
 env:
   name: opc_tsdb_sim_async_env
+  action_period: 00:00:01
+  obs_period: 00:00:01
   gym_name: MountainCarContinuous-v0
   discrete_control: False
   seed: 1
   db: ${pipeline.db}
-  bucket_width: "1s"
   sleep_sec: 1
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
@@ -47,7 +45,6 @@ agent:
 
 
 pipeline:
-  obs_interval_minutes: 1
   db:
     drivername: "postgresql+psycopg2"
     username: "postgres"

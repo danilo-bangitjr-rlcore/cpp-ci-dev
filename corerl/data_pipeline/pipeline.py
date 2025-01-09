@@ -1,27 +1,28 @@
-from collections import defaultdict
-from dataclasses import dataclass, field
-import warnings
 import datetime
-
-from collections.abc import Sequence
-from typing import Any, Callable
-from pandas import DataFrame
 import logging
+import warnings
+from collections import defaultdict
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+from datetime import timedelta
+from typing import Any, Callable
 
-from corerl.configs.config import config, list_
-from corerl.data_pipeline.missing_data_checker import missing_data_checker
-from corerl.data_pipeline.bound_checker import bound_checker_builder
-from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
-from corerl.data_pipeline.imputers.factory import init_imputer
-from corerl.data_pipeline.tag_config import TagConfig
+import numpy as np
+from pandas import DataFrame
+
+from corerl.configs.config import config, interpolate, list_
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
-from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
+from corerl.data_pipeline.bound_checker import bound_checker_builder
+from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
+from corerl.data_pipeline.imputers.factory import init_imputer
+from corerl.data_pipeline.missing_data_checker import missing_data_checker
+from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
 from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
+from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
-from corerl.data_pipeline.datatypes import Transition, PipelineFrame, CallerCode, StageCode
-
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,8 @@ logger = logging.getLogger(__name__)
 class PipelineConfig:
     tags: list[TagConfig] = list_()
     db: TagDBConfig = field(default_factory=TagDBConfig)
-    obs_interval_minutes: float = 0
+    obs_period: timedelta = interpolate('${env.obs_period}')
+    action_period: timedelta = interpolate('${env.action_period}')
     state_constructor: SCConfig = field(default_factory=SCConfig)
     transition_creator: AllTheTimeTCConfig = field(default_factory=AllTheTimeTCConfig)
     transition_filter: TransitionFilterConfig = field(default_factory=TransitionFilterConfig)
@@ -53,6 +55,12 @@ class Pipeline:
             tag.name: bound_checker_builder(tag.bounds) for tag in self.tags
         }
 
+        steps_per_decision = int(cfg.action_period.total_seconds() / cfg.obs_period.total_seconds())
+        assert np.isclose(
+            steps_per_decision, cfg.action_period.total_seconds() / cfg.obs_period.total_seconds()
+        ), "action period must be a multiple of obs period"
+
+        cfg.transition_creator.max_n_step = steps_per_decision
         self.transition_creator = AllTheTimeTC(
             cfg.transition_creator,
             self.tags,
@@ -76,7 +84,7 @@ class Pipeline:
         self.ts_dict: dict = {caller_code: None for caller_code in CallerCode}
         self.dt_dict: dict = {caller_code: None for caller_code in CallerCode}
 
-        self.valid_thresh: datetime.timedelta = datetime.timedelta(minutes=cfg.obs_interval_minutes)
+        self.valid_thresh: datetime.timedelta = cfg.obs_period
 
         self._hooks: dict[StageCode, list[Callable[[PipelineFrame], Any]]] = defaultdict(list)
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {

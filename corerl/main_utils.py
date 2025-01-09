@@ -1,6 +1,7 @@
+import json
 import logging
 import yaml
-from corerl.configs.loader import config_to_dict
+from corerl.configs.loader import config_to_dict, config_to_json
 import corerl.utils.pickle as pkl_u
 import corerl.utils.dict as dict_u
 
@@ -27,9 +28,10 @@ def prepare_save_dir(cfg: MainConfig):
             (f'seed-{cfg.experiment.seed}')
     )
 
+    cfg_json = config_to_json(MainConfig, cfg)
     save_path.mkdir(parents=True, exist_ok=True)
     with open(save_path / "config.yaml", "w") as f:
-        yaml.safe_dump(dict_config, f)
+        yaml.safe_dump(json.loads(cfg_json), f)
 
     return save_path
 

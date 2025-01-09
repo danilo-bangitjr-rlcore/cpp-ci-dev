@@ -12,7 +12,7 @@ import corerl.utils.list as list_u
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.component.network.utils import tensor
 from corerl.data_pipeline.datatypes import PipelineFrame, Step, Transition, StageCode
-from corerl.configs.config import interpolate, config
+from corerl.configs.config import interpolate, config, MISSING
 
 
 @config()
@@ -20,7 +20,7 @@ class AllTheTimeTCConfig:
     name: str = "all-the-time"
     gamma: float = interpolate('${experiment.gamma}')
     min_n_step: int = 1
-    max_n_step: int = interpolate('${action_period}')
+    max_n_step: int = MISSING
 
 
 @dataclass(init=False)
