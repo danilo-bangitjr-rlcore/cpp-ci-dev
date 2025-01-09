@@ -13,6 +13,7 @@ from corerl.data_pipeline.transforms.identity import IdentityConfig
 from corerl.data_pipeline.transforms.less_than import LessThanConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.null import NullConfig
+from corerl.data_pipeline.transforms.power import PowerConfig
 from corerl.data_pipeline.transforms.scale import ScaleConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 
@@ -50,6 +51,7 @@ TransformConfig = Annotated[
     | LessThanConfig
     | NormalizerConfig
     | NullConfig
+    | PowerConfig
     | ProductConfig
     | ScaleConfig
     | SplitConfig
