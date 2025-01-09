@@ -17,7 +17,7 @@ from corerl.data_pipeline.datatypes import Step, Transition
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
-from corerl.data_pipeline.state_constructors.sc import SCConfig, transform_group
+from corerl.data_pipeline.state_constructors.sc import SCConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
@@ -203,16 +203,16 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
 
 def test_normalizer_bounds_reset(offline_cfg: MainConfig):
     normalizer = NormalizerConfig(from_data=True)
-    
+
     # add normalizer to pipeline config
     offline_cfg.pipeline.state_constructor.defaults = [normalizer]
     for tag in offline_cfg.pipeline.tags:
         if tag.name == "Tag_1":
             tag.state_constructor = [normalizer]
-    
+
     pipeline = Pipeline(offline_cfg.pipeline)
     state_dim, action_dim = pipeline.get_state_action_dims()
-    
+
     # check initial normalizer bounds are set with the fake data from get_state_action_dims
     for tag in pipeline.tags:
         if not tag.is_action and not tag.is_meta:
@@ -221,7 +221,7 @@ def test_normalizer_bounds_reset(offline_cfg: MainConfig):
                 if isinstance(transform, Normalizer):
                     assert transform._mins[tag.name] == 0.0
                     assert transform._maxs[tag.name] == 1.0
-    
+
     # reset normalizers and verify bounds are cleared
     pipeline.reset_normalizers()
     for tag in pipeline.tags:
@@ -239,7 +239,7 @@ def test_normalizer_bounds_reset(offline_cfg: MainConfig):
         "Action": [0, 0, 1, 1, 0],
         "reward": [0, 0, 0, 0, 0]
     }, index=pd.DatetimeIndex(dates))
-    
+
     # check if normalizer bounds are updated from data
     pipeline(df, caller_code=CallerCode.OFFLINE)
     for tag in pipeline.tags:
@@ -249,4 +249,4 @@ def test_normalizer_bounds_reset(offline_cfg: MainConfig):
                 if isinstance(transform, Normalizer):
                     assert transform._mins[tag.name] == -3.0
                     assert transform._maxs[tag.name] == 5.0
-    
+

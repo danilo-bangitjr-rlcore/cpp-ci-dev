@@ -13,7 +13,7 @@ from corerl.utils.time import split_into_chunks
 
 def load_offline_transitions(cfg: MainConfig, pipeline: Pipeline):
     pipeline.reset_normalizers()
-    
+
     # Configure DataReader
     data_reader = DataReader(db_cfg=cfg.pipeline.db)
     db_time_stats = data_reader.get_time_stats()
