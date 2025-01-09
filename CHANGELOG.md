@@ -1,3 +1,11 @@
+## 0.14.1 (2025-01-09)
+
+### Fix
+
+- resolve circular import of TransformConfig type
+- use the union type of all xform configs for other xform
+- use type annotations to denote discriminators within lists
+
 ## 0.14.0 (2025-01-09)
 
 ### Feat
