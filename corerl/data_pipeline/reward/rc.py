@@ -41,6 +41,10 @@ class RewardComponentConstructor:
 
         return pf
 
+    def reset(self) -> None:
+        for transform in self._transforms:
+            transform.reset()
+
 
 class RewardConstructor:
     def __init__(self, component_constructors: dict[TagName, RewardComponentConstructor]):
@@ -58,6 +62,10 @@ class RewardConstructor:
         pf.data = initial_data
 
         return pf
+
+    def reset(self) -> None:
+        for component in self.component_constructors.values():
+            component.reset()
 
 
 def _filter_null_components(

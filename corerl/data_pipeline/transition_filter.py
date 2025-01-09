@@ -31,6 +31,9 @@ class TransitionFilter:
 
         return pf
 
+    def reset(self) -> None:
+        pass
+
 
 def call_filter(transitions: Iterable[Transition], filter_name: TransitionFilterType):
     if filter_name == 'only_dp':

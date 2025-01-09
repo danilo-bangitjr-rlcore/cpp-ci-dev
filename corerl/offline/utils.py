@@ -12,7 +12,7 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.utils.time import split_into_chunks
 
 def load_offline_transitions(cfg: MainConfig, pipeline: Pipeline):
-    pipeline.reset_normalizers()
+    pipeline.reset()
 
     # Configure DataReader
     data_reader = DataReader(db_cfg=cfg.pipeline.db)

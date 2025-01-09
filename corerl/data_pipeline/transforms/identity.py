@@ -16,5 +16,8 @@ class Identity:
     def __call__(self, carry: TransformCarry, ts: object | None):
         return carry, None
 
+    def reset(self) -> None:
+        pass
+
 
 transform_group.dispatcher(Identity)

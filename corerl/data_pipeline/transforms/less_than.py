@@ -33,6 +33,9 @@ class LessThan:
 
         return carry, None
 
+    def reset(self) -> None:
+        pass
+
 transform_group.dispatcher(LessThan)
 
 @njit

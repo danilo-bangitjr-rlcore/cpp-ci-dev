@@ -20,9 +20,8 @@ from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
-from corerl.data_pipeline.datatypes import Transition, PipelineFrame, CallerCode, StageCode
 from corerl.data_pipeline.transforms.norm import Normalizer
-
+from corerl.data_pipeline.datatypes import Transition, PipelineFrame, CallerCode, StageCode
 
 logger = logging.getLogger(__name__)
 
@@ -152,13 +151,6 @@ class Pipeline:
             transitions=pf.transitions,
         )
 
-    def reset_normalizers(self):
-        for tag in self.tags:
-            if not tag.is_action and not tag.is_meta:
-                assert tag.state_constructor is not None
-                for transform in self.state_constructor._components[tag.name]:
-                    if isinstance(transform, Normalizer):
-                        transform.reset()
 
     def get_state_action_dims(self):
         num_actions = sum(
@@ -170,3 +162,9 @@ class Pipeline:
 
     def register_hook(self, stage: StageCode, f: Callable[[PipelineFrame], Any]):
         self._hooks[stage].append(f)
+
+    def reset(self):
+        for stage_code in self._stage_invokers:
+            invoker = self._stage_invokers[stage_code]
+            if hasattr(invoker, 'reset'):
+                invoker.reset()
