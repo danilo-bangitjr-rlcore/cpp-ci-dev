@@ -1,3 +1,18 @@
+## 0.16.0 (2025-01-09)
+
+### Feat
+
+- add generic utility to sort lists at multiple levels
+
+### Fix
+
+- ensure action values are sorted alphabetically
+- annotate test utility types
+
+### Refactor
+
+- make tag sort order more explicit
+
 ## 0.15.0 (2025-01-09)
 
 ### Feat
