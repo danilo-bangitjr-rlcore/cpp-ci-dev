@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import numpy as np
 import pandas as pd
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
@@ -22,7 +24,8 @@ def test_int_countdown1():
     ]
 
     cd_cfg = CountdownConfig(
-        action_period=4,
+        action_period=timedelta(minutes=4),
+        obs_period=timedelta(minutes=1),
         kind='int',
     )
 
@@ -86,7 +89,8 @@ def test_int_countdown2():
     ]
 
     cd_cfg = CountdownConfig(
-        action_period=4,
+        action_period=timedelta(minutes=4),
+        obs_period=timedelta(minutes=1),
         kind='int',
     )
 
@@ -122,7 +126,8 @@ def test_int_countdown3():
     ]
 
     cd_cfg = CountdownConfig(
-        action_period=4,
+        action_period=timedelta(minutes=4),
+        obs_period=timedelta(minutes=1),
         kind='int',
     )
 
@@ -152,7 +157,8 @@ def test_two_clock1():
     ]
 
     cd_cfg = CountdownConfig(
-        action_period=4,
+        action_period=timedelta(minutes=4),
+        obs_period=timedelta(minutes=1),
         kind='two_clock',
     )
 

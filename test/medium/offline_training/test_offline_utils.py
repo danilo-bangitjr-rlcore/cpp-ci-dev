@@ -60,13 +60,11 @@ def data_writer(init_offline_tsdb_container: Container, test_db_config: TagDBCon
 
 @pytest.fixture
 def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
-    obs_period = dt.timedelta(seconds=60) # seconds
-    action_period = 2*obs_period # Number of obs_periods
+    obs_period = dt.timedelta(seconds=60)
+    action_period = 2*obs_period
     seed = 0
 
     cfg = MainConfig(
-        action_period=action_period,
-        obs_period=obs_period,
         agent=GreedyACConfig(
             actor=NetworkActorConfig(
                 buffer=UniformReplayBufferConfig(
@@ -104,11 +102,13 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
                 TagConfig(name="reward", is_meta=True),
             ],
             db=test_db_config,
-            obs_interval_minutes=int(obs_period.total_seconds() / 60),
+            obs_period=obs_period,
+            action_period=action_period,
             state_constructor=SCConfig(
                 defaults=[],
                 countdown=CountdownConfig(
-                    action_period=int(action_period.total_seconds() / obs_period.total_seconds())
+                    action_period=action_period,
+                    obs_period=obs_period
                 ),
             ),
             transition_creator=AllTheTimeTCConfig(
@@ -128,12 +128,14 @@ def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, step
     # Generate timestamps
     timestamps = []
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.timezone.utc)
-    delta = offline_cfg.obs_period
+    delta = offline_cfg.pipeline.obs_period
     for i in range(steps):
         timestamps.append(start_time + (delta * i))
 
     # Generate tag data and write to tsdb
-    steps_per_decision = offline_cfg.action_period / offline_cfg.obs_period
+    steps_per_decision = int(
+        offline_cfg.pipeline.action_period.total_seconds() / offline_cfg.pipeline.obs_period.total_seconds()
+    )
     for i in range(steps):
         for tag_cfg in offline_cfg.pipeline.tags:
             tag = tag_cfg.name
