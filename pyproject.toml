@@ -111,6 +111,7 @@ dependencies = [
     "scipy~=1.13",
     "sqlalchemy~=2.0",
     "sqlalchemy-utils~=0.41",
+    "textual~=1.0.0",
     "torch~=2.5",
     "tqdm~=4.66",
     "scikit-learn~=1.5",
@@ -143,3 +144,5 @@ dev = [
 [project.scripts]
 corerl_main = "corerl.main:main"
 corerl_convertdb_backup = "corerl.bin.convert_db_backup:main"
+corerl_opc_explorer = "corerl.bin.opc_explorer:main"
+

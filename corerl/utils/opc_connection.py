@@ -4,9 +4,11 @@ from collections.abc import Callable, Coroutine
 import datetime
 import logging
 from typing import Any, Concatenate
+from uuid import UUID
 
 import numpy as np
 from asyncua import Client, Node, ua
+from asyncua.sync import Client as SyncClient, SyncNode
 from corerl.configs.config import MISSING, config
 
 _logger = logging.getLogger(__name__)
@@ -14,8 +16,46 @@ _logger = logging.getLogger(__name__)
 PREFIX = "opctest"
 
 
-def make_opc_node_id(str_id: str, namespace: str|int = 0):
-    return f"ns={namespace};s={str_id}"
+def make_opc_node_id(node_id: str | int | bytes | UUID, namespace: str | int = 0):
+    if isinstance(node_id, int):
+        return f"ns={namespace};i={node_id}"
+    elif isinstance(node_id, UUID):
+        return f"ns={namespace};g={node_id}"
+    elif isinstance(node_id, bytes):
+        return f"ns={namespace};b={node_id}"
+    else:
+        return f"ns={namespace};s={node_id}"
+
+
+def sync_browse_opc_nodes(client: SyncClient, node: SyncNode):
+    """Recursively browse OPC nodes"""
+    structure = {}
+    children = node.get_children()
+
+    for child in children:
+        child_node_class = child.read_node_class()
+        child_browse_name = child.read_browse_name()
+        child_display_name = child_browse_name.Name
+
+        # If object, recurse into it
+        if child_node_class == ua.NodeClass.Object:
+            structure[child_display_name] = sync_browse_opc_nodes(client, child)
+
+        # Elif variable, write value and data type
+        elif child_node_class == ua.NodeClass.Variable:
+            value = child.read_value()
+            data_type_node = child.read_data_type()
+            data_type_name = client.get_node(data_type_node).read_display_name()
+
+            structure[child_display_name] = {
+                "val": value,
+                "DataType": data_type_name.Text,
+                "NameSpace": child.nodeid.NamespaceIndex,
+                "Identifier": child.nodeid.Identifier,
+                "nodeid": make_opc_node_id(child.nodeid.Identifier, child.nodeid.NamespaceIndex)
+            }
+
+    return structure
 
 
 def linear_backoff(direction: str, attempts: int = 50):
@@ -87,7 +127,6 @@ class OpcConnection:
         )
         await self.client.connect()
 
-
     @linear_backoff(direction='read')
     async def get_nodes(self, addresses: list[str]) -> list[Node]:
         """Returns an array of OPC nodes corresponding to the string addresses"""
@@ -100,12 +139,10 @@ class OpcConnection:
         ]
         return nodes
 
-
     @linear_backoff(direction='read')
     async def read_values(self, nodes: list[Node]) -> list[Any]:
         """Reads the values of an array of OPC nodes and returns those values"""
         return await self.client.read_values(nodes)
-
 
     @linear_backoff(direction='read')
     async def read_variant_types(self, nodes: list[Node]) -> list[ua.VariantType]:
@@ -116,7 +153,6 @@ class OpcConnection:
         )
         return [value.Value.VariantType for value in values if value.Value is not None]
 
-
     @linear_backoff(direction='read')
     async def read_attributes(
         self, nodes: list[Node], attr: ua.AttributeIds
@@ -124,7 +160,6 @@ class OpcConnection:
         """Returns the specified Attribute of the list of Nodes"""
         node_ids = [node.nodeid for node in nodes]
         return await self.client.uaclient.read_attributes(node_ids, attr)
-
 
     @linear_backoff(direction='write')
     async def write_values(

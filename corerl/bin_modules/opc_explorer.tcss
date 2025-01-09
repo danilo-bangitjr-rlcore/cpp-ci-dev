@@ -1,0 +1,52 @@
+Screen {
+    background: $panel;
+}
+
+Input#opc-search {
+    dock: top;
+    margin: 1 0;
+}
+
+
+#results {
+    width: 100%;
+    height: auto;
+}
+
+Label{
+  width: 0.15fr;
+  padding: 1;
+}
+
+#buttons{
+  width: 1fr;
+  margin: 0 0 0 1;
+  align-horizontal: right;
+}
+
+#headers{
+  width: 1fr;
+  background: $primary;
+  margin: 0 0 0 1;
+}
+
+
+Checkbox{
+  width: 0.15fr;
+}
+
+#results-container {
+    background: $surface;
+    margin: 0 0 1 0;
+    height: 90%;
+    overflow: hidden auto;
+    border: tall transparent;
+}
+
+#results-container:focus {
+    border: tall $border;
+}
+
+.invisible{
+  display: none;
+}
