@@ -60,14 +60,13 @@ def data_writer(init_offline_tsdb_container: Container, test_db_config: TagDBCon
 
 @pytest.fixture
 def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
-    obs_period_sec = 60 # seconds
-    action_period = 2 # Number of obs_periods
-    action_period_sec = obs_period_sec * action_period
+    obs_period = dt.timedelta(seconds=60) # seconds
+    action_period = 2*obs_period # Number of obs_periods
     seed = 0
 
     cfg = MainConfig(
-        action_period=action_period_sec,
-        obs_period=obs_period_sec,
+        action_period=action_period,
+        obs_period=obs_period,
         agent=GreedyACConfig(
             actor=NetworkActorConfig(
                 buffer=UniformReplayBufferConfig(
@@ -105,10 +104,12 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
                 TagConfig(name="reward", is_meta=True),
             ],
             db=test_db_config,
-            obs_interval_minutes=int(obs_period_sec / 60),
+            obs_interval_minutes=int(obs_period.total_seconds() / 60),
             state_constructor=SCConfig(
                 defaults=[],
-                countdown=CountdownConfig(action_period=action_period),
+                countdown=CountdownConfig(
+                    action_period=int(action_period.total_seconds() / obs_period.total_seconds())
+                ),
             ),
             transition_creator=AllTheTimeTCConfig(
                 gamma=0.9,
@@ -127,7 +128,7 @@ def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, step
     # Generate timestamps
     timestamps = []
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.timezone.utc)
-    delta = dt.timedelta(minutes=int(offline_cfg.obs_period / 60))
+    delta = offline_cfg.obs_period
     for i in range(steps):
         timestamps.append(start_time + (delta * i))
 

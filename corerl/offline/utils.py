@@ -16,6 +16,7 @@ def load_offline_transitions(cfg: MainConfig, pipeline: Pipeline):
     data_reader = DataReader(db_cfg=cfg.pipeline.db)
     db_time_stats = data_reader.get_time_stats()
     tag_names = [tag_cfg.name for tag_cfg in cfg.pipeline.tags]
+    obs_period = cfg.pipeline.obs_period
 
     time_chunks = split_into_chunks(
         db_time_stats.start,
@@ -29,7 +30,7 @@ def load_offline_transitions(cfg: MainConfig, pipeline: Pipeline):
             names=tag_names,
             start_time=chunk_start,
             end_time=chunk_end,
-            bucket_width=dt.timedelta(seconds=cfg.obs_period),
+            bucket_width=obs_period,
             aggregation=cfg.pipeline.db.data_agg,
         )
         pipeline_out = pipeline(
