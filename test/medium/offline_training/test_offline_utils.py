@@ -290,6 +290,24 @@ def test_product_bounds_reset(offline_cfg: MainConfig):
                             assert other_transform._mins[tag.name] is None
                             assert other_transform._maxs[tag.name] is None
 
+    dates = [dt.datetime(2024, 1, 1, 1, i, tzinfo=dt.timezone.utc) for i in range(5)]
+    df = pd.DataFrame({
+        "Tag_1": [1.0, 2.0, 5.0, -3.0, 4.0],
+        "Action": [0, 0, 1, 1, 0],
+        "reward": [0, 0, 0, 0, 0]
+    }, index=pd.DatetimeIndex(dates))
+
+    pipeline(df, caller_code=CallerCode.OFFLINE)
+    for tag in pipeline.tags:
+        if not tag.is_action and not tag.is_meta:
+            transforms = pipeline.state_constructor._components[tag.name]
+            for transform in transforms:
+                if isinstance(transform, ProductTransform):
+                    for other_transform in transform._other_xform:
+                        if isinstance(other_transform, Normalizer):
+                            assert other_transform._mins[tag.name] == -3.0
+                            assert other_transform._maxs[tag.name] == 5.0
+
 def test_split_bounds_reset(offline_cfg: MainConfig):
     split = SplitConfig(
         left=[NormalizerConfig(from_data=True)],
@@ -332,4 +350,22 @@ def test_split_bounds_reset(offline_cfg: MainConfig):
                         if isinstance(right_transform, Normalizer):
                             assert right_transform._mins[tag.name] is None
                             assert right_transform._maxs[tag.name] is None
+
+    dates = [dt.datetime(2024, 1, 1, 1, i, tzinfo=dt.timezone.utc) for i in range(5)]
+    df = pd.DataFrame({
+        "Tag_1": [1.0, 2.0, 5.0, -3.0, 4.0],
+        "Action": [0, 0, 1, 1, 0],
+        "reward": [0, 0, 0, 0, 0]
+    }, index=pd.DatetimeIndex(dates))
+
+    pipeline(df, caller_code=CallerCode.OFFLINE)
+    for tag in pipeline.tags:
+        if not tag.is_action and not tag.is_meta:
+            transforms = pipeline.state_constructor._components[tag.name]
+            for transform in transforms:
+                if isinstance(transform, SplitTransform):
+                    for left_transform in transform._left:
+                        if isinstance(left_transform, Normalizer):
+                            assert left_transform._mins[tag.name] == -3.0
+                            assert left_transform._maxs[tag.name] == 5.0
 
