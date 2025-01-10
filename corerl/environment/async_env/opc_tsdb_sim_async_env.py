@@ -20,6 +20,7 @@ class OPCTSDBSimAsyncEnvConfig(GymEnvConfig, OPCEnvConfig, TSDBEnvConfig):
     name: str = "opc_tsdb_sim_async_env"
     sleep_sec: int = 10
     obs_fetch_attempts: int = 20
+    obs_read_delay_buffer: timedelta = timedelta(milliseconds=50)
 
 
 class OPCTSDBSimAsyncEnv(AsyncEnv):
@@ -39,6 +40,7 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
 
     def __init__(self, cfg: OPCTSDBSimAsyncEnvConfig, tag_configs: list[TagConfig]):
         self.obs_period = cfg.obs_period
+        self.obs_read_delay_buffer = cfg.obs_read_delay_buffer
 
         self._data_reader = DataReader(db_cfg=cfg.db)
         self.obs_fetch_attempts = cfg.obs_fetch_attempts
@@ -106,9 +108,9 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
             return pd.concat([act_obs_reward, meta], axis=1)
 
         now = datetime.now(UTC)
-        if now <= read_end:
+        if now <= (read_end + self.obs_read_delay_buffer):
             # the query end time is in the future, wait until this has elapsed before requesting observations from TSDB
-            wait_time_delta = read_end - now
+            wait_time_delta = (read_end - now) + self.obs_read_delay_buffer
             sleep(wait_time_delta.total_seconds())
 
         res = get_obs_df()
