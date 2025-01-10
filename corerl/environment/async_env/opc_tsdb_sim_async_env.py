@@ -95,12 +95,12 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
 
         def get_obs_df():
             act_obs_reward = self._data_reader.single_aggregated_read(
-                self.action_names + self.obs_names + ["reward"],
+                self.action_names + self.obs_names + ["gym_reward"],
                 read_start,
                 read_end,
             )
             meta = self._data_reader.single_aggregated_read(
-                [name for name in self.meta_names if name != "reward"],
+                [name for name in self.meta_names if name != "gym_reward"],
                 read_start,
                 read_end,
                 "bool_or",
