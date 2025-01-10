@@ -12,6 +12,7 @@ from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor, Float
+from corerl.state import AppState
 from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import TransitionBatch, Transition
 
@@ -26,8 +27,8 @@ class SACConfig(BaseACConfig):
     lr_alpha: float = 0.001
 
 class SAC(BaseAC):
-    def __init__(self, cfg: SACConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
+    def __init__(self, cfg: SACConfig, app_state: AppState, state_dim: int, action_dim: int):
+        super().__init__(cfg, app_state, state_dim, action_dim)
         self.ensemble_targets = cfg.ensemble_targets
         # self.v_critic = init_v_critic(cfg.critic, state_dim) # Paper has V and Q...
         self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)

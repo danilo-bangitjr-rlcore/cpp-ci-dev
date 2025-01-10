@@ -5,6 +5,9 @@ import random
 
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
+from corerl.eval.writer import MetricsWriter
+from corerl.messages.client import DummyWebsocketClient
+from corerl.state import AppState
 from corerl.utils.device import device
 from corerl.agent.factory import init_agent
 from corerl.offline.utils import load_offline_transitions, offline_training
@@ -29,9 +32,14 @@ def main(cfg: MainConfig):
     random.seed(seed)
     torch.manual_seed(seed)
 
+    app_state = AppState(
+        metrics=MetricsWriter(cfg.metrics),
+        event_bus=DummyWebsocketClient('', 0),
+    )
+
     pipeline = Pipeline(cfg.pipeline)
     state_dim, action_dim = pipeline.get_state_action_dims()
-    agent = init_agent(cfg.agent, state_dim, action_dim)
+    agent = init_agent(cfg.agent, app_state, state_dim, action_dim)
     transitions = []
 
     # Offline training

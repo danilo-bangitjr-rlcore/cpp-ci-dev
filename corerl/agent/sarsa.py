@@ -14,6 +14,7 @@ from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor
+from corerl.state import AppState
 from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import TransitionBatch, Transition
 
@@ -30,8 +31,8 @@ class EpsilonGreedySarsaConfig(BaseAgentConfig):
 
 
 class EpsilonGreedySarsa(BaseAgent):
-    def __init__(self, cfg: EpsilonGreedySarsaConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
+    def __init__(self, cfg: EpsilonGreedySarsaConfig, app_state: AppState, state_dim: int, action_dim: int):
+        super().__init__(cfg, app_state, state_dim, action_dim)
         self.ensemble_targets = cfg.ensemble_targets
         self.samples = cfg.samples
         self.epsilon = cfg.epsilon

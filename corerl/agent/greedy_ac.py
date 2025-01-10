@@ -18,6 +18,7 @@ from corerl.component.actor.factory import init_actor
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.network.utils import to_np, state_to_tensor
+from corerl.state import AppState
 from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import Transition, TransitionBatch
 from jaxtyping import Float
@@ -48,8 +49,8 @@ class GreedyACConfig(BaseACConfig):
     critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
 
 class GreedyAC(BaseAC):
-    def __init__(self, cfg: GreedyACConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
+    def __init__(self, cfg: GreedyACConfig, app_state: AppState, state_dim: int, action_dim: int):
+        super().__init__(cfg, app_state, state_dim, action_dim)
         self.ensemble_targets = cfg.ensemble_targets
 
         self.action_dim = action_dim
@@ -97,7 +98,7 @@ class GreedyAC(BaseAC):
 
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        self._msg_bus.emit_event_sync(EventType.agent_get_action)
+        self._app_state.event_bus.emit_event_sync(EventType.agent_get_action)
 
         tensor_state = state_to_tensor(state, device.device)
 
@@ -107,7 +108,7 @@ class GreedyAC(BaseAC):
         return to_np(action)[0]
 
     def update_buffer(self, transitions: Sequence[Transition]) -> None:
-        self._msg_bus.emit_event_sync(EventType.agent_update_buffer)
+        self._app_state.event_bus.emit_event_sync(EventType.agent_update_buffer)
 
         self.critic_buffer.feed(transitions)
         self.policy_buffer.feed([
@@ -299,6 +300,11 @@ class GreedyAC(BaseAC):
 
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
 
+        self._app_state.metrics.write(
+            'critic_loss',
+            np.mean([loss.detach().numpy() for loss in losses]),
+        )
+
         return losses
 
     def compute_sampler_entropy_loss(self, update_info: tuple) -> torch.Tensor:
@@ -364,7 +370,7 @@ class GreedyAC(BaseAC):
         if min(self.critic_buffer.size) <= 0:
             return []
 
-        self._msg_bus.emit_event_sync(EventType.agent_update_critic)
+        self._app_state.event_bus.emit_event_sync(EventType.agent_update_critic)
 
         batches = self.critic_buffer.sample()
 
@@ -380,7 +386,7 @@ class GreedyAC(BaseAC):
         return [float(q_loss)]
 
     def update_actor(self) -> tuple:
-        self._msg_bus.emit_event_sync(EventType.agent_update_actor)
+        self._app_state.event_bus.emit_event_sync(EventType.agent_update_actor)
 
         if min(self.policy_buffer.size) <= 0:
             return tuple()
@@ -504,7 +510,7 @@ class GreedyAC(BaseAC):
         return q_losses
 
     def save(self, path: Path) -> None:
-        self._msg_bus.emit_event_sync(EventType.agent_save)
+        self._app_state.event_bus.emit_event_sync(EventType.agent_save)
 
         path.mkdir(parents=True, exist_ok=True)
         actor_path = path / "actor"
@@ -525,7 +531,7 @@ class GreedyAC(BaseAC):
             pkl.dump(self.policy_buffer, f)
 
     def load(self, path: Path) -> None:
-        self._msg_bus.emit_event_sync(EventType.agent_load)
+        self._app_state.event_bus.emit_event_sync(EventType.agent_load)
 
         actor_path = path / "actor"
         self.actor.load(actor_path)

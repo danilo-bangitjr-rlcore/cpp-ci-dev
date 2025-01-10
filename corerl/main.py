@@ -16,6 +16,8 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
 from corerl.interaction.factory import init_interaction
+from corerl.messages.client import make_msg_bus_client
+from corerl.state import AppState, MetricsWriter
 from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
@@ -28,6 +30,14 @@ log = logging.getLogger(__name__)
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
     device.update_device(cfg.experiment.device)
+
+    event_bus = make_msg_bus_client(cfg.agent.message_bus)
+    event_bus.start_sync()
+
+    app_state = AppState(
+        metrics=MetricsWriter(cfg.metrics),
+        event_bus=event_bus,
+    )
 
     # get custom gym environments
     register_custom_envs()
@@ -45,6 +55,7 @@ def main(cfg: MainConfig):
         state_dim, action_dim = pipeline.get_state_action_dims()
         agent = init_agent(
             cfg.agent,
+            app_state,
             state_dim,
             action_dim,
         )
