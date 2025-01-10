@@ -20,7 +20,6 @@ from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
-from corerl.data_pipeline.transforms.norm import Normalizer
 from corerl.data_pipeline.datatypes import Transition, PipelineFrame, CallerCode, StageCode
 
 logger = logging.getLogger(__name__)

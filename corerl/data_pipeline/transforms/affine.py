@@ -27,7 +27,7 @@ class Affine:
             carry.transform_data.drop(col, axis=1, inplace=True)
 
         return carry, None
-    
+
     def reset(self) -> None:
         pass
 
