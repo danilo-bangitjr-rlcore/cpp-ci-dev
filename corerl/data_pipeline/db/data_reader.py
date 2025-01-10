@@ -10,21 +10,11 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import text
 
 import corerl.utils.pandas as pd_util
-from corerl.configs.config import config
+from corerl.data_pipeline.db.data_writer import TagDBConfig
 from corerl.data_pipeline.db.utils import try_connect
-from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
+from corerl.sql_logging.sql_logging import get_sql_engine
 
 logger = logging.getLogger(__name__)
-
-
-@config()
-class TagDBConfig(SQLEngineConfig):
-    """Configuration to setup the tag database connection."""
-
-    db_name: str = "postgres"
-    sensor_table_name: str = "scrubber4"
-    sensor_table_schema: str = ""
-    data_agg: Literal["avg", "last", "bool_or"] = "avg"
 
 
 class DataReader:
@@ -35,14 +25,14 @@ class DataReader:
         self.db_metadata = MetaData()
         self.db_metadata.reflect(bind=self.engine)
         self.sensor_table = Table(
-            db_cfg.sensor_table_name,
+            db_cfg.table_name,
             self.db_metadata,
             Column("time", TIMESTAMP, nullable=False, default=None, autoincrement=False, comment=None),
             Column("host", TEXT, nullable=True, default=None, autoincrement=False, comment="tag"),
             Column("id", TEXT, nullable=True, default=None, autoincrement=False, comment="tag"),
             Column("name", TEXT, nullable=True, default=None, autoincrement=False, comment="tag"),
             Column("fields", JSONB, nullable=True, default=None, autoincrement=False, comment=None),
-            schema=db_cfg.sensor_table_schema,
+            schema=db_cfg.table_schema,
             extend_existing=True,
         )
 

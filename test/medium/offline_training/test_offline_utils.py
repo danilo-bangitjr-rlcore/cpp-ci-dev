@@ -41,7 +41,7 @@ def test_db_config() -> TagDBConfig:
         ip="localhost",
         port=5433,  # default is 5432, but we want to use different port for test db
         db_name="offline_test",
-        sensor_table_name="tags",
+        table_name="tags",
     )
 
     return db_cfg
@@ -57,7 +57,7 @@ def init_offline_tsdb_container():
 
 @pytest.fixture(scope="module")
 def data_writer(init_offline_tsdb_container: Container, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]: # noqa: F811, E501
-    data_writer = DataWriter(db_cfg=test_db_config)
+    data_writer = DataWriter(cfg=test_db_config)
 
     yield data_writer
 

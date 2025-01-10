@@ -16,8 +16,8 @@ raw_service_names = [
 
 db_cfg = TagDBConfig(
     db_name="postgres",
-    sensor_table_name="opcua",
-    sensor_table_schema="public",
+    table_name="opcua",
+    table_schema="public",
     drivername="postgresql+psycopg2",
     username="postgres",
     password="password",

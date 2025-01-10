@@ -28,10 +28,10 @@ def data_writer(init_data_writer_tsdb_container: Container) -> Generator[DataWri
         ip="localhost",
         port=5433, # default is 5432, but we want to use different port for test db
         db_name="pytest",
-        sensor_table_name="sensors",
+        table_name="sensors",
     )
 
-    data_writer = DataWriter(db_cfg=db_cfg)
+    data_writer = DataWriter(cfg=db_cfg)
 
     yield data_writer
 
