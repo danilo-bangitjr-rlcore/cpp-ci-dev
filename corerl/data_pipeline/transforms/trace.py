@@ -47,6 +47,9 @@ class TraceConstructor:
 
         return carry, TraceTemporalState(mu)
 
+    def reset(self) -> None:
+        pass
+
 
 transform_group.dispatcher(TraceConstructor)
 

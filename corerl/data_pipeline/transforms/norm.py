@@ -22,6 +22,10 @@ class Normalizer:
         self._mins = defaultdict(lambda: cfg.min)
         self._maxs = defaultdict(lambda: cfg.max)
 
+    def reset(self):
+        self._mins.clear()
+        self._maxs.clear()
+
     def __call__(self, carry: TransformCarry, ts: object | None):
         cols = set(carry.transform_data.columns)
         for col in cols:

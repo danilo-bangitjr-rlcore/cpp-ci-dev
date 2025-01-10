@@ -26,5 +26,8 @@ class Power:
 
         return carry, None
 
+    def reset(self):
+        pass
+
 
 transform_group.dispatcher(Power)

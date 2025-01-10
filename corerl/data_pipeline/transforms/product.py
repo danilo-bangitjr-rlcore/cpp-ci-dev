@@ -48,5 +48,9 @@ class ProductTransform:
 
         return carry, ProductTemporalState(other_ts=other_ts)
 
+    def reset(self) -> None:
+        for xform in self._other_xform:
+            xform.reset()
+
 
 transform_group.dispatcher(ProductTransform)

@@ -13,7 +13,6 @@ from pandas import DataFrame
 from corerl.configs.config import config, interpolate, list_
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
@@ -23,6 +22,7 @@ from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructo
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
+from corerl.data_pipeline.datatypes import Transition, PipelineFrame, CallerCode, StageCode
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +159,7 @@ class Pipeline:
             transitions=pf.transitions,
         )
 
+
     def get_state_action_dims(self):
         num_actions = sum(
             tag.is_action for tag in self.tags
@@ -169,3 +170,7 @@ class Pipeline:
 
     def register_hook(self, stage: StageCode, f: Callable[[PipelineFrame], Any]):
         self._hooks[stage].append(f)
+
+    def reset(self):
+        if hasattr(self.state_constructor, 'reset'):
+            self.state_constructor.reset()

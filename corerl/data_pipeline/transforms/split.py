@@ -65,4 +65,10 @@ class SplitTransform:
             right_state=r_state,
         )
 
+    def reset(self) -> None:
+        for xform in self._left:
+            xform.reset()
+        for xform in self._right:
+            xform.reset()
+
 transform_group.dispatcher(SplitTransform)

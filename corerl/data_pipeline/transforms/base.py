@@ -6,6 +6,7 @@ from corerl.data_pipeline.transforms.interface import TransformCarry
 
 class Transform(Protocol):
     def __call__(self, carry: TransformCarry, ts: object | None) -> tuple[TransformCarry, object | None]: ...
+    def reset(self) -> None: ...
 
 
 @config(frozen=True)
