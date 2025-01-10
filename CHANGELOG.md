@@ -1,3 +1,9 @@
+## 0.17.3 (2025-01-10)
+
+### Fix
+
+- fix circular import issues with product and split transforms
+
 ## 0.17.2 (2025-01-10)
 
 ### Fix
