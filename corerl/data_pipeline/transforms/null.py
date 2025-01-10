@@ -19,4 +19,8 @@ class Null:
         carry.transform_data = pd.DataFrame()
         return carry, None
 
+    def reset(self) -> None:
+        pass
+
+
 transform_group.dispatcher(Null)

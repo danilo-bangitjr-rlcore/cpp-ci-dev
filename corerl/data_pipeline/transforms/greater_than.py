@@ -33,6 +33,9 @@ class GreaterThan:
 
         return carry, None
 
+    def reset(self) -> None:
+        pass
+
 transform_group.dispatcher(GreaterThan)
 
 @njit

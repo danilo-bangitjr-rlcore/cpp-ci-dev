@@ -25,5 +25,8 @@ class Scale:
 
         return carry, None
 
+    def reset(self) -> None:
+        pass
+
 
 transform_group.dispatcher(Scale)

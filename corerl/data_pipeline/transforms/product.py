@@ -48,5 +48,8 @@ class ProductTransform:
 
         return carry, ProductTemporalState(other_ts=other_ts)
 
+    def reset(self) -> None:
+        pass
+
 
 transform_group.dispatcher(ProductTransform)
