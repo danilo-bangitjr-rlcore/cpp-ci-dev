@@ -66,6 +66,9 @@ class SplitTransform:
         )
 
     def reset(self) -> None:
-        pass
+        for xform in self._left:
+            xform.reset()
+        for xform in self._right:
+            xform.reset()
 
 transform_group.dispatcher(SplitTransform)

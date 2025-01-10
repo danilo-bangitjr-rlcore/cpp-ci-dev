@@ -172,6 +172,5 @@ class Pipeline:
         self._hooks[stage].append(f)
 
     def reset(self):
-        invoker = self._stage_invokers[StageCode.SC]
-        if not callable(invoker) and hasattr(invoker, 'reset'):
-            invoker.reset()
+        if hasattr(self.state_constructor, 'reset'):
+            self.state_constructor.reset()
