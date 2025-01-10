@@ -1,3 +1,9 @@
+## 0.17.2 (2025-01-10)
+
+### Fix
+
+- add a default 50ms buffer to OPC TSDB sim async env obs read
+
 ## 0.17.1 (2025-01-09)
 
 ### Fix
