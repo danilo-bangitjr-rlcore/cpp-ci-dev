@@ -1,3 +1,35 @@
+## 0.17.1 (2025-01-09)
+
+### Fix
+
+- enable serialization of timedelta objs with json dumper
+- update tests to use action_period and obs_period as timedelta objects
+- use timedelta obs_period in offline utils
+- interpolate obs/action_period in data pipeline config schemas; compute steps_per_decision based on obs/action_period in countdown and transition creators
+- unify notion of bucket_width, env_step_time, clock_inc as obs_period; refactor env configs to use multiple inheritance to share common fields
+- remove action_period and obs_period from top level configs
+
+## 0.17.0 (2025-01-09)
+
+### Feat
+
+- add power transform
+
+## 0.16.0 (2025-01-09)
+
+### Feat
+
+- add generic utility to sort lists at multiple levels
+
+### Fix
+
+- ensure action values are sorted alphabetically
+- annotate test utility types
+
+### Refactor
+
+- make tag sort order more explicit
+
 ## 0.15.0 (2025-01-09)
 
 ### Feat

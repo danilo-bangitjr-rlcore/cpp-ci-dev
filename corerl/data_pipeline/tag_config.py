@@ -25,3 +25,4 @@ class TagConfig:
     state_constructor: list[TransformConfig] | None = None
     is_action: bool = False
     is_meta: bool = False
+    is_endogenous: bool = True

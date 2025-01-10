@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any
 import numpy as np
 import pandas as pd
@@ -22,7 +23,9 @@ def test_construct_pipeline():
             TagConfig(name='sensor_x'),
             TagConfig(name='sensor_y'),
         ],
-        obs_interval_minutes=15,
+        # obs_period=15,
+        obs_period=timedelta(minutes=15),
+        action_period=timedelta(minutes=15),
         transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
@@ -30,7 +33,10 @@ def test_construct_pipeline():
             max_n_step=30
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=15),
+                obs_period=timedelta(minutes=15),
+            ),
         ),
     )
     _ = Pipeline(cfg)
@@ -42,7 +48,8 @@ def test_passing_data_to_pipeline():
             TagConfig(name='sensor_x'),
             TagConfig(name='sensor_y'),
         ],
-        obs_interval_minutes=15,
+        obs_period=timedelta(minutes=15),
+        action_period=timedelta(minutes=15),
         transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
@@ -50,7 +57,10 @@ def test_passing_data_to_pipeline():
             max_n_step=30
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=15),
+                obs_period=timedelta(minutes=15),
+            ),
         ),
     )
     pipeline = Pipeline(cfg)
@@ -85,9 +95,13 @@ def test_state_action_dim():
             TagConfig(name='tag-4', is_action=True),
         ],
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=5),
+                obs_period=timedelta(minutes=5),
+            ),
         ),
-        obs_interval_minutes=5,
+        obs_period=timedelta(minutes=5),
+        action_period=timedelta(minutes=5),
         transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
@@ -127,9 +141,13 @@ def test_sub_pipeline1():
             max_n_step=30
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=5),
+                obs_period=timedelta(minutes=5),
+            ),
         ),
-        obs_interval_minutes=5,
+        obs_period=timedelta(minutes=5),
+        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
@@ -203,9 +221,13 @@ def test_sub_pipeline2():
             max_n_step=30
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=5),
+                obs_period=timedelta(minutes=5),
+            ),
         ),
-        obs_interval_minutes=5,
+        obs_period=timedelta(minutes=5),
+        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
@@ -284,9 +306,13 @@ def test_sub_pipeline3():
             max_n_step=30
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=5),
+                obs_period=timedelta(minutes=5),
+            ),
         ),
-        obs_interval_minutes=5,
+        obs_period=timedelta(minutes=5),
+        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
@@ -369,9 +395,13 @@ def test_sub_pipeline4():
             max_n_step=30
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=5),
+                obs_period=timedelta(minutes=5),
+            ),
         ),
-        obs_interval_minutes=5,
+        obs_period=timedelta(minutes=5),
+        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)

@@ -2,6 +2,7 @@ from typing import Type
 import numpy as np
 import pandas as pd
 
+from datetime import timedelta
 from collections.abc import Hashable
 from dataclasses import dataclass
 
@@ -13,7 +14,8 @@ from corerl.data_pipeline.tag_config import TagConfig
 
 @config()
 class CountdownConfig:
-    action_period: int = interpolate('${action_period}')
+    action_period: timedelta = interpolate('${env.action_period}')
+    obs_period: timedelta = interpolate('${env.obs_period}')
     kind: str = 'no_countdown'
 
 
@@ -29,6 +31,10 @@ class DecisionPointDetector:
 
     def __init__(self, tag_cfgs: list[TagConfig], cfg: CountdownConfig):
         self._cfg = cfg
+        self._steps_per_decision = int(cfg.action_period.total_seconds() / cfg.obs_period.total_seconds())
+        assert np.isclose(
+            self._steps_per_decision, cfg.action_period.total_seconds() / cfg.obs_period.total_seconds()
+        ), "action period must be a multiple of obs period"
 
         # have to widen the type here because pandas...
         # df.get uses the invariant `list[T]` type for
@@ -46,7 +52,7 @@ class DecisionPointDetector:
             tag=self.cd_tag,
             ts=pf.temporal_state,
             default=lambda: CountdownTS(
-                clock=self._cfg.action_period - 1,
+                clock=self._steps_per_decision - 1,
                 steps_until_dp=0,
                 last_row=None,
             ),
@@ -64,12 +70,12 @@ class DecisionPointDetector:
 
             if is_dp or is_ac:
                 pf.decision_points[i] = True
-                ts.steps_until_dp = self._cfg.action_period
+                ts.steps_until_dp = self._steps_per_decision
 
             clock_feats.tick(i, ts.clock, ts.steps_until_dp)
 
             # loop carry state
-            ts.clock = (ts.clock - 1) % self._cfg.action_period
+            ts.clock = (ts.clock - 1) % self._steps_per_decision
             ts.steps_until_dp -= 1
 
         # special case if no countdown features are needed
@@ -95,8 +101,8 @@ class DecisionPointDetector:
         for i in range(n_rows):
             is_ac = self._is_action_change(df, ts, i)
             if is_ac:
-                ts.steps_until_dp = i % self._cfg.action_period
-                ts.clock = (i - 1) % self._cfg.action_period
+                ts.steps_until_dp = i % self._steps_per_decision
+                ts.clock = (i - 1) % self._steps_per_decision
                 break
 
         # make sure we haven't mutated irrelevant
@@ -135,7 +141,7 @@ class DecisionPointDetector:
         builder = builders.get(self._cfg.kind)
         assert builder is not None, f'Unknown type of action period countdown features: {self._cfg.kind}'
 
-        return builder(n_rows, self._cfg.action_period)
+        return builder(n_rows, self._steps_per_decision)
 
 
 # --------------------------------
