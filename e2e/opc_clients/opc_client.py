@@ -84,7 +84,7 @@ def initialize_opc_nodes_from_tags(
                 val = initial_observation[observation_idx]
                 observation_idx += 1
             elif tag_type == "meta":
-                if tag.name == "reward":
+                if tag.name == "gym_reward":
                     val = 0.0
                 elif tag.name == "truncated":
                     val = False
