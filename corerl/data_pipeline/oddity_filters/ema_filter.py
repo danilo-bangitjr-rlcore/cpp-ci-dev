@@ -56,36 +56,34 @@ class EMAFilter(BaseOddityFilter):
         )
         tag_data = pf.data[tag].to_numpy()
 
-        if update_stats: _update_stats(tag_data, tag_ts)
+        if update_stats:
+            _update_stats(tag_data, tag_ts)
 
         # get filter mask
         oddity_mask = _get_oddity_mask(x=tag_data, mu=tag_ts.ema(), var=tag_ts.emv(), tolerance=self.tolerance)
-        post_warmup_mask = _get_post_warmup_mask(prev_n_obs=tag_ts.n_obs, data_len=len(tag_data), warmup=self.warmup)
-        filter_mask = oddity_mask & post_warmup_mask
 
-        # update number of observed points
-        tag_ts.n_obs += len(tag_data) - np.isnan(tag_data).sum()
+        # count non-NaN values seen so far
+        non_nan_mask = ~np.isnan(tag_data)
+        cumulative_non_nan = np.full(len(tag_data), tag_ts.n_obs)
+        running_sum = 0
+        for i in range(len(tag_data)):
+            cumulative_non_nan[i] += running_sum
+            if non_nan_mask[i]:
+                running_sum += 1
+
+        post_warmup_mask = cumulative_non_nan >= self.warmup
+        filter_mask = oddity_mask & post_warmup_mask
 
         # update missing info and set nans
         update_missing_info(pf.missing_info, name=tag, missing_mask=filter_mask, new_val=MissingType.OUTLIER)
         tag_data[filter_mask] = np.nan
 
-        # update temporal state
+        tag_ts.n_obs = tag_ts.n_obs + int(np.sum(non_nan_mask))
+
         return pf
 
 
 outlier_group.dispatcher(EMAFilter)
-
-
-def _get_post_warmup_mask(prev_n_obs: int, data_len: int, warmup: int) -> np.ndarray:
-    """
-    Returns mask with False for points before warmup period and True after
-    """
-    n_observed = np.array([prev_n_obs + i for i in range(data_len)])
-    post_warmup_mask = n_observed >= warmup
-
-    return post_warmup_mask
-
 
 def _update_stats(tag_data: np.ndarray, tag_ts: EMAFilterTemporalState):
     tag_ts.ema.feed(tag_data)

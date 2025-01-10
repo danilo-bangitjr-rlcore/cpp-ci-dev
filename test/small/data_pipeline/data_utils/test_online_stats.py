@@ -169,3 +169,57 @@ def try_var_adaptation():
     # test var
     var = emv()
     assert abs(var - 1.0) < epsilon
+
+
+def test_ema_with_nan_gaps():
+    alpha = 0.5
+    ema = ExpMovingAvg(alpha)
+    ema.feed(np.array([1.0]))
+    assert np.isclose(ema(), 1.0)
+
+    # new = (1 - 0.5^1) * 2 + 0.5^1 * 1 = 1.5
+    ema.feed(np.array([2.0]))
+    assert np.isclose(ema(), 1.5)
+
+    # with nan gaps, the effective alpha is 0.5^3
+    # new = (1 - 0.5^3) * 4 + 0.5^3 * 1.5 = 3.6875
+    ema.feed(np.array([np.nan, np.nan, 4.0]))
+    assert np.isclose(ema(), 3.6875)
+
+
+def test_emv_with_nan_gaps():
+    """
+    check that NaN gaps increase the effective alpha decay for variance
+    """
+    alpha = 0.5
+    emv = ExpMovingVar(alpha)
+
+    emv.feed(np.array([1.0]))
+
+    # delta = 2 - initial_var
+    # new = (1 - 0.5^1) * delta^2 + 0.5^1 * initial_var
+    emv.feed(np.array([2.0]))
+    one_step = emv()
+
+    # After 2 NaN gap
+    # delta = 4 - one_step
+    # new = (1 - 0.5^3) * delta^2 + 0.5^3 * one_step
+    emv.feed(np.array([np.nan, np.nan, 4.0]))
+    three_step = emv()
+
+    assert three_step > one_step
+
+
+def test_batch_with_multiple_nan_gaps():
+    alpha = 0.5
+    ema = ExpMovingAvg(alpha)
+    emv = ExpMovingVar(alpha)
+    ema.feed(np.array([1.0]))
+    emv.feed(np.array([1.0]))
+
+    batch = np.array([2.0, np.nan, np.nan, 4.0, np.nan, 8.0])
+    ema.feed(batch)
+    emv.feed(batch)
+
+    assert ema() > 4.0  # pulled up by the 8.0
+    assert emv() > 0  # should have significant variance due to spread
