@@ -226,7 +226,7 @@ def test_normalizer_bounds_reset(offline_cfg: MainConfig):
                     assert transform._maxs[tag.name] == 1.0
 
     # reset normalizers and verify bounds are cleared
-    pipeline.reset_normalizers()
+    pipeline.reset()
     for tag in pipeline.tags:
         if not tag.is_action and not tag.is_meta:
             transforms = pipeline.state_constructor._components[tag.name]
