@@ -48,45 +48,31 @@ class PipelineReturn:
 
 class Pipeline:
     def __init__(self, cfg: PipelineConfig):
-        self.tags = cfg.tags
-        self.missing_data_checkers = {
-            tag.name: missing_data_checker for tag in self.tags
-        }
-
-        self.bound_checkers = {
-            tag.name: bound_checker_builder(tag.bounds) for tag in self.tags
-        }
-
+        # sanity checking
         steps_per_decision = int(cfg.action_period.total_seconds() / cfg.obs_period.total_seconds())
         assert np.isclose(
             steps_per_decision, cfg.action_period.total_seconds() / cfg.obs_period.total_seconds()
         ), "action period must be a multiple of obs period"
 
+        self.valid_thresh: datetime.timedelta = cfg.obs_period
         cfg.transition_creator.max_n_step = steps_per_decision
-        self.transition_creator = AllTheTimeTC(
-            cfg.transition_creator,
-            self.tags,
-        )
+        self.tags = cfg.tags
 
+        # initialization all stateful stages
+        self.missing_data_checkers = {tag.name: missing_data_checker for tag in self.tags}
+        self.bound_checkers = {tag.name: bound_checker_builder(tag.bounds) for tag in self.tags}
+        self.transition_creator = AllTheTimeTC(cfg.transition_creator, self.tags)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
-
-        self.outlier_detectors = {
-            tag.name: init_oddity_filter(tag.outlier) for tag in self.tags
-        }
-
-        self.imputers = {
-            tag.name: init_imputer(tag.imputer) for tag in self.tags
-        }
+        self.outlier_detectors = {tag.name: init_oddity_filter(tag.outlier) for tag in self.tags}
+        self.imputers = {tag.name: init_imputer(tag.imputer) for tag in self.tags}
+        self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
 
         reward_components = {cfg.name: RewardComponentConstructor(cfg.reward_constructor) for cfg in self.tags}
         self.reward_constructor = RewardConstructor(reward_components)
 
-        self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
-
+        # build pipeline state
         self.ts_dict: dict = {caller_code: None for caller_code in CallerCode}
         self.dt_dict: dict = {caller_code: None for caller_code in CallerCode}
-
-        self.valid_thresh: datetime.timedelta = cfg.obs_period
 
         self._hooks: dict[StageCode, list[Callable[[PipelineFrame], Any]]] = defaultdict(list)
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
