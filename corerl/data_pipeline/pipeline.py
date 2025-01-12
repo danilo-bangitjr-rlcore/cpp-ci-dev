@@ -12,6 +12,7 @@ import numpy as np
 from pandas import DataFrame
 
 from corerl.configs.config import config, interpolate, list_
+from corerl.data_pipeline.action_constructor.ac import ActionConstructor
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.db.data_reader import TagDBConfig
@@ -80,6 +81,7 @@ class Pipeline:
         self.transition_filter = TransitionFilter(cfg.transition_filter)
         self.outlier_detectors = {tag.name: init_oddity_filter(tag.outlier) for tag in self.tags}
         self.imputers = {tag.name: init_imputer(tag.imputer) for tag in self.tags}
+        self.action_constructor = ActionConstructor(self.tags)
         self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
 
         reward_components = {cfg.name: RewardComponentConstructor(cfg.reward_constructor) for cfg in self.tags}
@@ -94,6 +96,7 @@ class Pipeline:
             StageCode.BOUNDS:  lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
             StageCode.ODDITY:  lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
             StageCode.IMPUTER: lambda pf: invoke_stage_per_tag(pf, self.imputers),
+            StageCode.AC:      self.action_constructor,
             StageCode.RC:      self.reward_constructor,
             StageCode.SC:      self.state_constructor,
             StageCode.TC:      self.transition_creator,
@@ -104,6 +107,7 @@ class Pipeline:
             StageCode.BOUNDS,
             StageCode.ODDITY,
             StageCode.IMPUTER,
+            StageCode.AC,
             StageCode.RC,
             StageCode.SC,
             StageCode.TC,

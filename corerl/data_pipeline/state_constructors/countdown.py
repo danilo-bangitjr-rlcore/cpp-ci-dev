@@ -3,13 +3,11 @@ import numpy as np
 import pandas as pd
 
 from datetime import timedelta
-from collections.abc import Hashable
 from dataclasses import dataclass
 
 from corerl.configs.config import config, interpolate
 from corerl.data_pipeline.utils import get_tag_temporal_state
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
-from corerl.data_pipeline.tag_config import TagConfig
 
 
 @config()
@@ -29,21 +27,12 @@ class CountdownTS:
 class DecisionPointDetector:
     cd_tag = '__countdown__'
 
-    def __init__(self, tag_cfgs: list[TagConfig], cfg: CountdownConfig):
+    def __init__(self, cfg: CountdownConfig):
         self._cfg = cfg
         self._steps_per_decision = int(cfg.action_period.total_seconds() / cfg.obs_period.total_seconds())
         assert np.isclose(
             self._steps_per_decision, cfg.action_period.total_seconds() / cfg.obs_period.total_seconds()
         ), "action period must be a multiple of obs period"
-
-        # have to widen the type here because pandas...
-        # df.get uses the invariant `list[T]` type for
-        # its argument annotations
-        self._action_tags: list[Hashable] = [
-            tag.name
-            for tag in tag_cfgs
-            if tag.is_action
-        ]
 
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
@@ -59,14 +48,14 @@ class DecisionPointDetector:
         )
 
         if ts.last_row is None:
-            ts = self._warmup_ts(pf.data, ts)
+            ts = self._warmup_ts(pf.actions, ts)
 
         n_rows = len(pf.data)
         clock_feats = self._init_feature_builder(n_rows)
 
         for i in range(n_rows):
             is_dp = ts.steps_until_dp == 0
-            is_ac = self._is_action_change(pf.data, ts, i)
+            is_ac = self._is_action_change(pf.actions, ts, i)
 
             if is_dp or is_ac:
                 pf.decision_points[i] = True
@@ -110,20 +99,15 @@ class DecisionPointDetector:
         ts.last_row = None
         return ts
 
-    def _is_action_change(self, df: pd.DataFrame, ts: CountdownTS, idx: int):
+    def _is_action_change(self, actions: pd.DataFrame, ts: CountdownTS, idx: int):
         # define the no action case as never having an action change
-        if len(self._action_tags) == 0:
-            return False
-
-        # if we don't have data for the actions, also define as not an action change
-        action_rows = df.get(self._action_tags)
-        if action_rows is None:
+        if len(actions.columns) == 0:
             return False
 
         if ts.last_row is None:
-            ts.last_row = action_rows.iloc[0].to_numpy()
+            ts.last_row = actions.iloc[0].to_numpy()
 
-        row = action_rows.iloc[idx].to_numpy()
+        row = actions.iloc[idx].to_numpy()
         is_ac = not np.all(ts.last_row == row)
         ts.last_row = row
 

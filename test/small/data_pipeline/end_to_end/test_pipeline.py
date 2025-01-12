@@ -10,6 +10,7 @@ from corerl.data_pipeline.imputers.copy import CopyImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.state_constructors.sc import SCConfig
+from corerl.data_pipeline.transforms import NullConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.tag_config import TagConfig
@@ -35,7 +36,7 @@ def test_pipeline1():
                     TraceConfig(trace_values=[0.1]),
                 ],
             ),
-            TagConfig(name='action-1', is_action=True),
+            TagConfig(name='action-1', action_constructor=[], state_constructor=[NullConfig()]),
             TagConfig(name="reward", is_meta=True),
         ],
         transition_creator=AllTheTimeTCConfig(
@@ -88,16 +89,16 @@ def test_pipeline1():
     )
 
     # returned df has columns sorted in order: action, endogenous, exogenous, state, reward
-    cols = ['action-1', 'tag-1', 'countdown.[0]', 'tag-2_norm_trace-0.1', 'reward']
+    cols = ['tag-1', 'countdown.[0]', 'tag-2_norm_trace-0.1', 'reward']
     expected_df = pd.DataFrame(
         data=[
-            [0,   np.nan, 1,      0,         0],
-            [1,   0,      1,      0.18,      3],
-            [0,   1,      1,      0.378,     0],
-            [1,   2,      1,      0.5778,    0],
-            [0,   np.nan, 1,      0.77778,   0],
-            [1,   4,      1,      0.977778,  1],
-            [0,   5,      1,      np.nan,    0],
+            [np.nan, 1,      0,         0],
+            [0,      1,      0.18,      3],
+            [1,      1,      0.378,     0],
+            [2,      1,      0.5778,    0],
+            [np.nan, 1,      0.77778,   0],
+            [4,      1,      0.977778,  1],
+            [5,      1,      np.nan,    0],
         ],
         columns=cols,
         index=idx,
@@ -143,7 +144,7 @@ def test_pipeline2():
                     TraceConfig(trace_values=[0.1]),
                 ],
             ),
-            TagConfig(name='action-1', is_action=True),
+            TagConfig(name='action-1', action_constructor=[], state_constructor=[]),
             TagConfig(name="reward", is_meta=True),
         ],
         transition_creator=AllTheTimeTCConfig(
@@ -217,48 +218,48 @@ def test_pipeline2():
         Transition(
             steps=[
                 # countdown comes first in the state
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1, 0.0]), dp=True),
-                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0., 1, 0.15]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 0., 1, 0.0]), dp=True),
+                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 1, 0.15]), dp=True),
             ],
             n_step_reward=3.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0., 1, 0.15]), dp=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 1, 0.315]), dp=True),
+                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 1, 0.15]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 1, 0.315]), dp=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 1, 0.315]), dp=True),
-                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1, 0.4815]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 1, 0.315]), dp=True),
+                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 1, 0.4815]), dp=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1, 0.4815]), dp=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 1, 0.64815]), dp=True),
+                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 1, 0.4815]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 1, 0.64815]), dp=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1., 1, 0.64815]), dp=True),
-                Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([4., 1, 0.814815]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 1, 0.64815]), dp=True),
+                Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 1, 0.814815]), dp=True),
             ],
             n_step_reward=1.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([4., 1, 0.814815]), dp=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([4., 1, 0.981482]), dp=True),
+                Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 1, 0.814815]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 4., 1, 0.981482]), dp=True),
             ],
             n_step_reward=1.,
             n_step_gamma=0.9,

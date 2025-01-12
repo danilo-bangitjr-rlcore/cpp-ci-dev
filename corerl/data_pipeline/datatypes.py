@@ -179,6 +179,7 @@ class StageCode(Enum):
     IMPUTER = auto()
     ODDITY = auto()
     TC = auto()
+    AC = auto()
     SC = auto()
     RC = auto()
     TF = auto()
@@ -191,6 +192,7 @@ type TemporalState = dict[StageCode, object | None]
 class PipelineFrame:
     data: pd.DataFrame
     caller_code: CallerCode
+    actions: pd.DataFrame = field(init=False)
     missing_info: pd.DataFrame = field(init=False)
     decision_points: np.ndarray = field(init=False)
     temporal_state: TemporalState = field(default_factory=dict)
@@ -205,6 +207,9 @@ class PipelineFrame:
 
         # initialize dp flags
         self.decision_points = np.zeros(N, dtype=np.bool_)
+
+        # initialize actions
+        self.actions = self.data.copy(deep=False)
 
     def get_last_timestamp(self) -> None | datetime.datetime:
         if not len(self.data.index):

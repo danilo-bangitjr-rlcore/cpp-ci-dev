@@ -25,7 +25,7 @@ class StateConstructor:
         sc_cfgs = {
             tag.name: tag.state_constructor if tag.state_constructor is not None else cfg.defaults
             for tag in tag_cfgs
-            if not tag.is_action and not tag.is_meta
+            if not tag.is_meta
         }
 
         self._components: dict[str, list[Transform]] = {
@@ -33,7 +33,7 @@ class StateConstructor:
             for tag_name, parts in sc_cfgs.items()
         }
 
-        self._cd_adder = DecisionPointDetector(tag_cfgs, cfg.countdown)
+        self._cd_adder = DecisionPointDetector(cfg.countdown)
 
     def _construct_components(self, sub_cfgs: list[TransformConfig]):
         return [
@@ -56,7 +56,7 @@ class StateConstructor:
         )
 
         pf = self(pf)
-        return len(pf.data.columns)
+        return list(pf.data.columns)
 
 
     def _invoke_per_tag(self, df: pd.DataFrame, tag_name: str, ts: dict[str, list[object | None]]):

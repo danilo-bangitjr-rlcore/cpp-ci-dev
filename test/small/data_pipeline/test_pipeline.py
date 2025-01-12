@@ -91,8 +91,8 @@ def test_state_action_dim():
                     TraceConfig(trace_values=[0.1, 0.9]),
                 ],
             ),
-            TagConfig(name='tag-3', is_action=True),
-            TagConfig(name='tag-4', is_action=True),
+            TagConfig(name='tag-3', action_constructor=[]),
+            TagConfig(name='tag-4', action_constructor=[]),
         ],
         state_constructor=SCConfig(
             countdown=CountdownConfig(
@@ -112,9 +112,9 @@ def test_state_action_dim():
 
     pipeline = Pipeline(cfg)
 
-    state_dim, action_dim = pipeline.get_state_action_dims()
-    assert state_dim == 3
-    assert action_dim == 2
+    col_desc = pipeline.column_descriptions
+    assert col_desc.state_dim == 5
+    assert col_desc.action_dim == 2
 
 
 def test_sub_pipeline1():

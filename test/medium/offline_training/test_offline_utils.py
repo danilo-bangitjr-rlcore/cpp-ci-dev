@@ -23,7 +23,7 @@ from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
-from corerl.data_pipeline.transforms import LessThanConfig
+from corerl.data_pipeline.transforms import LessThanConfig, NullConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.datatypes import CallerCode
 from corerl.eval.writer import MetricsWriter
@@ -98,13 +98,12 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
             tags=[
                 TagConfig(
                     name="Action",
-                    is_action=True,
+                    state_constructor=[NullConfig()],
+                    action_constructor=[],
                     bounds=(0.0, 1.0)
                 ),
                 TagConfig(
                     name="Tag_1",
-                    is_action=False,
-                    is_meta=False,
                     reward_constructor=[
                         LessThanConfig(threshold=3),
                     ],
@@ -154,7 +153,7 @@ def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, step
     for i in range(steps):
         for tag_cfg in offline_cfg.pipeline.tags:
             tag = tag_cfg.name
-            if tag_cfg.is_action:
+            if tag_cfg.action_constructor is not None:
                 val = int(i / steps_per_decision) % 2
             else:
                 val = i

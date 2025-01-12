@@ -34,7 +34,12 @@ class DeploymentAsyncEnv(AsyncEnv):
         self.action_period = cfg.action_period
 
         self.tag_names = [tag.name for tag in tag_configs]
-        self.action_tags = [tag for tag in self.tag_configs if tag.is_action]
+        self._action_tags = [tag for tag in tag_configs if tag.action_constructor is not None]
+        self._meta_tags = [tag for tag in tag_configs if tag.is_meta]
+        self._observation_tags = [
+            tag for tag in tag_configs
+            if not tag.is_meta and tag.action_constructor is None
+        ]
 
         self._opc_client = Client(self.url)
         self._opc_client.connect()
@@ -44,7 +49,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         # define opc action nodes
         self.action_nodes = []
         for tag in tag_configs:
-            if not tag.is_action:
+            if tag.action_constructor is None:
                 continue
             id = make_opc_node_id(tag.name, cfg.opc_ns)
             node = self._opc_client.get_node(id)
@@ -65,13 +70,13 @@ class DeploymentAsyncEnv(AsyncEnv):
         """Writes directly to the OPC server"""
 
         denormalized_actions = self._denormalize_action(action)
-        action_names = [tag.name for tag in self.action_tags]
+        action_names = [tag.name for tag in self._action_tags]
         logger.info(f"emitting actions {action_names} with values {denormalized_actions}...")
         self._opc_client.write_values(self.action_nodes, denormalized_actions)
 
     def _denormalize_action(self, action: np.ndarray) -> list[float]:
         denormalized_actions = []
-        action_tag_configs = self.action_tags
+        action_tag_configs = self._action_tags
         assert len(action.flatten()) == len(action_tag_configs)
         action_dim = len(action.flatten())
 

@@ -50,9 +50,12 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
 
         self.tag_configs = tag_configs
 
-        self.obs_names = [tag.name for tag in tag_configs if not tag.is_action and not tag.is_meta]
-        self.action_names = [tag.name for tag in tag_configs if tag.is_action]
-        self.meta_names = [tag.name for tag in tag_configs if tag.is_meta]
+        self._action_tags = [tag for tag in tag_configs if tag.action_constructor is not None]
+        self._meta_tags = [tag for tag in tag_configs if tag.is_meta]
+        self._obs_tags = [
+            tag for tag in tag_configs
+            if not tag.is_meta and tag.action_constructor is None
+        ]
 
         self._opc_client = Client(cfg.opc_conn_url)
         self._opc_client.connect()
@@ -60,7 +63,7 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
         # define opc action nodes
         self.action_nodes = []
         for tag in tag_configs:
-            if not tag.is_action:
+            if tag.action_constructor is None:
                 continue
             id = make_opc_node_id(tag.name, cfg.opc_ns)
             node = self._opc_client.get_node(id)
@@ -68,14 +71,13 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
 
     def emit_action(self, action: np.ndarray) -> None:
         denormalized_actions = []
-        action_tag_configs = [tag for tag in self.tag_configs if tag.is_action]
-        assert len(action.flatten()) == len(action_tag_configs)
+        assert len(action.flatten()) == len(self._action_tags)
 
         for act_i in range(len(action.flatten())):
             # denormalize the action if possible, otherwise emit normalized action
             raw_action = action.flatten()[act_i]
             try:
-                action_tag_config = action_tag_configs[act_i]
+                action_tag_config = self._action_tags[act_i]
                 lo, hi = action_tag_config.bounds
                 assert isinstance(lo, float) and isinstance(hi, float)
                 scale = hi - lo
@@ -90,13 +92,17 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
         read_end = read_start + self.obs_period
 
         def get_obs_df():
+            action_names = [tag.name for tag in self._action_tags]
+            obs_names = [tag.name for tag in self._obs_tags]
+            meta_names = [tag.name for tag in self._meta_tags]
+
             act_obs_reward = self._data_reader.single_aggregated_read(
-                self.action_names + self.obs_names + ["gym_reward"],
+                action_names + obs_names + ["gym_reward"],
                 read_start,
                 read_end,
             )
             meta = self._data_reader.single_aggregated_read(
-                [name for name in self.meta_names if name != "gym_reward"],
+                [name for name in meta_names if name != "gym_reward"],
                 read_start,
                 read_end,
                 "bool_or",

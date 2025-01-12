@@ -58,9 +58,9 @@ def initialize_opc_nodes_from_tags(
     action_idx = 0
     observation_idx = 0
     for tag in tag_configs:
-        if tag.is_action:
+        if tag.action_constructor is not None and not tag.is_meta:
             tag_type = "action"
-        elif not tag.is_action and not tag.is_meta:
+        elif tag.action_constructor is None and not tag.is_meta:
             tag_type = "observation"
         elif tag.is_meta:
             tag_type = "meta"

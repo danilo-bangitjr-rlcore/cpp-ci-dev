@@ -85,7 +85,6 @@ class AllTheTimeTC:
     ):
         self.cfg = cfg
         self.tag_configs = tag_configs
-        self.action_tags = {tag.name for tag in tag_configs if tag.is_action}
         self.meta_tags = {tag.name for tag in tag_configs if tag.is_meta}
 
         self.gamma = cfg.gamma
@@ -128,8 +127,6 @@ class AllTheTimeTC:
         sorted_cols = list_u.multi_level_sort(
             list(pf.data.columns),
             categories=[
-                # actions
-                lambda tag: tag in tag_cfgs and tag_cfgs[tag].is_action,
                 # endo observations
                 lambda tag: tag in tag_cfgs and tag_cfgs[tag].is_endogenous and not tag_cfgs[tag].is_meta,
                 # exo observations
@@ -143,15 +140,11 @@ class AllTheTimeTC:
 
         state_cols = [
             col for col in sorted_cols
-            if col not in self.action_tags and col not in self.meta_tags and col != "reward"
+            if col not in self.meta_tags and col != "reward"
         ]
         states = get_tags(pf.data, state_cols)
 
-        action_cols = [
-            col for col in sorted_cols
-            if col in self.action_tags
-        ]
-        actions = get_tags(pf.data, action_cols)
+        actions = tensor(pf.actions.to_numpy(np.float32))
         return pf, actions, states
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:

@@ -31,11 +31,7 @@ class SimInteraction(Interaction):
         self._env = env
         self._agent = agent
 
-        self._non_state_tags = set(
-            tag.name
-            for tag in tag_configs
-            if tag.is_action or tag.is_meta
-        ).union({"reward"})
+        self._column_desc = pipeline.column_descriptions
 
         self._should_reset = True
         self._last_state: np.ndarray | None = None
@@ -68,10 +64,11 @@ class SimInteraction(Interaction):
 
         row = pf.data.tail(1)
 
-        tags = set(row.columns) - self._non_state_tags
-        state = row[list(tags)].iloc[0].to_numpy()
-
-        self._last_state = np.asarray(state, dtype=np.float32)
+        self._last_state = (
+            row[self._column_desc.state_cols]
+            .iloc[0]
+            .to_numpy(dtype=np.float32)
+        )
 
 
     def _get_latest_state(self) -> np.ndarray | None:

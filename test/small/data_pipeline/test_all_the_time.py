@@ -7,6 +7,7 @@ from math import comb
 from torch import Tensor
 
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transforms import NullConfig
 from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, Transition, Step
 from corerl.data_pipeline.all_the_time import (
     AllTheTimeTCConfig,
@@ -38,7 +39,7 @@ def test_get_n_step_reward_1():
 
     n_step_reward, n_step_gamma = get_n_step_reward(q)
 
-    assert n_step_reward == 1.9
+    assert n_step_reward == 3.8
     assert n_step_gamma == 0.81
 
 
@@ -47,7 +48,7 @@ def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> Pipelin
         ts = dict()
     state_col = np.arange(start_state, end_state)
     length = end_state - start_state
-    cols = {"state": state_col, "action": [0] * length, "reward": [1] * length}
+    cols = {"state": state_col, "reward": [2] * length}
     dates = [
         datetime.datetime(2024, 1, 1, 1, i) for i in range(start_state, end_state)
     ]
@@ -58,6 +59,9 @@ def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> Pipelin
         caller_code=CallerCode.OFFLINE,
         temporal_state=ts
     )
+
+    # stub out action constructor
+    pf.actions = pd.DataFrame({ "action": [0] * length }, index=datetime_index)
     return pf
 
 
@@ -65,18 +69,18 @@ def make_tc(max_n_step: int, min_n_step: int = 1) -> AllTheTimeTC:
     tags = [
         TagConfig(
             name='state',
-            is_action=False,
             is_meta=False,
         ),
         TagConfig(
             name='action',
-            is_action=True,
+            action_constructor=[],
+            state_constructor=[NullConfig()],
             is_meta=False,
         ),
         TagConfig(
             name='reward',
-            is_action=False,
             is_meta=True,
+            state_constructor=[NullConfig()],
         )
     ]
 
@@ -189,7 +193,7 @@ def test_all_the_time_gap():
     tc = make_tc(2)
 
     pf = make_pf(0, 4)
-    pf.data.loc[pf.data.index[-2], 'action'] = np.nan  # second last action is nan
+    pf.actions.loc[pf.data.index[-2], 'action'] = np.nan  # second last action is nan
 
     pf = tc(pf)
     transitions = pf.transitions
