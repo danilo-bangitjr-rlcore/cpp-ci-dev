@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
-from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
+from corerl.data_pipeline.constructors.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.tag_config import TagConfig
 import corerl.data_pipeline.transforms as xform
 from test.infrastructure.utils.pandas import dfs_close

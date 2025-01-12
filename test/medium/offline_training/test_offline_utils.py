@@ -18,7 +18,7 @@ from corerl.data_pipeline.datatypes import Step, Transition
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
-from corerl.data_pipeline.state_constructors.sc import SCConfig
+from corerl.data_pipeline.constructors.sc import SCConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
