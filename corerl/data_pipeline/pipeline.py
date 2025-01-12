@@ -167,9 +167,7 @@ class Pipeline:
     def column_descriptions(self):
         return ColumnDescriptions(
             state_cols=self.state_constructor.state_dim(),
-            action_cols=sum(
-                tag.is_action for tag in self.tags
-            ),
+            action_cols=self.action_constructor.action_columns(),
         )
 
     def register_hook(self, stage: StageCode, f: Callable[[PipelineFrame], Any]):
