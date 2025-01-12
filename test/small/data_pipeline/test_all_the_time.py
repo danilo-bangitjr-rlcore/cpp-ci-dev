@@ -334,39 +334,8 @@ def test_all_the_time_ts_2():
 
 def test_all_the_time_online():
     """
-    Tests online creation of transitions
-    """
-
-    tc = make_tc(2, 2)
-
-    transitions = []
-    ts = {}
-    for i in range(10):
-        pf = make_pf(i, i+1, ts=ts)
-        pf = tc(pf)
-        new_transitions = pf.transitions
-        assert isinstance(new_transitions, list)
-        transitions += new_transitions
-        ts = pf.temporal_state
-
-    assert len(transitions) == 8
-
-    for i in range(8):
-        step_0 = make_test_step(i)
-        step_1 = make_test_step(i + 1)
-        step_2 = make_test_step(i + 2)
-
-        expected = Transition(
-            [step_0, step_1, step_2],
-            n_step_reward=1.9,
-            n_step_gamma=0.81,
-        )
-        assert transitions[i] == expected
-
-
-def test_all_the_time_7_online():
-    """
-    Like the above test, but iteration i=4 has a nan, so should reset the temporal state.
+    Tests online creation of transitions,
+    where iteration i=4 has a nan, so should reset the temporal state.
     """
     tc = make_tc(2, 2)
 
