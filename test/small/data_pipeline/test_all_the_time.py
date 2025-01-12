@@ -15,7 +15,7 @@ from corerl.data_pipeline.all_the_time import (
 )
 
 
-def make_test_step(i: int, action: float = 0., gamma: float = 0.9, reward: float = 1.0, dp: bool = False) -> Step:
+def make_test_step(i: int, action: float = 0., gamma: float = 0.9, reward: float = 2.0, dp: bool = False) -> Step:
     return Step(
         state=Tensor([i]),
         action=Tensor([action]),
@@ -90,7 +90,7 @@ def make_tc(max_n_step: int, min_n_step: int = 1) -> AllTheTimeTC:
     return tc
 
 
-def test_all_the_time_1():
+def test_all_the_time():
     """
     Tests to see if all the time tc will return the correct transitions.
     """
@@ -140,7 +140,7 @@ def test_all_the_time_1():
     assert t_2 == expected_2
 
 
-def test_all_the_time_2_max_n_1():
+def test_all_the_time_max_n_1():
     """
     Tests to see if all the time tc will return the correct transitions.
     However, max_n_step is set to 1, so there should only be two transitions
@@ -179,7 +179,7 @@ def test_all_the_time_2_max_n_1():
     assert t_1 == expected_1
 
 
-def test_all_the_time_3_gap():
+def test_all_the_time_gap():
     """
     Tests to see if all the time tc will return the correct transitions.
     max_n_step is set to 1, so there should only be one transition,
@@ -211,7 +211,7 @@ def test_all_the_time_3_gap():
     assert t_0 == expected_0
 
 
-def test_all_the_time_4_ts():
+def test_all_the_time_ts_1():
     """
     Tests to see if the temporal state will be linked between two successive calls to the TC
     """
@@ -296,7 +296,7 @@ def test_all_the_time_4_ts():
     assert t_3 == expected_3
 
 
-def test_all_the_time_5_ts():
+def test_all_the_time_ts_2():
     """
     Like the above test, but the nan at the end of the first pf should prevent the
     transitions from the two pfs to be linked
@@ -332,7 +332,7 @@ def test_all_the_time_5_ts():
     assert t_0 == expected_0
 
 
-def test_all_the_time_6_online():
+def test_all_the_time_online():
     """
     Tests online creation of transitions
     """
@@ -440,7 +440,7 @@ def test_all_the_time_7_online():
     assert transitions[4] == expected_4
 
 
-def test_all_the_time_8_caller_codes():
+def test_all_the_time_caller_codes():
     """
     Checks to see if the ts from one caller code is kept separate from the ts of another caller code.
     """
