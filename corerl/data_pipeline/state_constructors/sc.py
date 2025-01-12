@@ -56,6 +56,7 @@ class StateConstructor:
         )
 
         pf = self(pf)
+        self.reset()
         return list(pf.data.columns)
 
 
