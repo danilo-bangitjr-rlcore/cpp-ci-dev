@@ -5,6 +5,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import timedelta
+from functools import cached_property
 from typing import Any, Callable
 
 import numpy as np
@@ -44,6 +45,20 @@ class PipelineConfig:
 class PipelineReturn:
     df: DataFrame
     transitions: list[Transition] | None
+
+
+@dataclass
+class ColumnDescriptions:
+    state_cols: list[str]
+    action_cols: list[str]
+
+    @property
+    def state_dim(self):
+        return len(self.state_cols)
+
+    @property
+    def action_dim(self):
+        return len(self.action_cols)
 
 
 class Pipeline:
@@ -148,13 +163,14 @@ class Pipeline:
         )
 
 
-    def get_state_action_dims(self):
-        num_actions = sum(
-            tag.is_action for tag in self.tags
+    @cached_property
+    def column_descriptions(self):
+        return ColumnDescriptions(
+            state_cols=self.state_constructor.state_dim(),
+            action_cols=sum(
+                tag.is_action for tag in self.tags
+            ),
         )
-
-        state_dim = self.state_constructor.state_dim()
-        return state_dim, num_actions
 
     def register_hook(self, stage: StageCode, f: Callable[[PipelineFrame], Any]):
         self._hooks[stage].append(f)

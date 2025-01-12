@@ -52,12 +52,12 @@ def main(cfg: MainConfig):
 
     env = init_async_env(cfg.env, cfg.pipeline.tags)
     try:
-        state_dim, action_dim = pipeline.get_state_action_dims()
+        column_desc = pipeline.column_descriptions
         agent = init_agent(
             cfg.agent,
             app_state,
-            state_dim,
-            action_dim,
+            column_desc.state_dim,
+            column_desc.action_dim,
         )
         interaction = init_interaction(
             cfg=cfg.interaction, agent=agent, env=env, pipeline=pipeline, tag_configs=cfg.pipeline.tags
