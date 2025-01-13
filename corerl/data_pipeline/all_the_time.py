@@ -41,7 +41,7 @@ class NStepInfo:
 type StepInfo = dict[int, NStepInfo]
 
 
-def has_nan(obj: object) -> bool:
+def has_nan(obj: object):
     for _, value in vars(obj).items():
         if isinstance(value, torch.Tensor):
             if torch.isnan(value).any():
@@ -51,12 +51,12 @@ def has_nan(obj: object) -> bool:
     return False
 
 
-def get_tags(df: pd.DataFrame, tags: Iterable[str]) -> torch.Tensor:
+def get_tags(df: pd.DataFrame, tags: Iterable[str]):
     data_np = df[list(tags)].to_numpy().astype(np.float32)
     return tensor(data_np)
 
 
-def get_n_step_reward(step_q: deque[Step]) -> tuple[float, float]:
+def get_n_step_reward(step_q: deque[Step]):
     last_step = step_q[-1]
     n_step_reward = last_step.reward
     n_step_gamma = last_step.gamma
@@ -69,7 +69,7 @@ def get_n_step_reward(step_q: deque[Step]) -> tuple[float, float]:
     return n_step_reward, n_step_gamma
 
 
-def _reset_step_info(min_n_step: int, max_n_step: int) -> StepInfo:
+def _reset_step_info(min_n_step: int, max_n_step: int):
     step_info: StepInfo = {
         n: NStepInfo(n) for n in range(min_n_step, max_n_step + 1)
     }
@@ -118,7 +118,7 @@ class AllTheTimeTC:
             steps.append(step)
         return pf, steps
 
-    def _extract_columns(self, pf: PipelineFrame) -> tuple[PipelineFrame, torch.Tensor, torch.Tensor]:
+    def _extract_columns(self, pf: PipelineFrame):
         state_cols = [
             col for col in pf.data.columns
             if col not in self.meta_tags and col != "reward"
@@ -150,12 +150,12 @@ class AllTheTimeTC:
 
         return pf
 
-    def _update(self, step: Step, step_info: StepInfo) -> tuple[list[Transition], StepInfo]:
+    def _update(self, step: Step, step_info: StepInfo):
         """
         Updates all the step queues, n_step_rewards, and n_step_gammas stored in self.step_info with the new step,
         then returns any produced transitions.
         """
-        new_transitions = []
+        new_transitions: list[Transition] = []
         for n in range(self.min_n_step, self.max_n_step + 1):
             n_step_info = step_info[n]
             step_q = n_step_info.step_q
