@@ -27,6 +27,11 @@ class ActionConstructor(Constructor):
 
         # put resultant data on PipeFrame
         pf.actions = pd.concat(transformed_parts, axis=1, copy=False)
+
+        # guarantee an ordering over columns
+        sorted_cols = sorted(pf.actions.columns)
+        pf.actions = pf.actions.loc[:, sorted_cols]
+
         return pf
 
 

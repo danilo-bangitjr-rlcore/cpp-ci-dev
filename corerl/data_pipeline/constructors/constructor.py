@@ -21,6 +21,11 @@ class Constructor(ABC):
             if transforms is not None
         }
 
+        self._tag_cfgs = {
+            tag.name: tag
+            for tag in tag_cfgs
+        }
+
     # ------------------------
     # -- Required Overrides --
     # ------------------------

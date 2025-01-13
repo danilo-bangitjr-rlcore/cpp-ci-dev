@@ -7,8 +7,6 @@ from collections.abc import Iterable
 from collections import deque
 from dataclasses import dataclass
 
-import corerl.utils.list as list_u
-
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.component.network.utils import tensor
 from corerl.data_pipeline.datatypes import PipelineFrame, Step, Transition, StageCode
@@ -85,7 +83,7 @@ class AllTheTimeTC:
     ):
         self.cfg = cfg
         self.tag_configs = tag_configs
-        self.meta_tags = {tag.name for tag in tag_configs if tag.is_meta}
+        self.meta_tags = sorted(tag.name for tag in tag_configs if tag.is_meta)
 
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
@@ -95,14 +93,16 @@ class AllTheTimeTC:
 
     def _make_steps(self, pf: PipelineFrame) -> tuple[PipelineFrame, list[Step]]:
         """
-        Sorts the columns of the pf, then extracts the relevant columns to make steps
+        Constructs steps from pipeframe elements
         """
-        pf, actions, states = self._sort_columns(pf)
+        pf, actions, states = self._extract_columns(pf)
+
         df = pf.data
         rewards = df['reward'].to_numpy()
         gammas = np.ones(len(rewards))
         if 'terminated' in df.columns:
             gammas = 1 - df['terminated'].to_numpy()
+
         dps = pf.decision_points
         assert len(actions) == len(states) and len(states) == len(rewards) == len(gammas) == len(dps)
 
@@ -118,32 +118,12 @@ class AllTheTimeTC:
             steps.append(step)
         return pf, steps
 
-    def _sort_columns(self, pf: PipelineFrame) -> tuple[PipelineFrame, torch.Tensor, torch.Tensor]:
-        tag_cfgs = {
-            tag.name: tag
-            for tag in self.tag_configs
-        }
-
-        sorted_cols = list_u.multi_level_sort(
-            list(pf.data.columns),
-            categories=[
-                # endo observations
-                lambda tag: tag in tag_cfgs and tag_cfgs[tag].is_endogenous and not tag_cfgs[tag].is_meta,
-                # exo observations
-                lambda tag: tag in tag_cfgs and not tag_cfgs[tag].is_meta,
-                # states
-                lambda tag: not (tag in tag_cfgs and tag_cfgs[tag].is_meta),
-                # meta tags should be all that are left
-            ],
-        )
-        pf.data = pf.data.loc[:, sorted_cols]
-
+    def _extract_columns(self, pf: PipelineFrame) -> tuple[PipelineFrame, torch.Tensor, torch.Tensor]:
         state_cols = [
-            col for col in sorted_cols
+            col for col in pf.data.columns
             if col not in self.meta_tags and col != "reward"
         ]
         states = get_tags(pf.data, state_cols)
-
         actions = tensor(pf.actions.to_numpy(np.float32))
         return pf, actions, states
 

@@ -10,6 +10,8 @@ from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from corerl.data_pipeline.tag_config import TagConfig
 
+import corerl.utils.list as list_u
+
 
 @config()
 class SCConfig:
@@ -42,6 +44,31 @@ class StateConstructor(Constructor):
         # put resultant data on PipeFrame
         df = pf.data.drop(tag_names, axis=1, inplace=False)
         pf.data = pd.concat([df] + transformed_parts, axis=1, copy=False)
+
+        # guarantee an ordering over columns
+        sorted_cols = list_u.multi_level_sort(
+            list(pf.data.columns),
+            categories=[
+                # endo observations
+                lambda tag: (
+                    tag in self._tag_cfgs
+                    and self._tag_cfgs[tag].is_endogenous
+                    and not self._tag_cfgs[tag].is_meta
+                ),
+                # exo observations
+                lambda tag: (
+                    tag in self._tag_cfgs
+                    and not self._tag_cfgs[tag].is_meta
+                ),
+                # states
+                lambda tag: not (
+                    tag in self._tag_cfgs
+                    and self._tag_cfgs[tag].is_meta
+                ),
+                # meta tags should be all that are left
+            ],
+        )
+        pf.data = pf.data.loc[:, sorted_cols]
 
         return pf
 
