@@ -170,8 +170,8 @@ class Pipeline:
     @cached_property
     def column_descriptions(self):
         return ColumnDescriptions(
-            state_cols=self.state_constructor.state_dim(),
-            action_cols=self.action_constructor.action_columns(),
+            state_cols=self.state_constructor.columns,
+            action_cols=self.action_constructor.columns,
         )
 
     def register_hook(self, stage: StageCode, f: Callable[[PipelineFrame], Any]):
