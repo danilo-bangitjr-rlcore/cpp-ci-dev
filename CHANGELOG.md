@@ -1,3 +1,9 @@
+## 0.18.0 (2025-01-13)
+
+### Feat
+
+- enable docker builds on release
+
 ## 0.17.3 (2025-01-10)
 
 ### Fix
