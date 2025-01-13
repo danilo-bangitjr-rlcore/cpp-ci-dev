@@ -18,7 +18,6 @@ log = logging.getLogger(__name__)
 @config()
 class OPCTSDBSimAsyncEnvConfig(GymEnvConfig, OPCEnvConfig, TSDBEnvConfig):
     name: str = "opc_tsdb_sim_async_env"
-    sleep_sec: int = 10
     obs_fetch_attempts: int = 20
     obs_read_delay_buffer: timedelta = timedelta(seconds=1)
 
