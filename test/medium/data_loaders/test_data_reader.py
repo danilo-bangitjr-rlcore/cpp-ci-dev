@@ -7,7 +7,6 @@ from docker.models.containers import Container
 from pandas import DataFrame, Series, DatetimeIndex
 import pandas as pd
 
-
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.db.data_reader import TagDBConfig

@@ -1,3 +1,15 @@
+## 0.19.0 (2025-01-13)
+
+### Feat
+
+- update data reader to include data on the bucket end time and exclude data on the bucket start time
+- update opc_mountain_car_continuous config to use reward constructor
+
+### Fix
+
+- optionally provide start time to load_offline_transitions, change offline training test to use a start time obs_period before the first step
+- handle gym reward as a special case with tag name gym_reward
+
 ## 0.18.0 (2025-01-13)
 
 ### Feat

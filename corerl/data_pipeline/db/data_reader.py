@@ -141,6 +141,7 @@ class DataReader:
             tz='UTC'
         )
         sensor_data = sensor_data.reindex(full_index)
+
         return sensor_data.sort_index()
 
     def single_aggregated_read(

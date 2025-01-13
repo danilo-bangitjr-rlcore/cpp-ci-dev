@@ -164,11 +164,12 @@ def check_sim_farama_environment_ready(run_background_opc_client: None, request:
             data_reader = DataReader(db_cfg=db_cfg)
 
             df = data_reader.single_aggregated_read(
-                ["observation_0", "observation_1", "action_0", "reward"],
+                ["observation_0", "observation_1", "action_0", "gym_reward"],
                 end - timedelta(seconds=10),
                 end
             )
 
+            print(df)
             successful_query = not bool(df.isnull().values.any())
         except Exception:
             # sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedTable) relation "public.opcua" does not exist
