@@ -76,6 +76,8 @@ class DataReader:
         Note: typically obs_period == bucket_width
 
         This function corrects for the discrepancy between the default timescale behavior and our desired behavior.
+        Please see the tests in the TestDataReaderLogic class in test/medium/data_loaders/test_data_reader.py
+        for concrete examples of input and expected output.
         """
         # If timezone unaware, assume we are using naive system timezone and convert to UTC.
         if start_time.tzinfo is None:
