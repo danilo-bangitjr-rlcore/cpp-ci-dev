@@ -29,8 +29,8 @@ class StateConstructor:
         }
 
         self._components: dict[str, list[Transform]] = {
-            tag_name: self._construct_components(parts)
-            for tag_name, parts in sc_cfgs.items()
+            tag_name: self._construct_components(transforms)
+            for tag_name, transforms in sc_cfgs.items()
         }
 
         self._cd_adder = DecisionPointDetector(cfg.countdown)

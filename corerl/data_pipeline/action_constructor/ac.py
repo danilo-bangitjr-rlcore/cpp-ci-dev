@@ -17,9 +17,9 @@ class ActionConstructor:
         }
 
         self._components: dict[str, list[Transform]] = {
-            tag_name: self._construct_components(parts)
-            for tag_name, parts in cfgs.items()
-            if parts is not None
+            tag_name: self._construct_components(transforms)
+            for tag_name, transforms in cfgs.items()
+            if transforms is not None
         }
 
 
