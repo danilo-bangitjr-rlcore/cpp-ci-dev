@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class TagDBConfig(BufferedWriterConfig):
     db_name: str = "postgres"
     table_name: str = "sensors"
-    table_schema: str = ""
+    table_schema: str = "public"
     data_agg: Literal["avg", "last", "bool_or"] = "avg"
 
 
