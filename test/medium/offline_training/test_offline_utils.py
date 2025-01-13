@@ -130,12 +130,17 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     return cfg
 
 def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, steps: int = 5) -> list[Transition]:
+    obs_period = offline_cfg.pipeline.obs_period
+
     # Generate timestamps
-    timestamps = []
+    step_timestamps = []
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.timezone.utc)
-    delta = offline_cfg.pipeline.obs_period
+    # The index of the first row produced by the data reader given start_time will be
+    # obs_period after start_time.
+    first_step = start_time + obs_period
+
     for i in range(steps):
-        timestamps.append(start_time + (delta * i))
+        step_timestamps.append(first_step + obs_period * i)
 
     # Generate tag data and write to tsdb
     steps_per_decision = int(
@@ -149,13 +154,13 @@ def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, step
             else:
                 val = i
 
-            data_writer.write(timestamp=timestamps[i], name=tag, val=val)
+            data_writer.write(timestamp=step_timestamps[i], name=tag, val=val)
 
     data_writer.blocking_sync()
 
     # Produce offline transitions
     pipeline = Pipeline(offline_cfg.pipeline)
-    created_transitions = load_offline_transitions(offline_cfg, pipeline)
+    created_transitions = load_offline_transitions(offline_cfg, pipeline, start_time=start_time)
 
     return created_transitions
 

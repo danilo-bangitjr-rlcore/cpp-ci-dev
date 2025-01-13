@@ -11,20 +11,30 @@ from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.utils.time import split_into_chunks
 
-def load_offline_transitions(cfg: MainConfig, pipeline: Pipeline):
-    pipeline.reset()
 
+def load_offline_transitions(
+    cfg: MainConfig, pipeline: Pipeline, start_time: dt.datetime | None = None, end_time: dt.datetime | None = None
+):
     # Configure DataReader
     data_reader = DataReader(db_cfg=cfg.pipeline.db)
-    db_time_stats = data_reader.get_time_stats()
-    tag_names = [tag_cfg.name for tag_cfg in cfg.pipeline.tags]
-    obs_period = cfg.pipeline.obs_period
 
+    # Infer missing start or end time
+    if start_time is None or end_time is None:
+        time_stats = data_reader.get_time_stats()
+        if start_time is None:
+            start_time = time_stats.start
+        if end_time is None:
+            end_time = time_stats.end
+
+    # chunk offline reads
     time_chunks = split_into_chunks(
-        db_time_stats.start,
-        db_time_stats.end,
+        start_time,
+        end_time,
         width=dt.timedelta(cfg.experiment.pipeline_batch_duration_days),
     )
+
+    tag_names = [tag_cfg.name for tag_cfg in cfg.pipeline.tags]
+    obs_period = cfg.pipeline.obs_period
 
     offline_transitions: list[Transition] = []
     for chunk_start, chunk_end in time_chunks:

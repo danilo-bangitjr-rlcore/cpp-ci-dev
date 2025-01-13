@@ -20,7 +20,7 @@ class OPCTSDBSimAsyncEnvConfig(GymEnvConfig, OPCEnvConfig, TSDBEnvConfig):
     name: str = "opc_tsdb_sim_async_env"
     sleep_sec: int = 10
     obs_fetch_attempts: int = 20
-    obs_read_delay_buffer: timedelta = timedelta(milliseconds=50)
+    obs_read_delay_buffer: timedelta = timedelta(seconds=1)
 
 
 class OPCTSDBSimAsyncEnv(AsyncEnv):
@@ -46,6 +46,7 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
         self.obs_fetch_attempts = cfg.obs_fetch_attempts
 
         self.env_start_time = datetime.now(UTC)
+        self.env_start_time = self.env_start_time.replace(microsecond=0)
         self.current_start_time = self.env_start_time
 
         self.tag_configs = tag_configs
@@ -87,20 +88,16 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
 
     def get_latest_obs(self) -> pd.DataFrame:
         read_start = self.current_start_time
-        if read_start > self.env_start_time:
-            # temporal state pipeline logic requires last step's latest time bucket
-            read_start = read_start - self.obs_period
-
-        read_end = self.current_start_time + self.obs_period - timedelta(microseconds=1)
+        read_end = read_start + self.obs_period
 
         def get_obs_df():
             act_obs_reward = self._data_reader.single_aggregated_read(
-                self.action_names + self.obs_names + ["reward"],
+                self.action_names + self.obs_names + ["gym_reward"],
                 read_start,
                 read_end,
             )
             meta = self._data_reader.single_aggregated_read(
-                [name for name in self.meta_names if name != "reward"],
+                [name for name in self.meta_names if name != "gym_reward"],
                 read_start,
                 read_end,
                 "bool_or",
@@ -108,6 +105,7 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
             return pd.concat([act_obs_reward, meta], axis=1)
 
         now = datetime.now(UTC)
+        now = now.replace(microsecond=0)
         if now <= (read_end + self.obs_read_delay_buffer):
             # the query end time is in the future, wait until this has elapsed before requesting observations from TSDB
             wait_time_delta = (read_end - now) + self.obs_read_delay_buffer

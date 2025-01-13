@@ -143,7 +143,7 @@ class AllTheTimeTC:
 
         state_cols = [
             col for col in sorted_cols
-            if col not in self.action_tags and col not in self.meta_tags
+            if col not in self.action_tags and col not in self.meta_tags and col != "reward"
         ]
         states = get_tags(pf.data, state_cols)
 

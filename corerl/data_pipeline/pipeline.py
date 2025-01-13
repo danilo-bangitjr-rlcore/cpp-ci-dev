@@ -20,11 +20,13 @@ from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
 from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 from corerl.data_pipeline.datatypes import Transition, PipelineFrame, CallerCode, StageCode
 
 logger = logging.getLogger(__name__)
+register_dispatchers()
 
 
 @config()

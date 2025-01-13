@@ -5,6 +5,7 @@ from typing_extensions import Annotated
 from pydantic import Field
 
 from corerl.configs.config import MISSING, config, list_
+from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.affine import AffineConfig
 from corerl.data_pipeline.transforms.base import BaseTransformConfig
@@ -16,7 +17,6 @@ from corerl.data_pipeline.transforms.null import NullConfig
 from corerl.data_pipeline.transforms.power import PowerConfig
 from corerl.data_pipeline.transforms.scale import ScaleConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
-
 
 
 """
@@ -59,8 +59,15 @@ TransformConfig = Annotated[
 , Field(discriminator='name')]
 
 
-# Because TransformConfig was only partially known when
-# pydantic first parsed these schemas, rebuild them
-# now that they are completely known.
-rebuild_dataclass(cast(Any, ProductConfig))
-rebuild_dataclass(cast(Any, SplitConfig))
+def register_dispatchers():
+    from corerl.data_pipeline.transforms.product import ProductTransform
+    from corerl.data_pipeline.transforms.split import SplitTransform
+
+    transform_group.dispatcher(ProductTransform)
+    transform_group.dispatcher(SplitTransform)
+
+    # Because TransformConfig was only partially known when
+    # pydantic first parsed these schemas, rebuild them
+    # now that they are completely known.
+    rebuild_dataclass(cast(Any, ProductConfig))
+    rebuild_dataclass(cast(Any, SplitConfig))

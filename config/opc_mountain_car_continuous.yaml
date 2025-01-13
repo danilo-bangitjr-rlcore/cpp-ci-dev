@@ -69,7 +69,7 @@ pipeline:
   #    python3 e2e/make_configs.py --config-name opc_mountain_car_continuous
   #
   # and copy the e2e/generated_tags.yaml contents into this tags field.
-  - name: reward
+  - name: 'gym_reward'
     bounds:
     - null
     - null
@@ -79,7 +79,8 @@ pipeline:
       name: identity
     reward_constructor:
     - name: 'null'
-    state_constructor: null
+    state_constructor:
+    - name: 'null' # do not include in state
     is_action: false
     is_meta: true
   - name: terminated
@@ -91,7 +92,10 @@ pipeline:
     imputer:
       name: identity
     reward_constructor:
-    - name: 'null'
+    - name: greater_than
+      threshold: 0.5
+    - name: scale
+      factor: 100.0
     state_constructor: null
     is_action: false
     is_meta: true
@@ -117,7 +121,10 @@ pipeline:
     imputer:
       name: identity
     reward_constructor:
-    - name: 'null'
+    - name: power
+      pow: 2
+    - name: scale
+      factor: -0.1
     state_constructor: null
     is_action: true
     is_meta: false

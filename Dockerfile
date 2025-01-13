@@ -37,10 +37,6 @@ RUN uv pip install --system pyc_wheel &&\
 # Stage 2, install corerl to minimal Python 3 image
 FROM python:3.12-slim AS corerl
 
-# This label is used by Github to link the package to our repository,
-# otherwise it will be scoped to our rlcoretech organization
-LABEL org.opencontainers.image.source=https://github.com/rlcoretech/core-rl
-
 COPY --from=base /app/dist /app/dist
 WORKDIR /app
 
