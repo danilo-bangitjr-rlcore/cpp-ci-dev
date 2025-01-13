@@ -165,9 +165,6 @@ class AllTheTimeTC:
             if is_full:
                 n_step_info.n_step_reward, n_step_info.n_step_gamma = get_n_step_reward(step_q)
 
-                assert n_step_info.n_step_reward is not None
-                assert n_step_info.n_step_gamma is not None
-
                 new_transition = Transition(
                     list(step_q),
                     n_step_reward=n_step_info.n_step_reward,
