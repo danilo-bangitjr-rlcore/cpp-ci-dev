@@ -4,6 +4,7 @@ from typing import List
 import pytest
 from docker.models.containers import Container
 from pandas import DataFrame, Series
+import pandas as pd
 
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.db.data_writer import DataWriter
@@ -167,3 +168,46 @@ class TestDataReader:
     def _ensure_names_included(self, data: DataFrame | Series) -> None:
         for name in TestDataReader.sensor_names:
             assert name in data.columns
+
+    def test_batch_read_timestamp_precision(
+        self,
+        data_reader_writer: tuple[DataReader, DataWriter],
+        populate_db: None,
+        now: datetime
+    ):
+        data_reader, data_writer = data_reader_writer
+
+        # timestamps with different precisions
+        base_time = datetime(2024, 5, 16, 3, 15, 0, tzinfo=UTC)
+        end_time = datetime(2024, 5, 16, 3, 15, 0, 123456, tzinfo=UTC)
+        start_time = base_time - timedelta(minutes=5)
+
+        # write some data but skip one timestamp to create a gap
+        test_times = pd.date_range(start=start_time, end=end_time, freq=timedelta(minutes=1))
+        missing_time = test_times[2]
+
+        for name in TestDataReader.sensor_names:
+            for t in test_times:
+                if t != missing_time:
+                    data_writer.write(name=name, val=1.0, timestamp=t)
+                    data_writer.blocking_sync()
+
+        result_df = data_reader.batch_aggregated_read(
+            names=TestDataReader.sensor_names,
+            start_time=start_time,
+            end_time=end_time,
+            bucket_width=timedelta(minutes=1),
+        )
+
+        expected_timestamps = pd.date_range(
+            start=start_time,
+            end=end_time,
+            freq=timedelta(minutes=1),
+            tz='UTC'
+        )
+
+        pd.testing.assert_index_equal(result_df.index, expected_timestamps)
+        assert result_df.index.is_unique
+        missing_time_data = result_df.loc[missing_time]
+        assert missing_time_data.isna().all()
+        self._ensure_names_included(result_df)
