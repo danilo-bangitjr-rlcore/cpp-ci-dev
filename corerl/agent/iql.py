@@ -15,6 +15,7 @@ from corerl.component.network.utils import to_np, state_to_tensor, expectile_los
 from corerl.state import AppState
 from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import TransitionBatch, Transition
+from corerl.data_pipeline.pipeline import ColumnDescriptions
 
 
 @config(frozen=True)
@@ -26,14 +27,14 @@ class IQLConfig(BaseACConfig):
 
 
 class IQL(BaseAC):
-    def __init__(self, cfg: IQLConfig, app_state: AppState, state_dim: int, action_dim: int):
-        super().__init__(cfg, app_state, state_dim, action_dim)
+    def __init__(self, cfg: IQLConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        super().__init__(cfg, app_state, col_desc)
         self.temp = cfg.temp
         self.expectile = cfg.expectile
 
-        self.v_critic = init_v_critic(cfg.critic, state_dim)
-        self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
-        self.actor = init_actor(cfg.actor, state_dim, action_dim)
+        self.v_critic = init_v_critic(cfg.critic, self.state_dim)
+        self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
+        self.actor = init_actor(cfg.actor, self.state_dim, self.action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)

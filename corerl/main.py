@@ -56,8 +56,7 @@ def main(cfg: MainConfig):
         agent = init_agent(
             cfg.agent,
             app_state,
-            column_desc.state_dim,
-            column_desc.action_dim,
+            column_desc,
         )
         interaction = init_interaction(
             cfg=cfg.interaction, agent=agent, env=env, pipeline=pipeline,

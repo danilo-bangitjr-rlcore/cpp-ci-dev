@@ -211,7 +211,7 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
 
     pipeline = Pipeline(offline_cfg.pipeline)
     col_desc = pipeline.column_descriptions
-    agent = init_agent(offline_cfg.agent, app_state, col_desc.state_dim, col_desc.action_dim)
+    agent = init_agent(offline_cfg.agent, app_state, col_desc)
 
     # Offline training
     critic_losses = offline_training(offline_cfg, agent, offline_transitions)
