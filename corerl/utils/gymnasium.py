@@ -29,7 +29,7 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
     # these are hardcoded
     tag_configs.append(
         TagConfig(
-            name="reward",
+            name="gym_reward",
             outlier=IdentityFilterConfig(),
             # imputer= None,
             # reward_constructor= None,

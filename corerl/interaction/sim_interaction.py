@@ -26,7 +26,7 @@ class SimInteraction:
             tag.name
             for tag in tag_configs
             if tag.is_action or tag.is_meta
-        )
+        ).union({"reward"})
 
         self._should_reset = True
         self._last_state: np.ndarray | None = None
