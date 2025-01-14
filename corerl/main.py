@@ -7,7 +7,6 @@ import os
 
 import numpy as np
 import torch
-from tqdm import tqdm
 
 from corerl.agent.factory import init_agent
 from corerl.config import MainConfig
