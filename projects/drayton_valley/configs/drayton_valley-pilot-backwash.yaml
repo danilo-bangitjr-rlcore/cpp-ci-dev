@@ -10,10 +10,10 @@ interaction:
 
 env:
   name: dep_async_env
-  obs_period: 00:05:00
-  action_period: 00:45:00
+  obs_period: 00:00:10
+  action_period: 00:00:30
   db: ${pipeline.db}
-  opc_conn_url: "opc.tcp://localhost:62541"
+  opc_conn_url: "opc.tcp://ignition-services:62541"
   ns: 1
 
 
@@ -74,13 +74,15 @@ pipeline:
   tags:
   - name: PERM_SP.BW_SP # flow rate setpoint
     bounds: [0.9, 1.4]
-    is_action: true
+    action_constructor:
+      -name: identity
     state_constructor: # exclude from state
     - name: "null"
 
   - name: BW_SP.KY2 # backpulse duration setpoint
     bounds: [20, 40]
-    is_action: true
+    action_constructor:
+      -name: identity
     state_constructor: # exclude from state
     - name: "null"
 
