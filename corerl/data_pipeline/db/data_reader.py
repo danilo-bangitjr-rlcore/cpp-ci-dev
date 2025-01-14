@@ -134,18 +134,13 @@ class DataReader:
         missing_cols = [name for name in names if name not in set(sensor_data.columns)]
         sensor_data[list(missing_cols)] = np.nan
 
-        t = end_time
-        while t > start_time:
-            if t not in sensor_data.index:
-                idx = pd.DatetimeIndex([t])
-
-                row = pd.DataFrame([[np.nan] * len(names)], columns=pd.Index(names), index=idx)
-                if not sensor_data.empty:
-                    sensor_data = pd.concat((sensor_data, row), axis=0, copy=False)
-                else:
-                    sensor_data = row.copy()
-
-            t -= bucket_width
+        full_index = pd.date_range(
+            start=start_time + bucket_width,
+            end=end_time,
+            freq=bucket_width,
+            tz='UTC'
+        )
+        sensor_data = sensor_data.reindex(full_index)
 
         return sensor_data.sort_index()
 
