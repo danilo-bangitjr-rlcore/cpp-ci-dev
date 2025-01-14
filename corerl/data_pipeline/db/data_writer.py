@@ -59,6 +59,9 @@ class DataWriter:
         self._init()
         assert timestamp.tzinfo == UTC
 
+        # truncate microseconds
+        timestamp = timestamp.replace(microsecond=0)
+
         self._buffer.append(Point(
             ts=timestamp.isoformat(),
             name=name,
