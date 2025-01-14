@@ -39,7 +39,7 @@ pipeline:
     drivername: "postgresql+psycopg2"
     username: "postgres"
     password: "password"
-    ip: "localhost"
+    ip: "timescaledb"
     port: 5432
     db_name: "postgres"
     table_schema: "public"
