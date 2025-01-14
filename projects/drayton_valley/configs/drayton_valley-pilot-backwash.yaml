@@ -34,6 +34,17 @@ agent:
       lr: 0.00001
 
 
+metrics:
+  drivername: "postgresql+psycopg2"
+  username: "postgres"
+  password: "password"
+  ip: "timescaledb"
+  port: 5432
+  db_name: "postgres"
+  table_schema: "public"
+  table_name: "metrics"
+  enabled: True
+
 pipeline:
   db:
     drivername: "postgresql+psycopg2"

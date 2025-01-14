@@ -4,6 +4,17 @@ agent:
     host: ''
     port: ''
 
+metrics:
+  drivername: "postgresql+psycopg2"
+  username: "postgres"
+  password: "password"
+  ip: "localhost"
+  port: 5432
+  db_name: "postgres"
+  table_schema: "public"
+  table_name: "metrics"
+  enabled: False
+
 pipeline:
   db:
     drivername: "postgresql+psycopg2"
