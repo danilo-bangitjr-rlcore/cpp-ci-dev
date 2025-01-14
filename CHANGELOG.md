@@ -1,3 +1,12 @@
+## 0.24.1 (2025-01-14)
+
+### Refactor
+
+- make constructors responsible for column ordering
+- plumb ColumnDescription to agent
+- pull shared construction logic out of AC and SC
+- put all RL constructors in same module
+
 ## 0.24.0 (2025-01-14)
 
 ### Feat
