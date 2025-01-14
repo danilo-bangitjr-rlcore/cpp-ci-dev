@@ -146,6 +146,11 @@ class GreedyAC(BaseAC):
         sorted_q_inds: Float[torch.Tensor, "batch_size num_samples 1"]
         sorted_q_inds = torch.argsort(q_values, dim=1, descending=True)
 
+        self._app_state.metrics.write(
+            'top_q_value',
+            q_values.max().item(),
+        )
+
         return sorted_q_inds
 
     def get_uniform_action_samples(
@@ -350,6 +355,12 @@ class GreedyAC(BaseAC):
         _, _, _, _, stacked_s_batch, best_actions, _ = update_info
         logp, _ = self.actor.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
         actor_loss = -logp.mean()  # BUG: This is negative?
+
+        self._app_state.metrics.write(
+            'actor_loss',
+            actor_loss,
+        )
+
         return actor_loss
 
     def compute_sampler_loss(
@@ -362,6 +373,11 @@ class GreedyAC(BaseAC):
             # Non-entropy version of proposal policy update.
             # A greater percentage of actions are used to update the proposal policy than the actor policy
             sampler_loss = self.compute_sampler_no_entropy_loss(update_info)
+
+        self._app_state.metrics.write(
+            'sampler_loss',
+            sampler_loss,
+        )
 
         return sampler_loss
 
