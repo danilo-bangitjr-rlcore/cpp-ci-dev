@@ -7,7 +7,7 @@ asyncio_mode = "auto"
 line-length = 120
 
 [tool.ruff.lint]
-select = ['F', 'E', 'W', 'B']
+select = ['F', 'E', 'W', 'B', 'I']
 ignore = [
     'E402',
 
