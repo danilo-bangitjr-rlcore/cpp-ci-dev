@@ -69,14 +69,18 @@ pipeline:
   - name: PERM_SP.BW_SP # flow rate setpoint
     bounds: [0.9, 1.4]
     action_constructor:
-      - name: identity
+      - name: normalize
+        min: -0.9
+        max: 1.4
     state_constructor: # exclude from state
     - name: "null"
 
   - name: BW_SP.KY2 # backpulse duration setpoint
     bounds: [20, 40]
     action_constructor:
-      - name: identity
+      - name: normalize
+        min: 20
+        max: 40
     state_constructor: # exclude from state
     - name: "null"
 
