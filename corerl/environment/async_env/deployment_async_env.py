@@ -10,6 +10,7 @@ from corerl.configs.config import config
 # Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transforms import NormalizerConfig
 from corerl.environment.async_env.async_env import AsyncEnv, OPCEnvConfig, TSDBEnvConfig
 from corerl.utils.opc_connection import make_opc_node_id
 
@@ -84,7 +85,18 @@ class DeploymentAsyncEnv(AsyncEnv):
             # denormalize the action if possible, otherwise emit normalized action
             raw_action = action.flatten()[act_i]
             action_tag_config = action_tag_configs[act_i]
-            lo, hi = action_tag_config.bounds
+
+            lo = None
+            hi = None
+
+            assert action_tag_config.action_constructor is not None
+            for transform_cfg in action_tag_config.action_constructor:
+                if isinstance(transform_cfg, NormalizerConfig):
+                    lo = transform_cfg.min
+                    hi = transform_cfg.max
+                    assert not transform_cfg.from_data
+                    break
+
             assert isinstance(lo, float) and isinstance(hi, float)
             scale = hi - lo
             bias = lo
