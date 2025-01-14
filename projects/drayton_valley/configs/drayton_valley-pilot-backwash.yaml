@@ -4,6 +4,9 @@ experiment:
   seed: 1
   gamma: 0.99
 
+interaction:
+  name: dep_interaction
+
 env:
   name: dep_async_env
   obs_period: 00:05:00
@@ -88,6 +91,22 @@ pipeline:
       bias: 0.6 # min / (max - min)
     - name: scale
       factor: -1.0 # convert from negative permeability normalized to [0, 1] -> positive permeability normalized to [-1, 0]
+    # ignore permeability except when in production mode (CTRL_P.STEP == 1305)
+    # in abscence of "equal to" transform, squeeze with greater/less than
+    - name: product
+      other: CTRL_P.STEP
+      other_xform:
+          name: less_than
+          threshold: 1306
+    - name: product
+      other: CTRL_P.STEP
+      other_xform:
+          name: greater_than
+          threshold: 1304
+
+  - name: CTRL_P.STEP # mode, excluded from state but used in reward fn
+    state_constructor:
+    - name: "null"
 
   - name: TUIT101.DATA # raw turbidity
     bounds: [0, 1.5]
