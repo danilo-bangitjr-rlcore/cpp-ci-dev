@@ -8,15 +8,23 @@ from corerl.agent.base import BaseAgent
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
+from corerl.environment.async_env.async_env import AsyncEnv
+
+from corerl.configs.config import config
+from corerl.interaction.interaction import Interaction
 
 logger = logging.getLogger(__file__)
 
-class DeploymentInteraction:
+@config()
+class DepInteractionConfig:
+    name: str = "dep_interaction"
+
+class DeploymentInteraction(Interaction):
     def __init__(
         self,
+        cfg: DepInteractionConfig,
         agent: BaseAgent,
-        env: DeploymentAsyncEnv,
+        env: AsyncEnv,
         pipeline: Pipeline,
         tag_configs: list[TagConfig],
     ):

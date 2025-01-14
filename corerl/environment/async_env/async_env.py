@@ -33,7 +33,11 @@ class GymEnvConfig(BaseAsyncEnvConfig):
     args: list[Any] = field(default_factory=list)
     kwargs: dict[str, Any] = field(default_factory=dict)
 
+
 class AsyncEnv:
+    obs_period: timedelta
+    action_period: timedelta
+
     def emit_action(self, action: np.ndarray) -> None: ...
 
     def get_latest_obs(self) -> pd.DataFrame: ...

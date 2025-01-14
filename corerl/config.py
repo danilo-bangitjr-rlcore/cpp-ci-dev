@@ -8,12 +8,14 @@ from corerl.environment.async_env.factory import AsyncEnvConfig
 
 from corerl.experiment.config import ExperimentConfig
 from corerl.data_pipeline.pipeline import PipelineConfig
+from corerl.interaction.factory import InteractionConfig
 
 
 @config()
 class MainConfig:
 
-    env: AsyncEnvConfig = MISSING # field(default_factory=SimAsyncEnvConfig)
+    interaction: InteractionConfig = MISSING
+    env: AsyncEnvConfig = MISSING
     agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')
     experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)

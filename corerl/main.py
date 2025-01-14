@@ -15,7 +15,7 @@ from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
-from corerl.interaction.sim_interaction import SimInteraction
+from corerl.interaction.factory import init_interaction
 from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
@@ -48,12 +48,8 @@ def main(cfg: MainConfig):
             state_dim,
             action_dim,
         )
-
-        interaction = SimInteraction(
-            agent,
-            env,
-            pipeline,
-            cfg.pipeline.tags,
+        interaction = init_interaction(
+            cfg=cfg.interaction, agent=agent, env=env, pipeline=pipeline, tag_configs=cfg.pipeline.tags
         )
 
         for _ in tqdm(range(cfg.experiment.max_steps)):
