@@ -87,8 +87,13 @@ pipeline:
       pow: 2
     - name: scale
       factor: -0.1
-    state_constructor: null
-    is_action: true
+    state_constructor:
+      - name: 'null'
+    action_constructor:
+    - name: normalize
+      min: -1
+      max: 1
+      from_data: False
     is_meta: false
   - name: observation_0
     bounds:
@@ -100,8 +105,10 @@ pipeline:
       name: identity
     reward_constructor:
     - name: 'null'
-    state_constructor: null
-    is_action: false
+    state_constructor:
+    - name: normalize
+      min: -1.2
+      max: 0.6
     is_meta: false
   - name: observation_1
     bounds:
@@ -114,5 +121,4 @@ pipeline:
     reward_constructor:
     - name: 'null'
     state_constructor: null
-    is_action: false
     is_meta: false
