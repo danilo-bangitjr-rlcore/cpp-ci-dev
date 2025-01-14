@@ -78,15 +78,12 @@ class DeploymentAsyncEnv(AsyncEnv):
         for act_i in range(action_dim):
             # denormalize the action if possible, otherwise emit normalized action
             raw_action = action.flatten()[act_i]
-            try:
-                action_tag_config = action_tag_configs[act_i]
-                lo, hi = action_tag_config.bounds
-                assert isinstance(lo, float) and isinstance(hi, float)
-                scale = hi - lo
-                bias = lo
-                denormalized_actions.append(scale * raw_action + bias)
-            except AssertionError:
-                denormalized_actions.append(raw_action)
+            action_tag_config = action_tag_configs[act_i]
+            lo, hi = action_tag_config.bounds
+            assert isinstance(lo, float) and isinstance(hi, float)
+            scale = hi - lo
+            bias = lo
+            denormalized_actions.append(scale * raw_action + bias)
 
         return denormalized_actions
 

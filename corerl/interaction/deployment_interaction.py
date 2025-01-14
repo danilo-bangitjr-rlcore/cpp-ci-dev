@@ -44,8 +44,8 @@ class DeploymentInteraction:
         self._wait_for_next_obs()
         o = self._env.get_latest_obs()
         pr = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
-        assert pr.transitions is not None
-        self._agent.update_buffer(pr.transitions)
+        if pr.transitions is not None:
+            self._agent.update_buffer(pr.transitions)
         self._agent.update()
 
         s = self._get_latest_state()
