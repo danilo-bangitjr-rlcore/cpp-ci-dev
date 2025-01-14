@@ -1,3 +1,9 @@
+## 0.20.0 (2025-01-14)
+
+### Feat
+
+- add deployment interaction and env
+
 ## 0.19.0 (2025-01-13)
 
 ### Feat
