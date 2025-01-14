@@ -70,8 +70,9 @@ pipeline:
     bounds: [0.9, 1.4]
     action_constructor:
       - name: normalize
-        min: -0.9
+        min: 0.9
         max: 1.4
+        from_data: False
     state_constructor: # exclude from state
     - name: "null"
 
@@ -81,6 +82,7 @@ pipeline:
       - name: normalize
         min: 20
         max: 40
+        from_data: False
     state_constructor: # exclude from state
     - name: "null"
 
