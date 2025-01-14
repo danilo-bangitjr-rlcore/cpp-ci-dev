@@ -160,6 +160,10 @@ def _load_config[T](Config: type[T], base: str | None = None, config_name: str |
     config_name = flags.get('config-name', config_name)
     assert base is not None and config_name is not None, 'Must specify a base path for configs and a config name'
 
+    # remove the `base` from the config_name if it already exists
+    if config_name.startswith(base):
+        config_name = config_name[len(base):]
+
     # load the raw config with defaults resolved
     raw_config = _load_raw_config(base, config_name)
 
