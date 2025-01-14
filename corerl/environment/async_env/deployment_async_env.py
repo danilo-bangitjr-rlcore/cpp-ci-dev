@@ -52,7 +52,12 @@ class DeploymentAsyncEnv(AsyncEnv):
         for tag in tag_configs:
             if tag.action_constructor is None:
                 continue
-            id = make_opc_node_id(tag.name, cfg.opc_ns)
+
+            node_name = tag.name
+            if tag.node_identifier is not None:
+                node_name = tag.node_identifier
+
+            id = make_opc_node_id(node_name, cfg.opc_ns)
             node = self._opc_client.get_node(id)
             self.action_nodes.append(node)
 

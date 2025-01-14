@@ -17,6 +17,7 @@ class TagConfig:
     simultaneously represent both an observation, a reward, and possibly also an action.
     """
     name: str = MISSING
+    node_identifier: str | None = None
 
     bounds: tuple[float | None, float | None] = (None, None)
     outlier: OddityFilterConfig = field(default_factory=EMAFilterConfig)
