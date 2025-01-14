@@ -40,8 +40,15 @@ class BaseModel:
         self.endo_tags.sort()
         self.exo_tags.sort()
 
-        self.endo_idxs = list(range(len(self.endo_tags)))
-        self.exo_idxs = list(range(len(self.exo_tags)))
+
+        start_endo_idxs = 0
+        num_endo_idxs = len(self.endo_tags)
+        self.endo_idxs = list(range(start_endo_idxs, start_endo_idxs + num_endo_idxs))
+
+        start_exo_idxs = num_endo_idxs
+        num_exo_idxs = len(self.exo_tags)
+        self.exo_idxs = list(range(start_exo_idxs, start_exo_idxs + num_exo_idxs))
+
 
     def fit(self, transitions: list[Transition]):
         ...

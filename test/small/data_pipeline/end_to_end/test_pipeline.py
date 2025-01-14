@@ -112,9 +112,9 @@ def test_pipeline1():
         # notice that the first row of the DF was skipped due to the np.nan
         Transition(
             steps=[
-                # countdown is first in the state
-                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0., 1, 0.18]), dp=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 1, 0.378]), dp=True),
+                # expected state order: states sorted. Thus, [countdown (state), tag-1 tag-2_norm_trace-0.1]
+                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1, 0., 0.18]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1, 1.0, 0.378]), dp=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9

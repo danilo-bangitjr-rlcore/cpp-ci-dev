@@ -9,11 +9,11 @@ def test_dummy():
     cfg = DummyEndoModelConfig()
     tags = [
         TagConfig(
-            name='state1',
+            name='tag-1',
             is_endogenous=False,
         ),
         TagConfig(
-            name='state2',
+            name='tag-2',
             is_endogenous=True,
         ),
 
