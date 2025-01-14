@@ -1,0 +1,118 @@
+# This variant of mountain_car_continuous requires that the OPC server and client be running.
+# All interactions to the mountain car continuous environment is performed through OPC, all state observations are read
+# through TSDB.
+defaults:
+  -
+
+experiment:
+  exp_name: OPC_MountainCarContinuous
+  param_from_hash: True
+  seed: 1
+  gamma: 0.99
+
+interaction:
+  name: dep_interaction
+
+env:
+  name: dep_async_env
+  action_period: 00:00:15
+  obs_period: 00:00:05
+  discrete_control: False
+  seed: 1
+  db: ${pipeline.db}
+  opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
+  opc_ns: 2
+
+
+agent:
+  name: greedy_ac
+  n_critic_updates: 1
+  n_actor_updates: 1
+  n_sampler_updates: 1
+  num_samples: 32
+  uniform_sampling_percentage: 0.8
+  discrete_control: ${env.discrete_control}
+  seed: ${experiment.seed}
+
+  critic:
+    buffer:
+      seed: ${experiment.seed}
+
+  actor:
+    buffer:
+      seed: ${experiment.seed}
+    actor_optimizer:
+      lr: 0.00001
+
+
+metrics:
+  drivername: "postgresql+psycopg2"
+  username: "postgres"
+  password: "password"
+  ip: "localhost"
+  port: 5432
+  db_name: "postgres"
+  table_schema: "public"
+  table_name: "metrics"
+  enabled: True
+
+pipeline:
+  db:
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: "password"
+    ip: "localhost"
+    port: 5432
+    db_name: "postgres"
+    table_schema: "public"
+    table_name: "opcua"
+
+  state_constructor:
+    defaults: []
+
+  transition_creator:
+    name: anytime
+
+  tags:
+  - name: action_0
+    bounds:
+    - -1.0
+    - 1.0
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: power
+      pow: 2
+    - name: scale
+      factor: -0.1
+    state_constructor: null
+    is_action: true
+    is_meta: false
+  - name: observation_0
+    bounds:
+    - -1.2
+    - 0.6
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
+    state_constructor: null
+    is_action: false
+    is_meta: false
+  - name: observation_1
+    bounds:
+    - -0.07
+    - 0.07
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
+    state_constructor: null
+    is_action: false
+    is_meta: false

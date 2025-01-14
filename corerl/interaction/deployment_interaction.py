@@ -73,7 +73,7 @@ class DeploymentInteraction(Interaction):
         else:
             sleep_duration = (next_obs_timestamp - now).total_seconds()
         sleep(sleep_duration)
-        self.last_obs_timestamp = now
+        self.last_obs_timestamp = next_obs_timestamp
 
     def _should_take_action(self) -> bool:
         now = datetime.now(UTC)

@@ -3,6 +3,7 @@ experiment:
   param_from_hash: True
   seed: 1
   gamma: 0.99
+  run_forever: True
 
 interaction:
   name: dep_interaction
