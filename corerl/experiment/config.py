@@ -16,3 +16,4 @@ class ExperimentConfig:
     save_path: str = 'output'
     seed: int = 0
     timeout: int = 1
+    run_forever: bool = False

@@ -21,11 +21,11 @@ from corerl.state import AppState, MetricsWriter
 from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
-# logging.basicConfig(
-#     format="%(asctime)s %(levelname)s: %(message)s",
-#     encoding="utf-8",
-#     level=logging.DEBUG,
-# )
+logging.basicConfig(
+    format="%(asctime)s %(levelname)s: %(message)s",
+    encoding="utf-8",
+    level=logging.INFO,
+)
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
@@ -63,8 +63,17 @@ def main(cfg: MainConfig):
             cfg=cfg.interaction, agent=agent, env=env, pipeline=pipeline, tag_configs=cfg.pipeline.tags
         )
 
-        for _ in tqdm(range(cfg.experiment.max_steps)):
+        steps = 0
+        max_steps = cfg.experiment.max_steps
+        run_forever = cfg.experiment.run_forever
+
+        while True:
+            log.info(f"taking step {steps}")
             interaction.step()
+            steps += 1
+            if steps >= max_steps and not run_forever:
+                break
+
 
     except Exception as e:
         log.exception(e)
