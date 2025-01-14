@@ -7,6 +7,7 @@ from math import comb
 from torch import Tensor
 
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transforms import NullConfig
 from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, Transition, Step
 from corerl.data_pipeline.all_the_time import (
     AllTheTimeTCConfig,
@@ -15,7 +16,7 @@ from corerl.data_pipeline.all_the_time import (
 )
 
 
-def make_test_step(i: int, action: float = 0., gamma: float = 0.9, reward: float = 1.0, dp: bool = False) -> Step:
+def make_test_step(i: int, action: float = 0., gamma: float = 0.9, reward: float = 2.0, dp: bool = False) -> Step:
     return Step(
         state=Tensor([i]),
         action=Tensor([action]),
@@ -38,7 +39,7 @@ def test_get_n_step_reward_1():
 
     n_step_reward, n_step_gamma = get_n_step_reward(q)
 
-    assert n_step_reward == 1.9
+    assert n_step_reward == 3.8
     assert n_step_gamma == 0.81
 
 
@@ -47,7 +48,7 @@ def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> Pipelin
         ts = dict()
     state_col = np.arange(start_state, end_state)
     length = end_state - start_state
-    cols = {"state": state_col, "action": [0] * length, "reward": [1] * length}
+    cols = {"state": state_col, "reward": [2] * length}
     dates = [
         datetime.datetime(2024, 1, 1, 1, i) for i in range(start_state, end_state)
     ]
@@ -58,6 +59,9 @@ def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> Pipelin
         caller_code=CallerCode.OFFLINE,
         temporal_state=ts
     )
+
+    # stub out action constructor
+    pf.actions = pd.DataFrame({ "action": [0] * length }, index=datetime_index)
     return pf
 
 
@@ -65,18 +69,18 @@ def make_tc(max_n_step: int, min_n_step: int = 1) -> AllTheTimeTC:
     tags = [
         TagConfig(
             name='state',
-            is_action=False,
             is_meta=False,
         ),
         TagConfig(
             name='action',
-            is_action=True,
+            action_constructor=[],
+            state_constructor=[NullConfig()],
             is_meta=False,
         ),
         TagConfig(
             name='reward',
-            is_action=False,
             is_meta=True,
+            state_constructor=[NullConfig()],
         )
     ]
 
@@ -90,7 +94,7 @@ def make_tc(max_n_step: int, min_n_step: int = 1) -> AllTheTimeTC:
     return tc
 
 
-def test_all_the_time_1():
+def test_all_the_time():
     """
     Tests to see if all the time tc will return the correct transitions.
     """
@@ -140,7 +144,7 @@ def test_all_the_time_1():
     assert t_2 == expected_2
 
 
-def test_all_the_time_2_max_n_1():
+def test_all_the_time_max_n_1():
     """
     Tests to see if all the time tc will return the correct transitions.
     However, max_n_step is set to 1, so there should only be two transitions
@@ -179,7 +183,7 @@ def test_all_the_time_2_max_n_1():
     assert t_1 == expected_1
 
 
-def test_all_the_time_3_gap():
+def test_all_the_time_gap():
     """
     Tests to see if all the time tc will return the correct transitions.
     max_n_step is set to 1, so there should only be one transition,
@@ -189,7 +193,7 @@ def test_all_the_time_3_gap():
     tc = make_tc(2)
 
     pf = make_pf(0, 4)
-    pf.data.loc[pf.data.index[-2], 'action'] = np.nan  # second last action is nan
+    pf.actions.loc[pf.data.index[-2], 'action'] = np.nan  # second last action is nan
 
     pf = tc(pf)
     transitions = pf.transitions
@@ -211,7 +215,7 @@ def test_all_the_time_3_gap():
     assert t_0 == expected_0
 
 
-def test_all_the_time_4_ts():
+def test_all_the_time_ts_1():
     """
     Tests to see if the temporal state will be linked between two successive calls to the TC
     """
@@ -296,7 +300,7 @@ def test_all_the_time_4_ts():
     assert t_3 == expected_3
 
 
-def test_all_the_time_5_ts():
+def test_all_the_time_ts_2():
     """
     Like the above test, but the nan at the end of the first pf should prevent the
     transitions from the two pfs to be linked
@@ -332,41 +336,10 @@ def test_all_the_time_5_ts():
     assert t_0 == expected_0
 
 
-def test_all_the_time_6_online():
+def test_all_the_time_online():
     """
-    Tests online creation of transitions
-    """
-
-    tc = make_tc(2, 2)
-
-    transitions = []
-    ts = {}
-    for i in range(10):
-        pf = make_pf(i, i+1, ts=ts)
-        pf = tc(pf)
-        new_transitions = pf.transitions
-        assert isinstance(new_transitions, list)
-        transitions += new_transitions
-        ts = pf.temporal_state
-
-    assert len(transitions) == 8
-
-    for i in range(8):
-        step_0 = make_test_step(i)
-        step_1 = make_test_step(i + 1)
-        step_2 = make_test_step(i + 2)
-
-        expected = Transition(
-            [step_0, step_1, step_2],
-            n_step_reward=1.9,
-            n_step_gamma=0.81,
-        )
-        assert transitions[i] == expected
-
-
-def test_all_the_time_7_online():
-    """
-    Like the above test, but iteration i=4 has a nan, so should reset the temporal state.
+    Tests online creation of transitions,
+    where iteration i=4 has a nan, so should reset the temporal state.
     """
     tc = make_tc(2, 2)
 
@@ -440,7 +413,7 @@ def test_all_the_time_7_online():
     assert transitions[4] == expected_4
 
 
-def test_all_the_time_8_caller_codes():
+def test_all_the_time_caller_codes():
     """
     Checks to see if the ts from one caller code is kept separate from the ts of another caller code.
     """

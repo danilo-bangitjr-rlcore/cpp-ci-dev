@@ -1,39 +1,27 @@
 import pandas as pd
 
 from collections import defaultdict
-from dataclasses import field
-from corerl.configs.config import config, list_
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
-from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from corerl.data_pipeline.transforms.base import transform_group, Transform
 from corerl.data_pipeline.tag_config import TagConfig
 
 
-@config()
-class SCConfig:
-    defaults: list[TransformConfig] = list_([NormalizerConfig()])
-    countdown: CountdownConfig = field(default_factory=CountdownConfig)
-
-
-class StateConstructor:
-    def __init__(self, tag_cfgs: list[TagConfig], cfg: SCConfig):
-        # get sc pipeline configs for each tag
-        # if a tag has no specified pipeline config, then use the default
-        sc_cfgs = {
-            tag.name: tag.state_constructor if tag.state_constructor is not None else cfg.defaults
+class ActionConstructor:
+    def __init__(self, tag_cfgs: list[TagConfig]):
+        cfgs = {
+            tag.name: tag.action_constructor
             for tag in tag_cfgs
             if not tag.is_meta
         }
 
         self._components: dict[str, list[Transform]] = {
             tag_name: self._construct_components(transforms)
-            for tag_name, transforms in sc_cfgs.items()
+            for tag_name, transforms in cfgs.items()
+            if transforms is not None
         }
 
-        self._cd_adder = DecisionPointDetector(cfg.countdown)
 
     def _construct_components(self, sub_cfgs: list[TransformConfig]):
         return [
@@ -41,7 +29,7 @@ class StateConstructor:
         ]
 
 
-    def state_dim(self):
+    def action_columns(self):
         tag_names = self._components.keys()
 
         fake_data = pd.DataFrame({
@@ -56,8 +44,12 @@ class StateConstructor:
         )
 
         pf = self(pf)
+
+        # ensure that the dummy does not mutate any
+        # transform states
         self.reset()
-        return list(pf.data.columns)
+
+        return list(pf.actions.columns)
 
 
     def _invoke_per_tag(self, df: pd.DataFrame, tag_name: str, ts: dict[str, list[object | None]]):
@@ -85,25 +77,26 @@ class StateConstructor:
 
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
-        ts = pf.temporal_state.get(StageCode.SC, {})
+        ts = pf.temporal_state.get(StageCode.AC, {})
         assert isinstance(ts, dict)
 
-        if self._cd_adder is not None:
-            pf = self._cd_adder(pf)
-
         tag_names = list(self._components.keys())
+
+        if len(tag_names) == 0:
+            return pf
+
         transformed_parts = [
             self._invoke_per_tag(pf.data, tag_name, ts)
             for tag_name in tag_names
         ]
 
         # put resultant data on PipeFrame
-        df = pf.data.drop(tag_names, axis=1, inplace=False)
-        pf.data = pd.concat([df] + transformed_parts, axis=1, copy=False)
+        pf.actions = pd.concat(transformed_parts, axis=1, copy=False)
 
         # put new temporal state on PipeFrame
-        pf.temporal_state[StageCode.SC] = ts
+        pf.temporal_state[StageCode.AC] = ts
         return pf
+
 
     def reset(self) -> None:
         for transforms in self._components.values():

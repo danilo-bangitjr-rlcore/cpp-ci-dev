@@ -1,5 +1,6 @@
 import pytest
 import datetime as dt
+import numpy as np
 import pandas as pd
 
 from torch import Tensor
@@ -22,10 +23,8 @@ from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
-from corerl.data_pipeline.transforms import LessThanConfig
-from corerl.data_pipeline.transforms.norm import Normalizer, NormalizerConfig
-from corerl.data_pipeline.transforms.product import ProductTransform, ProductConfig
-from corerl.data_pipeline.transforms.split import SplitTransform, SplitConfig
+from corerl.data_pipeline.transforms import LessThanConfig, NullConfig
+from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.datatypes import CallerCode
 from corerl.eval.writer import MetricsWriter
 from corerl.experiment.config import ExperimentConfig
@@ -99,13 +98,12 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
             tags=[
                 TagConfig(
                     name="Action",
-                    is_action=True,
+                    state_constructor=[NullConfig()],
+                    action_constructor=[],
                     bounds=(0.0, 1.0)
                 ),
                 TagConfig(
                     name="Tag_1",
-                    is_action=False,
-                    is_meta=False,
                     reward_constructor=[
                         LessThanConfig(threshold=3),
                     ],
@@ -155,7 +153,7 @@ def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, step
     for i in range(steps):
         for tag_cfg in offline_cfg.pipeline.tags:
             tag = tag_cfg.name
-            if tag_cfg.is_action:
+            if tag_cfg.action_constructor is not None:
                 val = int(i / steps_per_decision) % 2
             else:
                 val = i
@@ -212,8 +210,8 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
     )
 
     pipeline = Pipeline(offline_cfg.pipeline)
-    state_dim, action_dim = pipeline.get_state_action_dims()
-    agent = init_agent(offline_cfg.agent, app_state, state_dim, action_dim)
+    col_desc = pipeline.column_descriptions
+    agent = init_agent(offline_cfg.agent, app_state, col_desc.state_dim, col_desc.action_dim)
 
     # Offline training
     critic_losses = offline_training(offline_cfg, agent, offline_transitions)
@@ -222,165 +220,26 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
 
     assert last_loss < first_loss
 
-def test_normalizer_bounds_reset(offline_cfg: MainConfig):
+def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig):
     normalizer = NormalizerConfig(from_data=True)
 
     # add normalizer to pipeline config
-    offline_cfg.pipeline.state_constructor.defaults = [normalizer]
-    for tag in offline_cfg.pipeline.tags:
-        if tag.name == "Tag_1":
-            tag.state_constructor = [normalizer]
-
+    offline_cfg.pipeline.tags[1].state_constructor = [normalizer]
     pipeline = Pipeline(offline_cfg.pipeline)
-    state_dim, action_dim = pipeline.get_state_action_dims()
 
-    # check initial normalizer bounds are set with the fake data from get_state_action_dims
-    for tag in pipeline.tags:
-        if not tag.is_action and not tag.is_meta:
-            transforms = pipeline.state_constructor._components[tag.name]
-            for transform in transforms:
-                if isinstance(transform, Normalizer):
-                    assert transform._mins[tag.name] == 0.0
-                    assert transform._maxs[tag.name] == 1.0
-
-    # reset normalizers and verify bounds are cleared
-    pipeline.reset()
-    for tag in pipeline.tags:
-        if not tag.is_action and not tag.is_meta:
-            transforms = pipeline.state_constructor._components[tag.name]
-            for transform in transforms:
-                if isinstance(transform, Normalizer):
-                    assert transform._mins[tag.name] is None
-                    assert transform._maxs[tag.name] is None
+    # trigger pipeline to test dummy data
+    _ = pipeline.column_descriptions
 
     # create test data and run through pipeline
     dates = [dt.datetime(2024, 1, 1, 1, i, tzinfo=dt.timezone.utc) for i in range(5)]
     df = pd.DataFrame({
-        "Tag_1": [1.0, 2.0, 5.0, -3.0, 4.0],
-        "Action": [0, 0, 1, 1, 0],
-        "reward": [0, 0, 0, 0, 0]
+        "Tag_1":  [0.1, -0.1, 0, 0, 0],
+        "Action": [  0,    0, 1, 1, 0],
+        "reward": [  0,    0, 0, 0, 0],
     }, index=pd.DatetimeIndex(dates))
 
-    # check if normalizer bounds are updated from data
-    pipeline(df, caller_code=CallerCode.OFFLINE)
-    for tag in pipeline.tags:
-        if not tag.is_action and not tag.is_meta:
-            transforms = pipeline.state_constructor._components[tag.name]
-            for transform in transforms:
-                if isinstance(transform, Normalizer):
-                    assert transform._mins[tag.name] == -3.0
-                    assert transform._maxs[tag.name] == 5.0
+    # check if tag is normalized using [-0.1, 0.1] as bounds
+    # prior implementation would mistakenly use [-0.1, 1] as bounds
+    pr = pipeline(df, caller_code=CallerCode.OFFLINE)
 
-def test_product_bounds_reset(offline_cfg: MainConfig):
-    product = ProductConfig(
-        other="Tag_1",
-        other_xform=[NormalizerConfig(from_data=True)]
-    )
-
-    offline_cfg.pipeline.state_constructor.defaults = [product]
-    for tag in offline_cfg.pipeline.tags:
-        if tag.name == "Tag_1":
-            tag.state_constructor = [product]
-
-    pipeline = Pipeline(offline_cfg.pipeline)
-    state_dim, action_dim = pipeline.get_state_action_dims()
-
-    for tag in pipeline.tags:
-        if not tag.is_action and not tag.is_meta:
-            transforms = pipeline.state_constructor._components[tag.name]
-            for transform in transforms:
-                if isinstance(transform, ProductTransform):
-                    for other_transform in transform._other_xform:
-                        if isinstance(other_transform, Normalizer):
-                            assert other_transform._mins[tag.name] == 0.0
-                            assert other_transform._maxs[tag.name] == 1.0
-
-    pipeline.reset()
-    for tag in pipeline.tags:
-        if not tag.is_action and not tag.is_meta:
-            transforms = pipeline.state_constructor._components[tag.name]
-            for transform in transforms:
-                if isinstance(transform, ProductTransform):
-                    for other_transform in transform._other_xform:
-                        if isinstance(other_transform, Normalizer):
-                            assert other_transform._mins[tag.name] is None
-                            assert other_transform._maxs[tag.name] is None
-
-    dates = [dt.datetime(2024, 1, 1, 1, i, tzinfo=dt.timezone.utc) for i in range(5)]
-    df = pd.DataFrame({
-        "Tag_1": [1.0, 2.0, 5.0, -3.0, 4.0],
-        "Action": [0, 0, 1, 1, 0],
-        "reward": [0, 0, 0, 0, 0]
-    }, index=pd.DatetimeIndex(dates))
-
-    pipeline(df, caller_code=CallerCode.OFFLINE)
-    for tag in pipeline.tags:
-        if not tag.is_action and not tag.is_meta:
-            transforms = pipeline.state_constructor._components[tag.name]
-            for transform in transforms:
-                if isinstance(transform, ProductTransform):
-                    for other_transform in transform._other_xform:
-                        if isinstance(other_transform, Normalizer):
-                            assert other_transform._mins[tag.name] == -3.0
-                            assert other_transform._maxs[tag.name] == 5.0
-
-def test_split_bounds_reset(offline_cfg: MainConfig):
-    split = SplitConfig(
-        left=[NormalizerConfig(from_data=True)],
-        right=[NormalizerConfig(from_data=True)]
-    )
-
-    offline_cfg.pipeline.state_constructor.defaults = [split]
-    for tag in offline_cfg.pipeline.tags:
-        if tag.name == "Tag_1":
-            tag.state_constructor = [split]
-
-    pipeline = Pipeline(offline_cfg.pipeline)
-    state_dim, action_dim = pipeline.get_state_action_dims()
-
-    for tag in pipeline.tags:
-        if not tag.is_action and not tag.is_meta:
-            transforms = pipeline.state_constructor._components[tag.name]
-            for transform in transforms:
-                if isinstance(transform, SplitTransform):
-                    for left_transform in transform._left:
-                        if isinstance(left_transform, Normalizer):
-                            assert left_transform._mins[tag.name] == 0.0
-                            assert left_transform._maxs[tag.name] == 1.0
-                    for right_transform in transform._right:
-                        if isinstance(right_transform, Normalizer):
-                            assert right_transform._mins[tag.name] == 0.0
-                            assert right_transform._maxs[tag.name] == 1.0
-
-    pipeline.reset()
-    for tag in pipeline.tags:
-        if not tag.is_action and not tag.is_meta:
-            transforms = pipeline.state_constructor._components[tag.name]
-            for transform in transforms:
-                if isinstance(transform, SplitTransform):
-                    for left_transform in transform._left:
-                        if isinstance(left_transform, Normalizer):
-                            assert left_transform._mins[tag.name] is None
-                            assert left_transform._maxs[tag.name] is None
-                    for right_transform in transform._right:
-                        if isinstance(right_transform, Normalizer):
-                            assert right_transform._mins[tag.name] is None
-                            assert right_transform._maxs[tag.name] is None
-
-    dates = [dt.datetime(2024, 1, 1, 1, i, tzinfo=dt.timezone.utc) for i in range(5)]
-    df = pd.DataFrame({
-        "Tag_1": [1.0, 2.0, 5.0, -3.0, 4.0],
-        "Action": [0, 0, 1, 1, 0],
-        "reward": [0, 0, 0, 0, 0]
-    }, index=pd.DatetimeIndex(dates))
-
-    pipeline(df, caller_code=CallerCode.OFFLINE)
-    for tag in pipeline.tags:
-        if not tag.is_action and not tag.is_meta:
-            transforms = pipeline.state_constructor._components[tag.name]
-            for transform in transforms:
-                if isinstance(transform, SplitTransform):
-                    for left_transform in transform._left:
-                        if isinstance(left_transform, Normalizer):
-                            assert left_transform._mins[tag.name] == -3.0
-                            assert left_transform._maxs[tag.name] == 5.0
+    assert np.all(pr.df['Tag_1_norm'] == [1., 0, 0.5, 0.5, 0.5])

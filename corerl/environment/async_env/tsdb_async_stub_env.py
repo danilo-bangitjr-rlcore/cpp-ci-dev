@@ -63,11 +63,13 @@ class TSDBAsyncStubEnv(AsyncEnv):
         ]
 
         self.obs_names = [
-            tag.name for tag in tags if not tag.is_action and not tag.is_meta
+            tag.name for tag in tags
+            if not tag.is_meta and tag.action_constructor is not None
         ]
 
         self.action_names = [
-            tag.name for tag in tags if tag.is_action
+            tag.name for tag in tags
+            if tag.action_constructor is not None
         ]
 
         # This could come from a corerl reward function factory

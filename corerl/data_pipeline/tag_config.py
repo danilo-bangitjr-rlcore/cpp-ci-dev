@@ -22,7 +22,7 @@ class TagConfig:
     outlier: OddityFilterConfig = field(default_factory=EMAFilterConfig)
     imputer: ImputerConfig = field(default_factory=IdentityImputerConfig)
     reward_constructor: list[TransformConfig] = list_([NullConfig()])
+    action_constructor: list[TransformConfig] | None = None
     state_constructor: list[TransformConfig] | None = None
-    is_action: bool = False
     is_meta: bool = False
     is_endogenous: bool = True

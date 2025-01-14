@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
 from corerl.data_pipeline.state_constructors.countdown import DecisionPointDetector, CountdownConfig
-from corerl.data_pipeline.tag_config import TagConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 def test_int_countdown1():
@@ -18,18 +17,13 @@ def test_int_countdown1():
         caller_code=CallerCode.ONLINE,
     )
 
-    tag_cfgs = [
-        TagConfig('tag-1', is_action=True),
-        TagConfig('tag-2', is_action=True),
-    ]
-
     cd_cfg = CountdownConfig(
         action_period=timedelta(minutes=4),
         obs_period=timedelta(minutes=1),
         kind='int',
     )
 
-    cd_adder = DecisionPointDetector(tag_cfgs, cd_cfg)
+    cd_adder = DecisionPointDetector(cd_cfg)
     pf = cd_adder(pf)
 
     expected = pd.DataFrame({
@@ -83,18 +77,13 @@ def test_int_countdown2():
         caller_code=CallerCode.ONLINE,
     )
 
-    tag_cfgs = [
-        TagConfig('tag-1', is_action=True),
-        TagConfig('tag-2', is_action=True),
-    ]
-
     cd_cfg = CountdownConfig(
         action_period=timedelta(minutes=4),
         obs_period=timedelta(minutes=1),
         kind='int',
     )
 
-    cd_adder = DecisionPointDetector(tag_cfgs, cd_cfg)
+    cd_adder = DecisionPointDetector(cd_cfg)
     pf = cd_adder(pf)
 
     expected = pd.DataFrame({
@@ -121,17 +110,13 @@ def test_int_countdown3():
         caller_code=CallerCode.ONLINE,
     )
 
-    tag_cfgs = [
-        TagConfig('tag-1', is_action=True),
-    ]
-
     cd_cfg = CountdownConfig(
         action_period=timedelta(minutes=4),
         obs_period=timedelta(minutes=1),
         kind='int',
     )
 
-    cd_adder = DecisionPointDetector(tag_cfgs, cd_cfg)
+    cd_adder = DecisionPointDetector(cd_cfg)
     pf = cd_adder(pf)
 
     expected = pd.DataFrame({
@@ -152,17 +137,13 @@ def test_two_clock1():
         caller_code=CallerCode.ONLINE,
     )
 
-    tag_cfgs = [
-        TagConfig('tag-1', is_action=True),
-    ]
-
     cd_cfg = CountdownConfig(
         action_period=timedelta(minutes=4),
         obs_period=timedelta(minutes=1),
         kind='two_clock',
     )
 
-    cd_adder = DecisionPointDetector(tag_cfgs, cd_cfg)
+    cd_adder = DecisionPointDetector(cd_cfg)
     pf = cd_adder(pf)
 
     expected = pd.DataFrame({
