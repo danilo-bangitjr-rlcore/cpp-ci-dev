@@ -33,13 +33,15 @@ class DeploymentInteraction(Interaction):
         self._column_desc = pipeline.column_descriptions
 
         self._should_reset = True
-        self._last_state: np.ndarray | None = None
+        self._last_state = np.full(self._column_desc.state_dim, np.nan)
         self._pipeline.register_hook(StageCode.SC, self._capture_last_state)
 
         ### timing logic ###
         self.obs_period = env.obs_period
         self.action_period = env.action_period
-        self._next_action_timestamp: datetime = datetime.now(UTC) # take an action right away
+        self.tol = env.action_tolerance
+        self._next_action_timestamp = datetime.now(UTC) # take an action right away
+        self._last_obs_timestamp = datetime.now(UTC)
 
         # the step clock starts ticking on the first invocation of `next(self._step_clock)`
         # this should occur on the first call to `self.step`
@@ -54,11 +56,11 @@ class DeploymentInteraction(Interaction):
         pr = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
         if pr.transitions is not None:
             self._agent.update_buffer(pr.transitions)
+
         self._agent.update()
 
         s = self._get_latest_state()
-        assert s is not None
-        if self._should_take_action(step_timestamp):
+        if s is not None and self._should_take_action(step_timestamp):
             a = self._agent.get_action(s)
             self._env.emit_action(a)
 
@@ -84,12 +86,18 @@ class DeploymentInteraction(Interaction):
         state = row[list(tags)].iloc[0].to_numpy()
 
         self._last_state = np.asarray(state, dtype=np.float32)
+        self._last_obs_timestamp = datetime.now(UTC)
         logger.info(f"captured state {self._last_state}, with columns {tags}")
 
 
     def _get_latest_state(self) -> np.ndarray | None:
-        if self._last_state is None:
-            logger.error("Tried to get interaction state, but none existed")
+        now = datetime.now(UTC)
+        if np.any(np.isnan(self._last_state)):
+            logger.error("Tried to get interaction state, but there were nan values")
+            return None
+
+        if now - self._last_obs_timestamp > self.obs_period + self.tol:
+            logger.error("Got a stale interaction state")
             return None
 
         return self._last_state
@@ -111,4 +119,3 @@ def wait_for_timestamp(timestamp: datetime) -> None:
     else:
         sleep_duration = (timestamp - now).total_seconds()
     sleep(sleep_duration)
-

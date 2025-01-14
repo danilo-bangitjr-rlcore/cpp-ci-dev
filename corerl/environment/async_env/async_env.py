@@ -37,6 +37,7 @@ class GymEnvConfig(BaseAsyncEnvConfig):
 class AsyncEnv:
     obs_period: timedelta
     action_period: timedelta
+    action_tolerance: timedelta
 
     def emit_action(self, action: np.ndarray) -> None: ...
 
