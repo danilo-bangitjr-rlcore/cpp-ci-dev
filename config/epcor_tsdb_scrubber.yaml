@@ -62,8 +62,8 @@ pipeline:
     ip: "localhost"
     port: 5432
     db_name: "postgres"
-    sensor_table_name: "scrubber4"
-    sensor_table_schema: "public"
+    table_name: "scrubber4"
+    table_schema: "public"
 
   tags:
     - name: "AI0879A"

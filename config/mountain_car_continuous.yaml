@@ -46,7 +46,7 @@ pipeline:
     ip: "localhost"
     port: 5432
     db_name: "public"
-    sensor_table_name: "sensors"
+    table_name: "sensors"
 
   state_constructor:
     defaults: []

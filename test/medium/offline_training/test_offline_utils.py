@@ -12,7 +12,7 @@ from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.buffer.buffers import UniformReplayBufferConfig
 from corerl.component.optimizers.torch_opts import AdamConfig
-from corerl.config import MainConfig
+from corerl.config import MainConfig, MetricsDBConfig
 from corerl.data_pipeline.datatypes import Step, Transition
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.db.data_reader import TagDBConfig
@@ -27,9 +27,12 @@ from corerl.data_pipeline.transforms.norm import Normalizer, NormalizerConfig
 from corerl.data_pipeline.transforms.product import ProductTransform, ProductConfig
 from corerl.data_pipeline.transforms.split import SplitTransform, SplitConfig
 from corerl.data_pipeline.datatypes import CallerCode
+from corerl.eval.writer import MetricsWriter
 from corerl.experiment.config import ExperimentConfig
+from corerl.messages.client import DummyWebsocketClient
 from corerl.offline.utils import load_offline_transitions, offline_training
 
+from corerl.state import AppState
 from test.infrastructure.utils.docker import init_docker_container # noqa: F401
 
 @pytest.fixture(scope="module")
@@ -41,7 +44,7 @@ def test_db_config() -> TagDBConfig:
         ip="localhost",
         port=5433,  # default is 5432, but we want to use different port for test db
         db_name="offline_test",
-        sensor_table_name="tags",
+        table_name="tags",
     )
 
     return db_cfg
@@ -57,7 +60,7 @@ def init_offline_tsdb_container():
 
 @pytest.fixture(scope="module")
 def data_writer(init_offline_tsdb_container: Container, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]: # noqa: F811, E501
-    data_writer = DataWriter(db_cfg=test_db_config)
+    data_writer = DataWriter(cfg=test_db_config)
 
     yield data_writer
 
@@ -70,6 +73,9 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     seed = 0
 
     cfg = MainConfig(
+        metrics=MetricsDBConfig(
+            enabled=False,
+        ),
         agent=GreedyACConfig(
             actor=NetworkActorConfig(
                 buffer=UniformReplayBufferConfig(
@@ -200,9 +206,14 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
 
     offline_transitions = generate_offline_data(offline_cfg, data_writer, steps)
 
+    app_state = AppState(
+        metrics=MetricsWriter(offline_cfg.metrics),
+        event_bus=DummyWebsocketClient('', 0),
+    )
+
     pipeline = Pipeline(offline_cfg.pipeline)
     state_dim, action_dim = pipeline.get_state_action_dims()
-    agent = init_agent(offline_cfg.agent, state_dim, action_dim)
+    agent = init_agent(offline_cfg.agent, app_state, state_dim, action_dim)
 
     # Offline training
     critic_losses = offline_training(offline_cfg, agent, offline_transitions)
@@ -373,4 +384,3 @@ def test_split_bounds_reset(offline_cfg: MainConfig):
                         if isinstance(left_transform, Normalizer):
                             assert left_transform._mins[tag.name] == -3.0
                             assert left_transform._maxs[tag.name] == 5.0
-

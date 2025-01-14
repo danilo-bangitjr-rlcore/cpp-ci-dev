@@ -17,8 +17,8 @@ from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
-from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
+from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig

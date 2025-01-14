@@ -46,6 +46,17 @@ agent:
       lr: 0.00001
 
 
+metrics:
+  drivername: "postgresql+psycopg2"
+  username: "postgres"
+  password: "password"
+  ip: "localhost"
+  port: 5432
+  db_name: "postgres"
+  table_schema: "public"
+  table_name: "metrics"
+  enabled: True
+
 pipeline:
   db:
     drivername: "postgresql+psycopg2"
@@ -54,8 +65,8 @@ pipeline:
     ip: "localhost"
     port: 5432
     db_name: "postgres"
-    sensor_table_schema: "public"
-    sensor_table_name: "opcua"
+    table_schema: "public"
+    table_name: "opcua"
 
   state_constructor:
     defaults: []

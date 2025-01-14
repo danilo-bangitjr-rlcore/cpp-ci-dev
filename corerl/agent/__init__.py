@@ -1,5 +1,6 @@
 from corerl.agent.base import BaseAgent
 from corerl.configs.group import Group
+from corerl.state import AppState
 
 from corerl.agent.action_schedule import ActionScheduleAgent, ActionScheduleConfig
 from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig
@@ -12,7 +13,7 @@ from corerl.agent.sarsa import EpsilonGreedySarsa, EpsilonGreedySarsaConfig
 from corerl.agent.simple_ac import SimpleAC, SimpleACConfig
 
 agent_group = Group[
-    [int, int],
+    [AppState, int, int],
     BaseAgent,
 ]()
 

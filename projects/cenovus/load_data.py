@@ -45,6 +45,6 @@ def load_dataset(cfg: TagDBConfig):
 
 if __name__ == '__main__':
     cfg = TagDBConfig(
-        sensor_table_name='cenovus',
+        table_name='cenovus',
     )
     load_dataset(cfg)
