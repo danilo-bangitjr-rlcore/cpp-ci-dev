@@ -58,26 +58,19 @@ pipeline:
     name: anytime
   tags:
   - name: PERM_SP.BW_SP # flow rate setpoint
-    bounds:
-    - 0.9
-    - 1.4
+    bounds: [0.9, 1.4]
     is_action: true
     state_constructor: # exclude from state
     - name: "null"
 
   - name: BW_SP.KY2 # backpulse duration setpoint
-    bounds:
-    - 20
-    - 40
+    bounds: [20, 40]
     is_action: true
     state_constructor: # exclude from state
     - name: "null"
 
   - name: PRC_INFO.PERMEABILITY # permeability
-    bounds:
-    # this tag reports negative permeability
-    - -40
-    - -15
+    bounds: [-40, -15] # this tag reports negative permeability
     reward_constructor:
     - name: affine
       scale: 0.04 # 1 / (max - min)
@@ -86,21 +79,13 @@ pipeline:
       factor: -1.0 # convert from negative permeability normalized to [0, 1] -> positive permeability normalized to [-1, 0]
 
   - name: TUIT101.DATA # raw turbidity
-    bounds:
-    - 0.0
-    - 1.5
+    bounds: [0, 1.5]
 
   - name: FTC101.DATA # raw cdom
-    bounds:
-    - 1.0
-    - 4.0
+    bounds: [1, 4]
 
   - name: FTT100.DATA # raw tryptophan
-    bounds:
-    - 0.0
-    - 0.7
+    bounds: [0, 0.7]
 
   - name: TIT302.DATA # postfloc water temp
-    bounds:
-    - 0.0
-    - 15.0
+    bounds: [0, 15]
