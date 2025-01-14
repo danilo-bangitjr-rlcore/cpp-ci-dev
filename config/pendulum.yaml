@@ -2,6 +2,9 @@ defaults:
   - gym
   - env: env/pendulum
 
+interaction:
+  name: sim_interaction
+
 agent:
   name: greedy_ac
   n_critic_updates : 1

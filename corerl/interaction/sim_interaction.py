@@ -7,12 +7,21 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv
 
+from corerl.configs.config import config
+from corerl.interaction.interaction import Interaction
 
 logger = logging.getLogger(__file__)
 
-class SimInteraction:
+
+@config()
+class SimInteractionConfig:
+    name: str = "sim_interaction"
+
+
+class SimInteraction(Interaction):
     def __init__(
         self,
+        cfg: SimInteractionConfig,
         agent: BaseAgent,
         env: AsyncEnv,
         pipeline: Pipeline,

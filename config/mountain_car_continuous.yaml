@@ -5,6 +5,9 @@ experiment:
   seed: 1
   gamma: 0.99
 
+interaction:
+  name: sim_interaction
+
 env:
   name: sim_async_env
   gym_name: MountainCarContinuous-v0
