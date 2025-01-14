@@ -1,6 +1,3 @@
-defaults:
-  -
-
 experiment:
   exp_name: DraytonValley-Pilot-Backwash
   param_from_hash: True
