@@ -4,7 +4,6 @@ import numpy as np
 from corerl.agent.base import BaseAgent
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv
 
 from corerl.configs.config import config
@@ -25,7 +24,6 @@ class SimInteraction(Interaction):
         agent: BaseAgent,
         env: AsyncEnv,
         pipeline: Pipeline,
-        tag_configs: list[TagConfig],
     ):
         self._pipeline = pipeline
         self._env = env

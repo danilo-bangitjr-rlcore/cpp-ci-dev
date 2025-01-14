@@ -60,7 +60,7 @@ def main(cfg: MainConfig):
             column_desc.action_dim,
         )
         interaction = init_interaction(
-            cfg=cfg.interaction, agent=agent, env=env, pipeline=pipeline, tag_configs=cfg.pipeline.tags
+            cfg=cfg.interaction, agent=agent, env=env, pipeline=pipeline,
         )
 
         for _ in tqdm(range(cfg.experiment.max_steps)):
