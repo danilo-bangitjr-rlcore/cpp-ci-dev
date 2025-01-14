@@ -2,6 +2,9 @@ defaults:
   - gym
   - env: env/saturation
 
+interaction:
+  name: sim_interaction
+
 experiment :
   exp_name : "delayed_saturation_debug"
   max_steps : 10000
