@@ -1,3 +1,10 @@
+## 0.22.0 (2025-01-14)
+
+### Feat
+
+- allow specifying configs with leading base in name
+- allow specifying a config path with trailing .yaml
+
 ## 0.21.0 (2025-01-14)
 
 ### Feat
