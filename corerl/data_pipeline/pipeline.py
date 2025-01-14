@@ -12,15 +12,15 @@ import numpy as np
 from pandas import DataFrame
 
 from corerl.configs.config import config, interpolate, list_
-from corerl.data_pipeline.action_constructor.ac import ActionConstructor
+from corerl.data_pipeline.constructors.ac import ActionConstructor
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
-from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
-from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
+from corerl.data_pipeline.constructors.rc import RewardComponentConstructor, RewardConstructor
+from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
@@ -170,8 +170,8 @@ class Pipeline:
     @cached_property
     def column_descriptions(self):
         return ColumnDescriptions(
-            state_cols=self.state_constructor.state_dim(),
-            action_cols=self.action_constructor.action_columns(),
+            state_cols=self.state_constructor.columns,
+            action_cols=self.action_constructor.columns,
         )
 
     def register_hook(self, stage: StageCode, f: Callable[[PipelineFrame], Any]):

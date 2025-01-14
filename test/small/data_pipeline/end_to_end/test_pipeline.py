@@ -9,7 +9,7 @@ from corerl.data_pipeline.imputers.linear import LinearImputerConfig
 from corerl.data_pipeline.imputers.copy import CopyImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
-from corerl.data_pipeline.state_constructors.sc import SCConfig
+from corerl.data_pipeline.constructors.sc import SCConfig
 from corerl.data_pipeline.transforms import NullConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig

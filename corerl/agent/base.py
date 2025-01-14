@@ -9,6 +9,7 @@ from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.configs.config import MISSING, interpolate, config
 from corerl.data_pipeline.datatypes import Transition
+from corerl.data_pipeline.pipeline import ColumnDescriptions
 from corerl.messages.client import MessageBusClientConfig
 from corerl.state import AppState
 
@@ -28,12 +29,12 @@ class BaseAgentConfig:
 
 
 class BaseAgent(ABC):
-    def __init__(self, cfg: BaseAgentConfig, app_state: AppState, state_dim: int, action_dim: int):
+    def __init__(self, cfg: BaseAgentConfig, app_state: AppState, col_desc: ColumnDescriptions):
         self._app_state = app_state
         self.replay_ratio = cfg.replay_ratio
         self.update_freq = cfg.update_freq
-        self.state_dim = state_dim
-        self.action_dim = action_dim
+        self.state_dim = col_desc.state_dim
+        self.action_dim = col_desc.action_dim
         self.gamma = cfg.gamma
         self.discrete_control = cfg.discrete_control
         self.seed = cfg.seed
@@ -85,8 +86,8 @@ class BaseACConfig(BaseAgentConfig):
 
 
 class BaseAC(BaseAgent):
-    def __init__(self, cfg: BaseACConfig, app_state: AppState, state_dim: int, action_dim: int):
-        super().__init__(cfg, app_state, state_dim, action_dim)
+    def __init__(self, cfg: BaseACConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        super().__init__(cfg, app_state, col_desc)
         self.n_critic_updates = cfg.n_critic_updates
         self.n_actor_updates = cfg.n_actor_updates
 

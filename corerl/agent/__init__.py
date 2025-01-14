@@ -11,9 +11,10 @@ from corerl.agent.random import RandomAgent, RandomAgentConfig
 from corerl.agent.sac import SAC, SACConfig
 from corerl.agent.sarsa import EpsilonGreedySarsa, EpsilonGreedySarsaConfig
 from corerl.agent.simple_ac import SimpleAC, SimpleACConfig
+from corerl.data_pipeline.pipeline import ColumnDescriptions
 
 agent_group = Group[
-    [AppState, int, int],
+    [AppState, ColumnDescriptions],
     BaseAgent,
 ]()
 

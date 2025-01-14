@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.state_constructors.sc import transform_group
+from corerl.data_pipeline.transforms.base import transform_group
 
 from test.infrastructure.utils.pandas import dfs_close
 

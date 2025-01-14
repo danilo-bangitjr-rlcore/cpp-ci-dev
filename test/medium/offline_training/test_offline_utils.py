@@ -18,7 +18,7 @@ from corerl.data_pipeline.datatypes import Step, Transition
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
-from corerl.data_pipeline.state_constructors.sc import SCConfig
+from corerl.data_pipeline.constructors.sc import SCConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
@@ -211,7 +211,7 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
 
     pipeline = Pipeline(offline_cfg.pipeline)
     col_desc = pipeline.column_descriptions
-    agent = init_agent(offline_cfg.agent, app_state, col_desc.state_dim, col_desc.action_dim)
+    agent = init_agent(offline_cfg.agent, app_state, col_desc)
 
     # Offline training
     critic_losses = offline_training(offline_cfg, agent, offline_transitions)

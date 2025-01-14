@@ -17,6 +17,7 @@ from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.state import AppState
 from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import TransitionBatch, Transition
+from corerl.data_pipeline.pipeline import ColumnDescriptions
 
 
 @config(frozen=True)
@@ -31,13 +32,13 @@ class EpsilonGreedySarsaConfig(BaseAgentConfig):
 
 
 class EpsilonGreedySarsa(BaseAgent):
-    def __init__(self, cfg: EpsilonGreedySarsaConfig, app_state: AppState, state_dim: int, action_dim: int):
-        super().__init__(cfg, app_state, state_dim, action_dim)
+    def __init__(self, cfg: EpsilonGreedySarsaConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        super().__init__(cfg, app_state, col_desc)
         self.ensemble_targets = cfg.ensemble_targets
         self.samples = cfg.samples
         self.epsilon = cfg.epsilon
-        self.action_dim = action_dim
-        self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
+        self.action_dim = self.action_dim
+        self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
         self.critic_buffer = init_buffer(cfg.critic.buffer)
 
     def update_buffer(self, transitions: Sequence[Transition]) -> None:

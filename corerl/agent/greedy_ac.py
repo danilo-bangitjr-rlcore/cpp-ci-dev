@@ -21,6 +21,7 @@ from corerl.component.network.utils import to_np, state_to_tensor
 from corerl.state import AppState
 from corerl.utils.device import device
 from corerl.data_pipeline.datatypes import Transition, TransitionBatch
+from corerl.data_pipeline.pipeline import ColumnDescriptions
 from jaxtyping import Float
 from typing import Literal, Optional
 
@@ -49,11 +50,9 @@ class GreedyACConfig(BaseACConfig):
     critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
 
 class GreedyAC(BaseAC):
-    def __init__(self, cfg: GreedyACConfig, app_state: AppState, state_dim: int, action_dim: int):
-        super().__init__(cfg, app_state, state_dim, action_dim)
+    def __init__(self, cfg: GreedyACConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        super().__init__(cfg, app_state, col_desc)
         self.ensemble_targets = cfg.ensemble_targets
-
-        self.action_dim = action_dim
 
         # Whether to average the proposal policy's entropy over all the sampled actions
         self.average_entropy = cfg.average_entropy
@@ -83,9 +82,9 @@ class GreedyAC(BaseAC):
         self.top_actions_proposal = int(
             self.rho_proposal * self.num_samples)  # Number of actions used to update proposal policy
 
-        self.actor = init_actor(cfg.actor, state_dim, action_dim)
-        self.sampler = init_actor(cfg.actor, state_dim, action_dim, initializer=self.actor)
-        self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
+        self.actor = init_actor(cfg.actor, self.state_dim, self.action_dim)
+        self.sampler = init_actor(cfg.actor, self.state_dim, self.action_dim, initializer=self.actor)
+        self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)

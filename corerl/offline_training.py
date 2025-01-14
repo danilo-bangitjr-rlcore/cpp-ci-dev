@@ -39,7 +39,7 @@ def main(cfg: MainConfig):
 
     pipeline = Pipeline(cfg.pipeline)
     column_desc = pipeline.column_descriptions
-    agent = init_agent(cfg.agent, app_state, column_desc.state_dim, column_desc.action_dim)
+    agent = init_agent(cfg.agent, app_state, column_desc)
     transitions = []
 
     # Offline training
