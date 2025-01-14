@@ -110,8 +110,10 @@ def _walk_config_and_interpolate(root: dict[str, Any]):
 # -- YAML Default Merging --
 # --------------------------
 def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
-    path = Path(base) / f'{config_name}.yaml'
+    if not config_name.endswith('.yaml'):
+        config_name += '.yaml'
 
+    path = Path(base) / f'{config_name}'
     with open(path, 'r') as f:
         config = yaml.safe_load(f)
 
