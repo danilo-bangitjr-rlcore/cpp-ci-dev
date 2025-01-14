@@ -1,3 +1,20 @@
+## 0.24.0 (2025-01-14)
+
+### Feat
+
+- build action constructor stage
+
+### Fix
+
+- grab denormalize bounds from normalizer config
+- reset sc transform states after dummy data
+
+### Refactor
+
+- remove tag_configs input to interactions
+- replace is_action with action_constructor
+- get state/action dims and col names from pipeline
+
 ## 0.23.0 (2025-01-14)
 
 ### Feat
