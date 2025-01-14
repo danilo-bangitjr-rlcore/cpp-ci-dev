@@ -1,3 +1,13 @@
+## 0.25.0 (2025-01-14)
+
+### Feat
+
+- add config to test deployment env and sim with mountain car
+
+### Fix
+
+- update last_obs_timestamp based on next_obs_timestamp in deployment env
+
 ## 0.24.1 (2025-01-14)
 
 ### Refactor
