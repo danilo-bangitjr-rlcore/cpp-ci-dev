@@ -66,8 +66,9 @@ class ModelEnv(gym.Env):
             next_obs = torch.concat([next_obs, exo_obs])
 
         self.rollout_step += 1
-        terminated = self.rollout_step == self.rollout_len  # TODO: should rollout ends be termination or truncation?
-        return next_obs, reward, terminated, False, {}
+        truncated = self.rollout_step == self.rollout_len  # TODO: should rollout ends be termination or truncation?
+        terminated = False
+        return next_obs, reward, terminated, truncated, {}
 
     def reset(
             self,
