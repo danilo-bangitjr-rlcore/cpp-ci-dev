@@ -1,3 +1,21 @@
+## 0.23.0 (2025-01-14)
+
+### Feat
+
+- add metrics logging defaults to all environments
+- wire app_state through agents for top-level stateful objects
+- add metrics writer as a buffered writer
+
+### Fix
+
+- use docker hostname for timescale ip resolution
+- rename dv pilot db config from sensor_table_* to table_*
+- table_schema should not be an empty string
+
+### Refactor
+
+- pull buffered writing into generic utility
+
 ## 0.22.0 (2025-01-14)
 
 ### Feat
