@@ -1,3 +1,9 @@
+## 0.20.1 (2025-01-14)
+
+### Fix
+
+- Add Grafana to Docker Compose (#365)
+
 ## 0.20.0 (2025-01-14)
 
 ### Feat
