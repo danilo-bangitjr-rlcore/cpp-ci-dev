@@ -100,7 +100,7 @@ def initialize_opc_nodes_from_tags(
 
 def run(env: gym.Env, client: Client, cfg_env: OPCTSDBSimAsyncEnvConfig, tag_configs: list[TagConfig]):
     seed = cfg_env.seed
-    sleep_sec = cfg_env.sleep_sec
+    sleep_sec = cfg_env.obs_period.total_seconds()
 
     initial_observation, info = env.reset(seed=seed)
     initial_action = env.action_space.sample()
