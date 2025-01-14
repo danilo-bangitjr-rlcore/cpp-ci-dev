@@ -13,6 +13,9 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    volumes:
+      - timescale-storage:/var/lib/postgresql/data
+
   opc-server:
     build: ./e2e/opc_server
     ports:
@@ -24,6 +27,7 @@ services:
       watch:
         - action: rebuild
           path: ./e2e/opc_server
+
   telegraf:
     # image: telegraf:latest
     image: telegraf:1.32.3
@@ -40,3 +44,18 @@ services:
         - action: sync+restart
           path: ./e2e/telegraf/generated_telegraf.conf
           target: /etc/telegraf/telegraf.conf
+
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    restart: unless-stopped
+    depends_on:
+      timescale-db:
+        condition: service_healthy
+    ports:
+      - '3000:3000'
+    volumes:
+      - grafana-storage:/var/lib/grafana
+volumes:
+  timescale-storage: {}
+  grafana-storage: {}
