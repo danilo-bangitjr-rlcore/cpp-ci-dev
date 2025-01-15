@@ -1,7 +1,8 @@
 import argparse
-from pathlib import Path
 import os
 import stat
+from pathlib import Path
+
 import corerl.utils.sweep as sweep
 
 

@@ -1,6 +1,9 @@
+from datetime import UTC, datetime, timedelta
+
 import pandas as pd
-from datetime import datetime, timedelta, UTC
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode
+
+from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
+
 
 def test_get_last_timestamp():
     now = datetime.now(UTC)

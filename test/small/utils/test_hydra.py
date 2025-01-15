@@ -1,7 +1,10 @@
 from typing import Literal
+
 from pydantic import Field
+
 from corerl.configs.config import config
 from corerl.configs.group import Group
+
 
 def test_group1():
     # -------------------------

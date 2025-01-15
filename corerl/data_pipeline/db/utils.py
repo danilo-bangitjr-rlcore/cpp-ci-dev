@@ -1,6 +1,7 @@
-import time
 import logging
-from sqlalchemy import Engine, Connection
+import time
+
+from sqlalchemy import Connection, Engine
 
 logger = logging.getLogger(__name__)
 

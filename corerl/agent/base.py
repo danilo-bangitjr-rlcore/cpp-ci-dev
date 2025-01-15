@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import field
-from typing import Any
-import numpy
 from pathlib import Path
+from typing import Any
+
+import numpy
 
 from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
-from corerl.configs.config import MISSING, interpolate, config
+from corerl.configs.config import MISSING, config, interpolate
 from corerl.data_pipeline.datatypes import Transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions
 from corerl.messages.client import MessageBusClientConfig

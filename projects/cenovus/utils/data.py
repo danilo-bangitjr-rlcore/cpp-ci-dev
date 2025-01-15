@@ -1,9 +1,10 @@
+from datetime import datetime
 from logging import getLogger
 from pathlib import Path
-from datetime import datetime
+
+from cloudpathlib import S3Client, S3Path
 from cloudpathlib.enums import FileCacheMode
 from pydantic import BaseModel, ValidationError
-from cloudpathlib import S3Client, S3Path
 
 logger = getLogger('cenovus')
 

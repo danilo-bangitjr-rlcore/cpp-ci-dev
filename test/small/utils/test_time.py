@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
+
 import corerl.utils.time as time_util
+
 
 def test_split_into_chunks():
     start = datetime(2024, 8, 1, 1)

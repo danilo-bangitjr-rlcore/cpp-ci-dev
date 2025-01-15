@@ -1,16 +1,14 @@
 import pandas as pd
 import pytest
-
 from torch import Tensor
 
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, Transition, Step
+from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, Step, Transition
 from corerl.data_pipeline.transition_filter import (
+    TransitionFilter,
+    TransitionFilterConfig,
     only_dp,
     only_no_action_change,
     only_post_dp,
-    TransitionFilterConfig,
-    TransitionFilter
-
 )
 
 

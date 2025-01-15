@@ -1,11 +1,12 @@
-from typing import Literal
-import torch
 from collections.abc import Iterable
-from corerl.configs.config import config, MISSING
-from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
-from corerl.component.optimizers.custom_torch_opts import CustomAdam
-from corerl.configs.group import Group
+from typing import Literal
 
+import torch
+
+from corerl.component.optimizers.custom_torch_opts import CustomAdam
+from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
+from corerl.configs.config import MISSING, config
+from corerl.configs.group import Group
 
 optim_group = Group[
     [Iterable[torch.nn.Parameter], bool],

@@ -1,12 +1,12 @@
 import random
+from typing import Any, Tuple
+
 import gymnasium as gym
-
 from torch import Tensor
-from typing import Tuple, Any
 
-from corerl.models.base import BaseModel
-from corerl.environment.config import EnvironmentConfig
 from corerl.configs.config import MISSING, config
+from corerl.environment.config import EnvironmentConfig
+from corerl.models.base import BaseModel
 
 
 @config()

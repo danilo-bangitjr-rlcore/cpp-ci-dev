@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import logging
+import os
 import random
 import sys
-import os
 
 import numpy as np
 import torch

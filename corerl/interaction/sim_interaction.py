@@ -1,12 +1,12 @@
 import logging
+
 import numpy as np
 
 from corerl.agent.base import BaseAgent
+from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
-
-from corerl.configs.config import config
 from corerl.interaction.interaction import Interaction
 
 logger = logging.getLogger(__file__)

@@ -2,9 +2,11 @@ from datetime import timedelta
 
 import numpy as np
 import pandas as pd
+
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
-from corerl.data_pipeline.state_constructors.countdown import DecisionPointDetector, CountdownConfig
+from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from test.infrastructure.utils.pandas import dfs_close
+
 
 def test_int_countdown1():
     actions = pd.DataFrame({

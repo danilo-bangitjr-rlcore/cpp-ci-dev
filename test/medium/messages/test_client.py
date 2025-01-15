@@ -1,6 +1,7 @@
 import asyncio
-from test.medium.messages.conftest import WebsocketClient, WebsocketServer
+
 from corerl.messages.events import EventType
+from test.medium.messages.conftest import WebsocketClient, WebsocketServer
 
 
 # ----------------

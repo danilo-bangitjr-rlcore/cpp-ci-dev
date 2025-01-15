@@ -1,12 +1,13 @@
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
+from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Generic, NamedTuple, TypeVar
 
-from concurrent.futures import Future, ThreadPoolExecutor
+from sqlalchemy import Connection, Engine, TextClause
+
 from corerl.configs.config import MISSING, config
-from corerl.sql_logging.sql_logging import get_sql_engine, table_exists, SQLEngineConfig
-from sqlalchemy import Connection, TextClause, Engine
 from corerl.data_pipeline.db.utils import try_connect
+from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine, table_exists
 
 logger = logging.getLogger(__name__)
 

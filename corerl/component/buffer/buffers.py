@@ -1,16 +1,16 @@
+import logging
+import random
 from collections.abc import Sequence
 from typing import Any, Literal, cast
-import torch
-import random
-import logging
-import numpy as np
 
+import numpy as np
+import torch
 from torch import Tensor
-from corerl.configs.config import config
-from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import Transition, TransitionBatch, StepBatch
+
+from corerl.configs.config import MISSING, config
 from corerl.configs.group import Group
-from corerl.configs.config import MISSING
+from corerl.data_pipeline.datatypes import StepBatch, Transition, TransitionBatch
+from corerl.utils.device import device
 
 logger = logging.getLogger(__name__)
 

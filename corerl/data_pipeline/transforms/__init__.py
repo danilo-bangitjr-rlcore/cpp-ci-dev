@@ -1,14 +1,15 @@
 from __future__ import annotations
-from typing import cast, Any, Literal
+
+from typing import Any, Literal, cast
+
+from pydantic import Field
 from pydantic.dataclasses import rebuild_dataclass
 from typing_extensions import Annotated
-from pydantic import Field
 
 from corerl.configs.config import MISSING, config, list_
-from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.affine import AffineConfig
-from corerl.data_pipeline.transforms.base import BaseTransformConfig
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.greater_than import GreaterThanConfig
 from corerl.data_pipeline.transforms.identity import IdentityConfig
 from corerl.data_pipeline.transforms.less_than import LessThanConfig
@@ -17,7 +18,6 @@ from corerl.data_pipeline.transforms.null import NullConfig
 from corerl.data_pipeline.transforms.power import PowerConfig
 from corerl.data_pipeline.transforms.scale import ScaleConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
-
 
 """
 To avoid circular imports and partially defined types

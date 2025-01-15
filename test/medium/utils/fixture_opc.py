@@ -1,5 +1,6 @@
 import pytest
-from asyncua import Server, Node
+from asyncua import Node, Server
+
 from corerl.utils.opc_connection import OpcConfig, OpcConnection
 from test.infrastructure.networking import get_free_port
 

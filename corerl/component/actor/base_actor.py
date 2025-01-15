@@ -1,10 +1,11 @@
+from abc import ABC, abstractmethod
+from pathlib import Path
+
 import torch
 
-from pathlib import Path
-from abc import ABC, abstractmethod
-
-from corerl.configs.group import Group
 from corerl.component.policy.policy import Policy
+from corerl.configs.group import Group
+
 
 class BaseActor(ABC):
     policy: Policy

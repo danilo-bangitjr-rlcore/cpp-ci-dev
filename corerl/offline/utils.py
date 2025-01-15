@@ -1,12 +1,14 @@
 import logging
+
 log = logging.getLogger(__name__)
 
 import datetime as dt
+
 from tqdm import tqdm
 
-from corerl.config import MainConfig
 from corerl.agent.base import BaseAgent
-from corerl.data_pipeline.datatypes import Transition, CallerCode
+from corerl.config import MainConfig
+from corerl.data_pipeline.datatypes import CallerCode, Transition
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.utils.time import split_into_chunks

@@ -1,7 +1,8 @@
+from collections import defaultdict
 from typing import Literal
+
 import numpy as np
 from numba import njit
-from collections import defaultdict
 
 from corerl.configs.config import config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group

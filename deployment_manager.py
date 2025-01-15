@@ -1,13 +1,13 @@
 import asyncio
-from dataclasses import field
 import datetime as dt
+from dataclasses import field
 
+from corerl.configs.config import MISSING, config, list_
+from corerl.configs.loader import load_config
 from corerl.messages.client import WebsocketClient
 from corerl.messages.events import EventType
 from corerl.messages.server import WebsocketServerConfig
 from corerl.utils.processes import keep_alive
-from corerl.configs.loader import load_config
-from corerl.configs.config import MISSING, config, list_
 
 
 @config()

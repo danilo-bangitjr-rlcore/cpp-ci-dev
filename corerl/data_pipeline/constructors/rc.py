@@ -1,11 +1,12 @@
+from collections.abc import Sequence
+
 import pandas as pd
 
-from collections.abc import Sequence
-from corerl.data_pipeline.transforms import TransformConfig
-from corerl.data_pipeline.transforms.null import Null
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TagName
+from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.base import Transform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
+from corerl.data_pipeline.transforms.null import Null
 from corerl.data_pipeline.utils import get_tag_temporal_state, invoke_stage_per_tag
 
 

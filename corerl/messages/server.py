@@ -1,12 +1,13 @@
-import uuid
 import asyncio
 import logging
+import uuid
 from collections import defaultdict
-from websockets import ConnectionClosed
-from websockets.asyncio.server import serve, ServerConnection, Server
-from corerl.configs.config import config, MISSING
-from corerl.messages.events import maybe_parse_event, EventType, SubscribeEvent
 
+from websockets import ConnectionClosed
+from websockets.asyncio.server import Server, ServerConnection, serve
+
+from corerl.configs.config import MISSING, config
+from corerl.messages.events import EventType, SubscribeEvent, maybe_parse_event
 
 logger = logging.getLogger(__name__)
 

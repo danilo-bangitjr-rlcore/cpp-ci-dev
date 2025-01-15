@@ -1,10 +1,10 @@
-from typing import Literal
-import numpy as np
-
 from dataclasses import dataclass
+from typing import Literal
+
+import numpy as np
 from numba import njit
 
-from corerl.configs.config import config, MISSING
+from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group
 from corerl.data_pipeline.utils import get_tag_temporal_state

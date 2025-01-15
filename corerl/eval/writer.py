@@ -1,10 +1,11 @@
 import logging
 from typing import NamedTuple, SupportsFloat
+
 from sqlalchemy import Connection, Engine, text
+
 from corerl.configs.config import config
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 from corerl.utils.time import now_iso
-
 
 log = logging.getLogger(__name__)
 

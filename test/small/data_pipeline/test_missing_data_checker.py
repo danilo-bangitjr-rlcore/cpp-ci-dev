@@ -1,8 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import MissingType
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode
+from corerl.data_pipeline.datatypes import CallerCode, MissingType, PipelineFrame
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 
 

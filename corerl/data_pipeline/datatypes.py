@@ -1,13 +1,13 @@
-import torch
 import datetime
+from collections.abc import Callable
+from dataclasses import dataclass, field, fields
+from enum import Enum, IntFlag, auto
+from math import isclose
+
 import numpy as np
 import pandas as pd
-
-from collections.abc import Callable
-from dataclasses import dataclass, fields, field
-from enum import IntFlag, auto, Enum
+import torch
 from torch import Tensor
-from math import isclose
 
 from corerl.utils.torch import tensor_allclose
 

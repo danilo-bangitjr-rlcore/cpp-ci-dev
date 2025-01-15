@@ -2,16 +2,17 @@ from datetime import timedelta
 
 import numpy as np
 import pandas as pd
+
+from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
-from corerl.data_pipeline.transforms.norm import NormalizerConfig
-from corerl.data_pipeline.transforms.add_raw import AddRawConfig
-from corerl.data_pipeline.transforms.split import SplitConfig
-from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
-from corerl.data_pipeline.transforms.trace import TraceConfig
-
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transforms.add_raw import AddRawConfig
+from corerl.data_pipeline.transforms.norm import NormalizerConfig
+from corerl.data_pipeline.transforms.split import SplitConfig
+from corerl.data_pipeline.transforms.trace import TraceConfig
 from test.infrastructure.utils.pandas import dfs_close
+
 
 def test_sc1():
     raw_obs = pd.DataFrame({

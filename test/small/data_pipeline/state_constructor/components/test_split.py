@@ -3,13 +3,12 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 
+from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms.split import SplitConfig, SplitTemporalState
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceTemporalState
-from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
-
-from corerl.data_pipeline.tag_config import TagConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 

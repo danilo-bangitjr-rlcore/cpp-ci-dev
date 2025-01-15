@@ -1,23 +1,25 @@
+import datetime
 from datetime import timedelta
 from typing import Any
+
 import numpy as np
 import pandas as pd
-import datetime
 from torch import tensor
 
-from corerl.data_pipeline.imputers.linear import LinearImputerConfig
+from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
+from corerl.data_pipeline.constructors.sc import SCConfig
+from corerl.data_pipeline.datatypes import CallerCode, Step, Transition
 from corerl.data_pipeline.imputers.copy import CopyImputerConfig
+from corerl.data_pipeline.imputers.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
-from corerl.data_pipeline.constructors.sc import SCConfig
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import NullConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
-from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.datatypes import Step, CallerCode, Transition
-from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from test.infrastructure.utils.pandas import dfs_close
+
 
 def test_pipeline1():
     cfg = PipelineConfig(

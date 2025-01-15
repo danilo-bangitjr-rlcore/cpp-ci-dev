@@ -1,19 +1,20 @@
+import datetime
 from datetime import timedelta
 from typing import Any
+
 import numpy as np
 import pandas as pd
-import datetime
 
+from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
+from corerl.data_pipeline.constructors.sc import SCConfig
+from corerl.data_pipeline.datatypes import CallerCode, StageCode
 from corerl.data_pipeline.imputers.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
-from corerl.data_pipeline.constructors.sc import SCConfig
+from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transforms.affine import AffineConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
-from corerl.data_pipeline.transforms.affine import AffineConfig
-from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.datatypes import CallerCode, StageCode
-from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 

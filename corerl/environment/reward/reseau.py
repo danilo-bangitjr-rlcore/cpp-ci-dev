@@ -1,6 +1,7 @@
+from typing import Any
+
 import numpy as np
 import pandas as pd
-from typing import Any
 
 from corerl.environment.reward.base import BaseReward
 

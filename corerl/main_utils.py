@@ -1,15 +1,16 @@
 import json
 import logging
-import yaml
-from corerl.configs.loader import config_to_dict, config_to_json
-import corerl.utils.pickle as pkl_u
-import corerl.utils.dict as dict_u
-
-from tqdm import tqdm
-from typing import Any
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Any
+
+import yaml
+from tqdm import tqdm
+
+import corerl.utils.dict as dict_u
+import corerl.utils.pickle as pkl_u
 from corerl.config import MainConfig
+from corerl.configs.loader import config_to_dict, config_to_json
 
 log = logging.getLogger(__name__)
 

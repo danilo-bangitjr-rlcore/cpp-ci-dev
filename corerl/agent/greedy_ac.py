@@ -1,29 +1,29 @@
+import logging
+import pickle as pkl
 from collections.abc import Sequence
 from dataclasses import field
 from functools import partial
-import numpy as np
 from pathlib import Path
-import torch
+from typing import Literal, Optional
+
 import numpy
-import pickle as pkl
-import logging
+import numpy as np
+import torch
+from jaxtyping import Float
 
-
-from corerl.configs.config import config
-from corerl.component.actor.network_actor import NetworkActorConfig
-from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
-from corerl.messages.events import EventType
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
-from corerl.component.critic.factory import init_q_critic
+from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, state_to_tensor
-from corerl.state import AppState
-from corerl.utils.device import device
+from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
+from corerl.component.critic.factory import init_q_critic
+from corerl.component.network.utils import state_to_tensor, to_np
+from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import Transition, TransitionBatch
 from corerl.data_pipeline.pipeline import ColumnDescriptions
-from jaxtyping import Float
-from typing import Literal, Optional
+from corerl.messages.events import EventType
+from corerl.state import AppState
+from corerl.utils.device import device
 
 logger = logging.getLogger(__name__)
 

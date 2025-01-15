@@ -1,19 +1,19 @@
 import logging
-import numpy as np
-import torch
 import random
 
-from corerl.config import MainConfig
-from corerl.configs.loader import load_config
-from corerl.eval.writer import MetricsWriter
-from corerl.messages.client import DummyWebsocketClient
-from corerl.state import AppState
-from corerl.utils.device import device
-from corerl.agent.factory import init_agent
-from corerl.offline.utils import load_offline_transitions, offline_training
-from corerl.data_pipeline.pipeline import Pipeline
+import numpy as np
+import torch
 
 import corerl.main_utils as utils
+from corerl.agent.factory import init_agent
+from corerl.config import MainConfig
+from corerl.configs.loader import load_config
+from corerl.data_pipeline.pipeline import Pipeline
+from corerl.eval.writer import MetricsWriter
+from corerl.messages.client import DummyWebsocketClient
+from corerl.offline.utils import load_offline_transitions, offline_training
+from corerl.state import AppState
+from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
 

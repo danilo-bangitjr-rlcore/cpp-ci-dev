@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
+from argparse import ArgumentParser
 from typing import Any, List
 
-
-from argparse import ArgumentParser
 from textual.app import App, ComposeResult
 from textual.containers import HorizontalGroup, VerticalScroll
 from textual.widgets import Button, Checkbox, Footer, Header, Input, Label
