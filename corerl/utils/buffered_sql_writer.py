@@ -3,10 +3,10 @@ from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Generic, NamedTuple, TypeVar
 
-from sqlalchemy import Connection, Engine, TextClause
+from sqlalchemy import TextClause
 
 from corerl.configs.config import MISSING, config
-from corerl.data_pipeline.db.utils import try_connect
+from corerl.data_pipeline.db.utils import TryConnectContextManager
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine, table_exists
 
 logger = logging.getLogger(__name__)
@@ -36,8 +36,7 @@ class BufferedWriter(Generic[T], ABC):
 
         self._exec = ThreadPoolExecutor(max_workers=1)
         self._write_future: Future | None = None
-        self.engine: Engine | None = None
-        self.connection: Connection | None = None
+        self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
 
         self._has_built = False
 
@@ -94,39 +93,24 @@ class BufferedWriter(Generic[T], ABC):
 
     def close(self) -> None:
         self.blocking_sync()
-
-        # it is possible a connection was never established
-        if self.connection is not None:
-            self.connection.close()
-
         self._exec.shutdown()
 
 
     def _init(self):
-        if self._has_built:
-            assert self.connection is not None
-            return self.connection
-
-        self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
-        self.connection = try_connect(self.engine)
-
         self._has_built = True
-        if table_exists(self.engine, table_name=self.table_name):
-            return self.connection
-
-        self.connection.execute(self._create_table_sql())
-        self.connection.commit()
-
-        return self.connection
+        if not table_exists(self.engine, table_name=self.table_name):
+            with TryConnectContextManager(self.engine) as connection:
+                connection.execute(self._create_table_sql())
+                connection.commit()
 
 
     def _deferred_write(self, points: list[T]):
         if len(points) == 0:
             return
 
-        conn = self._init()
-        conn.execute(
-            self._insert_sql(),
-            [point._asdict() for point in points]
-        )
-        conn.commit()
+        with TryConnectContextManager(self.engine) as connection:
+            connection.execute(
+                self._insert_sql(),
+                [point._asdict() for point in points]
+            )
+            connection.commit()
