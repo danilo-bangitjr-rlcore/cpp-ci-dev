@@ -66,7 +66,7 @@ def main(cfg: MainConfig):
         run_forever = cfg.experiment.run_forever
 
         while True:
-            log.info(f"taking step {steps}")
+            log.info(f"waiting for step {steps}...")
             interaction.step()
             steps += 1
             if steps >= max_steps and not run_forever:
