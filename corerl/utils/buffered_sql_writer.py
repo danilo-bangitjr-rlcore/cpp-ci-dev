@@ -38,7 +38,10 @@ class BufferedWriter(Generic[T], ABC):
         self._write_future: Future | None = None
         self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
 
-        self._has_built = False
+        if not table_exists(self.engine, table_name=self.table_name):
+            with TryConnectContextManager(self.engine) as connection:
+                connection.execute(self._create_table_sql())
+                connection.commit()
 
 
     @abstractmethod
@@ -94,15 +97,6 @@ class BufferedWriter(Generic[T], ABC):
     def close(self) -> None:
         self.blocking_sync()
         self._exec.shutdown()
-
-
-    def _init(self):
-        self._has_built = True
-        if not table_exists(self.engine, table_name=self.table_name):
-            with TryConnectContextManager(self.engine) as connection:
-                connection.execute(self._create_table_sql())
-                connection.commit()
-
 
     def _deferred_write(self, points: list[T]):
         if len(points) == 0:
