@@ -1,8 +1,9 @@
 from torch import Tensor
 
+from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transforms import NullConfig
 from corerl.models.dummy import DummyEndoModel, DummyEndoModelConfig
 from corerl.utils.torch import tensor_allclose
-from corerl.data_pipeline.tag_config import TagConfig
 
 
 def test_dummy():
@@ -19,7 +20,8 @@ def test_dummy():
 
         TagConfig(
             name='action',
-            is_action=True,
+            action_constructor=[],
+            state_constructor=[NullConfig()]
         ),
     ]
 
