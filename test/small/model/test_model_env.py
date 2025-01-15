@@ -3,7 +3,7 @@ from torch import Tensor
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import NullConfig
 from corerl.environment.model_env import ModelEnv, ModelEnvConfig
-from corerl.models.dummy import DummyEndoModel, DummyEndoModelConfig, DummyModel, DummyModelConfig
+from corerl.models.dummy import DummyEndoModelConfig, DummyModelConfig, model_group
 from corerl.utils.torch import tensor_allclose
 
 
@@ -35,11 +35,10 @@ def get_dummy_model_env(
 
     if exo_seqs is not None:
         model_cfg = DummyEndoModelConfig()
-        model = DummyEndoModel(model_cfg, tags)
     else:
         model_cfg = DummyModelConfig()
-        model = DummyModel(model_cfg, tags)
 
+    model = model_group.dispatch(model_cfg, tags)
     env.set_model(model)
     env.set_initial_states(
         initial_states,

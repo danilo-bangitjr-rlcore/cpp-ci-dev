@@ -10,7 +10,7 @@ from corerl.models.base import BaseModel, BaseModelConfig, model_group
 
 @config()
 class DummyEndoModelConfig(BaseModelConfig):
-    name: str = 'dummy'
+    name: Literal['dummy_endo'] = 'dummy_endo'
     endogenous: bool = True
 
 

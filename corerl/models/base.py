@@ -11,7 +11,7 @@ from corerl.data_pipeline.tag_config import TagConfig
 @config()
 class BaseModelConfig:
     name: Any = MISSING
-    endogenous: bool = True
+    endogenous: bool = False
 
 
 class BaseModel:
