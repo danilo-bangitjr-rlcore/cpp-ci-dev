@@ -1,3 +1,9 @@
+## 0.26.3 (2025-01-15)
+
+### Fix
+
+- clean up timing logic in deployment_interaction.py, syncing obs and actions to a shared step_timestamp
+
 ## 0.26.2 (2025-01-15)
 
 ### Fix
