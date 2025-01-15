@@ -1,3 +1,9 @@
+## 0.26.2 (2025-01-15)
+
+### Fix
+
+- added metrics, improved grafana aggregation queries
+
 ## 0.26.1 (2025-01-14)
 
 ### Fix
