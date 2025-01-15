@@ -2,9 +2,9 @@ import multiprocessing
 import subprocess
 import time
 from datetime import UTC, datetime, timedelta
-from pytest import FixtureRequest
 
 import pytest
+from pytest import FixtureRequest
 
 from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
 

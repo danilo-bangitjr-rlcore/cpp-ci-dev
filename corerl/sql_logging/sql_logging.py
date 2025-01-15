@@ -1,19 +1,20 @@
 import logging
-import sqlalchemy
 import time
-import corerl.utils.dict as dict_u
-
-from typing import Any
 from collections.abc import MutableMapping
-from sqlalchemy import Table, Column, DateTime, Engine, MetaData, URL, select, inspect
+from typing import Any
+
+import sqlalchemy
+from sqlalchemy import URL, Column, DateTime, Engine, MetaData, Table, inspect, select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
+from sqlalchemy_utils import create_database, database_exists, drop_database
+
+import corerl.utils.dict as dict_u
 from corerl.configs.config import config
-from sqlalchemy_utils import database_exists, drop_database, create_database
 from corerl.sql_logging.base_schema import (
     Base,
-    Run,
     HParam,
+    Run,
 )
 
 logger = logging.getLogger(__name__)

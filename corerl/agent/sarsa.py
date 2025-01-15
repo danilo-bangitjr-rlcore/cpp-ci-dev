@@ -1,23 +1,23 @@
+import pickle as pkl
+import random
 from collections.abc import Sequence
 from dataclasses import field
-from typing import Literal
 from pathlib import Path
+from typing import Literal
 
-import torch
 import numpy
-import random
-import pickle as pkl
+import torch
 
-from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
-from corerl.configs.config import config
 from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, state_to_tensor
+from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
+from corerl.component.critic.factory import init_q_critic
+from corerl.component.network.utils import state_to_tensor, to_np
+from corerl.configs.config import config
+from corerl.data_pipeline.datatypes import Transition, TransitionBatch
+from corerl.data_pipeline.pipeline import ColumnDescriptions
 from corerl.state import AppState
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import TransitionBatch, Transition
-from corerl.data_pipeline.pipeline import ColumnDescriptions
 
 
 @config(frozen=True)

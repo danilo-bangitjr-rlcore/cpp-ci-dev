@@ -1,8 +1,9 @@
-import torch
 import copy
 import math
 from typing import Any, Callable, overload
-from torch.optim.optimizer import ParamsT, Optimizer
+
+import torch
+from torch.optim.optimizer import Optimizer, ParamsT
 
 
 class CustomAdam(Optimizer):

@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 
+from corerl.data_pipeline.transforms import ProductConfig
 from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
-
-from corerl.data_pipeline.transforms import ProductConfig
 
 
 @dataclass

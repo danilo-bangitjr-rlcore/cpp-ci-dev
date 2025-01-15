@@ -1,4 +1,5 @@
 from functools import cached_property
+
 import pandas as pd
 
 from corerl.data_pipeline.constructors.constructor import Constructor

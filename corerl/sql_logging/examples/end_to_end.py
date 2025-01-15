@@ -1,18 +1,19 @@
-import torch
-import numpy as np
 import logging
-import hydra
-from omegaconf import DictConfig
-from corerl.sql_logging.examples.example_env import CoagBanditSimEnv
-from corerl.sql_logging.base_schema import (
-    NetworkWeights,
-    Loss,
-    GradInfo,
-)
-from corerl.sql_logging.sql_logging import setup_sql_logging
 
-from corerl.agent.factory import init_agent
+import hydra
+import numpy as np
+import torch
+from omegaconf import DictConfig
+
 import corerl.sql_logging.base_schema as sql
+from corerl.agent.factory import init_agent
+from corerl.sql_logging.base_schema import (
+    GradInfo,
+    Loss,
+    NetworkWeights,
+)
+from corerl.sql_logging.examples.example_env import CoagBanditSimEnv
+from corerl.sql_logging.sql_logging import setup_sql_logging
 
 logger = logging.getLogger(__name__)
 logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)

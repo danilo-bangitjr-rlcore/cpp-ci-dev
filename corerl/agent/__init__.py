@@ -1,8 +1,5 @@
-from corerl.agent.base import BaseAgent
-from corerl.configs.group import Group
-from corerl.state import AppState
-
 from corerl.agent.action_schedule import ActionScheduleAgent, ActionScheduleConfig
+from corerl.agent.base import BaseAgent
 from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig
 from corerl.agent.greedy_iql import GreedyIQL, GreedyIQLConfig
 from corerl.agent.inac import InAC, InACConfig
@@ -11,7 +8,9 @@ from corerl.agent.random import RandomAgent, RandomAgentConfig
 from corerl.agent.sac import SAC, SACConfig
 from corerl.agent.sarsa import EpsilonGreedySarsa, EpsilonGreedySarsaConfig
 from corerl.agent.simple_ac import SimpleAC, SimpleACConfig
+from corerl.configs.group import Group
 from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.state import AppState
 
 agent_group = Group[
     [AppState, ColumnDescriptions],

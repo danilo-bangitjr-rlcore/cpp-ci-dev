@@ -1,5 +1,4 @@
-from corerl.data_pipeline.datatypes import MissingType
-from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
 
 
 def missing_data_checker(pf: PipelineFrame, tag: str) -> PipelineFrame:

@@ -1,16 +1,16 @@
+from dataclasses import field
 from functools import cached_property
+
 import pandas as pd
 
-from dataclasses import field
+import corerl.utils.list as list_u
 from corerl.configs.config import config, list_
 from corerl.data_pipeline.constructors.constructor import Constructor
-from corerl.data_pipeline.transforms import TransformConfig
-from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from corerl.data_pipeline.tag_config import TagConfig
-
-import corerl.utils.list as list_u
+from corerl.data_pipeline.transforms import TransformConfig
+from corerl.data_pipeline.transforms.norm import NormalizerConfig
 
 
 @config()

@@ -1,5 +1,6 @@
 import socket
 
+
 def get_free_port(host: str):
     # binding to port 0 will ask the OS to give us an arbitrary free port
     # since we've just bound that free port, it is by definition no longer free,

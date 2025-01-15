@@ -1,17 +1,16 @@
 from datetime import UTC, datetime, timedelta
 from typing import List
 
-import pytest
 import numpy as np
-from docker.models.containers import Container
-from pandas import DataFrame, Series, DatetimeIndex
 import pandas as pd
+import pytest
+from docker.models.containers import Container
+from pandas import DataFrame, DatetimeIndex, Series
 
-from corerl.data_pipeline.db.data_reader import DataReader
+from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
-from corerl.data_pipeline.db.data_reader import TagDBConfig
-from test.medium.data_loaders.test_data_writer import write_n_random_vals
 from test.infrastructure.utils.docker import init_docker_container
+from test.medium.data_loaders.test_data_writer import write_n_random_vals
 
 
 @pytest.fixture(scope="module")

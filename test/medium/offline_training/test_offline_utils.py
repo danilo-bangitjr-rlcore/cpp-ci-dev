@@ -1,38 +1,37 @@
-import pytest
 import datetime as dt
+from typing import Generator
+
 import numpy as np
 import pandas as pd
-
-from torch import Tensor
-from typing import Generator
+import pytest
 from docker.models.containers import Container
+from torch import Tensor
 
 from corerl.agent.factory import init_agent
 from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.component.actor.network_actor import NetworkActorConfig
-from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.buffer.buffers import UniformReplayBufferConfig
+from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.config import MainConfig, MetricsDBConfig
-from corerl.data_pipeline.datatypes import Step, Transition
-from corerl.data_pipeline.db.data_writer import DataWriter
-from corerl.data_pipeline.db.data_reader import TagDBConfig
-from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
+from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
+from corerl.data_pipeline.datatypes import CallerCode, Step, Transition
+from corerl.data_pipeline.db.data_reader import TagDBConfig
+from corerl.data_pipeline.db.data_writer import DataWriter
+from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transition_filter import TransitionFilterConfig
-from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.transforms import LessThanConfig, NullConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
-from corerl.data_pipeline.datatypes import CallerCode
+from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.eval.writer import MetricsWriter
 from corerl.experiment.config import ExperimentConfig
 from corerl.messages.client import DummyWebsocketClient
 from corerl.offline.utils import load_offline_transitions, offline_training
-
 from corerl.state import AppState
-from test.infrastructure.utils.docker import init_docker_container # noqa: F401
+from test.infrastructure.utils.docker import init_docker_container  # noqa: F401
+
 
 @pytest.fixture(scope="module")
 def test_db_config() -> TagDBConfig:

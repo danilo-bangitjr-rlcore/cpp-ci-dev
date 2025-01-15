@@ -1,12 +1,11 @@
 import logging
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Literal, NamedTuple
 
 from sqlalchemy import text
 
 from corerl.configs.config import config
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
-
 
 logger = logging.getLogger(__name__)
 

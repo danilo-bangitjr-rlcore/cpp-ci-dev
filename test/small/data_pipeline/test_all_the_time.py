@@ -1,19 +1,15 @@
-import numpy as np
-import pandas as pd
 import datetime
 from collections import deque
 from math import comb
 
+import numpy as np
+import pandas as pd
 from torch import Tensor
 
+from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig, get_n_step_reward
+from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, Step, Transition
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import NullConfig
-from corerl.data_pipeline.datatypes import PipelineFrame, CallerCode, Transition, Step
-from corerl.data_pipeline.all_the_time import (
-    AllTheTimeTCConfig,
-    AllTheTimeTC,
-    get_n_step_reward
-)
 
 
 def make_test_step(i: int, action: float = 0., gamma: float = 0.9, reward: float = 2.0, dp: bool = False) -> Step:

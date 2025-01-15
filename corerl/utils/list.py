@@ -1,6 +1,7 @@
 from collections.abc import Callable, Iterable, Sequence
 from typing import Any, TypeVar
-from annotated_types import SupportsLt, SupportsGt
+
+from annotated_types import SupportsGt, SupportsLt
 
 
 def flatten(li: Iterable[Any]) -> list[Any]:

@@ -11,7 +11,6 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.interaction.interaction import Interaction
 
-
 logger = logging.getLogger(__file__)
 
 @config()

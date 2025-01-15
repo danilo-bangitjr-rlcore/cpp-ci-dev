@@ -1,6 +1,6 @@
 from dataclasses import field
 from datetime import timedelta
-from typing import Literal, Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd

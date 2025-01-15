@@ -1,7 +1,7 @@
 import hashlib
 from typing import Any
-import corerl.utils.dict as dict_u
 
+import corerl.utils.dict as dict_u
 
 # ----------
 # -- drop --

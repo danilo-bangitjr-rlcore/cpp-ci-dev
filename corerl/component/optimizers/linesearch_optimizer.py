@@ -2,17 +2,19 @@
 Original paper: https://papers.nips.cc/paper_files/paper/2019/hash/2557911c1bf75c2b643afb4ecbfc8ec2-Abstract.html
 Linesearch library: https://github.com/rlcoretech/LineSearchOpt
 """
-from collections.abc import Iterable
-import torch
 import ctypes
+from collections.abc import Iterable
 from dataclasses import field
 from typing import Any, Callable, Literal
-from torch.optim.optimizer import Optimizer
-from corerl.configs.config import config, list_
-from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
-from corerl.component.optimizers.custom_torch_opts import CustomAdam
-from corerl.component.optimizers.torch_opts import OptimConfig, AdamConfig, optim_group
+
 import linesearchopt as lso
+import torch
+from torch.optim.optimizer import Optimizer
+
+from corerl.component.optimizers.custom_torch_opts import CustomAdam
+from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
+from corerl.component.optimizers.torch_opts import AdamConfig, OptimConfig, optim_group
+from corerl.configs.config import config, list_
 
 
 @config()

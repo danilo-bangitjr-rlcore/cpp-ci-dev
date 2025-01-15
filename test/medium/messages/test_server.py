@@ -1,9 +1,9 @@
 import pytest
-
 from websockets.asyncio.client import connect
 
-from test.medium.messages.conftest import WebsocketServer, WebsocketClient
 from corerl.messages.events import Event, EventType, SubscribeEvent
+from test.medium.messages.conftest import WebsocketClient, WebsocketServer
+
 
 # ----------------
 # -- Connection --

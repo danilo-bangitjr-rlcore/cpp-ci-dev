@@ -1,13 +1,14 @@
+import time
 from datetime import datetime
 from typing import Any
+
 import numpy as np
 import pandas as pd
-import time
 from gymnasium.spaces import Box
 
 from corerl.configs.config import MISSING, config, list_
-from corerl.environment.reward.factory import init_reward_function
 from corerl.environment.influx_opc_env import InfluxOPCConfig, InfluxOPCEnv
+from corerl.environment.reward.factory import init_reward_function
 
 
 @config()

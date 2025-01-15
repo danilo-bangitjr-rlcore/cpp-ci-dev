@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import asyncio
 import logging
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace
+
 from asyncua import Server
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace
 
 
 async def main(args: Namespace):

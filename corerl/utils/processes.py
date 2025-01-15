@@ -1,7 +1,7 @@
 import asyncio
 import atexit
-import logging
 import datetime as dt
+import logging
 
 from corerl.utils.time import Seconds, as_seconds
 

@@ -1,16 +1,17 @@
 import subprocess
-from os import path, makedirs
+from os import makedirs, path
 
 import boto3
 import pytest
-from pytest import FixtureRequest
-from docker.models.containers import Container
 from botocore.exceptions import NoCredentialsError
+from docker.models.containers import Container
+from pytest import FixtureRequest
 from sqlalchemy import URL
 
-from corerl.sql_logging.sql_logging import try_create_engine
 from corerl.data_pipeline.db.utils import try_connect
+from corerl.sql_logging.sql_logging import try_create_engine
 from test.infrastructure.utils.docker import init_docker_container
+
 
 def should_skip_test():
     try:

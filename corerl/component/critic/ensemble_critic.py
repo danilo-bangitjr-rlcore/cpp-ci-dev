@@ -1,21 +1,19 @@
 from dataclasses import field
-import torch
 from pathlib import Path
 from typing import Any, Literal
 
-from corerl.configs.config import config
+import torch
+
+import corerl.utils.nullable as nullable
 from corerl.component.buffer.buffers import EnsembleUniformReplayBufferConfig
 from corerl.component.buffer.factory import BufferConfig
 from corerl.component.critic.base_critic import BaseQ, BaseQConfig, BaseV
+from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
 from corerl.component.network.networks import EnsembleCriticNetworkConfig
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
-from corerl.component.network.factory import NetworkConfig, init_critic_network
-from corerl.component.network.factory import init_critic_target
 from corerl.component.optimizers.torch_opts import AdamConfig
-from corerl.configs.config import MISSING
+from corerl.configs.config import MISSING, config
 from corerl.utils.device import device
-
-import corerl.utils.nullable as nullable
 
 
 @config()

@@ -1,6 +1,7 @@
 import torch.nn as nn
-from corerl.component.network.base import critic_group, BaseNetworkConfig
+
 from corerl.component.network import networks
+from corerl.component.network.base import BaseNetworkConfig, critic_group
 
 NetworkConfig = (
     networks.EnsembleCriticNetworkConfig

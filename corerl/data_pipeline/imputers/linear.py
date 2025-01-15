@@ -1,14 +1,15 @@
-from typing import Literal
-import numpy as np
-
-from pydantic.dataclasses import dataclass as config
 from dataclasses import dataclass
+from typing import Literal
+
+import numpy as np
 from numba import njit
+from pydantic.dataclasses import dataclass as config
 
 from corerl.configs.config import MISSING
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group
 from corerl.data_pipeline.utils import get_tag_temporal_state
+
 
 @config(config={'extra': 'forbid'})
 class LinearImputerConfig(BaseImputerConfig):

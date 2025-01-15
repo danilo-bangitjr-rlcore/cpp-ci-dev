@@ -1,16 +1,16 @@
 import asyncio
 import logging
+from asyncio import AbstractEventLoop
 from collections import defaultdict
 from collections.abc import Callable
-from asyncio import AbstractEventLoop
-from concurrent.futures import ThreadPoolExecutor, Future
-from websockets import ConnectionClosed
-from websockets.asyncio.client import connect, ClientConnection
+from concurrent.futures import Future, ThreadPoolExecutor
 
-from corerl.configs.config import config, MISSING
+from websockets import ConnectionClosed
+from websockets.asyncio.client import ClientConnection, connect
+
+from corerl.configs.config import MISSING, config
 from corerl.messages.events import Event, EventType, SubscribeEvent, maybe_parse_event
 from corerl.utils.asyncio import MaybeAwaitable, maybe_await
-
 
 logger = logging.getLogger(__name__)
 

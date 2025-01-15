@@ -1,5 +1,6 @@
 from dataclasses import field
-from corerl.configs.config import config, MISSING, list_
+
+from corerl.configs.config import MISSING, config, list_
 from corerl.data_pipeline.imputers.factory import ImputerConfig
 from corerl.data_pipeline.imputers.identity import IdentityImputerConfig
 from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilterConfig

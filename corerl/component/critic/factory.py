@@ -1,6 +1,6 @@
 from corerl.component.critic.ensemble_critic import (
-    EnsembleQCritic,
     EnsembleCriticConfig,
+    EnsembleQCritic,
     EnsembleVCritic,
 )
 

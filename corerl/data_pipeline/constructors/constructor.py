@@ -5,10 +5,10 @@ from functools import cached_property
 import pandas as pd
 
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.base import Transform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.tag_config import TagConfig
 
 
 class Constructor(ABC):

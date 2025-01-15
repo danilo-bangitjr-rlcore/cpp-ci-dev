@@ -1,11 +1,13 @@
 from __future__ import annotations
+
 from collections.abc import Iterable
+
 import torch
 import torch.distributions as d
 from torch.types import _size
+from typing_extensions import override
 
 import corerl.utils.nullable as nullable
-from typing_extensions import override
 
 
 class ArctanhNormal(d.Distribution):

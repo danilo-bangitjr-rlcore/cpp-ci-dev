@@ -1,19 +1,19 @@
 import copy
-import torch
-import torch.nn as nn
-from dataclasses import field
 from collections.abc import Iterable
-from torch.func import stack_module_state, functional_call # type: ignore
-from corerl.component.network.base import BaseNetworkConfig
-import corerl.component.network.utils as utils
-from corerl.component.network.ensemble.reductions import MeanReduct, bootstrap_reduct_group
-from corerl.utils.device import device
-import corerl.component.layer as layer
-from corerl.configs.config import config, list_
-from corerl.component.layer.activations import ActivationConfig
-
+from dataclasses import field
 from typing import Any, Callable, Literal, Optional
 
+import torch
+import torch.nn as nn
+from torch.func import functional_call, stack_module_state  # type: ignore
+
+import corerl.component.layer as layer
+import corerl.component.network.utils as utils
+from corerl.component.layer.activations import ActivationConfig
+from corerl.component.network.base import BaseNetworkConfig
+from corerl.component.network.ensemble.reductions import MeanReduct, bootstrap_reduct_group
+from corerl.configs.config import config, list_
+from corerl.utils.device import device
 
 EPSILON = 1e-6
 

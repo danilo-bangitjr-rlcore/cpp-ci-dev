@@ -1,12 +1,12 @@
 from collections.abc import Sequence
-from typing import Literal
-import numpy as np
 from pathlib import Path
+from typing import Literal
 
 import numpy
+import numpy as np
 
-from corerl.configs.config import config
 from corerl.agent.base import BaseAgent, BaseAgentConfig
+from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import Transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions
 from corerl.state import AppState

@@ -1,4 +1,5 @@
 from torch import Tensor
+
 from corerl.models.dummy import DummyModel, DummyModelConfig
 from corerl.utils.torch import tensor_allclose
 

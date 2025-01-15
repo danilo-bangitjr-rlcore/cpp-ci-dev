@@ -1,10 +1,11 @@
 import copy
-import pandas as pd
 from dataclasses import dataclass
 
+import pandas as pd
+
+from corerl.data_pipeline.transforms import SplitConfig
 from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.transforms import SplitConfig
 
 
 @dataclass

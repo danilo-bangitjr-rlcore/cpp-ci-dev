@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 from typing import Callable
 
+
 def add_key_to_run(run: dict, key: str, values: list):
     run_list = []
     for value in values:

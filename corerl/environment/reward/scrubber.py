@@ -3,8 +3,8 @@ from typing import Any
 from warnings import warn
 
 import numpy as np
-import torch
 import pandas as pd
+import torch
 
 from corerl.configs.config import MISSING, config
 from corerl.environment.reward.base import BaseReward

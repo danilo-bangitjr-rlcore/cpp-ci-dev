@@ -1,8 +1,9 @@
 from typing import Any, Protocol
 
+from corerl.configs.config import MISSING, config
 from corerl.configs.group import Group
-from corerl.configs.config import config, MISSING
 from corerl.data_pipeline.transforms.interface import TransformCarry
+
 
 class Transform(Protocol):
     def __call__(self, carry: TransformCarry, ts: object | None) -> tuple[TransformCarry, object | None]: ...

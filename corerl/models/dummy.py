@@ -1,7 +1,7 @@
 from torch import Tensor
 
-from corerl.data_pipeline.datatypes import Transition
 from corerl.configs.config import config
+from corerl.data_pipeline.datatypes import Transition
 from corerl.models.base import BaseModel, BaseModelConfig, model_group
 
 

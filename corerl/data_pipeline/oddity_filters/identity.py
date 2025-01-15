@@ -1,7 +1,8 @@
 from typing import Literal
+
 from corerl.configs.config import config
-from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
 from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
 
 
 @config()

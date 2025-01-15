@@ -1,8 +1,9 @@
 import pytest
-from test.infrastructure.networking import get_free_port
 
 from corerl.messages.client import WebsocketClient
 from corerl.messages.server import WebsocketServer, WebsocketServerConfig
+from test.infrastructure.networking import get_free_port
+
 
 @pytest.fixture
 async def server_and_client():

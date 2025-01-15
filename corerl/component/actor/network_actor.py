@@ -1,20 +1,19 @@
 from dataclasses import field
-import torch
 from pathlib import Path
 from typing import Any, Literal, cast
 
-from corerl.configs.config import config
+import torch
+
+import corerl.utils.nullable as nullable
+from corerl.component.actor.base_actor import BaseActor, group
 from corerl.component.buffer.buffers import EnsembleUniformReplayBufferConfig
 from corerl.component.buffer.factory import BufferConfig
-from corerl.component.optimizers.torch_opts import AdamConfig
-from corerl.component.policy.factory import BaseNNConfig, SquashedGaussianPolicyConfig
-from corerl.component.actor.base_actor import BaseActor, group
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
-from corerl.component.optimizers.linesearch_optimizer import LSOConfig, LineSearchOpt
-from corerl.configs.config import MISSING
+from corerl.component.optimizers.linesearch_optimizer import LineSearchOpt, LSOConfig
+from corerl.component.optimizers.torch_opts import AdamConfig
+from corerl.component.policy.factory import BaseNNConfig, SquashedGaussianPolicyConfig, create
+from corerl.configs.config import MISSING, config
 from corerl.utils.device import device
-import corerl.component.policy as policy
-import corerl.utils.nullable as nullable
 
 
 @config(frozen=True)
@@ -46,7 +45,7 @@ class NetworkActor(BaseActor):
         action_min = cfg.action_min
         action_max = cfg.action_max
 
-        self.policy = policy.create(
+        self.policy = create(
             cfg.actor_network, state_dim, action_dim, action_min, action_max,
         )
 
@@ -150,7 +149,7 @@ class NetworkActorLineSearch(NetworkActor):
         )
 
         action_min, action_max = 0, 1
-        self.policy = policy.create(
+        self.policy = create(
             cfg.actor_network, state_dim, action_dim, action_min, action_max,
         )
 

@@ -1,6 +1,5 @@
-from corerl.component.actor.base_actor import group, BaseActor
+from corerl.component.actor.base_actor import BaseActor, group
 from corerl.component.actor.network_actor import NetworkActorConfig, NetworkActorLineSearchConfig
-
 
 ActorConfig = NetworkActorConfig | NetworkActorLineSearchConfig
 

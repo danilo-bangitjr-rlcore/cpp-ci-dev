@@ -1,10 +1,9 @@
 from collections.abc import Iterable
 from typing import Literal, assert_never
-from corerl.utils.torch import tensor_allclose
 
 from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import PipelineFrame, Transition
-
+from corerl.utils.torch import tensor_allclose
 
 type TransitionFilterType = (
     Literal['only_dp']

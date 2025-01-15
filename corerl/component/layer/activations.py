@@ -1,7 +1,8 @@
 from collections.abc import Callable
 from typing import Any, NotRequired, TypedDict
-import torch.nn as nn
+
 import torch
+import torch.nn as nn
 
 
 def _fuzzy_indicator(
