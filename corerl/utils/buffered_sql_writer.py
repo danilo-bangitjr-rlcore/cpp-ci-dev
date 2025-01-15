@@ -28,7 +28,7 @@ class BufferedWriter(Generic[T], ABC):
     ) -> None:
         self.cfg = cfg
         self.table_name = cfg.table_name
-        self.host = "localhost"
+        self.host = cfg.ip
 
         self._low_wm = low_watermark
         self._hi_wm = high_watermark
