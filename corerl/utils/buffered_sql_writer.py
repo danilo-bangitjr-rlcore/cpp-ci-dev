@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Generic, NamedTuple, TypeVar
 
-from sqlalchemy import TextClause
+from sqlalchemy import Engine, TextClause
 
 from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.db.utils import TryConnectContextManager
@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 class BufferedWriterConfig(SQLEngineConfig):
     db_name: str = 'postgres'
     table_name: str = MISSING
+    enabled: bool = True
 
 
 T = TypeVar('T', bound=NamedTuple)
@@ -36,12 +37,14 @@ class BufferedWriter(Generic[T], ABC):
 
         self._exec = ThreadPoolExecutor(max_workers=1)
         self._write_future: Future | None = None
-        self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
+        self.engine: Engine | None = None
 
-        if not table_exists(self.engine, table_name=self.table_name):
-            with TryConnectContextManager(self.engine) as connection:
-                connection.execute(self._create_table_sql())
-                connection.commit()
+        if self.cfg.enabled:
+            self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
+            if not table_exists(self.engine, table_name=self.table_name):
+                with TryConnectContextManager(self.engine) as connection:
+                    connection.execute(self._create_table_sql())
+                    connection.commit()
 
 
     @abstractmethod
@@ -55,6 +58,9 @@ class BufferedWriter(Generic[T], ABC):
 
 
     def _write(self, data: T) -> None:
+        if not self.cfg.enabled:
+            return
+
         self._buffer.append(data)
 
         if len(self._buffer) > self._hi_wm:
@@ -71,6 +77,9 @@ class BufferedWriter(Generic[T], ABC):
 
 
     def background_sync(self):
+        if not self.cfg.enabled:
+            return
+
         if self.is_writing():
             return
 
@@ -81,6 +90,9 @@ class BufferedWriter(Generic[T], ABC):
 
 
     def blocking_sync(self):
+        if not self.cfg.enabled:
+            return
+
         # wrap up in-progress sync
         if self._write_future is not None:
             self._write_future.result()
@@ -101,6 +113,10 @@ class BufferedWriter(Generic[T], ABC):
     def _deferred_write(self, points: list[T]):
         if len(points) == 0:
             return
+
+        if not self.cfg.enabled:
+            return
+        assert self.engine is not None
 
         with TryConnectContextManager(self.engine) as connection:
             connection.execute(

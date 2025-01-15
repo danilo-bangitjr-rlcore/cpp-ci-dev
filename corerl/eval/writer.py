@@ -77,21 +77,3 @@ class MetricsWriter(BufferedWriter[_MetricPoint]):
             self._write(point)
         except Exception:
             log.exception(f'Failed to write metric: {metric} {value}')
-
-
-class DummyMetricsWriter(MetricsWriter):
-    """
-    Intended to be used in unit tests where we do not want to spin up a hard postgresql dependency but satisfy
-    the class interface of MetricsWriter.
-    """
-    def __init__(
-        self,
-        cfg: MetricsDBConfig,
-        low_watermark: int = 128,
-        high_watermark: int = 256,
-    ):
-        # don't call super, don't initialize tables and DB
-        return
-
-    def write(self, metric: str, value: SupportsFloat):
-        return log.debug(f"{metric}: {value}")
