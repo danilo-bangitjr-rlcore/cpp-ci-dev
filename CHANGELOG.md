@@ -1,3 +1,9 @@
+## 0.26.4 (2025-01-15)
+
+### Fix
+
+- Grafana mounts configs on compose (#383)
+
 ## 0.26.3 (2025-01-15)
 
 ### Fix
