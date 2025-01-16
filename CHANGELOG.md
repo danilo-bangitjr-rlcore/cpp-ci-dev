@@ -1,3 +1,9 @@
+## 0.28.1 (2025-01-16)
+
+### Fix
+
+- grab action from post step instead of prior
+
 ## 0.28.0 (2025-01-16)
 
 ### Feat
