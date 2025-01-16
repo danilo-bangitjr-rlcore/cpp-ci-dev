@@ -1,0 +1,6 @@
+[project]
+name="projects"
+version="0.0.0"
+
+[tool.setuptools]
+packages=["cenovus"]
