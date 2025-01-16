@@ -1,3 +1,30 @@
+## 0.27.0 (2025-01-16)
+
+### Feat
+
+- perform sanity checking on interaction state
+
+## 0.26.5 (2025-01-16)
+
+### Fix
+
+- ensure that large e2e tests have tsdb instance running
+- added a dummy writer for unit testing purposes
+- use config defined ip instead of hard coded localhost
+- wrap try_connect in context manager, always close conn between reads
+
+## 0.26.4 (2025-01-15)
+
+### Fix
+
+- Grafana mounts configs on compose (#383)
+
+## 0.26.3 (2025-01-15)
+
+### Fix
+
+- clean up timing logic in deployment_interaction.py, syncing obs and actions to a shared step_timestamp
+
 ## 0.26.2 (2025-01-15)
 
 ### Fix

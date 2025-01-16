@@ -1,6 +1,7 @@
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from time import sleep
+from typing import Generator
 
 import numpy as np
 
@@ -32,26 +33,34 @@ class DeploymentInteraction(Interaction):
         self._column_desc = pipeline.column_descriptions
 
         self._should_reset = True
-        self._last_state: np.ndarray | None = None
+        self._last_state = np.full(self._column_desc.state_dim, np.nan)
         self._pipeline.register_hook(StageCode.SC, self._capture_last_state)
 
+        ### timing logic ###
         self.obs_period = env.obs_period
         self.action_period = env.action_period
-        self.last_obs_timestamp: datetime | None = None
-        self.last_action_timestamp: datetime | None = None
+        self.tol = env.action_tolerance
+        self._next_action_timestamp = datetime.now(UTC) # take an action right away
+        self._last_obs_timestamp = datetime.now(UTC)
 
+        # the step clock starts ticking on the first invocation of `next(self._step_clock)`
+        # this should occur on the first call to `self.step`
+        self._step_clock = clock_generator(tick_period=self.obs_period)
 
     def step(self):
-        self._wait_for_next_obs()
+        step_timestamp = next(self._step_clock)
+        wait_for_timestamp(step_timestamp)
+        logger.info("beginning step logic")
+
         o = self._env.get_latest_obs()
         pr = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
         if pr.transitions is not None:
             self._agent.update_buffer(pr.transitions)
+
         self._agent.update()
 
         s = self._get_latest_state()
-        assert s is not None
-        if self._should_take_action():
+        if s is not None and self._should_take_action(step_timestamp):
             a = self._agent.get_action(s)
             self._env.emit_action(a)
 
@@ -60,34 +69,12 @@ class DeploymentInteraction(Interaction):
     # ---------
     # internals
     # ---------
-    def _wait_for_next_obs(self) -> None:
-        now = datetime.now(UTC)
-        if self.last_obs_timestamp is None:
-            next_obs_timestamp = now
-        else:
-            next_obs_timestamp = self.last_obs_timestamp + self.obs_period
+    def _should_take_action(self, step_timestamp: datetime) -> bool:
+        if step_timestamp >= self._next_action_timestamp:
+            self._next_action_timestamp = step_timestamp + self.action_period
+            return True
 
-        if now >= next_obs_timestamp:
-            sleep_duration = 0
-        else:
-            sleep_duration = (next_obs_timestamp - now).total_seconds()
-        sleep(sleep_duration)
-        self.last_obs_timestamp = next_obs_timestamp
-
-    def _should_take_action(self) -> bool:
-        now = datetime.now(UTC)
-        take_action = False # default
-
-        if self.last_action_timestamp is None:
-            take_action = True
-        elif now >= self.last_action_timestamp + self.action_period:
-            take_action = True
-
-        if take_action:
-            self.last_action_timestamp = now
-
-        return take_action
-
+        return False
 
     def _capture_last_state(self, pf: PipelineFrame):
         if pf.caller_code != CallerCode.ONLINE:
@@ -99,12 +86,36 @@ class DeploymentInteraction(Interaction):
         state = row[list(tags)].iloc[0].to_numpy()
 
         self._last_state = np.asarray(state, dtype=np.float32)
+        self._last_obs_timestamp = datetime.now(UTC)
         logger.info(f"captured state {self._last_state}, with columns {tags}")
 
 
     def _get_latest_state(self) -> np.ndarray | None:
-        if self._last_state is None:
-            logger.error("Tried to get interaction state, but none existed")
+        now = datetime.now(UTC)
+        if np.any(np.isnan(self._last_state)):
+            logger.error("Tried to get interaction state, but there were nan values")
+            return None
+
+        if now - self._last_obs_timestamp > self.obs_period + self.tol:
+            logger.error("Got a stale interaction state")
             return None
 
         return self._last_state
+
+def clock_generator(tick_period: timedelta) -> Generator[datetime, None, None]:
+    tick = datetime.now(UTC)
+    tick.replace(microsecond=0) # trim microseconds
+    while True:
+        yield tick
+        tick += tick_period
+
+def wait_for_timestamp(timestamp: datetime) -> None:
+    """
+    Blocks until the requested timestamp
+    """
+    now = datetime.now(UTC)
+    if now >= timestamp:
+        sleep_duration = 0
+    else:
+        sleep_duration = (timestamp - now).total_seconds()
+    sleep(sleep_duration)

@@ -409,7 +409,7 @@
         {
           "datasource": {
             "type": "grafana-postgresql-datasource",
-            "uid": "ee9wen8vm61ogf"
+            "uid": "fe9zkc0takwlcc"
           },
           "editorMode": "code",
           "format": "table",

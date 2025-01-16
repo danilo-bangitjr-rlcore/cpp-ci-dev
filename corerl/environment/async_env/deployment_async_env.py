@@ -1,11 +1,11 @@
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import pandas as pd
 from asyncua.sync import Client
 
-from corerl.configs.config import config
+from corerl.configs.config import MISSING, config
 
 # Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader
@@ -19,6 +19,7 @@ logger = logging.getLogger(__file__)
 @config()
 class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):
     name: str = "dep_async_env"
+    action_tolerance: timedelta = MISSING
 
 
 class DeploymentAsyncEnv(AsyncEnv):
@@ -33,6 +34,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         self.tag_configs = tag_configs
         self.obs_period = cfg.obs_period
         self.action_period = cfg.action_period
+        self.action_tolerance = cfg.action_tolerance
 
         self.tag_names = [tag.name for tag in tag_configs]
         self._action_tags = [tag for tag in tag_configs if tag.action_constructor is not None]
