@@ -33,7 +33,7 @@ class DeploymentInteraction(Interaction):
 
         self._column_desc = pipeline.column_descriptions
 
-        self._should_reset = True
+        self._should_reset = False
         self._last_state = np.full(self._column_desc.state_dim, np.nan)
         self._pipeline.register_hook(StageCode.SC, self._capture_last_state)
 
