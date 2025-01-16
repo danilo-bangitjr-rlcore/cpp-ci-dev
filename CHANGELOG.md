@@ -1,3 +1,10 @@
+## 0.28.0 (2025-01-16)
+
+### Feat
+
+- write features from states encountered online to the metrics table
+- make low watermark for metric writer tunable
+
 ## 0.27.2 (2025-01-16)
 
 ### Fix
