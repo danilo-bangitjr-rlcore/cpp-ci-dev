@@ -1,3 +1,10 @@
+## 0.28.2 (2025-01-16)
+
+### Fix
+
+- swap terminate and truncate in model_env tests
+- dispatch on model types correctly
+
 ## 0.28.1 (2025-01-16)
 
 ### Fix
