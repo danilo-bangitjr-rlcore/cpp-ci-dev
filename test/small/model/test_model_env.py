@@ -66,11 +66,11 @@ def test_rollout_counter():
     for i in range(rollout_len):
         obs, reward, term, truncate, _ = env.step(action)
         assert tensor_allclose(obs, exp_initial_state)
-        assert not truncate
+        assert not term
         if i == rollout_len - 1:
-            assert term
+            assert truncate
         else:
-            assert not term
+            assert not truncate
 
 
 def test_exo_sequence():
