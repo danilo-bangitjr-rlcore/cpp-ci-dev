@@ -211,28 +211,20 @@ class PipelineFrame:
         # initialize actions
         self.actions = self.data.copy(deep=False)
 
-    def get_last_timestamp(self) -> None | datetime.datetime:
-        if not len(self.data.index):
-            return None
+    def get_last_timestamp(self) -> datetime.datetime:
 
         last_index = self.data.index[-1]
         match last_index:  # matches on type
             case datetime.datetime():
                 return last_index
-            case None:
-                return None
             case _:
-                raise ValueError("Indices should datetime.datetime or None")
+                raise ValueError("Indices should be datetime.datetime")
 
-    def get_first_timestamp(self) -> None | datetime.datetime:
-        if not len(self.data.index):
-            return None
+    def get_first_timestamp(self) -> datetime.datetime:
 
         first_index = self.data.index[0]
         match first_index:  # matches on type
             case datetime.datetime():
                 return first_index
-            case None:
-                return None
             case _:
-                raise ValueError("Indices should datetime.datetime or None")
+                raise ValueError("Indices should be datetime.datetime")
