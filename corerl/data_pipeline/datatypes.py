@@ -214,17 +214,11 @@ class PipelineFrame:
     def get_last_timestamp(self) -> datetime.datetime:
 
         last_index = self.data.index[-1]
-        match last_index:  # matches on type
-            case datetime.datetime():
-                return last_index
-            case _:
-                raise ValueError("Indices should be datetime.datetime")
+        assert isinstance(last_index, datetime.datetime)
+        return last_index
 
     def get_first_timestamp(self) -> datetime.datetime:
 
         first_index = self.data.index[0]
-        match first_index:  # matches on type
-            case datetime.datetime():
-                return first_index
-            case _:
-                raise ValueError("Indices should be datetime.datetime")
+        assert isinstance(first_index, datetime.datetime)
+        return first_index
