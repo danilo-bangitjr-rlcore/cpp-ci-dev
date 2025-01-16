@@ -22,6 +22,7 @@ env:
   db: ${pipeline.db}
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
+  action_tolerance: 00:00:01
 
 
 agent:

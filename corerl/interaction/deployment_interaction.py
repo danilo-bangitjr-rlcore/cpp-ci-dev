@@ -4,6 +4,7 @@ from time import sleep
 from typing import Generator
 
 import numpy as np
+import pandas as pd
 
 from corerl.agent.base import BaseAgent
 from corerl.configs.config import config
@@ -39,9 +40,9 @@ class DeploymentInteraction(Interaction):
         ### timing logic ###
         self.obs_period = env.obs_period
         self.action_period = env.action_period
-        self.tol = env.action_tolerance
         self._next_action_timestamp = datetime.now(UTC) # take an action right away
-        self._last_obs_timestamp = datetime.now(UTC)
+        self._last_state_timestamp: datetime | None = None
+        self._state_age_tol = env.action_tolerance
 
         # the step clock starts ticking on the first invocation of `next(self._step_clock)`
         # this should occur on the first call to `self.step`
@@ -80,23 +81,31 @@ class DeploymentInteraction(Interaction):
         if pf.caller_code != CallerCode.ONLINE:
             return
 
-        row = pf.data.tail(1)
+        state_df = pf.data.tail(1)
+        state_timestamp = state_df.index[0]
 
         tags = self._column_desc.state_cols
-        state = row[list(tags)].iloc[0].to_numpy()
+        state = state_df[list(tags)].iloc[0].to_numpy()
 
         self._last_state = np.asarray(state, dtype=np.float32)
-        self._last_obs_timestamp = datetime.now(UTC)
+        if isinstance(state_timestamp, pd.Timestamp):
+            self._last_state_timestamp = state_timestamp.to_pydatetime()
+        else:
+            self._last_state_timestamp = datetime.now(UTC)
         logger.info(f"captured state {self._last_state}, with columns {tags}")
 
 
     def _get_latest_state(self) -> np.ndarray | None:
         now = datetime.now(UTC)
+        if self._last_state_timestamp is None:
+            logger.error("Tried to get interaction state, but no state has been captured")
+            return None
+
         if np.any(np.isnan(self._last_state)):
             logger.error("Tried to get interaction state, but there were nan values")
             return None
 
-        if now - self._last_obs_timestamp > self.obs_period + self.tol:
+        if now - self._last_state_timestamp > self._state_age_tol:
             logger.error("Got a stale interaction state")
             return None
 
