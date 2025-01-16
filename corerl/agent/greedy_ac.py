@@ -263,7 +263,7 @@ class GreedyAC(BaseAC):
         next_qs = []
         for batch in ensemble_batch:
             state_batch = batch.prior.state
-            action_batch = batch.prior.action
+            action_batch = batch.post.action
             reward_batch = batch.n_step_reward
             next_state_batch = batch.post.state
             gamma_batch = batch.n_step_gamma
