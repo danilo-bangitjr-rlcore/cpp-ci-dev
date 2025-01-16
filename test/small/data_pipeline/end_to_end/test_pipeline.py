@@ -37,6 +37,7 @@ def test_pipeline1():
                     NormalizerConfig(),
                     TraceConfig(trace_values=[0.1]),
                 ],
+                is_endogenous=True
             ),
             TagConfig(name='action-1', action_constructor=[], state_constructor=[NullConfig()]),
             TagConfig(name="reward", is_meta=True),
@@ -111,8 +112,8 @@ def test_pipeline1():
         # notice that the first row of the DF was skipped due to the np.nan
         Transition(
             steps=[
-                # countdown is first in the state
-                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0., 1, 0.18]), dp=True),
+                # expected state order: states sorted. Thus, [tag-1, countdown.[0], tag-2_norm_trace-0.1]
+                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0.0, 1, 0.18]), dp=True),
                 Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 1, 0.378]), dp=True),
             ],
             n_step_reward=0.,
@@ -136,6 +137,7 @@ def test_pipeline2():
                 name='tag-1',
                 imputer=CopyImputerConfig(imputation_horizon=2),
                 state_constructor=[],
+                is_endogenous=False,
             ),
             TagConfig(
                 name='tag-2',
@@ -145,6 +147,7 @@ def test_pipeline2():
                     NormalizerConfig(),
                     TraceConfig(trace_values=[0.1]),
                 ],
+                is_endogenous=True
             ),
             TagConfig(name='action-1', action_constructor=[], state_constructor=[]),
             TagConfig(name="reward", is_meta=True),
