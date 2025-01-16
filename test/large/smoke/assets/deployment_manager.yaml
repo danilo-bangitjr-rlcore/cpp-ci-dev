@@ -6,7 +6,7 @@ deployment:
   python_entrypoint: main.py
   base: config
   config_name: pendulum
-  options: [experiment.max_steps=15]
+  options: [experiment.max_steps=15,metrics.port=5435]
 
 event_bus:
   python_entrypoint: event_bus.py

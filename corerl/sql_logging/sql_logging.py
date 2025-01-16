@@ -78,8 +78,11 @@ def maybe_create_database(conn_url: URL, backoff_seconds: int = 5, max_tries: in
         if tries >= max_tries:
             raise Exception("database creation failed")
         try:
-            create_database(conn_url)
-            success = True
+            if database_exists(conn_url):
+                success = True
+            else:
+                create_database(conn_url)
+                success = True
         except Exception as e:
             logger.warning(f"failed to create database, retrying in {backoff_seconds} seconds...")
             logger.error(e, exc_info=True)

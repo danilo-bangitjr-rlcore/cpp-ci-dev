@@ -11,7 +11,7 @@ from sqlalchemy.sql import text
 
 import corerl.utils.pandas as pd_util
 from corerl.data_pipeline.db.data_writer import TagDBConfig
-from corerl.data_pipeline.db.utils import try_connect
+from corerl.data_pipeline.db.utils import TryConnectContextManager
 from corerl.sql_logging.sql_logging import get_sql_engine
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 class DataReader:
     def __init__(self, db_cfg: TagDBConfig) -> None:
         self.engine: Engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name)
-        self.connection = try_connect(self.engine)
 
         self.db_metadata = MetaData()
         self.db_metadata.reflect(bind=self.engine)
@@ -118,7 +117,8 @@ class DataReader:
 
         logger.debug(stmt.compile(self.engine, compile_kwargs={"literal_binds": True}))
 
-        sensor_data = pd.read_sql(sql=stmt, con=self.connection)
+        with TryConnectContextManager(self.engine) as connection:
+            sensor_data = pd.read_sql(sql=stmt, con=connection)
         sensor_data = sensor_data.pivot(columns="name", values="val", index="time_bucket")
 
         missing_cols = [name for name in names if name not in set(sensor_data.columns)]
@@ -150,7 +150,7 @@ class DataReader:
         return pd.DataFrame(df[-1:])
 
     def close(self) -> None:
-        self.connection.close()
+        return
 
     def query(self, q: str, params: dict[str, Any] | None = None) -> pd.DataFrame:
         params = params or {}
@@ -158,11 +158,14 @@ class DataReader:
         q = q.replace(":table", self.sensor_table.name)
         q = q.replace(":val", _parse_jsonb("fields"))
 
-        return pd.read_sql(
-            sql=text(q),
-            con=self.connection,
-            params=params,
-        )
+        with TryConnectContextManager(self.engine) as connection:
+            sensor_data = pd.read_sql(
+                sql=text(q),
+                con=connection,
+                params=params,
+            )
+
+        return sensor_data
 
     def get_tag_stats(self, tag_name: str):
         q = """
