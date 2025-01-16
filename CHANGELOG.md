@@ -1,3 +1,9 @@
+## 0.27.0 (2025-01-16)
+
+### Feat
+
+- perform sanity checking on interaction state
+
 ## 0.26.5 (2025-01-16)
 
 ### Fix
