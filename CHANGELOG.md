@@ -1,3 +1,9 @@
+## 0.27.1 (2025-01-16)
+
+### Fix
+
+- added hypertable and compression config to base_telegraf.conf
+
 ## 0.27.0 (2025-01-16)
 
 ### Feat
