@@ -21,6 +21,7 @@ class MetricsDBConfig(BufferedWriterConfig):
     db_name: str = 'postgres'
     table_name: str = 'metrics'
     table_schema: str = 'public'
+    lo_wm: int = 128
     enabled: bool = False
 
 
@@ -28,10 +29,9 @@ class MetricsWriter(BufferedWriter[_MetricPoint]):
     def __init__(
         self,
         cfg: MetricsDBConfig,
-        low_watermark: int = 128,
         high_watermark: int = 256,
     ):
-        super().__init__(cfg, low_watermark, high_watermark)
+        super().__init__(cfg, cfg.lo_wm, high_watermark)
         self.cfg = cfg
         self._has_built = False
 
