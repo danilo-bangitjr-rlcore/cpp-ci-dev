@@ -2,7 +2,7 @@
 
 [Wiki](https://github.com/rlcoretech/core-rl/wiki)
 
-This is the main repo containing code for our agents, environments, state constructors and interactions. 
+This is the main repo containing code for our agents, environments, state constructors and interactions.
 
 ## Installation
 
@@ -18,6 +18,9 @@ uv pip sync requirements.txt
 
 # install corerl as editable package
 uv pip install -e .
+
+# install projects/ as editable packages
+uv pip install -e projects/
 
 # run linter
 uv run ruff check
