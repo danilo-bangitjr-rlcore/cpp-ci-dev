@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from asyncua.sync import Client
 
-from corerl.configs.config import config
+from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv, GymEnvConfig, OPCEnvConfig, TSDBEnvConfig
@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 @config()
 class OPCTSDBSimAsyncEnvConfig(GymEnvConfig, OPCEnvConfig, TSDBEnvConfig):
     name: str = "opc_tsdb_sim_async_env"
+    action_tolerance: timedelta = MISSING
     obs_fetch_attempts: int = 20
     obs_read_delay_buffer: timedelta = timedelta(seconds=1)
 
@@ -40,6 +41,7 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
     def __init__(self, cfg: OPCTSDBSimAsyncEnvConfig, tag_configs: list[TagConfig]):
         self.obs_period = cfg.obs_period
         self.obs_read_delay_buffer = cfg.obs_read_delay_buffer
+        self.action_tolerance = cfg.action_tolerance
 
         self._data_reader = DataReader(db_cfg=cfg.db)
         self.obs_fetch_attempts = cfg.obs_fetch_attempts

@@ -70,7 +70,7 @@ class Pipeline:
             steps_per_decision, cfg.action_period.total_seconds() / cfg.obs_period.total_seconds()
         ), "action period must be a multiple of obs period"
 
-        self.valid_thresh: datetime.timedelta = cfg.obs_period
+        self.valid_thresh: datetime.timedelta = 2 * cfg.obs_period
         cfg.transition_creator.max_n_step = steps_per_decision
         self.tags = cfg.tags
 
