@@ -1,3 +1,12 @@
+## 0.27.2 (2025-01-16)
+
+### Fix
+
+- do not reset temporal state on every step
+- extend valid threshold for timedelta between pipeframes
+- narrow types of first and last timestamp in pipeframe
+- remove obs_period from tolerance for stale state in deployment interaction
+
 ## 0.27.1 (2025-01-16)
 
 ### Fix
