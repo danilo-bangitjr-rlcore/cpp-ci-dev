@@ -187,7 +187,13 @@ def check_sim_farama_environment_ready(run_background_opc_client: None, request:
 @pytest.mark.timeout(500)
 def test_opc_tsdb_mountain_car_continuous(check_sim_farama_environment_ready: None, request: FixtureRequest):
     proc = subprocess.run(
-        ["corerl_main", "--config-name", "opc_mountain_car_continuous", "experiment.max_steps=25"],
+        [
+            "corerl_main",
+            "--config-name",
+            "opc_mountain_car_continuous",
+            "experiment.max_steps=25",
+            "experiment.run_forever="
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,

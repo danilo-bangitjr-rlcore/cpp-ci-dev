@@ -47,5 +47,5 @@ def maybe_parse_event(msg: str | bytes) -> Event | None:
     try:
         return Event.model_validate_json(msg)
     except ValidationError:
-        logger.exception('Failed to parse websocket message')
+        logger.exception('Failed to parse message')
         return None

@@ -10,7 +10,6 @@ from corerl.config import MainConfig
 from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.writer import MetricsWriter
-from corerl.messages.client import DummyWebsocketClient
 from corerl.offline.utils import load_offline_transitions, offline_training
 from corerl.state import AppState
 from corerl.utils.device import device
@@ -34,7 +33,7 @@ def main(cfg: MainConfig):
 
     app_state = AppState(
         metrics=MetricsWriter(cfg.metrics),
-        event_bus=DummyWebsocketClient('', 0),
+        event_bus=None,
     )
 
     pipeline = Pipeline(cfg.pipeline)
