@@ -47,7 +47,7 @@
               "tooltip": false,
               "viz": false
             },
-            "insertNulls": 5000,
+            "insertNulls": false,
             "lineInterpolation": "smooth",
             "lineWidth": 1,
             "pointSize": 5,
@@ -155,7 +155,6 @@
                 "type": "groupBy"
               }
             ],
-            "limit": null,
             "orderBy": {
               "property": {
                 "name": [
@@ -462,6 +461,6 @@
   "timezone": "browser",
   "title": "OPC TSDB Local Visualization",
   "uid": "ee9wfo0vhboxsb",
-  "version": 14,
+  "version": 1,
   "weekStart": ""
 }
