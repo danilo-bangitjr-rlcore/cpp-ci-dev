@@ -8,6 +8,7 @@ from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.interaction.interaction import Interaction
+from corerl.state import AppState
 
 logger = logging.getLogger(__file__)
 
@@ -21,6 +22,7 @@ class SimInteraction(Interaction):
     def __init__(
         self,
         cfg: SimInteractionConfig,
+        app_state: AppState,
         agent: BaseAgent,
         env: AsyncEnv,
         pipeline: Pipeline,

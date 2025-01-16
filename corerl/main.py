@@ -58,7 +58,7 @@ def main(cfg: MainConfig):
             column_desc,
         )
         interaction = init_interaction(
-            cfg=cfg.interaction, agent=agent, env=env, pipeline=pipeline,
+            cfg=cfg.interaction, app_state=app_state, agent=agent, env=env, pipeline=pipeline,
         )
 
         steps = 0

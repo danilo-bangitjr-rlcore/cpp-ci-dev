@@ -12,6 +12,7 @@ from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.interaction.interaction import Interaction
+from corerl.state import AppState
 
 logger = logging.getLogger(__file__)
 
@@ -23,10 +24,12 @@ class DeploymentInteraction(Interaction):
     def __init__(
         self,
         cfg: DepInteractionConfig,
+        app_state: AppState,
         agent: BaseAgent,
         env: AsyncEnv,
         pipeline: Pipeline,
     ):
+        self._app_state = app_state
         self._pipeline = pipeline
         self._env = env
         self._agent = agent
@@ -83,6 +86,7 @@ class DeploymentInteraction(Interaction):
 
         state_df = pf.data.tail(1)
         state_timestamp = state_df.index[0]
+        self._write_state_features(state_df)
 
         tags = self._column_desc.state_cols
         state = state_df[list(tags)].iloc[0].to_numpy()
@@ -110,6 +114,18 @@ class DeploymentInteraction(Interaction):
             return None
 
         return self._last_state
+
+    def _write_state_features(self, state_df: pd.DataFrame) -> None:
+        if len(state_df) != 1:
+            logger.error(f"unexpected state df length: {len(state_df)}")
+
+        for feat_name in state_df.columns:
+            val = state_df[feat_name].values[0]
+            self._app_state.metrics.write(
+                metric=feat_name,
+                value=val,
+            )
+
 
 def clock_generator(tick_period: timedelta) -> Generator[datetime, None, None]:
     tick = datetime.now(UTC)
