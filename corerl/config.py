@@ -19,7 +19,7 @@ class MainConfig:
     metrics: MetricsDBConfig = field(default_factory=MetricsDBConfig)
     message_bus: MessageBusConfig = field(default_factory=MessageBusConfig)
 
-    env: AsyncEnvConfig = MISSING  # field(default_factory=SimAsyncEnvConfig)
+    env: AsyncEnvConfig = MISSING # field(default_factory=SimAsyncEnvConfig)
     agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')
     experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)

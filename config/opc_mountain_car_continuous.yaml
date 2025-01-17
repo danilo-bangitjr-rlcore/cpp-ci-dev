@@ -15,7 +15,7 @@ interaction:
   name: sim_interaction
 
 message_bus:
-  enabled: True
+  enabled: true
 
 env:
   name: opc_tsdb_sim_async_env

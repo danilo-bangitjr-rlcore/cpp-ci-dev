@@ -9,6 +9,7 @@ import sys
 import numpy as np
 import torch
 from tqdm import tqdm
+import zmq
 
 from corerl.agent.factory import init_agent
 from corerl.config import MainConfig
@@ -17,6 +18,7 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
 from corerl.interaction.factory import init_interaction
+from corerl.messages.events import Event
 from corerl.messages.scheduler import scheduler_task
 from corerl.state import AppState, MetricsWriter
 from corerl.utils.device import device
@@ -51,11 +53,19 @@ def main(cfg: MainConfig):
 
     env = init_async_env(cfg.env, cfg.pipeline.tags)
     scheduler = None
+    socket = None
     try:
         # Spin up scheduler process
         if cfg.message_bus.enabled:
             scheduler = multiprocessing.Process(target=scheduler_task, args=(cfg.message_bus,))
             scheduler.start()
+
+            context = zmq.Context()
+            socket = context.socket(zmq.SUB)
+            socket.connect(cfg.message_bus.scheduler_connection)
+            socket.connect(cfg.message_bus.cli_connection)
+            socket.setsockopt_string(zmq.SUBSCRIBE, "")  # this will subscribe to all topics
+
 
         column_desc = pipeline.column_descriptions
         agent = init_agent(
@@ -76,7 +86,14 @@ def main(cfg: MainConfig):
 
         while True:
             pbar.update(1)
-            interaction.step()
+            log.info(f"waiting for step {steps}...")
+            if socket:
+                raw_payload = socket.recv()
+                raw_topic, raw_event = raw_payload.split(b" ", 1)
+                event = Event.model_validate_json(raw_event)
+                interaction.step_event(event)
+            else:
+                interaction.step()
             steps += 1
             if not run_forever and steps >= max_steps:
                 break

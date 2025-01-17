@@ -13,7 +13,7 @@ class EventType(StrEnum):
     # ---------------
     # -- Lifecycle --
     # ---------------
-    heartbeat = auto()
+    step = auto()
 
     # -----------
     # -- Agent --
