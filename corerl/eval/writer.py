@@ -118,7 +118,6 @@ class PandasMetricsWriter():
         self.points[metric].append(point)
 
     def close(self):
-        print("CLOSING")
         dfs = convert_to_dataframes(self.points)
         for metric, df in dfs.items():
             df.to_csv(f'{self.output_path}/{metric}.csv', index=False)
