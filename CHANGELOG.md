@@ -1,3 +1,13 @@
+## 0.28.3 (2025-01-17)
+
+### Fix
+
+- upgrade cenovus configs to latest schema
+
+### Refactor
+
+- allow directly loading configs e.g. for tests
+
 ## 0.28.2 (2025-01-16)
 
 ### Fix
