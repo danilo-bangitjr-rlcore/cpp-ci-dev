@@ -48,7 +48,7 @@ class ExpMovingVar:
         if self._var is None:
             first_valid_idx = np.where(~np.isnan(x))[0]
             if len(first_valid_idx) > 0:
-                self._var = 1e-6
+                self._var = 0
                 self._ema.feed(x)
                 self._prev_mean = self._ema()
             return
@@ -73,5 +73,5 @@ class ExpMovingVar:
 
     def __call__(self) -> float:
         if self._var is None:
-            return 1e-6
-        return max(1e-6, self._var)
+            return 0
+        return self._var
