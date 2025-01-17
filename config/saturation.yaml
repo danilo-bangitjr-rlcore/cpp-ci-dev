@@ -7,7 +7,7 @@ interaction:
 
 experiment :
   exp_name : "saturation"
-  max_steps : 50
+  max_steps : 10000
   offline_steps : 0
   timeout: 0
 
@@ -79,7 +79,7 @@ pipeline:
       name: identity
     state_constructor:
     - name: multi_trace
-      trace_values: [0.95, 0.99]
+      trace_values: [0.95]
 
   # actions
   - name: action
