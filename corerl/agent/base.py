@@ -11,7 +11,6 @@ from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.configs.config import MISSING, config, interpolate
 from corerl.data_pipeline.datatypes import Transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions
-from corerl.messages.client import MessageBusClientConfig
 from corerl.state import AppState
 
 
@@ -22,7 +21,7 @@ class BaseAgentConfig:
     discrete_control: bool = interpolate('${env.discrete_control}')
     freezer_freq: int = 1
     gamma: float = interpolate('${experiment.gamma}')
-    message_bus: MessageBusClientConfig = field(default_factory=MessageBusClientConfig)
+    message_bus: Any = MISSING
     n_updates: int = 1
     replay_ratio: int = 1
     seed: int = interpolate('${experiment.seed}')
@@ -73,7 +72,8 @@ class BaseAgent(ABC):
         return {}
 
     def close(self):
-        self._app_state.event_bus.close_sync()
+        # self._app_state.event_bus.close_sync()
+        return
 
 
 

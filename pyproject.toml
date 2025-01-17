@@ -115,7 +115,6 @@ dependencies = [
     "torch~=2.5",
     "tqdm~=4.66",
     "scikit-learn~=1.5",
-    "websockets~=14.1",
     "psycopg2-binary~=2.9",
 ]
 readme = "README.md"
