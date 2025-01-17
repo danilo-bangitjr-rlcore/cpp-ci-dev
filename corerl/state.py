@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from corerl.eval.writer import MetricsWriter
+from corerl.eval.writer import MetricsWriterProtocol
 
 
 @dataclass
 class AppState:
-    metrics: MetricsWriter
+    metrics: MetricsWriterProtocol
     event_bus: None

@@ -14,8 +14,9 @@ from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
+from corerl.eval.writer import metrics_group
 from corerl.interaction.factory import init_interaction
-from corerl.state import AppState, MetricsWriter
+from corerl.state import AppState
 from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ def main(cfg: MainConfig):
     device.update_device(cfg.experiment.device)
 
     app_state = AppState(
-        metrics=MetricsWriter(cfg.metrics),
+        metrics=metrics_group.dispatch(cfg.metrics),
         event_bus=None,
     )
 
@@ -67,7 +68,6 @@ def main(cfg: MainConfig):
             steps += 1
             if steps >= max_steps and not run_forever:
                 break
-
 
     except Exception as e:
         log.exception(e)
