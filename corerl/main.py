@@ -8,8 +8,8 @@ import sys
 
 import numpy as np
 import torch
-from tqdm import tqdm
 import zmq
+from tqdm import tqdm
 
 from corerl.agent.factory import init_agent
 from corerl.config import MainConfig
@@ -35,9 +35,28 @@ logging.basicConfig(
 def main(cfg: MainConfig):
     device.update_device(cfg.experiment.device)
 
+    scheduler = None
+    socket = None
+    event_bus = None
+
+    # Spin up scheduler process
+    if cfg.event_bus.enabled:
+        scheduler = multiprocessing.Process(target=scheduler_task, args=(cfg.event_bus,))
+        scheduler.start()
+        context = zmq.Context()
+
+        event_bus = context.socket(zmq.PUB)
+        event_bus.bind(cfg.event_bus.app_connection)
+
+        socket = context.socket(zmq.SUB)
+        socket.connect(cfg.event_bus.scheduler_connection)
+        socket.connect(cfg.event_bus.cli_connection)
+        socket.connect(cfg.event_bus.app_connection)
+        socket.setsockopt_string(zmq.SUBSCRIBE, "")  # this will subscribe to all topics
+
     app_state = AppState(
         metrics=MetricsWriter(cfg.metrics),
-        event_bus=None,
+        event_bus=event_bus,
     )
 
     # get custom gym environments
@@ -52,21 +71,7 @@ def main(cfg: MainConfig):
     pipeline = Pipeline(cfg.pipeline)
 
     env = init_async_env(cfg.env, cfg.pipeline.tags)
-    scheduler = None
-    socket = None
     try:
-        # Spin up scheduler process
-        if cfg.message_bus.enabled:
-            scheduler = multiprocessing.Process(target=scheduler_task, args=(cfg.message_bus,))
-            scheduler.start()
-
-            context = zmq.Context()
-            socket = context.socket(zmq.SUB)
-            socket.connect(cfg.message_bus.scheduler_connection)
-            socket.connect(cfg.message_bus.cli_connection)
-            socket.setsockopt_string(zmq.SUBSCRIBE, "")  # this will subscribe to all topics
-
-
         column_desc = pipeline.column_descriptions
         agent = init_agent(
             cfg.agent,

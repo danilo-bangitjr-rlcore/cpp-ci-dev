@@ -14,7 +14,7 @@ experiment:
 interaction:
   name: sim_interaction
 
-message_bus:
+event_bus:
   enabled: true
 
 env:

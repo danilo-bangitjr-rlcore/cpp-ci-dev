@@ -27,6 +27,12 @@ class EventType(StrEnum):
     agent_update_critic = auto()
 
 
+class EventTopic(StrEnum):
+    scheduler = auto()
+    cli = auto()
+    app = auto()
+
+
 class Event(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     time: str = Field(default_factory=now_iso)

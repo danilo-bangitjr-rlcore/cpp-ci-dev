@@ -14,4 +14,4 @@ class Interaction(Protocol):
             case EventType.step:
                 self.step()
             case _:
-                logger.info(f"Got unexpected event: {event}")
+                logger.debug(f"Got unexpected event: {event}")
