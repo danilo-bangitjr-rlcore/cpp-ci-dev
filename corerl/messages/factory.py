@@ -1,4 +1,4 @@
-from corerl.configs.config import MISSING, config
+from corerl.configs.config import config
 
 
 @config()

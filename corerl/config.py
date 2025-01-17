@@ -17,7 +17,7 @@ from corerl.messages.factory import MessageBusConfig
 class MainConfig:
     interaction: InteractionConfig = MISSING
     metrics: MetricsDBConfig = field(default_factory=MetricsDBConfig)
-    message_bus: MessageBusConfig = field(default=MessageBusConfig)
+    message_bus: MessageBusConfig = MessageBusConfig()
 
     env: AsyncEnvConfig = MISSING # field(default_factory=SimAsyncEnvConfig)
     agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')

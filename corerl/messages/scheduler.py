@@ -1,10 +1,17 @@
 import time
+
 import zmq
-from corerl.messages.factory import MessageBusConfig
+
 from corerl.messages.events import Event, EventType
+from corerl.messages.factory import MessageBusConfig
 
 
 def scheduler_task(message_bus_cfg: MessageBusConfig):
+    """
+    Processs that emits ZMQ messages using our messages Event class.
+    Stub for the CoreRL Scheduler process that controls the interaction's
+    functions: (getting observations, emitting action, updating the agent)
+    """
     context = zmq.Context()
     socket = context.socket(zmq.PUB)
     socket.bind(message_bus_cfg.scheduler_connection)
@@ -19,5 +26,3 @@ def scheduler_task(message_bus_cfg: MessageBusConfig):
         socket.send_string(payload)
         counter += 1
         time.sleep(1)
-
-

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 import logging
+import multiprocessing
 import os
 import random
 import sys
 
-import multiprocessing
 import numpy as np
 import torch
 from tqdm import tqdm
@@ -17,9 +17,9 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
 from corerl.interaction.factory import init_interaction
+from corerl.messages.scheduler import scheduler_task
 from corerl.state import AppState, MetricsWriter
 from corerl.utils.device import device
-from corerl.messages.scheduler import scheduler_task
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -27,6 +27,7 @@ logging.basicConfig(
     encoding="utf-8",
     level=logging.INFO,
 )
+
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
@@ -80,7 +81,6 @@ def main(cfg: MainConfig):
             if not run_forever and steps >= max_steps:
                 break
 
-
     except Exception as e:
         log.exception(e)
         sys.exit(os.EX_SOFTWARE)
@@ -91,6 +91,7 @@ def main(cfg: MainConfig):
         if scheduler:
             scheduler.terminate()
             scheduler.join()
+
 
 if __name__ == "__main__":
     main()
