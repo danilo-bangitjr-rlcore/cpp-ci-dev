@@ -15,7 +15,6 @@ class Config:
 def build_tag_config(tag: TagStats):
     return f"""
 - name: {tag.tag}
-  is_action: false
   imputer:
     name: copy
     imputation_horizon: 60
@@ -23,6 +22,8 @@ def build_tag_config(tag: TagStats):
     - name: normalize
       min: {tag.min}
       max: {tag.max}
+  action_constructor:
+    - name: 'null'
 """
 
 
