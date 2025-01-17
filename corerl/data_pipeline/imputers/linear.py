@@ -88,7 +88,7 @@ def linear_interpolation(x: np.ndarray, prev: float, num_nans: int, max_gap: int
             if num_nans > max_gap:
                 # When 'num_nans' exceeds 'max_gap', can't perform linear interpolation with current 'prev'
                 reset_prev = True
-        elif num_nans > 0:
+        elif num_nans > 0 and i - insert_ind > 0:
             # 'v' and 'prev' are within 'max_gap' so perform linear interpolation
             imputed_vals = impute_gap(prev, v, num_nans)
             # impute_gap() can impute values for NaNs that were in the temporal state (i.e if the passed 'num_nans' > 0)
