@@ -38,6 +38,7 @@ experiment:
   gamma : 0.99
 
 metrics:
+  name : db
   drivername: "postgresql+psycopg2"
   username: "postgres"
   password: "password"

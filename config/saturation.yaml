@@ -12,6 +12,7 @@ experiment :
   timeout: 0
 
 metrics:
+  name : db
   drivername: "postgresql+psycopg2"
   username: "postgres"
   password: "password"
