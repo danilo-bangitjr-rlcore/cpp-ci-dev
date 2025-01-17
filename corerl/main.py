@@ -7,6 +7,7 @@ import sys
 
 import numpy as np
 import torch
+from tqdm import tqdm
 
 from corerl.agent.factory import init_agent
 from corerl.config import MainConfig
@@ -60,12 +61,15 @@ def main(cfg: MainConfig):
         steps = 0
         max_steps = cfg.experiment.max_steps
         run_forever = cfg.experiment.run_forever
+        if run_forever:
+            max_steps = 0
+        pbar = tqdm(total=max_steps)
 
         while True:
-            log.info(f"waiting for step {steps}...")
+            pbar.update(1)
             interaction.step()
             steps += 1
-            if steps >= max_steps and not run_forever:
+            if not run_forever and steps >= max_steps:
                 break
 
 
