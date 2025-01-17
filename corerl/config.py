@@ -10,12 +10,14 @@ from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.eval.writer import MetricsDBConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.interaction.factory import InteractionConfig
+from corerl.messages.factory import MessageBusConfig
 
 
 @config()
 class MainConfig:
     interaction: InteractionConfig = MISSING
     metrics: MetricsDBConfig = field(default_factory=MetricsDBConfig)
+    message_bus: MessageBusConfig = field(default=MessageBusConfig)
 
     env: AsyncEnvConfig = MISSING # field(default_factory=SimAsyncEnvConfig)
     agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')

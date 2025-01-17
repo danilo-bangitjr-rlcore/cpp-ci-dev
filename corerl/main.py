@@ -5,6 +5,7 @@ import os
 import random
 import sys
 
+import multiprocessing
 import numpy as np
 import torch
 from tqdm import tqdm
@@ -18,6 +19,7 @@ from corerl.environment.registry import register_custom_envs
 from corerl.interaction.factory import init_interaction
 from corerl.state import AppState, MetricsWriter
 from corerl.utils.device import device
+from corerl.messages.scheduler import scheduler_task
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
@@ -47,7 +49,13 @@ def main(cfg: MainConfig):
     pipeline = Pipeline(cfg.pipeline)
 
     env = init_async_env(cfg.env, cfg.pipeline.tags)
+    scheduler = None
     try:
+        # Spin up scheduler process
+        if cfg.message_bus.enabled:
+            scheduler = multiprocessing.Process(target=scheduler_task, args=(cfg.message_bus,))
+            scheduler.start()
+
         column_desc = pipeline.column_descriptions
         agent = init_agent(
             cfg.agent,
@@ -80,6 +88,9 @@ def main(cfg: MainConfig):
     finally:
         app_state.metrics.close()
         env.cleanup()
+        if scheduler:
+            scheduler.terminate()
+            scheduler.join()
 
 if __name__ == "__main__":
     main()
