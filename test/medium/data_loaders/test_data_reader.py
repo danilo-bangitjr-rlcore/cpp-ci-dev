@@ -15,8 +15,7 @@ from test.medium.data_loaders.test_data_writer import write_n_random_vals
 @pytest.fixture()
 def data_reader_writer(
     tsdb_engine: Engine,
-    tsdb_test_db_name: str,
-    tmp_table_name: str,
+    tsdb_tmp_db_name: str,
 ):
     port = tsdb_engine.url.port
     assert port is not None
@@ -27,8 +26,8 @@ def data_reader_writer(
         password="password",
         ip="localhost",
         port=port,
-        db_name=tsdb_test_db_name,
-        table_name=tmp_table_name,
+        db_name=tsdb_tmp_db_name,
+        table_name='sensors',
     )
 
     data_reader = DataReader(db_cfg=db_cfg)

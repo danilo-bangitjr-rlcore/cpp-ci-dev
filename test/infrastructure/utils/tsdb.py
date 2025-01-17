@@ -1,7 +1,5 @@
-import random
-
 import pytest
-from sqlalchemy import Engine, text
+from sqlalchemy_utils.functions import drop_database
 
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 from test.infrastructure.utils.docker import init_docker_container
@@ -16,23 +14,16 @@ def tsdb_container(free_localhost_port: int):
 
 
 @pytest.fixture(scope="function")
-def tsdb_test_db_name():
-    return ''.join(random.choices('abcdefghijk', k=8))
+def tsdb_tmp_db_name(request: pytest.FixtureRequest) -> str:
+    return request.node.nodeid
 
 
 @pytest.fixture(scope="function")
-def tsdb_engine(tsdb_container: None, free_localhost_port: int, tsdb_test_db_name: str):
+def tsdb_engine(tsdb_container: None, free_localhost_port: int, tsdb_tmp_db_name: str):
     cfg = SQLEngineConfig(
         port=free_localhost_port,
     )
-    engine = get_sql_engine(cfg, tsdb_test_db_name)
-    return engine
+    engine = get_sql_engine(cfg, tsdb_tmp_db_name)
+    yield engine
 
-
-@pytest.fixture(scope="function")
-def tmp_table_name(tsdb_engine: Engine):
-    table_name = ''.join(random.choices('abcdefghijk', k=8))
-    yield table_name
-
-    with tsdb_engine.connect() as conn:
-        conn.execute(text(f'DROP TABLE {table_name};'))
+    drop_database(engine.url)

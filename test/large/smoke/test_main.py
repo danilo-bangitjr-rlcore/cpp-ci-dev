@@ -16,8 +16,7 @@ from corerl.sql_logging.sql_logging import table_exists
 def test_main_configs(
     tsdb_engine: Engine,
     config_name: str,
-    tsdb_test_db_name: str,
-    tmp_table_name: str,
+    tsdb_tmp_db_name: str,
 ):
     """
     Should be able to execute the main script for several configs
@@ -33,15 +32,14 @@ def test_main_configs(
         'uv', 'run', 'python', 'main.py',
         '--config-name', f'{config_name}', 'experiment.max_steps=25',
         f'metrics.port={port}', 'metrics.enabled=True',
-        f'metrics.table_name={tmp_table_name}', f'metrics.db_name={tsdb_test_db_name}',
-        'metrics.lo_wm=5',
+        f'metrics.db_name={tsdb_tmp_db_name}', 'metrics.lo_wm=1',
     ])
     proc.check_returncode()
 
     # ensure metrics table exists
-    assert table_exists(tsdb_engine, tmp_table_name)
+    assert table_exists(tsdb_engine, 'metrics')
 
     # ensure some metrics were logged to table
     with tsdb_engine.connect() as conn:
-        metrics = pd.read_sql_table(tmp_table_name, con=conn)
+        metrics = pd.read_sql_table('metrics', con=conn)
         assert len(metrics) >= 50
