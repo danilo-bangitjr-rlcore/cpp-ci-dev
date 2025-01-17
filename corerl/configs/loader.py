@@ -149,7 +149,7 @@ def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
     return config
 
 
-def _load_config[T](Config: type[T], base: str | None = None, config_name: str | None = None):
+def direct_load_config[T](Config: type[T], base: str | None = None, config_name: str | None = None):
     # parse all of the command line flags
     # gracefully ignore those we can't parse
     flags = _flags_from_cli()
@@ -196,7 +196,7 @@ def _load_config[T](Config: type[T], base: str | None = None, config_name: str |
 def load_config[T](Config: type[T], base: str | None = None, config_name: str | None = None):
     def _inner[**U, R](f: Callable[Concatenate[T, U], R]):
         def __inner(*args: U.args, **kwargs: U.kwargs) -> R:
-            config = _load_config(Config, base, config_name)
+            config = direct_load_config(Config, base, config_name)
             return f(config, *args, **kwargs)
         return __inner
     return _inner
