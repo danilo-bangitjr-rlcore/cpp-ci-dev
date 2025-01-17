@@ -1,0 +1,88 @@
+defaults:
+  - gym
+  - env: env/saturation
+
+interaction:
+  name: sim_interaction
+
+experiment :
+  exp_name : "saturation"
+  max_steps : 50
+  offline_steps : 0
+  timeout: 0
+
+metrics :
+  name : pandas
+  output_path : ./output
+
+agent:
+  name: greedy_ac
+  tau : 0
+  rho : 0.05
+  num_samples: 100
+  seed: ${experiment.seed}
+  gamma: ${experiment.gamma}
+  discrete_control: ${env.discrete_control}
+
+  critic:
+    polyak: 0.995
+    critic_optimizer:
+      lr : 0.0003
+      weight_decay : 0.0
+    buffer:
+      seed: ${experiment.seed}
+
+  actor:
+    actor_optimizer:
+      lr : 0.0005
+    buffer:
+      seed: ${experiment.seed}
+
+pipeline:
+  state_constructor:
+    defaults: []
+
+  transition_creator:
+    name: anytime
+    gamma: ${experiment.gamma}
+
+  tags:
+  # meta tags
+  - name: reward
+    is_meta: True
+    outlier:
+      name: identity
+
+  - name: terminated
+    is_meta: True
+    outlier:
+      name: identity
+
+  - name: truncated
+    is_meta: True
+    outlier:
+      name: identity
+    state_constructor:
+    - name: 'null'
+
+  # observations
+  - name: tag-1
+    is_meta: False
+    outlier:
+      name: identity
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0.95, 0.99]
+
+  # actions
+  - name: action
+    is_meta: False
+    outlier:
+      name: identity
+    state_constructor:
+      - name: "null"
+    action_constructor:
+      - name: normalize
+        min: -2
+        max: 2
+        from_data: False
