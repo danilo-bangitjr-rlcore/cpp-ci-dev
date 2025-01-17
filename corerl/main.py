@@ -74,6 +74,7 @@ def main(cfg: MainConfig):
         sys.exit(os.EX_SOFTWARE)
 
     finally:
+        app_state.metrics.close()
         env.cleanup()
 
 if __name__ == "__main__":
