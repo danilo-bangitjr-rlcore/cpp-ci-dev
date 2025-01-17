@@ -28,9 +28,11 @@ class EventType(StrEnum):
 
 
 class EventTopic(StrEnum):
-    scheduler = auto()
-    cli = auto()
-    app = auto()
+    # Topic filtering occurs using subscriber-side prefixing
+    corerl = auto()
+    corerl_scheduler = auto()
+    corerl_cli = auto()
+    debug_app = auto()
 
 
 class Event(BaseModel):

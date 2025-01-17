@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 import logging
-import multiprocessing
 import os
 import random
 import sys
+import threading
 
 import numpy as np
 import torch
@@ -18,7 +18,7 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
 from corerl.interaction.factory import init_interaction
-from corerl.messages.events import Event
+from corerl.messages.events import Event, EventTopic
 from corerl.messages.scheduler import scheduler_task
 from corerl.state import AppState, MetricsWriter
 from corerl.utils.device import device
@@ -38,12 +38,16 @@ def main(cfg: MainConfig):
     scheduler = None
     socket = None
     event_bus = None
+    stop_event = None
 
     # Spin up scheduler process
     if cfg.event_bus.enabled:
-        scheduler = multiprocessing.Process(target=scheduler_task, args=(cfg.event_bus,))
-        scheduler.start()
+        # scheduler = multiprocessing.Process(target=scheduler_task, args=(cfg.event_bus,))
         context = zmq.Context()
+        stop_event = threading.Event()
+        scheduler = threading.Thread(target=scheduler_task, args=(cfg.event_bus, context, stop_event))
+        scheduler.setDaemon(True)
+        scheduler.start()
 
         event_bus = context.socket(zmq.PUB)
         event_bus.bind(cfg.event_bus.app_connection)
@@ -52,7 +56,7 @@ def main(cfg: MainConfig):
         socket.connect(cfg.event_bus.scheduler_connection)
         socket.connect(cfg.event_bus.cli_connection)
         socket.connect(cfg.event_bus.app_connection)
-        socket.setsockopt_string(zmq.SUBSCRIBE, "")  # this will subscribe to all topics
+        socket.setsockopt_string(zmq.SUBSCRIBE, EventTopic.corerl)  # Empty string ("") to subscribe to everything
 
     app_state = AppState(
         metrics=MetricsWriter(cfg.metrics),
@@ -110,8 +114,11 @@ def main(cfg: MainConfig):
     finally:
         app_state.metrics.close()
         env.cleanup()
+
+        if stop_event:
+            stop_event.set()
+
         if scheduler:
-            scheduler.terminate()
             scheduler.join()
 
 

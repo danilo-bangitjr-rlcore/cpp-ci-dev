@@ -9,7 +9,7 @@ class AppState:
         self.metrics = metrics
         self.event_bus = event_bus
 
-    def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.app):
+    def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app):
         if not self.event_bus:
             return
 
