@@ -4,33 +4,31 @@ from typing import List
 import numpy as np
 import pandas as pd
 import pytest
-from docker.models.containers import Container
 from pandas import DataFrame, DatetimeIndex, Series
+from sqlalchemy import Engine
 
 from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
-from test.infrastructure.utils.docker import init_docker_container
 from test.medium.data_loaders.test_data_writer import write_n_random_vals
 
 
-@pytest.fixture(scope="module")
-def init_data_reader_tsdb_container():
-    container = init_docker_container(ports={"5432": 5433})
-    yield container
-    container.stop()
-    container.remove()
+@pytest.fixture()
+def data_reader_writer(
+    tsdb_engine: Engine,
+    tsdb_test_db_name: str,
+    tmp_table_name: str,
+):
+    port = tsdb_engine.url.port
+    assert port is not None
 
-@pytest.fixture(scope="module")
-def data_reader_writer(init_data_reader_tsdb_container: Container):
-    assert init_data_reader_tsdb_container.name == "test_timescale"
     db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",
         username="postgres",
         password="password",
         ip="localhost",
-        port=5433,  # default is 5432, but we want to use different port for test db
-        db_name="pytest",
-        table_name="sensors",
+        port=port,
+        db_name=tsdb_test_db_name,
+        table_name=tmp_table_name,
     )
 
     data_reader = DataReader(db_cfg=db_cfg)
@@ -173,7 +171,7 @@ class TestDataReader:
         """
         return datetime.now(UTC)
 
-    @pytest.fixture(autouse=False, scope="class")
+    @pytest.fixture()
     def populate_db(self, data_reader_writer: tuple[DataReader, DataWriter], now: datetime):
         n_vals = 50
         names = TestDataReader.sensor_names
