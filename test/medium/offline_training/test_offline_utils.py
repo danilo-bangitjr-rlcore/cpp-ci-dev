@@ -25,7 +25,7 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import LessThanConfig, NullConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
-from corerl.eval.writer import MetricsWriter
+from corerl.eval.writer import metrics_group
 from corerl.experiment.config import ExperimentConfig
 from corerl.offline.utils import load_offline_transitions, offline_training
 from corerl.state import AppState
@@ -203,7 +203,7 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
     offline_transitions = generate_offline_data(offline_cfg, data_writer, steps)
 
     app_state = AppState(
-        metrics=MetricsWriter(offline_cfg.metrics),
+        metrics=metrics_group.dispatch(offline_cfg.metrics),
         event_bus=None,
     )
 
