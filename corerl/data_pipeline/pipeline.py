@@ -26,6 +26,7 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
+from corerl.data_pipeline.zones import default_configs_from_zones
 
 logger = logging.getLogger(__name__)
 register_dispatchers()
@@ -40,7 +41,6 @@ class PipelineConfig:
     state_constructor: SCConfig = field(default_factory=SCConfig)
     transition_creator: AllTheTimeTCConfig = field(default_factory=AllTheTimeTCConfig)
     transition_filter: TransitionFilterConfig = field(default_factory=TransitionFilterConfig)
-
 
 @dataclass
 class PipelineReturn:
@@ -122,6 +122,7 @@ class Pipeline:
 
     def _construct_config(self, cfg: PipelineConfig) -> PipelineConfig:
         construct_default_sc_configs(cfg.state_constructor, cfg.tags)
+        default_configs_from_zones(cfg.tags)
         return cfg
 
 
