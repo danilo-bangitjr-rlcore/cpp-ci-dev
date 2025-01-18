@@ -9,7 +9,7 @@ from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
-@config(frozen=True)
+@config()
 class NormalizerConfig(BaseTransformConfig):
     name: Literal['normalize'] = 'normalize'
     min: float | None = None

@@ -7,7 +7,7 @@ from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
-@config(frozen=True)
+@config()
 class NullConfig(BaseTransformConfig):
     name: Literal['null'] = 'null'
 

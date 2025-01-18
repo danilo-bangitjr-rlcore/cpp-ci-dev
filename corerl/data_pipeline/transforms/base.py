@@ -10,7 +10,7 @@ class Transform(Protocol):
     def reset(self) -> None: ...
 
 
-@config(frozen=True)
+@config()
 class BaseTransformConfig:
     name: Any = MISSING
 
