@@ -95,7 +95,6 @@ def main(cfg: MainConfig):
 
         while True:
             pbar.update(1)
-            log.info(f"waiting for step {steps}...")
             if socket:
                 raw_payload = socket.recv()
                 raw_topic, raw_event = raw_payload.split(b" ", 1)
