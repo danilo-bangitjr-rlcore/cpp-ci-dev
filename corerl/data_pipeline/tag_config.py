@@ -1,4 +1,4 @@
-from dataclasses import field
+from pydantic import Field
 
 from corerl.configs.config import MISSING, config, list_
 from corerl.data_pipeline.imputers.factory import ImputerConfig
@@ -21,8 +21,8 @@ class TagConfig:
     node_identifier: str | None = None
 
     bounds: tuple[float | None, float | None] = (None, None)
-    outlier: OddityFilterConfig = field(default_factory=EMAFilterConfig)
-    imputer: ImputerConfig = field(default_factory=IdentityImputerConfig)
+    outlier: OddityFilterConfig = Field(default_factory=EMAFilterConfig)
+    imputer: ImputerConfig = Field(default_factory=IdentityImputerConfig)
     reward_constructor: list[TransformConfig] = list_([NullConfig()])
     action_constructor: list[TransformConfig] | None = None
     state_constructor: list[TransformConfig] | None = None
