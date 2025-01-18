@@ -98,7 +98,7 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
                     name="Action",
                     state_constructor=[NullConfig()],
                     action_constructor=[],
-                    bounds=(0.0, 1.0)
+                    operating_range=(0.0, 1.0)
                 ),
                 TagConfig(
                     name="Tag_1",

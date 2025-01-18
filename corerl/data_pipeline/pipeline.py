@@ -76,7 +76,11 @@ class Pipeline:
 
         # initialization all stateful stages
         self.missing_data_checkers = {tag.name: missing_data_checker for tag in self.tags}
-        self.bound_checkers = {tag.name: bound_checker_builder(tag.bounds) for tag in self.tags}
+        self.bound_checkers = {
+            tag.name: bound_checker_builder(tag.operating_range)
+            for tag in self.tags
+            if tag.operating_range is not None
+        }
         self.transition_creator = AllTheTimeTC(cfg.transition_creator, self.tags)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
         self.outlier_detectors = {tag.name: init_oddity_filter(tag.outlier) for tag in self.tags}

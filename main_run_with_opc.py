@@ -21,7 +21,8 @@ class Config:
 def dumb_policy(action_tags: list[TagConfig]):
     raw_actions = []
     for action_tag in action_tags:
-        lo, hi = action_tag.bounds
+        assert action_tag.operating_range is not None
+        lo, hi = action_tag.operating_range
         lo = lo if lo is not None else 0
         hi = hi if hi is not None else 1
         raw_actions.append((hi - lo) * random() + lo)

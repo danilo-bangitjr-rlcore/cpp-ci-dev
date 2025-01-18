@@ -69,7 +69,7 @@ pipeline:
   tags:
   - name: PERM_SP.BW_SP # flow rate setpoint
     node_identifier: "[pilot]Program:ZW.PERM_SP.BW_SP"
-    bounds: [0.9, 1.4]
+    operating_range: [0.9, 1.4]
     action_constructor:
       - name: normalize
         min: 0.9
@@ -80,7 +80,7 @@ pipeline:
 
   - name: BW_SP.KY2 # backpulse duration setpoint
     node_identifier: "[pilot]Program:ZW.BW_SP.KY2"
-    bounds: [20, 40]
+    operating_range: [20, 40]
     action_constructor:
       - name: normalize
         min: 20
@@ -90,7 +90,7 @@ pipeline:
     - name: "null"
 
   - name: PRC_INFO.PERMEABILITY # permeability
-    bounds: [-40, -15] # this tag reports negative permeability
+    operating_range: [-40, -15] # this tag reports negative permeability
     state_constructor:
     - name: normalize
       min: -40
@@ -124,7 +124,7 @@ pipeline:
     - name: "null"
 
   - name: TUIT101.DATA # raw turbidity
-    bounds: [0, 1.5]
+    operating_range: [0, 1.5]
     state_constructor:
     - name: normalize
       min: 0
@@ -136,7 +136,7 @@ pipeline:
       - 0.9
 
   - name: FTC101.DATA # raw cdom
-    bounds: [1, 4]
+    operating_range: [1, 4]
     state_constructor:
     - name: normalize
       min: 1
@@ -148,7 +148,7 @@ pipeline:
       - 0.9
 
   - name: FTT100.DATA # raw tryptophan
-    bounds: [0, 0.7]
+    operating_range: [0, 0.7]
     state_constructor:
     - name: normalize
       min: 0
@@ -160,7 +160,7 @@ pipeline:
       - 0.9
 
   - name: TIT302.DATA # postfloc water temp
-    bounds: [0, 15]
+    operating_range: [0, 15]
     state_constructor:
     - name: normalize
       min: 0

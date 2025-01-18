@@ -85,7 +85,7 @@ def test_state_action_dim():
             TagConfig(name='tag-1'),
             TagConfig(
                 name='tag-2',
-                bounds=(None, 10),
+                operating_range=(None, 10),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
                     NormalizerConfig(),
@@ -127,7 +127,7 @@ def test_sub_pipeline1():
             ),
             TagConfig(
                 name='tag-2',
-                bounds=(None, 10),
+                operating_range=(None, 10),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
                     NormalizerConfig(),
@@ -207,7 +207,7 @@ def test_sub_pipeline2():
             ),
             TagConfig(
                 name='tag-2',
-                bounds=(1, 2),
+                operating_range=(1, 2),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
                     NormalizerConfig(),
@@ -292,7 +292,7 @@ def test_sub_pipeline3():
             ),
             TagConfig(
                 name='tag-2',
-                bounds=(None, 10),
+                operating_range=(None, 10),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
                     NormalizerConfig(),
@@ -381,7 +381,7 @@ def test_sub_pipeline4():
             ),
             TagConfig(
                 name='tag-2',
-                bounds=(None, 10),
+                operating_range=(None, 10),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
                     NormalizerConfig(),

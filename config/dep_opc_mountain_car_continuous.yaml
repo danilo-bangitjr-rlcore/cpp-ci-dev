@@ -81,9 +81,7 @@ pipeline:
 
   tags:
   - name: action_0
-    bounds:
-    - -1.0
-    - 1.0
+    operating_range: [-1.0, 1.0]
     outlier:
       name: identity
     imputer:
@@ -102,9 +100,7 @@ pipeline:
       from_data: False
     is_meta: false
   - name: observation_0
-    bounds:
-    - -1.2
-    - 0.6
+    operating_range: [-1.2, 0.6]
     outlier:
       name: identity
     imputer:
@@ -121,9 +117,7 @@ pipeline:
       - 0.9
     is_meta: false
   - name: observation_1
-    bounds:
-    - -0.07
-    - 0.07
+    operating_range: [-0.07, 0.07]
     outlier:
       name: identity
     imputer:
