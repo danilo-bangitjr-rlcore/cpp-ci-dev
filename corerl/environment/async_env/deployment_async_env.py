@@ -12,6 +12,8 @@ from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import NormalizerConfig
 from corerl.environment.async_env.async_env import AsyncEnv, OPCEnvConfig, TSDBEnvConfig
+from corerl.utils.list import find_instance
+from corerl.utils.maybe import Maybe
 from corerl.utils.opc_connection import make_opc_node_id
 
 logger = logging.getLogger(__file__)
@@ -85,26 +87,32 @@ class DeploymentAsyncEnv(AsyncEnv):
     def _denormalize_action(self, action: np.ndarray) -> list[float]:
         denormalized_actions = []
         action_tag_configs = self._action_tags
-        assert len(action.flatten()) == len(action_tag_configs)
-        action_dim = len(action.flatten())
+        action = action.flatten()
+        assert len(action) == len(action_tag_configs)
+        action_dim = len(action)
 
         for act_i in range(action_dim):
             # denormalize the action if possible, otherwise emit normalized action
-            raw_action = action.flatten()[act_i]
-            action_tag_config = action_tag_configs[act_i]
+            raw_action = action[act_i]
+            action_cfg = action_tag_configs[act_i]
 
-            lo = None
-            hi = None
+            norm_cfg = (
+                Maybe(action_cfg.action_constructor)
+                .map(lambda ac: find_instance(NormalizerConfig, ac))
+            )
 
-            assert action_tag_config.action_constructor is not None
-            for transform_cfg in action_tag_config.action_constructor:
-                if isinstance(transform_cfg, NormalizerConfig):
-                    lo = transform_cfg.min
-                    hi = transform_cfg.max
-                    assert not transform_cfg.from_data
-                    break
+            lo = (
+                norm_cfg
+                .map(lambda cfg: cfg.min)
+                .or_else(0)
+            )
 
-            assert isinstance(lo, float) and isinstance(hi, float)
+            hi = (
+                norm_cfg
+                .map(lambda cfg: cfg.max)
+                .or_else(1)
+            )
+
             scale = hi - lo
             bias = lo
             denormalized_actions.append(scale * raw_action + bias)
