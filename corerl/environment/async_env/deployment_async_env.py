@@ -53,7 +53,7 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         # define opc action nodes
         self.action_nodes = []
-        for tag in tag_configs:
+        for tag in sorted(tag_configs, key=lambda cfg: cfg.name):
             if tag.action_constructor is None:
                 continue
 
