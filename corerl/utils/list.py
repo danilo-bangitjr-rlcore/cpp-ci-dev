@@ -4,6 +4,18 @@ from typing import Any, TypeVar
 from annotated_types import SupportsGt, SupportsLt
 
 
+def find[T](pred: Callable[[T], bool], li: Iterable[T]) -> T | None:
+    for item in li:
+        if pred(item):
+            return item
+
+
+def find_instance[T, U](inst: type[U], li: Iterable[T]) -> U | None:
+    item = find(lambda x: isinstance(x, inst), li)
+    if item and isinstance(item, inst):
+        return item
+
+
 def flatten(li: Iterable[Any]) -> list[Any]:
     out = []
 
