@@ -21,8 +21,8 @@ from test.infrastructure.utils.pandas import dfs_close
 def test_construct_pipeline():
     cfg = PipelineConfig(
         tags=[
-            TagConfig(name='sensor_x'),
-            TagConfig(name='sensor_y'),
+            TagConfig(name='sensor_x', operating_range=(-1, 1)),
+            TagConfig(name='sensor_y', red_bounds=(1.1, 3.3)),
         ],
         # obs_period=15,
         obs_period=timedelta(minutes=15),
@@ -46,8 +46,8 @@ def test_construct_pipeline():
 def test_passing_data_to_pipeline():
     cfg = PipelineConfig(
         tags=[
-            TagConfig(name='sensor_x'),
-            TagConfig(name='sensor_y'),
+            TagConfig(name='sensor_x', operating_range=(-1, 1)),
+            TagConfig(name='sensor_y', red_bounds=(1.1, 3.3)),
         ],
         obs_period=timedelta(minutes=15),
         action_period=timedelta(minutes=15),
@@ -86,6 +86,7 @@ def test_state_action_dim():
             TagConfig(
                 name='tag-2',
                 operating_range=(None, 10),
+                yellow_bounds=(-1, None),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
                     NormalizerConfig(),
@@ -100,6 +101,7 @@ def test_state_action_dim():
                 action_period=timedelta(minutes=5),
                 obs_period=timedelta(minutes=5),
             ),
+            defaults=[],
         ),
         obs_period=timedelta(minutes=5),
         action_period=timedelta(minutes=5),
