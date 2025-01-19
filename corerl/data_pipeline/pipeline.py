@@ -3,13 +3,14 @@ import logging
 import warnings
 from collections import defaultdict
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
 from typing import Any, Callable
 
 import numpy as np
 from pandas import DataFrame
+from pydantic import Field
 
 from corerl.configs.config import config, interpolate, list_
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
@@ -19,7 +20,7 @@ from corerl.data_pipeline.constructors.rc import RewardComponentConstructor, Rew
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
-from corerl.data_pipeline.imputers.factory import init_imputer
+from corerl.data_pipeline.imputers.imputer_stage import BaseImputerStageConfig, Imputer
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
 from corerl.data_pipeline.tag_config import TagConfig
@@ -35,12 +36,15 @@ register_dispatchers()
 @config()
 class PipelineConfig:
     tags: list[TagConfig] = list_()
-    db: TagDBConfig = field(default_factory=TagDBConfig)
+    db: TagDBConfig = Field(default_factory=TagDBConfig)
     obs_period: timedelta = interpolate('${env.obs_period}')
     action_period: timedelta = interpolate('${env.action_period}')
-    state_constructor: SCConfig = field(default_factory=SCConfig)
-    transition_creator: AllTheTimeTCConfig = field(default_factory=AllTheTimeTCConfig)
-    transition_filter: TransitionFilterConfig = field(default_factory=TransitionFilterConfig)
+
+    # stage-wide configs
+    imputer_config: BaseImputerStageConfig = Field(default_factory=BaseImputerStageConfig)
+    state_constructor: SCConfig = Field(default_factory=SCConfig)
+    transition_creator: AllTheTimeTCConfig = Field(default_factory=AllTheTimeTCConfig)
+    transition_filter: TransitionFilterConfig = Field(default_factory=TransitionFilterConfig)
 
 @dataclass
 class PipelineReturn:
@@ -86,7 +90,7 @@ class Pipeline:
         self.transition_creator = AllTheTimeTC(cfg.transition_creator, self.tags)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
         self.outlier_detectors = {tag.name: init_oddity_filter(tag.outlier) for tag in self.tags}
-        self.imputers = {tag.name: init_imputer(tag.imputer) for tag in self.tags}
+        self.imputers = Imputer(cfg.imputer_config, self.tags)
         self.action_constructor = ActionConstructor(self.tags)
         self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
 
@@ -103,7 +107,7 @@ class Pipeline:
             StageCode.INIT:     lambda pf: pf,
             StageCode.BOUNDS:   lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
             StageCode.ODDITY:   lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
-            StageCode.IMPUTER:  lambda pf: invoke_stage_per_tag(pf, self.imputers),
+            StageCode.IMPUTER: self.imputers,
             StageCode.AC:       self.action_constructor,
             StageCode.RC:       self.reward_constructor,
             StageCode.SC:       self.state_constructor,
