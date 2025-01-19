@@ -9,8 +9,8 @@ from torch import tensor
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
 from corerl.data_pipeline.datatypes import CallerCode, Step, Transition
-from corerl.data_pipeline.imputers.copy import CopyImputerConfig
-from corerl.data_pipeline.imputers.linear import LinearImputerConfig
+from corerl.data_pipeline.imputers.per_tag.copy import CopyImputerConfig
+from corerl.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig

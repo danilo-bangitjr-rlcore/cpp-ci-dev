@@ -7,12 +7,12 @@ from corerl.data_pipeline.datatypes import PipelineFrame
 
 
 @config()
-class BaseImputerConfig:
+class BasePerTagImputerConfig:
     name: Any = MISSING
 
 
-class BaseImputer:
-    def __init__(self, cfg: BaseImputerConfig):
+class BasePerTagImputer:
+    def __init__(self, cfg: BasePerTagImputerConfig):
         self.cfg = cfg
 
     @abstractmethod
@@ -20,6 +20,6 @@ class BaseImputer:
         ...
 
 
-imputer_group = Group[
-    [], BaseImputer
+per_tag_imputer_group = Group[
+    [], BasePerTagImputer
 ]()

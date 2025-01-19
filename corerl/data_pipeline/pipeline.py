@@ -20,7 +20,7 @@ from corerl.data_pipeline.constructors.rc import RewardComponentConstructor, Rew
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
-from corerl.data_pipeline.imputers.imputer_stage import BaseImputerStageConfig, Imputer
+from corerl.data_pipeline.imputers.imputer_stage import BaseImputerStageConfig, PerTagImputerConfig, init_imputer
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
 from corerl.data_pipeline.tag_config import TagConfig
@@ -41,7 +41,7 @@ class PipelineConfig:
     action_period: timedelta = interpolate('${env.action_period}')
 
     # stage-wide configs
-    imputer_config: BaseImputerStageConfig = Field(default_factory=BaseImputerStageConfig)
+    imputer_config: BaseImputerStageConfig = Field(default_factory=PerTagImputerConfig)
     state_constructor: SCConfig = Field(default_factory=SCConfig)
     transition_creator: AllTheTimeTCConfig = Field(default_factory=AllTheTimeTCConfig)
     transition_filter: TransitionFilterConfig = Field(default_factory=TransitionFilterConfig)
@@ -90,7 +90,7 @@ class Pipeline:
         self.transition_creator = AllTheTimeTC(cfg.transition_creator, self.tags)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
         self.outlier_detectors = {tag.name: init_oddity_filter(tag.outlier) for tag in self.tags}
-        self.imputers = Imputer(cfg.imputer_config, self.tags)
+        self.imputers = init_imputer(cfg.imputer_config, self.tags)
         self.action_constructor = ActionConstructor(self.tags)
         self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
 
