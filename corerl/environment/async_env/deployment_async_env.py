@@ -47,7 +47,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         self._opc_client = Client(self.url)
         self._opc_client.connect()
 
-        self._data_reader = DataReader(db_cfg=cfg.db)
+        self.data_reader = DataReader(db_cfg=cfg.db)
 
         # define opc action nodes
         self.action_nodes = []
@@ -72,7 +72,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         Can also use __exit__ or cleanup
         """
         self._opc_client.disconnect()
-        self._data_reader.close()
+        self.data_reader.close()
 
     def emit_action(self, action: np.ndarray) -> None:
         """Writes directly to the OPC server"""
@@ -113,7 +113,7 @@ class DeploymentAsyncEnv(AsyncEnv):
 
     def get_latest_obs(self) -> pd.DataFrame:
         now = datetime.now(UTC)
-        obs = self._data_reader.single_aggregated_read(
+        obs = self.data_reader.single_aggregated_read(
             names=self.tag_names,
             start_time=now - self.obs_period,
             end_time=now
