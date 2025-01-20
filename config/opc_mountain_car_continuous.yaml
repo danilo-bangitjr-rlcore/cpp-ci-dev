@@ -14,6 +14,9 @@ experiment:
 interaction:
   name: sim_interaction
 
+event_bus:
+  enabled: true
+
 env:
   name: opc_tsdb_sim_async_env
   action_period: 00:00:01
