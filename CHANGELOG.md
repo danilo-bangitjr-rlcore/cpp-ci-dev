@@ -1,3 +1,9 @@
+## 0.30.1 (2025-01-20)
+
+### Fix
+
+- fix slicing issue, do not impute values when there is no gap
+
 ## 0.30.0 (2025-01-20)
 
 ### Feat
