@@ -1,3 +1,16 @@
+## 0.31.0 (2025-01-20)
+
+### Feat
+
+- buffered writes
+- metrics writer that outputs to csv
+
+### Fix
+
+- added metrics fields to mountain_car_continuous.yaml
+- added name field to metric configs
+- pulled metrics config out of gym.yaml
+
 ## 0.30.1 (2025-01-20)
 
 ### Fix
