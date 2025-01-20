@@ -31,15 +31,12 @@ class Normalizer:
         cols = set(carry.transform_data.columns)
         for col in cols:
             x = carry.transform_data[col].to_numpy()
+            if np.isnan(x).all():
+                self._assign_to_df(carry, col, x)
+                continue
 
             if self._cfg.from_data:
-                mi = self._mins[col]
-                mi = mi if mi is not None else np.inf
-                self._mins[col] = min(mi, np.nanmin(x))
-
-                ma = self._maxs[col]
-                ma = ma if ma is not None else -np.inf
-                self._maxs[col] = max(ma, np.nanmax(x))
+                self._update_bounds(col, x)
 
             mi = self._mins[col]
             ma = self._maxs[col]
@@ -49,12 +46,26 @@ class Normalizer:
             assert den > 1e-12, f'Not enough variability in the data to normalize: {carry.tag}'
 
             new_x = _norm(x, mi, ma)
-
-            new_name = f'{col}_norm'
-            carry.transform_data.drop(col, axis=1, inplace=True)
-            carry.transform_data[new_name] = new_x
+            self._assign_to_df(carry, col, new_x)
 
         return carry, None
+
+
+    def _assign_to_df(self, carry: TransformCarry, col: str, x: np.ndarray):
+        new_name = f'{col}_norm'
+        carry.transform_data.drop(col, axis=1, inplace=True)
+        carry.transform_data[new_name] = x
+
+
+    def _update_bounds(self, col: str, x: np.ndarray):
+        mi = self._mins[col]
+        mi = mi if mi is not None else np.inf
+        self._mins[col] = min(mi, np.nanmin(x))
+
+        ma = self._maxs[col]
+        ma = ma if ma is not None else -np.inf
+        self._maxs[col] = max(ma, np.nanmax(x))
+
 
 transform_group.dispatcher(Normalizer)
 

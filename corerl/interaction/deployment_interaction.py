@@ -11,14 +11,18 @@ from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
+from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.interaction.interaction import Interaction
 from corerl.state import AppState
+from corerl.utils.time import split_into_chunks
 
 logger = logging.getLogger(__file__)
 
 @config()
 class DepInteractionConfig:
     name: str = "dep_interaction"
+    historical_batch_size: int = 10000
+
 
 class DeploymentInteraction(Interaction):
     def __init__(
@@ -29,6 +33,8 @@ class DeploymentInteraction(Interaction):
         env: AsyncEnv,
         pipeline: Pipeline,
     ):
+        assert isinstance(env, DeploymentAsyncEnv)
+
         self._app_state = app_state
         self._pipeline = pipeline
         self._env = env
@@ -51,10 +57,22 @@ class DeploymentInteraction(Interaction):
         # this should occur on the first call to `self.step`
         self._step_clock = clock_generator(tick_period=self.obs_period)
 
+        # stateful info for background offline data loading
+        self._first_online_timestamp = datetime.now(UTC)
+
+        time_stats = self._env.data_reader.get_time_stats()
+        self._chunks = split_into_chunks(
+            time_stats.start,
+            time_stats.end,
+            width=self.obs_period * cfg.historical_batch_size
+        )
+
     def step(self):
         step_timestamp = next(self._step_clock)
         wait_for_timestamp(step_timestamp)
         logger.info("beginning step logic")
+
+        self.load_historical_chunk()
 
         o = self._env.get_latest_obs()
         pr = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
@@ -69,6 +87,33 @@ class DeploymentInteraction(Interaction):
             self._env.emit_action(a)
 
         self._app_state.agent_step += 1
+
+    def load_historical_chunk(self):
+        try:
+            start_time, end_time = next(self._chunks)
+        except StopIteration:
+            return
+
+        end_time = min(end_time, self._first_online_timestamp)
+        if end_time - start_time < self.obs_period:
+            return
+
+        tag_names = [tag_cfg.name for tag_cfg in self._pipeline.tags]
+        chunk_data = self._env.data_reader.batch_aggregated_read(
+            names=tag_names,
+            start_time=start_time,
+            end_time=end_time,
+            bucket_width=self.obs_period,
+        )
+
+        pipeline_out = self._pipeline(
+            data=chunk_data,
+            caller_code=CallerCode.OFFLINE,
+            reset_temporal_state=False,
+        )
+
+        if pipeline_out.transitions is not None:
+            self._agent.update_buffer(pipeline_out.transitions)
 
 
     # ---------
