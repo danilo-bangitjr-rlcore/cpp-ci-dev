@@ -34,7 +34,7 @@ class ExpMovingAvg:
 
     def __call__(self) -> float:
         if self._mu is None:
-            return 0.0
+            return np.nan
         return self._mu
 
 
@@ -43,8 +43,6 @@ class ExpMovingVar:
         self.alpha = alpha
         self._var: float | None = None
         self._ema: ExpMovingAvg = ExpMovingAvg(alpha)
-        self._prev_mean: float = 0.0
-
     def feed(self, x: np.ndarray) -> None:
         if self._var is None:
             first_valid_idx = np.where(~np.isnan(x))[0]
@@ -64,15 +62,15 @@ class ExpMovingVar:
                 nan_counts[i] = nan_count
                 nan_count = 0
 
-        self._prev_mean = self._ema()
+        prev_mean = self._ema()
         self._ema.feed(x)
         for i in range(len(x)):
             if not np.isnan(x[i]):
                 effective_alpha = self.alpha ** (nan_counts[i] + 1)
-                delta = x[i] - self._prev_mean
+                delta = x[i] - prev_mean
                 self._var = float((1 - effective_alpha) * (delta * delta) + effective_alpha * self._var)
 
     def __call__(self) -> float:
         if self._var is None:
-            return 0
+            return np.nan
         return self._var
