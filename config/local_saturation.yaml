@@ -7,21 +7,13 @@ interaction:
 
 experiment :
   exp_name : "saturation"
-  max_steps : 10000
+  max_steps : 50
   offline_steps : 0
   timeout: 0
 
-metrics:
-  name : db
-  drivername: "postgresql+psycopg2"
-  username: "postgres"
-  password: "password"
-  ip: "localhost"
-  port: 5432
-  db_name: "postgres"
-  table_schema: "public"
-  table_name: "metrics"
-  enabled: False
+metrics :
+  name : pandas
+  output_path : ./output
 
 agent:
   name: greedy_ac
@@ -80,7 +72,7 @@ pipeline:
       name: identity
     state_constructor:
     - name: multi_trace
-      trace_values: [0.95]
+      trace_values: [0.95, 0.99]
 
   # actions
   - name: action

@@ -1,11 +1,11 @@
 import zmq
 
-from corerl.eval.writer import MetricsWriter
+from corerl.eval.writer import MetricsWriterProtocol
 from corerl.messages.events import Event, EventTopic, EventType
 
 
 class AppState:
-    def __init__(self, metrics: MetricsWriter, event_bus: zmq.Socket | None):
+    def __init__(self, metrics: MetricsWriterProtocol, event_bus: zmq.Socket | None):
         self.metrics = metrics
         self.event_bus = event_bus
 

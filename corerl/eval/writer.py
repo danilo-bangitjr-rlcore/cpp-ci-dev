@@ -1,13 +1,27 @@
 import logging
-from typing import NamedTuple, SupportsFloat
+import os
+import shutil
+from collections import defaultdict
+from typing import Literal, NamedTuple, Protocol, SupportsFloat
 
+import pandas as pd
+from pydantic import Field
 from sqlalchemy import Connection, Engine, text
+from typing_extensions import Annotated
 
 from corerl.configs.config import config
+from corerl.configs.group import Group
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 from corerl.utils.time import now_iso
 
 log = logging.getLogger(__name__)
+
+
+class MetricsWriterProtocol(Protocol):
+    def write(self, metric: str, value: SupportsFloat):
+        ...
+    def close(self)-> None:
+        ...
 
 
 class _MetricPoint(NamedTuple):
@@ -18,6 +32,7 @@ class _MetricPoint(NamedTuple):
 
 @config()
 class MetricsDBConfig(BufferedWriterConfig):
+    name : Literal['db'] = 'db'
     db_name: str = 'postgres'
     table_name: str = 'metrics'
     table_schema: str = 'public'
@@ -77,3 +92,79 @@ class MetricsWriter(BufferedWriter[_MetricPoint]):
             self._write(point)
         except Exception:
             log.exception(f'Failed to write metric: {metric} {value}')
+
+
+@config()
+class PandasMetricsConfig:
+    name : Literal['pandas'] = 'pandas'
+    output_path : str = 'metric_outputs'
+    buffer_size : int = 256  # Number of points to buffer before writing
+
+
+class PandasMetricsWriter():
+    def __init__(
+            self,
+            cfg : PandasMetricsConfig
+        ):
+        self.buffer = defaultdict(list)  # Temporary buffer for points
+        self.output_path = cfg.output_path
+        self.buffer_size = cfg.buffer_size
+
+        if os.path.exists(self.output_path):
+            logging.warning("Output path for metrics already exists. "
+                            "Existing files will be overwritten.")
+            shutil.rmtree(self.output_path)
+
+        os.makedirs(self.output_path, exist_ok=True)
+
+    def write(self, metric: str, value: SupportsFloat):
+        point = _MetricPoint(
+            timestamp=now_iso(),
+            metric=metric,
+            value=float(value),
+        )
+
+        self.buffer[metric].append(point)
+
+        if len(self.buffer[metric]) >= self.buffer_size:
+            self._flush_metric(metric)
+
+    def _flush_metric(self, metric: str):
+        """Write buffered points for a specific metric to CSV"""
+        if not self.buffer[metric]:
+            return
+
+        data = defaultdict(list)
+        for point in self.buffer[metric]:
+            data['timestamp'].append(point.timestamp)
+            data['metric'].append(point.metric)
+            data['value'].append(point.value)
+
+        df = pd.DataFrame(data)
+        file_path = f'{self.output_path}/{metric}.csv'
+
+        if os.path.exists(file_path):
+            df.to_csv(file_path, mode='a', header=False, index=False)
+        else:
+            df.to_csv(file_path, index=False)
+
+        self.buffer[metric].clear()
+
+    def close(self):
+        # Flush any remaining points
+        for metric in list(self.buffer.keys()):
+            self._flush_metric(metric)
+
+
+MetricsConfig = Annotated[
+    MetricsDBConfig | PandasMetricsConfig,
+    Field(discriminator='name')
+]
+
+
+metrics_group = Group[
+    [], MetricsWriterProtocol,
+]()
+
+metrics_group.dispatcher(MetricsWriter)
+metrics_group.dispatcher(PandasMetricsWriter)

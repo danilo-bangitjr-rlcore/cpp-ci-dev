@@ -17,10 +17,11 @@ from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
+from corerl.eval.writer import metrics_group
 from corerl.interaction.factory import init_interaction
 from corerl.messages.events import Event, EventTopic
 from corerl.messages.scheduler import scheduler_task
-from corerl.state import AppState, MetricsWriter
+from corerl.state import AppState
 from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
@@ -59,7 +60,7 @@ def main(cfg: MainConfig):
         socket.setsockopt_string(zmq.SUBSCRIBE, EventTopic.corerl)  # Empty string ("") to subscribe to everything
 
     app_state = AppState(
-        metrics=MetricsWriter(cfg.metrics),
+        metrics=metrics_group.dispatch(cfg.metrics),
         event_bus=event_bus,
     )
 
