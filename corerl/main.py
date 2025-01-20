@@ -22,7 +22,6 @@ from corerl.interaction.factory import init_interaction
 from corerl.messages.events import Event, EventTopic
 from corerl.messages.scheduler import scheduler_task
 from corerl.state import AppState
-
 from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
