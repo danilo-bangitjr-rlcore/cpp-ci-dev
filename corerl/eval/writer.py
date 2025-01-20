@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 from collections import defaultdict
 from typing import Literal, NamedTuple, Protocol, SupportsFloat
 
@@ -97,6 +98,7 @@ class MetricsWriter(BufferedWriter[_MetricPoint]):
 class PandasMetricsConfig:
     name : Literal['pandas'] = 'pandas'
     output_path : str = 'metric_outputs'
+    buffer_size : int = 256  # Number of points to buffer before writing
 
 
 class PandasMetricsWriter():
@@ -104,8 +106,15 @@ class PandasMetricsWriter():
             self,
             cfg : PandasMetricsConfig
         ):
-        self.points = defaultdict(list)
+        self.buffer = defaultdict(list)  # Temporary buffer for points
         self.output_path = cfg.output_path
+        self.buffer_size = cfg.buffer_size
+
+        if os.path.exists(self.output_path):
+            logging.warning("Output path for metrics already exists. "
+                            "Existing files will be overwritten.")
+            shutil.rmtree(self.output_path)
+
         os.makedirs(self.output_path, exist_ok=True)
 
     def write(self, metric: str, value: SupportsFloat):
@@ -115,24 +124,36 @@ class PandasMetricsWriter():
             value=float(value),
         )
 
-        self.points[metric].append(point)
+        self.buffer[metric].append(point)
 
-    def close(self):
-        dfs = convert_to_dataframes(self.points)
-        for metric, df in dfs.items():
-            df.to_csv(f'{self.output_path}/{metric}.csv', index=False)
+        if len(self.buffer[metric]) >= self.buffer_size:
+            self._flush_metric(metric)
 
+    def _flush_metric(self, metric: str):
+        """Write buffered points for a specific metric to CSV"""
+        if not self.buffer[metric]:
+            return
 
-def convert_to_dataframes(metric_dict: dict[str, list[_MetricPoint]]) -> dict[str, pd.DataFrame]:
-    dataframes = {}
-    for metric, points in metric_dict.items():
         data = defaultdict(list)
-        for point in points:
+        for point in self.buffer[metric]:
             data['timestamp'].append(point.timestamp)
             data['metric'].append(point.metric)
             data['value'].append(point.value)
-        dataframes[metric] = pd.DataFrame(data)
-    return dataframes
+
+        df = pd.DataFrame(data)
+        file_path = f'{self.output_path}/{metric}.csv'
+
+        if os.path.exists(file_path):
+            df.to_csv(file_path, mode='a', header=False, index=False)
+        else:
+            df.to_csv(file_path, index=False)
+
+        self.buffer[metric].clear()
+
+    def close(self):
+        # Flush any remaining points
+        for metric in list(self.buffer.keys()):
+            self._flush_metric(metric)
 
 
 MetricsConfig = Annotated[
