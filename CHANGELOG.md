@@ -1,3 +1,9 @@
+## 0.30.0 (2025-01-20)
+
+### Feat
+
+- adding reward metric in sim interaction
+
 ## 0.29.0 (2025-01-20)
 
 ### Feat
