@@ -138,7 +138,7 @@ def convert_to_dataframes(metric_dict: dict[str, list[_MetricPoint]]) -> dict[st
 MetricsConfig = Annotated[
     MetricsDBConfig | PandasMetricsConfig,
     Field(discriminator='name')
-    ]
+]
 
 
 metrics_group = Group[
