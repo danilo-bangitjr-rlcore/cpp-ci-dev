@@ -47,4 +47,4 @@ def scheduler_task(cfg: MainConfig, context: zmq.Context, stop_event: threading.
                     next_event_ts= ept.next_event_ts + ept.period
                 )
 
-        time.sleep(1)
+        time.sleep(0.5)

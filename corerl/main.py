@@ -31,6 +31,8 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
+logging.getLogger('asyncua').setLevel(logging.CRITICAL)
+
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
