@@ -17,20 +17,15 @@ class ExpMovingAvg:
                 self._mu = float(x[first_valid_idx[0]])
             return
 
-        nan_counts = np.zeros_like(x)
         nan_count = 0
 
         for i in range(len(x)):
             if np.isnan(x[i]):
                 nan_count += 1
             else:
-                nan_counts[i] = nan_count
-                nan_count = 0
-
-        for i in range(len(x)):
-            if not np.isnan(x[i]):
-                effective_alpha = self.alpha ** (nan_counts[i] + 1)
+                effective_alpha = self.alpha ** (nan_count + 1)
                 self._mu = float((1 - effective_alpha) * x[i] + effective_alpha * self._mu)
+                nan_count = 0
 
     def __call__(self) -> float:
         if self._mu is None:
