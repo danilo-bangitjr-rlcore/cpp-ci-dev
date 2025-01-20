@@ -124,7 +124,10 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
                 max_n_step=2,
             ),
             transition_filter=TransitionFilterConfig(
-                filters=['only_no_action_change']
+                filters=[
+                    'only_no_action_change',
+                    'no_nan'
+                ]
             )
         )
     )

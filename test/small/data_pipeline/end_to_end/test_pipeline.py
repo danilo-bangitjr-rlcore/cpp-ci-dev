@@ -49,6 +49,7 @@ def test_pipeline1():
         transition_filter=TransitionFilterConfig(
             filters=[
                 'only_no_action_change',
+                'no_nan'
             ],
         ),
         state_constructor=SCConfig(
@@ -160,6 +161,7 @@ def test_pipeline2():
             filters=[
                 'only_no_action_change',
                 'only_post_dp',
+                'no_nan'
             ],
         ),
         state_constructor=SCConfig(
