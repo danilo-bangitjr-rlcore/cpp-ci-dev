@@ -49,6 +49,7 @@ class SimInteraction(Interaction):
         r = self._get_latest_reward()
         assert r is not None
         self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
             metric='reward',
             value=r,
         )
@@ -61,6 +62,8 @@ class SimInteraction(Interaction):
         assert s is not None
         a = self._agent.get_action(s)
         self._env.emit_action(a)
+
+        self._app_state.agent_step += 1
 
 
 

@@ -148,8 +148,9 @@ class GreedyAC(BaseAC):
         sorted_q_inds = torch.argsort(q_values, dim=1, descending=True)
 
         self._app_state.metrics.write(
-            'top_q_value',
-            q_values.max().item(),
+            agent_step=self._app_state.agent_step,
+            metric='top_q_value',
+            value=q_values.max().item(),
         )
 
         return sorted_q_inds
@@ -306,8 +307,9 @@ class GreedyAC(BaseAC):
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
 
         self._app_state.metrics.write(
-            'critic_loss',
-            np.mean([loss.detach().numpy() for loss in losses]),
+            agent_step=self._app_state.agent_step,
+            metric='critic_loss',
+            value=np.mean([loss.detach().numpy() for loss in losses]),
         )
 
         return losses
@@ -358,8 +360,9 @@ class GreedyAC(BaseAC):
         actor_loss = -logp.mean()  # BUG: This is negative?
 
         self._app_state.metrics.write(
-            'actor_loss',
-            actor_loss,
+            agent_step=self._app_state.agent_step,
+            metric='actor_loss',
+            value=actor_loss,
         )
 
         return actor_loss
@@ -376,8 +379,9 @@ class GreedyAC(BaseAC):
             sampler_loss = self.compute_sampler_no_entropy_loss(update_info)
 
         self._app_state.metrics.write(
-            'sampler_loss',
-            sampler_loss,
+            agent_step=self._app_state.agent_step,
+            metric='sampler_loss',
+            value=sampler_loss,
         )
 
         return sampler_loss

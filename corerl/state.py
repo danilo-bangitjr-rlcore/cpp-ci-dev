@@ -8,6 +8,7 @@ class AppState:
     def __init__(self, metrics: MetricsWriterProtocol, event_bus: zmq.Socket | None):
         self.metrics = metrics
         self.event_bus = event_bus
+        self.agent_step = 0
 
     def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app):
         if not self.event_bus:
