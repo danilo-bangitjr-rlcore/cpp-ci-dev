@@ -1,9 +1,14 @@
 import numpy as np
 import pandas as pd
+
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.trace import (
-    compute_trace_with_nan, TraceConfig, TraceConstructor, TraceTemporalState
+    TraceConfig,
+    TraceConstructor,
+    TraceTemporalState,
+    compute_trace_with_nan,
 )
+
 
 def test_compute_trace1():
     """

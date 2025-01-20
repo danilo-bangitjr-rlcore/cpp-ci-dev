@@ -1,4 +1,5 @@
 from typing import Literal
+
 from corerl.configs.config import config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
@@ -15,6 +16,9 @@ class Identity:
 
     def __call__(self, carry: TransformCarry, ts: object | None):
         return carry, None
+
+    def reset(self) -> None:
+        pass
 
 
 transform_group.dispatcher(Identity)

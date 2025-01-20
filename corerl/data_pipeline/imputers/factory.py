@@ -1,5 +1,5 @@
-from typing_extensions import Annotated
 from pydantic import Field
+from typing_extensions import Annotated
 
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group
 from corerl.data_pipeline.imputers.copy import CopyImputerConfig

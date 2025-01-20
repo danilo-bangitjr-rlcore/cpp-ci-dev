@@ -1,7 +1,8 @@
+from collections import defaultdict
 from typing import Literal
+
 import numpy as np
 from numba import njit
-from collections import defaultdict
 
 from corerl.configs.config import config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
@@ -21,6 +22,10 @@ class Normalizer:
         self._cfg = cfg
         self._mins = defaultdict(lambda: cfg.min)
         self._maxs = defaultdict(lambda: cfg.max)
+
+    def reset(self):
+        self._mins.clear()
+        self._maxs.clear()
 
     def __call__(self, carry: TransformCarry, ts: object | None):
         cols = set(carry.transform_data.columns)

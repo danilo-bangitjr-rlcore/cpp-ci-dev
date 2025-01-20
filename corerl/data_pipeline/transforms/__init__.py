@@ -1,22 +1,23 @@
 from __future__ import annotations
-from typing import cast, Any, Literal
+
+from typing import Any, Literal, cast
+
+from pydantic import Field
 from pydantic.dataclasses import rebuild_dataclass
 from typing_extensions import Annotated
-from pydantic import Field
 
 from corerl.configs.config import MISSING, config, list_
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.affine import AffineConfig
-from corerl.data_pipeline.transforms.base import BaseTransformConfig
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.greater_than import GreaterThanConfig
 from corerl.data_pipeline.transforms.identity import IdentityConfig
 from corerl.data_pipeline.transforms.less_than import LessThanConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.null import NullConfig
+from corerl.data_pipeline.transforms.power import PowerConfig
 from corerl.data_pipeline.transforms.scale import ScaleConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
-
-
 
 """
 To avoid circular imports and partially defined types
@@ -50,6 +51,7 @@ TransformConfig = Annotated[
     | LessThanConfig
     | NormalizerConfig
     | NullConfig
+    | PowerConfig
     | ProductConfig
     | ScaleConfig
     | SplitConfig
@@ -57,8 +59,15 @@ TransformConfig = Annotated[
 , Field(discriminator='name')]
 
 
-# Because TransformConfig was only partially known when
-# pydantic first parsed these schemas, rebuild them
-# now that they are completely known.
-rebuild_dataclass(cast(Any, ProductConfig))
-rebuild_dataclass(cast(Any, SplitConfig))
+def register_dispatchers():
+    from corerl.data_pipeline.transforms.product import ProductTransform
+    from corerl.data_pipeline.transforms.split import SplitTransform
+
+    transform_group.dispatcher(ProductTransform)
+    transform_group.dispatcher(SplitTransform)
+
+    # Because TransformConfig was only partially known when
+    # pydantic first parsed these schemas, rebuild them
+    # now that they are completely known.
+    rebuild_dataclass(cast(Any, ProductConfig))
+    rebuild_dataclass(cast(Any, SplitConfig))

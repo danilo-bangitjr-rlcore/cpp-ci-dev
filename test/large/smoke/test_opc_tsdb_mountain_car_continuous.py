@@ -2,9 +2,9 @@ import multiprocessing
 import subprocess
 import time
 from datetime import UTC, datetime, timedelta
-from pytest import FixtureRequest
 
 import pytest
+from pytest import FixtureRequest
 
 from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
 
@@ -16,8 +16,8 @@ raw_service_names = [
 
 db_cfg = TagDBConfig(
     db_name="postgres",
-    sensor_table_name="opcua",
-    sensor_table_schema="public",
+    table_name="opcua",
+    table_schema="public",
     drivername="postgresql+psycopg2",
     username="postgres",
     password="password",
@@ -164,11 +164,12 @@ def check_sim_farama_environment_ready(run_background_opc_client: None, request:
             data_reader = DataReader(db_cfg=db_cfg)
 
             df = data_reader.single_aggregated_read(
-                ["observation_0", "observation_1", "action_0", "reward"],
+                ["observation_0", "observation_1", "action_0", "gym_reward"],
                 end - timedelta(seconds=10),
                 end
             )
 
+            print(df)
             successful_query = not bool(df.isnull().values.any())
         except Exception:
             # sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedTable) relation "public.opcua" does not exist
@@ -186,7 +187,13 @@ def check_sim_farama_environment_ready(run_background_opc_client: None, request:
 @pytest.mark.timeout(500)
 def test_opc_tsdb_mountain_car_continuous(check_sim_farama_environment_ready: None, request: FixtureRequest):
     proc = subprocess.run(
-        ["corerl_main", "--config-name", "opc_mountain_car_continuous", "experiment.max_steps=25"],
+        [
+            "corerl_main",
+            "--config-name",
+            "opc_mountain_car_continuous",
+            "experiment.max_steps=25",
+            "experiment.run_forever="
+        ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,

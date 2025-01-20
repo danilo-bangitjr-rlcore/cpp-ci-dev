@@ -1,18 +1,12 @@
-from typing import List
-from sqlalchemy import ForeignKey
-from sqlalchemy import String
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
-from sqlalchemy.types import JSON, PickleType, DateTime
 from datetime import datetime
+from typing import List
 
-from typing_extensions import Annotated
-
-from sqlalchemy.sql import func
-from sqlalchemy import ForeignKeyConstraint
+from sqlalchemy import ForeignKey, ForeignKeyConstraint, String
 from sqlalchemy.dialects.mysql import LONGBLOB
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.sql import func
+from sqlalchemy.types import JSON, DateTime, PickleType
+from typing_extensions import Annotated
 
 timestamp = Annotated[
     datetime,

@@ -1,6 +1,7 @@
 from typing import Literal, Protocol
-import torch
+
 import numpy as np
+import torch
 
 from corerl.configs.config import config
 from corerl.configs.group import Group

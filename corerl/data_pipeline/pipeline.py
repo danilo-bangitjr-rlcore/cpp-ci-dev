@@ -1,36 +1,42 @@
-from collections import defaultdict
-from dataclasses import dataclass, field
-import warnings
 import datetime
-
-from collections.abc import Sequence
-from typing import Any, Callable
-from pandas import DataFrame
 import logging
+import warnings
+from collections import defaultdict
+from collections.abc import Sequence
+from dataclasses import dataclass, field
+from datetime import timedelta
+from functools import cached_property
+from typing import Any, Callable
 
-from corerl.configs.config import config, list_
-from corerl.data_pipeline.missing_data_checker import missing_data_checker
-from corerl.data_pipeline.bound_checker import bound_checker_builder
-from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
-from corerl.data_pipeline.imputers.factory import init_imputer
-from corerl.data_pipeline.tag_config import TagConfig
+import numpy as np
+from pandas import DataFrame
+
+from corerl.configs.config import config, interpolate, list_
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
-from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
+from corerl.data_pipeline.bound_checker import bound_checker_builder
+from corerl.data_pipeline.constructors.ac import ActionConstructor
+from corerl.data_pipeline.constructors.rc import RewardComponentConstructor, RewardConstructor
+from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
+from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
-from corerl.data_pipeline.reward.rc import RewardComponentConstructor, RewardConstructor
+from corerl.data_pipeline.imputers.factory import init_imputer
+from corerl.data_pipeline.missing_data_checker import missing_data_checker
+from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
+from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
-from corerl.data_pipeline.datatypes import Transition, PipelineFrame, CallerCode, StageCode
-
 
 logger = logging.getLogger(__name__)
+register_dispatchers()
 
 
 @config()
 class PipelineConfig:
     tags: list[TagConfig] = list_()
     db: TagDBConfig = field(default_factory=TagDBConfig)
-    obs_interval_minutes: float = 0
+    obs_period: timedelta = interpolate('${env.obs_period}')
+    action_period: timedelta = interpolate('${env.action_period}')
     state_constructor: SCConfig = field(default_factory=SCConfig)
     transition_creator: AllTheTimeTCConfig = field(default_factory=AllTheTimeTCConfig)
     transition_filter: TransitionFilterConfig = field(default_factory=TransitionFilterConfig)
@@ -42,47 +48,55 @@ class PipelineReturn:
     transitions: list[Transition] | None
 
 
+@dataclass
+class ColumnDescriptions:
+    state_cols: list[str]
+    action_cols: list[str]
+
+    @property
+    def state_dim(self):
+        return len(self.state_cols)
+
+    @property
+    def action_dim(self):
+        return len(self.action_cols)
+
+
 class Pipeline:
     def __init__(self, cfg: PipelineConfig):
+        # sanity checking
+        steps_per_decision = int(cfg.action_period.total_seconds() / cfg.obs_period.total_seconds())
+        assert np.isclose(
+            steps_per_decision, cfg.action_period.total_seconds() / cfg.obs_period.total_seconds()
+        ), "action period must be a multiple of obs period"
+
+        self.valid_thresh: datetime.timedelta = 2 * cfg.obs_period
+        cfg.transition_creator.max_n_step = steps_per_decision
         self.tags = cfg.tags
-        self.missing_data_checkers = {
-            tag.name: missing_data_checker for tag in self.tags
-        }
 
-        self.bound_checkers = {
-            tag.name: bound_checker_builder(tag.bounds) for tag in self.tags
-        }
-
-        self.transition_creator = AllTheTimeTC(
-            cfg.transition_creator,
-            self.tags,
-        )
-
+        # initialization all stateful stages
+        self.missing_data_checkers = {tag.name: missing_data_checker for tag in self.tags}
+        self.bound_checkers = {tag.name: bound_checker_builder(tag.bounds) for tag in self.tags}
+        self.transition_creator = AllTheTimeTC(cfg.transition_creator, self.tags)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
-
-        self.outlier_detectors = {
-            tag.name: init_oddity_filter(tag.outlier) for tag in self.tags
-        }
-
-        self.imputers = {
-            tag.name: init_imputer(tag.imputer) for tag in self.tags
-        }
+        self.outlier_detectors = {tag.name: init_oddity_filter(tag.outlier) for tag in self.tags}
+        self.imputers = {tag.name: init_imputer(tag.imputer) for tag in self.tags}
+        self.action_constructor = ActionConstructor(self.tags)
+        self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
 
         reward_components = {cfg.name: RewardComponentConstructor(cfg.reward_constructor) for cfg in self.tags}
         self.reward_constructor = RewardConstructor(reward_components)
 
-        self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
-
+        # build pipeline state
         self.ts_dict: dict = {caller_code: None for caller_code in CallerCode}
         self.dt_dict: dict = {caller_code: None for caller_code in CallerCode}
-
-        self.valid_thresh: datetime.timedelta = datetime.timedelta(minutes=cfg.obs_interval_minutes)
 
         self._hooks: dict[StageCode, list[Callable[[PipelineFrame], Any]]] = defaultdict(list)
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
             StageCode.BOUNDS:  lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
             StageCode.ODDITY:  lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
             StageCode.IMPUTER: lambda pf: invoke_stage_per_tag(pf, self.imputers),
+            StageCode.AC:      self.action_constructor,
             StageCode.RC:      self.reward_constructor,
             StageCode.SC:      self.state_constructor,
             StageCode.TC:      self.transition_creator,
@@ -93,6 +107,7 @@ class Pipeline:
             StageCode.BOUNDS,
             StageCode.ODDITY,
             StageCode.IMPUTER,
+            StageCode.AC,
             StageCode.RC,
             StageCode.SC,
             StageCode.TC,
@@ -151,13 +166,17 @@ class Pipeline:
             transitions=pf.transitions,
         )
 
-    def get_state_action_dims(self):
-        num_actions = sum(
-            tag.is_action for tag in self.tags
-        )
 
-        state_dim = self.state_constructor.state_dim()
-        return state_dim, num_actions
+    @cached_property
+    def column_descriptions(self):
+        return ColumnDescriptions(
+            state_cols=self.state_constructor.columns,
+            action_cols=self.action_constructor.columns,
+        )
 
     def register_hook(self, stage: StageCode, f: Callable[[PipelineFrame], Any]):
         self._hooks[stage].append(f)
+
+    def reset(self):
+        if hasattr(self.state_constructor, 'reset'):
+            self.state_constructor.reset()

@@ -1,4 +1,5 @@
 from typing import Literal
+
 import pandas as pd
 
 from corerl.configs.config import config
@@ -18,5 +19,9 @@ class Null:
     def __call__(self, carry: TransformCarry, ts: object | None):
         carry.transform_data = pd.DataFrame()
         return carry, None
+
+    def reset(self) -> None:
+        pass
+
 
 transform_group.dispatcher(Null)

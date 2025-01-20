@@ -1,7 +1,7 @@
 from torch import Tensor
 
 from corerl.component.buffer.buffers import UniformBuffer, UniformReplayBufferConfig
-from corerl.data_pipeline.datatypes import Transition, TransitionBatch, Step, StepBatch
+from corerl.data_pipeline.datatypes import Step, StepBatch, Transition, TransitionBatch
 
 
 def test_sample_mini_batch():

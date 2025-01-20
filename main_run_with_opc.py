@@ -32,8 +32,8 @@ def dumb_policy(action_tags: list[TagConfig]):
 def main(cfg: Config):
     dep_env = DeploymentAsyncEnv(cfg.env, cfg.pipeline.tags)
 
+    action_tags = [tag_config for tag_config in cfg.pipeline.tags if tag_config.action_constructor is not None]
     for _ in range(1000):
-        action_tags = [tag_config for tag_config in cfg.pipeline.tags if tag_config.is_action]
         action = dumb_policy(action_tags)
         dep_env.emit_action(action)
         time.sleep(1)

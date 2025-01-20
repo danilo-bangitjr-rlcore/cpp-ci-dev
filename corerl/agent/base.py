@@ -1,15 +1,17 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import field
-from typing import Any
-import numpy
 from pathlib import Path
+from typing import Any
+
+import numpy
 
 from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
-from corerl.configs.config import MISSING, interpolate, config
+from corerl.configs.config import MISSING, config, interpolate
 from corerl.data_pipeline.datatypes import Transition
-from corerl.messages.client import MessageBusClientConfig, make_msg_bus_client
+from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.state import AppState
 
 
 @config(frozen=True)
@@ -19,7 +21,7 @@ class BaseAgentConfig:
     discrete_control: bool = interpolate('${env.discrete_control}')
     freezer_freq: int = 1
     gamma: float = interpolate('${experiment.gamma}')
-    message_bus: MessageBusClientConfig = field(default_factory=MessageBusClientConfig)
+    message_bus: Any = MISSING
     n_updates: int = 1
     replay_ratio: int = 1
     seed: int = interpolate('${experiment.seed}')
@@ -27,19 +29,17 @@ class BaseAgentConfig:
 
 
 class BaseAgent(ABC):
-    def __init__(self, cfg: BaseAgentConfig, state_dim: int, action_dim: int):
+    def __init__(self, cfg: BaseAgentConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        self._app_state = app_state
         self.replay_ratio = cfg.replay_ratio
         self.update_freq = cfg.update_freq
-        self.state_dim = state_dim
-        self.action_dim = action_dim
+        self.state_dim = col_desc.state_dim
+        self.action_dim = col_desc.action_dim
         self.gamma = cfg.gamma
         self.discrete_control = cfg.discrete_control
         self.seed = cfg.seed
         self.n_updates = cfg.n_updates  # how many updates to apply each time update() is called
         self.freezer_freq = cfg.freezer_freq  # how often to save to freezer. This counter is not used currently.
-
-        self._msg_bus = make_msg_bus_client(cfg.message_bus)
-        self._msg_bus.start_sync()
 
     @abstractmethod
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:  # must return a numpy array, not a tensor.
@@ -72,7 +72,8 @@ class BaseAgent(ABC):
         return {}
 
     def close(self):
-        self._msg_bus.close_sync()
+        # self._app_state.event_bus.close_sync()
+        return
 
 
 
@@ -86,8 +87,8 @@ class BaseACConfig(BaseAgentConfig):
 
 
 class BaseAC(BaseAgent):
-    def __init__(self, cfg: BaseACConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
+    def __init__(self, cfg: BaseACConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        super().__init__(cfg, app_state, col_desc)
         self.n_critic_updates = cfg.n_critic_updates
         self.n_actor_updates = cfg.n_actor_updates
 

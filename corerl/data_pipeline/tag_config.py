@@ -1,5 +1,6 @@
 from dataclasses import field
-from corerl.configs.config import config, MISSING, list_
+
+from corerl.configs.config import MISSING, config, list_
 from corerl.data_pipeline.imputers.factory import ImputerConfig
 from corerl.data_pipeline.imputers.identity import IdentityImputerConfig
 from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilterConfig
@@ -17,11 +18,13 @@ class TagConfig:
     simultaneously represent both an observation, a reward, and possibly also an action.
     """
     name: str = MISSING
+    node_identifier: str | None = None
 
     bounds: tuple[float | None, float | None] = (None, None)
     outlier: OddityFilterConfig = field(default_factory=EMAFilterConfig)
     imputer: ImputerConfig = field(default_factory=IdentityImputerConfig)
     reward_constructor: list[TransformConfig] = list_([NullConfig()])
+    action_constructor: list[TransformConfig] | None = None
     state_constructor: list[TransformConfig] | None = None
-    is_action: bool = False
     is_meta: bool = False
+    is_endogenous: bool = True

@@ -1,20 +1,22 @@
+import pickle as pkl
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
-import torch.nn as nn
-import torch
 import numpy
-import pickle as pkl
+import torch
+import torch.nn as nn
 
-from corerl.configs.config import config
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
-from corerl.component.critic.factory import init_v_critic, init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, state_to_tensor
+from corerl.component.critic.factory import init_q_critic, init_v_critic
+from corerl.component.network.utils import state_to_tensor, to_np
+from corerl.configs.config import config
+from corerl.data_pipeline.datatypes import Transition, TransitionBatch
+from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.state import AppState
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import TransitionBatch, Transition
 
 
 @config(frozen=True)
@@ -28,16 +30,16 @@ class InACConfig(BaseACConfig):
 
 
 class InAC(BaseAC):
-    def __init__(self, cfg: InACConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
+    def __init__(self, cfg: InACConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        super().__init__(cfg, app_state, col_desc)
         self.ensemble_targets = cfg.ensemble_targets
         self.temp = cfg.temp
         self.eps = cfg.eps
         self.exp_threshold = cfg.exp_threshold
-        self.v_critic = init_v_critic(cfg.critic, state_dim)
-        self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
-        self.actor = init_actor(cfg.actor, state_dim, action_dim)
-        self.behaviour = init_actor(cfg.actor, state_dim, action_dim)
+        self.v_critic = init_v_critic(cfg.critic, self.state_dim)
+        self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
+        self.actor = init_actor(cfg.actor, self.state_dim, self.action_dim)
+        self.behaviour = init_actor(cfg.actor, self.state_dim, self.action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)

@@ -1,11 +1,11 @@
-from line_profiler import profile
-import numpy as np
-from corerl.sql_logging.base_schema import TransitionInfo, SQLTransition
-
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
 import logging
+
+import numpy as np
+from line_profiler import profile
+from sqlalchemy.orm import Mapped, mapped_column
+
 import corerl.sql_logging.base_schema as sql
+from corerl.sql_logging.base_schema import SQLTransition, TransitionInfo
 
 logger = logging.getLogger(__name__)
 

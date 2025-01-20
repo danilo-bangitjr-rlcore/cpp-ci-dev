@@ -1,15 +1,18 @@
+from datetime import timedelta
+
 import numpy as np
 import pandas as pd
+
+from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
-from corerl.data_pipeline.transforms.norm import NormalizerConfig
-from corerl.data_pipeline.transforms.add_raw import AddRawConfig
-from corerl.data_pipeline.transforms.split import SplitConfig
-from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
-from corerl.data_pipeline.transforms.trace import TraceConfig
-
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transforms.add_raw import AddRawConfig
+from corerl.data_pipeline.transforms.norm import NormalizerConfig
+from corerl.data_pipeline.transforms.split import SplitConfig
+from corerl.data_pipeline.transforms.trace import TraceConfig
 from test.infrastructure.utils.pandas import dfs_close
+
 
 def test_sc1():
     raw_obs = pd.DataFrame({
@@ -31,7 +34,10 @@ def test_sc1():
             defaults=[
                 TraceConfig(trace_values=[0.1, 0.01]),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -67,7 +73,10 @@ def test_norm_sc():
         ],
         cfg=SCConfig(
             defaults=[],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
     pf = sc(pf)
@@ -100,7 +109,10 @@ def test_sc_add_raw():
                 TraceConfig(trace_values=[0.1, 0.01]),
                 AddRawConfig(),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -144,7 +156,10 @@ def test_sc_integration1():
                     right=[AddRawConfig()],
                 ),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -189,7 +204,10 @@ def test_sc_integration2():
         ],
         cfg=SCConfig(
             defaults=[],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -230,7 +248,10 @@ def test_sc_integration3():
                     passthrough=True,
                 ),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -271,7 +292,10 @@ def test_sc_integration4():
                     passthrough=True,
                 ),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -297,15 +321,20 @@ def test_sc_decision_point_detection():
         'tag-action': [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
     })
 
+    raw_action = pd.DataFrame(raw_obs['tag-action'])
+
     pf = PipelineFrame(
         data=raw_obs,
         caller_code=CallerCode.OFFLINE,
     )
 
+    # stub out action construction
+    pf.actions = raw_action
+
     sc = StateConstructor(
         tag_cfgs=[
             TagConfig(name='tag-1'),
-            TagConfig(name='tag-action', is_action=True),
+            TagConfig(name='tag-action', action_constructor=[], state_constructor=[]),
         ],
         cfg=SCConfig(
             defaults=[
@@ -313,7 +342,8 @@ def test_sc_decision_point_detection():
             ],
             countdown=CountdownConfig(
                 kind='int',
-                action_period=4,
+                action_period=timedelta(minutes=4),
+                obs_period=timedelta(minutes=1),
             ),
         ),
     )
@@ -321,9 +351,9 @@ def test_sc_decision_point_detection():
     pf = sc(pf)
 
     expected = pd.DataFrame({
+        'countdown.[0]': [3, 2, 1, 4, 3, 2, 1, 4, 3, 2],
         'tag-1_norm':    [np.nan, 0, 0.2, 0.4, 0.6, 0.8, 1.0, np.nan, 0.2, 0.4],
         'tag-action':    [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-        'countdown.[0]': [3, 2, 1, 4, 3, 2, 1, 4, 3, 2],
     })
     assert dfs_close(pf.data, expected)
     assert np.all(
@@ -357,7 +387,10 @@ def test_per_tag_overrides():
                 TraceConfig(trace_values=[0.1, 0.01]),
                 AddRawConfig(),
             ],
-            countdown=CountdownConfig(action_period=4),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=4),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 

@@ -7,22 +7,21 @@ import pandas as pd
 from asyncua.sync import Client
 
 from corerl.configs.config import MISSING, config
-from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
+from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.async_env import AsyncEnv, BaseAsyncEnvConfig
+from corerl.environment.async_env.async_env import AsyncEnv, GymEnvConfig, OPCEnvConfig, TSDBEnvConfig
 from corerl.utils.opc_connection import make_opc_node_id
 
 log = logging.getLogger(__name__)
 
+
 @config()
-class OPCTSDBSimAsyncEnvConfig(BaseAsyncEnvConfig):
+class OPCTSDBSimAsyncEnvConfig(GymEnvConfig, OPCEnvConfig, TSDBEnvConfig):
     name: str = "opc_tsdb_sim_async_env"
-    db: TagDBConfig = MISSING
-    bucket_width: str = MISSING
-    opc_conn_url: str = MISSING
-    opc_ns: int = MISSING  # OPC node namespace, this is almost always going to be `2`
-    sleep_sec: int = 10
+    action_tolerance: timedelta = MISSING
     obs_fetch_attempts: int = 20
+    obs_read_delay_buffer: timedelta = timedelta(seconds=1)
+
 
 class OPCTSDBSimAsyncEnv(AsyncEnv):
     """The OPC TSDB Sim Async Env exposes a mechanism to interact with a farama gym environment using OPC to represent
@@ -40,21 +39,25 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
     """
 
     def __init__(self, cfg: OPCTSDBSimAsyncEnvConfig, tag_configs: list[TagConfig]):
-        pd_bucket_width = pd.Timedelta(cfg.bucket_width)
-        assert isinstance(pd_bucket_width, pd.Timedelta), "Failed parsing of bucket_width"
-        self.bucket_width = pd_bucket_width.to_pytimedelta()
+        self.obs_period = cfg.obs_period
+        self.obs_read_delay_buffer = cfg.obs_read_delay_buffer
+        self.action_tolerance = cfg.action_tolerance
 
         self._data_reader = DataReader(db_cfg=cfg.db)
         self.obs_fetch_attempts = cfg.obs_fetch_attempts
 
         self.env_start_time = datetime.now(UTC)
+        self.env_start_time = self.env_start_time.replace(microsecond=0)
         self.current_start_time = self.env_start_time
 
         self.tag_configs = tag_configs
 
-        self.obs_names = [tag.name for tag in tag_configs if not tag.is_action and not tag.is_meta]
-        self.action_names = [tag.name for tag in tag_configs if tag.is_action]
-        self.meta_names = [tag.name for tag in tag_configs if tag.is_meta]
+        self._action_tags = [tag for tag in tag_configs if tag.action_constructor is not None]
+        self._meta_tags = [tag for tag in tag_configs if tag.is_meta]
+        self._obs_tags = [
+            tag for tag in tag_configs
+            if not tag.is_meta and tag.action_constructor is None
+        ]
 
         self._opc_client = Client(cfg.opc_conn_url)
         self._opc_client.connect()
@@ -62,7 +65,7 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
         # define opc action nodes
         self.action_nodes = []
         for tag in tag_configs:
-            if not tag.is_action:
+            if tag.action_constructor is None:
                 continue
             id = make_opc_node_id(tag.name, cfg.opc_ns)
             node = self._opc_client.get_node(id)
@@ -70,14 +73,13 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
 
     def emit_action(self, action: np.ndarray) -> None:
         denormalized_actions = []
-        action_tag_configs = [tag for tag in self.tag_configs if tag.is_action]
-        assert len(action.flatten()) == len(action_tag_configs)
+        assert len(action.flatten()) == len(self._action_tags)
 
         for act_i in range(len(action.flatten())):
             # denormalize the action if possible, otherwise emit normalized action
             raw_action = action.flatten()[act_i]
             try:
-                action_tag_config = action_tag_configs[act_i]
+                action_tag_config = self._action_tags[act_i]
                 lo, hi = action_tag_config.bounds
                 assert isinstance(lo, float) and isinstance(hi, float)
                 scale = hi - lo
@@ -89,20 +91,20 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
 
     def get_latest_obs(self) -> pd.DataFrame:
         read_start = self.current_start_time
-        if read_start > self.env_start_time:
-            # temporal state pipeline logic requires last step's latest time bucket
-            read_start = read_start - self.bucket_width
-
-        read_end = self.current_start_time + self.bucket_width - timedelta(microseconds=1)
+        read_end = read_start + self.obs_period
 
         def get_obs_df():
+            action_names = [tag.name for tag in self._action_tags]
+            obs_names = [tag.name for tag in self._obs_tags]
+            meta_names = [tag.name for tag in self._meta_tags]
+
             act_obs_reward = self._data_reader.single_aggregated_read(
-                self.action_names + self.obs_names + ["reward"],
+                action_names + obs_names + ["gym_reward"],
                 read_start,
                 read_end,
             )
             meta = self._data_reader.single_aggregated_read(
-                [name for name in self.meta_names if name != "reward"],
+                [name for name in meta_names if name != "gym_reward"],
                 read_start,
                 read_end,
                 "bool_or",
@@ -110,13 +112,14 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
             return pd.concat([act_obs_reward, meta], axis=1)
 
         now = datetime.now(UTC)
-        if now <= read_end:
+        now = now.replace(microsecond=0)
+        if now <= (read_end + self.obs_read_delay_buffer):
             # the query end time is in the future, wait until this has elapsed before requesting observations from TSDB
-            wait_time_delta = read_end - now
+            wait_time_delta = (read_end - now) + self.obs_read_delay_buffer
             sleep(wait_time_delta.total_seconds())
 
         res = get_obs_df()
-        self.current_start_time += self.bucket_width
+        self.current_start_time += self.obs_period
         return res
 
     def cleanup(self):

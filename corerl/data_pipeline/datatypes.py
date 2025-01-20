@@ -1,13 +1,13 @@
-import torch
 import datetime
+from collections.abc import Callable
+from dataclasses import dataclass, field, fields
+from enum import Enum, IntFlag, auto
+from math import isclose
+
 import numpy as np
 import pandas as pd
-
-from collections.abc import Callable
-from dataclasses import dataclass, fields, field
-from enum import IntFlag, auto, Enum
+import torch
 from torch import Tensor
-from math import isclose
 
 from corerl.utils.torch import tensor_allclose
 
@@ -179,6 +179,7 @@ class StageCode(Enum):
     IMPUTER = auto()
     ODDITY = auto()
     TC = auto()
+    AC = auto()
     SC = auto()
     RC = auto()
     TF = auto()
@@ -191,6 +192,7 @@ type TemporalState = dict[StageCode, object | None]
 class PipelineFrame:
     data: pd.DataFrame
     caller_code: CallerCode
+    actions: pd.DataFrame = field(init=False)
     missing_info: pd.DataFrame = field(init=False)
     decision_points: np.ndarray = field(init=False)
     temporal_state: TemporalState = field(default_factory=dict)
@@ -206,28 +208,17 @@ class PipelineFrame:
         # initialize dp flags
         self.decision_points = np.zeros(N, dtype=np.bool_)
 
-    def get_last_timestamp(self) -> None | datetime.datetime:
-        if not len(self.data.index):
-            return None
+        # initialize actions
+        self.actions = self.data.copy(deep=False)
+
+    def get_last_timestamp(self) -> datetime.datetime:
 
         last_index = self.data.index[-1]
-        match last_index:  # matches on type
-            case datetime.datetime():
-                return last_index
-            case None:
-                return None
-            case _:
-                raise ValueError("Indices should datetime.datetime or None")
+        assert isinstance(last_index, datetime.datetime)
+        return last_index
 
-    def get_first_timestamp(self) -> None | datetime.datetime:
-        if not len(self.data.index):
-            return None
+    def get_first_timestamp(self) -> datetime.datetime:
 
         first_index = self.data.index[0]
-        match first_index:  # matches on type
-            case datetime.datetime():
-                return first_index
-            case None:
-                return None
-            case _:
-                raise ValueError("Indices should datetime.datetime or None")
+        assert isinstance(first_index, datetime.datetime)
+        return first_index

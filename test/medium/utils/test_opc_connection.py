@@ -1,9 +1,10 @@
-import pytest
 import asyncio
 
+import pytest
 from pytest import FixtureRequest
-from test.medium.utils.fixture_opc import FakeOpcServer, OpcConnection
+
 from test.medium.utils.fixture_opc import *  # noqa: F403
+from test.medium.utils.fixture_opc import FakeOpcServer, OpcConnection
 
 
 # Skip if coverage (--cov) option is enabled when calling pytest

@@ -1,11 +1,13 @@
 from __future__ import annotations
+
+import logging
 from abc import ABC, abstractmethod
+from typing import Any, Iterator, Mapping, Optional, Union
+
 import torch
-import torch.nn as nn
 import torch.distributions as d
 import torch.distributions.constraints as constraints
-import logging
-from typing import Union, Optional, Any, Mapping, Iterator
+import torch.nn as nn
 from typing_extensions import override
 
 import corerl.utils.nullable as nullable

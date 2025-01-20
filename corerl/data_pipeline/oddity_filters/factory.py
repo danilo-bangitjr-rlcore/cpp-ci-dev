@@ -1,5 +1,5 @@
-from typing_extensions import Annotated
 from pydantic import Field
+from typing_extensions import Annotated
 
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
 from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilterConfig

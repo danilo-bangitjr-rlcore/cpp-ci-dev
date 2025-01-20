@@ -1,7 +1,7 @@
 import inspect
-from dataclasses import is_dataclass, fields
-from typing import Any, Concatenate, Protocol, TypeVar
 from collections.abc import Callable
+from dataclasses import fields, is_dataclass
+from typing import Any, Concatenate, Protocol, TypeVar
 
 
 class DiscriminatedUnion(Protocol):

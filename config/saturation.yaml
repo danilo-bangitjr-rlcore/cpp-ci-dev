@@ -2,6 +2,9 @@ defaults:
   - gym
   - env: env/saturation
 
+interaction:
+  name: sim_interaction
+
 experiment :
   exp_name : "delayed_saturation_debug"
   max_steps : 10000
@@ -42,19 +45,16 @@ pipeline:
   tags:
   # meta tags
   - name: reward
-    is_action: False
     is_meta: True
     outlier:
       name: identity
 
   - name: terminated
-    is_action: False
     is_meta: True
     outlier:
       name: identity
 
   - name: truncated
-    is_action: False
     is_meta: True
     outlier:
       name: identity
@@ -63,7 +63,6 @@ pipeline:
 
   # observations
   - name: tag-1
-    is_action: False
     is_meta: False
     outlier:
       name: identity
@@ -73,12 +72,13 @@ pipeline:
 
   # actions
   - name: action
-    is_action: True
     is_meta: False
     outlier:
       name: identity
     state_constructor:
-    - name: normalize
-      min: -2
-      max: 2
-      from_data: False
+      - name: "null"
+    action_constructor:
+      - name: normalize
+        min: -2
+        max: 2
+        from_data: False

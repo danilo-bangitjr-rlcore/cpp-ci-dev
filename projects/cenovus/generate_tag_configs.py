@@ -1,7 +1,9 @@
 from pathlib import Path
+
+from cenovus.utils.data import get_file_paths
+
 from corerl.configs.config import config
 from corerl.configs.loader import load_config
-from cenovus.utils.data import get_file_paths
 from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig, TagStats
 
 
@@ -13,7 +15,6 @@ class Config:
 def build_tag_config(tag: TagStats):
     return f"""
 - name: {tag.tag}
-  is_action: false
   imputer:
     name: copy
     imputation_horizon: 60
@@ -21,6 +22,8 @@ def build_tag_config(tag: TagStats):
     - name: normalize
       min: {tag.min}
       max: {tag.max}
+  action_constructor:
+    - name: 'null'
 """
 
 

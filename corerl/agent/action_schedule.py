@@ -1,11 +1,14 @@
 from collections.abc import Sequence
-from typing import Literal
-import numpy as np
 from pathlib import Path
+from typing import Literal
 
+import numpy as np
+
+from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import Transition
-from corerl.agent.base import BaseAgent, BaseAgentConfig
+from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.state import AppState
 
 
 def step(start: float, end: float, step: float):
@@ -30,8 +33,8 @@ class ActionScheduleConfig(BaseAgentConfig):
 
 
 class ActionScheduleAgent(BaseAgent):
-    def __init__(self, cfg: ActionScheduleConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
+    def __init__(self, cfg: ActionScheduleConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        super().__init__(cfg, app_state, col_desc)
         self.action_schedule = cfg.action_schedule
         self.step = 0
 

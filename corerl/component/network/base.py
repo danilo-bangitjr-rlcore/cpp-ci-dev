@@ -1,6 +1,6 @@
 import torch.nn as nn
-from corerl.configs.config import config
-from corerl.configs.config import MISSING
+
+from corerl.configs.config import MISSING, config
 from corerl.configs.group import Group
 
 

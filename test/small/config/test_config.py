@@ -1,7 +1,8 @@
 import importlib
-from typing import Any
-from pytest import fixture
 from collections.abc import Callable
+from typing import Any
+
+from pytest import fixture
 
 
 @fixture

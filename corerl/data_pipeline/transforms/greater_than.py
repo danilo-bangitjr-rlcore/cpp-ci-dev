@@ -1,4 +1,5 @@
 from typing import Literal
+
 import numpy as np
 from numba import njit
 
@@ -32,6 +33,9 @@ class GreaterThan:
             carry.transform_data[new_name] = new_x
 
         return carry, None
+
+    def reset(self) -> None:
+        pass
 
 transform_group.dispatcher(GreaterThan)
 

@@ -1,21 +1,23 @@
+import pickle as pkl
+import random
 from collections.abc import Sequence
 from dataclasses import field
-from typing import Literal
 from pathlib import Path
+from typing import Literal
 
-import torch
 import numpy
-import random
-import pickle as pkl
+import torch
 
-from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
-from corerl.configs.config import config
 from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, state_to_tensor
+from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
+from corerl.component.critic.factory import init_q_critic
+from corerl.component.network.utils import state_to_tensor, to_np
+from corerl.configs.config import config
+from corerl.data_pipeline.datatypes import Transition, TransitionBatch
+from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.state import AppState
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import TransitionBatch, Transition
 
 
 @config(frozen=True)
@@ -30,13 +32,13 @@ class EpsilonGreedySarsaConfig(BaseAgentConfig):
 
 
 class EpsilonGreedySarsa(BaseAgent):
-    def __init__(self, cfg: EpsilonGreedySarsaConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
+    def __init__(self, cfg: EpsilonGreedySarsaConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        super().__init__(cfg, app_state, col_desc)
         self.ensemble_targets = cfg.ensemble_targets
         self.samples = cfg.samples
         self.epsilon = cfg.epsilon
-        self.action_dim = action_dim
-        self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
+        self.action_dim = self.action_dim
+        self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
         self.critic_buffer = init_buffer(cfg.critic.buffer)
 
     def update_buffer(self, transitions: Sequence[Transition]) -> None:

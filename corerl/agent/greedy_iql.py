@@ -1,11 +1,14 @@
-from dataclasses import field
-from typing import Literal
-from corerl.agent.base import BaseAgentConfig
-from corerl.configs.config import config
-from corerl.agent.iql import IQL, IQLConfig
-from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig
-from pathlib import Path
 import pickle as pkl
+from dataclasses import field
+from pathlib import Path
+from typing import Literal
+
+from corerl.agent.base import BaseAgentConfig
+from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig
+from corerl.agent.iql import IQL, IQLConfig
+from corerl.configs.config import config
+from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.state import AppState
 
 
 @config(frozen=True)
@@ -23,9 +26,9 @@ class GreedyIQL(GreedyAC, IQL):
     """
     A verison of IQL that uses GAC-style updates.
     """
-    def __init__(self, cfg: GreedyIQLConfig, state_dim: int, action_dim: int):
-        GreedyAC.__init__(self, cfg.gac, state_dim, action_dim)
-        IQL.__init__(self, cfg.iql, state_dim, action_dim)
+    def __init__(self, cfg: GreedyIQLConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        GreedyAC.__init__(self, cfg.gac, app_state, col_desc)
+        IQL.__init__(self, cfg.iql, app_state, col_desc)
 
     def update_actor(self):
         return GreedyAC.update_actor(self)

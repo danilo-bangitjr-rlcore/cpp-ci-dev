@@ -1,7 +1,8 @@
 from logging import getLogger
-from cenovus.utils.data import get_file_paths, read_json, ReadFailure
-from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 
+from cenovus.utils.data import ReadFailure, get_file_paths, read_json
+
+from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 
 logger = getLogger('cenovus')
 
@@ -45,6 +46,6 @@ def load_dataset(cfg: TagDBConfig):
 
 if __name__ == '__main__':
     cfg = TagDBConfig(
-        sensor_table_name='cenovus',
+        table_name='cenovus',
     )
     load_dataset(cfg)

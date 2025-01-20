@@ -1,19 +1,19 @@
 from dataclasses import field
 from typing import Any, Literal
 
-from corerl.configs.config import config, MISSING, list_
-from corerl.configs.group import Group
-from corerl.component.layer.activations import ActivationConfig
-import corerl.component.network.utils as utils
-from corerl.component.policy.softmax import Softmax, Policy
-from corerl.component.policy.policy import ContinuousIIDPolicy
-from corerl.component.distribution import get_dist_type
-from corerl.component.network.networks import _create_layer, create_base, NNTorsoConfig
-from corerl.component.layer import init_activation, Parallel
-import torch.nn as nn
 import torch
-from corerl.utils.device import device
+import torch.nn as nn
 
+import corerl.component.network.utils as utils
+from corerl.component.distribution import get_dist_type
+from corerl.component.layer import Parallel, init_activation
+from corerl.component.layer.activations import ActivationConfig
+from corerl.component.network.networks import NNTorsoConfig, _create_layer, create_base
+from corerl.component.policy.policy import ContinuousIIDPolicy, Policy
+from corerl.component.policy.softmax import Softmax
+from corerl.configs.config import MISSING, config, list_
+from corerl.configs.group import Group
+from corerl.utils.device import device
 
 HeadActivation = list[list[ActivationConfig]]
 

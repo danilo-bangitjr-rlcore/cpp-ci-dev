@@ -1,6 +1,6 @@
 import torch.distributions as d
-from . import ArctanhNormal
 
+from . import ArctanhNormal
 
 _dist_types: dict[str, type[d.Distribution]] = {
     "arctanh_normal": ArctanhNormal,

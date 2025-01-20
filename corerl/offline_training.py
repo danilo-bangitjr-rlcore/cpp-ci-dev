@@ -1,16 +1,18 @@
 import logging
-import numpy as np
-import torch
 import random
 
-from corerl.config import MainConfig
-from corerl.configs.loader import load_config
-from corerl.utils.device import device
-from corerl.agent.factory import init_agent
-from corerl.offline.utils import load_offline_transitions, offline_training
-from corerl.data_pipeline.pipeline import Pipeline
+import numpy as np
+import torch
 
 import corerl.main_utils as utils
+from corerl.agent.factory import init_agent
+from corerl.config import MainConfig
+from corerl.configs.loader import load_config
+from corerl.data_pipeline.pipeline import Pipeline
+from corerl.eval.writer import MetricsWriter
+from corerl.offline.utils import load_offline_transitions, offline_training
+from corerl.state import AppState
+from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
 
@@ -29,9 +31,14 @@ def main(cfg: MainConfig):
     random.seed(seed)
     torch.manual_seed(seed)
 
+    app_state = AppState(
+        metrics=MetricsWriter(cfg.metrics),
+        event_bus=None,
+    )
+
     pipeline = Pipeline(cfg.pipeline)
-    state_dim, action_dim = pipeline.get_state_action_dims()
-    agent = init_agent(cfg.agent, state_dim, action_dim)
+    column_desc = pipeline.column_descriptions
+    agent = init_agent(cfg.agent, app_state, column_desc)
     transitions = []
 
     # Offline training

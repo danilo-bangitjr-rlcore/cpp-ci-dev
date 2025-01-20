@@ -1,5 +1,7 @@
 from typing import Any, Callable
+
 from torch.optim.optimizer import ParamsT
+
 
 class EnsembleOptimizer:
     def __init__(

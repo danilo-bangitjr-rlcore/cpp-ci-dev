@@ -1,13 +1,14 @@
+from datetime import timedelta
+
 import numpy as np
 import pandas as pd
 
+from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms.split import SplitConfig, SplitTemporalState
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceTemporalState
-from corerl.data_pipeline.state_constructors.sc import SCConfig, StateConstructor
-
-from corerl.data_pipeline.tag_config import TagConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 
@@ -32,7 +33,10 @@ def test_split1():
                     right=[TraceConfig(trace_values=[0.01])],
                 ),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 
@@ -80,7 +84,10 @@ def test_split_ts1():
                     right=[TraceConfig(trace_values=[0.01])],
                 ),
             ],
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=1),
+                obs_period=timedelta(minutes=1),
+            ),
         ),
     )
 

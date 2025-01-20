@@ -5,8 +5,8 @@ experiment:
   seed: 1
   gamma: 0.99
 
-action_period: 1
-obs_period: 1
+interaction:
+  name: sim_interaction
 
 env:
   name: sim_async_env
@@ -14,6 +14,8 @@ env:
   discrete_control: False
   seed: 1
   db: ${pipeline.db}
+  action_period: 00:00:01
+  obs_period: 00:00:01
 
 agent:
   name: greedy_ac
@@ -37,7 +39,6 @@ agent:
 
 
 pipeline:
-  obs_interval_minutes: 5
   db:
     drivername: "postgresql+psycopg2"
     username: "postgres"
@@ -45,7 +46,7 @@ pipeline:
     ip: "localhost"
     port: 5432
     db_name: "public"
-    sensor_table_name: "sensors"
+    table_name: "sensors"
 
   state_constructor:
     defaults: []
@@ -55,80 +56,52 @@ pipeline:
 
   tags:
   - name: reward
-    bounds:
-    - null
-    - null
     outlier:
       name: identity
     imputer:
       name: identity
     reward_constructor:
-    - name: 'null'
-    state_constructor: null
-    is_action: false
+    - name: identity
     is_meta: true
+
   - name: terminated
-    bounds:
-    - null
-    - null
     outlier:
       name: identity
     imputer:
       name: identity
-    reward_constructor:
-    - name: 'null'
-    state_constructor: null
-    is_action: false
     is_meta: true
+
   - name: truncated
-    bounds:
-    - null
-    - null
     outlier:
       name: identity
     imputer:
       name: identity
-    reward_constructor:
-    - name: 'null'
-    state_constructor: null
-    is_action: false
     is_meta: true
+
   - name: action_0
-    bounds:
-    - -1.0
-    - 1.0
+    bounds: [-1, 1]
     outlier:
       name: identity
     imputer:
       name: identity
-    reward_constructor:
-    - name: 'null'
-    state_constructor: null
-    is_action: true
-    is_meta: false
+    state_constructor:
+      - name: 'null'
+    action_constructor:
+      - name: normalize
+        min: -1
+        max: 1
+        from_data: False
+
   - name: observation_0
-    bounds:
-    - -1.2
-    - 0.6
+    bounds: [-1.2, 0.6]
     outlier:
       name: identity
     imputer:
       name: identity
-    reward_constructor:
-    - name: 'null'
-    state_constructor: null
-    is_action: false
-    is_meta: false
+
   - name: observation_1
-    bounds:
-    - -0.07
-    - 0.07
+    bounds: [-0.07, 0.07]
     outlier:
       name: identity
     imputer:
       name: identity
-    reward_constructor:
-    - name: 'null'
-    state_constructor: null
-    is_action: false
-    is_meta: false

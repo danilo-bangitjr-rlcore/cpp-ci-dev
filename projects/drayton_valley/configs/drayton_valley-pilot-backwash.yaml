@@ -1,0 +1,171 @@
+experiment:
+  exp_name: DraytonValley-Pilot-Backwash
+  param_from_hash: True
+  seed: 1
+  gamma: 0.99
+  run_forever: True
+
+interaction:
+  name: dep_interaction
+
+env:
+  name: dep_async_env
+  obs_period: 00:00:10
+  action_period: 00:00:30
+  db: ${pipeline.db}
+  opc_conn_url: "opc.tcp://ignition-services:62541"
+  opc_ns: 1
+  discrete_control: False
+
+
+agent:
+  name: greedy_ac
+  n_critic_updates: 1
+  n_actor_updates: 1
+  n_sampler_updates: 1
+  num_samples: 32
+  uniform_sampling_percentage: 0.8
+  discrete_control: ${env.discrete_control}
+  seed: ${experiment.seed}
+
+  critic:
+    buffer:
+      seed: ${experiment.seed}
+
+  actor:
+    buffer:
+      seed: ${experiment.seed}
+    actor_optimizer:
+      lr: 0.00001
+
+
+metrics:
+  drivername: "postgresql+psycopg2"
+  username: "postgres"
+  password: "password"
+  ip: "timescaledb"
+  port: 5432
+  db_name: "postgres"
+  table_schema: "public"
+  table_name: "metrics"
+  enabled: True
+
+pipeline:
+  db:
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: "password"
+    ip: "timescaledb"
+    port: 5432
+    db_name: "postgres"
+    table_schema: "public"
+    table_name: "pilot"
+
+  transition_creator:
+    name: all-the-time
+    gamma: ${experiment.gamma}
+
+  tags:
+  - name: PERM_SP.BW_SP # flow rate setpoint
+    node_identifier: "[pilot]Program:ZW.PERM_SP.BW_SP"
+    bounds: [0.9, 1.4]
+    action_constructor:
+      - name: normalize
+        min: 0.9
+        max: 1.4
+        from_data: False
+    state_constructor: # exclude from state
+    - name: "null"
+
+  - name: BW_SP.KY2 # backpulse duration setpoint
+    node_identifier: "[pilot]Program:ZW.BW_SP.KY2"
+    bounds: [20, 40]
+    action_constructor:
+      - name: normalize
+        min: 20
+        max: 40
+        from_data: False
+    state_constructor: # exclude from state
+    - name: "null"
+
+  - name: PRC_INFO.PERMEABILITY # permeability
+    bounds: [-40, -15] # this tag reports negative permeability
+    state_constructor:
+    - name: normalize
+      min: -40
+      max: -15
+      from_data: false
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.9
+    reward_constructor:
+    - name: affine
+      scale: 0.04 # 1 / (max - min)
+      bias: 0.6 # min / (max - min)
+    - name: scale
+      factor: -1.0 # convert from negative permeability normalized to [0, 1] -> positive permeability normalized to [-1, 0]
+    # ignore permeability except when in production mode (CTRL_P.STEP == 1305)
+    # in abscence of "equal to" transform, squeeze with greater/less than
+    - name: product
+      other: CTRL_P.STEP
+      other_xform:
+        - name: less_than
+          threshold: 1306
+    - name: product
+      other: CTRL_P.STEP
+      other_xform:
+        - name: greater_than
+          threshold: 1304
+
+  - name: CTRL_P.STEP # mode, excluded from state but used in reward fn
+    state_constructor:
+    - name: "null"
+
+  - name: TUIT101.DATA # raw turbidity
+    bounds: [0, 1.5]
+    state_constructor:
+    - name: normalize
+      min: 0
+      max: 1.5
+      from_data: false
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.9
+
+  - name: FTC101.DATA # raw cdom
+    bounds: [1, 4]
+    state_constructor:
+    - name: normalize
+      min: 1
+      max: 4
+      from_data: false
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.9
+
+  - name: FTT100.DATA # raw tryptophan
+    bounds: [0, 0.7]
+    state_constructor:
+    - name: normalize
+      min: 0
+      max: 0.7
+      from_data: false
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.9
+
+  - name: TIT302.DATA # postfloc water temp
+    bounds: [0, 15]
+    state_constructor:
+    - name: normalize
+      min: 0
+      max: 15
+      from_data: false
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.9

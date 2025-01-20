@@ -1,12 +1,12 @@
 import pytest
-from asyncua import Server, Node
+from asyncua import Node, Server
+
 from corerl.utils.opc_connection import OpcConfig, OpcConnection
-from test.infrastructure.networking import get_free_port
 
 
 class FakeOpcServer:
     def __init__(self, port: int = 0):
-        self._port = port or get_free_port('localhost')
+        self._port = port
         self._s: Server | None = None
         self._sensors: dict[str, Node] = {}
 
@@ -37,18 +37,18 @@ class FakeOpcServer:
 
 
 @pytest.fixture
-async def server():
-    s = FakeOpcServer()
+async def server(free_localhost_port: int):
+    s = FakeOpcServer(free_localhost_port)
     await s.start()
     yield s
     await s.close()
 
 
 @pytest.fixture
-async def client():
+async def client(free_localhost_port: int):
     config = OpcConfig(
         ip_address='localhost',
-        port=4840,
+        port=free_localhost_port,
         timeout=1.,
     )
 
@@ -58,15 +58,15 @@ async def client():
 
 
 @pytest.fixture
-async def server_and_client():
+async def server_and_client(free_localhost_port: int):
     # building a server should find us an open port
-    server = FakeOpcServer()
+    server = FakeOpcServer(free_localhost_port)
     await server.start()
 
     # let the client's config know what port we are using
     config = OpcConfig(
         ip_address='localhost',
-        port=server._port,
+        port=free_localhost_port,
         timeout=1.,
     )
 

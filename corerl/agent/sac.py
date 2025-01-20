@@ -1,19 +1,21 @@
+import pickle as pkl
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
-import torch
 import numpy as np
-import pickle as pkl
+import torch
 
-from corerl.configs.config import config
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
-from corerl.component.critic.factory import init_q_critic
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, state_to_tensor, Float
+from corerl.component.critic.factory import init_q_critic
+from corerl.component.network.utils import Float, state_to_tensor, to_np
+from corerl.configs.config import config
+from corerl.data_pipeline.datatypes import Transition, TransitionBatch
+from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.state import AppState
 from corerl.utils.device import device
-from corerl.data_pipeline.datatypes import TransitionBatch, Transition
 
 
 @config(frozen=True)
@@ -26,12 +28,12 @@ class SACConfig(BaseACConfig):
     lr_alpha: float = 0.001
 
 class SAC(BaseAC):
-    def __init__(self, cfg: SACConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
+    def __init__(self, cfg: SACConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        super().__init__(cfg, app_state, col_desc)
         self.ensemble_targets = cfg.ensemble_targets
         # self.v_critic = init_v_critic(cfg.critic, state_dim) # Paper has V and Q...
-        self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
-        self.actor = init_actor(cfg.actor, state_dim, action_dim)
+        self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
+        self.actor = init_actor(cfg.actor, self.state_dim, self.action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)
@@ -40,7 +42,7 @@ class SAC(BaseAC):
         # Entropy
         self.automatic_entropy_tuning = cfg.tau == -1
         if self.automatic_entropy_tuning:
-            self.target_entropy = -np.prod(action_dim).item() # If action_dim is an int, is this necessary?
+            self.target_entropy = -np.prod(self.action_dim).item() # If action_dim is an int, is this necessary?
             self.log_alpha = Float(device.device, 0.0)
         else:
             self.log_alpha = Float(device.device, np.log(cfg.tau))

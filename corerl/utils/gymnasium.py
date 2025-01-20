@@ -1,7 +1,8 @@
 import gymnasium as gym
 
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
+from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transforms import IdentityConfig, NullConfig
 
 
 def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
@@ -29,36 +30,23 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
     # these are hardcoded
     tag_configs.append(
         TagConfig(
-            name="reward",
+            name="gym_reward",
             outlier=IdentityFilterConfig(),
-            # imputer= None,
-            # reward_constructor= None,
-            state_constructor=None,
-            is_action=False,
+            state_constructor=[],
             is_meta=True,
         )
     )
     tag_configs.append(
         TagConfig(
             name="terminated",
-            # note: bounds is (None, None) but these are booleans
             outlier=IdentityFilterConfig(),
-            # imputer= None,
-            # reward_constructor= None,
-            state_constructor=None,
-            is_action=False,
             is_meta=True,
         )
     )
     tag_configs.append(
         TagConfig(
             name="truncated",
-            # note: bounds is (None, None) but these are booleans
             outlier=IdentityFilterConfig(),
-            # imputer= None,
-            # reward_constructor= None,
-            state_constructor=None,
-            is_action=False,
             is_meta=True,
         )
     )
@@ -69,10 +57,8 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
                 name=f"action_{i}",
                 bounds=(action_space.low[i].item(), action_space.high[i].item()),
                 outlier=IdentityFilterConfig(),
-                # imputer= None,
-                # reward_constructor= None,
-                state_constructor=None,
-                is_action=True,
+                state_constructor=[NullConfig()],
+                action_constructor=[IdentityConfig()]
             )
         )
 
@@ -82,10 +68,7 @@ def gen_tag_configs_from_env(env: gym.Env) -> list[TagConfig]:
                 name=f"observation_{i}",
                 bounds=(observation_space.low[i].item(), observation_space.high[i].item()),
                 outlier=IdentityFilterConfig(),
-                # imputer= None,
-                # reward_constructor= None,
-                state_constructor=None,
-                is_action=False,
+                state_constructor=[IdentityConfig()],
                 is_meta=False,
             )
         )

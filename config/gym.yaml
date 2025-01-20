@@ -1,14 +1,21 @@
-action_period: 1
-obs_period: 1
-
 agent:
   message_bus:
     enable: False
     host: ''
     port: ''
 
+metrics:
+  drivername: "postgresql+psycopg2"
+  username: "postgres"
+  password: "password"
+  ip: "localhost"
+  port: 5432
+  db_name: "postgres"
+  table_schema: "public"
+  table_name: "metrics"
+  enabled: False
+
 pipeline:
-  obs_interval_minutes: 5
   db:
     drivername: "postgresql+psycopg2"
     username: "postgres"
@@ -16,4 +23,4 @@ pipeline:
     ip: "localhost"
     port: 5433
     db_name: "pytest"
-    sensor_table_name: "sensors"
+    table_name: "sensors"

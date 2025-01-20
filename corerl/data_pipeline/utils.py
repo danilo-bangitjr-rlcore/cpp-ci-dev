@@ -1,8 +1,10 @@
+from typing import Callable, Mapping, cast
+
 import numpy as np
 import pandas as pd
 
-from typing import cast, Callable, Mapping
-from corerl.data_pipeline.datatypes import MissingType, TagName, PipelineStage, StageCode
+from corerl.data_pipeline.datatypes import MissingType, PipelineStage, StageCode, TagName
+
 
 def invoke_stage_per_tag[T](carry: T, stage: Mapping[TagName, PipelineStage[T]]) -> T:
     for tag, f in stage.items():

@@ -110,8 +110,10 @@ def _walk_config_and_interpolate(root: dict[str, Any]):
 # -- YAML Default Merging --
 # --------------------------
 def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
-    path = Path(base) / f'{config_name}.yaml'
+    if not config_name.endswith('.yaml'):
+        config_name += '.yaml'
 
+    path = Path(base) / f'{config_name}'
     with open(path, 'r') as f:
         config = yaml.safe_load(f)
 
@@ -147,7 +149,7 @@ def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
     return config
 
 
-def _load_config[T](Config: type[T], base: str | None = None, config_name: str | None = None):
+def direct_load_config[T](Config: type[T], base: str | None = None, config_name: str | None = None):
     # parse all of the command line flags
     # gracefully ignore those we can't parse
     flags = _flags_from_cli()
@@ -157,6 +159,10 @@ def _load_config[T](Config: type[T], base: str | None = None, config_name: str |
     base = flags.get('base', base)
     config_name = flags.get('config-name', config_name)
     assert base is not None and config_name is not None, 'Must specify a base path for configs and a config name'
+
+    # remove the `base` from the config_name if it already exists
+    if config_name.startswith(base):
+        config_name = config_name[len(base):]
 
     # load the raw config with defaults resolved
     raw_config = _load_raw_config(base, config_name)
@@ -190,7 +196,7 @@ def _load_config[T](Config: type[T], base: str | None = None, config_name: str |
 def load_config[T](Config: type[T], base: str | None = None, config_name: str | None = None):
     def _inner[**U, R](f: Callable[Concatenate[T, U], R]):
         def __inner(*args: U.args, **kwargs: U.kwargs) -> R:
-            config = _load_config(Config, base, config_name)
+            config = direct_load_config(Config, base, config_name)
             return f(config, *args, **kwargs)
         return __inner
     return _inner
@@ -199,3 +205,7 @@ def load_config[T](Config: type[T], base: str | None = None, config_name: str | 
 def config_to_dict(Config: type[object], config: object):
     ta = TypeAdapter(Config)
     return ta.dump_python(config, warnings=False)
+
+def config_to_json(Config: type[object], config: object):
+    ta = TypeAdapter(Config)
+    return ta.dump_json(config, warnings=False)

@@ -1,31 +1,36 @@
-import pytest
 import datetime as dt
-
-from torch import Tensor
 from typing import Generator
+
+import numpy as np
+import pandas as pd
+import pytest
 from docker.models.containers import Container
+from torch import Tensor
 
 from corerl.agent.factory import init_agent
 from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.component.actor.network_actor import NetworkActorConfig
-from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.buffer.buffers import UniformReplayBufferConfig
+from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.optimizers.torch_opts import AdamConfig
-from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import Step, Transition
-from corerl.data_pipeline.db.data_writer import DataWriter
+from corerl.config import MainConfig, MetricsDBConfig
+from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
+from corerl.data_pipeline.constructors.sc import SCConfig
+from corerl.data_pipeline.datatypes import CallerCode, Step, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
+from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
-from corerl.data_pipeline.state_constructors.sc import SCConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transforms import LessThanConfig, NullConfig
+from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
-from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
-from corerl.data_pipeline.transforms import LessThanConfig
+from corerl.eval.writer import MetricsWriter
 from corerl.experiment.config import ExperimentConfig
 from corerl.offline.utils import load_offline_transitions, offline_training
+from corerl.state import AppState
+from test.infrastructure.utils.docker import init_docker_container  # noqa: F401
 
-from test.infrastructure.utils.docker import init_docker_container # noqa: F401
 
 @pytest.fixture(scope="module")
 def test_db_config() -> TagDBConfig:
@@ -36,7 +41,7 @@ def test_db_config() -> TagDBConfig:
         ip="localhost",
         port=5433,  # default is 5432, but we want to use different port for test db
         db_name="offline_test",
-        sensor_table_name="tags",
+        table_name="tags",
     )
 
     return db_cfg
@@ -52,7 +57,7 @@ def init_offline_tsdb_container():
 
 @pytest.fixture(scope="module")
 def data_writer(init_offline_tsdb_container: Container, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]: # noqa: F811, E501
-    data_writer = DataWriter(db_cfg=test_db_config)
+    data_writer = DataWriter(cfg=test_db_config)
 
     yield data_writer
 
@@ -60,14 +65,14 @@ def data_writer(init_offline_tsdb_container: Container, test_db_config: TagDBCon
 
 @pytest.fixture
 def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
-    obs_period_sec = 60 # seconds
-    action_period = 2 # Number of obs_periods
-    action_period_sec = obs_period_sec * action_period
+    obs_period = dt.timedelta(seconds=60)
+    action_period = 2*obs_period
     seed = 0
 
     cfg = MainConfig(
-        action_period=action_period_sec,
-        obs_period=obs_period_sec,
+        metrics=MetricsDBConfig(
+            enabled=False,
+        ),
         agent=GreedyACConfig(
             actor=NetworkActorConfig(
                 buffer=UniformReplayBufferConfig(
@@ -91,13 +96,12 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
             tags=[
                 TagConfig(
                     name="Action",
-                    is_action=True,
+                    state_constructor=[NullConfig()],
+                    action_constructor=[],
                     bounds=(0.0, 1.0)
                 ),
                 TagConfig(
                     name="Tag_1",
-                    is_action=False,
-                    is_meta=False,
                     reward_constructor=[
                         LessThanConfig(threshold=3),
                     ],
@@ -105,10 +109,14 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
                 TagConfig(name="reward", is_meta=True),
             ],
             db=test_db_config,
-            obs_interval_minutes=int(obs_period_sec / 60),
+            obs_period=obs_period,
+            action_period=action_period,
             state_constructor=SCConfig(
                 defaults=[],
-                countdown=CountdownConfig(action_period=action_period),
+                countdown=CountdownConfig(
+                    action_period=action_period,
+                    obs_period=obs_period
+                ),
             ),
             transition_creator=AllTheTimeTCConfig(
                 gamma=0.9,
@@ -124,30 +132,37 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     return cfg
 
 def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, steps: int = 5) -> list[Transition]:
+    obs_period = offline_cfg.pipeline.obs_period
+
     # Generate timestamps
-    timestamps = []
+    step_timestamps = []
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.timezone.utc)
-    delta = dt.timedelta(minutes=int(offline_cfg.obs_period / 60))
+    # The index of the first row produced by the data reader given start_time will be
+    # obs_period after start_time.
+    first_step = start_time + obs_period
+
     for i in range(steps):
-        timestamps.append(start_time + (delta * i))
+        step_timestamps.append(first_step + obs_period * i)
 
     # Generate tag data and write to tsdb
-    steps_per_decision = offline_cfg.action_period / offline_cfg.obs_period
+    steps_per_decision = int(
+        offline_cfg.pipeline.action_period.total_seconds() / offline_cfg.pipeline.obs_period.total_seconds()
+    )
     for i in range(steps):
         for tag_cfg in offline_cfg.pipeline.tags:
             tag = tag_cfg.name
-            if tag_cfg.is_action:
+            if tag_cfg.action_constructor is not None:
                 val = int(i / steps_per_decision) % 2
             else:
                 val = i
 
-            data_writer.write(timestamp=timestamps[i], name=tag, val=val)
+            data_writer.write(timestamp=step_timestamps[i], name=tag, val=val)
 
     data_writer.blocking_sync()
 
     # Produce offline transitions
     pipeline = Pipeline(offline_cfg.pipeline)
-    created_transitions = load_offline_transitions(offline_cfg, pipeline)
+    created_transitions = load_offline_transitions(offline_cfg, pipeline, start_time=start_time)
 
     return created_transitions
 
@@ -187,9 +202,14 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
 
     offline_transitions = generate_offline_data(offline_cfg, data_writer, steps)
 
+    app_state = AppState(
+        metrics=MetricsWriter(offline_cfg.metrics),
+        event_bus=None,
+    )
+
     pipeline = Pipeline(offline_cfg.pipeline)
-    state_dim, action_dim = pipeline.get_state_action_dims()
-    agent = init_agent(offline_cfg.agent, state_dim, action_dim)
+    col_desc = pipeline.column_descriptions
+    agent = init_agent(offline_cfg.agent, app_state, col_desc)
 
     # Offline training
     critic_losses = offline_training(offline_cfg, agent, offline_transitions)
@@ -197,3 +217,27 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
     last_loss = critic_losses[-1]
 
     assert last_loss < first_loss
+
+def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig):
+    normalizer = NormalizerConfig(from_data=True)
+
+    # add normalizer to pipeline config
+    offline_cfg.pipeline.tags[1].state_constructor = [normalizer]
+    pipeline = Pipeline(offline_cfg.pipeline)
+
+    # trigger pipeline to test dummy data
+    _ = pipeline.column_descriptions
+
+    # create test data and run through pipeline
+    dates = [dt.datetime(2024, 1, 1, 1, i, tzinfo=dt.timezone.utc) for i in range(5)]
+    df = pd.DataFrame({
+        "Tag_1":  [0.1, -0.1, 0, 0, 0],
+        "Action": [  0,    0, 1, 1, 0],
+        "reward": [  0,    0, 0, 0, 0],
+    }, index=pd.DatetimeIndex(dates))
+
+    # check if tag is normalized using [-0.1, 0.1] as bounds
+    # prior implementation would mistakenly use [-0.1, 1] as bounds
+    pr = pipeline(df, caller_code=CallerCode.OFFLINE)
+
+    assert np.all(pr.df['Tag_1_norm'] == [1., 0, 0.5, 0.5, 0.5])

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import SupportsFloat
 
 import gymnasium as gym
@@ -8,12 +8,12 @@ import pandas as pd
 
 from corerl.configs.config import config
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.async_env import AsyncEnv, BaseAsyncEnvConfig
+from corerl.environment.async_env.async_env import AsyncEnv, GymEnvConfig
 from corerl.utils.gym import space_bounds, space_shape
 
 
 @config()
-class SimAsyncEnvConfig(BaseAsyncEnvConfig):
+class SimAsyncEnvConfig(GymEnvConfig):
     name: str = "sim_async_env"
 
 @dataclass
@@ -39,12 +39,15 @@ class SimAsyncEnv(AsyncEnv):
 
         self.tags = tags
 
-        self._action_tag_names = [tag.name for tag in tags if tag.is_action]
-        self._observation_tag_names = [tag.name for tag in tags if not tag.is_action and not tag.is_meta]
+        self._action_tag_names = [tag.name for tag in tags if tag.action_constructor is not None]
         self._meta_tag_names = [tag.name for tag in tags if tag.is_meta]
+        self._observation_tag_names = [
+            tag.name for tag in tags
+            if not tag.is_meta and tag.action_constructor is None
+        ]
 
         self.clock = datetime(1984, 1, 1, tzinfo=UTC)
-        self._clock_inc = timedelta(minutes=5)
+        self._clock_inc = cfg.obs_period
 
         self._action: np.ndarray | None = None
         self._last_step: StepData | None = None
@@ -97,9 +100,7 @@ class SimAsyncEnv(AsyncEnv):
 
     def _obs_as_df(self, step: StepData):
         obs_data = {tag: val for tag, val in zip(self._observation_tag_names, step.observation, strict=True)}
-
         action_data = {tag: val for tag, val in zip(self._action_tag_names, step.action, strict=True)}
-
         meta_data = {
             "reward": step.reward,
             "truncated": step.truncated,

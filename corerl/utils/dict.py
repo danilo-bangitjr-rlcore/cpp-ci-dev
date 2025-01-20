@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from inspect import isclass
-import re
 import hashlib
+import re
 from collections.abc import Callable, Iterable, MutableMapping, Sequence
-from dataclasses import fields, is_dataclass, _MISSING_TYPE
+from dataclasses import _MISSING_TYPE, fields, is_dataclass
+from inspect import isclass
 from typing import Any
+
 from pydantic.fields import FieldInfo
 
 import corerl.utils.nullable as nullable

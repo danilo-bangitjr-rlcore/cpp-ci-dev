@@ -1,6 +1,7 @@
 import logging
 import uuid
 from enum import StrEnum, auto
+
 from pydantic import BaseModel, Field, ValidationError
 
 from corerl.utils.time import now_iso
@@ -8,12 +9,11 @@ from corerl.utils.time import now_iso
 logger = logging.getLogger(__name__)
 
 
-
 class EventType(StrEnum):
     # ---------------
     # -- Lifecycle --
     # ---------------
-    subscribe = auto()
+    step = auto()
 
     # -----------
     # -- Agent --
@@ -27,16 +27,18 @@ class EventType(StrEnum):
     agent_update_critic = auto()
 
 
+class EventTopic(StrEnum):
+    # Topic filtering occurs using subscriber-side prefixing
+    corerl = auto()
+    corerl_scheduler = auto()
+    corerl_cli = auto()
+    debug_app = auto()
+
 
 class Event(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     time: str = Field(default_factory=now_iso)
     type: EventType
-
-
-class SubscribeEvent(Event):
-    type: EventType = EventType.subscribe
-    subscribe_to: EventType
 
 
 # ---------------------
@@ -46,5 +48,5 @@ def maybe_parse_event(msg: str | bytes) -> Event | None:
     try:
         return Event.model_validate_json(msg)
     except ValidationError:
-        logger.exception('Failed to parse websocket message')
+        logger.exception('Failed to parse message')
         return None

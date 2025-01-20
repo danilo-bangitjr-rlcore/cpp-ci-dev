@@ -1,10 +1,11 @@
 import copy
-import pandas as pd
 from dataclasses import dataclass
 
+import pandas as pd
+
+from corerl.data_pipeline.transforms import SplitConfig
 from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.transforms import SplitConfig
 
 
 @dataclass
@@ -64,5 +65,11 @@ class SplitTransform:
             left_state=l_state,
             right_state=r_state,
         )
+
+    def reset(self) -> None:
+        for xform in self._left:
+            xform.reset()
+        for xform in self._right:
+            xform.reset()
 
 transform_group.dispatcher(SplitTransform)

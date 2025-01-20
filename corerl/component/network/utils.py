@@ -1,8 +1,11 @@
+from collections.abc import Callable
+
 import numpy
 import torch
 import torch.nn as nn
-from corerl.utils.device import Device, device as global_device
-from collections.abc import Callable
+
+from corerl.utils.device import Device
+from corerl.utils.device import device as global_device
 
 
 class Float(torch.nn.Module):

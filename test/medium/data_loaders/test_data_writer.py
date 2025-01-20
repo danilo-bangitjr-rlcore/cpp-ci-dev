@@ -1,12 +1,13 @@
-from docker.models.containers import Container
-from corerl.data_pipeline.db.data_writer import DataWriter
-from corerl.data_pipeline.db.data_reader import TagDBConfig
-from datetime import datetime, UTC, timedelta
-import pytest
-from typing import Generator
+from datetime import UTC, datetime, timedelta
 from random import random
+from typing import Generator
+
+import pytest
+from docker.models.containers import Container
 
 import corerl.utils.nullable as nullable
+from corerl.data_pipeline.db.data_reader import TagDBConfig
+from corerl.data_pipeline.db.data_writer import DataWriter
 from test.infrastructure.utils.docker import init_docker_container
 
 
@@ -28,10 +29,10 @@ def data_writer(init_data_writer_tsdb_container: Container) -> Generator[DataWri
         ip="localhost",
         port=5433, # default is 5432, but we want to use different port for test db
         db_name="pytest",
-        sensor_table_name="sensors",
+        table_name="sensors",
     )
 
-    data_writer = DataWriter(db_cfg=db_cfg)
+    data_writer = DataWriter(cfg=db_cfg)
 
     yield data_writer
 
@@ -69,3 +70,9 @@ def test_batch_write(data_writer: DataWriter):
     for _ in range(10):
         sensor_val += 1
         data_writer.write(timestamp=ts, name=sensor_name, val=sensor_val)
+
+
+def test_microsecond_trimming(data_writer: DataWriter):
+    ts = datetime(2024, 1, 1, 12, 0, 0, 123456, tzinfo=UTC)
+    data_writer.write(timestamp=ts, name="test_sensor", val=1.0)
+    assert data_writer._buffer[-1].ts == "2024-01-01T12:00:00+00:00"

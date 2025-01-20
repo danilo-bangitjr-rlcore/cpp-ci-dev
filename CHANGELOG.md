@@ -1,3 +1,258 @@
+## 0.29.0 (2025-01-20)
+
+### Feat
+
+- rename message_bus to event bus and enable AppState event_bus for when agent emits messages
+- added event-bus driven step to interaction and tested on opc_mountain_car_continuous
+- started implementing zmq publisher and subscriber
+- add pyzmq dependency
+
+### Fix
+
+- Changed scheduler process to thread to use zmq inproc transport
+- agent now emit proper event types
+
+## 0.28.4 (2025-01-17)
+
+### Fix
+
+- ensure metrics writer gets closed
+
+### Refactor
+
+- allow directly loading configs e.g. for tests
+
+## 0.28.3 (2025-01-17)
+
+### Fix
+
+- upgrade cenovus configs to latest schema
+
+### Refactor
+
+- allow directly loading configs e.g. for tests
+
+## 0.28.2 (2025-01-16)
+
+### Fix
+
+- swap terminate and truncate in model_env tests
+- dispatch on model types correctly
+
+## 0.28.1 (2025-01-16)
+
+### Fix
+
+- grab action from post step instead of prior
+
+## 0.28.0 (2025-01-16)
+
+### Feat
+
+- write features from states encountered online to the metrics table
+- make low watermark for metric writer tunable
+
+## 0.27.2 (2025-01-16)
+
+### Fix
+
+- do not reset temporal state on every step
+- extend valid threshold for timedelta between pipeframes
+- narrow types of first and last timestamp in pipeframe
+- remove obs_period from tolerance for stale state in deployment interaction
+
+## 0.27.1 (2025-01-16)
+
+### Fix
+
+- added hypertable and compression config to base_telegraf.conf
+
+## 0.27.0 (2025-01-16)
+
+### Feat
+
+- perform sanity checking on interaction state
+
+## 0.26.5 (2025-01-16)
+
+### Fix
+
+- ensure that large e2e tests have tsdb instance running
+- added a dummy writer for unit testing purposes
+- use config defined ip instead of hard coded localhost
+- wrap try_connect in context manager, always close conn between reads
+
+## 0.26.4 (2025-01-15)
+
+### Fix
+
+- Grafana mounts configs on compose (#383)
+
+## 0.26.3 (2025-01-15)
+
+### Fix
+
+- clean up timing logic in deployment_interaction.py, syncing obs and actions to a shared step_timestamp
+
+## 0.26.2 (2025-01-15)
+
+### Fix
+
+- added metrics, improved grafana aggregation queries
+
+## 0.26.1 (2025-01-14)
+
+### Fix
+
+- allow specifying a node identifier for tags
+
+## 0.26.0 (2025-01-14)
+
+### Feat
+
+- log q-values, actor loss, and sampler loss
+
+## 0.25.0 (2025-01-14)
+
+### Feat
+
+- add config to test deployment env and sim with mountain car
+
+### Fix
+
+- update last_obs_timestamp based on next_obs_timestamp in deployment env
+
+## 0.24.1 (2025-01-14)
+
+### Refactor
+
+- make constructors responsible for column ordering
+- plumb ColumnDescription to agent
+- pull shared construction logic out of AC and SC
+- put all RL constructors in same module
+
+## 0.24.0 (2025-01-14)
+
+### Feat
+
+- build action constructor stage
+
+### Fix
+
+- grab denormalize bounds from normalizer config
+- reset sc transform states after dummy data
+
+### Refactor
+
+- remove tag_configs input to interactions
+- replace is_action with action_constructor
+- get state/action dims and col names from pipeline
+
+## 0.23.0 (2025-01-14)
+
+### Feat
+
+- add metrics logging defaults to all environments
+- wire app_state through agents for top-level stateful objects
+- add metrics writer as a buffered writer
+
+### Fix
+
+- use docker hostname for timescale ip resolution
+- rename dv pilot db config from sensor_table_* to table_*
+- table_schema should not be an empty string
+
+### Refactor
+
+- pull buffered writing into generic utility
+
+## 0.22.0 (2025-01-14)
+
+### Feat
+
+- allow specifying configs with leading base in name
+- allow specifying a config path with trailing .yaml
+
+## 0.21.0 (2025-01-14)
+
+### Feat
+
+- add interaction factory
+
+## 0.20.1 (2025-01-14)
+
+### Fix
+
+- Add Grafana to Docker Compose (#365)
+
+## 0.20.0 (2025-01-14)
+
+### Feat
+
+- add deployment interaction and env
+
+## 0.19.0 (2025-01-13)
+
+### Feat
+
+- update data reader to include data on the bucket end time and exclude data on the bucket start time
+- update opc_mountain_car_continuous config to use reward constructor
+
+### Fix
+
+- optionally provide start time to load_offline_transitions, change offline training test to use a start time obs_period before the first step
+- handle gym reward as a special case with tag name gym_reward
+
+## 0.18.0 (2025-01-13)
+
+### Feat
+
+- enable docker builds on release
+
+## 0.17.3 (2025-01-10)
+
+### Fix
+
+- fix circular import issues with product and split transforms
+
+## 0.17.2 (2025-01-10)
+
+### Fix
+
+- add a default 50ms buffer to OPC TSDB sim async env obs read
+
+## 0.17.1 (2025-01-09)
+
+### Fix
+
+- enable serialization of timedelta objs with json dumper
+- update tests to use action_period and obs_period as timedelta objects
+- use timedelta obs_period in offline utils
+- interpolate obs/action_period in data pipeline config schemas; compute steps_per_decision based on obs/action_period in countdown and transition creators
+- unify notion of bucket_width, env_step_time, clock_inc as obs_period; refactor env configs to use multiple inheritance to share common fields
+- remove action_period and obs_period from top level configs
+
+## 0.17.0 (2025-01-09)
+
+### Feat
+
+- add power transform
+
+## 0.16.0 (2025-01-09)
+
+### Feat
+
+- add generic utility to sort lists at multiple levels
+
+### Fix
+
+- ensure action values are sorted alphabetically
+- annotate test utility types
+
+### Refactor
+
+- make tag sort order more explicit
+
 ## 0.15.0 (2025-01-09)
 
 ### Feat

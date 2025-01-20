@@ -1,11 +1,10 @@
 from corerl.component.buffer.buffers import (
     EnsembleUniformReplayBufferConfig,
     PriorityReplayBufferConfig,
-    buffer_group,
-    UniformReplayBufferConfig,
     UniformBuffer,
+    UniformReplayBufferConfig,
+    buffer_group,
 )
-
 
 BufferConfig = (
     UniformReplayBufferConfig

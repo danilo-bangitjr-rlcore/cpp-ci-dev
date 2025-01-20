@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, CallerCode
+from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.linear import LinearImputer, LinearImputerConfig, LinearImputerTemporalState
 from test.infrastructure.utils.pandas import dfs_close
+
 
 def test_no_imputation():
     """

@@ -1,27 +1,29 @@
+import logging
+import pickle as pkl
 from collections.abc import Sequence
 from dataclasses import field
 from functools import partial
-import numpy as np
 from pathlib import Path
-import torch
+from typing import Literal, Optional
+
 import numpy
-import pickle as pkl
-import logging
+import numpy as np
+import torch
+from jaxtyping import Float
 
-
-from corerl.configs.config import config
-from corerl.component.actor.network_actor import NetworkActorConfig
-from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
-from corerl.messages.events import EventType
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
-from corerl.component.critic.factory import init_q_critic
+from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.network.utils import to_np, state_to_tensor
-from corerl.utils.device import device
+from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
+from corerl.component.critic.factory import init_q_critic
+from corerl.component.network.utils import state_to_tensor, to_np
+from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import Transition, TransitionBatch
-from jaxtyping import Float
-from typing import Literal, Optional
+from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.messages.events import EventType
+from corerl.state import AppState
+from corerl.utils.device import device
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +50,9 @@ class GreedyACConfig(BaseACConfig):
     critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
 
 class GreedyAC(BaseAC):
-    def __init__(self, cfg: GreedyACConfig, state_dim: int, action_dim: int):
-        super().__init__(cfg, state_dim, action_dim)
+    def __init__(self, cfg: GreedyACConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        super().__init__(cfg, app_state, col_desc)
         self.ensemble_targets = cfg.ensemble_targets
-
-        self.action_dim = action_dim
 
         # Whether to average the proposal policy's entropy over all the sampled actions
         self.average_entropy = cfg.average_entropy
@@ -82,9 +82,9 @@ class GreedyAC(BaseAC):
         self.top_actions_proposal = int(
             self.rho_proposal * self.num_samples)  # Number of actions used to update proposal policy
 
-        self.actor = init_actor(cfg.actor, state_dim, action_dim)
-        self.sampler = init_actor(cfg.actor, state_dim, action_dim, initializer=self.actor)
-        self.q_critic = init_q_critic(cfg.critic, state_dim, action_dim)
+        self.actor = init_actor(cfg.actor, self.state_dim, self.action_dim)
+        self.sampler = init_actor(cfg.actor, self.state_dim, self.action_dim, initializer=self.actor)
+        self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)
@@ -97,7 +97,8 @@ class GreedyAC(BaseAC):
 
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        self._msg_bus.emit_event_sync(EventType.agent_get_action)
+        self._app_state.emit_event(EventType.agent_get_action)
+
 
         tensor_state = state_to_tensor(state, device.device)
 
@@ -107,7 +108,7 @@ class GreedyAC(BaseAC):
         return to_np(action)[0]
 
     def update_buffer(self, transitions: Sequence[Transition]) -> None:
-        self._msg_bus.emit_event_sync(EventType.agent_update_buffer)
+        self._app_state.emit_event(EventType.agent_update_buffer)
 
         self.critic_buffer.feed(transitions)
         self.policy_buffer.feed([
@@ -145,6 +146,11 @@ class GreedyAC(BaseAC):
         q_values = q_values.view(batch_size, num_samples, 1)
         sorted_q_inds: Float[torch.Tensor, "batch_size num_samples 1"]
         sorted_q_inds = torch.argsort(q_values, dim=1, descending=True)
+
+        self._app_state.metrics.write(
+            'top_q_value',
+            q_values.max().item(),
+        )
 
         return sorted_q_inds
 
@@ -258,7 +264,7 @@ class GreedyAC(BaseAC):
         next_qs = []
         for batch in ensemble_batch:
             state_batch = batch.prior.state
-            action_batch = batch.prior.action
+            action_batch = batch.post.action
             reward_batch = batch.n_step_reward
             next_state_batch = batch.post.state
             gamma_batch = batch.n_step_gamma
@@ -298,6 +304,11 @@ class GreedyAC(BaseAC):
             target = reward_batches[i] + gamma_batches[i] * next_qs[i]
 
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
+
+        self._app_state.metrics.write(
+            'critic_loss',
+            np.mean([loss.detach().numpy() for loss in losses]),
+        )
 
         return losses
 
@@ -345,6 +356,12 @@ class GreedyAC(BaseAC):
         _, _, _, _, stacked_s_batch, best_actions, _ = update_info
         logp, _ = self.actor.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
         actor_loss = -logp.mean()  # BUG: This is negative?
+
+        self._app_state.metrics.write(
+            'actor_loss',
+            actor_loss,
+        )
+
         return actor_loss
 
     def compute_sampler_loss(
@@ -358,13 +375,18 @@ class GreedyAC(BaseAC):
             # A greater percentage of actions are used to update the proposal policy than the actor policy
             sampler_loss = self.compute_sampler_no_entropy_loss(update_info)
 
+        self._app_state.metrics.write(
+            'sampler_loss',
+            sampler_loss,
+        )
+
         return sampler_loss
 
     def update_critic(self) -> list[float]:
         if min(self.critic_buffer.size) <= 0:
             return []
 
-        self._msg_bus.emit_event_sync(EventType.agent_update_critic)
+        self._app_state.emit_event(EventType.agent_update_critic)
 
         batches = self.critic_buffer.sample()
 
@@ -380,7 +402,7 @@ class GreedyAC(BaseAC):
         return [float(q_loss)]
 
     def update_actor(self) -> tuple:
-        self._msg_bus.emit_event_sync(EventType.agent_update_actor)
+        self._app_state.emit_event(EventType.agent_update_actor)
 
         if min(self.policy_buffer.size) <= 0:
             return tuple()
@@ -504,7 +526,7 @@ class GreedyAC(BaseAC):
         return q_losses
 
     def save(self, path: Path) -> None:
-        self._msg_bus.emit_event_sync(EventType.agent_save)
+        self._app_state.emit_event(EventType.agent_save)
 
         path.mkdir(parents=True, exist_ok=True)
         actor_path = path / "actor"
@@ -525,7 +547,7 @@ class GreedyAC(BaseAC):
             pkl.dump(self.policy_buffer, f)
 
     def load(self, path: Path) -> None:
-        self._msg_bus.emit_event_sync(EventType.agent_load)
+        self._app_state.emit_event(EventType.agent_load)
 
         actor_path = path / "actor"
         self.actor.load(actor_path)

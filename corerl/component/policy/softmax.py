@@ -1,7 +1,8 @@
-from . import Policy
 import torch
-import torch.nn as nn
 import torch.distributions.constraints as constraints
+import torch.nn as nn
+
+from corerl.component.policy.policy import Policy
 
 
 class Softmax(Policy):

@@ -1,11 +1,9 @@
 # Import modules
 from typing import Optional
 
-import matplotlib.pyplot as plt
-
-import numpy as np
-
 import gymnasium as gym
+import matplotlib.pyplot as plt
+import numpy as np
 from gymnasium import spaces
 
 

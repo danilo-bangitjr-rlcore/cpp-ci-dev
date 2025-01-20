@@ -1,18 +1,20 @@
+import datetime
+from datetime import timedelta
 from typing import Any
+
 import numpy as np
 import pandas as pd
-import datetime
 
+from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
+from corerl.data_pipeline.constructors.sc import SCConfig
+from corerl.data_pipeline.datatypes import CallerCode, StageCode
 from corerl.data_pipeline.imputers.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
-from corerl.data_pipeline.state_constructors.sc import SCConfig
+from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.transforms.affine import AffineConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
-from corerl.data_pipeline.transforms.affine import AffineConfig
-from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.datatypes import CallerCode, StageCode
-from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from test.infrastructure.utils.pandas import dfs_close
 
 
@@ -22,7 +24,9 @@ def test_construct_pipeline():
             TagConfig(name='sensor_x'),
             TagConfig(name='sensor_y'),
         ],
-        obs_interval_minutes=15,
+        # obs_period=15,
+        obs_period=timedelta(minutes=15),
+        action_period=timedelta(minutes=15),
         transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
@@ -30,7 +34,10 @@ def test_construct_pipeline():
             max_n_step=30
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=15),
+                obs_period=timedelta(minutes=15),
+            ),
         ),
     )
     _ = Pipeline(cfg)
@@ -42,7 +49,8 @@ def test_passing_data_to_pipeline():
             TagConfig(name='sensor_x'),
             TagConfig(name='sensor_y'),
         ],
-        obs_interval_minutes=15,
+        obs_period=timedelta(minutes=15),
+        action_period=timedelta(minutes=15),
         transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
@@ -50,7 +58,10 @@ def test_passing_data_to_pipeline():
             max_n_step=30
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=15),
+                obs_period=timedelta(minutes=15),
+            ),
         ),
     )
     pipeline = Pipeline(cfg)
@@ -81,13 +92,17 @@ def test_state_action_dim():
                     TraceConfig(trace_values=[0.1, 0.9]),
                 ],
             ),
-            TagConfig(name='tag-3', is_action=True),
-            TagConfig(name='tag-4', is_action=True),
+            TagConfig(name='tag-3', action_constructor=[]),
+            TagConfig(name='tag-4', action_constructor=[]),
         ],
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=5),
+                obs_period=timedelta(minutes=5),
+            ),
         ),
-        obs_interval_minutes=5,
+        obs_period=timedelta(minutes=5),
+        action_period=timedelta(minutes=5),
         transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
@@ -98,9 +113,9 @@ def test_state_action_dim():
 
     pipeline = Pipeline(cfg)
 
-    state_dim, action_dim = pipeline.get_state_action_dims()
-    assert state_dim == 3
-    assert action_dim == 2
+    col_desc = pipeline.column_descriptions
+    assert col_desc.state_dim == 5
+    assert col_desc.action_dim == 2
 
 
 def test_sub_pipeline1():
@@ -127,9 +142,13 @@ def test_sub_pipeline1():
             max_n_step=30
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=5),
+                obs_period=timedelta(minutes=5),
+            ),
         ),
-        obs_interval_minutes=5,
+        obs_period=timedelta(minutes=5),
+        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
@@ -203,9 +222,13 @@ def test_sub_pipeline2():
             max_n_step=30
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=5),
+                obs_period=timedelta(minutes=5),
+            ),
         ),
-        obs_interval_minutes=5,
+        obs_period=timedelta(minutes=5),
+        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
@@ -284,9 +307,13 @@ def test_sub_pipeline3():
             max_n_step=30
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=5),
+                obs_period=timedelta(minutes=5),
+            ),
         ),
-        obs_interval_minutes=5,
+        obs_period=timedelta(minutes=5),
+        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
@@ -369,9 +396,13 @@ def test_sub_pipeline4():
             max_n_step=30
         ),
         state_constructor=SCConfig(
-            countdown=CountdownConfig(action_period=1),
+            countdown=CountdownConfig(
+                action_period=timedelta(minutes=5),
+                obs_period=timedelta(minutes=5),
+            ),
         ),
-        obs_interval_minutes=5,
+        obs_period=timedelta(minutes=5),
+        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)

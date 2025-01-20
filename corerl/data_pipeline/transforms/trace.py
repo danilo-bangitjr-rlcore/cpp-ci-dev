@@ -1,10 +1,12 @@
-import numpy as np
-from typing import Literal
-from numba import njit
 from dataclasses import dataclass
+from typing import Literal
+
+import numpy as np
+from numba import njit
+
 from corerl.configs.config import config, list_
-from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
+from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
 @config(frozen=True)
@@ -46,6 +48,9 @@ class TraceConstructor:
                 carry.transform_data[new_name] = trace_vals[:, i]
 
         return carry, TraceTemporalState(mu)
+
+    def reset(self) -> None:
+        pass
 
 
 transform_group.dispatcher(TraceConstructor)

@@ -58,9 +58,9 @@ def initialize_opc_nodes_from_tags(
     action_idx = 0
     observation_idx = 0
     for tag in tag_configs:
-        if tag.is_action:
+        if tag.action_constructor is not None and not tag.is_meta:
             tag_type = "action"
-        elif not tag.is_action and not tag.is_meta:
+        elif tag.action_constructor is None and not tag.is_meta:
             tag_type = "observation"
         elif tag.is_meta:
             tag_type = "meta"
@@ -84,7 +84,7 @@ def initialize_opc_nodes_from_tags(
                 val = initial_observation[observation_idx]
                 observation_idx += 1
             elif tag_type == "meta":
-                if tag.name == "reward":
+                if tag.name == "gym_reward":
                     val = 0.0
                 elif tag.name == "truncated":
                     val = False
@@ -100,7 +100,7 @@ def initialize_opc_nodes_from_tags(
 
 def run(env: gym.Env, client: Client, cfg_env: OPCTSDBSimAsyncEnvConfig, tag_configs: list[TagConfig]):
     seed = cfg_env.seed
-    sleep_sec = cfg_env.sleep_sec
+    sleep_sec = cfg_env.obs_period.total_seconds()
 
     initial_observation, info = env.reset(seed=seed)
     initial_action = env.action_space.sample()

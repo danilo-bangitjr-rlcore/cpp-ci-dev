@@ -1,15 +1,16 @@
-import torch
-import pandas as pd
-import numpy as np
 import math
-
 from collections import deque
+from collections.abc import Iterable
 from dataclasses import dataclass
 
-from corerl.data_pipeline.tag_config import TagConfig
+import numpy as np
+import pandas as pd
+import torch
+
 from corerl.component.network.utils import tensor
-from corerl.data_pipeline.datatypes import PipelineFrame, Step, Transition, StageCode
-from corerl.configs.config import interpolate, config
+from corerl.configs.config import MISSING, config, interpolate
+from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, Step, Transition
+from corerl.data_pipeline.tag_config import TagConfig
 
 
 @config()
@@ -17,7 +18,7 @@ class AllTheTimeTCConfig:
     name: str = "all-the-time"
     gamma: float = interpolate('${experiment.gamma}')
     min_n_step: int = 1
-    max_n_step: int = interpolate('${action_period}')
+    max_n_step: int = MISSING
 
 
 @dataclass(init=False)
@@ -40,7 +41,7 @@ class NStepInfo:
 type StepInfo = dict[int, NStepInfo]
 
 
-def has_nan(obj: object) -> bool:
+def has_nan(obj: object):
     for _, value in vars(obj).items():
         if isinstance(value, torch.Tensor):
             if torch.isnan(value).any():
@@ -50,12 +51,12 @@ def has_nan(obj: object) -> bool:
     return False
 
 
-def get_tags(df: pd.DataFrame, tags: list[str] | str) -> torch.Tensor:
-    data_np = df[tags].to_numpy().astype(np.float32)
+def get_tags(df: pd.DataFrame, tags: Iterable[str]):
+    data_np = df[list(tags)].to_numpy().astype(np.float32)
     return tensor(data_np)
 
 
-def get_n_step_reward(step_q: deque[Step]) -> tuple[float, float]:
+def get_n_step_reward(step_q: deque[Step]):
     last_step = step_q[-1]
     n_step_reward = last_step.reward
     n_step_gamma = last_step.gamma
@@ -68,12 +69,11 @@ def get_n_step_reward(step_q: deque[Step]) -> tuple[float, float]:
     return n_step_reward, n_step_gamma
 
 
-def _reset_step_info(min_n_step: int, max_n_step: int) -> StepInfo:
+def _reset_step_info(min_n_step: int, max_n_step: int):
     step_info: StepInfo = {
         n: NStepInfo(n) for n in range(min_n_step, max_n_step + 1)
     }
     return step_info
-
 
 class AllTheTimeTC:
     def __init__(
@@ -83,8 +83,7 @@ class AllTheTimeTC:
     ):
         self.cfg = cfg
         self.tag_configs = tag_configs
-        self.action_tags = [tag.name for tag in tag_configs if tag.is_action]
-        self.meta_tags = [tag.name for tag in tag_configs if tag.is_meta]
+        self.meta_tags = sorted(tag.name for tag in tag_configs if tag.is_meta)
 
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
@@ -92,25 +91,22 @@ class AllTheTimeTC:
         assert self.min_n_step > 0
         assert self.max_n_step >= self.min_n_step
 
-    def _make_steps(self, pf: PipelineFrame) -> list[Step]:
+    def _make_steps(self, pf: PipelineFrame) -> tuple[PipelineFrame, list[Step]]:
         """
-        Makes the steps for the pf
+        Constructs steps from pipeframe elements
         """
-        df = pf.data
-        actions = get_tags(df, self.action_tags)
+        pf, actions, states = self._extract_columns(pf)
 
-        # NOTE: cannot use tag configs here because state dataframe columns
-        # may have been mutated by a pipeline stage (e.g. suffix norm_trace)
-        state_tags = sorted(set(df.columns) - set(self.action_tags) - set(self.meta_tags))
-        states = get_tags(df, state_tags)
+        df = pf.data
         rewards = df['reward'].to_numpy()
         gammas = np.ones(len(rewards))
         if 'terminated' in df.columns:
             gammas = 1 - df['terminated'].to_numpy()
+
         dps = pf.decision_points
         assert len(actions) == len(states) and len(states) == len(rewards) == len(gammas) == len(dps)
 
-        steps = []
+        steps: list[Step] = []
         for i in range(len(actions)):
             step = Step(
                 reward=rewards[i],
@@ -120,7 +116,16 @@ class AllTheTimeTC:
                 dp=bool(dps[i]),
             )
             steps.append(step)
-        return steps
+        return pf, steps
+
+    def _extract_columns(self, pf: PipelineFrame):
+        state_cols = [
+            col for col in pf.data.columns
+            if col not in self.meta_tags and col != "reward"
+        ]
+        states = get_tags(pf.data, state_cols)
+        actions = tensor(pf.actions.to_numpy(np.float32))
+        return pf, actions, states
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         step_info = pf.temporal_state.get(
@@ -130,7 +135,8 @@ class AllTheTimeTC:
 
         assert isinstance(step_info, dict)
 
-        steps = self._make_steps(pf)
+        pf, steps = self._make_steps(pf)
+
         transitions = []
         for step in steps:
             if has_nan(step):
@@ -144,12 +150,12 @@ class AllTheTimeTC:
 
         return pf
 
-    def _update(self, step: Step, step_info: StepInfo) -> tuple[list[Transition], StepInfo]:
+    def _update(self, step: Step, step_info: StepInfo):
         """
         Updates all the step queues, n_step_rewards, and n_step_gammas stored in self.step_info with the new step,
         then returns any produced transitions.
         """
-        new_transitions = []
+        new_transitions: list[Transition] = []
         for n in range(self.min_n_step, self.max_n_step + 1):
             n_step_info = step_info[n]
             step_q = n_step_info.step_q
@@ -158,9 +164,6 @@ class AllTheTimeTC:
             is_full = len(step_q) == n + 1
             if is_full:
                 n_step_info.n_step_reward, n_step_info.n_step_gamma = get_n_step_reward(step_q)
-
-                assert n_step_info.n_step_reward is not None
-                assert n_step_info.n_step_gamma is not None
 
                 new_transition = Transition(
                     list(step_q),

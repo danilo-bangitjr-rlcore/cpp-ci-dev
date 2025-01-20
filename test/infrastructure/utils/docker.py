@@ -1,7 +1,7 @@
-from typing import Any, Mapping
 from types import MappingProxyType
+from typing import Any, Mapping
 
-from docker import from_env, errors
+from docker import errors, from_env
 
 
 def init_docker_container(
