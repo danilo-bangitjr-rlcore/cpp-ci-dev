@@ -1,11 +1,9 @@
-import math
 from collections import deque
 from collections.abc import Iterable
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
-import torch
 
 from corerl.component.network.utils import tensor
 from corerl.configs.config import MISSING, config, interpolate

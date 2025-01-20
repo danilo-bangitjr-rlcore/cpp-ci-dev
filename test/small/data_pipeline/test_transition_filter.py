@@ -7,10 +7,10 @@ from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, Step, Tran
 from corerl.data_pipeline.transition_filter import (
     TransitionFilter,
     TransitionFilterConfig,
+    no_nan,
     only_dp,
     only_no_action_change,
     only_post_dp,
-    no_nan
 )
 
 
