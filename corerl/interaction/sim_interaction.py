@@ -103,6 +103,5 @@ class SimInteraction(Interaction):
     def _get_latest_reward(self) -> float | None:
         if self._last_reward is None:
             logger.error("Tried to get interaction reward, but none existed")
-            return None
 
         return self._last_reward
