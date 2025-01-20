@@ -1,32 +1,16 @@
-from abc import abstractmethod
-from typing import Any, Literal
+from typing import Literal
 
-from corerl.configs.config import MISSING, config
-from corerl.configs.group import Group
+from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerStageConfig
 from corerl.data_pipeline.imputers.per_tag.factory import init_per_tag_imputer
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 
 
 @config()
-class BaseImputerStageConfig:
-    name: Any = MISSING
-
-
-@config()
-class PerTagImputerConfig:
+class PerTagImputerConfig(BaseImputerStageConfig):
     name: Literal['per-tag'] = 'per-tag'
-
-
-class BaseImputer:
-    def __init__(self, imputer_cfg: PerTagImputerConfig, tag_cfgs: list[TagConfig]):
-        self._imputer_cfg = imputer_cfg
-        self._tags = tag_cfgs
-
-    @abstractmethod
-    def __call__(self, pf: PipelineFrame) -> PipelineFrame:
-        ...
 
 
 class PerTagImputer(BaseImputer):
@@ -41,13 +25,3 @@ class PerTagImputer(BaseImputer):
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         return invoke_stage_per_tag(pf, self._tag_imputers)
-
-
-imputer_group = Group[
-    [list[TagConfig]],
-    BaseImputer
-]()
-
-def init_imputer(imputer_cfg: BaseImputerStageConfig, tag_cfgs: list[TagConfig]):
-    imputer_group.dispatcher(PerTagImputer)
-    return imputer_group.dispatch(imputer_cfg, tag_cfgs)
