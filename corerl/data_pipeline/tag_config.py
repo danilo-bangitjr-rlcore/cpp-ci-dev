@@ -3,8 +3,8 @@ from pydantic import Field
 from corerl.configs.config import MISSING, config, list_
 from corerl.data_pipeline.imputers.factory import ImputerConfig
 from corerl.data_pipeline.imputers.identity import IdentityImputerConfig
-from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilterConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
+from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.null import NullConfig
 
@@ -32,7 +32,7 @@ class TagConfig:
     yellow_bounds: Bounds | None = None
 
     # per-tag pipeline configuration
-    outlier: OddityFilterConfig = Field(default_factory=EMAFilterConfig)
+    outlier: OddityFilterConfig = Field(default_factory=IdentityFilterConfig)
     imputer: ImputerConfig = Field(default_factory=IdentityImputerConfig)
     reward_constructor: list[TransformConfig] = list_([NullConfig()])
     action_constructor: list[TransformConfig] | None = None
