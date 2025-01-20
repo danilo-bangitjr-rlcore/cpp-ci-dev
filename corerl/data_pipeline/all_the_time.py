@@ -41,16 +41,6 @@ class NStepInfo:
 type StepInfo = dict[int, NStepInfo]
 
 
-def has_nan(obj: object):
-    for _, value in vars(obj).items():
-        if isinstance(value, torch.Tensor):
-            if torch.isnan(value).any():
-                return True
-        elif isinstance(value, float) and math.isnan(value):
-            return True
-    return False
-
-
 def get_tags(df: pd.DataFrame, tags: Iterable[str]):
     data_np = df[list(tags)].to_numpy().astype(np.float32)
     return tensor(data_np)
@@ -139,11 +129,8 @@ class AllTheTimeTC:
 
         transitions = []
         for step in steps:
-            if has_nan(step):
-                step_info = _reset_step_info(self.min_n_step, self.max_n_step)  # nuke the step info
-            else:
-                new_transitions, step_info = self._update(step, step_info)
-                transitions += new_transitions
+            new_transitions, step_info = self._update(step, step_info)
+            transitions += new_transitions
 
         pf.temporal_state[StageCode.TC] = step_info
         pf.transitions = transitions

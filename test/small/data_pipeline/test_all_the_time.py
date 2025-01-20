@@ -12,7 +12,7 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import NullConfig
 
 
-def make_test_step(i: int, action: float = 0., gamma: float = 0.9, reward: float = 2.0, dp: bool = False) -> Step:
+def make_test_step(i: int, action: float = 0., gamma: float = 0.9, reward: float = 1.0, dp: bool = False) -> Step:
     return Step(
         state=Tensor([i]),
         action=Tensor([action]),
@@ -35,7 +35,7 @@ def test_get_n_step_reward_1():
 
     n_step_reward, n_step_gamma = get_n_step_reward(q)
 
-    assert n_step_reward == 3.8
+    assert n_step_reward == 1.9
     assert n_step_gamma == 0.81
 
 
@@ -44,7 +44,7 @@ def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> Pipelin
         ts = dict()
     state_col = np.arange(start_state, end_state)
     length = end_state - start_state
-    cols = {"state": state_col, "reward": [2] * length}
+    cols = {"state": state_col, "reward": [1] * length}
     dates = [
         datetime.datetime(2024, 1, 1, 1, i) for i in range(start_state, end_state)
     ]
@@ -90,7 +90,7 @@ def make_tc(max_n_step: int, min_n_step: int = 1) -> AllTheTimeTC:
     return tc
 
 
-def test_all_the_time():
+def test_all_the_time_basic():
     """
     Tests to see if all the time tc will return the correct transitions.
     """
@@ -105,7 +105,9 @@ def test_all_the_time():
     step_1 = make_test_step(1)
     step_2 = make_test_step(2)
 
+
     t_0 = transitions[0]
+
     expected_0 = Transition(
         steps=[
             step_0,
@@ -178,37 +180,6 @@ def test_all_the_time_max_n_1():
     )
     assert t_1 == expected_1
 
-
-def test_all_the_time_gap():
-    """
-    Tests to see if all the time tc will return the correct transitions.
-    max_n_step is set to 1, so there should only be one transition,
-    since there is a datagap following that transition
-    """
-
-    tc = make_tc(2)
-
-    pf = make_pf(0, 4)
-    pf.actions.loc[pf.data.index[-2], 'action'] = np.nan  # second last action is nan
-
-    pf = tc(pf)
-    transitions = pf.transitions
-    assert isinstance(transitions, list)
-    assert len(transitions) == 1
-
-    step_0 = make_test_step(0)
-    step_1 = make_test_step(1)
-
-    t_0 = transitions[0]
-    expected_0 = Transition(
-        steps=[
-            step_0,
-            step_1,
-        ],
-        n_step_reward=1.0,
-        n_step_gamma=0.9,
-    )
-    assert t_0 == expected_0
 
 
 def test_all_the_time_ts_1():
@@ -296,62 +267,23 @@ def test_all_the_time_ts_1():
     assert t_3 == expected_3
 
 
-def test_all_the_time_ts_2():
-    """
-    Like the above test, but the nan at the end of the first pf should prevent the
-    transitions from the two pfs to be linked
-    """
-    tc = make_tc(2)
-    pf_1 = make_pf(0, 2)
-    pf_1.data.loc[pf_1.data.index[-1], 'reward'] = np.nan  # last reward is nan
-
-    pf_1 = tc(pf_1)
-    transitions = pf_1.transitions
-    assert isinstance(transitions, list)
-    assert len(transitions) == 0
-
-    # Pass in the next pf, which continues from the above pf
-    pf_2 = make_pf(2, 4, ts=pf_1.temporal_state)
-    pf_2 = tc(pf_2)
-    transitions = pf_2.transitions
-    assert isinstance(transitions, list)
-    assert len(transitions) == 1
-
-    step_2 = make_test_step(2)
-    step_3 = make_test_step(3)
-
-    t_0 = transitions[0]
-    expected_0 = Transition(
-        steps=[
-            step_2,
-            step_3,
-        ],
-        n_step_reward=1.0,
-        n_step_gamma=0.9,
-    )
-    assert t_0 == expected_0
-
-
 def test_all_the_time_online():
     """
     Tests online creation of transitions,
-    where iteration i=4 has a nan, so should reset the temporal state.
     """
     tc = make_tc(2, 2)
 
     transitions = []
     ts = {}
-    for i in range(10):
+    for i in range(5):
         pf = make_pf(i, i+1, ts=ts)
-        if i == 4:
-            pf.data.loc[pf.data.index[0], 'action'] = np.nan
         pf = tc(pf)
         new_transitions = pf.transitions
         assert isinstance(new_transitions, list)
         transitions += new_transitions
         ts = pf.temporal_state
 
-    assert len(transitions) == 5
+    assert len(transitions) == 3
 
     expected_0 = Transition(
         steps=[
@@ -377,36 +309,14 @@ def test_all_the_time_online():
 
     expected_2 = Transition(
         steps=[
-            make_test_step(5),
-            make_test_step(6),
-            make_test_step(7),
+            make_test_step(2),
+            make_test_step(3),
+            make_test_step(4),
         ],
         n_step_reward=1.9,
         n_step_gamma=0.81,
     )
     assert transitions[2] == expected_2
-
-    expected_3 = Transition(
-        steps=[
-            make_test_step(6),
-            make_test_step(7),
-            make_test_step(8),
-        ],
-        n_step_reward=1.9,
-        n_step_gamma=0.81,
-    )
-    assert transitions[3] == expected_3
-
-    expected_4 = Transition(
-        steps=[
-            make_test_step(7),
-            make_test_step(8),
-            make_test_step(9),
-        ],
-        n_step_reward=1.9,
-        n_step_gamma=0.81,
-    )
-    assert transitions[4] == expected_4
 
 
 def test_all_the_time_caller_codes():

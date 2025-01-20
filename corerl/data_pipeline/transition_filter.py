@@ -1,5 +1,8 @@
+import math
 from collections.abc import Iterable
 from typing import Literal, assert_never
+
+import torch
 
 from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import PipelineFrame, Transition
@@ -9,12 +12,13 @@ type TransitionFilterType = (
     Literal['only_dp']
     | Literal['only_no_action_change']
     | Literal['only_post_dp']
+    | Literal['no_nan']
 )
 
 
 @config()
 class TransitionFilterConfig:
-    filters: list[TransitionFilterType] = list_()
+    filters: list[TransitionFilterType] = list_(['no_nan'])
 
 
 class TransitionFilter:
@@ -38,6 +42,8 @@ def call_filter(transitions: Iterable[Transition], filter_name: TransitionFilter
         transition_filter = only_no_action_change
     elif filter_name == 'only_post_dp':
         transition_filter = only_post_dp
+    elif filter_name == 'no_nan':
+        transition_filter = no_nan
     else:
         assert_never(filter_name)
 
@@ -58,3 +64,32 @@ def only_no_action_change(transition: Transition):
         if not tensor_allclose(transition.steps[i].action, action):
             return False
     return True
+
+
+def has_nan(obj: object):
+    for _, value in vars(obj).items():
+        if isinstance(value, torch.Tensor):
+            if torch.isnan(value).any():
+                return True
+        elif isinstance(value, float) and math.isnan(value):
+            return True
+    return False
+
+
+def no_nan(transition: Transition):
+    """Checks to see if there are any nans in the transition. Ignores the reward and action
+    on the first step in the transition, as it is valid for this to be nan (e.g. the first step)."""
+    first_step = transition.steps[0]
+    if math.isnan(first_step.gamma):
+        return False
+    elif torch.isnan(first_step.state).any():
+        return False
+    elif math.isnan(first_step.dp):
+        return False
+
+    for step in transition.steps[1:]:
+        if has_nan(step):
+            return False
+
+    return True
+

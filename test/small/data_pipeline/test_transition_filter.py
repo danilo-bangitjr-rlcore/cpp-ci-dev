@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 from torch import Tensor
@@ -9,6 +10,7 @@ from corerl.data_pipeline.transition_filter import (
     only_dp,
     only_no_action_change,
     only_post_dp,
+    no_nan
 )
 
 
@@ -86,6 +88,69 @@ def make_action_change_transition(
 def test_only_no_action_change(dps: list[bool], actions: list[float], expected: bool):
     transition = make_action_change_transition(dps, actions)
     assert only_no_action_change(transition) == expected
+
+
+def test_no_nan():
+    """
+    Nan checking should ignore nans on the action and reward of the first step
+    """
+    steps = [
+        make_test_step(0, action=np.nan, reward=np.nan),
+        make_test_step(1),
+        make_test_step(2),
+    ]
+
+    transition = Transition(
+        steps=steps,
+        n_step_gamma=0.81,
+        n_step_reward=1.9
+    )
+
+    assert no_nan(transition)
+
+    # but other nans should be caught
+    steps = [
+        make_test_step(0, action=np.nan, reward=np.nan),
+        make_test_step(1, action=np.nan),
+        make_test_step(2),
+    ]
+
+    transition = Transition(
+        steps=steps,
+        n_step_gamma=0.81,
+        n_step_reward=1.9
+    )
+
+    assert not no_nan(transition)
+
+    steps = [
+        make_test_step(0, action=np.nan, reward=np.nan),
+        make_test_step(1, reward=np.nan),
+        make_test_step(2),
+    ]
+
+    transition = Transition(
+        steps=steps,
+        n_step_gamma=0.81,
+        n_step_reward=1.9
+    )
+
+    assert not no_nan(transition)
+
+    steps = [
+        make_test_step(0),
+        make_test_step(1),
+        make_test_step(2),
+    ]
+    steps[1].state = Tensor([np.nan])
+
+    transition = Transition(
+        steps=steps,
+        n_step_gamma=0.81,
+        n_step_reward=1.9
+    )
+
+    assert not no_nan(transition)
 
 
 def test_transition_filter_1():
