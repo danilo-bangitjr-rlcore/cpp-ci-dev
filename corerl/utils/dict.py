@@ -12,6 +12,14 @@ from pydantic.fields import FieldInfo
 import corerl.utils.nullable as nullable
 
 
+def assign_default[K, V](d: dict[K, V], key: K, default: Callable[[], V]) -> V:
+    if key in d:
+        return d[key]
+
+    out = d[key] = default()
+    return out
+
+
 def drop(d: MutableMapping, to_drop: Sequence[str]) -> dict:
     to_keep = set(d.keys()) - set(to_drop)
     return {
