@@ -18,7 +18,7 @@ from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
 from corerl.data_pipeline.constructors.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode, Transition
+from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode, TemporalState, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.imputers.factory import ImputerStageConfig, init_imputer
 from corerl.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
@@ -99,8 +99,8 @@ class Pipeline:
         self.reward_constructor = RewardConstructor(reward_components)
 
         # build pipeline state
-        self.ts_dict: dict = {caller_code: None for caller_code in CallerCode}
-        self.dt_dict: dict = {caller_code: None for caller_code in CallerCode}
+        self.ts_dict: dict[CallerCode, TemporalState | None] = {caller_code: None for caller_code in CallerCode}
+        self.dt_dict: dict[CallerCode, datetime.datetime | None] = {caller_code: None for caller_code in CallerCode}
 
         self._hooks: dict[CallerCode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
             caller_code: defaultdict(list) for caller_code in CallerCode}
@@ -139,11 +139,15 @@ class Pipeline:
         if ts is None or reset_ts:
             return {}
 
+        last_seen_time = self.dt_dict[pf.caller_code]
+        if last_seen_time is None:
+            return {}
+
         first_time = pf.get_first_timestamp()
-        if first_time - self.dt_dict[pf.caller_code] > self.valid_thresh:
+        if first_time - last_seen_time > self.valid_thresh:
             warnings.warn(
                 "The temporal state is invalid. "
-                f"The temporal state has timestamp {self.dt_dict[pf.caller_code]} "
+                f"The temporal state has timestamp {last_seen_time} "
                 f"while the current pipeframe has initial timestamp {first_time}",
                 stacklevel=2,
             )
