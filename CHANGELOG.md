@@ -1,3 +1,17 @@
+## 0.29.0 (2025-01-20)
+
+### Feat
+
+- rename message_bus to event bus and enable AppState event_bus for when agent emits messages
+- added event-bus driven step to interaction and tested on opc_mountain_car_continuous
+- started implementing zmq publisher and subscriber
+- add pyzmq dependency
+
+### Fix
+
+- Changed scheduler process to thread to use zmq inproc transport
+- agent now emit proper event types
+
 ## 0.28.4 (2025-01-17)
 
 ### Fix
