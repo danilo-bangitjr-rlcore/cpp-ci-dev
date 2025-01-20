@@ -1,3 +1,13 @@
+## 0.32.0 (2025-01-20)
+
+### Feat
+
+- slowly load historical data into buffer
+
+### Fix
+
+- allow norm xform to handle all nan dfs
+
 ## 0.31.0 (2025-01-20)
 
 ### Feat
