@@ -9,12 +9,11 @@ from corerl.utils.time import now_iso
 logger = logging.getLogger(__name__)
 
 
-
 class EventType(StrEnum):
     # ---------------
     # -- Lifecycle --
     # ---------------
-    subscribe = auto()
+    step = auto()
 
     # -----------
     # -- Agent --
@@ -28,16 +27,18 @@ class EventType(StrEnum):
     agent_update_critic = auto()
 
 
+class EventTopic(StrEnum):
+    # Topic filtering occurs using subscriber-side prefixing
+    corerl = auto()
+    corerl_scheduler = auto()
+    corerl_cli = auto()
+    debug_app = auto()
+
 
 class Event(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     time: str = Field(default_factory=now_iso)
     type: EventType
-
-
-class SubscribeEvent(Event):
-    type: EventType = EventType.subscribe
-    subscribe_to: EventType
 
 
 # ---------------------
