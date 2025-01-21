@@ -37,7 +37,7 @@ class MetricsDBConfig(BufferedWriterConfig):
     db_name: str = 'postgres'
     table_name: str = 'metrics'
     table_schema: str = 'public'
-    lo_wm: int = 128
+    lo_wm: int = 10
     enabled: bool = False
 
 
@@ -59,6 +59,7 @@ class MetricsWriter(BufferedWriter[_MetricPoint]):
         return text(f"""
             CREATE TABLE {self.cfg.table_schema}.{self.cfg.table_name} (
                 time TIMESTAMP WITH time zone NOT NULL,
+                agent_step INTEGER NOT NULL,
                 metric text NOT NULL,
                 value float NOT NULL
             );
@@ -74,8 +75,8 @@ class MetricsWriter(BufferedWriter[_MetricPoint]):
     def _insert_sql(self):
         return text(f"""
             INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
-            (time, metric, value)
-            VALUES (TIMESTAMP :timestamp, :metric, :value)
+            (time, agent_step, metric, value)
+            VALUES (TIMESTAMP :timestamp, :agent_step, :metric, :value)
         """)
 
 
