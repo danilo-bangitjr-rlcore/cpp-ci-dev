@@ -177,6 +177,7 @@ class CallerCode(Enum):
 class StageCode(Enum):
     INIT = auto()
     BOUNDS = auto()
+    PREPROCESS = auto()
     IMPUTER = auto()
     ODDITY = auto()
     TC = auto()

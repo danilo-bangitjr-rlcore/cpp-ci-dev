@@ -5,8 +5,7 @@ from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
 from corerl.data_pipeline.imputers.per_tag.identity import IdentityImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
-from corerl.data_pipeline.transforms import TransformConfig
-from corerl.data_pipeline.transforms.null import NullConfig
+from corerl.data_pipeline.transforms import NormalizerConfig, NullConfig, TransformConfig
 
 Bounds = tuple[float | None, float | None]
 
@@ -34,6 +33,7 @@ class TagConfig:
     # per-tag pipeline configuration
     outlier: OddityFilterConfig = Field(default_factory=IdentityFilterConfig)
     imputer: ImputerConfig = Field(default_factory=IdentityImputerConfig)
+    preprocess: list[TransformConfig] = list_([NormalizerConfig()])
     reward_constructor: list[TransformConfig] = list_([NullConfig()])
     action_constructor: list[TransformConfig] | None = None
     state_constructor: list[TransformConfig] | None = None

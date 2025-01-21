@@ -16,6 +16,7 @@ from corerl.configs.config import config, interpolate, list_
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
+from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode, TemporalState, Transition
@@ -88,6 +89,7 @@ class Pipeline:
             for tag in self.tags
             if tag.operating_range is not None
         }
+        self.preprocessor = Preprocessor(self.tags)
         self.transition_creator = AllTheTimeTC(cfg.transition_creator, self.tags)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
         self.outlier_detectors = {tag.name: init_oddity_filter(tag.outlier) for tag in self.tags}
@@ -105,20 +107,22 @@ class Pipeline:
         self._hooks: dict[CallerCode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
             caller_code: defaultdict(list) for caller_code in CallerCode}
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
-            StageCode.INIT:     lambda pf: pf,
-            StageCode.BOUNDS:   lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
-            StageCode.ODDITY:   lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
-            StageCode.IMPUTER: self.imputers,
-            StageCode.AC:       self.action_constructor,
-            StageCode.RC:       self.reward_constructor,
-            StageCode.SC:       self.state_constructor,
-            StageCode.TC:       self.transition_creator,
-            StageCode.TF:       self.transition_filter,
+            StageCode.INIT:       lambda pf: pf,
+            StageCode.BOUNDS:     lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
+            StageCode.ODDITY:     lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
+            StageCode.IMPUTER:    self.imputers,
+            StageCode.PREPROCESS: self.preprocessor,
+            StageCode.AC:         self.action_constructor,
+            StageCode.RC:         self.reward_constructor,
+            StageCode.SC:         self.state_constructor,
+            StageCode.TC:         self.transition_creator,
+            StageCode.TF:         self.transition_filter,
         }
 
         self._default_stages = (
             StageCode.INIT,
             StageCode.BOUNDS,
+            StageCode.PREPROCESS,
             StageCode.ODDITY,
             StageCode.IMPUTER,
             StageCode.AC,
