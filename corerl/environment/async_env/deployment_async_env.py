@@ -104,13 +104,13 @@ class DeploymentAsyncEnv(AsyncEnv):
             lo = (
                 norm_cfg
                 .map(lambda cfg: cfg.min)
-                .or_else(0)
+                .expect('Failed to denormalize action: no lower bound found')
             )
 
             hi = (
                 norm_cfg
                 .map(lambda cfg: cfg.max)
-                .or_else(1)
+                .expect('Failed to denormalize action: no upper bound found')
             )
 
             scale = hi - lo
