@@ -1,3 +1,9 @@
+## 0.32.3 (2025-01-21)
+
+### Fix
+
+- `opc_tsdb_sim_async_env` now uses `dep_interaction` instead of `sim_interaction`. (#403)
+
 ## 0.32.2 (2025-01-21)
 
 ### Fix
