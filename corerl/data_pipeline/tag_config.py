@@ -1,12 +1,14 @@
-from dataclasses import field
+from pydantic import Field
 
 from corerl.configs.config import MISSING, config, list_
 from corerl.data_pipeline.imputers.factory import ImputerConfig
 from corerl.data_pipeline.imputers.identity import IdentityImputerConfig
-from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilterConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
+from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.null import NullConfig
+
+Bounds = tuple[float | None, float | None]
 
 
 @config()
@@ -17,14 +19,21 @@ class TagConfig:
     From `PR#335 Discussion <https://github.com/rlcoretech/core-rl/pull/335#discussion_r1898067439>`_ a tag *may*
     simultaneously represent both an observation, a reward, and possibly also an action.
     """
+
+    # tag metadata
     name: str = MISSING
     node_identifier: str | None = None
+    is_meta: bool = False
+    is_endogenous: bool = True
 
-    bounds: tuple[float | None, float | None] = (None, None)
-    outlier: OddityFilterConfig = field(default_factory=EMAFilterConfig)
-    imputer: ImputerConfig = field(default_factory=IdentityImputerConfig)
+    # tag zones
+    operating_range: Bounds | None = None
+    red_bounds: Bounds | None = None
+    yellow_bounds: Bounds | None = None
+
+    # per-tag pipeline configuration
+    outlier: OddityFilterConfig = Field(default_factory=IdentityFilterConfig)
+    imputer: ImputerConfig = Field(default_factory=IdentityImputerConfig)
     reward_constructor: list[TransformConfig] = list_([NullConfig()])
     action_constructor: list[TransformConfig] | None = None
     state_constructor: list[TransformConfig] | None = None
-    is_meta: bool = False
-    is_endogenous: bool = True

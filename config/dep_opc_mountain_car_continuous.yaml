@@ -81,9 +81,7 @@ pipeline:
 
   tags:
   - name: action_0
-    bounds:
-    - -1.0
-    - 1.0
+    operating_range: [-1.0, 1.0]
     outlier:
       name: identity
     imputer:
@@ -97,14 +95,12 @@ pipeline:
       - name: 'null'
     action_constructor:
     - name: normalize
-      min: -1
-      max: 1
-      from_data: False
     is_meta: false
+
   - name: observation_0
-    bounds:
-    - -1.2
-    - 0.6
+    operating_range: [-1.2, 0.6]
+    red_bounds: [-1.0, null]
+    yellow_bounds: [-0.8, null]
     outlier:
       name: identity
     imputer:
@@ -113,17 +109,15 @@ pipeline:
     - name: 'null'
     state_constructor:
     - name: normalize
-      min: -1.2
-      max: 0.6
     - name: multi_trace
       trace_values:
       - 0.0
       - 0.9
     is_meta: false
+
   - name: observation_1
-    bounds:
-    - -0.07
-    - 0.07
+    operating_range: [-0.07, 0.07]
+    red_bounds: [-0.06, 0.06]
     outlier:
       name: identity
     imputer:
@@ -132,8 +126,6 @@ pipeline:
     - name: 'null'
     state_constructor:
     - name: normalize
-      min: -0.07
-      max: 0.07
     - name: multi_trace
       trace_values:
       - 0.0

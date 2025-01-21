@@ -77,3 +77,9 @@ class StateConstructor(Constructor):
     def columns(self):
         pf = self._probe_fake_data()
         return list(pf.data.columns)
+
+
+def construct_default_sc_configs(sc_cfg: SCConfig, tag_cfgs: list[TagConfig]) -> None:
+    for tag_cfg in tag_cfgs:
+        if tag_cfg.state_constructor is None:
+            tag_cfg.state_constructor = sc_cfg.defaults

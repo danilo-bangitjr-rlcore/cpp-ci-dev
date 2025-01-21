@@ -8,7 +8,7 @@ from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
-@config(frozen=True)
+@config()
 class GreaterThanConfig(BaseTransformConfig):
     name: Literal['greater_than'] = 'greater_than'
     threshold: float = 0.0

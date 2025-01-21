@@ -25,7 +25,7 @@ that result in partially defined schemas, these two
 configs are defined in the same place as the union
 type TransformConfig.
 """
-@config(frozen=True)
+@config()
 class ProductConfig(BaseTransformConfig):
     name: Literal['product'] = "product"
 
@@ -34,7 +34,7 @@ class ProductConfig(BaseTransformConfig):
 
 
 
-@config(frozen=True)
+@config()
 class SplitConfig(BaseTransformConfig):
     name: Literal['split'] = 'split'
 

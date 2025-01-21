@@ -78,7 +78,8 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
             raw_action = action.flatten()[act_i]
             try:
                 action_tag_config = self._action_tags[act_i]
-                lo, hi = action_tag_config.bounds
+                assert action_tag_config.operating_range is not None
+                lo, hi = action_tag_config.operating_range
                 assert isinstance(lo, float) and isinstance(hi, float)
                 scale = hi - lo
                 bias = lo

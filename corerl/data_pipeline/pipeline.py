@@ -16,7 +16,7 @@ from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
 from corerl.data_pipeline.constructors.rc import RewardComponentConstructor, RewardConstructor
-from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
+from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.imputers.factory import init_imputer
@@ -26,6 +26,7 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
+from corerl.data_pipeline.zones import default_configs_from_zones
 
 logger = logging.getLogger(__name__)
 register_dispatchers()
@@ -40,7 +41,6 @@ class PipelineConfig:
     state_constructor: SCConfig = field(default_factory=SCConfig)
     transition_creator: AllTheTimeTCConfig = field(default_factory=AllTheTimeTCConfig)
     transition_filter: TransitionFilterConfig = field(default_factory=TransitionFilterConfig)
-
 
 @dataclass
 class PipelineReturn:
@@ -65,6 +65,8 @@ class ColumnDescriptions:
 class Pipeline:
     def __init__(self, cfg: PipelineConfig):
         # sanity checking
+        cfg = self._construct_config(cfg)
+
         steps_per_decision = int(cfg.action_period.total_seconds() / cfg.obs_period.total_seconds())
         assert np.isclose(
             steps_per_decision, cfg.action_period.total_seconds() / cfg.obs_period.total_seconds()
@@ -76,7 +78,11 @@ class Pipeline:
 
         # initialization all stateful stages
         self.missing_data_checkers = {tag.name: missing_data_checker for tag in self.tags}
-        self.bound_checkers = {tag.name: bound_checker_builder(tag.bounds) for tag in self.tags}
+        self.bound_checkers = {
+            tag.name: bound_checker_builder(tag.operating_range)
+            for tag in self.tags
+            if tag.operating_range is not None
+        }
         self.transition_creator = AllTheTimeTC(cfg.transition_creator, self.tags)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
         self.outlier_detectors = {tag.name: init_oddity_filter(tag.outlier) for tag in self.tags}
@@ -113,6 +119,12 @@ class Pipeline:
             StageCode.TC,
             StageCode.TF
         )
+
+    def _construct_config(self, cfg: PipelineConfig) -> PipelineConfig:
+        construct_default_sc_configs(cfg.state_constructor, cfg.tags)
+        default_configs_from_zones(cfg.tags)
+        return cfg
+
 
     def _init_temporal_state(self, pf: PipelineFrame, reset_ts: bool = False):
         ts = self.ts_dict[pf.caller_code]
