@@ -1,3 +1,10 @@
+## 0.32.2 (2025-01-21)
+
+### Fix
+
+- adding no nan filter to pipeline tests
+- moving nan filtering to transition filter
+
 ## 0.32.1 (2025-01-21)
 
 ### Fix
