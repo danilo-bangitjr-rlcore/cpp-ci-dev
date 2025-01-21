@@ -4,11 +4,9 @@ import logging
 import os
 import random
 import sys
-import threading
 
 import numpy as np
 import torch
-import zmq
 from tqdm import tqdm
 
 from corerl.agent.factory import init_agent
@@ -19,8 +17,7 @@ from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
 from corerl.eval.writer import metrics_group
 from corerl.interaction.factory import init_interaction
-from corerl.messages.events import Event, EventTopic
-from corerl.messages.scheduler import scheduler_task
+from corerl.messages.event_bus import EventBus
 from corerl.state import AppState
 from corerl.utils.device import device
 
@@ -38,28 +35,7 @@ logging.getLogger('asyncua').setLevel(logging.CRITICAL)
 def main(cfg: MainConfig):
     device.update_device(cfg.experiment.device)
 
-    scheduler = None
-    socket = None
-    event_bus = None
-    stop_event = None
-
-    # Spin up scheduler process
-    if cfg.event_bus.enabled:
-        # scheduler = multiprocessing.Process(target=scheduler_task, args=(cfg.event_bus,))
-        context = zmq.Context()
-        stop_event = threading.Event()
-        scheduler = threading.Thread(target=scheduler_task, args=(cfg, context, stop_event))
-        scheduler.setDaemon(True)
-
-        event_bus = context.socket(zmq.PUB)
-        event_bus.bind(cfg.event_bus.app_connection)
-
-        socket = context.socket(zmq.SUB)
-        socket.bind(cfg.event_bus.scheduler_connection)
-        socket.bind(cfg.event_bus.cli_connection)
-        socket.connect(cfg.event_bus.app_connection)
-        socket.setsockopt_string(zmq.SUBSCRIBE, EventTopic.corerl)  # Empty string ("") to subscribe to everything
-
+    event_bus = EventBus(cfg.event_bus, cfg.env)
     app_state = AppState(
         metrics=metrics_group.dispatch(cfg.metrics),
         event_bus=event_bus,
@@ -95,36 +71,29 @@ def main(cfg: MainConfig):
             max_steps = 0
         pbar = tqdm(total=max_steps)
 
-        if scheduler:
-            scheduler.start()
+        event_bus.start()
 
         while True:
-            pbar.update(1)
-            if socket:
-                raw_payload = socket.recv()
-                raw_topic, raw_event = raw_payload.split(b" ", 1)
-                event = Event.model_validate_json(raw_event)
+            if event_bus.enabled():
+                event = event_bus.recv_event()
+                if not event:
+                    continue
                 interaction.step_event(event)
             else:
                 interaction.step()
+            pbar.update(1)
             steps += 1
             if not run_forever and steps >= max_steps:
                 break
 
-    except Exception as e:
+    except BaseException as e:
         log.exception(e)
         sys.exit(os.EX_SOFTWARE)
 
     finally:
         app_state.metrics.close()
         env.cleanup()
-
-        if stop_event:
-            stop_event.set()
-
-        if scheduler:
-            scheduler.join()
-
+        event_bus.cleanup()
 
 if __name__ == "__main__":
     main()

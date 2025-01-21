@@ -12,6 +12,10 @@ experiment:
 
 interaction:
   name: dep_interaction
+  historical_batch_size: 0
+
+event_bus:
+  enabled: True
 
 event_bus:
   enabled: true

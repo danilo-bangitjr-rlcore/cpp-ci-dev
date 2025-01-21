@@ -97,7 +97,7 @@ class GreedyAC(BaseAC):
 
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
-        self._app_state.emit_event(EventType.agent_get_action)
+        self._app_state.event_bus.emit_event(EventType.agent_get_action)
 
 
         tensor_state = state_to_tensor(state, device.device)
@@ -108,7 +108,7 @@ class GreedyAC(BaseAC):
         return to_np(action)[0]
 
     def update_buffer(self, transitions: Sequence[Transition]) -> None:
-        self._app_state.emit_event(EventType.agent_update_buffer)
+        self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
 
         self.critic_buffer.feed(transitions)
         self.policy_buffer.feed([
@@ -390,7 +390,7 @@ class GreedyAC(BaseAC):
         if min(self.critic_buffer.size) <= 0:
             return []
 
-        self._app_state.emit_event(EventType.agent_update_critic)
+        self._app_state.event_bus.emit_event(EventType.agent_update_critic)
 
         batches = self.critic_buffer.sample()
 
@@ -406,7 +406,7 @@ class GreedyAC(BaseAC):
         return [float(q_loss)]
 
     def update_actor(self) -> tuple:
-        self._app_state.emit_event(EventType.agent_update_actor)
+        self._app_state.event_bus.emit_event(EventType.agent_update_actor)
 
         if min(self.policy_buffer.size) <= 0:
             return tuple()
@@ -530,7 +530,7 @@ class GreedyAC(BaseAC):
         return q_losses
 
     def save(self, path: Path) -> None:
-        self._app_state.emit_event(EventType.agent_save)
+        self._app_state.event_bus.emit_event(EventType.agent_save)
 
         path.mkdir(parents=True, exist_ok=True)
         actor_path = path / "actor"
@@ -551,7 +551,7 @@ class GreedyAC(BaseAC):
             pkl.dump(self.policy_buffer, f)
 
     def load(self, path: Path) -> None:
-        self._app_state.emit_event(EventType.agent_load)
+        self._app_state.event_bus.emit_event(EventType.agent_load)
 
         actor_path = path / "actor"
         self.actor.load(actor_path)
