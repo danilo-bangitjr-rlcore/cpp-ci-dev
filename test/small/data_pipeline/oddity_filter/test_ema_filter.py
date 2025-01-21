@@ -14,31 +14,27 @@ def test_filter_warmup():
     cfg = EMAFilterConfig(alpha=0.99, warmup=0)
     outlier_detector = EMAFilter(cfg)
 
-    values = np.array([np.nan, 1, 1, np.nan, 5, np.nan, np.nan, 1, 1, 1, 10, np.nan])
-    expected = np.array([np.nan, 1, 1, np.nan, np.nan, np.nan, np.nan, 1, 1, 1, np.nan, np.nan])
+    values = np.array([1.0, 1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 10.0])
+    expected = np.array([1.0, 1.0, 1.0, np.nan, 1.0, 1.0, 1.0, np.nan])  # 5 and 10 are outliers
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, CallerCode.ONLINE)
 
-    # feed oddity filter
     pf = outlier_detector(pf, name)
-
     filtered_data = pf.data[name].to_numpy()
     assert np.allclose(filtered_data, expected, equal_nan=True)
-
 
     # filter with warmup = 5
     cfg = EMAFilterConfig(alpha=0.99, warmup=5)
     outlier_detector = EMAFilter(cfg)
 
-    values = np.array([np.nan, 1, 1, np.nan, 5, np.nan, np.nan, 1, 1, 1, 10, np.nan])
+    values = np.array([1.0, 1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 10.0])
     # 5 should not be removed because warmup has not finished
-    expected = np.array([np.nan, 1, 1, np.nan, 5, np.nan, np.nan, 1, 1, 1, np.nan, np.nan])
+    # 10 should be removed because warmup is complete
+    expected = np.array([1.0, 1.0, 1.0, 5.0, 1.0, 1.0, 1.0, np.nan])
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, CallerCode.ONLINE)
 
-    # feed oddity filter
     pf = outlier_detector(pf, name)
-
     filtered_data = pf.data[name].to_numpy()
     assert np.allclose(filtered_data, expected, equal_nan=True)
 
@@ -368,3 +364,26 @@ def test_outlier_missing_type_is_added_to_existing_missing():
     assert bitmap == MissingType.BOUNDS | MissingType.OUTLIER
     assert MissingType.BOUNDS in bitmap
     assert MissingType.OUTLIER in bitmap
+
+def test_filter_warmup_with_nans():
+    name = "sensor_x"
+    cfg = EMAFilterConfig(alpha=0.99, warmup=3)
+    outlier_detector = EMAFilter(cfg)
+
+    # first batch only has 2 non-NaN values, which shouldn't trigger outlier detection
+    values = np.array([np.nan, 1, 1, np.nan, 5])
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = outlier_detector(pf, name)
+    filtered_data = pf.data[name].to_numpy()
+    assert np.allclose(filtered_data, values, equal_nan=True)
+
+    # completing warmup after the first value
+    values2 = np.array([1, 5, np.nan, 5])  # the 5s should be detected as outliers
+    data2 = pd.DataFrame({name: values2})
+    pf2 = PipelineFrame(data2, CallerCode.ONLINE, temporal_state=pf.temporal_state)
+    pf2 = outlier_detector(pf2, name)
+
+    filtered_data2 = pf2.data[name].to_numpy()
+    expected2 = np.array([1, np.nan, np.nan, np.nan])  # Both 5s should be replaced with NaN
+    assert np.allclose(filtered_data2, expected2, equal_nan=True)

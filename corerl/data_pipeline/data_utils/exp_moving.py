@@ -1,75 +1,71 @@
 import logging
 
 import numpy as np
-from numba import njit
-from numpy import ndarray
 
 logger = logging.getLogger(__name__)
 
 
 class ExpMovingAvg:
-    def __init__(self, alpha: float) -> None:
+    def __init__(self, alpha: float):
         self.alpha = alpha
-        self._mu: float = np.nan
+        self._mu: float | None = None
+
+    def feed(self, x: np.ndarray) -> None:
+        if self._mu is None:
+            first_valid_idx = np.where(~np.isnan(x))[0]
+            if len(first_valid_idx) > 0:
+                self._mu = float(x[first_valid_idx[0]])
+            return
+
+        nan_count = 0
+
+        for i in range(len(x)):
+            if np.isnan(x[i]):
+                nan_count += 1
+            else:
+                effective_alpha = self.alpha ** (nan_count + 1)
+                self._mu = float((1 - effective_alpha) * x[i] + effective_alpha * self._mu)
+                nan_count = 0
 
     def __call__(self) -> float:
+        if self._mu is None:
+            return np.nan
         return self._mu
 
-    def feed(self, x: ndarray) -> None:
-        self._mu = _stream_trace_update(self._mu, x, self.alpha)
-
-
-@njit
-def _stream_trace_update(initial_trace: float, new_vals: ndarray, alpha: float) -> float:
-    trace = initial_trace
-    if np.isnan(trace):
-        first_val_idx = _find_first_val_idx(new_vals)
-        # return if there are no non-nan vals
-        if first_val_idx >= len(new_vals):
-            return np.nan
-
-        # else, initialize trace
-        else:
-            assert isinstance(first_val_idx, int)
-            trace = new_vals[first_val_idx]
-            new_vals = new_vals[first_val_idx + 1 :]  # start streaming from next val
-
-    # prune nans
-    new_vals = new_vals[~np.isnan(new_vals)]
-
-    for val in new_vals:
-        trace = (1 - alpha) * val + alpha * trace
-
-    return trace
-
-@njit
-def _find_first_val_idx(x: ndarray) -> int:
-    """
-    The convention here (for numba typing purposes) is that
-    returning an index >= len(x) means that x is full of nans
-    """
-    i = 0
-    x_i = x[i]
-    while np.isnan(x_i):
-        i += 1
-        if i < len(x):
-            x_i = x[i]
-        else:
-            break
-
-    return i
 
 class ExpMovingVar:
-    def __init__(self, alpha: float) -> None:
+    def __init__(self, alpha: float):
         self.alpha = alpha
-        self._ema = ExpMovingAvg(alpha)
-        self._var: float = np.nan
+        self._var: float | None = None
+        self._ema: ExpMovingAvg = ExpMovingAvg(alpha)
+    def feed(self, x: np.ndarray) -> None:
+        if self._var is None:
+            first_valid_idx = np.where(~np.isnan(x))[0]
+            if len(first_valid_idx) > 0:
+                self._var = 0
+                self._ema.feed(x)
+                self._prev_mean = self._ema()
+            return
+
+        nan_counts = np.zeros_like(x)
+        nan_count = 0
+
+        for i in range(len(x)):
+            if np.isnan(x[i]):
+                nan_count += 1
+            else:
+                nan_counts[i] = nan_count
+                nan_count = 0
+
+        prev_mean = self._ema()
+        self._ema.feed(x)
+        for i in range(len(x)):
+            if not np.isnan(x[i]):
+                effective_alpha = self.alpha ** (nan_counts[i] + 1)
+                delta = x[i] - prev_mean
+                self._var = float((1 - effective_alpha) * (delta * delta) + effective_alpha * self._var)
 
     def __call__(self) -> float:
-        assert self._var is not None
+        if self._var is None:
+            return np.nan
         return self._var
-
-    def feed(self, x: ndarray) -> None:
-        self._ema.feed(x)
-        square_residuals = (self._ema() - x) ** 2
-        self._var = _stream_trace_update(self._var, square_residuals, self.alpha)
