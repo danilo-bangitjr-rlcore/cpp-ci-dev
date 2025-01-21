@@ -1,3 +1,12 @@
+## 0.32.1 (2025-01-21)
+
+### Fix
+
+- calculate moving avg in one pass
+- return nan when mean and std are none
+- style issue
+- remove small floating point in variance
+
 ## 0.32.0 (2025-01-20)
 
 ### Feat
