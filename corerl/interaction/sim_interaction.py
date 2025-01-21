@@ -1,4 +1,5 @@
 import logging
+from typing import Literal
 
 import numpy as np
 
@@ -15,7 +16,7 @@ logger = logging.getLogger(__file__)
 
 @config()
 class SimInteractionConfig:
-    name: str = "sim_interaction"
+    name: Literal["sim_interaction"] = "sim_interaction"
 
 
 class SimInteraction(Interaction):

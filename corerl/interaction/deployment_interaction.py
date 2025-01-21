@@ -1,7 +1,7 @@
 import logging
 from datetime import UTC, datetime, timedelta
 from time import sleep
-from typing import Generator
+from typing import Generator, Literal
 
 import numpy as np
 import pandas as pd
@@ -12,6 +12,7 @@ from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
+from corerl.environment.async_env.opc_tsdb_sim_async_env import OPCTSDBSimAsyncEnv
 from corerl.interaction.interaction import Interaction
 from corerl.state import AppState
 from corerl.utils.time import split_into_chunks
@@ -20,7 +21,7 @@ logger = logging.getLogger(__file__)
 
 @config()
 class DepInteractionConfig:
-    name: str = "dep_interaction"
+    name: Literal["dep_interaction"] = "dep_interaction"
     historical_batch_size: int = 10000
 
 
@@ -33,7 +34,7 @@ class DeploymentInteraction(Interaction):
         env: AsyncEnv,
         pipeline: Pipeline,
     ):
-        assert isinstance(env, DeploymentAsyncEnv)
+        assert isinstance(env, DeploymentAsyncEnv) or isinstance(env, OPCTSDBSimAsyncEnv)
 
         self._app_state = app_state
         self._pipeline = pipeline

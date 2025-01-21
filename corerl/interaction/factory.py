@@ -1,3 +1,6 @@
+from pydantic import Field
+from typing_extensions import Annotated
+
 from corerl.agent.base import BaseAgent
 from corerl.configs.group import Group
 from corerl.data_pipeline.pipeline import Pipeline
@@ -9,7 +12,12 @@ from corerl.state import AppState
 
 interaction_group = Group[[AppState, BaseAgent, AsyncEnv, Pipeline], Interaction]()
 
-InteractionConfig = SimInteractionConfig | DepInteractionConfig
+
+InteractionConfig = Annotated[
+    SimInteractionConfig
+    | DepInteractionConfig,
+    Field(discriminator='name')
+]
 
 def register():
     interaction_group.dispatcher(SimInteraction)

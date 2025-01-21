@@ -1,6 +1,5 @@
 import logging
 from datetime import UTC, datetime, timedelta
-from time import sleep
 
 import numpy as np
 import pandas as pd
@@ -20,7 +19,7 @@ class OPCTSDBSimAsyncEnvConfig(GymEnvConfig, OPCEnvConfig, TSDBEnvConfig):
     name: str = "opc_tsdb_sim_async_env"
     action_tolerance: timedelta = MISSING
     obs_fetch_attempts: int = 20
-    obs_read_delay_buffer: timedelta = timedelta(seconds=1)
+    # obs_read_delay_buffer: timedelta = timedelta(seconds=1)
 
 
 class OPCTSDBSimAsyncEnv(AsyncEnv):
@@ -40,16 +39,15 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
 
     def __init__(self, cfg: OPCTSDBSimAsyncEnvConfig, tag_configs: list[TagConfig]):
         self.obs_period = cfg.obs_period
-        self.obs_read_delay_buffer = cfg.obs_read_delay_buffer
+        self.action_period = cfg.action_period
+        # self.obs_read_delay_buffer = cfg.obs_read_delay_buffer
         self.action_tolerance = cfg.action_tolerance
 
-        self._data_reader = DataReader(db_cfg=cfg.db)
+        self.data_reader = DataReader(db_cfg=cfg.db)
         self.obs_fetch_attempts = cfg.obs_fetch_attempts
 
         self.env_start_time = datetime.now(UTC)
         self.env_start_time = self.env_start_time.replace(microsecond=0)
-        self.current_start_time = self.env_start_time
-
         self.tag_configs = tag_configs
 
         self._action_tags = [tag for tag in tag_configs if tag.action_constructor is not None]
@@ -90,20 +88,21 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
         self._opc_client.write_values(self.action_nodes, denormalized_actions)
 
     def get_latest_obs(self) -> pd.DataFrame:
-        read_start = self.current_start_time
-        read_end = read_start + self.obs_period
+        now = datetime.now(UTC)
+        read_start = now - self.obs_period
+        read_end = now
 
         def get_obs_df():
             action_names = [tag.name for tag in self._action_tags]
             obs_names = [tag.name for tag in self._obs_tags]
             meta_names = [tag.name for tag in self._meta_tags]
 
-            act_obs_reward = self._data_reader.single_aggregated_read(
+            act_obs_reward = self.data_reader.single_aggregated_read(
                 action_names + obs_names + ["gym_reward"],
                 read_start,
                 read_end,
             )
-            meta = self._data_reader.single_aggregated_read(
+            meta = self.data_reader.single_aggregated_read(
                 [name for name in meta_names if name != "gym_reward"],
                 read_start,
                 read_end,
@@ -111,20 +110,12 @@ class OPCTSDBSimAsyncEnv(AsyncEnv):
             )
             return pd.concat([act_obs_reward, meta], axis=1)
 
-        now = datetime.now(UTC)
-        now = now.replace(microsecond=0)
-        if now <= (read_end + self.obs_read_delay_buffer):
-            # the query end time is in the future, wait until this has elapsed before requesting observations from TSDB
-            wait_time_delta = (read_end - now) + self.obs_read_delay_buffer
-            sleep(wait_time_delta.total_seconds())
-
         res = get_obs_df()
-        self.current_start_time += self.obs_period
         return res
 
     def cleanup(self):
         """
         Close the OPC client and datareader sql connection
         """
-        self._data_reader.close()
+        self.data_reader.close()
         self._opc_client.disconnect()

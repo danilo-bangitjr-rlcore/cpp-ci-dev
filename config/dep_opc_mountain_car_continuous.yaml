@@ -13,6 +13,9 @@ experiment:
 interaction:
   name: dep_interaction
 
+event_bus:
+  enabled: true
+
 env:
   name: dep_async_env
   action_period: 00:00:15

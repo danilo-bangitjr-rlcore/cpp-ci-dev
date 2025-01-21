@@ -12,10 +12,11 @@ experiment:
   run_forever: True
 
 interaction:
-  name: sim_interaction
+  name: dep_interaction
+  historical_batch_size: 0
 
 event_bus:
-  enabled: true
+  enabled: false
 
 env:
   name: opc_tsdb_sim_async_env
@@ -27,6 +28,7 @@ env:
   db: ${pipeline.db}
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
+  action_tolerance: 00:00:01
 
 
 agent:
