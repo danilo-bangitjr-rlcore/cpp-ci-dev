@@ -16,7 +16,7 @@ def test_return_constant_val():
     for _ in range(3):
         ema.feed(np.array([x]))
 
-    mu = ema()
+    mu = ema.mu
     assert np.isclose(1.0, mu)
 
 
@@ -32,7 +32,7 @@ def test_9_to_1_result():
     for x in range(9, 0, -1):
         ema.feed(np.array([x]))
 
-    mu = ema()
+    mu = ema.mu
     assert np.isclose(mu, 0.9 * 1.23456789)
 
 
@@ -88,10 +88,10 @@ def try_test_longrun_exp_moving_var():
         emv.feed(np.array([z]))
 
     # test mean
-    assert abs(emv._ema()) < epsilon
+    assert abs(emv._ema.mu) < epsilon
 
     # test var
-    var = emv()
+    var = emv.var
     assert abs(var - 1.0) < epsilon
 
 
@@ -108,10 +108,10 @@ def try_longrun_exp_moving_batch_var():
         emv.feed(z_batch)
 
     # test mean
-    assert abs(emv._ema()) < epsilon
+    assert abs(emv._ema.mu) < epsilon
 
     # test var
-    var = emv()
+    var = emv.var
     assert abs(var - 1.0) < epsilon
 
 
@@ -126,7 +126,7 @@ def test_var_differential():
         x = 2 * np.random.normal()
         high_var_emv.feed(np.array([x]))
 
-    assert low_var_emv() < high_var_emv()
+    assert low_var_emv.var < high_var_emv.var
 
 
 def test_batch_var_differential():
@@ -140,7 +140,7 @@ def test_batch_var_differential():
         x_batch = np.array([2 * np.random.normal() for _ in range(5)])
         high_var_emv.feed(x_batch)
 
-    assert low_var_emv() < high_var_emv()
+    assert low_var_emv.var < high_var_emv.var
 
 
 def test_var_adaptation():
@@ -158,7 +158,7 @@ def try_var_adaptation():
         emv.feed(np.array([x]))
 
     # test var
-    var = emv()
+    var = emv.var
     assert abs(var - 4.0) < 4 * epsilon  # more wiggle room for high var
 
     # finish with low variance
@@ -167,7 +167,7 @@ def try_var_adaptation():
         emv.feed(np.array([z]))
 
     # test var
-    var = emv()
+    var = emv.var
     assert abs(var - 1.0) < epsilon
 
 
@@ -175,16 +175,16 @@ def test_ema_with_nan_gaps():
     alpha = 0.5
     ema = ExpMovingAvg(alpha)
     ema.feed(np.array([1.0]))
-    assert np.isclose(ema(), 1.0)
+    assert np.isclose(ema.mu, 1.0)
 
     # new = (1 - 0.5^1) * 2 + 0.5^1 * 1 = 1.5
     ema.feed(np.array([2.0]))
-    assert np.isclose(ema(), 1.5)
+    assert np.isclose(ema.mu, 1.5)
 
     # with nan gaps, the effective alpha is 0.5^3
     # new = (1 - 0.5^3) * 4 + 0.5^3 * 1.5 = 3.6875
     ema.feed(np.array([np.nan, np.nan, 4.0]))
-    assert np.isclose(ema(), 3.6875)
+    assert np.isclose(ema.mu, 3.6875)
 
 
 def test_emv_with_nan_gaps():
@@ -195,19 +195,21 @@ def test_emv_with_nan_gaps():
     emv = ExpMovingVar(alpha)
 
     emv.feed(np.array([1.0]))
+    assert np.isclose(emv.var, 0.0)
 
-    # delta = 2 - initial_var
-    # new = (1 - 0.5^1) * delta^2 + 0.5^1 * initial_var
+    # delta = 2 - 1.5 = 0.5
+    # new = (1 - 0.5^1) * 0.5^2 + 0.5^1 * 0.0
     emv.feed(np.array([2.0]))
-    one_step = emv()
+    one_step = emv.var
+    assert np.isclose(one_step, 0.125)
 
     # After 2 NaN gap
-    # delta = 4 - one_step
-    # new = (1 - 0.5^3) * delta^2 + 0.5^3 * one_step
+    # delta = 4 - ema = 4 - 3.6875 = 0.3125
+    # new = (1 - 0.5^3) * 0.3125^2 + 0.5^3 * 0.125
     emv.feed(np.array([np.nan, np.nan, 4.0]))
-    three_step = emv()
+    three_step = emv.var
 
-    assert three_step > one_step
+    assert np.isclose(three_step, 0.10107421875)
 
 
 def test_batch_with_multiple_nan_gaps():
@@ -221,5 +223,5 @@ def test_batch_with_multiple_nan_gaps():
     ema.feed(batch)
     emv.feed(batch)
 
-    assert ema() > 4.0  # pulled up by the 8.0
-    assert emv() > 0  # should have significant variance due to spread
+    assert ema.mu > 4.0  # pulled up by the 8.0
+    assert emv.var > 0  # should have significant variance due to spread

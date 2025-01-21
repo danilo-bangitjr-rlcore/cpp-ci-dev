@@ -39,7 +39,7 @@ def test_filter_warmup():
     assert np.allclose(filtered_data, expected, equal_nan=True)
 
 def test_leading_nan_data():
-    cfg = EMAFilterConfig(alpha=0.99)
+    cfg = EMAFilterConfig(alpha=0.99, warmup=5)
     outlier_detector = EMAFilter(cfg)
 
     name = "sensor_x"
@@ -109,7 +109,7 @@ def test_full_nan_data():
 
 
 def test_interspersed_nan_data():
-    cfg = EMAFilterConfig(alpha=0.99)
+    cfg = EMAFilterConfig(alpha=0.99, warmup=5)
     outlier_detector = EMAFilter(cfg)
     name = "sensor_x"
 
@@ -131,7 +131,7 @@ def test_interspersed_nan_data():
 
 
 def test_streamed_nans():
-    cfg = EMAFilterConfig(alpha=0.99)
+    cfg = EMAFilterConfig(alpha=0.99, warmup=5)
     outlier_detector = EMAFilter(cfg)
     name = "sensor_x"
 
