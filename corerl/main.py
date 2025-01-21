@@ -55,8 +55,8 @@ def main(cfg: MainConfig):
         event_bus.bind(cfg.event_bus.app_connection)
 
         socket = context.socket(zmq.SUB)
-        socket.connect(cfg.event_bus.scheduler_connection)
-        socket.connect(cfg.event_bus.cli_connection)
+        socket.bind(cfg.event_bus.scheduler_connection)
+        socket.bind(cfg.event_bus.cli_connection)
         socket.connect(cfg.event_bus.app_connection)
         socket.setsockopt_string(zmq.SUBSCRIBE, EventTopic.corerl)  # Empty string ("") to subscribe to everything
 

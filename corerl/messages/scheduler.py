@@ -18,7 +18,7 @@ def scheduler_task(cfg: MainConfig, context: zmq.Context, stop_event: threading.
     _logger = logging.getLogger(__name__)
 
     socket = context.socket(zmq.PUB)
-    socket.bind(cfg.event_bus.scheduler_connection)
+    socket.connect(cfg.event_bus.scheduler_connection)
     topic = EventTopic.corerl_scheduler
 
     EventPeriodTime = namedtuple('EventPeriodTime', ['period', 'next_event_ts'])
