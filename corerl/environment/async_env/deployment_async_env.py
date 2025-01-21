@@ -97,6 +97,7 @@ class DeploymentAsyncEnv(AsyncEnv):
             norm_cfg = (
                 Maybe(action_cfg.action_constructor)
                 .map(lambda ac: find_instance(NormalizerConfig, ac))
+                .otherwise(lambda: find_instance(NormalizerConfig, action_cfg.preprocess)) # noqa: B023 - ignore unbound action_cfg
             )
 
             lo = (
