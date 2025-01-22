@@ -104,6 +104,7 @@ class DeploymentInteraction(Interaction):
                 self.step()
 
             case EventType.step_get_obs:
+                self.load_historical_chunk()
                 o = self._env.get_latest_obs()
                 pr = self._pipeline(o, caller_code=CallerCode.ONLINE)
                 if pr.transitions is not None:
