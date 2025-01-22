@@ -1,10 +1,34 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
+  const [health, setHealth] = useState<string>('');
+
+  useEffect(() => {
+    const fetchHealth = async () => {
+      let serverOrigin = import.meta.env.VITE_API_ORIGIN;
+      if(import.meta.env.PROD){
+        serverOrigin = window.location.origin
+      }
+
+      try {
+        const healthEndpoint = `${serverOrigin}/health`
+        const response = await fetch(healthEndpoint);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.text();
+        setHealth(data);
+      } catch (error) {
+        console.error('Fetch error:', error);
+      }
+    };
+
+    fetchHealth();
+  }, []);
 
   return (
     <>
@@ -24,6 +48,8 @@ function App() {
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
+      <p>{health || "Loading..."}
+      </p>
       </div>
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
