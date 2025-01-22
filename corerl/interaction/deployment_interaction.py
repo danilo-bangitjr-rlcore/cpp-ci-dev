@@ -100,6 +100,7 @@ class DeploymentInteraction(Interaction):
                 pr = self._pipeline(o, caller_code=CallerCode.ONLINE)
                 if pr.transitions is not None:
                     self._agent.update_buffer(pr.transitions)
+                self._app_state.agent_step += 1
 
             case EventType.step_agent_update:
                 self._agent.update()

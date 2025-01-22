@@ -80,6 +80,7 @@ class SimInteraction(Interaction):
                 assert pr.transitions is not None
                 self._agent.update_buffer(pr.transitions)
                 self._should_reset = bool(o['truncated'].any() or o['terminated'].any())
+                self._app_state.agent_step += 1
 
             case EventType.step_agent_update:
                 self._agent.update()
