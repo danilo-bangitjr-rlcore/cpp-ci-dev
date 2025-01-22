@@ -12,14 +12,16 @@ experiment:
 
 interaction:
   name: dep_interaction
+  historical_batch_size: 0
 
 event_bus:
-  enabled: true
+  enabled: True
 
 env:
   name: dep_async_env
-  action_period: 00:00:15
   obs_period: 00:00:05
+  update_period: 00:00:05
+  action_period: 00:00:15
   discrete_control: False
   seed: 1
   db: ${pipeline.db}

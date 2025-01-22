@@ -27,6 +27,7 @@ from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.eval.writer import metrics_group
 from corerl.experiment.config import ExperimentConfig
+from corerl.messages.event_bus import EventBus
 from corerl.offline.utils import load_offline_transitions, offline_training
 from corerl.state import AppState
 from test.infrastructure.utils.docker import init_docker_container  # noqa: F401
@@ -207,7 +208,7 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
 
     app_state = AppState(
         metrics=metrics_group.dispatch(offline_cfg.metrics),
-        event_bus=None,
+        event_bus=EventBus(offline_cfg.event_bus, offline_cfg.env),
     )
 
     pipeline = Pipeline(offline_cfg.pipeline)

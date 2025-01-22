@@ -13,6 +13,7 @@ from corerl.environment.config import EnvironmentConfig
 @config()
 class BaseAsyncEnvConfig(EnvironmentConfig):
     obs_period: timedelta = MISSING
+    update_period: timedelta = MISSING
     action_period: timedelta = MISSING
 
 @config()
@@ -36,6 +37,7 @@ class GymEnvConfig(BaseAsyncEnvConfig):
 
 class AsyncEnv:
     obs_period: timedelta
+    update_period: timedelta
     action_period: timedelta
     action_tolerance: timedelta
 

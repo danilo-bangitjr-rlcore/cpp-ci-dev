@@ -9,6 +9,7 @@ from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.interaction.interaction import Interaction
+from corerl.messages.events import Event, EventType
 from corerl.state import AppState
 
 logger = logging.getLogger(__file__)
@@ -55,6 +56,7 @@ class SimInteraction(Interaction):
             value=r,
         )
         self._agent.update_buffer(pr.transitions)
+
         self._agent.update()
 
         self._should_reset = bool(o['truncated'].any() or o['terminated'].any())
@@ -66,7 +68,31 @@ class SimInteraction(Interaction):
 
         self._app_state.agent_step += 1
 
+    def step_event(self, event: Event):
+        logger.debug(f"Received step_event: {event}")
+        match event.type:
+            case EventType.step:
+                self.step()
 
+            case EventType.step_get_obs:
+                o = self._env.get_latest_obs()
+                pr = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
+                assert pr.transitions is not None
+                self._agent.update_buffer(pr.transitions)
+                self._should_reset = bool(o['truncated'].any() or o['terminated'].any())
+                self._app_state.agent_step += 1
+
+            case EventType.step_agent_update:
+                self._agent.update()
+
+            case EventType.step_emit_action:
+                s = self._get_latest_state()
+                assert s is not None
+                a = self._agent.get_action(s)
+                self._env.emit_action(a)
+
+            case _:
+                logger.warning(f"Unexpected step_event: {event}")
 
     # ---------
     # internals
