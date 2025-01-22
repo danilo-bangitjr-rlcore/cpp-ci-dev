@@ -1,3 +1,9 @@
+## 0.37.0 (2025-01-22)
+
+### Feat
+
+- ema filter queues data to initialize statistics
+
 ## 0.36.0 (2025-01-22)
 
 ### Feat
