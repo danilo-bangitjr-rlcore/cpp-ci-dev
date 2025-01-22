@@ -1,3 +1,14 @@
+## 0.35.0 (2025-01-22)
+
+### Feat
+
+- raw data analysis eval
+- sketch of eval
+
+### Fix
+
+- rm decorator to remove cicular imports
+
 ## 0.34.0 (2025-01-22)
 
 ### Feat
