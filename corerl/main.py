@@ -17,6 +17,7 @@ from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
+from corerl.eval.config import register_evals
 from corerl.eval.writer import metrics_group
 from corerl.interaction.factory import init_interaction
 from corerl.messages.events import Event, EventTopic
@@ -83,6 +84,9 @@ def main(cfg: MainConfig):
             app_state,
             column_desc,
         )
+
+        register_evals(cfg.eval, agent, pipeline, app_state)
+
         interaction = init_interaction(
             cfg=cfg.interaction, app_state=app_state, agent=agent, env=env, pipeline=pipeline,
         )
