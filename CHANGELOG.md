@@ -1,3 +1,9 @@
+## 0.38.0 (2025-01-22)
+
+### Feat
+
+- A cli tool to emit zmq events for the event_bus (#408)
+
 ## 0.37.0 (2025-01-22)
 
 ### Feat
