@@ -26,17 +26,10 @@ def _default_normalization_config(cfg: TagConfig):
         .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[1])
     )
 
-    # each constructor might have a normalizer;
-    # need to modify each of their configs
-    sc_xforms = cfg.state_constructor or []
-    ac_xforms = cfg.action_constructor or []
-    rc_xforms = cfg.reward_constructor
-
-    for xform_cfgs in [sc_xforms, ac_xforms, rc_xforms]:
-        norm_cfg = find_instance(NormalizerConfig, xform_cfgs)
-        if not norm_cfg:
-            continue
-
+    # although each constructor type may _also_ have a normalizer
+    # only automatically set the preprocessor normalizer bounds
+    norm_cfg = find_instance(NormalizerConfig, cfg.preprocess)
+    if norm_cfg:
         norm_cfg.min = (
             Maybe(norm_cfg.min)
             .flat_otherwise(lambda: lo)

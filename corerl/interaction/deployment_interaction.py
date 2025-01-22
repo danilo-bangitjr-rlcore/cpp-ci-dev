@@ -98,6 +98,7 @@ class DeploymentInteraction(Interaction):
         if s is not None and self._should_take_action(step_timestamp):
             a = self._agent.get_action(s)
             a_df = self._pipeline.action_constructor.np_to_dataframe(a)
+            a_df = self._pipeline.preprocessor.inverse(a_df)
             self._env.emit_action(a_df)
             self._last_action = a_df
 
