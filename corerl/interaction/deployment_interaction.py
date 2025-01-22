@@ -97,8 +97,9 @@ class DeploymentInteraction(Interaction):
         s = self._get_latest_state()
         if s is not None and self._should_take_action(step_timestamp):
             a = self._agent.get_action(s)
-            self._env.emit_action(a)
-            self._last_action = a
+            a_df = self._pipeline.action_constructor.np_to_dataframe(a)
+            self._env.emit_action(a_df)
+            self._last_action = a_df
 
         self._app_state.agent_step += 1
 
@@ -246,5 +247,3 @@ class DeploymentInteraction(Interaction):
                 metric=feat_name,
                 value=val,
             )
-
-

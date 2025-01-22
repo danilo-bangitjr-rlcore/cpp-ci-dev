@@ -64,7 +64,8 @@ class SimInteraction(Interaction):
         s = self._get_latest_state()
         assert s is not None
         a = self._agent.get_action(s)
-        self._env.emit_action(a)
+        a_df = self._pipeline.action_constructor.np_to_dataframe(a)
+        self._env.emit_action(a_df)
 
         self._app_state.agent_step += 1
 

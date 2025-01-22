@@ -1,5 +1,6 @@
 from functools import cached_property
 
+import numpy as np
 import pandas as pd
 
 from corerl.data_pipeline.constructors.constructor import Constructor
@@ -34,6 +35,17 @@ class ActionConstructor(Constructor):
         pf.actions = pf.actions.loc[:, sorted_cols]
 
         return pf
+
+
+    def np_to_dataframe(self, action_arr: np.ndarray):
+        """
+        Because the action constructor is responsible for setting action ordering,
+        then when we receive a numpy array with a magic ordering, the AC is
+        responsible for labelling those ordered actions with their respective names.
+        """
+        d = {col: [act] for col, act in zip(self.columns, action_arr, strict=True)}
+        df = pd.DataFrame(d)
+        return df
 
 
     @cached_property

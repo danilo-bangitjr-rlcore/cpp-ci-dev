@@ -2,7 +2,6 @@ from dataclasses import field
 from datetime import timedelta
 from typing import Any, Literal
 
-import numpy as np
 import pandas as pd
 
 from corerl.configs.config import MISSING, config
@@ -42,7 +41,7 @@ class AsyncEnv:
     action_period: timedelta
     action_tolerance: timedelta
 
-    def emit_action(self, action: np.ndarray) -> None: ...
+    def emit_action(self, action: pd.DataFrame) -> None: ...
 
     def get_latest_obs(self) -> pd.DataFrame: ...
 
