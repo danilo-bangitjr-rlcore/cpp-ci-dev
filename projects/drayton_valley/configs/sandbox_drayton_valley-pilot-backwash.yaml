@@ -17,7 +17,7 @@ env:
   update_period: 00:02:30
   action_period: 00:45:00
   db: ${pipeline.db}
-  opc_conn_url: "opc.tcp://ignition-services:62541"
+  opc_conn_url: "opc.tcp://localhost:62541"
   opc_ns: 1
   discrete_control: False
   action_tolerance: 00:05:00
@@ -49,20 +49,19 @@ metrics:
   drivername: "postgresql+psycopg2"
   username: "postgres"
   password: "password"
-  ip: "timescaledb"
+  ip: "localhost"
   port: 5432
   db_name: "postgres"
   table_schema: "public"
   table_name: "metrics"
   enabled: True
-  lo_wm: 5
 
 pipeline:
   db:
     drivername: "postgresql+psycopg2"
     username: "postgres"
     password: "password"
-    ip: "timescaledb"
+    ip: "localhost"
     port: 5432
     db_name: "postgres"
     table_schema: "public"
@@ -114,14 +113,12 @@ pipeline:
       factor: -1.0 # convert from negative permeability normalized to [0, 1] -> positive permeability normalized to [-1, 0]
     # ignore permeability except when in production mode (CTRL_P.STEP == 1305)
     # in abscence of "equal to" transform, squeeze with greater/less than
-    - name: binary
-      op: prod
+    - name: product
       other: CTRL_P.STEP
       other_xform:
         - name: less_than
           threshold: 1306
-    - name: binary
-      op: prod
+    - name: product
       other: CTRL_P.STEP
       other_xform:
         - name: greater_than
