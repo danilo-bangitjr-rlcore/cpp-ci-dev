@@ -1,5 +1,7 @@
 import logging
+import shutil
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from time import sleep
 from typing import Generator, Literal
 
@@ -24,6 +26,7 @@ logger = logging.getLogger(__file__)
 class DepInteractionConfig:
     name: Literal["dep_interaction"] = "dep_interaction"
     historical_batch_size: int = 10000
+    checkpoint_path: Path = Path('outputs/checkpoints')
 
 
 class DeploymentInteraction(Interaction):
@@ -36,6 +39,7 @@ class DeploymentInteraction(Interaction):
         pipeline: Pipeline,
     ):
         assert isinstance(env, DeploymentAsyncEnv) or isinstance(env, OPCTSDBSimAsyncEnv)
+        self._cfg = cfg
 
         self._app_state = app_state
         self._pipeline = pipeline
@@ -67,6 +71,10 @@ class DeploymentInteraction(Interaction):
             time_stats.end,
             width=self.obs_period * cfg.historical_batch_size
         )
+
+        # checkpointing state
+        self._last_checkpoint = datetime.now(UTC)
+        self.restore_checkpoint()
 
     def step(self):
         step_timestamp = next(self._step_clock)
@@ -100,7 +108,9 @@ class DeploymentInteraction(Interaction):
                 pr = self._pipeline(o, caller_code=CallerCode.ONLINE)
                 if pr.transitions is not None:
                     self._agent.update_buffer(pr.transitions)
+
                 self._app_state.agent_step += 1
+                self.maybe_checkpoint()
 
             case EventType.step_agent_update:
                 self._agent.update()
@@ -140,6 +150,36 @@ class DeploymentInteraction(Interaction):
 
         if pipeline_out.transitions is not None:
             self._agent.update_buffer(pipeline_out.transitions)
+
+
+    def maybe_checkpoint(self):
+        now = datetime.now(UTC)
+        if now - self._last_checkpoint > timedelta(hours=1):
+            self.checkpoint()
+
+
+    def checkpoint(self):
+        now = datetime.now(UTC)
+        path = self._cfg.checkpoint_path / f'{now}'
+        path.mkdir(exist_ok=True, parents=True)
+        self._agent.save(path)
+        self._last_checkpoint = now
+
+        chkpoints = self._cfg.checkpoint_path.glob('*')
+        for chk in chkpoints:
+            time = datetime.fromisoformat(chk.name)
+            if now - time > timedelta(days=1):
+                shutil.rmtree(chk)
+
+
+    def restore_checkpoint(self):
+        chkpoints = list(self._cfg.checkpoint_path.glob('*'))
+        if len(chkpoints) == 0:
+            return
+
+        # get latest checkpoint
+        checkpoint = sorted(chkpoints)[-1]
+        self._agent.load(checkpoint)
 
 
     # ---------
