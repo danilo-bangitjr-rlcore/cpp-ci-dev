@@ -38,8 +38,8 @@ class SimInteraction(Interaction):
         self._should_reset = True
         self._last_state: np.ndarray | None = None
         self._last_reward: float | None = None
-        self._pipeline.register_hook(StageCode.SC, self._capture_last_state)
-        self._pipeline.register_hook(StageCode.RC, self._capture_last_reward)
+        self._pipeline.register_hook(CallerCode.ONLINE, StageCode.SC, self._capture_last_state)
+        self._pipeline.register_hook(CallerCode.ONLINE, StageCode.RC, self._capture_last_reward)
 
 
 

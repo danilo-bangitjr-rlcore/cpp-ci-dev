@@ -45,7 +45,7 @@ class DeploymentInteraction(Interaction):
 
         self._should_reset = False
         self._last_state = np.full(self._column_desc.state_dim, np.nan)
-        self._pipeline.register_hook(StageCode.SC, self._capture_last_state)
+        self._pipeline.register_hook(CallerCode.ONLINE, StageCode.SC, self._capture_last_state)
 
         ### timing logic ###
         self.obs_period = env.obs_period
