@@ -1,3 +1,10 @@
+## 0.36.0 (2025-01-22)
+
+### Feat
+
+- added queue, more reliable cleanup
+- added event bus controlled step_event functionality
+
 ## 0.35.0 (2025-01-22)
 
 ### Feat
