@@ -153,9 +153,6 @@ class DeploymentInteraction(Interaction):
         return False
 
     def _capture_last_state(self, pf: PipelineFrame):
-        if pf.caller_code != CallerCode.ONLINE:
-            return
-
         state_df = pf.data.tail(1)
         state_timestamp = state_df.index[0]
         self._write_state_features(state_df)
