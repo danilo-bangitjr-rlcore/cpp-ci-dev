@@ -3,10 +3,9 @@ from dataclasses import field
 
 import pandas as pd
 
-from corerl.configs.config import MISSING, config
-from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.configs.config import config
+from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.eval.base_eval import BaseEvalConfig
-from corerl.eval.config import EvalConfig, eval_enabled
 from corerl.state import AppState
 
 
@@ -73,24 +72,24 @@ def raw_data_eval_for_tag(df: pd.DataFrame, tag: str) -> dict:
 
 @config()
 class RawDataEvalConfig(BaseEvalConfig):
-    name: str = 'raw_data_eval'
-    caller_codes = MISSING
-    stage_codes = MISSING
+    name: str = 'raw_data'
+    caller_codes: list[CallerCode] = field(default_factory=lambda:[CallerCode.ONLINE])
+    stage_codes: list[StageCode] = field(default_factory=lambda:[StageCode.INIT])
     enabled: bool = True
     tags: list[str] = field(default_factory=list) # which tags you want to output stats for
 
 
-@eval_enabled('raw_data_eval')
 def raw_data_eval(
-        cfg: EvalConfig,
+        cfg: RawDataEvalConfig,
         app_state: AppState,
         pf: PipelineFrame,
     ) -> None:
 
-    eval_cfg = cfg.raw_data
-    df = pf.data
+    if not cfg.enabled:
+        return
 
-    for tag in eval_cfg.tags:
+    df = pf.data
+    for tag in cfg.tags:
         if tag not in df.columns:
             logging.warning(f"Tag {tag} not found in data frame columns.")
         else:

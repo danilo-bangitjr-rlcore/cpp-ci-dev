@@ -99,17 +99,19 @@ class Pipeline:
 
         self._hooks: dict[StageCode, list[Callable[[PipelineFrame], Any]]] = defaultdict(list)
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
-            StageCode.BOUNDS:  lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
-            StageCode.ODDITY:  lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
-            StageCode.IMPUTER: lambda pf: invoke_stage_per_tag(pf, self.imputers),
-            StageCode.AC:      self.action_constructor,
-            StageCode.RC:      self.reward_constructor,
-            StageCode.SC:      self.state_constructor,
-            StageCode.TC:      self.transition_creator,
-            StageCode.TF:      self.transition_filter,
+            StageCode.INIT:     lambda pf: pf,
+            StageCode.BOUNDS:   lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
+            StageCode.ODDITY:   lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
+            StageCode.IMPUTER:  lambda pf: invoke_stage_per_tag(pf, self.imputers),
+            StageCode.AC:       self.action_constructor,
+            StageCode.RC:       self.reward_constructor,
+            StageCode.SC:       self.state_constructor,
+            StageCode.TC:       self.transition_creator,
+            StageCode.TF:       self.transition_filter,
         }
 
         self._default_stages = (
+            StageCode.INIT,
             StageCode.BOUNDS,
             StageCode.ODDITY,
             StageCode.IMPUTER,
