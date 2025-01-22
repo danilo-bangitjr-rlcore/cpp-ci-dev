@@ -1,3 +1,13 @@
+## 0.34.0 (2025-01-22)
+
+### Feat
+
+- adding agent step
+
+### Fix
+
+- added agent_step to SQL
+
 ## 0.33.0 (2025-01-21)
 
 ### BREAKING CHANGE
