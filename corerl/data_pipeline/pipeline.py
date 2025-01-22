@@ -97,7 +97,8 @@ class Pipeline:
         self.ts_dict: dict = {caller_code: None for caller_code in CallerCode}
         self.dt_dict: dict = {caller_code: None for caller_code in CallerCode}
 
-        self._hooks: dict[StageCode, list[Callable[[PipelineFrame], Any]]] = defaultdict(list)
+        self._hooks: dict[CallerCode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
+            caller_code: defaultdict(list) for caller_code in CallerCode}
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
             StageCode.INIT:     lambda pf: pf,
             StageCode.BOUNDS:   lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
@@ -169,7 +170,7 @@ class Pipeline:
         for stage in stages:
             pf = self._stage_invokers[stage](pf)
 
-            for hook in self._hooks[stage]:
+            for hook in self._hooks[caller_code][stage]:
                 hook(pf)
 
         self.dt_dict[caller_code] = pf.get_last_timestamp()
@@ -188,8 +189,20 @@ class Pipeline:
             action_cols=self.action_constructor.columns,
         )
 
-    def register_hook(self, stage: StageCode, f: Callable[[PipelineFrame], Any]):
-        self._hooks[stage].append(f)
+    def register_hook(
+            self,
+            caller_codes: CallerCode | list[CallerCode],
+            stages: StageCode | list[StageCode],
+            f: Callable[[PipelineFrame], Any],
+        ):
+        if isinstance(caller_codes, CallerCode):
+            caller_codes = [caller_codes]
+        if isinstance(stages, StageCode):
+            stages = [stages]
+
+        for caller_code in caller_codes:
+            for stage in stages:
+                self._hooks[caller_code][stage].append(f)
 
     def reset(self):
         if hasattr(self.state_constructor, 'reset'):

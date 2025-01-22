@@ -1,3 +1,41 @@
+## 0.34.0 (2025-01-22)
+
+### Feat
+
+- adding agent step
+
+### Fix
+
+- added agent_step to SQL
+
+## 0.33.0 (2025-01-21)
+
+### BREAKING CHANGE
+
+- this removes the concept of `bounds` from the tag
+config, instead renaming these to `operating_range` for consistency.
+
+### Feat
+
+- infer normalizer bounds from tag zones
+- add yellow, red, and black zones for tags
+
+### Fix
+
+- expect actions to always be normalized -> denormalized
+- use identity oddity filter by default
+- ensure action tag ordering matches action np.ndarray ordering
+- allow xform cfgs to be mutated in place
+- prefer Field over field for config schemas
+- use discriminated union matching for interaction types
+
+### Refactor
+
+- use Maybe and find utilities to simplify action denorm
+- add find utilities for simplifying iterables
+- add Maybe monad utility to clean up Nones
+- move cfg construction responsibility out of sc to pipeline
+
 ## 0.32.3 (2025-01-21)
 
 ### Fix

@@ -45,7 +45,7 @@ class DeploymentInteraction(Interaction):
 
         self._should_reset = False
         self._last_state = np.full(self._column_desc.state_dim, np.nan)
-        self._pipeline.register_hook(StageCode.SC, self._capture_last_state)
+        self._pipeline.register_hook(CallerCode.ONLINE, StageCode.SC, self._capture_last_state)
 
         ### timing logic ###
         self.obs_period = env.obs_period
@@ -87,6 +87,7 @@ class DeploymentInteraction(Interaction):
             a = self._agent.get_action(s)
             self._env.emit_action(a)
 
+        self._app_state.agent_step += 1
 
     def load_historical_chunk(self):
         try:
@@ -168,6 +169,7 @@ class DeploymentInteraction(Interaction):
         for feat_name in state_df.columns:
             val = state_df[feat_name].values[0]
             self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
                 metric=feat_name,
                 value=val,
             )
