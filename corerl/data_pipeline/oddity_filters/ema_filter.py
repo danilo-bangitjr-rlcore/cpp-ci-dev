@@ -3,7 +3,7 @@ from typing import Literal
 
 import numpy as np
 
-from corerl.configs.config import config
+from corerl.configs.config import config, list_
 from corerl.data_pipeline.data_utils.exp_moving import ExpMovingAvg, ExpMovingVar
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
@@ -23,6 +23,7 @@ class EMAFilterTemporalState:
     ema: ExpMovingAvg
     emv: ExpMovingVar
     n_obs: int = 0
+    _warmup_queue: list[float] = list_()
 
 
 class EMAFilter(BaseOddityFilter):
@@ -56,46 +57,57 @@ class EMAFilter(BaseOddityFilter):
         )
         tag_data = pf.data[tag].to_numpy()
 
-        if update_stats:
-            _update_stats(tag_data, tag_ts)
+        oddity_mask = np.full(tag_data.shape, False)
+        ema = tag_ts.ema
+        emv = tag_ts.emv
 
-        # get filter mask
-        oddity_mask = _get_oddity_mask(x=tag_data, mu=tag_ts.ema(), var=tag_ts.emv(), tolerance=self.tolerance)
-
-        # count non-NaN values seen so far
-        non_nan_mask = ~np.isnan(tag_data)
-        cumulative_non_nan = np.full(len(tag_data), tag_ts.n_obs)
-        running_sum = 0
-        for i in range(len(tag_data)):
-            cumulative_non_nan[i] += running_sum
-            if non_nan_mask[i]:
-                running_sum += 1
-
-        post_warmup_mask = cumulative_non_nan >= self.warmup
-        filter_mask = oddity_mask & post_warmup_mask
+        i = self._warmup(tag_data, tag_ts)
+        while i < len(tag_data):
+            x_i = tag_data[i]
+            if not np.isnan(x_i):
+                std = np.sqrt(emv.var)
+                oddity_mask[i] = np.abs(ema.mu - x_i) > self.tolerance * std
+            ema.feed_single(x_i)
+            emv.feed_single(x_i)
+            i += 1
 
         # update missing info and set nans
-        update_missing_info(pf.missing_info, name=tag, missing_mask=filter_mask, new_val=MissingType.OUTLIER)
-        tag_data[filter_mask] = np.nan
-
-        tag_ts.n_obs = tag_ts.n_obs + int(np.sum(non_nan_mask))
+        update_missing_info(pf.missing_info, name=tag, missing_mask=oddity_mask, new_val=MissingType.OUTLIER)
+        tag_data[oddity_mask] = np.nan
 
         return pf
+
+    def _warmup(self, tag_data: np.ndarray, tag_ts: EMAFilterTemporalState) -> int:
+        """
+        Stores initial data in a queue to initialize ema and emv statistics.
+        Initializes statistics upon completion of warmup.
+
+        Returns first post-warmup index.
+        """
+        n_obs = tag_ts.n_obs
+        warmed_up = n_obs >= self.warmup
+        if warmed_up:
+            return 0
+
+        warmup_queue = tag_ts._warmup_queue
+
+        i = 0
+        while not warmed_up and i < len(tag_data):
+            x_i = tag_data[i]
+            warmup_queue.append(x_i)
+            if not np.isnan(x_i):
+                n_obs += 1
+            i += 1
+            warmed_up = n_obs >= self.warmup
+
+        tag_ts.n_obs = n_obs
+
+        if warmed_up:
+            tag_ts.ema.mu = np.array(warmup_queue).mean()
+            tag_ts.emv.var = np.array(warmup_queue).var()
+
+        return i
 
 
 outlier_group.dispatcher(EMAFilter)
 
-def _update_stats(tag_data: np.ndarray, tag_ts: EMAFilterTemporalState):
-    tag_ts.ema.feed(tag_data)
-    tag_ts.emv.feed(tag_data)
-
-
-def _get_oddity_mask(x: np.ndarray, mu: float, var: float, tolerance: float) -> np.ndarray:
-    """
-    Columns of df are mutable, this function takes a Series
-    and mutates the data (by possible setting some values to NaN)
-    """
-    std = np.sqrt(var)
-    oddity_mask = np.abs(mu - x) > tolerance * std
-
-    return oddity_mask

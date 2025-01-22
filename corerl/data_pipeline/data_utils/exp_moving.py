@@ -8,64 +8,53 @@ logger = logging.getLogger(__name__)
 class ExpMovingAvg:
     def __init__(self, alpha: float):
         self.alpha = alpha
-        self._mu: float | None = None
+        self.mu: float = np.nan
+        self._nan_count: int = 0
 
-    def feed(self, x: np.ndarray) -> None:
-        if self._mu is None:
-            first_valid_idx = np.where(~np.isnan(x))[0]
-            if len(first_valid_idx) > 0:
-                self._mu = float(x[first_valid_idx[0]])
+    def feed_single(self, x: float) -> None:
+        if np.isnan(x):
+            self._nan_count += 1
             return
 
-        nan_count = 0
+        if np.isnan(self.mu):
+            self.mu = x
+        else:
+            effective_alpha = self.alpha ** (self._nan_count + 1)
+            self.mu = (1 - effective_alpha) * x + effective_alpha * self.mu
 
-        for i in range(len(x)):
-            if np.isnan(x[i]):
-                nan_count += 1
-            else:
-                effective_alpha = self.alpha ** (nan_count + 1)
-                self._mu = float((1 - effective_alpha) * x[i] + effective_alpha * self._mu)
-                nan_count = 0
+        self._nan_count = 0
 
-    def __call__(self) -> float:
-        if self._mu is None:
-            return np.nan
-        return self._mu
+    def feed(self, x: np.ndarray) -> None:
+        for x_i in x:
+            self.feed_single(x_i)
+
 
 
 class ExpMovingVar:
     def __init__(self, alpha: float):
         self.alpha = alpha
-        self._var: float | None = None
+        self.var: float = np.nan
         self._ema: ExpMovingAvg = ExpMovingAvg(alpha)
-    def feed(self, x: np.ndarray) -> None:
-        if self._var is None:
-            first_valid_idx = np.where(~np.isnan(x))[0]
-            if len(first_valid_idx) > 0:
-                self._var = 0
-                self._ema.feed(x)
-                self._prev_mean = self._ema()
+        self._nan_count: int = 0
+
+    def feed_single(self, x: float) -> None:
+        self._ema.feed_single(x)
+
+        if np.isnan(x):
+            self._nan_count += 1
             return
 
-        nan_counts = np.zeros_like(x)
-        nan_count = 0
+        mu = self._ema.mu
+        delta = x - mu
+        if np.isnan(self.var):
+            self.var = delta ** 2
+        else:
+            effective_alpha = self.alpha ** (self._nan_count + 1)
+            self.var = (1 - effective_alpha) * delta ** 2 + effective_alpha * self.var
 
-        for i in range(len(x)):
-            if np.isnan(x[i]):
-                nan_count += 1
-            else:
-                nan_counts[i] = nan_count
-                nan_count = 0
+        self._nan_count = 0
 
-        prev_mean = self._ema()
-        self._ema.feed(x)
-        for i in range(len(x)):
-            if not np.isnan(x[i]):
-                effective_alpha = self.alpha ** (nan_counts[i] + 1)
-                delta = x[i] - prev_mean
-                self._var = float((1 - effective_alpha) * (delta * delta) + effective_alpha * self._var)
+    def feed(self, x: np.ndarray) -> None:
+        for x_i in x:
+            self.feed_single(x_i)
 
-    def __call__(self) -> float:
-        if self._var is None:
-            return np.nan
-        return self._var

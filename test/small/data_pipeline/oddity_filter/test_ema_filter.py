@@ -7,7 +7,7 @@ from corerl.data_pipeline.datatypes import CallerCode, MissingType, PipelineFram
 from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilter, EMAFilterConfig
 
 
-def test_filter_warmup():
+def test_filter_no_warmup():
     name = "sensor_x"
 
     # filter with no warmup
@@ -23,23 +23,42 @@ def test_filter_warmup():
     filtered_data = pf.data[name].to_numpy()
     assert np.allclose(filtered_data, expected, equal_nan=True)
 
+def test_filter_warmup():
+    name = "sensor_x"
+
     # filter with warmup = 5
     cfg = EMAFilterConfig(alpha=0.99, warmup=5)
     outlier_detector = EMAFilter(cfg)
 
-    values = np.array([1.0, 1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 10.0])
-    # 5 should not be removed because warmup has not finished
-    # 10 should be removed because warmup is complete
-    expected = np.array([1.0, 1.0, 1.0, 5.0, 1.0, 1.0, 1.0, np.nan])
-    data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    values_0 = np.array([1.0, 1.0, 1.0])
+    expected_0 = np.array([1.0, 1.0, 1.0])
 
-    pf = outlier_detector(pf, name)
-    filtered_data = pf.data[name].to_numpy()
-    assert np.allclose(filtered_data, expected, equal_nan=True)
+    data_0 = pd.DataFrame({name: values_0})
+    pf_0 = PipelineFrame(data_0, CallerCode.ONLINE)
+    pf_0_out = outlier_detector(pf_0, name)
+    filtered_data_0 = pf_0_out.data[name].to_numpy()
+
+    assert np.allclose(filtered_data_0, expected_0, equal_nan=True)
+
+    warmup_vals = np.array([1.0, 1.0, 1.0, 5.0, 1.0]) # first 5 values including 2 from values_1
+    expected_warmup_mean = warmup_vals.mean()
+    expected_warmup_std = np.sqrt(warmup_vals.var())
+    epsilon = 0.01
+    outlier = expected_warmup_mean + outlier_detector.tolerance * expected_warmup_std + epsilon
+
+    # 5 should not be removed because warmup has not finished
+    values_1 = np.array([5.0, 1.0, outlier, 1.0, 1.0])
+    expected_1 = np.array([5.0, 1.0, np.nan, 1.0, 1.0])
+
+    data_1 = pd.DataFrame({name: values_1})
+    pf_1 = PipelineFrame(data_1, CallerCode.ONLINE, temporal_state=pf_0_out.temporal_state)
+    pf_1_out = outlier_detector(pf_1, name)
+    filtered_data_1 = pf_1_out.data[name].to_numpy()
+
+    assert np.allclose(filtered_data_1, expected_1, equal_nan=True)
 
 def test_leading_nan_data():
-    cfg = EMAFilterConfig(alpha=0.99)
+    cfg = EMAFilterConfig(alpha=0.99, warmup=5)
     outlier_detector = EMAFilter(cfg)
 
     name = "sensor_x"
@@ -109,7 +128,7 @@ def test_full_nan_data():
 
 
 def test_interspersed_nan_data():
-    cfg = EMAFilterConfig(alpha=0.99)
+    cfg = EMAFilterConfig(alpha=0.99, warmup=5)
     outlier_detector = EMAFilter(cfg)
     name = "sensor_x"
 
@@ -131,7 +150,7 @@ def test_interspersed_nan_data():
 
 
 def test_streamed_nans():
-    cfg = EMAFilterConfig(alpha=0.99)
+    cfg = EMAFilterConfig(alpha=0.99, warmup=5)
     outlier_detector = EMAFilter(cfg)
     name = "sensor_x"
 
