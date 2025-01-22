@@ -46,9 +46,8 @@ def main(cfg: MainConfig):
         # scheduler = multiprocessing.Process(target=scheduler_task, args=(cfg.event_bus,))
         context = zmq.Context()
         stop_event = threading.Event()
-        scheduler = threading.Thread(target=scheduler_task, args=(cfg.event_bus, context, stop_event))
+        scheduler = threading.Thread(target=scheduler_task, args=(cfg, context, stop_event))
         scheduler.setDaemon(True)
-        scheduler.start()
 
         event_bus = context.socket(zmq.PUB)
         event_bus.bind(cfg.event_bus.app_connection)
@@ -93,6 +92,9 @@ def main(cfg: MainConfig):
         if run_forever:
             max_steps = 0
         pbar = tqdm(total=max_steps)
+
+        if scheduler:
+            scheduler.start()
 
         while True:
             pbar.update(1)

@@ -2,5 +2,6 @@ name: sim_async_env
 gym_name : Saturation-v0
 seed : ${experiment.seed}
 discrete_control : False
-action_period: 00:00:01
 obs_period: 00:00:01
+update_period: 00:00:01
+action_period: 00:00:01

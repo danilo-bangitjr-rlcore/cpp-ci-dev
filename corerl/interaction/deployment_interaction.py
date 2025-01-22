@@ -14,6 +14,7 @@ from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.environment.async_env.opc_tsdb_sim_async_env import OPCTSDBSimAsyncEnv
 from corerl.interaction.interaction import Interaction
+from corerl.messages.events import Event, EventType
 from corerl.state import AppState
 from corerl.utils.time import split_into_chunks
 
@@ -43,7 +44,6 @@ class DeploymentInteraction(Interaction):
 
         self._column_desc = pipeline.column_descriptions
 
-        self._should_reset = False
         self._last_state = np.full(self._column_desc.state_dim, np.nan)
         self._pipeline.register_hook(CallerCode.ONLINE, StageCode.SC, self._capture_last_state)
 
@@ -76,7 +76,7 @@ class DeploymentInteraction(Interaction):
         self.load_historical_chunk()
 
         o = self._env.get_latest_obs()
-        pr = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
+        pr = self._pipeline(o, caller_code=CallerCode.ONLINE)
         if pr.transitions is not None:
             self._agent.update_buffer(pr.transitions)
 
@@ -88,6 +88,30 @@ class DeploymentInteraction(Interaction):
             self._env.emit_action(a)
 
         self._app_state.agent_step += 1
+
+    def step_event(self, event: Event):
+        logger.debug(f"Received step_event: {event}")
+        match event.type:
+            case EventType.step:
+                self.step()
+
+            case EventType.step_get_obs:
+                o = self._env.get_latest_obs()
+                pr = self._pipeline(o, caller_code=CallerCode.ONLINE)
+                if pr.transitions is not None:
+                    self._agent.update_buffer(pr.transitions)
+
+            case EventType.step_agent_update:
+                self._agent.update()
+
+            case EventType.step_emit_action:
+                s = self._get_latest_state()
+                if s is not None:
+                    a = self._agent.get_action(s)
+                    self._env.emit_action(a)
+
+            case _:
+                logger.warning(f"Unexpected step_event: {event}")
 
     def load_historical_chunk(self):
         try:

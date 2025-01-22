@@ -14,9 +14,9 @@ env:
   discrete_control: False
   seed: 1
   db: ${pipeline.db}
-  action_period: 00:00:01
   obs_period: 00:00:01
-
+  update_period: 00:00:01
+  action_period: 00:00:01
 agent:
   name: greedy_ac
   n_critic_updates: 1
