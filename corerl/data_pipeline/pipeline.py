@@ -17,7 +17,7 @@ from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
-from corerl.data_pipeline.constructors.rc import RewardComponentConstructor, RewardConstructor
+from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode, TemporalState, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
@@ -51,6 +51,7 @@ class PipelineConfig:
 @dataclass
 class PipelineReturn:
     df: DataFrame
+    rewards: DataFrame
     transitions: list[Transition] | None
 
 
@@ -96,9 +97,7 @@ class Pipeline:
         self.imputers = init_imputer(cfg.imputer, self.tags)
         self.action_constructor = ActionConstructor(self.tags)
         self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
-
-        reward_components = {cfg.name: RewardComponentConstructor(cfg.reward_constructor) for cfg in self.tags}
-        self.reward_constructor = RewardConstructor(reward_components)
+        self.reward_constructor = RewardConstructor(self.tags, self.preprocessor)
 
         # build pipeline state
         self.ts_dict: dict[CallerCode, TemporalState | None] = {caller_code: None for caller_code in CallerCode}
@@ -171,6 +170,7 @@ class Pipeline:
         if data.empty:
             return PipelineReturn(
                 df=data,
+                rewards=data,
                 transitions=[],
             )
 
@@ -191,6 +191,7 @@ class Pipeline:
 
         return PipelineReturn(
             df=pf.data,
+            rewards=pf.rewards,
             transitions=pf.transitions,
         )
 

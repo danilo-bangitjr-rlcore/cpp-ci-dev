@@ -97,17 +97,23 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
             tags=[
                 TagConfig(
                     name="Action",
+                    preprocess=[],
                     state_constructor=[NullConfig()],
                     action_constructor=[],
                     operating_range=(0.0, 1.0)
                 ),
                 TagConfig(
                     name="Tag_1",
+                    preprocess=[],
                     reward_constructor=[
                         LessThanConfig(threshold=3),
                     ],
                 ),
-                TagConfig(name="reward", is_meta=True),
+                TagConfig(
+                    name="reward",
+                    preprocess=[],
+                    state_constructor=[NullConfig()],
+                ),
             ],
             db=test_db_config,
             obs_period=obs_period,

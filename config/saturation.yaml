@@ -57,9 +57,14 @@ pipeline:
   tags:
   # meta tags
   - name: reward
-    is_meta: True
     outlier:
       name: identity
+    reward_constructor:
+    - name: identity
+    state_constructor:
+    - name: 'null'
+    preprocess:
+    - name: identity
 
   - name: terminated
     is_meta: True
@@ -74,23 +79,27 @@ pipeline:
     - name: 'null'
 
   # observations
-  - name: tag-1
+  - name: tag-0
     is_meta: False
     outlier:
       name: identity
+    preprocess:
+      - name: identity
     state_constructor:
     - name: multi_trace
       trace_values: [0.95]
 
   # actions
-  - name: action
+  - name: action-0
     is_meta: False
     outlier:
       name: identity
     state_constructor:
-      - name: "null"
-    action_constructor:
+      - name: 'null'
+    preprocess:
       - name: normalize
         min: -2
         max: 2
         from_data: False
+    action_constructor:
+      - name: identity

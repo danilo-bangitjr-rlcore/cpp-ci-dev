@@ -86,7 +86,7 @@ class AllTheTimeTC:
         pf, actions, states = self._extract_columns(pf)
 
         df = pf.data
-        rewards = df['reward'].to_numpy()
+        rewards = pf.rewards['reward'].to_numpy()
         gammas = np.ones(len(rewards))
         if 'terminated' in df.columns:
             gammas = 1 - df['terminated'].to_numpy()
@@ -109,7 +109,7 @@ class AllTheTimeTC:
     def _extract_columns(self, pf: PipelineFrame):
         state_cols = [
             col for col in pf.data.columns
-            if col not in self.meta_tags and col != "reward"
+            if col not in self.meta_tags
         ]
         states = get_tags(pf.data, state_cols)
         actions = tensor(pf.actions.to_numpy(np.float32))

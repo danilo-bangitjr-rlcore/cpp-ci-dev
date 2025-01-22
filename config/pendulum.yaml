@@ -58,37 +58,43 @@ pipeline:
     gamma: ${experiment.gamma}
 
   tags:
-  - name: action
+  - name: action-0
+    operating_range: [-2, 2]
     is_meta: False
     outlier:
       name: identity
     state_constructor:
       - name: "null"
     action_constructor:
-      - name: normalize
-        min: -2
-        max: 2
-        from_data: False
+      - name: identity
 
   # observations
-  - name: "x"
+  # x
+  - name: tag-0
     is_meta: False
+    operating_range: [-1, 1]
     outlier:
       name: identity
     state_constructor:
     - name: multi_trace
       trace_values: [0.95]
 
-  - name: "y"
+  # y
+  - name: tag-1
     is_meta: False
+    operating_range: [-1, 1]
     outlier:
       name: identity
     state_constructor:
     - name: multi_trace
       trace_values: [0.95]
 
-  - name: "ang_vel"
+  # ang_vel
+  - name: tag-2
     is_meta: False
+    operating_range: [-8, 8]
+    red_bounds: [-7.5, 7.5]
+    yellow_bounds: [-6, 6]
     outlier:
       name: identity
     state_constructor:
