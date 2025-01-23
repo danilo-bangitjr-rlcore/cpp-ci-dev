@@ -21,7 +21,7 @@ class OfflineTraining:
         self.offline_steps = self.cfg.experiment.offline_steps
         self._training_hooks = []
 
-    def register_training_hook(self, f: Callable[[Any], Any]):
+    def register_training_hook(self, f: Callable[[], None]):
         self._training_hooks.append(f)
 
     def load_offline_transitions(
