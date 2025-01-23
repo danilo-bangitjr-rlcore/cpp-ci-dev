@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from corerl.agent.base import BaseAgent
 from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import CallerCode
+from corerl.data_pipeline.datatypes import CallerCode, Transition
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.utils.time import split_into_chunks
@@ -17,9 +17,9 @@ log = logging.getLogger(__name__)
 class OfflineTraining:
     def __init__(self, cfg: MainConfig):
         self.cfg = cfg
-        self.offline_transitions = []
+        self.offline_transitions: list[Transition] = []
         self.offline_steps = self.cfg.experiment.offline_steps
-        self._training_hooks = []
+        self._training_hooks: list[Callable[[], None]] = []
 
     def register_training_hook(self, f: Callable[[], None]):
         self._training_hooks.append(f)
@@ -58,7 +58,7 @@ class OfflineTraining:
 
     def train(self, agent: BaseAgent):
         assert len(self.offline_transitions) > 0, (
-            "You must first load offline transitions before you can perform " "offline training"
+            "You must first load offline transitions before you can perform offline training"
         )
         log.info("Starting offline agent training...")
 
