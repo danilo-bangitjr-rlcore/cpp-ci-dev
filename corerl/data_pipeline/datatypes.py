@@ -144,19 +144,6 @@ class TransitionBatch:
     n_step_reward: Tensor
     n_step_gamma: Tensor
 
-    def __post_init__(self):
-        # ensure all the attributes have the same dimension
-        state_batch_size = self.prior.state.size(0)
-        for f in fields(self):
-            attr = getattr(self, f.name)
-            if isinstance(attr, StepBatch):
-                for sub_field in iter(attr):
-                    assert sub_field.size(0) == state_batch_size, \
-                        f"Element {sub_field.name} does not have the same batch size as the state"
-            else:
-                assert attr.size(0) == state_batch_size, \
-                    f"Element {f.name} does not have the same batch size as the state"
-
     def __eq__(self, other: object):
         if not isinstance(other, TransitionBatch):
             return False
