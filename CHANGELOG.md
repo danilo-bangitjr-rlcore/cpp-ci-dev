@@ -1,3 +1,16 @@
+## 0.46.0 (2025-01-23)
+
+### Feat
+
+- minimal (minimal) communication between fastapi and vite
+- updated Dockerfile to build and serve client
+- using vite and react for client
+- base fastapi app with test
+
+### Fix
+
+- allow client/dist to not exist
+
 ## 0.45.1 (2025-01-23)
 
 ### Refactor
