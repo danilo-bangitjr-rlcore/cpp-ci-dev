@@ -3,25 +3,13 @@ import random
 from collections.abc import Sequence
 from typing import Any, Literal, cast
 
-import numpy as np
 import torch
-from torch import Tensor
 
-from corerl.configs.config import MISSING, config
-from corerl.configs.group import Group
-from corerl.data_pipeline.datatypes import StepBatch, Transition, TransitionBatch
-from corerl.utils.device import device
+from corerl.component.buffer.base import BaseReplayBufferConfig, ReplayBuffer, buffer_group
+from corerl.configs.config import config
+from corerl.data_pipeline.datatypes import Transition, TransitionBatch
 
 logger = logging.getLogger(__name__)
-
-
-@config()
-class BaseReplayBufferConfig:
-    name: Any = MISSING
-    seed: int = MISSING
-    memory: int = 1000000
-    batch_size: int = 256
-    combined: bool = True
 
 
 @config()
@@ -29,67 +17,12 @@ class UniformReplayBufferConfig(BaseReplayBufferConfig):
     name: Literal['uniform'] = "uniform"
 
 
-class UniformBuffer:
+class UniformBuffer(ReplayBuffer):
     def __init__(self, cfg: UniformReplayBufferConfig):
-        self.seed = cfg.seed
-        self.rng = np.random.RandomState(self.seed)
-        self.memory = cfg.memory
-        self.batch_size = cfg.batch_size
+        super().__init__(cfg)
 
-        # Whether or not to use combined experience replay:
-        #   https://arxiv.org/pdf/1712.01275
-        self.combined = cfg.combined
 
-        self.data = None
-        self.pos = 0
-        self.full = False
-
-        if self.batch_size == 0:
-            self.sample = self.sample_batch
-        else:
-            self.sample = self.sample_mini_batch
-
-    @property
-    def _last_pos(self):
-        if self.pos == 0 and not self.full:
-            return 0
-        else:
-            return self.pos - 1
-
-    def feed(self, transitions: Sequence[Transition]) -> None:
-        for transition in transitions:
-            if self.data is None:
-                # Lazy instantiation
-                data_size = _get_size(transition)
-                self.data = [torch.empty((self.memory, *s), device=device.device) for s in data_size]
-
-            for i, elem in enumerate(transition):
-                self.data[i][self.pos] = _to_tensor(elem)
-
-            self.pos += 1
-            if not self.full and self.pos == self.memory:
-                self.full = True
-            self.pos %= self.memory
-
-    def load(self, transitions: Sequence[Transition]) -> None:
-        assert len(transitions) > 0
-
-        data_size = _get_size(transitions[0])
-        self.data = [torch.empty((self.memory, *s)) for s in data_size]
-
-        for transition in transitions:
-            for i, elem in enumerate(transition):
-                self.data[i][self.pos] = _to_tensor(elem)
-
-            self.pos += 1
-            if not self.full and self.pos == self.memory:
-                self.full = True
-            self.pos %= self.memory
-
-        for i in range(len(self.data)):
-            self.data[i] = self.data[i].to(device.device)
-
-    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
+    def sample(self, batch_size: int | None = None) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
             return []
 
@@ -104,40 +37,6 @@ class UniformBuffer:
         sampled_data = [self.data[i][sampled_indices] for i in range(len(self.data))]
 
         return [self._prepare(sampled_data)]
-
-    def sample_batch(self) -> list[TransitionBatch]:
-        if self.size == [0] or self.data is None:
-            return []
-
-        if self.full:
-            sampled_data = self.data
-        else:
-            sampled_data = [self.data[i][: self.pos] for i in range(len(self.data))]
-
-        return [self._prepare(sampled_data)]
-
-    @property
-    def size(self) -> list[int]:
-        return [self.memory if self.full else self.pos]
-
-    def reset(self) -> None:
-        self.pos = 0
-        self.full = False
-
-    def _prepare(self, batch: list[Tensor]) -> TransitionBatch:
-        step_attrs = len(StepBatch.__annotations__.keys())
-        prior_step_batch = StepBatch(*batch[:step_attrs])
-        post_step_batch = StepBatch(*batch[step_attrs: step_attrs * 2])
-        return TransitionBatch(
-            prior_step_batch,
-            post_step_batch,
-            n_step_reward=batch[-2],
-            n_step_gamma=batch[-1])
-
-
-buffer_group = Group[
-    [], UniformBuffer
-]()
 
 buffer_group.dispatcher(UniformBuffer)
 
@@ -263,35 +162,3 @@ class EnsembleUniformBuffer(UniformBuffer):
             self.buffer_ensemble[i].reset()
 
 buffer_group.dispatcher(EnsembleUniformBuffer)
-
-
-def _to_tensor(elem: object):
-    if (
-            isinstance(elem, Tensor)
-            or isinstance(elem, np.ndarray)
-            or isinstance(elem, list)
-    ):
-        return Tensor(elem)
-    elif elem is None:
-        return torch.empty((1, 0))
-    else:
-        return Tensor([elem])
-
-
-def _get_size(experience: Transition) -> list[tuple]:
-    size = []
-    for elem in experience:
-        if isinstance(elem, np.ndarray):
-            size.append(elem.shape)
-        elif isinstance(elem, Tensor):
-            size.append(tuple(elem.shape))
-        elif elem is None:
-            size.append((0,))
-        elif isinstance(elem, int) or isinstance(elem, float) or isinstance(elem, bool):
-            size.append((1,))
-        elif isinstance(elem, list):
-            size.append((len(elem),))
-        else:
-            raise TypeError(f"unknown type {type(elem)}")
-
-    return size

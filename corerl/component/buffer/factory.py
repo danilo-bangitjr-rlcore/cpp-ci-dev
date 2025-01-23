@@ -1,7 +1,6 @@
 from corerl.component.buffer.buffers import (
     EnsembleUniformReplayBufferConfig,
     PriorityReplayBufferConfig,
-    UniformBuffer,
     UniformReplayBufferConfig,
     buffer_group,
 )
@@ -13,5 +12,5 @@ BufferConfig = (
 )
 
 
-def init_buffer(cfg: BufferConfig) -> UniformBuffer:
+def init_buffer(cfg: BufferConfig):
     return buffer_group.dispatch(cfg)
