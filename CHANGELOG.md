@@ -1,3 +1,13 @@
+## 0.42.0 (2025-01-23)
+
+### Feat
+
+- implement min/max binary xform
+
+### Refactor
+
+- rename prod xform to binary
+
 ## 0.41.0 (2025-01-23)
 
 ### Feat
