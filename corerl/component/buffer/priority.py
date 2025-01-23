@@ -39,15 +39,22 @@ class PriorityBuffer(ReplayBuffer):
     def _sample_indices(self):
         return self._idx_dist.stratified_sample(self.rng, self.batch_size)
 
-    def feed(self, transitions: Sequence[Transition]) -> None:
-        start_idx = self.pos
-        super().feed(transitions)
-        end_idx = self.pos
 
-        idxs = np.arange(start_idx, end_idx)
+    def feed(self, transitions: Sequence[Transition]):
+        idxs = super().feed(transitions)
         priorities = np.ones(len(idxs)) * self._max_priority
-
         self._idx_dist.update(idxs, priorities)
+
+        return idxs
+
+
+    def load(self, transitions: Sequence[Transition]):
+        idxs = super().load(transitions)
+        priorities = np.ones(len(idxs)) * self._max_priority
+        self._idx_dist.update(idxs, priorities)
+
+        return idxs
+
 
     def update_priorities(self, idxs: np.ndarray, priorities: np.ndarray):
         self._idx_dist.update(idxs, priorities)

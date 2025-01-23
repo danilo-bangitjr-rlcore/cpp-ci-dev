@@ -29,19 +29,23 @@ class UniformBuffer(ReplayBuffer):
 
 
     def feed(self, transitions: Sequence[Transition]):
-        super().feed(transitions)
+        idxs = super().feed(transitions)
 
         # expand the support of the distribution to cover
         # the entire size of the replay buffer
         self._idx_dist.update_support(self.size[0])
+
+        return idxs
 
 
     def load(self, transitions: Sequence[Transition]):
-        super().load(transitions)
+        idxs = super().load(transitions)
 
         # expand the support of the distribution to cover
         # the entire size of the replay buffer
         self._idx_dist.update_support(self.size[0])
+
+        return idxs
 
 
     def reset(self):

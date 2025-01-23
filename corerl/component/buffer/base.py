@@ -47,8 +47,10 @@ class ReplayBuffer:
     def _last_pos(self):
         return (self.pos - 1) % self.memory
 
-    def feed(self, transitions: Sequence[Transition]) -> None:
-        for transition in transitions:
+    def feed(self, transitions: Sequence[Transition]) -> np.ndarray:
+        idxs = np.empty(len(transitions), dtype=np.int64)
+
+        for j, transition in enumerate(transitions):
             if self.data is None:
                 # Lazy instantiation
                 data_size = _get_size(transition)
@@ -57,28 +59,30 @@ class ReplayBuffer:
             for i, elem in enumerate(transition):
                 self.data[i][self.pos] = _to_tensor(elem)
 
-            self.pos += 1
-            if not self.full and self.pos == self.memory:
+            idxs[j] = self.pos
+            self.pos = (self.pos + 1) % self.memory
+            if not self.full and self.pos == 0:
                 self.full = True
-            self.pos %= self.memory
 
-    def load(self, transitions: Sequence[Transition]) -> None:
+        return idxs
+
+    def load(self, transitions: Sequence[Transition]) -> np.ndarray:
         assert len(transitions) > 0
+        idxs = np.empty(len(transitions), dtype=np.int64)
 
         data_size = _get_size(transitions[0])
         self.data = [torch.empty((self.memory, *s)) for s in data_size]
 
-        for transition in transitions:
+        for idx, transition in enumerate(transitions):
             for i, elem in enumerate(transition):
                 self.data[i][self.pos] = _to_tensor(elem)
 
-            self.pos += 1
-            if not self.full and self.pos == self.memory:
+            idxs[idx] = self.pos
+            self.pos = (self.pos + 1) % self.memory
+            if not self.full and self.pos == 0:
                 self.full = True
-            self.pos %= self.memory
 
-        for i in range(len(self.data)):
-            self.data[i] = self.data[i].to(device.device)
+        return idxs
 
     def sample(self) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
