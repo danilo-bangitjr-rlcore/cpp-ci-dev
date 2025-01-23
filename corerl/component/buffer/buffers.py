@@ -143,10 +143,10 @@ class EnsembleUniformBuffer(UniformBuffer):
 
         return ensemble_batch
 
-    def sample_batch(self) -> list[TransitionBatch]:
+    def full_batch(self) -> list[TransitionBatch]:
         ensemble_batch = []
         for i in range(self.ensemble):
-            part = self.buffer_ensemble[i].sample_batch()
+            part = self.buffer_ensemble[i].full_batch()
             if part is None: continue
 
             ensemble_batch += part

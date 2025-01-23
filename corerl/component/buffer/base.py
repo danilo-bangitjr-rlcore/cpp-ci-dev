@@ -92,7 +92,7 @@ class ReplayBuffer:
 
         return [self._prepare(sampled_data)]
 
-    def sample_batch(self) -> list[TransitionBatch]:
+    def full_batch(self) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
             return []
 
