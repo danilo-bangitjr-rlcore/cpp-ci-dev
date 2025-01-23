@@ -89,7 +89,7 @@ class ReplayBuffer:
             sampled_indices[0] = self._last_pos
 
         sampled_data = [self.data[i][sampled_indices] for i in range(len(self.data))]
-        return [self._prepare(sampled_data)]
+        return [self._prepare(sampled_indices, sampled_data)]
 
     def full_batch(self) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
@@ -100,7 +100,8 @@ class ReplayBuffer:
         else:
             sampled_data = [self.data[i][: self.pos] for i in range(len(self.data))]
 
-        return [self._prepare(sampled_data)]
+        idxs = np.arange(0, len(self.data))
+        return [self._prepare(idxs, sampled_data)]
 
     @property
     def size(self) -> list[int]:
@@ -110,15 +111,17 @@ class ReplayBuffer:
         self.pos = 0
         self.full = False
 
-    def _prepare(self, batch: list[Tensor]) -> TransitionBatch:
+    def _prepare(self, idxs: np.ndarray, batch: list[Tensor]) -> TransitionBatch:
         step_attrs = len(StepBatch.__annotations__.keys())
         prior_step_batch = StepBatch(*batch[:step_attrs])
         post_step_batch = StepBatch(*batch[step_attrs: step_attrs * 2])
         return TransitionBatch(
+            idxs,
             prior_step_batch,
             post_step_batch,
             n_step_reward=batch[-2],
-            n_step_gamma=batch[-1])
+            n_step_gamma=batch[-1],
+        )
 
 
 buffer_group = Group[

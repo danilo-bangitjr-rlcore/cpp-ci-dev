@@ -1,12 +1,14 @@
 import logging
 from collections.abc import Sequence
-from typing import Any, cast
 
-import torch
+import numpy as np
+from discrete_dists.mixture import MixtureDistribution, SubDistribution
+from discrete_dists.proportional import Proportional
+from discrete_dists.uniform import Uniform
 
 from corerl.component.buffer.base import BaseReplayBufferConfig, ReplayBuffer, buffer_group
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import Transition, TransitionBatch
+from corerl.data_pipeline.datatypes import Transition
 
 logger = logging.getLogger(__name__)
 
@@ -15,51 +17,40 @@ logger = logging.getLogger(__name__)
 class PriorityReplayBufferConfig(BaseReplayBufferConfig):
     name: str = "priority"
 
+    uniform_probability: float = 0.01
+    priority_decay: float = 0.99
+
 
 class PriorityBuffer(ReplayBuffer):
     def __init__(self, cfg: PriorityReplayBufferConfig):
-        super(PriorityBuffer, self).__init__(cast(Any, cfg))
-        self.priority = torch.zeros((self.memory,))
-        logger.warning("Priority buffer has not been tested yet")
+        super().__init__(cfg)
+
+        self._idx_dist = MixtureDistribution([
+            # build a uniform distribution with no support (support grows
+            # as elements are added to the buffer)
+            SubDistribution(d=Uniform(0), p=cfg.uniform_probability),
+            # build a distribution that samples proportionally to the
+            # priorities added to it.
+            SubDistribution(d=Proportional(self.memory), p=1-cfg.uniform_probability),
+        ])
+
+        self._max_priority = 1
+
+    def _sample_indices(self):
+        return self._idx_dist.stratified_sample(self.rng, self.batch_size)
 
     def feed(self, transitions: Sequence[Transition]) -> None:
-        super(PriorityBuffer, self).feed(transitions)
-        # UniformBuffer.feed() already increments self.pos. Need to take this into account
-        self.pos = (self.pos - 1) % self.memory
+        start_idx = self.pos
+        super().feed(transitions)
+        end_idx = self.pos
 
-        self.priority[self.pos] = 1.0
+        idxs = np.arange(start_idx, end_idx)
+        priorities = np.ones(len(idxs)) * self._max_priority
 
-        self.pos += 1
-        self.pos %= self.memory
+        self._idx_dist.update(idxs, priorities)
 
-        if self.full:
-            scale = self.priority.sum()
-        else:
-            scale = self.priority[: self.pos].sum()
-
-        self.priority /= scale
-
-    def sample(self, batch_size: int | None = None) -> list[TransitionBatch]:
-        if self.size == [0] or self.data is None:
-            return []
-
-        if batch_size is None:
-            batch_size = self.batch_size
-
-        sampled_indices = self.rng.choice(
-            self.size[0],
-            batch_size,
-            replace=False,
-            p=(self.priority if self.full else self.priority[: self.pos]),
-        )
-
-        sampled_data = [self.data[i][sampled_indices] for i in range(len(self.data))]
-
-        return [self._prepare(sampled_data)]
-
-    def update_priorities(self, priority: torch.Tensor):
-        assert priority.shape == self.priority.shape
-        self.priority = torch.tensor(priority)
+    def update_priorities(self, idxs: np.ndarray, priorities: np.ndarray):
+        self._idx_dist.update(idxs, priorities)
 
 
 buffer_group.dispatcher(PriorityBuffer)

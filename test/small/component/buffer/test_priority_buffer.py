@@ -1,7 +1,7 @@
 import numpy as np
 from torch import Tensor
 
-from corerl.component.buffer.buffers import PriorityBuffer, PriorityReplayBufferConfig
+from corerl.component.buffer.priority import PriorityBuffer, PriorityReplayBufferConfig
 from corerl.data_pipeline.datatypes import Step, StepBatch, Transition, TransitionBatch
 
 
@@ -69,6 +69,8 @@ def test_sample_mini_batch():
     # With combined=True, the first sampled index is replaced with the index of the last added transition.
     # So sampled indices becomes [2, 1], yielding the following TransitionBatch
     expected = TransitionBatch(
+        # stub out the idxs as these are random and not meaningful
+        batch.idxs,
         StepBatch(
             Tensor([[1.0], [0.9]]),
             Tensor([[0.5], [0.6]]),

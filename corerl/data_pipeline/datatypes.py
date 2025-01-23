@@ -138,6 +138,7 @@ class StepBatch:
 
 @dataclass
 class TransitionBatch:
+    idxs: np.ndarray
     prior: StepBatch
     post: StepBatch
     n_step_reward: Tensor
