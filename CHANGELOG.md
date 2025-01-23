@@ -1,3 +1,9 @@
+## 0.45.0 (2025-01-23)
+
+### Feat
+
+- implement delta xform constructor
+
 ## 0.44.0 (2025-01-23)
 
 ### Feat
