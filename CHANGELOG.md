@@ -1,3 +1,10 @@
+## 0.46.3 (2025-01-23)
+
+### Fix
+
+- fix ensemble reduction config
+- Fix ensemble reduction config schemas
+
 ## 0.46.2 (2025-01-23)
 
 ### Fix
