@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from typing import Any, Literal, cast
 
 import torch
+from discrete_dists.uniform import Uniform
 
 from corerl.component.buffer.base import BaseReplayBufferConfig, ReplayBuffer, buffer_group
 from corerl.configs.config import config
@@ -21,22 +22,34 @@ class UniformBuffer(ReplayBuffer):
     def __init__(self, cfg: UniformReplayBufferConfig):
         super().__init__(cfg)
 
+        # initially this dist has no support
+        # support expands as samples are added
+        self._idx_dist = Uniform(0)
 
-    def sample(self, batch_size: int | None = None) -> list[TransitionBatch]:
-        if self.size == [0] or self.data is None:
-            return []
+    def _sample_indices(self):
+        return self._idx_dist.sample(self.rng, self.batch_size)
 
-        if batch_size is None:
-            batch_size = self.batch_size
 
-        sampled_indices = self.rng.randint(0, self.size, batch_size)
+    def feed(self, transitions: Sequence[Transition]):
+        super().feed(transitions)
 
-        if self.combined:
-            sampled_indices[0] = self._last_pos
+        # expand the support of the distribution to cover
+        # the entire size of the replay buffer
+        self._idx_dist.update_single(self.size[0], 0)
 
-        sampled_data = [self.data[i][sampled_indices] for i in range(len(self.data))]
 
-        return [self._prepare(sampled_data)]
+    def load(self, transitions: Sequence[Transition]):
+        super().load(transitions)
+
+        # expand the support of the distribution to cover
+        # the entire size of the replay buffer
+        self._idx_dist.update_single(self.size[0], 0)
+
+
+    def reset(self):
+        super().reset()
+        self._idx_dist.update_single(0, 0)
+
 
 buffer_group.dispatcher(UniformBuffer)
 
@@ -119,7 +132,7 @@ class EnsembleUniformBuffer(UniformBuffer):
 
     def feed(self, transitions: Sequence[Transition]) -> None:
         for i in range(self.ensemble):
-            if self.rng.rand() < self.data_subset:
+            if self.rng.random() < self.data_subset:
                 self.buffer_ensemble[i].feed(transitions)
 
     def load(self, transitions: Sequence[Transition]) -> None:
@@ -133,10 +146,10 @@ class EnsembleUniformBuffer(UniformBuffer):
         for i in range(self.ensemble):
             self.buffer_ensemble[i].load(ensemble_transitions[i])
 
-    def sample(self, batch_size: int | None = None) -> list[TransitionBatch]:
+    def sample(self) -> list[TransitionBatch]:
         ensemble_batch = []
         for i in range(self.ensemble):
-            part = self.buffer_ensemble[i].sample(batch_size)
+            part = self.buffer_ensemble[i].sample()
             if part is None: continue
 
             ensemble_batch += part

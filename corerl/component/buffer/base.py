@@ -1,4 +1,5 @@
 import logging
+from abc import abstractmethod
 from collections.abc import Sequence
 from typing import Any
 
@@ -26,7 +27,7 @@ class BaseReplayBufferConfig:
 class ReplayBuffer:
     def __init__(self, cfg: BaseReplayBufferConfig):
         self.seed = cfg.seed
-        self.rng = np.random.RandomState(self.seed)
+        self.rng = np.random.default_rng(self.seed)
         self.memory = cfg.memory
         self.batch_size = cfg.batch_size
 
@@ -38,6 +39,9 @@ class ReplayBuffer:
         self.pos = 0
         self.full = False
 
+    @abstractmethod
+    def _sample_indices(self) -> np.ndarray:
+        ...
 
     @property
     def _last_pos(self):
@@ -76,20 +80,15 @@ class ReplayBuffer:
         for i in range(len(self.data)):
             self.data[i] = self.data[i].to(device.device)
 
-    def sample(self, batch_size: int | None = None) -> list[TransitionBatch]:
+    def sample(self) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
             return []
 
-        if batch_size is None:
-            batch_size = self.batch_size
-
-        sampled_indices = self.rng.randint(0, self.size, batch_size)
-
+        sampled_indices = self._sample_indices()
         if self.combined:
             sampled_indices[0] = self._last_pos
 
         sampled_data = [self.data[i][sampled_indices] for i in range(len(self.data))]
-
         return [self._prepare(sampled_data)]
 
     def full_batch(self) -> list[TransitionBatch]:
