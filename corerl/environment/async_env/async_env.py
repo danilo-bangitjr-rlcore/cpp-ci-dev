@@ -15,6 +15,7 @@ class BaseAsyncEnvConfig(EnvironmentConfig):
     obs_period: timedelta = MISSING
     update_period: timedelta = MISSING
     action_period: timedelta = MISSING
+    setpoint_ping_period: timedelta = timedelta(seconds=5)
 
 @config()
 class OPCEnvConfig(BaseAsyncEnvConfig):
