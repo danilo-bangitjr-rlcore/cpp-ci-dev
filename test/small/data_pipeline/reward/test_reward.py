@@ -493,8 +493,6 @@ def test_epcor_reward():
 
     c_min = 0
     c_max = get_max_cost(r_cfg)
-    m_c = (r_cfg.r_c_max - r_cfg.r_c_min) / (c_max - r_cfg.c_min)
-    b_c = r_cfg.r_c_min - m_c * r_cfg.c_min
 
     # used in derivation of normalized
     # constraint violation
@@ -523,9 +521,7 @@ def test_epcor_reward():
                 other="efficiency",
                 other_xform=[
                     *constraint_violation_xforms,
-                    xform.GreaterThanConfig(
-                        threshold=0,
-                    ),
+                    xform.GreaterThanConfig(threshold=0),
                 ],
             ),
         ],
@@ -535,25 +531,17 @@ def test_epcor_reward():
                 # passthrough=True,
                 # left is high pumpspeed penalty
                 left=[
-                    xform.GreaterThanConfig(
-                        threshold=r_cfg.ph_pumpspeed_max,
-                    ),
-                    xform.ScaleConfig(
-                        factor=r_cfg.high_pumpspeed_penalty,
-                    ),
+                    xform.GreaterThanConfig(threshold=r_cfg.ph_pumpspeed_max),
+                    xform.ScaleConfig(factor=r_cfg.high_pumpspeed_penalty),
                 ],
                 # right is ph component of cost reward
                 right=[
-                    xform.ScaleConfig(
-                        factor=r_cfg.ph_cost_factor
-                    ),
+                    xform.ScaleConfig(factor=r_cfg.ph_cost_factor),
                     xform.BinaryConfig(
                         op="add",
                         other="orp_pumpspeed",
                         other_xform=[
-                            xform.ScaleConfig(
-                                factor=r_cfg.orp_cost_factor
-                            ),
+                            xform.ScaleConfig(factor=r_cfg.orp_cost_factor),
                         ],
                     ),
                     # after the above add we have cost
@@ -562,31 +550,24 @@ def test_epcor_reward():
                         scale=1/(c_max - c_min),
                         bias=c_max/(c_max - c_min ) # high/low flipped due to maximizaiton: y_min = -c_max
                     ),
-                    xform.AffineConfig( # squash to [-0.5, 0]
-                        scale=0.5,
-                        bias=-0.5
-                    ),
+                    xform.AffineConfig(scale=0.5, bias=-0.5), # squash to [-0.5, 0]
+                    # next transform excludes this minimization reward if
+                    # constraints are violated
                     xform.BinaryConfig(
                         op="prod",
                         other="efficiency",
                         other_xform=[
                             *constraint_violation_xforms,
-                            xform.LessThanConfig(
-                                threshold=0,
-                                equal=True,
-                            ),
+                            xform.LessThanConfig(threshold=0, equal=True),
                         ],
                     ),
-                ],
+                ], # end of right
             ), # end ph pumpspeed split config
         ],
+        # orp pumpspeed only has to handle high speed penalty
         "orp_pumpspeed": [
-            xform.GreaterThanConfig(
-                threshold=r_cfg.orp_pumpspeed_max,
-            ),
-            xform.ScaleConfig(
-                factor=r_cfg.high_pumpspeed_penalty,
-            ),
+            xform.GreaterThanConfig(threshold=r_cfg.orp_pumpspeed_max),
+            xform.ScaleConfig(factor=r_cfg.high_pumpspeed_penalty),
         ],
     }
     reward_component_constructors = {
@@ -602,9 +583,6 @@ def test_epcor_reward():
     pf = rc(pf)
 
     r = epcor_scrubber_reward
-    # original formulation of reward targetted
-    # range of [0, 1], whereas new formulation targets
-    # range of [-1, 0]. Hence the plus 1 in the next line
     expected_rewards = [
         r(**_sanitize_dict(row), cfg=r_cfg)
         for row in df.to_dict(orient="records")
