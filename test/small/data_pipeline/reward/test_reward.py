@@ -552,40 +552,17 @@ def test_epcor_reward():
                         bias=b_c/2 # add half of b to each pump
                     ),
                     xform.BinaryConfig(
-                        op="prod",
-                        other="efficiency",
+                        op="add",
+                        other="orp_pumpspeed",
                         other_xform=[
-                            *constraint_violation_xforms,
-                            xform.LessThanConfig(
-                                threshold=0,
-                                equal=True,
+                            xform.ScaleConfig(
+                                factor=r_cfg.orp_cost_factor
+                            ),
+                            xform.AffineConfig(
+                                scale=m_c,
+                                bias=b_c/2 # add half of b to each pump
                             ),
                         ],
-                    ),
-                ],
-            ), # end ph pumpspeed split config
-        ],
-        "orp_pumpspeed": [
-            xform.SplitConfig(
-                passthrough=False,
-                # passthrough=True,
-                # left is high pumpspeed penalty
-                left=[
-                    xform.GreaterThanConfig(
-                        threshold=r_cfg.orp_pumpspeed_max,
-                    ),
-                    xform.ScaleConfig(
-                        factor=r_cfg.high_pumpspeed_penalty,
-                    ),
-                ],
-                # right is orp component of cost reward
-                right=[
-                    xform.ScaleConfig(
-                        factor=r_cfg.orp_cost_factor
-                    ),
-                    xform.AffineConfig(
-                        scale=m_c,
-                        bias=b_c/2 # add half of b to each pump
                     ),
                     xform.BinaryConfig(
                         op="prod",
@@ -600,6 +577,14 @@ def test_epcor_reward():
                     ),
                 ],
             ), # end ph pumpspeed split config
+        ],
+        "orp_pumpspeed": [
+            xform.GreaterThanConfig(
+                threshold=r_cfg.orp_pumpspeed_max,
+            ),
+            xform.ScaleConfig(
+                factor=r_cfg.high_pumpspeed_penalty,
+            ),
         ],
     }
     reward_component_constructors = {
