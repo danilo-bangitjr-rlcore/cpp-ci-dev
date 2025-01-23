@@ -32,6 +32,7 @@ exclude = [
     'corerl/environment/smpl',
     'corerl/environment/third_party',
     'corerl/sql_logging/examples',
+    'client',
 ]
 venvPath = '.'
 venv = '.venv'
@@ -55,7 +56,7 @@ reportUnusedFunction = true
 
 
 [tool.deadcode]
-exclude = [".venv", "docs", "test", "build", "corerl/environment/smpl"]
+exclude = [".venv", "docs", "test", "build", "corerl/environment/smpl", "client"]
 ignore-names = ["_*"]
 ignore-names-in-files = []
 

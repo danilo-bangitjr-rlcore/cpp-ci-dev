@@ -13,4 +13,3 @@ def test_healthcheck(test_client: TestClient):
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "OK"
-
