@@ -363,8 +363,8 @@ def get_constraint_violation_loss(efficiency: float, cfg: EpcorRewardConfig) -> 
     g = -cfg.e_target
 
     # get normalized constraint violation
-    max_z = -cfg.e_min
-    v_hat = (z - g) / (max_z - g)
+    z_max = -cfg.e_min
+    v_hat = (z - g) / (z_max - g) # or affine 1/(z_max-g)*z - g/(z_max -g)
 
     # loss aggregates normalized constraint violations
     L_v = v_hat # \in [0, 1]
@@ -490,22 +490,41 @@ def test_epcor_reward():
     )
 
     r_cfg = EpcorRewardConfig()
-    m_e = (r_cfg.r_e_target - r_cfg.r_e_min) / (r_cfg.e_target - r_cfg.e_min)
-    b_e = r_cfg.r_e_min - m_e * r_cfg.e_min
 
     c_max = get_max_cost(r_cfg)
     m_c = (r_cfg.r_c_max - r_cfg.r_c_min) / (c_max - r_cfg.c_min)
     b_c = r_cfg.r_c_min - m_c * r_cfg.c_min
 
+    # used in derivation of normalized
+    # constraint violation
+    z_max = -r_cfg.e_min
+    g = -r_cfg.e_target
+
+    # xforms for normalized constraint violation from efficiency
+    # re-used a few times
+    constraint_violation_xforms = [
+        xform.ScaleConfig(factor=-1), # transform to minimization (z)
+        # next step gets normalized constraint violation
+        xform.AffineConfig(
+            scale=1/(z_max - g),
+            bias=-g/(z_max - g)
+        ) # this gives v_hat \in [0, 1]
+    ] # this whole chain gives constrain violation L_v \in [0, 1]
+
     transform_cfgs = {
         "efficiency": [
-            xform.AffineConfig(scale=m_e, bias=b_e),
+            *constraint_violation_xforms,
+            xform.ScaleConfig(factor=-1), # maximization \in [-1, 0]
+            xform.AffineConfig(bias=1), # normalize: max \in [0, 1]
+            xform.AffineConfig(scale=0.5, bias=-1), # squash to [-1, -0.5]
+            xform.AffineConfig(bias=1), # temporary to preserver original range
             xform.BinaryConfig(
                 op="prod",
                 other="efficiency",
                 other_xform=[
-                    xform.LessThanConfig(
-                        threshold=r_cfg.e_target,
+                    *constraint_violation_xforms,
+                    xform.GreaterThanConfig(
+                        threshold=0,
                     ),
                 ],
             ),
