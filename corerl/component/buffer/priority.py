@@ -24,6 +24,7 @@ class PriorityReplayBufferConfig(BaseReplayBufferConfig):
 class PriorityBuffer(ReplayBuffer):
     def __init__(self, cfg: PriorityReplayBufferConfig):
         super().__init__(cfg)
+        self._cfg = cfg
 
         self._idx_dist = MixtureDistribution([
             # build a uniform distribution with no support (support grows
@@ -58,6 +59,10 @@ class PriorityBuffer(ReplayBuffer):
 
     def update_priorities(self, idxs: np.ndarray, priorities: np.ndarray):
         self._idx_dist.update(idxs, priorities)
+        self._max_priority = max(
+            self._cfg.priority_decay * self._max_priority,
+            priorities.max(),
+        )
 
 
 buffer_group.dispatcher(PriorityBuffer)
