@@ -1,3 +1,15 @@
+## 0.41.0 (2025-01-23)
+
+### Feat
+
+- wire in ping_setpoint event to dep interaction
+- add `ping_setpoint` event
+
+### Fix
+
+- make setpoint pinging optional
+- only increment agent step on get_obs
+
 ## 0.40.0 (2025-01-23)
 
 ### Feat
