@@ -491,6 +491,7 @@ def test_epcor_reward():
 
     r_cfg = EpcorRewardConfig()
 
+    c_min = 0
     c_max = get_max_cost(r_cfg)
     m_c = (r_cfg.r_c_max - r_cfg.r_c_min) / (c_max - r_cfg.c_min)
     b_c = r_cfg.r_c_min - m_c * r_cfg.c_min
@@ -547,10 +548,6 @@ def test_epcor_reward():
                     xform.ScaleConfig(
                         factor=r_cfg.ph_cost_factor
                     ),
-                    xform.AffineConfig(
-                        scale=m_c,
-                        bias=b_c/2 # add half of b to each pump
-                    ),
                     xform.BinaryConfig(
                         op="add",
                         other="orp_pumpspeed",
@@ -558,11 +555,20 @@ def test_epcor_reward():
                             xform.ScaleConfig(
                                 factor=r_cfg.orp_cost_factor
                             ),
-                            xform.AffineConfig(
-                                scale=m_c,
-                                bias=b_c/2 # add half of b to each pump
-                            ),
                         ],
+                    ),
+                    # after the above add we have cost
+                    xform.ScaleConfig(factor=-1), # transform to maximization
+                    xform.AffineConfig( # normalize to [0, 1] maximization
+                        scale=1/(c_max - c_min),
+                        bias=c_max/(c_max - c_min ) # high/low flipped due to maximizaiton: y_min = -c_max
+                    ),
+                    xform.AffineConfig( # squash to [-0.5, 0]
+                        scale=0.5,
+                        bias=-0.5
+                    ),
+                    xform.AffineConfig( # temporary to preserve original range of scrubber reward
+                        bias=1
                     ),
                     xform.BinaryConfig(
                         op="prod",
