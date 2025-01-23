@@ -8,8 +8,7 @@ from corerl.configs.loader import direct_load_config
     ('config', 'pendulum'),
     ('config', 'saturation'),
     ('config', 'mountain_car_continuous'),
-    ('config', 'opc_mountain_car_continuous'),
-    ('config', 'dep_opc_mountain_car_continuous'),
+    ('config', 'dep_mountain_car_continuous'),
     ('projects/cenovus/configs', 'offline_pretraining'),
     ('projects/drayton_valley/configs', 'drayton_valley-pilot-backwash'),
 ])

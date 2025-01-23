@@ -110,7 +110,7 @@ def main():
         TagData(
             id_name=tag.name,
             name=tag.name,
-            ns=2,
+            ns=args.namespace,
         )
         for tag in tag_configs
     ]

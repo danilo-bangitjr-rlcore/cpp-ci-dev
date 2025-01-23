@@ -165,7 +165,7 @@ def check_sim_farama_environment_ready(run_background_opc_client: None, request:
             data_reader = DataReader(db_cfg=db_cfg)
 
             df = data_reader.single_aggregated_read(
-                ["observation_0", "observation_1", "action_0", "gym_reward"],
+                ["action-0", "tag-0", "tag-1"],
                 end - timedelta(seconds=10),
                 end
             )
@@ -193,6 +193,9 @@ def test_dep_mountain_car_continuous(check_sim_farama_environment_ready: None, r
             "--config-name",
             "dep_mountain_car_continuous",
             "experiment.max_steps=25",
+            "env.obs_period=00:00:01",
+            "env.update_period=00:00:01",
+            "env.action_period=00:00:01",
             "experiment.run_forever="
         ],
         stdout=subprocess.PIPE,
