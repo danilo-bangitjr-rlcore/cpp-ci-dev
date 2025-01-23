@@ -1,3 +1,22 @@
+## 0.43.0 (2025-01-23)
+
+### Feat
+
+- implement add binary xform
+
+### Fix
+
+- update epcor reward to use OR constraint
+- shift scrubber reward from [0,1] to [-1,0]
+
+### Refactor
+
+- treat scrubber reward cost minimization generally
+- scrubber reward deals with cost in single tag config with add binary xform
+- scrubber reward pumpspeed penalties based on generalized constraint violation
+- epcor scrubber efficiency reward generalized
+- begin to generaliz scrubber reward computation
+
 ## 0.42.0 (2025-01-23)
 
 ### Feat
