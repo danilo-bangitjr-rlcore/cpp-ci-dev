@@ -1,6 +1,7 @@
 import datetime
 from collections.abc import Hashable
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -352,35 +353,116 @@ def get_max_cost(cfg: EpcorRewardConfig) -> float:
     return c_max
 
 
+def get_constraint_violation_loss(efficiency: float, cfg: EpcorRewardConfig) -> float:
+    """
+    constraint: efficiency > e_target
+    """
+    # transform to minimization
+    # x > t  -->  -x < -t = z < g
+    z = -efficiency
+    g = -cfg.e_target
+
+    # get normalized constraint violation
+    max_z = -cfg.e_min
+    v_hat = (z - g) / (max_z - g)
+
+    # loss aggregates normalized constraint violations
+    L_v = v_hat # \in [0, 1]
+
+    return L_v
+
+def get_constraint_violation_reward(L_v: float) -> float:
+    # transform to maximization
+    r_v_raw = -L_v # \in [-1, 0]
+
+    # normalize reward
+    r_v_norm = r_v_raw + 1 # \in [0, 1]
+
+    # compress to [-1, -0.5]
+    r_v_prime = 0.5 * r_v_norm - 1
+
+    # ignore if constraints are satisfied:
+    # if aggregated violation L_v <= 0, this will evaluate to 0
+    r_v = (L_v > 0) * r_v_prime
+
+    return r_v
+
+
+def get_optimization_reward(
+    x: float, x_min: float, x_max: float, direction: Literal["min", "max"], L_v: float
+) -> float:
+    """
+    While satisfying constraints, minimize chem cost
+    """
+    # transform to maximization
+    if direction == 'min':
+        y = -x
+        y_max = -x_min
+        y_min = -x_max
+    else:
+        y = x
+        y_max = x_max
+        y_min = x_min
+
+    # normalize
+    r_o_norm = (y - y_min) / (y_max - y_min)
+
+    # compress to [-0.5, 0]
+    r_o_prime = 0.5 * r_o_norm - 0.5
+
+    # ignore if constraints are not satisfied:
+    # if aggregated violation L_v > 0, this will evaluate to 0
+    r_o = (L_v <= 0) * r_o_prime
+
+    return r_o
+
 def epcor_scrubber_reward(
     efficiency: float, orp_pumpspeed: float, ph_pumpspeed: float, cfg: EpcorRewardConfig
 ) -> float:
-    m_e = (cfg.r_e_target - cfg.r_e_min) / (cfg.e_target - cfg.e_min)
-    b_e = cfg.r_e_min - m_e * cfg.e_min
+    # m_e = (cfg.r_e_target - cfg.r_e_min) / (cfg.e_target - cfg.e_min)
+    # b_e = cfg.r_e_min - m_e * cfg.e_min
+    #
+    # def r_e(efficiency: float) -> float:
+    #     return m_e * efficiency + b_e
 
-    def r_e(efficiency: float) -> float:
-        return m_e * efficiency + b_e
-
+    cost = orp_pumpspeed * cfg.orp_cost_factor + ph_pumpspeed * cfg.ph_cost_factor
     c_max = get_max_cost(cfg)
-    m_c = (cfg.r_c_max - cfg.r_c_min) / (c_max - cfg.c_min)
-    b_c = cfg.r_c_min - m_c * cfg.c_min
+    c_min = cfg.c_min
 
-    def r_c(cost: float) -> float:
-        return m_c * cost + b_c
+    constraint_violation_loss = get_constraint_violation_loss(efficiency, cfg)
+    r_v = get_constraint_violation_reward(constraint_violation_loss)
+    r_o = get_optimization_reward(x=cost, x_min=c_min, x_max=c_max, direction='min', L_v=constraint_violation_loss)
 
-    def r() -> float:
-        penalty = 0
-        if orp_pumpspeed > cfg.orp_pumpspeed_max:
-            penalty += cfg.high_pumpspeed_penalty
-        if ph_pumpspeed > cfg.ph_pumpspeed_max:
-            penalty += cfg.high_pumpspeed_penalty
-        if efficiency < cfg.e_target:
-            return r_e(efficiency) + penalty
-        else:
-            cost = orp_pumpspeed * cfg.orp_cost_factor + ph_pumpspeed * cfg.ph_cost_factor
-            return r_c(cost) + penalty
+    r_base = r_o + r_v
 
-    return r()
+
+    # m_c = (cfg.r_c_max - cfg.r_c_min) / (c_max - cfg.c_min)
+    # b_c = cfg.r_c_min - m_c * cfg.c_min
+
+    # def r_c(cost: float) -> float:
+    #     return m_c * cost + b_c
+
+    # def r() -> float:
+    #     penalty = 0
+    #     if orp_pumpspeed > cfg.orp_pumpspeed_max:
+    #         penalty += cfg.high_pumpspeed_penalty
+    #     if ph_pumpspeed > cfg.ph_pumpspeed_max:
+    #         penalty += cfg.high_pumpspeed_penalty
+    #     if efficiency < cfg.e_target:
+    #         return r_e(efficiency) + penalty
+    #     else:
+    #         cost = orp_pumpspeed * cfg.orp_cost_factor + ph_pumpspeed * cfg.ph_cost_factor
+    #         return r_c(cost) + penalty
+
+    penalty = 0
+    if orp_pumpspeed > cfg.orp_pumpspeed_max:
+        penalty += cfg.high_pumpspeed_penalty
+    if ph_pumpspeed > cfg.ph_pumpspeed_max:
+        penalty += cfg.high_pumpspeed_penalty
+
+    r = r_base + penalty
+    # return r()
+    return r
 
 
 def test_epcor_reward():
@@ -512,8 +594,11 @@ def test_epcor_reward():
     pf = rc(pf)
 
     r = epcor_scrubber_reward
+    # original formulation of reward targetted
+    # range of [0, 1], whereas new formulation targets
+    # range of [-1, 0]. Hence the plus 1 in the next line
     expected_rewards = [
-        r(**_sanitize_dict(row), cfg=r_cfg)
+        r(**_sanitize_dict(row), cfg=r_cfg) + 1
         for row in df.to_dict(orient="records")
     ]
     expected_reward_df = pd.DataFrame(
