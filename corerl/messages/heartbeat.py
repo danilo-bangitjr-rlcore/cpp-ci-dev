@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class HeartbeatConfig:
     opc_conn_url: str = MISSING
     heartbeat_node_id: str = MISSING
-    heartbeat_interval: timedelta = timedelta(seconds=5)
+    heartbeat_period: timedelta = timedelta(seconds=5)
     max_counter: int = 1000
     enabled: bool = False
 
@@ -27,12 +27,12 @@ def heartbeat(cfg: HeartbeatConfig):
     opc_client.connect()
 
     heartbeat_node = opc_client.get_node(cfg.heartbeat_node_id)
-    heartbeat_clock = clock_generator(tick_period=cfg.heartbeat_interval)
+    heartbeat_clock = clock_generator(tick_period=cfg.heartbeat_period)
     heartbeat_counter = 0
 
     while True:
         # write counter
-        opc_client.write_values([heartbeat_node], [float(heartbeat_counter)])
+        opc_client.write_values([heartbeat_node], [heartbeat_counter])
 
         # increment counter
         heartbeat_counter += 1

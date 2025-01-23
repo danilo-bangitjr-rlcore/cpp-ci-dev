@@ -13,6 +13,12 @@ experiment:
 interaction:
   name: dep_interaction
   historical_batch_size: 0
+  heartbeat:
+    opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/" 
+    heartbeat_node_id: "s=heartbeat"
+    heartbeat_period: 00:00:01
+    max_counter: 10
+    enabled: True
 
 event_bus:
   enabled: True
