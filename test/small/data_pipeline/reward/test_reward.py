@@ -332,8 +332,10 @@ def test_null_filter():
 
 @dataclass
 class EpcorRewardConfig:
-    e_min: float = 85
-    e_target: float = 95
+    outlet_h2s_target: float = 1
+    max_outlet_h2s: float = 5
+    e_min: float = 80
+    e_target: float = 90
     c_min: float = 0
     orp_pumpspeed_max: float = 60
     ph_pumpspeed_max: float = 60
@@ -349,21 +351,37 @@ def get_max_cost(cfg: EpcorRewardConfig) -> float:
     return c_max
 
 
-def get_constraint_violation_loss(efficiency: float, cfg: EpcorRewardConfig) -> float:
+def get_constraint_violation_loss(efficiency: float, outlet_h2s: float, cfg: EpcorRewardConfig) -> float:
     """
-    constraint: efficiency > e_target
+    constraint: efficiency > e_target OR outlet_h2s < outlet_h2s_target
     """
     # transform to minimization
     # x > t  -->  -x < -t = z < g
-    z = -efficiency
-    g = -cfg.e_target
+    z1 = -efficiency
+    g1 = -cfg.e_target
+
+    # outlet h2s is already a minimization (outlet_)
+    z2 = outlet_h2s
+    g2 = cfg.outlet_h2s_target
+
+    zs = [z1, z2]
+    gs = [g1, g2]
 
     # get normalized constraint violation
-    z_max = -cfg.e_min
-    v_hat = (z - g) / (z_max - g) # or affine 1/(z_max-g)*z - g/(z_max -g)
+    z1_max = -cfg.e_min
+    z2_max = cfg.max_outlet_h2s
+    z_maxs = [z1_max, z2_max]
+
+    v_hats = []
+    for z, g, z_max in zip(zs, gs, z_maxs, strict=True):
+        v_hat = (z - g) / (z_max - g) # or affine 1/(z_max-g)*z - g/(z_max -g)
+        v_hats.append(v_hat)
 
     # loss aggregates normalized constraint violations
-    L_v = v_hat # \in [0, 1]
+    # for epcor scrubber, we only need one of the constraints to be satisfied
+    # so we aggregate with a min
+    L_v = min(v_hats) # \in [0, 1]
+    assert isinstance(L_v, float)
 
     return L_v
 
@@ -413,14 +431,14 @@ def get_optimization_reward(
     return r_o
 
 def epcor_scrubber_reward(
-    efficiency: float, orp_pumpspeed: float, ph_pumpspeed: float, cfg: EpcorRewardConfig
+    efficiency: float, outlet_h2s: float, orp_pumpspeed: float, ph_pumpspeed: float, cfg: EpcorRewardConfig
 ) -> float:
 
     cost = orp_pumpspeed * cfg.orp_cost_factor + ph_pumpspeed * cfg.ph_cost_factor
     c_max = get_max_cost(cfg)
     c_min = cfg.c_min
 
-    constraint_violation_loss = get_constraint_violation_loss(efficiency, cfg)
+    constraint_violation_loss = get_constraint_violation_loss(efficiency, outlet_h2s, cfg)
     r_v = get_constraint_violation_reward(constraint_violation_loss)
     r_o = get_optimization_reward(x=cost, x_min=c_min, x_max=c_max, direction='min', L_v=constraint_violation_loss)
 
@@ -442,20 +460,22 @@ def test_epcor_reward():
     start = datetime.datetime.now(datetime.UTC)
     Δ = datetime.timedelta(minutes=5)
 
-    dates = [start + i * Δ for i in range(8)]
+    dates = [start + i * Δ for i in range(10)]
     idx = pd.DatetimeIndex(dates)
 
-    cols = pd.Index(["efficiency", "orp_pumpspeed", "ph_pumpspeed"])
+    cols = pd.Index(["efficiency", "outlet_h2s", "orp_pumpspeed", "ph_pumpspeed"])
     df = pd.DataFrame(
         data=[
-            [np.nan, np.nan,   16],
-            [85,      10,      10],
-            [90,      20,      15],
-            [95,      30,      25],
-            [np.nan, np.nan, np.nan],
-            [97,      45,      50],
-            [98,      60,      65],
-            [99,      70,      80],
+            [np.nan, 2,      np.nan,     16],
+            [80,     3,       10,        10],
+            [82,     1,       20,        15],
+            [84,     0.98,    30,        25],
+            [np.nan, np.nan, np.nan, np.nan],
+            [89,     0.9,     45,        50],
+            [88,     1.2,     60,        65],
+            [99,     0.8,     70,        80],
+            [88,     1.2,     40,        40],
+            [99,     0.8,     40,        40],
         ],
         columns=cols,
         index=idx,
@@ -468,8 +488,11 @@ def test_epcor_reward():
 
     # used in derivation of normalized
     # constraint violation
-    z_max = -r_cfg.e_min
-    g = -r_cfg.e_target
+    z1_max = -r_cfg.e_min
+    g1 = -r_cfg.e_target
+
+    z2_max = r_cfg.max_outlet_h2s
+    g2 = r_cfg.outlet_h2s_target
 
     # xforms for normalized constraint violation from efficiency
     # re-used a few times
@@ -477,9 +500,20 @@ def test_epcor_reward():
         xform.ScaleConfig(factor=-1), # transform to minimization (z)
         # next step gets normalized constraint violation
         xform.AffineConfig(
-            scale=1/(z_max - g),
-            bias=-g/(z_max - g)
-        ) # this gives v_hat \in [0, 1]
+            scale=1/(z1_max - g1),
+            bias=-g1/(z1_max - g1)
+        ), # this gives v_hat1 \in [0, 1]
+        xform.BinaryConfig(
+            op="min",
+            other="outlet_h2s",
+            other_xform=[
+                # next step gets normalized constraint violation
+                xform.AffineConfig(
+                    scale=1/(z2_max - g2),
+                    bias=-g2/(z2_max - g2)
+                ), # this gives v_hat1 \in [0, 1]
+            ] # this gives v_hat2 \in [0, 1]
+        )
     ] # this whole chain gives constrain violation L_v \in [0, 1]
 
     transform_cfgs = {
@@ -497,6 +531,7 @@ def test_epcor_reward():
                 ],
             ),
         ],
+        "outlet_h2s": [xform.NullConfig()], # this is hangled in constraint_violation_xforms above
         "ph_pumpspeed": [
             xform.SplitConfig(
                 passthrough=False,
