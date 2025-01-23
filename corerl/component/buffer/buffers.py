@@ -69,7 +69,7 @@ class PriorityBuffer(UniformBuffer):
 
         self.priority /= scale
 
-    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
+    def sample(self, batch_size: int | None = None) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
             return []
 
@@ -133,10 +133,10 @@ class EnsembleUniformBuffer(UniformBuffer):
         for i in range(self.ensemble):
             self.buffer_ensemble[i].load(ensemble_transitions[i])
 
-    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
+    def sample(self, batch_size: int | None = None) -> list[TransitionBatch]:
         ensemble_batch = []
         for i in range(self.ensemble):
-            part = self.buffer_ensemble[i].sample_mini_batch(batch_size)
+            part = self.buffer_ensemble[i].sample(batch_size)
             if part is None: continue
 
             ensemble_batch += part

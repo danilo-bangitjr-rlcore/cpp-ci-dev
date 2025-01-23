@@ -38,18 +38,10 @@ class ReplayBuffer:
         self.pos = 0
         self.full = False
 
-        if self.batch_size == 0:
-            self.sample = self.sample_batch
-        else:
-            self.sample = self.sample_mini_batch
 
     @property
     def _last_pos(self):
-        if self.pos == 0 and not self.full:
-            return 0
-        else:
-            return self.pos - 1
-
+        return (self.pos - 1) % self.memory
 
     def feed(self, transitions: Sequence[Transition]) -> None:
         for transition in transitions:
@@ -84,7 +76,7 @@ class ReplayBuffer:
         for i in range(len(self.data)):
             self.data[i] = self.data[i].to(device.device)
 
-    def sample_mini_batch(self, batch_size: int | None = None) -> list[TransitionBatch]:
+    def sample(self, batch_size: int | None = None) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
             return []
 
