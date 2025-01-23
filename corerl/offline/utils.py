@@ -1,6 +1,6 @@
 import datetime as dt
 import logging
-from typing import Any, Callable, Tuple
+from typing import Callable, Tuple
 
 from tqdm import tqdm
 
