@@ -11,7 +11,7 @@ from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.writer import metrics_group
 from corerl.messages.event_bus import EventBus
-from corerl.offline.utils import load_offline_transitions, offline_training
+from corerl.offline.utils import OfflineTraining
 from corerl.state import AppState
 from corerl.utils.device import device
 
@@ -40,13 +40,12 @@ def main(cfg: MainConfig):
     pipeline = Pipeline(cfg.pipeline)
     column_desc = pipeline.column_descriptions
     agent = init_agent(cfg.agent, app_state, column_desc)
-    transitions = []
 
     # Offline training
     assert cfg.experiment.offline_steps > 0
-    offline_transitions = load_offline_transitions(cfg, pipeline)
-    transitions += offline_transitions
-    offline_training(cfg, agent, transitions)
+    offline_training = OfflineTraining(cfg)
+    offline_training.load_offline_transitions(pipeline)
+    offline_training.train(agent)
 
     agent.close()
     agent.save(save_path / 'agent')

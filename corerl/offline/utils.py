@@ -1,8 +1,6 @@
-import logging
-
-log = logging.getLogger(__name__)
-
 import datetime as dt
+import logging
+from typing import Callable, Tuple
 
 from tqdm import tqdm
 
@@ -13,14 +11,73 @@ from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.utils.time import split_into_chunks
 
+log = logging.getLogger(__name__)
 
-def load_offline_transitions(
-    cfg: MainConfig, pipeline: Pipeline, start_time: dt.datetime | None = None, end_time: dt.datetime | None = None
-):
-    # Configure DataReader
-    data_reader = DataReader(db_cfg=cfg.pipeline.db)
 
-    # Infer missing start or end time
+class OfflineTraining:
+    def __init__(self, cfg: MainConfig):
+        self.cfg = cfg
+        self.offline_transitions: list[Transition] = []
+        self.offline_steps = self.cfg.experiment.offline_steps
+        self._training_hooks: list[Callable[[], None]] = []
+
+    def register_training_hook(self, f: Callable[[], None]):
+        self._training_hooks.append(f)
+
+    def load_offline_transitions(
+        self, pipeline: Pipeline, start_time: dt.datetime | None = None, end_time: dt.datetime | None = None
+    ):
+        # Configure DataReader
+        data_reader = DataReader(db_cfg=self.cfg.pipeline.db)
+
+        # Infer missing start or end time
+        start_time, end_time = get_data_start_end_times(data_reader, start_time, end_time)
+
+        # chunk offline reads
+        chunk_width = self.cfg.experiment.pipeline_batch_duration_days
+        time_chunks = split_into_chunks(start_time, end_time, width=dt.timedelta(chunk_width))
+
+        # Pass offline data through data pipeline chunk by chunk to produce transitions
+        tag_names = [tag_cfg.name for tag_cfg in self.cfg.pipeline.tags]
+        for chunk_start, chunk_end in time_chunks:
+            chunk_data = data_reader.batch_aggregated_read(
+                names=tag_names,
+                start_time=chunk_start,
+                end_time=chunk_end,
+                bucket_width=self.cfg.pipeline.obs_period,
+                aggregation=self.cfg.pipeline.db.data_agg,
+            )
+            pipeline_out = pipeline(
+                data=chunk_data,
+                caller_code=CallerCode.OFFLINE,
+                reset_temporal_state=False,
+            )
+
+            if pipeline_out.transitions is not None:
+                self.offline_transitions += pipeline_out.transitions
+
+    def train(self, agent: BaseAgent):
+        assert len(self.offline_transitions) > 0, (
+            "You must first load offline transitions before you can perform offline training"
+        )
+        log.info("Starting offline agent training...")
+
+        agent.load_buffer(self.offline_transitions)
+        for buffer_name, size in agent.get_buffer_sizes().items():
+            log.info(f"Agent {buffer_name} replay buffer size(s)", size)
+
+        q_losses: list[float] = []
+        pbar = tqdm(range(self.offline_steps))
+        for _ in pbar:
+            critic_loss = agent.update()
+            q_losses += critic_loss
+
+        return q_losses
+
+
+def get_data_start_end_times(
+    data_reader: DataReader, start_time: dt.datetime | None = None, end_time: dt.datetime | None = None
+) -> Tuple[dt.datetime, dt.datetime]:
     if start_time is None or end_time is None:
         time_stats = data_reader.get_time_stats()
         if start_time is None:
@@ -28,52 +85,4 @@ def load_offline_transitions(
         if end_time is None:
             end_time = time_stats.end
 
-    # chunk offline reads
-    time_chunks = split_into_chunks(
-        start_time,
-        end_time,
-        width=dt.timedelta(cfg.experiment.pipeline_batch_duration_days),
-    )
-
-    tag_names = [tag_cfg.name for tag_cfg in cfg.pipeline.tags]
-    obs_period = cfg.pipeline.obs_period
-
-    offline_transitions: list[Transition] = []
-    for chunk_start, chunk_end in time_chunks:
-        chunk_data = data_reader.batch_aggregated_read(
-            names=tag_names,
-            start_time=chunk_start,
-            end_time=chunk_end,
-            bucket_width=obs_period,
-            aggregation=cfg.pipeline.db.data_agg,
-        )
-        pipeline_out = pipeline(
-            data=chunk_data,
-            caller_code=CallerCode.OFFLINE,
-            reset_temporal_state=False,
-        )
-
-        if pipeline_out.transitions is not None:
-            offline_transitions += pipeline_out.transitions
-
-    return offline_transitions
-
-def offline_training(
-    cfg: MainConfig,
-    agent: BaseAgent,
-    train_transitions: list[Transition],
-):
-    log.info('Starting offline agent training...')
-
-    agent.load_buffer(train_transitions)
-    for buffer_name, size in agent.get_buffer_sizes().items():
-        log.info(f"Agent {buffer_name} replay buffer size(s)", size)
-
-    offline_steps = cfg.experiment.offline_steps
-    q_losses: list[float] = []
-    pbar = tqdm(range(offline_steps))
-    for _ in pbar:
-        critic_loss = agent.update()
-        q_losses += critic_loss
-
-    return q_losses
+    return start_time, end_time
