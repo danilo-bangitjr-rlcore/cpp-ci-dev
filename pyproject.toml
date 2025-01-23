@@ -32,6 +32,7 @@ exclude = [
     'corerl/environment/smpl',
     'corerl/environment/third_party',
     'corerl/sql_logging/examples',
+    'client',
 ]
 venvPath = '.'
 venv = '.venv'
@@ -55,7 +56,7 @@ reportUnusedFunction = true
 
 
 [tool.deadcode]
-exclude = [".venv", "docs", "test", "build", "corerl/environment/smpl"]
+exclude = [".venv", "docs", "test", "build", "corerl/environment/smpl", "client"]
 ignore-names = ["_*"]
 ignore-names-in-files = []
 
@@ -96,6 +97,7 @@ dependencies = [
     "boto3~=1.35",
     "casadi~=3.6",
     "cloudpathlib[s3]~=0.20",
+    "fastapi[standard]~=0.115.6",
     "gymnasium~=1.0",
     "influxdb_client~=1.39",
     "jaxtyping~=0.2",
@@ -146,4 +148,5 @@ corerl_main = "corerl.main:main"
 corerl_convertdb_backup = "corerl.bin.convert_db_backup:main"
 corerl_opc_explorer = "corerl.bin.opc_explorer:main"
 corerl_agent_step = "corerl.bin.corerl_step_cli:main"
+corerl_start_web = "corerl.bin.start_web_app:main"
 
