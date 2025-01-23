@@ -555,8 +555,9 @@ def test_epcor_reward():
                         op="prod",
                         other="efficiency",
                         other_xform=[
-                            xform.GreaterThanConfig(
-                                threshold=r_cfg.e_target,
+                            *constraint_violation_xforms,
+                            xform.LessThanConfig(
+                                threshold=0,
                                 equal=True,
                             ),
                         ],
@@ -590,8 +591,9 @@ def test_epcor_reward():
                         op="prod",
                         other="efficiency",
                         other_xform=[
-                            xform.GreaterThanConfig(
-                                threshold=r_cfg.e_target,
+                            *constraint_violation_xforms,
+                            xform.LessThanConfig(
+                                threshold=0,
                                 equal=True,
                             ),
                         ],
