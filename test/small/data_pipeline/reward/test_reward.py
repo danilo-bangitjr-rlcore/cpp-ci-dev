@@ -518,7 +518,6 @@ def test_epcor_reward():
             xform.ScaleConfig(factor=-1), # maximization \in [-1, 0]
             xform.AffineConfig(bias=1), # normalize: max \in [0, 1]
             xform.AffineConfig(scale=0.5, bias=-1), # squash to [-1, -0.5]
-            xform.AffineConfig(bias=1), # temporary to preserver original range
             xform.BinaryConfig(
                 op="prod",
                 other="efficiency",
@@ -567,9 +566,6 @@ def test_epcor_reward():
                         scale=0.5,
                         bias=-0.5
                     ),
-                    xform.AffineConfig( # temporary to preserve original range of scrubber reward
-                        bias=1
-                    ),
                     xform.BinaryConfig(
                         op="prod",
                         other="efficiency",
@@ -610,7 +606,7 @@ def test_epcor_reward():
     # range of [0, 1], whereas new formulation targets
     # range of [-1, 0]. Hence the plus 1 in the next line
     expected_rewards = [
-        r(**_sanitize_dict(row), cfg=r_cfg) + 1
+        r(**_sanitize_dict(row), cfg=r_cfg)
         for row in df.to_dict(orient="records")
     ]
     expected_reward_df = pd.DataFrame(
