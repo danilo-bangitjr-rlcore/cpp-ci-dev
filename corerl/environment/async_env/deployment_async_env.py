@@ -25,8 +25,8 @@ class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):
 
 
 class DeploymentAsyncEnv(AsyncEnv):
-    """
-    It's going to be sync for now
+    """AsyncEnv which communicates actions through OPC and retrieves observations through TSDB.
+    Ensure that TimescaleDB, Telegraf, our OPC Server, and our simulated OPC environment is running prior to use.
     """
 
     def __init__(self, cfg: DepAsyncEnvConfig, tag_configs: list[TagConfig]):
@@ -46,24 +46,22 @@ class DeploymentAsyncEnv(AsyncEnv):
             if not tag.is_meta and tag.action_constructor is None
         ]
 
-        self._opc_client = Client(self.url)
-        self._opc_client.connect()
-
         self.data_reader = DataReader(db_cfg=cfg.db)
 
         # define opc action nodes
         self.action_nodes = []
-        for tag in sorted(tag_configs, key=lambda cfg: cfg.name):
-            if tag.action_constructor is None:
-                continue
+        with Client(self.url) as opc_client:
+            for tag in sorted(tag_configs, key=lambda cfg: cfg.name):
+                if tag.action_constructor is None:
+                    continue
 
-            node_name = tag.name
-            if tag.node_identifier is not None:
-                node_name = tag.node_identifier
+                node_name = tag.name
+                if tag.node_identifier is not None:
+                    node_name = tag.node_identifier
 
-            id = make_opc_node_id(node_name, cfg.opc_ns)
-            node = self._opc_client.get_node(id)
-            self.action_nodes.append(node)
+                id = make_opc_node_id(node_name, cfg.opc_ns)
+                node = opc_client.get_node(id)
+                self.action_nodes.append(node)
 
 
     def _make_opc_node_id(self, str_id: str, namespace: int = 0):
@@ -73,7 +71,6 @@ class DeploymentAsyncEnv(AsyncEnv):
         """Closes the opc client and data reader
         Can also use __exit__ or cleanup
         """
-        self._opc_client.disconnect()
         self.data_reader.close()
 
     def emit_action(self, action: np.ndarray) -> None:
@@ -82,7 +79,8 @@ class DeploymentAsyncEnv(AsyncEnv):
         denormalized_actions = self._denormalize_action(action)
         action_names = [tag.name for tag in self._action_tags]
         logger.info(f"emitting actions {action_names} with values {denormalized_actions}...")
-        self._opc_client.write_values(self.action_nodes, denormalized_actions)
+        with Client(self.url) as opc_client:
+            opc_client.write_values(self.action_nodes, denormalized_actions)
 
     def _denormalize_action(self, action: np.ndarray) -> list[float]:
         denormalized_actions = []

@@ -26,6 +26,8 @@ class StepData:
 
 
 class SimAsyncEnv(AsyncEnv):
+    """AsyncEnv which directly runs and steps through a Farama Gymnasium environment.
+    """
     def __init__(self, cfg: SimAsyncEnvConfig, tags: list[TagConfig]):
         self._env = gym.make(cfg.gym_name, *cfg.args, **cfg.kwargs)
         self._cfg = cfg

@@ -1,18 +1,19 @@
+#!/usr/bin/env python3
+"""Utility script for generating telegraf and CoreRL compatible MainConfig yaml from Farama gymnasium environment."""
+
+import argparse
 import logging
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from pprint import pformat
 from typing import Any
 
 import gymnasium as gym
 import yaml
 
-from corerl.configs.config import MISSING, config
-from corerl.configs.loader import config_to_dict, load_config
+from corerl.configs.loader import config_to_dict
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.factory import AsyncEnvConfig
-from corerl.environment.async_env.opc_tsdb_sim_async_env import OPCTSDBSimAsyncEnvConfig
-from corerl.environment.factory import init_environment
 from corerl.utils.gymnasium import gen_tag_configs_from_env
 
 
@@ -21,7 +22,7 @@ class TagData:
     id_name: str
     name: str
     ns: int
-    id_type: str = 's'
+    id_type: str = "s"
 
 
 def generate_telegraf_conf(path: Path, tag_data: list[TagData]):
@@ -50,10 +51,10 @@ def generate_tag_yaml(path: Path, tags: list[TagConfig]):
 
     def represent_float(dumper: Any, value: object):
         # round floating point numbers for serialization
-        text = '{0:.4f}'.format(value).rstrip('0').rstrip('.')
-        if '.' not in text:
-            text += '.0'
-        return dumper.represent_scalar(u'tag:yaml.org,2002:float', text)
+        text = "{0:.4f}".format(value).rstrip("0").rstrip(".")
+        if "." not in text:
+            text += ".0"
+        return dumper.represent_scalar("tag:yaml.org,2002:float", text)
 
     CustomTagYamlDumper.add_representer(float, represent_float)
 
@@ -61,42 +62,74 @@ def generate_tag_yaml(path: Path, tags: list[TagConfig]):
         raw_tags = config_to_dict(list[TagConfig], tags)
         yaml.dump(raw_tags, f, Dumper=CustomTagYamlDumper, sort_keys=False)
 
-    _logger.info(f"Generated {tag_path}")
+    log.info(f"Generated {tag_path}")
 
 
-@config(allow_extra=True)
-class Config:
-    env: AsyncEnvConfig = MISSING
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-n",
+        "--name",
+        type=str,
+        default="MountainCarContinuous-v0",
+        help="Value passed to gymnasium.make()",
+    )
+    parser.add_argument(
+        "-m",
+        "--meta",
+        action="store_true",
+        help="If specified, emits environment meta tag configurations for reward, terminated, truncated"
+    )
+    parser.add_argument(
+        "--namespace",
+        type=int,
+        default=2,
+        help="OPC node namespace value",
+    )
+    parser.add_argument(
+        "--telegraf",
+        action="store_true",
+        help="If specified, writes generated_telegraf.conf"
+    )
+    parser.add_argument(
+        "--tag-config",
+        action="store_true",
+        help="If specified, writes generated_tags.yaml"
+    )
+    args = parser.parse_args()
 
+    log.info(f"gym.make({repr(args.name)})")
+    env: gym.Env = gym.make(args.name)
+    log.info(env)
 
-@load_config(Config, base="config")
-def main(cfg: Config):
-    assert isinstance(cfg.env, OPCTSDBSimAsyncEnvConfig), "make configs only supported for OPCTSDBSimAsyncEnvConfig"
-    env: gym.Env = init_environment(cfg.env)
-    _logger.info(f"Generating config with env {env}")
+    tag_configs = gen_tag_configs_from_env(env, args.meta)
+    for tag in tag_configs:
+        log.debug(f"{pformat(config_to_dict(TagConfig, tag), sort_dicts=False)}")
 
-    tags = gen_tag_configs_from_env(env)
     tag_data = [
         TagData(
             id_name=tag.name,
             name=tag.name,
-            ns=cfg.env.opc_ns,
+            ns=args.namespace,
         )
-        for tag in tags
+        for tag in tag_configs
     ]
 
     current_path = Path(__file__).parent.absolute()
 
-    _logger.info(f"Found {len(tag_data)} distinct nodes")
-    generate_telegraf_conf(current_path, tag_data)
-    generate_tag_yaml(current_path, tags)
+    if args.telegraf:
+        generate_telegraf_conf(current_path, tag_data)
+
+    if args.tag_config:
+        generate_tag_yaml(current_path, tag_configs)
 
 
 if __name__ == "__main__":
-    _logger = logging.getLogger(__name__)
+    log = logging.getLogger(__name__)
     logging.basicConfig(
         format="%(asctime)s %(levelname)s: %(message)s",
         encoding="utf-8",
         level=logging.DEBUG,
     )
+
     main()
