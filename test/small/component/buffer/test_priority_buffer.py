@@ -1,3 +1,4 @@
+import numpy as np
 from torch import Tensor
 
 from corerl.component.buffer.buffers import PriorityBuffer, PriorityReplayBufferConfig
@@ -60,6 +61,8 @@ def test_sample_mini_batch():
     buffer.feed([trans_2])
     buffer.feed([trans_3])
 
+    # put all probability on index 1
+    buffer.update_priorities(np.array([0, 1, 2]), np.array([0, 1, 0]))
     batch = buffer.sample()[0]
 
     # With seed=0, the sampled indices are [0, 1].
