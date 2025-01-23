@@ -6,8 +6,8 @@ import pandas as pd
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transforms.norm import Normalizer
-from corerl.utils.list import find, find_instance
+from corerl.data_pipeline.transforms.base import InvertibleTransform
+from corerl.utils.list import find
 
 
 class Preprocessor(Constructor):
@@ -36,18 +36,14 @@ class Preprocessor(Constructor):
         # make a copy so that this is still a pure function
         df = df.copy(deep=False)
 
-        # loop through all xforms that we know how to invert
-        # currently this is just the normalizer
         for tag in df.columns:
             xforms = self._components.get(tag)
             if xforms is None:
                 continue
 
-            norm = find_instance(Normalizer, xforms)
-            if not norm:
-                continue
-
-            df[tag] = norm.denormalize(df[tag].to_numpy(), tag)
+            for xform in reversed(xforms):
+                if isinstance(xform, InvertibleTransform):
+                    df[tag] = xform.invert(df[tag].to_numpy(), tag)
 
         return df
 
