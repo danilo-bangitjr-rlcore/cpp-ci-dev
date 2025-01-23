@@ -26,8 +26,9 @@ configs are defined in the same place as the union
 type TransformConfig.
 """
 @config()
-class ProductConfig(BaseTransformConfig):
-    name: Literal['product'] = "product"
+class BinaryConfig(BaseTransformConfig):
+    name: Literal['binary'] = "binary"
+    op: Literal['prod', 'min', 'max'] = MISSING
 
     other: str = MISSING
     other_xform: list[TransformConfig] = list_([IdentityConfig])
@@ -52,7 +53,7 @@ TransformConfig = Annotated[
     | NormalizerConfig
     | NullConfig
     | PowerConfig
-    | ProductConfig
+    | BinaryConfig
     | ScaleConfig
     | SplitConfig
     | TraceConfig
@@ -60,14 +61,14 @@ TransformConfig = Annotated[
 
 
 def register_dispatchers():
-    from corerl.data_pipeline.transforms.product import ProductTransform
+    from corerl.data_pipeline.transforms.product import BinaryTransform
     from corerl.data_pipeline.transforms.split import SplitTransform
 
-    transform_group.dispatcher(ProductTransform)
+    transform_group.dispatcher(BinaryTransform)
     transform_group.dispatcher(SplitTransform)
 
     # Because TransformConfig was only partially known when
     # pydantic first parsed these schemas, rebuild them
     # now that they are completely known.
-    rebuild_dataclass(cast(Any, ProductConfig))
+    rebuild_dataclass(cast(Any, BinaryConfig))
     rebuild_dataclass(cast(Any, SplitConfig))

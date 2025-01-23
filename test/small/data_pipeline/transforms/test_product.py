@@ -5,7 +5,7 @@ import pandas as pd
 
 from corerl.data_pipeline.transforms.greater_than import GreaterThanConfig
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.transforms.product import ProductConfig, ProductTransform
+from corerl.data_pipeline.transforms.product import BinaryConfig, BinaryTransform
 from test.infrastructure.utils.pandas import dfs_close
 
 
@@ -31,7 +31,7 @@ def test_product():
         index=idx,
     )
 
-    tf = ProductTransform(ProductConfig(other="tag-2"))
+    tf = BinaryTransform(BinaryConfig(op="prod", other="tag-2"))
     tf_data = df.get(["tag-1"])
     assert tf_data is not None
 
@@ -84,7 +84,7 @@ def test_product_other_transform():
         index=idx,
     )
 
-    tf = ProductTransform(ProductConfig(other="tag-2", other_xform=[GreaterThanConfig(threshold=5)]))
+    tf = BinaryTransform(BinaryConfig(op="prod", other="tag-2", other_xform=[GreaterThanConfig(threshold=5)]))
     tf_data = df.get(["tag-1"])
     assert tf_data is not None
 

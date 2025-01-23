@@ -1,23 +1,24 @@
 from dataclasses import dataclass
 
-from corerl.data_pipeline.transforms import ProductConfig
+from corerl.data_pipeline.transforms import BinaryConfig
 from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
 @dataclass
-class ProductTemporalState:
+class BinaryTemporalState:
     other_ts: object | None = None
 
 
-class ProductTransform:
-    def __init__(self, cfg: ProductConfig):
+class BinaryTransform:
+    def __init__(self, cfg: BinaryConfig):
         self._cfg = cfg
+        self._op = cfg.op
         self._other = cfg.other
         self._other_xform = [transform_group.dispatch(xform) for xform in cfg.other_xform]
 
     def __call__(self, carry: TransformCarry, ts: object | None):
-        assert isinstance(ts, ProductTemporalState | None)
+        assert isinstance(ts, BinaryTemporalState | None)
         other_ts = None if ts is None else ts.other_ts
 
         # get data from "other" column and create carry object
@@ -36,20 +37,28 @@ class ProductTransform:
 
         assert len(other_carry.transform_data.columns) == 1
 
-        # take product with other
+        # apply binary op with other
         cols = set(carry.transform_data.columns)
         other_name = other_carry.transform_data.columns[0]
-        other_vals = other_carry.transform_data[other_name]
         for col in cols:
-            new_name = f"({col})*({other_name})"
-            carry.transform_data[new_name] = carry.transform_data[col] * other_vals
+            self.apply_op(carry, other_carry, col, str(other_name))
             carry.transform_data.drop(col, axis=1, inplace=True)
 
-        return carry, ProductTemporalState(other_ts=other_ts)
+        return carry, BinaryTemporalState(other_ts=other_ts)
+
+    def apply_op(self, carry: TransformCarry, other_carry: TransformCarry, col: str, other_name: str) -> None:
+        """
+        adds col corresponding to op(col, other)
+        """
+        other_vals = other_carry.transform_data[other_name]
+        match self._op:
+            case "prod":
+                new_name = f"({col})*({other_name})"
+                carry.transform_data[new_name] = carry.transform_data[col] * other_vals
 
     def reset(self) -> None:
         for xform in self._other_xform:
             xform.reset()
 
 
-transform_group.dispatcher(ProductTransform)
+transform_group.dispatcher(BinaryTransform)
