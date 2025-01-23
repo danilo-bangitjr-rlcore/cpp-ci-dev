@@ -37,8 +37,11 @@ agent:
     critic_optimizer:
       lr : 0.0003
       weight_decay : 0.0
+    critic_network:
+      ensemble: 10
     buffer:
       seed: ${experiment.seed}
+      ensemble: 10
 
   actor:
     actor_optimizer:
