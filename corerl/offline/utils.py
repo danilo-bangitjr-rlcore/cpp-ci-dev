@@ -1,22 +1,20 @@
-import logging
-
-log = logging.getLogger(__name__)
-
 import datetime as dt
+import logging
+from typing import Any, Callable, Tuple
 
 from tqdm import tqdm
-from typing import Any, Callable, Tuple
 
 from corerl.agent.base import BaseAgent
 from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import CallerCode, Transition
+from corerl.data_pipeline.datatypes import CallerCode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.utils.time import split_into_chunks
 
+log = logging.getLogger(__name__)
+
 
 class OfflineTraining:
-
     def __init__(self, cfg: MainConfig):
         self.cfg = cfg
         self.offline_transitions = []
@@ -26,10 +24,9 @@ class OfflineTraining:
     def register_training_hook(self, f: Callable[[Any], Any]):
         self._training_hooks.append(f)
 
-    def load_offline_transitions(self,
-                                 pipeline: Pipeline,
-                                 start_time: dt.datetime | None = None,
-                                 end_time: dt.datetime | None = None):
+    def load_offline_transitions(
+        self, pipeline: Pipeline, start_time: dt.datetime | None = None, end_time: dt.datetime | None = None
+    ):
         # Configure DataReader
         data_reader = DataReader(db_cfg=self.cfg.pipeline.db)
 
@@ -42,7 +39,6 @@ class OfflineTraining:
 
         # Pass offline data through data pipeline chunk by chunk to produce transitions
         tag_names = [tag_cfg.name for tag_cfg in self.cfg.pipeline.tags]
-        offline_transitions: list[Transition] = []
         for chunk_start, chunk_end in time_chunks:
             chunk_data = data_reader.batch_aggregated_read(
                 names=tag_names,
@@ -61,9 +57,10 @@ class OfflineTraining:
                 self.offline_transitions += pipeline_out.transitions
 
     def train(self, agent: BaseAgent):
-        assert len(self.offline_transitions) > 0, ("You must first load offline transitions before you can perform "
-                                                   "offline training")
-        log.info('Starting offline agent training...')
+        assert len(self.offline_transitions) > 0, (
+            "You must first load offline transitions before you can perform " "offline training"
+        )
+        log.info("Starting offline agent training...")
 
         agent.load_buffer(self.offline_transitions)
         for buffer_name, size in agent.get_buffer_sizes().items():
@@ -77,9 +74,10 @@ class OfflineTraining:
 
         return q_losses
 
-def get_data_start_end_times(data_reader: DataReader,
-                             start_time: dt.datetime | None = None,
-                             end_time: dt.datetime | None = None) -> Tuple[dt.datetime, dt.datetime]:
+
+def get_data_start_end_times(
+    data_reader: DataReader, start_time: dt.datetime | None = None, end_time: dt.datetime | None = None
+) -> Tuple[dt.datetime, dt.datetime]:
     if start_time is None or end_time is None:
         time_stats = data_reader.get_time_stats()
         if start_time is None:

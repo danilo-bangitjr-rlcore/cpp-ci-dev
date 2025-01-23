@@ -211,7 +211,7 @@ def test_offline_training(offline_cfg: MainConfig, offline_trainer: OfflineTrain
     """
     steps = 5
 
-    offline_transitions = generate_offline_data(offline_cfg, offline_trainer, data_writer, steps)
+    generate_offline_data(offline_cfg, offline_trainer, data_writer, steps)
 
     app_state = AppState(
         metrics=metrics_group.dispatch(offline_cfg.metrics),
