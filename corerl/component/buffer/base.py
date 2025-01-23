@@ -84,16 +84,19 @@ class ReplayBuffer:
 
         return idxs
 
-    def sample(self) -> list[TransitionBatch]:
+    def _prepare_sample(self, idxs: np.ndarray) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
             return []
 
-        sampled_indices = self._sample_indices()
         if self.combined:
-            sampled_indices[0] = self._last_pos
+            idxs[0] = self._last_pos
 
-        sampled_data = [self.data[i][sampled_indices] for i in range(len(self.data))]
-        return [self._prepare(sampled_indices, sampled_data)]
+        sampled_data = [self.data[i][idxs] for i in range(len(self.data))]
+        return [self._prepare(idxs, sampled_data)]
+
+    def sample(self) -> list[TransitionBatch]:
+        idxs = self._sample_indices()
+        return self._prepare_sample(idxs)
 
     def full_batch(self) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:

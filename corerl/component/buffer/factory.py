@@ -1,4 +1,4 @@
-from corerl.component.buffer.buffers import (
+from corerl.component.buffer.ensemble import (
     EnsembleUniformReplayBufferConfig,
     buffer_group,
 )

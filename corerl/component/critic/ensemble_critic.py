@@ -5,7 +5,7 @@ from typing import Any, Literal
 import torch
 
 import corerl.utils.nullable as nullable
-from corerl.component.buffer.buffers import EnsembleUniformReplayBufferConfig
+from corerl.component.buffer.ensemble import EnsembleUniformReplayBufferConfig
 from corerl.component.buffer.factory import BufferConfig
 from corerl.component.critic.base_critic import BaseQ, BaseQConfig, BaseV
 from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
