@@ -3,13 +3,14 @@ import logging
 import warnings
 from collections import defaultdict
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
 from typing import Any, Callable
 
 import numpy as np
 from pandas import DataFrame
+from pydantic import Field
 
 from corerl.configs.config import config, interpolate, list_
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
@@ -17,9 +18,10 @@ from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
 from corerl.data_pipeline.constructors.rc import RewardComponentConstructor, RewardConstructor
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode, Transition
+from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode, TemporalState, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
-from corerl.data_pipeline.imputers.factory import init_imputer
+from corerl.data_pipeline.imputers.factory import ImputerStageConfig, init_imputer
+from corerl.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
 from corerl.data_pipeline.tag_config import TagConfig
@@ -35,12 +37,15 @@ register_dispatchers()
 @config()
 class PipelineConfig:
     tags: list[TagConfig] = list_()
-    db: TagDBConfig = field(default_factory=TagDBConfig)
+    db: TagDBConfig = Field(default_factory=TagDBConfig)
     obs_period: timedelta = interpolate('${env.obs_period}')
     action_period: timedelta = interpolate('${env.action_period}')
-    state_constructor: SCConfig = field(default_factory=SCConfig)
-    transition_creator: AllTheTimeTCConfig = field(default_factory=AllTheTimeTCConfig)
-    transition_filter: TransitionFilterConfig = field(default_factory=TransitionFilterConfig)
+
+    # stage-wide configs
+    imputer: ImputerStageConfig = Field(default_factory=PerTagImputerConfig)
+    state_constructor: SCConfig = Field(default_factory=SCConfig)
+    transition_creator: AllTheTimeTCConfig = Field(default_factory=AllTheTimeTCConfig)
+    transition_filter: TransitionFilterConfig = Field(default_factory=TransitionFilterConfig)
 
 @dataclass
 class PipelineReturn:
@@ -86,7 +91,7 @@ class Pipeline:
         self.transition_creator = AllTheTimeTC(cfg.transition_creator, self.tags)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
         self.outlier_detectors = {tag.name: init_oddity_filter(tag.outlier) for tag in self.tags}
-        self.imputers = {tag.name: init_imputer(tag.imputer) for tag in self.tags}
+        self.imputers = init_imputer(cfg.imputer, self.tags)
         self.action_constructor = ActionConstructor(self.tags)
         self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
 
@@ -94,8 +99,8 @@ class Pipeline:
         self.reward_constructor = RewardConstructor(reward_components)
 
         # build pipeline state
-        self.ts_dict: dict = {caller_code: None for caller_code in CallerCode}
-        self.dt_dict: dict = {caller_code: None for caller_code in CallerCode}
+        self.ts_dict: dict[CallerCode, TemporalState | None] = {caller_code: None for caller_code in CallerCode}
+        self.dt_dict: dict[CallerCode, datetime.datetime | None] = {caller_code: None for caller_code in CallerCode}
 
         self._hooks: dict[CallerCode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
             caller_code: defaultdict(list) for caller_code in CallerCode}
@@ -103,7 +108,7 @@ class Pipeline:
             StageCode.INIT:     lambda pf: pf,
             StageCode.BOUNDS:   lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
             StageCode.ODDITY:   lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
-            StageCode.IMPUTER:  lambda pf: invoke_stage_per_tag(pf, self.imputers),
+            StageCode.IMPUTER: self.imputers,
             StageCode.AC:       self.action_constructor,
             StageCode.RC:       self.reward_constructor,
             StageCode.SC:       self.state_constructor,
@@ -134,11 +139,15 @@ class Pipeline:
         if ts is None or reset_ts:
             return {}
 
+        last_seen_time = self.dt_dict[pf.caller_code]
+        if last_seen_time is None:
+            return {}
+
         first_time = pf.get_first_timestamp()
-        if first_time - self.dt_dict[pf.caller_code] > self.valid_thresh:
+        if first_time - last_seen_time > self.valid_thresh:
             warnings.warn(
                 "The temporal state is invalid. "
-                f"The temporal state has timestamp {self.dt_dict[pf.caller_code]} "
+                f"The temporal state has timestamp {last_seen_time} "
                 f"while the current pipeframe has initial timestamp {first_time}",
                 stacklevel=2,
             )

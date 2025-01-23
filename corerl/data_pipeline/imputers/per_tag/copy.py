@@ -6,12 +6,12 @@ from numba import njit
 
 from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
-from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerConfig, imputer_group
+from corerl.data_pipeline.imputers.per_tag.base import BasePerTagImputer, BasePerTagImputerConfig, per_tag_imputer_group
 from corerl.data_pipeline.utils import get_tag_temporal_state
 
 
 @config()
-class CopyImputerConfig(BaseImputerConfig):
+class CopyImputerConfig(BasePerTagImputerConfig):
     name: Literal['copy'] = "copy"
     imputation_horizon: int = MISSING
 
@@ -22,7 +22,7 @@ class CopyImputerTemporalState:
     prev_horizon: int = 0
 
 
-class CopyImputer(BaseImputer):
+class CopyImputer(BasePerTagImputer):
     def __init__(self, cfg: CopyImputerConfig):
         super().__init__(cfg)
         self.imputation_horizon = cfg.imputation_horizon
@@ -48,7 +48,7 @@ class CopyImputer(BaseImputer):
         return pf
 
 
-imputer_group.dispatcher(CopyImputer)
+per_tag_imputer_group.dispatcher(CopyImputer)
 
 
 @njit

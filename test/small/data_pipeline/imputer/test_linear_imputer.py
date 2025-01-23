@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
-from corerl.data_pipeline.imputers.linear import LinearImputer, LinearImputerConfig, LinearImputerTemporalState
+from corerl.data_pipeline.imputers.per_tag.linear import LinearImputer, LinearImputerConfig, LinearImputerTemporalState
 from test.infrastructure.utils.pandas import dfs_close
 
 

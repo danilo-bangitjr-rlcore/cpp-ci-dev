@@ -27,6 +27,18 @@ class Normalizer:
         self._mins.clear()
         self._maxs.clear()
 
+    def denormalize(self, x: np.ndarray, col: str):
+        lo = self._mins[col]
+        hi = self._maxs[col]
+
+        assert lo is not None and hi is not None
+
+        scale = hi - lo
+        bias = lo
+
+        return scale * x + bias
+
+
     def __call__(self, carry: TransformCarry, ts: object | None):
         cols = set(carry.transform_data.columns)
         for col in cols:
