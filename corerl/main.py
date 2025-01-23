@@ -19,6 +19,7 @@ from corerl.eval.config import register_evals
 from corerl.eval.writer import metrics_group
 from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import EventBus
+from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
 
@@ -83,10 +84,14 @@ def main(cfg: MainConfig):
                 if not event:
                     continue
                 interaction.step_event(event)
+                if event.type == EventType.step_get_obs:
+                    pbar.update(1)
+                    steps += 1
             else:
                 interaction.step()
-            pbar.update(1)
-            steps += 1
+                pbar.update(1)
+                steps += 1
+
             if not run_forever and steps >= max_steps:
                 break
 
