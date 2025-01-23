@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+import numpy as np
+
 from corerl.data_pipeline.transforms import BinaryConfig
 from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
@@ -55,6 +57,12 @@ class BinaryTransform:
             case "prod":
                 new_name = f"({col})*({other_name})"
                 carry.transform_data[new_name] = carry.transform_data[col] * other_vals
+            case "max":
+                new_name = f"max({col}, {other_name})"
+                carry.transform_data[new_name] = np.maximum(carry.transform_data[col], other_vals)
+            case "min":
+                new_name = f"min({col}, {other_name})"
+                carry.transform_data[new_name] = np.minimum(carry.transform_data[col], other_vals)
 
     def reset(self) -> None:
         for xform in self._other_xform:
