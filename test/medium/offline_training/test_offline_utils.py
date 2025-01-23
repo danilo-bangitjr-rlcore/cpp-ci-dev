@@ -10,7 +10,7 @@ from torch import Tensor
 from corerl.agent.factory import init_agent
 from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.component.actor.network_actor import NetworkActorConfig
-from corerl.component.buffer.buffers import UniformReplayBufferConfig
+from corerl.component.buffer.uniform import UniformReplayBufferConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.config import MainConfig, MetricsDBConfig

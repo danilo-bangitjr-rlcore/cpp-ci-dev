@@ -1,9 +1,9 @@
 from corerl.component.buffer.buffers import (
     EnsembleUniformReplayBufferConfig,
     PriorityReplayBufferConfig,
-    UniformReplayBufferConfig,
     buffer_group,
 )
+from corerl.component.buffer.uniform import UniformReplayBufferConfig
 
 BufferConfig = (
     UniformReplayBufferConfig
