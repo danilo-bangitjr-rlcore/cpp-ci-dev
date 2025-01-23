@@ -29,6 +29,11 @@ class EventType(StrEnum):
     agent_update_buffer = auto()
     agent_update_critic = auto()
 
+    # ----------
+    # -- Coms --
+    # ----------
+    ping_setpoints = auto()
+
 
 class EventTopic(StrEnum):
     # Topic filtering occurs using subscriber-side prefixing
