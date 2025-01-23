@@ -109,12 +109,14 @@ pipeline:
       factor: -1.0 # convert from negative permeability normalized to [0, 1] -> positive permeability normalized to [-1, 0]
     # ignore permeability except when in production mode (CTRL_P.STEP == 1305)
     # in abscence of "equal to" transform, squeeze with greater/less than
-    - name: product
+    - name: binary
+      op: prod
       other: CTRL_P.STEP
       other_xform:
         - name: less_than
           threshold: 1306
-    - name: product
+    - name: binary
+      op: prod
       other: CTRL_P.STEP
       other_xform:
         - name: greater_than

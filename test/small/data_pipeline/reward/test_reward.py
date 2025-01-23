@@ -275,7 +275,7 @@ def test_product_transform():
     )
 
     transform_cfgs = {
-        "tag-1": [xform.ProductConfig(other="tag-2", other_xform=[xform.GreaterThanConfig(threshold=5)])],
+        "tag-1": [xform.BinaryConfig(op="prod", other="tag-2", other_xform=[xform.GreaterThanConfig(threshold=5)])],
         "tag-2": [xform.NullConfig()],
     }
     reward_component_constructors = {
@@ -418,7 +418,8 @@ def test_epcor_reward():
     transform_cfgs = {
         "efficiency": [
             xform.AffineConfig(scale=m_e, bias=b_e),
-            xform.ProductConfig(
+            xform.BinaryConfig(
+                op="prod",
                 other="efficiency",
                 other_xform=[
                     xform.LessThanConfig(
@@ -449,7 +450,8 @@ def test_epcor_reward():
                         scale=m_c,
                         bias=b_c/2 # add half of b to each pump
                     ),
-                    xform.ProductConfig(
+                    xform.BinaryConfig(
+                        op="prod",
                         other="efficiency",
                         other_xform=[
                             xform.GreaterThanConfig(
@@ -483,7 +485,8 @@ def test_epcor_reward():
                         scale=m_c,
                         bias=b_c/2 # add half of b to each pump
                     ),
-                    xform.ProductConfig(
+                    xform.BinaryConfig(
+                        op="prod",
                         other="efficiency",
                         other_xform=[
                             xform.GreaterThanConfig(
