@@ -95,8 +95,18 @@ def initialize_opc_nodes_from_tags(
             node = folder.add_variable(id, tag.name, val, var_type)
 
         opc_nodes[tag_type].append(node)
+    add_heartbeat_node(client, folder)
     return opc_nodes
 
+def add_heartbeat_node(client: Client, folder: SyncNode) -> SyncNode:
+    hearbeat_node_id = make_opc_node_id("heartbeat")
+    heartbeat_node = client.get_node(hearbeat_node_id)
+    try:
+        _ = heartbeat_node.read_browse_name()
+    except BadNodeIdUnknown:
+        folder.add_variable(hearbeat_node_id, "heartbeat", 0, VariantType.Int64)
+
+    return folder
 
 def run(env: gym.Env, client: Client, cfg_env: OPCTSDBSimAsyncEnvConfig, tag_configs: list[TagConfig]):
     seed = cfg_env.seed
