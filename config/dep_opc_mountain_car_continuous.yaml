@@ -28,6 +28,7 @@ env:
   obs_period: 00:00:05
   update_period: 00:00:05
   action_period: 00:00:15
+  setpoint_ping_period: 00:00:01
   discrete_control: False
   seed: 1
   db: ${pipeline.db}
