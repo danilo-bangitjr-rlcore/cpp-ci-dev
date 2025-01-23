@@ -99,9 +99,6 @@ class SimInteraction(Interaction):
     # ---------
 
     def _capture_last_state(self, pf: PipelineFrame):
-        if pf.caller_code != CallerCode.ONLINE:
-            return
-
         row = pf.data.tail(1)
 
         self._last_state = (
@@ -111,9 +108,6 @@ class SimInteraction(Interaction):
         )
 
     def _capture_last_reward(self, pf: PipelineFrame):
-        if pf.caller_code != CallerCode.ONLINE:
-            return
-
         row = pf.data.tail(1)
 
         self._last_reward = float(
