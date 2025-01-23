@@ -1,3 +1,13 @@
+## 0.40.0 (2025-01-23)
+
+### Feat
+
+- add heartbeat thread
+
+### Fix
+
+- increase telegraf write freq
+
 ## 0.39.0 (2025-01-23)
 
 ### Feat
