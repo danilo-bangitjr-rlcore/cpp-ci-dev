@@ -26,10 +26,12 @@ def scheduler_task(pub_socket: zmq.Socket, cfg: AsyncEnvConfig, stop_event: thre
         EventType.step_get_obs: EventPeriodTime(cfg.obs_period, thread_start_time + cfg.obs_period),
         EventType.step_agent_update: EventPeriodTime(cfg.update_period, thread_start_time + cfg.update_period),
         EventType.step_emit_action: EventPeriodTime(cfg.action_period, thread_start_time + cfg.action_period),
-        EventType.ping_setpoints: EventPeriodTime(
-            cfg.setpoint_ping_period, thread_start_time + cfg.setpoint_ping_period
-        ),
     }
+    if cfg.setpoint_ping_period is not None:
+        next_event_dict[EventType.ping_setpoints] = EventPeriodTime(
+            cfg.setpoint_ping_period, thread_start_time + cfg.setpoint_ping_period
+        )
+
 
     def _write_to_zmq(event: Event):
         message_data = event.model_dump_json()
