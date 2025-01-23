@@ -63,6 +63,9 @@ class BinaryTransform:
             case "min":
                 new_name = f"min({col}, {other_name})"
                 carry.transform_data[new_name] = np.minimum(carry.transform_data[col], other_vals)
+            case "add":
+                new_name = f"({col}) + ({other_name})"
+                carry.transform_data[new_name] = carry.transform_data[col] + other_vals
 
     def reset(self) -> None:
         for xform in self._other_xform:
