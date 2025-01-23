@@ -1,3 +1,10 @@
+## 0.45.1 (2025-01-23)
+
+### Refactor
+
+- offline training hooks won't accept any arguments - the objects will already store the data they need
+- converted offline_training/utils into a class so that we can ultimately hook evaluators to it
+
 ## 0.45.0 (2025-01-23)
 
 ### Feat
