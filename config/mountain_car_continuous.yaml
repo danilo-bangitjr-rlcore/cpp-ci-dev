@@ -2,6 +2,8 @@ defaults:
   -
 
 experiment:
+  exp_name: MountainCarContinuous
+  param_from_hash: True
   seed: 1
   gamma: 0.99
 
@@ -13,7 +15,7 @@ env:
   gym_name: MountainCarContinuous-v0
   discrete_control: False
   seed: 1
-  db: ${pipeline.db}
+  # db: ${pipeline.db}
   obs_period: 00:00:01
   update_period: 00:00:01
   action_period: 00:00:01
@@ -89,7 +91,7 @@ pipeline:
       name: identity
     is_meta: true
 
-  - name: action_0
+  - name: action-0
     operating_range: [-1, 1]
     outlier:
       name: identity
@@ -103,14 +105,14 @@ pipeline:
         max: 1
         from_data: False
 
-  - name: observation_0
+  - name: tag-0
     operating_range: [-1.2, 0.6]
     outlier:
       name: identity
     imputer:
       name: identity
 
-  - name: observation_1
+  - name: tag-1
     operating_range: [-0.07, 0.07]
     outlier:
       name: identity

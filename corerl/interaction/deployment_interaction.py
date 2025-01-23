@@ -14,7 +14,6 @@ from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
-from corerl.environment.async_env.opc_tsdb_sim_async_env import OPCTSDBSimAsyncEnv
 from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat, HeartbeatConfig
@@ -40,7 +39,7 @@ class DeploymentInteraction(Interaction):
         env: AsyncEnv,
         pipeline: Pipeline,
     ):
-        assert isinstance(env, DeploymentAsyncEnv) or isinstance(env, OPCTSDBSimAsyncEnv)
+        assert isinstance(env, DeploymentAsyncEnv)
         self._cfg = cfg
 
         self._heartbeat = Heartbeat(cfg.heartbeat)

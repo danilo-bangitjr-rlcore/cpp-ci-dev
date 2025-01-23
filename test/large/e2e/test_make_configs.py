@@ -39,8 +39,10 @@ def test_make_configs(request: FixtureRequest):
             "run",
             "python",
             "e2e/make_configs.py",
-            "--config-name",
-            "opc_mountain_car_continuous",
+            "--name",
+            "MountainCarContinuous-v0",
+            "--telegraf",
+            "--tag-config"
         ],
         cwd=root_path,
     )

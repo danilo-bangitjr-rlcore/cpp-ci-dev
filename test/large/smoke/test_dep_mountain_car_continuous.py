@@ -65,8 +65,9 @@ def run_make_configs(request: FixtureRequest):
             "run",
             "python",
             "e2e/make_configs.py",
-            "--config-name",
-            "opc_mountain_car_continuous",
+            "--name",
+            "MountainCarContinuous-v0",
+            "--telegraf",
         ],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -135,7 +136,7 @@ def run_background_opc_client(check_opc_server_ready: None, request: FixtureRequ
     # using proc = subprocess.Popen, use subprocess.run within multiprocessing process instead
     def subproc_run():
         subprocess.run(
-            ["uv", "run", "python", "e2e/opc_clients/opc_client.py", "--config-name", "opc_mountain_car_continuous"],
+            ["uv", "run", "python", "e2e/opc_clients/opc_client.py", "--config-name", "mountain_car_continuous"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             cwd=request.config.rootpath,
@@ -185,12 +186,12 @@ def check_sim_farama_environment_ready(run_background_opc_client: None, request:
     should_skip_test(), reason="Docker compose ps saw core-rl services, or failed to run, do not run opc tsdb test"
 )
 @pytest.mark.timeout(500)
-def test_opc_tsdb_mountain_car_continuous(check_sim_farama_environment_ready: None, request: FixtureRequest):
+def test_dep_mountain_car_continuous(check_sim_farama_environment_ready: None, request: FixtureRequest):
     proc = subprocess.run(
         [
             "corerl_main",
             "--config-name",
-            "opc_mountain_car_continuous",
+            "dep_mountain_car_continuous",
             "experiment.max_steps=25",
             "experiment.run_forever="
         ],

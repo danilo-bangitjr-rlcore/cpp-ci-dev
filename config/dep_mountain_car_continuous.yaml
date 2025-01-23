@@ -14,7 +14,7 @@ interaction:
   name: dep_interaction
   historical_batch_size: 0
   heartbeat:
-    opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/" 
+    opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
     heartbeat_node_id: "s=heartbeat"
     heartbeat_period: 00:00:01
     max_counter: 10
@@ -25,9 +25,9 @@ event_bus:
 
 env:
   name: dep_async_env
-  obs_period: 00:00:05
-  update_period: 00:00:05
-  action_period: 00:00:15
+  obs_period: 00:00:02
+  update_period: 00:00:02
+  action_period: 00:00:06
   setpoint_ping_period: 00:00:01
   discrete_control: False
   seed: 1
@@ -89,7 +89,7 @@ pipeline:
     name: anytime
 
   tags:
-  - name: action_0
+  - name: action-0
     operating_range: [-1.0, 1.0]
     outlier:
       name: identity
@@ -106,7 +106,7 @@ pipeline:
     - name: normalize
     is_meta: false
 
-  - name: observation_0
+  - name: tag-0
     operating_range: [-1.2, 0.6]
     red_bounds: [-1.0, null]
     yellow_bounds: [-0.8, null]
@@ -124,7 +124,7 @@ pipeline:
       - 0.9
     is_meta: false
 
-  - name: observation_1
+  - name: tag-1
     operating_range: [-0.07, 0.07]
     red_bounds: [-0.06, 0.06]
     outlier:
