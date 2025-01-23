@@ -35,8 +35,8 @@ class NNTorsoConfig(BaseNetworkConfig):
 class EnsembleCriticNetworkConfig(BaseNetworkConfig):
     name: Literal['ensemble'] = 'ensemble'
     ensemble: int = 1
-    bootstrap_reduct: Any = field(default_factory=MeanReduct)
-    policy_reduct: Any = field(default_factory=MeanReduct)
+    bootstrap_reduct: MeanReduct = field(default_factory=MeanReduct)
+    policy_reduct: MeanReduct = field(default_factory=MeanReduct)
     vmap: bool = False
 
     base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
