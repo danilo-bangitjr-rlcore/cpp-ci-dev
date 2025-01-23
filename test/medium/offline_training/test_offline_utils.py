@@ -28,7 +28,7 @@ from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.eval.writer import metrics_group
 from corerl.experiment.config import ExperimentConfig
 from corerl.messages.event_bus import EventBus
-from corerl.offline.utils import load_offline_transitions, offline_training
+from corerl.offline.utils import OfflineTraining
 from corerl.state import AppState
 from test.infrastructure.utils.docker import init_docker_container  # noqa: F401
 
@@ -135,7 +135,14 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
 
     return cfg
 
-def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, steps: int = 5) -> list[Transition]:
+@pytest.fixture
+def offline_trainer(offline_cfg: MainConfig) -> OfflineTraining:
+    return OfflineTraining(offline_cfg)
+
+def generate_offline_data(offline_cfg: MainConfig,
+                          offline_trainer: OfflineTraining,
+                          data_writer: DataWriter,
+                          steps: int = 5) -> list[Transition]:
     obs_period = offline_cfg.pipeline.obs_period
 
     # Generate timestamps
@@ -166,18 +173,18 @@ def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, step
 
     # Produce offline transitions
     pipeline = Pipeline(offline_cfg.pipeline)
-    created_transitions = load_offline_transitions(offline_cfg, pipeline, start_time=start_time)
+    offline_trainer.load_offline_transitions(pipeline, start_time=start_time)
 
-    return created_transitions
+    return offline_trainer.offline_transitions
 
-def test_load_offline_transitions(offline_cfg: MainConfig, data_writer: DataWriter):
+def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: OfflineTraining, data_writer: DataWriter):
     """
     Generate a few offline time steps, write them to TSDB, read the data from TSDB into a dataframe,
     pass data through the 'Anytime' data pipeline, and ensure the correct transitions are produced
     """
     steps = 5
 
-    created_transitions = generate_offline_data(offline_cfg, data_writer, steps)
+    created_transitions = generate_offline_data(offline_cfg, offline_trainer, data_writer, steps)
 
     # Expected transitions
     gamma = offline_cfg.experiment.gamma
@@ -196,7 +203,7 @@ def test_load_offline_transitions(offline_cfg: MainConfig, data_writer: DataWrit
     for i in range(len(created_transitions)):
         assert created_transitions[i] == expected_transitions[i]
 
-def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
+def test_offline_training(offline_cfg: MainConfig, offline_trainer: OfflineTraining, data_writer: DataWriter):
     """
     Generate a few offline time steps, write them to TSDB, read the data from TSDB into a dataframe,
     pass data through the 'Anytime' data pipeline, train an agent on the produced transitions,
@@ -204,7 +211,7 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
     """
     steps = 5
 
-    offline_transitions = generate_offline_data(offline_cfg, data_writer, steps)
+    offline_transitions = generate_offline_data(offline_cfg, offline_trainer, data_writer, steps)
 
     app_state = AppState(
         metrics=metrics_group.dispatch(offline_cfg.metrics),
@@ -216,7 +223,7 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
     agent = init_agent(offline_cfg.agent, app_state, col_desc)
 
     # Offline training
-    critic_losses = offline_training(offline_cfg, agent, offline_transitions)
+    critic_losses = offline_trainer.train(agent)
     first_loss = critic_losses[0]
     last_loss = critic_losses[-1]
 
