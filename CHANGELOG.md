@@ -1,3 +1,13 @@
+## 0.39.0 (2025-01-23)
+
+### Feat
+
+- dump agent weights to disk every hour
+
+### Fix
+
+- load historical chunk in event bus loop
+
 ## 0.38.0 (2025-01-22)
 
 ### Feat
