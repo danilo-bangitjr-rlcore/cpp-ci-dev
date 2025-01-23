@@ -1,3 +1,19 @@
+## 0.44.0 (2025-01-23)
+
+### Feat
+
+- add masked autoencoder imputation strategy
+
+### Fix
+
+- label missing temporal state types and fix nullable bug
+
+### Refactor
+
+- setup imputers in base/factory pattern
+- create imputer stage group and redirect to per-tag-imputers
+- promote imputer to operate across all tags
+
 ## 0.43.0 (2025-01-23)
 
 ### Feat
