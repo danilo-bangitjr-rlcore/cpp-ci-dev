@@ -2,11 +2,11 @@ import logging
 import shutil
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from time import sleep
-from typing import Generator, Literal
+from typing import Literal
 
 import numpy as np
 import pandas as pd
+from pydantic import Field
 
 from corerl.agent.base import BaseAgent
 from corerl.configs.config import config
@@ -17,8 +17,9 @@ from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.environment.async_env.opc_tsdb_sim_async_env import OPCTSDBSimAsyncEnv
 from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
+from corerl.messages.heartbeat import Heartbeat, HeartbeatConfig
 from corerl.state import AppState
-from corerl.utils.time import split_into_chunks
+from corerl.utils.time import clock_generator, split_into_chunks, wait_for_timestamp
 
 logger = logging.getLogger(__file__)
 
@@ -27,6 +28,7 @@ class DepInteractionConfig:
     name: Literal["dep_interaction"] = "dep_interaction"
     historical_batch_size: int = 10000
     checkpoint_path: Path = Path('outputs/checkpoints')
+    heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
 
 
 class DeploymentInteraction(Interaction):
@@ -41,6 +43,7 @@ class DeploymentInteraction(Interaction):
         assert isinstance(env, DeploymentAsyncEnv) or isinstance(env, OPCTSDBSimAsyncEnv)
         self._cfg = cfg
 
+        self._heartbeat = Heartbeat(cfg.heartbeat)
         self._app_state = app_state
         self._pipeline = pipeline
         self._env = env
@@ -80,6 +83,7 @@ class DeploymentInteraction(Interaction):
         step_timestamp = next(self._step_clock)
         wait_for_timestamp(step_timestamp)
         logger.info("beginning step logic")
+        self._heartbeat.healthcheck()
 
         self.load_historical_chunk()
 
@@ -99,6 +103,7 @@ class DeploymentInteraction(Interaction):
 
     def step_event(self, event: Event):
         logger.debug(f"Received step_event: {event}")
+        self._heartbeat.healthcheck()
         match event.type:
             case EventType.step:
                 self.step()
@@ -238,20 +243,3 @@ class DeploymentInteraction(Interaction):
             )
 
 
-def clock_generator(tick_period: timedelta) -> Generator[datetime, None, None]:
-    tick = datetime.now(UTC)
-    tick.replace(microsecond=0) # trim microseconds
-    while True:
-        yield tick
-        tick += tick_period
-
-def wait_for_timestamp(timestamp: datetime) -> None:
-    """
-    Blocks until the requested timestamp
-    """
-    now = datetime.now(UTC)
-    if now >= timestamp:
-        sleep_duration = 0
-    else:
-        sleep_duration = (timestamp - now).total_seconds()
-    sleep(sleep_duration)
