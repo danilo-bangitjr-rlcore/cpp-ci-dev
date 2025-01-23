@@ -1,3 +1,13 @@
+## 0.46.2 (2025-01-23)
+
+### Fix
+
+- prevent dep_async_env from hanging forever
+
+### Refactor
+
+- replace opc_tsdb_sim with deployment
+
 ## 0.46.1 (2025-01-23)
 
 ### Fix
