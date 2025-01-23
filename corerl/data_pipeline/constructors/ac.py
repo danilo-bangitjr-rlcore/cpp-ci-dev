@@ -37,7 +37,7 @@ class ActionConstructor(Constructor):
         return pf
 
 
-    def np_to_dataframe(self, action_arr: np.ndarray):
+    def assign_action_names(self, action_arr: np.ndarray):
         """
         Because the action constructor is responsible for setting action ordering,
         then when we receive a numpy array with a magic ordering, the AC is
