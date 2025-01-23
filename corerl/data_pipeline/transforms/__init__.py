@@ -28,7 +28,7 @@ type TransformConfig.
 @config()
 class BinaryConfig(BaseTransformConfig):
     name: Literal['binary'] = "binary"
-    op: Literal['prod', 'min', 'max'] = MISSING
+    op: Literal['prod', 'min', 'max', 'add'] = MISSING
 
     other: str = MISSING
     other_xform: list[TransformConfig] = list_([IdentityConfig])
@@ -61,7 +61,7 @@ TransformConfig = Annotated[
 
 
 def register_dispatchers():
-    from corerl.data_pipeline.transforms.product import BinaryTransform
+    from corerl.data_pipeline.transforms.binary import BinaryTransform
     from corerl.data_pipeline.transforms.split import SplitTransform
 
     transform_group.dispatcher(BinaryTransform)

@@ -3,9 +3,9 @@ import datetime
 import numpy as np
 import pandas as pd
 
+from corerl.data_pipeline.transforms.binary import BinaryConfig, BinaryTransform
 from corerl.data_pipeline.transforms.greater_than import GreaterThanConfig
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.transforms.product import BinaryConfig, BinaryTransform
 from test.infrastructure.utils.pandas import dfs_close
 
 

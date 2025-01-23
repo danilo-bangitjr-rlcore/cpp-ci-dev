@@ -1,6 +1,7 @@
 import datetime
 from collections.abc import Hashable
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -331,17 +332,15 @@ def test_null_filter():
 
 @dataclass
 class EpcorRewardConfig:
-    e_min: float = 85
-    e_target: float = 95
+    outlet_h2s_target: float = 1
+    max_outlet_h2s: float = 5
+    e_min: float = 80
+    e_target: float = 90
     c_min: float = 0
     orp_pumpspeed_max: float = 60
     ph_pumpspeed_max: float = 60
     orp_cost_factor: float = 1.355 # $/(rpm*hr)
     ph_cost_factor: float = 0.5455 # $/(rpm*hr)
-    r_e_min: float = 0 # r_e(e_min)
-    r_e_target: float = 0.5 # r_e(e_max)
-    r_c_min: float = 1.0 # r_c(c_min)
-    r_c_max: float = 0.5 # r_c(c_max)
     high_pumpspeed_penalty: float = -1
 
 def get_max_cost(cfg: EpcorRewardConfig) -> float:
@@ -352,35 +351,108 @@ def get_max_cost(cfg: EpcorRewardConfig) -> float:
     return c_max
 
 
-def epcor_scrubber_reward(
-    efficiency: float, orp_pumpspeed: float, ph_pumpspeed: float, cfg: EpcorRewardConfig
+def get_constraint_violation_loss(efficiency: float, outlet_h2s: float, cfg: EpcorRewardConfig) -> float:
+    """
+    constraint: efficiency > e_target OR outlet_h2s < outlet_h2s_target
+    """
+    # transform to minimization
+    # x > t  -->  -x < -t = z < g
+    z1 = -efficiency
+    g1 = -cfg.e_target
+
+    # outlet h2s is already a minimization (outlet_)
+    z2 = outlet_h2s
+    g2 = cfg.outlet_h2s_target
+
+    zs = [z1, z2]
+    gs = [g1, g2]
+
+    # get normalized constraint violation
+    z1_max = -cfg.e_min
+    z2_max = cfg.max_outlet_h2s
+    z_maxs = [z1_max, z2_max]
+
+    v_hats = []
+    for z, g, z_max in zip(zs, gs, z_maxs, strict=True):
+        v_hat = (z - g) / (z_max - g) # or affine 1/(z_max-g)*z - g/(z_max -g)
+        v_hats.append(v_hat)
+
+    # loss aggregates normalized constraint violations
+    # for epcor scrubber, we only need one of the constraints to be satisfied
+    # so we aggregate with a min
+    L_v = min(v_hats) # \in [0, 1]
+    assert isinstance(L_v, float)
+
+    return L_v
+
+def get_constraint_violation_reward(L_v: float) -> float:
+    # transform to maximization
+    r_v_raw = -L_v # \in [-1, 0]
+
+    # normalize reward
+    r_v_norm = r_v_raw + 1 # \in [0, 1]
+
+    # compress to [-1, -0.5]
+    r_v_prime = 0.5 * r_v_norm - 1
+
+    # ignore if constraints are satisfied:
+    # if aggregated violation L_v <= 0, this will evaluate to 0
+    r_v = (L_v > 0) * r_v_prime
+
+    return r_v
+
+
+def get_optimization_reward(
+    x: float, x_min: float, x_max: float, direction: Literal["min", "max"], L_v: float
 ) -> float:
-    m_e = (cfg.r_e_target - cfg.r_e_min) / (cfg.e_target - cfg.e_min)
-    b_e = cfg.r_e_min - m_e * cfg.e_min
+    """
+    While satisfying constraints, minimize chem cost
+    """
+    # transform to maximization
+    if direction == 'min':
+        y = -x
+        y_max = -x_min
+        y_min = -x_max
+    else:
+        y = x
+        y_max = x_max
+        y_min = x_min
 
-    def r_e(efficiency: float) -> float:
-        return m_e * efficiency + b_e
+    # normalize
+    r_o_norm = (y - y_min) / (y_max - y_min)
 
+    # compress to [-0.5, 0]
+    r_o_prime = 0.5 * r_o_norm - 0.5
+
+    # ignore if constraints are not satisfied:
+    # if aggregated violation L_v > 0, this will evaluate to 0
+    r_o = (L_v <= 0) * r_o_prime
+
+    return r_o
+
+def epcor_scrubber_reward(
+    efficiency: float, outlet_h2s: float, orp_pumpspeed: float, ph_pumpspeed: float, cfg: EpcorRewardConfig
+) -> float:
+
+    cost = orp_pumpspeed * cfg.orp_cost_factor + ph_pumpspeed * cfg.ph_cost_factor
     c_max = get_max_cost(cfg)
-    m_c = (cfg.r_c_max - cfg.r_c_min) / (c_max - cfg.c_min)
-    b_c = cfg.r_c_min - m_c * cfg.c_min
+    c_min = cfg.c_min
 
-    def r_c(cost: float) -> float:
-        return m_c * cost + b_c
+    constraint_violation_loss = get_constraint_violation_loss(efficiency, outlet_h2s, cfg)
+    r_v = get_constraint_violation_reward(constraint_violation_loss)
+    r_o = get_optimization_reward(x=cost, x_min=c_min, x_max=c_max, direction='min', L_v=constraint_violation_loss)
 
-    def r() -> float:
-        penalty = 0
-        if orp_pumpspeed > cfg.orp_pumpspeed_max:
-            penalty += cfg.high_pumpspeed_penalty
-        if ph_pumpspeed > cfg.ph_pumpspeed_max:
-            penalty += cfg.high_pumpspeed_penalty
-        if efficiency < cfg.e_target:
-            return r_e(efficiency) + penalty
-        else:
-            cost = orp_pumpspeed * cfg.orp_cost_factor + ph_pumpspeed * cfg.ph_cost_factor
-            return r_c(cost) + penalty
+    r_base = r_o + r_v
 
-    return r()
+    penalty = 0
+    if orp_pumpspeed > cfg.orp_pumpspeed_max:
+        penalty += cfg.high_pumpspeed_penalty
+    if ph_pumpspeed > cfg.ph_pumpspeed_max:
+        penalty += cfg.high_pumpspeed_penalty
+
+    r = r_base + penalty
+
+    return r
 
 
 def test_epcor_reward():
@@ -388,115 +460,121 @@ def test_epcor_reward():
     start = datetime.datetime.now(datetime.UTC)
     Δ = datetime.timedelta(minutes=5)
 
-    dates = [start + i * Δ for i in range(8)]
+    dates = [start + i * Δ for i in range(10)]
     idx = pd.DatetimeIndex(dates)
 
-    cols = pd.Index(["efficiency", "orp_pumpspeed", "ph_pumpspeed"])
+    cols = pd.Index(["efficiency", "outlet_h2s", "orp_pumpspeed", "ph_pumpspeed"])
     df = pd.DataFrame(
         data=[
-            [np.nan, np.nan,   16],
-            [85,      10,      10],
-            [90,      20,      15],
-            [95,      30,      25],
-            [np.nan, np.nan, np.nan],
-            [97,      45,      50],
-            [98,      60,      65],
-            [99,      70,      80],
+            [np.nan, 2,      np.nan,     16],
+            [80,     3,       10,        10],
+            [82,     1,       20,        15],
+            [84,     0.98,    30,        25],
+            [np.nan, np.nan, np.nan, np.nan],
+            [89,     0.9,     45,        50],
+            [88,     1.2,     60,        65],
+            [99,     0.8,     70,        80],
+            [88,     1.2,     40,        40],
+            [99,     0.8,     40,        40],
         ],
         columns=cols,
         index=idx,
     )
 
     r_cfg = EpcorRewardConfig()
-    m_e = (r_cfg.r_e_target - r_cfg.r_e_min) / (r_cfg.e_target - r_cfg.e_min)
-    b_e = r_cfg.r_e_min - m_e * r_cfg.e_min
 
+    c_min = 0
     c_max = get_max_cost(r_cfg)
-    m_c = (r_cfg.r_c_max - r_cfg.r_c_min) / (c_max - r_cfg.c_min)
-    b_c = r_cfg.r_c_min - m_c * r_cfg.c_min
+
+    # used in derivation of normalized
+    # constraint violation
+    z1_max = -r_cfg.e_min
+    g1 = -r_cfg.e_target
+
+    z2_max = r_cfg.max_outlet_h2s
+    g2 = r_cfg.outlet_h2s_target
+
+    # xforms for normalized constraint violation from efficiency
+    # re-used a few times
+    constraint_violation_xforms = [
+        xform.ScaleConfig(factor=-1), # transform to minimization (z)
+        # next step gets normalized constraint violation
+        xform.AffineConfig(
+            scale=1/(z1_max - g1),
+            bias=-g1/(z1_max - g1)
+        ), # this gives v_hat1 \in [0, 1]
+        xform.BinaryConfig(
+            op="min",
+            other="outlet_h2s",
+            other_xform=[
+                # next step gets normalized constraint violation
+                xform.AffineConfig(
+                    scale=1/(z2_max - g2),
+                    bias=-g2/(z2_max - g2)
+                ), # this gives v_hat1 \in [0, 1]
+            ] # this gives v_hat2 \in [0, 1]
+        )
+    ] # this whole chain gives constrain violation L_v \in [0, 1]
 
     transform_cfgs = {
         "efficiency": [
-            xform.AffineConfig(scale=m_e, bias=b_e),
+            *constraint_violation_xforms,
+            xform.ScaleConfig(factor=-1), # maximization \in [-1, 0]
+            xform.AffineConfig(bias=1), # normalize: max \in [0, 1]
+            xform.AffineConfig(scale=0.5, bias=-1), # squash to [-1, -0.5]
             xform.BinaryConfig(
                 op="prod",
                 other="efficiency",
                 other_xform=[
-                    xform.LessThanConfig(
-                        threshold=r_cfg.e_target,
-                    ),
+                    *constraint_violation_xforms,
+                    xform.GreaterThanConfig(threshold=0),
                 ],
             ),
         ],
+        "outlet_h2s": [xform.NullConfig()], # this is hangled in constraint_violation_xforms above
         "ph_pumpspeed": [
             xform.SplitConfig(
                 passthrough=False,
                 # passthrough=True,
                 # left is high pumpspeed penalty
                 left=[
-                    xform.GreaterThanConfig(
-                        threshold=r_cfg.ph_pumpspeed_max,
-                    ),
-                    xform.ScaleConfig(
-                        factor=r_cfg.high_pumpspeed_penalty,
-                    ),
+                    xform.GreaterThanConfig(threshold=r_cfg.ph_pumpspeed_max),
+                    xform.ScaleConfig(factor=r_cfg.high_pumpspeed_penalty),
                 ],
                 # right is ph component of cost reward
                 right=[
-                    xform.ScaleConfig(
-                        factor=r_cfg.ph_cost_factor
+                    xform.ScaleConfig(factor=r_cfg.ph_cost_factor),
+                    xform.BinaryConfig(
+                        op="add",
+                        other="orp_pumpspeed",
+                        other_xform=[
+                            xform.ScaleConfig(factor=r_cfg.orp_cost_factor),
+                        ],
                     ),
-                    xform.AffineConfig(
-                        scale=m_c,
-                        bias=b_c/2 # add half of b to each pump
+                    # after the above add we have cost
+                    xform.ScaleConfig(factor=-1), # transform to maximization
+                    xform.AffineConfig( # normalize to [0, 1] maximization
+                        scale=1/(c_max - c_min),
+                        bias=c_max/(c_max - c_min ) # high/low flipped due to maximizaiton: y_min = -c_max
                     ),
+                    xform.AffineConfig(scale=0.5, bias=-0.5), # squash to [-0.5, 0]
+                    # next transform excludes this minimization reward if
+                    # constraints are violated
                     xform.BinaryConfig(
                         op="prod",
                         other="efficiency",
                         other_xform=[
-                            xform.GreaterThanConfig(
-                                threshold=r_cfg.e_target,
-                                equal=True,
-                            ),
+                            *constraint_violation_xforms,
+                            xform.LessThanConfig(threshold=0, equal=True),
                         ],
                     ),
-                ],
+                ], # end of right
             ), # end ph pumpspeed split config
         ],
+        # orp pumpspeed only has to handle high speed penalty
         "orp_pumpspeed": [
-            xform.SplitConfig(
-                passthrough=False,
-                # passthrough=True,
-                # left is high pumpspeed penalty
-                left=[
-                    xform.GreaterThanConfig(
-                        threshold=r_cfg.orp_pumpspeed_max,
-                    ),
-                    xform.ScaleConfig(
-                        factor=r_cfg.high_pumpspeed_penalty,
-                    ),
-                ],
-                # right is orp component of cost reward
-                right=[
-                    xform.ScaleConfig(
-                        factor=r_cfg.orp_cost_factor
-                    ),
-                    xform.AffineConfig(
-                        scale=m_c,
-                        bias=b_c/2 # add half of b to each pump
-                    ),
-                    xform.BinaryConfig(
-                        op="prod",
-                        other="efficiency",
-                        other_xform=[
-                            xform.GreaterThanConfig(
-                                threshold=r_cfg.e_target,
-                                equal=True,
-                            ),
-                        ],
-                    ),
-                ],
-            ), # end ph pumpspeed split config
+            xform.GreaterThanConfig(threshold=r_cfg.orp_pumpspeed_max),
+            xform.ScaleConfig(factor=r_cfg.high_pumpspeed_penalty),
         ],
     }
     reward_component_constructors = {
