@@ -339,10 +339,6 @@ class EpcorRewardConfig:
     ph_pumpspeed_max: float = 60
     orp_cost_factor: float = 1.355 # $/(rpm*hr)
     ph_cost_factor: float = 0.5455 # $/(rpm*hr)
-    r_e_min: float = 0 # r_e(e_min)
-    r_e_target: float = 0.5 # r_e(e_max)
-    r_c_min: float = 1.0 # r_c(c_min)
-    r_c_max: float = 0.5 # r_c(c_max)
     high_pumpspeed_penalty: float = -1
 
 def get_max_cost(cfg: EpcorRewardConfig) -> float:
@@ -419,11 +415,6 @@ def get_optimization_reward(
 def epcor_scrubber_reward(
     efficiency: float, orp_pumpspeed: float, ph_pumpspeed: float, cfg: EpcorRewardConfig
 ) -> float:
-    # m_e = (cfg.r_e_target - cfg.r_e_min) / (cfg.e_target - cfg.e_min)
-    # b_e = cfg.r_e_min - m_e * cfg.e_min
-    #
-    # def r_e(efficiency: float) -> float:
-    #     return m_e * efficiency + b_e
 
     cost = orp_pumpspeed * cfg.orp_cost_factor + ph_pumpspeed * cfg.ph_cost_factor
     c_max = get_max_cost(cfg)
@@ -435,25 +426,6 @@ def epcor_scrubber_reward(
 
     r_base = r_o + r_v
 
-
-    # m_c = (cfg.r_c_max - cfg.r_c_min) / (c_max - cfg.c_min)
-    # b_c = cfg.r_c_min - m_c * cfg.c_min
-
-    # def r_c(cost: float) -> float:
-    #     return m_c * cost + b_c
-
-    # def r() -> float:
-    #     penalty = 0
-    #     if orp_pumpspeed > cfg.orp_pumpspeed_max:
-    #         penalty += cfg.high_pumpspeed_penalty
-    #     if ph_pumpspeed > cfg.ph_pumpspeed_max:
-    #         penalty += cfg.high_pumpspeed_penalty
-    #     if efficiency < cfg.e_target:
-    #         return r_e(efficiency) + penalty
-    #     else:
-    #         cost = orp_pumpspeed * cfg.orp_cost_factor + ph_pumpspeed * cfg.ph_cost_factor
-    #         return r_c(cost) + penalty
-
     penalty = 0
     if orp_pumpspeed > cfg.orp_pumpspeed_max:
         penalty += cfg.high_pumpspeed_penalty
@@ -461,7 +433,7 @@ def epcor_scrubber_reward(
         penalty += cfg.high_pumpspeed_penalty
 
     r = r_base + penalty
-    # return r()
+
     return r
 
 
