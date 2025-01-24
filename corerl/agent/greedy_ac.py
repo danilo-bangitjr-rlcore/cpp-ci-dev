@@ -20,7 +20,6 @@ from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
-from corerl.eval.monte_carlo import MonteCarloEvalConfig, MonteCarloEvaluator
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
@@ -48,8 +47,6 @@ class GreedyACConfig(BaseACConfig):
 
     actor: NetworkActorConfig = field(default_factory=NetworkActorConfig)
     critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
-
-    mc_eval: MonteCarloEvalConfig = field(default_factory=MonteCarloEvalConfig)
 
 class GreedyAC(BaseAC):
     def __init__(self, cfg: GreedyACConfig, app_state: AppState, col_desc: ColumnDescriptions):
@@ -97,8 +94,6 @@ class GreedyAC(BaseAC):
                 self.num_samples = self.action_dim
                 self.top_actions_proposal = self.action_dim
 
-        self.mc_eval = MonteCarloEvaluator(cfg.mc_eval)
-
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         self._app_state.event_bus.emit_event(EventType.agent_get_action)
@@ -112,24 +107,28 @@ class GreedyAC(BaseAC):
         return to_np(action)[0]
 
     def update_buffer(self, pr: PipelineReturn) -> None:
-        if pr.transitions is not None:
-            self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
+        if pr.transitions is None:
+            return
 
-            self.critic_buffer.feed(pr.transitions)
-            self.policy_buffer.feed([
-                t for t in pr.transitions if t.prior.dp
-            ])
+        self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
+
+        self.critic_buffer.feed(pr.transitions)
+        self.policy_buffer.feed([
+            t for t in pr.transitions if t.prior.dp
+        ])
 
 
     def load_buffer(self, pr: PipelineReturn) -> None:
-        if pr.transitions is not None:
-            policy_transitions = []
-            for transition in pr.transitions:
-                if transition.prior.dp:
-                    policy_transitions.append(transition)
+        if pr.transitions is None:
+            return
 
-            self.policy_buffer.load(policy_transitions)
-            self.critic_buffer.load(pr.transitions)
+        policy_transitions = []
+        for transition in pr.transitions:
+            if transition.prior.dp:
+                policy_transitions.append(transition)
+
+        self.policy_buffer.load(policy_transitions)
+        self.critic_buffer.load(pr.transitions)
 
     def get_sorted_q_values(
         self,

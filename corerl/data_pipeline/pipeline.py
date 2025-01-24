@@ -51,6 +51,7 @@ class PipelineConfig:
 
 @dataclass
 class PipelineReturn:
+    caller_code: CallerCode
     df: DataFrame
     states: DataFrame
     actions: DataFrame
@@ -182,6 +183,7 @@ class Pipeline:
         # handle the no data case with an empty return
         if data.empty:
             return PipelineReturn(
+                caller_code=caller_code,
                 df=data,
                 states=data,
                 actions=data,
@@ -205,6 +207,7 @@ class Pipeline:
         self.ts_dict[caller_code] = pf.temporal_state
 
         return PipelineReturn(
+            caller_code=caller_code,
             df=pf.data,
             states=pf.states,
             actions=pf.actions,
