@@ -1,3 +1,9 @@
+## 0.47.4 (2025-01-24)
+
+### Fix
+
+- wrap heartbeat opc conn in context manager
+
 ## 0.47.3 (2025-01-24)
 
 ### Fix
