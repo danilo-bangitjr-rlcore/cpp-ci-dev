@@ -1,5 +1,4 @@
 import pickle as pkl
-from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -12,7 +11,7 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.critic.factory import init_v_critic
 from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import Transition, TransitionBatch
+from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
 from corerl.utils.device import device
@@ -44,10 +43,11 @@ class SimpleAC(BaseAC):
         return action
 
     def update_buffer(self, pr: PipelineReturn) -> None:
-        self.critic_buffer.feed(pr.transitions)
-        self.policy_buffer.feed([
-            t for t in pr.transitions if t.prior.dp
-        ])
+        if pr.transitions:
+            self.critic_buffer.feed(pr.transitions)
+            self.policy_buffer.feed([
+                t for t in pr.transitions if t.prior.dp
+            ])
 
     def compute_actor_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states = batch.prior.state
@@ -167,5 +167,5 @@ class SimpleAC(BaseAC):
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
 
-    def load_buffer(self, transitions: Sequence[Transition]) -> None:
+    def load_buffer(self, pr: PipelineReturn) -> None:
         ...

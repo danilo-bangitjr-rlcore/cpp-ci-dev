@@ -1,6 +1,5 @@
 import pickle as pkl
 import random
-from collections.abc import Sequence
 from dataclasses import field
 from pathlib import Path
 from typing import Literal
@@ -14,7 +13,7 @@ from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import Transition, TransitionBatch
+from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
 from corerl.utils.device import device
@@ -42,7 +41,8 @@ class EpsilonGreedySarsa(BaseAgent):
         self.critic_buffer = init_buffer(cfg.critic.buffer)
 
     def update_buffer(self, pr: PipelineReturn) -> None:
-        self.critic_buffer.feed(pr.transitions)
+        if pr.transitions:
+            self.critic_buffer.feed(pr.transitions)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device.device)
@@ -155,5 +155,5 @@ class EpsilonGreedySarsa(BaseAgent):
         with open(critic_buffer_path, "rb") as f:
             self.critic_buffer = pkl.load(f)
 
-    def load_buffer(self, transitions: Sequence[Transition]) -> None:
+    def load_buffer(self, pr: PipelineReturn) -> None:
         ...

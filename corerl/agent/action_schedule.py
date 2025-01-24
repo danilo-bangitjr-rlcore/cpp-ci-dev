@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -6,7 +5,6 @@ import numpy as np
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.configs.config import config, list_
-from corerl.data_pipeline.datatypes import Transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
 
@@ -41,7 +39,7 @@ class ActionScheduleAgent(BaseAgent):
     def update_buffer(self, pr: PipelineReturn) -> None:
         pass
 
-    def load_buffer(self, transitions: Sequence[Transition]) -> None:
+    def load_buffer(self, pr: PipelineReturn) -> None:
         pass
 
     def get_action(self, state: np.ndarray) -> np.ndarray:

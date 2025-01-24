@@ -46,10 +46,11 @@ class IQL(BaseAC):
         return action
 
     def update_buffer(self, pr: PipelineReturn) -> None:
-        self.critic_buffer.feed(pr.transitions)
-        self.policy_buffer.feed([
-            t for t in pr.transitions if t.prior.dp
-        ])
+        if pr.transitions:
+            self.critic_buffer.feed(pr.transitions)
+            self.policy_buffer.feed([
+                t for t in pr.transitions if t.prior.dp
+            ])
 
     def compute_actor_loss(
         self,
@@ -202,5 +203,5 @@ class IQL(BaseAC):
         with open(policy_buffer_path, "rb") as f:
             self.policy_buffer = pkl.load(f)
 
-    def load_buffer(self, transitions: Sequence[Transition]) -> None:
+    def load_buffer(self, pr: PipelineReturn) -> None:
         ...

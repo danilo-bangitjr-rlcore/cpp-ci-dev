@@ -1,6 +1,5 @@
 import logging
 import pickle as pkl
-from collections.abc import Sequence
 from dataclasses import field
 from functools import partial
 from pathlib import Path
@@ -19,7 +18,7 @@ from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import Transition, TransitionBatch
+from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
 from corerl.state import AppState
@@ -108,22 +107,24 @@ class GreedyAC(BaseAC):
         return to_np(action)[0]
 
     def update_buffer(self, pr: PipelineReturn) -> None:
-        self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
+        if pr.transitions:
+            self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
 
-        self.critic_buffer.feed(pr.transitions)
-        self.policy_buffer.feed([
-            t for t in pr.transitions if t.prior.dp
-        ])
+            self.critic_buffer.feed(pr.transitions)
+            self.policy_buffer.feed([
+                t for t in pr.transitions if t.prior.dp
+            ])
 
 
-    def load_buffer(self, transitions: Sequence[Transition]) -> None:
-        policy_transitions = []
-        for transition in transitions:
-            if transition.prior.dp:
-                policy_transitions.append(transition)
+    def load_buffer(self, pr: PipelineReturn) -> None:
+        if pr.transitions:
+            policy_transitions = []
+            for transition in pr.transitions:
+                if transition.prior.dp:
+                    policy_transitions.append(transition)
 
-        self.policy_buffer.load(policy_transitions)
-        self.critic_buffer.load(transitions)
+            self.policy_buffer.load(policy_transitions)
+            self.critic_buffer.load(pr.transitions)
 
     def get_sorted_q_values(
         self,
