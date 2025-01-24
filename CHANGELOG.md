@@ -1,3 +1,9 @@
+## 0.47.7 (2025-01-24)
+
+### Refactor
+
+- remove pipeline hooks from sim_interaction
+
 ## 0.47.6 (2025-01-24)
 
 ### Fix
