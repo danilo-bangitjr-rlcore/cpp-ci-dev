@@ -1,3 +1,10 @@
+## 0.47.8 (2025-01-24)
+
+### Fix
+
+- make delta xform temporal state a dataclass
+- maintain temporal state for all sub-xforms in split list
+
 ## 0.47.7 (2025-01-24)
 
 ### Refactor
