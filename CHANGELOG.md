@@ -1,3 +1,22 @@
+## 0.47.1 (2025-01-24)
+
+### Fix
+
+- nuke unnecessary runtime validation logic
+- add max priority by default as per the PER paper
+- define feed and load functions as returning impacted idxs
+
+### Refactor
+
+- migrate ensemble buffer to discrete-dists
+- migrate prioritized buffer to discrete-dists
+- pull prioritized buffer into own module file
+- pull uniform buffer into own module file
+- migrate uniform buffer to discrete-dists
+- rename sample_batch -> full_batch
+- simplify buffer sampling logic
+- pull base replay logic out of uniform replay
+
 ## 0.47.0 (2025-01-24)
 
 ### Feat
