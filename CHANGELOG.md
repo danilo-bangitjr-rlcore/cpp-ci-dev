@@ -1,3 +1,10 @@
+## 0.47.6 (2025-01-24)
+
+### Fix
+
+- remove maxlen from event bus queue
+- start step cycle immediately when event bus is enabled
+
 ## 0.47.5 (2025-01-24)
 
 ### Refactor
