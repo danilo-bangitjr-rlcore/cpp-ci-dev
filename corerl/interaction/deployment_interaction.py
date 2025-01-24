@@ -28,6 +28,7 @@ class DepInteractionConfig:
     historical_batch_size: int = 10000
     checkpoint_path: Path = Path('outputs/checkpoints')
     heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
+    warmup_period: timedelta | None = None
 
 
 class DeploymentInteraction(Interaction):
@@ -75,6 +76,8 @@ class DeploymentInteraction(Interaction):
             width=self.obs_period * cfg.historical_batch_size
         )
 
+        # warmup pipeline
+        self.warmup_pipeline()
         # checkpointing state
         self._last_checkpoint = datetime.now(UTC)
         self.restore_checkpoint()
@@ -137,6 +140,19 @@ class DeploymentInteraction(Interaction):
 
             case _:
                 logger.warning(f"Unexpected step_event: {event}")
+
+    def warmup_pipeline(self):
+        if self._cfg.warmup_period is None:
+            return
+
+        warmup_end = datetime.now(UTC)
+        warmup_obs = self._env.data_reader.batch_aggregated_read(
+            names=self._env.tag_names,
+            start_time=warmup_end - self._cfg.warmup_period,
+            end_time=warmup_end,
+            bucket_width=self.obs_period
+        )
+        self._pipeline(warmup_obs, caller_code=CallerCode.ONLINE)
 
     def load_historical_chunk(self):
         try:
