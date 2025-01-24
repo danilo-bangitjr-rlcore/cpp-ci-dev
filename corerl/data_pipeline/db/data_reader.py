@@ -162,14 +162,14 @@ class DataReader:
                     tz='UTC',
                     name=None
                 )
-                sensor_data = pd.DataFrame(index=full_range, columns=names)
+                sensor_data = pd.DataFrame(index=full_range, columns=pd.Index(names))
 
             for col in sensor_data.columns:
                 col_agg = aggregation.get(col)
                 if col_agg == "avg" or col_agg == "last":
                     sensor_data[col] = pd.to_numeric(sensor_data[col])
                 elif col_agg == "bool_or":
-                    sensor_data[col] = sensor_data[col].map({"true": True, "false": False})
+                    sensor_data[col] = sensor_data[col].replace({"true": True, "false": False})
 
         return sensor_data
 

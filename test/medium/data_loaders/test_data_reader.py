@@ -195,7 +195,7 @@ class TestDataReaderLogic:
 
         assert np.allclose(df["avg_var"].iloc[-1], 0.95)
         assert np.allclose(df["last_var"].iloc[-1], 0.0)
-        assert df["bool_var"].iloc[-1] == True
+        assert df["bool_var"].iloc[-1]
 
 class TestDataReader:
     sensor_names: List[str] = ["sensor1", "sensor2", "sensor3"]
