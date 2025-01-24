@@ -67,8 +67,10 @@ def convert_table(
                 dtype = dict_schema[tag]
                 if dtype == "Boolean":
                     val = val.lower() == "true"
+                elif dtype == "Integer":
+                    val = int(pd.to_numeric(val))
                 else:
-                    val = pd.to_numeric(val)
+                    val = float(pd.to_numeric(val))
 
                 writer.writerow([time,
                                  host,
