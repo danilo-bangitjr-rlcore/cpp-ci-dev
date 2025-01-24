@@ -23,8 +23,6 @@ from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
 
-from corerl.configs.loader import direct_load_config, config_to_dict
-
 log = logging.getLogger(__name__)
 logging.basicConfig(
     format="%(asctime)s %(levelname)s: %(message)s",
@@ -37,8 +35,6 @@ logging.getLogger('asyncua').setLevel(logging.CRITICAL)
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
-    print(config_to_dict(MainConfig, cfg))
-    return
     device.update_device(cfg.experiment.device)
 
     event_bus = EventBus(cfg.event_bus, cfg.env)

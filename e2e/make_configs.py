@@ -15,7 +15,6 @@ import yaml
 from corerl.configs.loader import config_to_dict
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.utils.gymnasium import gen_tag_configs_from_env
-from corerl.config import MainConfig
 
 
 @dataclass
@@ -60,8 +59,7 @@ def generate_tag_yaml(path: Path, tags: list[TagConfig]):
     CustomTagYamlDumper.add_representer(float, represent_float)
 
     with open(tag_path, "w+") as f:
-        # raw_tags = config_to_dict(list[TagConfig], tags)
-        raw_tags = config_to_dict(MainConfig, MainConfig())
+        raw_tags = config_to_dict(list[TagConfig], tags)
         yaml.dump(raw_tags, f, Dumper=CustomTagYamlDumper, sort_keys=False)
 
     log.info(f"Generated {tag_path}")

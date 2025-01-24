@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from corerl.component.network.utils import tensor
-from corerl.configs.config import MISSING, config, interpolate
+from corerl.configs.config import config, interpolate
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, Step, Transition
 from corerl.data_pipeline.tag_config import TagConfig
 
@@ -75,6 +75,7 @@ class AllTheTimeTC:
 
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
+        assert cfg.max_n_step is not None
         self.max_n_step = cfg.max_n_step
         assert self.min_n_step > 0
         assert self.max_n_step >= self.min_n_step
