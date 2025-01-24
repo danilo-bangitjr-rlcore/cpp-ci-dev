@@ -1,12 +1,12 @@
 import datetime as dt
 import logging
-from typing import Callable, Tuple
+from typing import Tuple
 
 from tqdm import tqdm
 
 from corerl.agent.base import BaseAgent
 from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import CallerCode, Transition
+from corerl.data_pipeline.datatypes import CallerCode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.utils.time import split_into_chunks
@@ -55,6 +55,8 @@ class OfflineTraining:
                 self.pipeline_out = pipeline_out
 
     def train(self, agent: BaseAgent):
+        assert self.pipeline_out is not None
+        assert self.pipeline_out.transitions is not None
         assert len(self.pipeline_out.transitions) > 0, (
             "You must first load offline transitions before you can perform offline training"
         )

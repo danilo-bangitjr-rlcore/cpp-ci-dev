@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
-from typing import Any, Callable
+from typing import Any, Callable, Self
 
 import numpy as np
 import pandas as pd
@@ -57,7 +57,7 @@ class PipelineReturn:
     rewards: DataFrame
     transitions: list[Transition] | None
 
-    def __add__(self, other):
+    def __add__(self, other: Self):
         self.df = pd.concat([self.df, other.df])
         self.states = pd.concat([self.states, other.states])
         self.actions = pd.concat([self.actions, other.actions])
