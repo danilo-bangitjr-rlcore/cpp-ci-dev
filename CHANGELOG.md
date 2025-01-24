@@ -1,3 +1,11 @@
+## 0.47.5 (2025-01-24)
+
+### Refactor
+
+- make sure calls to update_buffer() and load_buffer() pass PipelineReturn objects
+- ensure each agent's load_buffer() method takes a PipelineReturn as an argument instead of a list of transitions
+- agent's update_buffer() method now takes a PipelineReturn argument instead of a list of transitions
+
 ## 0.47.4 (2025-01-24)
 
 ### Fix
