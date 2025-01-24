@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import UTC, datetime
 from typing import Literal, NamedTuple
@@ -49,10 +50,11 @@ class DataWriter(BufferedWriter[Point]):
         # truncate microseconds
         timestamp = timestamp.replace(microsecond=0)
 
+        jsonb = json.dumps({"val": val}, allow_nan=False).lower()
         point = Point(
             ts=timestamp.isoformat(),
             name=name,
-            jsonb=f'{{"val": {val}}}',
+            jsonb=jsonb,
             host=host or self.host,
             id=id or name,
         )
