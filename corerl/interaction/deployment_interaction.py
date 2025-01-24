@@ -89,8 +89,7 @@ class DeploymentInteraction(Interaction):
 
         o = self._env.get_latest_obs()
         pr = self._pipeline(o, caller_code=CallerCode.ONLINE)
-        if pr.transitions is not None:
-            self._agent.update_buffer(pr.transitions)
+        self._agent.update_buffer(pr)
 
         self._agent.update()
 
@@ -115,8 +114,7 @@ class DeploymentInteraction(Interaction):
                 self.load_historical_chunk()
                 o = self._env.get_latest_obs()
                 pr = self._pipeline(o, caller_code=CallerCode.ONLINE)
-                if pr.transitions is not None:
-                    self._agent.update_buffer(pr.transitions)
+                self._agent.update_buffer(pr)
 
                 self._app_state.agent_step += 1
                 self.maybe_checkpoint()
@@ -164,8 +162,7 @@ class DeploymentInteraction(Interaction):
             reset_temporal_state=False,
         )
 
-        if pipeline_out.transitions is not None:
-            self._agent.update_buffer(pipeline_out.transitions)
+        self._agent.update_buffer(pipeline_out)
 
 
     def maybe_checkpoint(self):

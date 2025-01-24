@@ -55,7 +55,7 @@ class SimInteraction(Interaction):
             metric='reward',
             value=r,
         )
-        self._agent.update_buffer(pr.transitions)
+        self._agent.update_buffer(pr)
 
         self._agent.update()
 
@@ -80,7 +80,7 @@ class SimInteraction(Interaction):
                 o = self._env.get_latest_obs()
                 pr = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
                 assert pr.transitions is not None
-                self._agent.update_buffer(pr.transitions)
+                self._agent.update_buffer(pr)
                 self._should_reset = bool(o['truncated'].any() or o['terminated'].any())
                 self._app_state.agent_step += 1
 
