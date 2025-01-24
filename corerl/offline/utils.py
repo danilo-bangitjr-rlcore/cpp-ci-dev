@@ -14,7 +14,6 @@ from corerl.utils.time import split_into_chunks
 
 log = logging.getLogger(__name__)
 
-
 def load_entire_dataset(
         cfg: MainConfig,
         start_time: dt.datetime | None = None, end_time: dt.datetime | None = None

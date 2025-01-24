@@ -35,26 +35,40 @@ def percentage_missing(df: pd.DataFrame, tag: str) -> float:
 
 def average_length_of_nan_chunks(df: pd.DataFrame, tag: str) -> float:
     is_nan = df[tag].isna()
-    if not bool(is_nan.any()): # casting to bool cuz pandas is weird
-        return 0.0
+    assert isinstance(is_nan, pd.Series)
+    chunk_lengths = length_of_chunks(is_nan)
+    return float(sum(chunk_lengths) / len(chunk_lengths))
 
-    nan_chunks = []
+
+def average_length_of_non_nan_chunks(df: pd.DataFrame, tag: str) -> float:
+    is_non_nan = df[tag].notna()
+    assert isinstance(is_non_nan, pd.Series)
+    chunk_lengths = length_of_chunks(is_non_nan)
+    return float(sum(chunk_lengths) / len(chunk_lengths))
+
+
+def length_of_chunks(series: pd.Series) -> list[int]:
+    """
+    Returns list of chunk lengths, where chunks are defined by maximal sequences of True in series.
+    """
+    if not bool(series.any()): # casting to bool cuz pandas is weird
+        return [0]
+
+    chunk_lengths = []
     current_chunk_length = 0
 
-    for value in is_nan:
+    for value in series:
         if value:
             current_chunk_length += 1
-        elif current_chunk_length > 0:
-            nan_chunks.append(current_chunk_length)
+        elif current_chunk_length > 0: # i.e. is not value==True and the current chunk length is greater than 0
+            chunk_lengths.append(current_chunk_length)
             current_chunk_length = 0
 
     if current_chunk_length > 0:
-        nan_chunks.append(current_chunk_length)
+        chunk_lengths.append(current_chunk_length)
 
-    if not nan_chunks:
-        return 0.0
+    return chunk_lengths
 
-    return float(sum(nan_chunks) / len(nan_chunks))
 
 def number_of_non_nan_samples(df: pd.DataFrame, tag: str) -> int:
     return int(df[tag].notna().sum())
@@ -76,6 +90,7 @@ def raw_data_eval_for_tag(df: pd.DataFrame, tag: str) -> dict:
         '90th_percentile': percentile_by_tag(df, tag, 0.90),
         'percent_nan': percentage_missing(df, tag),
         'average_length_of_nan_chunks': average_length_of_nan_chunks(df, tag),
+        'average_length_of_non_nan_chunks': average_length_of_non_nan_chunks(df, tag),
     }
 
 
