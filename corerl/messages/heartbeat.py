@@ -23,16 +23,16 @@ def heartbeat(cfg: HeartbeatConfig):
     if not cfg.enabled:
         return
 
-    opc_client = Client(cfg.opc_conn_url)
-    opc_client.connect()
+    with Client(cfg.opc_conn_url) as opc_client:
+        heartbeat_node = opc_client.get_node(cfg.heartbeat_node_id)
 
-    heartbeat_node = opc_client.get_node(cfg.heartbeat_node_id)
     heartbeat_clock = clock_generator(tick_period=cfg.heartbeat_period)
     heartbeat_counter = 0
 
     while True:
         # write counter
-        opc_client.write_values([heartbeat_node], [heartbeat_counter])
+        with Client(cfg.opc_conn_url) as opc_client:
+            opc_client.write_values([heartbeat_node], [heartbeat_counter])
 
         # increment counter
         heartbeat_counter += 1
