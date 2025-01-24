@@ -8,7 +8,7 @@ import numpy as np
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import Transition
-from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
 
 
@@ -21,7 +21,7 @@ class RandomAgent(BaseAgent):
         super().__init__(cfg, app_state, col_desc)
         self.rng = np.random.RandomState(cfg.seed)
 
-    def update_buffer(self, transitions: Sequence[Transition]) -> None:
+    def update_buffer(self, pr: PipelineReturn) -> None:
         pass
 
     def load_buffer(self, transitions: Sequence[Transition]) -> None:

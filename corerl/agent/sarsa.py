@@ -15,7 +15,7 @@ from corerl.component.critic.factory import init_q_critic
 from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import Transition, TransitionBatch
-from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
 from corerl.utils.device import device
 
@@ -41,8 +41,8 @@ class EpsilonGreedySarsa(BaseAgent):
         self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
         self.critic_buffer = init_buffer(cfg.critic.buffer)
 
-    def update_buffer(self, transitions: Sequence[Transition]) -> None:
-        self.critic_buffer.feed(transitions)
+    def update_buffer(self, pr: PipelineReturn) -> None:
+        self.critic_buffer.feed(pr.transitions)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device.device)
