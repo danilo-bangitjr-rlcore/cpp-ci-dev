@@ -31,7 +31,7 @@ class EventBus:
         if not self.enabled():
             return
 
-        self.queue = Queue(maxsize=50)
+        self.queue = Queue()
         self.zmq_context = zmq.Context()
         self.subscriber_socket = self.zmq_context.socket(zmq.SUB)
         self.publisher_socket = self.zmq_context.socket(zmq.PUB)
