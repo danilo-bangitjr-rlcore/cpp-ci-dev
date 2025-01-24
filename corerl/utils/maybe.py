@@ -139,6 +139,13 @@ class Maybe[T]:
     # ---------------
     # -- Utilities --
     # ---------------
+    def is_instance[U](self, typ: type[U]) -> Maybe[U]:
+        if isinstance(self._v, typ):
+            return Maybe[U](self._v)
+
+        return Maybe(None)
+
+
     @staticmethod
     def from_try[U](
         f: Callable[[], U],
