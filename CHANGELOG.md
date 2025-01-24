@@ -1,3 +1,21 @@
+## 0.47.0 (2025-01-24)
+
+### Feat
+
+- implement preprocessor stage to unify normalization and other early transforms
+
+### Fix
+
+- interaction calls pipeline stages for action ordering and denorm
+- now look in ac and preprocess for action denorm
+
+### Refactor
+
+- all arbitrary invertible xforms in preprocess stage
+- move reward construction to own dataframe in pipeframe
+- move normalization/denorm responsibility to preprocessor
+- move action ordering responsibility to AC
+
 ## 0.46.3 (2025-01-23)
 
 ### Fix
