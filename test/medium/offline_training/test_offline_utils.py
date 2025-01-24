@@ -181,7 +181,7 @@ def generate_offline_data(offline_cfg: MainConfig,
     pipeline = Pipeline(offline_cfg.pipeline)
     offline_trainer.load_offline_transitions(pipeline, start_time=start_time)
 
-    return offline_trainer.offline_transitions
+    return offline_trainer.pipeline_out.transitions
 
 def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: OfflineTraining, data_writer: DataWriter):
     """

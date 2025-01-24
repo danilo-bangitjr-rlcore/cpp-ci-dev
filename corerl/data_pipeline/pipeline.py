@@ -9,6 +9,7 @@ from functools import cached_property
 from typing import Any, Callable
 
 import numpy as np
+import pandas as pd
 from pandas import DataFrame
 from pydantic import Field
 
@@ -51,8 +52,20 @@ class PipelineConfig:
 @dataclass
 class PipelineReturn:
     df: DataFrame
+    states: DataFrame
+    actions: DataFrame
     rewards: DataFrame
     transitions: list[Transition] | None
+
+    def __add__(self, other):
+        self.df = pd.concat([self.df, other.df])
+        self.states = pd.concat([self.states, other.states])
+        self.actions = pd.concat([self.actions, other.actions])
+        self.rewards = pd.concat([self.rewards, other.rewards])
+        if not self.transitions:
+            self.transitions = other.transitions
+        elif other.transitions:
+            self.transitions += other.transitions
 
 
 @dataclass
@@ -170,6 +183,8 @@ class Pipeline:
         if data.empty:
             return PipelineReturn(
                 df=data,
+                states=data,
+                actions=data,
                 rewards=data,
                 transitions=[],
             )
@@ -191,6 +206,8 @@ class Pipeline:
 
         return PipelineReturn(
             df=pf.data,
+            states=pf.states,
+            actions=pf.actions,
             rewards=pf.rewards,
             transitions=pf.transitions,
         )
