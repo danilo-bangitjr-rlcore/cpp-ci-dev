@@ -41,7 +41,7 @@ class EpsilonGreedySarsa(BaseAgent):
         self.critic_buffer = init_buffer(cfg.critic.buffer)
 
     def update_buffer(self, pr: PipelineReturn) -> None:
-        if pr.transitions:
+        if pr.transitions is not None:
             self.critic_buffer.feed(pr.transitions)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
