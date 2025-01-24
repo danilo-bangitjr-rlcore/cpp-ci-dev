@@ -26,19 +26,20 @@ log = logging.getLogger(__name__)
 @config()
 class ReportConfig:
     output_dir : str = Field(default_factory=lambda:'report/')
+    stages : list[StageCode] = Field(default_factory=lambda:[StageCode.INIT])
     tags_to_exclude : list = Field(default_factory=list) # tags to exclude from analysis
 
     # for stat table
     stat_table_enabled : bool = True
 
     # for cross correlation
-    # options for cross_correl_tags:
+    # options for cross_corr_tags:
     # 1. list of tag names -> will find cross correlation for all pairs of tags in this list
     # 2. list of list[str] -> will find cross correlation only for these pairs in each list.
     # 3. None -> will find cross correlation for ALL pairs of tags
-    cross_correl_enabled : bool = True
-    cross_correl_tags : list[str] | list[list[str]] | None = Field(default_factory=list)
-    cross_correl_max_lag : int = Field(default_factory=lambda: 100)
+    cross_corr_enabled : bool = True
+    cross_corr_tags : list[str] | list[list[str]] | None = Field(default_factory=list)
+    cross_corr_max_lag : int = Field(default_factory=lambda: 100)
 
     # for histograms
     hist_enabled : bool = True
@@ -143,17 +144,17 @@ def get_tag_pairs(
         cfg: ReportConfig,
         data: list[pd.DataFrame]
     ) -> list[tuple[str, str]]:
-    tag_info = cfg.cross_correl_tags
+    tag_info = cfg.cross_corr_tags
     if tag_info is None: # all pairs of tags
         tags = get_tags(data)
         pairs = list(combinations(tags, 2))
     else:
         if len(tag_info) == 0:
             return []
-        elif isinstance(tag_info[0], str): # all pairs of tags specified in cfg.cross_correl_tags
+        elif isinstance(tag_info[0], str): # all pairs of tags specified in cfg.cross_corr_tags
             str_tags = tag_info
             pairs = list(combinations(str_tags, 2))
-        else: # only pairs of tags specified in cfg.cross_correl_tags
+        else: # only pairs of tags specified in cfg.cross_corr_tags
             for pair in tag_info:
                 assert len(pair) == 2
             pairs = tag_info
@@ -170,13 +171,13 @@ def make_cross_correlation_table(
         output_path: Path,
         ) -> None:
 
-    if not cfg.cross_correl_enabled:
+    if not cfg.cross_corr_enabled:
         return
 
     log.info("Making cross correlation table")
     tag_pairs = get_tag_pairs(cfg, data)
     all_tags = get_tags(data)
-    max_lag = cfg.cross_correl_max_lag
+    max_lag = cfg.cross_corr_max_lag
     table = [['Stage', 'tag 1', 'tag 2', 'Max Cross Correlation', 'Lag for Max Cross Correlation']]
     for stage_i, stage in enumerate(stages):
         df = data[stage_i]
@@ -290,7 +291,7 @@ def generate_report(
         shutil.rmtree(output_path)
     output_path.mkdir(parents=True)
 
-    # make_stat_table(cfg, data, stages, output_path)
-    # make_distribution_plots(cfg, data, stages, output_path/'plots')
+    make_stat_table(cfg, data, stages, output_path)
+    make_distribution_plots(cfg, data, stages, output_path/'plots')
     make_cross_correlation_table(cfg, data, stages, output_path)
 

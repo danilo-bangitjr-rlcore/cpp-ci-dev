@@ -4,10 +4,9 @@ import random
 import numpy as np
 import torch
 
-import corerl.main_utils as utils
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
-from corerl.data_pipeline.datatypes import CallerCode, StageCode
+from corerl.data_pipeline.datatypes import CallerCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.data_report import generate_report
 from corerl.offline.utils import load_entire_dataset
@@ -33,7 +32,7 @@ def main(cfg: MainConfig):
     log.info("loading dataset...")
     data = load_entire_dataset(cfg)
 
-    stages = [StageCode.INIT, StageCode.BOUNDS]
+    stages = cfg.report.stages
     outs = []
     for i in range(len(stages)):
         exec_stages = stages[:i]
@@ -46,7 +45,6 @@ def main(cfg: MainConfig):
         outs.append(pipeline_out.df)
 
     generate_report(cfg.report, outs, stages)
-
 
 
 if __name__ == "__main__":
