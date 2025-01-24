@@ -6,9 +6,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
-from typing import Any, Callable
+from typing import Any, Callable, Self
 
 import numpy as np
+import pandas as pd
 from pandas import DataFrame
 from pydantic import Field
 
@@ -50,9 +51,22 @@ class PipelineConfig:
 
 @dataclass
 class PipelineReturn:
+    caller_code: CallerCode
     df: DataFrame
+    states: DataFrame
+    actions: DataFrame
     rewards: DataFrame
     transitions: list[Transition] | None
+
+    def __add__(self, other: Self):
+        self.df = pd.concat([self.df, other.df])
+        self.states = pd.concat([self.states, other.states])
+        self.actions = pd.concat([self.actions, other.actions])
+        self.rewards = pd.concat([self.rewards, other.rewards])
+        if not self.transitions:
+            self.transitions = other.transitions
+        elif other.transitions:
+            self.transitions += other.transitions
 
 
 @dataclass
@@ -169,7 +183,10 @@ class Pipeline:
         # handle the no data case with an empty return
         if data.empty:
             return PipelineReturn(
+                caller_code=caller_code,
                 df=data,
+                states=data,
+                actions=data,
                 rewards=data,
                 transitions=[],
             )
@@ -190,7 +207,10 @@ class Pipeline:
         self.ts_dict[caller_code] = pf.temporal_state
 
         return PipelineReturn(
+            caller_code=caller_code,
             df=pf.data,
+            states=pf.states,
+            actions=pf.actions,
             rewards=pf.rewards,
             transitions=pf.transitions,
         )

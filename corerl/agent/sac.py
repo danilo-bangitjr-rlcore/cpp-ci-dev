@@ -1,5 +1,4 @@
 import pickle as pkl
-from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -12,8 +11,8 @@ from corerl.component.buffer.factory import init_buffer
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.network.utils import Float, state_to_tensor, to_np
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import Transition, TransitionBatch
-from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.data_pipeline.datatypes import TransitionBatch
+from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
 from corerl.utils.device import device
 
@@ -55,10 +54,13 @@ class SAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transitions: Sequence[Transition]) -> None:
-        self.critic_buffer.feed(transitions)
+    def update_buffer(self, pr: PipelineReturn) -> None:
+        if pr.transitions is None:
+            return
+
+        self.critic_buffer.feed(pr.transitions)
         self.policy_buffer.feed([
-            t for t in transitions if t.prior.dp
+            t for t in pr.transitions if t.prior.dp
         ])
 
     def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:

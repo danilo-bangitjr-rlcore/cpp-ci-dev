@@ -1,14 +1,14 @@
 import datetime as dt
 import logging
-from typing import Callable, Tuple
+from typing import Tuple
 
 from tqdm import tqdm
 
 from corerl.agent.base import BaseAgent
 from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import CallerCode, Transition
+from corerl.data_pipeline.datatypes import CallerCode
 from corerl.data_pipeline.db.data_reader import DataReader
-from corerl.data_pipeline.pipeline import Pipeline
+from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.utils.time import split_into_chunks
 
 log = logging.getLogger(__name__)
@@ -17,12 +17,8 @@ log = logging.getLogger(__name__)
 class OfflineTraining:
     def __init__(self, cfg: MainConfig):
         self.cfg = cfg
-        self.offline_transitions: list[Transition] = []
         self.offline_steps = self.cfg.experiment.offline_steps
-        self._training_hooks: list[Callable[[], None]] = []
-
-    def register_training_hook(self, f: Callable[[], None]):
-        self._training_hooks.append(f)
+        self.pipeline_out: PipelineReturn | None = None
 
     def load_offline_transitions(
         self, pipeline: Pipeline, start_time: dt.datetime | None = None, end_time: dt.datetime | None = None
@@ -53,16 +49,20 @@ class OfflineTraining:
                 reset_temporal_state=False,
             )
 
-            if pipeline_out.transitions is not None:
-                self.offline_transitions += pipeline_out.transitions
+            if self.pipeline_out:
+                self.pipeline_out += pipeline_out
+            else:
+                self.pipeline_out = pipeline_out
 
     def train(self, agent: BaseAgent):
-        assert len(self.offline_transitions) > 0, (
+        assert self.pipeline_out is not None
+        assert self.pipeline_out.transitions is not None
+        assert len(self.pipeline_out.transitions) > 0, (
             "You must first load offline transitions before you can perform offline training"
         )
         log.info("Starting offline agent training...")
 
-        agent.load_buffer(self.offline_transitions)
+        agent.load_buffer(self.pipeline_out)
         for buffer_name, size in agent.get_buffer_sizes().items():
             log.info(f"Agent {buffer_name} replay buffer size(s)", size)
 

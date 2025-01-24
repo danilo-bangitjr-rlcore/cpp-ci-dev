@@ -70,6 +70,13 @@ class StateConstructor(Constructor):
         )
         pf.data = pf.data.loc[:, sorted_cols]
 
+        meta_tags = [tag for tag in self._tag_cfgs if self._tag_cfgs[tag].is_meta]
+        state_cols = [
+            col for col in pf.data.columns
+            if col not in meta_tags
+        ]
+        pf.states = pf.data[state_cols]
+
         return pf
 
 
