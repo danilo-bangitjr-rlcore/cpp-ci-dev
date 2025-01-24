@@ -1,3 +1,11 @@
+## 0.47.3 (2025-01-24)
+
+### Fix
+
+- force dtype conversion in db backup script
+- prefer float64 over float_
+- remove incompatible ndarray type annotation
+
 ## 0.47.2 (2025-01-24)
 
 ### Fix
