@@ -56,9 +56,18 @@ def average_length_of_nan_chunks(df: pd.DataFrame, tag: str) -> float:
 
     return float(sum(nan_chunks) / len(nan_chunks))
 
+def number_of_non_nan_samples(df: pd.DataFrame, tag: str) -> int:
+    return int(df[tag].notna().sum())
+
+
+def number_of_nan_samples(df: pd.DataFrame, tag: str) -> int:
+    return int(df[tag].isna().sum())
+
 
 def raw_data_eval_for_tag(df: pd.DataFrame, tag: str) -> dict:
     return {
+        'num_non_nan' : number_of_non_nan_samples(df, tag),
+        'num_nan' : number_of_nan_samples(df, tag),
         'mean': mean_by_tag(df, tag),
         'variance': variance_by_tag(df, tag),
         'max': max_by_tag(df, tag),
@@ -83,20 +92,23 @@ def raw_data_eval(
         cfg: RawDataEvalConfig,
         app_state: AppState,
         pf: PipelineFrame,
-    ) -> None:
+    ) -> dict[str, dict] | None:
 
     if not cfg.enabled:
         return
 
+    result_dict = {}
     df = pf.data
     for tag in cfg.tags:
         if tag not in df.columns:
             logging.warning(f"Tag {tag} not found in data frame columns.")
         else:
             stat_dict = raw_data_eval_for_tag(df, tag)
+            result_dict[tag] = stat_dict
             for stat_name, stat_value in stat_dict.items():
                 app_state.metrics.write(
                     agent_step=app_state.agent_step,
                     metric=f'{tag}_{stat_name}',
                     value=stat_value,
                 )
+    return result_dict
