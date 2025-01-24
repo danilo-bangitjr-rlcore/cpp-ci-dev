@@ -94,7 +94,8 @@ class Pipeline:
         ), "action period must be a multiple of obs period"
 
         self.valid_thresh: datetime.timedelta = 2 * cfg.obs_period
-        cfg.transition_creator.max_n_step = steps_per_decision
+        if cfg.transition_creator.max_n_step is None:
+            cfg.transition_creator.max_n_step = steps_per_decision
         self.tags = cfg.tags
 
         # initialization all stateful stages

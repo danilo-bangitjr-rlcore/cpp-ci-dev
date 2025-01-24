@@ -16,7 +16,7 @@ class AllTheTimeTCConfig:
     name: str = "all-the-time"
     gamma: float = interpolate('${experiment.gamma}')
     min_n_step: int = 1
-    max_n_step: int = MISSING
+    max_n_step: int | None = None
 
 
 @dataclass(init=False)

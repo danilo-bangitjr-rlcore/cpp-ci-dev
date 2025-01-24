@@ -10,6 +10,7 @@ from pydantic_core import PydanticUndefined
 
 import corerl.utils.dict as dict_u
 from corerl.configs.config import MISSING
+from pprint import pprint
 
 
 # -------------------
@@ -183,11 +184,19 @@ def direct_load_config[T](Config: type[T], base: str | None = None, config_name:
 
     # handle any interpolations
     raw_config = _walk_config_and_interpolate(raw_config)
+    print("-----")
+    pprint(raw_config)
 
     # validate config against provided schema, Config.
     # raise exception on extra values not in schema
     ta = TypeAdapter(Config)
     config = ta.validate_python(raw_config)
+    print("-----")
+    pprint(config_to_dict(Config, config))
+    config = _walk_config_and_interpolate(config_to_dict(Config, config))
+    config = ta.validate_python(config)
+    print("-----")
+    pprint(config_to_dict(Config, config))
     return config
 
 # ----------------
