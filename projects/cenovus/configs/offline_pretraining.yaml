@@ -2,6 +2,10 @@ defaults:
  - pipeline: tags
  - pipeline.db: db
 
+report:
+  cross_correl_tags : null
+  cross_correl_max_lag : 300
+
 agent:
   name: greedy_ac
   n_critic_updates: 1
