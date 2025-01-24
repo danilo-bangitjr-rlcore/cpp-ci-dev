@@ -97,6 +97,7 @@ dependencies = [
     "boto3~=1.35",
     "casadi~=3.6",
     "cloudpathlib[s3]~=0.20",
+    "discrete-dists~=1.0",
     "fastapi[standard]~=0.115.6",
     "gymnasium~=1.0",
     "influxdb_client~=1.39",

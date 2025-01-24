@@ -6,7 +6,7 @@ import torch
 
 import corerl.utils.nullable as nullable
 from corerl.component.actor.base_actor import BaseActor, group
-from corerl.component.buffer.buffers import EnsembleUniformReplayBufferConfig
+from corerl.component.buffer.ensemble import EnsembleUniformReplayBufferConfig
 from corerl.component.buffer.factory import BufferConfig
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.linesearch_optimizer import LineSearchOpt, LSOConfig

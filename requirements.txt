@@ -44,6 +44,8 @@ cycler==0.12.1
     # via matplotlib
 debugpy==1.8.12
     # via corerl (pyproject.toml)
+discrete-dists==1.0.0
+    # via corerl (pyproject.toml)
 docker==7.1.0
     # via corerl (pyproject.toml)
 execnet==2.1.1
