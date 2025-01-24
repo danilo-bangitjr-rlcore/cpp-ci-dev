@@ -186,7 +186,7 @@ def make_cross_correlation_table(
 
             assert tag_1 in all_tags
             assert tag_2 in all_tags
-            cc, lag = cross_correlation(df, tag_1, tag_2, max_lag)
+            cc, lag, _ = cross_correlation(df, tag_1, tag_2, max_lag)
             row = [stage.name, tag_1, tag_2, cc, lag]
             table.append(row) # type: ignore
 
@@ -197,18 +197,17 @@ def make_cross_correlation_table(
 
 def standardize(x: np.ndarray, mask: np.ndarray):
     """
-    Standardization that ignores all values not included in the mask
+    Standardization that ignores all values not included in the mask.
+    Masked values are output as 0.
     """
+    if np.all(~mask):
+        return np.zeros_like(x)
     std = np.std(x[mask])
     if std == 0:
         return np.zeros_like(x)
     x = x.copy()
     mean = np.mean(x[mask])
-    for i, mask_ in enumerate(mask):
-        if mask_:
-            x[i] = (x[i] - mean) / std
-
-    return x
+    return mask*((x-mean)/std)
 
 
 def correlate(
@@ -219,10 +218,11 @@ def correlate(
     """
     Unnormalized cross correlation for lags in [-max_lag, +max_lag]
     """
+    assert (not np.any(np.isnan(x))) and (not np.any(np.isnan(y)))
     correlations = []
     for lag in range(-max_lag, max_lag + 1):
         if lag < 0:
-            x_, y_ = x[:lag], y[-lag:]
+            x_, y_ = x[:lag], y[-lag:] #note: lag is negative, so we are implicity flipping the sign for indexing
         elif lag > 0:
             x_, y_ = x[lag:], y[:-lag]
         else:
@@ -240,9 +240,11 @@ def cross_correlation(
         tag_1: str,
         tag_2: str,
         max_lag: int
-    ) -> tuple[float, float]:
+    ) -> tuple[float, float, np.ndarray]:
     """
-    Computes cross correlation between tag_1 and tag_2, where the lag may vary between [-max_lag, +max_lag]
+    Computes cross correlation between tag_1 and tag_2, where the lag may vary between [-max_lag, +max_lag].
+
+    Note that the returned variables can be greater than one.
     """
 
     x = df[tag_1].to_numpy()
@@ -252,13 +254,15 @@ def cross_correlation(
     y_mask = ~np.isnan(y) # where y is not nan
 
     if np.all(~x_mask) or np.all(~y_mask): # either x or y is all nan
-        return -np.inf, 0
+        return -np.inf, 0, np.array([-np.inf])
 
-    #zero-out nans
+    # zero-out nans
     x = np.where(np.isnan(x), 0, x)
     y = np.where(np.isnan(y), 0, y)
 
-    # standardize x and y, but only using statistics from non-nan entries
+    # Standardize x and y, but only using statistics from non-nan entries.
+    # Note that standardization is performed on the masked arrays,
+    # not the subset of data that is passed to correlate.
     x, y = standardize(x, x_mask), standardize(y, y_mask)
 
     # Compute unnormalized cross correlation between x and y.
@@ -276,7 +280,7 @@ def cross_correlation(
     cross_corr = np.where(np.isnan(cross_corr), -np.inf, cross_corr)
     max_idx = np.argmax(cross_corr)
     lags = np.arange(-max_lag, max_lag+1)
-    return cross_corr[max_idx], lags[max_idx]
+    return cross_corr[max_idx], lags[max_idx], cross_corr
 
 
 def generate_report(
