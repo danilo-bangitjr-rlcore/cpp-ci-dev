@@ -142,26 +142,21 @@ class DataReader:
         stmt = union_all(*subqueries).order_by(text("time_bucket ASC"), self.sensor_table.c["name"].asc())
         with self.engine.connect() as connection:
             sensor_data = pd.read_sql(sql=stmt, con=connection)
+            full_range = pd.date_range(
+                start=start_time + bucket_width,
+                end=end_time,
+                freq=bucket_width,
+                tz='UTC',
+                name=None
+            )
+
             if not sensor_data.empty:
                 sensor_data = sensor_data.pivot(index='time_bucket', columns='name', values='val')
-
-                full_range = pd.date_range(
-                    start=start_time + bucket_width,
-                    end=end_time,
-                    freq=bucket_width,
-                    tz='UTC',
-                    name=None
-                )
-
+                missing_cols = set(names) - set(sensor_data.columns)
+                for col in missing_cols:
+                    sensor_data[col] = pd.NA
                 sensor_data = sensor_data.reindex(full_range)
             else:
-                full_range = pd.date_range(
-                    start=start_time + bucket_width,
-                    end=end_time,
-                    freq=bucket_width,
-                    tz='UTC',
-                    name=None
-                )
                 sensor_data = pd.DataFrame(index=full_range, columns=pd.Index(names))
 
             for col in sensor_data.columns:
