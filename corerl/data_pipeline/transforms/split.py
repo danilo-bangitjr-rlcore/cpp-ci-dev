@@ -6,12 +6,13 @@ import pandas as pd
 from corerl.data_pipeline.transforms import SplitConfig
 from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
+from corerl.utils.maybe import Maybe
 
 
 @dataclass
 class SplitTemporalState:
-    left_state: object | None = None
-    right_state: object | None = None
+    left_state: list[object | None] | None = None
+    right_state: list[object | None] | None = None
 
 
 class SplitTransform:
@@ -22,21 +23,30 @@ class SplitTransform:
         self._right = [transform_group.dispatch(xform) for xform in cfg.right]
 
     def __call__(self, carry: TransformCarry, ts: object | None):
-        assert isinstance(ts, SplitTemporalState | None)
+        maybe_ts = Maybe(ts) \
+            .is_instance(SplitTemporalState)
 
         original_state = carry.transform_data.copy()
 
         # shallow copy all attributes, but ensure agent_state is a deep copy
         r_carry = copy.copy(carry)
         r_carry.transform_data = carry.transform_data.copy()
-        r_state = None if ts is None else ts.right_state
-        for xform in self._right:
-            r_carry, r_state = xform(r_carry, r_state)
+        r_state = (
+            maybe_ts
+            .map(lambda ts: ts.right_state)
+            .or_else([None for _ in self._right])
+        )
+        for i, xform in enumerate(self._right):
+            r_carry, r_state[i] = xform(r_carry, r_state[i])
 
         l_carry = carry
-        l_state = None if ts is None else ts.left_state
-        for xform in self._left:
-            l_carry, l_state = xform(l_carry, l_state)
+        l_state = (
+            maybe_ts
+            .map(lambda ts: ts.left_state)
+            .or_else([None for _ in self._left])
+        )
+        for i, xform in enumerate(self._left):
+            l_carry, l_state[i] = xform(l_carry, l_state[i])
 
         # reconcile the two carry objects by concatenating agent
         # state and relying on the fact that all other attributes
