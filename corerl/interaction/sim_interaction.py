@@ -45,20 +45,20 @@ class SimInteraction(Interaction):
     # -----------------------
     def _on_get_obs(self):
         o = self._env.get_latest_obs()
-        pr = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
-        self._agent.update_buffer(pr)
+        pipe_return = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
+        self._agent.update_buffer(pipe_return)
 
         self._should_reset = bool(o['truncated'].any() or o['terminated'].any())
 
         # capture latest state
         self._last_state = (
-            pr.states
+            pipe_return.states
             .iloc[0]
             .to_numpy(dtype=np.float32)
         )
 
         # log rewards
-        r = float(pr.rewards['reward'].iloc[0])
+        r = float(pipe_return.rewards['reward'].iloc[0])
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric='reward',
