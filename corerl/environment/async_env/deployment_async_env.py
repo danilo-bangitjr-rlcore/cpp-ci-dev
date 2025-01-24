@@ -1,7 +1,6 @@
 import logging
 from datetime import UTC, datetime, timedelta
 
-import numpy as np
 import pandas as pd
 from asyncua.sync import Client
 
@@ -10,10 +9,7 @@ from corerl.configs.config import MISSING, config
 # Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transforms import NormalizerConfig
 from corerl.environment.async_env.async_env import AsyncEnv, OPCEnvConfig, TSDBEnvConfig
-from corerl.utils.list import find_instance
-from corerl.utils.maybe import Maybe
 from corerl.utils.opc_connection import make_opc_node_id
 
 logger = logging.getLogger(__file__)
@@ -73,49 +69,12 @@ class DeploymentAsyncEnv(AsyncEnv):
         """
         self.data_reader.close()
 
-    def emit_action(self, action: np.ndarray) -> None:
+    def emit_action(self, action: pd.DataFrame) -> None:
         """Writes directly to the OPC server"""
 
-        denormalized_actions = self._denormalize_action(action)
-        action_names = [tag.name for tag in self._action_tags]
-        logger.info(f"emitting actions {action_names} with values {denormalized_actions}...")
+        logger.info(f"emitting actions {action}")
         with Client(self.url) as opc_client:
-            opc_client.write_values(self.action_nodes, denormalized_actions)
-
-    def _denormalize_action(self, action: np.ndarray) -> list[float]:
-        denormalized_actions = []
-        action_tag_configs = self._action_tags
-        action = action.flatten()
-        assert len(action) == len(action_tag_configs)
-        action_dim = len(action)
-
-        for act_i in range(action_dim):
-            # denormalize the action if possible, otherwise emit normalized action
-            raw_action = action[act_i]
-            action_cfg = action_tag_configs[act_i]
-
-            norm_cfg = (
-                Maybe(action_cfg.action_constructor)
-                .map(lambda ac: find_instance(NormalizerConfig, ac))
-            )
-
-            lo = (
-                norm_cfg
-                .map(lambda cfg: cfg.min)
-                .expect('Failed to denormalize action: no lower bound found')
-            )
-
-            hi = (
-                norm_cfg
-                .map(lambda cfg: cfg.max)
-                .expect('Failed to denormalize action: no upper bound found')
-            )
-
-            scale = hi - lo
-            bias = lo
-            denormalized_actions.append(scale * raw_action + bias)
-
-        return denormalized_actions
+            opc_client.write_values(self.action_nodes, action.iloc[0, :])
 
     def get_latest_obs(self) -> pd.DataFrame:
         now = datetime.now(UTC)

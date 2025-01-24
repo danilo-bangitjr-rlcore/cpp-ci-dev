@@ -14,7 +14,7 @@ from corerl.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transforms import NullConfig
+from corerl.data_pipeline.transforms import IdentityConfig, NullConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
@@ -26,6 +26,7 @@ def test_pipeline1():
         tags=[
             TagConfig(
                 name='tag-1',
+                preprocess=[],
                 state_constructor=[],
                 is_endogenous=False
             ),
@@ -39,8 +40,18 @@ def test_pipeline1():
                 ],
                 is_endogenous=True
             ),
-            TagConfig(name='action-1', action_constructor=[], state_constructor=[NullConfig()]),
-            TagConfig(name="reward", is_meta=True),
+            TagConfig(
+                name='action-1',
+                preprocess=[],
+                action_constructor=[],
+                state_constructor=[NullConfig()],
+            ),
+            TagConfig(
+                name="reward",
+                preprocess=[],
+                state_constructor=[NullConfig()],
+                reward_constructor=[IdentityConfig()],
+            ),
         ],
         transition_creator=AllTheTimeTCConfig(
             max_n_step=2,
@@ -93,22 +104,37 @@ def test_pipeline1():
     )
 
     # returned df has columns sorted in order: action, endogenous, exogenous, state, reward
-    cols = ['tag-1', 'countdown.[0]', 'tag-2_norm_trace-0.1', 'reward']
+    cols = ['tag-1', 'countdown.[0]', 'tag-2_norm_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
-            [np.nan, 1,      0,         0],
-            [0,      1,      0.18,      3],
-            [1,      1,      0.378,     0],
-            [2,      1,      0.5778,    0],
-            [np.nan, 1,      0.77778,   0],
-            [4,      1,      0.977778,  1],
-            [5,      1,      np.nan,    0],
+            [np.nan, 1,      0],
+            [0,      1,      0.18],
+            [1,      1,      0.378],
+            [2,      1,      0.5778],
+            [np.nan, 1,      0.77778],
+            [4,      1,      0.977778],
+            [5,      1,      np.nan],
         ],
         columns=cols,
         index=idx,
     )
 
+    expected_reward = pd.DataFrame(
+        data=[
+            [0],
+            [3],
+            [0],
+            [0],
+            [0],
+            [1],
+            [0],
+        ],
+        columns=['reward'],
+        index=idx,
+    )
+
     assert dfs_close(got.df, expected_df, col_order_matters=True)
+    assert dfs_close(got.rewards, expected_reward)
     assert got.transitions == [
         # notice that the first row of the DF was skipped due to the np.nan
         Transition(
@@ -137,6 +163,7 @@ def test_pipeline2():
             TagConfig(
                 name='tag-1',
                 imputer=CopyImputerConfig(imputation_horizon=2),
+                preprocess=[],
                 state_constructor=[],
                 is_endogenous=False,
             ),
@@ -145,13 +172,22 @@ def test_pipeline2():
                 operating_range=(None, 12),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
-                    NormalizerConfig(),
                     TraceConfig(trace_values=[0.1]),
                 ],
                 is_endogenous=True
             ),
-            TagConfig(name='action-1', action_constructor=[], state_constructor=[]),
-            TagConfig(name="reward", is_meta=True),
+            TagConfig(
+                name='action-1',
+                preprocess=[],
+                action_constructor=[],
+                state_constructor=[],
+            ),
+            TagConfig(
+                name="reward",
+                preprocess=[],
+                reward_constructor=[IdentityConfig()],
+                state_constructor=[NullConfig()],
+            ),
         ],
         transition_creator=AllTheTimeTCConfig(
             max_n_step=1,
@@ -203,17 +239,17 @@ def test_pipeline2():
         caller_code=CallerCode.ONLINE,
     )
 
-    # returned df has columns sorted in order: action, endogenous, exogenous, state, reward
-    cols = ['action-1', 'tag-1', 'countdown.[0]', 'tag-2_norm_trace-0.1', 'reward']
+    # returned df has columns sorted in order: action, endogenous, exogenous, state
+    cols = ['action-1', 'tag-1', 'countdown.[0]', 'tag-2_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
-            [0,    0,     1,     0,              0],
-            [1,    0,     1,     0.15,           3],
-            [0,    1,     1,     0.315,          0],
-            [1,    1,     1,     0.4815,         0],
-            [0,    1,     1,     0.64815,        0],
-            [1,    4,     1,     0.814815,       1],
-            [0,    4,     1,     0.981482,       0],
+            [0,    0,     1,     0],
+            [1,    0,     1,     0.15],
+            [0,    1,     1,     0.315],
+            [1,    1,     1,     0.4815],
+            [0,    1,     1,     0.64815],
+            [1,    4,     1,     0.814815],
+            [0,    4,     1,     0.981482],
         ],
         columns=cols,
         index=idx,

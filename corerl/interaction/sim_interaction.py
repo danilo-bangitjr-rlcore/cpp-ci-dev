@@ -64,7 +64,9 @@ class SimInteraction(Interaction):
         s = self._get_latest_state()
         assert s is not None
         a = self._agent.get_action(s)
-        self._env.emit_action(a)
+        a_df = self._pipeline.action_constructor.assign_action_names(a)
+        a_df = self._pipeline.preprocessor.inverse(a_df)
+        self._env.emit_action(a_df)
 
         self._app_state.agent_step += 1
 
@@ -89,7 +91,9 @@ class SimInteraction(Interaction):
                 s = self._get_latest_state()
                 assert s is not None
                 a = self._agent.get_action(s)
-                self._env.emit_action(a)
+                a_df = self._pipeline.action_constructor.assign_action_names(a)
+                a_df = self._pipeline.preprocessor.inverse(a_df)
+                self._env.emit_action(a_df)
 
             case _:
                 logger.warning(f"Unexpected step_event: {event}")

@@ -5,7 +5,7 @@ import numpy as np
 from numba import njit
 
 from corerl.configs.config import config
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, InvertibleTransform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
@@ -17,7 +17,7 @@ class NormalizerConfig(BaseTransformConfig):
     from_data: bool = True
 
 
-class Normalizer:
+class Normalizer(InvertibleTransform):
     def __init__(self, cfg: NormalizerConfig):
         self._cfg = cfg
         self._mins = defaultdict(lambda: cfg.min)
@@ -27,7 +27,7 @@ class Normalizer:
         self._mins.clear()
         self._maxs.clear()
 
-    def denormalize(self, x: np.ndarray, col: str):
+    def invert(self, x: np.ndarray, col: str):
         lo = self._mins[col]
         hi = self._maxs[col]
 

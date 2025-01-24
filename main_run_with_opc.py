@@ -3,7 +3,7 @@ import time
 from dataclasses import field
 from random import random
 
-import numpy as np
+import pandas as pd
 
 from corerl.configs.config import config
 from corerl.configs.loader import load_config
@@ -19,14 +19,14 @@ class Config:
 
 
 def dumb_policy(action_tags: list[TagConfig]):
-    raw_actions = []
+    raw_actions = {}
     for action_tag in action_tags:
         assert action_tag.operating_range is not None
         lo, hi = action_tag.operating_range
         lo = lo if lo is not None else 0
         hi = hi if hi is not None else 1
-        raw_actions.append((hi - lo) * random() + lo)
-    return np.ndarray(raw_actions)
+        raw_actions[action_tag.name] = [(hi - lo) * random() + lo]
+    return pd.DataFrame(raw_actions)
 
 
 @load_config(Config, base="config/")

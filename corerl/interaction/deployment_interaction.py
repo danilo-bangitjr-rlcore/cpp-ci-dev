@@ -59,7 +59,7 @@ class DeploymentInteraction(Interaction):
         self._next_action_timestamp = datetime.now(UTC) # take an action right away
         self._last_state_timestamp: datetime | None = None
         self._state_age_tol = env.action_tolerance
-        self._last_action: np.ndarray | None = None # used to ping setpoints
+        self._last_action: pd.DataFrame | None = None # used to ping setpoints
 
         # the step clock starts ticking on the first invocation of `next(self._step_clock)`
         # this should occur on the first call to `self.step`
@@ -97,8 +97,10 @@ class DeploymentInteraction(Interaction):
         s = self._get_latest_state()
         if s is not None and self._should_take_action(step_timestamp):
             a = self._agent.get_action(s)
-            self._env.emit_action(a)
-            self._last_action = a
+            a_df = self._pipeline.action_constructor.assign_action_names(a)
+            a_df = self._pipeline.preprocessor.inverse(a_df)
+            self._env.emit_action(a_df)
+            self._last_action = a_df
 
         self._app_state.agent_step += 1
 
@@ -126,8 +128,11 @@ class DeploymentInteraction(Interaction):
                 s = self._get_latest_state()
                 if s is not None:
                     a = self._agent.get_action(s)
-                    self._env.emit_action(a)
-                    self._last_action = a
+                    a_df = self._pipeline.action_constructor.assign_action_names(a)
+                    a_df = self._pipeline.preprocessor.inverse(a_df)
+                    self._env.emit_action(a_df)
+                    self._last_action = a_df
+
             case EventType.ping_setpoints:
                 if self._last_action is not None:
                     self._env.emit_action(self._last_action)
@@ -246,5 +251,3 @@ class DeploymentInteraction(Interaction):
                 metric=feat_name,
                 value=val,
             )
-
-

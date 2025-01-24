@@ -177,6 +177,7 @@ class CallerCode(Enum):
 class StageCode(Enum):
     INIT = auto()
     BOUNDS = auto()
+    PREPROCESS = auto()
     IMPUTER = auto()
     ODDITY = auto()
     TC = auto()
@@ -194,6 +195,7 @@ class PipelineFrame:
     data: pd.DataFrame
     caller_code: CallerCode
     actions: pd.DataFrame = field(init=False)
+    rewards: pd.DataFrame = field(default_factory=pd.DataFrame)
     missing_info: pd.DataFrame = field(init=False)
     decision_points: np.ndarray = field(init=False)
     temporal_state: TemporalState = field(default_factory=dict)
@@ -209,7 +211,7 @@ class PipelineFrame:
         # initialize dp flags
         self.decision_points = np.zeros(N, dtype=np.bool_)
 
-        # initialize actions
+        # initialize rl containers
         self.actions = self.data.copy(deep=False)
 
     def get_last_timestamp(self) -> datetime.datetime:

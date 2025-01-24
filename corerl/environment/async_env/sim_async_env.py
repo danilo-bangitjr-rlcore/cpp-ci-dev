@@ -57,11 +57,8 @@ class SimAsyncEnv(AsyncEnv):
     # ------------------
     # -- AsyncEnv API --
     # ------------------
-    def emit_action(self, action: np.ndarray) -> None:
-        lo, hi = self._action_bounds
-        scale = hi - lo
-        bias = lo
-        self._action = scale * action + bias
+    def emit_action(self, action: pd.DataFrame) -> None:
+        self._action = action.iloc[0].to_numpy()
 
     def get_latest_obs(self) -> pd.DataFrame:
         self.clock += self._clock_inc
@@ -101,8 +98,14 @@ class SimAsyncEnv(AsyncEnv):
         return self._last_step
 
     def _obs_as_df(self, step: StepData):
-        obs_data = {tag: val for tag, val in zip(self._observation_tag_names, step.observation, strict=True)}
-        action_data = {tag: val for tag, val in zip(self._action_tag_names, step.action, strict=True)}
+        obs_data = {}
+        for i in range(len(step.observation)):
+            obs_data[f'tag-{i}'] = step.observation[i]
+
+        action_data = {}
+        for i in range(len(step.action)):
+            action_data[f'action-{i}'] = step.action[i]
+
         meta_data = {
             "reward": step.reward,
             "truncated": step.truncated,

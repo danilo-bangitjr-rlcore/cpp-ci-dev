@@ -214,7 +214,7 @@ class MaskedAutoencoder(BaseImputer):
 
     def _denormalize(self, raw_row: np.ndarray):
         for i, (col, norm) in enumerate(self._norms.items()):
-            raw_row[i] = norm.denormalize(raw_row[i], col)
+            raw_row[i] = norm.invert(raw_row[i], col)
 
         return raw_row
 

@@ -44,7 +44,7 @@ def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> Pipelin
         ts = dict()
     state_col = np.arange(start_state, end_state)
     length = end_state - start_state
-    cols = {"state": state_col, "reward": [1] * length}
+    cols = {"state": state_col}
     dates = [
         datetime.datetime(2024, 1, 1, 1, i) for i in range(start_state, end_state)
     ]
@@ -58,6 +58,7 @@ def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> Pipelin
 
     # stub out action constructor
     pf.actions = pd.DataFrame({ "action": [0] * length }, index=datetime_index)
+    pf.rewards = pd.DataFrame({ "reward": [1] * length }, index=datetime_index)
     return pf
 
 
