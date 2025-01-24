@@ -201,4 +201,4 @@ multirun/
 htmlcov
 artifacts
 vendor
-report
+report/
