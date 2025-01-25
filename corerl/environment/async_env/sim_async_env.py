@@ -79,7 +79,7 @@ class SimAsyncEnv(AsyncEnv):
         self._last_step = StepData(
             observation=observation,
             reward=np.nan,
-            action=np.full(self._action_shape, np.nan),
+            action=np.full(self._action_shape, 0),
             truncated=False,
             terminated=False,
         )
