@@ -44,5 +44,16 @@ class Delta:
     def reset(self) -> None:
         pass
 
+    @staticmethod
+    def is_delta_transformed(col: str):
+        """
+        Detect whether a given column has been delta transformed.
+
+        Because the delta xform is responsible for marking a column
+        as delta xformed, then the delta xform should also be
+        responsible for this detection.
+        """
+        return '_delta' in col
+
 
 transform_group.dispatcher(Delta)
