@@ -1,3 +1,9 @@
+## 0.48.0 (2025-01-25)
+
+### Feat
+
+- add option to warmup pipeline upon interaction init
+
 ## 0.47.9 (2025-01-25)
 
 ### Fix
