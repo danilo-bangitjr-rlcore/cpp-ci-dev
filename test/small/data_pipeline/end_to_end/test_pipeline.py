@@ -42,6 +42,7 @@ def test_pipeline1():
             ),
             TagConfig(
                 name='action-1',
+                operating_range=(0, 1),
                 preprocess=[],
                 action_constructor=[],
                 state_constructor=[NullConfig()],
@@ -179,6 +180,7 @@ def test_pipeline2():
             TagConfig(
                 name='action-1',
                 preprocess=[],
+                operating_range=(0, 1),
                 action_constructor=[],
                 state_constructor=[],
             ),
