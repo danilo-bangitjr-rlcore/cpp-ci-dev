@@ -1,3 +1,13 @@
+## 0.50.0 (2025-01-25)
+
+### Feat
+
+- add comparator xform
+
+### Fix
+
+- register comparator xform
+
 ## 0.49.0 (2025-01-25)
 
 ### Feat
