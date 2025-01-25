@@ -1,3 +1,13 @@
+## 0.49.0 (2025-01-25)
+
+### Feat
+
+- sanitize actions in deployment async env before writing to opc
+
+### Fix
+
+- assert that action tags have operating range specified in config
+
 ## 0.48.0 (2025-01-25)
 
 ### Feat
