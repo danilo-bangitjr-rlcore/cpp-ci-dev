@@ -1,3 +1,10 @@
+## 0.47.9 (2025-01-25)
+
+### Fix
+
+- force all checked configs to be interpolated and non missing
+- WIP config fix
+
 ## 0.47.8 (2025-01-24)
 
 ### Fix
