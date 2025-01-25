@@ -19,6 +19,7 @@ from corerl.state import AppState
 class BaseAgentConfig:
     name: Any = MISSING
 
+    delta_action: bool = False
     discrete_control: bool = interpolate('${env.discrete_control}')
     freezer_freq: int = 1
     gamma: float = interpolate('${experiment.gamma}')
@@ -30,6 +31,7 @@ class BaseAgentConfig:
 
 class BaseAgent(ABC):
     def __init__(self, cfg: BaseAgentConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        self.cfg = cfg
         self._app_state = app_state
         self.replay_ratio = cfg.replay_ratio
         self.update_freq = cfg.update_freq

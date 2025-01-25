@@ -19,6 +19,7 @@ from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
+from corerl.data_pipeline.transforms.delta import Delta
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
@@ -36,6 +37,7 @@ class GreedyACConfig(BaseACConfig):
     average_entropy: bool = True
     ensemble_targets: bool = False
     interleave_updates: bool = True
+    delta_action: bool = False
     n_sampler_updates: int = 1
     num_samples: int = 500
     prop_rho_mult: float = 2.0
@@ -50,6 +52,8 @@ class GreedyACConfig(BaseACConfig):
 class GreedyAC(BaseAC):
     def __init__(self, cfg: GreedyACConfig, app_state: AppState, col_desc: ColumnDescriptions):
         super().__init__(cfg, app_state, col_desc)
+        self.cfg = cfg
+        self._col_desc = col_desc
         self.ensemble_targets = cfg.ensemble_targets
 
         # Whether to average the proposal policy's entropy over all the sampled actions
@@ -71,6 +75,12 @@ class GreedyAC(BaseAC):
         self.uniform_proposal = self.uniform_sampling_percentage == 1
 
         self._interleave_updates = cfg.interleave_updates
+
+        # the implicit action dim is doubled when using delta actions
+        # because we will be receiving both the direct action and the
+        # delta action in each transition
+        if self.cfg.delta_action:
+            self.action_dim = int(self.action_dim / 2)
 
         self.n_sampler_updates = cfg.n_sampler_updates
         if self.share_batch and not self.uniform_proposal:
@@ -232,7 +242,11 @@ class GreedyAC(BaseAC):
 
         return best_actions
 
-    def get_policy_update_info(self, state_batch: Float[torch.Tensor, 'batch_size state_dim']) -> tuple[
+    def get_policy_update_info(
+            self,
+            state_batch: Float[torch.Tensor, 'batch_size state_dim'],
+            action_batch: Float[torch.Tensor, 'batch_size action_dim'],
+        ) -> tuple[
             Float[torch.Tensor, 'batch_size state_dim'],
             Float[torch.Tensor, 'batch_size*num_samples state_dim'],
             Float[torch.Tensor, 'batch_size num_samples action_dim'],
@@ -246,7 +260,14 @@ class GreedyAC(BaseAC):
         repeated_states: Float[torch.Tensor, 'batch_size*num_samples state_dim']
         repeated_states = state_batch.repeat_interleave(self.num_samples, dim=0)
 
+        # if we are in direct action mode, then the sampled
+        # actions are direct and not deltas. So zero out the
+        # offset
+        if not self.cfg.delta_action:
+            action_batch = torch.zeros_like(action_batch)
+
         sample_actions = self.get_sampled_actions(state_batch)
+        sample_actions = self.ensure_direct_action(action_batch, sample_actions)
         sorted_q_inds = self.get_sorted_q_values(state_batch, sample_actions)
         best_actions = self.get_top_actions(sample_actions, sorted_q_inds, n_top_actions=self.top_actions)
 
@@ -255,6 +276,39 @@ class GreedyAC(BaseAC):
         stacked_s_batch = state_batch.repeat_interleave(self.top_actions, dim=0)
 
         return state_batch, repeated_states, sample_actions, sorted_q_inds, stacked_s_batch, best_actions, batch_size
+
+
+    def filter_only_direct_actions(self, actions: torch.Tensor):
+        if not self.cfg.delta_action:
+            return actions
+
+        direct_idxs = [
+            i for i, col in enumerate(self._col_desc.action_cols)
+            if not Delta.is_delta_transformed(col)
+        ]
+        return actions[:, direct_idxs]
+
+    def filter_only_delta_actions(self, actions: torch.Tensor):
+        if not self.cfg.delta_action:
+            return actions
+
+        direct_idxs = [
+            i for i, col in enumerate(self._col_desc.action_cols)
+            if Delta.is_delta_transformed(col)
+        ]
+        return actions[:, direct_idxs]
+
+
+    def ensure_direct_action(self, action: torch.Tensor, next_action: torch.Tensor):
+        if not self.cfg.delta_action:
+            return next_action
+
+        direct_action = action + next_action
+
+        # because we are always operating in normalized space,
+        # we can hardcode the spatial constraints
+        return torch.clip(direct_action, 0, 1)
+
 
     def compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)
@@ -274,6 +328,8 @@ class GreedyAC(BaseAC):
             dp_mask = batch.post.dp
 
             next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
+            action_batch = self.filter_only_direct_actions(action_batch)
+            next_actions = self.ensure_direct_action(action_batch, next_actions)
             # For the 'Anytime' paradigm, only states at decision points can sample next_actions
             # If a state isn't at a decision point, its next_action is set to the current action
             with torch.no_grad():
@@ -418,7 +474,9 @@ class GreedyAC(BaseAC):
         assert len(batches) == 1
         batch = batches[0]
 
-        update_info = self.get_policy_update_info(batch.prior.state)
+        # if in direct action mode, this is a no-op
+        action = self.filter_only_delta_actions(batch.post.action)
+        update_info = self.get_policy_update_info(batch.prior.state, action)
         actor_loss = self.compute_actor_loss(update_info)
 
         stacked_s_batch = update_info[4]
@@ -455,7 +513,9 @@ class GreedyAC(BaseAC):
             assert len(batches) == 1
             batch = batches[0]
 
-            update_info = self.get_policy_update_info(batch.prior.state)
+            # if in direct action mode, this is a no-op
+            action = self.filter_only_delta_actions(batch.post.action)
+            update_info = self.get_policy_update_info(batch.prior.state, action)
 
             sampler_loss = self.compute_sampler_loss(update_info)
 
