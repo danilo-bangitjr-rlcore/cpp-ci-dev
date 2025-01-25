@@ -30,7 +30,7 @@ env:
   action_period: 00:00:15
   setpoint_ping_period: 00:00:01
   discrete_control: False
-  seed: 1
+  seed: ${experiment.seed}
   db: ${pipeline.db}
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
