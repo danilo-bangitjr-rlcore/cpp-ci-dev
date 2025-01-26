@@ -96,15 +96,15 @@ class DeploymentInteraction(Interaction):
         self.load_historical_chunk()
 
         o = self._env.get_latest_obs()
-        pr = self._pipeline(o, data_mode=DataMode.ONLINE)
-        self._log_rewards(pr)
-        self._agent.update_buffer(pr)
+        pipe_return = self._pipeline(o, data_mode=DataMode.ONLINE)
+        self._log_rewards(pipe_return)
+        self._agent.update_buffer(pipe_return)
 
         # perform evaluations
-        self._monte_carlo_eval.execute(pr)
+        self._monte_carlo_eval.execute(pipe_return)
 
         # capture latest state
-        state = pr.states
+        state = pipe_return.states
         self._last_state = (
             state
             .iloc[-1]
@@ -112,7 +112,7 @@ class DeploymentInteraction(Interaction):
         )
 
         self._last_action = (
-            pr.actions
+            pipe_return.actions
             .iloc[-1]
             .to_numpy(dtype=np.float32)
         )
