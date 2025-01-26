@@ -17,6 +17,7 @@ from corerl.configs.config import config, interpolate, list_
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
+from corerl.data_pipeline.constructors.conditional_filter import ConditionalFilter
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
@@ -105,6 +106,7 @@ class Pipeline:
             for tag in self.tags
             if tag.operating_range is not None
         }
+        self.conditional_filter = ConditionalFilter(self.tags)
         self.preprocessor = Preprocessor(self.tags)
         self.transition_creator = AllTheTimeTC(cfg.transition_creator, self.tags)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
@@ -122,10 +124,11 @@ class Pipeline:
             caller_code: defaultdict(list) for caller_code in CallerCode}
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
             StageCode.INIT:       lambda pf: pf,
+            StageCode.FILTER:     self.conditional_filter,
             StageCode.BOUNDS:     lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
+            StageCode.PREPROCESS: self.preprocessor,
             StageCode.ODDITY:     lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
             StageCode.IMPUTER:    self.imputers,
-            StageCode.PREPROCESS: self.preprocessor,
             StageCode.AC:         self.action_constructor,
             StageCode.RC:         self.reward_constructor,
             StageCode.SC:         self.state_constructor,
@@ -135,6 +138,7 @@ class Pipeline:
 
         self._default_stages = (
             StageCode.INIT,
+            StageCode.FILTER,
             StageCode.BOUNDS,
             StageCode.PREPROCESS,
             StageCode.ODDITY,
