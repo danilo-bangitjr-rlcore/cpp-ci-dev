@@ -1,4 +1,4 @@
-import { createRootRoute, Link, Outlet } from '@tanstack/react-router';
+import { createRootRoute, Link, LinkComponentProps, Outlet } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/router-devtools';
 import rlcoreLogo from '/RLCore_Stacked.svg';
 import {
@@ -8,6 +8,16 @@ import {
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
 const queryClient = new QueryClient()
+
+const NavLink = ({ to, children, ...props }: LinkComponentProps) => (
+  <Link
+    to={to}
+    className='block px-4 py-2 hover:bg-gray-200'
+    activeOptions={{ exact: true }}
+    activeProps={{ className: 'bg-gray-200' }}
+    {...props}
+  >{children}</Link>
+)
 
 export const Route = createRootRoute({
   component: () => (
@@ -27,21 +37,9 @@ export const Route = createRootRoute({
         <div className="grow flex flex-col-reverse md:flex-row">
           <aside className="col-span-2 md:col-span-1 row-span-1 md:flex md:flex-col overflow-y-auto bg-gray-100">
             <nav className="flex md:flex-col md:h-full space-x-4 md:space-x-0">
-              <Link
-                to="/"
-                className='block px-4 py-2 hover:bg-gray-200'
-                activeOptions={{ exact: true }}
-                activeProps={{ className: 'bg-gray-200' }}
-              >
-                Home
-              </Link>
-              <Link
-                to="/about"
-                className='block px-4 py-2 hover:bg-gray-200'
-                activeProps={{ className: 'bg-gray-200' }}
-              >
-                About
-              </Link>
+              <NavLink to="/">Home</NavLink>
+              <NavLink to="/setup" activeOptions={{ exact: false }}>Setup</NavLink>
+              <NavLink to="/about">About</NavLink>
             </nav>
           </aside>
           <main className="grow"><Outlet /></main>

@@ -13,6 +13,9 @@ import { createFileRoute } from '@tanstack/react-router'
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as SetupImport } from './routes/setup'
+import { Route as SetupIndexImport } from './routes/setup/index'
+import { Route as SetupNameImport } from './routes/setup/name'
 
 // Create Virtual Routes
 
@@ -27,11 +30,29 @@ const AboutLazyRoute = AboutLazyImport.update({
   getParentRoute: () => rootRoute,
 } as any).lazy(() => import('./routes/about.lazy').then((d) => d.Route))
 
+const SetupRoute = SetupImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const IndexLazyRoute = IndexLazyImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRoute,
 } as any).lazy(() => import('./routes/index.lazy').then((d) => d.Route))
+
+const SetupIndexRoute = SetupIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SetupRoute,
+} as any)
+
+const SetupNameRoute = SetupNameImport.update({
+  id: '/name',
+  path: '/name',
+  getParentRoute: () => SetupRoute,
+} as any)
 
 // Populate the FileRoutesByPath interface
 
@@ -44,6 +65,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexLazyImport
       parentRoute: typeof rootRoute
     }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupImport
+      parentRoute: typeof rootRoute
+    }
     '/about': {
       id: '/about'
       path: '/about'
@@ -51,43 +79,79 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutLazyImport
       parentRoute: typeof rootRoute
     }
+    '/setup/name': {
+      id: '/setup/name'
+      path: '/name'
+      fullPath: '/setup/name'
+      preLoaderRoute: typeof SetupNameImport
+      parentRoute: typeof SetupImport
+    }
+    '/setup/': {
+      id: '/setup/'
+      path: '/'
+      fullPath: '/setup/'
+      preLoaderRoute: typeof SetupIndexImport
+      parentRoute: typeof SetupImport
+    }
   }
 }
 
 // Create and export the route tree
 
+interface SetupRouteChildren {
+  SetupNameRoute: typeof SetupNameRoute
+  SetupIndexRoute: typeof SetupIndexRoute
+}
+
+const SetupRouteChildren: SetupRouteChildren = {
+  SetupNameRoute: SetupNameRoute,
+  SetupIndexRoute: SetupIndexRoute,
+}
+
+const SetupRouteWithChildren = SetupRoute._addFileChildren(SetupRouteChildren)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexLazyRoute
+  '/setup': typeof SetupRouteWithChildren
   '/about': typeof AboutLazyRoute
+  '/setup/name': typeof SetupNameRoute
+  '/setup/': typeof SetupIndexRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexLazyRoute
   '/about': typeof AboutLazyRoute
+  '/setup/name': typeof SetupNameRoute
+  '/setup': typeof SetupIndexRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexLazyRoute
+  '/setup': typeof SetupRouteWithChildren
   '/about': typeof AboutLazyRoute
+  '/setup/name': typeof SetupNameRoute
+  '/setup/': typeof SetupIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about'
+  fullPaths: '/' | '/setup' | '/about' | '/setup/name' | '/setup/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about'
-  id: '__root__' | '/' | '/about'
+  to: '/' | '/about' | '/setup/name' | '/setup'
+  id: '__root__' | '/' | '/setup' | '/about' | '/setup/name' | '/setup/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexLazyRoute: typeof IndexLazyRoute
+  SetupRoute: typeof SetupRouteWithChildren
   AboutLazyRoute: typeof AboutLazyRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexLazyRoute: IndexLazyRoute,
+  SetupRoute: SetupRouteWithChildren,
   AboutLazyRoute: AboutLazyRoute,
 }
 
@@ -102,14 +166,30 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/setup",
         "/about"
       ]
     },
     "/": {
       "filePath": "index.lazy.tsx"
     },
+    "/setup": {
+      "filePath": "setup.tsx",
+      "children": [
+        "/setup/name",
+        "/setup/"
+      ]
+    },
     "/about": {
       "filePath": "about.lazy.tsx"
+    },
+    "/setup/name": {
+      "filePath": "setup/name.tsx",
+      "parent": "/setup"
+    },
+    "/setup/": {
+      "filePath": "setup/index.tsx",
+      "parent": "/setup"
     }
   }
 }
