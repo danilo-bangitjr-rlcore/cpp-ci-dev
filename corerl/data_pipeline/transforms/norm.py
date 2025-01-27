@@ -14,7 +14,7 @@ class NormalizerConfig(BaseTransformConfig):
     name: Literal['normalize'] = 'normalize'
     min: float | None = None
     max: float | None = None
-    from_data: bool = True
+    from_data: bool = False
 
 
 class Normalizer(InvertibleTransform):
