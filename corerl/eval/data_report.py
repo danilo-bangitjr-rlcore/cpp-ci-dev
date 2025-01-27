@@ -43,7 +43,7 @@ class ReportConfig:
 
     # for histograms
     hist_enabled : bool = True
-    hist_show_mean: bool = Field(default_factory=lambda: True)
+    hist_show_mean: bool = True
     hist_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.9])
     hist_num_bins: int = Field(default_factory=lambda: 30)
 
