@@ -1,21 +1,17 @@
-from datetime import UTC, datetime
-import time
-from pathlib import Path
-
-from pydantic import BaseModel
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import Response, JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from json import JSONDecodeError
 import json
-import yaml
-import tempfile
 import logging
+import tempfile
+from datetime import UTC, datetime
+
+import yaml
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from corerl.config import MainConfig
-from corerl.configs.loader import direct_load_config, config_to_dict, config_to_json
-from datetime import timedelta
+from corerl.configs.loader import config_to_dict, config_to_json, direct_load_config
 
 _log = logging.getLogger("uvicorn.error")
 _log.setLevel(logging.DEBUG)
@@ -35,10 +31,6 @@ class Item(BaseModel):
     description: str | None = None
     price: float
     tax: float | None = None
-
-# @app.get("/")
-# async def root():
-#     return {"message": "Hello World"}
 
 @app.get("/health")
 async def health():
