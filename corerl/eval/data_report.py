@@ -148,16 +148,15 @@ def get_tag_pairs(
     if tag_info is None: # all pairs of tags
         tags = get_tags(data)
         pairs = list(combinations(tags, 2))
-    else:
-        if len(tag_info) == 0:
-            return []
-        elif isinstance(tag_info[0], str): # all pairs of tags specified in cfg.cross_corr_tags
-            str_tags = tag_info
-            pairs = list(combinations(str_tags, 2))
-        else: # only pairs of tags specified in cfg.cross_corr_tags
-            for pair in tag_info:
-                assert len(pair) == 2
-            pairs = tag_info
+    elif len(tag_info) == 0:
+        return []
+    elif isinstance(tag_info[0], str): # all pairs of tags specified in cfg.cross_corr_tags
+        str_tags = tag_info
+        pairs = list(combinations(str_tags, 2))
+    else: # only pairs of tags specified in cfg.cross_corr_tags
+        for pair in tag_info:
+            assert len(pair) == 2
+        pairs = tag_info
 
     pairs = [tuple(pair) for pair in pairs]
     pairs = cast(list[tuple[str, str]], pairs)
