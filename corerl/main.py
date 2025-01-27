@@ -25,7 +25,7 @@ from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
-    format="%(asctime)s %(levelname)s: %(message)s",
+    format="[%(asctime)s][%(levelname)s] - %(message)s",
     encoding="utf-8",
     level=logging.INFO,
 )
