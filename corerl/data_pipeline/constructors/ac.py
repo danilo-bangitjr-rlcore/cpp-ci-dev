@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from functools import cached_property
 
 import numpy as np
@@ -41,7 +42,7 @@ class ActionConstructor(Constructor):
         pf.actions = pd.concat(transformed_parts, axis=1, copy=False)
 
         # guarantee an ordering over columns
-        sorted_cols = sorted(pf.actions.columns)
+        sorted_cols = self.sort_cols(pf.actions.columns)
         pf.actions = pf.actions.loc[:, sorted_cols]
 
         return pf
@@ -61,4 +62,8 @@ class ActionConstructor(Constructor):
     @cached_property
     def columns(self):
         pf = self._probe_fake_data()
-        return sorted(pf.actions.columns)
+        return self.sort_cols(pf.actions.columns)
+
+
+    def sort_cols(self, cols: Iterable[str]):
+        return sorted(cols)
