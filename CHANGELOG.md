@@ -1,3 +1,16 @@
+## 0.52.0 (2025-01-27)
+
+### Feat
+
+- add event to toggle event logging
+- report generating library
+- plotting module for offline data
+
+### Fix
+
+- .gitignore report/
+- testing-induced bug fixes
+
 ## 0.51.0 (2025-01-27)
 
 ### Feat
