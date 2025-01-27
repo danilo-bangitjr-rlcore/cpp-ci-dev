@@ -4,7 +4,7 @@ import tempfile
 from datetime import UTC, datetime
 
 import yaml
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -36,15 +36,24 @@ class Item(BaseModel):
 async def health():
     return {"status": "OK", "time": f"{datetime.now(tz=UTC).isoformat()}"}
 
-@app.post("/configuration/file", response_model=MainConfig)
-async def gen_config_file(item: dict, request: Request):
+@app.post("/api/configuration/file", response_model=MainConfig)
+async def gen_config_file(request: Request):
     """
     Return a fully structured configuration as the response.
     The configuration format should be determined by an http header (application/yaml, application/json).
     """
 
+    content_type = request.headers.get("Content-Type")
+    if content_type == "application/json":
+        data = await request.json()
+    elif content_type == "application/yaml":
+        body = await request.body()
+        data = yaml.safe_load(body)
+    else:
+        raise HTTPException(status_code=415, detail="Unsupported Media Type")
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as fp:
-        yaml.safe_dump(item, fp, sort_keys=False, default_flow_style=False)
+        yaml.safe_dump(data, fp, sort_keys=False, default_flow_style=False)
         fp.flush()
         res_config = direct_load_config(MainConfig, "", fp.name)
 
