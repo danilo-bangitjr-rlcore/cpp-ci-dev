@@ -115,7 +115,7 @@ def main(cfg: MainConfig):
 
 def enable_log_files():
     save_path = Path(f"outputs/{datetime.now(UTC).date()}")
-    save_path.mkdir(exist_ok=True)
+    save_path.mkdir(exist_ok=True, parents=True)
     file_handler = RotatingFileHandler(
         filename=save_path / "rlcore.log",
         maxBytes=10_000_000,
