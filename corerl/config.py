@@ -26,3 +26,4 @@ class MainConfig:
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     eval: EvalConfig = field(default_factory=EvalConfig)
     report : ReportConfig = field(default_factory=ReportConfig)
+    log_files: bool = False
