@@ -27,8 +27,7 @@ jobs:
 
       - run: |
           uv venv
-          uv pip compile --extra=dev pyproject.toml -o deps.txt
-          uv pip sync deps.txt
+          uv sync
 
       - run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
@@ -87,8 +86,7 @@ jobs:
 
       - run: |
           uv venv
-          uv pip compile --extra=dev pyproject.toml -o deps.txt
-          uv pip sync deps.txt
+          uv sync
 
       - run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
