@@ -50,7 +50,7 @@ class DataWriter(BufferedWriter[Point]):
         # truncate microseconds
         timestamp = timestamp.replace(microsecond=0)
 
-        jsonb = json.dumps({"val": val}, allow_nan=False).lower()
+        jsonb = json.dumps({"val": val}, allow_nan=True).lower()
         point = Point(
             ts=timestamp.isoformat(),
             name=name,

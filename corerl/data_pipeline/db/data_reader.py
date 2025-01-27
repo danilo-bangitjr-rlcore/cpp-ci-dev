@@ -140,7 +140,7 @@ class DataReader:
 
         # after executing the query and getting the df, pivot and convert values
         stmt = union_all(*subqueries).order_by(text("time_bucket ASC"), self.sensor_table.c["name"].asc())
-        with self.engine.connect() as connection:
+        with TryConnectContextManager(self.engine) as connection:
             sensor_data = pd.read_sql(sql=stmt, con=connection)
             full_range = pd.date_range(
                 start=start_time + bucket_width,
