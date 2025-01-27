@@ -1,0 +1,293 @@
+interaction:
+  name: dep_interaction
+  historical_batch_size: 0
+metrics:
+  drivername: postgresql+psycopg2
+  username: postgres
+  password: password
+  ip: localhost
+  port: 5432
+  db_name: postgres
+  table_name: metrics
+  enabled: true
+  name: db
+  table_schema: public
+  lo_wm: 10
+event_bus:
+  enabled: false
+  cli_connection: tcp://localhost:5555
+  app_connection: inproc://corerl_app
+env:
+  name: opc_tsdb_sim_async_env
+  seed: 1
+  discrete_control: false
+  obs_period: PT1S
+  update_period: PT1S
+  action_period: PT1S
+  db:
+    drivername: postgresql+psycopg2
+    username: postgres
+    password: password
+    ip: localhost
+    port: 5432
+    db_name: postgres
+    table_name: opcua
+    enabled: true
+    table_schema: public
+    data_agg: avg
+  opc_conn_url: opc.tcp://admin@0.0.0.0:4840/rlcore/server/
+  opc_ns: 2
+  gym_name: MountainCarContinuous-v0
+  init_type: gym.make
+  args: []
+  kwargs: {}
+  action_tolerance: PT1S
+  obs_fetch_attempts: 20
+agent:
+  name: greedy_ac
+  discrete_control: false
+  freezer_freq: 1
+  gamma: ${experiment.gamma}
+  message_bus: '|???|'
+  n_updates: 1
+  replay_ratio: 1
+  seed: 1
+  update_freq: 1
+  critic:
+    name: ensemble
+    critic_network:
+      name: ensemble
+      ensemble: 1
+      bootstrap_reduct:
+        name: mean
+      policy_reduct:
+        name: mean
+      vmap: false
+      base:
+        name: fc
+        bias: true
+        layer_init: Xavier
+        hidden:
+        - 64
+        - 64
+        activation:
+        - name: relu
+        - name: relu
+    critic_optimizer:
+      name: adam
+      lr: 0.0001
+      weight_decay: 0.0
+    buffer:
+      name: uniform
+      seed: 1
+      memory: 1000000
+      batch_size: 256
+      combined: true
+    polyak: 0.99
+    target_sync_freq: 1
+    discrete_control: false
+  actor:
+    name: network
+    action_min: 0.0
+    action_max: 1.0
+    actor_network:
+      name: squashed_gaussian
+      base:
+        name: fc
+        bias: true
+        layer_init: Xavier
+        hidden:
+        - 64
+        - 64
+        activation:
+        - name: relu
+        - name: relu
+      head_layer_init: Xavier
+      head_activation:
+      - - name: identity
+      - - name: clamp
+          args:
+          - -20
+          - 2
+        - name: exp
+      head_bias: true
+    actor_optimizer:
+      name: rms_prop
+      lr: 1.0e-05
+      weight_decay: 0.0
+    buffer:
+      name: uniform
+      seed: 1
+      memory: 1000000
+      batch_size: 256
+      combined: true
+  n_actor_updates: 1
+  n_critic_updates: 1
+  average_entropy: true
+  ensemble_targets: false
+  interleave_updates: true
+  n_sampler_updates: 1
+  num_samples: 32
+  prop_rho_mult: 2.0
+  rho: 0.1
+  share_batch: true
+  tau: 0.0
+  uniform_sampling_percentage: 0.8
+experiment:
+  debug: false
+  device: cpu
+  exp_name: OPC_MountainCarContinuous
+  gamma: 0.99
+  max_steps: 200
+  offline_steps: 0
+  pipeline_batch_duration_days: 7
+  render: 0
+  param: ''
+  param_from_hash: true
+  save_path: output
+  seed: 1
+  timeout: 1
+  run_forever: true
+pipeline:
+  tags:
+  - name: gym_reward
+    node_identifier: null
+    is_meta: true
+    is_endogenous: true
+    operating_range: null
+    red_bounds: null
+    yellow_bounds: null
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
+    action_constructor: null
+    state_constructor:
+    - name: 'null'
+  - name: terminated
+    node_identifier: null
+    is_meta: true
+    is_endogenous: true
+    operating_range: null
+    red_bounds: null
+    yellow_bounds: null
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: greater_than
+      threshold: 0.5
+      equal: false
+    - name: scale
+      factor: 100.0
+    action_constructor: null
+    state_constructor: null
+  - name: truncated
+    node_identifier: null
+    is_meta: true
+    is_endogenous: true
+    operating_range: null
+    red_bounds: null
+    yellow_bounds: null
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
+    action_constructor: null
+    state_constructor: null
+  - name: action_0
+    node_identifier: null
+    is_meta: false
+    is_endogenous: true
+    operating_range:
+    - -1.0
+    - 1.0
+    red_bounds: null
+    yellow_bounds: null
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: power
+      pow: 2.0
+    - name: scale
+      factor: -0.1
+    action_constructor:
+    - name: identity
+    state_constructor: null
+  - name: observation_0
+    node_identifier: null
+    is_meta: false
+    is_endogenous: true
+    operating_range:
+    - -1.2
+    - 0.6
+    red_bounds: null
+    yellow_bounds: null
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
+    action_constructor: null
+    state_constructor: null
+  - name: observation_1
+    node_identifier: null
+    is_meta: false
+    is_endogenous: true
+    operating_range:
+    - -0.07
+    - 0.07
+    red_bounds: null
+    yellow_bounds: null
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
+    action_constructor: null
+    state_constructor: null
+  db:
+    drivername: postgresql+psycopg2
+    username: postgres
+    password: password
+    ip: localhost
+    port: 5432
+    db_name: postgres
+    table_name: opcua
+    enabled: true
+    table_schema: public
+    data_agg: avg
+  obs_period: PT1S
+  action_period: PT1S
+  state_constructor:
+    defaults: []
+    countdown:
+      action_period: PT1S
+      obs_period: PT1S
+      kind: no_countdown
+  transition_creator:
+    name: anytime
+    gamma: 0.99
+    min_n_step: 1
+    max_n_step: '|???|'
+  transition_filter:
+    filters:
+    - no_nan
+eval:
+  raw_data:
+    name: raw_data
+    caller_codes:
+    - 2
+    stage_codes:
+    - 1
+    enabled: true
+    tags: []

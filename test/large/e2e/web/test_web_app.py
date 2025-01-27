@@ -1,8 +1,13 @@
 import pytest
+import json
+import time
 from fastapi.testclient import TestClient
 import yaml
+import tempfile
 
 from corerl.web.app import app
+from corerl.config import MainConfig
+from corerl.configs.loader import direct_load_config, config_to_dict
 
 
 @pytest.fixture(scope="module")
@@ -36,6 +41,31 @@ def test_gen_config_file(test_client: TestClient):
         config = yaml.safe_load(file)
 
     response = test_client.post("/configuration/file", json=config)
-    print(f"\nStatus Code: {response.status_code},\nHeaders: {dict(response.headers)},\nText: {response.text}")
+
+    content = response.json()
+
+    with open("req.yaml", "w") as a:
+        a.write(yaml.safe_dump(config, default_flow_style=False, sort_keys=False))
+
+    with open("res.yaml", "w") as b:
+        b.write(yaml.safe_dump(content, default_flow_style=False, sort_keys=False))
+
+    # res_config = MainConfig(**content)
+    # print(type(content))
+    #
+
+    # with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as fp:
+    #     yaml.safe_dump(content, fp)
+    #     fp.flush()
+    #     time.sleep(10)
+    #
+    #     res_config = direct_load_config(MainConfig, "", fp.name)
+    #
+    # print(f"""
+    #     Status Code: {response.status_code},
+    #     Headers: {yaml.safe_dump(dict(response.headers), default_flow_style=False)},
+    #     Text: {response.text}""")
+    #
     # assert response.status_code == 200
+    # assert isinstance(res_config, MainConfig)
 

@@ -13,7 +13,7 @@ import tempfile
 import logging
 
 from corerl.config import MainConfig
-from corerl.configs.loader import direct_load_config, config_to_dict
+from corerl.configs.loader import direct_load_config, config_to_dict, _walk_config_and_interpolate
 
 _log = logging.getLogger("uvicorn.error")
 _log.setLevel(logging.DEBUG)
@@ -64,19 +64,19 @@ async def create_item(item: Item, request: Request):
         return JSONResponse(response_data)
 
 
-@app.post("/configuration/file")
-# async def gen_config_file(req_config: MainConfig, request: Request) -> MainConfig:
-async def gen_config_file(item: dict, request: Request): # -> MainConfig:
+@app.post("/configuration/file", response_model=MainConfig)
+async def gen_config_file(item: dict, request: Request):
     """
     Return a fully structured configuration as the response.
     The configuration format should be determined by an http header (application/yaml, application/json).
     """
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as fp:
-        yaml.safe_dump(item, fp)
+        yaml.safe_dump(item, fp, sort_keys=False, default_flow_style=False)
         fp.flush()
         res_config = direct_load_config(MainConfig, "", fp.name)
 
+    # return str(config_to_dict(MainConfig, res_config))
     return res_config
 
     # content_type = request.headers.get("Accept")
