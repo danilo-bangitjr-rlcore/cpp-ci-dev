@@ -1,3 +1,10 @@
+## 0.51.0 (2025-01-27)
+
+### Feat
+
+- add filter stage to pipeline
+- add conditional filter
+
 ## 0.50.0 (2025-01-25)
 
 ### Feat
