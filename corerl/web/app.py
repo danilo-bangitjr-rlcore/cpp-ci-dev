@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from corerl.config import MainConfig
 from corerl.configs.loader import config_to_json, direct_load_config
 
+# For debugging while running the server
 _log = logging.getLogger("uvicorn.error")
 _log.setLevel(logging.DEBUG)
 
@@ -25,12 +26,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-class Item(BaseModel):
-    name: str
-    description: str | None = None
-    price: float
-    tax: float | None = None
 
 @app.get("/health")
 async def health():
