@@ -4,7 +4,7 @@ on: [pull_request]
 permissions: write-all # Needed to comment coverage% on PR
 
 jobs:
-  style-check:
+  py-style-check:
     runs-on: ubuntu-latest
     steps:
       # setup the repository
@@ -39,8 +39,28 @@ jobs:
         with:
           pylance-version: latest-release
 
+  web-style-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+          cache-dependency-path: client/package-lock.json
+
+      - name: Lint and Build project
+        working-directory: ./client
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+
   small-test:
-    needs: [style-check]
+    needs: [py-style-check]
     uses: ./.github/workflows/reusable-run-test.yml
     secrets: inherit
     with:
@@ -49,7 +69,7 @@ jobs:
      # - run: uv run pytest -n auto test/small
      
   medium-test:
-    needs: [style-check]
+    needs: [py-style-check]
     uses: ./.github/workflows/reusable-run-test.yml
     secrets: inherit
     with:
