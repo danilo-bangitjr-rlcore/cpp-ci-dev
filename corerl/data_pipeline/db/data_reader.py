@@ -138,10 +138,9 @@ class DataReader:
             )
             subqueries.append(subquery)
 
-        logger.debug(stmt.compile(self.engine, compile_kwargs={"literal_binds": True}))
-
         # after executing the query and getting the df, pivot and convert values
         stmt = union_all(*subqueries).order_by(text("time_bucket ASC"), self.sensor_table.c["name"].asc())
+        logger.debug(stmt.compile(self.engine, compile_kwargs={"literal_binds": True}))
         with TryConnectContextManager(self.engine) as connection:
             sensor_data = pd.read_sql(sql=stmt, con=connection)
             full_range = pd.date_range(
