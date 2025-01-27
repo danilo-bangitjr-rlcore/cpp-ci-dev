@@ -66,9 +66,9 @@ async def gen_config_file(request: Request):
     """
 
     content_type = request.headers.get("Content-Type")
-    if content_type == "application/json":
+    if "application/json" in content_type:
         data = await request.json()
-    elif content_type == "application/yaml":
+    elif "application/yaml" in content_type:
         body = await request.body()
         data = yaml.safe_load(body)
     else:
