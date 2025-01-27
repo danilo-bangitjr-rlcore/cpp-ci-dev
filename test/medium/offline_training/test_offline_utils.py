@@ -15,7 +15,7 @@ from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.config import MainConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
-from corerl.data_pipeline.datatypes import CallerCode, Step, Transition
+from corerl.data_pipeline.datatypes import DataMode, Step, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
@@ -315,6 +315,6 @@ def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig):
 
     # check if tag is normalized using [-0.1, 0.1] as bounds
     # prior implementation would mistakenly use [-0.1, 1] as bounds
-    pr = pipeline(df, caller_code=CallerCode.OFFLINE)
+    pr = pipeline(df, data_mode=DataMode.OFFLINE)
 
     assert np.all(pr.df['Tag_1_norm'] == [1., 0, 0.5, 0.5, 0.5])

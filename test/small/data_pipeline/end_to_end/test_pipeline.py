@@ -8,7 +8,7 @@ from torch import tensor
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
-from corerl.data_pipeline.datatypes import CallerCode, Step, Transition
+from corerl.data_pipeline.datatypes import DataMode, Step, Transition
 from corerl.data_pipeline.imputers.per_tag.copy import CopyImputerConfig
 from corerl.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
@@ -107,7 +107,7 @@ def test_pipeline1():
     pipeline = Pipeline(cfg)
     got = pipeline(
         df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
 
     # returned df has columns sorted in order: action, endogenous, exogenous, state, reward
@@ -245,7 +245,7 @@ def test_pipeline2():
     pipeline = Pipeline(cfg)
     got = pipeline(
         df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
 
     # returned df has columns sorted in order: action, endogenous, exogenous, state

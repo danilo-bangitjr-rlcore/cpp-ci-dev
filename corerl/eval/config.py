@@ -20,7 +20,7 @@ class EvalConfig:
 
 def register_evals(cfg: EvalConfig, agent: BaseAgent, pipeline: Pipeline, app_state: AppState):
     pipeline.register_hook(
-        cfg.raw_data.caller_codes,
+        cfg.raw_data.data_modes,
         cfg.raw_data.stage_codes,
         partial(raw_data_eval, cfg.raw_data, app_state)
     )

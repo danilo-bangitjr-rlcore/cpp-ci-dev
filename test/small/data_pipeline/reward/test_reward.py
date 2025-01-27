@@ -10,7 +10,7 @@ import pytest
 import corerl.data_pipeline.transforms as xform
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig
 from test.infrastructure.utils.pandas import dfs_close
 
@@ -44,7 +44,7 @@ def test_rc1(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
 
     pf = PipelineFrame(
         data=raw_obs,
-        caller_code=CallerCode.REFRESH,
+        data_mode=DataMode.REFRESH,
     )
 
     for cfg in tag_cfgs:
@@ -80,7 +80,7 @@ def test_null_xform(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
 
     pf = PipelineFrame(
         data=raw_obs,
-        caller_code=CallerCode.REFRESH,
+        data_mode=DataMode.REFRESH,
     )
 
     tag_cfgs[0].reward_constructor = [
@@ -148,7 +148,7 @@ def test_lessthan_xform():
     reward_constructor = RewardConstructor(tag_cfgs, prep_stage)
     pf = PipelineFrame(
         data=df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
 
     # call reward constructor
@@ -200,7 +200,7 @@ def test_greaterthan_xform():
     reward_constructor = RewardConstructor(tag_cfgs, prep_stage)
     pf = PipelineFrame(
         data=df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
 
     # call reward constructor
@@ -260,7 +260,7 @@ def test_greaterthan_penalty_reward():
     reward_constructor = RewardConstructor(tag_cfgs, prep_stage)
     pf = PipelineFrame(
         data=df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
 
     # call reward constructor
@@ -304,7 +304,7 @@ def test_product_transform(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
     rc = RewardConstructor(tag_cfgs, prep_stage)
     pf = PipelineFrame(
         data=df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
     # call reward constructor
     pf = rc(pf)
@@ -589,7 +589,7 @@ def test_epcor_reward():
 
     pf = PipelineFrame(
         data=df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
     # call reward constructor
     pf = rc(pf)

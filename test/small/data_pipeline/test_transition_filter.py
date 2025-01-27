@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from torch import Tensor
 
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, Step, Transition
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, Step, Transition
 from corerl.data_pipeline.transition_filter import (
     TransitionFilter,
     TransitionFilterConfig,
@@ -210,7 +210,7 @@ def test_transition_filter_1():
 
     pf = PipelineFrame(
         df,
-        caller_code=CallerCode.OFFLINE,
+        data_mode=DataMode.OFFLINE,
         transitions=[transition_0, transition_1, transition_2, transition_3],
     )
 

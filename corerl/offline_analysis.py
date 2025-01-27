@@ -6,7 +6,7 @@ import torch
 
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
-from corerl.data_pipeline.datatypes import CallerCode
+from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.data_report import generate_report
 from corerl.offline.utils import load_entire_dataset
@@ -38,7 +38,7 @@ def main(cfg: MainConfig):
         exec_stages = stages[:i]
         pipeline_out = pipeline(
             data=data,
-            caller_code=CallerCode.OFFLINE,
+            data_mode=DataMode.OFFLINE,
             reset_temporal_state=False,
             stages=exec_stages
         )

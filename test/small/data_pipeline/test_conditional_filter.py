@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from corerl.data_pipeline.constructors.conditional_filter import ConditionalFilter
-from corerl.data_pipeline.datatypes import CallerCode, MissingType, PipelineFrame
+from corerl.data_pipeline.datatypes import DataMode, MissingType, PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import BinaryConfig, ScaleConfig
 from corerl.data_pipeline.transforms.comparator import ComparatorConfig
@@ -47,7 +47,7 @@ def test_filter_constructor():
     ]
 
 
-    pf = PipelineFrame(data=df, caller_code=CallerCode.ONLINE)
+    pf = PipelineFrame(data=df, data_mode=DataMode.ONLINE)
     filter = ConditionalFilter(tag_cfgs=tags)
     out = filter(pf)
 
@@ -116,7 +116,7 @@ def test_filter_constructor_with_replace():
     ]
 
 
-    pf = PipelineFrame(data=df, caller_code=CallerCode.ONLINE)
+    pf = PipelineFrame(data=df, data_mode=DataMode.ONLINE)
     filter = ConditionalFilter(tag_cfgs=tags)
     out = filter(pf)
 
@@ -147,5 +147,3 @@ def test_filter_constructor_with_replace():
     ]
     expected_missing_df = pd.DataFrame(data=expected_missing_vals, columns=expected_cols, index=idx)
     assert dfs_close(out.missing_info, expected_missing_df)
-
-

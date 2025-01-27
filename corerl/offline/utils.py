@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from corerl.agent.base import BaseAgent
 from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import CallerCode
+from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import ColumnDescriptions, Pipeline, PipelineReturn
 from corerl.eval.actor_critic import ActorCriticEval
@@ -73,7 +73,7 @@ class OfflineTraining:
             )
             chunk_pr = pipeline(
                 data=chunk_data,
-                caller_code=CallerCode.OFFLINE,
+                data_mode=DataMode.OFFLINE,
                 reset_temporal_state=False,
             )
 

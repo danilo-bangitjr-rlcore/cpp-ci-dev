@@ -5,7 +5,7 @@ import numpy as np
 
 from corerl.agent.base import BaseAgent
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import CallerCode
+from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.eval.monte_carlo import MonteCarloEvaluator
@@ -49,7 +49,7 @@ class SimInteraction(Interaction):
     # -----------------------
     def _on_get_obs(self):
         o = self._env.get_latest_obs()
-        pipe_return = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
+        pipe_return = self._pipeline(o, data_mode=DataMode.ONLINE, reset_temporal_state=self._should_reset)
         self._agent.update_buffer(pipe_return)
 
         self._should_reset = bool(o['truncated'].any() or o['terminated'].any())

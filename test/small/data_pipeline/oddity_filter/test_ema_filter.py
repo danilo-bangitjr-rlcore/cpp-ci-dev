@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import CallerCode, MissingType, PipelineFrame
+from corerl.data_pipeline.datatypes import DataMode, MissingType, PipelineFrame
 from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilter, EMAFilterConfig
 
 
@@ -17,7 +17,7 @@ def test_filter_no_warmup():
     values = np.array([1.0, 1.0, 1.0, 5.0, 1.0, 1.0, 1.0, 10.0])
     expected = np.array([1.0, 1.0, 1.0, np.nan, 1.0, 1.0, 1.0, np.nan])  # 5 and 10 are outliers
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     pf = outlier_detector(pf, name)
     filtered_data = pf.data[name].to_numpy()
@@ -34,7 +34,7 @@ def test_filter_warmup():
     expected_0 = np.array([1.0, 1.0, 1.0])
 
     data_0 = pd.DataFrame({name: values_0})
-    pf_0 = PipelineFrame(data_0, CallerCode.ONLINE)
+    pf_0 = PipelineFrame(data_0, DataMode.ONLINE)
     pf_0_out = outlier_detector(pf_0, name)
     filtered_data_0 = pf_0_out.data[name].to_numpy()
 
@@ -51,7 +51,7 @@ def test_filter_warmup():
     expected_1 = np.array([5.0, 1.0, np.nan, 1.0, 1.0])
 
     data_1 = pd.DataFrame({name: values_1})
-    pf_1 = PipelineFrame(data_1, CallerCode.ONLINE, temporal_state=pf_0_out.temporal_state)
+    pf_1 = PipelineFrame(data_1, DataMode.ONLINE, temporal_state=pf_0_out.temporal_state)
     pf_1_out = outlier_detector(pf_1, name)
     filtered_data_1 = pf_1_out.data[name].to_numpy()
 
@@ -64,7 +64,7 @@ def test_leading_nan_data():
     name = "sensor_x"
     values = np.array([np.nan] + [1.0] * 10 + [5.0])  # 5 at the end is outlier
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     pf = outlier_detector(pf, name)
     filtered_data = pf.data
@@ -86,7 +86,7 @@ def test_trailing_nan_data():
     name = "sensor_x"
     values = np.array([1.0] * 10 + [5.0] + [np.nan])  # 5 at the end is outlier
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     pf = outlier_detector(pf, name)
     filtered_data = pf.data
@@ -108,7 +108,7 @@ def test_full_nan_data():
 
     values = np.array([np.nan] * 10)  # full nan
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     pf = outlier_detector(pf, name)
     filtered_data = pf.data
@@ -118,7 +118,7 @@ def test_full_nan_data():
     # verify oddity filter still works as expected after receiving all nans
     values = np.array([1.0] * 10 + [5.0])  # 5 at the end is outlier
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     pf = outlier_detector(pf, name)
     filtered_data = pf.data
@@ -134,7 +134,7 @@ def test_interspersed_nan_data():
 
     values = np.array([np.nan, 1, 1, np.nan, 1, np.nan, np.nan, 1, 1, 1, 1, 1, 1, 1, 5, np.nan])
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     # feed oddity filter
     pf = outlier_detector(pf, name)
@@ -162,7 +162,7 @@ def test_streamed_nans():
     ts = {}
     for in_val, expected_val, expected_missing_type in zip(values, expected, expected_missing_types, strict=True):
         data = pd.DataFrame({name: [in_val]})
-        pf = PipelineFrame(data, CallerCode.ONLINE, temporal_state=ts)
+        pf = PipelineFrame(data, DataMode.ONLINE, temporal_state=ts)
 
         # feed oddity filter
         pf = outlier_detector(pf, name)
@@ -191,7 +191,7 @@ def test_obvious_outlier_in_first_batch():
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
     filtered_pf = outlier_detector(pf, name)
     filtered_data = filtered_pf.data
 
@@ -211,14 +211,14 @@ def test_obvious_outlier_in_second_batch():
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
     pf = outlier_detector(pf, name)  # <- stats get initialized here
 
     values2 = [1.0] * 10
     values2[-1] = 100.0  # <- this is the outlier
 
     data2 = pd.DataFrame({name: values2})
-    pf2 = PipelineFrame(data=data2, caller_code=CallerCode.ONLINE, temporal_state=pf.temporal_state)
+    pf2 = PipelineFrame(data=data2, data_mode=DataMode.ONLINE, temporal_state=pf.temporal_state)
     filtered_pf2 = outlier_detector(pf2, name)
     filtered_data2 = filtered_pf2.data
 
@@ -234,7 +234,7 @@ def test_obvious_outlier_in_stream():
 
     values = [1.0]
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     for _ in range(10):
         pf = outlier_detector(pf, name)
@@ -244,7 +244,7 @@ def test_obvious_outlier_in_stream():
     # catch the outlier
     values = [10.0]  # <- this is the outlier
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data=data, caller_code=CallerCode.ONLINE, temporal_state=pf.temporal_state)
+    pf = PipelineFrame(data=data, data_mode=DataMode.ONLINE, temporal_state=pf.temporal_state)
 
     filtered_pf = outlier_detector(pf, name)
     filtered_data = filtered_pf.data
@@ -263,7 +263,7 @@ def test_detection_with_multiple_cols():
     values_x = [1.0]
     values_y = [2.0]
     data = pd.DataFrame({name_x: values_x, name_y: values_y})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     for _ in range(10):
         for tag, detector in zip([name_x, name_y], [outlier_detector_x, outlier_detector_y], strict=True):
@@ -277,7 +277,7 @@ def test_detection_with_multiple_cols():
     values_y = [2.0]  # <- this is not an outlier
 
     data = pd.DataFrame({name_x: values_x, name_y: values_y})
-    pf = PipelineFrame(data=data, caller_code=CallerCode.ONLINE, temporal_state=pf.temporal_state)
+    pf = PipelineFrame(data=data, data_mode=DataMode.ONLINE, temporal_state=pf.temporal_state)
 
     for tag, detector in zip([name_x, name_y], [outlier_detector_x, outlier_detector_y], strict=True):
         pf = detector(pf, tag)
@@ -298,7 +298,7 @@ def test_detector_does_not_change_indices():
     name = "sensor_x"
 
     data = pd.DataFrame({name: values}, index=pd.DatetimeIndex(timestamps))
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     pf = outlier_detector(pf, name)
     filtered_data = pf.data
@@ -311,7 +311,7 @@ def test_detector_does_not_change_indices():
     values = [10.0]  # <- this is the outlier
     outlier_ts = timestamps[-1] + timedelta(minutes=5)
     data = pd.DataFrame({name: values}, index=pd.DatetimeIndex([outlier_ts]))
-    pf = PipelineFrame(data=data, caller_code=CallerCode.ONLINE, temporal_state=pf.temporal_state)
+    pf = PipelineFrame(data=data, data_mode=DataMode.ONLINE, temporal_state=pf.temporal_state)
 
     filtered_pf = outlier_detector(pf, name)
     filtered_data = filtered_pf.data
@@ -332,7 +332,7 @@ def test_outlier_gets_correct_missingtype():
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
     outlier_detector(pf, name)  # <- stats get initialized here
 
     # create a batch with an outlier
@@ -340,7 +340,7 @@ def test_outlier_gets_correct_missingtype():
     values2[-1] = 100.0  # <- this is the outlier
 
     data = pd.DataFrame({name: values2})
-    pf = PipelineFrame(data=data, caller_code=CallerCode.ONLINE, temporal_state=pf.temporal_state)
+    pf = PipelineFrame(data=data, data_mode=DataMode.ONLINE, temporal_state=pf.temporal_state)
 
     # filter the outlier
     filtered_pf = outlier_detector(pf, name)
@@ -360,7 +360,7 @@ def test_outlier_missing_type_is_added_to_existing_missing():
     name = "sensor_x"
 
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
     outlier_detector(pf, name)  # <- stats get initialized here
 
     # create a batch with an outlier
@@ -368,7 +368,7 @@ def test_outlier_missing_type_is_added_to_existing_missing():
     values2[-1] = 100.0  # <- this is the outlier
 
     data = pd.DataFrame({name: values2})
-    pf = PipelineFrame(data=data, caller_code=CallerCode.ONLINE, temporal_state=pf.temporal_state)
+    pf = PipelineFrame(data=data, data_mode=DataMode.ONLINE, temporal_state=pf.temporal_state)
 
     # add an initial missing type to the outlier
     pf.missing_info.loc[9, "sensor_x"] = MissingType.BOUNDS
@@ -392,7 +392,7 @@ def test_filter_warmup_with_nans():
     # first batch only has 2 non-NaN values, which shouldn't trigger outlier detection
     values = np.array([np.nan, 1, 1, np.nan, 5])
     data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
     pf = outlier_detector(pf, name)
     filtered_data = pf.data[name].to_numpy()
     assert np.allclose(filtered_data, values, equal_nan=True)
@@ -400,7 +400,7 @@ def test_filter_warmup_with_nans():
     # completing warmup after the first value
     values2 = np.array([1, 5, np.nan, 5])  # the 5s should be detected as outliers
     data2 = pd.DataFrame({name: values2})
-    pf2 = PipelineFrame(data2, CallerCode.ONLINE, temporal_state=pf.temporal_state)
+    pf2 = PipelineFrame(data2, DataMode.ONLINE, temporal_state=pf.temporal_state)
     pf2 = outlier_detector(pf2, name)
 
     filtered_data2 = pf2.data[name].to_numpy()
