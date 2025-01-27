@@ -41,7 +41,8 @@ class DataReader:
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
-        aggregation: dict[str, Literal["avg", "last", "bool_or"]] | Literal["avg", "last", "bool_or"] = "avg",
+        aggregation: Literal["avg", "last", "bool_or"] = "avg",
+        tag_aggregations: dict[str, Literal["avg", "last", "bool_or"]] | None = None,
     ) -> pd.DataFrame:
         """
         The intended behavior is for buckets to be inclusive wrt their end_time and exclusive wrt their start_time.
@@ -91,12 +92,14 @@ class DataReader:
         # also correct for the microsecond that was added to the origin
         time_bucket_stmt += text(f"'{bucket_width-timedelta(microseconds=1)}'")
 
-        if isinstance(aggregation, str):
-            aggregation = {name: aggregation for name in names}
+        # if tag_aggregations is not provided, use the default aggregation for all tags
+        # if a tag is not in tag_aggregations, use the default aggregation for that tag
+        tag_aggregations = tag_aggregations or {}
+        aggregation_map = {name: tag_aggregations.get(name, aggregation) for name in names}
 
         agg_groups = {}
-        sorted_names = sorted(names, key=lambda x: aggregation[x])
-        for agg_type, group in groupby(sorted_names, key=lambda x: aggregation[x]):
+        sorted_names = sorted(names, key=lambda x: str(aggregation_map[x]))
+        for agg_type, group in groupby(sorted_names, key=lambda x: aggregation_map[x]):
             agg_groups[agg_type] = list(group)
 
         subqueries = []
@@ -140,6 +143,7 @@ class DataReader:
 
         # after executing the query and getting the df, pivot and convert values
         stmt = union_all(*subqueries).order_by(text("time_bucket ASC"), self.sensor_table.c["name"].asc())
+        logger.debug(stmt.compile(self.engine, compile_kwargs={"literal_binds": True}))
         with TryConnectContextManager(self.engine) as connection:
             sensor_data = pd.read_sql(sql=stmt, con=connection)
             full_range = pd.date_range(
@@ -160,7 +164,7 @@ class DataReader:
                 sensor_data = pd.DataFrame(index=full_range, columns=pd.Index(names))
 
             for col in sensor_data.columns:
-                col_agg = aggregation.get(col)
+                col_agg = aggregation_map.get(col)
                 if col_agg == "avg" or col_agg == "last":
                     sensor_data[col] = pd.to_numeric(sensor_data[col])
                 elif col_agg == "bool_or":
