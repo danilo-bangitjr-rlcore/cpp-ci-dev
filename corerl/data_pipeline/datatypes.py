@@ -15,8 +15,9 @@ type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
 
 class MissingType(IntFlag):
-    NULL = auto()
+    NULL = auto()     # data is not missing
     MISSING = auto()  # indicates data did not exist in db
+    FILTER = auto()   # filtered by conditional filter stage
     BOUNDS = auto()
     OUTLIER = auto()
 

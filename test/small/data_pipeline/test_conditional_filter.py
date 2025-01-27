@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from corerl.data_pipeline.constructors.conditional_filter import ConditionalFilter
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
+from corerl.data_pipeline.datatypes import CallerCode, MissingType, PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import ScaleConfig
 from corerl.data_pipeline.transforms.comparator import ComparatorConfig
@@ -67,5 +67,16 @@ def test_filter_constructor():
     )
 
     assert dfs_close(out.data, expected_df)
+    expected_missing_vals = [
+        [MissingType.NULL,    MissingType.NULL],
+        [MissingType.NULL,    MissingType.NULL],
+        [MissingType.NULL,    MissingType.NULL],
+        [MissingType.FILTER,  MissingType.NULL],
+        [MissingType.NULL,    MissingType.NULL],
+        [MissingType.NULL,    MissingType.NULL],
+        [MissingType.NULL,    MissingType.NULL],
+    ]
+    expected_missing_df = pd.DataFrame(data=expected_missing_vals, columns=expected_cols, index=idx)
+    assert dfs_close(out.missing_info, expected_missing_df)
 
 

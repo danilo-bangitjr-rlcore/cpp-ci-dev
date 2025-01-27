@@ -4,8 +4,9 @@ from functools import cached_property
 import numpy as np
 
 from corerl.data_pipeline.constructors.constructor import Constructor
-from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.utils import update_missing_info
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +32,12 @@ class ConditionalFilter(Constructor):
             if n_cols < 1:
                 continue
             try:
-                filter_mask = result.iloc[:,0].to_numpy().astype(bool)
+                filter_mask = _to_mask(cond=result.iloc[:,0].to_numpy())
             except Exception:
                 logger.warning(f"Conditional filter for {tag} could not be cast to bool")
                 continue
             pf.data.loc[filter_mask, tag] = np.nan
+            update_missing_info(pf.missing_info, tag, filter_mask, MissingType.FILTER)
 
         return pf
 
@@ -43,3 +45,12 @@ class ConditionalFilter(Constructor):
     def columns(self):
         pf = self._probe_fake_data()
         return list(pf.data.columns)
+
+def _to_mask(cond: np.ndarray) -> np.ndarray:
+    mask = np.empty_like(cond, dtype=bool)
+    for i, x in enumerate(cond):
+        if np.isnan(x):
+            mask[i] = False
+            continue
+        mask[i] = bool(x)
+    return mask
