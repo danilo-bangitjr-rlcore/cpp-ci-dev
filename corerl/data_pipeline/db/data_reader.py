@@ -180,7 +180,14 @@ class DataReader:
         aggregation: dict[str, Literal["avg", "last", "bool_or"]] | Literal["avg", "last", "bool_or"] = "avg",
     ) -> pd.DataFrame:
         bucket_width = end_time - start_time
-        df = self.batch_aggregated_read(names, start_time, end_time, bucket_width, aggregation)
+        df = self.batch_aggregated_read(
+            names, 
+            start_time, 
+            end_time, 
+            bucket_width, 
+            "avg" if isinstance(aggregation, dict) else aggregation,
+            tag_aggregations=aggregation if isinstance(aggregation, dict) else None
+        )
 
         if len(df) > 1:
             logger.warning("single_aggregated_read returned multiple rows. Only the last row will be returned")
