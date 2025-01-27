@@ -15,7 +15,7 @@ from corerl.environment.async_env.async_env import AsyncEnv, OPCEnvConfig, TSDBE
 from corerl.utils.maybe import Maybe
 from corerl.utils.opc_connection import make_opc_node_id
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 @config()
 class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):

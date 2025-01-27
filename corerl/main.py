@@ -25,7 +25,7 @@ from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
 logging.basicConfig(
-    format="%(asctime)s %(levelname)s: %(message)s",
+    format="[%(asctime)s][%(levelname)s] - %(message)s",
     encoding="utf-8",
     level=logging.INFO,
 )
@@ -72,9 +72,11 @@ def main(cfg: MainConfig):
         steps = 0
         max_steps = cfg.experiment.max_steps
         run_forever = cfg.experiment.run_forever
+        disable_pbar = False
         if run_forever:
             max_steps = 0
-        pbar = tqdm(total=max_steps)
+            disable_pbar = True
+        pbar = tqdm(total=max_steps, disable=disable_pbar)
 
         event_bus.start()
 
