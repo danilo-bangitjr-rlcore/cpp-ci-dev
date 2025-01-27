@@ -58,7 +58,7 @@ class PipelineReturn:
     rewards: DataFrame
     transitions: list[Transition] | None
 
-    def __add__(self, other: Self):
+    def __iadd__(self, other: Self):
         self.df = pd.concat([self.df, other.df])
         self.states = pd.concat([self.states, other.states])
         self.actions = pd.concat([self.actions, other.actions])
@@ -67,6 +67,8 @@ class PipelineReturn:
             self.transitions = other.transitions
         elif other.transitions:
             self.transitions += other.transitions
+
+        return self
 
 
 @dataclass
