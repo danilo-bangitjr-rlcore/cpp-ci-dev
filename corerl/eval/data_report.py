@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 
 @config()
 class ReportConfig:
-    output_dir : str = Field(default_factory=lambda:'report/')
+    output_dir: Path = Field(default_factory=lambda:'report/')
     stages : list[StageCode] = Field(default_factory=lambda:[StageCode.INIT])
     tags_to_exclude : list = Field(default_factory=list) # tags to exclude from analysis
 
