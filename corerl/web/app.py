@@ -7,7 +7,6 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 
 from corerl.config import MainConfig
 from corerl.configs.loader import config_from_dict, config_to_json
