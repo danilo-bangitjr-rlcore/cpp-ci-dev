@@ -107,7 +107,7 @@ class DeploymentInteraction(Interaction):
         self._app_state.agent_step += 1
 
     def step_event(self, event: Event):
-        logger.debug(f"Received step_event: {event}")
+        logger.debug(f"Interaction received Event: {event}")
         self._heartbeat.healthcheck()
         match event.type:
             case EventType.step:

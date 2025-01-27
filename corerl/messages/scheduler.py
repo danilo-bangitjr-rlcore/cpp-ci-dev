@@ -9,13 +9,13 @@ import zmq
 from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.messages.events import Event, EventTopic, EventType
 
+logger = logging.getLogger(__name__)
 
 def scheduler_task(pub_socket: zmq.Socket, cfg: AsyncEnvConfig, stop_event: threading.Event):
     """
     Thread worker that emits ZMQ messages using our messages Event class.
     Responsible for emitting the step events based on configured observation windows.
     """
-    _logger = logging.getLogger(__name__)
 
     topic = EventTopic.corerl_scheduler
 
@@ -34,6 +34,7 @@ def scheduler_task(pub_socket: zmq.Socket, cfg: AsyncEnvConfig, stop_event: thre
 
 
     def _write_to_zmq(event: Event):
+        logger.debug(f"Scheduling Event: {event}")
         message_data = event.model_dump_json()
         payload = f"{topic} {message_data}"
         pub_socket.send_string(payload)
