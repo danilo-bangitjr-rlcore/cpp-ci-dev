@@ -1,3 +1,9 @@
+## 0.52.1 (2025-01-27)
+
+### Fix
+
+- ensure default output_dir is a Path object
+
 ## 0.52.0 (2025-01-27)
 
 ### Feat
