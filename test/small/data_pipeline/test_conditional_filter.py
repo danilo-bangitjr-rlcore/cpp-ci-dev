@@ -106,7 +106,7 @@ def test_filter_constructor_with_replace():
     tags=[
         TagConfig(
             name='tag-1',
-            # set tag-1 to nan if tag-1 == 4
+            # set tag-1 to nan if tag-2 == 4
             filter=[
                 BinaryConfig(op='replace', other='tag-2'),
                 ComparatorConfig(op='==', val=4),
