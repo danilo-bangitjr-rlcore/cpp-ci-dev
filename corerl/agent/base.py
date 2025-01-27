@@ -5,7 +5,7 @@ from typing import Any
 
 import numpy
 
-from corerl.component.actor.network_actor import NetworkActorConfig, NetworkActor
+from corerl.component.actor.network_actor import NetworkActor, NetworkActorConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig, EnsembleQCritic, EnsembleVCritic
 from corerl.configs.config import MISSING, config, interpolate
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn

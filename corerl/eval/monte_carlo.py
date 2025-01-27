@@ -1,18 +1,19 @@
 import math
-import numpy as np
-
 from collections import deque
 from dataclasses import field
-from torch import Tensor
 from typing import Tuple
 
-from corerl.agent.base import BaseAgent, BaseAC
+import numpy as np
+from torch import Tensor
+
+from corerl.agent.base import BaseAC, BaseAgent
 from corerl.component.network.utils import tensor
-from corerl.configs.config import interpolate, config
+from corerl.configs.config import config, interpolate
 from corerl.data_pipeline.datatypes import CallerCode, StageCode
 from corerl.data_pipeline.pipeline import PipelineReturn
 from corerl.eval.base_eval import BaseEvalConfig
 from corerl.state import AppState
+
 
 @config()
 class MonteCarloEvalConfig(BaseEvalConfig):
