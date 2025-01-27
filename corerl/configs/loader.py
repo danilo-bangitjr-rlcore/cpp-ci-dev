@@ -181,14 +181,17 @@ def direct_load_config[T](Config: type[T], base: str | None = None, config_name:
     for override_key, override_value in cli_overrides.items():
         dict_u.set_at_path(raw_config, override_key, override_value)
 
-    # handle any interpolations
-    raw_config = _walk_config_and_interpolate(raw_config)
-
     # validate config against provided schema, Config.
     # raise exception on extra values not in schema
     ta = TypeAdapter(Config)
-    config = ta.validate_python(raw_config)
-    return config
+
+    # handle preliminary interpolations and populate unspecified defaults
+    raw_config = _walk_config_and_interpolate(raw_config)
+    raw_config = ta.validate_python(raw_config)
+
+    # second interpolate & validation pass to support config defaults w/ interpolate
+    output_config = _walk_config_and_interpolate(config_to_dict(Config, raw_config))
+    return ta.validate_python(output_config)
 
 # ----------------
 # -- Public API --

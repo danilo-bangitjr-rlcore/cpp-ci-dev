@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
@@ -12,6 +13,7 @@ class DeltaConfig(BaseTransformConfig):
     name: Literal["delta"] = "delta"
 
 
+@dataclass
 class DeltaTemporalState:
     last: np.ndarray | None = None
 

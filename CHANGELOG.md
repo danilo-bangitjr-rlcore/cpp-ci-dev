@@ -1,3 +1,63 @@
+## 0.51.0 (2025-01-27)
+
+### Feat
+
+- add filter stage to pipeline
+- add conditional filter
+
+## 0.50.0 (2025-01-25)
+
+### Feat
+
+- add comparator xform
+
+### Fix
+
+- register comparator xform
+
+## 0.49.0 (2025-01-25)
+
+### Feat
+
+- sanitize actions in deployment async env before writing to opc
+
+### Fix
+
+- assert that action tags have operating range specified in config
+
+## 0.48.0 (2025-01-25)
+
+### Feat
+
+- add option to warmup pipeline upon interaction init
+
+## 0.47.9 (2025-01-25)
+
+### Fix
+
+- force all checked configs to be interpolated and non missing
+- WIP config fix
+
+## 0.47.8 (2025-01-24)
+
+### Fix
+
+- make delta xform temporal state a dataclass
+- maintain temporal state for all sub-xforms in split list
+
+## 0.47.7 (2025-01-24)
+
+### Refactor
+
+- remove pipeline hooks from sim_interaction
+
+## 0.47.6 (2025-01-24)
+
+### Fix
+
+- remove maxlen from event bus queue
+- start step cycle immediately when event bus is enabled
+
 ## 0.47.5 (2025-01-24)
 
 ### Refactor

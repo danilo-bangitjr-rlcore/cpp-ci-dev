@@ -93,8 +93,8 @@ def test_state_action_dim():
                     TraceConfig(trace_values=[0.1, 0.9]),
                 ],
             ),
-            TagConfig(name='tag-3', action_constructor=[]),
-            TagConfig(name='tag-4', action_constructor=[]),
+            TagConfig(name='tag-3', operating_range=(0, 1), action_constructor=[]),
+            TagConfig(name='tag-4', operating_range=(0, 1), action_constructor=[]),
         ],
         state_constructor=SCConfig(
             countdown=CountdownConfig(

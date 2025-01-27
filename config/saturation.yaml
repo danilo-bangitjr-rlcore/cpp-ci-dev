@@ -95,14 +95,13 @@ pipeline:
   # actions
   - name: action-0
     is_meta: False
+    operating_range: [-2, 2]
     outlier:
       name: identity
     state_constructor:
       - name: 'null'
     preprocess:
       - name: normalize
-        min: -2
-        max: 2
         from_data: False
     action_constructor:
       - name: identity

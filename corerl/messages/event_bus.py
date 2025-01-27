@@ -69,8 +69,8 @@ class EventBus:
         if not self.enabled():
             return
 
-        self.scheduler_thread.start()
         self.consumer_thread.start()
+        self.scheduler_thread.start()
 
     def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app):
         if not self.enabled():
