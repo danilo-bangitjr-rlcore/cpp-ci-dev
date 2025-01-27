@@ -72,9 +72,11 @@ def main(cfg: MainConfig):
         steps = 0
         max_steps = cfg.experiment.max_steps
         run_forever = cfg.experiment.run_forever
+        disable_pbar = False
         if run_forever:
             max_steps = 0
-        pbar = tqdm(total=max_steps)
+            disable_pbar = True
+        pbar = tqdm(total=max_steps, disable=disable_pbar)
 
         event_bus.start()
 
