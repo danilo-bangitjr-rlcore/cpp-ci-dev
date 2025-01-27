@@ -77,11 +77,13 @@ class DeploymentAsyncEnv(AsyncEnv):
         """
         self.data_reader.close()
 
-    def emit_action(self, action: pd.DataFrame) -> None:
+    def emit_action(self, action: pd.DataFrame, log_action: bool = False) -> None:
         """Writes directly to the OPC server"""
         sanitize_actions(action, self._action_cfgs)
 
-        logger.info(f"emitting actions:\n{action}")
+        if log_action:
+            logger.info("--- Emitting action ---")
+            [logger.info(line) for line in action.to_string().splitlines()]
         with Client(self.url) as opc_client:
             # if action df got nuked in sanitizer, this for loop does nothing
             for action_name in action.columns:
