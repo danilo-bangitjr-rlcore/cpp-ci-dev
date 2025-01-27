@@ -1,3 +1,10 @@
+## 0.52.2 (2025-01-27)
+
+### Fix
+
+- ensure state constructor columns are always sorted
+- ensure action constructor columns are always sorted
+
 ## 0.52.1 (2025-01-27)
 
 ### Fix
