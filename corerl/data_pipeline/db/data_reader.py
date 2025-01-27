@@ -181,10 +181,10 @@ class DataReader:
     ) -> pd.DataFrame:
         bucket_width = end_time - start_time
         df = self.batch_aggregated_read(
-            names, 
-            start_time, 
-            end_time, 
-            bucket_width, 
+            names,
+            start_time,
+            end_time,
+            bucket_width,
             "avg" if isinstance(aggregation, dict) else aggregation,
             tag_aggregations=aggregation if isinstance(aggregation, dict) else None
         )
