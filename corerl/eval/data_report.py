@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 
 @config()
 class ReportConfig:
-    output_dir: Path = Field(default_factory=lambda:'report/')
+    output_dir: Path = Path('outputs/report')
     stages : list[StageCode] = Field(default_factory=lambda:[StageCode.INIT])
     tags_to_exclude : list = Field(default_factory=list) # tags to exclude from analysis
 
@@ -297,4 +297,3 @@ def generate_report(
     make_stat_table(cfg, data, stages, output_path)
     make_distribution_plots(cfg, data, stages, output_path/'plots')
     make_cross_correlation_table(cfg, data, stages, output_path)
-
