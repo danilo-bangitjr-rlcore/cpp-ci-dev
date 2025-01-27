@@ -6,7 +6,6 @@ import yaml
 from fastapi.testclient import TestClient
 
 from corerl.config import MainConfig
-from corerl.configs.loader import config_to_dict
 from corerl.web.app import app
 
 

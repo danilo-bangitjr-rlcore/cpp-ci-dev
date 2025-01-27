@@ -66,9 +66,9 @@ async def gen_config_file(request: Request):
     """
 
     content_type = request.headers.get("Content-Type")
-    if "application/json" in content_type:
+    if content_type == "application/json":
         data = await request.json()
-    elif "application/yaml" in content_type:
+    elif content_type == "application/yaml":
         body = await request.body()
         data = yaml.safe_load(body)
     else:
@@ -78,7 +78,7 @@ async def gen_config_file(request: Request):
         res_config = config_from_dict(MainConfig, data)
         json_config = json.loads(config_to_json(MainConfig, res_config))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     accept_header = request.headers.get("accept")
     if accept_header is not None and "application/yaml" in accept_header:
