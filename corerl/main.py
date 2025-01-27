@@ -4,6 +4,9 @@ import logging
 import os
 import random
 import sys
+from datetime import UTC, datetime
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -24,8 +27,9 @@ from corerl.state import AppState
 from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
+log_fmt = "[%(asctime)s][%(levelname)s] - %(message)s"
 logging.basicConfig(
-    format="[%(asctime)s][%(levelname)s] - %(message)s",
+    format=log_fmt,
     encoding="utf-8",
     level=logging.INFO,
 )
@@ -35,6 +39,8 @@ logging.getLogger('asyncua').setLevel(logging.CRITICAL)
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
+    if cfg.log_files:
+        enable_log_files()
     device.update_device(cfg.experiment.device)
 
     event_bus = EventBus(cfg.event_bus, cfg.env)
@@ -105,6 +111,19 @@ def main(cfg: MainConfig):
         app_state.metrics.close()
         env.cleanup()
         event_bus.cleanup()
+
+
+def enable_log_files():
+    save_path = Path(f"outputs/{datetime.now(UTC).date()}")
+    save_path.mkdir(exist_ok=True, parents=True)
+    file_handler = RotatingFileHandler(
+        filename=save_path / "rlcore.log",
+        maxBytes=10_000_000,
+        backupCount=3,  # rotate over 3 log files
+    )
+    file_handler.setFormatter(logging.Formatter(log_fmt))
+    logging.getLogger().addHandler(file_handler)
+
 
 if __name__ == "__main__":
     main()
