@@ -59,14 +59,16 @@ class DeploymentAsyncEnv(AsyncEnv):
                 if tag_cfg.action_constructor is None:
                     continue
 
-                node_name = tag_cfg.name
+                tag_name = tag_cfg.name
                 if tag_cfg.node_identifier is not None:
                     node_name = tag_cfg.node_identifier
+                else:
+                    node_name = tag_name
 
                 id = make_opc_node_id(node_name, cfg.opc_ns)
                 node = opc_client.get_node(id)
-                self.action_nodes[node_name] = node
-
+                logger.info(f"Registering action '{tag_name}' with OPC node id '{id}'")
+                self.action_nodes[tag_name] = node
 
     def _make_opc_node_id(self, str_id: str, namespace: int = 0):
         return f"ns={namespace};s={str_id}"
