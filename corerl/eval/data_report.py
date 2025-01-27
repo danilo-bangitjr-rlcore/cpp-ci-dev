@@ -45,7 +45,7 @@ class ReportConfig:
     hist_enabled : bool = True
     hist_show_mean: bool = True
     hist_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.9])
-    hist_num_bins: int = Field(default_factory=lambda: 30)
+    hist_num_bins: int = 30
 
 
 def get_tags(data: list[pd.DataFrame]) -> list[str]:
