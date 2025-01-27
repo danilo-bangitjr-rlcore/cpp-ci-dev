@@ -1,12 +1,18 @@
 defaults:
  - pipeline: tags
  - pipeline.db: db
+ 
+ 
+report:
+  cross_corr_tags : null
+  cross_corr_max_lag : 300
 
 interaction:
   name: dep_interaction
   heartbeat:
     heartbeat_node_id: s=heartbeat
     opc_conn_url: ${env.opc_conn_url}
+
 
 agent:
   name: greedy_ac
