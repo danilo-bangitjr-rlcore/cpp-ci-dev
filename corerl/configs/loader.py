@@ -166,7 +166,10 @@ def direct_load_config[T](Config: type[T], base: str | None = None, config_name:
 
     # load the raw config with defaults resolved
     raw_config = _load_raw_config(base, config_name)
+    return config_from_dict(Config, raw_config, flags)
 
+
+def config_from_dict[T](Config: type[T], raw_config: dict[str, Any], flags: dict[str, str] | None = None):
     # grab defaults from python-side configs
     schema_defaults = dict_u.dataclass_to_dict(Config)
     schema_defaults = dict_u.filter(lambda v: v != MISSING, schema_defaults)
@@ -177,9 +180,10 @@ def direct_load_config[T](Config: type[T], base: str | None = None, config_name:
     )
 
     # handle any cli overrides
-    cli_overrides = dict_u.drop(flags, ['base', 'config-name'])
-    for override_key, override_value in cli_overrides.items():
-        dict_u.set_at_path(raw_config, override_key, override_value)
+    if flags is not None:
+        cli_overrides = dict_u.drop(flags, ['base', 'config-name'])
+        for override_key, override_value in cli_overrides.items():
+            dict_u.set_at_path(raw_config, override_key, override_value)
 
     # validate config against provided schema, Config.
     # raise exception on extra values not in schema
@@ -187,10 +191,10 @@ def direct_load_config[T](Config: type[T], base: str | None = None, config_name:
 
     # handle preliminary interpolations and populate unspecified defaults
     raw_config = _walk_config_and_interpolate(raw_config)
-    raw_config = ta.validate_python(raw_config)
+    obj_config = ta.validate_python(raw_config)
 
     # second interpolate & validation pass to support config defaults w/ interpolate
-    output_config = _walk_config_and_interpolate(config_to_dict(Config, raw_config))
+    output_config = _walk_config_and_interpolate(config_to_dict(Config, obj_config))
     return ta.validate_python(output_config)
 
 # ----------------
