@@ -34,6 +34,10 @@ class EventType(StrEnum):
     # ----------
     ping_setpoints = auto()
 
+    # -----------
+    # -- Debug --
+    # -----------
+    toggle_event_logging = auto()
 
 class EventTopic(StrEnum):
     # Topic filtering occurs using subscriber-side prefixing

@@ -1,8 +1,8 @@
 # This variant of mountain_car_continuous requires that the OPC server and client be running.
 # All interactions to the mountain car continuous environment is performed through OPC, all state observations are read
 # through TSDB.
-defaults:
-  -
+
+log_files: True
 
 experiment:
   exp_name: OPC_MountainCarContinuous
@@ -28,9 +28,9 @@ env:
   obs_period: 00:00:05
   update_period: 00:00:05
   action_period: 00:00:15
-  setpoint_ping_period: 00:00:01
+  setpoint_ping_period: 00:00:10
   discrete_control: False
-  seed: 1
+  seed: ${experiment.seed}
   db: ${pipeline.db}
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
@@ -90,7 +90,7 @@ pipeline:
 
   tags:
   - name: action-0
-    operating_range: [-1.0, 1.0]
+    operating_range: [-1.5, 1.5]
     outlier:
       name: identity
     imputer:

@@ -42,7 +42,7 @@ class DataReader:
         end_time: datetime,
         bucket_width: timedelta,
         aggregation: dict[str, Literal["avg", "last", "bool_or"]] | Literal["avg", "last", "bool_or"] = "avg",
-    ):
+    ) -> pd.DataFrame:
         """
         The intended behavior is for buckets to be inclusive wrt their end_time and exclusive wrt their start_time.
         The bucket start/end times are distinct concepts from the read start_time and end_time.
