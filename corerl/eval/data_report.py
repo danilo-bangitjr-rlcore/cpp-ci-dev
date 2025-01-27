@@ -39,7 +39,7 @@ class ReportConfig:
     # 3. None -> will find cross correlation for ALL pairs of tags
     cross_corr_enabled : bool = True
     cross_corr_tags : list[str] | list[list[str]] | None = Field(default_factory=list)
-    cross_corr_max_lag : int = Field(default_factory=lambda: 100)
+    cross_corr_max_lag: int = 100
 
     # for histograms
     hist_enabled : bool = True
