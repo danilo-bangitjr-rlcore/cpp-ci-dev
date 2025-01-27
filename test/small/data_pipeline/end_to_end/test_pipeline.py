@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from torch import tensor
 
+from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
 from corerl.data_pipeline.datatypes import DataMode, Step, Transition
@@ -317,3 +318,58 @@ def test_pipeline2():
             n_step_gamma=0.9,
         ),
     ]
+
+
+def test_delta_action_pipeline():
+    cfg = direct_load_config(
+        PipelineConfig,
+        base='test/small/data_pipeline/end_to_end/assets',
+        config_name='delta_action.yaml',
+    )
+
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(7)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols: Any = ['tag-0', 'reward', 'action-0']
+    df = pd.DataFrame(
+        data=[
+            [np.nan,  0,   -1],
+            [0,       3,    1],
+            [1,       0,    2],
+            [2,       0,    4], # action is out-of-bounds
+            [np.nan,  0,    2],
+            [4,       1,    1],
+            [5,       0,   -2],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    pipeline = Pipeline(cfg)
+    got = pipeline(df, data_mode=DataMode.ONLINE)
+
+    # NOTE: the action-0 column are normalized actions
+    # as a result of the preprocess stage.
+    # Therefore, the delta actions are in normalized space,
+    # and are then normalized _again_ to be between [0, 1].
+    # So a normalized delta of 1.0 is a delta of 0.5 in
+    # the normed action space, or a delta of 2 in the original
+    # action space.
+    expected_actions = pd.DataFrame(
+        data=[
+            [0.25,  np.nan],
+            [0.75,  1.0],
+            [1.,    0.75],
+            [1.,    0.5],
+            [1.,    0.5],
+            [0.75,  0.25],
+            [0.,    0.0],
+        ],
+        columns=['action-0', 'action-0_delta_clip_norm'],
+        index=idx,
+    )
+
+    pd.testing.assert_frame_equal(got.actions, expected_actions)
