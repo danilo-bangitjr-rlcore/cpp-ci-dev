@@ -1,3 +1,9 @@
+## 0.52.3 (2025-01-27)
+
+### Fix
+
+- create outputs dir if it does not exist
+
 ## 0.52.2 (2025-01-27)
 
 ### Fix
