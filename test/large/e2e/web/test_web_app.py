@@ -42,6 +42,7 @@ def test_yaml_config_file(test_client: TestClient):
     content = yaml.safe_load(response.text)
 
     res_config = MainConfig(**content)
+
     assert response.status_code == 200
     assert isinstance(res_config, MainConfig)
     assert response.headers["Content-Type"] == "application/yaml"
