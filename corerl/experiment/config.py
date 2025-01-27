@@ -1,3 +1,5 @@
+from dataclasses import field
+
 from corerl.configs.config import config
 
 
@@ -9,6 +11,7 @@ class ExperimentConfig:
     gamma: float = 0.9
     max_steps: int = 200
     offline_steps: int = 0
+    offline_eval_iters: list[int] = field(default_factory=list)
     pipeline_batch_duration_days: int = 7
     render: int = 0
     param: str = ''

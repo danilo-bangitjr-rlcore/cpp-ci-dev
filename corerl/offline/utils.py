@@ -9,6 +9,8 @@ from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import CallerCode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
+from corerl.eval.monte_carlo import MonteCarloEvaluator
+from corerl.state import AppState
 from corerl.utils.time import split_into_chunks
 
 log = logging.getLogger(__name__)
@@ -43,18 +45,18 @@ class OfflineTraining:
                 bucket_width=self.cfg.pipeline.obs_period,
                 aggregation=self.cfg.pipeline.db.data_agg,
             )
-            pipeline_out = pipeline(
+            chunk_pr = pipeline(
                 data=chunk_data,
                 caller_code=CallerCode.OFFLINE,
                 reset_temporal_state=False,
             )
 
             if self.pipeline_out:
-                self.pipeline_out += pipeline_out
+                self.pipeline_out += chunk_pr
             else:
-                self.pipeline_out = pipeline_out
+                self.pipeline_out = chunk_pr
 
-    def train(self, agent: BaseAgent):
+    def train(self, app_state: AppState, agent: BaseAgent):
         assert self.pipeline_out is not None
         assert self.pipeline_out.transitions is not None
         assert len(self.pipeline_out.transitions) > 0, (
@@ -62,13 +64,18 @@ class OfflineTraining:
         )
         log.info("Starting offline agent training...")
 
+        mc_eval = MonteCarloEvaluator(self.cfg.eval.monte_carlo, app_state, agent, self.pipeline_out)
+
         agent.load_buffer(self.pipeline_out)
         for buffer_name, size in agent.get_buffer_sizes().items():
             log.info(f"Agent {buffer_name} replay buffer size(s)", size)
 
         q_losses: list[float] = []
         pbar = tqdm(range(self.offline_steps))
-        for _ in pbar:
+        for i in pbar:
+            if i in self.cfg.experiment.offline_eval_iters:
+                mc_eval(i)
+
             critic_loss = agent.update()
             q_losses += critic_loss
 

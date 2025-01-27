@@ -4,12 +4,14 @@ from functools import partial
 from corerl.agent.base import BaseAgent
 from corerl.configs.config import config
 from corerl.data_pipeline.pipeline import Pipeline
+from corerl.eval.monte_carlo import MonteCarloEvalConfig
 from corerl.eval.raw_data import RawDataEvalConfig, raw_data_eval
 from corerl.state import AppState
 
 
 @config()
 class EvalConfig:
+    monte_carlo: MonteCarloEvalConfig = field(default_factory=MonteCarloEvalConfig)
     raw_data : RawDataEvalConfig = field(default_factory=RawDataEvalConfig)
 
 
