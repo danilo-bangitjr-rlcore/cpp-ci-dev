@@ -1,6 +1,5 @@
 import json
 import logging
-import tempfile
 from datetime import UTC, datetime
 
 import yaml
@@ -10,7 +9,7 @@ from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from corerl.config import MainConfig
-from corerl.configs.loader import config_to_json, direct_load_config
+from corerl.configs.loader import config_from_dict, config_to_json
 
 # For debugging while running the server
 _log = logging.getLogger("uvicorn.error")
@@ -30,7 +29,36 @@ app.add_middleware(
 async def health():
     return {"status": "OK", "time": f"{datetime.now(tz=UTC).isoformat()}"}
 
-@app.post("/api/configuration/file", response_model=MainConfig)
+@app.post(
+    "/api/configuration/file",
+    response_model=MainConfig,
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "schema": {"$ref": "#/components/schemas/MainConfig"}
+                },
+                "application/yaml": {
+                    "schema": {"$ref": "#/components/schemas/MainConfig"}
+                },
+            },
+            "required": True,
+        },
+        "responses": {
+            "200": {
+                "content": {
+                    "application/json": {
+                        "schema": {"$ref": "#/components/schemas/MainConfig"}
+                    },
+                    "application/yaml": {
+                        "schema": {"$ref": "#/components/schemas/MainConfig"}
+                    },
+                },
+                "description": "Successful response",
+            }
+        },
+    },
+)
 async def gen_config_file(request: Request):
     """
     Return a fully structured configuration as the response.
@@ -46,12 +74,11 @@ async def gen_config_file(request: Request):
     else:
         raise HTTPException(status_code=415, detail="Unsupported Media Type")
 
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml") as fp:
-        yaml.safe_dump(data, fp, sort_keys=False, default_flow_style=False)
-        fp.flush()
-        res_config = direct_load_config(MainConfig, "", fp.name)
-
-    json_config = json.loads(config_to_json(MainConfig, res_config))
+    try:
+        res_config = config_from_dict(MainConfig, data)
+        json_config = json.loads(config_to_json(MainConfig, res_config))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     accept_header = request.headers.get("accept")
     if accept_header is not None and "application/yaml" in accept_header:

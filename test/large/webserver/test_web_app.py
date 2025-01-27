@@ -6,6 +6,7 @@ import yaml
 from fastapi.testclient import TestClient
 
 from corerl.config import MainConfig
+from corerl.configs.loader import config_to_dict
 from corerl.web.app import app
 
 
@@ -25,8 +26,6 @@ def test_config_file(req_type: str, res_type: str, test_client: TestClient):
 
     with open("config/mountain_car_continuous.yaml", "r") as file:
         config = yaml.safe_load(file)
-
-    # config = {"I'm": "Mr. Frog"}
 
     if req_type == "application/json":
         config_data = json.dumps(config)

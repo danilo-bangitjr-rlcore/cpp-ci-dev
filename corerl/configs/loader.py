@@ -166,10 +166,10 @@ def direct_load_config[T](Config: type[T], base: str | None = None, config_name:
 
     # load the raw config with defaults resolved
     raw_config = _load_raw_config(base, config_name)
-    return config_from_dict(Config, raw_config, flags)
+    return config_from_dict(Config, raw_config, flags=flags)
 
 
-def config_from_dict[T](Config: type[T], raw_config: dict[str, Any], flags: dict[str, str] | None = None):
+def config_from_dict[T](Config: type[T], raw_config: dict, flags: dict[str, str] | None = None):
     # grab defaults from python-side configs
     schema_defaults = dict_u.dataclass_to_dict(Config)
     schema_defaults = dict_u.filter(lambda v: v != MISSING, schema_defaults)
@@ -178,6 +178,8 @@ def config_from_dict[T](Config: type[T], raw_config: dict[str, Any], flags: dict
         schema_defaults,
         raw_config,
     )
+    if "defaults" in raw_config.keys():
+        del raw_config['defaults']
 
     # handle any cli overrides
     if flags is not None:
