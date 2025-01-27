@@ -64,7 +64,6 @@ async def gen_config_file(request: Request):
         yaml_response = yaml.safe_dump(
             json_config,
             sort_keys=False,
-            default_flow_style=False
         )
         return Response(yaml_response, media_type="application/yaml")
     else:
