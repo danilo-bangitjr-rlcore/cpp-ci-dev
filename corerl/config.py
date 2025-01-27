@@ -8,6 +8,7 @@ from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
+from corerl.eval.data_report import ReportConfig
 from corerl.eval.writer import MetricsConfig, MetricsDBConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.interaction.factory import InteractionConfig
@@ -24,3 +25,5 @@ class MainConfig:
     experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     eval: EvalConfig = field(default_factory=EvalConfig)
+    report : ReportConfig = field(default_factory=ReportConfig)
+    log_files: bool = False

@@ -1,3 +1,41 @@
+## 0.53.0 (2025-01-27)
+
+### Feat
+
+- replace xform
+
+## 0.52.3 (2025-01-27)
+
+### Fix
+
+- create outputs dir if it does not exist
+
+## 0.52.2 (2025-01-27)
+
+### Fix
+
+- ensure state constructor columns are always sorted
+- ensure action constructor columns are always sorted
+
+## 0.52.1 (2025-01-27)
+
+### Fix
+
+- ensure default output_dir is a Path object
+
+## 0.52.0 (2025-01-27)
+
+### Feat
+
+- add event to toggle event logging
+- report generating library
+- plotting module for offline data
+
+### Fix
+
+- .gitignore report/
+- testing-induced bug fixes
+
 ## 0.51.0 (2025-01-27)
 
 ### Feat

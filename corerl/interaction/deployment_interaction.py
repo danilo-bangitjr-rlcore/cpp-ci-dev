@@ -132,13 +132,14 @@ class DeploymentInteraction(Interaction):
                     a = self._agent.get_action(s)
                     a_df = self._pipeline.action_constructor.assign_action_names(a)
                     a_df = self._pipeline.preprocessor.inverse(a_df)
-                    self._env.emit_action(a_df)
+                    self._env.emit_action(a_df, log_action=True)
                     self._last_action = a_df
                 else:
                     logger.info("New action requested, but no valid state was available")
 
             case EventType.ping_setpoints:
                 if self._last_action is not None:
+                    logger.debug("Pinging setpoints")
                     self._env.emit_action(self._last_action)
 
             case _:

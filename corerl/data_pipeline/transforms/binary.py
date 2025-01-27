@@ -66,6 +66,9 @@ class BinaryTransform:
             case "add":
                 new_name = f"({col}) + ({other_name})"
                 carry.transform_data[new_name] = carry.transform_data[col] + other_vals
+            case "replace":
+                new_name = other_name
+                carry.transform_data[new_name] = other_vals
 
     def reset(self) -> None:
         for xform in self._other_xform:
