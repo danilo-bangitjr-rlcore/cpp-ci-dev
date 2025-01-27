@@ -43,4 +43,4 @@ def _default_normalization_config(cfg: TagConfig):
         )
 
         assert norm_cfg.from_data or (norm_cfg.min is not None and norm_cfg.max is not None), \
-            'Normalizer config must have min and max if from_data=False'
+            f'{cfg.name}: Normalizer config must have min and max if from_data=False'
