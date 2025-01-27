@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from corerl.config import MainConfig
 from corerl.configs.loader import config_from_dict, config_to_json
@@ -55,6 +56,14 @@ async def health():
                     },
                 },
                 "description": "Successful response",
+            },
+            "400": {
+                "content": {
+                    "application/json": {
+                        "example": {"detail": "<Error description>"}
+                    },
+                },
+                "description": "Bad Request Error",
             }
         },
     },
@@ -79,6 +88,7 @@ async def gen_config_file(request: Request):
         json_config = json.loads(config_to_json(MainConfig, res_config))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+
 
     accept_header = request.headers.get("accept")
     if accept_header is not None and "application/yaml" in accept_header:
