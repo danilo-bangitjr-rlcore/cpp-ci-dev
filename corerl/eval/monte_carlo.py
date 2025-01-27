@@ -159,7 +159,7 @@ class MonteCarloEvaluator:
             for i in range(len(rewards)):
                 state = tensor(states.iloc[i].to_numpy())
                 observed_a = tensor(taken_actions.iloc[i].to_numpy())
-                reward = float(rewards.iloc[i].to_numpy())
+                reward = float(rewards.iloc[i])
                 # Can't compute partial returns or evaluate critic if there are nans in the state, action, or reward
                 if any([np.isnan(t).any() for t in [state, observed_a, reward]]):
                     self._reset_queues()
