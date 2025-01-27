@@ -8,12 +8,14 @@ from fastapi.responses import Response, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from json import JSONDecodeError
+import json
 import yaml
 import tempfile
 import logging
 
 from corerl.config import MainConfig
-from corerl.configs.loader import direct_load_config, config_to_dict, _walk_config_and_interpolate
+from corerl.configs.loader import direct_load_config, config_to_dict, config_to_json
+from datetime import timedelta
 
 _log = logging.getLogger("uvicorn.error")
 _log.setLevel(logging.DEBUG)
@@ -49,21 +51,6 @@ async def gen_config_test(request: Request) -> Response:
     response = Response(content=raw_yaml, media_type="application/yaml")
     return response
 
-@app.post("/items/")
-async def create_item(item: Item, request: Request):
-    response_data = {
-        "message": "Item received",
-        "item": item.model_dump()
-    }
-
-    accept_header = request.headers.get("accept")
-    if "application/yaml" in accept_header:
-        yaml_response = yaml.dump(response_data, default_flow_style=False)
-        return Response(yaml_response, media_type="application/yaml")
-    else:
-        return JSONResponse(response_data)
-
-
 @app.post("/configuration/file", response_model=MainConfig)
 async def gen_config_file(item: dict, request: Request):
     """
@@ -76,32 +63,18 @@ async def gen_config_file(item: dict, request: Request):
         fp.flush()
         res_config = direct_load_config(MainConfig, "", fp.name)
 
-    # return str(config_to_dict(MainConfig, res_config))
-    return res_config
+    json_config = json.loads(config_to_json(MainConfig, res_config))
 
-    # content_type = request.headers.get("Accept")
-    # if content_type == "application/json":
-    #     try:
-    #         data = await request.json()
-    #         return {"message": "Got JSON", "data": data}
-    #     except JSONDecodeError as json_error:
-    #         raise HTTPException(status_code=400, detail=f"Invalid JSON: {json_error}")
-    #
-    # elif content_type == "application/yaml":
-    #     try:
-    #         body = await request.body()
-    #         data = yaml.safe_load(body)
-    #         return {"message": "Got YAML", "data": data}
-    #     except yaml.YAMLError as yaml_error:
-    #         raise HTTPException(status_code=400, detail=f"Invalid YAML: {yaml_error}")
-    # else:
-    #     raise HTTPException(status_code=415, detail="Unsupported Content-Type")
-
-    # config_payload = MainConfig()
-    # return config_payload
-
-# Test for this. Have different files (yaml, json). Test for error too, give resonable error message
-
+    accept_header = request.headers.get("accept")
+    if "application/yaml" in accept_header:
+        yaml_response = yaml.safe_dump(
+            json_config,
+            sort_keys=False,
+            default_flow_style=False
+        )
+        return Response(yaml_response, media_type="application/yaml")
+    else:
+        return JSONResponse(json_config, media_type="application/json")
 
 app.mount("/", StaticFiles(directory="client/dist", html=True, check_dir=False), name="static")
 
