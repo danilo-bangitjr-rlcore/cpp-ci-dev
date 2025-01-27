@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from corerl.config import MainConfig
-from corerl.configs.loader import config_to_dict, config_to_json, direct_load_config
+from corerl.configs.loader import config_to_json, direct_load_config
 
 _log = logging.getLogger("uvicorn.error")
 _log.setLevel(logging.DEBUG)
@@ -36,13 +36,6 @@ class Item(BaseModel):
 async def health():
     return {"status": "OK", "time": f"{datetime.now(tz=UTC).isoformat()}"}
 
-@app.get("/configuration/test")
-async def gen_config_test(request: Request) -> Response:
-    config = MainConfig()
-    raw_yaml = yaml.dump(config_to_dict(MainConfig, config))
-    response = Response(content=raw_yaml, media_type="application/yaml")
-    return response
-
 @app.post("/configuration/file", response_model=MainConfig)
 async def gen_config_file(item: dict, request: Request):
     """
@@ -58,7 +51,7 @@ async def gen_config_file(item: dict, request: Request):
     json_config = json.loads(config_to_json(MainConfig, res_config))
 
     accept_header = request.headers.get("accept")
-    if "application/yaml" in accept_header:
+    if accept_header is not None and "application/yaml" in accept_header:
         yaml_response = yaml.safe_dump(
             json_config,
             sort_keys=False,
