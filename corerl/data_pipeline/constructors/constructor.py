@@ -102,7 +102,7 @@ class Constructor(ABC):
         return transformed_parts, tag_names
 
 
-    def _invoke_per_tag(self, df: pd.DataFrame, tag_name: str, ts: dict[str, list[object | None]]):
+    def _invoke_per_tag(self, df: pd.DataFrame, tag_name: str, ts: dict[str, list[object | None]]) -> pd.DataFrame:
         tag_data = df.get([tag_name], None)
         assert tag_data is not None
 

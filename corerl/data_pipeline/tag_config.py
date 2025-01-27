@@ -37,3 +37,4 @@ class TagConfig:
     reward_constructor: list[TransformConfig] = list_([NullConfig()])
     action_constructor: list[TransformConfig] | None = None
     state_constructor: list[TransformConfig] | None = None
+    filter: list[TransformConfig] | None = None

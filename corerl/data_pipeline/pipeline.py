@@ -6,9 +6,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
-from typing import Any, Callable
+from typing import Any, Callable, Self
 
 import numpy as np
+import pandas as pd
 from pandas import DataFrame
 from pydantic import Field
 
@@ -16,6 +17,7 @@ from corerl.configs.config import config, interpolate, list_
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
+from corerl.data_pipeline.constructors.conditional_filter import ConditionalFilter
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
@@ -50,9 +52,22 @@ class PipelineConfig:
 
 @dataclass
 class PipelineReturn:
+    caller_code: CallerCode
     df: DataFrame
+    states: DataFrame
+    actions: DataFrame
     rewards: DataFrame
     transitions: list[Transition] | None
+
+    def __add__(self, other: Self):
+        self.df = pd.concat([self.df, other.df])
+        self.states = pd.concat([self.states, other.states])
+        self.actions = pd.concat([self.actions, other.actions])
+        self.rewards = pd.concat([self.rewards, other.rewards])
+        if not self.transitions:
+            self.transitions = other.transitions
+        elif other.transitions:
+            self.transitions += other.transitions
 
 
 @dataclass
@@ -80,7 +95,8 @@ class Pipeline:
         ), "action period must be a multiple of obs period"
 
         self.valid_thresh: datetime.timedelta = 2 * cfg.obs_period
-        cfg.transition_creator.max_n_step = steps_per_decision
+        if cfg.transition_creator.max_n_step is None:
+            cfg.transition_creator.max_n_step = steps_per_decision
         self.tags = cfg.tags
 
         # initialization all stateful stages
@@ -90,6 +106,7 @@ class Pipeline:
             for tag in self.tags
             if tag.operating_range is not None
         }
+        self.conditional_filter = ConditionalFilter(self.tags)
         self.preprocessor = Preprocessor(self.tags)
         self.transition_creator = AllTheTimeTC(cfg.transition_creator, self.tags)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
@@ -107,10 +124,11 @@ class Pipeline:
             caller_code: defaultdict(list) for caller_code in CallerCode}
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
             StageCode.INIT:       lambda pf: pf,
+            StageCode.FILTER:     self.conditional_filter,
             StageCode.BOUNDS:     lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
+            StageCode.PREPROCESS: self.preprocessor,
             StageCode.ODDITY:     lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
             StageCode.IMPUTER:    self.imputers,
-            StageCode.PREPROCESS: self.preprocessor,
             StageCode.AC:         self.action_constructor,
             StageCode.RC:         self.reward_constructor,
             StageCode.SC:         self.state_constructor,
@@ -120,6 +138,7 @@ class Pipeline:
 
         self._default_stages = (
             StageCode.INIT,
+            StageCode.FILTER,
             StageCode.BOUNDS,
             StageCode.PREPROCESS,
             StageCode.ODDITY,
@@ -169,7 +188,10 @@ class Pipeline:
         # handle the no data case with an empty return
         if data.empty:
             return PipelineReturn(
+                caller_code=caller_code,
                 df=data,
+                states=data,
+                actions=data,
                 rewards=data,
                 transitions=[],
             )
@@ -190,7 +212,10 @@ class Pipeline:
         self.ts_dict[caller_code] = pf.temporal_state
 
         return PipelineReturn(
+            caller_code=caller_code,
             df=pf.data,
+            states=pf.states,
+            actions=pf.actions,
             rewards=pf.rewards,
             transitions=pf.transitions,
         )
