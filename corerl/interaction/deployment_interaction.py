@@ -20,7 +20,7 @@ from corerl.messages.heartbeat import Heartbeat, HeartbeatConfig
 from corerl.state import AppState
 from corerl.utils.time import clock_generator, split_into_chunks, wait_for_timestamp
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 @config()
 class DepInteractionConfig:
