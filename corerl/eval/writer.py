@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 
 class MetricsWriterProtocol(Protocol):
-    def write(self, agent_step: int, metric: str, value: SupportsFloat):
+    def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None):
         ...
     def close(self)-> None:
         ...
@@ -80,12 +80,12 @@ class MetricsWriter(BufferedWriter[_MetricPoint]):
         """)
 
 
-    def write(self, agent_step: int, metric: str, value: SupportsFloat):
+    def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None):
         if not self.cfg.enabled:
             return
 
         point = _MetricPoint(
-            timestamp=now_iso(),
+            timestamp=timestamp or now_iso(),
             agent_step=agent_step,
             metric=metric,
             value=float(value),
@@ -120,9 +120,9 @@ class PandasMetricsWriter():
 
         os.makedirs(self.output_path, exist_ok=True)
 
-    def write(self, agent_step: int, metric: str, value: SupportsFloat):
+    def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None):
         point = _MetricPoint(
-            timestamp=now_iso(),
+            timestamp=timestamp or now_iso(),
             agent_step=agent_step,
             metric=metric,
             value=float(value),

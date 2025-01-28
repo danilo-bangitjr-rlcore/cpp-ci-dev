@@ -1,10 +1,9 @@
 import datetime as dt
-from typing import Generator
 
 import numpy as np
 import pandas as pd
 import pytest
-from docker.models.containers import Container
+from sqlalchemy import Engine
 from torch import Tensor
 
 from corerl.agent.factory import init_agent
@@ -13,7 +12,7 @@ from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer.uniform import UniformReplayBufferConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.optimizers.torch_opts import AdamConfig
-from corerl.config import MainConfig, MetricsDBConfig
+from corerl.config import MainConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
 from corerl.data_pipeline.datatypes import CallerCode, Step, Transition
@@ -25,46 +24,43 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import LessThanConfig, NullConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
-from corerl.eval.writer import metrics_group
+from corerl.eval.config import EvalConfig
+from corerl.eval.monte_carlo import MonteCarloEvalConfig
+from corerl.eval.writer import MetricsDBConfig, metrics_group
 from corerl.experiment.config import ExperimentConfig
 from corerl.messages.event_bus import EventBus
 from corerl.offline.utils import OfflineTraining
+from corerl.sql_logging.sql_logging import table_exists
 from corerl.state import AppState
 from test.infrastructure.utils.docker import init_docker_container  # noqa: F401
 
 
-@pytest.fixture(scope="module")
-def test_db_config() -> TagDBConfig:
+@pytest.fixture()
+def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> TagDBConfig:
+    port = tsdb_engine.url.port
+    assert port is not None
+
     db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",
         username="postgres",
         password="password",
         ip="localhost",
-        port=5433,  # default is 5432, but we want to use different port for test db
-        db_name="offline_test",
+        port=port,
+        db_name=tsdb_tmp_db_name,
         table_name="tags",
     )
 
     return db_cfg
 
-
-@pytest.fixture(scope="module")
-def init_offline_tsdb_container():
-    container = init_docker_container()
-    yield container
-    container.stop()
-    container.remove()
-
-
-@pytest.fixture(scope="module")
-def data_writer(init_offline_tsdb_container: Container, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]: # noqa: F811, E501
+@pytest.fixture()
+def data_writer(test_db_config: TagDBConfig):
     data_writer = DataWriter(cfg=test_db_config)
 
     yield data_writer
 
     data_writer.close()
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     obs_period = dt.timedelta(seconds=60)
     action_period = 2*obs_period
@@ -72,7 +68,16 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
 
     cfg = MainConfig(
         metrics=MetricsDBConfig(
-            enabled=False,
+            enabled=True,
+            port=test_db_config.port,
+            db_name=test_db_config.db_name,
+        ),
+        eval=EvalConfig(
+            monte_carlo=MonteCarloEvalConfig(
+                enabled=True,
+                precision=0.2,
+                gamma=0.9
+            )
         ),
         agent=GreedyACConfig(
             actor=NetworkActorConfig(
@@ -91,7 +96,9 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
             )
         ),
         experiment=ExperimentConfig(
-            offline_steps=100
+            gamma=0.9,
+            offline_steps=100,
+            offline_eval_iters=[0]
         ),
         pipeline=PipelineConfig(
             tags=[
@@ -212,7 +219,10 @@ def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: Offl
     for i in range(len(created_transitions)):
         assert created_transitions[i] == expected_transitions[i]
 
-def test_offline_training(offline_cfg: MainConfig, offline_trainer: OfflineTraining, data_writer: DataWriter):
+def test_offline_training(offline_cfg: MainConfig,
+                          offline_trainer: OfflineTraining,
+                          data_writer: DataWriter,
+                          tsdb_engine: Engine):
     """
     Generate a few offline time steps, write them to TSDB, read the data from TSDB into a dataframe,
     pass data through the 'Anytime' data pipeline, train an agent on the produced transitions,
@@ -232,11 +242,25 @@ def test_offline_training(offline_cfg: MainConfig, offline_trainer: OfflineTrain
     agent = init_agent(offline_cfg.agent, app_state, col_desc)
 
     # Offline training
-    critic_losses = offline_trainer.train(agent)
+    critic_losses = offline_trainer.train(app_state, agent)
     first_loss = critic_losses[0]
     last_loss = critic_losses[-1]
 
     assert last_loss < first_loss
+
+    # ensure metrics table exists
+    assert table_exists(tsdb_engine, 'metrics')
+
+    # Ensure Monte-Carlo evaluator writes state value, observed action value, and partial returns
+    # twice to metrics table (partial return horizon = math.ceil(np.log(1.0 - self.precision) / np.log(self.gamma))
+    with tsdb_engine.connect() as conn:
+        metrics = pd.read_sql_table('metrics', con=conn)
+
+        state_v_entries = metrics.loc[metrics["metric"] == "state_v_0"]
+        observed_a_q_entries = metrics.loc[metrics["metric"] == "observed_a_q_0"]
+        partial_return_entries = metrics.loc[metrics["metric"] == "partial_return_0"]
+
+        assert len(state_v_entries) == len(observed_a_q_entries) == len(partial_return_entries) == 2
 
 def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig):
     normalizer = NormalizerConfig(from_data=True)

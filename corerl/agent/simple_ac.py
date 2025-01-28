@@ -6,9 +6,7 @@ import numpy
 import torch
 
 from corerl.agent.base import BaseAC, BaseACConfig
-from corerl.component.actor.factory import init_actor
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.critic.factory import init_v_critic
 from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import TransitionBatch
@@ -30,8 +28,6 @@ class SimpleAC(BaseAC):
         super().__init__(cfg, app_state, col_desc)
         self.ensemble_targets = cfg.ensemble_targets
         self.tau = cfg.tau
-        self.critic = init_v_critic(cfg.critic, self.state_dim)
-        self.actor = init_actor(cfg.actor, self.state_dim, self.action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)
@@ -59,8 +55,8 @@ class SimpleAC(BaseAC):
         gammas = batch.n_step_gamma
 
         log_prob, _ = self.actor.get_log_prob(states, actions, with_grad=True)
-        v = self.critic.get_v([states], with_grad=False)
-        v_next = self.critic.get_v([next_states], with_grad=False)
+        v = self.v_critic.get_v([states], with_grad=False)
+        v_next = self.v_critic.get_v([next_states], with_grad=False)
         target = rewards + gammas * v_next
         ent = -log_prob
         loss_actor = -(self.tau * ent + log_prob * (target - v.detach())).mean()
@@ -92,7 +88,7 @@ class SimpleAC(BaseAC):
 
             # Option 1: Using the reduction of the ensemble in the update target
             if not self.ensemble_targets:
-                next_v = self.critic.get_v_target([next_state_batch])
+                next_v = self.v_critic.get_v_target([next_state_batch])
                 next_vs.append(next_v)
 
             state_batches.append(state_batch)
@@ -102,13 +98,13 @@ class SimpleAC(BaseAC):
 
         # Option 2: Using the corresponding target function in the ensemble in the update target
         if self.ensemble_targets:
-            _, next_vs = self.critic.get_vs_target(next_state_batches)
+            _, next_vs = self.v_critic.get_vs_target(next_state_batches)
         else:
             for i in range(ensemble):
                 next_vs[i] = torch.unsqueeze(next_vs[i], 0)
             next_vs = torch.cat(next_vs, dim=0)
 
-        _, vs = self.critic.get_vs(state_batches, with_grad=True)
+        _, vs = self.v_critic.get_vs(state_batches, with_grad=True)
         losses = []
         for i in range(ensemble):
             target = reward_batches[i] + gamma_batches[i] * next_vs[i]
@@ -121,7 +117,7 @@ class SimpleAC(BaseAC):
         for _ in range(self.n_critic_updates):
             batches = self.critic_buffer.sample()
             loss_critic = self.compute_critic_loss(batches)
-            self.critic.update(loss_critic)
+            self.v_critic.update(loss_critic)
 
             float_losses = [float(loss) for loss in loss_critic]
             critic_losses.append(sum(float_losses) / len(float_losses))
@@ -144,7 +140,7 @@ class SimpleAC(BaseAC):
         self.actor.save(actor_path)
 
         critic_path = path / "critic"
-        self.critic.save(critic_path)
+        self.v_critic.save(critic_path)
 
         critic_buffer_path = path / "critic_buffer.pkl"
         with open(critic_buffer_path, "wb") as f:
@@ -159,7 +155,7 @@ class SimpleAC(BaseAC):
         self.actor.load(actor_path)
 
         critic_path = path / "critic"
-        self.critic.load(critic_path)
+        self.v_critic.load(critic_path)
 
         critic_buffer_path = path / "critic_buffer.pkl"
         with open(critic_buffer_path, "rb") as f:

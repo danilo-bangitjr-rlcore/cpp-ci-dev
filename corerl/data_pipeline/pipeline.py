@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
-from typing import Any, Callable, Self
+from typing import Any, Callable, Self, Tuple
 
 import numpy as np
 import pandas as pd
@@ -59,15 +59,37 @@ class PipelineReturn:
     rewards: DataFrame
     transitions: list[Transition] | None
 
+    def _add(self, other: Self) -> Tuple[DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
+        assert self.caller_code == other.caller_code, "PipelineReturn objects must have the same CallerCode to be added"
+
+        df = pd.concat([self.df, other.df])
+        states = pd.concat([self.states, other.states])
+        actions = pd.concat([self.actions, other.actions])
+        rewards = pd.concat([self.rewards, other.rewards])
+
+        transitions = []
+        if self.transitions is None:
+            transitions = other.transitions
+        elif other.transitions is not None:
+            transitions = self.transitions + other.transitions
+
+        return df, states, actions, rewards, transitions
+
+    def __iadd__(self, other: Self):
+        df, states, actions, rewards, transitions = self._add(other)
+
+        self.df = df
+        self.states = states
+        self.actions = actions
+        self.rewards = rewards
+        self.transitions = transitions
+
+        return self
+
     def __add__(self, other: Self):
-        self.df = pd.concat([self.df, other.df])
-        self.states = pd.concat([self.states, other.states])
-        self.actions = pd.concat([self.actions, other.actions])
-        self.rewards = pd.concat([self.rewards, other.rewards])
-        if not self.transitions:
-            self.transitions = other.transitions
-        elif other.transitions:
-            self.transitions += other.transitions
+        df, states, actions, rewards, transitions = self._add(other)
+
+        return PipelineReturn(self.caller_code, df, states, actions, rewards, transitions)
 
 
 @dataclass
