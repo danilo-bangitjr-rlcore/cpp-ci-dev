@@ -58,7 +58,7 @@ agent:
       lr: 0.00001
 
 
-metrics:
+metrics_writer:
   name : db
   drivername: "postgresql+psycopg2"
   username: "postgres"

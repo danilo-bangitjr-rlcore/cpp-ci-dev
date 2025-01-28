@@ -11,7 +11,7 @@ experiment :
   offline_steps : 0
   timeout: 0
 
-metrics:
+metrics_writer:
   name : db
   drivername: "postgresql+psycopg2"
   username: "postgres"

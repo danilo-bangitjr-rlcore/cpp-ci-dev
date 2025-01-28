@@ -37,7 +37,7 @@ experiment:
   render : 1
   gamma : 0.99
 
-metrics:
+metrics_writer:
   name : db
   drivername: "postgresql+psycopg2"
   username: "postgres"
