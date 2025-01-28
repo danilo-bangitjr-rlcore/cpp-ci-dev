@@ -117,7 +117,15 @@ class DeploymentInteraction(Interaction):
                 self.load_historical_chunk()
                 o = self._env.get_latest_obs()
                 pr = self._pipeline(o, caller_code=CallerCode.ONLINE)
+
+                # log rewards
+                r = float(pr.rewards['reward'].iloc[0])
                 self._agent.update_buffer(pr)
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric='reward',
+                    value=r,
+                )
 
                 self._app_state.agent_step += 1
                 self.maybe_checkpoint()
