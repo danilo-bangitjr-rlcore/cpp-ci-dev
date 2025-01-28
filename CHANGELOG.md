@@ -1,3 +1,19 @@
+## 0.56.0 (2025-01-28)
+
+### Feat
+
+- implemented Monte-Carlo evaluator as an exclusively offline training evaluator
+
+### Fix
+
+- PipelineReturn needed __iadd__ instead of __add__ to update the object in place. Also needed to return the object
+
+### Refactor
+
+- moved assertion into helper method
+- moved actor, v_critic, and q_critic initialization to BaseAC for typing purposes
+- ensure every algorithm that inherits from BaseAC has 'actor', 'q_critic', and 'v_critic' attributes
+
 ## 0.55.2 (2025-01-28)
 
 ### Fix
