@@ -103,16 +103,22 @@ pipeline:
 
 
   - name: reward
+    preprocess:
+    - name: identity
     is_meta: True
     outlier:
       name: identity
 
   - name: terminated
+    preprocess:
+    - name: identity
     is_meta: True
     outlier:
       name: identity
 
   - name: truncated
+    preprocess:
+    - name: identity
     is_meta: True
     outlier:
       name: identity
