@@ -292,11 +292,11 @@ class GreedyAC(BaseAC):
         if not self.cfg.delta_action:
             return actions
 
-        direct_idxs = [
+        delta_idxs = [
             i for i, col in enumerate(self._col_desc.action_cols)
             if Delta.is_delta_transformed(col)
         ]
-        return actions[:, direct_idxs]
+        return actions[:, delta_idxs]
 
 
     def ensure_direct_action(self, action: torch.Tensor, next_action: torch.Tensor):
