@@ -1,6 +1,5 @@
 import math
 from collections import deque
-from dataclasses import field
 from typing import Tuple
 
 import numpy as np
@@ -8,8 +7,7 @@ from torch import Tensor
 
 from corerl.agent.base import BaseAC, BaseAgent
 from corerl.component.network.utils import tensor
-from corerl.configs.config import config, interpolate
-from corerl.data_pipeline.datatypes import CallerCode, StageCode
+from corerl.configs.config import config, interpolate, list_
 from corerl.data_pipeline.pipeline import PipelineReturn
 from corerl.eval.base_eval import BaseEvalConfig
 from corerl.state import AppState
@@ -18,9 +16,8 @@ from corerl.state import AppState
 @config()
 class MonteCarloEvalConfig(BaseEvalConfig):
     name: str = "monte-carlo"
-    caller_codes: list[CallerCode] = field(default_factory=list)
-    stage_codes: list[StageCode] = field(default_factory=list)
     enabled: bool = False
+    offline_eval_steps: list[int] = list_()
     gamma: float = interpolate('${experiment.gamma}')
     precision: float = 0.99 # Monte-Carlo return within 'precision'% of the true return (can't compute infinite sum)
     critic_samples: int = 5
@@ -33,6 +30,7 @@ class MonteCarloEvaluator:
     """
 
     def __init__(self, cfg: MonteCarloEvalConfig, app_state: AppState, agent: BaseAgent, pipe_return: PipelineReturn):
+        self.cfg = cfg
         self.enabled = cfg.enabled
         if self.enabled:
             # Determine partial return horizon
@@ -148,43 +146,45 @@ class MonteCarloEvaluator:
                                      agent_step=agent_step)
 
     def __call__(self, iter_num: int):
-        if self.enabled:
-            states = self.pipe_return.states
-            taken_actions = self.pipe_return.actions
-            rewards = self.pipe_return.rewards.to_numpy().astype(np.float32).flatten()
-            # To get the action taken and the reward observed from the given state,
-            # need to offset actions and rewards by one obs_period with respect to the state
-            taken_actions = taken_actions[1:]
-            rewards = rewards[1:]
-            for i in range(len(rewards)):
-                state = tensor(states.iloc[i].to_numpy())
-                observed_a = tensor(taken_actions.iloc[i].to_numpy())
-                reward: float = float(rewards[i])
-                # Can't compute partial returns or evaluate critic if there are nans in the state, action, or reward
-                if any([np.isnan(t).any() for t in [state, observed_a, reward]]):
-                    self._reset_queues()
-                    self.agent_step += 1
-                    continue
+        if not self.enabled or iter_num not in self.cfg.offline_eval_steps:
+            return
 
-                # Get Timestamp
-                curr_time = states.index[i].isoformat()
-                timestamp, agent_step = self._get_timestamp(curr_time)
-
-                # Get Policy Action Q-Value
-                state_v = self._get_state_value(state)
-
-                # Get Observed Action Q-Value
-                observed_a_q = self._get_observed_a_q(state, observed_a)
-
-                # Get Partial Return
-                partial_return = self._get_partial_return(reward)
-
-                if all(v is not None for v in [timestamp, state_v, observed_a_q, partial_return]):
-                    assert timestamp is not None
-                    assert agent_step is not None
-                    assert state_v is not None
-                    assert observed_a_q is not None
-                    assert partial_return is not None
-                    self._write_metrics(iter_num, timestamp, agent_step, state_v, observed_a_q, partial_return)
-
+        states = self.pipe_return.states
+        taken_actions = self.pipe_return.actions
+        rewards = self.pipe_return.rewards.to_numpy().astype(np.float32).flatten()
+        # To get the action taken and the reward observed from the given state,
+        # need to offset actions and rewards by one obs_period with respect to the state
+        taken_actions = taken_actions[1:]
+        rewards = rewards[1:]
+        for i in range(len(rewards)):
+            state = tensor(states.iloc[i].to_numpy())
+            observed_a = tensor(taken_actions.iloc[i].to_numpy())
+            reward: float = float(rewards[i])
+            # Can't compute partial returns or evaluate critic if there are nans in the state, action, or reward
+            if any([np.isnan(t).any() for t in [state, observed_a, reward]]):
+                self._reset_queues()
                 self.agent_step += 1
+                continue
+
+            # Get Timestamp
+            curr_time = states.index[i].isoformat()
+            timestamp, agent_step = self._get_timestamp(curr_time)
+
+            # Get Policy Action Q-Value
+            state_v = self._get_state_value(state)
+
+            # Get Observed Action Q-Value
+            observed_a_q = self._get_observed_a_q(state, observed_a)
+
+            # Get Partial Return
+            partial_return = self._get_partial_return(reward)
+
+            if all(v is not None for v in [timestamp, state_v, observed_a_q, partial_return]):
+                assert timestamp is not None
+                assert agent_step is not None
+                assert state_v is not None
+                assert observed_a_q is not None
+                assert partial_return is not None
+                self._write_metrics(iter_num, timestamp, agent_step, state_v, observed_a_q, partial_return)
+
+            self.agent_step += 1

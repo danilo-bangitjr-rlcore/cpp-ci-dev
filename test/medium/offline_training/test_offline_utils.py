@@ -91,7 +91,8 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
             monte_carlo=MonteCarloEvalConfig(
                 enabled=True,
                 precision=0.2,
-                gamma=0.9
+                gamma=0.9,
+                offline_eval_steps=[0],
             )
         ),
         agent=GreedyACConfig(
@@ -113,7 +114,6 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
         experiment=ExperimentConfig(
             gamma=0.9,
             offline_steps=100,
-            offline_eval_iters=[0]
         ),
         pipeline=PipelineConfig(
             tags=[
