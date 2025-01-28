@@ -42,7 +42,7 @@ class DataReader:
         end_time: datetime,
         bucket_width: timedelta,
         aggregation: Literal["avg", "last", "bool_or"] = "avg",
-        tag_aggregations: dict[str, Literal["avg", "last", "bool_or"]] | None = None,
+        tag_aggregations: dict[str, Literal["avg", "last", "bool_or"]] = {},
     ) -> pd.DataFrame:
         """
         The intended behavior is for buckets to be inclusive wrt their end_time and exclusive wrt their start_time.
@@ -94,7 +94,6 @@ class DataReader:
 
         # if tag_aggregations is not provided, use the default aggregation for all tags
         # if a tag is not in tag_aggregations, use the default aggregation for that tag
-        tag_aggregations = tag_aggregations or {}
         aggregation_map = {name: tag_aggregations.get(name, aggregation) for name in names}
 
         agg_groups = {}
@@ -177,7 +176,8 @@ class DataReader:
         names: List[str],
         start_time: datetime,
         end_time: datetime,
-        aggregation: dict[str, Literal["avg", "last", "bool_or"]] | Literal["avg", "last", "bool_or"] = "avg",
+        aggregation: Literal["avg", "last", "bool_or"] = "avg",
+        tag_aggregations: dict[str, Literal["avg", "last", "bool_or"]] = {},
     ) -> pd.DataFrame:
         bucket_width = end_time - start_time
         df = self.batch_aggregated_read(
@@ -185,8 +185,8 @@ class DataReader:
             start_time,
             end_time,
             bucket_width,
-            "avg" if isinstance(aggregation, dict) else aggregation,
-            tag_aggregations=aggregation if isinstance(aggregation, dict) else None
+            aggregation,
+            tag_aggregations
         )
 
         if len(df) > 1:
