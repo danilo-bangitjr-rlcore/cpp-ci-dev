@@ -38,7 +38,7 @@ class Delta:
             ts.last = row
             carry.transform_data.iloc[i] = delta
 
-        carry.transform_data.rename(columns=lambda col: f'{col}_delta', inplace=True)
+        carry.transform_data.rename(columns=lambda col: f'{col}_Δ', inplace=True)
         return carry, ts
 
     def reset(self) -> None:
@@ -53,7 +53,7 @@ class Delta:
         as delta xformed, then the delta xform should also be
         responsible for this detection.
         """
-        return '_delta' in col
+        return '_Δ' in col
 
 
 transform_group.dispatcher(Delta)

@@ -368,7 +368,7 @@ def test_delta_action_pipeline():
             [0.75,  0.25],
             [0.,    0.0],
         ],
-        columns=['action-0', 'action-0_delta_clip_norm'],
+        columns=['action-0', 'action-0_Δ_clip_norm'],
         index=idx,
     )
 

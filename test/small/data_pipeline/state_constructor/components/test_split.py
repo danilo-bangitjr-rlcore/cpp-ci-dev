@@ -101,7 +101,7 @@ def test_split_ts1():
 
     pf = sc(pf)
     expected_data = pd.DataFrame({
-        'tag_1_trace-0.1_delta':  [5.9, -8.01, 0.099, 0.9099, np.nan, np.nan, 0.9, 0.99, 0.999],
+        'tag_1_trace-0.1_Δ':  [5.9, -8.01, 0.099, 0.9099, np.nan, np.nan, 0.9, 0.99, 0.999],
         'tag_1_trace-0.01': [1., 1.99, 2.9899, 3.989899, np.nan, 1., 1.99, 2.9899, 3.989899],
     })
 
