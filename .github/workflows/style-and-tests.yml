@@ -18,7 +18,8 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
-          cache-dependency-glob: "requirements**.txt"
+          cache-dependency-glob: "uv.lock"
+
 
       - uses: webfactory/ssh-agent@v0.7.0
         with:
@@ -26,8 +27,7 @@ jobs:
 
       - run: |
           uv venv
-          uv pip compile --extra=dev pyproject.toml -o deps.txt
-          uv pip sync deps.txt
+          uv sync
 
       - run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
@@ -67,7 +67,7 @@ jobs:
       test-flags: -n auto
       test-suite: small
      # - run: uv run pytest -n auto test/small
-     
+
   medium-test:
     needs: [py-style-check]
     uses: ./.github/workflows/reusable-run-test.yml
@@ -97,7 +97,8 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
-          cache-dependency-glob: "requirements**.txt"
+          cache-dependency-glob: "uv.lock"
+
 
       - uses: webfactory/ssh-agent@v0.7.0
         with:
@@ -105,8 +106,7 @@ jobs:
 
       - run: |
           uv venv
-          uv pip compile --extra=dev pyproject.toml -o deps.txt
-          uv pip sync deps.txt
+          uv sync
 
       - run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
@@ -144,4 +144,3 @@ jobs:
       - uses: geekyeggo/delete-artifact@v5
         with:
             name: artifact/*
-
