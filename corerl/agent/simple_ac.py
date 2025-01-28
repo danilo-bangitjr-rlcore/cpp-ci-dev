@@ -6,9 +6,7 @@ import numpy
 import torch
 
 from corerl.agent.base import BaseAC, BaseACConfig
-from corerl.component.actor.factory import init_actor
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.critic.factory import init_v_critic
 from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import TransitionBatch
@@ -30,8 +28,6 @@ class SimpleAC(BaseAC):
         super().__init__(cfg, app_state, col_desc)
         self.ensemble_targets = cfg.ensemble_targets
         self.tau = cfg.tau
-        self.v_critic = init_v_critic(cfg.critic, self.state_dim)
-        self.actor = init_actor(cfg.actor, self.state_dim, self.action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)

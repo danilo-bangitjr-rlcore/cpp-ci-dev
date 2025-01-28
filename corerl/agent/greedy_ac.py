@@ -15,7 +15,6 @@ from corerl.component.actor.factory import init_actor
 from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
-from corerl.component.critic.factory import init_q_critic
 from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import TransitionBatch
@@ -81,9 +80,7 @@ class GreedyAC(BaseAC):
         self.top_actions_proposal = int(
             self.rho_proposal * self.num_samples)  # Number of actions used to update proposal policy
 
-        self.actor = init_actor(cfg.actor, self.state_dim, self.action_dim)
         self.sampler = init_actor(cfg.actor, self.state_dim, self.action_dim, initializer=self.actor)
-        self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)

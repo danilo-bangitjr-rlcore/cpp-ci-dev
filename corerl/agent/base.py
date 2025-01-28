@@ -5,8 +5,11 @@ from typing import Any
 
 import numpy
 
-from corerl.component.actor.network_actor import NetworkActor, NetworkActorConfig
+from corerl.component.actor.base_actor import BaseActor
+from corerl.component.actor.factory import init_actor
+from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig, EnsembleQCritic, EnsembleVCritic
+from corerl.component.critic.factory import init_q_critic, init_v_critic
 from corerl.configs.config import MISSING, config, interpolate
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
@@ -89,9 +92,10 @@ class BaseAC(BaseAgent):
         super().__init__(cfg, app_state, col_desc)
         self.n_critic_updates = cfg.n_critic_updates
         self.n_actor_updates = cfg.n_actor_updates
-        self.q_critic: EnsembleQCritic | None = None
-        self.v_critic: EnsembleVCritic | None = None
-        self.actor: NetworkActor | None = None
+
+        self.actor: BaseActor = init_actor(cfg.actor, self.state_dim, self.action_dim)
+        self.q_critic: EnsembleQCritic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
+        self.v_critic: EnsembleVCritic = init_v_critic(cfg.critic, self.state_dim)
 
     @abstractmethod
     def update_actor(self) -> tuple:
