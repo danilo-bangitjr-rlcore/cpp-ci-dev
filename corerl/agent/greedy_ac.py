@@ -37,7 +37,6 @@ class GreedyACConfig(BaseACConfig):
     average_entropy: bool = True
     ensemble_targets: bool = False
     interleave_updates: bool = True
-    delta_action: bool = False
     n_sampler_updates: int = 1
     num_samples: int = 500
     prop_rho_mult: float = 2.0
