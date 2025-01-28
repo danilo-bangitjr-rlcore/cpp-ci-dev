@@ -16,6 +16,7 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
 from corerl.eval.config import register_evals
+from corerl.eval.eval_writer import evals_group
 from corerl.eval.metrics_writer import metrics_group
 from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import EventBus
@@ -39,7 +40,8 @@ def main(cfg: MainConfig):
 
     event_bus = EventBus(cfg.event_bus, cfg.env)
     app_state = AppState(
-        metrics=metrics_group.dispatch(cfg.metrics),
+        metrics_writer=metrics_group.dispatch(cfg.metrics_writer),
+        eval_writer=evals_group.dispatch(cfg.eval_writer),
         event_bus=event_bus,
     )
 
