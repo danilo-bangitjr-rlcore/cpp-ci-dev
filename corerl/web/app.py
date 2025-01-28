@@ -3,10 +3,11 @@ import logging
 from datetime import UTC, datetime
 
 import yaml
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from corerl.config import MainConfig
 from corerl.configs.loader import config_from_dict, config_to_json
@@ -25,7 +26,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/health")
+
+class HealthResponse(BaseModel):
+    status: str = "OK"
+    time: str = datetime.now(tz=UTC).isoformat()
+
+
+class MessageResponse(BaseModel):
+    message: str
+
+
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    tags=["Health"],
+    responses={status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal Server Error", "model": str}},
+)
 async def health():
     return {"status": "OK", "time": f"{datetime.now(tz=UTC).isoformat()}"}
 
