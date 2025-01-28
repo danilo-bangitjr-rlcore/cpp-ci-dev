@@ -229,7 +229,7 @@ wheels = [
 
 [[package]]
 name = "corerl"
-version = "0.52.1"
+version = "0.56.0"
 source = { editable = "." }
 dependencies = [
     { name = "asyncua" },
@@ -241,7 +241,6 @@ dependencies = [
     { name = "gymnasium" },
     { name = "influxdb-client" },
     { name = "jaxtyping" },
-    { name = "linesearchopt" },
     { name = "matplotlib" },
     { name = "nltk" },
     { name = "numba" },
@@ -297,7 +296,6 @@ requires-dist = [
     { name = "gymnasium", specifier = "~=1.0" },
     { name = "influxdb-client", specifier = "~=1.39" },
     { name = "jaxtyping", specifier = "~=0.2" },
-    { name = "linesearchopt", git = "ssh://git@github.com/rlcoretech/linesearchopt.git" },
     { name = "linesearchopt", marker = "extra == 'linesearchopt-gh'", git = "ssh://git@github.com/rlcoretech/linesearchopt.git" },
     { name = "matplotlib", specifier = "~=3.8" },
     { name = "nltk", specifier = "~=3.8" },
