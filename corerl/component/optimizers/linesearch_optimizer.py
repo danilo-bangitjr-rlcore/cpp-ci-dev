@@ -19,7 +19,7 @@ from corerl.configs.config import config, list_
 
 @config()
 class LSOInitConfig:
-    name: str = 'to'
+    name: str = 'To'
     args: list[Any] = list_([0.1])
 
 @config()
@@ -315,12 +315,21 @@ def construct_lso_init(cfg: LSOInitConfig):
 
 def construct_lso_search_condition(cfg: SearchConditionConfig):
     type_ = cfg.name
-    kwargs = cfg.kwargs
-    return getattr(lso.search, type_)(**kwargs)
+    kwargs = cfg.kwargs.__dict__
+    search_condition = getattr(lso.search, type_)(**kwargs)
+    return search_condition
 
 
 def get_optim_type(name: str):
     if name == "custom_adam":
         return CustomAdam
-    else:
-        return getattr(torch.optim, name)
+    
+    # convert optimizer names to match PyTorch's capitalization
+    optim_map = {
+        'adam': 'Adam',
+        'sgd': 'SGD',
+        'rms_prop': 'RMSprop'
+    }
+    
+    torch_name = optim_map.get(name.lower(), name)
+    return getattr(torch.optim, torch_name)
