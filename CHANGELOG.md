@@ -1,3 +1,13 @@
+## 0.55.2 (2025-01-28)
+
+### Fix
+
+- update pilot cf operating range
+- default heartbeat to None instead of relying on enabled flag
+- log reward in dep interaction
+- update dv pilot config
+- decouple tag name from node name in dep env action nodes
+
 ## 0.55.1 (2025-01-28)
 
 ### Fix
