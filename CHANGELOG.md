@@ -1,3 +1,10 @@
+## 0.55.0 (2025-01-28)
+
+### Feat
+
+- support for OpenAPI generated TypeScript api client
+- added routing and state/query library, stricter eslint rules
+
 ## 0.54.0 (2025-01-28)
 
 ### Feat
