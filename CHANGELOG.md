@@ -1,3 +1,11 @@
+## 0.55.1 (2025-01-28)
+
+### Fix
+
+- update tests to handle norm default from_data=False
+- do not normalize meta tags in preprocess stage
+- from_data defaults to false in normalizer
+
 ## 0.55.0 (2025-01-28)
 
 ### Feat
