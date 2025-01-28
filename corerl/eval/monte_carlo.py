@@ -9,13 +9,11 @@ from corerl.agent.base import BaseAC, BaseAgent
 from corerl.component.network.utils import tensor
 from corerl.configs.config import config, interpolate, list_
 from corerl.data_pipeline.pipeline import PipelineReturn
-from corerl.eval.base_eval import BaseEvalConfig
 from corerl.state import AppState
 
 
 @config()
-class MonteCarloEvalConfig(BaseEvalConfig):
-    name: str = "monte-carlo"
+class MonteCarloEvalConfig:
     enabled: bool = False
     offline_eval_steps: list[int] = list_()
     gamma: float = interpolate('${experiment.gamma}')
