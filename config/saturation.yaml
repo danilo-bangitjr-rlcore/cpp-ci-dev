@@ -60,6 +60,8 @@ pipeline:
   tags:
   # meta tags
   - name: reward
+    preprocess:
+    - name: identity
     outlier:
       name: identity
     reward_constructor:
@@ -70,11 +72,15 @@ pipeline:
     - name: identity
 
   - name: terminated
+    preprocess:
+    - name: identity
     is_meta: True
     outlier:
       name: identity
 
   - name: truncated
+    preprocess:
+    - name: identity
     is_meta: True
     outlier:
       name: identity
@@ -83,6 +89,8 @@ pipeline:
 
   # observations
   - name: tag-0
+    preprocess:
+    - name: identity
     is_meta: False
     outlier:
       name: identity

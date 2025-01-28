@@ -69,6 +69,8 @@ pipeline:
 
   tags:
   - name: reward
+    preprocess:
+    - name: identity
     outlier:
       name: identity
     imputer:
@@ -78,6 +80,8 @@ pipeline:
     is_meta: true
 
   - name: terminated
+    preprocess:
+    - name: identity
     outlier:
       name: identity
     imputer:
@@ -85,6 +89,8 @@ pipeline:
     is_meta: true
 
   - name: truncated
+    preprocess:
+    - name: identity
     outlier:
       name: identity
     imputer:
