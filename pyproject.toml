@@ -125,7 +125,6 @@ dependencies = [
     "scikit-learn~=1.5",
     "psycopg2-binary~=2.9",
     "pyzmq~=26.2.0",
-    "linesearchopt",
 ]
 readme = "README.md"
 
