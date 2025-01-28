@@ -1,6 +1,7 @@
+import logging
 import math
 from collections import deque
-from typing import Tuple
+from typing import Tuple, cast
 
 import numpy as np
 from torch import Tensor
@@ -10,6 +11,8 @@ from corerl.component.network.utils import tensor
 from corerl.configs.config import config, interpolate, list_
 from corerl.data_pipeline.pipeline import PipelineReturn
 from corerl.state import AppState
+
+logger = logging.getLogger(__name__)
 
 
 @config()
@@ -30,28 +33,30 @@ class MonteCarloEvaluator:
     def __init__(self, cfg: MonteCarloEvalConfig, app_state: AppState, agent: BaseAgent, pipe_return: PipelineReturn):
         self.cfg = cfg
         self.enabled = cfg.enabled
-        if self.enabled:
-            # Determine partial return horizon
-            self.gamma = cfg.gamma
-            self.precision = cfg.precision
-            self.return_steps = math.ceil(np.log(1.0 - self.precision) / np.log(self.gamma))
 
-            # Queues to compute partial returns and temporally align partial returns with corresponding Q-values
-            self.timestamps = deque(maxlen=self.return_steps)
-            self.agent_steps = deque(maxlen=self.return_steps)
-            self.mc_partial_returns = deque(maxlen=self.return_steps)
-            self.observed_a_qs = deque(maxlen=self.return_steps)
-            self.state_vs = deque(maxlen=self.return_steps)
-            self.critic_samples = cfg.critic_samples
+        if not isinstance(agent, BaseAC) and self.enabled:
+            self.enabled = False
+            logger.error("Agent must be a BaseAC to use Monte-Carlo evaluator")
 
-            self.agent_step = 0
-            self.app_state = app_state
-            assert isinstance(agent, BaseAC), \
-                "Agent must have an 'actor' and 'q_critic' attribute to use Monte-Carlo evaluator"
-            self.agent = agent
-            assert len(pipe_return.states) > 0, \
-                "Monte-Carlo Evaluator must have states, actions, and rewards dataframes with one or more entries"
-            self.pipe_return: PipelineReturn = pipe_return
+        # Determine partial return horizon
+        self.gamma = cfg.gamma
+        self.precision = cfg.precision
+        self.return_steps = math.ceil(np.log(1.0 - self.precision) / np.log(self.gamma))
+
+        # Queues to compute partial returns and temporally align partial returns with corresponding Q-values
+        self.timestamps = deque(maxlen=self.return_steps)
+        self.agent_steps = deque(maxlen=self.return_steps)
+        self.mc_partial_returns = deque(maxlen=self.return_steps)
+        self.observed_a_qs = deque(maxlen=self.return_steps)
+        self.state_vs = deque(maxlen=self.return_steps)
+        self.critic_samples = cfg.critic_samples
+
+        self.agent_step = 0
+        self.app_state = app_state
+        self.agent = cast(BaseAC, agent)
+        assert len(pipe_return.states) > 0, \
+            "Monte-Carlo Evaluator must have states, actions, and rewards dataframes with one or more entries"
+        self.pipe_return: PipelineReturn = pipe_return
 
     def _reset_queues(self):
         self.timestamps = deque(maxlen=self.return_steps)
