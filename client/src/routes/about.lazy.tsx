@@ -1,20 +1,14 @@
 import { createLazyFileRoute } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
-import { getServerOrigin, fetchWithTimeout } from '../utils/api'
-
-interface HealthPayload { status: string, time: string }
+import createClient from 'openapi-react-query'
+import { getApiFetchClient } from '../utils/api'
 
 const About = () => {
-  const { status, error, data, refetch } = useQuery({
-    queryKey: ['health'],
-    queryFn: async (): Promise<HealthPayload> => {
-      const response = await fetchWithTimeout(
-        `${getServerOrigin()}/health`,
-      )
-      const resp: HealthPayload = await response.json() as HealthPayload
-      return resp
-    }
-  })
+  const client = createClient(getApiFetchClient())
+  const { status, error, data, refetch } = client.useQuery(
+    "get",
+    "/health",
+    { headers: { Accept: 'application/json' } },
+  )
 
   return <div className="p-2">
     <h2 className="text-2xl">About</h2>
@@ -22,7 +16,7 @@ const About = () => {
     <div className='p-2'>
       <h3 className="text-xl">Health</h3>
       <p>{status}</p>
-      {error && <p>Error: {error.message}</p>}
+      {error && <div>Error: {`${error}`}</div>}
       {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
       <button onClick={() => { void refetch() }}>Re-fetch Health Status</button>
     </div>

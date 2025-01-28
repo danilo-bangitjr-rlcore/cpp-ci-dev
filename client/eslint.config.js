@@ -8,7 +8,12 @@ import pluginRouter from '@tanstack/eslint-plugin-router'
 import pluginQuery from '@tanstack/eslint-plugin-query'
 
 export default tseslint.config(
-  { ignores: ['dist', 'src/routeTree.gen.ts'] },
+  { ignores: [
+      'dist',
+      'src/routeTree.gen.ts',
+      'src/api-schema.d.ts'
+    ]
+  },
   {
     settings: { react: { version: '18.3' } },
     extends: [
@@ -43,6 +48,6 @@ export default tseslint.config(
       'react/react-in-jsx-scope': 'off',
     },
 
-      // query.configs['flat/recommended'],
+    // query.configs['flat/recommended'],
   },
 )

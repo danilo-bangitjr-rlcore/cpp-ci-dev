@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:api": "openapi-typescript http://localhost:8000/openapi.json -o ./src/api-schema.d.ts",
     "lint": "eslint .",
+    "test": "tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -14,6 +16,8 @@
     "@tanstack/react-query": "^5.65.0",
     "@tanstack/react-query-devtools": "^5.65.0",
     "@tanstack/react-router": "^1.97.23",
+    "openapi-fetch": "^0.13.4",
+    "openapi-react-query": "^0.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tailwindcss": "^4.0.0"
@@ -32,6 +36,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.14.0",
+    "openapi-typescript": "^7.6.0",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.18.2",
     "vite": "^6.0.5"
