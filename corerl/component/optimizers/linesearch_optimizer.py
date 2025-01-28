@@ -323,13 +323,11 @@ def construct_lso_search_condition(cfg: SearchConditionConfig):
 def get_optim_type(name: str):
     if name == "custom_adam":
         return CustomAdam
-    
     # convert optimizer names to match PyTorch's capitalization
     optim_map = {
         'adam': 'Adam',
         'sgd': 'SGD',
         'rms_prop': 'RMSprop'
     }
-    
     torch_name = optim_map.get(name.lower(), name)
     return getattr(torch.optim, torch_name)
