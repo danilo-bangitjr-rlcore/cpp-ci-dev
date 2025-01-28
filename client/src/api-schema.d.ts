@@ -11,13 +11,31 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Health
-         * @description Health check endpoint, returns status OK and current UTC time in isoformat.
-         */
+        /** Health */
         get: operations["health_health_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/configuration/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Gen Config File
+         * @description Return a fully structured configuration as the response.
+         *     The configuration format should be determined by an http header (application/yaml, application/json).
+         */
+        post: operations["gen_config_file_api_configuration_file_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -28,6 +46,777 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ActionScheduleConfig */
+        ActionScheduleConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "action_schedule";
+            /**
+             * Discrete Control
+             * @default ${env.discrete_control}
+             */
+            discrete_control: boolean;
+            /**
+             * Freezer Freq
+             * @default 1
+             */
+            freezer_freq: number;
+            /**
+             * Gamma
+             * @default ${experiment.gamma}
+             */
+            gamma: number;
+            /**
+             * N Updates
+             * @default 1
+             */
+            n_updates: number;
+            /**
+             * Replay Ratio
+             * @default 1
+             */
+            replay_ratio: number;
+            /**
+             * Seed
+             * @default ${experiment.seed}
+             */
+            seed: number;
+            /**
+             * Update Freq
+             * @default 1
+             */
+            update_freq: number;
+            /** Action Schedule */
+            action_schedule?: number[][];
+        };
+        /** ActivationConfig */
+        ActivationConfig: {
+            /** Name */
+            name: string;
+            /** Args */
+            args?: unknown[];
+            /** Kwargs */
+            kwargs?: Record<string, never>;
+        };
+        /** AdamConfig */
+        AdamConfig: {
+            /**
+             * Name
+             * @default adam
+             * @constant
+             */
+            name: "adam";
+            /**
+             * Lr
+             * @default 0.0001
+             */
+            lr: number;
+            /**
+             * Weight Decay
+             * @default 0
+             */
+            weight_decay: number;
+        };
+        /** AddRawConfig */
+        AddRawConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "add_raw";
+        };
+        /** AffineConfig */
+        AffineConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "affine";
+            /**
+             * Scale
+             * @default 1
+             */
+            scale: number;
+            /**
+             * Bias
+             * @default 0
+             */
+            bias: number;
+        };
+        /** AllTheTimeTCConfig */
+        AllTheTimeTCConfig: {
+            /**
+             * Name
+             * @default all-the-time
+             */
+            name: string;
+            /**
+             * Gamma
+             * @default ${experiment.gamma}
+             */
+            gamma: number;
+            /**
+             * Min N Step
+             * @default 1
+             */
+            min_n_step: number;
+            /** Max N Step */
+            max_n_step?: number | null;
+        };
+        /** BaseNNConfig */
+        BaseNNConfig: {
+            /**
+             * Name
+             * @default |???|
+             */
+            name: string;
+            base?: components["schemas"]["NNTorsoConfig"];
+            /**
+             * Head Layer Init
+             * @default Xavier
+             */
+            head_layer_init: string;
+            /**
+             * Head Activation
+             * @default |???|
+             */
+            head_activation: components["schemas"]["ActivationConfig"][][];
+            /**
+             * Head Bias
+             * @default true
+             */
+            head_bias: boolean;
+        };
+        /** BinaryConfig */
+        BinaryConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "binary";
+            /**
+             * Op
+             * @default |???|
+             * @enum {string}
+             */
+            op: "prod" | "min" | "max" | "add" | "replace";
+            /**
+             * Other
+             * @default |???|
+             */
+            other: string;
+            /** Other Xform */
+            other_xform?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
+        };
+        /**
+         * CallerCode
+         * @enum {integer}
+         */
+        CallerCode: 1 | 2 | 3;
+        /** ComparatorConfig */
+        ComparatorConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "comparator";
+            /**
+             * Op
+             * @default |???|
+             * @enum {string}
+             */
+            op: "<" | ">" | "<=" | ">=" | "==" | "!=";
+            /**
+             * Val
+             * @default 0
+             */
+            val: number;
+        };
+        /** CopyImputerConfig */
+        CopyImputerConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "copy";
+            /**
+             * Imputation Horizon
+             * @default |???|
+             */
+            imputation_horizon: number;
+        };
+        /** CountdownConfig */
+        CountdownConfig: {
+            /**
+             * Action Period
+             * Format: duration
+             * @default ${env.action_period}
+             */
+            action_period: string;
+            /**
+             * Obs Period
+             * Format: duration
+             * @default ${env.obs_period}
+             */
+            obs_period: string;
+            /**
+             * Kind
+             * @default no_countdown
+             */
+            kind: string;
+        };
+        /** CustomAdamConfig */
+        CustomAdamConfig: {
+            /**
+             * Name
+             * @default custom_adam
+             * @constant
+             */
+            name: "custom_adam";
+            /**
+             * Lr
+             * @default 0.0001
+             */
+            lr: number;
+            /**
+             * Weight Decay
+             * @default 0
+             */
+            weight_decay: number;
+        };
+        /** DeltaConfig */
+        DeltaConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "delta";
+        };
+        /** DepAsyncEnvConfig */
+        DepAsyncEnvConfig: {
+            /**
+             * Name
+             * @default dep_async_env
+             */
+            name: string;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
+            /**
+             * Discrete Control
+             * @default |???|
+             */
+            discrete_control: boolean;
+            /**
+             * Obs Period
+             * Format: duration
+             * @default |???|
+             */
+            obs_period: string;
+            /**
+             * Update Period
+             * Format: duration
+             * @default |???|
+             */
+            update_period: string;
+            /**
+             * Action Period
+             * Format: duration
+             * @default |???|
+             */
+            action_period: string;
+            /** Setpoint Ping Period */
+            setpoint_ping_period?: string | null;
+            /**
+             * Opc Conn Url
+             * @default |???|
+             */
+            opc_conn_url: string;
+            /**
+             * Opc Ns
+             * @default |???|
+             */
+            opc_ns: number;
+            /** @default |???| */
+            db: components["schemas"]["TagDBConfig"];
+            /**
+             * Action Tolerance
+             * Format: duration
+             * @default |???|
+             */
+            action_tolerance: string;
+        };
+        /** DepInteractionConfig */
+        DepInteractionConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "dep_interaction";
+            /**
+             * Historical Batch Size
+             * @default 10000
+             */
+            historical_batch_size: number;
+            /**
+             * Checkpoint Path
+             * Format: path
+             * @default outputs/checkpoints
+             */
+            checkpoint_path: string;
+            heartbeat?: components["schemas"]["HeartbeatConfig"];
+            /** Warmup Period */
+            warmup_period?: string | null;
+        };
+        /** EMAFilterConfig */
+        EMAFilterConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "exp_moving";
+            /**
+             * Alpha
+             * @default 0.99
+             */
+            alpha: number;
+            /**
+             * Tolerance
+             * @default 2
+             */
+            tolerance: number;
+            /**
+             * Warmup
+             * @default 10
+             */
+            warmup: number;
+        };
+        /** EnsembleCriticConfig */
+        EnsembleCriticConfig: {
+            /**
+             * Name
+             * @default ensemble
+             * @constant
+             */
+            name: "ensemble";
+            critic_network?: components["schemas"]["EnsembleCriticNetworkConfig"];
+            /** Critic Optimizer */
+            critic_optimizer?: components["schemas"]["RmspropConfig"] | components["schemas"]["AdamConfig"] | components["schemas"]["CustomAdamConfig"] | components["schemas"]["SgdConfig"] | components["schemas"]["LSOConfig"];
+            /** Buffer */
+            buffer?: components["schemas"]["UniformReplayBufferConfig"] | components["schemas"]["PriorityReplayBufferConfig"] | components["schemas"]["EnsembleUniformReplayBufferConfig"];
+            /**
+             * Polyak
+             * @default 0.99
+             */
+            polyak: number;
+            /**
+             * Target Sync Freq
+             * @default 1
+             */
+            target_sync_freq: number;
+            /**
+             * Discrete Control
+             * @default false
+             */
+            discrete_control: boolean;
+        };
+        /** EnsembleCriticNetworkConfig */
+        EnsembleCriticNetworkConfig: {
+            /**
+             * Name
+             * @default ensemble
+             * @constant
+             */
+            name: "ensemble";
+            /**
+             * Ensemble
+             * @default 1
+             */
+            ensemble: number;
+            bootstrap_reduct?: components["schemas"]["Reduct"];
+            policy_reduct?: components["schemas"]["Reduct"];
+            /**
+             * Vmap
+             * @default false
+             */
+            vmap: boolean;
+            base?: components["schemas"]["NNTorsoConfig"];
+        };
+        /** EnsembleUniformReplayBufferConfig */
+        EnsembleUniformReplayBufferConfig: {
+            /**
+             * Name
+             * @default ensemble_uniform
+             * @constant
+             */
+            name: "ensemble_uniform";
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
+            /**
+             * Memory
+             * @default 1000000
+             */
+            memory: number;
+            /**
+             * Batch Size
+             * @default 256
+             */
+            batch_size: number;
+            /**
+             * Combined
+             * @default true
+             */
+            combined: boolean;
+            /**
+             * Ensemble
+             * @default 10
+             */
+            ensemble: number;
+            /**
+             * Data Subset
+             * @default 0.5
+             */
+            data_subset: number;
+        };
+        /** EpsilonGreedySarsaConfig */
+        EpsilonGreedySarsaConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "epsilon_greedy_sarsa";
+            /**
+             * Discrete Control
+             * @default ${env.discrete_control}
+             */
+            discrete_control: boolean;
+            /**
+             * Freezer Freq
+             * @default 1
+             */
+            freezer_freq: number;
+            /**
+             * Gamma
+             * @default ${experiment.gamma}
+             */
+            gamma: number;
+            /**
+             * N Updates
+             * @default 1
+             */
+            n_updates: number;
+            /**
+             * Replay Ratio
+             * @default 1
+             */
+            replay_ratio: number;
+            /**
+             * Seed
+             * @default ${experiment.seed}
+             */
+            seed: number;
+            /**
+             * Update Freq
+             * @default 1
+             */
+            update_freq: number;
+            /**
+             * Ensemble Targets
+             * @default false
+             */
+            ensemble_targets: boolean;
+            /**
+             * Epsilon
+             * @default 0.1
+             */
+            epsilon: number;
+            /**
+             * Samples
+             * @default 10000
+             */
+            samples: number;
+            critic?: components["schemas"]["EnsembleCriticConfig"];
+        };
+        /** EvalConfig */
+        EvalConfig: {
+            raw_data?: components["schemas"]["RawDataEvalConfig"];
+        };
+        /** EventBusConfig */
+        EventBusConfig: {
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * Cli Connection
+             * @default tcp://localhost:5555
+             */
+            cli_connection: string;
+            /**
+             * App Connection
+             * @default inproc://corerl_app
+             */
+            app_connection: string;
+        };
+        /** ExperimentConfig */
+        ExperimentConfig: {
+            /**
+             * Debug
+             * @default false
+             */
+            debug: boolean;
+            /**
+             * Device
+             * @default cpu
+             */
+            device: string;
+            /**
+             * Exp Name
+             * @default experiment
+             */
+            exp_name: string;
+            /**
+             * Gamma
+             * @default 0.9
+             */
+            gamma: number;
+            /**
+             * Max Steps
+             * @default 200
+             */
+            max_steps: number;
+            /**
+             * Offline Steps
+             * @default 0
+             */
+            offline_steps: number;
+            /**
+             * Pipeline Batch Duration Days
+             * @default 7
+             */
+            pipeline_batch_duration_days: number;
+            /**
+             * Render
+             * @default 0
+             */
+            render: number;
+            /**
+             * Param
+             * @default
+             */
+            param: string;
+            /**
+             * Param From Hash
+             * @default false
+             */
+            param_from_hash: boolean;
+            /**
+             * Save Path
+             * @default output
+             */
+            save_path: string;
+            /**
+             * Seed
+             * @default 0
+             */
+            seed: number;
+            /**
+             * Timeout
+             * @default 1
+             */
+            timeout: number;
+            /**
+             * Run Forever
+             * @default false
+             */
+            run_forever: boolean;
+        };
+        /** GreaterThanConfig */
+        GreaterThanConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "greater_than";
+            /**
+             * Threshold
+             * @default 0
+             */
+            threshold: number;
+            /**
+             * Equal
+             * @default false
+             */
+            equal: boolean;
+        };
+        /** GreedyACConfig */
+        GreedyACConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "greedy_ac";
+            /**
+             * Discrete Control
+             * @default ${env.discrete_control}
+             */
+            discrete_control: boolean;
+            /**
+             * Freezer Freq
+             * @default 1
+             */
+            freezer_freq: number;
+            /**
+             * Gamma
+             * @default ${experiment.gamma}
+             */
+            gamma: number;
+            /**
+             * N Updates
+             * @default 1
+             */
+            n_updates: number;
+            /**
+             * Replay Ratio
+             * @default 1
+             */
+            replay_ratio: number;
+            /**
+             * Seed
+             * @default ${experiment.seed}
+             */
+            seed: number;
+            /**
+             * Update Freq
+             * @default 1
+             */
+            update_freq: number;
+            critic?: components["schemas"]["EnsembleCriticConfig"];
+            actor?: components["schemas"]["NetworkActorConfig"];
+            /**
+             * N Actor Updates
+             * @default 1
+             */
+            n_actor_updates: number;
+            /**
+             * N Critic Updates
+             * @default 1
+             */
+            n_critic_updates: number;
+            /**
+             * Average Entropy
+             * @default true
+             */
+            average_entropy: boolean;
+            /**
+             * Ensemble Targets
+             * @default false
+             */
+            ensemble_targets: boolean;
+            /**
+             * Interleave Updates
+             * @default true
+             */
+            interleave_updates: boolean;
+            /**
+             * N Sampler Updates
+             * @default 1
+             */
+            n_sampler_updates: number;
+            /**
+             * Num Samples
+             * @default 500
+             */
+            num_samples: number;
+            /**
+             * Prop Rho Mult
+             * @default 2
+             */
+            prop_rho_mult: number;
+            /**
+             * Rho
+             * @default 0.1
+             */
+            rho: number;
+            /**
+             * Share Batch
+             * @default true
+             */
+            share_batch: boolean;
+            /**
+             * Tau
+             * @default 0
+             */
+            tau: number;
+            /**
+             * Uniform Sampling Percentage
+             * @default 0.5
+             */
+            uniform_sampling_percentage: number;
+        };
+        /** GreedyIQLConfig */
+        GreedyIQLConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "greedy_iql";
+            /**
+             * Discrete Control
+             * @default ${env.discrete_control}
+             */
+            discrete_control: boolean;
+            /**
+             * Freezer Freq
+             * @default 1
+             */
+            freezer_freq: number;
+            /**
+             * Gamma
+             * @default ${experiment.gamma}
+             */
+            gamma: number;
+            /**
+             * N Updates
+             * @default 1
+             */
+            n_updates: number;
+            /**
+             * Replay Ratio
+             * @default 1
+             */
+            replay_ratio: number;
+            /**
+             * Seed
+             * @default ${experiment.seed}
+             */
+            seed: number;
+            /**
+             * Update Freq
+             * @default 1
+             */
+            update_freq: number;
+            gac?: components["schemas"]["GreedyACConfig"];
+            iql?: components["schemas"]["IQLConfig"];
+            /**
+             * Temp
+             * @default 1
+             */
+            temp: number;
+            /**
+             * Expectile
+             * @default 0.8
+             */
+            expectile: number;
+        };
         /** HealthResponse */
         HealthResponse: {
             /**
@@ -37,9 +826,1190 @@ export interface components {
             status: string;
             /**
              * Time
-             * @default 2025-01-28T00:00:25.195677+00:00
+             * @default 2025-01-28T21:28:28.747322+00:00
              */
             time: string;
+        };
+        /** HeartbeatConfig */
+        HeartbeatConfig: {
+            /**
+             * Opc Conn Url
+             * @default |???|
+             */
+            opc_conn_url: string;
+            /**
+             * Heartbeat Node Id
+             * @default |???|
+             */
+            heartbeat_node_id: string;
+            /**
+             * Heartbeat Period
+             * Format: duration
+             * @default PT5S
+             */
+            heartbeat_period: string;
+            /**
+             * Max Counter
+             * @default 1000
+             */
+            max_counter: number;
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+        };
+        /** IQLConfig */
+        IQLConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "iql";
+            /**
+             * Discrete Control
+             * @default ${env.discrete_control}
+             */
+            discrete_control: boolean;
+            /**
+             * Freezer Freq
+             * @default 1
+             */
+            freezer_freq: number;
+            /**
+             * Gamma
+             * @default ${experiment.gamma}
+             */
+            gamma: number;
+            /**
+             * N Updates
+             * @default 1
+             */
+            n_updates: number;
+            /**
+             * Replay Ratio
+             * @default 1
+             */
+            replay_ratio: number;
+            /**
+             * Seed
+             * @default ${experiment.seed}
+             */
+            seed: number;
+            /**
+             * Update Freq
+             * @default 1
+             */
+            update_freq: number;
+            critic?: components["schemas"]["EnsembleCriticConfig"];
+            actor?: components["schemas"]["NetworkActorConfig"];
+            /**
+             * N Actor Updates
+             * @default 1
+             */
+            n_actor_updates: number;
+            /**
+             * N Critic Updates
+             * @default 1
+             */
+            n_critic_updates: number;
+            /**
+             * Temp
+             * @default 1
+             */
+            temp: number;
+            /**
+             * Expectile
+             * @default 0.8
+             */
+            expectile: number;
+        };
+        /** IdentityConfig */
+        IdentityConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "identity";
+        };
+        /** IdentityFilterConfig */
+        IdentityFilterConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "identity";
+        };
+        /** IdentityImputerConfig */
+        IdentityImputerConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "identity";
+        };
+        /** InACConfig */
+        InACConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "inac";
+            /**
+             * Discrete Control
+             * @default ${env.discrete_control}
+             */
+            discrete_control: boolean;
+            /**
+             * Freezer Freq
+             * @default 1
+             */
+            freezer_freq: number;
+            /**
+             * Gamma
+             * @default ${experiment.gamma}
+             */
+            gamma: number;
+            /**
+             * N Updates
+             * @default 1
+             */
+            n_updates: number;
+            /**
+             * Replay Ratio
+             * @default 1
+             */
+            replay_ratio: number;
+            /**
+             * Seed
+             * @default ${experiment.seed}
+             */
+            seed: number;
+            /**
+             * Update Freq
+             * @default 1
+             */
+            update_freq: number;
+            critic?: components["schemas"]["EnsembleCriticConfig"];
+            actor?: components["schemas"]["NetworkActorConfig"];
+            /**
+             * N Actor Updates
+             * @default 1
+             */
+            n_actor_updates: number;
+            /**
+             * N Critic Updates
+             * @default 1
+             */
+            n_critic_updates: number;
+            /**
+             * Ensemble Targets
+             * @default false
+             */
+            ensemble_targets: boolean;
+            /**
+             * Eps
+             * @default 1e-8
+             */
+            eps: number;
+            /**
+             * Exp Threshold
+             * @default 10000
+             */
+            exp_threshold: number;
+            /**
+             * Temp
+             * @default 1
+             */
+            temp: number;
+        };
+        /** LSOConfig */
+        LSOConfig: {
+            /**
+             * Name
+             * @default lso
+             * @constant
+             */
+            name: "lso";
+            /**
+             * Lr
+             * @default 0.0001
+             */
+            lr: number;
+            /**
+             * Weight Decay
+             * @default 0
+             */
+            weight_decay: number;
+            /**
+             * Init Step Size
+             * @default 0.1
+             */
+            init_step_size: number;
+            /**
+             * Max Backtracking Steps
+             * @default 30
+             */
+            max_backtracking_steps: number;
+            /**
+             * Unit Norm Direction
+             * @default false
+             */
+            unit_norm_direction: boolean;
+            /**
+             * Fallback Step Size
+             * @default 0.0001
+             */
+            fallback_step_size: number;
+            optim?: components["schemas"]["OptimConfig"];
+            init?: components["schemas"]["LSOInitConfig"];
+            search_condition?: components["schemas"]["SearchConditionConfig"];
+        };
+        /** LSOInitConfig */
+        LSOInitConfig: {
+            /**
+             * Name
+             * @default to
+             */
+            name: string;
+            /** Args */
+            args?: unknown[];
+        };
+        /** LessThanConfig */
+        LessThanConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "less_than";
+            /**
+             * Threshold
+             * @default 0
+             */
+            threshold: number;
+            /**
+             * Equal
+             * @default false
+             */
+            equal: boolean;
+        };
+        /** LinearImputerConfig */
+        LinearImputerConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "linear";
+            /**
+             * Max Gap
+             * @default |???|
+             */
+            max_gap: number;
+        };
+        /** MainConfig */
+        MainConfig: {
+            /**
+             * Interaction
+             * @default |???|
+             */
+            interaction: components["schemas"]["SimInteractionConfig"] | components["schemas"]["DepInteractionConfig"];
+            /** Metrics */
+            metrics?: components["schemas"]["MetricsDBConfig"] | components["schemas"]["PandasMetricsConfig"];
+            event_bus?: components["schemas"]["EventBusConfig"];
+            /**
+             * Env
+             * @default |???|
+             */
+            env: components["schemas"]["SimAsyncEnvConfig"] | components["schemas"]["DepAsyncEnvConfig"];
+            /** Agent */
+            agent?: components["schemas"]["ActionScheduleConfig"] | components["schemas"]["GreedyACConfig"] | components["schemas"]["GreedyIQLConfig"] | components["schemas"]["InACConfig"] | components["schemas"]["IQLConfig"] | components["schemas"]["RandomAgentConfig"] | components["schemas"]["SACConfig"] | components["schemas"]["EpsilonGreedySarsaConfig"] | components["schemas"]["SimpleACConfig"];
+            experiment?: components["schemas"]["ExperimentConfig"];
+            pipeline?: components["schemas"]["PipelineConfig"];
+            eval?: components["schemas"]["EvalConfig"];
+            report?: components["schemas"]["ReportConfig"];
+            /**
+             * Log Files
+             * @default false
+             */
+            log_files: boolean;
+        };
+        /** MaskedAEConfig */
+        MaskedAEConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "masked-ae";
+            /**
+             * Horizon
+             * @default 10
+             */
+            horizon: number;
+            /**
+             * Proportion Missing Tolerance
+             * @default 0.5
+             */
+            proportion_missing_tolerance: number;
+            /** Trace Values */
+            trace_values?: number[];
+            /**
+             * Buffer Size
+             * @default 50000
+             */
+            buffer_size: number;
+            /**
+             * Batch Size
+             * @default 256
+             */
+            batch_size: number;
+            /**
+             * Stepsize
+             * @default 0.0001
+             */
+            stepsize: number;
+            /**
+             * Err Tolerance
+             * @default 0.001
+             */
+            err_tolerance: number;
+            /**
+             * Max Update Steps
+             * @default 100
+             */
+            max_update_steps: number;
+            /**
+             * Training Missing Perc
+             * @default 0.25
+             */
+            training_missing_perc: number;
+        };
+        /** MetricsDBConfig */
+        MetricsDBConfig: {
+            /**
+             * Drivername
+             * @default postgresql+psycopg2
+             */
+            drivername: string;
+            /**
+             * Username
+             * @default postgres
+             */
+            username: string;
+            /**
+             * Password
+             * @default password
+             */
+            password: string;
+            /**
+             * Ip
+             * @default localhost
+             */
+            ip: string;
+            /**
+             * Port
+             * @default 5432
+             */
+            port: number;
+            /**
+             * Db Name
+             * @default postgres
+             */
+            db_name: string;
+            /**
+             * Table Name
+             * @default metrics
+             */
+            table_name: string;
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "db";
+            /**
+             * Table Schema
+             * @default public
+             */
+            table_schema: string;
+            /**
+             * Lo Wm
+             * @default 10
+             */
+            lo_wm: number;
+        };
+        /** NNTorsoConfig */
+        NNTorsoConfig: {
+            /**
+             * Name
+             * @default fc
+             * @constant
+             */
+            name: "fc";
+            /**
+             * Bias
+             * @default true
+             */
+            bias: boolean;
+            /**
+             * Layer Init
+             * @default Xavier
+             */
+            layer_init: string;
+            /** Hidden */
+            hidden?: number[];
+            /** Activation */
+            activation?: components["schemas"]["ActivationConfig"][];
+        };
+        /** NetworkActorConfig */
+        NetworkActorConfig: {
+            /**
+             * Name
+             * @default network
+             * @constant
+             */
+            name: "network";
+            /**
+             * Action Min
+             * @default 0
+             */
+            action_min: number;
+            /**
+             * Action Max
+             * @default 1
+             */
+            action_max: number;
+            actor_network?: components["schemas"]["BaseNNConfig"];
+            /** Actor Optimizer */
+            actor_optimizer?: components["schemas"]["RmspropConfig"] | components["schemas"]["AdamConfig"] | components["schemas"]["CustomAdamConfig"] | components["schemas"]["SgdConfig"] | components["schemas"]["LSOConfig"];
+            /** Buffer */
+            buffer?: components["schemas"]["UniformReplayBufferConfig"] | components["schemas"]["PriorityReplayBufferConfig"] | components["schemas"]["EnsembleUniformReplayBufferConfig"];
+        };
+        /** NormalizerConfig */
+        NormalizerConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "normalize";
+            /** Min */
+            min?: number | null;
+            /** Max */
+            max?: number | null;
+            /**
+             * From Data
+             * @default true
+             */
+            from_data: boolean;
+        };
+        /** NullConfig */
+        NullConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "null";
+        };
+        /** OptimConfig */
+        OptimConfig: {
+            /**
+             * Name
+             * @default |???|
+             */
+            name: string;
+            /**
+             * Lr
+             * @default 0.0001
+             */
+            lr: number;
+            /**
+             * Weight Decay
+             * @default 0
+             */
+            weight_decay: number;
+        };
+        /** PandasMetricsConfig */
+        PandasMetricsConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "pandas";
+            /**
+             * Output Path
+             * @default metric_outputs
+             */
+            output_path: string;
+            /**
+             * Buffer Size
+             * @default 256
+             */
+            buffer_size: number;
+        };
+        /** PerTagImputerConfig */
+        PerTagImputerConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "per-tag";
+        };
+        /** PipelineConfig */
+        PipelineConfig: {
+            /** Tags */
+            tags?: components["schemas"]["TagConfig"][];
+            db?: components["schemas"]["TagDBConfig"];
+            /**
+             * Obs Period
+             * Format: duration
+             * @default ${env.obs_period}
+             */
+            obs_period: string;
+            /**
+             * Action Period
+             * Format: duration
+             * @default ${env.action_period}
+             */
+            action_period: string;
+            /** Imputer */
+            imputer?: components["schemas"]["PerTagImputerConfig"] | components["schemas"]["MaskedAEConfig"];
+            state_constructor?: components["schemas"]["SCConfig"];
+            transition_creator?: components["schemas"]["AllTheTimeTCConfig"];
+            transition_filter?: components["schemas"]["TransitionFilterConfig"];
+        };
+        /** PowerConfig */
+        PowerConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "power";
+            /**
+             * Pow
+             * @default 1
+             */
+            pow: number;
+        };
+        /** PriorityReplayBufferConfig */
+        PriorityReplayBufferConfig: {
+            /**
+             * Name
+             * @default priority
+             */
+            name: string;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
+            /**
+             * Memory
+             * @default 1000000
+             */
+            memory: number;
+            /**
+             * Batch Size
+             * @default 256
+             */
+            batch_size: number;
+            /**
+             * Combined
+             * @default true
+             */
+            combined: boolean;
+            /**
+             * Uniform Probability
+             * @default 0.01
+             */
+            uniform_probability: number;
+            /**
+             * Priority Decay
+             * @default 0.99
+             */
+            priority_decay: number;
+        };
+        /** RandomAgentConfig */
+        RandomAgentConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "random";
+            /**
+             * Discrete Control
+             * @default ${env.discrete_control}
+             */
+            discrete_control: boolean;
+            /**
+             * Freezer Freq
+             * @default 1
+             */
+            freezer_freq: number;
+            /**
+             * Gamma
+             * @default ${experiment.gamma}
+             */
+            gamma: number;
+            /**
+             * N Updates
+             * @default 1
+             */
+            n_updates: number;
+            /**
+             * Replay Ratio
+             * @default 1
+             */
+            replay_ratio: number;
+            /**
+             * Seed
+             * @default ${experiment.seed}
+             */
+            seed: number;
+            /**
+             * Update Freq
+             * @default 1
+             */
+            update_freq: number;
+        };
+        /** RawDataEvalConfig */
+        RawDataEvalConfig: {
+            /**
+             * Name
+             * @default raw_data
+             */
+            name: string;
+            /** Caller Codes */
+            caller_codes?: components["schemas"]["CallerCode"][];
+            /** Stage Codes */
+            stage_codes?: components["schemas"]["StageCode"][];
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /** Tags */
+            tags?: string[];
+        };
+        /** Reduct */
+        Reduct: {
+            /**
+             * Name
+             * @default |???|
+             */
+            name: string;
+        };
+        /** ReportConfig */
+        ReportConfig: {
+            /**
+             * Output Dir
+             * Format: path
+             * @default outputs/report
+             */
+            output_dir: string;
+            /** Stages */
+            stages?: components["schemas"]["StageCode"][];
+            /** Tags To Exclude */
+            tags_to_exclude?: unknown[];
+            /**
+             * Stat Table Enabled
+             * @default true
+             */
+            stat_table_enabled: boolean;
+            /**
+             * Cross Corr Enabled
+             * @default true
+             */
+            cross_corr_enabled: boolean;
+            /** Cross Corr Tags */
+            cross_corr_tags?: string[] | string[][] | null;
+            /**
+             * Cross Corr Max Lag
+             * @default 100
+             */
+            cross_corr_max_lag: number;
+            /**
+             * Hist Enabled
+             * @default true
+             */
+            hist_enabled: boolean;
+            /**
+             * Hist Show Mean
+             * @default true
+             */
+            hist_show_mean: boolean;
+            /** Hist Percentiles */
+            hist_percentiles?: number[];
+            /**
+             * Hist Num Bins
+             * @default 30
+             */
+            hist_num_bins: number;
+        };
+        /** RmspropConfig */
+        RmspropConfig: {
+            /**
+             * Name
+             * @default rms_prop
+             * @constant
+             */
+            name: "rms_prop";
+            /**
+             * Lr
+             * @default 0.0001
+             */
+            lr: number;
+            /**
+             * Weight Decay
+             * @default 0
+             */
+            weight_decay: number;
+        };
+        /** SACConfig */
+        SACConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "sac";
+            /**
+             * Discrete Control
+             * @default ${env.discrete_control}
+             */
+            discrete_control: boolean;
+            /**
+             * Freezer Freq
+             * @default 1
+             */
+            freezer_freq: number;
+            /**
+             * Gamma
+             * @default ${experiment.gamma}
+             */
+            gamma: number;
+            /**
+             * N Updates
+             * @default 1
+             */
+            n_updates: number;
+            /**
+             * Replay Ratio
+             * @default 1
+             */
+            replay_ratio: number;
+            /**
+             * Seed
+             * @default ${experiment.seed}
+             */
+            seed: number;
+            /**
+             * Update Freq
+             * @default 1
+             */
+            update_freq: number;
+            critic?: components["schemas"]["EnsembleCriticConfig"];
+            actor?: components["schemas"]["NetworkActorConfig"];
+            /**
+             * N Actor Updates
+             * @default 1
+             */
+            n_actor_updates: number;
+            /**
+             * N Critic Updates
+             * @default 1
+             */
+            n_critic_updates: number;
+            /**
+             * Ensemble Targets
+             * @default false
+             */
+            ensemble_targets: boolean;
+            /**
+             * N Entropy Updates
+             * @default 1
+             */
+            n_entropy_updates: number;
+            /**
+             * Tau
+             * @default -1
+             */
+            tau: number;
+            /**
+             * Lr Alpha
+             * @default 0.001
+             */
+            lr_alpha: number;
+        };
+        /** SCConfig */
+        SCConfig: {
+            /** Defaults */
+            defaults?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
+            countdown?: components["schemas"]["CountdownConfig"];
+        };
+        /** ScaleConfig */
+        ScaleConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "scale";
+            /**
+             * Factor
+             * @default 1
+             */
+            factor: number;
+        };
+        /** SearchConditionConfig */
+        SearchConditionConfig: {
+            /**
+             * Name
+             * @default Armijo
+             */
+            name: string;
+            kwargs?: components["schemas"]["SearchConditionKwargsConfig"];
+        };
+        /** SearchConditionKwargsConfig */
+        SearchConditionKwargsConfig: {
+            /**
+             * C
+             * @default 0.1
+             */
+            c: number;
+            /**
+             * Beta
+             * @default 0.9
+             */
+            beta: number;
+            /**
+             * Min Step Size
+             * @default 0
+             */
+            min_step_size: number;
+            /**
+             * Max Step Size
+             * @default 1
+             */
+            max_step_size: number;
+        };
+        /** SgdConfig */
+        SgdConfig: {
+            /**
+             * Name
+             * @default sgd
+             * @constant
+             */
+            name: "sgd";
+            /**
+             * Lr
+             * @default 0.0001
+             */
+            lr: number;
+            /**
+             * Weight Decay
+             * @default 0
+             */
+            weight_decay: number;
+        };
+        /** SimAsyncEnvConfig */
+        SimAsyncEnvConfig: {
+            /**
+             * Name
+             * @default sim_async_env
+             */
+            name: string;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
+            /**
+             * Discrete Control
+             * @default |???|
+             */
+            discrete_control: boolean;
+            /**
+             * Obs Period
+             * Format: duration
+             * @default |???|
+             */
+            obs_period: string;
+            /**
+             * Update Period
+             * Format: duration
+             * @default |???|
+             */
+            update_period: string;
+            /**
+             * Action Period
+             * Format: duration
+             * @default |???|
+             */
+            action_period: string;
+            /** Setpoint Ping Period */
+            setpoint_ping_period?: string | null;
+            /**
+             * Gym Name
+             * @default |???|
+             */
+            gym_name: string;
+            /**
+             * Init Type
+             * @default gym.make
+             */
+            init_type: ("gym.make" | "custom") | null;
+            /** Args */
+            args?: unknown[];
+            /** Kwargs */
+            kwargs?: Record<string, never>;
+        };
+        /** SimInteractionConfig */
+        SimInteractionConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "sim_interaction";
+        };
+        /** SimpleACConfig */
+        SimpleACConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "simple_ac";
+            /**
+             * Discrete Control
+             * @default ${env.discrete_control}
+             */
+            discrete_control: boolean;
+            /**
+             * Freezer Freq
+             * @default 1
+             */
+            freezer_freq: number;
+            /**
+             * Gamma
+             * @default ${experiment.gamma}
+             */
+            gamma: number;
+            /**
+             * N Updates
+             * @default 1
+             */
+            n_updates: number;
+            /**
+             * Replay Ratio
+             * @default 1
+             */
+            replay_ratio: number;
+            /**
+             * Seed
+             * @default ${experiment.seed}
+             */
+            seed: number;
+            /**
+             * Update Freq
+             * @default 1
+             */
+            update_freq: number;
+            critic?: components["schemas"]["EnsembleCriticConfig"];
+            actor?: components["schemas"]["NetworkActorConfig"];
+            /**
+             * N Actor Updates
+             * @default 1
+             */
+            n_actor_updates: number;
+            /**
+             * N Critic Updates
+             * @default 1
+             */
+            n_critic_updates: number;
+            /**
+             * Ensemble Targets
+             * @default false
+             */
+            ensemble_targets: boolean;
+            /**
+             * Tau
+             * @default 0
+             */
+            tau: number;
+        };
+        /** SplitConfig */
+        SplitConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "split";
+            /** Left */
+            left?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
+            /** Right */
+            right?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
+            /** Passthrough */
+            passthrough?: boolean | null;
+        };
+        /**
+         * StageCode
+         * @enum {integer}
+         */
+        StageCode: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+        /**
+         * TagConfig
+         * @description This is the configuration for our OPC tags. A tag is roughly equivalent to a variable that is sent and received
+         *     through an OPC server. It is typically a single primative datatype (e.g. float).
+         *
+         *     From `PR#335 Discussion <https://github.com/rlcoretech/core-rl/pull/335#discussion_r1898067439>`_ a tag *may*
+         *     simultaneously represent both an observation, a reward, and possibly also an action.
+         */
+        TagConfig: {
+            /**
+             * Name
+             * @default |???|
+             */
+            name: string;
+            /** Node Identifier */
+            node_identifier?: string | null;
+            /**
+             * Is Meta
+             * @default false
+             */
+            is_meta: boolean;
+            /**
+             * Is Endogenous
+             * @default true
+             */
+            is_endogenous: boolean;
+            /** Operating Range */
+            operating_range?: [
+                number | null,
+                number | null
+            ] | null;
+            /** Red Bounds */
+            red_bounds?: [
+                number | null,
+                number | null
+            ] | null;
+            /** Yellow Bounds */
+            yellow_bounds?: [
+                number | null,
+                number | null
+            ] | null;
+            /** Outlier */
+            outlier?: components["schemas"]["EMAFilterConfig"] | components["schemas"]["IdentityFilterConfig"];
+            /** Imputer */
+            imputer?: components["schemas"]["IdentityImputerConfig"] | components["schemas"]["CopyImputerConfig"] | components["schemas"]["LinearImputerConfig"];
+            /** Preprocess */
+            preprocess?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
+            /** Reward Constructor */
+            reward_constructor?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
+            /** Action Constructor */
+            action_constructor?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[] | null;
+            /** State Constructor */
+            state_constructor?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[] | null;
+            /** Filter */
+            filter?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[] | null;
+        };
+        /** TagDBConfig */
+        TagDBConfig: {
+            /**
+             * Drivername
+             * @default postgresql+psycopg2
+             */
+            drivername: string;
+            /**
+             * Username
+             * @default postgres
+             */
+            username: string;
+            /**
+             * Password
+             * @default password
+             */
+            password: string;
+            /**
+             * Ip
+             * @default localhost
+             */
+            ip: string;
+            /**
+             * Port
+             * @default 5432
+             */
+            port: number;
+            /**
+             * Db Name
+             * @default postgres
+             */
+            db_name: string;
+            /**
+             * Table Name
+             * @default sensors
+             */
+            table_name: string;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Table Schema
+             * @default public
+             */
+            table_schema: string;
+            /**
+             * Data Agg
+             * @default avg
+             * @enum {string}
+             */
+            data_agg: "avg" | "last" | "bool_or";
+        };
+        /** TraceConfig */
+        TraceConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "multi_trace";
+            /** Trace Values */
+            trace_values?: number[];
+        };
+        /** TransitionFilterConfig */
+        TransitionFilterConfig: {
+            /** Filters */
+            filters?: components["schemas"]["TransitionFilterType"][];
+        };
+        TransitionFilterType: "only_dp" | "only_no_action_change" | "only_post_dp" | "no_nan";
+        /** UniformReplayBufferConfig */
+        UniformReplayBufferConfig: {
+            /**
+             * Name
+             * @default uniform
+             * @constant
+             */
+            name: "uniform";
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
+            /**
+             * Memory
+             * @default 1000000
+             */
+            memory: number;
+            /**
+             * Batch Size
+             * @default 256
+             */
+            batch_size: number;
+            /**
+             * Combined
+             * @default true
+             */
+            combined: boolean;
         };
     };
     responses: never;
@@ -75,6 +2045,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
+                };
+            };
+        };
+    };
+    gen_config_file_api_configuration_file_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MainConfig"];
+                "application/yaml": components["schemas"]["MainConfig"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MainConfig"];
+                    "application/yaml": components["schemas"]["MainConfig"];
+                };
+            };
+            /** @description Bad Request Error */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };
