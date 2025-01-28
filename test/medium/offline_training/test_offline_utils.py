@@ -1,10 +1,8 @@
 import datetime as dt
-from typing import Generator
 
 import numpy as np
 import pandas as pd
 import pytest
-from docker.models.containers import Container
 from sqlalchemy import Engine
 from torch import Tensor
 
@@ -37,22 +35,25 @@ from corerl.state import AppState
 from test.infrastructure.utils.docker import init_docker_container  # noqa: F401
 
 
-@pytest.fixture(scope="module")
-def test_db_config() -> TagDBConfig:
+@pytest.fixture()
+def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> TagDBConfig:
+    port = tsdb_engine.url.port
+    assert port is not None
+
     db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",
         username="postgres",
         password="password",
         ip="localhost",
-        port=5432,  # default is 5432, but we want to use different port for test db
-        db_name="offline_test",
+        port=port,
+        db_name=tsdb_tmp_db_name,
         table_name="tags",
     )
 
     return db_cfg
 
-@pytest.fixture(scope="module")
-def data_writer(tsdb_container: Container, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]: # noqa: F811, E501
+@pytest.fixture()
+def data_writer(test_db_config: TagDBConfig):
     data_writer = DataWriter(cfg=test_db_config)
 
     yield data_writer
@@ -68,6 +69,8 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     cfg = MainConfig(
         metrics=MetricsDBConfig(
             enabled=True,
+            port=test_db_config.port,
+            db_name=test_db_config.db_name,
         ),
         eval=EvalConfig(
             monte_carlo=MonteCarloEvalConfig(
@@ -219,17 +222,16 @@ def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: Offl
 def test_offline_training(offline_cfg: MainConfig,
                           offline_trainer: OfflineTraining,
                           data_writer: DataWriter,
-                          tsdb_engine: Engine,
-                          tsdb_tmp_db_name: str):
+                          tsdb_engine: Engine):
     """
     Generate a few offline time steps, write them to TSDB, read the data from TSDB into a dataframe,
     pass data through the 'Anytime' data pipeline, train an agent on the produced transitions,
     and ensure the critic's training loss decreases
     """
-    assert isinstance(offline_cfg.metrics, MetricsDBConfig)
-    assert isinstance(tsdb_engine.url.port, int)
-    offline_cfg.metrics.port = tsdb_engine.url.port
-    offline_cfg.metrics.db_name = tsdb_tmp_db_name
+    # assert isinstance(offline_cfg.metrics, MetricsDBConfig)
+    # assert isinstance(tsdb_engine.url.port, int)
+    # offline_cfg.metrics.port = tsdb_engine.url.port
+    # offline_cfg.metrics.db_name = tsdb_tmp_db_name
 
     steps = 5
 
