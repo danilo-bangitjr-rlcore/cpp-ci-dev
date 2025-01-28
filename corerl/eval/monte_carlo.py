@@ -151,7 +151,7 @@ class MonteCarloEvaluator:
         if self.enabled:
             states = self.pipe_return.states
             taken_actions = self.pipe_return.actions
-            rewards = self.pipe_return.rewards
+            rewards = self.pipe_return.rewards.to_numpy().astype(np.float32)
             # To get the action taken and the reward observed from the given state,
             # need to offset actions and rewards by one obs_period with respect to the state
             taken_actions = taken_actions[1:]
@@ -159,7 +159,7 @@ class MonteCarloEvaluator:
             for i in range(len(rewards)):
                 state = tensor(states.iloc[i].to_numpy())
                 observed_a = tensor(taken_actions.iloc[i].to_numpy())
-                reward = float(rewards.iloc[i])
+                reward: float = float(rewards[i])
                 # Can't compute partial returns or evaluate critic if there are nans in the state, action, or reward
                 if any([np.isnan(t).any() for t in [state, observed_a, reward]]):
                     self._reset_queues()
@@ -180,6 +180,11 @@ class MonteCarloEvaluator:
                 partial_return = self._get_partial_return(reward)
 
                 if all(v is not None for v in [timestamp, state_v, observed_a_q, partial_return]):
+                    assert timestamp is not None
+                    assert agent_step is not None
+                    assert state_v is not None
+                    assert observed_a_q is not None
+                    assert partial_return is not None
                     self._write_metrics(iter_num, timestamp, agent_step, state_v, observed_a_q, partial_return)
 
                 self.agent_step += 1
