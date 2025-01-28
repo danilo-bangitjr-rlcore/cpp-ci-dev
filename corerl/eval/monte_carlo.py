@@ -18,8 +18,8 @@ from corerl.state import AppState
 @config()
 class MonteCarloEvalConfig(BaseEvalConfig):
     name: str = "monte-carlo"
-    caller_codes: list[CallerCode] = field(default_factory=lambda:[])
-    stage_codes: list[StageCode] = field(default_factory=lambda:[])
+    caller_codes: list[CallerCode] = field(default_factory=list)
+    stage_codes: list[StageCode] = field(default_factory=list)
     enabled: bool = False
     gamma: float = interpolate('${experiment.gamma}')
     precision: float = 0.99 # Monte-Carlo return within 'precision'% of the true return (can't compute infinite sum)
@@ -151,7 +151,7 @@ class MonteCarloEvaluator:
         if self.enabled:
             states = self.pipe_return.states
             taken_actions = self.pipe_return.actions
-            rewards = self.pipe_return.rewards.to_numpy().astype(np.float32)
+            rewards = self.pipe_return.rewards.to_numpy().astype(np.float32).flatten()
             # To get the action taken and the reward observed from the given state,
             # need to offset actions and rewards by one obs_period with respect to the state
             taken_actions = taken_actions[1:]
