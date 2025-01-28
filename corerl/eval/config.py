@@ -24,4 +24,3 @@ def register_evals(cfg: EvalConfig, agent: BaseAgent, pipeline: Pipeline, app_st
         cfg.raw_data.stage_codes,
         partial(raw_data_eval, cfg.raw_data, app_state)
     )
-

@@ -1,11 +1,11 @@
 import pickle as pkl
 import random
-from dataclasses import field
 from pathlib import Path
 from typing import Literal
 
 import numpy
 import torch
+from pydantic import Field
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.component.buffer.factory import init_buffer
@@ -27,7 +27,7 @@ class EpsilonGreedySarsaConfig(BaseAgentConfig):
     epsilon: float = 0.1
     samples: int = 10_000
 
-    critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
+    critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
 
 
 class EpsilonGreedySarsa(BaseAgent):

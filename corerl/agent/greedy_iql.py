@@ -1,7 +1,8 @@
 import pickle as pkl
-from dataclasses import field
 from pathlib import Path
 from typing import Literal
+
+from pydantic import Field
 
 from corerl.agent.base import BaseAgentConfig
 from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig
@@ -15,8 +16,8 @@ from corerl.state import AppState
 class GreedyIQLConfig(BaseAgentConfig):
     name: Literal['greedy_iql'] = 'greedy_iql'
 
-    gac: GreedyACConfig = field(default_factory=GreedyACConfig)
-    iql: IQLConfig = field(default_factory=IQLConfig)
+    gac: GreedyACConfig = Field(default_factory=GreedyACConfig)
+    iql: IQLConfig = Field(default_factory=IQLConfig)
 
     temp: float = 1.0
     expectile: float = 0.8
