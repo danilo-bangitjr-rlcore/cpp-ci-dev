@@ -302,7 +302,13 @@ class GreedyAC(BaseAC):
         if not self.cfg.delta_action:
             return next_action
 
-        direct_action = action + next_action
+        bounds = self.cfg.delta_bounds
+        assert bounds is not None, 'Delta actions are enabled, however the agent has no delta bounds'
+        scale = (bounds[1] - bounds[0])
+        bias = bounds[0]
+
+        delta = scale * next_action + bias
+        direct_action = action + delta
 
         # because we are always operating in normalized space,
         # we can hardcode the spatial constraints

@@ -20,6 +20,7 @@ class BaseAgentConfig:
     name: Any = MISSING
 
     delta_action: bool = False
+    delta_bounds: tuple[float, float] | None = None
     discrete_control: bool = interpolate('${env.discrete_control}')
     freezer_freq: int = 1
     gamma: float = interpolate('${experiment.gamma}')
