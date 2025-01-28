@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Sequence
+from typing import Literal
 
 import numpy as np
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 @config()
 class PriorityReplayBufferConfig(BaseReplayBufferConfig):
-    name: str = "priority"
+    name: Literal['priority'] = "priority"
 
     uniform_probability: float = 0.01
     priority_decay: float = 0.99
