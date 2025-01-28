@@ -228,11 +228,6 @@ def test_offline_training(offline_cfg: MainConfig,
     pass data through the 'Anytime' data pipeline, train an agent on the produced transitions,
     and ensure the critic's training loss decreases
     """
-    # assert isinstance(offline_cfg.metrics, MetricsDBConfig)
-    # assert isinstance(tsdb_engine.url.port, int)
-    # offline_cfg.metrics.port = tsdb_engine.url.port
-    # offline_cfg.metrics.db_name = tsdb_tmp_db_name
-
     steps = 5
 
     generate_offline_data(offline_cfg, offline_trainer, data_writer, steps)
