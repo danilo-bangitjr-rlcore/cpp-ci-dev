@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 import pytest
 from docker.models.containers import Container
-from torch import Tensor
 from sqlalchemy import Engine
+from torch import Tensor
 
 from corerl.agent.factory import init_agent
 from corerl.agent.greedy_ac import GreedyACConfig
@@ -14,7 +14,7 @@ from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer.uniform import UniformReplayBufferConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.optimizers.torch_opts import AdamConfig
-from corerl.config import MainConfig, MetricsDBConfig
+from corerl.config import MainConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
 from corerl.data_pipeline.datatypes import CallerCode, Step, Transition
@@ -28,7 +28,7 @@ from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.monte_carlo import MonteCarloEvalConfig
-from corerl.eval.writer import metrics_group
+from corerl.eval.writer import metrics_group, MetricsDBConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.messages.event_bus import EventBus
 from corerl.offline.utils import OfflineTraining
@@ -50,15 +50,6 @@ def test_db_config() -> TagDBConfig:
     )
 
     return db_cfg
-
-
-# @pytest.fixture(scope="module")
-# def tsdb_container():
-#     container = init_docker_container()
-#     yield container
-#     container.stop()
-#     container.remove()
-
 
 @pytest.fixture(scope="module")
 def data_writer(tsdb_container: Container, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]: # noqa: F811, E501
@@ -235,6 +226,8 @@ def test_offline_training(offline_cfg: MainConfig,
     pass data through the 'Anytime' data pipeline, train an agent on the produced transitions,
     and ensure the critic's training loss decreases
     """
+    assert isinstance(offline_cfg.metrics, MetricsDBConfig)
+    assert isinstance(tsdb_engine.url.port, int)
     offline_cfg.metrics.port = tsdb_engine.url.port
     offline_cfg.metrics.db_name = tsdb_tmp_db_name
 
