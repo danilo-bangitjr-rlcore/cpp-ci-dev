@@ -30,7 +30,7 @@ class MonteCarloEvaluator:
     as well as under the observed action to compare against the observed partial returns.
     """
 
-    def __init__(self, cfg: MonteCarloEvalConfig, app_state: AppState, agent: BaseAgent, pipe_return: PipelineReturn):
+    def __init__(self, cfg: MonteCarloEvalConfig, app_state: AppState, agent: BaseAgent):
         self.cfg = cfg
         self.enabled = cfg.enabled
 
@@ -54,9 +54,6 @@ class MonteCarloEvaluator:
         self.agent_step = 0
         self.app_state = app_state
         self.agent = cast(BaseAC, agent)
-        assert len(pipe_return.states) > 0, \
-            "Monte-Carlo Evaluator must have states, actions, and rewards dataframes with one or more entries"
-        self.pipe_return: PipelineReturn = pipe_return
 
     def _reset_queues(self):
         self.timestamps = deque(maxlen=self.return_steps)
@@ -148,13 +145,13 @@ class MonteCarloEvaluator:
                                      timestamp=timestamp,
                                      agent_step=agent_step)
 
-    def __call__(self, iter_num: int):
+    def __call__(self, iter_num: int, pipe_return: PipelineReturn):
         if not self.enabled or iter_num not in self.cfg.offline_eval_steps:
             return
 
-        states = self.pipe_return.states
-        taken_actions = self.pipe_return.actions
-        rewards = self.pipe_return.rewards.to_numpy().astype(np.float32).flatten()
+        states = pipe_return.states
+        taken_actions = pipe_return.actions
+        rewards = pipe_return.rewards.to_numpy().astype(np.float32).flatten()
         # To get the action taken and the reward observed from the given state,
         # need to offset actions and rewards by one obs_period with respect to the state
         taken_actions = taken_actions[1:]
