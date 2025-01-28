@@ -9,7 +9,7 @@ from discrete_dists.uniform import Uniform
 
 from corerl.component.buffer.base import BaseReplayBufferConfig, ReplayBuffer, buffer_group
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import Transition
+from corerl.data_pipeline.datatypes import DataMode, Transition
 
 logger = logging.getLogger(__name__)
 
@@ -42,16 +42,16 @@ class PriorityBuffer(ReplayBuffer):
         return self._idx_dist.stratified_sample(self.rng, self.batch_size)
 
 
-    def feed(self, transitions: Sequence[Transition]):
-        idxs = super().feed(transitions)
+    def feed(self, transitions: Sequence[Transition], data_mode: DataMode):
+        idxs = super().feed(transitions, data_mode)
         priorities = np.ones(len(idxs)) * self._max_priority
         self._idx_dist.update(idxs, priorities)
 
         return idxs
 
 
-    def load(self, transitions: Sequence[Transition]):
-        idxs = super().load(transitions)
+    def load(self, transitions: Sequence[Transition], data_mode: DataMode):
+        idxs = super().load(transitions, data_mode)
         priorities = np.ones(len(idxs)) * self._max_priority
         self._idx_dist.update(idxs, priorities)
 

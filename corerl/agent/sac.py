@@ -53,10 +53,10 @@ class SAC(BaseAC):
         if pr.transitions is None:
             return
 
-        self.critic_buffer.feed(pr.transitions)
+        self.critic_buffer.feed(pr.transitions, pr.data_mode)
         self.policy_buffer.feed([
             t for t in pr.transitions if t.prior.dp
-        ])
+        ], pr.data_mode)
 
     def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)

@@ -44,7 +44,7 @@ class EpsilonGreedySarsa(BaseAgent):
         if pr.transitions is None:
             return
 
-        self.critic_buffer.feed(pr.transitions)
+        self.critic_buffer.feed(pr.transitions, pr.data_mode)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device.device)
