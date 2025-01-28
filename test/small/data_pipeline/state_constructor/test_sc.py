@@ -66,7 +66,7 @@ def test_norm_sc():
             TagConfig(
                 name='tag-1',
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     TraceConfig(trace_values=[0.1, 0.01]),
                 ],
             ),
@@ -150,7 +150,7 @@ def test_sc_integration1():
         ],
         cfg=SCConfig(
             defaults=[
-                NormalizerConfig(),
+                NormalizerConfig(from_data=True),
                 SplitConfig(
                     left=[TraceConfig(trace_values=[0.1])],
                     right=[AddRawConfig()],
@@ -193,7 +193,7 @@ def test_sc_integration2():
             TagConfig(
                 name='tag-1',
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     SplitConfig(
                         left=[TraceConfig(trace_values=[0.1])],
                         right=[AddRawConfig()],
@@ -241,7 +241,7 @@ def test_sc_integration3():
         ],
         cfg=SCConfig(
             defaults=[
-                NormalizerConfig(),
+                NormalizerConfig(from_data=True),
                 SplitConfig(
                     left=[TraceConfig(trace_values=[0.1])],
                     right=[AddRawConfig()],
@@ -285,7 +285,7 @@ def test_sc_integration4():
         ],
         cfg=SCConfig(
             defaults=[
-                NormalizerConfig(),
+                NormalizerConfig(from_data=True),
                 SplitConfig(
                     left=[TraceConfig(trace_values=[0.1])],
                     right=[TraceConfig(trace_values=[0.01])],
@@ -338,7 +338,7 @@ def test_sc_decision_point_detection():
         ],
         cfg=SCConfig(
             defaults=[
-                NormalizerConfig(),
+                NormalizerConfig(from_data=True),
             ],
             countdown=CountdownConfig(
                 kind='int',

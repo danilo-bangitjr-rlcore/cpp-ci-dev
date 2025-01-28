@@ -38,9 +38,10 @@ def test_pipeline1():
             TagConfig(
                 name='tag-2',
                 operating_range=(None, 10),
+                red_bounds=(-1, None),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     TraceConfig(trace_values=[0.1]),
                 ],
                 is_endogenous=True
@@ -175,6 +176,7 @@ def test_pipeline2():
             ),
             TagConfig(
                 name='tag-2',
+                preprocess=[NormalizerConfig(from_data=True)],
                 operating_range=(None, 12),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[

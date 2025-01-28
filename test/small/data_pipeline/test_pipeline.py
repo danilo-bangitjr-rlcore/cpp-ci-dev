@@ -46,8 +46,8 @@ def test_construct_pipeline():
 def test_passing_data_to_pipeline():
     cfg = PipelineConfig(
         tags=[
-            TagConfig(name='sensor_x', operating_range=(-3, 3)),
-            TagConfig(name='sensor_y', red_bounds=(1.1, 3.3)),
+            TagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_x', operating_range=(-3, 3)),
+            TagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_y', red_bounds=(1.1, 3.3)),
         ],
         obs_period=timedelta(minutes=15),
         action_period=timedelta(minutes=15),
@@ -58,6 +58,7 @@ def test_passing_data_to_pipeline():
             max_n_step=30
         ),
         state_constructor=SCConfig(
+            defaults=[NormalizerConfig(from_data=True)],
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=15),
                 obs_period=timedelta(minutes=15),
@@ -82,14 +83,14 @@ def test_passing_data_to_pipeline():
 def test_state_action_dim():
     cfg = PipelineConfig(
         tags=[
-            TagConfig(name='tag-1'),
+            TagConfig(preprocess=[NormalizerConfig(from_data=True)], name='tag-1'),
             TagConfig(
                 name='tag-2',
                 operating_range=(None, 10),
                 yellow_bounds=(-1, None),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     TraceConfig(trace_values=[0.1, 0.9]),
                 ],
             ),
@@ -125,14 +126,16 @@ def test_sub_pipeline1():
         tags=[
             TagConfig(
                 name='tag-1',
+                preprocess=[NormalizerConfig(from_data=True)],
                 state_constructor=[],
             ),
             TagConfig(
                 name='tag-2',
                 operating_range=(None, 10),
+                preprocess=[NormalizerConfig(from_data=True)],
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     TraceConfig(trace_values=[0.1]),
                 ],
             ),
@@ -144,6 +147,7 @@ def test_sub_pipeline1():
             max_n_step=30
         ),
         state_constructor=SCConfig(
+            defaults=[NormalizerConfig(from_data=True)],
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=5),
                 obs_period=timedelta(minutes=5),
@@ -205,14 +209,16 @@ def test_sub_pipeline2():
         tags=[
             TagConfig(
                 name='tag-1',
+                preprocess=[NormalizerConfig(from_data=True)],
                 state_constructor=[],
             ),
             TagConfig(
                 name='tag-2',
                 operating_range=(1, 2),
+                preprocess=[NormalizerConfig(from_data=True)],
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     TraceConfig(trace_values=[0.1]),
                 ],
             ),
@@ -224,6 +230,7 @@ def test_sub_pipeline2():
             max_n_step=30
         ),
         state_constructor=SCConfig(
+            defaults=[NormalizerConfig(from_data=True)],
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=5),
                 obs_period=timedelta(minutes=5),
@@ -296,7 +303,7 @@ def test_sub_pipeline3():
             TagConfig(
                 name='tag-2',
                 operating_range=(0, 10),
-                preprocess=[NormalizerConfig()],
+                preprocess=[NormalizerConfig(from_data=True)],
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
                     TraceConfig(trace_values=[0.1]),
@@ -396,7 +403,7 @@ def test_sub_pipeline4():
                 imputer=LinearImputerConfig(max_gap=2),
                 preprocess=[],
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     TraceConfig(trace_values=[0.1]),
                 ],
             ),
