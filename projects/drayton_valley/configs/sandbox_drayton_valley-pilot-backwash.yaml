@@ -150,7 +150,7 @@ pipeline:
       - 0.9
 
   - name: FTC101.DATA # raw cdom
-    operating_range: [1, 4]
+    operating_range: [0, 5]
     outlier:
       name: identity
     imputer:
@@ -163,7 +163,7 @@ pipeline:
       - 0.9
 
   - name: FTT100.DATA # raw tryptophan
-    operating_range: [0, 0.7]
+    operating_range: [0, 5]
     outlier:
       name: identity
     imputer:
