@@ -59,6 +59,8 @@ class PipelineReturn:
     transitions: list[Transition] | None
 
     def _add(self, other: Self) -> Tuple[DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
+        assert self.caller_code == other.caller_code, "PipelineReturn objects must have the same CallerCode to be added"
+
         df = pd.concat([self.df, other.df])
         states = pd.concat([self.states, other.states])
         actions = pd.concat([self.actions, other.actions])
@@ -73,7 +75,6 @@ class PipelineReturn:
         return df, states, actions, rewards, transitions
 
     def __iadd__(self, other: Self):
-        assert self.caller_code == other.caller_code, "PipelineReturn objects must have the same CallerCode to be added"
         df, states, actions, rewards, transitions = self._add(other)
 
         self.df = df
@@ -85,7 +86,6 @@ class PipelineReturn:
         return self
 
     def __add__(self, other: Self):
-        assert self.caller_code == other.caller_code, "PipelineReturn objects must have the same CallerCode to be added"
         df, states, actions, rewards, transitions = self._add(other)
 
         return PipelineReturn(self.caller_code, df, states, actions, rewards, transitions)
