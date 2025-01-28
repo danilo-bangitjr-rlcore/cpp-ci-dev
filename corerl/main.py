@@ -100,7 +100,7 @@ def main(cfg: MainConfig):
         sys.exit(os.EX_SOFTWARE)
 
     finally:
-        app_state.metrics.close()
+        app_state.metrics_writer.close()
         env.cleanup()
         event_bus.cleanup()
 

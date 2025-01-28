@@ -243,7 +243,7 @@ class DeploymentInteraction(Interaction):
 
         for feat_name in state_df.columns:
             val = state_df[feat_name].values[0]
-            self._app_state.metrics.write(
+            self._app_state.metrics_writer.write(
                 agent_step=self._app_state.agent_step,
                 metric=feat_name,
                 value=val,

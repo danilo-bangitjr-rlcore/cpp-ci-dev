@@ -2,7 +2,7 @@ import logging
 import os
 import shutil
 from collections import defaultdict
-from typing import Literal, NamedTuple, Protocol, Any
+from typing import Literal, NamedTuple, Protocol
 
 import pandas as pd
 from pydantic import Field

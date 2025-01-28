@@ -50,7 +50,7 @@ class SimInteraction(Interaction):
         assert pr.transitions is not None
         r = self._get_latest_reward()
         assert r is not None
-        self._app_state.metrics.write(
+        self._app_state.metrics_writer.write(
             agent_step=self._app_state.agent_step,
             metric='reward',
             value=r,

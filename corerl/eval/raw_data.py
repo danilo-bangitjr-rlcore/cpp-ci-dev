@@ -95,7 +95,7 @@ def raw_data_eval(
         else:
             stat_dict = raw_data_eval_for_tag(df, tag)
             for stat_name, stat_value in stat_dict.items():
-                app_state.metrics.write(
+                app_state.metrics_writer.write(
                     agent_step=app_state.agent_step,
                     metric=f'{tag}_{stat_name}',
                     value=stat_value,
