@@ -8,7 +8,7 @@ from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
-from corerl.eval.writer import MetricsConfig, MetricsDBConfig
+from corerl.eval.metrics_writer import MetricsConfig, MetricsDBConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.interaction.factory import InteractionConfig
 from corerl.messages.factory import EventBusConfig

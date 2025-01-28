@@ -26,7 +26,7 @@ from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.monte_carlo import MonteCarloEvalConfig
-from corerl.eval.writer import MetricsDBConfig, metrics_group
+from corerl.eval.metrics_writer import MetricsDBConfig, metrics_group
 from corerl.experiment.config import ExperimentConfig
 from corerl.messages.event_bus import EventBus
 from corerl.offline.utils import OfflineTraining

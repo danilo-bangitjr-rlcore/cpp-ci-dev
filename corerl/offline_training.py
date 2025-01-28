@@ -9,7 +9,7 @@ from corerl.agent.factory import init_agent
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.eval.writer import metrics_group
+from corerl.eval.metrics_writer import metrics_group
 from corerl.messages.event_bus import EventBus
 from corerl.offline.utils import OfflineTraining
 from corerl.state import AppState

@@ -1,5 +1,5 @@
 
-from corerl.eval.writer import MetricsWriterProtocol
+from corerl.eval.metrics_writer import MetricsWriterProtocol
 from corerl.messages.event_bus import EventBus
 
 
