@@ -1,5 +1,3 @@
-import json
-
 import pandas as pd
 from sqlalchemy import Engine
 
@@ -20,16 +18,15 @@ def test_db_eval_writer(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     eval_out = {"Q": [1, 2, 3]}
     eval_writer.write(agent_step=0,
                       evaluator="q_eval",
-                      value=json.dumps(eval_out),
+                      value=eval_out,
                       timestamp=now_iso())
 
-    # ensure metrics table exists
-    assert table_exists(tsdb_engine, 'evaluations')
+    # ensure evals table exists
+    assert table_exists(tsdb_engine, 'evals')
 
-    # Ensure the entry written above exists in the eval table
+    # Ensure the entry written above exists in the evals table
     with tsdb_engine.connect() as conn:
-        evaluations = pd.read_sql_table('evaluations', con=conn)
-
+        evaluations = pd.read_sql_table('evals', con=conn)
         assert len(evaluations) == 1
 
         entry = evaluations.iloc[0]
@@ -37,7 +34,5 @@ def test_db_eval_writer(tsdb_engine: Engine, tsdb_tmp_db_name: str):
         assert entry["evaluator"] == "q_eval"
 
         val = entry["value"]
-        assert isinstance(val, str)
-        json_val = json.loads(val)
-        assert "Q" in json_val
-        assert json_val["Q"] == [1,2,3]
+        assert "Q" in val
+        assert val["Q"] == [1,2,3]

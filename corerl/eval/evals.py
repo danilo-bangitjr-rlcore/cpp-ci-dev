@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import shutil
@@ -18,7 +19,7 @@ log = logging.getLogger(__name__)
 
 
 class EvalWriterProtocol(Protocol):
-    def write(self, agent_step: int, evaluator: str, value: str, timestamp: str | None = None):
+    def write(self, agent_step: int, evaluator: str, value: object, timestamp: str | None = None):
         ...
     def close(self)-> None:
         ...
@@ -28,14 +29,14 @@ class _EvalPoint(NamedTuple):
     timestamp: str
     agent_step: int
     evaluator: str
-    value: str # jsonb
+    value: object # jsonb
 
 
 @config()
 class EvalDBConfig(BufferedWriterConfig):
     name: Literal['db'] = 'db'
     db_name: str = 'postgres'
-    table_name: str = 'evaluations'
+    table_name: str = 'evals'
     table_schema: str = 'public'
     lo_wm: int = 10
     enabled: bool = False
@@ -61,7 +62,7 @@ class EvalWriter(BufferedWriter[_EvalPoint]):
                 time TIMESTAMP WITH time zone NOT NULL,
                 agent_step INTEGER NOT NULL,
                 evaluator text NOT NULL,
-                value text NOT NULL
+                value jsonb NOT NULL
             );
             SELECT create_hypertable('{self.cfg.table_name}', 'time', chunk_time_interval => INTERVAL '1d');
             CREATE INDEX evaluator_idx ON {self.cfg.table_name} (evaluator);
@@ -80,7 +81,7 @@ class EvalWriter(BufferedWriter[_EvalPoint]):
         """)
 
 
-    def write(self, agent_step: int, evaluator: str, value: str, timestamp: str | None = None):
+    def write(self, agent_step: int, evaluator: str, value: object, timestamp: str | None = None):
         if not self.cfg.enabled:
             return
 
@@ -88,7 +89,7 @@ class EvalWriter(BufferedWriter[_EvalPoint]):
             timestamp=timestamp or now_iso(),
             agent_step=agent_step,
             evaluator=evaluator,
-            value=value,
+            value=json.dumps(value),
         )
 
         try:
@@ -120,12 +121,12 @@ class PandasEvalWriter():
 
         os.makedirs(self.output_path, exist_ok=True)
 
-    def write(self, agent_step: int, evaluator: str, value: str, timestamp: str | None = None):
+    def write(self, agent_step: int, evaluator: str, value: object, timestamp: str | None = None):
         point = _EvalPoint(
             timestamp=timestamp or now_iso(),
             agent_step=agent_step,
             evaluator=evaluator,
-            value=value,
+            value=json.dumps(value),
         )
 
         self.buffer[evaluator].append(point)
