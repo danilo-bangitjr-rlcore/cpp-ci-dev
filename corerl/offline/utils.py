@@ -9,7 +9,8 @@ from corerl.agent.base import BaseAgent
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import CallerCode
 from corerl.data_pipeline.db.data_reader import DataReader
-from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
+from corerl.data_pipeline.pipeline import ColumnDescriptions, Pipeline, PipelineReturn
+from corerl.eval.actor_critic import ActorCriticEval
 from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.state import AppState
 from corerl.utils.time import split_into_chunks
@@ -81,7 +82,7 @@ class OfflineTraining:
             else:
                 self.pipeline_out = chunk_pr
 
-    def train(self, app_state: AppState, agent: BaseAgent):
+    def train(self, app_state: AppState, agent: BaseAgent, column_desc: ColumnDescriptions):
         assert self.pipeline_out is not None
         assert self.pipeline_out.transitions is not None
         assert len(self.pipeline_out.transitions) > 0, (
@@ -89,6 +90,8 @@ class OfflineTraining:
         )
         log.info("Starting offline agent training...")
 
+        ac_eval = ActorCriticEval(self.cfg.eval_cfgs.actor_critic, app_state, agent, column_desc)
+        ac_eval.get_test_states(self.pipeline_out.transitions)
         mc_eval = MonteCarloEvaluator(self.cfg.eval_cfgs.monte_carlo, app_state, agent, self.pipeline_out)
 
         agent.load_buffer(self.pipeline_out)
@@ -99,6 +102,7 @@ class OfflineTraining:
         pbar = tqdm(range(self.offline_steps))
         for i in pbar:
             if i in self.cfg.experiment.offline_eval_iters:
+                ac_eval.execute_offline(i)
                 mc_eval(i)
 
             critic_loss = agent.update()
