@@ -37,7 +37,7 @@ class MetricsDBConfig(BufferedWriterConfig):
     db_name: str = 'postgres'
     table_name: str = 'metrics'
     table_schema: str = 'public'
-    lo_wm: int = 10
+    lo_wm: int = 1
     enabled: bool = False
 
 
