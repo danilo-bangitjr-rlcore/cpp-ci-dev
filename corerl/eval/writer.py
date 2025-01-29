@@ -64,7 +64,7 @@ class MetricsWriter(BufferedWriter[_MetricPoint]):
                 value float NOT NULL
             );
             SELECT create_hypertable('{self.cfg.table_name}', 'time', chunk_time_interval => INTERVAL '1d');
-            CREATE INDEX metric_idx ON {self.cfg.table_name} (metric);
+            CREATE INDEX {self.cfg.table_name}_idx ON {self.cfg.table_name} (metric);
             ALTER TABLE {self.cfg.table_name} SET (
                 timescaledb.compress,
                 timescaledb.compress_segmentby='metric'
