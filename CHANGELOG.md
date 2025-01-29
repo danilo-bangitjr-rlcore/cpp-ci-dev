@@ -1,3 +1,13 @@
+## 0.58.1 (2025-01-29)
+
+### Fix
+
+- use table name to uniquely identify their respective idx
+
+### Perf
+
+- set default low watermark to 1 for metrics
+
 ## 0.58.0 (2025-01-29)
 
 ### Feat
