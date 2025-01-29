@@ -1,4 +1,4 @@
-log_files: True
+log_path: "outputs/pilot"
 
 experiment:
   exp_name: DraytonValley-Pilot-Backwash
