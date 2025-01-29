@@ -81,7 +81,7 @@ class DataWriter(BufferedWriter[Point]):
             );
 
             SELECT create_hypertable('{self.table_name}', 'time', chunk_time_interval => INTERVAL '7d');
-            CREATE INDEX name_idx ON {self.table_name} (name);
+            CREATE INDEX {self.table_name}_idx ON {self.table_name} (name);
             ALTER TABLE {self.table_name} SET (
                 timescaledb.compress,
                 timescaledb.compress_segmentby='name'
