@@ -1,3 +1,10 @@
+## 0.58.2 (2025-01-29)
+
+### Fix
+
+- fix style
+- fix linesearch initlization
+
 ## 0.58.1 (2025-01-29)
 
 ### Fix
