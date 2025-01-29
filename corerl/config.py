@@ -1,4 +1,5 @@
 from dataclasses import field
+from pathlib import Path
 
 from pydantic import Field
 
@@ -26,4 +27,4 @@ class MainConfig:
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     eval: EvalConfig = field(default_factory=EvalConfig)
     report : ReportConfig = field(default_factory=ReportConfig)
-    log_files: bool = False
+    log_path: Path | None = None

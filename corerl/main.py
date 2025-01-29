@@ -39,8 +39,8 @@ logging.getLogger('asyncua').setLevel(logging.CRITICAL)
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
-    if cfg.log_files:
-        enable_log_files()
+    if cfg.log_path is not None:
+        enable_log_files(cfg.log_path)
     device.update_device(cfg.experiment.device)
 
     event_bus = EventBus(cfg.event_bus, cfg.env)
@@ -113,8 +113,8 @@ def main(cfg: MainConfig):
         event_bus.cleanup()
 
 
-def enable_log_files():
-    save_path = Path(f"outputs/{datetime.now(UTC).date()}")
+def enable_log_files(log_path: Path):
+    save_path = log_path / str(datetime.now(UTC).date())
     save_path.mkdir(exist_ok=True, parents=True)
     file_handler = RotatingFileHandler(
         filename=save_path / "rlcore.log",
