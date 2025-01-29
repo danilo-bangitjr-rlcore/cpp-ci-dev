@@ -9,7 +9,7 @@ from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.data_report import ReportConfig
-from corerl.eval.evals import EvalDBConfig, EvaluatorsConfig
+from corerl.eval.evals import EvalDBConfig
 from corerl.eval.metrics import MetricsConfig, MetricsDBConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.interaction.factory import InteractionConfig
@@ -20,7 +20,7 @@ from corerl.messages.factory import EventBusConfig
 class MainConfig:
     interaction: InteractionConfig = MISSING
     metrics: MetricsConfig = Field(default_factory=MetricsDBConfig, discriminator='name')
-    evals: EvaluatorsConfig = Field(default_factory=EvalDBConfig, discriminator='name')
+    evals: EvalDBConfig = Field(default_factory=EvalDBConfig, discriminator='name')
     event_bus: EventBusConfig = field(default_factory=EventBusConfig)
     env: AsyncEnvConfig = MISSING # field(default_factory=SimAsyncEnvConfig)
     agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')

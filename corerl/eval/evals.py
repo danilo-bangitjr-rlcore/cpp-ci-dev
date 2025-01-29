@@ -1,14 +1,8 @@
 import json
 import logging
-import os
-import shutil
-from collections import defaultdict
 from typing import Literal, NamedTuple, Protocol
 
-import pandas as pd
-from pydantic import Field
 from sqlalchemy import Connection, Engine, text
-from typing_extensions import Annotated
 
 from corerl.configs.config import config
 from corerl.configs.group import Group
@@ -98,79 +92,8 @@ class EvalWriter(BufferedWriter[_EvalPoint]):
             log.exception(f'Failed to write evaluation output: {evaluator} {value}')
 
 
-@config()
-class PandasEvalsConfig:
-    name: Literal['pandas'] = 'pandas'
-    output_path: str = 'eval_outputs'
-    buffer_size: int = 256  # Number of points to buffer before writing
-
-
-class PandasEvalWriter():
-    def __init__(
-            self,
-            cfg: PandasEvalsConfig
-        ):
-        self.buffer = defaultdict(list)  # Temporary buffer for points
-        self.output_path = cfg.output_path
-        self.buffer_size = cfg.buffer_size
-
-        if os.path.exists(self.output_path):
-            logging.warning("Output path for evaluation outputs already exists. "
-                            "Existing files will be overwritten.")
-            shutil.rmtree(self.output_path)
-
-        os.makedirs(self.output_path, exist_ok=True)
-
-    def write(self, agent_step: int, evaluator: str, value: object, timestamp: str | None = None):
-        point = _EvalPoint(
-            timestamp=timestamp or now_iso(),
-            agent_step=agent_step,
-            evaluator=evaluator,
-            value=json.dumps(value),
-        )
-
-        self.buffer[evaluator].append(point)
-
-        if len(self.buffer[evaluator]) >= self.buffer_size:
-            self._flush_evaluator(evaluator)
-
-    def _flush_evaluator(self, evaluator: str):
-        """Write buffered points for a specific evaluator to CSV"""
-        if not self.buffer[evaluator]:
-            return
-
-        data = defaultdict(list)
-        for point in self.buffer[evaluator]:
-            data['timestamp'].append(point.timestamp)
-            data['agent_step'].append(point.agent_step)
-            data['evaluator'].append(point.evaluator)
-            data['value'].append(point.value)
-
-        df = pd.DataFrame(data)
-        file_path = f'{self.output_path}/{evaluator}.csv'
-
-        if os.path.exists(file_path):
-            df.to_csv(file_path, mode='a', header=False, index=False)
-        else:
-            df.to_csv(file_path, index=False)
-
-        self.buffer[evaluator].clear()
-
-    def close(self):
-        # Flush any remaining points
-        for evaluator in list(self.buffer.keys()):
-            self._flush_evaluator(evaluator)
-
-
-EvaluatorsConfig = Annotated[
-    EvalDBConfig | PandasEvalsConfig,
-    Field(discriminator='name')
-]
-
-
 evals_group = Group[
     [], EvalWriterProtocol,
 ]()
 
 evals_group.dispatcher(EvalWriter)
-evals_group.dispatcher(PandasEvalWriter)
