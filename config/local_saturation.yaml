@@ -11,7 +11,7 @@ experiment :
   offline_steps : 0
   timeout: 0
 
-metrics_writer :
+metrics :
   name : pandas
   output_path : ./output
 

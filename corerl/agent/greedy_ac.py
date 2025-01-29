@@ -149,7 +149,7 @@ class GreedyAC(BaseAC):
         sorted_q_inds: Float[torch.Tensor, "batch_size num_samples 1"]
         sorted_q_inds = torch.argsort(q_values, dim=1, descending=True)
 
-        self._app_state.metrics_writer.write(
+        self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric='top_q_value',
             value=q_values.max().item(),
@@ -308,7 +308,7 @@ class GreedyAC(BaseAC):
 
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
 
-        self._app_state.metrics_writer.write(
+        self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric='critic_loss',
             value=np.mean([loss.detach().numpy() for loss in losses]),
@@ -361,7 +361,7 @@ class GreedyAC(BaseAC):
         logp, _ = self.actor.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
         actor_loss = -logp.mean()  # BUG: This is negative?
 
-        self._app_state.metrics_writer.write(
+        self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric='actor_loss',
             value=actor_loss,
@@ -380,7 +380,7 @@ class GreedyAC(BaseAC):
             # A greater percentage of actions are used to update the proposal policy than the actor policy
             sampler_loss = self.compute_sampler_no_entropy_loss(update_info)
 
-        self._app_state.metrics_writer.write(
+        self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric='sampler_loss',
             value=sampler_loss,

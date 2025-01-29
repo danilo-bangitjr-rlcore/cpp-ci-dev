@@ -9,8 +9,8 @@ from corerl.agent.factory import init_agent
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.eval.eval_writer import evals_group
-from corerl.eval.metrics_writer import metrics_group
+from corerl.eval.evals import evals_group
+from corerl.eval.metrics import metrics_group
 from corerl.messages.event_bus import EventBus
 from corerl.offline.utils import OfflineTraining
 from corerl.state import AppState
@@ -34,8 +34,8 @@ def main(cfg: MainConfig):
     torch.manual_seed(seed)
 
     app_state = AppState(
-        metrics_writer=metrics_group.dispatch(cfg.metrics_writer),
-        eval_writer=evals_group.dispatch(cfg.eval_writer),
+        metrics=metrics_group.dispatch(cfg.metrics),
+        evals=evals_group.dispatch(cfg.evals),
         event_bus=EventBus(cfg.event_bus, cfg.env),
     )
 

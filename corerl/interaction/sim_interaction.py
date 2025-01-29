@@ -59,7 +59,7 @@ class SimInteraction(Interaction):
 
         # log rewards
         r = float(pipe_return.rewards['reward'].iloc[0])
-        self._app_state.metrics_writer.write(
+        self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric='reward',
             value=r,

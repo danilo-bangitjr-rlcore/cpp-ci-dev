@@ -134,18 +134,18 @@ class MonteCarloEvaluator:
                        state_v: float,
                        observed_a_q: float,
                        partial_return: float):
-        self.app_state.metrics_writer.write(metric=f"state_v_{train_iter}",
-                                            value=state_v,
-                                            timestamp=timestamp,
-                                            agent_step=agent_step)
-        self.app_state.metrics_writer.write(metric=f"observed_a_q_{train_iter}",
-                                            value=observed_a_q,
-                                            timestamp=timestamp,
-                                            agent_step=agent_step)
-        self.app_state.metrics_writer.write(metric=f"partial_return_{train_iter}",
-                                            value=partial_return,
-                                            timestamp=timestamp,
-                                            agent_step=agent_step)
+        self.app_state.metrics.write(metric=f"state_v_{train_iter}",
+                                     value=state_v,
+                                     timestamp=timestamp,
+                                     agent_step=agent_step)
+        self.app_state.metrics.write(metric=f"observed_a_q_{train_iter}",
+                                     value=observed_a_q,
+                                     timestamp=timestamp,
+                                     agent_step=agent_step)
+        self.app_state.metrics.write(metric=f"partial_return_{train_iter}",
+                                     value=partial_return,
+                                     timestamp=timestamp,
+                                     agent_step=agent_step)
 
     def __call__(self, iter_num: int):
         if self.enabled:

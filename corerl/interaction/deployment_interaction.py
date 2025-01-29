@@ -121,7 +121,7 @@ class DeploymentInteraction(Interaction):
                 # log rewards
                 r = float(pr.rewards['reward'].iloc[0])
                 self._agent.update_buffer(pr)
-                self._app_state.metrics_writer.write(
+                self._app_state.metrics.write(
                     agent_step=self._app_state.agent_step,
                     metric='reward',
                     value=r,
@@ -271,7 +271,7 @@ class DeploymentInteraction(Interaction):
 
         for feat_name in state_df.columns:
             val = state_df[feat_name].values[0]
-            self._app_state.metrics_writer.write(
+            self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
                 metric=feat_name,
                 value=val,

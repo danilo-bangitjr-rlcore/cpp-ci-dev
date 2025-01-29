@@ -9,8 +9,8 @@ from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.data_report import ReportConfig
-from corerl.eval.eval_writer import EvalDBConfig, EvaluatorsConfig
-from corerl.eval.metrics_writer import MetricsConfig, MetricsDBConfig
+from corerl.eval.evals import EvalDBConfig, EvaluatorsConfig
+from corerl.eval.metrics import MetricsConfig, MetricsDBConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.interaction.factory import InteractionConfig
 from corerl.messages.factory import EventBusConfig
@@ -19,13 +19,13 @@ from corerl.messages.factory import EventBusConfig
 @config()
 class MainConfig:
     interaction: InteractionConfig = MISSING
-    metrics_writer: MetricsConfig = Field(default_factory=MetricsDBConfig, discriminator='name')
-    eval_writer: EvaluatorsConfig = Field(default_factory=EvalDBConfig, discriminator='name')
+    metrics: MetricsConfig = Field(default_factory=MetricsDBConfig, discriminator='name')
+    evals: EvaluatorsConfig = Field(default_factory=EvalDBConfig, discriminator='name')
     event_bus: EventBusConfig = field(default_factory=EventBusConfig)
     env: AsyncEnvConfig = MISSING # field(default_factory=SimAsyncEnvConfig)
     agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')
     experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
-    eval: EvalConfig = field(default_factory=EvalConfig)
+    eval_cfgs: EvalConfig = field(default_factory=EvalConfig)
     report : ReportConfig = field(default_factory=ReportConfig)
     log_files: bool = False

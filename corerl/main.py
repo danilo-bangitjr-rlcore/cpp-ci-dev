@@ -19,8 +19,8 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
 from corerl.eval.config import register_evals
-from corerl.eval.eval_writer import evals_group
-from corerl.eval.metrics_writer import metrics_group
+from corerl.eval.evals import evals_group
+from corerl.eval.metrics import metrics_group
 from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import EventBus
 from corerl.messages.events import EventType
@@ -46,8 +46,8 @@ def main(cfg: MainConfig):
 
     event_bus = EventBus(cfg.event_bus, cfg.env)
     app_state = AppState(
-        metrics_writer=metrics_group.dispatch(cfg.metrics_writer),
-        eval_writer=evals_group.dispatch(cfg.eval_writer),
+        metrics=metrics_group.dispatch(cfg.metrics),
+        evals=evals_group.dispatch(cfg.evals),
         event_bus=event_bus,
     )
 
@@ -71,7 +71,7 @@ def main(cfg: MainConfig):
             column_desc,
         )
 
-        register_evals(cfg.eval, agent, pipeline, app_state)
+        register_evals(cfg.eval_cfgs, agent, pipeline, app_state)
 
         interaction = init_interaction(
             cfg=cfg.interaction, app_state=app_state, agent=agent, env=env, pipeline=pipeline,
@@ -110,7 +110,7 @@ def main(cfg: MainConfig):
         sys.exit(os.EX_SOFTWARE)
 
     finally:
-        app_state.metrics_writer.close()
+        app_state.metrics.close()
         env.cleanup()
         event_bus.cleanup()
 

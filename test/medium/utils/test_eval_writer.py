@@ -3,7 +3,7 @@ import json
 import pandas as pd
 from sqlalchemy import Engine
 
-from corerl.eval.eval_writer import EvalDBConfig, EvalWriter
+from corerl.eval.evals import EvalDBConfig, EvalWriter
 from corerl.sql_logging.sql_logging import table_exists
 from corerl.utils.time import now_iso
 

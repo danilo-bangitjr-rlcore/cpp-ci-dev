@@ -25,8 +25,8 @@ from corerl.data_pipeline.transforms import LessThanConfig, NullConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.eval.config import EvalConfig
-from corerl.eval.eval_writer import evals_group
-from corerl.eval.metrics_writer import MetricsDBConfig, metrics_group
+from corerl.eval.evals import evals_group
+from corerl.eval.metrics import MetricsDBConfig, metrics_group
 from corerl.eval.monte_carlo import MonteCarloEvalConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.messages.event_bus import EventBus
@@ -68,12 +68,12 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     seed = 0
 
     cfg = MainConfig(
-        metrics_writer=MetricsDBConfig(
+        metrics=MetricsDBConfig(
             enabled=True,
             port=test_db_config.port,
             db_name=test_db_config.db_name,
         ),
-        eval=EvalConfig(
+        eval_cfgs=EvalConfig(
             monte_carlo=MonteCarloEvalConfig(
                 enabled=True,
                 precision=0.2,
@@ -234,8 +234,8 @@ def test_offline_training(offline_cfg: MainConfig,
     generate_offline_data(offline_cfg, offline_trainer, data_writer, steps)
 
     app_state = AppState(
-        metrics_writer=metrics_group.dispatch(offline_cfg.metrics_writer),
-        eval_writer=evals_group.dispatch(offline_cfg.eval_writer),
+        metrics=metrics_group.dispatch(offline_cfg.metrics),
+        evals=evals_group.dispatch(offline_cfg.evals),
         event_bus=EventBus(offline_cfg.event_bus, offline_cfg.env),
     )
 

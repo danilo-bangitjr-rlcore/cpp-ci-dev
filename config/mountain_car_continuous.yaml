@@ -39,7 +39,7 @@ agent:
     actor_optimizer:
       lr: 0.00001
 
-metrics_writer:
+metrics:
   name : db
   drivername: "postgresql+psycopg2"
   username: "postgres"
