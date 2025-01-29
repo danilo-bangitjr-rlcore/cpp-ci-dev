@@ -5,7 +5,6 @@ from pydantic import Field
 
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
-from corerl.eval.base_eval import BaseEvalConfig
 from corerl.state import AppState
 
 
@@ -95,8 +94,7 @@ def raw_data_eval_for_tag(df: pd.DataFrame, tag: str) -> dict:
 
 
 @config()
-class RawDataEvalConfig(BaseEvalConfig):
-    name: str = 'raw_data'
+class RawDataEvalConfig:
     caller_codes: list[CallerCode] = Field(default_factory=lambda:[CallerCode.ONLINE])
     stage_codes: list[StageCode] = Field(default_factory=lambda:[StageCode.INIT])
     enabled: bool = True
