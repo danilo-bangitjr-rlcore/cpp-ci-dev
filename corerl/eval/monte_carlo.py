@@ -151,7 +151,7 @@ class MonteCarloEvaluator:
 
         states = pipe_return.states
         taken_actions = pipe_return.actions
-        rewards = pipe_return.rewards.to_numpy().astype(np.float32).flatten()
+        rewards = pipe_return.rewards['reward'].to_numpy()
         # To get the action taken and the reward observed from the given state,
         # need to offset actions and rewards by one obs_period with respect to the state
         taken_actions = taken_actions[1:]
