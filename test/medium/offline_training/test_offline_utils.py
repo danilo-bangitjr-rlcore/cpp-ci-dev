@@ -248,6 +248,7 @@ def test_offline_training(offline_cfg: MainConfig,
     generate_offline_data(offline_cfg, offline_trainer, data_writer, steps)
 
     app_state = AppState(
+        cfg=offline_cfg,
         metrics=metrics_group.dispatch(offline_cfg.metrics),
         evals=evals_group.dispatch(offline_cfg.evals),
         event_bus=EventBus(offline_cfg.event_bus, offline_cfg.env),
