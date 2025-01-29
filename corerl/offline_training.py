@@ -49,6 +49,8 @@ def main(cfg: MainConfig):
     offline_training.load_offline_transitions(pipeline)
     offline_training.train(app_state, agent)
 
+    app_state.metrics.close()
+    app_state.evals.close()
     agent.close()
     agent.save(save_path / 'agent')
 

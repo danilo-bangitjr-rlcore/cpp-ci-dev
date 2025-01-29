@@ -111,6 +111,7 @@ def main(cfg: MainConfig):
 
     finally:
         app_state.metrics.close()
+        app_state.evals.close()
         env.cleanup()
         event_bus.cleanup()
 
