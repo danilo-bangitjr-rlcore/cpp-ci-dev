@@ -114,24 +114,26 @@ class MonteCarloEvaluator:
 
     def _write_metrics(
         self,
-        train_iter: int,
         step: _MonteCarloPoint,
         partial_return: float,
+        label: str = '',
     ):
+        if label:
+            label = f"_{label}"
         self.app_state.metrics.write(
-            metric=f"state_v_{train_iter}",
+            metric=f"state_v{label}",
             value=step.state_v,
             timestamp=step.timestamp,
             agent_step=step.agent_step,
         )
         self.app_state.metrics.write(
-            metric=f"observed_a_q_{train_iter}",
+            metric=f"observed_a_q{label}",
             value=step.observed_a_q,
             timestamp=step.timestamp,
             agent_step=step.agent_step,
         )
         self.app_state.metrics.write(
-            metric=f"partial_return_{train_iter}",
+            metric=f"partial_return{label}",
             value=partial_return,
             timestamp=step.timestamp,
             agent_step=step.agent_step,
@@ -175,6 +177,6 @@ class MonteCarloEvaluator:
 
             if partial_return is not None:
                 step = self._step_queue.pop()
-                self._write_metrics(iter_num, step, partial_return)
+                self._write_metrics(step, partial_return, str(iter_num))
 
             self.agent_step += 1
