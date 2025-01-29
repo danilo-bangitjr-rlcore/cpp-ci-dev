@@ -1,11 +1,12 @@
 import json
-import pandas as pd
 
+import pandas as pd
 from sqlalchemy import Engine
 
 from corerl.eval.eval_writer import EvalDBConfig, EvalWriter
 from corerl.sql_logging.sql_logging import table_exists
 from corerl.utils.time import now_iso
+
 
 def test_db_eval_writer(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     port = tsdb_engine.url.port
