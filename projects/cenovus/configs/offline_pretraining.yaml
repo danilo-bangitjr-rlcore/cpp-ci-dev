@@ -56,7 +56,7 @@ experiment:
   seed: 1
   timeout: 0
   offline_steps: 10
-  pipeline_batch_duration_days: 1
+  pipeline_batch_duration: 7 days
   gamma: 0.99
 
 pipeline:

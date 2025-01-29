@@ -58,8 +58,8 @@ class OfflineTraining:
         start_time, end_time = get_data_start_end_times(data_reader, start_time, end_time)
 
         # chunk offline reads
-        chunk_width = self.cfg.experiment.pipeline_batch_duration_days
-        time_chunks = split_into_chunks(start_time, end_time, width=dt.timedelta(chunk_width))
+        chunk_width = self.cfg.experiment.pipeline_batch_duration
+        time_chunks = split_into_chunks(start_time, end_time, width=chunk_width)
 
         # Pass offline data through data pipeline chunk by chunk to produce transitions
         tag_names = [tag_cfg.name for tag_cfg in self.cfg.pipeline.tags]
