@@ -8,6 +8,7 @@ from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import CallerCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
+from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
 from corerl.state import AppState
@@ -39,6 +40,9 @@ class SimInteraction(Interaction):
         self._should_reset = False
         self._last_state: np.ndarray | None = None
 
+        # evals
+        self._monte_carlo_eval = MonteCarloEvaluator(app_state.cfg.eval.monte_carlo, app_state, agent)
+
 
     # -----------------------
     # -- Lifecycle Methods --
@@ -64,6 +68,9 @@ class SimInteraction(Interaction):
             metric='reward',
             value=r,
         )
+
+        # perform evaluations
+        self._monte_carlo_eval.execute(pipe_return)
 
         self._app_state.agent_step += 1
 

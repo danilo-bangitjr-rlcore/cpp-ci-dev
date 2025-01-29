@@ -139,8 +139,16 @@ class MonteCarloEvaluator:
             agent_step=step.agent_step,
         )
 
-    def __call__(self, iter_num: int, pipe_return: PipelineReturn):
-        if not self.enabled or iter_num not in self.cfg.offline_eval_steps:
+
+    def execute_offline(self, iter_num: int, pipe_return: PipelineReturn):
+        if iter_num not in self.cfg.offline_eval_steps:
+            return
+
+        self.execute(pipe_return, str(iter_num))
+
+
+    def execute(self, pipe_return: PipelineReturn, label: str = ''):
+        if not self.enabled:
             return
 
         states = pipe_return.states
@@ -177,6 +185,6 @@ class MonteCarloEvaluator:
 
             if partial_return is not None:
                 step = self._step_queue.pop()
-                self._write_metrics(step, partial_return, str(iter_num))
+                self._write_metrics(step, partial_return, label)
 
             self.agent_step += 1

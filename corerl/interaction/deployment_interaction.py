@@ -14,6 +14,7 @@ from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
+from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat, HeartbeatConfig
@@ -82,6 +83,10 @@ class DeploymentInteraction(Interaction):
         self._last_checkpoint = datetime.now(UTC)
         self.restore_checkpoint()
 
+        # evals
+        self._monte_carlo_eval = MonteCarloEvaluator(app_state.cfg.eval.monte_carlo, app_state, agent)
+
+
     def step(self):
         step_timestamp = next(self._step_clock)
         wait_for_timestamp(step_timestamp)
@@ -93,6 +98,9 @@ class DeploymentInteraction(Interaction):
         o = self._env.get_latest_obs()
         pr = self._pipeline(o, caller_code=CallerCode.ONLINE)
         self._agent.update_buffer(pr)
+
+        # perform evaluations
+        self._monte_carlo_eval.execute(pr)
 
         self._agent.update()
 
