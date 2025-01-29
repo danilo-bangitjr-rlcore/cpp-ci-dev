@@ -24,7 +24,7 @@ class Comparator:
         cols = set(carry.transform_data.columns)
 
         for col in cols:
-            x = carry.transform_data[col].to_numpy(na_value=np.nan)
+            x = carry.transform_data[col].to_numpy(dtype=float, na_value=np.nan)
             nan_mask = np.isnan(x)
             op_method = getattr(x, self._op_method_name)
 
