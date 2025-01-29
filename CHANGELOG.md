@@ -1,3 +1,38 @@
+## 0.58.1 (2025-01-29)
+
+### Fix
+
+- use table name to uniquely identify their respective idx
+
+### Perf
+
+- set default low watermark to 1 for metrics
+
+## 0.58.0 (2025-01-29)
+
+### Feat
+
+- support different aggregation method for different tags
+
+### Fix
+
+- fix style issue
+- fixed batch and single read header
+- make ruff happy
+- fix pyright
+- provide fallback aggregation method
+- add back debug message
+- add back debug message
+- allow NaN and to use tryconnectcontextmanager
+- add back missing columns
+- fix styles
+
+## 0.57.0 (2025-01-29)
+
+### Feat
+
+- inverse xform
+
 ## 0.56.0 (2025-01-28)
 
 ### Feat
