@@ -1,3 +1,9 @@
+## 0.59.0 (2025-01-29)
+
+### Feat
+
+- change log_files bool in main cfg to log_path Path
+
 ## 0.58.3 (2025-01-29)
 
 ### Fix
