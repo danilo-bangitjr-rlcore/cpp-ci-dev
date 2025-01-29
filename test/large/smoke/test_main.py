@@ -31,8 +31,8 @@ def test_main_configs(
     proc = subprocess.run([
         'uv', 'run', 'python', 'main.py',
         '--config-name', f'{config_name}', 'experiment.max_steps=25',
-        f'metrics.port={port}', 'metrics.enabled=True', 'metrics.name=db',
-        f'metrics.db_name={tsdb_tmp_db_name}', 'metrics.lo_wm=1',
+        f'metrics_writer.port={port}', 'metrics_writer.enabled=True', 'metrics_writer.name=db',
+        f'metrics_writer.db_name={tsdb_tmp_db_name}', 'metrics_writer.lo_wm=1',
     ])
     proc.check_returncode()
 
