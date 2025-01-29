@@ -15,6 +15,10 @@ metrics_writer :
   name : pandas
   output_path : ./output
 
+eval:
+  raw_data:
+    tags: ['tag-1']
+
 agent:
   name: greedy_ac
   tau : 0

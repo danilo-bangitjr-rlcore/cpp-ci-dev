@@ -5,7 +5,7 @@ import numpy as np
 
 from corerl.agent.base import BaseAgent
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import CallerCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.interaction.interaction import Interaction
@@ -36,31 +36,41 @@ class SimInteraction(Interaction):
 
         self._column_desc = pipeline.column_descriptions
 
-        self._should_reset = True
+        self._should_reset = False
         self._last_state: np.ndarray | None = None
-        self._last_reward: float | None = None
-        self._pipeline.register_hook(CallerCode.ONLINE, StageCode.SC, self._capture_last_state)
-        self._pipeline.register_hook(CallerCode.ONLINE, StageCode.RC, self._capture_last_reward)
 
 
-
-    def step(self):
+    # -----------------------
+    # -- Lifecycle Methods --
+    # -----------------------
+    def _on_get_obs(self):
         o = self._env.get_latest_obs()
-        pr = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
-        assert pr.transitions is not None
-        r = self._get_latest_reward()
-        assert r is not None
+        pipe_return = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
+        self._agent.update_buffer(pipe_return)
+
+        self._should_reset = bool(o['truncated'].any() or o['terminated'].any())
+
+        # capture latest state
+        self._last_state = (
+            pipe_return.states
+            .iloc[0]
+            .to_numpy(dtype=np.float32)
+        )
+
+        # log rewards
+        r = float(pipe_return.rewards['reward'].iloc[0])
         self._app_state.metrics_writer.write(
             agent_step=self._app_state.agent_step,
             metric='reward',
             value=r,
         )
-        self._agent.update_buffer(pr)
 
+        self._app_state.agent_step += 1
+
+    def _on_update(self):
         self._agent.update()
 
-        self._should_reset = bool(o['truncated'].any() or o['terminated'].any())
-
+    def _on_emit_action(self):
         s = self._get_latest_state()
         assert s is not None
         a = self._agent.get_action(s)
@@ -68,8 +78,19 @@ class SimInteraction(Interaction):
         a_df = self._pipeline.preprocessor.inverse(a_df)
         self._env.emit_action(a_df)
 
-        self._app_state.agent_step += 1
 
+    # ------------------
+    # -- No Event Bus --
+    # ------------------
+    def step(self):
+        self._on_get_obs()
+        self._on_update()
+        self._on_emit_action()
+
+
+    # ---------------
+    # -- Event Bus --
+    # ---------------
     def step_event(self, event: Event):
         logger.debug(f"Received step_event: {event}")
         match event.type:
@@ -77,23 +98,13 @@ class SimInteraction(Interaction):
                 self.step()
 
             case EventType.step_get_obs:
-                o = self._env.get_latest_obs()
-                pr = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
-                assert pr.transitions is not None
-                self._agent.update_buffer(pr)
-                self._should_reset = bool(o['truncated'].any() or o['terminated'].any())
-                self._app_state.agent_step += 1
+                self._on_get_obs()
 
             case EventType.step_agent_update:
-                self._agent.update()
+                self._on_update()
 
             case EventType.step_emit_action:
-                s = self._get_latest_state()
-                assert s is not None
-                a = self._agent.get_action(s)
-                a_df = self._pipeline.action_constructor.assign_action_names(a)
-                a_df = self._pipeline.preprocessor.inverse(a_df)
-                self._env.emit_action(a_df)
+                self._on_emit_action()
 
             case _:
                 logger.warning(f"Unexpected step_event: {event}")
@@ -101,35 +112,9 @@ class SimInteraction(Interaction):
     # ---------
     # internals
     # ---------
-
-    def _capture_last_state(self, pf: PipelineFrame):
-        row = pf.data.tail(1)
-
-        self._last_state = (
-            row[self._column_desc.state_cols]
-            .iloc[0]
-            .to_numpy(dtype=np.float32)
-        )
-
-    def _capture_last_reward(self, pf: PipelineFrame):
-        row = pf.data.tail(1)
-
-        self._last_reward = float(
-            row["reward"]
-            .iloc[0]
-        )
-
-
     def _get_latest_state(self) -> np.ndarray | None:
         if self._last_state is None:
             logger.error("Tried to get interaction state, but none existed")
             return None
 
         return self._last_state
-
-
-    def _get_latest_reward(self) -> float | None:
-        if self._last_reward is None:
-            logger.error("Tried to get interaction reward, but none existed")
-
-        return self._last_reward

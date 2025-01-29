@@ -2,6 +2,7 @@ import datetime as dt
 import logging
 from typing import Tuple
 
+import pandas as pd
 from tqdm import tqdm
 
 from corerl.agent.base import BaseAgent
@@ -14,6 +15,30 @@ from corerl.state import AppState
 from corerl.utils.time import split_into_chunks
 
 log = logging.getLogger(__name__)
+
+def load_entire_dataset(
+        cfg: MainConfig,
+        start_time: dt.datetime | None = None, end_time: dt.datetime | None = None
+        ) -> pd.DataFrame:
+
+    data_reader = DataReader(db_cfg=cfg.pipeline.db)
+    if start_time is None or end_time is None:
+        time_stats = data_reader.get_time_stats()
+        if start_time is None:
+            start_time = time_stats.start
+        if end_time is None:
+            end_time = time_stats.end
+
+    tag_names = [tag_cfg.name for tag_cfg in cfg.pipeline.tags]
+    obs_period = cfg.pipeline.obs_period
+    data = data_reader.batch_aggregated_read(
+        names=tag_names,
+        start_time=start_time,
+        end_time=end_time,
+        bucket_width=obs_period,
+        aggregation=cfg.pipeline.db.data_agg,
+    )
+    return data
 
 
 class OfflineTraining:

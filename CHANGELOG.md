@@ -1,3 +1,183 @@
+## 0.56.0 (2025-01-28)
+
+### Feat
+
+- implemented Monte-Carlo evaluator as an exclusively offline training evaluator
+
+### Fix
+
+- PipelineReturn needed __iadd__ instead of __add__ to update the object in place. Also needed to return the object
+
+### Refactor
+
+- moved assertion into helper method
+- moved actor, v_critic, and q_critic initialization to BaseAC for typing purposes
+- ensure every algorithm that inherits from BaseAC has 'actor', 'q_critic', and 'v_critic' attributes
+
+## 0.55.2 (2025-01-28)
+
+### Fix
+
+- update pilot cf operating range
+- default heartbeat to None instead of relying on enabled flag
+- log reward in dep interaction
+- update dv pilot config
+- decouple tag name from node name in dep env action nodes
+
+## 0.55.1 (2025-01-28)
+
+### Fix
+
+- update tests to handle norm default from_data=False
+- do not normalize meta tags in preprocess stage
+- from_data defaults to false in normalizer
+
+## 0.55.0 (2025-01-28)
+
+### Feat
+
+- support for OpenAPI generated TypeScript api client
+- added routing and state/query library, stricter eslint rules
+
+## 0.54.0 (2025-01-28)
+
+### Feat
+
+- config validation endpoint
+- Creating configs from dict in server
+
+### Fix
+
+- first pass at pr comments
+- respond to PR comments
+- added json and yaml requests
+
+## 0.53.0 (2025-01-27)
+
+### Feat
+
+- replace xform
+
+## 0.52.3 (2025-01-27)
+
+### Fix
+
+- create outputs dir if it does not exist
+
+## 0.52.2 (2025-01-27)
+
+### Fix
+
+- ensure state constructor columns are always sorted
+- ensure action constructor columns are always sorted
+
+## 0.52.1 (2025-01-27)
+
+### Fix
+
+- ensure default output_dir is a Path object
+
+## 0.52.0 (2025-01-27)
+
+### Feat
+
+- add event to toggle event logging
+- report generating library
+- plotting module for offline data
+
+### Fix
+
+- .gitignore report/
+- testing-induced bug fixes
+
+## 0.51.0 (2025-01-27)
+
+### Feat
+
+- add filter stage to pipeline
+- add conditional filter
+
+## 0.50.0 (2025-01-25)
+
+### Feat
+
+- add comparator xform
+
+### Fix
+
+- register comparator xform
+
+## 0.49.0 (2025-01-25)
+
+### Feat
+
+- sanitize actions in deployment async env before writing to opc
+
+### Fix
+
+- assert that action tags have operating range specified in config
+
+## 0.48.0 (2025-01-25)
+
+### Feat
+
+- add option to warmup pipeline upon interaction init
+
+## 0.47.9 (2025-01-25)
+
+### Fix
+
+- force all checked configs to be interpolated and non missing
+- WIP config fix
+
+## 0.47.8 (2025-01-24)
+
+### Fix
+
+- make delta xform temporal state a dataclass
+- maintain temporal state for all sub-xforms in split list
+
+## 0.47.7 (2025-01-24)
+
+### Refactor
+
+- remove pipeline hooks from sim_interaction
+
+## 0.47.6 (2025-01-24)
+
+### Fix
+
+- remove maxlen from event bus queue
+- start step cycle immediately when event bus is enabled
+
+## 0.47.5 (2025-01-24)
+
+### Refactor
+
+- make sure calls to update_buffer() and load_buffer() pass PipelineReturn objects
+- ensure each agent's load_buffer() method takes a PipelineReturn as an argument instead of a list of transitions
+- agent's update_buffer() method now takes a PipelineReturn argument instead of a list of transitions
+
+## 0.47.4 (2025-01-24)
+
+### Fix
+
+- wrap heartbeat opc conn in context manager
+
+## 0.47.3 (2025-01-24)
+
+### Fix
+
+- force dtype conversion in db backup script
+- prefer float64 over float_
+- remove incompatible ndarray type annotation
+
+## 0.47.2 (2025-01-24)
+
+### Fix
+
+- updated grafana obs query
+
 ## 0.47.1 (2025-01-24)
 
 ### Fix

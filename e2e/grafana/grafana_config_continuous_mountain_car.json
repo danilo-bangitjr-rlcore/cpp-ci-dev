@@ -292,7 +292,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  time,\n  CAST(fields ->> 'val' AS double precision) as value,\n  name\nFROM opcua\nWHERE\n  $__timeFilter(time)\n  AND name LIKE 'action%'\nORDER BY time DESC;",
+          "rawSql": "SELECT\n  time,\n  CAST(fields ->> 'val' AS double precision) as value,\n  name\nFROM opcua\nWHERE\n  $__timeFilter(time)\n  AND name LIKE 'action-%'\nORDER BY time DESC;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -413,7 +413,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT\n  time,\n  CAST(fields ->> 'val' AS double precision) as value,\n  name as metric\nFROM opcua\nWHERE\n  $__timeFilter(time)\n  AND name LIKE 'observation%'\nORDER BY time DESC;",
+          "rawSql": "SELECT\n  time,\n  CAST(fields ->> 'val' AS double precision) as value,\n  name as metric\nFROM opcua\nWHERE\n  $__timeFilter(time)\n  AND name LIKE 'tag-%'\nORDER BY time DESC;",
           "refId": "A",
           "sql": {
             "columns": [
@@ -454,13 +454,13 @@
     "list": []
   },
   "time": {
-    "from": "now-15m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "OPC TSDB Local Visualization",
   "uid": "ee9wfo0vhboxsb",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

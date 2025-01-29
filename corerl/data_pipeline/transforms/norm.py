@@ -14,7 +14,7 @@ class NormalizerConfig(BaseTransformConfig):
     name: Literal['normalize'] = 'normalize'
     min: float | None = None
     max: float | None = None
-    from_data: bool = True
+    from_data: bool = False
 
 
 class Normalizer(InvertibleTransform):
@@ -84,7 +84,7 @@ transform_group.dispatcher(Normalizer)
 @njit
 def _norm(x: np.ndarray, mi: float, ma: float):
     n = len(x)
-    out = np.zeros(n, dtype=np.float_)
+    out = np.zeros(n, dtype=np.float64)
 
     for i in range(n):
         if np.isnan(x[i]):

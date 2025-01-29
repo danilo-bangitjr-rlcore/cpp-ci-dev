@@ -10,6 +10,7 @@ from corerl.configs.config import MISSING, config, list_
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.affine import AffineConfig
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
+from corerl.data_pipeline.transforms.comparator import ComparatorConfig
 from corerl.data_pipeline.transforms.delta import DeltaConfig
 from corerl.data_pipeline.transforms.greater_than import GreaterThanConfig
 from corerl.data_pipeline.transforms.identity import IdentityConfig
@@ -29,7 +30,7 @@ type TransformConfig.
 @config()
 class BinaryConfig(BaseTransformConfig):
     name: Literal['binary'] = "binary"
-    op: Literal['prod', 'min', 'max', 'add'] = MISSING
+    op: Literal['prod', 'min', 'max', 'add', 'replace'] = MISSING
 
     other: str = MISSING
     other_xform: list[TransformConfig] = list_([IdentityConfig])
@@ -59,6 +60,7 @@ TransformConfig = Annotated[
     | ScaleConfig
     | SplitConfig
     | TraceConfig
+    | ComparatorConfig
 , Field(discriminator='name')]
 
 

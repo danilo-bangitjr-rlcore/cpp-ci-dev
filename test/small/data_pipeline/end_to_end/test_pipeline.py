@@ -14,7 +14,8 @@ from corerl.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transforms import IdentityConfig, NullConfig
+from corerl.data_pipeline.transforms import IdentityConfig, NullConfig, ScaleConfig
+from corerl.data_pipeline.transforms.comparator import ComparatorConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
@@ -26,6 +27,10 @@ def test_pipeline1():
         tags=[
             TagConfig(
                 name='tag-1',
+                filter=[
+                    ScaleConfig(factor=0.5),
+                    ComparatorConfig(op='==', val=2),
+                ],
                 preprocess=[],
                 state_constructor=[],
                 is_endogenous=False
@@ -33,15 +38,17 @@ def test_pipeline1():
             TagConfig(
                 name='tag-2',
                 operating_range=(None, 10),
+                red_bounds=(-1, None),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     TraceConfig(trace_values=[0.1]),
                 ],
                 is_endogenous=True
             ),
             TagConfig(
                 name='action-1',
+                operating_range=(0, 1),
                 preprocess=[],
                 action_constructor=[],
                 state_constructor=[NullConfig()],
@@ -112,7 +119,7 @@ def test_pipeline1():
             [1,      1,      0.378],
             [2,      1,      0.5778],
             [np.nan, 1,      0.77778],
-            [4,      1,      0.977778],
+            [np.nan,      1,      0.977778],
             [5,      1,      np.nan],
         ],
         columns=cols,
@@ -169,6 +176,7 @@ def test_pipeline2():
             ),
             TagConfig(
                 name='tag-2',
+                preprocess=[NormalizerConfig(from_data=True)],
                 operating_range=(None, 12),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
@@ -179,6 +187,7 @@ def test_pipeline2():
             TagConfig(
                 name='action-1',
                 preprocess=[],
+                operating_range=(0, 1),
                 action_constructor=[],
                 state_constructor=[],
             ),

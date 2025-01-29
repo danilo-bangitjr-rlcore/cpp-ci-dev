@@ -10,6 +10,7 @@ from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.eval_writer import EvalDBConfig, EvaluatorsConfig
 from corerl.eval.metrics_writer import MetricsConfig, MetricsDBConfig
+from corerl.eval.data_report import ReportConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.interaction.factory import InteractionConfig
 from corerl.messages.factory import EventBusConfig
@@ -26,3 +27,5 @@ class MainConfig:
     experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     eval: EvalConfig = field(default_factory=EvalConfig)
+    report : ReportConfig = field(default_factory=ReportConfig)
+    log_files: bool = False

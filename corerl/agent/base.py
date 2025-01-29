@@ -22,7 +22,6 @@ class BaseAgentConfig:
     discrete_control: bool = interpolate('${env.discrete_control}')
     freezer_freq: int = 1
     gamma: float = interpolate('${experiment.gamma}')
-    message_bus: Any = MISSING
     n_updates: int = 1
     replay_ratio: int = 1
     seed: int = interpolate('${experiment.seed}')
