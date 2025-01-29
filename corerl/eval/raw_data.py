@@ -34,7 +34,6 @@ def percentage_missing(df: pd.DataFrame, tag: str) -> float:
 
 def average_length_of_nan_chunks(df: pd.DataFrame, tag: str) -> float:
     is_nan = df[tag].isna()
-    assert isinstance(is_nan, pd.Series)
     chunk_lengths = length_of_chunks(is_nan)
     return float(sum(chunk_lengths) / len(chunk_lengths))
 
@@ -53,7 +52,7 @@ def length_of_chunks(series: pd.Series) -> list[int]:
     if not bool(series.any()): # casting to bool cuz pandas is weird
         return [0]
 
-    chunk_lengths = []
+    chunk_lengths: list[int] = []
     current_chunk_length = 0
 
     for value in series:
@@ -77,7 +76,7 @@ def number_of_nan_samples(df: pd.DataFrame, tag: str) -> int:
     return int(df[tag].isna().sum())
 
 
-def raw_data_eval_for_tag(df: pd.DataFrame, tag: str) -> dict:
+def raw_data_eval_for_tag(df: pd.DataFrame, tag: str):
     return {
         'num_non_nan' : number_of_non_nan_samples(df, tag),
         'num_nan' : number_of_nan_samples(df, tag),
@@ -110,7 +109,7 @@ def raw_data_eval(
     if not cfg.enabled:
         return
 
-    result_dict = {}
+    result_dict: dict[str, dict[str, float]] = {}
     df = pf.data
     for tag in cfg.tags:
         if tag not in df.columns:
