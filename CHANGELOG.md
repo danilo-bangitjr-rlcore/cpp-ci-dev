@@ -1,3 +1,9 @@
+## 0.58.3 (2025-01-29)
+
+### Fix
+
+- comparator to_numpy converts to float dtype
+
 ## 0.58.2 (2025-01-29)
 
 ### Fix
