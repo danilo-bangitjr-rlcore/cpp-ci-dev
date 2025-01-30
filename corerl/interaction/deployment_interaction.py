@@ -84,7 +84,7 @@ class DeploymentInteraction(Interaction):
         self.restore_checkpoint()
 
         # evals
-        self._monte_carlo_eval = MonteCarloEvaluator(app_state.cfg.eval.monte_carlo, app_state, agent)
+        self._monte_carlo_eval = MonteCarloEvaluator(app_state.cfg.eval_cfgs.monte_carlo, app_state, agent)
 
 
     def step(self):
