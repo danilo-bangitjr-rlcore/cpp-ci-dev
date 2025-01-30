@@ -112,10 +112,10 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         except Exception:
             log.exception(f'Failed to write metric: {metric} {value}')
 
-    def _execute_read(self, stmt: text) -> pd.DataFrame:
+    def _execute_read(self, stmt: str) -> pd.DataFrame:
         assert self.engine is not None
         with TryConnectContextManager(self.engine) as connection:
-            metrics_table = pd.read_sql(sql=stmt, con=connection)
+            metrics_table = pd.read_sql(sql=text(stmt), con=connection)
 
         return metrics_table
 
@@ -130,7 +130,7 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
                 metric='{metric}';
         """
 
-        df = self._execute_read(text(stmt))
+        df = self._execute_read(stmt)
         df["time"] = pd.to_datetime(df["time"])
         df["agent_step"] = df["agent_step"].astype(int)
         df["value"] = df["value"].astype(float)
@@ -160,7 +160,7 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
 
         stmt += ";"
 
-        df = self._execute_read(text(stmt))
+        df = self._execute_read(stmt)
         df["agent_step"] = df["agent_step"].astype(int)
         df["value"] = df["value"].astype(float)
 
@@ -197,7 +197,7 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
 
         stmt += ";"
 
-        df = self._execute_read(text(stmt))
+        df = self._execute_read(stmt)
         df["time"] = pd.to_datetime(df["time"])
         df["value"] = df["value"].astype(float)
 
