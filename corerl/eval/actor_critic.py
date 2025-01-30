@@ -2,7 +2,7 @@ import json
 import logging
 import random
 from copy import deepcopy
-from typing import Tuple
+from typing import Tuple, cast
 
 import torch
 from torch import Tensor
@@ -41,7 +41,7 @@ class ActorCriticEval:
         self.num_test_states = cfg.num_test_states
         self.num_uniform_actions = cfg.num_uniform_actions
         self.critic_samples = cfg.critic_samples
-        assert isinstance(agent, BaseAC)
+        agent = cast(BaseAC, agent)
         self.agent = agent
         self.app_state = app_state
         self.col_desc = column_desc
