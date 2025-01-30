@@ -1,3 +1,14 @@
+## 0.64.0 (2025-01-30)
+
+### Feat
+
+- add ensemble buffer to reweight historical data
+- replay buffers take data_mode as feed argument
+
+### Fix
+
+- prefer discriminated union pattern for config schemas
+
 ## 0.63.0 (2025-01-30)
 
 ### Feat
