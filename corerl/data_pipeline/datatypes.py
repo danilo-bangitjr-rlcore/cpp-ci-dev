@@ -157,7 +157,7 @@ class TransitionBatch:
         )
 
 
-class CallerCode(Enum):
+class DataMode(Enum):
     OFFLINE = auto()
     ONLINE = auto()
     REFRESH = auto()
@@ -183,7 +183,7 @@ type TemporalState = dict[StageCode, object | None]
 @dataclass
 class PipelineFrame:
     data: pd.DataFrame
-    caller_code: CallerCode
+    data_mode: DataMode
     states: pd.DataFrame = field(init=False)
     actions: pd.DataFrame = field(init=False)
     rewards: pd.DataFrame = field(default_factory=pd.DataFrame)

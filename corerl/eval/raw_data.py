@@ -4,7 +4,7 @@ import pandas as pd
 from pydantic import Field
 
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.state import AppState
 
 
@@ -94,7 +94,7 @@ def raw_data_eval_for_tag(df: pd.DataFrame, tag: str):
 
 @config()
 class RawDataEvalConfig:
-    caller_codes: list[CallerCode] = Field(default_factory=lambda:[CallerCode.ONLINE])
+    data_modes: list[DataMode] = Field(default_factory=lambda:[DataMode.ONLINE])
     stage_codes: list[StageCode] = Field(default_factory=lambda:[StageCode.INIT])
     enabled: bool = True
     tags: list[str] = Field(default_factory=list) # which tags you want to output stats for

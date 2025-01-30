@@ -40,6 +40,7 @@ agent:
     critic_network:
       ensemble: 10
     buffer:
+      name: ensemble_uniform
       seed: ${experiment.seed}
       ensemble: 10
 
@@ -47,6 +48,7 @@ agent:
     actor_optimizer:
       lr : 0.0005
     buffer:
+      name: uniform
       seed: ${experiment.seed}
 
 pipeline:

@@ -34,12 +34,14 @@ agent:
       lr : 0.0003
       weight_decay : 0.0
     buffer:
+      name: uniform
       seed: ${experiment.seed}
 
   actor:
     actor_optimizer:
       lr : 0.0005
     buffer:
+      name: uniform
       seed: ${experiment.seed}
 
 pipeline:

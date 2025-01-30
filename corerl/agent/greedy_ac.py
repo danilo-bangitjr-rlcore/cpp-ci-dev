@@ -109,10 +109,10 @@ class GreedyAC(BaseAC):
 
         self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
 
-        self.critic_buffer.feed(pr.transitions)
+        self.critic_buffer.feed(pr.transitions, pr.data_mode)
         self.policy_buffer.feed([
             t for t in pr.transitions if t.prior.dp
-        ])
+        ], pr.data_mode)
 
 
     def load_buffer(self, pr: PipelineReturn) -> None:
@@ -124,8 +124,8 @@ class GreedyAC(BaseAC):
             if transition.prior.dp:
                 policy_transitions.append(transition)
 
-        self.policy_buffer.load(policy_transitions)
-        self.critic_buffer.load(pr.transitions)
+        self.policy_buffer.load(policy_transitions, pr.data_mode)
+        self.critic_buffer.load(pr.transitions, pr.data_mode)
 
     def get_sorted_q_values(
         self,

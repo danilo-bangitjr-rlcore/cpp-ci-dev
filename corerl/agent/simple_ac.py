@@ -42,10 +42,10 @@ class SimpleAC(BaseAC):
         if pr.transitions is None:
             return
 
-        self.critic_buffer.feed(pr.transitions)
+        self.critic_buffer.feed(pr.transitions, pr.data_mode)
         self.policy_buffer.feed([
             t for t in pr.transitions if t.prior.dp
-        ])
+        ], pr.data_mode)
 
     def compute_actor_loss(self, batch: TransitionBatch) -> torch.Tensor:
         states = batch.prior.state
