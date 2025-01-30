@@ -113,6 +113,7 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
             log.exception(f'Failed to write metric: {metric} {value}')
 
     def _execute_read(self, stmt: text) -> pd.DataFrame:
+        assert self.engine is not None
         with TryConnectContextManager(self.engine) as connection:
             metrics_table = pd.read_sql(sql=stmt, con=connection)
 
