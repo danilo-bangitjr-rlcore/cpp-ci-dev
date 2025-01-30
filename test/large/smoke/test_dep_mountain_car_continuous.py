@@ -136,7 +136,14 @@ def run_background_opc_client(check_opc_server_ready: None, request: FixtureRequ
     # using proc = subprocess.Popen, use subprocess.run within multiprocessing process instead
     def subproc_run():
         subprocess.run(
-            ["uv", "run", "python", "e2e/opc_clients/opc_client.py", "--config-name", "mountain_car_continuous"],
+            [
+                "uv",
+                "run",
+                "python",
+                "e2e/opc_clients/opc_client.py",
+                "--config-name",
+                "config/opc_sim/async_mountain_car_continuous.yaml",
+            ],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             cwd=request.config.rootpath,
