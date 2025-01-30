@@ -24,8 +24,9 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import LessThanConfig, NullConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
+from corerl.eval.actor_critic import ActorCriticEvalConfig
 from corerl.eval.config import EvalConfig
-from corerl.eval.evals import evals_group
+from corerl.eval.evals import EvalDBConfig, evals_group
 from corerl.eval.metrics import MetricsDBConfig, metrics_group
 from corerl.eval.monte_carlo import MonteCarloEvalConfig
 from corerl.experiment.config import ExperimentConfig
@@ -72,8 +73,21 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
             enabled=True,
             port=test_db_config.port,
             db_name=test_db_config.db_name,
+            lo_wm=0
+        ),
+        evals=EvalDBConfig(
+            enabled=True,
+            port=test_db_config.port,
+            db_name=test_db_config.db_name,
+            lo_wm=0
         ),
         eval_cfgs=EvalConfig(
+            actor_critic=ActorCriticEvalConfig(
+                enabled=True,
+                num_test_states=1,
+                num_uniform_actions=10,
+                critic_samples=2
+            ),
             monte_carlo=MonteCarloEvalConfig(
                 enabled=True,
                 precision=0.2,
@@ -244,25 +258,41 @@ def test_offline_training(offline_cfg: MainConfig,
     agent = init_agent(offline_cfg.agent, app_state, col_desc)
 
     # Offline training
-    critic_losses = offline_trainer.train(app_state, agent)
+    critic_losses = offline_trainer.train(app_state, agent, col_desc)
     first_loss = critic_losses[0]
     last_loss = critic_losses[-1]
 
     assert last_loss < first_loss
 
-    # ensure metrics table exists
+    # ensure metrics and evals tables exist
     assert table_exists(tsdb_engine, 'metrics')
+    assert table_exists(tsdb_engine, 'evals')
 
-    # Ensure Monte-Carlo evaluator writes state value, observed action value, and partial returns
-    # twice to metrics table (partial return horizon = math.ceil(np.log(1.0 - self.precision) / np.log(self.gamma))
     with tsdb_engine.connect() as conn:
+        # Ensure Monte-Carlo evaluator writes state-value, observed action-value, and partial returns
+        # twice to metrics table (partial return horizon = math.ceil(np.log(1.0 - self.precision) / np.log(self.gamma))
         metrics = pd.read_sql_table('metrics', con=conn)
-
         state_v_entries = metrics.loc[metrics["metric"] == "state_v_0"]
         observed_a_q_entries = metrics.loc[metrics["metric"] == "observed_a_q_0"]
         partial_return_entries = metrics.loc[metrics["metric"] == "partial_return_0"]
-
         assert len(state_v_entries) == len(observed_a_q_entries) == len(partial_return_entries) == 2
+
+        # Ensure Actor-Critic evaluator writes an entry to the evals table
+        ac_cfg = offline_cfg.eval_cfgs.actor_critic
+        evals = pd.read_sql_table('evals', con=conn)
+        ac_eval_rows = evals.loc[evals["evaluator"] == "actor-critic_0"]
+        assert len(ac_eval_rows) == len(offline_cfg.experiment.offline_eval_iters)
+        for i in range(len(ac_eval_rows)):
+            ac_out = ac_eval_rows.iloc[i]["value"]
+            assert len(ac_out) == ac_cfg.num_test_states
+            for test_state in ac_out:
+                for action_tag in ac_out[test_state]:
+                    a_dim_range = np.array(ac_out[test_state][action_tag]["actions"])
+                    pdfs = np.array(ac_out[test_state][action_tag]["pdf"])
+                    qs = np.array(ac_out[test_state][action_tag]["critic"])
+                    assert a_dim_range.shape == (ac_cfg.num_uniform_actions,)
+                    assert pdfs.shape == (ac_cfg.critic_samples, ac_cfg.num_uniform_actions)
+                    assert qs.shape == (ac_cfg.critic_samples, ac_cfg.num_uniform_actions)
 
 def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig):
     normalizer = NormalizerConfig(from_data=True)
