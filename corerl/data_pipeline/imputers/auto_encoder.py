@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
@@ -6,6 +6,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from pydantic import Field
 
 import corerl.utils.dict as dict_u
 from corerl.configs.config import config, list_
@@ -21,7 +22,7 @@ from corerl.utils.list import find_instance
 
 @dataclass
 class MaskedAETemporalState:
-    trace_ts: TraceTemporalState = field(default_factory=TraceTemporalState)
+    trace_ts: TraceTemporalState = Field(default_factory=TraceTemporalState)
     last_trace: torch.Tensor | None = None
     num_outside_thresh: int = 0
 

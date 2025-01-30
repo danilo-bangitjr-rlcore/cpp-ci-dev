@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from dataclasses import field
 from pathlib import Path
 from typing import Any
 
 import numpy
+from pydantic import Field
 
 from corerl.component.actor.base_actor import BaseActor
 from corerl.component.actor.factory import init_actor
@@ -79,8 +79,8 @@ class BaseAgent(ABC):
 
 @config(frozen=True)
 class BaseACConfig(BaseAgentConfig):
-    critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
-    actor: NetworkActorConfig = field(default_factory=NetworkActorConfig)
+    critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
+    actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
 
     n_actor_updates: int = 1
     n_critic_updates: int = 1

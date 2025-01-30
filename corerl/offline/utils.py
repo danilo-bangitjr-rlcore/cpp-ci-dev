@@ -101,9 +101,8 @@ class OfflineTraining:
         q_losses: list[float] = []
         pbar = tqdm(range(self.offline_steps))
         for i in pbar:
-            if i in self.cfg.experiment.offline_eval_iters:
-                ac_eval.execute_offline(i)
-                mc_eval(i)
+            mc_eval(i)
+            ac_eval.execute_offline(i)
 
             critic_loss = agent.update()
             q_losses += critic_loss

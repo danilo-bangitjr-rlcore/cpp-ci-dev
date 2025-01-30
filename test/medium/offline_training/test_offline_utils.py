@@ -91,7 +91,8 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
             monte_carlo=MonteCarloEvalConfig(
                 enabled=True,
                 precision=0.2,
-                gamma=0.9
+                gamma=0.9,
+                offline_eval_steps=[0],
             )
         ),
         agent=GreedyACConfig(
@@ -113,7 +114,6 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
         experiment=ExperimentConfig(
             gamma=0.9,
             offline_steps=100,
-            offline_eval_iters=[0]
         ),
         pipeline=PipelineConfig(
             tags=[
@@ -281,7 +281,7 @@ def test_offline_training(offline_cfg: MainConfig,
         ac_cfg = offline_cfg.eval_cfgs.actor_critic
         evals = pd.read_sql_table('evals', con=conn)
         ac_eval_rows = evals.loc[evals["evaluator"] == "actor-critic_0"]
-        assert len(ac_eval_rows) == len(offline_cfg.experiment.offline_eval_iters)
+        assert len(ac_eval_rows) == len(offline_cfg.eval_cfgs.actor_critic.offline_eval_steps)
         for i in range(len(ac_eval_rows)):
             ac_out = ac_eval_rows.iloc[i]["value"]
             assert len(ac_out) == ac_cfg.num_test_states

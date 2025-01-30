@@ -1,4 +1,3 @@
-from dataclasses import field
 from pathlib import Path
 
 from pydantic import Field
@@ -22,11 +21,11 @@ class MainConfig:
     interaction: InteractionConfig = MISSING
     metrics: MetricsConfig = Field(default_factory=MetricsDBConfig, discriminator='name')
     evals: EvalDBConfig = Field(default_factory=EvalDBConfig, discriminator='name')
-    event_bus: EventBusConfig = field(default_factory=EventBusConfig)
-    env: AsyncEnvConfig = MISSING # field(default_factory=SimAsyncEnvConfig)
+    event_bus: EventBusConfig = Field(default_factory=EventBusConfig)
+    env: AsyncEnvConfig = MISSING
     agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')
-    experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
-    pipeline: PipelineConfig = field(default_factory=PipelineConfig)
-    eval_cfgs: EvalConfig = field(default_factory=EvalConfig)
-    report : ReportConfig = field(default_factory=ReportConfig)
+    experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
+    pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
+    eval_cfgs: EvalConfig = Field(default_factory=EvalConfig)
+    report : ReportConfig = Field(default_factory=ReportConfig)
     log_path: Path | None = None

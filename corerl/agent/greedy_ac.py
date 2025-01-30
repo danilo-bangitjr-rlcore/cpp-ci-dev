@@ -1,6 +1,5 @@
 import logging
 import pickle as pkl
-from dataclasses import field
 from functools import partial
 from pathlib import Path
 from typing import Literal, Optional
@@ -9,6 +8,7 @@ import numpy
 import numpy as np
 import torch
 from jaxtyping import Float
+from pydantic import Field
 
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
@@ -44,8 +44,8 @@ class GreedyACConfig(BaseACConfig):
     tau: float = 0.0
     uniform_sampling_percentage: float = 0.5
 
-    actor: NetworkActorConfig = field(default_factory=NetworkActorConfig)
-    critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
+    actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
+    critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
 
 class GreedyAC(BaseAC):
     def __init__(self, cfg: GreedyACConfig, app_state: AppState, col_desc: ColumnDescriptions):

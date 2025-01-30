@@ -2,7 +2,6 @@ import asyncio
 import logging
 import random
 from abc import ABC, abstractmethod
-from dataclasses import field
 from datetime import UTC, datetime, timedelta
 from typing import Any, Generator, List, Tuple
 
@@ -11,6 +10,7 @@ import numpy as np
 import pandas as pd
 from influxdb_client.client.influxdb_client import InfluxDBClient
 from influxdb_client.client.write_api import SYNCHRONOUS
+from pydantic import Field
 
 from corerl.configs.config import MISSING, config, list_
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
@@ -182,8 +182,8 @@ def generate_times(ts: datetime, interval: timedelta):
 
 @config()
 class InfluxOPCConfig:
-    db: DBClientConfig = field(default_factory=DBClientConfig)
-    opc: OpcConfig = field(default_factory=OpcConfig)
+    db: DBClientConfig = Field(default_factory=DBClientConfig)
+    opc: OpcConfig = Field(default_factory=OpcConfig)
     control_tags: list[str] = list_()
     obs_col_names: list[str] = list_()
     obs_length: int = MISSING
