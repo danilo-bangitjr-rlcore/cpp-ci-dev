@@ -68,6 +68,9 @@ class SimInteraction(Interaction):
         # log rewards
         self._write_to_metrics(pipe_return.rewards)
 
+        # perform evaluations
+        self._monte_carlo_eval.execute(pipe_return)
+
         self._app_state.agent_step += 1
 
     def _on_update(self):
