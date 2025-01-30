@@ -3,7 +3,7 @@ from typing import Literal
 
 import torch
 
-from corerl.component.optimizers.custom_torch_opts import CustomAdam
+from corerl.component.optimizers.custom_torch_opts import ArmijoAdam
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.configs.config import MISSING, config
 from corerl.configs.group import Group
@@ -21,7 +21,7 @@ class OptimConfig:
     weight_decay: float = 0.0
 
 def _base_optim(
-    optim: type[torch.optim.Adam | torch.optim.SGD | torch.optim.RMSprop | CustomAdam],
+    optim: type[torch.optim.Adam | torch.optim.SGD | torch.optim.RMSprop | ArmijoAdam],
     cfg: OptimConfig,
     param: Iterable[torch.nn.Parameter],
     ensemble: bool,
@@ -69,22 +69,6 @@ def adam(cfg: AdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
     )
 
 
-# ----------------
-# -- CustomAdam --
-# ----------------
-@config(frozen=True)
-class CustomAdamConfig(OptimConfig):
-    name: Literal['custom_adam'] = 'custom_adam'
-
-
-@optim_group.dispatcher
-def custom_adam(cfg: CustomAdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
-    return _base_optim(
-        CustomAdam,
-        cfg, param, ensemble,
-    )
-
-
 # ---------
 # -- SGD --
 # ---------
@@ -97,5 +81,26 @@ class SgdConfig(OptimConfig):
 def sgd(cfg: SgdConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         torch.optim.SGD,
+        cfg, param, ensemble,
+    )
+
+
+# ----------------
+# -- ArmijoAdam --
+# ----------------
+@config(frozen=True)
+class ArmijoAdamConfig(OptimConfig):
+    name: Literal['armijo_adam'] = 'armijo_adam'
+    c: float = 0.1
+    tau: float = 0.5
+    beta: float = 0.1  # Controls how strict the Armijo condition is
+    max_backtracks: int = 10
+    min_lr: float = 1e-4
+
+
+@optim_group.dispatcher
+def armijo_adam(cfg: ArmijoAdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+    return _base_optim(
+        ArmijoAdam,
         cfg, param, ensemble,
     )

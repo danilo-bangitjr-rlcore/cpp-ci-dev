@@ -5,7 +5,7 @@ import torch
 from corerl.component.optimizers.linesearch_optimizer import LSOConfig
 from corerl.component.optimizers.torch_opts import (
     AdamConfig,
-    CustomAdamConfig,
+    ArmijoAdamConfig,
     OptimConfig,
     RmspropConfig,
     SgdConfig,
@@ -15,9 +15,9 @@ from corerl.component.optimizers.torch_opts import (
 OptimizerConfig = (
     RmspropConfig
     | AdamConfig
-    | CustomAdamConfig
     | SgdConfig
     | LSOConfig
+    | ArmijoAdamConfig
 )
 
 def init_optimizer(
