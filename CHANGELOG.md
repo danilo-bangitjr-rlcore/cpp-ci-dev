@@ -1,3 +1,12 @@
+## 0.62.1 (2025-01-30)
+
+### Fix
+
+- mc eval config is not a base eval config
+- prefer Field to field in config dataclasses
+- have mc eval own its own config parameters
+- default resolution with Fields now walks through default_factory schemas
+
 ## 0.62.0 (2025-01-30)
 
 ### Feat
