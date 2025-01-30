@@ -9,7 +9,8 @@ from corerl.agent.factory import init_agent
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.eval.writer import metrics_group
+from corerl.eval.evals import evals_group
+from corerl.eval.metrics import metrics_group
 from corerl.messages.event_bus import EventBus
 from corerl.offline.utils import OfflineTraining
 from corerl.state import AppState
@@ -34,6 +35,7 @@ def main(cfg: MainConfig):
 
     app_state = AppState(
         metrics=metrics_group.dispatch(cfg.metrics),
+        evals=evals_group.dispatch(cfg.evals),
         event_bus=EventBus(cfg.event_bus, cfg.env),
     )
 
@@ -47,6 +49,8 @@ def main(cfg: MainConfig):
     offline_training.load_offline_transitions(pipeline)
     offline_training.train(app_state, agent)
 
+    app_state.metrics.close()
+    app_state.evals.close()
     agent.close()
     agent.save(save_path / 'agent')
 

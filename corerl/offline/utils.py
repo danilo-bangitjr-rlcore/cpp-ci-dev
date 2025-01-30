@@ -89,7 +89,7 @@ class OfflineTraining:
         )
         log.info("Starting offline agent training...")
 
-        mc_eval = MonteCarloEvaluator(self.cfg.eval.monte_carlo, app_state, agent, self.pipeline_out)
+        mc_eval = MonteCarloEvaluator(self.cfg.eval_cfgs.monte_carlo, app_state, agent, self.pipeline_out)
 
         agent.load_buffer(self.pipeline_out)
         for buffer_name, size in agent.get_buffer_sizes().items():
