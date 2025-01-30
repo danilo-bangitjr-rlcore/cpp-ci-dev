@@ -36,7 +36,7 @@ jobs:
           uv sync
 
       - name: Install corerl if large
-        if: ${{ inputs.test-suite == 'large' }}
+        if: ${{ inputs.test-suite == 'large' || inputs.test-suite == 'behavior' }}
         run: uv pip install .
 
       - run: mkdir -p artifact
