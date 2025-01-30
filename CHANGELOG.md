@@ -1,3 +1,17 @@
+## 0.61.0 (2025-01-30)
+
+### Feat
+
+- implemented EvalWriter
+
+### Refactor
+
+- reverted name 'metrics_writer' back to 'metrics' and renamed 'eval_writer' to 'evals'. In MainConfig, renamed 'evals' to 'eval_cfgs'
+- changed 'metrics' to 'metrics_writer' in test_main.py
+- changed 'metrics' to 'metrics_writer' in interaction
+- renaming app_state's 'metrics' attribute to 'metrics_writer'
+- rename eval/writer.py to eval/metrics_writer.py
+
 ## 0.60.0 (2025-01-30)
 
 ### Feat
