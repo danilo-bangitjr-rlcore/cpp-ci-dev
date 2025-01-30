@@ -34,6 +34,7 @@ class ActorCriticEval:
         agent: BaseAgent,
         column_desc: ColumnDescriptions
     ):
+        self.cfg = cfg
         self.enabled = cfg.enabled
         if not isinstance(agent, BaseAC) and self.enabled:
             self.enabled = False
@@ -121,6 +122,9 @@ class ActorCriticEval:
         ]
 
     def execute_offline(self, iter_num: int):
+        if iter_num not in self.cfg.offline_eval_steps:
+            return
+
         if self.test_states is None:
             logger.error("Call ActorCriticEval.get_test_states() before calling ActorCriticEval.execute_offline()."
                          "len(self.test_states) must be greater than 0")
