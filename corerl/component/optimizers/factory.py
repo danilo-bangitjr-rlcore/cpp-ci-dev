@@ -2,7 +2,6 @@ from collections.abc import Iterable
 
 import torch
 
-from corerl.component.optimizers.linesearch_optimizer import LSOConfig
 from corerl.component.optimizers.torch_opts import (
     AdamConfig,
     ArmijoAdamConfig,
@@ -16,7 +15,6 @@ OptimizerConfig = (
     RmspropConfig
     | AdamConfig
     | SgdConfig
-    | LSOConfig
     | ArmijoAdamConfig
 )
 
