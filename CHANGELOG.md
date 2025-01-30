@@ -1,3 +1,24 @@
+## 0.63.0 (2025-01-30)
+
+### Feat
+
+- add mc evaluator to online mode
+
+### Fix
+
+- fix integration bug due to stale PRs
+- add missing type hints
+- clear numpy deprecation warning
+- only grab the rewards column from rewards df
+
+### Refactor
+
+- add main config to app_state
+- generalize iteration counter label
+- remove nullables and simplify mc eval implementation
+- move transient pipe_return object off of class attributes
+- remove conditional init from monte_carlo eval
+
 ## 0.62.1 (2025-01-30)
 
 ### Fix
