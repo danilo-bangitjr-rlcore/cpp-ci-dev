@@ -42,7 +42,7 @@ transform_group.dispatcher(LessThan)
 @njit
 def _less_than(x: np.ndarray, threshold: float, equal: bool):
     n = len(x)
-    out = np.zeros(n, dtype=np.float_)
+    out = np.zeros(n, dtype=np.float64)
 
     for i in range(n):
         if np.isnan(x[i]):

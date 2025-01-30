@@ -5,34 +5,34 @@ from threading import Thread
 
 from asyncua.sync import Client
 
-from corerl.configs.config import MISSING, config
+from corerl.configs.config import config
 from corerl.utils.time import clock_generator, wait_for_timestamp
 
 logger = logging.getLogger(__name__)
 
+
 @config()
 class HeartbeatConfig:
-    opc_conn_url: str = MISSING
-    heartbeat_node_id: str = MISSING
+    opc_conn_url: str | None = None
+    heartbeat_node_id: str | None = None
     heartbeat_period: timedelta = timedelta(seconds=5)
     max_counter: int = 1000
-    enabled: bool = False
 
 
 def heartbeat(cfg: HeartbeatConfig):
-    if not cfg.enabled:
+    if cfg.opc_conn_url is None or cfg.heartbeat_node_id is None:
         return
 
-    opc_client = Client(cfg.opc_conn_url)
-    opc_client.connect()
+    with Client(cfg.opc_conn_url) as opc_client:
+        heartbeat_node = opc_client.get_node(cfg.heartbeat_node_id)
 
-    heartbeat_node = opc_client.get_node(cfg.heartbeat_node_id)
     heartbeat_clock = clock_generator(tick_period=cfg.heartbeat_period)
     heartbeat_counter = 0
 
     while True:
         # write counter
-        opc_client.write_values([heartbeat_node], [heartbeat_counter])
+        with Client(cfg.opc_conn_url) as opc_client:
+            opc_client.write_values([heartbeat_node], [heartbeat_counter])
 
         # increment counter
         heartbeat_counter += 1
@@ -42,6 +42,7 @@ def heartbeat(cfg: HeartbeatConfig):
         # wait for next heartbeat
         next_heartbeat_ts = next(heartbeat_clock)
         wait_for_timestamp(next_heartbeat_ts)
+
 
 class Heartbeat:
     def __init__(self, cfg: HeartbeatConfig) -> None:
@@ -59,6 +60,6 @@ class Heartbeat:
         return heartbeat_thread
 
     def healthcheck(self):
-        if self.cfg.enabled and not self._heartbeat_thread.is_alive():
+        if self.cfg.opc_conn_url is not None and not self._heartbeat_thread.is_alive():
             logger.error("Heartbeat stopped -- defibrillating...")
             self.start_heartbeat(self.cfg)

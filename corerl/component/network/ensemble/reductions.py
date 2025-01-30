@@ -3,7 +3,7 @@ from typing import Literal, Protocol
 import numpy as np
 import torch
 
-from corerl.configs.config import config
+from corerl.configs.config import MISSING, config
 from corerl.configs.group import Group
 
 bootstrap_reduct_group = Group[
@@ -11,9 +11,13 @@ bootstrap_reduct_group = Group[
     torch.Tensor,
 ]()
 
+@config(frozen=True)
+class Reduct:
+    name: str = MISSING
+
 
 @config(frozen=True)
-class MinReduct:
+class MinReduct(Reduct):
     name: Literal['min'] = 'min'
 
 @bootstrap_reduct_group.dispatcher
@@ -22,7 +26,7 @@ def min_reduct(cfg: MinReduct, x: torch.Tensor, dim: int):
 
 
 @config(frozen=True)
-class MaxReduct:
+class MaxReduct(Reduct):
     name: Literal['max'] = 'max'
 
 @bootstrap_reduct_group.dispatcher
@@ -31,7 +35,7 @@ def max_reduct(cfg: MaxReduct, x: torch.Tensor, dim: int):
 
 
 @config(frozen=True)
-class MeanReduct:
+class MeanReduct(Reduct):
     name: Literal['mean'] = 'mean'
 
 @bootstrap_reduct_group.dispatcher
@@ -40,7 +44,7 @@ def mean_reduct(cfg: MeanReduct, x: torch.Tensor, dim: int):
 
 
 @config(frozen=True)
-class MedianReduct:
+class MedianReduct(Reduct):
     name: Literal['median'] = 'median'
 
 @bootstrap_reduct_group.dispatcher
@@ -53,7 +57,7 @@ class Statistic(Protocol):
         ...
 
 @config(frozen=True)
-class PercentileReduct:
+class PercentileReduct(Reduct):
     name: Literal['percentile'] = 'percentile'
     bootstrap_batch_size: int = 10
     bootstrap_samples: int = 10

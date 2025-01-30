@@ -4,7 +4,6 @@
 # all agent observations are performed through timescale DB
 
 import logging
-from dataclasses import field
 from time import sleep
 
 import gymnasium as gym
@@ -12,24 +11,24 @@ import numpy as np
 from asyncua.sync import Client, SyncNode
 from asyncua.ua.uaerrors import BadNodeIdExists, BadNodeIdUnknown
 from asyncua.ua.uatypes import VariantType
+from pydantic import Field
 
 from corerl.configs.config import MISSING, config
 from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.factory import AsyncEnvConfig
-from corerl.environment.async_env.opc_tsdb_sim_async_env import OPCTSDBSimAsyncEnvConfig
+from corerl.environment.async_env.async_env import GymEnvConfig
 from corerl.environment.factory import init_environment
 from corerl.utils.opc_connection import make_opc_node_id
 
 
 @config(allow_extra=True)
 class Config:
-    env: AsyncEnvConfig = MISSING
-    pipeline: PipelineConfig = field(default_factory=PipelineConfig)
+    env: GymEnvConfig = MISSING
+    pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
 
 
-def initialize_opc_folder(client: Client, cfg_env: OPCTSDBSimAsyncEnvConfig):
+def initialize_opc_folder(client: Client, cfg_env: GymEnvConfig):
     # create folder containing environment variables
     folder_node_id = make_opc_node_id(cfg_env.name)
     try:
@@ -42,7 +41,7 @@ def initialize_opc_folder(client: Client, cfg_env: OPCTSDBSimAsyncEnvConfig):
 
 def initialize_opc_nodes_from_tags(
     client: Client,
-    cfg_env: OPCTSDBSimAsyncEnvConfig,
+    cfg_env: GymEnvConfig,
     tag_configs: list[TagConfig],
     initial_observation: np.ndarray,
     initial_action: np.ndarray,
@@ -67,7 +66,7 @@ def initialize_opc_nodes_from_tags(
         else:
             raise RuntimeError("Invalid tag provided", tag)
 
-        id = make_opc_node_id(tag.name, cfg_env.opc_ns)
+        id = make_opc_node_id(tag.name, 2)
         node = client.get_node(id)
 
         try:
@@ -108,7 +107,7 @@ def add_heartbeat_node(client: Client, folder: SyncNode) -> SyncNode:
 
     return folder
 
-def run(env: gym.Env, client: Client, cfg_env: OPCTSDBSimAsyncEnvConfig, tag_configs: list[TagConfig]):
+def run(env: gym.Env, client: Client, cfg_env: GymEnvConfig, tag_configs: list[TagConfig]):
     seed = cfg_env.seed
     sleep_sec = cfg_env.obs_period.total_seconds()
 
@@ -142,11 +141,10 @@ def run(env: gym.Env, client: Client, cfg_env: OPCTSDBSimAsyncEnvConfig, tag_con
 
 @load_config(Config, base="config/")
 def main(cfg: Config):
-    assert isinstance(cfg.env, OPCTSDBSimAsyncEnvConfig), "opc client sim only supported for OPCTSDBSimAsyncEnvConfig"
     env: gym.Env = init_environment(cfg.env)
     _logger.info(f"Running OPC env simulation {env}")
 
-    client = Client(cfg.env.opc_conn_url)
+    client = Client("opc.tcp://admin@0.0.0.0:4840/rlcore/server/")
     try:
         client.connect()
         run(env, client, cfg.env, cfg.pipeline.tags)

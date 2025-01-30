@@ -5,7 +5,7 @@ import numpy as np
 from numba import njit
 
 from corerl.configs.config import config
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
+from corerl.data_pipeline.transforms.base import BaseTransformConfig, InvertibleTransform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
@@ -14,10 +14,10 @@ class NormalizerConfig(BaseTransformConfig):
     name: Literal['normalize'] = 'normalize'
     min: float | None = None
     max: float | None = None
-    from_data: bool = True
+    from_data: bool = False
 
 
-class Normalizer:
+class Normalizer(InvertibleTransform):
     def __init__(self, cfg: NormalizerConfig):
         self._cfg = cfg
         self._mins = defaultdict(lambda: cfg.min)
@@ -27,7 +27,7 @@ class Normalizer:
         self._mins.clear()
         self._maxs.clear()
 
-    def denormalize(self, x: np.ndarray, col: str):
+    def invert(self, x: np.ndarray, col: str):
         lo = self._mins[col]
         hi = self._maxs[col]
 
@@ -84,7 +84,7 @@ transform_group.dispatcher(Normalizer)
 @njit
 def _norm(x: np.ndarray, mi: float, ma: float):
     n = len(x)
-    out = np.zeros(n, dtype=np.float_)
+    out = np.zeros(n, dtype=np.float64)
 
     for i in range(n):
         if np.isnan(x[i]):

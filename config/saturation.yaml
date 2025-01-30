@@ -37,13 +37,18 @@ agent:
     critic_optimizer:
       lr : 0.0003
       weight_decay : 0.0
+    critic_network:
+      ensemble: 10
     buffer:
+      name: ensemble_uniform
       seed: ${experiment.seed}
+      ensemble: 10
 
   actor:
     actor_optimizer:
       lr : 0.0005
     buffer:
+      name: uniform
       seed: ${experiment.seed}
 
 pipeline:
@@ -57,16 +62,27 @@ pipeline:
   tags:
   # meta tags
   - name: reward
-    is_meta: True
+    preprocess:
+    - name: identity
     outlier:
       name: identity
+    reward_constructor:
+    - name: identity
+    state_constructor:
+    - name: 'null'
+    preprocess:
+    - name: identity
 
   - name: terminated
+    preprocess:
+    - name: identity
     is_meta: True
     outlier:
       name: identity
 
   - name: truncated
+    preprocess:
+    - name: identity
     is_meta: True
     outlier:
       name: identity
@@ -74,23 +90,28 @@ pipeline:
     - name: 'null'
 
   # observations
-  - name: tag-1
+  - name: tag-0
+    preprocess:
+    - name: identity
     is_meta: False
     outlier:
       name: identity
+    preprocess:
+      - name: identity
     state_constructor:
     - name: multi_trace
       trace_values: [0.95]
 
   # actions
-  - name: action
+  - name: action-0
     is_meta: False
+    operating_range: [-2, 2]
     outlier:
       name: identity
     state_constructor:
-      - name: "null"
-    action_constructor:
+      - name: 'null'
+    preprocess:
       - name: normalize
-        min: -2
-        max: 2
         from_data: False
+    action_constructor:
+      - name: identity

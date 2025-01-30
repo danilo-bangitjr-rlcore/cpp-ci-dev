@@ -1,7 +1,5 @@
 import logging
 import pickle as pkl
-from collections.abc import Sequence
-from dataclasses import field
 from functools import partial
 from pathlib import Path
 from typing import Literal, Optional
@@ -10,17 +8,17 @@ import numpy
 import numpy as np
 import torch
 from jaxtyping import Float
+from pydantic import Field
 
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
 from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
-from corerl.component.critic.factory import init_q_critic
 from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import Transition, TransitionBatch
-from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.data_pipeline.datatypes import TransitionBatch
+from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
@@ -46,8 +44,8 @@ class GreedyACConfig(BaseACConfig):
     tau: float = 0.0
     uniform_sampling_percentage: float = 0.5
 
-    actor: NetworkActorConfig = field(default_factory=NetworkActorConfig)
-    critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
+    actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
+    critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
 
 class GreedyAC(BaseAC):
     def __init__(self, cfg: GreedyACConfig, app_state: AppState, col_desc: ColumnDescriptions):
@@ -82,9 +80,7 @@ class GreedyAC(BaseAC):
         self.top_actions_proposal = int(
             self.rho_proposal * self.num_samples)  # Number of actions used to update proposal policy
 
-        self.actor = init_actor(cfg.actor, self.state_dim, self.action_dim)
         self.sampler = init_actor(cfg.actor, self.state_dim, self.action_dim, initializer=self.actor)
-        self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)
@@ -107,23 +103,29 @@ class GreedyAC(BaseAC):
         )
         return to_np(action)[0]
 
-    def update_buffer(self, transitions: Sequence[Transition]) -> None:
+    def update_buffer(self, pr: PipelineReturn) -> None:
+        if pr.transitions is None:
+            return
+
         self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
 
-        self.critic_buffer.feed(transitions)
+        self.critic_buffer.feed(pr.transitions, pr.data_mode)
         self.policy_buffer.feed([
-            t for t in transitions if t.prior.dp
-        ])
+            t for t in pr.transitions if t.prior.dp
+        ], pr.data_mode)
 
 
-    def load_buffer(self, transitions: Sequence[Transition]) -> None:
+    def load_buffer(self, pr: PipelineReturn) -> None:
+        if pr.transitions is None:
+            return
+
         policy_transitions = []
-        for transition in transitions:
+        for transition in pr.transitions:
             if transition.prior.dp:
                 policy_transitions.append(transition)
 
-        self.policy_buffer.load(policy_transitions)
-        self.critic_buffer.load(transitions)
+        self.policy_buffer.load(policy_transitions, pr.data_mode)
+        self.critic_buffer.load(pr.transitions, pr.data_mode)
 
     def get_sorted_q_values(
         self,

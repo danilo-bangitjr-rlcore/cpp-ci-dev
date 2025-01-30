@@ -7,7 +7,7 @@ import pandas as pd
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
-from corerl.data_pipeline.datatypes import CallerCode, StageCode
+from corerl.data_pipeline.datatypes import DataMode, StageCode
 from corerl.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
@@ -46,8 +46,8 @@ def test_construct_pipeline():
 def test_passing_data_to_pipeline():
     cfg = PipelineConfig(
         tags=[
-            TagConfig(name='sensor_x', operating_range=(-1, 1)),
-            TagConfig(name='sensor_y', red_bounds=(1.1, 3.3)),
+            TagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_x', operating_range=(-3, 3)),
+            TagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_y', red_bounds=(1.1, 3.3)),
         ],
         obs_period=timedelta(minutes=15),
         action_period=timedelta(minutes=15),
@@ -58,6 +58,7 @@ def test_passing_data_to_pipeline():
             max_n_step=30
         ),
         state_constructor=SCConfig(
+            defaults=[NormalizerConfig(from_data=True)],
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=15),
                 obs_period=timedelta(minutes=15),
@@ -76,25 +77,25 @@ def test_passing_data_to_pipeline():
     df = pd.DataFrame(cols, index=datetime_index)
 
     # test that we can run the pf through the pipeline
-    _ = pipeline(df, caller_code=CallerCode.OFFLINE)
+    _ = pipeline(df, data_mode=DataMode.OFFLINE)
 
 
 def test_state_action_dim():
     cfg = PipelineConfig(
         tags=[
-            TagConfig(name='tag-1'),
+            TagConfig(preprocess=[NormalizerConfig(from_data=True)], name='tag-1'),
             TagConfig(
                 name='tag-2',
                 operating_range=(None, 10),
                 yellow_bounds=(-1, None),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     TraceConfig(trace_values=[0.1, 0.9]),
                 ],
             ),
-            TagConfig(name='tag-3', action_constructor=[]),
-            TagConfig(name='tag-4', action_constructor=[]),
+            TagConfig(name='tag-3', operating_range=(0, 1), action_constructor=[]),
+            TagConfig(name='tag-4', operating_range=(0, 1), action_constructor=[]),
         ],
         state_constructor=SCConfig(
             countdown=CountdownConfig(
@@ -125,14 +126,16 @@ def test_sub_pipeline1():
         tags=[
             TagConfig(
                 name='tag-1',
+                preprocess=[NormalizerConfig(from_data=True)],
                 state_constructor=[],
             ),
             TagConfig(
                 name='tag-2',
                 operating_range=(None, 10),
+                preprocess=[NormalizerConfig(from_data=True)],
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     TraceConfig(trace_values=[0.1]),
                 ],
             ),
@@ -144,6 +147,7 @@ def test_sub_pipeline1():
             max_n_step=30
         ),
         state_constructor=SCConfig(
+            defaults=[NormalizerConfig(from_data=True)],
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=5),
                 obs_period=timedelta(minutes=5),
@@ -177,7 +181,7 @@ def test_sub_pipeline1():
     pipeline = Pipeline(cfg)
     got = pipeline(
         df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
         stages=(StageCode.BOUNDS, StageCode.ODDITY, StageCode.IMPUTER, StageCode.SC),
     )
 
@@ -205,14 +209,16 @@ def test_sub_pipeline2():
         tags=[
             TagConfig(
                 name='tag-1',
+                preprocess=[NormalizerConfig(from_data=True)],
                 state_constructor=[],
             ),
             TagConfig(
                 name='tag-2',
                 operating_range=(1, 2),
+                preprocess=[NormalizerConfig(from_data=True)],
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     TraceConfig(trace_values=[0.1]),
                 ],
             ),
@@ -224,6 +230,7 @@ def test_sub_pipeline2():
             max_n_step=30
         ),
         state_constructor=SCConfig(
+            defaults=[NormalizerConfig(from_data=True)],
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=5),
                 obs_period=timedelta(minutes=5),
@@ -257,7 +264,7 @@ def test_sub_pipeline2():
     pipeline = Pipeline(cfg)
     got = pipeline(
         df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
         stages=(StageCode.IMPUTER, StageCode.SC),
     )
 
@@ -290,14 +297,15 @@ def test_sub_pipeline3():
         tags=[
             TagConfig(
                 name='tag-1',
+                preprocess=[],
                 state_constructor=[],
             ),
             TagConfig(
                 name='tag-2',
-                operating_range=(None, 10),
+                operating_range=(0, 10),
+                preprocess=[NormalizerConfig(from_data=True)],
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
-                    NormalizerConfig(),
                     TraceConfig(trace_values=[0.1]),
                 ],
             ),
@@ -342,11 +350,18 @@ def test_sub_pipeline3():
     pipeline = Pipeline(cfg)
     got = pipeline(
         df,
-        caller_code=CallerCode.ONLINE,
-        stages=(StageCode.BOUNDS, StageCode.ODDITY, StageCode.IMPUTER, StageCode.RC, StageCode.SC),
+        data_mode=DataMode.ONLINE,
+        stages=(
+            StageCode.BOUNDS,
+            StageCode.PREPROCESS,
+            StageCode.ODDITY,
+            StageCode.IMPUTER,
+            StageCode.RC,
+            StageCode.SC,
+        ),
     )
 
-    cols = ['tag-1', 'tag-2_norm_trace-0.1']
+    cols = ['tag-1', 'tag-2_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
             [np.nan, 0],
@@ -373,6 +388,7 @@ def test_sub_pipeline4():
         tags=[
             TagConfig(
                 name='tag-1',
+                preprocess=[],
                 state_constructor=[],
                 reward_constructor=[
                     AffineConfig(
@@ -383,10 +399,11 @@ def test_sub_pipeline4():
             ),
             TagConfig(
                 name='tag-2',
-                operating_range=(None, 10),
+                operating_range=(0, 10),
                 imputer=LinearImputerConfig(max_gap=2),
+                preprocess=[],
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     TraceConfig(trace_values=[0.1]),
                 ],
             ),
@@ -431,20 +448,20 @@ def test_sub_pipeline4():
     pipeline = Pipeline(cfg)
     got = pipeline(
         df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
         stages=(StageCode.BOUNDS, StageCode.ODDITY, StageCode.IMPUTER, StageCode.RC, StageCode.SC),
     )
 
-    cols = ['reward', 'tag-1', 'tag-2_norm_trace-0.1']
+    cols = ['tag-1', 'tag-2_norm_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
-            [np.nan, np.nan, 0],
-            [5,      0,      0.18],
-            [4,      1,      0.378],
-            [3,      2,      0.5778],
-            [np.nan, np.nan, 0.77778],
-            [1,      4,      0.977778],
-            [0,      5,      np.nan],
+            [np.nan, 0],
+            [0,      0.18],
+            [1,      0.378],
+            [2,      0.5778],
+            [np.nan, 0.77778],
+            [4,      0.977778],
+            [5,      np.nan],
         ],
         columns=cols,
         index=idx,
@@ -452,3 +469,18 @@ def test_sub_pipeline4():
 
     assert dfs_close(got.df, expected_df)
     assert got.transitions is None
+
+    expected_reward = pd.DataFrame(
+        data=[
+            [np.nan],
+            [5],
+            [4],
+            [3],
+            [np.nan],
+            [1],
+            [0],
+        ],
+        columns=['reward'],
+        index=idx,
+    )
+    assert dfs_close(got.rewards, expected_reward)

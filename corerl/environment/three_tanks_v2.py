@@ -158,7 +158,7 @@ class ThreeTankEnvBase(object):
 
     def update_pid(
         self,
-        pi_parameters: np.ndarray[int, np.dtype[np.float32]] | List[float],
+        pi_parameters: np.ndarray | List[float],
         KI: bool = False,
     ):
         # This method update the pid settings based on the action

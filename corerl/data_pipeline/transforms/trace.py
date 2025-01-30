@@ -63,7 +63,7 @@ def compute_trace_with_nan(
 ):
     n_samples = len(data)
     n_traces = len(decays)
-    out = np.zeros((n_samples, n_traces), dtype=np.float_)
+    out = np.zeros((n_samples, n_traces), dtype=np.float64)
     mu: np.ndarray | None = mu_0
 
     for i in range(n_samples):
@@ -74,7 +74,7 @@ def compute_trace_with_nan(
             continue
 
         if mu is None:
-            mu = np.ones(n_traces, dtype=np.float_) * x
+            mu = np.ones(n_traces, dtype=np.float64) * x
 
         mu = decays * mu + (1 - decays) * x
         out[i] = mu

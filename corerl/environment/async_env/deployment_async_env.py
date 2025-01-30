@@ -3,20 +3,19 @@ from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import pandas as pd
-from asyncua.sync import Client
+from asyncua.sync import Client, SyncNode
 
 from corerl.configs.config import MISSING, config
 
 # Data Pipline
+from corerl.data_pipeline.bound_checker import Bounds
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transforms import NormalizerConfig
 from corerl.environment.async_env.async_env import AsyncEnv, OPCEnvConfig, TSDBEnvConfig
-from corerl.utils.list import find_instance
 from corerl.utils.maybe import Maybe
 from corerl.utils.opc_connection import make_opc_node_id
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 @config()
 class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):
@@ -25,8 +24,8 @@ class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):
 
 
 class DeploymentAsyncEnv(AsyncEnv):
-    """
-    It's going to be sync for now
+    """AsyncEnv which communicates actions through OPC and retrieves observations through TSDB.
+    Ensure that TimescaleDB, Telegraf, our OPC Server, and our simulated OPC environment is running prior to use.
     """
 
     def __init__(self, cfg: DepAsyncEnvConfig, tag_configs: list[TagConfig]):
@@ -39,32 +38,37 @@ class DeploymentAsyncEnv(AsyncEnv):
         self.action_tolerance = cfg.action_tolerance
 
         self.tag_names = [tag.name for tag in tag_configs]
-        self._action_tags = [tag for tag in tag_configs if tag.action_constructor is not None]
         self._meta_tags = [tag for tag in tag_configs if tag.is_meta]
         self._observation_tags = [
             tag for tag in tag_configs
             if not tag.is_meta and tag.action_constructor is None
         ]
 
-        self._opc_client = Client(self.url)
-        self._opc_client.connect()
-
         self.data_reader = DataReader(db_cfg=cfg.db)
 
+        # create dict of action tags
+        action_cfgs = [tag for tag in tag_configs if tag.action_constructor is not None]
+        self._action_cfgs: dict[str, TagConfig] = {}
+        for tag_cfg in sorted(action_cfgs, key=lambda cfg: cfg.name):
+            self._action_cfgs[tag_cfg.name] = tag_cfg
+
         # define opc action nodes
-        self.action_nodes = []
-        for tag in sorted(tag_configs, key=lambda cfg: cfg.name):
-            if tag.action_constructor is None:
-                continue
+        self.action_nodes: dict[str, SyncNode] = {}
+        with Client(self.url) as opc_client:
+            for tag_cfg in sorted(tag_configs, key=lambda cfg: cfg.name):
+                if tag_cfg.action_constructor is None:
+                    continue
 
-            node_name = tag.name
-            if tag.node_identifier is not None:
-                node_name = tag.node_identifier
+                tag_name = tag_cfg.name
+                if tag_cfg.node_identifier is not None:
+                    node_name = tag_cfg.node_identifier
+                else:
+                    node_name = tag_name
 
-            id = make_opc_node_id(node_name, cfg.opc_ns)
-            node = self._opc_client.get_node(id)
-            self.action_nodes.append(node)
-
+                id = make_opc_node_id(node_name, cfg.opc_ns)
+                node = opc_client.get_node(id)
+                logger.info(f"Registering action '{tag_name}' with OPC node id '{id}'")
+                self.action_nodes[tag_name] = node
 
     def _make_opc_node_id(self, str_id: str, namespace: int = 0):
         return f"ns={namespace};s={str_id}"
@@ -73,57 +77,64 @@ class DeploymentAsyncEnv(AsyncEnv):
         """Closes the opc client and data reader
         Can also use __exit__ or cleanup
         """
-        self._opc_client.disconnect()
         self.data_reader.close()
 
-    def emit_action(self, action: np.ndarray) -> None:
+    def emit_action(self, action: pd.DataFrame, log_action: bool = False) -> None:
         """Writes directly to the OPC server"""
+        sanitize_actions(action, self._action_cfgs)
 
-        denormalized_actions = self._denormalize_action(action)
-        action_names = [tag.name for tag in self._action_tags]
-        logger.info(f"emitting actions {action_names} with values {denormalized_actions}...")
-        self._opc_client.write_values(self.action_nodes, denormalized_actions)
+        if log_action:
+            logger.info("--- Emitting action ---")
+            [logger.info(line) for line in action.to_string().splitlines()]
+        with Client(self.url) as opc_client:
+            # if action df got nuked in sanitizer, this for loop does nothing
+            for action_name in action.columns:
+                node = self.action_nodes[action_name]
+                action_val = float(action[action_name].iloc[0])
+                opc_client.write_values([node], [action_val])
 
-    def _denormalize_action(self, action: np.ndarray) -> list[float]:
-        denormalized_actions = []
-        action_tag_configs = self._action_tags
-        action = action.flatten()
-        assert len(action) == len(action_tag_configs)
-        action_dim = len(action)
-
-        for act_i in range(action_dim):
-            # denormalize the action if possible, otherwise emit normalized action
-            raw_action = action[act_i]
-            action_cfg = action_tag_configs[act_i]
-
-            norm_cfg = (
-                Maybe(action_cfg.action_constructor)
-                .map(lambda ac: find_instance(NormalizerConfig, ac))
-            )
-
-            lo = (
-                norm_cfg
-                .map(lambda cfg: cfg.min)
-                .expect('Failed to denormalize action: no lower bound found')
-            )
-
-            hi = (
-                norm_cfg
-                .map(lambda cfg: cfg.max)
-                .expect('Failed to denormalize action: no upper bound found')
-            )
-
-            scale = hi - lo
-            bias = lo
-            denormalized_actions.append(scale * raw_action + bias)
-
-        return denormalized_actions
 
     def get_latest_obs(self) -> pd.DataFrame:
         now = datetime.now(UTC)
         obs = self.data_reader.single_aggregated_read(
-            names=self.tag_names,
-            start_time=now - self.obs_period,
-            end_time=now
+            names=self.tag_names, start_time=now - self.obs_period, end_time=now
         )
         return obs
+
+
+def sanitize_actions(action: pd.DataFrame, action_cfgs: dict[str, TagConfig]) -> None:
+    if len(action) < 1:
+        logger.error("Action df empty")
+        return
+    if len(action) > 1:
+        logger.error(f"Action df contains {len(action)} rows, clearing action df")
+        action.drop(columns=action.columns, inplace=True)
+        return
+
+    clip_action(action, action_cfgs)
+
+def clip_action(action: pd.DataFrame, action_cfgs: dict[str, TagConfig]) -> None:
+    for action_name in action_cfgs.keys():
+        action_cfg = action_cfgs[action_name]
+        action_val = action[action_name].iloc[0]
+        lo, hi = get_clip_bounds(action_cfg)
+
+        if (action_val < lo) or (action_val > hi):
+            logger.error(
+                f"Action {action_cfg.name} assigned value {action_val}, outside of operating range [{lo}, {hi}]"
+            )
+
+        action[action_name] = np.clip(action_val, lo, hi)
+
+def get_clip_bounds(action_cfg: TagConfig) -> Bounds:
+    # prefer to use red zones, otherwise use operating range
+    lo = (
+        Maybe[float](action_cfg.red_bounds and action_cfg.red_bounds[0])
+        .otherwise(lambda: action_cfg.operating_range and action_cfg.operating_range[0])
+    ).expect()
+
+    hi = (
+        Maybe[float](action_cfg.red_bounds and action_cfg.red_bounds[1])
+        .otherwise(lambda: action_cfg.operating_range and action_cfg.operating_range[1])
+    ).expect()
+    return lo, hi

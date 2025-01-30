@@ -160,6 +160,73 @@ class TestDataReaderLogic:
         assert isinstance(df.index, DatetimeIndex) # for typing
         assert (df.index.to_numpy() == expected_index.to_numpy()).all()
 
+    def test_batch_aggregated_read_diff_aggregations(self, data_reader_writer: tuple[DataReader, DataWriter]):
+        reader, writer = data_reader_writer
+
+        obs_period = timedelta(seconds=2)
+        end_time = datetime(year=2025, month=1, day=10, hour=13, minute=30, tzinfo=UTC)
+        start_time = end_time - 5*obs_period
+        for i in range(10):
+            write_time = end_time - i*timedelta(seconds=1)
+            writer.write(
+                timestamp=write_time, name="avg_var", val=1.0 - i*0.1
+            )
+        for i in range(10):
+            write_time = end_time - i*timedelta(seconds=1)
+            writer.write(
+                timestamp=write_time, name="last_var", val=i*0.1
+            )
+        writer.write(timestamp=end_time, name="bool_var", val=True)
+        writer.write(timestamp=end_time - timedelta(seconds=1), name="bool_var", val=False)
+
+        writer.blocking_sync()
+
+        df = reader.batch_aggregated_read(
+            names=["avg_var", "last_var", "bool_var"],
+            start_time=start_time,
+            end_time=end_time,
+            bucket_width=obs_period,
+            tag_aggregations={
+                "avg_var": "avg",
+                "last_var": "last",
+                "bool_var": "bool_or"
+            }
+        )
+
+        assert np.allclose(df["avg_var"].iloc[-1], 0.95)
+        assert np.allclose(df["last_var"].iloc[-1], 0.0)
+        assert df["bool_var"].iloc[-1]
+
+    def test_batch_aggregated_read_with_agg_fallback(self, data_reader_writer: tuple[DataReader, DataWriter]):
+        reader, writer = data_reader_writer
+        obs_period = timedelta(seconds=2)
+        end_time = datetime(year=2025, month=1, day=10, hour=13, minute=30, tzinfo=UTC)
+        start_time = end_time - 5*obs_period
+        for i in range(10):
+            write_time = end_time - i*timedelta(seconds=1)
+            writer.write(
+                timestamp=write_time, name="last_var", val=1.0 - i*0.1
+            )
+            writer.write(
+                timestamp=write_time, name="default_var", val=i*0.1
+            )
+
+        writer.blocking_sync()
+
+        df = reader.batch_aggregated_read(
+            names=["last_var", "default_var"],
+            start_time=start_time,
+            end_time=end_time,
+            bucket_width=obs_period,
+            aggregation="avg",
+            tag_aggregations={
+                "last_var": "last",
+            }
+        )
+
+        assert np.allclose(df["last_var"].iloc[-1], 1.0)
+        assert np.allclose(df["default_var"].iloc[-1], 0.05)
+
 class TestDataReader:
     sensor_names: List[str] = ["sensor1", "sensor2", "sensor3"]
 

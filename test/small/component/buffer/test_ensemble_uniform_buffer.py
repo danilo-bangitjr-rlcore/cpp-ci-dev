@@ -1,7 +1,7 @@
 from torch import Tensor
 
-from corerl.component.buffer.buffers import EnsembleUniformBuffer, EnsembleUniformReplayBufferConfig
-from corerl.data_pipeline.datatypes import Step, StepBatch, Transition, TransitionBatch
+from corerl.component.buffer.ensemble import EnsembleUniformBuffer, EnsembleUniformReplayBufferConfig
+from corerl.data_pipeline.datatypes import DataMode, Step, StepBatch, Transition, TransitionBatch
 
 
 def test_sample_mini_batch():
@@ -58,22 +58,24 @@ def test_sample_mini_batch():
 
     # With seed=0 and data_subset=0.6, the first buffer in the ensemble is fed trans_1, trans_3
     # and the second buffer in the ensemble is fed trans_2
-    buffer.feed([trans_1])
-    buffer.feed([trans_2])
-    buffer.feed([trans_3])
+    buffer.feed([trans_1], DataMode.OFFLINE)
+    buffer.feed([trans_2], DataMode.OFFLINE)
+    buffer.feed([trans_3], DataMode.OFFLINE)
 
     ensemble_batch = buffer.sample()
     assert len(ensemble_batch) == 2
     batch_1 = ensemble_batch[0]
     batch_2 = ensemble_batch[1]
 
-    # With seed=0 and combined=True, the first buffer of the ensemble's sampled indices are [1, 1]
+    # With seed=0 and combined=True, the first buffer of the ensemble's sampled indices are [2, 1]
     expected_1 = TransitionBatch(
+        # stub out the idxs as these are random and not meaningful
+        batch_1.idxs,
         StepBatch(
-            Tensor([[1.0], [1.0]]),
-            Tensor([[0.5], [0.5]]),
+            Tensor([[1.0], [0.9]]),
+            Tensor([[0.5], [0.6]]),
             Tensor([[0.99], [0.99]]),
-            Tensor([[0.2, 0.4, 0.6, 0.8], [0.2, 0.4, 0.6, 0.8]]),
+            Tensor([[0.2, 0.4, 0.6, 0.8], [0.3, 0.5, 0.7, 0.9]]),
             Tensor([[True], [True]]),
         ),
         StepBatch(
@@ -83,17 +85,19 @@ def test_sample_mini_batch():
             Tensor([[0.4, 0.6, 0.8, 1.0], [0.4, 0.6, 0.8, 1.0]]),
             Tensor([[True], [True]]),
         ),
-        Tensor([[0.9+0.99*0.8], [0.9+0.99*0.8]]),
-        Tensor([[0.99**2], [0.99**2]]),
+        Tensor([[0.9+0.99*0.8], [0.8]]),
+        Tensor([[0.99**2], [0.99]]),
     )
 
     # The second buffer of the ensemble's sampled indices are [0, 0]
     expected_2 = TransitionBatch(
+        # stub out the idxs as these are random and not meaningful
+        batch_2.idxs,
         StepBatch(
-            Tensor([[0.9], [0.9]]),
-            Tensor([[0.6], [0.6]]),
+            Tensor([[1.0], [0.9]]),
+            Tensor([[0.5], [0.6]]),
             Tensor([[0.99], [0.99]]),
-            Tensor([[0.3, 0.5, 0.7, 0.9], [0.3, 0.5, 0.7, 0.9]]),
+            Tensor([[0.2, 0.4, 0.6, 0.8], [0.3, 0.5, 0.7, 0.9]]),
             Tensor([[True], [True]]),
         ),
         StepBatch(
@@ -103,8 +107,8 @@ def test_sample_mini_batch():
             Tensor([[0.4, 0.6, 0.8, 1.0], [0.4, 0.6, 0.8, 1.0]]),
             Tensor([[True], [True]]),
         ),
-        Tensor([[0.8], [0.8]]),
-        Tensor([[0.99], [0.99]]),
+        Tensor([[0.9+0.99*0.8], [0.8]]),
+        Tensor([[0.99**2], [0.99]]),
     )
 
     assert batch_1 == expected_1

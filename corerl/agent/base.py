@@ -1,16 +1,17 @@
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
-from dataclasses import field
 from pathlib import Path
 from typing import Any
 
 import numpy
+from pydantic import Field
 
+from corerl.component.actor.base_actor import BaseActor
+from corerl.component.actor.factory import init_actor
 from corerl.component.actor.network_actor import NetworkActorConfig
-from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
+from corerl.component.critic.ensemble_critic import EnsembleCriticConfig, EnsembleQCritic, EnsembleVCritic
+from corerl.component.critic.factory import init_q_critic, init_v_critic
 from corerl.configs.config import MISSING, config, interpolate
-from corerl.data_pipeline.datatypes import Transition
-from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
 
 
@@ -21,7 +22,6 @@ class BaseAgentConfig:
     discrete_control: bool = interpolate('${env.discrete_control}')
     freezer_freq: int = 1
     gamma: float = interpolate('${experiment.gamma}')
-    message_bus: Any = MISSING
     n_updates: int = 1
     replay_ratio: int = 1
     seed: int = interpolate('${experiment.seed}')
@@ -53,11 +53,11 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def update_buffer(self, transitions: Sequence[Transition]) -> None:
+    def update_buffer(self, pr: PipelineReturn) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def load_buffer(self, transitions: Sequence[Transition]) -> None:
+    def load_buffer(self, pr: PipelineReturn) -> None:
         raise NotImplementedError
 
     @abstractmethod
@@ -79,8 +79,8 @@ class BaseAgent(ABC):
 
 @config(frozen=True)
 class BaseACConfig(BaseAgentConfig):
-    critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
-    actor: NetworkActorConfig = field(default_factory=NetworkActorConfig)
+    critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
+    actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
 
     n_actor_updates: int = 1
     n_critic_updates: int = 1
@@ -91,6 +91,10 @@ class BaseAC(BaseAgent):
         super().__init__(cfg, app_state, col_desc)
         self.n_critic_updates = cfg.n_critic_updates
         self.n_actor_updates = cfg.n_actor_updates
+
+        self.actor: BaseActor = init_actor(cfg.actor, self.state_dim, self.action_dim)
+        self.q_critic: EnsembleQCritic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
+        self.v_critic: EnsembleVCritic = init_v_critic(cfg.critic, self.state_dim)
 
     @abstractmethod
     def update_actor(self) -> tuple:

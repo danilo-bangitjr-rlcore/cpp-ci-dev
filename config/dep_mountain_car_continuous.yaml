@@ -1,31 +1,35 @@
 # This variant of mountain_car_continuous requires that the OPC server and client be running.
 # All interactions to the mountain car continuous environment is performed through OPC, all state observations are read
 # through TSDB.
-defaults:
-  -
+
+log_path: "outputs/e2e_smoke"
 
 experiment:
   exp_name: OPC_MountainCarContinuous
   param_from_hash: True
   seed: 1
   gamma: 0.99
-  run_forever: True
 
 interaction:
   name: dep_interaction
   historical_batch_size: 0
+  heartbeat:
+    opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
+    heartbeat_node_id: "s=heartbeat"
+    heartbeat_period: 00:00:01
+    max_counter: 10
 
 event_bus:
-  enabled: false
+  enabled: True
 
 env:
-  name: opc_tsdb_sim_async_env
-  obs_period: 00:00:01
-  update_period: 00:00:01
-  action_period: 00:00:01
-  gym_name: MountainCarContinuous-v0
+  name: dep_async_env
+  obs_period: 00:00:05
+  update_period: 00:00:05
+  action_period: 00:00:15
+  setpoint_ping_period: 00:00:10
   discrete_control: False
-  seed: 1
+  seed: ${experiment.seed}
   db: ${pipeline.db}
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
@@ -44,10 +48,12 @@ agent:
 
   critic:
     buffer:
+      name: uniform
       seed: ${experiment.seed}
 
   actor:
     buffer:
+      name: uniform
       seed: ${experiment.seed}
     actor_optimizer:
       lr: 0.00001
@@ -64,6 +70,7 @@ metrics:
   table_schema: "public"
   table_name: "metrics"
   enabled: True
+  lo_wm: 5
 
 pipeline:
   db:
@@ -83,46 +90,8 @@ pipeline:
     name: anytime
 
   tags:
-  # For new gym environments where these tags are not yet known, leave `tags` undefined and
-  # populate the environment/env values with the gym_name. Then pass the configuration to the
-  # e2e/make_configs.py script, e.g.:
-  #
-  #    python3 e2e/make_configs.py --config-name opc_mountain_car_continuous
-  #
-  # and copy the e2e/generated_tags.yaml contents into this tags field.
-  - name: 'gym_reward'
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    reward_constructor:
-    - name: 'null'
-    state_constructor:
-    - name: 'null' # do not include in state
-    is_meta: true
-
-  - name: terminated
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    reward_constructor:
-    - name: greater_than
-      threshold: 0.5
-    - name: scale
-      factor: 100.0
-    state_constructor: null
-    is_meta: true
-
-  - name: truncated
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    is_meta: true
-
-  - name: action_0
-    operating_range: [-1, 1]
+  - name: action-0
+    operating_range: [-1.5, 1.5]
     outlier:
       name: identity
     imputer:
@@ -132,21 +101,41 @@ pipeline:
       pow: 2
     - name: scale
       factor: -0.1
-    state_constructor: null
+    state_constructor:
+      - name: 'null'
     action_constructor:
     - name: identity
     is_meta: false
 
-  - name: observation_0
+  - name: tag-0
     operating_range: [-1.2, 0.6]
+    red_bounds: [-1.0, null]
+    yellow_bounds: [-0.8, null]
     outlier:
       name: identity
     imputer:
       name: identity
+    reward_constructor:
+    - name: 'null'
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.9
+    is_meta: false
 
-  - name: observation_1
+  - name: tag-1
     operating_range: [-0.07, 0.07]
+    red_bounds: [-0.06, 0.06]
     outlier:
       name: identity
     imputer:
       name: identity
+    reward_constructor:
+    - name: 'null'
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.9
+    is_meta: false

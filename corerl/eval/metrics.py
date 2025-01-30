@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 
 class MetricsWriterProtocol(Protocol):
-    def write(self, agent_step: int, metric: str, value: SupportsFloat):
+    def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None):
         ...
     def close(self)-> None:
         ...
@@ -37,7 +37,7 @@ class MetricsDBConfig(BufferedWriterConfig):
     db_name: str = 'postgres'
     table_name: str = 'metrics'
     table_schema: str = 'public'
-    lo_wm: int = 10
+    lo_wm: int = 1
     enabled: bool = False
 
 
@@ -64,7 +64,7 @@ class MetricsWriter(BufferedWriter[_MetricPoint]):
                 value float NOT NULL
             );
             SELECT create_hypertable('{self.cfg.table_name}', 'time', chunk_time_interval => INTERVAL '1d');
-            CREATE INDEX metric_idx ON {self.cfg.table_name} (metric);
+            CREATE INDEX {self.cfg.table_name}_idx ON {self.cfg.table_name} (metric);
             ALTER TABLE {self.cfg.table_name} SET (
                 timescaledb.compress,
                 timescaledb.compress_segmentby='metric'
@@ -80,12 +80,12 @@ class MetricsWriter(BufferedWriter[_MetricPoint]):
         """)
 
 
-    def write(self, agent_step: int, metric: str, value: SupportsFloat):
+    def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None):
         if not self.cfg.enabled:
             return
 
         point = _MetricPoint(
-            timestamp=now_iso(),
+            timestamp=timestamp or now_iso(),
             agent_step=agent_step,
             metric=metric,
             value=float(value),
@@ -120,9 +120,9 @@ class PandasMetricsWriter():
 
         os.makedirs(self.output_path, exist_ok=True)
 
-    def write(self, agent_step: int, metric: str, value: SupportsFloat):
+    def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None):
         point = _MetricPoint(
-            timestamp=now_iso(),
+            timestamp=timestamp or now_iso(),
             agent_step=agent_step,
             metric=metric,
             value=float(value),

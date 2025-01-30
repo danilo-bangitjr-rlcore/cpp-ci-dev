@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
@@ -22,7 +22,7 @@ def test_sc1():
 
     pf = PipelineFrame(
         data=raw_obs,
-        caller_code=CallerCode.REFRESH,
+        data_mode=DataMode.REFRESH,
     )
 
     sc = StateConstructor(
@@ -58,7 +58,7 @@ def test_norm_sc():
     })
     pf = PipelineFrame(
         data=obs,
-        caller_code=CallerCode.OFFLINE,
+        data_mode=DataMode.OFFLINE,
     )
 
     sc = StateConstructor(
@@ -66,7 +66,7 @@ def test_norm_sc():
             TagConfig(
                 name='tag-1',
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     TraceConfig(trace_values=[0.1, 0.01]),
                 ],
             ),
@@ -96,7 +96,7 @@ def test_sc_add_raw():
 
     pf = PipelineFrame(
         data=raw_obs,
-        caller_code=CallerCode.REFRESH,
+        data_mode=DataMode.REFRESH,
     )
 
     sc = StateConstructor(
@@ -141,7 +141,7 @@ def test_sc_integration1():
 
     pf = PipelineFrame(
         data=raw_obs,
-        caller_code=CallerCode.OFFLINE,
+        data_mode=DataMode.OFFLINE,
     )
 
     sc = StateConstructor(
@@ -150,7 +150,7 @@ def test_sc_integration1():
         ],
         cfg=SCConfig(
             defaults=[
-                NormalizerConfig(),
+                NormalizerConfig(from_data=True),
                 SplitConfig(
                     left=[TraceConfig(trace_values=[0.1])],
                     right=[AddRawConfig()],
@@ -185,7 +185,7 @@ def test_sc_integration2():
 
     pf = PipelineFrame(
         data=raw_obs,
-        caller_code=CallerCode.OFFLINE,
+        data_mode=DataMode.OFFLINE,
     )
 
     sc = StateConstructor(
@@ -193,7 +193,7 @@ def test_sc_integration2():
             TagConfig(
                 name='tag-1',
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     SplitConfig(
                         left=[TraceConfig(trace_values=[0.1])],
                         right=[AddRawConfig()],
@@ -232,7 +232,7 @@ def test_sc_integration3():
 
     pf = PipelineFrame(
         data=raw_obs,
-        caller_code=CallerCode.OFFLINE,
+        data_mode=DataMode.OFFLINE,
     )
 
     sc = StateConstructor(
@@ -241,7 +241,7 @@ def test_sc_integration3():
         ],
         cfg=SCConfig(
             defaults=[
-                NormalizerConfig(),
+                NormalizerConfig(from_data=True),
                 SplitConfig(
                     left=[TraceConfig(trace_values=[0.1])],
                     right=[AddRawConfig()],
@@ -276,7 +276,7 @@ def test_sc_integration4():
 
     pf = PipelineFrame(
         data=raw_obs,
-        caller_code=CallerCode.OFFLINE,
+        data_mode=DataMode.OFFLINE,
     )
 
     sc = StateConstructor(
@@ -285,7 +285,7 @@ def test_sc_integration4():
         ],
         cfg=SCConfig(
             defaults=[
-                NormalizerConfig(),
+                NormalizerConfig(from_data=True),
                 SplitConfig(
                     left=[TraceConfig(trace_values=[0.1])],
                     right=[TraceConfig(trace_values=[0.01])],
@@ -325,7 +325,7 @@ def test_sc_decision_point_detection():
 
     pf = PipelineFrame(
         data=raw_obs,
-        caller_code=CallerCode.OFFLINE,
+        data_mode=DataMode.OFFLINE,
     )
 
     # stub out action construction
@@ -338,7 +338,7 @@ def test_sc_decision_point_detection():
         ],
         cfg=SCConfig(
             defaults=[
-                NormalizerConfig(),
+                NormalizerConfig(from_data=True),
             ],
             countdown=CountdownConfig(
                 kind='int',
@@ -369,7 +369,7 @@ def test_per_tag_overrides():
 
     pf = PipelineFrame(
         data=raw_obs,
-        caller_code=CallerCode.REFRESH,
+        data_mode=DataMode.REFRESH,
     )
 
     sc = StateConstructor(

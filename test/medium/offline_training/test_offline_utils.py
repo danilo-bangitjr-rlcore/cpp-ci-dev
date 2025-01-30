@@ -1,22 +1,21 @@
 import datetime as dt
-from typing import Generator
 
 import numpy as np
 import pandas as pd
 import pytest
-from docker.models.containers import Container
+from sqlalchemy import Engine
 from torch import Tensor
 
 from corerl.agent.factory import init_agent
 from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.component.actor.network_actor import NetworkActorConfig
-from corerl.component.buffer.buffers import UniformReplayBufferConfig
+from corerl.component.buffer.uniform import UniformReplayBufferConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.optimizers.torch_opts import AdamConfig
-from corerl.config import MainConfig, MetricsDBConfig
+from corerl.config import MainConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
-from corerl.data_pipeline.datatypes import CallerCode, Step, Transition
+from corerl.data_pipeline.datatypes import DataMode, Step, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
@@ -25,46 +24,45 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import LessThanConfig, NullConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
-from corerl.eval.writer import metrics_group
+from corerl.eval.actor_critic import ActorCriticEvalConfig
+from corerl.eval.config import EvalConfig
+from corerl.eval.evals import EvalDBConfig, evals_group
+from corerl.eval.metrics import MetricsDBConfig, metrics_group
+from corerl.eval.monte_carlo import MonteCarloEvalConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.messages.event_bus import EventBus
-from corerl.offline.utils import load_offline_transitions, offline_training
+from corerl.offline.utils import OfflineTraining
+from corerl.sql_logging.sql_logging import table_exists
 from corerl.state import AppState
 from test.infrastructure.utils.docker import init_docker_container  # noqa: F401
 
 
-@pytest.fixture(scope="module")
-def test_db_config() -> TagDBConfig:
+@pytest.fixture()
+def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> TagDBConfig:
+    port = tsdb_engine.url.port
+    assert port is not None
+
     db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",
         username="postgres",
         password="password",
         ip="localhost",
-        port=5433,  # default is 5432, but we want to use different port for test db
-        db_name="offline_test",
+        port=port,
+        db_name=tsdb_tmp_db_name,
         table_name="tags",
     )
 
     return db_cfg
 
-
-@pytest.fixture(scope="module")
-def init_offline_tsdb_container():
-    container = init_docker_container()
-    yield container
-    container.stop()
-    container.remove()
-
-
-@pytest.fixture(scope="module")
-def data_writer(init_offline_tsdb_container: Container, test_db_config: TagDBConfig) -> Generator[DataWriter, None, None]: # noqa: F811, E501
+@pytest.fixture()
+def data_writer(test_db_config: TagDBConfig):
     data_writer = DataWriter(cfg=test_db_config)
 
     yield data_writer
 
     data_writer.close()
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     obs_period = dt.timedelta(seconds=60)
     action_period = 2*obs_period
@@ -72,7 +70,30 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
 
     cfg = MainConfig(
         metrics=MetricsDBConfig(
-            enabled=False,
+            enabled=True,
+            port=test_db_config.port,
+            db_name=test_db_config.db_name,
+            lo_wm=0
+        ),
+        evals=EvalDBConfig(
+            enabled=True,
+            port=test_db_config.port,
+            db_name=test_db_config.db_name,
+            lo_wm=0
+        ),
+        eval_cfgs=EvalConfig(
+            actor_critic=ActorCriticEvalConfig(
+                enabled=True,
+                num_test_states=1,
+                num_uniform_actions=10,
+                critic_samples=2
+            ),
+            monte_carlo=MonteCarloEvalConfig(
+                enabled=True,
+                precision=0.2,
+                gamma=0.9,
+                offline_eval_steps=[0],
+            )
         ),
         agent=GreedyACConfig(
             actor=NetworkActorConfig(
@@ -91,23 +112,30 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
             )
         ),
         experiment=ExperimentConfig(
-            offline_steps=100
+            gamma=0.9,
+            offline_steps=100,
         ),
         pipeline=PipelineConfig(
             tags=[
                 TagConfig(
                     name="Action",
+                    preprocess=[],
                     state_constructor=[NullConfig()],
                     action_constructor=[],
                     operating_range=(0.0, 1.0)
                 ),
                 TagConfig(
                     name="Tag_1",
+                    preprocess=[],
                     reward_constructor=[
                         LessThanConfig(threshold=3),
                     ],
                 ),
-                TagConfig(name="reward", is_meta=True),
+                TagConfig(
+                    name="reward",
+                    preprocess=[],
+                    state_constructor=[NullConfig()],
+                ),
             ],
             db=test_db_config,
             obs_period=obs_period,
@@ -135,7 +163,14 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
 
     return cfg
 
-def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, steps: int = 5) -> list[Transition]:
+@pytest.fixture
+def offline_trainer(offline_cfg: MainConfig) -> OfflineTraining:
+    return OfflineTraining(offline_cfg)
+
+def generate_offline_data(offline_cfg: MainConfig,
+                          offline_trainer: OfflineTraining,
+                          data_writer: DataWriter,
+                          steps: int = 5) -> list[Transition]:
     obs_period = offline_cfg.pipeline.obs_period
 
     # Generate timestamps
@@ -166,18 +201,21 @@ def generate_offline_data(offline_cfg: MainConfig, data_writer: DataWriter, step
 
     # Produce offline transitions
     pipeline = Pipeline(offline_cfg.pipeline)
-    created_transitions = load_offline_transitions(offline_cfg, pipeline, start_time=start_time)
+    offline_trainer.load_offline_transitions(pipeline, start_time=start_time)
 
-    return created_transitions
+    assert offline_trainer.pipeline_out is not None
+    assert offline_trainer.pipeline_out.transitions is not None
 
-def test_load_offline_transitions(offline_cfg: MainConfig, data_writer: DataWriter):
+    return offline_trainer.pipeline_out.transitions
+
+def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: OfflineTraining, data_writer: DataWriter):
     """
     Generate a few offline time steps, write them to TSDB, read the data from TSDB into a dataframe,
     pass data through the 'Anytime' data pipeline, and ensure the correct transitions are produced
     """
     steps = 5
 
-    created_transitions = generate_offline_data(offline_cfg, data_writer, steps)
+    created_transitions = generate_offline_data(offline_cfg, offline_trainer, data_writer, steps)
 
     # Expected transitions
     gamma = offline_cfg.experiment.gamma
@@ -196,7 +234,10 @@ def test_load_offline_transitions(offline_cfg: MainConfig, data_writer: DataWrit
     for i in range(len(created_transitions)):
         assert created_transitions[i] == expected_transitions[i]
 
-def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
+def test_offline_training(offline_cfg: MainConfig,
+                          offline_trainer: OfflineTraining,
+                          data_writer: DataWriter,
+                          tsdb_engine: Engine):
     """
     Generate a few offline time steps, write them to TSDB, read the data from TSDB into a dataframe,
     pass data through the 'Anytime' data pipeline, train an agent on the produced transitions,
@@ -204,10 +245,12 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
     """
     steps = 5
 
-    offline_transitions = generate_offline_data(offline_cfg, data_writer, steps)
+    generate_offline_data(offline_cfg, offline_trainer, data_writer, steps)
 
     app_state = AppState(
+        cfg=offline_cfg,
         metrics=metrics_group.dispatch(offline_cfg.metrics),
+        evals=evals_group.dispatch(offline_cfg.evals),
         event_bus=EventBus(offline_cfg.event_bus, offline_cfg.env),
     )
 
@@ -216,11 +259,41 @@ def test_offline_training(offline_cfg: MainConfig, data_writer: DataWriter):
     agent = init_agent(offline_cfg.agent, app_state, col_desc)
 
     # Offline training
-    critic_losses = offline_training(offline_cfg, agent, offline_transitions)
+    critic_losses = offline_trainer.train(app_state, agent, col_desc)
     first_loss = critic_losses[0]
     last_loss = critic_losses[-1]
 
     assert last_loss < first_loss
+
+    # ensure metrics and evals tables exist
+    assert table_exists(tsdb_engine, 'metrics')
+    assert table_exists(tsdb_engine, 'evals')
+
+    with tsdb_engine.connect() as conn:
+        # Ensure Monte-Carlo evaluator writes state-value, observed action-value, and partial returns
+        # twice to metrics table (partial return horizon = math.ceil(np.log(1.0 - self.precision) / np.log(self.gamma))
+        metrics = pd.read_sql_table('metrics', con=conn)
+        state_v_entries = metrics.loc[metrics["metric"] == "state_v_0"]
+        observed_a_q_entries = metrics.loc[metrics["metric"] == "observed_a_q_0"]
+        partial_return_entries = metrics.loc[metrics["metric"] == "partial_return_0"]
+        assert len(state_v_entries) == len(observed_a_q_entries) == len(partial_return_entries) == 2
+
+        # Ensure Actor-Critic evaluator writes an entry to the evals table
+        ac_cfg = offline_cfg.eval_cfgs.actor_critic
+        evals = pd.read_sql_table('evals', con=conn)
+        ac_eval_rows = evals.loc[evals["evaluator"] == "actor-critic_0"]
+        assert len(ac_eval_rows) == len(offline_cfg.eval_cfgs.actor_critic.offline_eval_steps)
+        for i in range(len(ac_eval_rows)):
+            ac_out = ac_eval_rows.iloc[i]["value"]
+            assert len(ac_out) == ac_cfg.num_test_states
+            for test_state in ac_out:
+                for action_tag in ac_out[test_state]:
+                    a_dim_range = np.array(ac_out[test_state][action_tag]["actions"])
+                    pdfs = np.array(ac_out[test_state][action_tag]["pdf"])
+                    qs = np.array(ac_out[test_state][action_tag]["critic"])
+                    assert a_dim_range.shape == (ac_cfg.num_uniform_actions,)
+                    assert pdfs.shape == (ac_cfg.critic_samples, ac_cfg.num_uniform_actions)
+                    assert qs.shape == (ac_cfg.critic_samples, ac_cfg.num_uniform_actions)
 
 def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig):
     normalizer = NormalizerConfig(from_data=True)
@@ -242,6 +315,6 @@ def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig):
 
     # check if tag is normalized using [-0.1, 0.1] as bounds
     # prior implementation would mistakenly use [-0.1, 1] as bounds
-    pr = pipeline(df, caller_code=CallerCode.OFFLINE)
+    pr = pipeline(df, data_mode=DataMode.OFFLINE)
 
     assert np.all(pr.df['Tag_1_norm'] == [1., 0, 0.5, 0.5, 0.5])

@@ -1,11 +1,11 @@
-from dataclasses import field
 from pathlib import Path
 from typing import Any, Literal
 
 import torch
+from pydantic import Field
 
 import corerl.utils.nullable as nullable
-from corerl.component.buffer.buffers import EnsembleUniformReplayBufferConfig
+from corerl.component.buffer.ensemble import EnsembleUniformReplayBufferConfig
 from corerl.component.buffer.factory import BufferConfig
 from corerl.component.critic.base_critic import BaseQ, BaseQConfig, BaseV
 from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
@@ -19,9 +19,9 @@ from corerl.utils.device import device
 @config()
 class _SharedEnsembleConfig:
     name: Any = MISSING
-    critic_network: NetworkConfig = field(default_factory=EnsembleCriticNetworkConfig)
-    critic_optimizer: OptimizerConfig = field(default_factory=AdamConfig)
-    buffer: BufferConfig = field(default_factory=EnsembleUniformReplayBufferConfig)
+    critic_network: NetworkConfig = Field(default_factory=EnsembleCriticNetworkConfig)
+    critic_optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
+    buffer: BufferConfig = Field(default_factory=EnsembleUniformReplayBufferConfig)
     polyak: float = 0.99
     target_sync_freq: int = 1
 

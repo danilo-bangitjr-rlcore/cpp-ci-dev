@@ -10,18 +10,18 @@ from pydantic import Field
 
 from corerl.agent.base import BaseAgent
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
-from corerl.environment.async_env.opc_tsdb_sim_async_env import OPCTSDBSimAsyncEnv
+from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat, HeartbeatConfig
 from corerl.state import AppState
 from corerl.utils.time import clock_generator, split_into_chunks, wait_for_timestamp
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
 @config()
 class DepInteractionConfig:
@@ -29,6 +29,7 @@ class DepInteractionConfig:
     historical_batch_size: int = 10000
     checkpoint_path: Path = Path('outputs/checkpoints')
     heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
+    warmup_period: timedelta | None = None
 
 
 class DeploymentInteraction(Interaction):
@@ -40,7 +41,7 @@ class DeploymentInteraction(Interaction):
         env: AsyncEnv,
         pipeline: Pipeline,
     ):
-        assert isinstance(env, DeploymentAsyncEnv) or isinstance(env, OPCTSDBSimAsyncEnv)
+        assert isinstance(env, DeploymentAsyncEnv)
         self._cfg = cfg
 
         self._heartbeat = Heartbeat(cfg.heartbeat)
@@ -52,7 +53,7 @@ class DeploymentInteraction(Interaction):
         self._column_desc = pipeline.column_descriptions
 
         self._last_state = np.full(self._column_desc.state_dim, np.nan)
-        self._pipeline.register_hook(CallerCode.ONLINE, StageCode.SC, self._capture_last_state)
+        self._pipeline.register_hook(DataMode.ONLINE, StageCode.SC, self._capture_last_state)
 
         ### timing logic ###
         self.obs_period = env.obs_period
@@ -60,7 +61,7 @@ class DeploymentInteraction(Interaction):
         self._next_action_timestamp = datetime.now(UTC) # take an action right away
         self._last_state_timestamp: datetime | None = None
         self._state_age_tol = env.action_tolerance
-        self._last_action: np.ndarray | None = None # used to ping setpoints
+        self._last_action: pd.DataFrame | None = None # used to ping setpoints
 
         # the step clock starts ticking on the first invocation of `next(self._step_clock)`
         # this should occur on the first call to `self.step`
@@ -76,9 +77,15 @@ class DeploymentInteraction(Interaction):
             width=self.obs_period * cfg.historical_batch_size
         )
 
+        # warmup pipeline
+        self.warmup_pipeline()
         # checkpointing state
         self._last_checkpoint = datetime.now(UTC)
         self.restore_checkpoint()
+
+        # evals
+        self._monte_carlo_eval = MonteCarloEvaluator(app_state.cfg.eval_cfgs.monte_carlo, app_state, agent)
+
 
     def step(self):
         step_timestamp = next(self._step_clock)
@@ -89,22 +96,26 @@ class DeploymentInteraction(Interaction):
         self.load_historical_chunk()
 
         o = self._env.get_latest_obs()
-        pr = self._pipeline(o, caller_code=CallerCode.ONLINE)
-        if pr.transitions is not None:
-            self._agent.update_buffer(pr.transitions)
+        pr = self._pipeline(o, data_mode=DataMode.ONLINE)
+        self._agent.update_buffer(pr)
+
+        # perform evaluations
+        self._monte_carlo_eval.execute(pr)
 
         self._agent.update()
 
         s = self._get_latest_state()
         if s is not None and self._should_take_action(step_timestamp):
             a = self._agent.get_action(s)
-            self._env.emit_action(a)
-            self._last_action = a
+            a_df = self._pipeline.action_constructor.assign_action_names(a)
+            a_df = self._pipeline.preprocessor.inverse(a_df)
+            self._env.emit_action(a_df)
+            self._last_action = a_df
 
         self._app_state.agent_step += 1
 
     def step_event(self, event: Event):
-        logger.debug(f"Received step_event: {event}")
+        logger.debug(f"Interaction received Event: {event}")
         self._heartbeat.healthcheck()
         match event.type:
             case EventType.step:
@@ -113,9 +124,16 @@ class DeploymentInteraction(Interaction):
             case EventType.step_get_obs:
                 self.load_historical_chunk()
                 o = self._env.get_latest_obs()
-                pr = self._pipeline(o, caller_code=CallerCode.ONLINE)
-                if pr.transitions is not None:
-                    self._agent.update_buffer(pr.transitions)
+                pr = self._pipeline(o, data_mode=DataMode.ONLINE)
+
+                # log rewards
+                r = float(pr.rewards['reward'].iloc[0])
+                self._agent.update_buffer(pr)
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric='reward',
+                    value=r,
+                )
 
                 self._app_state.agent_step += 1
                 self.maybe_checkpoint()
@@ -126,15 +144,35 @@ class DeploymentInteraction(Interaction):
             case EventType.step_emit_action:
                 s = self._get_latest_state()
                 if s is not None:
+                    logger.info("Querying agent policy for new action")
                     a = self._agent.get_action(s)
-                    self._env.emit_action(a)
-                    self._last_action = a
+                    a_df = self._pipeline.action_constructor.assign_action_names(a)
+                    a_df = self._pipeline.preprocessor.inverse(a_df)
+                    self._env.emit_action(a_df, log_action=True)
+                    self._last_action = a_df
+                else:
+                    logger.info("New action requested, but no valid state was available")
+
             case EventType.ping_setpoints:
                 if self._last_action is not None:
+                    logger.debug("Pinging setpoints")
                     self._env.emit_action(self._last_action)
 
             case _:
                 logger.warning(f"Unexpected step_event: {event}")
+
+    def warmup_pipeline(self):
+        if self._cfg.warmup_period is None:
+            return
+
+        warmup_end = datetime.now(UTC)
+        warmup_obs = self._env.data_reader.batch_aggregated_read(
+            names=self._env.tag_names,
+            start_time=warmup_end - self._cfg.warmup_period,
+            end_time=warmup_end,
+            bucket_width=self.obs_period
+        )
+        self._pipeline(warmup_obs, data_mode=DataMode.ONLINE)
 
     def load_historical_chunk(self):
         try:
@@ -156,12 +194,11 @@ class DeploymentInteraction(Interaction):
 
         pipeline_out = self._pipeline(
             data=chunk_data,
-            caller_code=CallerCode.OFFLINE,
+            data_mode=DataMode.OFFLINE,
             reset_temporal_state=False,
         )
 
-        if pipeline_out.transitions is not None:
-            self._agent.update_buffer(pipeline_out.transitions)
+        self._agent.update_buffer(pipeline_out)
 
 
     def maybe_checkpoint(self):
@@ -247,5 +284,3 @@ class DeploymentInteraction(Interaction):
                 metric=feat_name,
                 value=val,
             )
-
-

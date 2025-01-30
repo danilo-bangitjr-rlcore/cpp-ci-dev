@@ -1,12 +1,12 @@
-from dataclasses import field
 from pathlib import Path
 from typing import Any, Literal
 
 import torch
+from pydantic import Field
 
 import corerl.utils.nullable as nullable
 from corerl.component.actor.base_actor import BaseActor, group
-from corerl.component.buffer.buffers import EnsembleUniformReplayBufferConfig
+from corerl.component.buffer.ensemble import EnsembleUniformReplayBufferConfig
 from corerl.component.buffer.factory import BufferConfig
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import AdamConfig
@@ -21,9 +21,9 @@ class _SharedNetworkActorConfig:
     action_min: float = 0
     action_max: float = 1
 
-    actor_network: BaseNNConfig = field(default_factory=SquashedGaussianPolicyConfig)
-    actor_optimizer: OptimizerConfig = field(default_factory=AdamConfig)
-    buffer: BufferConfig = field(default_factory=EnsembleUniformReplayBufferConfig)
+    actor_network: BaseNNConfig = Field(default_factory=SquashedGaussianPolicyConfig)
+    actor_optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
+    buffer: BufferConfig = Field(default_factory=EnsembleUniformReplayBufferConfig)
 
 
 @config(frozen=True)

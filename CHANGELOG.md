@@ -1,3 +1,384 @@
+## 0.64.0 (2025-01-30)
+
+### Feat
+
+- add ensemble buffer to reweight historical data
+- replay buffers take data_mode as feed argument
+
+### Fix
+
+- prefer discriminated union pattern for config schemas
+
+## 0.63.0 (2025-01-30)
+
+### Feat
+
+- add mc evaluator to online mode
+
+### Fix
+
+- fix integration bug due to stale PRs
+- add missing type hints
+- clear numpy deprecation warning
+- only grab the rewards column from rewards df
+
+### Refactor
+
+- add main config to app_state
+- generalize iteration counter label
+- remove nullables and simplify mc eval implementation
+- move transient pipe_return object off of class attributes
+- remove conditional init from monte_carlo eval
+
+## 0.62.1 (2025-01-30)
+
+### Fix
+
+- mc eval config is not a base eval config
+- prefer Field to field in config dataclasses
+- have mc eval own its own config parameters
+- default resolution with Fields now walks through default_factory schemas
+
+## 0.62.0 (2025-01-30)
+
+### Feat
+
+- Implemented Actor-Critic evaluator
+
+## 0.61.0 (2025-01-30)
+
+### Feat
+
+- implemented EvalWriter
+
+### Refactor
+
+- reverted name 'metrics_writer' back to 'metrics' and renamed 'eval_writer' to 'evals'. In MainConfig, renamed 'evals' to 'eval_cfgs'
+- changed 'metrics' to 'metrics_writer' in test_main.py
+- changed 'metrics' to 'metrics_writer' in interaction
+- renaming app_state's 'metrics' attribute to 'metrics_writer'
+- rename eval/writer.py to eval/metrics_writer.py
+
+## 0.60.0 (2025-01-30)
+
+### Feat
+
+- Added a FastAPI endpoint for searching OPC variables (#461)
+
+## 0.59.0 (2025-01-29)
+
+### Feat
+
+- change log_files bool in main cfg to log_path Path
+
+## 0.58.3 (2025-01-29)
+
+### Fix
+
+- comparator to_numpy converts to float dtype
+
+## 0.58.2 (2025-01-29)
+
+### Fix
+
+- fix style
+- fix linesearch initlization
+
+## 0.58.1 (2025-01-29)
+
+### Fix
+
+- use table name to uniquely identify their respective idx
+
+### Perf
+
+- set default low watermark to 1 for metrics
+
+## 0.58.0 (2025-01-29)
+
+### Feat
+
+- support different aggregation method for different tags
+
+### Fix
+
+- fix style issue
+- fixed batch and single read header
+- make ruff happy
+- fix pyright
+- provide fallback aggregation method
+- add back debug message
+- add back debug message
+- allow NaN and to use tryconnectcontextmanager
+- add back missing columns
+- fix styles
+
+## 0.57.0 (2025-01-29)
+
+### Feat
+
+- inverse xform
+
+## 0.56.0 (2025-01-28)
+
+### Feat
+
+- implemented Monte-Carlo evaluator as an exclusively offline training evaluator
+
+### Fix
+
+- PipelineReturn needed __iadd__ instead of __add__ to update the object in place. Also needed to return the object
+
+### Refactor
+
+- moved assertion into helper method
+- moved actor, v_critic, and q_critic initialization to BaseAC for typing purposes
+- ensure every algorithm that inherits from BaseAC has 'actor', 'q_critic', and 'v_critic' attributes
+
+## 0.55.2 (2025-01-28)
+
+### Fix
+
+- update pilot cf operating range
+- default heartbeat to None instead of relying on enabled flag
+- log reward in dep interaction
+- update dv pilot config
+- decouple tag name from node name in dep env action nodes
+
+## 0.55.1 (2025-01-28)
+
+### Fix
+
+- update tests to handle norm default from_data=False
+- do not normalize meta tags in preprocess stage
+- from_data defaults to false in normalizer
+
+## 0.55.0 (2025-01-28)
+
+### Feat
+
+- support for OpenAPI generated TypeScript api client
+- added routing and state/query library, stricter eslint rules
+
+## 0.54.0 (2025-01-28)
+
+### Feat
+
+- config validation endpoint
+- Creating configs from dict in server
+
+### Fix
+
+- first pass at pr comments
+- respond to PR comments
+- added json and yaml requests
+
+## 0.53.0 (2025-01-27)
+
+### Feat
+
+- replace xform
+
+## 0.52.3 (2025-01-27)
+
+### Fix
+
+- create outputs dir if it does not exist
+
+## 0.52.2 (2025-01-27)
+
+### Fix
+
+- ensure state constructor columns are always sorted
+- ensure action constructor columns are always sorted
+
+## 0.52.1 (2025-01-27)
+
+### Fix
+
+- ensure default output_dir is a Path object
+
+## 0.52.0 (2025-01-27)
+
+### Feat
+
+- add event to toggle event logging
+- report generating library
+- plotting module for offline data
+
+### Fix
+
+- .gitignore report/
+- testing-induced bug fixes
+
+## 0.51.0 (2025-01-27)
+
+### Feat
+
+- add filter stage to pipeline
+- add conditional filter
+
+## 0.50.0 (2025-01-25)
+
+### Feat
+
+- add comparator xform
+
+### Fix
+
+- register comparator xform
+
+## 0.49.0 (2025-01-25)
+
+### Feat
+
+- sanitize actions in deployment async env before writing to opc
+
+### Fix
+
+- assert that action tags have operating range specified in config
+
+## 0.48.0 (2025-01-25)
+
+### Feat
+
+- add option to warmup pipeline upon interaction init
+
+## 0.47.9 (2025-01-25)
+
+### Fix
+
+- force all checked configs to be interpolated and non missing
+- WIP config fix
+
+## 0.47.8 (2025-01-24)
+
+### Fix
+
+- make delta xform temporal state a dataclass
+- maintain temporal state for all sub-xforms in split list
+
+## 0.47.7 (2025-01-24)
+
+### Refactor
+
+- remove pipeline hooks from sim_interaction
+
+## 0.47.6 (2025-01-24)
+
+### Fix
+
+- remove maxlen from event bus queue
+- start step cycle immediately when event bus is enabled
+
+## 0.47.5 (2025-01-24)
+
+### Refactor
+
+- make sure calls to update_buffer() and load_buffer() pass PipelineReturn objects
+- ensure each agent's load_buffer() method takes a PipelineReturn as an argument instead of a list of transitions
+- agent's update_buffer() method now takes a PipelineReturn argument instead of a list of transitions
+
+## 0.47.4 (2025-01-24)
+
+### Fix
+
+- wrap heartbeat opc conn in context manager
+
+## 0.47.3 (2025-01-24)
+
+### Fix
+
+- force dtype conversion in db backup script
+- prefer float64 over float_
+- remove incompatible ndarray type annotation
+
+## 0.47.2 (2025-01-24)
+
+### Fix
+
+- updated grafana obs query
+
+## 0.47.1 (2025-01-24)
+
+### Fix
+
+- nuke unnecessary runtime validation logic
+- add max priority by default as per the PER paper
+- define feed and load functions as returning impacted idxs
+
+### Refactor
+
+- migrate ensemble buffer to discrete-dists
+- migrate prioritized buffer to discrete-dists
+- pull prioritized buffer into own module file
+- pull uniform buffer into own module file
+- migrate uniform buffer to discrete-dists
+- rename sample_batch -> full_batch
+- simplify buffer sampling logic
+- pull base replay logic out of uniform replay
+
+## 0.47.0 (2025-01-24)
+
+### Feat
+
+- implement preprocessor stage to unify normalization and other early transforms
+
+### Fix
+
+- interaction calls pipeline stages for action ordering and denorm
+- now look in ac and preprocess for action denorm
+
+### Refactor
+
+- all arbitrary invertible xforms in preprocess stage
+- move reward construction to own dataframe in pipeframe
+- move normalization/denorm responsibility to preprocessor
+- move action ordering responsibility to AC
+
+## 0.46.3 (2025-01-23)
+
+### Fix
+
+- fix ensemble reduction config
+- Fix ensemble reduction config schemas
+
+## 0.46.2 (2025-01-23)
+
+### Fix
+
+- prevent dep_async_env from hanging forever
+
+### Refactor
+
+- replace opc_tsdb_sim with deployment
+
+## 0.46.1 (2025-01-23)
+
+### Fix
+
+- update dv pilot configs
+
+## 0.46.0 (2025-01-23)
+
+### Feat
+
+- minimal (minimal) communication between fastapi and vite
+- updated Dockerfile to build and serve client
+- using vite and react for client
+- base fastapi app with test
+
+### Fix
+
+- allow client/dist to not exist
+
+## 0.45.1 (2025-01-23)
+
+### Refactor
+
+- offline training hooks won't accept any arguments - the objects will already store the data they need
+- converted offline_training/utils into a class so that we can ultimately hook evaluators to it
+
 ## 0.45.0 (2025-01-23)
 
 ### Feat

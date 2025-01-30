@@ -9,9 +9,9 @@ MISSING: Any = "|???|"
 
 def list_(vals: list[Any] | None = None) -> Any:
     if vals is None:
-        return field(default_factory=list)
+        return Field(default_factory=list)
 
-    return field(default_factory=lambda: copy.deepcopy(vals))
+    return Field(default_factory=lambda: copy.deepcopy(vals))
 
 
 def interpolate(path: str) -> Any:

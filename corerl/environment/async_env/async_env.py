@@ -1,9 +1,8 @@
-from dataclasses import field
 from datetime import timedelta
 from typing import Any, Literal
 
-import numpy as np
 import pandas as pd
+from pydantic import Field
 
 from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.db.data_reader import TagDBConfig
@@ -32,8 +31,8 @@ class GymEnvConfig(BaseAsyncEnvConfig):
     init_type: Literal["gym.make", "custom"] | None = "gym.make"
 
     # gym environment init args and kwargs, ignored for deployment_async_env
-    args: list[Any] = field(default_factory=list)
-    kwargs: dict[str, Any] = field(default_factory=dict)
+    args: list[Any] = Field(default_factory=list)
+    kwargs: dict[str, Any] = Field(default_factory=dict)
 
 
 class AsyncEnv:
@@ -42,7 +41,7 @@ class AsyncEnv:
     action_period: timedelta
     action_tolerance: timedelta
 
-    def emit_action(self, action: np.ndarray) -> None: ...
+    def emit_action(self, action: pd.DataFrame) -> None: ...
 
     def get_latest_obs(self) -> pd.DataFrame: ...
 

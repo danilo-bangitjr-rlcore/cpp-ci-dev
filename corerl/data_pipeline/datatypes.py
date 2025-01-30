@@ -15,8 +15,9 @@ type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
 
 class MissingType(IntFlag):
-    NULL = auto()
+    NULL = auto()     # data is not missing
     MISSING = auto()  # indicates data did not exist in db
+    FILTER = auto()   # filtered by conditional filter stage
     BOUNDS = auto()
     OUTLIER = auto()
 
@@ -138,23 +139,11 @@ class StepBatch:
 
 @dataclass
 class TransitionBatch:
+    idxs: np.ndarray
     prior: StepBatch
     post: StepBatch
     n_step_reward: Tensor
     n_step_gamma: Tensor
-
-    def __post_init__(self):
-        # ensure all the attributes have the same dimension
-        state_batch_size = self.prior.state.size(0)
-        for f in fields(self):
-            attr = getattr(self, f.name)
-            if isinstance(attr, StepBatch):
-                for sub_field in iter(attr):
-                    assert sub_field.size(0) == state_batch_size, \
-                        f"Element {sub_field.name} does not have the same batch size as the state"
-            else:
-                assert attr.size(0) == state_batch_size, \
-                    f"Element {f.name} does not have the same batch size as the state"
 
     def __eq__(self, other: object):
         if not isinstance(other, TransitionBatch):
@@ -168,7 +157,7 @@ class TransitionBatch:
         )
 
 
-class CallerCode(Enum):
+class DataMode(Enum):
     OFFLINE = auto()
     ONLINE = auto()
     REFRESH = auto()
@@ -176,7 +165,9 @@ class CallerCode(Enum):
 
 class StageCode(Enum):
     INIT = auto()
+    FILTER = auto()
     BOUNDS = auto()
+    PREPROCESS = auto()
     IMPUTER = auto()
     ODDITY = auto()
     TC = auto()
@@ -192,8 +183,10 @@ type TemporalState = dict[StageCode, object | None]
 @dataclass
 class PipelineFrame:
     data: pd.DataFrame
-    caller_code: CallerCode
+    data_mode: DataMode
+    states: pd.DataFrame = field(init=False)
     actions: pd.DataFrame = field(init=False)
+    rewards: pd.DataFrame = field(default_factory=pd.DataFrame)
     missing_info: pd.DataFrame = field(init=False)
     decision_points: np.ndarray = field(init=False)
     temporal_state: TemporalState = field(default_factory=dict)
@@ -209,7 +202,7 @@ class PipelineFrame:
         # initialize dp flags
         self.decision_points = np.zeros(N, dtype=np.bool_)
 
-        # initialize actions
+        # initialize rl containers
         self.actions = self.data.copy(deep=False)
 
     def get_last_timestamp(self) -> datetime.datetime:
