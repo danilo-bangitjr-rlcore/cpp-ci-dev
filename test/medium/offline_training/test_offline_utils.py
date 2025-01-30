@@ -281,7 +281,7 @@ def test_offline_training(offline_cfg: MainConfig,
         ac_cfg = offline_cfg.eval_cfgs.actor_critic
         evals = pd.read_sql_table('evals', con=conn)
         ac_eval_rows = evals.loc[evals["evaluator"] == "actor-critic_0"]
-        assert len(ac_eval_rows) == len(offline_cfg.experiment.offline_eval_iters)
+        assert len(ac_eval_rows) == len(offline_cfg.eval_cfgs.actor_critic.offline_eval_steps)
         for i in range(len(ac_eval_rows)):
             ac_out = ac_eval_rows.iloc[i]["value"]
             assert len(ac_out) == ac_cfg.num_test_states

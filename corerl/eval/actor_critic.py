@@ -9,7 +9,7 @@ from torch import Tensor
 from torch.distributions.constraints import interval
 
 from corerl.agent.base import BaseAC, BaseAgent
-from corerl.configs.config import config
+from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import Transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions
 from corerl.data_pipeline.transition_filter import call_filter
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 class ActorCriticEvalConfig:
     name: str = "actor-critic"
     enabled: bool = False
+    offline_eval_steps: list[int] = list_()
     num_test_states: int = 30
     num_uniform_actions: int = 100
     critic_samples: int = 5
