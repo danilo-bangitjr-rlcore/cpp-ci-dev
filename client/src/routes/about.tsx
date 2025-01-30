@@ -20,7 +20,7 @@ const About = () => {
         <p>{status}</p>
         {error && <div>Error: {`${error}`}</div>}
         {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
-        <button
+        <button className="text-white bg-blue-500 px-4 py-2 rounded hover:bg-blue-600"
           onClick={() => {
             void refetch()
           }}
