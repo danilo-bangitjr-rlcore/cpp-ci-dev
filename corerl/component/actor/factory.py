@@ -1,7 +1,3 @@
-from typing import Annotated
-
-from pydantic import Field
-
 from corerl.component.actor.base_actor import BaseActor, group
 from corerl.component.actor.network_actor import NetworkActorConfig
 
