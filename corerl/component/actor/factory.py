@@ -1,14 +1,7 @@
-from typing import Annotated
-
-from pydantic import Field
-
 from corerl.component.actor.base_actor import BaseActor, group
-from corerl.component.actor.network_actor import NetworkActorConfig, NetworkActorLineSearchConfig
+from corerl.component.actor.network_actor import NetworkActorConfig
 
-ActorConfig = Annotated[
-    NetworkActorConfig
-    | NetworkActorLineSearchConfig
-, Field(discriminator='name')]
+ActorConfig = NetworkActorConfig
 
 def init_actor(
     cfg: ActorConfig,
