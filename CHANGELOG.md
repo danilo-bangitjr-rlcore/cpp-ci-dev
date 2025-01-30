@@ -1,3 +1,9 @@
+## 0.60.0 (2025-01-30)
+
+### Feat
+
+- Added a FastAPI endpoint for searching OPC variables (#461)
+
 ## 0.59.0 (2025-01-29)
 
 ### Feat
