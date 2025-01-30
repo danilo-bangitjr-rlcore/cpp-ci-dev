@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.per_tag.linear import LinearImputer, LinearImputerConfig, LinearImputerTemporalState
 from test.infrastructure.utils.pandas import dfs_close
 
@@ -26,7 +26,7 @@ def test_no_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
@@ -70,7 +70,7 @@ def test_all_nan_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
@@ -116,7 +116,7 @@ def test_all_nan_imputation_ts():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     # Create temporal state
     pf.temporal_state = {
@@ -170,7 +170,7 @@ def test_leading_nan_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
@@ -219,7 +219,7 @@ def test_leading_nan_imputation_ts():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     # Create temporal state
     pf.temporal_state = {
@@ -275,7 +275,7 @@ def test_trailing_nan_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
@@ -323,7 +323,7 @@ def test_trailing_nan_imputation_ts():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     # Create temporal state
     pf.temporal_state = {
@@ -379,7 +379,7 @@ def test_linear_interpolation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
@@ -428,7 +428,7 @@ def test_linear_interpolation_ts():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     # Create temporal state
     pf.temporal_state = {

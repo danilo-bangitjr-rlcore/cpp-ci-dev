@@ -5,9 +5,10 @@ import numpy as np
 
 from corerl.agent.base import BaseAgent
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import CallerCode
+from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
+from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
 from corerl.state import AppState
@@ -39,13 +40,16 @@ class SimInteraction(Interaction):
         self._should_reset = False
         self._last_state: np.ndarray | None = None
 
+        # evals
+        self._monte_carlo_eval = MonteCarloEvaluator(app_state.cfg.eval_cfgs.monte_carlo, app_state, agent)
+
 
     # -----------------------
     # -- Lifecycle Methods --
     # -----------------------
     def _on_get_obs(self):
         o = self._env.get_latest_obs()
-        pipe_return = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
+        pipe_return = self._pipeline(o, data_mode=DataMode.ONLINE, reset_temporal_state=self._should_reset)
         self._agent.update_buffer(pipe_return)
 
         self._should_reset = bool(o['truncated'].any() or o['terminated'].any())
@@ -64,6 +68,9 @@ class SimInteraction(Interaction):
             metric='reward',
             value=r,
         )
+
+        # perform evaluations
+        self._monte_carlo_eval.execute(pipe_return)
 
         self._app_state.agent_step += 1
 

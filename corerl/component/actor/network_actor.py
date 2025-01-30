@@ -1,8 +1,8 @@
-from dataclasses import field
 from pathlib import Path
 from typing import Any, Literal, cast
 
 import torch
+from pydantic import Field
 
 import corerl.utils.nullable as nullable
 from corerl.component.actor.base_actor import BaseActor, group
@@ -22,9 +22,9 @@ class _SharedNetworkActorConfig:
     action_min: float = 0
     action_max: float = 1
 
-    actor_network: BaseNNConfig = field(default_factory=SquashedGaussianPolicyConfig)
-    actor_optimizer: OptimizerConfig = field(default_factory=AdamConfig)
-    buffer: BufferConfig = field(default_factory=EnsembleUniformReplayBufferConfig)
+    actor_network: BaseNNConfig = Field(default_factory=SquashedGaussianPolicyConfig)
+    actor_optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
+    buffer: BufferConfig = Field(default_factory=EnsembleUniformReplayBufferConfig)
 
 
 @config(frozen=True)
@@ -122,7 +122,7 @@ group.dispatcher(NetworkActor)
 class NetworkActorLineSearchConfig(_SharedNetworkActorConfig):
     name: Literal['network_linesearch'] = 'network_linesearch'
 
-    actor_optimizer: LSOConfig = field(default_factory=LSOConfig)
+    actor_optimizer: LSOConfig = Field(default_factory=LSOConfig)
     error_threshold: float = 1e-4
     lr_lower_bound: float = 1e-6
     max_backtracking: int = 30

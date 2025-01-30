@@ -4,7 +4,6 @@
 # all agent observations are performed through timescale DB
 
 import logging
-from dataclasses import field
 from time import sleep
 
 import gymnasium as gym
@@ -12,6 +11,7 @@ import numpy as np
 from asyncua.sync import Client, SyncNode
 from asyncua.ua.uaerrors import BadNodeIdExists, BadNodeIdUnknown
 from asyncua.ua.uatypes import VariantType
+from pydantic import Field
 
 from corerl.configs.config import MISSING, config
 from corerl.configs.loader import load_config
@@ -25,7 +25,7 @@ from corerl.utils.opc_connection import make_opc_node_id
 @config(allow_extra=True)
 class Config:
     env: GymEnvConfig = MISSING
-    pipeline: PipelineConfig = field(default_factory=PipelineConfig)
+    pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
 
 
 def initialize_opc_folder(client: Client, cfg_env: GymEnvConfig):

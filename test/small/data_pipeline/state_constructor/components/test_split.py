@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import DeltaConfig
@@ -21,7 +21,7 @@ def test_split1():
 
     pf = PipelineFrame(
         data=obs,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
 
     sc = StateConstructor(
@@ -70,7 +70,7 @@ def test_split_ts1():
 
     pf = PipelineFrame(
         data=obs,
-        caller_code=CallerCode.OFFLINE,
+        data_mode=DataMode.OFFLINE,
         temporal_state={
             StageCode.SC: {
                 'tag_1': [ts],

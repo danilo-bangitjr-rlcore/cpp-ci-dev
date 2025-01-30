@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from corerl.agent.base import BaseAgent
 from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import CallerCode
+from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import ColumnDescriptions, Pipeline, PipelineReturn
 from corerl.eval.actor_critic import ActorCriticEval
@@ -73,7 +73,7 @@ class OfflineTraining:
             )
             chunk_pr = pipeline(
                 data=chunk_data,
-                caller_code=CallerCode.OFFLINE,
+                data_mode=DataMode.OFFLINE,
                 reset_temporal_state=False,
             )
 
@@ -92,7 +92,7 @@ class OfflineTraining:
 
         ac_eval = ActorCriticEval(self.cfg.eval_cfgs.actor_critic, app_state, agent, column_desc)
         ac_eval.get_test_states(self.pipeline_out.transitions)
-        mc_eval = MonteCarloEvaluator(self.cfg.eval_cfgs.monte_carlo, app_state, agent, self.pipeline_out)
+        mc_eval = MonteCarloEvaluator(self.cfg.eval_cfgs.monte_carlo, app_state, agent)
 
         agent.load_buffer(self.pipeline_out)
         for buffer_name, size in agent.get_buffer_sizes().items():
@@ -101,9 +101,8 @@ class OfflineTraining:
         q_losses: list[float] = []
         pbar = tqdm(range(self.offline_steps))
         for i in pbar:
-            if i in self.cfg.experiment.offline_eval_iters:
-                ac_eval.execute_offline(i)
-                mc_eval(i)
+            mc_eval.execute_offline(i, self.pipeline_out)
+            ac_eval.execute_offline(i)
 
             critic_loss = agent.update()
             q_losses += critic_loss

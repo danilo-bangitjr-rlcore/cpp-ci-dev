@@ -1,9 +1,9 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 import numpy as np
 
-from corerl.configs.config import config, list_
+from corerl.configs.config import config
 from corerl.data_pipeline.data_utils.exp_moving import ExpMovingAvg, ExpMovingVar
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
@@ -23,7 +23,7 @@ class EMAFilterTemporalState:
     ema: ExpMovingAvg
     emv: ExpMovingVar
     n_obs: int = 0
-    _warmup_queue: list[float] = list_()
+    _warmup_queue: list[float] = field(default_factory=list)
 
 
 class EMAFilter(BaseOddityFilter):
@@ -110,4 +110,3 @@ class EMAFilter(BaseOddityFilter):
 
 
 outlier_group.dispatcher(EMAFilter)
-

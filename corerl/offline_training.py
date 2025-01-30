@@ -34,6 +34,7 @@ def main(cfg: MainConfig):
     torch.manual_seed(seed)
 
     app_state = AppState(
+        cfg=cfg,
         metrics=metrics_group.dispatch(cfg.metrics),
         evals=evals_group.dispatch(cfg.evals),
         event_bus=EventBus(cfg.event_bus, cfg.env),

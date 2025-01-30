@@ -237,7 +237,11 @@ def dataclass_to_dict(o: Any) -> Any:
     # about its default values and factories.
     out = {}
     for v in fields(o):
-        if not isinstance(v.default_factory, _MISSING_TYPE):
+        if isinstance(v.default, FieldInfo) and v.default.default_factory is not None:
+            factory: Any = v.default.default_factory
+            out[v.name] = dataclass_to_dict(factory())
+
+        elif not isinstance(v.default_factory, _MISSING_TYPE):
             out[v.name] = dataclass_to_dict(v.default_factory())
 
         elif isinstance(v.default, FieldInfo):

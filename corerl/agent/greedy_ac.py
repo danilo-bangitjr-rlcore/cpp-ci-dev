@@ -1,6 +1,5 @@
 import logging
 import pickle as pkl
-from dataclasses import field
 from functools import partial
 from pathlib import Path
 from typing import Literal, Optional
@@ -9,6 +8,7 @@ import numpy
 import numpy as np
 import torch
 from jaxtyping import Float
+from pydantic import Field
 
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
@@ -44,8 +44,8 @@ class GreedyACConfig(BaseACConfig):
     tau: float = 0.0
     uniform_sampling_percentage: float = 0.5
 
-    actor: NetworkActorConfig = field(default_factory=NetworkActorConfig)
-    critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
+    actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
+    critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
 
 class GreedyAC(BaseAC):
     def __init__(self, cfg: GreedyACConfig, app_state: AppState, col_desc: ColumnDescriptions):
@@ -109,10 +109,10 @@ class GreedyAC(BaseAC):
 
         self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
 
-        self.critic_buffer.feed(pr.transitions)
+        self.critic_buffer.feed(pr.transitions, pr.data_mode)
         self.policy_buffer.feed([
             t for t in pr.transitions if t.prior.dp
-        ])
+        ], pr.data_mode)
 
 
     def load_buffer(self, pr: PipelineReturn) -> None:
@@ -124,8 +124,8 @@ class GreedyAC(BaseAC):
             if transition.prior.dp:
                 policy_transitions.append(transition)
 
-        self.policy_buffer.load(policy_transitions)
-        self.critic_buffer.load(pr.transitions)
+        self.policy_buffer.load(policy_transitions, pr.data_mode)
+        self.critic_buffer.load(pr.transitions, pr.data_mode)
 
     def get_sorted_q_values(
         self,

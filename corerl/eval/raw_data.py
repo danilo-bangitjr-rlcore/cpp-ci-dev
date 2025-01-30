@@ -1,11 +1,10 @@
 import logging
-from dataclasses import field
 
 import pandas as pd
+from pydantic import Field
 
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
-from corerl.eval.base_eval import BaseEvalConfig
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.state import AppState
 
 
@@ -35,7 +34,6 @@ def percentage_missing(df: pd.DataFrame, tag: str) -> float:
 
 def average_length_of_nan_chunks(df: pd.DataFrame, tag: str) -> float:
     is_nan = df[tag].isna()
-    assert isinstance(is_nan, pd.Series)
     chunk_lengths = length_of_chunks(is_nan)
     return float(sum(chunk_lengths) / len(chunk_lengths))
 
@@ -54,7 +52,7 @@ def length_of_chunks(series: pd.Series) -> list[int]:
     if not bool(series.any()): # casting to bool cuz pandas is weird
         return [0]
 
-    chunk_lengths = []
+    chunk_lengths: list[int] = []
     current_chunk_length = 0
 
     for value in series:
@@ -78,7 +76,7 @@ def number_of_nan_samples(df: pd.DataFrame, tag: str) -> int:
     return int(df[tag].isna().sum())
 
 
-def raw_data_eval_for_tag(df: pd.DataFrame, tag: str) -> dict:
+def raw_data_eval_for_tag(df: pd.DataFrame, tag: str):
     return {
         'num_non_nan' : number_of_non_nan_samples(df, tag),
         'num_nan' : number_of_nan_samples(df, tag),
@@ -95,12 +93,11 @@ def raw_data_eval_for_tag(df: pd.DataFrame, tag: str) -> dict:
 
 
 @config()
-class RawDataEvalConfig(BaseEvalConfig):
-    name: str = 'raw_data'
-    caller_codes: list[CallerCode] = field(default_factory=lambda:[CallerCode.ONLINE])
-    stage_codes: list[StageCode] = field(default_factory=lambda:[StageCode.INIT])
+class RawDataEvalConfig:
+    data_modes: list[DataMode] = Field(default_factory=lambda:[DataMode.ONLINE])
+    stage_codes: list[StageCode] = Field(default_factory=lambda:[StageCode.INIT])
     enabled: bool = True
-    tags: list[str] = field(default_factory=list) # which tags you want to output stats for
+    tags: list[str] = Field(default_factory=list) # which tags you want to output stats for
 
 
 def raw_data_eval(
@@ -112,18 +109,20 @@ def raw_data_eval(
     if not cfg.enabled:
         return
 
-    result_dict = {}
+    result_dict: dict[str, dict[str, float]] = {}
     df = pf.data
     for tag in cfg.tags:
         if tag not in df.columns:
             logging.warning(f"Tag {tag} not found in data frame columns.")
-        else:
-            stat_dict = raw_data_eval_for_tag(df, tag)
-            result_dict[tag] = stat_dict
-            for stat_name, stat_value in stat_dict.items():
-                app_state.metrics.write(
-                    agent_step=app_state.agent_step,
-                    metric=f'{tag}_{stat_name}',
-                    value=stat_value,
-                )
+            continue
+
+        stat_dict = raw_data_eval_for_tag(df, tag)
+        result_dict[tag] = stat_dict
+        for stat_name, stat_value in stat_dict.items():
+            app_state.metrics.write(
+                agent_step=app_state.agent_step,
+                metric=f'{tag}_{stat_name}',
+                value=stat_value,
+            )
+
     return result_dict

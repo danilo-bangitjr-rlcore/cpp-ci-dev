@@ -7,7 +7,7 @@ import pandas as pd
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
-from corerl.data_pipeline.datatypes import CallerCode, StageCode
+from corerl.data_pipeline.datatypes import DataMode, StageCode
 from corerl.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
@@ -77,7 +77,7 @@ def test_passing_data_to_pipeline():
     df = pd.DataFrame(cols, index=datetime_index)
 
     # test that we can run the pf through the pipeline
-    _ = pipeline(df, caller_code=CallerCode.OFFLINE)
+    _ = pipeline(df, data_mode=DataMode.OFFLINE)
 
 
 def test_state_action_dim():
@@ -181,7 +181,7 @@ def test_sub_pipeline1():
     pipeline = Pipeline(cfg)
     got = pipeline(
         df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
         stages=(StageCode.BOUNDS, StageCode.ODDITY, StageCode.IMPUTER, StageCode.SC),
     )
 
@@ -264,7 +264,7 @@ def test_sub_pipeline2():
     pipeline = Pipeline(cfg)
     got = pipeline(
         df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
         stages=(StageCode.IMPUTER, StageCode.SC),
     )
 
@@ -350,7 +350,7 @@ def test_sub_pipeline3():
     pipeline = Pipeline(cfg)
     got = pipeline(
         df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
         stages=(
             StageCode.BOUNDS,
             StageCode.PREPROCESS,
@@ -448,7 +448,7 @@ def test_sub_pipeline4():
     pipeline = Pipeline(cfg)
     got = pipeline(
         df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
         stages=(StageCode.BOUNDS, StageCode.ODDITY, StageCode.IMPUTER, StageCode.RC, StageCode.SC),
     )
 

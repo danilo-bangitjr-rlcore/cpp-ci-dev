@@ -21,7 +21,7 @@ from corerl.data_pipeline.constructors.conditional_filter import ConditionalFilt
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode, TemporalState, Transition
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode, TemporalState, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.imputers.factory import ImputerStageConfig, init_imputer
 from corerl.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
@@ -52,7 +52,7 @@ class PipelineConfig:
 
 @dataclass
 class PipelineReturn:
-    caller_code: CallerCode
+    data_mode: DataMode
     df: DataFrame
     states: DataFrame
     actions: DataFrame
@@ -60,7 +60,7 @@ class PipelineReturn:
     transitions: list[Transition] | None
 
     def _add(self, other: Self) -> Tuple[DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
-        assert self.caller_code == other.caller_code, "PipelineReturn objects must have the same CallerCode to be added"
+        assert self.data_mode == other.data_mode, "PipelineReturn objects must have the same DataMode to be added"
 
         df = pd.concat([self.df, other.df])
         states = pd.concat([self.states, other.states])
@@ -89,7 +89,7 @@ class PipelineReturn:
     def __add__(self, other: Self):
         df, states, actions, rewards, transitions = self._add(other)
 
-        return PipelineReturn(self.caller_code, df, states, actions, rewards, transitions)
+        return PipelineReturn(self.data_mode, df, states, actions, rewards, transitions)
 
 
 @dataclass
@@ -139,11 +139,11 @@ class Pipeline:
         self.reward_constructor = RewardConstructor(self.tags, self.preprocessor)
 
         # build pipeline state
-        self.ts_dict: dict[CallerCode, TemporalState | None] = {caller_code: None for caller_code in CallerCode}
-        self.dt_dict: dict[CallerCode, datetime.datetime | None] = {caller_code: None for caller_code in CallerCode}
+        self.ts_dict: dict[DataMode, TemporalState | None] = {data_mode: None for data_mode in DataMode}
+        self.dt_dict: dict[DataMode, datetime.datetime | None] = {data_mode: None for data_mode in DataMode}
 
-        self._hooks: dict[CallerCode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
-            caller_code: defaultdict(list) for caller_code in CallerCode}
+        self._hooks: dict[DataMode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
+            data_mode: defaultdict(list) for data_mode in DataMode}
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
             StageCode.INIT:       lambda pf: pf,
             StageCode.FILTER:     self.conditional_filter,
@@ -179,11 +179,11 @@ class Pipeline:
 
 
     def _init_temporal_state(self, pf: PipelineFrame, reset_ts: bool = False):
-        ts = self.ts_dict[pf.caller_code]
+        ts = self.ts_dict[pf.data_mode]
         if ts is None or reset_ts:
             return {}
 
-        last_seen_time = self.dt_dict[pf.caller_code]
+        last_seen_time = self.dt_dict[pf.data_mode]
         if last_seen_time is None:
             return {}
 
@@ -200,7 +200,7 @@ class Pipeline:
 
     def __call__(
             self, data: DataFrame,
-            caller_code: CallerCode = CallerCode.OFFLINE,
+            data_mode: DataMode = DataMode.OFFLINE,
             reset_temporal_state: bool = False,
             stages: Sequence[StageCode] | None = None,
     ) -> PipelineReturn:
@@ -210,7 +210,7 @@ class Pipeline:
         # handle the no data case with an empty return
         if data.empty:
             return PipelineReturn(
-                caller_code=caller_code,
+                data_mode=data_mode,
                 df=data,
                 states=data,
                 actions=data,
@@ -220,21 +220,21 @@ class Pipeline:
 
         # construct the internal carry object that is mutated
         # by each stage of the pipeline
-        pf = PipelineFrame(data, caller_code)
+        pf = PipelineFrame(data, data_mode)
         pf.temporal_state = self._init_temporal_state(pf, reset_temporal_state)
 
         pf = invoke_stage_per_tag(pf, self.missing_data_checkers)
         for stage in stages:
             pf = self._stage_invokers[stage](pf)
 
-            for hook in self._hooks[caller_code][stage]:
+            for hook in self._hooks[data_mode][stage]:
                 hook(pf)
 
-        self.dt_dict[caller_code] = pf.get_last_timestamp()
-        self.ts_dict[caller_code] = pf.temporal_state
+        self.dt_dict[data_mode] = pf.get_last_timestamp()
+        self.ts_dict[data_mode] = pf.temporal_state
 
         return PipelineReturn(
-            caller_code=caller_code,
+            data_mode=data_mode,
             df=pf.data,
             states=pf.states,
             actions=pf.actions,
@@ -252,18 +252,18 @@ class Pipeline:
 
     def register_hook(
             self,
-            caller_codes: CallerCode | list[CallerCode],
+            data_modes: DataMode | list[DataMode],
             stages: StageCode | list[StageCode],
             f: Callable[[PipelineFrame], Any],
         ):
-        if isinstance(caller_codes, CallerCode):
-            caller_codes = [caller_codes]
+        if isinstance(data_modes, DataMode):
+            data_modes = [data_modes]
         if isinstance(stages, StageCode):
             stages = [stages]
 
-        for caller_code in caller_codes:
+        for data_mode in data_modes:
             for stage in stages:
-                self._hooks[caller_code][stage].append(f)
+                self._hooks[data_mode][stage].append(f)
 
     def reset(self):
         if hasattr(self.state_constructor, 'reset'):

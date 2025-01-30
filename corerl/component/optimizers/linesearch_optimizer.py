@@ -4,11 +4,11 @@ Linesearch library: https://github.com/rlcoretech/LineSearchOpt
 """
 import ctypes
 from collections.abc import Iterable
-from dataclasses import field
 from typing import Any, Callable, Literal
 
 import linesearchopt as lso
 import torch
+from pydantic import Field
 from torch.optim.optimizer import Optimizer
 
 from corerl.component.optimizers.custom_torch_opts import CustomAdam
@@ -32,7 +32,7 @@ class SearchConditionKwargsConfig:
 @config()
 class SearchConditionConfig:
     name: str = 'Armijo'
-    kwargs: SearchConditionKwargsConfig = field(default_factory=SearchConditionKwargsConfig)
+    kwargs: SearchConditionKwargsConfig = Field(default_factory=SearchConditionKwargsConfig)
 
 @config(frozen=True)
 class LSOConfig(OptimConfig):
@@ -43,9 +43,9 @@ class LSOConfig(OptimConfig):
     unit_norm_direction: bool = False
     fallback_step_size: float = 0.0001
 
-    optim: OptimConfig = field(default_factory=AdamConfig)
-    init: LSOInitConfig = field(default_factory=LSOInitConfig)
-    search_condition: SearchConditionConfig = field(default_factory=SearchConditionConfig)
+    optim: OptimConfig = Field(default_factory=AdamConfig)
+    init: LSOInitConfig = Field(default_factory=LSOInitConfig)
+    search_condition: SearchConditionConfig = Field(default_factory=SearchConditionConfig)
 
 
 # ------------------------

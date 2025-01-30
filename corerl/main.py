@@ -46,6 +46,7 @@ def main(cfg: MainConfig):
 
     event_bus = EventBus(cfg.event_bus, cfg.env)
     app_state = AppState(
+        cfg=cfg,
         metrics=metrics_group.dispatch(cfg.metrics),
         evals=evals_group.dispatch(cfg.evals),
         event_bus=event_bus,

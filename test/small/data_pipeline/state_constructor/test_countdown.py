@@ -3,7 +3,7 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from test.infrastructure.utils.pandas import dfs_close
 
@@ -16,7 +16,7 @@ def test_int_countdown1():
 
     pf = PipelineFrame(
         data=actions,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
 
     cd_cfg = CountdownConfig(
@@ -49,7 +49,7 @@ def test_int_countdown1():
 
     pf = PipelineFrame(
         data=actions,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
         temporal_state=pf.temporal_state,
     )
 
@@ -76,7 +76,7 @@ def test_int_countdown2():
 
     pf = PipelineFrame(
         data=actions,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
 
     cd_cfg = CountdownConfig(
@@ -109,7 +109,7 @@ def test_int_countdown3():
 
     pf = PipelineFrame(
         data=actions,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
 
     cd_cfg = CountdownConfig(
@@ -136,7 +136,7 @@ def test_two_clock1():
 
     pf = PipelineFrame(
         data=actions,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
 
     cd_cfg = CountdownConfig(

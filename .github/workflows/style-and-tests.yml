@@ -84,8 +84,16 @@ jobs:
       test-suite: large
       #- run: uv run pytest test/large
 
-  combine-coverage:
+  behavior-test:
     needs: [large-test]
+    uses: ./.github/workflows/reusable-run-test.yml
+    secrets: inherit
+    with:
+      test-suite: behavior
+      #- run: uv run pytest test/behavior
+
+  combine-coverage:
+    needs: [behavior-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

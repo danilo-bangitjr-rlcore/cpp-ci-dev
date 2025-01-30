@@ -1,9 +1,9 @@
 import logging
 import time
-from dataclasses import field
 from random import random
 
 import pandas as pd
+from pydantic import Field
 
 from corerl.configs.config import config
 from corerl.configs.loader import load_config
@@ -14,8 +14,8 @@ from corerl.environment.async_env.deployment_async_env import DepAsyncEnvConfig,
 
 @config(allow_extra=True)
 class Config:
-    env: DepAsyncEnvConfig = field(default_factory=DepAsyncEnvConfig)
-    pipeline: PipelineConfig = field(default_factory=PipelineConfig)
+    env: DepAsyncEnvConfig = Field(default_factory=DepAsyncEnvConfig)
+    pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
 
 
 def dumb_policy(action_tags: list[TagConfig]):

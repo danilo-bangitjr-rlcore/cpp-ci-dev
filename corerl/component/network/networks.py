@@ -1,10 +1,10 @@
 import copy
 from collections.abc import Iterable
-from dataclasses import field
 from typing import Any, Callable, Literal, Optional
 
 import torch
 import torch.nn as nn
+from pydantic import Field
 from torch.func import functional_call, stack_module_state  # type: ignore
 
 import corerl.component.layer as layer
@@ -35,11 +35,11 @@ class NNTorsoConfig(BaseNetworkConfig):
 class EnsembleCriticNetworkConfig(BaseNetworkConfig):
     name: Literal['ensemble'] = 'ensemble'
     ensemble: int = 1
-    bootstrap_reduct: Reduct = field(default_factory=MeanReduct)
-    policy_reduct: Reduct = field(default_factory=MeanReduct)
+    bootstrap_reduct: Reduct = Field(default_factory=MeanReduct)
+    policy_reduct: Reduct = Field(default_factory=MeanReduct)
     vmap: bool = False
 
-    base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
+    base: NNTorsoConfig = Field(default_factory=NNTorsoConfig)
 
 
 
@@ -265,7 +265,7 @@ class GRUConfig(BaseNetworkConfig):
     gru_hidden_dim: int = -1
     num_gru_layers: int = 1
 
-    base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
+    base: NNTorsoConfig = Field(default_factory=NNTorsoConfig)
 
 
 class GRU(nn.Module):

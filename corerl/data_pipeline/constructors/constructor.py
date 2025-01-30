@@ -4,7 +4,7 @@ from functools import cached_property
 
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.base import Transform, transform_group
@@ -67,7 +67,7 @@ class Constructor(ABC):
 
         pf = PipelineFrame(
             data=fake_data,
-            caller_code=CallerCode.OFFLINE,
+            data_mode=DataMode.OFFLINE,
             temporal_state=defaultdict(lambda: None),
         )
 

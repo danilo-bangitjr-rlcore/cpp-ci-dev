@@ -1,8 +1,8 @@
 from collections.abc import Iterable
-from dataclasses import field
 from functools import cached_property
 
 import pandas as pd
+from pydantic import Field
 
 import corerl.utils.list as list_u
 from corerl.configs.config import config, list_
@@ -17,7 +17,7 @@ from corerl.data_pipeline.transforms.norm import NormalizerConfig
 @config()
 class SCConfig:
     defaults: list[TransformConfig] = list_([NormalizerConfig()])
-    countdown: CountdownConfig = field(default_factory=CountdownConfig)
+    countdown: CountdownConfig = Field(default_factory=CountdownConfig)
 
 
 class StateConstructor(Constructor):
