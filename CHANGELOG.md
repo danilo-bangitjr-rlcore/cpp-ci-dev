@@ -1,3 +1,11 @@
+## 0.64.1 (2025-01-30)
+
+### Fix
+
+- ruff
+- ruff
+- remove network_linesearch and refactor linesearch adam
+
 ## 0.64.0 (2025-01-30)
 
 ### Feat
