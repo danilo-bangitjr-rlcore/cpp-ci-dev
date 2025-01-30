@@ -95,6 +95,12 @@ class BaseAC(BaseAgent):
         self.n_critic_updates = cfg.n_critic_updates
         self.n_actor_updates = cfg.n_actor_updates
 
+        # the implicit action dim is doubled when using delta actions
+        # because we will be receiving both the direct action and the
+        # delta action in each transition
+        if self.cfg.delta_action:
+            self.action_dim = int(self.action_dim / 2)
+
         self.actor: BaseActor = init_actor(cfg.actor, self.state_dim, self.action_dim)
         self.q_critic: EnsembleQCritic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
         self.v_critic: EnsembleVCritic = init_v_critic(cfg.critic, self.state_dim)

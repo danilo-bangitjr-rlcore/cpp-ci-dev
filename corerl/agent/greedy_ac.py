@@ -75,12 +75,6 @@ class GreedyAC(BaseAC):
 
         self._interleave_updates = cfg.interleave_updates
 
-        # the implicit action dim is doubled when using delta actions
-        # because we will be receiving both the direct action and the
-        # delta action in each transition
-        if self.cfg.delta_action:
-            self.action_dim = int(self.action_dim / 2)
-
         self.n_sampler_updates = cfg.n_sampler_updates
         if self.share_batch and not self.uniform_proposal:
             assert self.n_actor_updates == self.n_sampler_updates, "Actor and proposal must use same number of updates"
