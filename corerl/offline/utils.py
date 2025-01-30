@@ -92,7 +92,7 @@ class OfflineTraining:
 
         ac_eval = ActorCriticEval(self.cfg.eval_cfgs.actor_critic, app_state, agent, column_desc)
         ac_eval.get_test_states(self.pipeline_out.transitions)
-        mc_eval = MonteCarloEvaluator(self.cfg.eval_cfgs.monte_carlo, app_state, agent, self.pipeline_out)
+        mc_eval = MonteCarloEvaluator(self.cfg.eval_cfgs.monte_carlo, app_state, agent)
 
         agent.load_buffer(self.pipeline_out)
         for buffer_name, size in agent.get_buffer_sizes().items():
@@ -101,7 +101,7 @@ class OfflineTraining:
         q_losses: list[float] = []
         pbar = tqdm(range(self.offline_steps))
         for i in pbar:
-            mc_eval(i)
+            mc_eval.execute_offline(i, self.pipeline_out)
             ac_eval.execute_offline(i)
 
             critic_loss = agent.update()

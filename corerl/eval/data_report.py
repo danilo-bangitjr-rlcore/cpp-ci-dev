@@ -64,7 +64,7 @@ def make_stat_table(
         return
 
     tags = get_tags(data)
-    table_data = []
+    table_data: list[list[str]] = []
     headers = ['tag']
     for tag in tags:
         if tag is cfg.tags_to_exclude:
@@ -75,7 +75,7 @@ def make_stat_table(
             tag_stats = raw_data_eval_for_tag(df, tag)
             for key, value in tag_stats.items():
                 headers.append(key)
-                row.append(round(value, 2))
+                row.append(str(round(value, 2)))
             table_data.append(row)
     table_data.insert(0, headers)
     table_str = tabulate(table_data, headers='firstrow', tablefmt='grid')
