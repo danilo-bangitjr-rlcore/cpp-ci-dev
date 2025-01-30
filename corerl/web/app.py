@@ -1,8 +1,10 @@
 import json
 import logging
 from datetime import UTC, datetime
+from typing import Any, List
 
 import yaml
+from asyncua.sync import Client
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
@@ -11,6 +13,7 @@ from pydantic import BaseModel
 
 from corerl.config import MainConfig
 from corerl.configs.loader import config_from_dict, config_to_json
+from corerl.utils.opc_connection import sync_browse_opc_nodes
 
 # For debugging while running the server
 _log = logging.getLogger("uvicorn.error")
@@ -36,6 +39,17 @@ class MessageResponse(BaseModel):
     message: str
 
 
+class OpcNodeDetail(BaseModel):
+    val: Any
+    DataType: str
+    Identifier: str | int
+    nodeid: str
+    path: str
+    key: str
+
+class OpcNodeResponse(BaseModel):
+    nodes: List[OpcNodeDetail]
+
 @app.get(
     "/health",
     response_model=HealthResponse,
@@ -48,6 +62,7 @@ async def health():
 @app.post(
     "/api/configuration/file",
     response_model=MainConfig,
+    tags=["Configuration"],
     openapi_extra={
         "requestBody": {
             "content": {
@@ -115,5 +130,49 @@ async def gen_config_file(request: Request):
     else:
         return JSONResponse(json_config, media_type="application/json")
 
-app.mount("/", StaticFiles(directory="client/dist", html=True, check_dir=False), name="static")
 
+@app.get("/api/opc/nodes",
+         tags=["Opc"],
+         )
+async def read_search_opc(opc_url: str, query: str = "") -> OpcNodeResponse:
+    with Client(opc_url) as client:
+        root = client.nodes.root
+        opc_structure = sync_browse_opc_nodes(client, root)
+
+    opc_variables = get_variables_from_dict(opc_structure)
+    if query != "":
+        opc_variables = [
+            variable
+            for variable in opc_variables
+            if query in variable.key or query in variable.path
+        ]
+
+    return OpcNodeResponse(nodes = opc_variables)
+    # Also add e2e tests
+
+def get_variables_from_dict(opc_structure: dict) -> List[OpcNodeDetail]:
+    _variables = []
+
+    def traverse(node: dict, path: str = "", parent_key: str = ""):
+        if "val" in node.keys():
+            node["path"] = path
+            node["key"] = parent_key
+            opc_node_detail = OpcNodeDetail(**node)
+            _variables.append(opc_node_detail)
+        else:
+
+            if path == "":
+                path = parent_key
+            else:
+                path = path + f"/{parent_key}"
+
+            for key, value in node.items():
+                # Variables named Opc.Ua are too long.
+                # Hardcoding skipping those variables.
+                if key == "Opc.Ua":
+                    continue
+                traverse(value, path=path, parent_key=key)
+    traverse(opc_structure)
+    return _variables
+
+app.mount("/", StaticFiles(directory="client/dist", html=True, check_dir=False), name="static")
