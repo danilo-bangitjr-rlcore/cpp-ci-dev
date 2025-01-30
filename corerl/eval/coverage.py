@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Protocol, Union
+from typing import Protocol
 
 import numpy as np
 import pandas as pd
