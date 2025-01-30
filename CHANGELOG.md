@@ -1,3 +1,13 @@
+## 0.65.0 (2025-01-30)
+
+### Feat
+
+- add state and action logging to sim_interaction
+
+### Fix
+
+- accidentally deleted evaluation in previous commit
+
 ## 0.64.1 (2025-01-30)
 
 ### Fix
