@@ -1,3 +1,9 @@
+## 0.62.0 (2025-01-30)
+
+### Feat
+
+- Implemented Actor-Critic evaluator
+
 ## 0.61.0 (2025-01-30)
 
 ### Feat
