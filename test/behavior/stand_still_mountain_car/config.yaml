@@ -1,7 +1,3 @@
-# This variant of mountain_car_continuous requires that the OPC server and client be running.
-# All interactions to the mountain car continuous environment is performed through OPC, all state observations are read
-# through TSDB.
-
 log_path: "outputs/e2e_smoke"
 
 experiment:

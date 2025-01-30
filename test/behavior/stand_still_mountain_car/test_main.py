@@ -8,15 +8,21 @@ from sqlalchemy import Engine
 from corerl.sql_logging.sql_logging import table_exists
 
 
+@pytest.mark.parametrize('overrides,expected_outcomes', [
+    ({}, {'reward': -0.01, 'critic_loss': 0.01, 'actor_loss': -1.0}),
+    ({'experiment.gamma': 0}, {'reward': -0.01, 'critic_loss': 0.001, 'actor_loss': -0.5}),
+])
 @pytest.mark.timeout(600)
 def test_stand_still_mountain_car(
+    overrides: dict[str, object],
+    expected_outcomes: dict[str, float],
     tsdb_engine: Engine,
     tsdb_tmp_db_name: str,
 ):
     port = tsdb_engine.url.port
     assert port is not None
 
-    overrides = {
+    overrides |= {
         'metrics.port': port,
         'metrics.db_name': tsdb_tmp_db_name,
     }
@@ -43,13 +49,13 @@ def test_stand_still_mountain_car(
     # 10 runs. This should be reasonably stable, and these
     # values (particularly the reward) illustrate reasonable
     # learning performance.
-    rewards = get_metric(metrics, 'reward')
-    critic_loss = get_metric(metrics, 'critic_loss')
-    actor_loss = get_metric(metrics, 'actor_loss')
+    for metric, expected in expected_outcomes.items():
+        values = get_metric(metrics, metric)
 
-    assert rewards[-100:].mean() >= -0.01
-    assert critic_loss[-100:].mean() <= 0.01
-    assert actor_loss[-100:].mean() <= -1.5
+        if metric in {'reward'}:
+            assert values[-100:].mean() >= expected
+        else:
+            assert values[-100:].mean() <= expected
 
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
