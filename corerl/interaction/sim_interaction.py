@@ -2,6 +2,7 @@ import logging
 from typing import Literal
 
 import numpy as np
+import pandas as pd
 
 from corerl.agent.base import BaseAgent
 from corerl.configs.config import config
@@ -61,13 +62,11 @@ class SimInteraction(Interaction):
             .to_numpy(dtype=np.float32)
         )
 
+        # log states
+        self._write_to_metrics(pipe_return.states)
+
         # log rewards
-        r = float(pipe_return.rewards['reward'].iloc[0])
-        self._app_state.metrics.write(
-            agent_step=self._app_state.agent_step,
-            metric='reward',
-            value=r,
-        )
+        self._write_to_metrics(pipe_return.rewards)
 
         # perform evaluations
         self._monte_carlo_eval.execute(pipe_return)
@@ -85,6 +84,8 @@ class SimInteraction(Interaction):
         a_df = self._pipeline.preprocessor.inverse(a_df)
         self._env.emit_action(a_df)
 
+        # log actions
+        self._write_to_metrics(a_df)
 
     # ------------------
     # -- No Event Bus --
@@ -125,3 +126,15 @@ class SimInteraction(Interaction):
             return None
 
         return self._last_state
+
+    def _write_to_metrics(self, df: pd.DataFrame) -> None:
+        if len(df) != 1:
+            logger.error(f"unexpected df length: {len(df)}")
+
+        for feat_name in df.columns:
+            val = df[feat_name].values[0]
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=feat_name,
+                value=val,
+            )
