@@ -1,3 +1,14 @@
+## 0.67.0 (2025-01-31)
+
+### Feat
+
+- added saturation to the behaviour test suite
+- add state and action logging to sim_interaction
+
+### Fix
+
+- accidentally deleted evaluation in previous commit
+
 ## 0.66.0 (2025-01-31)
 
 ### Feat
