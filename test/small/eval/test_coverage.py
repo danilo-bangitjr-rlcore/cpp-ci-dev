@@ -1,9 +1,12 @@
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 
 from corerl.eval.coverage import (
     ActionSamplerConfig,
+    AECoverage,
+    AECoverageConfig,
     BaseCoverageConfig,
     BaseSamplerConfig,
     CoverageProtocol,
@@ -181,7 +184,6 @@ def _test_uniform_action_sampler(coverage_fn: CoverageProtocol, dataset: Dataset
         }
     )
     test_dataset_high_cov = Dataset(data=test_data_high_cov, action_tags=["tag-2"])
-
     coverage_value_1 = sampler.eval(test_dataset_high_cov, coverage_fn)
 
     # make a test dataset with only the states with low action coverage
@@ -192,9 +194,7 @@ def _test_uniform_action_sampler(coverage_fn: CoverageProtocol, dataset: Dataset
         }
     )
     test_dataset_low_cov = Dataset(data=test_data_low_cov, action_tags=["tag-2"])
-
     coverage_value_2 = sampler.eval(test_dataset_low_cov, coverage_fn)
-
     assert coverage_value_1 <= coverage_value_2
 
 
@@ -234,3 +234,33 @@ def test_neighbours_with_uniform_action_sampler():
     neighbours_coverage = NeighboursCoverage(coverage_cfg)
     neighbours_coverage.fit(dataset)
     _test_uniform_action_sampler(neighbours_coverage, dataset, sampler_cfg)
+
+
+def test_ae_with_uniform_action_sampler():
+    np.random.seed(42)
+    torch.manual_seed(42)
+    coverage_cfg = AECoverageConfig(
+        epsilon=0.1,
+        n_norm_samples=1000,
+        buffer_size=100,
+        batch_size=200,
+        stepsize=1e-2,
+        weight_decay=0.00,
+        err_tolerance=1e-4,
+        max_update_steps=100,
+        sizes=[1]
+    )
+    sampler_cfg = ActionSamplerConfig(n_state_samples=1, n_action_samples=100)
+
+    half_dataset_size = 50
+    data = pd.DataFrame(
+        {
+            "tag-1": [0] * half_dataset_size + [1] * half_dataset_size,
+            "tag-2": list(np.random.uniform(0, 1, half_dataset_size)) + [0] * half_dataset_size,
+        }
+    )
+    dataset = Dataset(data=data, action_tags=["tag-2"])
+
+    ae_coverage = AECoverage(coverage_cfg)
+    ae_coverage.fit(dataset)
+    _test_uniform_action_sampler(ae_coverage, dataset, sampler_cfg)
