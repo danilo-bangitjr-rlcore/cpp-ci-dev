@@ -7,7 +7,7 @@ from typing import Literal, NamedTuple, Protocol, SupportsFloat
 
 import pandas as pd
 from pydantic import Field
-from sqlalchemy import Connection, text
+from sqlalchemy import text
 from typing_extensions import Annotated
 
 from corerl.configs.config import config
@@ -66,10 +66,6 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
     ):
         super().__init__(cfg, cfg.lo_wm, high_watermark)
         self.cfg = cfg
-        self._has_built = False
-
-        self._conn: Connection | None = None
-
 
     def _create_table_sql(self):
         return text(f"""
