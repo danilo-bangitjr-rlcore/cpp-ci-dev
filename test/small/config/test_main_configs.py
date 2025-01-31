@@ -12,6 +12,7 @@ from corerl.configs.loader import config_to_dict, direct_load_config
     ('config', 'saturation'),
     ('config', 'mountain_car_continuous'),
     ('config', 'dep_mountain_car_continuous'),
+    ('config', 'minimal_config'),
     ('projects/cenovus/configs', 'offline_pretraining'),
     ('projects/drayton_valley/configs', 'drayton_valley-pilot-backwash'),
     ('projects/vww/configs', 'offline_pretraining'),
