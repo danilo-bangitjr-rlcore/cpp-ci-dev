@@ -211,6 +211,9 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         start_time: datetime | None = None,
         end_time: datetime | None = None
     ) -> pd.DataFrame:
+        # Make sure all MetricPoint objects in buffer have been written to DB
+        self.blocking_sync()
+
         if start_time is not None or end_time is not None:
             return self._read_by_time(metric, start_time, end_time)
         elif step_start is not None or step_end is not None:

@@ -23,12 +23,14 @@ def db_metrics_table(
         enabled=True,
         port=port,
         db_name=tsdb_tmp_db_name,
-        lo_wm=0
+        lo_wm=1
     )
 
-    metrics_table = MetricsTable(metrics_db_cfg, high_watermark=1)
+    metrics_table = MetricsTable(metrics_db_cfg)
 
-    return metrics_table
+    yield metrics_table
+
+    metrics_table.close()
 
 @pytest.fixture()
 def pandas_metrics_table() -> PandasMetricsTable:
@@ -49,6 +51,7 @@ def test_db_metrics_writer(tsdb_engine: Engine, db_metrics_table: MetricsTable):
         value=metrics_val,
         timestamp=now_iso()
     )
+    db_metrics_table.blocking_sync()
 
     # ensure metrics table exists
     assert table_exists(tsdb_engine, 'metrics')
