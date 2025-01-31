@@ -116,6 +116,7 @@ class DeploymentInteraction(Interaction):
             self._last_action = a_df
 
         self._app_state.agent_step += 1
+        self._env.maybe_write_agent_step(step=self._app_state.agent_step)
 
     def _log_rewards(self, pipeline_return: PipelineReturn):
         # log rewards
