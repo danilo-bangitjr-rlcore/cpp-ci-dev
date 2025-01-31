@@ -1,3 +1,13 @@
+## 0.69.0 (2025-01-31)
+
+### Feat
+
+- implemented Metrics Table read() method for both TSDB and Pandas
+
+### Refactor
+
+- Added blocking_sync() before read() and updated MetricsTable fixture in tests
+
 ## 0.68.0 (2025-01-31)
 
 ### Feat
