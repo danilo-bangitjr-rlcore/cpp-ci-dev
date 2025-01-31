@@ -165,7 +165,8 @@ def _test_uniform_action_sampler(coverage_fn: CoverageProtocol, dataset: Dataset
     * Evaluates the coverage on the provided dataset and asserts that the coverage value is greater than 0.
     * Creates a test dataset with high action coverage and evaluates its coverage.
     * Creates a test dataset with low action coverage and evaluates its coverage.
-    * Asserts that the coverage value for the high action coverage dataset is less than or equal to the coverage value for the low action coverage dataset.
+    * Asserts that the coverage value for the high action coverage dataset
+       is less than or equal to the coverage value for the low action coverage dataset.
     """
     sampler = UniformActionSampler(cfg)
 
