@@ -4,35 +4,34 @@
 # all agent observations are performed through timescale DB
 
 import logging
-from time import sleep
+from datetime import timedelta
 
 import gymnasium as gym
 import numpy as np
 from asyncua.sync import Client, SyncNode
 from asyncua.ua.uaerrors import BadNodeIdExists, BadNodeIdUnknown
 from asyncua.ua.uatypes import VariantType
-from pydantic import Field
 
 from corerl.configs.config import MISSING, config
 from corerl.configs.loader import load_config
-from corerl.data_pipeline.pipeline import PipelineConfig
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import GymEnvConfig
 from corerl.environment.factory import init_environment
 from corerl.utils.opc_connection import make_opc_node_id
+from corerl.utils.time import clock_generator, wait_for_timestamp
 
 
-@config(allow_extra=True)
-class Config:
-    env: GymEnvConfig = MISSING
-    pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
-
+@config()
+class OPCSimConfig:
+    gym: GymEnvConfig = MISSING
+    sim_timestep_period: timedelta | None = None
+    obs_tags: list[str] = MISSING
+    action_tags: list[str] = MISSING
 
 def initialize_opc_folder(client: Client, cfg_env: GymEnvConfig):
     # create folder containing environment variables
-    folder_node_id = make_opc_node_id(cfg_env.name)
+    folder_node_id = make_opc_node_id(cfg_env.gym_name)
     try:
-        folder = client.nodes.objects.add_folder(folder_node_id, cfg_env.name)
+        folder = client.nodes.objects.add_folder(folder_node_id, cfg_env.gym_name)
     except BadNodeIdExists:
         # folder already exists
         folder = client.get_node(folder_node_id)
@@ -41,32 +40,30 @@ def initialize_opc_folder(client: Client, cfg_env: GymEnvConfig):
 
 def initialize_opc_nodes_from_tags(
     client: Client,
-    cfg_env: GymEnvConfig,
-    tag_configs: list[TagConfig],
+    cfg: OPCSimConfig,
     initial_observation: np.ndarray,
     initial_action: np.ndarray,
 ):
-    folder = initialize_opc_folder(client, cfg_env)
+    folder = initialize_opc_folder(client, cfg.gym)
     # create OPC nodes based on tags
-    opc_nodes: dict[str, list[SyncNode]] = {
-        "action": [],
-        "observation": [],
-        "meta": [],
-    }
+    opc_nodes: dict[str, list[SyncNode]] = {}
 
-    action_idx = 0
-    observation_idx = 0
-    for tag in tag_configs:
-        if tag.action_constructor is not None and not tag.is_meta:
-            tag_type = "action"
-        elif tag.action_constructor is None and not tag.is_meta:
-            tag_type = "observation"
-        elif tag.is_meta:
-            tag_type = "meta"
-        else:
-            raise RuntimeError("Invalid tag provided", tag)
+    obs_nodes = get_nodes(tags=cfg.obs_tags, initial_vals=initial_observation, folder=folder, client=client)
+    action_nodes = get_nodes(tags=cfg.action_tags, initial_vals=initial_action, folder=folder, client=client)
+    heartbeat_node = get_nodes(tags=["heartbeat"], initial_vals=np.array([0]), folder=folder, client=client)
+    agent_step_node = get_nodes(tags=["agent_step"], initial_vals=np.array([0]), folder=folder, client=client)
 
-        id = make_opc_node_id(tag.name, 2)
+    opc_nodes["observation"] = obs_nodes
+    opc_nodes["action"] = action_nodes
+    opc_nodes["heartbeat"] = heartbeat_node
+    opc_nodes["agent_step"] = agent_step_node
+    return opc_nodes
+
+
+def get_nodes(tags: list[str], initial_vals: np.ndarray, folder: SyncNode, client: Client) -> list[SyncNode]:
+    nodes = []
+    for idx, tag in enumerate(tags):
+        id = make_opc_node_id(tag, 2)
         node = client.get_node(id)
 
         try:
@@ -76,49 +73,33 @@ def initialize_opc_nodes_from_tags(
             # instantiate first action as random sample, store in OPC
             val = 0.0
             var_type = VariantType.Double
-            if tag_type == "action":
-                val = initial_action[action_idx]
-                action_idx += 1
-            elif tag_type == "observation":
-                val = initial_observation[observation_idx]
-                observation_idx += 1
-            elif tag_type == "meta":
-                if tag.name == "gym_reward":
-                    val = 0.0
-                elif tag.name == "truncated":
-                    val = False
-                    var_type = VariantType.Boolean
-                elif tag.name == "terminated":
-                    val = False
-                    var_type = VariantType.Boolean
-            node = folder.add_variable(id, tag.name, val, var_type)
+            val = initial_vals[idx]
+            node = folder.add_variable(id, tag, val, var_type)
 
-        opc_nodes[tag_type].append(node)
-    add_heartbeat_node(client, folder)
-    return opc_nodes
+        nodes.append(node)
 
-def add_heartbeat_node(client: Client, folder: SyncNode) -> SyncNode:
-    hearbeat_node_id = make_opc_node_id("heartbeat")
-    heartbeat_node = client.get_node(hearbeat_node_id)
-    try:
-        _ = heartbeat_node.read_browse_name()
-    except BadNodeIdUnknown:
-        folder.add_variable(hearbeat_node_id, "heartbeat", 0, VariantType.Int64)
+    return nodes
 
-    return folder
-
-def run(env: gym.Env, client: Client, cfg_env: GymEnvConfig, tag_configs: list[TagConfig]):
-    seed = cfg_env.seed
-    sleep_sec = cfg_env.obs_period.total_seconds()
+def run(env: gym.Env, client: Client, cfg: OPCSimConfig):
+    seed = cfg.gym.seed
 
     initial_observation, info = env.reset(seed=seed)
     initial_action = env.action_space.sample()
 
-    opc_nodes = initialize_opc_nodes_from_tags(client, cfg_env, tag_configs, initial_observation, initial_action)
+    opc_nodes = initialize_opc_nodes_from_tags(
+        client, cfg, initial_observation, initial_action
+    )
 
-    # Run env forever using OPC for actions, observations, and rewards
-    step_counter = 0
+    # Run simulation forever using OPC for communication
+    if cfg.sim_timestep_period is not None:
+        sync = wait_for_sim_step(cfg.sim_timestep_period)
+    else:
+        sync = wait_for_agent_step(client, opc_nodes["agent_step"][0])
+
     while True:
+        next(sync) # waits to sync with agent step or sim step
+        _logger.info("OPC Sim Step")
+
         # get the action values from OPC
         action_values = client.read_values(opc_nodes["action"])
 
@@ -130,24 +111,42 @@ def run(env: gym.Env, client: Client, cfg_env: GymEnvConfig, tag_configs: list[T
         # write the observation values to OPC
         client.write_values(opc_nodes["observation"], observation.tolist())
 
-        # write the reward to OPC
-        client.write_values(opc_nodes["meta"], [reward, terminated, truncated])
 
-        if sleep_sec:
-            _logger.info(f"Sleeping for {sleep_sec}s, step counter: {step_counter}")
-            sleep(sleep_sec)
-        step_counter += 1
+def wait_for_sim_step(timestep_period: timedelta):
+    """
+    Using a generator here keeps the main control loop logic cleaner.
+    The last sim timestamp is tracked within the generator and will persist
+    between calls of "next"
+    """
+    timestep_clock = clock_generator(tick_period=timestep_period)
+    while True:
+        next_sim_timestep = next(timestep_clock)
+        wait_for_timestamp(next_sim_timestep)
+        yield
 
 
-@load_config(Config, base="config/")
-def main(cfg: Config):
-    env: gym.Env = init_environment(cfg.env)
+def wait_for_agent_step(client: Client, agent_step_node: SyncNode):
+    """
+    Using a generator here keeps the main control loop logic cleaner.
+    The last agent step is tracked within the generator and will persist
+    between calls of "next"
+    """
+    last_agent_step = client.read_values([agent_step_node])[0]
+    while True:
+        agent_step = client.read_values([agent_step_node])[0]
+        if agent_step != last_agent_step:
+            last_agent_step = agent_step
+            yield
+
+@load_config(OPCSimConfig, base="config/")
+def main(cfg: OPCSimConfig):
+    env: gym.Env = init_environment(cfg.gym)
     _logger.info(f"Running OPC env simulation {env}")
 
     client = Client("opc.tcp://admin@0.0.0.0:4840/rlcore/server/")
     try:
         client.connect()
-        run(env, client, cfg.env, cfg.pipeline.tags)
+        run(env, client, cfg)
     except Exception as e:
         _logger.exception(e)
     finally:
@@ -157,5 +156,7 @@ def main(cfg: Config):
 
 if __name__ == "__main__":
     _logger = logging.getLogger(__name__)
-    logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", encoding="utf-8", level=logging.INFO)
+    log_fmt = "[%(asctime)s][%(levelname)s] - %(message)s"
+    logging.basicConfig(format=log_fmt, encoding="utf-8", level=logging.INFO)
+    logging.getLogger('asyncua').setLevel(logging.CRITICAL)
     main()
