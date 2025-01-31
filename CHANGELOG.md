@@ -1,3 +1,22 @@
+## 0.66.0 (2025-01-31)
+
+### Feat
+
+- support agent step with msg bus
+- dep async env writes to agent step OPC node
+- opc client can optionally sync env steps to agent step
+- option to disable loading checkpoints
+
+### Fix
+
+- update dep smoke test to use new opc sim config
+- heartbeat dtype
+
+### Refactor
+
+- gym sim configs
+- log rewards fn in dep interaction
+
 ## 0.65.0 (2025-01-30)
 
 ### Feat
