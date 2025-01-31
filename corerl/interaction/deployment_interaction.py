@@ -28,6 +28,7 @@ class DepInteractionConfig:
     name: Literal["dep_interaction"] = "dep_interaction"
     historical_batch_size: int = 10000
     checkpoint_path: Path = Path('outputs/checkpoints')
+    restore_checkpoint: bool = True
     heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
     warmup_period: timedelta | None = None
 
@@ -81,7 +82,8 @@ class DeploymentInteraction(Interaction):
         self.warmup_pipeline()
         # checkpointing state
         self._last_checkpoint = datetime.now(UTC)
-        self.restore_checkpoint()
+        if cfg.restore_checkpoint:
+            self.restore_checkpoint()
 
         # evals
         self._monte_carlo_eval = MonteCarloEvaluator(app_state.cfg.eval_cfgs.monte_carlo, app_state, agent)
@@ -287,3 +289,4 @@ class DeploymentInteraction(Interaction):
                 metric=feat_name,
                 value=val,
             )
+
