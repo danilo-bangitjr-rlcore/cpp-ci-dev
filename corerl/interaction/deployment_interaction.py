@@ -11,7 +11,7 @@ from pydantic import Field
 from corerl.agent.base import BaseAgent
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
-from corerl.data_pipeline.pipeline import Pipeline
+from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.eval.monte_carlo import MonteCarloEvaluator
@@ -97,6 +97,7 @@ class DeploymentInteraction(Interaction):
 
         o = self._env.get_latest_obs()
         pr = self._pipeline(o, data_mode=DataMode.ONLINE)
+        self._log_rewards(pr)
         self._agent.update_buffer(pr)
 
         # perform evaluations
@@ -114,6 +115,15 @@ class DeploymentInteraction(Interaction):
 
         self._app_state.agent_step += 1
 
+    def _log_rewards(self, pipeline_return: PipelineReturn):
+        # log rewards
+        r = float(pipeline_return.rewards['reward'].iloc[0])
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric='reward',
+            value=r,
+        )
+
     def step_event(self, event: Event):
         logger.debug(f"Interaction received Event: {event}")
         self._heartbeat.healthcheck()
@@ -126,16 +136,9 @@ class DeploymentInteraction(Interaction):
                 o = self._env.get_latest_obs()
                 pr = self._pipeline(o, data_mode=DataMode.ONLINE)
 
-                # log rewards
-                r = float(pr.rewards['reward'].iloc[0])
+                self._log_rewards(pr)
                 self._agent.update_buffer(pr)
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric='reward',
-                    value=r,
-                )
 
-                self._app_state.agent_step += 1
                 self.maybe_checkpoint()
 
             case EventType.step_agent_update:
