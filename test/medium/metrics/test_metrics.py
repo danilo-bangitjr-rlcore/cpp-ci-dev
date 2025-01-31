@@ -15,7 +15,7 @@ from corerl.utils.time import now_iso
 def db_metrics_table(
     tsdb_engine: Engine,
     tsdb_tmp_db_name: str
-) -> MetricsTable:
+):
     port = tsdb_engine.url.port
     assert port is not None
 
