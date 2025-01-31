@@ -1,3 +1,9 @@
+## 0.69.1 (2025-01-31)
+
+### Fix
+
+- let ensemble critic use armijo adam
+
 ## 0.69.0 (2025-01-31)
 
 ### Feat
