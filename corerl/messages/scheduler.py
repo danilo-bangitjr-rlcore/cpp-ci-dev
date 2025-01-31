@@ -26,6 +26,7 @@ def scheduler_task(pub_socket: zmq.Socket, cfg: AsyncEnvConfig, stop_event: thre
         EventType.step_get_obs: EventPeriodTime(cfg.obs_period, thread_start_time),
         EventType.step_agent_update: EventPeriodTime(cfg.update_period, thread_start_time),
         EventType.step_emit_action: EventPeriodTime(cfg.action_period, thread_start_time),
+        EventType.agent_step: EventPeriodTime(cfg.obs_period, thread_start_time), # this should happen after emit action
     }
     if cfg.setpoint_ping_period is not None:
         next_event_dict[EventType.ping_setpoints] = EventPeriodTime(

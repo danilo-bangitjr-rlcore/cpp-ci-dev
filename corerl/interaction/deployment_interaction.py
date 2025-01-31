@@ -11,7 +11,7 @@ from pydantic import Field
 from corerl.agent.base import BaseAgent
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
-from corerl.data_pipeline.pipeline import Pipeline
+from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.eval.monte_carlo import MonteCarloEvaluator
@@ -28,6 +28,7 @@ class DepInteractionConfig:
     name: Literal["dep_interaction"] = "dep_interaction"
     historical_batch_size: int = 10000
     checkpoint_path: Path = Path('outputs/checkpoints')
+    restore_checkpoint: bool = True
     heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
     warmup_period: timedelta | None = None
 
@@ -81,7 +82,8 @@ class DeploymentInteraction(Interaction):
         self.warmup_pipeline()
         # checkpointing state
         self._last_checkpoint = datetime.now(UTC)
-        self.restore_checkpoint()
+        if cfg.restore_checkpoint:
+            self.restore_checkpoint()
 
         # evals
         self._monte_carlo_eval = MonteCarloEvaluator(app_state.cfg.eval_cfgs.monte_carlo, app_state, agent)
@@ -90,13 +92,14 @@ class DeploymentInteraction(Interaction):
     def step(self):
         step_timestamp = next(self._step_clock)
         wait_for_timestamp(step_timestamp)
-        logger.info("beginning step logic")
+        logger.info("Beginning step logic...")
         self._heartbeat.healthcheck()
 
         self.load_historical_chunk()
 
         o = self._env.get_latest_obs()
         pr = self._pipeline(o, data_mode=DataMode.ONLINE)
+        self._log_rewards(pr)
         self._agent.update_buffer(pr)
 
         # perform evaluations
@@ -109,10 +112,20 @@ class DeploymentInteraction(Interaction):
             a = self._agent.get_action(s)
             a_df = self._pipeline.action_constructor.assign_action_names(a)
             a_df = self._pipeline.preprocessor.inverse(a_df)
-            self._env.emit_action(a_df)
+            self._env.emit_action(a_df, log_action=True)
             self._last_action = a_df
 
         self._app_state.agent_step += 1
+        self._env.maybe_write_agent_step(step=self._app_state.agent_step)
+
+    def _log_rewards(self, pipeline_return: PipelineReturn):
+        # log rewards
+        r = float(pipeline_return.rewards['reward'].iloc[0])
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric='reward',
+            value=r,
+        )
 
     def step_event(self, event: Event):
         logger.debug(f"Interaction received Event: {event}")
@@ -126,16 +139,9 @@ class DeploymentInteraction(Interaction):
                 o = self._env.get_latest_obs()
                 pr = self._pipeline(o, data_mode=DataMode.ONLINE)
 
-                # log rewards
-                r = float(pr.rewards['reward'].iloc[0])
+                self._log_rewards(pr)
                 self._agent.update_buffer(pr)
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric='reward',
-                    value=r,
-                )
 
-                self._app_state.agent_step += 1
                 self.maybe_checkpoint()
 
             case EventType.step_agent_update:
@@ -157,6 +163,10 @@ class DeploymentInteraction(Interaction):
                 if self._last_action is not None:
                     logger.debug("Pinging setpoints")
                     self._env.emit_action(self._last_action)
+
+            case EventType.agent_step:
+                self._app_state.agent_step += 1
+                self._env.maybe_write_agent_step(step=self._app_state.agent_step)
 
             case _:
                 logger.warning(f"Unexpected step_event: {event}")
@@ -228,6 +238,7 @@ class DeploymentInteraction(Interaction):
 
         # get latest checkpoint
         checkpoint = sorted(chkpoints)[-1]
+        logger.info(f"Loading agent weights from checkpoint {checkpoint}")
         self._agent.load(checkpoint)
 
 
@@ -284,3 +295,4 @@ class DeploymentInteraction(Interaction):
                 metric=feat_name,
                 value=val,
             )
+

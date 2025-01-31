@@ -32,7 +32,7 @@ def heartbeat(cfg: HeartbeatConfig):
     while True:
         # write counter
         with Client(cfg.opc_conn_url) as opc_client:
-            opc_client.write_values([heartbeat_node], [heartbeat_counter])
+            opc_client.write_values([heartbeat_node], [float(heartbeat_counter)])
 
         # increment counter
         heartbeat_counter += 1

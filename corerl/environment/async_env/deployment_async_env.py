@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 import numpy as np
 import pandas as pd
 from asyncua.sync import Client, SyncNode
+from asyncua.ua.uaerrors import BadNodeIdUnknown
 
 from corerl.configs.config import MISSING, config
 
@@ -70,6 +71,12 @@ class DeploymentAsyncEnv(AsyncEnv):
                 logger.info(f"Registering action '{tag_name}' with OPC node id '{id}'")
                 self.action_nodes[tag_name] = node
 
+            try:
+                id = make_opc_node_id("agent_step", self.ns)
+                self.agent_step_node = opc_client.get_node(id)
+            except BadNodeIdUnknown:
+                self.agent_step_node = None
+
     def _make_opc_node_id(self, str_id: str, namespace: int = 0):
         return f"ns={namespace};s={str_id}"
 
@@ -100,6 +107,14 @@ class DeploymentAsyncEnv(AsyncEnv):
             names=self.tag_names, start_time=now - self.obs_period, end_time=now
         )
         return obs
+
+    def maybe_write_agent_step(self, step: int):
+        if self.agent_step_node is None:
+            return
+
+        with Client(self.url) as opc_client:
+            logger.info(f"Incrementing agent step node to {step}")
+            opc_client.write_values([self.agent_step_node], [float(step)])
 
 
 def sanitize_actions(action: pd.DataFrame, action_cfgs: dict[str, TagConfig]) -> None:
