@@ -15,7 +15,7 @@ from corerl.utils.time import now_iso
 log = logging.getLogger(__name__)
 
 
-class EvalWriterProtocol(Protocol):
+class EvalTableProtocol(Protocol):
     def write(
         self,
         agent_step: int,
@@ -26,7 +26,7 @@ class EvalWriterProtocol(Protocol):
         ...
     def read(
         self,
-        metric: str,
+        evaluator: str,
         step_start: int | None = None,
         step_end: int | None = None,
         start_time: datetime | None = None,
@@ -212,7 +212,7 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
 
 
 evals_group = Group[
-    [], EvalWriterProtocol,
+    [], EvalTableProtocol,
 ]()
 
 evals_group.dispatcher(EvalsTable)
