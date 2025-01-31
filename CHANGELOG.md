@@ -1,3 +1,25 @@
+## 0.68.0 (2025-01-31)
+
+### Feat
+
+- enable delta actions in deployment interaction
+- make ac action labelling aware of delta actions
+- add ability to consume and produce delta actions in GAC
+- add clip xform
+- add is_delta_transformed static method to Delta xform
+
+### Fix
+
+- remove double delta in greedy_ac update
+- move action_dim modification due to integration bug from stale PR
+- wire delta bounds through agent_cfg to gac
+- increase magic level to decrease collision chance Δ
+- define initial action in gym envs as 0
+
+### Refactor
+
+- expose tags used by constructor as protected attribute
+
 ## 0.67.0 (2025-01-31)
 
 ### Feat
