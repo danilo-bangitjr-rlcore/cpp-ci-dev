@@ -38,11 +38,22 @@ class Delta:
             ts.last = row
             carry.transform_data.iloc[i] = delta
 
-        carry.transform_data.rename(columns=lambda col: f'{col}_delta', inplace=True)
+        carry.transform_data.rename(columns=lambda col: f'{col}_Δ', inplace=True)
         return carry, ts
 
     def reset(self) -> None:
         pass
+
+    @staticmethod
+    def is_delta_transformed(col: str):
+        """
+        Detect whether a given column has been delta transformed.
+
+        Because the delta xform is responsible for marking a column
+        as delta xformed, then the delta xform should also be
+        responsible for this detection.
+        """
+        return '_Δ' in col
 
 
 transform_group.dispatcher(Delta)

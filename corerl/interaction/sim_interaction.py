@@ -40,6 +40,7 @@ class SimInteraction(Interaction):
 
         self._should_reset = False
         self._last_state: np.ndarray | None = None
+        self._last_action: np.ndarray | None = None
 
         # evals
         self._monte_carlo_eval = MonteCarloEvaluator(app_state.cfg.eval_cfgs.monte_carlo, app_state, agent)
@@ -62,8 +63,15 @@ class SimInteraction(Interaction):
             .to_numpy(dtype=np.float32)
         )
 
+        self._last_action = (
+            pipe_return.actions
+            .iloc[0]
+            .to_numpy(dtype=np.float32)
+        )
+
         # log states
         self._write_to_metrics(pipe_return.states)
+
 
         # log rewards
         self._write_to_metrics(pipe_return.rewards)
@@ -77,10 +85,14 @@ class SimInteraction(Interaction):
         self._agent.update()
 
     def _on_emit_action(self):
-        s = self._get_latest_state()
-        assert s is not None
-        a = self._agent.get_action(s)
-        a_df = self._pipeline.action_constructor.assign_action_names(a)
+        sa = self._get_latest_state_action()
+        assert sa is not None
+        s, a = sa
+        if not self._agent.cfg.delta_action:
+            a = np.zeros_like(a)
+
+        delta = self._agent.get_action(s)
+        a_df = self._pipeline.action_constructor.assign_action_names(a, delta)
         a_df = self._pipeline.preprocessor.inverse(a_df)
         self._env.emit_action(a_df)
 
@@ -120,12 +132,17 @@ class SimInteraction(Interaction):
     # ---------
     # internals
     # ---------
-    def _get_latest_state(self) -> np.ndarray | None:
+    def _get_latest_state_action(self) -> tuple[np.ndarray, np.ndarray] | None:
         if self._last_state is None:
             logger.error("Tried to get interaction state, but none existed")
             return None
 
-        return self._last_state
+        if self._last_action is None:
+            logger.error("Tried to get interaction action, but none existed")
+            return None
+
+        return self._last_state, self._last_action
+
 
     def _write_to_metrics(self, df: pd.DataFrame) -> None:
         if len(df) != 1:

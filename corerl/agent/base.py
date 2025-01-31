@@ -19,6 +19,8 @@ from corerl.state import AppState
 class BaseAgentConfig:
     name: Any = MISSING
 
+    delta_action: bool = False
+    delta_bounds: tuple[float, float] | None = None
     discrete_control: bool = interpolate('${env.discrete_control}')
     freezer_freq: int = 1
     gamma: float = interpolate('${experiment.gamma}')
@@ -30,6 +32,7 @@ class BaseAgentConfig:
 
 class BaseAgent(ABC):
     def __init__(self, cfg: BaseAgentConfig, app_state: AppState, col_desc: ColumnDescriptions):
+        self.cfg = cfg
         self._app_state = app_state
         self.replay_ratio = cfg.replay_ratio
         self.update_freq = cfg.update_freq
@@ -91,6 +94,12 @@ class BaseAC(BaseAgent):
         super().__init__(cfg, app_state, col_desc)
         self.n_critic_updates = cfg.n_critic_updates
         self.n_actor_updates = cfg.n_actor_updates
+
+        # the implicit action dim is doubled when using delta actions
+        # because we will be receiving both the direct action and the
+        # delta action in each transition
+        if self.cfg.delta_action:
+            self.action_dim = int(self.action_dim / 2)
 
         self.actor: BaseActor = init_actor(cfg.actor, self.state_dim, self.action_dim)
         self.q_critic: EnsembleQCritic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)

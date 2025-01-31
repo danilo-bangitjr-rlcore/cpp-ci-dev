@@ -14,6 +14,8 @@ agent:
   uniform_sampling_percentage: 0.8
   gamma: ${experiment.gamma}
   discrete_control: ${env.discrete_control}
+  delta_action: True
+  delta_bounds: [-0.5, 0.5]
   seed: ${experiment.seed}
 
   critic:
@@ -68,7 +70,14 @@ pipeline:
     state_constructor:
       - name: "null"
     action_constructor:
-      - name: identity
+      - name: delta
+      - name: clip
+        bounds: [-0.5, 0.5]
+      - name: normalize
+        min: -0.5
+        max: 0.5
+        from_data: False
+      - name: add_raw
 
   # observations
   # x

@@ -13,11 +13,11 @@ from corerl.data_pipeline.transforms.interface import TransformCarry
 
 class Constructor(ABC):
     def __init__(self, tag_cfgs: list[TagConfig]):
-        cfgs = self._get_relevant_configs(tag_cfgs)
+        self._relevant_cfgs = self._get_relevant_configs(tag_cfgs)
 
         self._components: dict[str, list[Transform]] = {
             tag_name: self._construct_components(transforms)
-            for tag_name, transforms in cfgs.items()
+            for tag_name, transforms in self._relevant_cfgs.items()
             if transforms is not None
         }
 
