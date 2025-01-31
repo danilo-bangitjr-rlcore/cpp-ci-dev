@@ -17,6 +17,7 @@ class EventType(StrEnum):
     step_get_obs = auto()
     step_agent_update = auto()
     step_emit_action = auto()
+    agent_step = auto()
 
     # -----------
     # -- Agent --

@@ -164,6 +164,10 @@ class DeploymentInteraction(Interaction):
                     logger.debug("Pinging setpoints")
                     self._env.emit_action(self._last_action)
 
+            case EventType.agent_step:
+                self._app_state.agent_step += 1
+                self._env.maybe_write_agent_step(step=self._app_state.agent_step)
+
             case _:
                 logger.warning(f"Unexpected step_event: {event}")
 
