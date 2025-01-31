@@ -8,12 +8,12 @@ import pandas as pd
 
 from corerl.configs.config import config
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.async_env import AsyncEnv, GymEnvConfig
+from corerl.environment.async_env.async_env import AsyncEnv, BaseAsyncEnvConfig, GymEnvConfig
 from corerl.utils.gym import space_bounds, space_shape
 
 
 @config()
-class SimAsyncEnvConfig(GymEnvConfig):
+class SimAsyncEnvConfig(GymEnvConfig, BaseAsyncEnvConfig):
     name: str = "sim_async_env"
 
 @dataclass
