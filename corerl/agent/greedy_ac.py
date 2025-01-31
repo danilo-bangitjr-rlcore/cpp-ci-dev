@@ -301,6 +301,12 @@ class GreedyAC(BaseAC):
         scale = (bounds[1] - bounds[0])
         bias = bounds[0]
 
+        # when updating the policy, our next action is a tensor
+        # (batch_size, num_samples from proposal, action_dim)
+        # however, our direct action offset is only (batch_size, action_dim)
+        if len(next_action.shape) == 3:
+            action = action.unsqueeze(1).expand(next_action.shape)
+
         delta = scale * next_action + bias
         direct_action = action + delta
 
@@ -513,7 +519,7 @@ class GreedyAC(BaseAC):
             batch = batches[0]
 
             # if in direct action mode, this is a no-op
-            action = self.filter_only_delta_actions(batch.post.action)
+            action = self.filter_only_direct_actions(batch.post.action)
             update_info = self.get_policy_update_info(batch.prior.state, action)
 
             sampler_loss = self.compute_sampler_loss(update_info)

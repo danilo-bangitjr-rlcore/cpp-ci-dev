@@ -82,7 +82,7 @@ class ActionConstructor(Constructor):
             inverted_delta = self.invert(
                 np.array([delta_arr[action_idx]]),
                 self.columns[delta_idx],
-            )
+            )[0]
 
             # because we are operating in normalized action space
             # we know that the bounds are strictly [0, 1] here
