@@ -92,7 +92,7 @@ class DeploymentInteraction(Interaction):
     def step(self):
         step_timestamp = next(self._step_clock)
         wait_for_timestamp(step_timestamp)
-        logger.info("beginning step logic")
+        logger.info("Beginning step logic...")
         self._heartbeat.healthcheck()
 
         self.load_historical_chunk()
@@ -112,7 +112,7 @@ class DeploymentInteraction(Interaction):
             a = self._agent.get_action(s)
             a_df = self._pipeline.action_constructor.assign_action_names(a)
             a_df = self._pipeline.preprocessor.inverse(a_df)
-            self._env.emit_action(a_df)
+            self._env.emit_action(a_df, log_action=True)
             self._last_action = a_df
 
         self._app_state.agent_step += 1
@@ -233,6 +233,7 @@ class DeploymentInteraction(Interaction):
 
         # get latest checkpoint
         checkpoint = sorted(chkpoints)[-1]
+        logger.info(f"Loading agent weights from checkpoint {checkpoint}")
         self._agent.load(checkpoint)
 
 
