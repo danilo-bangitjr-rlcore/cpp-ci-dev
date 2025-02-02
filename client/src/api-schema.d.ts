@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test File */
+        post: operations["test_file_api_file_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/configuration/file": {
         parameters: {
             query?: never;
@@ -209,6 +226,19 @@ export interface components {
             other: string;
             /** Other Xform */
             other_xform?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
+        };
+        /** Body_gen_config_file_api_configuration_file_post */
+        Body_gen_config_file_api_configuration_file_post: {
+            /** File */
+            file?: Blob | null;
+        };
+        /** Body_test_file_api_file_post */
+        Body_test_file_api_file_post: {
+            /**
+             * File
+             * Format: binary
+             */
+            file: Blob;
         };
         /**
          * CallerCode
@@ -817,6 +847,11 @@ export interface components {
              */
             expectile: number;
         };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /** HealthResponse */
         HealthResponse: {
             /**
@@ -826,22 +861,16 @@ export interface components {
             status: string;
             /**
              * Time
-             * @default 2025-01-28T21:28:28.747322+00:00
+             * @default 2025-01-29T22:50:11.140256+00:00
              */
             time: string;
         };
         /** HeartbeatConfig */
         HeartbeatConfig: {
-            /**
-             * Opc Conn Url
-             * @default |???|
-             */
-            opc_conn_url: string;
-            /**
-             * Heartbeat Node Id
-             * @default |???|
-             */
-            heartbeat_node_id: string;
+            /** Opc Conn Url */
+            opc_conn_url?: string | null;
+            /** Heartbeat Node Id */
+            heartbeat_node_id?: string | null;
             /**
              * Heartbeat Period
              * Format: duration
@@ -853,11 +882,6 @@ export interface components {
              * @default 1000
              */
             max_counter: number;
-            /**
-             * Enabled
-             * @default false
-             */
-            enabled: boolean;
         };
         /** IQLConfig */
         IQLConfig: {
@@ -1301,7 +1325,7 @@ export interface components {
             max?: number | null;
             /**
              * From Data
-             * @default true
+             * @default false
              */
             from_data: boolean;
         };
@@ -2011,6 +2035,15 @@ export interface components {
              */
             combined: boolean;
         };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -2049,6 +2082,39 @@ export interface operations {
             };
         };
     };
+    test_file_api_file_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_test_file_api_file_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     gen_config_file_api_configuration_file_post: {
         parameters: {
             query?: never;
@@ -2058,12 +2124,13 @@ export interface operations {
         };
         requestBody: {
             content: {
+                "multipart/form-data": components["schemas"]["Body_gen_config_file_api_configuration_file_post"];
                 "application/json": components["schemas"]["MainConfig"];
                 "application/yaml": components["schemas"]["MainConfig"];
+                "application/x-yaml": components["schemas"]["MainConfig"];
             };
         };
         responses: {
-            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2073,13 +2140,40 @@ export interface operations {
                     "application/yaml": components["schemas"]["MainConfig"];
                 };
             };
-            /** @description Bad Request Error */
+            /** @description Bad Request */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
         };

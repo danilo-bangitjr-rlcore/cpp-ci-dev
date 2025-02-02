@@ -1,11 +1,12 @@
 import json
 import logging
+import traceback
 from datetime import UTC, datetime
 from typing import Any, List
 
 import yaml
 from asyncua.sync import Client
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -59,46 +60,49 @@ class OpcNodeResponse(BaseModel):
 async def health():
     return {"status": "OK", "time": f"{datetime.now(tz=UTC).isoformat()}"}
 
+
+@app.post("/api/file")
+async def test_file(file: UploadFile):
+    return {"filename": file.filename}
+
+
 @app.post(
     "/api/configuration/file",
     response_model=MainConfig,
     tags=["Configuration"],
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "content": {
+                "application/json": {"example": {"detail": "<Error description>"}},
+            }
+        },
+        status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {
+            "content": {
+                "application/json": {"example": {"detail": "Unsupported Media Type"}},
+            }
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal Server Error", "model": str},
+    },
     openapi_extra={
         "requestBody": {
             "content": {
-                "application/json": {
-                    "schema": {"$ref": "#/components/schemas/MainConfig"}
-                },
-                "application/yaml": {
-                    "schema": {"$ref": "#/components/schemas/MainConfig"}
-                },
+                "application/json": {"schema": {"$ref": "#/components/schemas/MainConfig"}},
+                "application/yaml": {"schema": {"$ref": "#/components/schemas/MainConfig"}},
+                "application/x-yaml": {"schema": {"$ref": "#/components/schemas/MainConfig"}},
             },
             "required": True,
         },
         "responses": {
-            "200": {
+            status.HTTP_200_OK: {
                 "content": {
-                    "application/json": {
-                        "schema": {"$ref": "#/components/schemas/MainConfig"}
-                    },
-                    "application/yaml": {
-                        "schema": {"$ref": "#/components/schemas/MainConfig"}
-                    },
-                },
-                "description": "Successful response",
+                    "application/json": {"schema": {"$ref": "#/components/schemas/MainConfig"}},
+                    "application/yaml": {"schema": {"$ref": "#/components/schemas/MainConfig"}},
+                }
             },
-            "400": {
-                "content": {
-                    "application/json": {
-                        "example": {"detail": "<Error description>"}
-                    },
-                },
-                "description": "Bad Request Error",
-            }
         },
     },
 )
-async def gen_config_file(request: Request):
+async def gen_config_file(request: Request, file: UploadFile | None = None):
     """
     Return a fully structured configuration as the response.
     The configuration format should be determined by an http header (application/yaml, application/json).
@@ -107,9 +111,12 @@ async def gen_config_file(request: Request):
     content_type = request.headers.get("Content-Type")
     if content_type == "application/json":
         data = await request.json()
-    elif content_type == "application/yaml":
+    elif content_type in ["application/yaml", "application/x-yaml"]:
         body = await request.body()
         data = yaml.safe_load(body)
+        if isinstance(data, str):
+            # workaround for string input, yaml.safe_load may return a string if the payload is enclosed in a string
+            data = yaml.safe_load(data)
     else:
         raise HTTPException(status_code=415, detail="Unsupported Media Type")
 
@@ -117,8 +124,8 @@ async def gen_config_file(request: Request):
         res_config = config_from_dict(MainConfig, data)
         json_config = json.loads(config_to_json(MainConfig, res_config))
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-
+        tb = traceback.format_exc()
+        raise HTTPException(status_code=400, detail=f"{str(e)}\n\n{tb}") from e
 
     accept_header = request.headers.get("accept")
     if accept_header is not None and "application/yaml" in accept_header:
@@ -174,5 +181,6 @@ def get_variables_from_dict(opc_structure: dict) -> List[OpcNodeDetail]:
                 traverse(value, path=path, parent_key=key)
     traverse(opc_structure)
     return _variables
+
 
 app.mount("/", StaticFiles(directory="client/dist", html=True, check_dir=False), name="static")
