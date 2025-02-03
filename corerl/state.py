@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from corerl.eval.evals import EvalWriterProtocol
+from corerl.eval.evals import EvalTableProtocol
 from corerl.eval.metrics import MetricsTableProtocol
 from corerl.messages.event_bus import EventBus
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 @dataclass
 class AppState:
     cfg: MainConfig
-    evals: EvalWriterProtocol
+    evals: EvalTableProtocol
     metrics: MetricsTableProtocol
     event_bus: EventBus
     agent_step: int = 0
