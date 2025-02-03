@@ -72,7 +72,7 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
                 value jsonb NOT NULL
             );
             SELECT create_hypertable('{self.cfg.table_name}', 'time', chunk_time_interval => INTERVAL '1d');
-            CREATE INDEX evaluator_idx ON {self.cfg.table_name} (evaluator);
+            CREATE INDEX {self.cfg.table_name}_idx ON {self.cfg.table_name} (evaluator);
             ALTER TABLE {self.cfg.table_name} SET (
                 timescaledb.compress,
                 timescaledb.compress_segmentby='evaluator'
