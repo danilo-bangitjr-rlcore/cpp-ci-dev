@@ -33,7 +33,7 @@ metrics:
   table_name: "metrics"
   enabled: True
 
-eval:
+eval_cfgs:
   monte_carlo:
     enabled: True
     offline_eval_steps: [0, 10, 100, 1000, 2000, 5000, 10000]
