@@ -9,6 +9,8 @@ env:
 
 interaction:
   name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
 
 experiment :
   exp_name : "saturation"

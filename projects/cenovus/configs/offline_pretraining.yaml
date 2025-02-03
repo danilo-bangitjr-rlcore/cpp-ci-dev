@@ -9,6 +9,8 @@ report:
 
 interaction:
   name: dep_interaction
+  obs_period: 00:05:00
+  action_period: 01:00:00
   heartbeat:
     heartbeat_node_id: s=heartbeat
 

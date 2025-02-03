@@ -15,7 +15,7 @@ from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.eval.monte_carlo import MonteCarloEvaluator
-from corerl.interaction.interaction import Interaction
+from corerl.interaction.interaction import BaseInteractionConfig, Interaction
 from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat, HeartbeatConfig
 from corerl.state import AppState
@@ -25,7 +25,7 @@ from corerl.utils.time import clock_generator, split_into_chunks, wait_for_times
 logger = logging.getLogger(__name__)
 
 @config()
-class DepInteractionConfig:
+class DepInteractionConfig(BaseInteractionConfig):
     name: Literal["dep_interaction"] = "dep_interaction"
     historical_batch_size: int = 10000
     checkpoint_path: Path = Path('outputs/checkpoints')
