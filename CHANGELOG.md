@@ -1,3 +1,14 @@
+## 0.70.0 (2025-02-03)
+
+### Feat
+
+- Eval Table read()
+
+### Fix
+
+- use unique name for eval table idx
+- EvalsTable read() needed to match read() in EvalTableProtocol
+
 ## 0.69.2 (2025-02-03)
 
 ### Fix
