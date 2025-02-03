@@ -46,7 +46,7 @@ def main(cfg: MainConfig):
 
     # Offline training
     assert cfg.experiment.offline_steps > 0
-    offline_training = OfflineTraining(cfg)
+    offline_training = OfflineTraining(cfg, save_path)
     offline_training.load_offline_transitions(pipeline)
     offline_training.train(app_state, agent, column_desc)
 

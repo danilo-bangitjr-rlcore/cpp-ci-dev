@@ -1,5 +1,6 @@
 import datetime as dt
 import logging
+from pathlib import Path
 from typing import Tuple
 
 import pandas as pd
@@ -12,15 +13,17 @@ from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import ColumnDescriptions, Pipeline, PipelineReturn
 from corerl.eval.actor_critic import ActorCriticEval
 from corerl.eval.monte_carlo import MonteCarloEvaluator
+from corerl.eval.plotting.metrics import plot_metrics
 from corerl.state import AppState
 from corerl.utils.time import split_into_chunks
 
 log = logging.getLogger(__name__)
 
 def load_entire_dataset(
-        cfg: MainConfig,
-        start_time: dt.datetime | None = None, end_time: dt.datetime | None = None
-        ) -> pd.DataFrame:
+    cfg: MainConfig,
+    start_time: dt.datetime | None = None,
+    end_time: dt.datetime | None = None
+) -> pd.DataFrame:
 
     data_reader = DataReader(db_cfg=cfg.pipeline.db)
     if start_time is None or end_time is None:
@@ -43,23 +46,30 @@ def load_entire_dataset(
 
 
 class OfflineTraining:
-    def __init__(self, cfg: MainConfig):
+    def __init__(
+        self,
+        cfg: MainConfig,
+        save_path: Path,
+        start_time: dt.datetime | None = None,
+        end_time: dt.datetime | None = None
+    ):
         self.cfg = cfg
+        self.save_path = save_path
+        self.start_time = start_time
+        self.end_time = end_time
         self.offline_steps = self.cfg.experiment.offline_steps
         self.pipeline_out: PipelineReturn | None = None
 
-    def load_offline_transitions(
-        self, pipeline: Pipeline, start_time: dt.datetime | None = None, end_time: dt.datetime | None = None
-    ):
+    def load_offline_transitions(self, pipeline: Pipeline):
         # Configure DataReader
         data_reader = DataReader(db_cfg=self.cfg.pipeline.db)
 
         # Infer missing start or end time
-        start_time, end_time = get_data_start_end_times(data_reader, start_time, end_time)
+        self.start_time, self.end_time = get_data_start_end_times(data_reader, self.start_time, self.end_time)
 
         # chunk offline reads
         chunk_width = self.cfg.experiment.pipeline_batch_duration_days
-        time_chunks = split_into_chunks(start_time, end_time, width=dt.timedelta(chunk_width))
+        time_chunks = split_into_chunks(self.start_time, self.end_time, width=dt.timedelta(chunk_width))
 
         # Pass offline data through data pipeline chunk by chunk to produce transitions
         tag_names = [tag_cfg.name for tag_cfg in self.cfg.pipeline.tags]
@@ -83,6 +93,8 @@ class OfflineTraining:
                 self.pipeline_out = chunk_pr
 
     def train(self, app_state: AppState, agent: BaseAgent, column_desc: ColumnDescriptions):
+        assert isinstance(self.start_time, dt.datetime)
+        assert isinstance(self.end_time, dt.datetime)
         assert self.pipeline_out is not None
         assert self.pipeline_out.transitions is not None
         assert len(self.pipeline_out.transitions) > 0, (
@@ -101,11 +113,23 @@ class OfflineTraining:
         q_losses: list[float] = []
         pbar = tqdm(range(self.offline_steps))
         for i in pbar:
-            mc_eval.execute_offline(i, self.pipeline_out)
-            ac_eval.execute_offline(i)
+            if i in self.cfg.experiment.offline_eval_iters:
+                mc_eval.execute_offline(i, self.pipeline_out)
+                ac_eval.execute_offline(i)
 
             critic_loss = agent.update()
             q_losses += critic_loss
+
+        # Create Plots
+        labels = [str(j) for j in self.cfg.experiment.offline_eval_iters]
+        plot_metrics(
+            cfg=self.cfg,
+            app_state=app_state,
+            save_path=self.save_path,
+            start_time=self.start_time,
+            end_time=self.end_time,
+            labels=labels
+        )
 
         return q_losses
 
