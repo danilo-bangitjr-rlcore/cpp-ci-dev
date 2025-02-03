@@ -9,7 +9,7 @@ from torch import Tensor
 from torch.distributions.constraints import interval
 
 from corerl.agent.base import BaseAC, BaseAgent
-from corerl.configs.config import config, list_
+from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import Transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions
 from corerl.data_pipeline.transition_filter import call_filter
@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 class ActorCriticEvalConfig:
     name: str = "actor-critic"
     enabled: bool = False
-    offline_eval_steps: list[int] = list_()
     num_test_states: int = 30
     num_uniform_actions: int = 100
     critic_samples: int = 5
@@ -122,9 +121,6 @@ class ActorCriticEval:
         ]
 
     def execute_offline(self, iter_num: int):
-        if iter_num not in self.cfg.offline_eval_steps:
-            return
-
         if self.test_states is None:
             logger.error("Call ActorCriticEval.get_test_states() before calling ActorCriticEval.execute_offline()."
                          "len(self.test_states) must be greater than 0")
@@ -147,6 +143,8 @@ class ActorCriticEval:
 
             # Determine the interval of values that the current action dimension will be evaluated at
             a_dim_range = self._get_a_dim_range()
+
+            # Get policy's pdf and evaluate critic over each action dim
             for a_dim in range(self.agent.action_dim):
                 action_tag = self.col_desc.action_cols[a_dim]
                 qs_and_policy[state_key][action_tag] = {}
