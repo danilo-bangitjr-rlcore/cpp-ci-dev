@@ -90,7 +90,7 @@ def _create_continuous_mlp(
     head_bias = cfg.head_bias
     head_layer_init = utils.init_layer(cfg.head_layer_init)
 
-    placeholder_input = torch.empty((input_dim,))
+    placeholder_input = torch.empty((input_dim,), device=device.device)
     net = [create_base(cfg.base, input_dim, None)]
 
     # Create head layer(s) to the network

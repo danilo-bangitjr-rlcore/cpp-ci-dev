@@ -76,12 +76,12 @@ def _create_base_mlp(
     net = []
 
     # Add the first layer to the network
-    layer_ = nn.Linear(input_dim, hidden[0], bias=bias)
+    layer_ = nn.Linear(input_dim, hidden[0], bias=bias, device=device.device)
     layer_ = layer_init(layer_)
     net.append(layer_)
     net.append(layer.init_activation(act[0]))
 
-    placeholder_input = torch.empty((input_dim,))
+    placeholder_input = torch.empty((input_dim,), device=device.device)
 
     # Create the base layers of the network
     for j in range(1, len(hidden)):

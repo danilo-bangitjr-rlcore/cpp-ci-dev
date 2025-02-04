@@ -195,7 +195,7 @@ class ContinuousIIDPolicy(Policy,ABC):
 
         info = dict(zip(
             [param_name for param_name in self.param_names],
-            [p.squeeze().detach().numpy() for p in params],
+            [p.squeeze().detach().cpu().numpy() for p in params],
             strict=True,
         ))
 
@@ -218,6 +218,8 @@ class ContinuousIIDPolicy(Policy,ABC):
     ) -> tuple[torch.Tensor, dict]:
         params = self._model(state)
         dist = self._transform_from_params(*params)
+
+        action = action.to(params[0].device)
 
         assert dist.support is not None
         if not torch.all(dist.support.check(action)):
@@ -325,7 +327,8 @@ class Bounded(ContinuousIIDPolicy):
         sub_dist: type[d.Distribution] | d.TransformedDistribution = dist
         if self._action_bias != 0 or self._action_scale != 1:
             transform = d.AffineTransform(
-                loc=self._action_bias, scale=self._action_scale,
+                loc=self._action_bias.to(dist.loc.device),
+                scale=self._action_scale.to(dist.loc.device),
             )
             sub_dist = d.TransformedDistribution(dist, [transform])
 
