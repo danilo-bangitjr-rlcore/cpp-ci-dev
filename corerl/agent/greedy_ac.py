@@ -88,7 +88,6 @@ class GreedyACConfig(BaseACConfig):
     name: Literal["greedy_ac"] = "greedy_ac"
 
     ensemble_targets: bool = False
-    n_sampler_updates: int = 1
     num_samples: int = 500
     prop_rho_mult: float = 2.0
     rho: float = 0.1
@@ -119,10 +118,6 @@ class GreedyAC(BaseAC):
         self.uniform_sampling_percentage = cfg.uniform_sampling_percentage
         self.learned_proposal_percent = 1 - self.uniform_sampling_percentage
         self.uniform_proposal = self.uniform_sampling_percentage == 1
-
-        self.n_sampler_updates = cfg.n_sampler_updates
-        if self.share_batch and not self.uniform_proposal:
-            assert self.n_actor_updates == self.n_sampler_updates, "Actor and proposal must use same number of updates"
 
         self.sampler = init_actor(cfg.actor, self.state_dim, self.action_dim, initializer=self.actor)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
@@ -448,7 +443,6 @@ class GreedyAC(BaseAC):
         return -logp.mean()
 
     def update(self) -> list[float]:
-        n_sampler_updates = 0
         q_losses = []
         for _ in range(self.n_actor_updates):
             for _ in range(self.n_critic_updates):
@@ -457,12 +451,11 @@ class GreedyAC(BaseAC):
 
             actor_update_return = self.update_actor()
 
+            # signals to update_sampler to sample a batch anew
             if not self.share_batch:
-                actor_update_return = None # signals to update_sampler to sample a batch anew
+                actor_update_return = None
 
-            if n_sampler_updates <= self.n_sampler_updates:
-                self.update_sampler(actor_update_return)
-                n_sampler_updates += 1
+            self.update_sampler(actor_update_return)
 
         return q_losses
 
