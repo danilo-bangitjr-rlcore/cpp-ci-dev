@@ -494,25 +494,17 @@ class GreedyAC(BaseAC):
         return update_info
 
     def update_sampler(self, update_infos: list[PolicyUpdateInfo] | None) -> None:
+        # return is no update necessary
         if self.uniform_proposal:
             return
 
-        if update_infos is not None:
-            for update_info in update_infos:
-                sampler_loss = self.compute_sampler_loss(update_info)
+        # return is the buffer has size 0. In this case update_infos must also be None
+        if min(self.policy_buffer.size) <= 0:
+            assert update_infos is None
+            return
 
-                self.sampler.update(
-                    sampler_loss,
-                    opt_kwargs={"closure": partial(
-                        self.sampler_err,
-                        update_info.stacked_s_batch,
-                        update_info.best_actions)},
-                )
-
-        else:
-            if min(self.policy_buffer.size) <= 0:
-                return
-
+        # no update_info passed in, must compute them
+        if update_infos is None:
             batches = self.policy_buffer.sample()
             assert len(batches) == 1
             batch = batches[0]
@@ -520,17 +512,19 @@ class GreedyAC(BaseAC):
             # if in direct action mode, this is a no-op
             action = self.filter_only_direct_actions(batch.post.action)
             update_info = self.get_policy_update_info(batch.prior.state, action)
+            update_infos = [update_info]
 
+        # apply the updates:
+        for update_info in update_infos:
             sampler_loss = self.compute_sampler_loss(update_info)
-
             self.sampler.update(
                 sampler_loss,
-                opt_kwargs={
-                    "closure": partial(self.sampler_err,
-                                       update_info.stacked_s_batch,
-                                       update_info.best_actions),
-                },
-            )
+                opt_kwargs={"closure": partial(
+                    self.sampler_err,
+                    update_info.stacked_s_batch,
+                    update_info.best_actions)},
+                )
+
 
     def actor_err(self, stacked_s_batch: torch.Tensor, best_actions: torch.Tensor) -> torch.Tensor:
         logp, _ = self.actor.get_log_prob(
