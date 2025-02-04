@@ -17,7 +17,7 @@ function RouteComponent() {
 
   const { mainConfig, setMainConfig } = useContext(MainConfigContext);
 
-  const { mutate, data, error } = client.useMutation(
+  const { mutate, data, error, reset } = client.useMutation(
     "post",
     "/api/configuration/file",
   );
@@ -65,6 +65,7 @@ function RouteComponent() {
 
   const clearMainConfig = () => {
     setMainConfig({});
+    reset();
   };
 
   return (
