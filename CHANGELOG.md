@@ -1,3 +1,9 @@
+## 0.70.1 (2025-02-04)
+
+### Fix
+
+- Deployment Async Env now performs VariantType aware writes to OPC (#476)
+
 ## 0.70.0 (2025-02-03)
 
 ### Feat
