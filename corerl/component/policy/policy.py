@@ -11,7 +11,6 @@ import torch.nn as nn
 from typing_extensions import override
 
 import corerl.utils.nullable as nullable
-from corerl.utils.device import device
 
 _BoundedAboveConstraint = constraints.less_than
 
@@ -164,7 +163,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         return self._transform(self._dist(*params))
 
     @abstractmethod
-    def _transform(self, dist: d.Distribution) -> d.Distribution:
+    def _transform(self, dist: type[Any]) -> d.Distribution:
         """
         Similar to _transform_from_params, but takes the underlying
         distribution object to transform, rather than its parameters.
@@ -324,12 +323,12 @@ class Bounded(ContinuousIIDPolicy):
         return tuple(self._dist.arg_constraints.keys())
 
     @override
-    def _transform(self, dist: d.Distribution) -> d.Distribution:
-        sub_dist: d.Distribution | d.TransformedDistribution = dist
-        if not torch.all(self._action_bias == 0) or not torch.all(self._action_scale == 1):
+    def _transform(self, dist: type[d.Distribution]) -> d.Distribution:
+        sub_dist: type[d.Distribution] | d.TransformedDistribution = dist
+        if self._action_bias != 0 or self._action_scale != 1:
             transform = d.AffineTransform(
-                loc=self._action_bias.to(device.device),
-                scale=self._action_scale.to(device.device)
+                loc=self._action_bias.to(dist.loc.device),
+                scale=self._action_scale.to(dist.loc.device),
             )
             sub_dist = d.TransformedDistribution(dist, [transform])
 
@@ -356,7 +355,7 @@ class UnBounded(ContinuousIIDPolicy):
         return tuple(self._dist.arg_constraints.keys())
 
     @override
-    def _transform(self, dist: d.Distribution) -> d.Distribution:
+    def _transform(self, dist: type[d.Distribution]) -> d.Distribution:
         return d.Independent(dist, 1)
 
 
@@ -448,8 +447,8 @@ class HalfBounded(ContinuousIIDPolicy):
         return tuple(self._dist.arg_constraints.keys())
 
     @override
-    def _transform(self, dist: d.Distribution) -> d.Distribution:
-        sub_dist: d.Distribution | d.TransformedDistribution = dist
+    def _transform(self, dist: type[d.Distribution]) -> d.Distribution:
+        sub_dist: type[d.Distribution] | d.TransformedDistribution = dist
         if self._bounded_below:
             transform = d.AffineTransform(loc=self._action_min, scale=1)
             sub_dist = d.TransformedDistribution(dist, [transform])
