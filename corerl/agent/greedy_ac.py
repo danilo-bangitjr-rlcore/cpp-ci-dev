@@ -196,7 +196,6 @@ class GreedyAC(BaseAC):
             self.action_dim,
             uniform_weight)
 
-
         # Next, send the sampled actions though the critic to get a q value for each (state, action)
         batch_size = state_batch.shape[0]
         action_dim = sampled_actions.shape[2]
@@ -388,7 +387,6 @@ class GreedyAC(BaseAC):
         self.actor.update(
             actor_loss,
             opt_kwargs={
-                # TODO: sample another batch for closure?
                 "closure": partial(self.policy_err, stacked_s_batch, best_actions),
             },
         )
@@ -400,7 +398,7 @@ class GreedyAC(BaseAC):
             actor_update_return: tuple[torch.Tensor, torch.Tensor] | None = None,
             ) -> None:
 
-        # return is no update necessary
+        # return as no update necessary
         if self.uniform_proposal:
             return
 
@@ -432,7 +430,7 @@ class GreedyAC(BaseAC):
             state_batch=state_batch,
             action_batch=action_batch,
             n_samples=self.num_samples,
-            percentile=self.rho_proposal,
+            percentile=self.rho_proposal, #NOTE: using rho_proposal here
             uniform_weight=self.uniform_sampling_percentage
         )
 
@@ -447,7 +445,6 @@ class GreedyAC(BaseAC):
         self.actor.update(
             sampler_loss,
             opt_kwargs={
-                # TODO: sample another batch for closure?
                 "closure": partial(self.policy_err, stacked_s_batch, best_actions),
             },
         )
