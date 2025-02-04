@@ -310,8 +310,10 @@ class GreedyAC(BaseAC):
         # we can hardcode the spatial constraints
         return torch.clip(direct_action, 0, 1)
 
+
     def compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
-        ensemble = len(ensemble_batch)
+        # First, translate ensemble batches in to list for each property
+        ensemble_len = len(ensemble_batch)
         state_batches = []
         action_batches = []
         reward_batches = []
@@ -327,6 +329,7 @@ class GreedyAC(BaseAC):
             gamma_batch = batch.n_step_gamma
             dp_mask = batch.post.dp
 
+            # put actions into direct form
             next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
             action_batch = self.filter_only_direct_actions(action_batch)
             next_actions = self.ensure_direct_action(action_batch, next_actions)
@@ -335,11 +338,6 @@ class GreedyAC(BaseAC):
             with torch.no_grad():
                 next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
 
-            # Option 1: Using the reduction of the ensemble in the update target
-            if not self.ensemble_targets:
-                next_q = self.q_critic.get_q_target([next_state_batch], [next_actions], bootstrap_reduct=True)
-                next_qs.append(next_q)
-
             state_batches.append(state_batch)
             action_batches.append(action_batch)
             reward_batches.append(reward_batch)
@@ -347,23 +345,32 @@ class GreedyAC(BaseAC):
             next_action_batches.append(next_actions)
             gamma_batches.append(gamma_batch)
 
-        # Option 2: Using the corresponding target function in the ensemble in the update target
+        # Second, use this information to compute the targets
+            # Option 1: Using the corresponding target function in the ensemble in the update target:
         if self.ensemble_targets:
             _, next_qs = self.q_critic.get_qs_target(next_state_batches, next_action_batches, bootstrap_reduct=True)
+
+            # Option 2: Using the reduction of the ensemble in the update target:
         else:
-            for i in range(ensemble):
-                next_qs[i] = torch.unsqueeze(next_qs[i], 0)
+            next_qs = []
+            for i in range(ensemble_len):
+                next_q = self.q_critic.get_q_target([next_state_batches[i]], [next_action_batches[i]], bootstrap_reduct=True)
+                next_q = torch.unsqueeze(next_q, 0)
+                next_qs.append(next_q)
+
             next_qs = torch.cat(next_qs, dim=0)
 
+        targets = [reward_batches[i] + gamma_batches[i] * next_qs[i] for i in range(ensemble_len)]
+
+        # Third, compute losses
         _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True, bootstrap_reduct=True)
         losses = []
-        for i in range(ensemble):
-            # N-Step SARSA update with variable 'N', thus 'reward_batch' is an n_step reward
-            # and the exponent on gamma, 'gamma_exp_batch', depends on 'n'
-            target = reward_batches[i] + gamma_batches[i] * next_qs[i]
 
+        for i in range(ensemble_len):
+            target = targets[i]
             losses.append(torch.nn.functional.mse_loss(target, qs[i]))
 
+        # Fourth, log metrics
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric="critic_loss",
@@ -496,9 +503,10 @@ class GreedyAC(BaseAC):
 
                 self.sampler.update(
                     sampler_loss,
-                    opt_kwargs={
-                        "closure": partial(self.sampler_err, update_info.stacked_s_batch, update_info.best_actions)
-                    },
+                    opt_kwargs={"closure": partial(
+                        self.sampler_err,
+                        update_info.stacked_s_batch,
+                        update_info.best_actions)},
                 )
 
         else:
@@ -518,7 +526,9 @@ class GreedyAC(BaseAC):
             self.sampler.update(
                 sampler_loss,
                 opt_kwargs={
-                    "closure": partial(self.sampler_err, update_info.stacked_s_batch, update_info.best_actions),
+                    "closure": partial(self.sampler_err,
+                                       update_info.stacked_s_batch,
+                                       update_info.best_actions),
                 },
             )
 
