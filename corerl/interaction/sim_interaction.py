@@ -1,25 +1,22 @@
 import logging
-from typing import Literal
 
 import numpy as np
 import pandas as pd
 
 from corerl.agent.base import BaseAgent
-from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.eval.monte_carlo import MonteCarloEvaluator
-from corerl.interaction.interaction import BaseInteractionConfig, Interaction
+from corerl.interaction.configs import SimInteractionConfig
+from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
 from corerl.state import AppState
 
 logger = logging.getLogger(__file__)
 
 
-@config()
-class SimInteractionConfig(BaseInteractionConfig):
-    name: Literal["sim_interaction"] = "sim_interaction"
+
 
 
 class SimInteraction(Interaction):

@@ -9,12 +9,16 @@ from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.environment.config import EnvironmentConfig
 
 
+# -------------
+# -- Configs --
+# -------------
 @config()
 class BaseAsyncEnvConfig(EnvironmentConfig):
     obs_period: timedelta = MISSING
     update_period: timedelta = MISSING
     action_period: timedelta = MISSING
     setpoint_ping_period: timedelta | None = None
+
 
 @config()
 class OPCEnvConfig(BaseAsyncEnvConfig):
@@ -28,6 +32,7 @@ class OPCEnvConfig(BaseAsyncEnvConfig):
 class TSDBEnvConfig(BaseAsyncEnvConfig):
     db: TagDBConfig = MISSING
 
+
 @config()
 class GymEnvConfig:
     gym_name: str = MISSING
@@ -39,6 +44,19 @@ class GymEnvConfig:
     kwargs: dict[str, Any] = Field(default_factory=dict)
 
 
+@config()
+class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):
+    name: str = "dep_async_env"
+    action_tolerance: timedelta = MISSING
+
+
+@config()
+class SimAsyncEnvConfig(GymEnvConfig, BaseAsyncEnvConfig):
+    name: str = "sim_async_env"
+
+# ---------------
+# -- Interface --
+# ---------------
 class AsyncEnv:
     obs_period: timedelta
     update_period: timedelta
