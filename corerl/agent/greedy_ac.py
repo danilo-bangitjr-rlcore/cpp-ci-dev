@@ -111,10 +111,12 @@ class GreedyAC(BaseAC):
             return
 
         self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
+
         self.critic_buffer.feed(pr.transitions, pr.data_mode)
         self.policy_buffer.feed([
             t for t in pr.transitions if t.prior.dp
         ], pr.data_mode)
+
 
     def load_buffer(self, pr: PipelineReturn) -> None:
         if pr.transitions is None:
@@ -370,7 +372,7 @@ class GreedyAC(BaseAC):
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric='critic_loss',
-            value=np.mean([loss.detach().cpu().numpy() for loss in losses]),
+            value=np.mean([loss.detach().numpy() for loss in losses]),
         )
 
         return losses
@@ -472,8 +474,8 @@ class GreedyAC(BaseAC):
         if min(self.policy_buffer.size) <= 0:
             return tuple()
 
-        # get initial batch for gradient computation
         batches = self.policy_buffer.sample()
+        # Assuming we don't have an ensemble of policies
         assert len(batches) == 1
         batch = batches[0]
 
@@ -482,18 +484,12 @@ class GreedyAC(BaseAC):
         update_info = self.get_policy_update_info(batch.prior.state, action)
         actor_loss = self.compute_actor_loss(update_info)
 
-        # closure that samples new batch for each evaluation
-        def make_eval_closure():
-            eval_batches = self.policy_buffer.sample()
-            eval_batch = eval_batches[0]
-            eval_action = self.filter_only_delta_actions(eval_batch.post.action)
-            eval_info = self.get_policy_update_info(eval_batch.prior.state, eval_action)
-            return self.actor_err(eval_info[4], eval_info[5])
-
+        stacked_s_batch = update_info[4]
+        best_actions = update_info[5]
         self.actor.update(
             actor_loss,
             opt_kwargs={
-                "closure": make_eval_closure,
+                "closure": partial(self.actor_err, stacked_s_batch, best_actions),
             },
         )
 
@@ -577,6 +573,7 @@ class GreedyAC(BaseAC):
                     update_infos=(update_info if self.share_batch else None),
                 )
                 n_sampler_updates += 1
+
         return q_losses
 
     def _update_sequential(self) -> list[float]:
