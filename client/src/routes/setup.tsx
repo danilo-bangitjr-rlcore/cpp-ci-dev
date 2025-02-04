@@ -1,20 +1,11 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { type components } from "../api-schema";
-import { createContext } from "react";
-import { useLocalForage } from "../utils/localstorage";
+import { useLocalForage } from "../utils/local_forage";
+import { type DeepPartial, MainConfigContext } from "../utils/main_config";
 
 export const Route = createFileRoute("/setup")({
   component: RouteComponent,
 });
-
-type DeepPartial<T> = T extends object ? {
-  [P in keyof T]?: DeepPartial<T[P]>;
-} : T;
-
-export const MainConfigContext = createContext<{
-  mainConfig: DeepPartial<components["schemas"]["MainConfig"]>;
-  setMainConfig: (value: DeepPartial<components["schemas"]["MainConfig"]>) => void;
-}>({ mainConfig: {}, setMainConfig: () => {} });
 
 function RouteComponent() {
   const [mainConfig, setMainConfig] = useLocalForage<

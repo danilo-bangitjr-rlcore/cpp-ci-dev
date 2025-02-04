@@ -1,11 +1,11 @@
 import {
   createFileRoute,
   Link,
-  useRouter,
   useCanGoBack,
+  useRouter,
 } from "@tanstack/react-router";
 import { useContext } from "react";
-import { MainConfigContext } from "../setup";
+import { MainConfigContext } from "../../utils/main_config";
 
 export const Route = createFileRoute("/setup/stub_required")({
   component: StubRequired,
@@ -50,7 +50,7 @@ function StubRequired() {
                 type="text"
                 placeholder=""
                 onChange={handleExpNameChange}
-                value={mainConfig.env?.obs_period || ""}
+                value={mainConfig.env?.obs_period ?? ""}
                 className="block min-w-0 grow py-1.5 pr-3 pl-1 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm/6"
               />
             </div>

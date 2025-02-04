@@ -1,12 +1,14 @@
 import {
   createFileRoute,
-  useRouter,
   useCanGoBack,
+  useRouter,
 } from "@tanstack/react-router";
-import { useContext, useState } from "react";
-import { MainConfigContext } from "../setup";
+import { FormEventHandler, useContext, useState } from "react";
+import { Alert } from "../../components/alert";
 import { fetchWithTimeout, getServerOrigin } from "../../utils/api";
-import Alert from "../../components/Alert";
+import { MainConfigContext } from "../../utils/main_config";
+import { Code } from "../../components/text";
+import { Textarea } from "../../components/textarea";
 
 export const Route = createFileRoute("/setup/finish")({
   component: RouteComponent,
@@ -18,48 +20,55 @@ function RouteComponent() {
   const router = useRouter();
   const canGoBack = useCanGoBack();
 
-  const handleFormUpload = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleFormUpload: FormEventHandler<HTMLFormElement> = (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
-    // NOTE: cannot use the OpenAPI client to make a request because of nested logic
-    // that assumes content is always JSON, but we need to receive YAML
-    const resp = await fetchWithTimeout(
-      getServerOrigin() + "/api/configuration/file",
-      {
-        method: "POST",
-        body: JSON.stringify(mainConfig),
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/yaml",
+    void (async () => {
+      // NOTE: cannot use the OpenAPI client to make a request because of nested logic
+      // that assumes content is always JSON, but we need to receive YAML
+      const resp = await fetchWithTimeout(
+        getServerOrigin() + "/api/configuration/file",
+        {
+          method: "POST",
+          body: JSON.stringify(mainConfig),
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/yaml",
+          },
         },
-      },
-    );
+      );
 
-    if (!resp.ok) {
-      const error = await resp.json();
-      setError(`Error generating configuration file: ${JSON.stringify(error)}`);
-      console.error("Error generating configuration file");
-      return;
-    }
+      if (!resp.ok) {
+        const error: unknown = await resp.json();
+        setError(
+          `Error generating configuration file: ${JSON.stringify(error)}`,
+        );
+        console.error("Error generating configuration file");
+        return;
+      }
 
-    // convert response yaml into a downloadable file
-    const data = await resp.blob();
-    const url = window.URL.createObjectURL(data);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${mainConfig.experiment?.exp_name || "config"}.yaml`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+      // convert response yaml into a downloadable file
+      const data = await resp.blob();
+      const url = window.URL.createObjectURL(data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${mainConfig.experiment?.exp_name ?? "config"}.yaml`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    })();
   };
 
   return (
     <div className="p-2">
-      {!!error && Object.keys(error).length > 0 && (
-        <Alert>
-          <code>{JSON.stringify(error)}</code>
-        </Alert>
-      )}
+      <Alert
+        open={!!error && Object.keys(error).length > 0}
+        onClose={() => setError(undefined)}
+      >
+        <Code>{JSON.stringify(error)}</Code>
+      </Alert>
 
       <form className="mt-2" onSubmit={handleFormUpload}>
         <label
@@ -68,10 +77,9 @@ function RouteComponent() {
         >
           Main Configuration Payload
         </label>
-        <textarea
+        <Textarea
           id="main_config_payload"
-          rows={4}
-          className="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6 cursor-not-allowed"
+          rows={20}
           defaultValue={JSON.stringify(mainConfig, null, 2)}
           disabled={true}
         />

@@ -1,11 +1,21 @@
-import { FormEvent, useContext, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import createClient from "openapi-react-query";
-import { getApiFetchClient } from "../../utils/api";
-import { MainConfigContext } from "../setup";
 import { DocumentIcon } from "@heroicons/react/24/solid";
-import Alert from "../../components/Alert";
+import { createFileRoute } from "@tanstack/react-router";
+import createClient from "openapi-react-query";
+import {
+  ChangeEventHandler,
+  FormEvent,
+  FormEventHandler,
+  MouseEventHandler,
+  useContext,
+  useState,
+} from "react";
+import { Alert } from "../../components/alert";
+import { Badge, BadgeButton } from "../../components/badge";
+import { Button } from "../../components/button";
+import { Code, Text } from "../../components/text";
+import { getApiFetchClient } from "../../utils/api";
 import { classNames } from "../../utils/component";
+import { MainConfigContext } from "../../utils/main_config";
 
 export const Route = createFileRoute("/setup/")({
   component: RouteComponent,
@@ -14,8 +24,9 @@ export const Route = createFileRoute("/setup/")({
 function RouteComponent() {
   const client = createClient(getApiFetchClient());
   const [file, setFile] = useState<File | null>(null);
-
   const { mainConfig, setMainConfig } = useContext(MainConfigContext);
+
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   const { mutate, data, error, reset } = client.useMutation(
     "post",
@@ -25,63 +36,68 @@ function RouteComponent() {
   const uploadFile = async (rawFile: File) => {
     const rawFileContents = await rawFile.text();
 
-    let body: any = rawFileContents;
+    let body: unknown = rawFileContents;
     if (rawFile.type == "application/json") {
       body = JSON.parse(rawFileContents);
     }
     mutate(
       {
-        body,
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any */
+        body: body as any,
         headers: { "Content-Type": rawFile.type, Accept: "application/json" },
       },
       {
         onSuccess: (data) => {
           setMainConfig(data);
         },
+        onError: (error) => {
+          console.error(error);
+          setIsAlertOpen(true);
+        },
       },
     );
   };
 
-  const handleFormUpload = async (
+  const handleFormUpload: FormEventHandler<HTMLFormElement> = (
     event: FormEvent | null | undefined = undefined,
   ) => {
     if (event) {
       event.preventDefault();
     }
     if (file) {
-      await uploadFile(file);
+      void uploadFile(file);
     }
   };
 
-  const handleFileChange = async (
+  const handleFileChange: ChangeEventHandler<HTMLInputElement> = (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    if (event.target.files && event.target.files[0]) {
+    if (event.target.files?.[0]) {
       const file = event.target.files[0];
       setFile(file);
-      await uploadFile(file);
+      void uploadFile(file);
     }
   };
 
-  const clearMainConfig = () => {
+  const clearMainConfig: MouseEventHandler<HTMLButtonElement> = () => {
     setMainConfig({});
     reset();
   };
 
   return (
     <div className="p-2">
-      <p>
+      <Text>
         Welcome to the CoreRL setup wizard. Follow the steps below to create
         your YAML configuration file.
-      </p>
-      <p className="mb-2">
+      </Text>
+      <Text className="mb-2">
         If a yaml configuration file exists, you may upload it here to
         prepopulate the setup wizard defaults.
-      </p>
+      </Text>
 
       <form
         className="border border-gray-400 rounded-lg p-2 mb-2"
-        onSubmit={handleFormUpload}
+        onSubmit={() => handleFormUpload}
       >
         <div className="col-span-full">
           <label
@@ -91,15 +107,21 @@ function RouteComponent() {
             Configuration File
           </label>
 
+          <Alert open={isAlertOpen} onClose={() => setIsAlertOpen(false)}>
+            <Code>{JSON.stringify(error)}</Code>
+          </Alert>
           {!!error && (
-            <Alert>
-              <code>{JSON.stringify(error)}</code>
-            </Alert>
+            <BadgeButton
+              onClick={() => setIsAlertOpen(true)}
+              className="cursor-pointer"
+            >
+              There is an error with the provided file.
+            </BadgeButton>
           )}
           {!!data && (
-            <span className="text-green-700">
-              Successfully loaded <code>{file && file.name}</code>
-            </span>
+            <Badge color="green">
+              Successfully loaded <code>{file?.name}</code>
+            </Badge>
           )}
           <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
             <div className="text-center">
@@ -129,7 +151,6 @@ function RouteComponent() {
         </div>
         <button
           type="submit"
-          onClick={handleFormUpload}
           className={classNames(
             !file ? "cursor-not-allowed" : "cursor-pointer",
             "rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600",
@@ -149,12 +170,7 @@ function RouteComponent() {
           </button>
         )}
       </form>
-      <Link
-        to="/setup/name"
-        className="cursor-pointer relative -ml-px inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-gray-300 ring-inset hover:bg-gray-50 focus:z-10"
-      >
-        Go to /setup/name
-      </Link>
+      <Button to="/setup/name">Go to /setup/name</Button>
     </div>
   );
 }

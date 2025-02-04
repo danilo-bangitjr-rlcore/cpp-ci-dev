@@ -1,11 +1,11 @@
 import {
   createFileRoute,
   Link,
-  useRouter,
   useCanGoBack,
+  useRouter,
 } from "@tanstack/react-router";
 import { useContext } from "react";
-import { MainConfigContext } from "../setup";
+import { MainConfigContext } from "../../utils/main_config";
 
 export const Route = createFileRoute("/setup/name")({
   component: Name,
@@ -50,7 +50,7 @@ function Name() {
                 type="text"
                 placeholder=""
                 onChange={handleExpNameChange}
-                value={mainConfig.experiment?.exp_name || ""}
+                value={mainConfig.experiment?.exp_name ?? ""}
                 className="block min-w-0 grow py-1.5 pr-3 pl-1 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm/6"
               />
             </div>
@@ -63,14 +63,14 @@ function Name() {
             type="button"
             onClick={() => router.history.back()}
             className="cursor-pointer relative inline-flex items-center rounded-l-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-gray-300 ring-inset hover:bg-gray-50 focus:z-10"
-            >
+          >
             Go Back
           </button>
         ) : null}
         <Link
           to="/setup/stub_required"
           className="cursor-pointer relative -ml-px inline-flex items-center rounded-r-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-gray-300 ring-inset hover:bg-gray-50 focus:z-10"
-          >
+        >
           Go to /setup/stub_required
         </Link>
       </span>
