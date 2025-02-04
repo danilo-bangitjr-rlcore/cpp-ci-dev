@@ -142,8 +142,12 @@ class Pipeline:
         self.ts_dict: dict[DataMode, TemporalState | None] = {data_mode: None for data_mode in DataMode}
         self.dt_dict: dict[DataMode, datetime.datetime | None] = {data_mode: None for data_mode in DataMode}
 
-        self._hooks: dict[DataMode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
+        self._pre_invoke_hooks: dict[DataMode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
             data_mode: defaultdict(list) for data_mode in DataMode}
+
+        self._post_invoke_hooks: dict[DataMode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
+            data_mode: defaultdict(list) for data_mode in DataMode}
+
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
             StageCode.INIT:       lambda pf: pf,
             StageCode.FILTER:     self.conditional_filter,
@@ -225,9 +229,12 @@ class Pipeline:
 
         pf = invoke_stage_per_tag(pf, self.missing_data_checkers)
         for stage in stages:
+            for hook in self._pre_invoke_hooks[data_mode][stage]:
+                hook(pf)
+
             pf = self._stage_invokers[stage](pf)
 
-            for hook in self._hooks[data_mode][stage]:
+            for hook in self._post_invoke_hooks[data_mode][stage]:
                 hook(pf)
 
         self.dt_dict[data_mode] = pf.get_last_timestamp()
@@ -255,15 +262,22 @@ class Pipeline:
             data_modes: DataMode | list[DataMode],
             stages: StageCode | list[StageCode],
             f: Callable[[PipelineFrame], Any],
+            order: str = 'post',
         ):
         if isinstance(data_modes, DataMode):
             data_modes = [data_modes]
         if isinstance(stages, StageCode):
             stages = [stages]
 
+        assert order == 'post' or order == 'pre'
+        if order == 'post':
+            hook_dict = self._post_invoke_hooks
+        else:
+            hook_dict = self._pre_invoke_hooks
+
         for data_mode in data_modes:
             for stage in stages:
-                self._hooks[data_mode][stage].append(f)
+               hook_dict[data_mode][stage].append(f)
 
     def reset(self):
         if hasattr(self.state_constructor, 'reset'):
