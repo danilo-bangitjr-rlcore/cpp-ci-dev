@@ -34,7 +34,6 @@ torch.autograd.set_detect_anomaly(True)
 EPSILON = 1e-6
 
 
-
 # --------------------------------- Utilities -------------------------------- #
 
 def sample_actions(
@@ -82,18 +81,6 @@ def sample_actions(
     sample_actions.to(device.device)
 
     return sample_actions
-
-
-
-@dataclass
-class PolicyUpdateInfo:
-    state_batch: Float[torch.Tensor, "batch_size state_dim"]
-    repeated_states: Float[torch.Tensor, "batch_size*num_samples state_dim"]
-    sample_actions: Float[torch.Tensor, "batch_size num_samples action_dim"]
-    sorted_q_inds: Float[torch.Tensor, "batch_size num_samples"]
-    stacked_s_batch: Float[torch.Tensor, "batch_size*top_actions state_dim"]
-    best_actions: Float[torch.Tensor, "batch_size*num_samples action_dim"]
-    batch_size: int
 
 
 @config(frozen=True)
@@ -148,7 +135,7 @@ class GreedyAC(BaseAC):
 
         tensor_state = state_to_tensor(state, device.device)
 
-        action, _action_info = self.actor.get_action(
+        action, _ = self.actor.get_action(
             tensor_state,
             with_grad=False,
         )
@@ -174,59 +161,6 @@ class GreedyAC(BaseAC):
 
         self.policy_buffer.load(policy_transitions, pr.data_mode)
         self.critic_buffer.load(pr.transitions, pr.data_mode)
-
-    def _get_top_n_sampled_actions(
-        self,
-        state_batch: Float[torch.Tensor, "batch_size state_dim"],
-        action_batch: Float[torch.Tensor, "batch_size action_dim"],
-        n_samples: int,
-        percentile: float,
-        uniform_weight: float
-    ) -> tuple[
-            Float[torch.Tensor, "batch_size*top_actions state_dim"],
-            Float[torch.Tensor, "batch_size*top_actions action_dim"]
-    ]:
-
-        # first, sample actions
-        sampled_actions : Float[torch.Tensor, "batch_size num_samples action_dim"]
-        sampled_actions = sample_actions(
-            state_batch,
-            self.sampler,
-            n_samples,
-            self.action_dim,
-            uniform_weight)
-
-        # Next, send the sampled actions though the critic to get a q value for each (state, action)
-        batch_size = state_batch.shape[0]
-        action_dim = sampled_actions.shape[2]
-
-        repeated_states: Float[torch.Tensor, "batch_size*num_samples state_dim"]
-        repeated_states = state_batch.repeat_interleave(n_samples, dim=0)
-        flattened_actions = sampled_actions.view(batch_size * n_samples, action_dim)
-
-        q_values: Float[torch.Tensor, "batch_size*num_samples 1"]
-        q_values = self.q_critic.get_q([repeated_states], [flattened_actions], with_grad=False, bootstrap_reduct=False)
-        q_values = q_values.view(batch_size, n_samples, 1)
-
-        # Next, sort these q values
-        sorted_q_inds: Float[torch.Tensor, "batch_size num_samples 1"]
-        sorted_q_inds = torch.argsort(q_values, dim=1, descending=True)
-
-        # Take the top percentile
-        top_n = floor(percentile*n_samples)
-        best_inds: Float[torch.Tensor, "batch_size n_top_actions action_dim"]
-        best_inds = sorted_q_inds[:, :top_n].repeat_interleave(self.action_dim, -1)
-
-        # grab the top_n best actions from sampled_actions
-        best_actions = torch.gather(sampled_actions, dim=1, index=best_inds)
-        batch_size = sampled_actions.shape[0]
-        best_actions = torch.reshape(best_actions, (batch_size *top_n, self.action_dim))
-
-        # Reshape samples for calculating the loss
-        stacked_s_batch: Float[torch.Tensor, "batch_size*top_actions state_dim"]
-        stacked_s_batch = state_batch.repeat_interleave(top_n, dim=0)
-
-        return stacked_s_batch, best_actions
 
     def filter_only_direct_actions(self, actions: torch.Tensor):
         if not self.cfg.delta_action:
@@ -307,7 +241,10 @@ class GreedyAC(BaseAC):
         else:
             next_qs = []
             for i in range(ensemble_len):
-                next_q = self.q_critic.get_q_target([next_state_batches[i]], [next_action_batches[i]], bootstrap_reduct=True)
+                next_q = self.q_critic.get_q_target(
+                    [next_state_batches[i]],
+                    [next_action_batches[i]],
+                    bootstrap_reduct=True)
                 next_q = torch.unsqueeze(next_q, 0)
                 next_qs.append(next_q)
 
@@ -349,6 +286,59 @@ class GreedyAC(BaseAC):
 
         return [float(q_loss)]
 
+    def _get_top_n_sampled_actions(
+        self,
+        state_batch: Float[torch.Tensor, "batch_size state_dim"],
+        action_batch: Float[torch.Tensor, "batch_size action_dim"],
+        n_samples: int,
+        percentile: float,
+        uniform_weight: float
+    ) -> tuple[
+            Float[torch.Tensor, "batch_size*top_actions state_dim"],
+            Float[torch.Tensor, "batch_size*top_actions action_dim"]
+    ]:
+
+        # first, sample actions
+        sampled_actions : Float[torch.Tensor, "batch_size num_samples action_dim"]
+        sampled_actions = sample_actions(
+            state_batch,
+            self.sampler,
+            n_samples,
+            self.action_dim,
+            uniform_weight)
+
+        # Next, send the sampled actions though the critic to get a q value for each (state, action)
+        batch_size = state_batch.shape[0]
+        action_dim = sampled_actions.shape[2]
+
+        repeated_states: Float[torch.Tensor, "batch_size*num_samples state_dim"]
+        repeated_states = state_batch.repeat_interleave(n_samples, dim=0)
+        flattened_actions = sampled_actions.view(batch_size * n_samples, action_dim)
+
+        q_values: Float[torch.Tensor, "batch_size*num_samples 1"]
+        q_values = self.q_critic.get_q([repeated_states], [flattened_actions], with_grad=False, bootstrap_reduct=False)
+        q_values = q_values.view(batch_size, n_samples, 1)
+
+        # Next, sort these q values
+        sorted_q_inds: Float[torch.Tensor, "batch_size num_samples 1"]
+        sorted_q_inds = torch.argsort(q_values, dim=1, descending=True)
+
+        # Take the top percentile
+        top_n = floor(percentile*n_samples)
+        best_inds: Float[torch.Tensor, "batch_size n_top_actions action_dim"]
+        best_inds = sorted_q_inds[:, :top_n].repeat_interleave(self.action_dim, -1)
+
+        # grab the top_n best actions from sampled_actions
+        best_actions = torch.gather(sampled_actions, dim=1, index=best_inds)
+        batch_size = sampled_actions.shape[0]
+        best_actions = torch.reshape(best_actions, (batch_size *top_n, self.action_dim))
+
+        # also return the corresponding state for each of the top actions
+        states_for_best_actions: Float[torch.Tensor, "batch_size*top_actions state_dim"]
+        states_for_best_actions = state_batch.repeat_interleave(top_n, dim=0)
+
+        return states_for_best_actions, best_actions
+
     def update_actor(self) -> tuple[torch.Tensor, torch.Tensor] | None:
         self._app_state.event_bus.emit_event(EventType.agent_update_actor)
 
@@ -368,7 +358,7 @@ class GreedyAC(BaseAC):
         if not self.cfg.delta_action:
             action_batch = torch.zeros_like(action_batch)
 
-        stacked_s_batch, best_actions = self._get_top_n_sampled_actions(
+        states_for_best_actions, best_actions = self._get_top_n_sampled_actions(
             state_batch=state_batch,
             action_batch=action_batch,
             n_samples=self.num_samples,
@@ -376,7 +366,7 @@ class GreedyAC(BaseAC):
             uniform_weight=self.uniform_sampling_percentage
         )
 
-        actor_loss = self.policy_err(stacked_s_batch, best_actions)
+        actor_loss = self.policy_err(states_for_best_actions, best_actions)
 
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
@@ -387,7 +377,7 @@ class GreedyAC(BaseAC):
         self.actor.update(
             actor_loss,
             opt_kwargs={
-                "closure": partial(self.policy_err, stacked_s_batch, best_actions),
+                "closure": partial(self.policy_err, states_for_best_actions, best_actions),
             },
         )
 
@@ -426,7 +416,7 @@ class GreedyAC(BaseAC):
         assert state_batch is not None
         assert action_batch is not None
 
-        stacked_s_batch, best_actions = self._get_top_n_sampled_actions(
+        states_for_best_actions, best_actions = self._get_top_n_sampled_actions(
             state_batch=state_batch,
             action_batch=action_batch,
             n_samples=self.num_samples,
@@ -434,7 +424,7 @@ class GreedyAC(BaseAC):
             uniform_weight=self.uniform_sampling_percentage
         )
 
-        sampler_loss = self.policy_err(stacked_s_batch, best_actions)
+        sampler_loss = self.policy_err(states_for_best_actions, best_actions)
 
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
@@ -445,14 +435,14 @@ class GreedyAC(BaseAC):
         self.actor.update(
             sampler_loss,
             opt_kwargs={
-                "closure": partial(self.policy_err, stacked_s_batch, best_actions),
+                "closure": partial(self.policy_err, states_for_best_actions, best_actions),
             },
         )
 
-    def policy_err(self, stacked_s_batch: torch.Tensor, best_actions: torch.Tensor) -> torch.Tensor:
+    def policy_err(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
         logp, _ = self.actor.get_log_prob(
-            stacked_s_batch,
-            best_actions,
+            states,
+            actions,
             with_grad=True,
         )
         return -logp.mean()
