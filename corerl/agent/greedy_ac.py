@@ -1,6 +1,5 @@
 import logging
 import pickle as pkl
-from dataclasses import dataclass
 from functools import partial
 from math import floor
 from pathlib import Path
@@ -309,6 +308,14 @@ class GreedyAC(BaseAC):
         repeated_states: Float[torch.Tensor, "batch_size*num_samples state_dim"]
         repeated_states = state_batch.repeat_interleave(n_samples, dim=0)
         flattened_actions = sampled_actions.view(batch_size * n_samples, action_dim)
+        assert repeated_states.shape[0] == flattened_actions.shape[0] == batch_size*n_samples
+
+        # the next three lines ensure that the flattend sampled action are valid direct actions,
+        # which is what the critic takes in
+        action_batch = self.filter_only_direct_actions(action_batch)
+        action_batch = action_batch.repeat_interleave(n_samples, dim=0)
+        assert action_batch == flattened_actions.shape[0] == batch_size*n_samples
+        flattened_actions = self.ensure_direct_action(action_batch, flattened_actions)
 
         q_values: Float[torch.Tensor, "batch_size*num_samples 1"]
         q_values = self.q_critic.get_q([repeated_states], [flattened_actions], with_grad=False, bootstrap_reduct=False)
@@ -325,8 +332,7 @@ class GreedyAC(BaseAC):
 
         # grab the top_n best actions from sampled_actions
         best_actions = torch.gather(sampled_actions, dim=1, index=best_inds)
-        batch_size = sampled_actions.shape[0]
-        best_actions = torch.reshape(best_actions, (batch_size *top_n, self.action_dim))
+        best_actions = torch.reshape(best_actions, (batch_size*top_n, self.action_dim))
 
         # also return the corresponding state for each of the top actions
         states_for_best_actions: Float[torch.Tensor, "batch_size*top_actions state_dim"]
