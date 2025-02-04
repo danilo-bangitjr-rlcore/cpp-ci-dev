@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { type components } from "../api-schema";
 import { createContext } from "react";
-import { useLocalStorage } from "../utils/localstorage";
+import { useLocalForage } from "../utils/localstorage";
 
 export const Route = createFileRoute("/setup")({
   component: RouteComponent,
@@ -17,7 +17,7 @@ export const MainConfigContext = createContext<{
 }>({ mainConfig: {}, setMainConfig: () => {} });
 
 function RouteComponent() {
-  const [mainConfig, setMainConfig] = useLocalStorage<
+  const [mainConfig, setMainConfig] = useLocalForage<
     DeepPartial<components["schemas"]["MainConfig"]>
   >("main_config", {});
   return (
