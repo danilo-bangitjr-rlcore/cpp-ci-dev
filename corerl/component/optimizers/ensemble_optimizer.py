@@ -28,14 +28,7 @@ class EnsembleOptimizer:
                     if isinstance(p, torch.Tensor) and p.requires_grad
                 }
         else:  # handle non-vmap case
-            for p in param:
-                param_list = []
-                for orig_p in list(p):
-                    if orig_p.requires_grad:
-                        param_list.append(orig_p.clone().detach().requires_grad_())
-                if param_list:
-                    self.optim.append(individual_optim(param_list, **kwargs))
-
+            self.optim = [individual_optim(list(p), **kwargs) for p in param]
     def zero_grad(self) -> None:
         for opt in self.optim:
             opt.zero_grad()
