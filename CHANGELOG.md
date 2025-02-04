@@ -1,3 +1,42 @@
+## 0.70.1 (2025-02-04)
+
+### Fix
+
+- Deployment Async Env now performs VariantType aware writes to OPC (#476)
+
+## 0.70.0 (2025-02-03)
+
+### Feat
+
+- Eval Table read()
+
+### Fix
+
+- use unique name for eval table idx
+- EvalsTable read() needed to match read() in EvalTableProtocol
+
+## 0.69.2 (2025-02-03)
+
+### Fix
+
+- remove a BUG in greedy_ac
+
+## 0.69.1 (2025-01-31)
+
+### Fix
+
+- let ensemble critic use armijo adam
+
+## 0.69.0 (2025-01-31)
+
+### Feat
+
+- implemented Metrics Table read() method for both TSDB and Pandas
+
+### Refactor
+
+- Added blocking_sync() before read() and updated MetricsTable fixture in tests
+
 ## 0.68.0 (2025-01-31)
 
 ### Feat

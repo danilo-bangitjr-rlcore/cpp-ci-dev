@@ -3,8 +3,10 @@ from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import pandas as pd
+from asyncua import ua
 from asyncua.sync import Client, SyncNode
 from asyncua.ua.uaerrors import BadNodeIdUnknown
+from pydantic import BaseModel, ConfigDict
 
 from corerl.configs.config import MISSING, config
 
@@ -22,6 +24,11 @@ logger = logging.getLogger(__name__)
 class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):
     name: str = "dep_async_env"
     action_tolerance: timedelta = MISSING
+
+class SyncNodeData(BaseModel):
+    node: SyncNode
+    var_type: ua.VariantType
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class DeploymentAsyncEnv(AsyncEnv):
@@ -54,7 +61,7 @@ class DeploymentAsyncEnv(AsyncEnv):
             self._action_cfgs[tag_cfg.name] = tag_cfg
 
         # define opc action nodes
-        self.action_nodes: dict[str, SyncNode] = {}
+        self.action_nodes: dict[str, SyncNodeData] = {}
         with Client(self.url) as opc_client:
             for tag_cfg in sorted(tag_configs, key=lambda cfg: cfg.name):
                 if tag_cfg.action_constructor is None:
@@ -68,8 +75,9 @@ class DeploymentAsyncEnv(AsyncEnv):
 
                 id = make_opc_node_id(node_name, cfg.opc_ns)
                 node = opc_client.get_node(id)
+                var_type = node.get_data_type_as_variant_type()
                 logger.info(f"Registering action '{tag_name}' with OPC node id '{id}'")
-                self.action_nodes[tag_name] = node
+                self.action_nodes[tag_name] = SyncNodeData(node=node, var_type=var_type)
 
             try:
                 id = make_opc_node_id("agent_step", self.ns)
@@ -96,9 +104,11 @@ class DeploymentAsyncEnv(AsyncEnv):
         with Client(self.url) as opc_client:
             # if action df got nuked in sanitizer, this for loop does nothing
             for action_name in action.columns:
-                node = self.action_nodes[action_name]
+                node = self.action_nodes[action_name].node
+                var_type = self.action_nodes[action_name].var_type
                 action_val = float(action[action_name].iloc[0])
-                opc_client.write_values([node], [action_val])
+                data_value = ua.DataValue(ua.Variant(action_val, var_type))
+                opc_client.write_values([node], [data_value])
 
 
     def get_latest_obs(self) -> pd.DataFrame:
