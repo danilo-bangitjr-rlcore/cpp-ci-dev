@@ -47,7 +47,6 @@ class PolicyUpdateInfo:
 class GreedyACConfig(BaseACConfig):
     name: Literal["greedy_ac"] = "greedy_ac"
 
-    average_entropy: bool = True
     ensemble_targets: bool = False
     interleave_updates: bool = True
     n_sampler_updates: int = 1
@@ -55,7 +54,6 @@ class GreedyACConfig(BaseACConfig):
     prop_rho_mult: float = 2.0
     rho: float = 0.1
     share_batch: bool = True
-    tau: float = 0.0
     uniform_sampling_percentage: float = 0.5
 
     actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
@@ -69,10 +67,6 @@ class GreedyAC(BaseAC):
         self._col_desc = col_desc
         self.ensemble_targets = cfg.ensemble_targets
 
-        # Whether to average the proposal policy's entropy over all the sampled actions
-        self.average_entropy = cfg.average_entropy
-        # Entropy constant used in the entropy version of the proposal policy update
-        self.tau = cfg.tau
         # percentage of sampled actions used in actor update
         self.rho = cfg.rho
         # percentage of sampled actions used in the non-entropy version of the proposal policy update
@@ -379,24 +373,6 @@ class GreedyAC(BaseAC):
 
         return losses
 
-    def compute_sampler_entropy_loss(self, update_info: PolicyUpdateInfo) -> torch.Tensor:
-        sample_actions = update_info.sample_actions.reshape(-1, self.action_dim)
-        sampler_entropy, _ = self.sampler.get_log_prob(update_info.repeated_states, sample_actions)
-
-        with torch.no_grad():
-            sampler_entropy *= sampler_entropy
-        sampler_entropy = sampler_entropy.reshape(update_info.batch_size, self.num_samples, 1)
-
-        if self.average_entropy:
-            sampler_entropy = -sampler_entropy.mean(dim=1)
-        else:
-            sampler_entropy = -sampler_entropy[:, 0, :]
-
-        logp, _ = self.sampler.get_log_prob(update_info.stacked_s_batch, update_info.best_actions, with_grad=True)
-        sampler_loss = logp.reshape(update_info.batch_size, self.top_actions, 1)
-        sampler_loss = -1 * (sampler_loss.mean(dim=1) + self.tau * sampler_entropy).mean()
-
-        return sampler_loss
 
     def compute_sampler_no_entropy_loss(self, update_info: PolicyUpdateInfo) -> torch.Tensor:
         # gets the best actions
@@ -436,12 +412,10 @@ class GreedyAC(BaseAC):
         self,
         update_info: PolicyUpdateInfo,
     ) -> torch.Tensor:
-        if self.tau != 0:  # Entropy version of proposal policy update
-            sampler_loss = self.compute_sampler_entropy_loss(update_info)
-        else:
-            # Non-entropy version of proposal policy update.
-            # A greater percentage of actions are used to update the proposal policy than the actor policy
-            sampler_loss = self.compute_sampler_no_entropy_loss(update_info)
+        
+        # Non-entropy version of proposal policy update.
+        # A greater percentage of actions are used to update the proposal policy than the actor policy
+        sampler_loss = self.compute_sampler_no_entropy_loss(update_info)
 
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
