@@ -183,21 +183,21 @@ class GreedyAC(BaseAC):
         self.policy_buffer.load(policy_transitions, pr.data_mode)
         self.critic_buffer.load(pr.transitions, pr.data_mode)
 
-    def filter_only_direct_actions(self, actions: torch.Tensor):
+    def _filter_only_direct_actions(self, actions: torch.Tensor):
         if not self.cfg.delta_action:
             return actions
 
         direct_idxs = [i for i, col in enumerate(self._col_desc.action_cols) if not Delta.is_delta_transformed(col)]
         return actions[:, direct_idxs]
 
-    def filter_only_delta_actions(self, actions: torch.Tensor):
+    def _filter_only_delta_actions(self, actions: torch.Tensor):
         if not self.cfg.delta_action:
             return actions
 
         delta_idxs = [i for i, col in enumerate(self._col_desc.action_cols) if Delta.is_delta_transformed(col)]
         return actions[:, delta_idxs]
 
-    def ensure_direct_action(self, action: torch.Tensor, next_action: torch.Tensor):
+    def _ensure_direct_action(self, action: torch.Tensor, next_action: torch.Tensor):
         if not self.cfg.delta_action:
             return next_action
 
@@ -219,7 +219,9 @@ class GreedyAC(BaseAC):
         # we can hardcode the spatial constraints
         return torch.clip(direct_action, 0, 1)
 
-    def compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+# --------------------------- critic updating-------------------------- #
+
+    def _compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
         # First, translate ensemble batches in to list for each property
         ensemble_len = len(ensemble_batch)
         state_batches = []
@@ -239,8 +241,8 @@ class GreedyAC(BaseAC):
 
             # put actions into direct form
             next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
-            action_batch = self.filter_only_direct_actions(action_batch)
-            next_actions = self.ensure_direct_action(action_batch, next_actions)
+            action_batch = self._filter_only_direct_actions(action_batch)
+            next_actions = self._ensure_direct_action(action_batch, next_actions)
             # For the 'Anytime' paradigm, only states at decision points can sample next_actions
             # If a state isn't at a decision point, its next_action is set to the current action
             with torch.no_grad():
@@ -299,13 +301,15 @@ class GreedyAC(BaseAC):
         batches = self.critic_buffer.sample()
 
         def closure():
-            losses = self.compute_critic_loss(batches)  # noqa: B023
+            losses = self._compute_critic_loss(batches)  # noqa: B023
             return torch.stack(losses, dim=-1).sum(dim=-1)
 
         q_loss = closure()
         self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
 
         return [float(q_loss)]
+
+# --------------------------- actor and sampler updating-------------------------- #
 
     def _get_top_n_sampled_actions(
         self,
@@ -343,12 +347,12 @@ class GreedyAC(BaseAC):
 
         # the next few lines ensure that the flattend sampled action are valid direct actions,
         # which is what the critic takes in
-        action_batch = self.filter_only_direct_actions(action_batch)
+        action_batch = self._filter_only_direct_actions(action_batch)
         action_batch = unsqueeze_repeat(action_batch, SAMPLE_DIM, n_samples)
         assert action_batch.size(BATCH_DIM) == batch_size
         assert action_batch.size(SAMPLE_DIM) == n_samples
         assert action_batch.size(-1) == ACTION_DIM
-        actions = self.ensure_direct_action(action_batch, sampled_actions)
+        actions = self._ensure_direct_action(action_batch, sampled_actions)
 
         # NEXT we will query the critic for q_values
         # We need to reshape the repeated_states and actions to be the right shape to feed into the criticv
@@ -374,7 +378,6 @@ class GreedyAC(BaseAC):
 
         return states_for_best_actions_2d, top_actions_2d
 
-
     def _update_policy(
             self,
             state_batch :torch.Tensor,
@@ -398,7 +401,7 @@ class GreedyAC(BaseAC):
         )
 
         # compute loss
-        loss = self.policy_err(policy, states_for_best_actions, best_actions)
+        loss = self._policy_err(policy, states_for_best_actions, best_actions)
 
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
@@ -410,7 +413,7 @@ class GreedyAC(BaseAC):
         policy.update(
             loss,
             opt_kwargs={
-                "closure": partial(self.policy_err, policy, states_for_best_actions, best_actions),
+                "closure": partial(self._policy_err, policy, states_for_best_actions, best_actions),
             },
         )
 
@@ -427,7 +430,7 @@ class GreedyAC(BaseAC):
             batch = batches[0]
 
             state_batch = batch.prior.state
-            action_batch = self.filter_only_delta_actions(batch.post.action)
+            action_batch = self._filter_only_delta_actions(batch.post.action)
             # if we are in direct action mode, then the sampled
             # actions are direct and not deltas. So zero out the
             # offset
@@ -455,7 +458,7 @@ class GreedyAC(BaseAC):
         state_batch, action_batch = self._ensure_policy_batch(update_batch)
         self._update_policy(state_batch, action_batch, self.sampler, 'sampler', self.rho_proposal)
 
-    def policy_err(self, policy: BaseActor, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
+    def _policy_err(self, policy: BaseActor, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
         logp, _ = policy.get_log_prob(
             states,
             actions,
