@@ -19,10 +19,10 @@ function Name() {
   const handleExpNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const exp_name = e.target.value;
 
-    setMainConfig({
-      ...mainConfig,
-      experiment: { ...mainConfig.experiment, exp_name },
-    });
+    setMainConfig((prevMainConfig) => ({
+      ...prevMainConfig,
+      experiment: { ...prevMainConfig.experiment, exp_name },
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
