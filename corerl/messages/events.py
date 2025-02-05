@@ -27,6 +27,7 @@ class EventType(StrEnum):
     agent_load = auto()
     agent_save = auto()
     agent_update_actor = auto()
+    agent_update_sampler = auto()
     agent_update_buffer = auto()
     agent_update_critic = auto()
 

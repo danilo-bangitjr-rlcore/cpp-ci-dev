@@ -34,6 +34,10 @@ EPSILON = 1e-6
 
 
 # --------------------------------- Utilities -------------------------------- #
+def unsqueeze_repeat(tensor: torch.Tensor, dim: int, repeats: int) -> torch.Tensor:
+    tensor = tensor.unsqueeze(dim)
+    tensor = tensor.repeat_interleave(repeats, dim=dim)
+    return tensor
 
 def sample_actions(
     state_batch: Float[torch.Tensor, "batch_size state_dim"],
@@ -41,7 +45,10 @@ def sample_actions(
     n_samples : int,
     action_dim: int,
     uniform_weight : float = 0.0
-) -> Float[torch.Tensor, "batch_size num_samples action_dim"]:
+) -> tuple[
+        Float[torch.Tensor, "batch_size num_samples action_dim"],
+        Float[torch.Tensor, "batch_size num_samples state_dim"]
+    ]:
     """
     For each state in the state_batch, sample n actions according to policy.
 
@@ -53,33 +60,53 @@ def sample_actions(
     n_samples_policy = floor(policy_weight * n_samples) # number of samples from the policy
     n_samples_uniform = n_samples - n_samples_policy
 
+    SAMPLE_DIM = 1
     # sample n_samples_policy actions from the policy
-    if n_samples_policy > 0:
-        repeated_states: Float[torch.Tensor, "batch_size*n_samples_policy state_dim"]
-        repeated_states = state_batch.repeat_interleave(n_samples_policy, dim=0)
-
-        proposed_actions: Float[torch.Tensor, "batch_size*n_samples_policy action_dim"]
-        proposed_actions, _ = policy.get_action(
-            repeated_states,
-            with_grad=False,
-        )
-        proposed_actions = proposed_actions.reshape(batch_size, n_samples_policy, action_dim)
-    else:
-        proposed_actions = torch.empty(batch_size, 0, action_dim)
+    repeated_states: Float[torch.Tensor, "batch_size n_samples_policy state_dim"]
+    repeated_states = unsqueeze_repeat(state_batch, SAMPLE_DIM, n_samples_policy)
+    proposed_actions: Float[torch.Tensor, "batch_size n_samples_policy action_dim"]
+    proposed_actions, _ = policy.get_action(repeated_states, with_grad=False)
 
     # sample remaining n_samples_uniform actions uniformly
     uniform_sample_actions = torch.rand(batch_size, n_samples_uniform, action_dim)
     uniform_sample_actions = torch.clip(uniform_sample_actions, EPSILON, 1)
 
-    SAMPLE_DIM = 1
     sample_actions = torch.cat([proposed_actions, uniform_sample_actions], dim=SAMPLE_DIM)
+
+    repeated_states: Float[torch.Tensor, "batch_size n_samples state_dim"]
+    repeated_states = unsqueeze_repeat(state_batch, SAMPLE_DIM, n_samples)
 
     logger.debug(f"{proposed_actions.shape=}")
     logger.debug(f"{uniform_sample_actions.shape=}")
 
     sample_actions.to(device.device)
 
-    return sample_actions
+    return sample_actions, repeated_states
+
+
+def grab_percentile(values: torch.Tensor, keys: torch.Tensor, percentile: float) -> torch.Tensor:
+    assert keys.dim() == 3
+    assert values.dim() == 2
+    assert values.size(0) == keys.size(0)
+    assert values.size(1) == keys.size(1)
+    key_dim = keys.size(2)
+
+    n_samples = values.size(1)
+    top_n = floor(percentile*n_samples)
+
+    values = values.squeeze(dim=-1)
+    sorted_inds = torch.argsort(values, dim=1, descending=True)
+    top_n_indices = sorted_inds[:, :top_n]
+    top_n_indices = top_n_indices.unsqueeze(-1)
+    top_n_indices = top_n_indices.repeat_interleave(key_dim, -1)
+
+    top_keys = torch.gather(keys, dim=1, index=top_n_indices)
+
+    assert top_keys.dim() == 3
+    assert top_keys.size(0) == keys.size(0)
+    assert top_keys.size(1) == top_n
+    assert top_keys.size(2) == keys.size(2)
+    return top_keys
 
 
 @config(frozen=True)
@@ -285,61 +312,67 @@ class GreedyAC(BaseAC):
         state_batch: Float[torch.Tensor, "batch_size state_dim"],
         action_batch: Float[torch.Tensor, "batch_size action_dim"],
         n_samples: int,
-        percentile: float, #
+        percentile: float,
         uniform_weight: float, # proportion of samples coming from uniform dist
         sampler: BaseActor, # which network to sample non-uniform actions from
     ) -> tuple[
-            Float[torch.Tensor, "batch_size*top_actions state_dim"],
-            Float[torch.Tensor, "batch_size*top_actions action_dim"]
+            Float[torch.Tensor, "batch_size top_actions state_dim"],
+            Float[torch.Tensor, "batch_size top_actions action_dim"]
     ]:
 
-        # first, sample actions
+        BATCH_DIM = 0
+        SAMPLE_DIM = 1
+
+        ACTION_DIM = action_batch.size(1)
+        STATE_DIM = state_batch.size(1)
+
+        # FIRST, sample actions
         sampled_actions : Float[torch.Tensor, "batch_size num_samples action_dim"]
-        sampled_actions = sample_actions(
+        repeated_states : Float[torch.Tensor, "batch_size num_samples state_dim"]
+        sampled_actions, repeated_states = sample_actions(
             state_batch,
             sampler,
             n_samples,
             self.action_dim,
             uniform_weight)
 
-        # Next, send the sampled actions though the critic to get a q value for each (state, action)
-        batch_size = state_batch.shape[0]
-        action_dim = sampled_actions.shape[2]
+        batch_size = state_batch.size(BATCH_DIM)
+        assert sampled_actions.dim() == repeated_states.dim()
+        assert sampled_actions.size(BATCH_DIM) == repeated_states.size(BATCH_DIM) == batch_size
+        assert sampled_actions.size(SAMPLE_DIM) == repeated_states.size(SAMPLE_DIM) == n_samples
 
-        repeated_states: Float[torch.Tensor, "batch_size*num_samples state_dim"]
-        repeated_states = state_batch.repeat_interleave(n_samples, dim=0)
-        flattened_actions = sampled_actions.view(batch_size * n_samples, action_dim)
-        assert repeated_states.shape[0] == flattened_actions.shape[0] == batch_size*n_samples
-
-        # the next three lines ensure that the flattend sampled action are valid direct actions,
+        # the next few lines ensure that the flattend sampled action are valid direct actions,
         # which is what the critic takes in
         action_batch = self.filter_only_direct_actions(action_batch)
-        action_batch = action_batch.repeat_interleave(n_samples, dim=0)
-        assert action_batch == flattened_actions.shape[0] == batch_size*n_samples
-        flattened_actions = self.ensure_direct_action(action_batch, flattened_actions)
+        action_batch = unsqueeze_repeat(action_batch, SAMPLE_DIM, n_samples)
+        assert action_batch.size(BATCH_DIM) == batch_size
+        assert action_batch.size(SAMPLE_DIM) == n_samples
+        assert action_batch.size(-1) == ACTION_DIM
+        actions = self.ensure_direct_action(action_batch, sampled_actions)
+
+        # NEXT we will query the critic for q_values
+        # We need to reshape the repeated_states and actions to be the right shape to feed into the criticv
+        repeated_states_2d = repeated_states.reshape(batch_size*n_samples, STATE_DIM)
+        actions_2d = actions.reshape(batch_size*n_samples, ACTION_DIM)
 
         q_values: Float[torch.Tensor, "batch_size*num_samples 1"]
-        q_values = self.q_critic.get_q([repeated_states], [flattened_actions], with_grad=False, bootstrap_reduct=False)
-        q_values = q_values.view(batch_size, n_samples, 1)
+        q_values = self.q_critic.get_q([repeated_states_2d], [actions_2d], with_grad=False, bootstrap_reduct=False)
+        # we need to reshape the q_values to have size (batch_size, num_samples)
+        q_values: Float[torch.Tensor, "batch_size num_samples"]
+        q_values = q_values.reshape(batch_size, n_samples)
 
-        # Next, sort these q values
-        sorted_q_inds: Float[torch.Tensor, "batch_size num_samples 1"]
-        sorted_q_inds = torch.argsort(q_values, dim=1, descending=True)
+        # grab the top percentile of actions, according to the q_values
+        top_actions: Float[torch.Tensor, "batch_size top_n action_dim"]
+        top_actions = grab_percentile(q_values, actions, percentile)
+        top_n = top_actions.size(SAMPLE_DIM)
+        states_for_best_actions = repeated_states[:, :top_n, :]
 
-        # Take the top percentile
-        top_n = floor(percentile*n_samples)
-        best_inds: Float[torch.Tensor, "batch_size n_top_actions action_dim"]
-        best_inds = sorted_q_inds[:, :top_n].repeat_interleave(self.action_dim, -1)
+        # finally, reshape returned states and actions to be two dimensional, since this is what
+        # the loss function for the policy expects
+        states_for_best_actions_2d = states_for_best_actions.reshape(batch_size*top_n, STATE_DIM)
+        top_actions_2d = top_actions.reshape(batch_size*top_n, ACTION_DIM)
 
-        # grab the top_n best actions from sampled_actions
-        best_actions = torch.gather(sampled_actions, dim=1, index=best_inds)
-        best_actions = torch.reshape(best_actions, (batch_size*top_n, self.action_dim))
-
-        # also return the corresponding state for each of the top actions
-        states_for_best_actions: Float[torch.Tensor, "batch_size*top_actions state_dim"]
-        states_for_best_actions = state_batch.repeat_interleave(top_n, dim=0)
-
-        return states_for_best_actions, best_actions
+        return states_for_best_actions_2d, top_actions_2d
 
 
     def _update_policy(
@@ -351,8 +384,6 @@ class GreedyAC(BaseAC):
             percentile : float,
         ) -> tuple[torch.Tensor, torch.Tensor] | None:
 
-        if min(self.policy_buffer.size) <= 0:
-            return None
 
         assert policy_name == 'actor' or policy_name == 'sampler'
 
@@ -407,14 +438,20 @@ class GreedyAC(BaseAC):
 
         return state_batch, action_batch
 
-    def update_actor(self) -> tuple[torch.Tensor, torch.Tensor]:
+    def update_actor(self) -> tuple[torch.Tensor, torch.Tensor] | None:
         self._app_state.event_bus.emit_event(EventType.agent_update_actor)
+        if min(self.policy_buffer.size) <= 0:
+            return None
+
         state_batch, action_batch = self._ensure_policy_batch()
         self._update_policy(state_batch, action_batch, self.actor, 'actor', self.rho)
         return state_batch, action_batch
 
     def update_sampler(self, update_batch : tuple[torch.Tensor, torch.Tensor] | None = None) -> None:
-        self._app_state.event_bus.emit_event(EventType.agent_update_actor)
+        self._app_state.event_bus.emit_event(EventType.agent_update_sampler)
+        if min(self.policy_buffer.size) <= 0:
+            return None
+
         state_batch, action_batch = self._ensure_policy_batch(update_batch)
         self._update_policy(state_batch, action_batch, self.sampler, 'sampler', self.rho_proposal)
 
