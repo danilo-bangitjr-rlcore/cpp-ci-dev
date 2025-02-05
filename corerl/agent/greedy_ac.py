@@ -332,6 +332,7 @@ class GreedyAC(BaseAC):
 
         # FIRST, sample actions
         sampled_actions : Float[torch.Tensor, "batch_size num_samples action_dim"]
+        # states that each of the sampled actions correspond to:
         repeated_states : Float[torch.Tensor, "batch_size num_samples state_dim"]
         sampled_actions, repeated_states = sample_actions(
             state_batch,
@@ -355,23 +356,24 @@ class GreedyAC(BaseAC):
         actions = self._ensure_direct_action(action_batch, sampled_actions)
 
         # NEXT we will query the critic for q_values
-        # We need to reshape the repeated_states and actions to be the right shape to feed into the criticv
+        # however, we first need to reshape the repeated_states and actions
+        # to be the right shape to feed into the critic (i.e. 2 dimensional)
         repeated_states_2d = repeated_states.reshape(batch_size*n_samples, STATE_DIM)
         actions_2d = actions.reshape(batch_size*n_samples, ACTION_DIM)
 
         q_values: Float[torch.Tensor, "batch_size*num_samples 1"]
         q_values = self.q_critic.get_q([repeated_states_2d], [actions_2d], with_grad=False, bootstrap_reduct=False)
-        # we need to reshape the q_values to have size (batch_size, num_samples)
+        # now, we need to reshape the q_values to have size (batch_size, num_samples)
         q_values: Float[torch.Tensor, "batch_size num_samples"]
         q_values = q_values.reshape(batch_size, n_samples)
 
-        # grab the top percentile of actions, according to the q_values
+        # NEXT, we will grab the top percentile of actions according to the q_values
         top_actions: Float[torch.Tensor, "batch_size top_n action_dim"]
         top_actions = grab_percentile(q_values, actions, percentile)
         top_n = top_actions.size(SAMPLE_DIM)
         states_for_best_actions = repeated_states[:, :top_n, :]
 
-        # finally, reshape returned states and actions to be two dimensional, since this is what
+        # FINALLY, reshape returned states and actions to be two dimensional, since this is what
         # the loss function for the policy expects
         states_for_best_actions_2d = states_for_best_actions.reshape(batch_size*top_n, STATE_DIM)
         top_actions_2d = top_actions.reshape(batch_size*top_n, ACTION_DIM)
