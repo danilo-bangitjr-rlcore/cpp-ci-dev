@@ -75,8 +75,8 @@ class DecisionPointDetector:
 
         # otherwise add features to df
         clock_representation = clock_feats.get()
-        if self._cfg.normalize and self._cfg.kind != 'one_hot':
-            clock_representation /= self._steps_per_decision
+        if self._cfg.normalize and (self._cfg.kind != 'one_hot'):
+            clock_representation = clock_representation.astype(np.float32) / self._steps_per_decision
         n_clock_feats = clock_representation.shape[1]
         for feat_col in range(n_clock_feats):
             pf.data[f'countdown.[{feat_col}]'] = clock_representation[:, feat_col]
