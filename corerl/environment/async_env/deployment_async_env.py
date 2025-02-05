@@ -46,6 +46,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         self.action_tolerance = cfg.action_tolerance
 
         self.tag_names = [tag.name for tag in tag_configs]
+        self.tag_aggs = {tag.name: tag.agg for tag in tag_configs}
         self._meta_tags = [tag for tag in tag_configs if tag.is_meta]
         self._observation_tags = [
             tag for tag in tag_configs
@@ -114,7 +115,7 @@ class DeploymentAsyncEnv(AsyncEnv):
     def get_latest_obs(self) -> pd.DataFrame:
         now = datetime.now(UTC)
         obs = self.data_reader.single_aggregated_read(
-            names=self.tag_names, start_time=now - self.obs_period, end_time=now
+            names=self.tag_names, start_time=now - self.obs_period, end_time=now, tag_aggregations=self.tag_aggs
         )
         return obs
 
