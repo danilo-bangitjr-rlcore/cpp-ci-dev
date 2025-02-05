@@ -1,26 +1,53 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { type components } from "../api-schema";
-import { useLocalForage } from "../utils/local_forage";
-import { type DeepPartial, MainConfigContext } from "../utils/main_config";
+import { useLocalForage } from "../utils/local-forage";
+import { type DeepPartial, MainConfigContext } from "../utils/main-config";
+import { ProgressBar, Step } from "../components/progress-bar";
+import { useMemo } from "react";
 
 export const Route = createFileRoute("/setup")({
-  component: RouteComponent,
+  component: RouteComponent
 });
 
 function RouteComponent() {
   const [mainConfig, setMainConfig] = useLocalForage<
     DeepPartial<components["schemas"]["MainConfig"]>
   >("main_config", {});
+
+  const { pathname: currentPathName } = useLocation()
+
+  const setupSteps: Step[] = useMemo(() => {
+    const steps: Step[] = [
+      { name: "Start", to: "/setup", status: "complete" },
+      { name: "Experiment Name", to: "/setup/name", status: "current" },
+      { name: "Stub Required", to: "/setup/stub_required", status: "upcoming" },
+      { name: "Finish", to: "/setup/finish", status: "upcoming" },
+    ];
+
+    const currentStepIdx = steps.findIndex((step) => step.to === currentPathName)
+    for (let i = 0; i < steps.length; i++) {
+      if (i > currentStepIdx) {
+        steps[i].status = "upcoming";
+      } else if (i == currentStepIdx) {
+        steps[i].status = "current";
+      } else {
+        steps[i].status = "complete"
+      }
+    }
+    return steps;
+  }, [currentPathName]);
+
   return (
     <MainConfigContext.Provider value={{ mainConfig, setMainConfig }}>
       <div className="border-b border-gray-200 pb-2 p-2">
         <div className="-mt-2 -ml-2 flex flex-wrap items-baseline">
-          <h3 className="mt-2 ml-2 text-base font-semibold text-gray-900">
+          <h3 className="m-2 text-base font-semibold text-gray-900">
             Setup
           </h3>
           <p className="mt-1 ml-2 truncate text-sm text-gray-500">
             {mainConfig.experiment?.exp_name}
           </p>
+          <ProgressBar steps={setupSteps} className="w-full"/>
         </div>
       </div>
       <Outlet />

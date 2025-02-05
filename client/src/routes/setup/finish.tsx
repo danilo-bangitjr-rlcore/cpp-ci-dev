@@ -6,7 +6,7 @@ import {
 import { FormEventHandler, useContext, useState } from "react";
 import { Alert } from "../../components/alert";
 import { fetchWithTimeout, getServerOrigin } from "../../utils/api";
-import { MainConfigContext } from "../../utils/main_config";
+import { MainConfigContext } from "../../utils/main-config";
 import { Code } from "../../components/text";
 import { Textarea } from "../../components/textarea";
 

@@ -15,7 +15,7 @@ import { Button } from "../../components/button";
 import { Code, Text } from "../../components/text";
 import { getApiFetchClient } from "../../utils/api";
 import { classNames } from "../../utils/component";
-import { MainConfigContext } from "../../utils/main_config";
+import { MainConfigContext } from "../../utils/main-config";
 
 export const Route = createFileRoute("/setup/")({
   component: RouteComponent,

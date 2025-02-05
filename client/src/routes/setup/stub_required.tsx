@@ -5,7 +5,7 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { useContext } from "react";
-import { MainConfigContext } from "../../utils/main_config";
+import { MainConfigContext } from "../../utils/main-config";
 
 export const Route = createFileRoute("/setup/stub_required")({
   component: StubRequired,

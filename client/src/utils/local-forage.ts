@@ -17,13 +17,17 @@ export function useLocalForage<T>(
     async function get() {
       try {
         const value = await localforage.getItem<T>(key);
-        setStoredValue(value ?? initialValue);
+        if (value == null) {
+          setStoredValue(initialValue)
+        } else if (Object.is(value, storedValue)) {
+          setStoredValue(value);
+        }
       } catch (error) {
         console.error(error);
       }
     }
     void get();
-  }, [key, initialValue]);
+  }, [key, storedValue, initialValue]);
 
   // Return a wrapped version of useState's setter function that ...
   // ... persists the new value to localForage.
@@ -38,6 +42,8 @@ export function useLocalForage<T>(
           setStoredValue(value);
         } catch (error) {
           console.error(error);
+        } finally {
+          console.log("set")
         }
       }
       void set();
