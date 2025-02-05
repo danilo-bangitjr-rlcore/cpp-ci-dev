@@ -285,8 +285,9 @@ class GreedyAC(BaseAC):
         state_batch: Float[torch.Tensor, "batch_size state_dim"],
         action_batch: Float[torch.Tensor, "batch_size action_dim"],
         n_samples: int,
-        percentile: float,
-        uniform_weight: float
+        percentile: float, #
+        uniform_weight: float, # proportion of samples coming from uniform dist
+        sampler: BaseActor, # which network to sample non-uniform actions from
     ) -> tuple[
             Float[torch.Tensor, "batch_size*top_actions state_dim"],
             Float[torch.Tensor, "batch_size*top_actions action_dim"]
@@ -296,7 +297,7 @@ class GreedyAC(BaseAC):
         sampled_actions : Float[torch.Tensor, "batch_size num_samples action_dim"]
         sampled_actions = sample_actions(
             state_batch,
-            self.sampler,
+            sampler,
             n_samples,
             self.action_dim,
             uniform_weight)
@@ -340,64 +341,55 @@ class GreedyAC(BaseAC):
 
         return states_for_best_actions, best_actions
 
-    def update_actor(self) -> tuple[torch.Tensor, torch.Tensor] | None:
-        self._app_state.event_bus.emit_event(EventType.agent_update_actor)
+
+    def _update_policy(
+            self,
+            state_batch :torch.Tensor,
+            action_batch: torch.Tensor,
+            policy : BaseActor,
+            policy_name : str,
+            percentile : float,
+        ) -> tuple[torch.Tensor, torch.Tensor] | None:
 
         if min(self.policy_buffer.size) <= 0:
             return None
 
-        # Assuming we don't have an ensemble of policies
-        batches = self.policy_buffer.sample()
-        assert len(batches) == 1
-        batch = batches[0]
+        assert policy_name == 'actor' or policy_name == 'sampler'
 
-        state_batch = batch.prior.state
-        action_batch = self.filter_only_delta_actions(batch.post.action)
-        # if we are in direct action mode, then the sampled
-        # actions are direct and not deltas. So zero out the
-        # offset
-        if not self.cfg.delta_action:
-            action_batch = torch.zeros_like(action_batch)
-
+        # get the top percentile of actions
         states_for_best_actions, best_actions = self._get_top_n_sampled_actions(
             state_batch=state_batch,
             action_batch=action_batch,
             n_samples=self.num_samples,
-            percentile=self.rho,
-            uniform_weight=self.uniform_sampling_percentage
+            percentile=percentile,
+            uniform_weight=self.uniform_sampling_percentage,
+            sampler=self.sampler
         )
 
-        actor_loss = self.policy_err(states_for_best_actions, best_actions)
+        # compute loss
+        loss = self.policy_err(policy, states_for_best_actions, best_actions)
 
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
-            metric="actor_loss",
-            value=actor_loss,
+            metric=policy_name+"_loss",
+            value=loss,
         )
 
-        self.actor.update(
-            actor_loss,
+        # apply the update
+        policy.update(
+            loss,
             opt_kwargs={
-                "closure": partial(self.policy_err, states_for_best_actions, best_actions),
+                "closure": partial(self.policy_err, policy, states_for_best_actions, best_actions),
             },
         )
 
-        return batch.prior.state, action_batch
+        return state_batch, action_batch
 
-    def update_sampler(
+    def _ensure_policy_batch(
             self,
-            actor_update_return: tuple[torch.Tensor, torch.Tensor] | None = None,
-            ) -> None:
-
-        # return as no update necessary
-        if self.uniform_proposal:
-            return
-
-        if min(self.policy_buffer.size) <= 0:
-            return
-
-        # no state_batch/action_batch passed in, must compute them
-        if actor_update_return is None:
+            update_batch : tuple[torch.Tensor, torch.Tensor] | None = None
+        ) -> tuple[torch.Tensor, torch.Tensor]:
+        if update_batch is None:
             # Assuming we don't have an ensemble of policies
             batches = self.policy_buffer.sample()
             assert len(batches) == 1
@@ -411,37 +403,23 @@ class GreedyAC(BaseAC):
             if not self.cfg.delta_action:
                 action_batch = torch.zeros_like(action_batch)
         else:
-            state_batch, action_batch = actor_update_return
+            state_batch, action_batch = update_batch
 
-        assert state_batch is None == action_batch is None
-        assert state_batch is not None
-        assert action_batch is not None
+        return state_batch, action_batch
 
-        states_for_best_actions, best_actions = self._get_top_n_sampled_actions(
-            state_batch=state_batch,
-            action_batch=action_batch,
-            n_samples=self.num_samples,
-            percentile=self.rho_proposal, #NOTE: using rho_proposal here
-            uniform_weight=self.uniform_sampling_percentage
-        )
+    def update_actor(self) -> tuple[torch.Tensor, torch.Tensor]:
+        self._app_state.event_bus.emit_event(EventType.agent_update_actor)
+        state_batch, action_batch = self._ensure_policy_batch()
+        self._update_policy(state_batch, action_batch, self.actor, 'actor', self.rho)
+        return state_batch, action_batch
 
-        sampler_loss = self.policy_err(states_for_best_actions, best_actions)
+    def update_sampler(self, update_batch : tuple[torch.Tensor, torch.Tensor] | None = None) -> None:
+        self._app_state.event_bus.emit_event(EventType.agent_update_actor)
+        state_batch, action_batch = self._ensure_policy_batch(update_batch)
+        self._update_policy(state_batch, action_batch, self.sampler, 'sampler', self.rho_proposal)
 
-        self._app_state.metrics.write(
-            agent_step=self._app_state.agent_step,
-            metric="sampler_loss",
-            value=sampler_loss,
-        )
-
-        self.actor.update(
-            sampler_loss,
-            opt_kwargs={
-                "closure": partial(self.policy_err, states_for_best_actions, best_actions),
-            },
-        )
-
-    def policy_err(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
-        logp, _ = self.actor.get_log_prob(
+    def policy_err(self, policy: BaseActor, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
+        logp, _ = policy.get_log_prob(
             states,
             actions,
             with_grad=True,
