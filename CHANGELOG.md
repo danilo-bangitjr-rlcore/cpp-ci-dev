@@ -1,3 +1,10 @@
+## 0.75.2 (2025-02-06)
+
+### Fix
+
+- style issues.
+- greedyAC on gpu and different batch for linesearch
+
 ## 0.75.1 (2025-02-06)
 
 ### Fix
