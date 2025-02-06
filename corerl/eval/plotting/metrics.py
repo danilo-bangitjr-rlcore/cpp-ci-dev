@@ -56,9 +56,9 @@ def make_mc_eval_plot(
         observed_a_qs = observed_a_q_df["value"].to_numpy()
         partial_returns = partial_return_df["value"].to_numpy()
 
-        plt.scatter(x_axis, state_vs, s=10, label="Agent Q(s, a~pi(s))")
-        plt.scatter(x_axis, observed_a_qs, s=10, label="Agent Q(s, observed_a)")
-        plt.scatter(x_axis, partial_returns, s=10, label="Observed Return")
+        plt.scatter(x_axis, state_vs, s=8, alpha=0.25, label="Agent Q(s, a~pi(s))")
+        plt.scatter(x_axis, observed_a_qs, s=8, alpha=0.25, label="Agent Q(s, observed_a)")
+        plt.scatter(x_axis, partial_returns, s=8, alpha=0.25, label="Observed Return")
 
         if "time" in state_v_df:
             interval = int(float((end_time - start_time).days) / 15.0)
