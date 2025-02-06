@@ -1,0 +1,461 @@
+log_path: "outputs/scrubber_agent_logs"
+
+experiment:
+  exp_name: epcor_scrubber
+  param_from_hash: True
+  seed: 1
+  gamma: 0.97 # ~50% of return occurs after 2 hrs (@ 5 min obs period)
+  run_forever: True
+
+interaction:
+  name: dep_interaction
+  warmup_period: 03:00:00
+  historical_batch_size: 8640 # 30 days @ 5 minute obs period
+  hist_chunk_start: 2024-11-01 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
+  heartbeat:
+    heartbeat_node_id: "ns=3;i=1"
+    heartbeat_period: 00:00:05
+    max_counter: 1000
+
+event_bus:
+  enabled: True
+
+env:
+  name: dep_async_env
+  discrete_control: False
+  obs_period: 00:05:00
+  update_period: 00:00:30
+  action_period: 01:00:00
+  action_tolerance: 00:15:00
+  seed: ${experiment.seed}
+  db: ${pipeline.db}
+
+  opc_conn_url: "opc.tcp://localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
+  opc_ns: 1
+  client_cert_path: certs/agent_cert.der
+  client_private_key_path: certs/agent_key.pem
+  server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
+  # client_app_uri: urn:agent
+  # user: admin
+  # passwd: admin
+
+agent:
+  name: greedy_ac
+  num_samples: 128
+  uniform_sampling_percentage: 1.0
+  seed: ${experiment.seed}
+  gamma: ${experiment.gamma}
+  discrete_control: ${env.discrete_control}
+
+  critic:
+    polyak: 0.995
+    critic_optimizer:
+      name: lso
+    buffer:
+      name: uniform
+      seed: ${experiment.seed}
+
+  actor:
+    actor_optimizer:
+      lr: 0.001
+    buffer:
+      name: uniform
+      seed: ${experiment.seed}
+
+
+metrics:
+  name: db
+  drivername: "postgresql+psycopg2"
+  username: "postgres"
+  password: scrubber4data
+  ip: "localhost"
+  port: 5432
+  db_name: "postgres"
+  table_schema: "public"
+  table_name: "metrics"
+  enabled: True
+  lo_wm: 1
+
+pipeline:
+  db:
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: scrubber4data
+    ip: "localhost"
+    port: 5432
+    db_name: "postgres"
+    table_schema: "public"
+    table_name: scrubber4
+
+  state_constructor:
+    defaults: []
+    # defaults:
+    # - name: multi_trace
+    #   trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  transition_creator:
+    name: all-the-time
+    gamma: ${experiment.gamma}
+
+  tags:
+  - name: AIC3730_SP # pH SP
+    node_identifier: 14
+    operating_range: [9.4, 10.]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    action_constructor:
+      - name: delta
+      - name: clip
+        bounds: [-.33, .33] # +/- 0.2 pH
+      - name: normalize
+        min: -.33
+        max: .33
+        from_data: False
+      - name: add_raw
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: AIC3731_SP # ORP SP
+    node_identifier: 15
+    operating_range: [650., 700.]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    action_constructor:
+      - name: delta
+      - name: clip
+        bounds: [-.2, .2] # +/- 10 mV
+      - name: normalize
+        min: -.2
+        max: .2
+        from_data: False
+      - name: add_raw
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: FIC3734_SP # flow SP
+    node_identifier: 17
+    operating_range: [15., 30.]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    action_constructor:
+      - name: delta
+      - name: clip
+        bounds: [-.33, .33] # +/- 5
+      - name: normalize
+        min: -.33
+        max: .33
+        from_data: False
+      - name: add_raw
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: AIC3730_PV # pH process value
+    operating_range: [0., 14.]
+    red_bounds: [9.4, 10.]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: AIC3731_PV # ORP process value
+    operating_range: [0., 800.]
+    red_bounds: [650., 700.]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: FIC3734_PV # flow rate PV
+    operating_range: [0, 100]
+    red_bounds: [15, 30]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: FIC3734_OUT # flow rate controller output
+    operating_range: [0, 100]
+    red_bounds: [40, 60]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: LI3734 # scrubber tower sump level
+    operating_range: [500, 700]
+    red_bounds: [585, 595]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: FI0872 # scrubber recirc flow
+    operating_range: [0, 2300]
+    red_bounds: [1900, 2100]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: AI0879A # H2S inlet
+    operating_range: [0., 100]
+    red_bounds: [5., 60]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: PDIC3738_PV # PDIC-3738 (PID Process Value)
+    operating_range: [0, 3]
+    red_bounds: [2.3, 2.5]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: PDIC3738_OUT # PDIC-3738 (PID Output)
+    operating_range: [0, 100]
+    red_bounds: [45, 50]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: PI0169 # blower discharge pressure
+    operating_range: [0, 1]
+    red_bounds: [0.3, 0.5]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: TI0880 # scrubber inlet temp
+    operating_range: [0, 75]
+    red_bounds: [0, 30]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: AI0897B # scrubber softened water conductivity
+    operating_range: [0, 30]
+    red_bounds: [5, 20]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: AIC3730_OUT # pH pump output
+    preprocess: []
+    operating_range: [0, 125]
+    red_bounds: [0, 60]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: normalize
+      min: 0
+      max: 60
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+    reward_constructor: # generated programattically from test_epcor_reward
+    - name: split
+      left:
+      - name: greater_than
+        threshold: 60.0
+        equal: false
+      - name: scale
+        factor: -1.0
+      right:
+      - name: scale
+        factor: 0.5455
+      - name: binary
+        op: add
+        other: AIC3731_OUT # orp_pumpspeed
+        other_xform:
+        - name: scale
+          factor: 1.355
+      - name: scale
+        factor: -1.0
+      - name: affine
+        scale: 0.0087696 # manually tuned up precision
+        bias: 1.0
+      - name: affine
+        scale: 0.5
+        bias: -0.5
+      - name: binary
+        op: prod
+        other: AI0879C # efficiency
+        other_xform:
+        - name: scale
+          factor: -1.0
+        - name: affine
+          scale: 0.1
+          bias: 9.0
+        - name: binary
+          op: min
+          other: AI0879B # outlet_h2s
+          other_xform:
+          - name: affine
+            scale: 0.25
+            bias: -0.25
+        - name: less_than
+          threshold: 0.0
+          equal: true
+      passthrough: false
+
+  - name: AIC3731_OUT # ORP pump output
+    preprocess: []
+    operating_range: [0, 125]
+    red_bounds: [0, 60]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: normalize
+      min: 0
+      max: 60
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+    reward_constructor:
+    - name: greater_than
+      threshold: 60.0
+      equal: false
+    - name: scale
+      factor: -1.0
+
+  - name: AI0879B # H2S outlet
+    preprocess: []
+    operating_range: [0., 30000]
+    red_bounds: [0., 5000]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: normalize
+      min: 0
+      max: 5000
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: AI0879C # H2S efficiency
+    preprocess: []
+    operating_range: [0., 100.]
+    red_bounds: [85., 100.]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    state_constructor:
+    - name: normalize
+      min: 85
+      max: 100
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+    reward_constructor: # generated programattically from test_epcor_reward
+    - name: scale
+      factor: -1.0
+    - name: affine
+      scale: 0.1
+      bias: 9.0
+    - name: binary
+      op: min
+      other: AI0879B # outlet_h2s
+      other_xform:
+      - name: affine
+        scale: 0.25
+        bias: -0.25
+    - name: scale
+      factor: -1.0
+    - name: affine
+      scale: 1.0
+      bias: 1.0
+    - name: affine
+      scale: 0.5
+      bias: -1.0
+    - name: binary
+      op: prod
+      other: AI0879C # efficiency
+      other_xform:
+      - name: scale
+        factor: -1.0
+      - name: affine
+        scale: 0.1
+        bias: 9.0
+      - name: binary
+        op: min
+        other: AI0879B # outlet_h2s
+        other_xform:
+        - name: affine
+          scale: 0.25
+          bias: -0.25
+      - name: greater_than
+        threshold: 0.0
+        equal: false
