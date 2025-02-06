@@ -16,9 +16,9 @@ export const MainConfigContext = createContext<{
           value: DeepPartial<components["schemas"]["MainConfig"]>,
         ) => DeepPartial<components["schemas"]["MainConfig"]>),
   ) => void;
-}>({
-  mainConfig: {},
-  setMainConfig: () => {
-    /* Does nothing, should define a setState compatible hook within a provider */
-  },
-});
+    }>({
+      mainConfig: {},
+      setMainConfig: () => {
+        /* Does nothing, should define a setState compatible hook within a provider */
+      },
+    });

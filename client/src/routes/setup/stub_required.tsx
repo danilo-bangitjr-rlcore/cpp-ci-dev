@@ -6,6 +6,10 @@ import {
 } from "@tanstack/react-router";
 import { useContext } from "react";
 import { MainConfigContext } from "../../utils/main-config";
+import DurationInput from "../../components/duration";
+import { Fieldset, Legend } from "../../components/fieldset";
+import { Text } from "../../components/text";
+import { Badge } from "../../components/badge";
 
 export const Route = createFileRoute("/setup/stub_required")({
   component: StubRequired,
@@ -16,17 +20,12 @@ function StubRequired() {
   const router = useRouter();
   const canGoBack = useCanGoBack();
 
-  const handleExpNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const obs_period = e.target.value;
-
-    setMainConfig({
-      ...mainConfig,
-      env: { ...mainConfig.env, obs_period },
-    });
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+  };
+
+  const handleDurationChange = (isoDuration: string) => {
+    setMainConfig({...mainConfig, env: { ...mainConfig.env, obs_period: isoDuration}})
   };
 
   return (
@@ -35,27 +34,14 @@ function StubRequired() {
         className="border border-gray-400 rounded-lg p-2 mb-2"
         onSubmit={handleSubmit}
       >
-        <div className="sm:col-span-4">
-          <label
-            htmlFor="env_obs_period"
-            className="block text-sm/6 font-medium text-gray-900"
-          >
-            Environment Observation Period
-          </label>
-          <div className="mt-2">
-            <div className="flex items-center rounded-md bg-white pl-3 outline-1 -outline-offset-1 outline-gray-300 focus-within:outline-2 focus-within:-outline-offset-2 focus-within:outline-indigo-600">
-              <input
-                id="env_obs_period"
-                name="env_obs_period"
-                type="text"
-                placeholder=""
-                onChange={handleExpNameChange}
-                value={mainConfig.env?.obs_period ?? ""}
-                className="block min-w-0 grow py-1.5 pr-3 pl-1 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm/6"
-              />
-            </div>
-          </div>
-        </div>
+        <Fieldset>
+          <Legend>Environment Observation Period</Legend>
+          <Text>How much time should pass in-between sensor readings?<Badge className="ml-1">{mainConfig.env?.obs_period}</Badge></Text>
+          <DurationInput
+            onChange={handleDurationChange}
+            defaultValue={mainConfig.env?.obs_period ?? ""}
+          />
+        </Fieldset>
       </form>
       <span className="isolate inline-flex rounded-md shadow-xs">
         {canGoBack ? (

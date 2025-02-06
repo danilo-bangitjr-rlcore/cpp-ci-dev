@@ -1,6 +1,38 @@
 import localforage from "localforage";
 import { useCallback, useEffect, useState } from "react";
 
+function deepEquals(a: unknown, b: unknown) {
+  if (a === b) return true;
+
+  if (
+    typeof a !== "object" ||
+    a === null ||
+    typeof b !== "object" ||
+    b === null
+  ) {
+    return false;
+  }
+
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+
+  if (keysA.length !== keysB.length) return false;
+
+  for (const key of keysA) {
+    if (
+      !keysB.includes(key) ||
+      !deepEquals(
+        (a as Record<string, unknown>)[key],
+        (b as Record<string, unknown>)[key],
+      )
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 /**
  * React hook for using local forage persistence
  * @param key localstorage key
@@ -18,8 +50,8 @@ export function useLocalForage<T>(
       try {
         const value = await localforage.getItem<T>(key);
         if (value == null) {
-          setStoredValue(initialValue)
-        } else if (Object.is(value, storedValue)) {
+          setStoredValue(initialValue);
+        } else if (!deepEquals(value, storedValue)) {
           setStoredValue(value);
         }
       } catch (error) {
@@ -39,11 +71,9 @@ export function useLocalForage<T>(
           value instanceof Function ? value(storedValue) : value;
         try {
           await localforage.setItem(key, valueToStore);
-          setStoredValue(value);
+          setStoredValue(valueToStore);
         } catch (error) {
           console.error(error);
-        } finally {
-          console.log("set")
         }
       }
       void set();
