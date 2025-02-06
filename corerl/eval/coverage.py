@@ -92,7 +92,7 @@ class NeighboursCoverageConfig(BaseCoverageConfig):
 
 class NeighboursCoverage:
     def __init__(self, cfg: NeighboursCoverageConfig):
-        self.tree = None
+        self.tree: KDTree | None = None
         self.cfg = cfg
         self.norm_const = None
         self.mapping = lambda x: x
