@@ -94,7 +94,7 @@ class NeighboursCoverage:
     def __init__(self, cfg: NeighboursCoverageConfig):
         self.tree: KDTree | None = None
         self.cfg = cfg
-        self.norm_const = None
+        self.norm_const: float | None = None
         self.mapping = lambda x: x
 
     def unnorm_cov(self, state_action: np.ndarray) -> np.ndarray:
