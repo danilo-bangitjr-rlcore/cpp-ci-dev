@@ -28,7 +28,7 @@ class TagConfig:
     # tag metadata
     name: str = MISSING
     agg: Agg = Agg.avg
-    node_identifier: str | None = None
+    node_identifier: str | int | None = None
     is_meta: bool = False
     is_endogenous: bool = True
 
