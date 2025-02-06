@@ -375,3 +375,48 @@ def test_delta_action_pipeline():
     )
 
     pd.testing.assert_frame_equal(got.actions, expected_actions)
+
+def test_delta_action_countdown():
+    """
+    This is a regression test for a bug in which a change in delta triggered
+    a reset of the countdown feature even when the direct action remained the same
+    """
+    cfg = direct_load_config(
+        PipelineConfig,
+        base='test/small/data_pipeline/end_to_end/assets',
+        config_name='delta_action.yaml',
+    )
+
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(8)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols: Any = ['tag-0', 'reward', 'action-0']
+    df = pd.DataFrame(
+        data=[
+            [np.nan,  0,   -1],
+            [np.nan,  0,   -1],
+            [np.nan,  0,   -1],
+            [np.nan,  0,   -1],
+            [1,       0,    2], # delta nonzero
+            [2,       0,    2], # delta zero
+            [np.nan,  0,    2],
+            [np.nan,  0,    2],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    pipeline = Pipeline(cfg)
+    got = pipeline(df, data_mode=DataMode.ONLINE)
+
+    print(got.states)
+    # make sure change in delta did not trigger cd reset
+    cd = np.array(got.states['countdown.[0]'].values)
+    expected = np.array([4, 3, 2, 1, 4, 3, 2, 1])
+    # wrong = np.array([4, 3, 2, 1, 4, 4, 3, 2])
+
+    assert np.allclose(cd, expected)
+
