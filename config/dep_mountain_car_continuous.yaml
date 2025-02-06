@@ -93,6 +93,7 @@ pipeline:
 
   tags:
   - name: action-0
+    agg: last
     operating_range: [-1.5, 1.5]
     outlier:
       name: identity
