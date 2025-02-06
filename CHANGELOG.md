@@ -1,3 +1,13 @@
+## 0.73.0 (2025-02-06)
+
+### Feat
+
+- normalize countdown features
+
+### Fix
+
+- countdown feature supports delta actions
+
 ## 0.72.0 (2025-02-06)
 
 ### Feat
