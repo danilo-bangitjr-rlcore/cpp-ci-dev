@@ -17,6 +17,7 @@ from corerl.configs.loader import config_to_dict
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.utils.gymnasium import gen_tag_configs_from_env
 
+log = logging.getLogger(__name__)
 
 @dataclass
 class TagData:
@@ -130,7 +131,6 @@ def main():
 
 
 if __name__ == "__main__":
-    log = logging.getLogger(__name__)
     logging.basicConfig(
         format="%(asctime)s %(levelname)s: %(message)s",
         encoding="utf-8",

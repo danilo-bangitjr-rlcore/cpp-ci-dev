@@ -47,6 +47,7 @@ class OPCEnvConfig(BaseAsyncEnvConfig):
     client_cert_path: str | None = None
     client_private_key_path: str | None = None
     server_cert_path: str | None = None
+    application_uri: str | None = None
 
 @config()
 class TSDBEnvConfig(BaseAsyncEnvConfig):
