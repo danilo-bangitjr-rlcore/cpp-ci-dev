@@ -95,8 +95,6 @@ pipeline:
     is_meta: False
     outlier:
       name: identity
-    preprocess:
-      - name: identity
     state_constructor:
     - name: multi_trace
       trace_values: [0.95]
