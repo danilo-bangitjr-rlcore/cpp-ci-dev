@@ -61,7 +61,8 @@ def make_mc_eval_plot(
         plt.scatter(x_axis, partial_returns, s=8, alpha=0.25, label="Observed Return")
 
         if "time" in state_v_df:
-            interval = int(float((end_time - start_time).days) / 15.0)
+            assert end_time is not None and start_time is not None
+            interval = int(float((end_time - start_time).days) / 15.0) + 1
             plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
             plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=interval))
             plt.gcf().autofmt_xdate()
