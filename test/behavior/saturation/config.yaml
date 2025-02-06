@@ -3,9 +3,6 @@ env:
   gym_name : Saturation-v0
   seed : ${experiment.seed}
   discrete_control : False
-  obs_period: 00:00:01
-  update_period: 00:00:01
-  action_period: 00:00:01
 
 interaction:
   name: sim_interaction
