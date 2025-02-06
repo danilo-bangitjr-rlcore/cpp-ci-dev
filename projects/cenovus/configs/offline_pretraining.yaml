@@ -11,7 +11,6 @@ interaction:
   name: dep_interaction
   heartbeat:
     heartbeat_node_id: s=heartbeat
-    opc_conn_url: ${env.opc_conn_url}
 
 
 agent:

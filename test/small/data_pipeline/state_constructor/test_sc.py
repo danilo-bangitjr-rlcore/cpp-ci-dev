@@ -37,6 +37,7 @@ def test_sc1():
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
+                normalize=False,
             ),
         ),
     )
@@ -76,6 +77,7 @@ def test_norm_sc():
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
+                normalize=False,
             ),
         ),
     )
@@ -112,6 +114,7 @@ def test_sc_add_raw():
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
+                normalize=False,
             ),
         ),
     )
@@ -159,6 +162,7 @@ def test_sc_integration1():
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
+                normalize=False,
             ),
         ),
     )
@@ -207,6 +211,7 @@ def test_sc_integration2():
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
+                normalize=False,
             ),
         ),
     )
@@ -251,6 +256,7 @@ def test_sc_integration3():
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
+                normalize=False,
             ),
         ),
     )
@@ -295,6 +301,7 @@ def test_sc_integration4():
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
+                normalize=False,
             ),
         ),
     )
@@ -344,6 +351,7 @@ def test_sc_decision_point_detection():
                 kind='int',
                 action_period=timedelta(minutes=4),
                 obs_period=timedelta(minutes=1),
+                normalize=False,
             ),
         ),
     )
@@ -390,6 +398,7 @@ def test_per_tag_overrides():
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=4),
                 obs_period=timedelta(minutes=1),
+                normalize=False,
             ),
         ),
     )

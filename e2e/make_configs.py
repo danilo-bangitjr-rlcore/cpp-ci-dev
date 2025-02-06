@@ -5,6 +5,7 @@ import argparse
 import logging
 import shutil
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 from pprint import pformat
 from typing import Any
@@ -57,6 +58,10 @@ def generate_tag_yaml(path: Path, tags: list[TagConfig]):
         return dumper.represent_scalar("tag:yaml.org,2002:float", text)
 
     CustomTagYamlDumper.add_representer(float, represent_float)
+    CustomTagYamlDumper.add_multi_representer(
+      StrEnum,
+      yaml.representer.SafeRepresenter.represent_str,
+  )
 
     with open(tag_path, "w+") as f:
         raw_tags = config_to_dict(list[TagConfig], tags)

@@ -13,9 +13,9 @@ experiment:
 interaction:
   name: dep_interaction
   restore_checkpoint: False
-  historical_batch_size: 0
+  historical_batch_size: 100
+  hist_chunk_start: 2025-02-05 12:00:00+0000 # YYYY-MM-DD hh:mm:ss
   heartbeat:
-    opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
     heartbeat_node_id: "ns=2;s=heartbeat"
     heartbeat_period: 00:00:01
     max_counter: 10
@@ -93,6 +93,7 @@ pipeline:
 
   tags:
   - name: action-0
+    agg: last
     operating_range: [-1.5, 1.5]
     outlier:
       name: identity

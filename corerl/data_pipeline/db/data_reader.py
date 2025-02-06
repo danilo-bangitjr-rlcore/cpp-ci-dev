@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from itertools import groupby
-from typing import Any, List, Literal, assert_never
+from typing import Any, List, assert_never
 
 import pandas as pd
 from sqlalchemy import TEXT, TIMESTAMP, Boolean, Column, Engine, Float, MetaData, Table, cast, func, select, union_all
@@ -12,6 +12,7 @@ from sqlalchemy.sql import text
 import corerl.utils.pandas as pd_util
 from corerl.data_pipeline.db.data_writer import TagDBConfig
 from corerl.data_pipeline.db.utils import TryConnectContextManager
+from corerl.data_pipeline.tag_config import Agg
 from corerl.sql_logging.sql_logging import get_sql_engine
 
 logger = logging.getLogger(__name__)
@@ -41,8 +42,8 @@ class DataReader:
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
-        aggregation: Literal["avg", "last", "bool_or"] = "avg",
-        tag_aggregations: dict[str, Literal["avg", "last", "bool_or"]] | None = None,
+        aggregation: Agg = Agg.avg,
+        tag_aggregations: dict[str, Agg] | None = None,
     ) -> pd.DataFrame:
         """
         The intended behavior is for buckets to be inclusive wrt their end_time and exclusive wrt their start_time.
@@ -177,8 +178,8 @@ class DataReader:
         names: List[str],
         start_time: datetime,
         end_time: datetime,
-        aggregation: Literal["avg", "last", "bool_or"] = "avg",
-        tag_aggregations: dict[str, Literal["avg", "last", "bool_or"]] | None = None,
+        aggregation: Agg = Agg.avg,
+        tag_aggregations: dict[str, Agg] | None = None,
     ) -> pd.DataFrame:
         bucket_width = end_time - start_time
         df = self.batch_aggregated_read(

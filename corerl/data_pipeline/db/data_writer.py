@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import UTC, datetime
-from typing import Literal, NamedTuple
+from typing import NamedTuple
 
 from sqlalchemy import text
 
@@ -10,12 +10,15 @@ from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfi
 
 logger = logging.getLogger(__name__)
 
+from corerl.data_pipeline.tag_config import Agg
+
+
 @config()
 class TagDBConfig(BufferedWriterConfig):
     db_name: str = "postgres"
     table_name: str = "sensors"
     table_schema: str = "public"
-    data_agg: Literal["avg", "last", "bool_or"] = "avg"
+    data_agg: Agg = Agg.avg
 
 
 class Point(NamedTuple):

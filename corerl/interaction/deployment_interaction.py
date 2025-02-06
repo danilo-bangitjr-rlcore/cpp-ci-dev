@@ -19,6 +19,7 @@ from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat, HeartbeatConfig
 from corerl.state import AppState
+from corerl.utils.maybe import Maybe
 from corerl.utils.time import clock_generator, split_into_chunks, wait_for_timestamp
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ class DepInteractionConfig:
     restore_checkpoint: bool = True
     heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
     warmup_period: timedelta | None = None
+    hist_chunk_start: datetime | None = None
 
 
 class DeploymentInteraction(Interaction):
@@ -45,7 +47,7 @@ class DeploymentInteraction(Interaction):
         assert isinstance(env, DeploymentAsyncEnv)
         self._cfg = cfg
 
-        self._heartbeat = Heartbeat(cfg.heartbeat)
+        self._heartbeat = Heartbeat(cfg.heartbeat, env.get_cfg())
         self._app_state = app_state
         self._pipeline = pipeline
         self._env = env
@@ -72,9 +74,12 @@ class DeploymentInteraction(Interaction):
         self._first_online_timestamp = datetime.now(UTC)
 
         time_stats = self._env.data_reader.get_time_stats()
+        chunk_start = Maybe(cfg.hist_chunk_start).or_else(time_stats.start).astimezone(UTC)
+        chunk_end = time_stats.end
+        logger.info(f"Offline chunks will be loaded from {chunk_start} to {chunk_end}")
         self._chunks = split_into_chunks(
-            time_stats.start,
-            time_stats.end,
+            chunk_start,
+            chunk_end,
             width=self.obs_period * cfg.historical_batch_size
         )
 
@@ -238,6 +243,7 @@ class DeploymentInteraction(Interaction):
             end_time=end_time,
             bucket_width=self.obs_period,
         )
+        logger.info(f"Loading chunk data from {chunk_data.index[0]} to {chunk_data.index[-1]}")
 
         pipeline_out = self._pipeline(
             data=chunk_data,

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# Ensure that an SSH agent that is able to access our private linesearchopt dependency is forwarded:
+# Ensure that an SSH agent that is able to access our private dependencies is forwarded:
 #
 #  docker build -t rlcoretech/corerl --ssh default=$SSH_AUTH_SOCK .
 
@@ -13,7 +13,7 @@ COPY ./client /app
 RUN npm install
 RUN npm run build
 
-# Stage: compile dependencies with SSH key forwarding to pull linesearchopt from private Github repository
+# Stage: compile dependencies with SSH key forwarding to pull dependencies from private Github repository
 # Bookworm image is needed due to dependency on git cli
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm AS base
 
@@ -29,7 +29,7 @@ COPY ./pyproject.toml /app/pyproject.toml
 
 # Install the corerl dependencies
 RUN --mount=type=ssh \
-  uv pip compile --extra=linesearchopt_gh pyproject.toml -o deps.txt && \
+  uv pip compile pyproject.toml -o deps.txt && \
   # This step ensures that our dependencies exist in a folder called 'vendor'
   # which can be referenced within setuptools and added to our generated corerl wheel
   uv pip install --system --target /app/vendor -r deps.txt

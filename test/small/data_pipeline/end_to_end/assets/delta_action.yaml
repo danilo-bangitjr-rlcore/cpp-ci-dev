@@ -1,13 +1,15 @@
 # pipeline:
 
-action_period: 00:00:01
+action_period: 00:00:04
 obs_period: 00:00:01
 
 state_constructor:
   defaults: []
   countdown:
-    action_period: 00:00:01
+    kind: 'int'
+    action_period: 00:00:04
     obs_period: 00:00:01
+    normalize: False
 
 transition_creator:
   name: anytime

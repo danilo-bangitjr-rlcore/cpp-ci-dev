@@ -1,3 +1,70 @@
+## 0.75.2 (2025-02-06)
+
+### Fix
+
+- style issues.
+- greedyAC on gpu and different batch for linesearch
+
+## 0.75.1 (2025-02-06)
+
+### Fix
+
+- remove linesearch dependencies in dockerfile build
+
+## 0.75.0 (2025-02-06)
+
+### Feat
+
+- configure historical data initial timestamp
+
+### Fix
+
+- enable int node id in tag cfg
+
+## 0.74.0 (2025-02-06)
+
+### Feat
+
+- wire up lso
+- reintroduce lso optimizer monorepo style
+
+### Fix
+
+- fix imports in test_sls
+- fix (suppress) linting messages in lso
+
+## 0.73.0 (2025-02-06)
+
+### Feat
+
+- normalize countdown features
+
+### Fix
+
+- countdown feature supports delta actions
+
+## 0.72.0 (2025-02-06)
+
+### Feat
+
+- add per tag aggregation to tagconfig
+
+### Fix
+
+- fix yaml dumper to support strenums
+
+## 0.71.0 (2025-02-06)
+
+### Feat
+
+- support OPC security policy Basic256Sha256 SignAndEncrypt
+
+## 0.70.1 (2025-02-04)
+
+### Fix
+
+- Deployment Async Env now performs VariantType aware writes to OPC (#476)
+
 ## 0.70.0 (2025-02-03)
 
 ### Feat

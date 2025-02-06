@@ -20,6 +20,9 @@ class BaseAsyncEnvConfig(EnvironmentConfig):
 class OPCEnvConfig(BaseAsyncEnvConfig):
     opc_conn_url: str = MISSING
     opc_ns: int = MISSING  # OPC node namespace, this is almost always going to be `2`
+    client_cert_path: str | None = None
+    client_private_key_path: str | None = None
+    server_cert_path: str | None = None
 
 @config()
 class TSDBEnvConfig(BaseAsyncEnvConfig):
@@ -48,3 +51,5 @@ class AsyncEnv:
 
     def cleanup(self) -> None:
         return
+
+    def get_cfg(self) -> BaseAsyncEnvConfig: ...
