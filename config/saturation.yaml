@@ -25,7 +25,6 @@ metrics:
 
 agent:
   name: greedy_ac
-  tau : 0
   rho : 0.05
   num_samples: 100
   seed: ${experiment.seed}
