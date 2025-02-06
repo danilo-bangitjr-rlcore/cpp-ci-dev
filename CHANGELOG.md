@@ -1,3 +1,10 @@
+## 0.76.0 (2025-02-06)
+
+### Feat
+
+- added autoencoder coverage function
+- initial coverage framework: incld kde and neighbours + tests
+
 ## 0.75.2 (2025-02-06)
 
 ### Fix
