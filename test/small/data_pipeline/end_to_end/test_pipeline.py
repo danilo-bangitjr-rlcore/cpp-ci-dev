@@ -75,7 +75,8 @@ def test_pipeline1():
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=5),
                 obs_period=timedelta(minutes=5),
-                kind='int'
+                kind='int',
+                normalize=False,
             ),
         ),
         obs_period=timedelta(minutes=5),
@@ -215,6 +216,7 @@ def test_pipeline2():
                 action_period=timedelta(minutes=5),
                 obs_period=timedelta(minutes=5),
                 kind='int',
+                normalize=False,
             ),
         ),
         obs_period=timedelta(minutes=5),

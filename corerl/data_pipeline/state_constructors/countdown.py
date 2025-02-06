@@ -7,6 +7,7 @@ import pandas as pd
 
 from corerl.configs.config import config, interpolate
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
+from corerl.data_pipeline.transforms.delta import Delta
 from corerl.data_pipeline.utils import get_tag_temporal_state
 
 
@@ -15,6 +16,7 @@ class CountdownConfig:
     action_period: timedelta = interpolate('${env.action_period}')
     obs_period: timedelta = interpolate('${env.obs_period}')
     kind: str = 'no_countdown'
+    normalize: bool = True
 
 
 @dataclass
@@ -73,6 +75,8 @@ class DecisionPointDetector:
 
         # otherwise add features to df
         clock_representation = clock_feats.get()
+        if self._cfg.normalize and self._cfg.kind != 'one_hot':
+            clock_representation /= self._steps_per_decision
         n_clock_feats = clock_representation.shape[1]
         for feat_col in range(n_clock_feats):
             pf.data[f'countdown.[{feat_col}]'] = clock_representation[:, feat_col]
@@ -101,6 +105,7 @@ class DecisionPointDetector:
 
     def _is_action_change(self, actions: pd.DataFrame, ts: CountdownTS, idx: int):
         # define the no action case as never having an action change
+        actions = Delta.get_non_delta(actions)
         if len(actions.columns) == 0:
             return False
 
@@ -108,7 +113,7 @@ class DecisionPointDetector:
             ts.last_row = actions.iloc[0].to_numpy()
 
         row = actions.iloc[idx].to_numpy()
-        is_ac = not np.all(ts.last_row == row)
+        is_ac = not np.allclose(ts.last_row, row)
         ts.last_row = row
 
         return is_ac

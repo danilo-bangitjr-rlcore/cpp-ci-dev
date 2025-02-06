@@ -23,6 +23,7 @@ def test_int_countdown1():
         action_period=timedelta(minutes=4),
         obs_period=timedelta(minutes=1),
         kind='int',
+        normalize=False,
     )
 
     cd_adder = DecisionPointDetector(cd_cfg)
@@ -83,6 +84,7 @@ def test_int_countdown2():
         action_period=timedelta(minutes=4),
         obs_period=timedelta(minutes=1),
         kind='int',
+        normalize=False,
     )
 
     cd_adder = DecisionPointDetector(cd_cfg)
@@ -116,6 +118,7 @@ def test_int_countdown3():
         action_period=timedelta(minutes=4),
         obs_period=timedelta(minutes=1),
         kind='int',
+        normalize=False,
     )
 
     cd_adder = DecisionPointDetector(cd_cfg)
@@ -143,6 +146,7 @@ def test_two_clock1():
         action_period=timedelta(minutes=4),
         obs_period=timedelta(minutes=1),
         kind='two_clock',
+        normalize=False,
     )
 
     cd_adder = DecisionPointDetector(cd_cfg)
