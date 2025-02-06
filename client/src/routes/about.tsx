@@ -8,6 +8,7 @@ const About = () => {
     headers: { Accept: 'application/json' },
   })
 
+
   return (
     <div className="p-2">
       <h2 className="text-2xl">About</h2>

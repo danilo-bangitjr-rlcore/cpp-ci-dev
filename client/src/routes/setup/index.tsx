@@ -15,7 +15,7 @@ import { Button } from "../../components/button";
 import { Code, Text } from "../../components/text";
 import { getApiFetchClient } from "../../utils/api";
 import { classNames } from "../../utils/component";
-import { MainConfigContext } from "../../utils/main-config";
+import { loadMainConfigHiddenDefaults, MainConfigContext } from "../../utils/main-config";
 
 export const Route = createFileRoute("/setup/")({
   component: RouteComponent,
@@ -80,7 +80,7 @@ function RouteComponent() {
   };
 
   const clearMainConfig: MouseEventHandler<HTMLButtonElement> = () => {
-    setMainConfig({});
+    setMainConfig(loadMainConfigHiddenDefaults({}));
     reset();
   };
 
@@ -159,6 +159,7 @@ function RouteComponent() {
         >
           Upload
         </button>
+        <span> </span>
 
         {!!Object.keys(mainConfig).length && (
           <button

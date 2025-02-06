@@ -1,9 +1,11 @@
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { type components } from "../api-schema";
 import { useLocalForage } from "../utils/local-forage";
-import { type DeepPartial, MainConfigContext } from "../utils/main-config";
+import { type DeepPartial, loadMainConfigHiddenDefaults, MainConfigContext } from "../utils/main-config";
 import { ProgressBar, Step } from "../components/progress-bar";
 import { useMemo } from "react";
+import { Heading } from "../components/heading"
+import { Text } from "../components/text"
 
 export const Route = createFileRoute("/setup")({
   component: RouteComponent
@@ -12,7 +14,7 @@ export const Route = createFileRoute("/setup")({
 function RouteComponent() {
   const [mainConfig, setMainConfig] = useLocalForage<
     DeepPartial<components["schemas"]["MainConfig"]>
-  >("main_config", {});
+  >("main_config", loadMainConfigHiddenDefaults({}));
 
   const { pathname: currentPathName } = useLocation()
 
@@ -41,12 +43,12 @@ function RouteComponent() {
     <MainConfigContext.Provider value={{ mainConfig, setMainConfig }}>
       <div className="border-b border-gray-200 pb-2 p-2">
         <div className="-mt-2 -ml-2 flex flex-wrap items-baseline">
-          <h3 className="m-2 text-base font-semibold text-gray-900">
+          <Heading level={2}>
             Setup
-          </h3>
-          <p className="mt-1 ml-2 truncate text-sm text-gray-500">
+          </Heading>
+          <Text className="mt-1 ml-2 truncate text-sm text-gray-500">
             {mainConfig.experiment?.exp_name}
-          </p>
+          </Text>
           <ProgressBar steps={setupSteps} className="w-full"/>
         </div>
       </div>

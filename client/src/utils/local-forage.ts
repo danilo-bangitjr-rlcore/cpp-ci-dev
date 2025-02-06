@@ -69,6 +69,7 @@ export function useLocalForage<T>(
         // Allow value to be a function so we have the same API as useState
         const valueToStore =
           value instanceof Function ? value(storedValue) : value;
+          // console.log(valueToStore)
         try {
           await localforage.setItem(key, valueToStore);
           setStoredValue(valueToStore);

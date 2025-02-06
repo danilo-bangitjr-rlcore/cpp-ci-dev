@@ -61,6 +61,8 @@ function RouteComponent() {
     })();
   };
 
+  console.log("Rendering!", mainConfig)
+
   return (
     <div className="p-2">
       <Alert
@@ -80,7 +82,8 @@ function RouteComponent() {
         <Textarea
           id="main_config_payload"
           rows={20}
-          defaultValue={JSON.stringify(mainConfig, null, 2)}
+          // defaultValue={JSON.stringify(mainConfig, null, 2)}
+          value={JSON.stringify(mainConfig, null, 2)}
           disabled={true}
         />
 
