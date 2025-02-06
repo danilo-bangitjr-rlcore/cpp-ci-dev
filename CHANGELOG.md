@@ -1,3 +1,13 @@
+## 0.75.0 (2025-02-06)
+
+### Feat
+
+- configure historical data initial timestamp
+
+### Fix
+
+- enable int node id in tag cfg
+
 ## 0.74.0 (2025-02-06)
 
 ### Feat
