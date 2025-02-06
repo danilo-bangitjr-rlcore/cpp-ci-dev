@@ -1,3 +1,9 @@
+## 0.71.0 (2025-02-06)
+
+### Feat
+
+- support OPC security policy Basic256Sha256 SignAndEncrypt
+
 ## 0.70.1 (2025-02-04)
 
 ### Fix
