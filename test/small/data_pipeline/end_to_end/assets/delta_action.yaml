@@ -1,7 +1,6 @@
 # pipeline:
 
-action_period: 00:00:04
-obs_period: 00:00:01
+max_data_gap: 00:00:02
 
 state_constructor:
   defaults: []

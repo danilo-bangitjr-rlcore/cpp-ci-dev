@@ -31,7 +31,7 @@ def load_entire_dataset(
             end_time = time_stats.end
 
     tag_names = [tag_cfg.name for tag_cfg in cfg.pipeline.tags]
-    obs_period = cfg.pipeline.obs_period
+    obs_period = cfg.interaction.obs_period
     data = data_reader.batch_aggregated_read(
         names=tag_names,
         start_time=start_time,
@@ -68,7 +68,7 @@ class OfflineTraining:
                 names=tag_names,
                 start_time=chunk_start,
                 end_time=chunk_end,
-                bucket_width=self.cfg.pipeline.obs_period,
+                bucket_width=self.cfg.interaction.obs_period,
                 aggregation=self.cfg.pipeline.db.data_agg,
             )
             chunk_pr = pipeline(

@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 from datetime import timedelta
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import pandas as pd
 from pydantic import Field
 
-from corerl.configs.config import MISSING, config
+from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.environment.config import EnvironmentConfig
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 
 # -------------
@@ -18,6 +23,21 @@ class BaseAsyncEnvConfig(EnvironmentConfig):
     update_period: timedelta = MISSING
     action_period: timedelta = MISSING
     setpoint_ping_period: timedelta | None = None
+
+    @computed('obs_period')
+    @classmethod
+    def _obs_period(cls, cfg: MainConfig):
+        return cfg.interaction.obs_period
+
+    @computed('action_period')
+    @classmethod
+    def _action_period(cls, cfg: MainConfig):
+        return cfg.interaction.action_period
+
+    @computed('update_period')
+    @classmethod
+    def _update_period(cls, cfg: MainConfig):
+        return cfg.interaction.obs_period
 
 
 @config()

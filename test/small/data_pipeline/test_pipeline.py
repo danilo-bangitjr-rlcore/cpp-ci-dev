@@ -24,9 +24,6 @@ def test_construct_pipeline():
             TagConfig(name='sensor_x', operating_range=(-1, 1)),
             TagConfig(name='sensor_y', red_bounds=(1.1, 3.3)),
         ],
-        # obs_period=15,
-        obs_period=timedelta(minutes=15),
-        action_period=timedelta(minutes=15),
         transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
@@ -49,8 +46,6 @@ def test_passing_data_to_pipeline():
             TagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_x', operating_range=(-3, 3)),
             TagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_y', red_bounds=(1.1, 3.3)),
         ],
-        obs_period=timedelta(minutes=15),
-        action_period=timedelta(minutes=15),
         transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
@@ -104,8 +99,6 @@ def test_state_action_dim():
             ),
             defaults=[],
         ),
-        obs_period=timedelta(minutes=5),
-        action_period=timedelta(minutes=5),
         transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
             gamma=0.9,
@@ -153,8 +146,6 @@ def test_sub_pipeline1():
                 obs_period=timedelta(minutes=5),
             ),
         ),
-        obs_period=timedelta(minutes=5),
-        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
@@ -236,8 +227,6 @@ def test_sub_pipeline2():
                 obs_period=timedelta(minutes=5),
             ),
         ),
-        obs_period=timedelta(minutes=5),
-        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
@@ -322,8 +311,6 @@ def test_sub_pipeline3():
                 obs_period=timedelta(minutes=5),
             ),
         ),
-        obs_period=timedelta(minutes=5),
-        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
@@ -420,8 +407,6 @@ def test_sub_pipeline4():
                 obs_period=timedelta(minutes=5),
             ),
         ),
-        obs_period=timedelta(minutes=5),
-        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)

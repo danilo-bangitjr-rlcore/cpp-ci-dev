@@ -79,8 +79,6 @@ def test_pipeline1():
                 normalize=False,
             ),
         ),
-        obs_period=timedelta(minutes=5),
-        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
@@ -219,8 +217,6 @@ def test_pipeline2():
                 normalize=False,
             ),
         ),
-        obs_period=timedelta(minutes=5),
-        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
