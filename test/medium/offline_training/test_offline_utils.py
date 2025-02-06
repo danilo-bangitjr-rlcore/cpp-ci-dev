@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy import Engine
 from torch import Tensor
 
+import corerl.main_utils as utils
 from corerl.agent.factory import init_agent
 from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.component.actor.network_actor import NetworkActorConfig
@@ -30,7 +31,6 @@ from corerl.eval.evals import EvalDBConfig, evals_group
 from corerl.eval.metrics import MetricsDBConfig, metrics_group
 from corerl.eval.monte_carlo import MonteCarloEvalConfig
 from corerl.experiment.config import ExperimentConfig
-import corerl.main_utils as utils
 from corerl.messages.event_bus import EventBus
 from corerl.offline.utils import OfflineTraining
 from corerl.sql_logging.sql_logging import table_exists
