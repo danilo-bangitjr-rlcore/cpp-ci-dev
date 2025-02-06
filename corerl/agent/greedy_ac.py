@@ -39,16 +39,16 @@ def unsqueeze_repeat(tensor: torch.Tensor, dim: int, repeats: int) -> torch.Tens
     tensor = tensor.repeat_interleave(repeats, dim=dim)
     return tensor
 
+
 def sample_actions(
     state_batch: Float[torch.Tensor, "batch_size state_dim"],
-    policy : BaseActor,
-    n_samples : int,
+    policy: BaseActor,
+    n_samples: int,
     action_dim: int,
-    uniform_weight : float = 0.0
+    uniform_weight: float = 0.0,
 ) -> tuple[
-        Float[torch.Tensor, "batch_size num_samples action_dim"],
-        Float[torch.Tensor, "batch_size num_samples state_dim"]
-    ]:
+    Float[torch.Tensor, "batch_size num_samples action_dim"], Float[torch.Tensor, "batch_size num_samples state_dim"]
+]:
     """
     For each state in the state_batch, sample n actions according to policy.
 
@@ -57,7 +57,7 @@ def sample_actions(
     batch_size = state_batch.shape[0]
 
     policy_weight = 1 - uniform_weight
-    n_samples_policy = floor(policy_weight * n_samples) # number of samples from the policy
+    n_samples_policy = floor(policy_weight * n_samples)  # number of samples from the policy
     n_samples_uniform = n_samples - n_samples_policy
 
     SAMPLE_DIM = 1
@@ -92,7 +92,7 @@ def grab_percentile(values: torch.Tensor, keys: torch.Tensor, percentile: float)
     key_dim = keys.size(2)
 
     n_samples = values.size(1)
-    top_n = floor(percentile*n_samples)
+    top_n = floor(percentile * n_samples)
 
     values = values.squeeze(dim=-1)
     sorted_inds = torch.argsort(values, dim=1, descending=True)
@@ -149,7 +149,6 @@ class GreedyAC(BaseAC):
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)
-
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         self._app_state.event_bus.emit_event(EventType.agent_get_action)
@@ -219,7 +218,7 @@ class GreedyAC(BaseAC):
         # we can hardcode the spatial constraints
         return torch.clip(direct_action, 0, 1)
 
-# --------------------------- critic updating-------------------------- #
+    # --------------------------- critic updating-------------------------- #
 
     def _compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
         # First, translate ensemble batches in to list for each property
@@ -256,7 +255,7 @@ class GreedyAC(BaseAC):
             gamma_batches.append(gamma_batch)
 
         # Second, use this information to compute the targets
-            # Option 1: Using the corresponding target function in the ensemble in the update target:
+        # Option 1: Using the corresponding target function in the ensemble in the update target:
         if self.ensemble_targets:
             _, next_qs = self.q_critic.get_qs_target(next_state_batches, next_action_batches, bootstrap_reduct=True)
 
@@ -265,9 +264,8 @@ class GreedyAC(BaseAC):
             next_qs = []
             for i in range(ensemble_len):
                 next_q = self.q_critic.get_q_target(
-                    [next_state_batches[i]],
-                    [next_action_batches[i]],
-                    bootstrap_reduct=True)
+                    [next_state_batches[i]], [next_action_batches[i]], bootstrap_reduct=True
+                )
                 next_q = torch.unsqueeze(next_q, 0)
                 next_qs.append(next_q)
 
@@ -309,7 +307,7 @@ class GreedyAC(BaseAC):
 
         return [float(q_loss)]
 
-# --------------------------- actor and sampler updating-------------------------- #
+    # --------------------------- actor and sampler updating-------------------------- #
 
     def _get_top_n_sampled_actions(
         self,
@@ -317,13 +315,13 @@ class GreedyAC(BaseAC):
         action_batch: Float[torch.Tensor, "batch_size action_dim"],
         n_samples: int,
         percentile: float,
-        uniform_weight: float, # proportion of samples coming from uniform dist
-        sampler: BaseActor, # which network to sample non-uniform actions from
+        uniform_weight: float,  # proportion of samples coming from uniform dist
+        sampler: BaseActor,  # which network to sample non-uniform actions from
     ) -> tuple[
-            Float[torch.Tensor, "batch_size top_actions state_dim"],
-            Float[torch.Tensor, "batch_size top_actions action_dim"]
+        Float[torch.Tensor, "batch_size*top_actions state_dim"],
+        Float[torch.Tensor, "batch_size*top_actions action_dim"],
+        Float[torch.Tensor, "batch_size*n_samples action_dim"]
     ]:
-
         BATCH_DIM = 0
         SAMPLE_DIM = 1
 
@@ -331,15 +329,12 @@ class GreedyAC(BaseAC):
         STATE_DIM = state_batch.size(1)
 
         # FIRST, sample actions
-        sampled_actions : Float[torch.Tensor, "batch_size num_samples action_dim"]
+        sampled_actions: Float[torch.Tensor, "batch_size num_samples action_dim"]
         # states that each of the sampled actions correspond to:
-        repeated_states : Float[torch.Tensor, "batch_size num_samples state_dim"]
+        repeated_states: Float[torch.Tensor, "batch_size num_samples state_dim"]
         sampled_actions, repeated_states = sample_actions(
-            state_batch,
-            sampler,
-            n_samples,
-            self.action_dim,
-            uniform_weight)
+            state_batch, sampler, n_samples, self.action_dim, uniform_weight
+        )
 
         batch_size = state_batch.size(BATCH_DIM)
         assert sampled_actions.dim() == repeated_states.dim()
@@ -358,8 +353,8 @@ class GreedyAC(BaseAC):
         # NEXT we will query the critic for q_values
         # however, we first need to reshape the repeated_states and actions
         # to be the right shape to feed into the critic (i.e. 2 dimensional)
-        repeated_states_2d = repeated_states.reshape(batch_size*n_samples, STATE_DIM)
-        actions_2d = actions.reshape(batch_size*n_samples, ACTION_DIM)
+        repeated_states_2d = repeated_states.reshape(batch_size * n_samples, STATE_DIM)
+        actions_2d = actions.reshape(batch_size * n_samples, ACTION_DIM)
 
         q_values: Float[torch.Tensor, "batch_size*num_samples 1"]
         q_values = self.q_critic.get_q([repeated_states_2d], [actions_2d], with_grad=False, bootstrap_reduct=False)
@@ -375,31 +370,30 @@ class GreedyAC(BaseAC):
 
         # FINALLY, reshape returned states and actions to be two dimensional, since this is what
         # the loss function for the policy expects
-        states_for_best_actions_2d = states_for_best_actions.reshape(batch_size*top_n, STATE_DIM)
-        top_actions_2d = top_actions.reshape(batch_size*top_n, ACTION_DIM)
+        states_for_best_actions_2d = states_for_best_actions.reshape(batch_size * top_n, STATE_DIM)
+        top_actions_2d = top_actions.reshape(batch_size * top_n, ACTION_DIM)
+        sampled_actions_2d = sampled_actions.reshape(batch_size * n_samples, ACTION_DIM) #returned for testing
 
-        return states_for_best_actions_2d, top_actions_2d
+        return states_for_best_actions_2d, top_actions_2d, sampled_actions_2d
 
     def _update_policy(
-            self,
-            state_batch :torch.Tensor,
-            action_batch: torch.Tensor,
-            policy : BaseActor,
-            policy_name : str,
-            percentile : float,
-        ) -> tuple[torch.Tensor, torch.Tensor] | None:
-
-
-        assert policy_name == 'actor' or policy_name == 'sampler'
+        self,
+        state_batch: torch.Tensor,
+        action_batch: torch.Tensor,
+        policy: BaseActor,
+        policy_name: str,
+        percentile: float,
+    ) -> tuple[torch.Tensor, torch.Tensor] | None:
+        assert policy_name == "actor" or policy_name == "sampler"
 
         # get the top percentile of actions
-        states_for_best_actions, best_actions = self._get_top_n_sampled_actions(
+        states_for_best_actions, best_actions, _ = self._get_top_n_sampled_actions(
             state_batch=state_batch,
             action_batch=action_batch,
             n_samples=self.num_samples,
             percentile=percentile,
             uniform_weight=self.uniform_sampling_percentage,
-            sampler=self.sampler
+            sampler=self.sampler,
         )
 
         # compute loss
@@ -407,7 +401,7 @@ class GreedyAC(BaseAC):
 
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
-            metric=policy_name+"_loss",
+            metric=policy_name + "_loss",
             value=loss,
         )
 
@@ -422,9 +416,8 @@ class GreedyAC(BaseAC):
         return state_batch, action_batch
 
     def _ensure_policy_batch(
-            self,
-            update_batch : tuple[torch.Tensor, torch.Tensor] | None = None
-        ) -> tuple[torch.Tensor, torch.Tensor]:
+        self, update_batch: tuple[torch.Tensor, torch.Tensor] | None = None
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         if update_batch is None:
             # Assuming we don't have an ensemble of policies
             batches = self.policy_buffer.sample()
@@ -449,16 +442,16 @@ class GreedyAC(BaseAC):
             return None
 
         state_batch, action_batch = self._ensure_policy_batch()
-        self._update_policy(state_batch, action_batch, self.actor, 'actor', self.rho)
+        self._update_policy(state_batch, action_batch, self.actor, "actor", self.rho)
         return state_batch, action_batch
 
-    def update_sampler(self, update_batch : tuple[torch.Tensor, torch.Tensor] | None = None) -> None:
+    def update_sampler(self, update_batch: tuple[torch.Tensor, torch.Tensor] | None = None) -> None:
         self._app_state.event_bus.emit_event(EventType.agent_update_sampler)
         if min(self.policy_buffer.size) <= 0:
             return None
 
         state_batch, action_batch = self._ensure_policy_batch(update_batch)
-        self._update_policy(state_batch, action_batch, self.sampler, 'sampler', self.rho_proposal)
+        self._update_policy(state_batch, action_batch, self.sampler, "sampler", self.rho_proposal)
 
     def _policy_err(self, policy: BaseActor, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
         logp, _ = policy.get_log_prob(
@@ -485,7 +478,7 @@ class GreedyAC(BaseAC):
 
         return q_losses
 
-# ---------------------------- saving and loading ---------------------------- #
+    # ---------------------------- saving and loading ---------------------------- #
 
     def save(self, path: Path) -> None:
         self._app_state.event_bus.emit_event(EventType.agent_save)
