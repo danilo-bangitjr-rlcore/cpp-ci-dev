@@ -5,10 +5,10 @@ import torch
 from corerl.component.optimizers.torch_opts import (
     AdamConfig,
     ArmijoAdamConfig,
+    LSOConfig,
     OptimConfig,
     RmspropConfig,
     SgdConfig,
-    LSOConfig,
     optim_group,
 )
 

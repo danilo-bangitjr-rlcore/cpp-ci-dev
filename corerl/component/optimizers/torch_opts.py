@@ -1,13 +1,13 @@
 from collections.abc import Iterable
-from typing import Any, Literal
+from typing import Literal
 
 import torch
 
+import corerl.component.optimizers.LineSearchOpt.linesearchopt as lso
 from corerl.component.optimizers.custom_torch_opts import ArmijoAdam
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
-from corerl.configs.config import MISSING, Field, config, list_
+from corerl.configs.config import MISSING, Field, config
 from corerl.configs.group import Group
-import corerl.component.optimizers.LineSearchOpt.linesearchopt as lso
 
 optim_group = Group[
     [Iterable[torch.nn.Parameter], bool],

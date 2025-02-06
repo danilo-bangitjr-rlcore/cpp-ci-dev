@@ -1,17 +1,17 @@
+# pyright: basic
 # Adapted from https://github.com/IssamLaradji/sls
 
-import torch
 import copy
 import warnings
 from collections.abc import Iterable, Sequence
 from typing import Union
 
-from torch.optim.adam import Adam
-from torch.optim.sgd import SGD
-from torch.optim.rmsprop import RMSprop
+import torch
 from torch.optim.adagrad import Adagrad
+from torch.optim.adam import Adam
 from torch.optim.adamw import AdamW
-
+from torch.optim.rmsprop import RMSprop
+from torch.optim.sgd import SGD
 
 starting_point_unchanged_opts = set((Adam, SGD, RMSprop, Adagrad))
 

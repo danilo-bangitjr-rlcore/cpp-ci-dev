@@ -1,8 +1,9 @@
-from typing_extensions import override
-from typing import Callable, Union
-from collections.abc import Collection
-from abc import ABC, abstractmethod
 import queue
+from abc import ABC, abstractmethod
+from collections.abc import Collection
+from typing import Callable, Union
+
+from typing_extensions import override
 
 
 class StepsizeInit(ABC):

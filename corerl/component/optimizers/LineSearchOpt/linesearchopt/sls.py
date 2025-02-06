@@ -1,17 +1,17 @@
+# pyright: basic
 # Adapted from https://github.com/IssamLaradji/sls
 
-from typing import Optional, Any, TypeVar, Generic, Callable
-from collections.abc import Iterable
-
-import torch
 import copy
+import logging
+from collections.abc import Iterable
+from typing import Any, Callable, Generic, Optional, TypeVar
 from warnings import warn
 
-from . import util as ut
-from .search import Search
-from .init import StepsizeInit
-import logging
+import torch
 
+from . import util as ut
+from .init import StepsizeInit
+from .search import Search
 
 logger = logging.getLogger(__name__)
 
@@ -285,7 +285,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
                     # okay to mutate it here
                     opt.load_state_dict(opt_state_current)
 
-                    zipped = zip(params, initial_params)
+                    zipped = zip(params, initial_params, strict=False)
                     for p, p_init in zipped:
                         p.data[:] = p_init.data
 

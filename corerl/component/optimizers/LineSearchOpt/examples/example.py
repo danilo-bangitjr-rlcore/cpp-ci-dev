@@ -1,9 +1,12 @@
-import torch
-import matplotlib.pyplot as plt
+# pyright: basic
+import sys
 import time
+
+import matplotlib.pyplot as plt
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import sys
+
 sys.path.append(".")
 import linesearchopt as lso
 
@@ -105,7 +108,7 @@ for _ in range(250):
     if not isinstance(opt, lso.Optimizer):
         opt.step()
     else:
-        opt.step(closure, loss=loss)
+        opt.step(closure, loss=loss.item())
 
     print(opt.state_dict()["state"]["step_size"])
 
