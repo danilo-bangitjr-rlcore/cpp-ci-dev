@@ -1,3 +1,15 @@
+## 0.74.0 (2025-02-06)
+
+### Feat
+
+- wire up lso
+- reintroduce lso optimizer monorepo style
+
+### Fix
+
+- fix imports in test_sls
+- fix (suppress) linting messages in lso
+
 ## 0.73.0 (2025-02-06)
 
 ### Feat
