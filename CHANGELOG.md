@@ -1,3 +1,13 @@
+## 0.72.0 (2025-02-06)
+
+### Feat
+
+- add per tag aggregation to tagconfig
+
+### Fix
+
+- fix yaml dumper to support strenums
+
 ## 0.71.0 (2025-02-06)
 
 ### Feat
