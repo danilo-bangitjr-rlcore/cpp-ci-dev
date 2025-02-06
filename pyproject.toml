@@ -77,13 +77,8 @@ concurrency = ["thread", "multiprocessing"]
 # to support our docker image for running corerl.
 [tool.setuptools.packages.find]
 where = [".", "vendor"]
-include = ["corerl*", "linesearchopt*"]
+include = ["corerl*"]
 
-[tool.setuptools.package-dir]
-"linesearchopt" = "vendor/linesearchopt"
-
-[tool.uv.sources]
-linesearchopt = { git = "ssh://git@github.com/rlcoretech/linesearchopt.git" }
 
 [build-system]
 requires = ["setuptools"]
@@ -128,11 +123,6 @@ dependencies = [
 ]
 readme = "README.md"
 
-[project.optional-dependencies]
-linesearchopt_gh = [
-    "linesearchopt",
-]
-
 [project.scripts]
 corerl_main = "corerl.main:main"
 corerl_convertdb_backup = "corerl.bin.convert_db_backup:main"
@@ -145,7 +135,6 @@ dev = [
     "boto3>=1.36.7",
     "debugpy>=1.8.12",
     "docker>=7.1.0",
-    "linesearchopt",
     "pip>=25.0",
     "pyright>=1.1.392.post0",
     "pytest>=8.3.4",
