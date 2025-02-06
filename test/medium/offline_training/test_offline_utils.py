@@ -30,6 +30,7 @@ from corerl.eval.evals import EvalDBConfig, evals_group
 from corerl.eval.metrics import MetricsDBConfig, metrics_group
 from corerl.eval.monte_carlo import MonteCarloEvalConfig
 from corerl.experiment.config import ExperimentConfig
+import corerl.main_utils as utils
 from corerl.messages.event_bus import EventBus
 from corerl.offline.utils import OfflineTraining
 from corerl.sql_logging.sql_logging import table_exists
@@ -92,7 +93,6 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
                 enabled=True,
                 precision=0.2,
                 gamma=0.9,
-                offline_eval_steps=[0],
             )
         ),
         agent=GreedyACConfig(
@@ -114,6 +114,7 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
         experiment=ExperimentConfig(
             gamma=0.9,
             offline_steps=100,
+            offline_eval_iters=[0]
         ),
         pipeline=PipelineConfig(
             tags=[
@@ -164,13 +165,11 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     return cfg
 
 @pytest.fixture
-def offline_trainer(offline_cfg: MainConfig) -> OfflineTraining:
-    return OfflineTraining(offline_cfg)
-
-def generate_offline_data(offline_cfg: MainConfig,
-                          offline_trainer: OfflineTraining,
-                          data_writer: DataWriter,
-                          steps: int = 5) -> list[Transition]:
+def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter) -> OfflineTraining:
+    """
+    Generate offline data for tests and return the OfflineTraining object
+    """
+    steps = 5
     obs_period = offline_cfg.pipeline.obs_period
 
     # Generate timestamps
@@ -200,22 +199,21 @@ def generate_offline_data(offline_cfg: MainConfig,
     data_writer.blocking_sync()
 
     # Produce offline transitions
+    save_path = utils.prepare_save_dir(offline_cfg)
+    offline_training = OfflineTraining(offline_cfg, save_path, start_time=start_time)
     pipeline = Pipeline(offline_cfg.pipeline)
-    offline_trainer.load_offline_transitions(pipeline, start_time=start_time)
+    offline_training.load_offline_transitions(pipeline)
 
+    return offline_training
+
+def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: OfflineTraining):
+    """
+    Ensure the test data generated in the 'offline_trainer' fixture was written to TSDB,
+    read from TSDB, and that the correct transitions were produced by the data pipeline
+    """
     assert offline_trainer.pipeline_out is not None
     assert offline_trainer.pipeline_out.transitions is not None
-
-    return offline_trainer.pipeline_out.transitions
-
-def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: OfflineTraining, data_writer: DataWriter):
-    """
-    Generate a few offline time steps, write them to TSDB, read the data from TSDB into a dataframe,
-    pass data through the 'Anytime' data pipeline, and ensure the correct transitions are produced
-    """
-    steps = 5
-
-    created_transitions = generate_offline_data(offline_cfg, offline_trainer, data_writer, steps)
+    created_transitions = offline_trainer.pipeline_out.transitions
 
     # Expected transitions
     gamma = offline_cfg.experiment.gamma
@@ -236,17 +234,11 @@ def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: Offl
 
 def test_offline_training(offline_cfg: MainConfig,
                           offline_trainer: OfflineTraining,
-                          data_writer: DataWriter,
                           tsdb_engine: Engine):
     """
-    Generate a few offline time steps, write them to TSDB, read the data from TSDB into a dataframe,
-    pass data through the 'Anytime' data pipeline, train an agent on the produced transitions,
-    and ensure the critic's training loss decreases
+    Ensure the agent's critic loss decreases over the test transitions produced by the 'offline_trainer' fixture.
+    Make sure the enabled evaluators write to the metrics table and/or evals table
     """
-    steps = 5
-
-    generate_offline_data(offline_cfg, offline_trainer, data_writer, steps)
-
     app_state = AppState(
         cfg=offline_cfg,
         metrics=metrics_group.dispatch(offline_cfg.metrics),
@@ -282,7 +274,7 @@ def test_offline_training(offline_cfg: MainConfig,
         ac_cfg = offline_cfg.eval_cfgs.actor_critic
         evals = pd.read_sql_table('evals', con=conn)
         ac_eval_rows = evals.loc[evals["evaluator"] == "actor-critic_0"]
-        assert len(ac_eval_rows) == len(offline_cfg.eval_cfgs.actor_critic.offline_eval_steps)
+        assert len(ac_eval_rows) == len(offline_cfg.experiment.offline_eval_iters)
         for i in range(len(ac_eval_rows)):
             ac_out = ac_eval_rows.iloc[i]["value"]
             assert len(ac_out) == ac_cfg.num_test_states
