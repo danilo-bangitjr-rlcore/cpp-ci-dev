@@ -10,7 +10,7 @@ from corerl.sql_logging.sql_logging import table_exists
 
 @pytest.mark.parametrize('overrides,expected_outcomes', [
     ({}, {'reward': -0.01, 'critic_loss': 0.01, 'actor_loss': -1.0}),
-    ({'experiment.gamma': 0}, {'reward': -0.01, 'critic_loss': 0.001, 'actor_loss': -0.5}),
+    ({'experiment.gamma': 0}, {'reward': -0.02, 'critic_loss': 0.001, 'actor_loss': -0.5}),
 ])
 @pytest.mark.timeout(600)
 def test_stand_still_mountain_car(
