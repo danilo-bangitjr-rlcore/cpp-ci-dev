@@ -1,22 +1,22 @@
-import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
-
 from datetime import datetime
 from pathlib import Path
 
+import matplotlib.dates as mdates
+import matplotlib.pyplot as plt
+
 from corerl.config import MainConfig
-from corerl.configs.config import list_
 from corerl.state import AppState
+
 
 def make_mc_eval_plot(
     cfg: MainConfig,
     app_state: AppState,
     save_path: Path,
+    labels: list[str],
     step_start: int | None = None,
     step_end: int | None = None,
     start_time: datetime | None = None,
-    end_time: datetime | None = None,
-    labels: list[str] = list_(),
+    end_time: datetime | None = None
 ):
     if not cfg.eval_cfgs.monte_carlo.enabled:
         return
@@ -80,9 +80,9 @@ def plot_metrics(
     step_end: int | None = None,
     start_time: datetime | None = None,
     end_time: datetime | None = None,
-    labels: list[str] = list_(),
+    labels: list[str] | None = None,
 ):
-    if len(labels) == 0:
+    if labels is None or len(labels) == 0:
         labels = [""]
 
-    make_mc_eval_plot(cfg, app_state, save_path, step_start, step_end, start_time, end_time, labels)
+    make_mc_eval_plot(cfg, app_state, save_path, labels, step_start, step_end, start_time, end_time)

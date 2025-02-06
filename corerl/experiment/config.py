@@ -1,5 +1,3 @@
-from pydantic import Field
-
 from corerl.configs.config import config, list_
 
 
