@@ -1,11 +1,12 @@
 # pyright: basic
 from typing import Callable, Mapping
 
-import linesearchopt as lso
 import pytest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+import corerl.component.optimizers.LineSearchOpt.linesearchopt as lso
 
 CLOSURE_CREATOR = Callable[
     [torch.nn.Module, int, torch.Tensor, torch.Tensor],
