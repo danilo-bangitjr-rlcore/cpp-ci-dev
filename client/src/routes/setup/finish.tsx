@@ -1,14 +1,12 @@
-import {
-  createFileRoute,
-  useCanGoBack,
-  useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { FormEventHandler, useContext, useState } from "react";
 import { Alert } from "../../components/alert";
 import { fetchWithTimeout, getServerOrigin } from "../../utils/api";
 import { MainConfigContext } from "../../utils/main-config";
 import { Code } from "../../components/text";
 import { Textarea } from "../../components/textarea";
+import { SetupConfigNav } from "../../components/setup/SetupConfigNav";
+import { Button } from "../../components/button";
 
 export const Route = createFileRoute("/setup/finish")({
   component: RouteComponent,
@@ -17,8 +15,6 @@ export const Route = createFileRoute("/setup/finish")({
 function RouteComponent() {
   const { mainConfig } = useContext(MainConfigContext);
   const [error, setError] = useState<string | undefined>(undefined);
-  const router = useRouter();
-  const canGoBack = useCanGoBack();
 
   const handleFormUpload: FormEventHandler<HTMLFormElement> = (
     event: React.FormEvent<HTMLFormElement>,
@@ -61,7 +57,7 @@ function RouteComponent() {
     })();
   };
 
-  console.log("Rendering!", mainConfig)
+  console.log("Rendering!", mainConfig);
 
   return (
     <div className="p-2">
@@ -87,23 +83,10 @@ function RouteComponent() {
           disabled={true}
         />
 
-        <span className="isolate inline-flex rounded-md shadow-xs">
-          {canGoBack ? (
-            <button
-              type="button"
-              onClick={() => router.history.back()}
-              className="cursor-pointer relative inline-flex items-center rounded-l-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-gray-300 ring-inset hover:bg-gray-50 focus:z-10"
-            >
-              Go Back
-            </button>
-          ) : null}
-          <button
-            type="submit"
-            className="cursor-pointer relative -ml-px inline-flex items-center rounded-r-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-gray-300 ring-inset hover:bg-gray-50 focus:z-10"
-          >
-            Generate Configuration YAML
-          </button>
-        </span>
+        <SetupConfigNav />
+        <Button className="cursor-pointer" type="submit">
+          Generate Configuration YAML
+        </Button>
       </form>
     </div>
   );

@@ -11,11 +11,11 @@ import {
 } from "react";
 import { Alert } from "../../components/alert";
 import { Badge, BadgeButton } from "../../components/badge";
-import { Button } from "../../components/button";
 import { Code, Text } from "../../components/text";
 import { getApiFetchClient } from "../../utils/api";
 import { classNames } from "../../utils/component";
 import { loadMainConfigHiddenDefaults, MainConfigContext } from "../../utils/main-config";
+import { SetupConfigNav } from "../../components/setup/SetupConfigNav";
 
 export const Route = createFileRoute("/setup/")({
   component: RouteComponent,
@@ -171,7 +171,7 @@ function RouteComponent() {
           </button>
         )}
       </form>
-      <Button to="/setup/name">Go to /setup/name</Button>
+      <SetupConfigNav />
     </div>
   );
 }

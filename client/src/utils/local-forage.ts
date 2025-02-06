@@ -61,8 +61,7 @@ export function useLocalForage<T>(
     void get();
   }, [key, storedValue, initialValue]);
 
-  // Return a wrapped version of useState's setter function that ...
-  // ... persists the new value to localForage.
+  // Return a wrapped version of useState's setter function that persists the new value to localForage.
   const setValue = useCallback(
     (value: T | ((val: T) => T)) => {
       async function set() {

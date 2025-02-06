@@ -1,15 +1,11 @@
-import {
-  createFileRoute,
-  Link,
-  useCanGoBack,
-  useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useContext } from "react";
-import { MainConfigContext } from "../../utils/main-config";
+import { Badge } from "../../components/badge";
 import DurationInput from "../../components/duration";
 import { Fieldset, Legend } from "../../components/fieldset";
+import { SetupConfigNav } from "../../components/setup/SetupConfigNav";
 import { Text } from "../../components/text";
-import { Badge } from "../../components/badge";
+import { MainConfigContext } from "../../utils/main-config";
 
 export const Route = createFileRoute("/setup/stub_required")({
   component: StubRequired,
@@ -17,15 +13,16 @@ export const Route = createFileRoute("/setup/stub_required")({
 
 function StubRequired() {
   const { mainConfig, setMainConfig } = useContext(MainConfigContext);
-  const router = useRouter();
-  const canGoBack = useCanGoBack();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
   };
 
   const handleDurationChange = (isoDuration: string) => {
-    setMainConfig({...mainConfig, env: { ...mainConfig.env, obs_period: isoDuration}})
+    setMainConfig({
+      ...mainConfig,
+      env: { ...mainConfig.env, obs_period: isoDuration },
+    });
   };
 
   return (
@@ -36,30 +33,17 @@ function StubRequired() {
       >
         <Fieldset>
           <Legend>Environment Observation Period</Legend>
-          <Text>How much time should pass in-between sensor readings?<Badge className="ml-1">{mainConfig.env?.obs_period}</Badge></Text>
+          <Text>
+            How much time should pass in-between sensor readings?
+            <Badge className="ml-1">{mainConfig.env?.obs_period}</Badge>
+          </Text>
           <DurationInput
             onChange={handleDurationChange}
             defaultValue={mainConfig.env?.obs_period ?? ""}
           />
         </Fieldset>
       </form>
-      <span className="isolate inline-flex rounded-md shadow-xs">
-        {canGoBack ? (
-          <button
-            type="button"
-            onClick={() => router.history.back()}
-            className="cursor-pointer relative inline-flex items-center rounded-l-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-gray-300 ring-inset hover:bg-gray-50 focus:z-10"
-          >
-            Go Back
-          </button>
-        ) : null}
-        <Link
-          to="/setup/finish"
-          className="cursor-pointer relative -ml-px inline-flex items-center rounded-r-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-gray-300 ring-inset hover:bg-gray-50 focus:z-10"
-        >
-          Go to /setup/finish
-        </Link>
-      </span>
+      <SetupConfigNav />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { LinkComponentProps } from "@tanstack/react-router";
 import { createContext } from "react";
 import { type components } from "../api-schema";
 
@@ -7,12 +8,16 @@ export type DeepPartial<T> = T extends object
     }
   : T;
 
-export type DeepPartialMainConfig = DeepPartial<components["schemas"]["MainConfig"]>
+export type DeepPartialMainConfig = DeepPartial<
+  components["schemas"]["MainConfig"]
+>;
 
 export const MainConfigContext = createContext<{
   mainConfig: DeepPartialMainConfig;
   setMainConfig: (
-    value: ( DeepPartialMainConfig | ((val: DeepPartialMainConfig) => DeepPartialMainConfig)),
+    value:
+      | DeepPartialMainConfig
+      | ((val: DeepPartialMainConfig) => DeepPartialMainConfig),
   ) => void;
     }>({
       mainConfig: {},
@@ -28,45 +33,42 @@ export const setValFromPath = (
    * - Keys must be strings (i.e. my_obj.a.b.c, not tested for my_obj.a.b[1])
    */
   config: DeepPartialMainConfig,
-  path: string, 
+  path: string,
   value: string,
   inputType: string,
 ): DeepPartialMainConfig => {
-
-
   const keys = path.split(".");
   const newMainConfig = structuredClone(config);
   let current = newMainConfig as Record<string, unknown>;
 
-
-
-  for(let i = 0; i < keys.length - 1; i++){
-
+  for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
 
     if (typeof current[key] !== "object" || current[key] === null) {
       current[key] = {};
-    }       
+    }
 
     current = current[key] as Record<string, unknown>;
   }
 
   const lastKey = keys[keys.length - 1];
 
-  let conv_value
+  let conv_value;
 
   if (inputType == "number") {
-    conv_value = Number(value); 
+    conv_value = Number(value);
   } else {
-    conv_value = value
+    conv_value = value;
   }
 
   current[lastKey] = conv_value;
-  return newMainConfig
-}
+  return newMainConfig;
+};
 
-export const loadMainConfigHiddenDefaults = (prevMainConfig: DeepPartialMainConfig) => {
-  const newMainConfig = structuredClone(prevMainConfig)
+export const loadMainConfigHiddenDefaults = (
+  prevMainConfig: DeepPartialMainConfig,
+) => {
+  const newMainConfig = structuredClone(prevMainConfig);
   newMainConfig.agent = {
     name: "greedy_ac",
     n_critic_updates: 1,
@@ -80,31 +82,38 @@ export const loadMainConfigHiddenDefaults = (prevMainConfig: DeepPartialMainConf
     critic: {
       buffer: {
         name: "uniform",
-        seed: 1
+        seed: 1,
       },
       critic_optimizer: {
-        lr: 0.01
-
-      }
+        lr: 0.01,
+      },
     },
 
     actor: {
       buffer: {
         name: "uniform",
-        seed: 1
+        seed: 1,
       },
       actor_optimizer: {
-        lr: 0.01
-      }
-    }
-  }
+        lr: 0.01,
+      },
+    },
+  };
 
-  newMainConfig.env = {...newMainConfig.env?? {}, discrete_control: false}
+  newMainConfig.env = { ...(newMainConfig.env ?? {}), discrete_control: false };
   newMainConfig.pipeline = {
-    ...newMainConfig.pipeline?? {}, 
-    state_constructor: {defaults: []},
-    transition_creator: {name: "anytime"}
-  }
+    ...(newMainConfig.pipeline ?? {}),
+    state_constructor: { defaults: [] },
+    transition_creator: { name: "anytime" },
+  };
 
-  return newMainConfig
-}
+  return newMainConfig;
+};
+
+/**
+ * Helper context for forward and backwards during Main Config setup wizard
+ */
+export const MainConfigStepsContext = createContext<{
+  nextStep: LinkComponentProps["to"] | null;
+  prevStep: LinkComponentProps["to"] | null;
+}>({ nextStep: null, prevStep: null });
