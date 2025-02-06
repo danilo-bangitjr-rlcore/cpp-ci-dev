@@ -1,11 +1,16 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
-from corerl.configs.config import MISSING, config
+from corerl.configs.config import MISSING, computed, config
 from corerl.messages.heartbeat import HeartbeatConfig
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 
 # -------------
@@ -16,6 +21,11 @@ class BaseInteractionConfig:
     obs_period: timedelta = MISSING
     action_period: timedelta = MISSING
     action_tolerance: timedelta = MISSING
+
+    @computed('action_tolerance')
+    @classmethod
+    def _action_tolerance(cls, cfg: MainConfig):
+        return cfg.interaction.obs_period
 
 
 @config()
