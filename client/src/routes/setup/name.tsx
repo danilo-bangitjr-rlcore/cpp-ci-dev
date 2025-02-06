@@ -4,7 +4,7 @@ import { type components } from "../../api-schema";
 import { Field, Fieldset, Label } from "../../components/fieldset";
 import { Heading } from "../../components/heading";
 import { Input } from "../../components/input";
-import { SetupConfigNav } from "../../components/setup/SetupConfigNav";
+import { SetupConfigNav } from "../../components/setup/setup-config-nav";
 import {
   type DeepPartial,
   type DeepPartialMainConfig,

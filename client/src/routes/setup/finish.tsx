@@ -5,7 +5,7 @@ import { fetchWithTimeout, getServerOrigin } from "../../utils/api";
 import { MainConfigContext } from "../../utils/main-config";
 import { Code } from "../../components/text";
 import { Textarea } from "../../components/textarea";
-import { SetupConfigNav } from "../../components/setup/SetupConfigNav";
+import { SetupConfigNav } from "../../components/setup/setup-config-nav";
 import { Button } from "../../components/button";
 
 export const Route = createFileRoute("/setup/finish")({

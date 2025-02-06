@@ -18,7 +18,7 @@ import {
   loadMainConfigHiddenDefaults,
   MainConfigContext,
 } from "../../utils/main-config";
-import { SetupConfigNav } from "../../components/setup/SetupConfigNav";
+import { SetupConfigNav } from "../../components/setup/setup-config-nav";
 
 export const Route = createFileRoute("/setup/")({
   component: RouteComponent,

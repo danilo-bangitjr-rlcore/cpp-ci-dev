@@ -3,7 +3,7 @@ import { useContext } from "react";
 import { Badge } from "../../components/badge";
 import DurationInput from "../../components/duration";
 import { Fieldset, Legend } from "../../components/fieldset";
-import { SetupConfigNav } from "../../components/setup/SetupConfigNav";
+import { SetupConfigNav } from "../../components/setup/setup-config-nav";
 import { Text } from "../../components/text";
 import { MainConfigContext } from "../../utils/main-config";
 
