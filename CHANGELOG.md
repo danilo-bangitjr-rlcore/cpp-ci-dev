@@ -1,3 +1,9 @@
+## 0.75.1 (2025-02-06)
+
+### Fix
+
+- remove linesearch dependencies in dockerfile build
+
 ## 0.75.0 (2025-02-06)
 
 ### Feat
