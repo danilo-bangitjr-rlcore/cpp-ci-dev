@@ -4,9 +4,9 @@ import { LinkComponentProps } from "@tanstack/react-router";
 import { Text } from "./text";
 
 export interface Step {
-    name: string
-    to: LinkComponentProps["to"]
-    status: "complete" | "current" | "upcoming"
+  name: string;
+  to: LinkComponentProps["to"];
+  status: "complete" | "current" | "upcoming";
 }
 
 export function ProgressBar({
@@ -31,9 +31,7 @@ export function ProgressBar({
                       className="size-6 text-white"
                     />
                   </span>
-                  <Text className="ml-4">
-                    {step.name}
-                  </Text>
+                  <Text className="ml-4">{step.name}</Text>
                 </span>
               </Link>
             ) : step.status === "current" ? (
@@ -45,9 +43,7 @@ export function ProgressBar({
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-indigo-600">
                   <Text className="text-indigo-600">{stepIdx}</Text>
                 </span>
-                <Text className="ml-4">
-                  {step.name}
-                </Text>
+                <Text className="ml-4">{step.name}</Text>
               </Link>
             ) : (
               <Link to={step.to} className="group flex items-center">
@@ -57,9 +53,7 @@ export function ProgressBar({
                       {stepIdx}
                     </Text>
                   </span>
-                  <Text className="ml-4">
-                    {step.name}
-                  </Text>
+                  <Text className="ml-4">{step.name}</Text>
                 </span>
               </Link>
             )}

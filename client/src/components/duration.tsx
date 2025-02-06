@@ -14,7 +14,9 @@ const DurationInput: React.FC<DurationInputProps> = ({
   defaultValue,
   units = ["hours", "minutes", "seconds"],
 }) => {
-  const rawDuration = defaultValue ? Temporal.Duration.from(defaultValue) : new Temporal.Duration()
+  const rawDuration = defaultValue
+    ? Temporal.Duration.from(defaultValue)
+    : new Temporal.Duration();
   const [durationParts, setDurationParts] = useState<Temporal.DurationLike>({
     years: rawDuration.years,
     months: rawDuration.months,
@@ -24,7 +26,7 @@ const DurationInput: React.FC<DurationInputProps> = ({
     minutes: rawDuration.minutes,
     seconds: rawDuration.seconds,
     microseconds: rawDuration.microseconds,
-    milliseconds: rawDuration.milliseconds
+    milliseconds: rawDuration.milliseconds,
   });
 
   const handleChange = (value: string, unit: keyof Temporal.DurationLike) => {
@@ -36,7 +38,10 @@ const DurationInput: React.FC<DurationInputProps> = ({
 
   const updateDuration = (unit: keyof Temporal.DurationLike, value: number) => {
     setDurationParts({ ...durationParts, [unit]: value });
-    const rawDuration = Temporal.Duration.from({ ...durationParts, [unit]: value });
+    const rawDuration = Temporal.Duration.from({
+      ...durationParts,
+      [unit]: value,
+    });
     onChange(rawDuration.toString());
   };
 

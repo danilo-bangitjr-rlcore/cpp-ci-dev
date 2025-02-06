@@ -19,12 +19,12 @@ export const MainConfigContext = createContext<{
       | DeepPartialMainConfig
       | ((val: DeepPartialMainConfig) => DeepPartialMainConfig),
   ) => void;
-    }>({
-      mainConfig: {},
-      setMainConfig: () => {
-        /* Does nothing, should define a setState compatible hook within a provider */
-      },
-    });
+}>({
+  mainConfig: {},
+  setMainConfig: () => {
+    /* Does nothing, should define a setState compatible hook within a provider */
+  },
+});
 
 export const setValFromPath = (
   /**

@@ -14,7 +14,10 @@ import { Badge, BadgeButton } from "../../components/badge";
 import { Code, Text } from "../../components/text";
 import { getApiFetchClient } from "../../utils/api";
 import { classNames } from "../../utils/component";
-import { loadMainConfigHiddenDefaults, MainConfigContext } from "../../utils/main-config";
+import {
+  loadMainConfigHiddenDefaults,
+  MainConfigContext,
+} from "../../utils/main-config";
 import { SetupConfigNav } from "../../components/setup/SetupConfigNav";
 
 export const Route = createFileRoute("/setup/")({

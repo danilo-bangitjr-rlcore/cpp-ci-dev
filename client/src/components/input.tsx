@@ -30,9 +30,8 @@ export const Input = forwardRef(function Input(
     ...props
   }: {
     className?: string;
-    type?:
-      /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
-      | "email"
+    type?: /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
+    | "email"
       | "number"
       | "password"
       | "search"
@@ -60,7 +59,7 @@ export const Input = forwardRef(function Input(
         "has-data-disabled:opacity-50 has-data-disabled:before:bg-zinc-950/5 has-data-disabled:before:shadow-none",
         // Invalid state
         "has-data-invalid:before:shadow-red-500/10",
-        className
+        className,
       ])}
     >
       <Headless.Input
@@ -70,19 +69,19 @@ export const Input = forwardRef(function Input(
           // Date classes
           props.type &&
             dateTypes.includes(props.type) && [
-            "[&::-webkit-datetime-edit-fields-wrapper]:p-0",
-            "[&::-webkit-date-and-time-value]:min-h-[1.5em]",
-            "[&::-webkit-datetime-edit]:inline-flex",
-            "[&::-webkit-datetime-edit]:p-0",
-            "[&::-webkit-datetime-edit-year-field]:p-0",
-            "[&::-webkit-datetime-edit-month-field]:p-0",
-            "[&::-webkit-datetime-edit-day-field]:p-0",
-            "[&::-webkit-datetime-edit-hour-field]:p-0",
-            "[&::-webkit-datetime-edit-minute-field]:p-0",
-            "[&::-webkit-datetime-edit-second-field]:p-0",
-            "[&::-webkit-datetime-edit-millisecond-field]:p-0",
-            "[&::-webkit-datetime-edit-meridiem-field]:p-0",
-          ],
+              "[&::-webkit-datetime-edit-fields-wrapper]:p-0",
+              "[&::-webkit-date-and-time-value]:min-h-[1.5em]",
+              "[&::-webkit-datetime-edit]:inline-flex",
+              "[&::-webkit-datetime-edit]:p-0",
+              "[&::-webkit-datetime-edit-year-field]:p-0",
+              "[&::-webkit-datetime-edit-month-field]:p-0",
+              "[&::-webkit-datetime-edit-day-field]:p-0",
+              "[&::-webkit-datetime-edit-hour-field]:p-0",
+              "[&::-webkit-datetime-edit-minute-field]:p-0",
+              "[&::-webkit-datetime-edit-second-field]:p-0",
+              "[&::-webkit-datetime-edit-millisecond-field]:p-0",
+              "[&::-webkit-datetime-edit-meridiem-field]:p-0",
+            ],
           // Basic layout
           "relative block w-full appearance-none rounded-lg px-[calc(--spacing(3.5)-1px)] py-[calc(--spacing(2.5)-1px)] sm:px-[calc(--spacing(3)-1px)] sm:py-[calc(--spacing(1.5)-1px)]",
           // Typography

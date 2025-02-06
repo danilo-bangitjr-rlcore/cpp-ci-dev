@@ -34,7 +34,9 @@ const colors = {
   zinc: "bg-zinc-600/10 text-zinc-700 group-data-hover:bg-zinc-600/20 dark:bg-white/5 dark:text-zinc-400 dark:group-data-hover:bg-white/10",
 };
 
-interface BadgeProps { color?: keyof typeof colors }
+interface BadgeProps {
+  color?: keyof typeof colors;
+}
 
 export function Badge({
   color = "zinc",
@@ -81,7 +83,11 @@ export const BadgeButton = forwardRef(function BadgeButton(
       </TouchTarget>
     </Link>
   ) : (
-    <Headless.Button {...(props as Headless.ButtonProps)} className={classes} ref={ref}>
+    <Headless.Button
+      {...(props as Headless.ButtonProps)}
+      className={classes}
+      ref={ref}
+    >
       <TouchTarget>
         <Badge color={color}>{children}</Badge>
       </TouchTarget>
