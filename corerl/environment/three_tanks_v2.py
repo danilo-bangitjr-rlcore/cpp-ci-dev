@@ -1,4 +1,4 @@
-from typing import List, Optional, Sequence
+from typing import Any, List, Optional, Sequence
 
 import numpy as np
 import sympy as sym
@@ -63,9 +63,9 @@ class ThreeTankEnvBase(object):
         type2 = sym.Poly((self.processtau * x + 1))
         type2_c = list(type2.coeffs())
         type2_c = np.array(type2_c, dtype=float)
-        sys2 = signal.TransferFunction([self.processgain], type2_c)
+        sys2: Any = signal.TransferFunction([self.processgain], type2_c)
         sys2 = sys2.to_ss()
-        sys2 = sys2.to_discrete(1)  # pyright: ignore[reportAttributeAccessIssue]
+        sys2 = sys2.to_discrete(1)
         self.isoffline = isoffline
         if self.isoffline:
             self.A = sys2.A * 0.9
@@ -98,7 +98,7 @@ class ThreeTankEnvBase(object):
         type2 = sym.Poly((self.processtau * x + 1))
         type2_c = list(type2.coeffs())
         type2_c = np.array(type2_c, dtype=float)
-        sys2 = signal.TransferFunction([self.processgain], type2_c)
+        sys2: Any = signal.TransferFunction([self.processgain], type2_c)
         sys2 = sys2.to_ss()
         sys2 = sys2.to_discrete(1)  # pyright: ignore[reportAttributeAccessIssue]
 
