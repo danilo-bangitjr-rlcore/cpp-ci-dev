@@ -120,7 +120,7 @@ class EnsembleQCritic(BaseQ):
         else:
             loss.backward()
 
-        if self.optimizer_name != "armijo_adam":
+        if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
             self.optimizer.step(closure=lambda: 0.)
         else:
             self.optimizer.step(*opt_args, **opt_kwargs)

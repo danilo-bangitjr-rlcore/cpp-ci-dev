@@ -8,6 +8,7 @@ from corerl.component.optimizers.torch_opts import (
     OptimConfig,
     RmspropConfig,
     SgdConfig,
+    LSOConfig,
     optim_group,
 )
 
@@ -16,6 +17,7 @@ OptimizerConfig = (
     | AdamConfig
     | SgdConfig
     | ArmijoAdamConfig
+    | LSOConfig
 )
 
 def init_optimizer(
