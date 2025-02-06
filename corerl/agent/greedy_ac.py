@@ -205,12 +205,6 @@ class GreedyAC(BaseAC):
         scale = bounds[1] - bounds[0]
         bias = bounds[0]
 
-        # when updating the policy, our next action is a tensor
-        # (batch_size, num_samples from proposal, action_dim)
-        # however, our direct action offset is only (batch_size, action_dim)
-        if len(next_action.shape) == 3:
-            action = action.unsqueeze(1).expand(next_action.shape)
-
         delta = scale * next_action + bias
         direct_action = action + delta
 
@@ -348,13 +342,14 @@ class GreedyAC(BaseAC):
         assert action_batch.size(BATCH_DIM) == batch_size
         assert action_batch.size(SAMPLE_DIM) == n_samples
         assert action_batch.size(-1) == ACTION_DIM
-        actions = self._ensure_direct_action(action_batch, sampled_actions)
+
+        sampled_actions = self._ensure_direct_action(action_batch, sampled_actions)
 
         # NEXT we will query the critic for q_values
         # however, we first need to reshape the repeated_states and actions
         # to be the right shape to feed into the critic (i.e. 2 dimensional)
         repeated_states_2d = repeated_states.reshape(batch_size * n_samples, STATE_DIM)
-        actions_2d = actions.reshape(batch_size * n_samples, ACTION_DIM)
+        actions_2d = sampled_actions.reshape(batch_size * n_samples, ACTION_DIM)
 
         q_values: Float[torch.Tensor, "batch_size*num_samples 1"]
         q_values = self.q_critic.get_q([repeated_states_2d], [actions_2d], with_grad=False, bootstrap_reduct=False)
@@ -364,7 +359,7 @@ class GreedyAC(BaseAC):
 
         # NEXT, we will grab the top percentile of actions according to the q_values
         top_actions: Float[torch.Tensor, "batch_size top_n action_dim"]
-        top_actions = grab_percentile(q_values, actions, percentile)
+        top_actions = grab_percentile(q_values, sampled_actions, percentile)
         top_n = top_actions.size(SAMPLE_DIM)
         states_for_best_actions = repeated_states[:, :top_n, :]
 

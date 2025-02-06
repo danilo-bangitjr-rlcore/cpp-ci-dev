@@ -189,20 +189,32 @@ def assert_best_actions(
         samples_batch = action_samples[b * n_samples : (b + 1) * n_samples]
         best_batch = best_actions[b * top_n : (b + 1) * top_n]
 
-        # Compute a score for each action as the max value in that row.
-        scores = samples_batch.max(dim=1).values
+        # Compute scores for each action (score = max element in each row)
+        sample_scores = samples_batch.max(dim=1).values
+        best_scores = best_batch.max(dim=1).values
 
-        # Determine the indices of the top_n actions (sorted in descending order by score)
-        _, topk_indices = torch.topk(scores, top_n, largest=True, sorted=True)
+        # Determine the threshold score:
+        # Sort sample scores in descending order. The score at rank `top_n` (zero-indexed: top_n-1)
+        # is the minimum score that an action must have to be among the top_n actions.
+        sorted_scores, _ = torch.sort(sample_scores, descending=True)
+        threshold = sorted_scores[top_n - 1]
 
-        # Gather the expected best actions based on these indices.
-        expected_best_batch = samples_batch[topk_indices]
+        # Check 1: Verify that each best action's score is >= threshold.
+        # This ensures that even if there are ties, all best actions meet the minimum score criterion.
+        assert torch.all(best_scores >= threshold), (
+            f"In batch {b}, found a best action with score below the threshold "
+            f"({best_scores} vs threshold {threshold})."
+        )
 
-        assert torch.allclose(
-            best_batch, expected_best_batch
-        ), f"Batch {b}: best_actions do not match the expected top actions."
-
-
+        # Check 2: Verify that each best action is one of the actions in the original samples.
+        # For each action in best_batch, ensure that it matches one of the rows in samples_batch.
+        for i, best_row in enumerate(best_batch):
+            # (samples_batch == best_row) returns a boolean tensor of shape (n_samples, action_dim).
+            # .all(dim=1) checks that all elements match for each row.
+            matches = (samples_batch == best_row).all(dim=1)
+            assert matches.any(), (
+                f"In batch {b}, best action at index {i} is not present in the sample actions."
+            )
 @pytest.mark.parametrize(
     "batch_size, state_dim, action_dim, n_samples, percentile, uniform_weight",
     [
@@ -243,6 +255,59 @@ def test_get_top_n_sampled_actions(batch_size:int, state_dim:int, action_dim:int
     assert top_states.shape[1] == state_dim
     assert top_actions.shape[1] == action_dim
     assert top_states.shape[0] == int(batch_size * top_n) == top_actions.shape[0]
+    assert sampled_actions.shape[0] == batch_size * n_samples
+    assert sampled_actions.shape[1] == action_dim
+
+    assert_n_rows_equal(top_states, state_batch, top_n)
+    assert_best_actions(sampled_actions, top_actions, batch_size, n_samples, top_n)
+
+
+@pytest.mark.parametrize(
+    "batch_size, state_dim, action_dim, n_samples, percentile, uniform_weight",
+    [
+        (4, 3, 2, 2, 0.5, 0.75),
+        (3, 4, 3, 5, 0.5, 0.5),
+        (8, 5, 4, 7, 0.3, 0.6),
+        (8, 5, 4, 7, 0.5, 0.0),
+        (100, 2, 2, 10, 0.1, 1.0),
+    ],
+)
+def test_get_top_n_sampled_delta_actions(batch_size:int, state_dim:int, action_dim:int, n_samples:int,
+                                   percentile:float, uniform_weight:float):
+    """
+    delta actions version of test_get_top_n_sampled_actions()
+    """
+    cfg = GreedyACConfig(
+        delta_action=True,
+        delta_bounds=(-.1, .1),
+        actor=NetworkActorConfig(buffer=EnsembleUniformReplayBufferConfig(seed=0)),
+        critic=EnsembleCriticConfig(buffer=EnsembleUniformReplayBufferConfig(seed=0)),
+    )
+    col_desc = ColumnDescriptions(
+        state_cols=[f"tag-{i}" for i in range(state_dim)],
+        action_cols=[f"action-{i}" for i in range(action_dim)] + [f"action-{i}_Δ" for i in range(action_dim)],
+    )
+    greedy_ac = GreedyAC(cfg, None, col_desc)  # type: ignore
+    greedy_ac.q_critic = MockCritic()  # type: ignore
+    greedy_ac.sampler = MockActor(action_dim=action_dim)  # type: ignore
+
+    state_batch = torch.rand(batch_size, state_dim)
+    action_batch = torch.rand(batch_size, action_dim)
+
+    top_states, top_actions, sampled_actions = greedy_ac._get_top_n_sampled_actions(
+        state_batch=state_batch,
+        action_batch=action_batch,
+        n_samples=n_samples,
+        percentile=percentile,
+        uniform_weight=uniform_weight,
+        sampler=greedy_ac.sampler,
+    )
+
+    top_n = floor(n_samples * percentile)
+    assert top_states.shape[1] == state_dim
+    assert top_states.shape[0] == int(batch_size * top_n) == top_actions.shape[0]
+    assert top_actions.shape[0] == int(batch_size * top_n)
+    assert top_actions.shape[1] == action_dim
     assert sampled_actions.shape[0] == batch_size * n_samples
     assert sampled_actions.shape[1] == action_dim
 
