@@ -13,7 +13,8 @@ experiment:
 interaction:
   name: dep_interaction
   restore_checkpoint: False
-  historical_batch_size: 0
+  historical_batch_size: 100
+  hist_chunk_start: 2025-02-05 12:00:00+0000 # YYYY-MM-DD hh:mm:ss
   heartbeat:
     heartbeat_node_id: "ns=2;s=heartbeat"
     heartbeat_period: 00:00:01
