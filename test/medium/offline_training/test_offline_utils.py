@@ -6,7 +6,6 @@ import pytest
 from sqlalchemy import Engine
 from torch import Tensor
 
-import corerl.main_utils as utils
 from corerl.agent.factory import init_agent
 from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
