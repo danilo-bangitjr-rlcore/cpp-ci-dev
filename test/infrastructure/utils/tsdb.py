@@ -21,6 +21,10 @@ def tsdb_tmp_db_name(request: pytest.FixtureRequest) -> str:
 @pytest.fixture(scope="function")
 def tsdb_engine(tsdb_container: None, free_localhost_port: int, tsdb_tmp_db_name: str):
     cfg = SQLEngineConfig(
+        drivername='postgresql+psycopg2',
+        username='postgres',
+        password='password',
+        ip='localhost',
         port=free_localhost_port,
     )
     engine = get_sql_engine(cfg, tsdb_tmp_db_name)

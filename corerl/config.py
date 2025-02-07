@@ -17,10 +17,26 @@ from corerl.messages.factory import EventBusConfig
 
 
 @config()
+class DBConfig:
+    drivername: str = 'postgresql+psycopg2'
+    username: str = 'postgres'
+    password: str = 'password'
+    ip: str = 'localhost'
+    port: int = 5432
+    db_name: str = 'postgres'
+
+
+@config()
+class InfraConfig:
+    db: DBConfig = Field(default_factory=DBConfig)
+
+
+@config()
 class MainConfig:
     # --------------------
     # -- Infrastructure --
     # --------------------
+    infra: InfraConfig = Field(default_factory=InfraConfig)
     metrics: MetricsConfig = Field(default_factory=MetricsDBConfig, discriminator='name')
     evals: EvalDBConfig = Field(default_factory=EvalDBConfig, discriminator='name')
     event_bus: EventBusConfig = Field(default_factory=EventBusConfig)

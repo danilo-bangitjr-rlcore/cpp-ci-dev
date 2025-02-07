@@ -38,17 +38,8 @@ agent:
 
 
 metrics:
-  name : db
-  drivername: "postgresql+psycopg2"
-  username: "postgres"
-  password: "password"
-  ip: "localhost"
-  port: 5432
-  db_name: "postgres"
-  table_schema: "public"
-  table_name: "metrics"
+  name: db
   enabled: True
-  lo_wm: 1
 
 pipeline:
   state_constructor:

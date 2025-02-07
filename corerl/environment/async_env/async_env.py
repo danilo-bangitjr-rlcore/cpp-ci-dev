@@ -51,7 +51,7 @@ class OPCEnvConfig(BaseAsyncEnvConfig):
 
 @config()
 class TSDBEnvConfig(BaseAsyncEnvConfig):
-    db: TagDBConfig = MISSING
+    db: TagDBConfig = Field(default_factory=TagDBConfig)
 
 
 @config()

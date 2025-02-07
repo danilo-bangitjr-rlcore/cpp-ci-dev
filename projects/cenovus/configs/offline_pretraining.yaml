@@ -1,6 +1,6 @@
 defaults:
  - pipeline: tags
- - pipeline.db: db
+ - env.db: db
 
 
 report:
@@ -43,7 +43,6 @@ env:
   update_period: 00:05:00
   action_period: 01:00:00
   seed: ${experiment.seed}
-  db: ${pipeline.db}
   opc_conn_url: "opc.tcp://ignition-services:62541"
   opc_ns: 1
   discrete_control: False

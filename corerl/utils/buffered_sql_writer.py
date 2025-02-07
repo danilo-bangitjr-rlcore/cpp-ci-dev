@@ -1,22 +1,33 @@
+from __future__ import annotations
+
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import Generic, NamedTuple, TypeVar
+from typing import TYPE_CHECKING, Generic, NamedTuple, TypeVar
 
 from sqlalchemy import Engine, TextClause
 
-from corerl.configs.config import MISSING, config
+from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.db.utils import TryConnectContextManager
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine, table_exists
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
+
 
 logger = logging.getLogger(__name__)
 
 
 @config()
 class BufferedWriterConfig(SQLEngineConfig):
-    db_name: str = 'postgres'
+    db_name: str = MISSING
     table_name: str = MISSING
     enabled: bool = True
+
+    @computed('db_name')
+    @classmethod
+    def _dbname(cls, cfg: MainConfig):
+        return cfg.infra.db.db_name
 
 
 T = TypeVar('T', bound=NamedTuple)
