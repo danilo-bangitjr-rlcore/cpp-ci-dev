@@ -11,7 +11,7 @@ from corerl.component.critic.base_critic import BaseQ, BaseQConfig, BaseV
 from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
 from corerl.component.network.networks import EnsembleCriticNetworkConfig
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
-from corerl.component.optimizers.torch_opts import AdamConfig
+from corerl.component.optimizers.torch_opts import LSOConfig
 from corerl.configs.config import MISSING, config
 from corerl.utils.device import device
 
@@ -20,7 +20,7 @@ from corerl.utils.device import device
 class _SharedEnsembleConfig:
     name: Any = MISSING
     critic_network: NetworkConfig = Field(default_factory=EnsembleCriticNetworkConfig)
-    critic_optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
+    critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
     buffer: BufferConfig = Field(default_factory=EnsembleUniformReplayBufferConfig)
     polyak: float = 0.99
     target_sync_freq: int = 1
@@ -308,4 +308,3 @@ class EnsembleVCritic(BaseV):
         self.optimizer.load_state_dict(
             torch.load(opt_path, map_location=device.device),
         )
-
