@@ -1,3 +1,13 @@
+## 0.80.0 (2025-02-07)
+
+### Feat
+
+- critics use linesearch by default
+
+### Refactor
+
+- remove defaulted hypers from test configs
+
 ## 0.79.0 (2025-02-07)
 
 ### Feat
