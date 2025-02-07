@@ -1,3 +1,23 @@
+## 0.81.0 (2025-02-07)
+
+### Feat
+
+- added remaining catalyst-ui foundational components
+- added reusable setup main config nav buttons
+- added duration component and sample usage
+- added steps/progress-bar component, refactor for inf. rerender
+- added heading component
+- added fieldset and input
+- port to local forage, fixed lint and build errors, foundational UI components
+- initial yaml creation functionality
+
+### Fix
+
+- addressed form upload button for initial file upload
+- addressed post-rebase pytest failures, removed stub_required route, uv.lock version
+- updated minimal config
+- clear  message when we click Clear Setup Config
+
 ## 0.80.0 (2025-02-07)
 
 ### Feat
