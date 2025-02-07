@@ -68,7 +68,7 @@ class ThreeTankEnvBase:
         type2_c = np.array(type2_c, dtype=float)
         sys2 = signal.TransferFunction([self.processgain], type2_c)
         sys2 = sys2.to_ss()
-        sys2 = sys2.to_discrete(1) # type: ignore
+        sys2 = sys2.to_discrete(1) # pyright: ignore[reportAttributeAccessIssue, reportOptionalOperand]
         self.isoffline = isoffline
         if self.isoffline:
             self.A = sys2.A * 0.9
