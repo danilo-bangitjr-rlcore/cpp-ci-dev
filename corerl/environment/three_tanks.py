@@ -69,10 +69,6 @@ class ThreeTankEnvBase:
         sys2 = signal.TransferFunction([self.processgain], type2_c)
         sys2 = sys2.to_ss()
         sys2 = sys2.to_discrete(1) # type: ignore
-        assert sys2 is not None
-        assert sys2.A is not None
-        assert sys2.B is not None
-        assert sys2.C is not None
         self.isoffline = isoffline
         if self.isoffline:
             self.A = sys2.A * 0.9
