@@ -1,3 +1,25 @@
+## 0.78.0 (2025-02-07)
+
+### Feat
+
+- pre and post pipeline hooks
+
+### Fix
+
+- rm entropy and n_samplre from offline_pretrianing.yaml
+- slight modifications to behaviour tests to make stuff pass
+- rm n_sampler_updates from configs
+- ensemble defaults
+
+### Refactor
+
+- pulled out percentile ranking logic
+- further unification of sampler and proposal updates
+- nearly unified sampler and actor updates
+- update sampler
+- critic loss
+- remove awful update info tuple
+
 ## 0.77.0 (2025-02-07)
 
 ### BREAKING CHANGE
