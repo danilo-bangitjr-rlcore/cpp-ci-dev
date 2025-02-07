@@ -4,6 +4,7 @@ import { LayoutGroup, motion } from "motion/react";
 import React, { forwardRef, useId } from "react";
 import { TouchTarget } from "./button";
 import { Link } from "./link";
+import { useLocation } from "@tanstack/react-router";
 
 export function Sidebar({
   className,
@@ -155,6 +156,25 @@ export const SidebarItem = forwardRef(function SidebarItem(
     "dark:data-active:bg-white/5 dark:data-active:*:data-[slot=icon]:fill-white",
     "dark:data-current:*:data-[slot=icon]:fill-white",
   );
+
+  const location = useLocation();
+
+  let match = ""
+  if ("to" in props) {
+    match = props.to ?? "";
+  } else if ("href" in props) {
+    match = props.href ?? "";
+  }
+
+  let exact = true;
+  if ("activeOptions" in props) {
+    exact = !!(props.activeOptions?.exact);
+  }
+  if (exact) {
+    current = current || location.pathname == match;
+  } else {
+    current = current || location.pathname.startsWith(match)
+  }
 
   return (
     <span className={clsx(className, "relative")}>
