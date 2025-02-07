@@ -133,9 +133,11 @@ class ActorCriticEval:
             return
 
         qs_and_policy = {}
+        qs_and_policy["state_cols"] = self.col_desc.state_cols
+        qs_and_policy["states"] = {}
         for state in states:
             state_key = json.dumps(state.tolist())
-            qs_and_policy[state_key] = {}
+            qs_and_policy["states"][state_key] = {}
 
             # When evaluating the critic over a given action dim, need sampled actions for the other action dims
             repeat_state = state.repeat((self.critic_samples, 1))
@@ -147,17 +149,17 @@ class ActorCriticEval:
             # Get policy's pdf and evaluate critic over each action dim
             for a_dim in range(self.agent.action_dim):
                 action_tag = self.col_desc.action_cols[a_dim]
-                qs_and_policy[state_key][action_tag] = {}
-                qs_and_policy[state_key][action_tag]["actions"] = a_dim_range.tolist()
+                qs_and_policy["states"][state_key][action_tag] = {}
+                qs_and_policy["states"][state_key][action_tag]["actions"] = a_dim_range.tolist()
 
                 state_copies, built_actions = self._get_repeat_state_actions(state, sampled_actions, a_dim, a_dim_range)
 
                 # Get policy pdf
                 pdfs = self._get_pdf(state_copies, built_actions)
-                qs_and_policy[state_key][action_tag]["pdf"] = pdfs
+                qs_and_policy["states"][state_key][action_tag]["pdf"] = pdfs
 
                 # Evaluate critic at each value of 'a_dim' in 'a_dim_range'
                 same_action_qs = self._get_action_vals(state_copies, built_actions)
-                qs_and_policy[state_key][action_tag]["critic"] = same_action_qs
+                qs_and_policy["states"][state_key][action_tag]["critic"] = same_action_qs
 
         self.app_state.evals.write(self.app_state.agent_step, f"actor-critic_{label}", qs_and_policy)
