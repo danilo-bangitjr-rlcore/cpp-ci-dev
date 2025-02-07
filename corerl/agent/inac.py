@@ -4,7 +4,6 @@ from typing import Literal
 
 import numpy
 import torch
-import torch.nn as nn
 
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.factory import init_actor
@@ -180,8 +179,6 @@ class InAC(BaseAC):
 
             q_loss = self.compute_q_loss(batches)
             self.q_critic.update(q_loss)
-
-            float_losses = [float(loss) for loss in q_loss]
 
         return critic_losses
 
