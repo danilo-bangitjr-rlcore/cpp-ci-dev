@@ -195,11 +195,11 @@ def config_from_dict[T](Config: type[T], raw_config: dict, flags: dict[str, str]
 
     # handle preliminary interpolations and populate unspecified defaults
     raw_config = _walk_config_and_interpolate(raw_config)
-    obj_config = ta.validate_python(raw_config)
+    obj_config: Any = ta.validate_python(raw_config)
 
     # second interpolate & validation pass to support config defaults w/ interpolate
     output_config = _walk_config_and_interpolate(config_to_dict(Config, obj_config))
-    return ta.validate_python(output_config)
+    return ta.validate_python(output_config, context=obj_config)
 
 # ----------------
 # -- Public API --

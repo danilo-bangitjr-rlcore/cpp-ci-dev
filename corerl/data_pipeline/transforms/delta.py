@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
+import pandas as pd
 
 from corerl.configs.config import config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
@@ -55,5 +56,13 @@ class Delta:
         """
         return '_Δ' in col
 
+    @staticmethod
+    def get_non_delta(actions: pd.DataFrame):
+
+        direct_action_cols = [
+            col for col in actions.columns
+            if not Delta.is_delta_transformed(col)
+        ]
+        return actions[direct_action_cols]
 
 transform_group.dispatcher(Delta)

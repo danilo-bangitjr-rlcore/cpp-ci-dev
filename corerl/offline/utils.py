@@ -34,7 +34,7 @@ def load_entire_dataset(
             end_time = time_stats.end
 
     tag_names = [tag_cfg.name for tag_cfg in cfg.pipeline.tags]
-    obs_period = cfg.pipeline.obs_period
+    obs_period = cfg.interaction.obs_period
     data = data_reader.batch_aggregated_read(
         names=tag_names,
         start_time=start_time,
@@ -68,8 +68,8 @@ class OfflineTraining:
         self.start_time, self.end_time = get_data_start_end_times(data_reader, self.start_time, self.end_time)
 
         # chunk offline reads
-        chunk_width = self.cfg.experiment.pipeline_batch_duration_days
-        time_chunks = split_into_chunks(self.start_time, self.end_time, width=dt.timedelta(chunk_width))
+        chunk_width = self.cfg.experiment.pipeline_batch_duration
+        time_chunks = split_into_chunks(self.start_time, self.end_time, width=chunk_width)
 
         # Pass offline data through data pipeline chunk by chunk to produce transitions
         tag_names = [tag_cfg.name for tag_cfg in self.cfg.pipeline.tags]
@@ -78,7 +78,7 @@ class OfflineTraining:
                 names=tag_names,
                 start_time=chunk_start,
                 end_time=chunk_end,
-                bucket_width=self.cfg.pipeline.obs_period,
+                bucket_width=self.cfg.interaction.obs_period,
                 aggregation=self.cfg.pipeline.db.data_agg,
             )
             chunk_pr = pipeline(

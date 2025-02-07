@@ -1,14 +1,22 @@
+from __future__ import annotations
+
 from datetime import timedelta
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import pandas as pd
 from pydantic import Field
 
-from corerl.configs.config import MISSING, config
+from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.environment.config import EnvironmentConfig
 
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
+
+# -------------
+# -- Configs --
+# -------------
 @config()
 class BaseAsyncEnvConfig(EnvironmentConfig):
     obs_period: timedelta = MISSING
@@ -16,14 +24,34 @@ class BaseAsyncEnvConfig(EnvironmentConfig):
     action_period: timedelta = MISSING
     setpoint_ping_period: timedelta | None = None
 
+    @computed('obs_period')
+    @classmethod
+    def _obs_period(cls, cfg: MainConfig):
+        return cfg.interaction.obs_period
+
+    @computed('action_period')
+    @classmethod
+    def _action_period(cls, cfg: MainConfig):
+        return cfg.interaction.action_period
+
+    @computed('update_period')
+    @classmethod
+    def _update_period(cls, cfg: MainConfig):
+        return cfg.interaction.obs_period
+
+
 @config()
 class OPCEnvConfig(BaseAsyncEnvConfig):
     opc_conn_url: str = MISSING
     opc_ns: int = MISSING  # OPC node namespace, this is almost always going to be `2`
+    client_cert_path: str | None = None
+    client_private_key_path: str | None = None
+    server_cert_path: str | None = None
 
 @config()
 class TSDBEnvConfig(BaseAsyncEnvConfig):
     db: TagDBConfig = MISSING
+
 
 @config()
 class GymEnvConfig:
@@ -36,6 +64,19 @@ class GymEnvConfig:
     kwargs: dict[str, Any] = Field(default_factory=dict)
 
 
+@config()
+class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):
+    name: str = "dep_async_env"
+    action_tolerance: timedelta = MISSING
+
+
+@config()
+class SimAsyncEnvConfig(GymEnvConfig, BaseAsyncEnvConfig):
+    name: str = "sim_async_env"
+
+# ---------------
+# -- Interface --
+# ---------------
 class AsyncEnv:
     obs_period: timedelta
     update_period: timedelta
@@ -48,3 +89,5 @@ class AsyncEnv:
 
     def cleanup(self) -> None:
         return
+
+    def get_cfg(self) -> BaseAsyncEnvConfig: ...

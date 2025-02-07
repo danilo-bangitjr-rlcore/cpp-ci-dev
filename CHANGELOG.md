@@ -1,3 +1,129 @@
+## 0.77.0 (2025-02-07)
+
+### BREAKING CHANGE
+
+- a result of these simplifications is that configs
+that manipulated the timing controls within the env will no longer
+be valid.
+- this adds a new responsibility to the interaction cfg
+and that is not backwards compatible or defaultable. In fact, the new
+definition of the interaction config should be used to define defaults
+in the other places where `obs_period` and `action_period` are being
+used.
+
+### Feat
+
+- remove env.obs_period interpolations throughout configs
+- add computed and sanitizer config utilities
+
+### Fix
+
+- rename eval->eval_cfgs in vww config
+- migrate pipeline_batch_duration to timedelta
+
+### Refactor
+
+- make action tolerance a computed config
+- pull env cfgs into single source
+- make interaction cfg responsible for periods
+
+## 0.76.0 (2025-02-06)
+
+### Feat
+
+- added autoencoder coverage function
+- initial coverage framework: incld kde and neighbours + tests
+
+## 0.75.2 (2025-02-06)
+
+### Fix
+
+- style issues.
+- greedyAC on gpu and different batch for linesearch
+
+## 0.75.1 (2025-02-06)
+
+### Fix
+
+- remove linesearch dependencies in dockerfile build
+
+## 0.75.0 (2025-02-06)
+
+### Feat
+
+- configure historical data initial timestamp
+
+### Fix
+
+- enable int node id in tag cfg
+
+## 0.74.0 (2025-02-06)
+
+### Feat
+
+- wire up lso
+- reintroduce lso optimizer monorepo style
+
+### Fix
+
+- fix imports in test_sls
+- fix (suppress) linting messages in lso
+
+## 0.73.0 (2025-02-06)
+
+### Feat
+
+- normalize countdown features
+
+### Fix
+
+- countdown feature supports delta actions
+
+## 0.72.0 (2025-02-06)
+
+### Feat
+
+- add per tag aggregation to tagconfig
+
+### Fix
+
+- fix yaml dumper to support strenums
+
+## 0.71.0 (2025-02-06)
+
+### Feat
+
+- support OPC security policy Basic256Sha256 SignAndEncrypt
+
+## 0.70.1 (2025-02-04)
+
+### Fix
+
+- Deployment Async Env now performs VariantType aware writes to OPC (#476)
+
+## 0.70.0 (2025-02-03)
+
+### Feat
+
+- Eval Table read()
+
+### Fix
+
+- use unique name for eval table idx
+- EvalsTable read() needed to match read() in EvalTableProtocol
+
+## 0.69.2 (2025-02-03)
+
+### Fix
+
+- remove a BUG in greedy_ac
+
+## 0.69.1 (2025-01-31)
+
+### Fix
+
+- let ensemble critic use armijo adam
+
 ## 0.69.0 (2025-01-31)
 
 ### Feat

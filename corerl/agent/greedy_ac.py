@@ -420,7 +420,7 @@ class GreedyAC(BaseAC):
     ) -> torch.Tensor:
         _, _, _, _, stacked_s_batch, best_actions, _ = update_info
         logp, _ = self.actor.get_log_prob(stacked_s_batch, best_actions, with_grad=True)
-        actor_loss = -logp.mean()  # BUG: This is negative?
+        actor_loss = -logp.mean()
 
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,

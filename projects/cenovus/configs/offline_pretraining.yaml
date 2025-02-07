@@ -9,9 +9,10 @@ report:
 
 interaction:
   name: dep_interaction
+  obs_period: 00:05:00
+  action_period: 01:00:00
   heartbeat:
     heartbeat_node_id: s=heartbeat
-    opc_conn_url: ${env.opc_conn_url}
 
 
 agent:
@@ -57,7 +58,7 @@ experiment:
   seed: 1
   timeout: 0
   offline_steps: 10
-  pipeline_batch_duration_days: 1
+  pipeline_batch_duration: 7 days
   gamma: 0.99
 
 pipeline:

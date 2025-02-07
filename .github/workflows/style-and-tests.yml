@@ -15,9 +15,10 @@ jobs:
             python-version: 3.12
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          prune-cache: false
           cache-dependency-glob: "uv.lock"
 
 
@@ -85,15 +86,22 @@ jobs:
       #- run: uv run pytest test/large
 
   behavior-test:
-    needs: [large-test]
+    needs: [small-test, medium-test]
     uses: ./.github/workflows/reusable-run-test.yml
     secrets: inherit
     with:
       test-suite: behavior
       #- run: uv run pytest test/behavior
 
+  docker-build-test:
+    needs: [small-test, medium-test]
+    uses: ./.github/workflows/reusable-build-docker-image.yml
+    secrets: inherit
+    with:
+      push_to_registry: false
+
   combine-coverage:
-    needs: [behavior-test]
+    needs: [large-test, behavior-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -102,11 +110,11 @@ jobs:
             python-version: 3.12
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          prune-cache: false
           cache-dependency-glob: "uv.lock"
-
 
       - uses: webfactory/ssh-agent@v0.7.0
         with:

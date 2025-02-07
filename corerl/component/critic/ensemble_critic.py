@@ -50,6 +50,7 @@ class EnsembleQCritic(BaseQ):
         )
 
         self.optimizer_name = cfg.critic_optimizer.name
+        self.action_dim = action_dim
 
         self.polyak = cfg.polyak
         self.target_sync_freq = cfg.target_sync_freq
@@ -119,7 +120,7 @@ class EnsembleQCritic(BaseQ):
         else:
             loss.backward()
 
-        if self.optimizer_name != "lso":
+        if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
             self.optimizer.step(closure=lambda: 0.)
         else:
             self.optimizer.step(*opt_args, **opt_kwargs)
@@ -175,7 +176,6 @@ class EnsembleQCritic(BaseQ):
         )
 
 
-
 class EnsembleVCritic(BaseV):
     def __init__(self, cfg: EnsembleCriticConfig, state_dim: int, output_dim: int = 1):
         self.model = init_critic_network(
@@ -192,6 +192,7 @@ class EnsembleVCritic(BaseV):
             list(params),
             ensemble=True,
         )
+        self.optimizer_name = cfg.critic_optimizer.name
         self.polyak = cfg.polyak
         self.target_sync_freq = cfg.target_sync_freq
         self.target_sync_counter = 0
@@ -249,15 +250,28 @@ class EnsembleVCritic(BaseV):
         v, vs = self.get_vs_target(state_batches, bootstrap_reduct)
         return v
 
-    def update(self, loss: list[torch.Tensor]) -> None:
+    def update(
+        self,
+        loss: list[torch.Tensor] | torch.Tensor,
+        opt_args: tuple = tuple(),
+        opt_kwargs: dict | None = None,
+    ) -> None:
+        opt_kwargs = nullable.default(opt_kwargs, dict)
         self.optimizer.zero_grad()
-        self.ensemble_backward(loss)
-        self.optimizer.step(closure=lambda: 0.)
+        if isinstance(loss, (list, tuple)):
+            self.ensemble_backward(loss)
+        else:
+            loss.backward()
+
+        if self.optimizer_name != "armijo_adam":
+            self.optimizer.step(closure=lambda: 0.)
+        else:
+            self.optimizer.step(*opt_args, **opt_kwargs)
+
+        self.target_sync_counter += 1
         if self.target_sync_counter % self.target_sync_freq == 0:
             self.sync_target()
             self.target_sync_counter = 0
-
-        self.target_sync_counter += 1
 
     def sync_target(self) -> None:
         with torch.no_grad():
@@ -294,3 +308,4 @@ class EnsembleVCritic(BaseV):
         self.optimizer.load_state_dict(
             torch.load(opt_path, map_location=device.device),
         )
+
