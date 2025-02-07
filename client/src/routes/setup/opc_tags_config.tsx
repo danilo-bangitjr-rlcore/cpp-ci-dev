@@ -1,8 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Fieldset, Legend } from "../../components/fieldset";
-import { SetupConfigNav } from "../../components/setup/setup-config-nav";
-import { Input, InputGroup } from "../../components/input";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
+import { createFileRoute } from "@tanstack/react-router";
+import createClient from "openapi-react-query";
+import { useEffect, useState } from "react";
+import { Badge } from "../../components/badge";
+import { Fieldset, Legend } from "../../components/fieldset";
+import { Input, InputGroup } from "../../components/input";
+import { SetupConfigNav } from "../../components/setup/setup-config-nav";
 import {
   Table,
   TableBody,
@@ -11,11 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/table";
-import { useContext, useEffect, useState } from "react";
-import createClient from "openapi-react-query";
 import { getApiFetchClient } from "../../utils/api";
-import { MainConfigContext } from "../../utils/main-config";
-import { Badge } from "../../components/badge";
 
 export const Route = createFileRoute("/setup/opc_tags_config")({
   component: OPCTagsConfig,
@@ -62,27 +61,28 @@ function OPCTagsConfig() {
             onChange={handleSearchStringChange}
           />
         </InputGroup>
-        <Table dense className="[--gutter:--spacing(6)] sm:[--gutter:--spacing(8)] max-w-full">
-          <TableHead>
-            <TableRow>
-            <TableHeader>OPC ID</TableHeader>
-            <TableHeader>Path</TableHeader>
-            <TableHeader>Key</TableHeader>
-            <TableHeader>Val</TableHeader>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data?.nodes.map((opc_node) => (
-              <TableRow key={opc_node.nodeid}>
-                <TableCell>{opc_node.nodeid}</TableCell>
-                <TableCell>{opc_node.path}</TableCell>
-                <TableCell>{opc_node.key}</TableCell>
-                <TableCell>{JSON.stringify(opc_node.val)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
       </Fieldset>
+
+      <Table dense className="max-w-full">
+        <TableHead>
+          <TableRow>
+          <TableHeader>OPC ID</TableHeader>
+          <TableHeader className="max-w-80">Path</TableHeader>
+          <TableHeader>Key</TableHeader>
+          <TableHeader className="max-w-80">Val</TableHeader>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {data?.nodes.map((opc_node) => (
+            <TableRow key={opc_node.nodeid}>
+              <TableCell>{opc_node.nodeid}</TableCell>
+              <TableCell className="max-w-80 overflow-x-auto">{opc_node.path}</TableCell>
+              <TableCell>{opc_node.key}</TableCell>
+              <TableCell className="max-w-80 overflow-x-auto">{JSON.stringify(opc_node.val)}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
       <SetupConfigNav />
     </div>
   );
