@@ -58,7 +58,7 @@ class SAC(BaseAC):
             t for t in pr.transitions if t.prior.dp
         ], pr.data_mode)
 
-    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> torch.Tensor:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
@@ -104,13 +104,13 @@ class SAC(BaseAC):
             next_qs = torch.cat(next_qs, dim=0)
 
         _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
-        losses = []
+        loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble):
             q_pi_target = next_qs[i] - self.alpha * next_log_probs_batches[i]
             target = reward_batches[i] + gamma_batches[i] * q_pi_target
-            losses.append(torch.nn.functional.mse_loss(target, qs[i]))
+            loss += torch.nn.functional.mse_loss(target, qs[i])
 
-        return losses
+        return loss
 
     def compute_actor_loss(self, batch: TransitionBatch) -> tuple[torch.Tensor, torch.Tensor]:
         state_batch = batch.prior.state

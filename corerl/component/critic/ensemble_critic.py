@@ -108,17 +108,14 @@ class EnsembleQCritic(BaseQ):
 
     def update(
         self,
-        loss: list[torch.Tensor] | torch.Tensor,
+        loss: torch.Tensor,
         opt_args: tuple = tuple(),
         opt_kwargs: dict | None = None,
     ) -> None:
         opt_kwargs = nullable.default(opt_kwargs, dict)
 
         self.optimizer.zero_grad()
-        if isinstance(loss, (list, tuple)):
-            self.ensemble_backward(loss)
-        else:
-            loss.backward()
+        loss.backward()
 
         if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
             self.optimizer.step(closure=lambda: 0.)
@@ -129,15 +126,6 @@ class EnsembleQCritic(BaseQ):
         if self.target_sync_counter % self.target_sync_freq == 0:
             self.sync_target()
             self.target_sync_counter = 0
-
-
-    def ensemble_backward(self, loss: list[torch.Tensor]):
-        for i in range(len(loss)):
-            params = self.model.parameters(independent=True)[i] # type: ignore
-            loss[i].backward(
-                inputs=list(params)
-            )
-        return
 
     def sync_target(self) -> None:
         with torch.no_grad():
@@ -213,15 +201,6 @@ class EnsembleVCritic(BaseV):
                 v, vs = self.model(input_tensor, bootstrap_reduct)
         return v, vs
 
-    def ensemble_backward(self, loss: list[torch.Tensor]):
-        for i in range(len(loss)):
-            params = self.model.parameters(independent=True)[i] # type: ignore
-
-            loss[i].backward(
-                inputs=list(params),
-            )
-        return
-
     def get_v(
         self,
         state_batches: list[torch.Tensor],
@@ -252,16 +231,14 @@ class EnsembleVCritic(BaseV):
 
     def update(
         self,
-        loss: list[torch.Tensor] | torch.Tensor,
+        loss: torch.Tensor,
         opt_args: tuple = tuple(),
         opt_kwargs: dict | None = None,
     ) -> None:
         opt_kwargs = nullable.default(opt_kwargs, dict)
+
         self.optimizer.zero_grad()
-        if isinstance(loss, (list, tuple)):
-            self.ensemble_backward(loss)
-        else:
-            loss.backward()
+        loss.backward()
 
         if self.optimizer_name != "armijo_adam":
             self.optimizer.step(closure=lambda: 0.)

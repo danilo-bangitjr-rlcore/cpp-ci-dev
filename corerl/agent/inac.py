@@ -60,7 +60,7 @@ class InAC(BaseAC):
         beh_loss = -beh_log_probs.mean()
         return beh_loss
 
-    def compute_v_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_v_loss(self, ensemble_batch: list[TransitionBatch]) -> torch.Tensor:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
@@ -84,7 +84,7 @@ class InAC(BaseAC):
                 qs.append(q)
 
             state_batches.append(state_batch)
-            action_batches.append(actions)
+            action_batches.append(action_batch)
             log_probs_batches.append(log_probs)
 
         # Option 2: Using the corresponding target function in the ensemble in the update target
@@ -96,16 +96,16 @@ class InAC(BaseAC):
             qs = torch.cat(qs, dim=0)
 
         _, v_phis = self.v_critic.get_vs(state_batches, with_grad=True)
-        losses = []
+        loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble):
             target = qs[i] - self.temp * log_probs_batches[i]
             value_loss = (0.5 * (v_phis[i] - target) ** 2).mean()
-            losses.append(value_loss)
+            loss += value_loss
 
-        return losses
+        return loss
 
 
-    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> torch.Tensor:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
@@ -140,8 +140,8 @@ class InAC(BaseAC):
             reward_batches.append(reward_batch)
             next_state_batches.append(next_state_batch)
             next_action_batches.append(next_actions)
-            next_log_probs_batches.append(next_log_probs)
             gamma_batches.append(gamma_batch)
+            next_log_probs_batches.append(next_log_probs)
 
         # Option 2: Using the corresponding target function in the ensemble in the update target
         if self.ensemble_targets:
@@ -152,13 +152,13 @@ class InAC(BaseAC):
             next_qs = torch.cat(next_qs, dim=0)
 
         _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
-        losses = []
+        loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble):
             q_pi_target = next_qs[i] - self.temp * next_log_probs_batches[i]
             target = reward_batches[i] + gamma_batches[i] * q_pi_target
-            losses.append(nn.functional.mse_loss(target, qs[i]))
+            loss += torch.nn.functional.mse_loss(target, qs[i])
 
-        return losses
+        return loss
 
     def compute_actor_loss(self, batch: TransitionBatch):
         states, actions = batch.prior.state, batch.prior.action
@@ -182,7 +182,6 @@ class InAC(BaseAC):
             self.q_critic.update(q_loss)
 
             float_losses = [float(loss) for loss in q_loss]
-            critic_losses.append(sum(float_losses) / len(float_losses))
 
         return critic_losses
 
