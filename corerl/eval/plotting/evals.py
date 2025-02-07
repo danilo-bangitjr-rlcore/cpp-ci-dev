@@ -1,14 +1,15 @@
+import json
 from datetime import datetime
 from pathlib import Path
 from typing import cast
 
-import json
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 from corerl.config import MainConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.state import AppState
+
 
 def make_state_info_title(tags: list[TagConfig], state_cols: list[str], state: list[float]):
     """
