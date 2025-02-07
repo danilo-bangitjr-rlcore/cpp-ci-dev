@@ -229,7 +229,7 @@ wheels = [
 
 [[package]]
 name = "corerl"
-version = "0.75.2"
+version = "0.78.1"
 source = { editable = "." }
 dependencies = [
     { name = "asyncua" },

@@ -5,7 +5,7 @@ experiment:
   param_from_hash: True
   seed: 1
   gamma: 0.99
-  max_steps: 2000
+  max_steps: 500
 
 interaction:
   name: sim_interaction
@@ -39,7 +39,7 @@ agent:
       name: uniform
       seed: ${experiment.seed}
     critic_optimizer:
-      lr: 0.01
+      name: lso
 
   actor:
     buffer:
