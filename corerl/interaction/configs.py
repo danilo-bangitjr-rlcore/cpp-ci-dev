@@ -20,11 +20,11 @@ if TYPE_CHECKING:
 class BaseInteractionConfig:
     obs_period: timedelta = MISSING
     action_period: timedelta = MISSING
-    action_tolerance: timedelta = MISSING
+    update_period: timedelta = MISSING
 
-    @computed('action_tolerance')
+    @computed('update_period')
     @classmethod
-    def _action_tolerance(cls, cfg: MainConfig):
+    def _update_period(cls, cfg: MainConfig):
         return cfg.interaction.obs_period
 
 

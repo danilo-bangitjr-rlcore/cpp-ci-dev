@@ -70,6 +70,11 @@ class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):
     name: str = "dep_async_env"
     action_tolerance: timedelta = MISSING
 
+    @computed('action_tolerance')
+    @classmethod
+    def _action_tolerance(cls, cfg: MainConfig):
+        return cfg.interaction.obs_period
+
 
 @config()
 class SimAsyncEnvConfig(GymEnvConfig, BaseAsyncEnvConfig):
