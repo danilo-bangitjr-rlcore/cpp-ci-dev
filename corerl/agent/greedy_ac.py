@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Literal
 
 import numpy
-import numpy as np
 import torch
 from jaxtyping import Float
 from pydantic import Field
@@ -214,7 +213,7 @@ class GreedyAC(BaseAC):
 
     # --------------------------- critic updating-------------------------- #
 
-    def _compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def _compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> torch.Tensor:
         # First, translate ensemble batches in to list for each property
         ensemble_len = len(ensemble_batch)
         state_batches = []
@@ -249,12 +248,12 @@ class GreedyAC(BaseAC):
             gamma_batches.append(gamma_batch)
 
         # Second, use this information to compute the targets
-        # Option 1: Using the corresponding target function in the ensemble in the update target:
         if self.ensemble_targets:
+            # Option 1: Using the corresponding target function in the ensemble in the update target:
             _, next_qs = self.q_critic.get_qs_target(next_state_batches, next_action_batches, bootstrap_reduct=True)
 
-            # Option 2: Using the reduction of the ensemble in the update target:
         else:
+            # Option 2: Using the reduction of the ensemble in the update target:
             next_qs = []
             for i in range(ensemble_len):
                 next_q = self.q_critic.get_q_target(
@@ -265,39 +264,32 @@ class GreedyAC(BaseAC):
 
             next_qs = torch.cat(next_qs, dim=0)
 
-        targets = [reward_batches[i] + gamma_batches[i] * next_qs[i] for i in range(ensemble_len)]
-
         # Third, compute losses
         _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True, bootstrap_reduct=True)
-        losses = []
-
+        loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble_len):
-            target = targets[i]
-            losses.append(torch.nn.functional.mse_loss(target, qs[i]))
+            target =  reward_batches[i] + gamma_batches[i] * next_qs[i]
+            loss += torch.nn.functional.mse_loss(target, qs[i])
 
         # Fourth, log metrics
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
-            metric="critic_loss",
-            value=np.mean([loss.detach().numpy() for loss in losses]),
+            metric="avg_critic_loss",
+            value=loss.detach().numpy(),
         )
 
-        return losses
+        return loss
 
     def update_critic(self) -> list[float]:
         if min(self.critic_buffer.size) <= 0:
             return []
 
         self._app_state.event_bus.emit_event(EventType.agent_update_critic)
-
         batches = self.critic_buffer.sample()
+        q_loss = self._compute_critic_loss(batches)
 
-        def closure():
-            losses = self._compute_critic_loss(batches)  # noqa: B023
-            return torch.stack(losses, dim=-1).sum(dim=-1)
-
-        q_loss = closure()
-        self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
+        eval_batches = self.critic_buffer.sample()
+        self.q_critic.update(q_loss, opt_kwargs={"closure": partial(self._compute_critic_loss, eval_batches)})
 
         return [float(q_loss)]
 
