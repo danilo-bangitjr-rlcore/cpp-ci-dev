@@ -6,7 +6,11 @@ export const SetupConfigNav = () => {
   const { nextStep, prevStep } = useContext(MainConfigStepsContext);
   return (
     <span className="isolate inline-flex rounded-md shadow-xs">
-      {prevStep && <Button to={prevStep}>Back</Button>}
+      {prevStep && (
+        <Button className="mr-1" to={prevStep}>
+          Back
+        </Button>
+      )}
       {nextStep && <Button to={nextStep}>Next</Button>}
     </span>
   );

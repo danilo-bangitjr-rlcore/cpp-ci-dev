@@ -69,6 +69,8 @@ export const loadMainConfigHiddenDefaults = (
   prevMainConfig: DeepPartialMainConfig,
 ) => {
   const newMainConfig = structuredClone(prevMainConfig);
+
+  // Hidden defaults
   newMainConfig.agent = {
     name: "greedy_ac",
     n_critic_updates: 1,
@@ -100,13 +102,66 @@ export const loadMainConfigHiddenDefaults = (
     },
   };
 
+  newMainConfig.metrics = {
+    ...(newMainConfig.metrics ?? {}),
+    name: "db",
+    enabled: true,
+  };
   newMainConfig.env = { ...(newMainConfig.env ?? {}), discrete_control: false };
+  newMainConfig.interaction = {
+    ...(newMainConfig.interaction ?? {}),
+    name: "dep_interaction",
+  };
   newMainConfig.pipeline = {
     ...(newMainConfig.pipeline ?? {}),
     state_constructor: { defaults: [] },
     transition_creator: { name: "anytime" },
   };
 
+  // User modifiable defaults
+  newMainConfig.experiment = {
+    ...(newMainConfig.experiment ?? {}),
+    exp_name: "CoreRL_Experiment",
+  };
+  type DeepPartialDatabase = DeepPartial<components["schemas"]["TagDBConfig"]>;
+  const database_common: DeepPartialDatabase = {
+    drivername: "postgresql+psycopg2",
+    username: "postgres",
+    password: "password",
+    ip: "localhost",
+    port: 5432,
+    db_name: "postgres",
+    table_schema: "public",
+  };
+
+  newMainConfig.pipeline.db = {
+    ...(newMainConfig.pipeline.db ?? {}),
+    ...database_common,
+    table_name: "opc_ua",
+  };
+  newMainConfig.metrics = {
+    ...(newMainConfig.metrics ?? {}),
+    ...database_common,
+    table_name: "metrics",
+    lo_wm: 5,
+  };
+
+  let env = newMainConfig.env as DeepPartial<
+    components["schemas"]["DepAsyncEnvConfig"]
+  >;
+
+  env = {
+    ...(env ?? {}),
+    db: database_common,
+    opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/",
+    opc_ns: 2,
+    obs_period: "PT5M",
+    update_period: "PT5M",
+    action_period: "PT5M",
+    action_tolerance: "PT5M",
+  };
+
+  newMainConfig.env = env;
   return newMainConfig;
 };
 

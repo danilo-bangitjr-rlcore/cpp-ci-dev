@@ -35,8 +35,8 @@ function RouteComponent() {
   } = useMemo(() => {
     const steps: Step[] = [
       { name: "Start", to: "/setup", status: "complete" },
-      { name: "Experiment Name", to: "/setup/name", status: "current" },
-      { name: "Stub Required", to: "/setup/stub_required", status: "upcoming" },
+      { name: "General", to: "/setup/general_config", status: "current" },
+      { name: "OPC Tags", to: "/setup/opc_tags_config", status: "upcoming" },
       { name: "Finish", to: "/setup/finish", status: "upcoming" },
     ];
 

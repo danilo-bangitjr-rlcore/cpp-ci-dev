@@ -10,14 +10,14 @@
 
 // Import Routes
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as SetupImport } from './routes/setup'
-import { Route as AboutImport } from './routes/about'
-import { Route as IndexImport } from './routes/index'
-import { Route as SetupIndexImport } from './routes/setup/index'
-import { Route as SetupStubrequiredImport } from './routes/setup/stub_required'
-import { Route as SetupNameImport } from './routes/setup/name'
-import { Route as SetupFinishImport } from './routes/setup/finish'
+import { Route as rootRoute } from "./routes/__root";
+import { Route as SetupImport } from "./routes/setup";
+import { Route as AboutImport } from "./routes/about";
+import { Route as IndexImport } from "./routes/index";
+import { Route as SetupIndexImport } from "./routes/setup/index";
+import { Route as SetupOpctagsconfigImport } from "./routes/setup/opc_tags_config";
+import { Route as SetupGeneralconfigImport } from "./routes/setup/general_config";
+import { Route as SetupFinishImport } from "./routes/setup/finish";
 
 // Create/Update Routes
 
@@ -45,15 +45,15 @@ const SetupIndexRoute = SetupIndexImport.update({
   getParentRoute: () => SetupRoute,
 } as any)
 
-const SetupStubrequiredRoute = SetupStubrequiredImport.update({
-  id: '/stub_required',
-  path: '/stub_required',
+const SetupOpctagsconfigRoute = SetupOpctagsconfigImport.update({
+  id: "/opc_tags_config",
+  path: "/opc_tags_config",
   getParentRoute: () => SetupRoute,
 } as any)
 
-const SetupNameRoute = SetupNameImport.update({
-  id: '/name',
-  path: '/name',
+const SetupGeneralconfigRoute = SetupGeneralconfigImport.update({
+  id: "/general_config",
+  path: "/general_config",
   getParentRoute: () => SetupRoute,
 } as any)
 
@@ -67,134 +67,134 @@ const SetupFinishRoute = SetupFinishImport.update({
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexImport
-      parentRoute: typeof rootRoute
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutImport
-      parentRoute: typeof rootRoute
-    }
-    '/setup': {
-      id: '/setup'
-      path: '/setup'
-      fullPath: '/setup'
-      preLoaderRoute: typeof SetupImport
-      parentRoute: typeof rootRoute
-    }
-    '/setup/finish': {
-      id: '/setup/finish'
-      path: '/finish'
-      fullPath: '/setup/finish'
-      preLoaderRoute: typeof SetupFinishImport
-      parentRoute: typeof SetupImport
-    }
-    '/setup/name': {
-      id: '/setup/name'
-      path: '/name'
-      fullPath: '/setup/name'
-      preLoaderRoute: typeof SetupNameImport
-      parentRoute: typeof SetupImport
-    }
-    '/setup/stub_required': {
-      id: '/setup/stub_required'
-      path: '/stub_required'
-      fullPath: '/setup/stub_required'
-      preLoaderRoute: typeof SetupStubrequiredImport
-      parentRoute: typeof SetupImport
-    }
-    '/setup/': {
-      id: '/setup/'
-      path: '/'
-      fullPath: '/setup/'
-      preLoaderRoute: typeof SetupIndexImport
-      parentRoute: typeof SetupImport
-    }
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/about": {
+      id: "/about";
+      path: "/about";
+      fullPath: "/about";
+      preLoaderRoute: typeof AboutImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/setup": {
+      id: "/setup";
+      path: "/setup";
+      fullPath: "/setup";
+      preLoaderRoute: typeof SetupImport;
+      parentRoute: typeof rootRoute;
+    };
+    "/setup/finish": {
+      id: "/setup/finish";
+      path: "/finish";
+      fullPath: "/setup/finish";
+      preLoaderRoute: typeof SetupFinishImport;
+      parentRoute: typeof SetupImport;
+    };
+    "/setup/general_config": {
+      id: "/setup/general_config";
+      path: "/general_config";
+      fullPath: "/setup/general_config";
+      preLoaderRoute: typeof SetupGeneralconfigImport;
+      parentRoute: typeof SetupImport;
+    };
+    "/setup/opc_tags_config": {
+      id: "/setup/opc_tags_config";
+      path: "/opc_tags_config";
+      fullPath: "/setup/opc_tags_config";
+      preLoaderRoute: typeof SetupOpctagsconfigImport;
+      parentRoute: typeof SetupImport;
+    };
+    "/setup/": {
+      id: "/setup/";
+      path: "/";
+      fullPath: "/setup/";
+      preLoaderRoute: typeof SetupIndexImport;
+      parentRoute: typeof SetupImport;
+    };
   }
 }
 
 // Create and export the route tree
 
 interface SetupRouteChildren {
-  SetupFinishRoute: typeof SetupFinishRoute
-  SetupNameRoute: typeof SetupNameRoute
-  SetupStubrequiredRoute: typeof SetupStubrequiredRoute
-  SetupIndexRoute: typeof SetupIndexRoute
+  SetupFinishRoute: typeof SetupFinishRoute;
+  SetupGeneralconfigRoute: typeof SetupGeneralconfigRoute;
+  SetupOpctagsconfigRoute: typeof SetupOpctagsconfigRoute;
+  SetupIndexRoute: typeof SetupIndexRoute;
 }
 
 const SetupRouteChildren: SetupRouteChildren = {
   SetupFinishRoute: SetupFinishRoute,
-  SetupNameRoute: SetupNameRoute,
-  SetupStubrequiredRoute: SetupStubrequiredRoute,
+  SetupGeneralconfigRoute: SetupGeneralconfigRoute,
+  SetupOpctagsconfigRoute: SetupOpctagsconfigRoute,
   SetupIndexRoute: SetupIndexRoute,
 }
 
 const SetupRouteWithChildren = SetupRoute._addFileChildren(SetupRouteChildren)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/setup': typeof SetupRouteWithChildren
-  '/setup/finish': typeof SetupFinishRoute
-  '/setup/name': typeof SetupNameRoute
-  '/setup/stub_required': typeof SetupStubrequiredRoute
-  '/setup/': typeof SetupIndexRoute
+  "/": typeof IndexRoute;
+  "/about": typeof AboutRoute;
+  "/setup": typeof SetupRouteWithChildren;
+  "/setup/finish": typeof SetupFinishRoute;
+  "/setup/general_config": typeof SetupGeneralconfigRoute;
+  "/setup/opc_tags_config": typeof SetupOpctagsconfigRoute;
+  "/setup/": typeof SetupIndexRoute;
 }
 
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/setup/finish': typeof SetupFinishRoute
-  '/setup/name': typeof SetupNameRoute
-  '/setup/stub_required': typeof SetupStubrequiredRoute
-  '/setup': typeof SetupIndexRoute
+  "/": typeof IndexRoute;
+  "/about": typeof AboutRoute;
+  "/setup/finish": typeof SetupFinishRoute;
+  "/setup/general_config": typeof SetupGeneralconfigRoute;
+  "/setup/opc_tags_config": typeof SetupOpctagsconfigRoute;
+  "/setup": typeof SetupIndexRoute;
 }
 
 export interface FileRoutesById {
-  __root__: typeof rootRoute
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/setup': typeof SetupRouteWithChildren
-  '/setup/finish': typeof SetupFinishRoute
-  '/setup/name': typeof SetupNameRoute
-  '/setup/stub_required': typeof SetupStubrequiredRoute
-  '/setup/': typeof SetupIndexRoute
+  __root__: typeof rootRoute;
+  "/": typeof IndexRoute;
+  "/about": typeof AboutRoute;
+  "/setup": typeof SetupRouteWithChildren;
+  "/setup/finish": typeof SetupFinishRoute;
+  "/setup/general_config": typeof SetupGeneralconfigRoute;
+  "/setup/opc_tags_config": typeof SetupOpctagsconfigRoute;
+  "/setup/": typeof SetupIndexRoute;
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/about'
-    | '/setup'
-    | '/setup/finish'
-    | '/setup/name'
-    | '/setup/stub_required'
-    | '/setup/'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/about"
+    | "/setup"
+    | "/setup/finish"
+    | "/setup/general_config"
+    | "/setup/opc_tags_config"
+    | "/setup/";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/'
-    | '/about'
-    | '/setup/finish'
-    | '/setup/name'
-    | '/setup/stub_required'
-    | '/setup'
+    | "/"
+    | "/about"
+    | "/setup/finish"
+    | "/setup/general_config"
+    | "/setup/opc_tags_config"
+    | "/setup";
   id:
-    | '__root__'
-    | '/'
-    | '/about'
-    | '/setup'
-    | '/setup/finish'
-    | '/setup/name'
-    | '/setup/stub_required'
-    | '/setup/'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/"
+    | "/about"
+    | "/setup"
+    | "/setup/finish"
+    | "/setup/general_config"
+    | "/setup/opc_tags_config"
+    | "/setup/";
+  fileRoutesById: FileRoutesById;
 }
 
 export interface RootRouteChildren {
@@ -234,8 +234,8 @@ export const routeTree = rootRoute
       "filePath": "setup.tsx",
       "children": [
         "/setup/finish",
-        "/setup/name",
-        "/setup/stub_required",
+        "/setup/general_config",
+        "/setup/opc_tags_config",
         "/setup/"
       ]
     },
@@ -243,12 +243,12 @@ export const routeTree = rootRoute
       "filePath": "setup/finish.tsx",
       "parent": "/setup"
     },
-    "/setup/name": {
-      "filePath": "setup/name.tsx",
+    "/setup/general_config": {
+      "filePath": "setup/general_config.tsx",
       "parent": "/setup"
     },
-    "/setup/stub_required": {
-      "filePath": "setup/stub_required.tsx",
+    "/setup/opc_tags_config": {
+      "filePath": "setup/opc_tags_config.tsx",
       "parent": "/setup"
     },
     "/setup/": {

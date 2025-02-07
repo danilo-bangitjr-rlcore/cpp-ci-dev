@@ -164,7 +164,8 @@ function RouteComponent() {
         </button>
         <span> </span>
 
-        {!!Object.keys(mainConfig).length && (
+        {JSON.stringify(mainConfig) !==
+          JSON.stringify(loadMainConfigHiddenDefaults({})) && (
           <button
             type="button"
             onClick={clearMainConfig}

@@ -1,10 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useContext } from "react";
 import { type components } from "../../api-schema";
+import { Badge } from "../../components/badge";
+import DurationInput from "../../components/duration";
 import { Field, Fieldset, Label } from "../../components/fieldset";
 import { Heading } from "../../components/heading";
 import { Input } from "../../components/input";
-import { SetupConfigNav } from "../../components/setup/setup-config-nav";
+import { SetupConfigNav } from "../../components/setup/SetupConfigNav";
+import { Text } from "../../components/text";
 import {
   type DeepPartial,
   type DeepPartialMainConfig,
@@ -12,7 +15,7 @@ import {
   setValFromPath,
 } from "../../utils/main-config";
 
-export const Route = createFileRoute("/setup/name")({
+export const Route = createFileRoute("/setup/general_config")({
   component: Name,
 });
 
@@ -25,6 +28,12 @@ function Name() {
   const metrics = mainConfig.metrics as DeepPartial<
     components["schemas"]["MetricsDBConfig"]
   >;
+
+  const handleDurationChange = (path: string) => (isoDuration: string) => {
+    setMainConfig((prevMainConfig: DeepPartialMainConfig) =>
+      setValFromPath(prevMainConfig, path, isoDuration, "duration"),
+    );
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputType = e.target.getAttribute("type")!;
@@ -52,7 +61,7 @@ function Name() {
           <Heading level={3}>Experiment</Heading>
         </Field>
 
-        <Fieldset>
+        <Fieldset className="mb-1">
           <Field>
             <Label htmlFor="exp_name">Experiment Name</Label>
             <Input
@@ -75,7 +84,7 @@ function Name() {
           <Heading level={3}>Database</Heading>
         </Field>
 
-        <Fieldset>
+        <Fieldset className="mb-1">
           <Field>
             <Label htmlFor="drivername">Driver name</Label>
             <Input
@@ -89,8 +98,7 @@ function Name() {
           </Field>
         </Fieldset>
 
-        <br></br>
-        <Fieldset>
+        <Fieldset className="mb-1">
           <Field>
             <Label htmlFor="username">Username</Label>
             <Input
@@ -104,8 +112,7 @@ function Name() {
           </Field>
         </Fieldset>
 
-        <br></br>
-        <Fieldset>
+        <Fieldset className="mb-1">
           <Field>
             <Label htmlFor="password">Password</Label>
             <Input
@@ -119,8 +126,7 @@ function Name() {
           </Field>
         </Fieldset>
 
-        <br></br>
-        <Fieldset>
+        <Fieldset className="mb-1">
           <Field>
             <Label htmlFor="ip">IP</Label>
             <Input
@@ -134,8 +140,7 @@ function Name() {
           </Field>
         </Fieldset>
 
-        <br></br>
-        <Fieldset>
+        <Fieldset className="mb-1">
           <Field>
             <Label htmlFor="port">Port</Label>
             <Input
@@ -149,8 +154,7 @@ function Name() {
           </Field>
         </Fieldset>
 
-        <br></br>
-        <Fieldset>
+        <Fieldset className="mb-1">
           <Field>
             <Label htmlFor="db_name">Database Name</Label>
             <Input
@@ -164,8 +168,7 @@ function Name() {
           </Field>
         </Fieldset>
 
-        <br></br>
-        <Fieldset>
+        <Fieldset className="mb-1">
           <Field>
             <Label htmlFor="table_schema">Table Schema</Label>
             <Input
@@ -179,8 +182,7 @@ function Name() {
           </Field>
         </Fieldset>
 
-        <br></br>
-        <Fieldset>
+        <Fieldset className="mb-1">
           <Field>
             <Label htmlFor="table_name">Table Name</Label>
             <Input
@@ -194,23 +196,7 @@ function Name() {
           </Field>
         </Fieldset>
 
-        <br></br>
-        <Fieldset>
-          <Field>
-            <Label htmlFor="metrics_name">Metrics Name</Label>
-            <Input
-              id="metrics_name"
-              name="metrics.name"
-              type="text"
-              placeholder=""
-              onChange={handleInputChange}
-              defaultValue={mainConfig.metrics?.name ?? ""}
-            />
-          </Field>
-        </Fieldset>
-
-        <br></br>
-        <Fieldset>
+        <Fieldset className="mb-1">
           <Field>
             <Label htmlFor="metrics_table_name">Metrics Table Name</Label>
             <Input
@@ -224,8 +210,7 @@ function Name() {
           </Field>
         </Fieldset>
 
-        <br></br>
-        <Fieldset>
+        <Fieldset className="mb-1">
           <Field>
             <Label htmlFor="metrics_lo_wm">Metrics Low Water Mark</Label>
             <Input
@@ -248,7 +233,7 @@ function Name() {
           <Heading level={3}>OPC</Heading>
         </Field>
 
-        <Fieldset>
+        <Fieldset className="mb-1">
           <Field>
             <Label htmlFor="opc_conn_url">OPC Connection URL</Label>
             <Input
@@ -262,7 +247,7 @@ function Name() {
           </Field>
         </Fieldset>
 
-        <Fieldset>
+        <Fieldset className="mb-1">
           <Field>
             <Label htmlFor="opc_ns">OPC Namespace</Label>
             <Input
@@ -272,6 +257,71 @@ function Name() {
               placeholder=""
               onChange={handleInputChange}
               defaultValue={env?.opc_ns ?? ""}
+            />
+          </Field>
+        </Fieldset>
+      </form>
+
+      <form
+        className="border border-gray-400 rounded-lg p-2 mb-2"
+        onSubmit={handleSubmit}
+      >
+        <Field>
+          <Heading level={3}>Duration</Heading>
+        </Field>
+
+        <Fieldset className="mb-1">
+          <Field>
+            <Label>Environment Observation Period</Label>
+            <Text>
+              How much time should pass in-between sensor readings?
+              <Badge className="ml-1">{mainConfig.env?.obs_period}</Badge>
+            </Text>
+            <DurationInput
+              onChange={handleDurationChange("env.obs_period")}
+              defaultValue={mainConfig.env?.obs_period ?? ""}
+            />
+          </Field>
+        </Fieldset>
+
+        <Fieldset className="mb-1">
+          <Field>
+            <Label>Agent Update Period</Label>
+            <Text>
+              How often should the agent perform a learning update?
+              <Badge className="ml-1">{mainConfig.env?.update_period}</Badge>
+            </Text>
+            <DurationInput
+              onChange={handleDurationChange("env.update_period")}
+              defaultValue={mainConfig.env?.update_period ?? ""}
+            />
+          </Field>
+        </Fieldset>
+
+        <Fieldset className="mb-1">
+          <Field>
+            <Label>Action Period</Label>
+            <Text>
+              How often should the agent emit a new set point?
+              <Badge className="ml-1">{mainConfig.env?.action_period}</Badge>
+            </Text>
+            <DurationInput
+              onChange={handleDurationChange("env.action_period")}
+              defaultValue={mainConfig.env?.action_period ?? ""}
+            />
+          </Field>
+        </Fieldset>
+
+        <Fieldset className="mb-1">
+          <Field>
+            <Label>Observation Staleness Tolearance</Label>
+            <Text>
+              How old can an observation be to reliably use for taking actions?
+              <Badge className="ml-1">{env?.action_tolerance}</Badge>
+            </Text>
+            <DurationInput
+              onChange={handleDurationChange("env.action_tolerance")}
+              defaultValue={env?.action_tolerance ?? ""}
             />
           </Field>
         </Fieldset>

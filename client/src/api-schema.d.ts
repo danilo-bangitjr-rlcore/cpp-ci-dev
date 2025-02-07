@@ -216,6 +216,11 @@ export interface components {
        */
       bias: number;
     };
+    /**
+     * Agg
+     * @enum {string}
+     */
+    Agg: "avg" | "last" | "bool_or";
     /** AllTheTimeTCConfig */
     AllTheTimeTCConfig: {
       /**
@@ -345,7 +350,7 @@ export interface components {
     /** Body_gen_config_file_api_configuration_file_post */
     Body_gen_config_file_api_configuration_file_post: {
       /** File */
-      file?: Blob | null;
+      file?: string | null;
     };
     /** Body_test_file_api_file_post */
     Body_test_file_api_file_post: {
@@ -353,7 +358,7 @@ export interface components {
        * File
        * Format: binary
        */
-      file: Blob;
+      file: string;
     };
     /** ClipConfig */
     ClipConfig: {
@@ -419,6 +424,11 @@ export interface components {
        * @default no_countdown
        */
       kind: string;
+      /**
+       * Normalize
+       * @default true
+       */
+      normalize: boolean;
     };
     /**
      * DataMode
@@ -477,6 +487,12 @@ export interface components {
        * @default |???|
        */
       opc_ns: number;
+      /** Client Cert Path */
+      client_cert_path?: string | null;
+      /** Client Private Key Path */
+      client_private_key_path?: string | null;
+      /** Server Cert Path */
+      server_cert_path?: string | null;
       /** @default |???| */
       db: components["schemas"]["TagDBConfig"];
       /**
@@ -512,6 +528,8 @@ export interface components {
       heartbeat?: components["schemas"]["HeartbeatConfig"];
       /** Warmup Period */
       warmup_period?: string | null;
+      /** Hist Chunk Start */
+      hist_chunk_start?: string | null;
     };
     /** EMAFilterConfig */
     EMAFilterConfig: {
@@ -550,7 +568,8 @@ export interface components {
         | components["schemas"]["RmspropConfig"]
         | components["schemas"]["AdamConfig"]
         | components["schemas"]["SgdConfig"]
-        | components["schemas"]["ArmijoAdamConfig"];
+        | components["schemas"]["ArmijoAdamConfig"]
+        | components["schemas"]["LSOConfig"];
       /** Buffer */
       buffer?:
         | components["schemas"]["UniformReplayBufferConfig"]
@@ -586,8 +605,20 @@ export interface components {
        * @default 1
        */
       ensemble: number;
-      bootstrap_reduct?: components["schemas"]["Reduct"];
-      policy_reduct?: components["schemas"]["Reduct"];
+      /** Bootstrap Reduct */
+      bootstrap_reduct?:
+        | components["schemas"]["MinReduct"]
+        | components["schemas"]["MaxReduct"]
+        | components["schemas"]["MeanReduct"]
+        | components["schemas"]["MedianReduct"]
+        | components["schemas"]["PercentileReduct"];
+      /** Policy Reduct */
+      policy_reduct?:
+        | components["schemas"]["MinReduct"]
+        | components["schemas"]["MaxReduct"]
+        | components["schemas"]["MeanReduct"]
+        | components["schemas"]["MedianReduct"]
+        | components["schemas"]["PercentileReduct"];
       /**
        * Vmap
        * @default false
@@ -1060,14 +1091,12 @@ export interface components {
       status: string;
       /**
        * Time
-       * @default 2025-02-04T20:25:49.182194+00:00
+       * @default 2025-02-06T23:26:26.057167+00:00
        */
       time: string;
     };
     /** HeartbeatConfig */
     HeartbeatConfig: {
-      /** Opc Conn Url */
-      opc_conn_url?: string | null;
       /** Heartbeat Node Id */
       heartbeat_node_id?: string | null;
       /**
@@ -1273,6 +1302,61 @@ export interface components {
        */
       tolerance: number;
     };
+    /** LSOConfig */
+    LSOConfig: {
+      /**
+       * Name
+       * @default lso
+       * @constant
+       */
+      name: "lso";
+      /**
+       * Lr
+       * @default 0.0001
+       */
+      lr: number;
+      /**
+       * Weight Decay
+       * @default 0
+       */
+      weight_decay: number;
+      /**
+       * Init Step Size
+       * @default 0.001
+       */
+      init_step_size: number;
+      /**
+       * Max Backtracking Steps
+       * @default 30
+       */
+      max_backtracking_steps: number;
+      /**
+       * Unit Norm Direction
+       * @default false
+       */
+      unit_norm_direction: boolean;
+      /**
+       * Fallback Step Size
+       * @default 0.0001
+       */
+      fallback_step_size: number;
+      optim?: components["schemas"]["OptimConfig"];
+      init?: components["schemas"]["LSOInitConfig"];
+      search_condition?: components["schemas"]["SearchConditionConfig"];
+    };
+    /** LSOInitConfig */
+    LSOInitConfig: {
+      /**
+       * Name
+       * @default To
+       */
+      name: string;
+      /**
+       * Step Size
+       * @default 0.1
+       */
+      step_size: number;
+    };
     /** LessThanConfig */
     LessThanConfig: {
       /**
@@ -1395,6 +1479,30 @@ export interface components {
        */
       training_missing_perc: number;
     };
+    /** MaxReduct */
+    MaxReduct: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      name: "max";
+    };
+    /** MeanReduct */
+    MeanReduct: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      name: "mean";
+    };
+    /** MedianReduct */
+    MedianReduct: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      name: "median";
+    };
     /** MetricsDBConfig */
     MetricsDBConfig: {
       /**
@@ -1452,6 +1560,14 @@ export interface components {
        * @default 1
        */
       lo_wm: number;
+    };
+    /** MinReduct */
+    MinReduct: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      name: "min";
     };
     /** MixedHistoryBufferConfig */
     MixedHistoryBufferConfig: {
@@ -1568,7 +1684,8 @@ export interface components {
         | components["schemas"]["RmspropConfig"]
         | components["schemas"]["AdamConfig"]
         | components["schemas"]["SgdConfig"]
-        | components["schemas"]["ArmijoAdamConfig"];
+        | components["schemas"]["ArmijoAdamConfig"]
+        | components["schemas"]["LSOConfig"];
       /** Buffer */
       buffer?:
         | components["schemas"]["UniformReplayBufferConfig"]
@@ -1621,6 +1738,24 @@ export interface components {
       /** Nodes */
       nodes: components["schemas"]["OpcNodeDetail"][];
     };
+    /** OptimConfig */
+    OptimConfig: {
+      /**
+       * Name
+       * @default |???|
+       */
+      name: string;
+      /**
+       * Lr
+       * @default 0.0001
+       */
+      lr: number;
+      /**
+       * Weight Decay
+       * @default 0
+       */
+      weight_decay: number;
+    };
     /** PandasMetricsConfig */
     PandasMetricsConfig: {
       /**
@@ -1651,6 +1786,29 @@ export interface components {
        * @enum {string}
        */
       name: "per-tag";
+    };
+    /** PercentileReduct */
+    PercentileReduct: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      name: "percentile";
+      /**
+       * Bootstrap Batch Size
+       * @default 10
+       */
+      bootstrap_batch_size: number;
+      /**
+       * Bootstrap Samples
+       * @default 10
+       */
+      bootstrap_samples: number;
+      /**
+       * Percentile
+       * @default 0.7
+       */
+      percentile: number;
     };
     /** PipelineConfig */
     PipelineConfig: {
@@ -1791,14 +1949,6 @@ export interface components {
       enabled: boolean;
       /** Tags */
       tags?: string[];
-    };
-    /** Reduct */
-    Reduct: {
-      /**
-       * Name
-       * @default |???|
-       */
-      name: string;
     };
     /** ReportConfig */
     ReportConfig: {
@@ -1983,6 +2133,38 @@ export interface components {
        * @default 1
        */
       factor: number;
+    };
+    /** SearchConditionConfig */
+    SearchConditionConfig: {
+      /**
+       * Name
+       * @default Armijo
+       */
+      name: string;
+      kwargs?: components["schemas"]["SearchConditionKwargsConfig"];
+    };
+    /** SearchConditionKwargsConfig */
+    SearchConditionKwargsConfig: {
+      /**
+       * C
+       * @default 0.1
+       */
+      c: number;
+      /**
+       * Beta
+       * @default 0.9
+       */
+      beta: number;
+      /**
+       * Min Step Size
+       * @default 0
+       */
+      min_step_size: number;
+      /**
+       * Max Step Size
+       * @default 1
+       */
+      max_step_size: number;
     };
     /** SgdConfig */
     SgdConfig: {
@@ -2199,8 +2381,10 @@ export interface components {
        * @default |???|
        */
       name: string;
+      /** @default avg */
+      agg: components["schemas"]["Agg"];
       /** Node Identifier */
-      node_identifier?: string | null;
+      node_identifier?: string | number | null;
       /**
        * Is Meta
        * @default false
@@ -2375,12 +2559,8 @@ export interface components {
        * @default public
        */
       table_schema: string;
-      /**
-       * Data Agg
-       * @default avg
-       * @enum {string}
-       */
-      data_agg: "avg" | "last" | "bool_or";
+      /** @default avg */
+      data_agg: components["schemas"]["Agg"];
     };
     /** TraceConfig */
     TraceConfig: {
