@@ -27,8 +27,6 @@ agent:
 
   critic:
     polyak: 0.995
-    critic_optimizer:
-      name: lso
     buffer:
       name: uniform
       seed: ${experiment.seed}
