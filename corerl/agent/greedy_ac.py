@@ -213,7 +213,7 @@ class GreedyAC(BaseAC):
 
     # --------------------------- critic updating-------------------------- #
 
-    def _compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> torch.Tensor:
+    def _compute_critic_loss(self, ensemble_batch: list[TransitionBatch], with_grad:bool=False) -> torch.Tensor:
         # First, translate ensemble batches in to list for each property
         ensemble_len = len(ensemble_batch)
         state_batches = []
@@ -265,7 +265,7 @@ class GreedyAC(BaseAC):
             next_qs = torch.cat(next_qs, dim=0)
 
         # Third, compute losses
-        _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True, bootstrap_reduct=True)
+        _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=with_grad, bootstrap_reduct=True)
         loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble_len):
             target =  reward_batches[i] + gamma_batches[i] * next_qs[i]
@@ -286,7 +286,7 @@ class GreedyAC(BaseAC):
 
         self._app_state.event_bus.emit_event(EventType.agent_update_critic)
         batches = self.critic_buffer.sample()
-        q_loss = self._compute_critic_loss(batches)
+        q_loss = self._compute_critic_loss(batches, with_grad=True)
 
         eval_batches = self.critic_buffer.sample()
         self.q_critic.update(q_loss, opt_kwargs={"closure": partial(self._compute_critic_loss, eval_batches)})
@@ -384,7 +384,7 @@ class GreedyAC(BaseAC):
         )
 
         # compute loss
-        loss = self._policy_err(policy, states_for_best_actions, best_actions)
+        loss = self._policy_err(policy, states_for_best_actions, best_actions, with_grad=True)
 
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
@@ -451,11 +451,17 @@ class GreedyAC(BaseAC):
         state_batch, action_batch = self._ensure_policy_batch(update_batch)
         self._update_policy(state_batch, action_batch, self.sampler, "sampler", self.rho_proposal)
 
-    def _policy_err(self, policy: BaseActor, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
+    def _policy_err(
+            self,
+            policy: BaseActor,
+            states: torch.Tensor,
+            actions: torch.Tensor,
+            with_grad:bool=False,
+        ) -> torch.Tensor:
         logp, _ = policy.get_log_prob(
             states,
             actions,
-            with_grad=True,
+            with_grad=with_grad,
         )
         return -logp.mean()
 
