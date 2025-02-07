@@ -71,6 +71,7 @@ function SetupIndex() {
       event.preventDefault();
     }
     if (file) {
+      reset();
       void uploadFile(file);
     }
   };
@@ -104,7 +105,7 @@ function SetupIndex() {
 
       <form
         className="border border-gray-400 rounded-lg p-2 mb-2"
-        onSubmit={() => handleFormUpload}
+        onSubmit={handleFormUpload}
       >
         <Fieldset className="col-span-full">
           <Legend className="block text-sm/6 font-medium text-gray-900">
