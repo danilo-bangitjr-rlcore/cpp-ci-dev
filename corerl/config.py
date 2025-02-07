@@ -18,14 +18,25 @@ from corerl.messages.factory import EventBusConfig
 
 @config()
 class MainConfig:
-    interaction: InteractionConfig = MISSING
+    # --------------------
+    # -- Infrastructure --
+    # --------------------
     metrics: MetricsConfig = Field(default_factory=MetricsDBConfig, discriminator='name')
     evals: EvalDBConfig = Field(default_factory=EvalDBConfig, discriminator='name')
     event_bus: EventBusConfig = Field(default_factory=EventBusConfig)
-    env: AsyncEnvConfig = MISSING
-    agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')
     experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
+    log_path: Path | None = None
+
+    # -----------
+    # -- Agent --
+    # -----------
+    env: AsyncEnvConfig = MISSING
+    interaction: InteractionConfig = MISSING
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
+    agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')
+
+    # ----------------
+    # -- Evaluation --
+    # ----------------
     eval_cfgs: EvalConfig = Field(default_factory=EvalConfig)
     report : ReportConfig = Field(default_factory=ReportConfig)
-    log_path: Path | None = None
