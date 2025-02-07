@@ -42,11 +42,8 @@ eval_cfgs:
 
 agent:
   name: greedy_ac
-  average_entropy: True
-  tau: 0.0 # Setting to 0 uses non-entropy version of proposal policy update
   n_critic_updates: 1
   n_actor_updates: 1
-  n_sampler_updates: 1
   num_samples: 100 # Number of actions sampled from proposal policy
   uniform_sampling_percentage: 0.8
   rho: 0.1

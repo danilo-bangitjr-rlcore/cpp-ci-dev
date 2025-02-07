@@ -106,7 +106,7 @@ class BaseAC(BaseAgent):
         self.v_critic: EnsembleVCritic = init_v_critic(cfg.critic, self.state_dim)
 
     @abstractmethod
-    def update_actor(self) -> tuple:
+    def update_actor(self) -> object:
         raise NotImplementedError
 
     @abstractmethod

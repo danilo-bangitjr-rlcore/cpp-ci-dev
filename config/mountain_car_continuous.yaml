@@ -25,7 +25,6 @@ agent:
   name: greedy_ac
   n_critic_updates: 1
   n_actor_updates: 1
-  n_sampler_updates: 1
   num_samples: 32
   uniform_sampling_percentage: 0.8
   discrete_control: ${env.discrete_control}
