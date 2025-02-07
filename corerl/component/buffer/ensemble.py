@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 @config()
 class EnsembleUniformReplayBufferConfig(BaseReplayBufferConfig):
     name: Literal["ensemble_uniform"] = "ensemble_uniform"
-    ensemble: int = 10 # Size of the ensemble
-    data_subset: float = 0.5 # Proportion of all transitions added to a given buffer in the ensemble
+    ensemble: int = 1 # Size of the ensemble
+    data_subset: float = 1.0 # Proportion of all transitions added to a given buffer in the ensemble
 
 
 class EnsembleUniformBuffer(ReplayBuffer):
