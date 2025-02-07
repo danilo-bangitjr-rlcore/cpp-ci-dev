@@ -38,8 +38,6 @@ agent:
     buffer:
       name: uniform
       seed: ${experiment.seed}
-    critic_optimizer:
-      name: lso
 
   actor:
     buffer:
