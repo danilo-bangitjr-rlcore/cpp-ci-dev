@@ -138,7 +138,7 @@ class IQL(BaseAC):
 
         return critic_losses
 
-    def update_actor(self) -> tuple:
+    def update_actor(self) -> object:
         for _ in range(self.n_actor_updates):
             batches = self.policy_buffer.sample()
             # Assuming we don't have an ensemble of policies
@@ -150,7 +150,7 @@ class IQL(BaseAC):
             ))
             self.actor.update(actor_loss)
 
-        return tuple()
+        return
 
     def update(self) -> list[float]:
         critic_loss = []

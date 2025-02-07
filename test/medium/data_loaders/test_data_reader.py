@@ -7,7 +7,7 @@ import pytest
 from pandas import DataFrame, DatetimeIndex, Series
 from sqlalchemy import Engine
 
-from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
+from corerl.data_pipeline.db.data_reader import Agg, DataReader, TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
 from test.medium.data_loaders.test_data_writer import write_n_random_vals
 
@@ -187,9 +187,9 @@ class TestDataReaderLogic:
             end_time=end_time,
             bucket_width=obs_period,
             tag_aggregations={
-                "avg_var": "avg",
-                "last_var": "last",
-                "bool_var": "bool_or"
+                "avg_var": Agg.avg,
+                "last_var": Agg.last,
+                "bool_var": Agg.bool_or
             }
         )
 
@@ -218,9 +218,9 @@ class TestDataReaderLogic:
             start_time=start_time,
             end_time=end_time,
             bucket_width=obs_period,
-            aggregation="avg",
+            aggregation=Agg.avg,
             tag_aggregations={
-                "last_var": "last",
+                "last_var": Agg.last,
             }
         )
 
@@ -276,7 +276,7 @@ class TestDataReader:
         end_time = now
         start_time = end_time - timedelta(minutes=5)
         result_df = data_reader.single_aggregated_read(
-            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time, aggregation="avg"
+            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time, aggregation=Agg.avg
         )
         assert TestDataReader.sensor_names == result_df.columns.tolist()
 
@@ -285,7 +285,7 @@ class TestDataReader:
         end_time = now
         start_time = end_time - timedelta(minutes=5)
         result_df = data_reader.single_aggregated_read(
-            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time, aggregation="last"
+            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time, aggregation=Agg.last
         )
         assert TestDataReader.sensor_names == result_df.columns.tolist()
 
@@ -298,7 +298,7 @@ class TestDataReader:
             start_time=start_time,
             end_time=end_time,
             bucket_width=timedelta(seconds=10),
-            aggregation="avg",
+            aggregation=Agg.avg,
         )
 
         self._ensure_names_included(result_df)
@@ -312,7 +312,7 @@ class TestDataReader:
             start_time=start_time,
             end_time=end_time,
             bucket_width=timedelta(seconds=10),
-            aggregation="last",
+            aggregation=Agg.last,
         )
 
         self._ensure_names_included(result_df)

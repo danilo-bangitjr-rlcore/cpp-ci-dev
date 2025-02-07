@@ -1,36 +1,25 @@
 import logging
 import shutil
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
-from typing import Literal
 
 import numpy as np
 import pandas as pd
-from pydantic import Field
 
 from corerl.agent.base import BaseAgent
-from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.eval.monte_carlo import MonteCarloEvaluator
+from corerl.interaction.configs import DepInteractionConfig
 from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
-from corerl.messages.heartbeat import Heartbeat, HeartbeatConfig
+from corerl.messages.heartbeat import Heartbeat
 from corerl.state import AppState
+from corerl.utils.maybe import Maybe
 from corerl.utils.time import clock_generator, split_into_chunks, wait_for_timestamp
 
 logger = logging.getLogger(__name__)
-
-@config()
-class DepInteractionConfig:
-    name: Literal["dep_interaction"] = "dep_interaction"
-    historical_batch_size: int = 10000
-    checkpoint_path: Path = Path('outputs/checkpoints')
-    restore_checkpoint: bool = True
-    heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
-    warmup_period: timedelta | None = None
 
 
 class DeploymentInteraction(Interaction):
@@ -45,7 +34,7 @@ class DeploymentInteraction(Interaction):
         assert isinstance(env, DeploymentAsyncEnv)
         self._cfg = cfg
 
-        self._heartbeat = Heartbeat(cfg.heartbeat)
+        self._heartbeat = Heartbeat(cfg.heartbeat, env.get_cfg())
         self._app_state = app_state
         self._pipeline = pipeline
         self._env = env
@@ -72,9 +61,12 @@ class DeploymentInteraction(Interaction):
         self._first_online_timestamp = datetime.now(UTC)
 
         time_stats = self._env.data_reader.get_time_stats()
+        chunk_start = Maybe(cfg.hist_chunk_start).or_else(time_stats.start).astimezone(UTC)
+        chunk_end = time_stats.end
+        logger.info(f"Offline chunks will be loaded from {chunk_start} to {chunk_end}")
         self._chunks = split_into_chunks(
-            time_stats.start,
-            time_stats.end,
+            chunk_start,
+            chunk_end,
             width=self.obs_period * cfg.historical_batch_size
         )
 
@@ -238,6 +230,7 @@ class DeploymentInteraction(Interaction):
             end_time=end_time,
             bucket_width=self.obs_period,
         )
+        logger.info(f"Loading chunk data from {chunk_data.index[0]} to {chunk_data.index[-1]}")
 
         pipeline_out = self._pipeline(
             data=chunk_data,

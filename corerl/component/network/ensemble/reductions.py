@@ -1,7 +1,8 @@
-from typing import Literal, Protocol
+from typing import Annotated, Literal, Protocol
 
 import numpy as np
 import torch
+from pydantic import Field
 
 from corerl.configs.config import MISSING, config
 from corerl.configs.group import Group
@@ -61,7 +62,7 @@ class PercentileReduct(Reduct):
     name: Literal['percentile'] = 'percentile'
     bootstrap_batch_size: int = 10
     bootstrap_samples: int = 10
-    percentile: float = 0.5
+    percentile: float = 0.7
 
 @bootstrap_reduct_group.dispatcher
 def percentile_bootstrap(
@@ -78,7 +79,7 @@ def percentile_bootstrap(
 
     # Randomly sampling integers from numpy is faster than from torch
     ind = np.random.randint(0, x.shape[dim], size)
-    samples = torch.gather(x, dim, torch.from_numpy(ind))
+    samples = torch.gather(x, dim, torch.from_numpy(ind).to(x.device))
 
     size = (
         *x.shape[:dim],
@@ -90,3 +91,11 @@ def percentile_bootstrap(
     bootstr_stat = statistic(samples, dim=(len(x.shape[:dim])))
 
     return torch.quantile(bootstr_stat, cfg.percentile, dim=dim)
+
+ReductConfig = Annotated[
+    MinReduct
+    | MaxReduct
+    | MeanReduct
+    | MedianReduct
+    | PercentileReduct
+, Field(discriminator='name')]

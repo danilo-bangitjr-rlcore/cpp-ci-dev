@@ -11,7 +11,11 @@ import corerl.component.layer as layer
 import corerl.component.network.utils as utils
 from corerl.component.layer.activations import ActivationConfig
 from corerl.component.network.base import BaseNetworkConfig
-from corerl.component.network.ensemble.reductions import MeanReduct, Reduct, bootstrap_reduct_group
+from corerl.component.network.ensemble.reductions import (
+    MeanReduct,
+    ReductConfig,
+    bootstrap_reduct_group,
+)
 from corerl.configs.config import config, list_
 from corerl.utils.device import device
 
@@ -35,10 +39,9 @@ class NNTorsoConfig(BaseNetworkConfig):
 class EnsembleCriticNetworkConfig(BaseNetworkConfig):
     name: Literal['ensemble'] = 'ensemble'
     ensemble: int = 1
-    bootstrap_reduct: Reduct = Field(default_factory=MeanReduct)
-    policy_reduct: Reduct = Field(default_factory=MeanReduct)
+    bootstrap_reduct: ReductConfig = Field(default_factory=MeanReduct)
+    policy_reduct: ReductConfig = Field(default_factory=MeanReduct)
     vmap: bool = False
-
     base: NNTorsoConfig = Field(default_factory=NNTorsoConfig)
 
 

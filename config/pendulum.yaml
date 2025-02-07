@@ -4,12 +4,13 @@ defaults:
 
 interaction:
   name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
 
 agent:
   name: greedy_ac
   n_critic_updates : 1
   n_actor_updates : 1
-  n_sampler_updates : 1
   num_samples: 32
   uniform_sampling_percentage: 0.8
   gamma: ${experiment.gamma}

@@ -9,16 +9,16 @@ report:
 
 interaction:
   name: dep_interaction
+  obs_period: 00:05:00
+  action_period: 01:00:00
   heartbeat:
     heartbeat_node_id: s=heartbeat
-    opc_conn_url: ${env.opc_conn_url}
 
 
 agent:
   name: greedy_ac
   n_critic_updates: 1
   n_actor_updates: 1
-  n_sampler_updates: 1
   num_samples: 32
   uniform_sampling_percentage: 0.8
   gamma: ${experiment.gamma}
@@ -57,7 +57,7 @@ experiment:
   seed: 1
   timeout: 0
   offline_steps: 10
-  pipeline_batch_duration_days: 1
+  pipeline_batch_duration: 7 days
   gamma: 0.99
 
 pipeline:

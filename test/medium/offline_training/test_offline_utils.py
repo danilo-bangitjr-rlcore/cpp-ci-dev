@@ -6,31 +6,16 @@ import pytest
 from sqlalchemy import Engine
 from torch import Tensor
 
-import corerl.main_utils as utils
 from corerl.agent.factory import init_agent
-from corerl.agent.greedy_ac import GreedyACConfig
-from corerl.component.actor.network_actor import NetworkActorConfig
-from corerl.component.buffer.uniform import UniformReplayBufferConfig
-from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
-from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.config import MainConfig
-from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
-from corerl.data_pipeline.constructors.sc import SCConfig
+from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.datatypes import DataMode, Step, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
-from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
-from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
-from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transforms import LessThanConfig, NullConfig
+from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
-from corerl.data_pipeline.transition_filter import TransitionFilterConfig
-from corerl.eval.actor_critic import ActorCriticEvalConfig
-from corerl.eval.config import EvalConfig
 from corerl.eval.evals import EvalDBConfig, evals_group
 from corerl.eval.metrics import MetricsDBConfig, metrics_group
-from corerl.eval.monte_carlo import MonteCarloEvalConfig
-from corerl.experiment.config import ExperimentConfig
 from corerl.messages.event_bus import EventBus
 from corerl.offline.utils import OfflineTraining
 from corerl.sql_logging.sql_logging import table_exists
@@ -65,102 +50,20 @@ def data_writer(test_db_config: TagDBConfig):
 
 @pytest.fixture(scope="function")
 def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
-    obs_period = dt.timedelta(seconds=60)
-    action_period = 2*obs_period
-    seed = 0
-
-    cfg = MainConfig(
-        metrics=MetricsDBConfig(
-            enabled=True,
-            port=test_db_config.port,
-            db_name=test_db_config.db_name,
-            lo_wm=0
-        ),
-        evals=EvalDBConfig(
-            enabled=True,
-            port=test_db_config.port,
-            db_name=test_db_config.db_name,
-            lo_wm=0
-        ),
-        eval_cfgs=EvalConfig(
-            actor_critic=ActorCriticEvalConfig(
-                enabled=True,
-                num_test_states=1,
-                num_uniform_actions=10,
-                critic_samples=2
-            ),
-            monte_carlo=MonteCarloEvalConfig(
-                enabled=True,
-                precision=0.2,
-                gamma=0.9,
-            )
-        ),
-        agent=GreedyACConfig(
-            actor=NetworkActorConfig(
-                buffer=UniformReplayBufferConfig(
-                    seed=seed
-                )
-            ),
-            critic=EnsembleCriticConfig(
-                buffer=UniformReplayBufferConfig(
-                    seed=seed
-                ),
-                critic_optimizer=AdamConfig(
-                    lr=0.0001,
-                    weight_decay=0.1
-                )
-            )
-        ),
-        experiment=ExperimentConfig(
-            gamma=0.9,
-            offline_steps=100,
-            offline_eval_iters=[0]
-        ),
-        pipeline=PipelineConfig(
-            tags=[
-                TagConfig(
-                    name="Action",
-                    preprocess=[],
-                    state_constructor=[NullConfig()],
-                    action_constructor=[],
-                    operating_range=(0.0, 1.0)
-                ),
-                TagConfig(
-                    name="Tag_1",
-                    preprocess=[],
-                    reward_constructor=[
-                        LessThanConfig(threshold=3),
-                    ],
-                ),
-                TagConfig(
-                    name="reward",
-                    preprocess=[],
-                    state_constructor=[NullConfig()],
-                ),
-            ],
-            db=test_db_config,
-            obs_period=obs_period,
-            action_period=action_period,
-            state_constructor=SCConfig(
-                defaults=[],
-                countdown=CountdownConfig(
-                    action_period=action_period,
-                    obs_period=obs_period
-                ),
-            ),
-            transition_creator=AllTheTimeTCConfig(
-                gamma=0.9,
-                min_n_step=1,
-                max_n_step=2,
-            ),
-            transition_filter=TransitionFilterConfig(
-                filters=[
-                    'only_no_action_change',
-                    'no_nan'
-                ]
-            )
-        )
+    cfg = direct_load_config(
+        MainConfig,
+        base='test/medium/offline_training/assets',
+        config_name='offline_config.yaml',
     )
+    cfg.pipeline.db = test_db_config
+
+    assert isinstance(cfg.metrics, MetricsDBConfig)
+    cfg.metrics.port = test_db_config.port
+    cfg.metrics.db_name = test_db_config.db_name
+
+    assert isinstance(cfg.evals, EvalDBConfig)
+    cfg.evals.port = test_db_config.port
+    cfg.evals.db_name = test_db_config.db_name
 
     return cfg
 
@@ -170,7 +73,7 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter) -> Offline
     Generate offline data for tests and return the OfflineTraining object
     """
     steps = 5
-    obs_period = offline_cfg.pipeline.obs_period
+    obs_period = offline_cfg.interaction.obs_period
 
     # Generate timestamps
     step_timestamps = []
@@ -184,7 +87,7 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter) -> Offline
 
     # Generate tag data and write to tsdb
     steps_per_decision = int(
-        offline_cfg.pipeline.action_period.total_seconds() / offline_cfg.pipeline.obs_period.total_seconds()
+        offline_cfg.interaction.action_period.total_seconds() / offline_cfg.interaction.obs_period.total_seconds()
     )
     for i in range(steps):
         for tag_cfg in offline_cfg.pipeline.tags:
@@ -199,8 +102,7 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter) -> Offline
     data_writer.blocking_sync()
 
     # Produce offline transitions
-    save_path = utils.prepare_save_dir(offline_cfg)
-    offline_training = OfflineTraining(offline_cfg, save_path, start_time=start_time)
+    offline_training = OfflineTraining(offline_cfg, start_time=start_time)
     pipeline = Pipeline(offline_cfg.pipeline)
     offline_training.load_offline_transitions(pipeline)
 
@@ -258,6 +160,8 @@ def test_offline_training(offline_cfg: MainConfig,
     assert last_loss < first_loss
 
     # ensure metrics and evals tables exist
+    app_state.metrics.close()
+    app_state.evals.close()
     assert table_exists(tsdb_engine, 'metrics')
     assert table_exists(tsdb_engine, 'evals')
 

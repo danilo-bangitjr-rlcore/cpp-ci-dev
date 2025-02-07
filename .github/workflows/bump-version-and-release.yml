@@ -39,9 +39,10 @@ jobs:
     # related to Github releases and asset generation
     - if: ${{ env.PREVIOUS_REVISION != env.REVISION }}
       name: Install uv
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
+        prune-cache: false
         cache-dependency-glob: "uv.lock"
 
     - if: ${{ env.PREVIOUS_REVISION != env.REVISION }}
@@ -92,9 +93,10 @@ jobs:
           python-version: "3.12"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          prune-cache: false
           cache-dependency-glob: "uv.lock"
 
       - uses: webfactory/ssh-agent@v0.7.0

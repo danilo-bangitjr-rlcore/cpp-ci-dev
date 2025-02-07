@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import logging
 import warnings
@@ -6,14 +8,13 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
-from typing import Any, Callable, Self, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Self, Tuple
 
-import numpy as np
 import pandas as pd
 from pandas import DataFrame
 from pydantic import Field
 
-from corerl.configs.config import config, interpolate, list_
+from corerl.configs.config import MISSING, computed, config, list_
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
@@ -33,6 +34,9 @@ from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionF
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 from corerl.data_pipeline.zones import default_configs_from_zones
 
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
+
 logger = logging.getLogger(__name__)
 register_dispatchers()
 
@@ -41,14 +45,18 @@ register_dispatchers()
 class PipelineConfig:
     tags: list[TagConfig] = list_()
     db: TagDBConfig = Field(default_factory=TagDBConfig)
-    obs_period: timedelta = interpolate('${env.obs_period}')
-    action_period: timedelta = interpolate('${env.action_period}')
+    max_data_gap: timedelta = MISSING
 
     # stage-wide configs
     imputer: ImputerStageConfig = Field(default_factory=PerTagImputerConfig)
     state_constructor: SCConfig = Field(default_factory=SCConfig)
     transition_creator: AllTheTimeTCConfig = Field(default_factory=AllTheTimeTCConfig)
     transition_filter: TransitionFilterConfig = Field(default_factory=TransitionFilterConfig)
+
+    @computed('max_data_gap')
+    @classmethod
+    def _max_data_gap(cls, cfg: MainConfig):
+        return 2 * cfg.interaction.obs_period
 
 @dataclass
 class PipelineReturn:
@@ -110,15 +118,7 @@ class Pipeline:
     def __init__(self, cfg: PipelineConfig):
         # sanity checking
         cfg = self._construct_config(cfg)
-
-        steps_per_decision = int(cfg.action_period.total_seconds() / cfg.obs_period.total_seconds())
-        assert np.isclose(
-            steps_per_decision, cfg.action_period.total_seconds() / cfg.obs_period.total_seconds()
-        ), "action period must be a multiple of obs period"
-
-        self.valid_thresh: datetime.timedelta = 2 * cfg.obs_period
-        if cfg.transition_creator.max_n_step is None:
-            cfg.transition_creator.max_n_step = steps_per_decision
+        self.cfg = cfg
         self.tags = cfg.tags
 
         # initialization all stateful stages
@@ -142,8 +142,12 @@ class Pipeline:
         self.ts_dict: dict[DataMode, TemporalState | None] = {data_mode: None for data_mode in DataMode}
         self.dt_dict: dict[DataMode, datetime.datetime | None] = {data_mode: None for data_mode in DataMode}
 
-        self._hooks: dict[DataMode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
+        self._pre_invoke_hooks: dict[DataMode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
             data_mode: defaultdict(list) for data_mode in DataMode}
+
+        self._post_invoke_hooks: dict[DataMode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
+            data_mode: defaultdict(list) for data_mode in DataMode}
+
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
             StageCode.INIT:       lambda pf: pf,
             StageCode.FILTER:     self.conditional_filter,
@@ -188,7 +192,7 @@ class Pipeline:
             return {}
 
         first_time = pf.get_first_timestamp()
-        if first_time - last_seen_time > self.valid_thresh:
+        if first_time - last_seen_time > self.cfg.max_data_gap:
             warnings.warn(
                 "The temporal state is invalid. "
                 f"The temporal state has timestamp {last_seen_time} "
@@ -225,9 +229,12 @@ class Pipeline:
 
         pf = invoke_stage_per_tag(pf, self.missing_data_checkers)
         for stage in stages:
+            for hook in self._pre_invoke_hooks[data_mode][stage]:
+                hook(pf)
+
             pf = self._stage_invokers[stage](pf)
 
-            for hook in self._hooks[data_mode][stage]:
+            for hook in self._post_invoke_hooks[data_mode][stage]:
                 hook(pf)
 
         self.dt_dict[data_mode] = pf.get_last_timestamp()
@@ -255,15 +262,22 @@ class Pipeline:
             data_modes: DataMode | list[DataMode],
             stages: StageCode | list[StageCode],
             f: Callable[[PipelineFrame], Any],
+            order: str = 'post',
         ):
         if isinstance(data_modes, DataMode):
             data_modes = [data_modes]
         if isinstance(stages, StageCode):
             stages = [stages]
 
+        assert order == 'post' or order == 'pre'
+        if order == 'post':
+            hook_dict = self._post_invoke_hooks
+        else:
+            hook_dict = self._pre_invoke_hooks
+
         for data_mode in data_modes:
             for stage in stages:
-                self._hooks[data_mode][stage].append(f)
+               hook_dict[data_mode][stage].append(f)
 
     def reset(self):
         if hasattr(self.state_constructor, 'reset'):

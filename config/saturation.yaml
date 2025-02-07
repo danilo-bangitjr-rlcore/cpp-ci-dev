@@ -4,6 +4,8 @@ defaults:
 
 interaction:
   name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
 
 experiment :
   exp_name : "saturation"
@@ -25,7 +27,6 @@ metrics:
 
 agent:
   name: greedy_ac
-  tau : 0
   rho : 0.05
   num_samples: 100
   seed: ${experiment.seed}
@@ -96,8 +97,6 @@ pipeline:
     is_meta: False
     outlier:
       name: identity
-    preprocess:
-      - name: identity
     state_constructor:
     - name: multi_trace
       trace_values: [0.95]

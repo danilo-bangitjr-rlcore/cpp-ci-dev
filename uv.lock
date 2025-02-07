@@ -229,7 +229,7 @@ wheels = [
 
 [[package]]
 name = "corerl"
-version = "0.56.0"
+version = "0.75.2"
 source = { editable = "." }
 dependencies = [
     { name = "asyncua" },
@@ -263,17 +263,11 @@ dependencies = [
     { name = "tqdm" },
 ]
 
-[package.optional-dependencies]
-linesearchopt-gh = [
-    { name = "linesearchopt" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "boto3" },
     { name = "debugpy" },
     { name = "docker" },
-    { name = "linesearchopt" },
     { name = "pip" },
     { name = "pyright" },
     { name = "pytest" },
@@ -296,7 +290,6 @@ requires-dist = [
     { name = "gymnasium", specifier = "~=1.0" },
     { name = "influxdb-client", specifier = "~=1.39" },
     { name = "jaxtyping", specifier = "~=0.2" },
-    { name = "linesearchopt", marker = "extra == 'linesearchopt-gh'", git = "ssh://git@github.com/rlcoretech/linesearchopt.git" },
     { name = "matplotlib", specifier = "~=3.8" },
     { name = "nltk", specifier = "~=3.8" },
     { name = "numba", specifier = "~=0.60" },
@@ -324,7 +317,6 @@ dev = [
     { name = "boto3", specifier = ">=1.36.7" },
     { name = "debugpy", specifier = ">=1.8.12" },
     { name = "docker", specifier = ">=7.1.0" },
-    { name = "linesearchopt", git = "ssh://git@github.com/rlcoretech/linesearchopt.git" },
     { name = "pip", specifier = ">=25.0" },
     { name = "pyright", specifier = ">=1.1.392.post0" },
     { name = "pytest", specifier = ">=8.3.4" },
@@ -736,15 +728,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/32/d8/014b89fee5d4dce157d814303b0fce4d31385a2af4c41fed194b173b81ac/kiwisolver-1.4.8-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:085940635c62697391baafaaeabdf3dd7a6c3643577dde337f4d66eba021b2b8", size = 2338410 },
     { url = "https://files.pythonhosted.org/packages/bd/72/dfff0cc97f2a0776e1c9eb5bef1ddfd45f46246c6533b0191887a427bca5/kiwisolver-1.4.8-cp312-cp312-win_amd64.whl", hash = "sha256:01c3d31902c7db5fb6182832713d3b4122ad9317c2c5877d0539227d96bb2e50", size = 71853 },
     { url = "https://files.pythonhosted.org/packages/dc/85/220d13d914485c0948a00f0b9eb419efaf6da81b7d72e88ce2391f7aed8d/kiwisolver-1.4.8-cp312-cp312-win_arm64.whl", hash = "sha256:a3c44cb68861de93f0c4a8175fbaa691f0aa22550c331fefef02b618a9dcb476", size = 65424 },
-]
-
-[[package]]
-name = "linesearchopt"
-version = "0.0.2"
-source = { git = "ssh://git@github.com/rlcoretech/linesearchopt.git#08ad61d06c3b45096b3290b4ff0566d23eda2f00" }
-dependencies = [
-    { name = "numpy" },
-    { name = "torch" },
 ]
 
 [[package]]

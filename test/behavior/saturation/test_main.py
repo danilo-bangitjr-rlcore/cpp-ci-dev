@@ -8,11 +8,14 @@ from sqlalchemy import Engine
 from corerl.sql_logging.sql_logging import table_exists
 
 
-@pytest.mark.parametrize('overrides,expected_outcomes', [
-    ({}, {'reward': -0.2, 'critic_loss': 0.02, 'actor_loss': -1.0}),
+@pytest.mark.parametrize('config,overrides,expected_outcomes', [
+    ('config.yaml',     {},   {'reward': -0.2, 'critic_loss': 0.02, 'actor_loss': -1.0}),
+    ('lso_config.yaml', {},   {'reward': -0.2, 'critic_loss': 0.02, 'actor_loss': -1.0}),
+    ('lso_delta.yaml',  {},   {'reward': -0.25, 'critic_loss': 0.005, 'actor_loss': -1.0}),
 ])
 @pytest.mark.timeout(900)
 def test_saturation(
+    config: str,
     overrides: dict[str, object],
     expected_outcomes: dict[str, float],
     tsdb_engine: Engine,
@@ -30,7 +33,7 @@ def test_saturation(
     proc = subprocess.run([
         'uv', 'run', 'python', 'main.py',
         '--base', 'test/behavior/saturation/',
-        '--config-name', 'config.yaml',
+        '--config-name', config,
     ] + parts)
     proc.check_returncode()
 
