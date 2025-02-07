@@ -400,11 +400,22 @@ class GreedyAC(BaseAC):
             value=loss,
         )
 
+        # sample another batch for the evaluation of updates when using line search.
+        eval_states, eval_actions = self._ensure_policy_batch()
+        eval_states, eval_actions, _ = self._get_top_n_sampled_actions(
+            state_batch=eval_states,
+            action_batch=eval_actions,
+            n_samples=self.num_samples,
+            percentile=percentile,
+            uniform_weight=self.uniform_sampling_percentage,
+            sampler=self.sampler,
+        )
+
         # apply the update
         policy.update(
             loss,
             opt_kwargs={
-                "closure": partial(self._policy_err, policy, states_for_best_actions, best_actions),
+                "closure": partial(self._policy_err, policy, eval_states, eval_actions),
             },
         )
 
