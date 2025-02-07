@@ -3,7 +3,7 @@ import { useContext } from "react";
 import { type components } from "../../api-schema";
 import { Badge } from "../../components/badge";
 import DurationInput from "../../components/duration";
-import { Field, Fieldset, Label } from "../../components/fieldset";
+import { Field, FieldGroup, Fieldset, Label } from "../../components/fieldset";
 import { Heading } from "../../components/heading";
 import { Input } from "../../components/input";
 import { SetupConfigNav } from "../../components/setup/setup-config-nav";
@@ -16,10 +16,10 @@ import {
 } from "../../utils/main-config";
 
 export const Route = createFileRoute("/setup/general_config")({
-  component: Name,
+  component: GeneralConfig,
 });
 
-function Name() {
+function GeneralConfig() {
   const { mainConfig, setMainConfig } = useContext(MainConfigContext);
   // Type assertion of sub-parts of mainConfig
   const env = mainConfig.env as DeepPartial<
@@ -29,11 +29,22 @@ function Name() {
     components["schemas"]["MetricsDBConfig"]
   >;
 
-  const handleDurationChange = (path: string) => (isoDuration: string) => {
-    setMainConfig((prevMainConfig: DeepPartialMainConfig) =>
-      setValFromPath(prevMainConfig, path, isoDuration, "duration"),
-    );
-  };
+  const handleDurationChange =
+    (path: string | string[]) => (isoDuration: string) => {
+      setMainConfig((prevMainConfig: DeepPartialMainConfig) => {
+        const paths = [];
+        if (typeof path === "string") {
+          paths.push(path);
+        } else {
+          paths.push(...path);
+        }
+        let newConfig = structuredClone(prevMainConfig);
+        for (const p of paths) {
+          newConfig = setValFromPath(newConfig, p, isoDuration, "duration");
+        }
+        return newConfig;
+      });
+    };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputType = e.target.getAttribute("type")!;
@@ -47,21 +58,14 @@ function Name() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
-
   return (
     <div className="p-2">
-      <form
-        className="border border-gray-400 rounded-lg p-2 mb-2"
-        onSubmit={handleSubmit}
-      >
+      <Fieldset className="border border-gray-400 rounded-lg p-2 mb-2">
         <Field>
           <Heading level={3}>Experiment</Heading>
         </Field>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label htmlFor="exp_name">Experiment Name</Label>
             <Input
@@ -73,18 +77,15 @@ function Name() {
               defaultValue={mainConfig.experiment?.exp_name ?? ""}
             />
           </Field>
-        </Fieldset>
-      </form>
+        </FieldGroup>
+      </Fieldset>
 
-      <form
-        className="border border-gray-400 rounded-lg p-2 mb-2"
-        onSubmit={handleSubmit}
-      >
+      <Fieldset className="border border-gray-400 rounded-lg p-2 mb-2">
         <Field>
           <Heading level={3}>Database</Heading>
         </Field>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label htmlFor="drivername">Driver name</Label>
             <Input
@@ -96,9 +97,9 @@ function Name() {
               defaultValue={mainConfig.pipeline?.db?.drivername ?? ""}
             />
           </Field>
-        </Fieldset>
+        </FieldGroup>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label htmlFor="username">Username</Label>
             <Input
@@ -110,23 +111,24 @@ function Name() {
               defaultValue={mainConfig.pipeline?.db?.username ?? ""}
             />
           </Field>
-        </Fieldset>
+        </FieldGroup>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               name="pipeline.db.password,metrics.password,env.db.password"
               type="password"
+              autoComplete="off"
               placeholder=""
               onChange={handleInputChange}
               defaultValue={mainConfig.pipeline?.db?.password ?? ""}
             />
           </Field>
-        </Fieldset>
+        </FieldGroup>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label htmlFor="ip">IP</Label>
             <Input
@@ -138,9 +140,9 @@ function Name() {
               defaultValue={mainConfig.pipeline?.db?.ip ?? ""}
             />
           </Field>
-        </Fieldset>
+        </FieldGroup>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label htmlFor="port">Port</Label>
             <Input
@@ -152,9 +154,9 @@ function Name() {
               defaultValue={mainConfig.pipeline?.db?.port ?? ""}
             />
           </Field>
-        </Fieldset>
+        </FieldGroup>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label htmlFor="db_name">Database Name</Label>
             <Input
@@ -166,9 +168,9 @@ function Name() {
               defaultValue={mainConfig.pipeline?.db?.db_name ?? ""}
             />
           </Field>
-        </Fieldset>
+        </FieldGroup>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label htmlFor="table_schema">Table Schema</Label>
             <Input
@@ -180,9 +182,9 @@ function Name() {
               defaultValue={mainConfig.pipeline?.db?.table_schema ?? ""}
             />
           </Field>
-        </Fieldset>
+        </FieldGroup>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label htmlFor="table_name">Table Name</Label>
             <Input
@@ -194,9 +196,9 @@ function Name() {
               defaultValue={mainConfig.pipeline?.db?.table_name ?? ""}
             />
           </Field>
-        </Fieldset>
+        </FieldGroup>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label htmlFor="metrics_table_name">Metrics Table Name</Label>
             <Input
@@ -208,9 +210,9 @@ function Name() {
               defaultValue={metrics?.table_name ?? ""}
             />
           </Field>
-        </Fieldset>
+        </FieldGroup>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label htmlFor="metrics_lo_wm">Metrics Low Water Mark</Label>
             <Input
@@ -222,18 +224,15 @@ function Name() {
               defaultValue={metrics?.lo_wm ?? ""}
             />
           </Field>
-        </Fieldset>
-      </form>
+        </FieldGroup>
+      </Fieldset>
 
-      <form
-        className="border border-gray-400 rounded-lg p-2 mb-2"
-        onSubmit={handleSubmit}
-      >
+      <Fieldset className="border border-gray-400 rounded-lg p-2 mb-2">
         <Field>
           <Heading level={3}>OPC</Heading>
         </Field>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label htmlFor="opc_conn_url">OPC Connection URL</Label>
             <Input
@@ -245,9 +244,9 @@ function Name() {
               defaultValue={env?.opc_conn_url ?? ""}
             />
           </Field>
-        </Fieldset>
+        </FieldGroup>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label htmlFor="opc_ns">OPC Namespace</Label>
             <Input
@@ -259,18 +258,15 @@ function Name() {
               defaultValue={env?.opc_ns ?? ""}
             />
           </Field>
-        </Fieldset>
-      </form>
+        </FieldGroup>
+      </Fieldset>
 
-      <form
-        className="border border-gray-400 rounded-lg p-2 mb-2"
-        onSubmit={handleSubmit}
-      >
+      <Fieldset className="border border-gray-400 rounded-lg p-2 mb-2">
         <Field>
           <Heading level={3}>Duration</Heading>
         </Field>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label>Environment Observation Period</Label>
             <Text>
@@ -278,13 +274,16 @@ function Name() {
               <Badge className="ml-1">{mainConfig.env?.obs_period}</Badge>
             </Text>
             <DurationInput
-              onChange={handleDurationChange("env.obs_period")}
+              onChange={handleDurationChange([
+                "env.obs_period",
+                "interaction.obs_period",
+              ])}
               defaultValue={mainConfig.env?.obs_period ?? ""}
             />
           </Field>
-        </Fieldset>
+        </FieldGroup>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label>Agent Update Period</Label>
             <Text>
@@ -296,9 +295,9 @@ function Name() {
               defaultValue={mainConfig.env?.update_period ?? ""}
             />
           </Field>
-        </Fieldset>
+        </FieldGroup>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label>Action Period</Label>
             <Text>
@@ -306,13 +305,16 @@ function Name() {
               <Badge className="ml-1">{mainConfig.env?.action_period}</Badge>
             </Text>
             <DurationInput
-              onChange={handleDurationChange("env.action_period")}
+              onChange={handleDurationChange([
+                "env.action_period",
+                "interaction.action_period",
+              ])}
               defaultValue={mainConfig.env?.action_period ?? ""}
             />
           </Field>
-        </Fieldset>
+        </FieldGroup>
 
-        <Fieldset className="mb-1">
+        <FieldGroup className="mb-1">
           <Field>
             <Label>Observation Staleness Tolearance</Label>
             <Text>
@@ -324,8 +326,8 @@ function Name() {
               defaultValue={env?.action_tolerance ?? ""}
             />
           </Field>
-        </Fieldset>
-      </form>
+        </FieldGroup>
+      </Fieldset>
       <SetupConfigNav />
     </div>
   );

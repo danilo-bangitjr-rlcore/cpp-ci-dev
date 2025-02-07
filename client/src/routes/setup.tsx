@@ -8,7 +8,7 @@ import { type components } from "../api-schema";
 import { useLocalForage } from "../utils/local-forage";
 import {
   type DeepPartial,
-  loadMainConfigHiddenDefaults,
+  loadMainConfigDefaults,
   MainConfigContext,
   MainConfigStepsContext,
 } from "../utils/main-config";
@@ -18,13 +18,13 @@ import { Heading } from "../components/heading";
 import { Text } from "../components/text";
 
 export const Route = createFileRoute("/setup")({
-  component: RouteComponent,
+  component: Setup,
 });
 
-function RouteComponent() {
+function Setup() {
   const [mainConfig, setMainConfig] = useLocalForage<
     DeepPartial<components["schemas"]["MainConfig"]>
-  >("main_config", loadMainConfigHiddenDefaults({}));
+  >("main_config", loadMainConfigDefaults());
 
   const { pathname: currentPathName } = useLocation();
 

@@ -33,7 +33,7 @@ app.add_middleware(
 
 class HealthResponse(BaseModel):
     status: str = "OK"
-    time: str = datetime.now(tz=UTC).isoformat()
+    time: str = datetime(year=2025, month=1, day=1, tzinfo=UTC).isoformat()
 
 
 class MessageResponse(BaseModel):
@@ -59,11 +59,6 @@ class OpcNodeResponse(BaseModel):
 )
 async def health():
     return {"status": "OK", "time": f"{datetime.now(tz=UTC).isoformat()}"}
-
-
-@app.post("/api/file")
-async def test_file(file: UploadFile):
-    return {"filename": file.filename}
 
 
 @app.post(
@@ -118,14 +113,14 @@ async def gen_config_file(request: Request, file: UploadFile | None = None):
             # workaround for string input, yaml.safe_load may return a string if the payload is enclosed in a string
             data = yaml.safe_load(data)
     else:
-        raise HTTPException(status_code=415, detail="Unsupported Media Type")
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail="Unsupported Media Type")
 
     try:
         res_config = config_from_dict(MainConfig, data)
         json_config = json.loads(config_to_json(MainConfig, res_config))
     except Exception as e:
         tb = traceback.format_exc()
-        raise HTTPException(status_code=400, detail=f"{str(e)}\n\n{tb}") from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{str(e)}\n\n{tb}") from e
 
     accept_header = request.headers.get("accept")
     if accept_header is not None and "application/yaml" in accept_header:

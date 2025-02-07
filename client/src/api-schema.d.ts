@@ -21,23 +21,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/file": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Test File */
-        post: operations["test_file_api_file_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/configuration/file": {
         parameters: {
             query?: never;
@@ -340,14 +323,6 @@ export interface components {
         Body_gen_config_file_api_configuration_file_post: {
             /** File */
             file?: Blob | null;
-        };
-        /** Body_test_file_api_file_post */
-        Body_test_file_api_file_post: {
-            /**
-             * File
-             * Format: binary
-             */
-            file: Blob;
         };
         /** ClipConfig */
         ClipConfig: {
@@ -1092,7 +1067,7 @@ export interface components {
             status: string;
             /**
              * Time
-             * @default 2025-02-07T16:05:59.734323+00:00
+             * @default 2025-01-01T00:00:00+00:00
              */
             time: string;
         };
@@ -2513,39 +2488,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": string;
-                };
-            };
-        };
-    };
-    test_file_api_file_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_test_file_api_file_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

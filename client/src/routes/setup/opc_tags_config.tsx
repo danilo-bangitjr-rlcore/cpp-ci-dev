@@ -1,36 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-// import { useContext } from "react";
-import { Field, Fieldset, Legend } from "../../components/fieldset";
+import { Field, Fieldset, Label, Legend } from "../../components/fieldset";
 import { SetupConfigNav } from "../../components/setup/setup-config-nav";
 import { Text } from "../../components/text";
-// import { MainConfigContext } from "../../utils/main-config";
-import { Heading } from "../../components/heading";
 
 export const Route = createFileRoute("/setup/opc_tags_config")({
-  component: StubRequired,
+  component: OPCTagsConfig,
 });
 
-function StubRequired() {
-  // const { mainConfig, setMainConfig } = useContext(MainConfigContext);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
-
+function OPCTagsConfig() {
   return (
     <div className="p-2">
-      <form
-        className="border border-gray-400 rounded-lg p-2 mb-2"
-        onSubmit={handleSubmit}
-      >
+      <Fieldset className="border border-gray-400 rounded-lg p-2 mb-2">
+        <Legend>OPC Tags</Legend>
         <Field>
-          <Heading level={3}>OPC Tags</Heading>
-        </Field>
-        <Fieldset>
-          <Legend>TBD</Legend>
+          <Label>TBD</Label>
           <Text>...</Text>
-        </Fieldset>
-      </form>
+        </Field>
+      </Fieldset>
       <SetupConfigNav />
     </div>
   );

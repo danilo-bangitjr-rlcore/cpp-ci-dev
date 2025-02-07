@@ -65,12 +65,64 @@ export const setValFromPath = (
   return newMainConfig;
 };
 
-export const loadMainConfigHiddenDefaults = (
-  prevMainConfig: DeepPartialMainConfig,
+/**
+ * Provide default values for our MainConfig inputs. This should be sufficient to generate our structurally valid MainConfig yaml.
+ * Refer to: corerl/config.py for baseline structure pydantic model.
+ * @param prevMainConfig
+ * @returns
+ */
+export const loadMainConfigDefaults = (
+  prevMainConfig: DeepPartialMainConfig = {},
 ) => {
   const newMainConfig = structuredClone(prevMainConfig);
 
-  // Hidden defaults
+  type DatabaseCommon = Omit<components["schemas"]["TagDBConfig"], "data_agg">;
+
+  // shared default database stub
+  const database_common: DatabaseCommon = {
+    enabled: true,
+    drivername: "postgresql+psycopg2",
+    username: "postgres",
+    password: "password",
+    ip: "localhost",
+    port: 5432,
+    db_name: "postgres",
+    table_schema: "public",
+    table_name: "opc_ua",
+  };
+
+  // corerl/interaction/factory.py
+  newMainConfig.interaction = {
+    ...(newMainConfig.interaction ?? {}),
+    name: "dep_interaction",
+    action_period: "PT5M",
+    obs_period: "PT5M",
+  } as DeepPartial<components["schemas"]["DepInteractionConfig"]>;
+
+  // corerl/eval/metrics.py
+  newMainConfig.metrics = {
+    ...(newMainConfig.metrics ?? {}),
+    ...database_common,
+    name: "db",
+    table_name: "metrics",
+    lo_wm: 5,
+  } as DeepPartial<components["schemas"]["MetricsDBConfig"]>;
+
+  // corerl/environment/async_env/factory.py
+  // client only supports generating DepAsyncEnvConfig
+  newMainConfig.env = {
+    ...(newMainConfig.env ?? {}),
+    discrete_control: false,
+    db: database_common,
+    opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/",
+    opc_ns: 2,
+    obs_period: "PT5M",
+    update_period: "PT5M",
+    action_period: "PT5M",
+    action_tolerance: "PT5M",
+  } as DeepPartial<components["schemas"]["DepAsyncEnvConfig"]>;
+
+  // corerl/agent/__init__.py
   newMainConfig.agent = {
     name: "greedy_ac",
     n_critic_updates: 1,
@@ -100,68 +152,22 @@ export const loadMainConfigHiddenDefaults = (
         lr: 0.01,
       },
     },
-  };
+  } as DeepPartial<components["schemas"]["GreedyACConfig"]>;
 
-  newMainConfig.metrics = {
-    ...(newMainConfig.metrics ?? {}),
-    name: "db",
-    enabled: true,
-  };
-  newMainConfig.env = { ...(newMainConfig.env ?? {}), discrete_control: false };
-  newMainConfig.interaction = {
-    ...(newMainConfig.interaction ?? {}),
-    name: "dep_interaction",
-  };
-  newMainConfig.pipeline = {
-    ...(newMainConfig.pipeline ?? {}),
-    state_constructor: { defaults: [] },
-    transition_creator: { name: "anytime" },
-  };
-
-  // User modifiable defaults
+  // corerl/experiment/config.py
   newMainConfig.experiment = {
     ...(newMainConfig.experiment ?? {}),
     exp_name: "CoreRL_Experiment",
-  };
-  type DeepPartialDatabase = DeepPartial<components["schemas"]["TagDBConfig"]>;
-  const database_common: DeepPartialDatabase = {
-    drivername: "postgresql+psycopg2",
-    username: "postgres",
-    password: "password",
-    ip: "localhost",
-    port: 5432,
-    db_name: "postgres",
-    table_schema: "public",
-  };
+  } as DeepPartial<components["schemas"]["ExperimentConfig"]>;
 
-  newMainConfig.pipeline.db = {
-    ...(newMainConfig.pipeline.db ?? {}),
-    ...database_common,
-    table_name: "opc_ua",
-  };
-  newMainConfig.metrics = {
-    ...(newMainConfig.metrics ?? {}),
-    ...database_common,
-    table_name: "metrics",
-    lo_wm: 5,
-  };
+  // corerl/data_pipeline/pipeline.py
+  newMainConfig.pipeline = {
+    ...(newMainConfig.pipeline ?? {}),
+    db: { ...(newMainConfig.pipeline?.db ?? {}), ...database_common },
+    state_constructor: { defaults: [] },
+    transition_creator: { name: "anytime" },
+  } as DeepPartial<components["schemas"]["PipelineConfig"]>;
 
-  let env = newMainConfig.env as DeepPartial<
-    components["schemas"]["DepAsyncEnvConfig"]
-  >;
-
-  env = {
-    ...(env ?? {}),
-    db: database_common,
-    opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/",
-    opc_ns: 2,
-    obs_period: "PT5M",
-    update_period: "PT5M",
-    action_period: "PT5M",
-    action_tolerance: "PT5M",
-  };
-
-  newMainConfig.env = env;
   return newMainConfig;
 };
 

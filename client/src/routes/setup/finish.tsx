@@ -7,12 +7,13 @@ import { Code } from "../../components/text";
 import { Textarea } from "../../components/textarea";
 import { SetupConfigNav } from "../../components/setup/setup-config-nav";
 import { Button } from "../../components/button";
+import { Field, Label } from "../../components/fieldset";
 
 export const Route = createFileRoute("/setup/finish")({
-  component: RouteComponent,
+  component: Finish,
 });
 
-function RouteComponent() {
+function Finish() {
   const { mainConfig } = useContext(MainConfigContext);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -57,8 +58,6 @@ function RouteComponent() {
     })();
   };
 
-  console.log("Rendering!", mainConfig);
-
   return (
     <div className="p-2">
       <Alert
@@ -69,22 +68,24 @@ function RouteComponent() {
       </Alert>
 
       <form className="mt-2" onSubmit={handleFormUpload}>
-        <label
-          htmlFor="main_config_payload"
-          className="block text-sm/6 font-medium text-gray-900"
-        >
-          Main Configuration Payload
-        </label>
-        <Textarea
-          id="main_config_payload"
-          rows={20}
-          // defaultValue={JSON.stringify(mainConfig, null, 2)}
-          value={JSON.stringify(mainConfig, null, 2)}
-          disabled={true}
-        />
+        <Field>
+          <Label
+            htmlFor="main_config_payload"
+            className="block text-sm/6 font-medium text-gray-900"
+          >
+            Main Configuration Payload
+          </Label>
+          <Textarea
+            id="main_config_payload"
+            rows={20}
+            // defaultValue={JSON.stringify(mainConfig, null, 2)}
+            value={JSON.stringify(mainConfig, null, 2)}
+            disabled={true}
+          />
+        </Field>
 
         <SetupConfigNav />
-        <Button className="cursor-pointer" type="submit">
+        <Button className="cursor-pointer" type="submit" color="green">
           Generate Configuration YAML
         </Button>
       </form>

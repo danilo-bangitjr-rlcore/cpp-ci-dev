@@ -1,7 +1,7 @@
 import localforage from "localforage";
 import { useCallback, useEffect, useState } from "react";
 
-function deepEquals(a: unknown, b: unknown) {
+export function deepEquals(a: unknown, b: unknown) {
   if (a === b) return true;
 
   if (

@@ -13,18 +13,21 @@ import { Alert } from "../../components/alert";
 import { Badge, BadgeButton } from "../../components/badge";
 import { Code, Text } from "../../components/text";
 import { getApiFetchClient } from "../../utils/api";
-import { classNames } from "../../utils/component";
 import {
-  loadMainConfigHiddenDefaults,
+  loadMainConfigDefaults,
   MainConfigContext,
 } from "../../utils/main-config";
 import { SetupConfigNav } from "../../components/setup/setup-config-nav";
+import { deepEquals } from "../../utils/local-forage";
+import { Field, FieldGroup, Fieldset, Legend } from "../../components/fieldset";
+import { Button } from "../../components/button";
+import clsx from "clsx";
 
 export const Route = createFileRoute("/setup/")({
-  component: RouteComponent,
+  component: SetupIndex,
 });
 
-function RouteComponent() {
+function SetupIndex() {
   const client = createClient(getApiFetchClient());
   const [file, setFile] = useState<File | null>(null);
   const { mainConfig, setMainConfig } = useContext(MainConfigContext);
@@ -83,7 +86,8 @@ function RouteComponent() {
   };
 
   const clearMainConfig: MouseEventHandler<HTMLButtonElement> = () => {
-    setMainConfig(loadMainConfigHiddenDefaults({}));
+    setMainConfig(loadMainConfigDefaults());
+    setFile(null);
     reset();
   };
 
@@ -102,13 +106,10 @@ function RouteComponent() {
         className="border border-gray-400 rounded-lg p-2 mb-2"
         onSubmit={() => handleFormUpload}
       >
-        <div className="col-span-full">
-          <label
-            htmlFor="cover-photo"
-            className="block text-sm/6 font-medium text-gray-900"
-          >
+        <Fieldset className="col-span-full">
+          <Legend className="block text-sm/6 font-medium text-gray-900">
             Configuration File
-          </label>
+          </Legend>
 
           <Alert open={isAlertOpen} onClose={() => setIsAlertOpen(false)}>
             <Code>{JSON.stringify(error)}</Code>
@@ -126,13 +127,13 @@ function RouteComponent() {
               Successfully loaded <code>{file?.name}</code>
             </Badge>
           )}
-          <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
+          <FieldGroup className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
             <div className="text-center">
               <DocumentIcon
                 aria-hidden="true"
                 className="mx-auto size-12 text-gray-300"
               />
-              <div className="mt-4 flex text-sm/6 text-gray-600">
+              <Field className="mt-4 flex text-sm/6 text-gray-600">
                 <label
                   htmlFor="file-upload"
                   className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 focus-within:outline-hidden hover:text-indigo-500"
@@ -147,32 +148,31 @@ function RouteComponent() {
                     onChange={handleFileChange}
                   />
                 </label>
-              </div>
-              <p className="text-xs/5 text-gray-600">YAML, YML, or JSON</p>
+              </Field>
+              <Text className="text-xs/5 text-gray-600">
+                YAML, YML, or JSON
+              </Text>
             </div>
-          </div>
-        </div>
-        <button
+          </FieldGroup>
+        </Fieldset>
+        <Button
           type="submit"
-          className={classNames(
+          className={clsx(
             !file ? "cursor-not-allowed" : "cursor-pointer",
-            "rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600",
+            "rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 mr-1",
           )}
           disabled={!file}
         >
           Upload
-        </button>
-        <span> </span>
-
-        {JSON.stringify(mainConfig) !==
-          JSON.stringify(loadMainConfigHiddenDefaults({})) && (
-          <button
+        </Button>
+        {!deepEquals(mainConfig, loadMainConfigDefaults()) && (
+          <Button
             type="button"
             onClick={clearMainConfig}
             className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           >
             Clear Setup Config
-          </button>
+          </Button>
         )}
       </form>
       <SetupConfigNav />
