@@ -1,3 +1,15 @@
+## 0.79.0 (2025-02-07)
+
+### Feat
+
+- implemented Monte-Carlo Eval plotting function and a function that calls all metrics plotting functions
+
+### Refactor
+
+- addressing Andy's save_path feedback
+- updated offline utils tests to reflect changes made to configs and OfflineTraining class
+- Enforce all evaluators to be executed at the same offline/online training iters
+
 ## 0.78.1 (2025-02-07)
 
 ### Fix
