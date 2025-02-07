@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 import numpy as np
 import pandas as pd
@@ -9,22 +9,15 @@ from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
 from asyncua.ua.uaerrors import BadNodeIdUnknown
 from pydantic import BaseModel, ConfigDict
 
-from corerl.configs.config import MISSING, config
-
 # Data Pipline
 from corerl.data_pipeline.bound_checker import Bounds
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.async_env import AsyncEnv, OPCEnvConfig, TSDBEnvConfig
+from corerl.environment.async_env.async_env import AsyncEnv, DepAsyncEnvConfig
 from corerl.utils.maybe import Maybe
 from corerl.utils.opc_connection import make_opc_node_id
 
 logger = logging.getLogger(__name__)
-
-@config()
-class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):
-    name: str = "dep_async_env"
-    action_tolerance: timedelta = MISSING
 
 class SyncNodeData(BaseModel):
     node: Node

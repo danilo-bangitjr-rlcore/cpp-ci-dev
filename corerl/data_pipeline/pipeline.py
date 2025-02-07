@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import logging
 import warnings
@@ -6,14 +8,13 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
-from typing import Any, Callable, Self, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Self, Tuple
 
-import numpy as np
 import pandas as pd
 from pandas import DataFrame
 from pydantic import Field
 
-from corerl.configs.config import config, interpolate, list_
+from corerl.configs.config import MISSING, computed, config, list_
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
@@ -33,6 +34,9 @@ from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionF
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 from corerl.data_pipeline.zones import default_configs_from_zones
 
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
+
 logger = logging.getLogger(__name__)
 register_dispatchers()
 
@@ -41,14 +45,18 @@ register_dispatchers()
 class PipelineConfig:
     tags: list[TagConfig] = list_()
     db: TagDBConfig = Field(default_factory=TagDBConfig)
-    obs_period: timedelta = interpolate('${env.obs_period}')
-    action_period: timedelta = interpolate('${env.action_period}')
+    max_data_gap: timedelta = MISSING
 
     # stage-wide configs
     imputer: ImputerStageConfig = Field(default_factory=PerTagImputerConfig)
     state_constructor: SCConfig = Field(default_factory=SCConfig)
     transition_creator: AllTheTimeTCConfig = Field(default_factory=AllTheTimeTCConfig)
     transition_filter: TransitionFilterConfig = Field(default_factory=TransitionFilterConfig)
+
+    @computed('max_data_gap')
+    @classmethod
+    def _max_data_gap(cls, cfg: MainConfig):
+        return 2 * cfg.interaction.obs_period
 
 @dataclass
 class PipelineReturn:
@@ -110,15 +118,7 @@ class Pipeline:
     def __init__(self, cfg: PipelineConfig):
         # sanity checking
         cfg = self._construct_config(cfg)
-
-        steps_per_decision = int(cfg.action_period.total_seconds() / cfg.obs_period.total_seconds())
-        assert np.isclose(
-            steps_per_decision, cfg.action_period.total_seconds() / cfg.obs_period.total_seconds()
-        ), "action period must be a multiple of obs period"
-
-        self.valid_thresh: datetime.timedelta = 2 * cfg.obs_period
-        if cfg.transition_creator.max_n_step is None:
-            cfg.transition_creator.max_n_step = steps_per_decision
+        self.cfg = cfg
         self.tags = cfg.tags
 
         # initialization all stateful stages
@@ -192,7 +192,7 @@ class Pipeline:
             return {}
 
         first_time = pf.get_first_timestamp()
-        if first_time - last_seen_time > self.valid_thresh:
+        if first_time - last_seen_time > self.cfg.max_data_gap:
             warnings.warn(
                 "The temporal state is invalid. "
                 f"The temporal state has timestamp {last_seen_time} "
