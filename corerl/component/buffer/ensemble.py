@@ -7,7 +7,7 @@ from discrete_dists.proportional import Proportional
 
 from corerl.component.buffer.base import BaseReplayBufferConfig, ReplayBuffer, buffer_group
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import Transition, TransitionBatch
+from corerl.data_pipeline.datatypes import DataMode, Transition, TransitionBatch
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 @config()
 class EnsembleUniformReplayBufferConfig(BaseReplayBufferConfig):
     name: Literal["ensemble_uniform"] = "ensemble_uniform"
-    ensemble: int = 10 # Size of the ensemble
-    data_subset: float = 0.5 # Proportion of all transitions added to a given buffer in the ensemble
+    ensemble: int = 1 # Size of the ensemble
+    data_subset: float = 1.0 # Proportion of all transitions added to a given buffer in the ensemble
 
 
 class EnsembleUniformBuffer(ReplayBuffer):
@@ -32,8 +32,8 @@ class EnsembleUniformBuffer(ReplayBuffer):
         ]
 
 
-    def feed(self, transitions: Sequence[Transition]):
-        idxs = super().feed(transitions)
+    def feed(self, transitions: Sequence[Transition], data_mode: DataMode):
+        idxs = super().feed(transitions, data_mode)
 
         for dist in self._sub_dists:
             mask = self.rng.random(len(idxs)) < self.data_subset
@@ -42,8 +42,8 @@ class EnsembleUniformBuffer(ReplayBuffer):
         return idxs
 
 
-    def load(self, transitions: Sequence[Transition]):
-        idxs = super().load(transitions)
+    def load(self, transitions: Sequence[Transition], data_mode: DataMode):
+        idxs = super().load(transitions, data_mode)
 
         for dist in self._sub_dists:
             mask = self.rng.random(len(idxs)) < self.data_subset

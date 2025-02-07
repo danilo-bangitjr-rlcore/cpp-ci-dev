@@ -1,13 +1,14 @@
 import logging
-from typing import Literal
 
 import numpy as np
+import pandas as pd
 
 from corerl.agent.base import BaseAgent
-from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
+from corerl.eval.monte_carlo import MonteCarloEvaluator
+from corerl.interaction.configs import SimInteractionConfig
 from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
 from corerl.state import AppState
@@ -15,9 +16,7 @@ from corerl.state import AppState
 logger = logging.getLogger(__file__)
 
 
-@config()
-class SimInteractionConfig:
-    name: Literal["sim_interaction"] = "sim_interaction"
+
 
 
 class SimInteraction(Interaction):
@@ -36,40 +35,79 @@ class SimInteraction(Interaction):
 
         self._column_desc = pipeline.column_descriptions
 
-        self._should_reset = True
+        self._should_reset = False
         self._last_state: np.ndarray | None = None
-        self._last_reward: float | None = None
-        self._pipeline.register_hook(CallerCode.ONLINE, StageCode.SC, self._capture_last_state)
-        self._pipeline.register_hook(CallerCode.ONLINE, StageCode.RC, self._capture_last_reward)
+        self._last_action: np.ndarray | None = None
+
+        # evals
+        self._monte_carlo_eval = MonteCarloEvaluator(app_state.cfg.eval_cfgs.monte_carlo, app_state, agent)
 
 
-
-    def step(self):
+    # -----------------------
+    # -- Lifecycle Methods --
+    # -----------------------
+    def _on_get_obs(self):
         o = self._env.get_latest_obs()
-        pr = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
-        assert pr.transitions is not None
-        r = self._get_latest_reward()
-        assert r is not None
-        self._app_state.metrics.write(
-            agent_step=self._app_state.agent_step,
-            metric='reward',
-            value=r,
-        )
-        self._agent.update_buffer(pr.transitions)
-
-        self._agent.update()
+        pipe_return = self._pipeline(o, data_mode=DataMode.ONLINE, reset_temporal_state=self._should_reset)
+        self._agent.update_buffer(pipe_return)
 
         self._should_reset = bool(o['truncated'].any() or o['terminated'].any())
 
-        s = self._get_latest_state()
-        assert s is not None
-        a = self._agent.get_action(s)
-        a_df = self._pipeline.action_constructor.assign_action_names(a)
-        a_df = self._pipeline.preprocessor.inverse(a_df)
-        self._env.emit_action(a_df)
+        # capture latest state
+        self._last_state = (
+            pipe_return.states
+            .iloc[0]
+            .to_numpy(dtype=np.float32)
+        )
+
+        self._last_action = (
+            pipe_return.actions
+            .iloc[0]
+            .to_numpy(dtype=np.float32)
+        )
+
+        # log states
+        self._write_to_metrics(pipe_return.states)
+
+
+        # log rewards
+        self._write_to_metrics(pipe_return.rewards)
+
+        # perform evaluations
+        self._monte_carlo_eval.execute(pipe_return)
 
         self._app_state.agent_step += 1
 
+    def _on_update(self):
+        self._agent.update()
+
+    def _on_emit_action(self):
+        sa = self._get_latest_state_action()
+        assert sa is not None
+        s, a = sa
+        if not self._agent.cfg.delta_action:
+            a = np.zeros_like(a)
+
+        delta = self._agent.get_action(s)
+        a_df = self._pipeline.action_constructor.assign_action_names(a, delta)
+        a_df = self._pipeline.preprocessor.inverse(a_df)
+        self._env.emit_action(a_df)
+
+        # log actions
+        self._write_to_metrics(a_df)
+
+    # ------------------
+    # -- No Event Bus --
+    # ------------------
+    def step(self):
+        self._on_get_obs()
+        self._on_update()
+        self._on_emit_action()
+
+
+    # ---------------
+    # -- Event Bus --
+    # ---------------
     def step_event(self, event: Event):
         logger.debug(f"Received step_event: {event}")
         match event.type:
@@ -77,23 +115,13 @@ class SimInteraction(Interaction):
                 self.step()
 
             case EventType.step_get_obs:
-                o = self._env.get_latest_obs()
-                pr = self._pipeline(o, caller_code=CallerCode.ONLINE, reset_temporal_state=self._should_reset)
-                assert pr.transitions is not None
-                self._agent.update_buffer(pr.transitions)
-                self._should_reset = bool(o['truncated'].any() or o['terminated'].any())
-                self._app_state.agent_step += 1
+                self._on_get_obs()
 
             case EventType.step_agent_update:
-                self._agent.update()
+                self._on_update()
 
             case EventType.step_emit_action:
-                s = self._get_latest_state()
-                assert s is not None
-                a = self._agent.get_action(s)
-                a_df = self._pipeline.action_constructor.assign_action_names(a)
-                a_df = self._pipeline.preprocessor.inverse(a_df)
-                self._env.emit_action(a_df)
+                self._on_emit_action()
 
             case _:
                 logger.warning(f"Unexpected step_event: {event}")
@@ -101,35 +129,26 @@ class SimInteraction(Interaction):
     # ---------
     # internals
     # ---------
-
-    def _capture_last_state(self, pf: PipelineFrame):
-        row = pf.data.tail(1)
-
-        self._last_state = (
-            row[self._column_desc.state_cols]
-            .iloc[0]
-            .to_numpy(dtype=np.float32)
-        )
-
-    def _capture_last_reward(self, pf: PipelineFrame):
-        row = pf.data.tail(1)
-
-        self._last_reward = float(
-            row["reward"]
-            .iloc[0]
-        )
-
-
-    def _get_latest_state(self) -> np.ndarray | None:
+    def _get_latest_state_action(self) -> tuple[np.ndarray, np.ndarray] | None:
         if self._last_state is None:
             logger.error("Tried to get interaction state, but none existed")
             return None
 
-        return self._last_state
+        if self._last_action is None:
+            logger.error("Tried to get interaction action, but none existed")
+            return None
+
+        return self._last_state, self._last_action
 
 
-    def _get_latest_reward(self) -> float | None:
-        if self._last_reward is None:
-            logger.error("Tried to get interaction reward, but none existed")
+    def _write_to_metrics(self, df: pd.DataFrame) -> None:
+        if len(df) != 1:
+            logger.error(f"unexpected df length: {len(df)}")
 
-        return self._last_reward
+        for feat_name in df.columns:
+            val = df[feat_name].values[0]
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=feat_name,
+                value=val,
+            )

@@ -1,6 +1,8 @@
+from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
+import pandas as pd
 
 from corerl.configs.config import config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
@@ -12,6 +14,7 @@ class DeltaConfig(BaseTransformConfig):
     name: Literal["delta"] = "delta"
 
 
+@dataclass
 class DeltaTemporalState:
     last: np.ndarray | None = None
 
@@ -36,11 +39,30 @@ class Delta:
             ts.last = row
             carry.transform_data.iloc[i] = delta
 
-        carry.transform_data.rename(columns=lambda col: f'{col}_delta', inplace=True)
+        carry.transform_data.rename(columns=lambda col: f'{col}_Δ', inplace=True)
         return carry, ts
 
     def reset(self) -> None:
         pass
 
+    @staticmethod
+    def is_delta_transformed(col: str):
+        """
+        Detect whether a given column has been delta transformed.
+
+        Because the delta xform is responsible for marking a column
+        as delta xformed, then the delta xform should also be
+        responsible for this detection.
+        """
+        return '_Δ' in col
+
+    @staticmethod
+    def get_non_delta(actions: pd.DataFrame):
+
+        direct_action_cols = [
+            col for col in actions.columns
+            if not Delta.is_delta_transformed(col)
+        ]
+        return actions[direct_action_cols]
 
 transform_group.dispatcher(Delta)

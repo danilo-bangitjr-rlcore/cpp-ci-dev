@@ -4,6 +4,9 @@ import logging
 import os
 import random
 import sys
+from datetime import UTC, datetime
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -16,7 +19,8 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
 from corerl.eval.config import register_evals
-from corerl.eval.writer import metrics_group
+from corerl.eval.evals import evals_group
+from corerl.eval.metrics import metrics_group
 from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import EventBus
 from corerl.messages.events import EventType
@@ -24,8 +28,9 @@ from corerl.state import AppState
 from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
+log_fmt = "[%(asctime)s][%(levelname)s] - %(message)s"
 logging.basicConfig(
-    format="%(asctime)s %(levelname)s: %(message)s",
+    format=log_fmt,
     encoding="utf-8",
     level=logging.INFO,
 )
@@ -35,11 +40,15 @@ logging.getLogger('asyncua').setLevel(logging.CRITICAL)
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
+    if cfg.log_path is not None:
+        enable_log_files(cfg.log_path)
     device.update_device(cfg.experiment.device)
 
     event_bus = EventBus(cfg.event_bus, cfg.env)
     app_state = AppState(
+        cfg=cfg,
         metrics=metrics_group.dispatch(cfg.metrics),
+        evals=evals_group.dispatch(cfg.evals),
         event_bus=event_bus,
     )
 
@@ -63,7 +72,7 @@ def main(cfg: MainConfig):
             column_desc,
         )
 
-        register_evals(cfg.eval, agent, pipeline, app_state)
+        register_evals(cfg.eval_cfgs, agent, pipeline, app_state)
 
         interaction = init_interaction(
             cfg=cfg.interaction, app_state=app_state, agent=agent, env=env, pipeline=pipeline,
@@ -72,9 +81,11 @@ def main(cfg: MainConfig):
         steps = 0
         max_steps = cfg.experiment.max_steps
         run_forever = cfg.experiment.run_forever
+        disable_pbar = False
         if run_forever:
             max_steps = 0
-        pbar = tqdm(total=max_steps)
+            disable_pbar = True
+        pbar = tqdm(total=max_steps, disable=disable_pbar)
 
         event_bus.start()
 
@@ -101,8 +112,22 @@ def main(cfg: MainConfig):
 
     finally:
         app_state.metrics.close()
+        app_state.evals.close()
         env.cleanup()
         event_bus.cleanup()
+
+
+def enable_log_files(log_path: Path):
+    save_path = log_path / str(datetime.now(UTC).date())
+    save_path.mkdir(exist_ok=True, parents=True)
+    file_handler = RotatingFileHandler(
+        filename=save_path / "rlcore.log",
+        maxBytes=10_000_000,
+        backupCount=3,  # rotate over 3 log files
+    )
+    file_handler.setFormatter(logging.Formatter(log_fmt))
+    logging.getLogger().addHandler(file_handler)
+
 
 if __name__ == "__main__":
     main()

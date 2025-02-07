@@ -1,23 +1,28 @@
+import asyncio
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
+import numpy as np
 import pandas as pd
-from asyncua.sync import Client
-
-from corerl.configs.config import MISSING, config
+from asyncua import Client, Node, ua
+from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
+from asyncua.ua.uaerrors import BadNodeIdUnknown
+from pydantic import BaseModel, ConfigDict
 
 # Data Pipline
+from corerl.data_pipeline.bound_checker import Bounds
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.async_env import AsyncEnv, OPCEnvConfig, TSDBEnvConfig
+from corerl.environment.async_env.async_env import AsyncEnv, DepAsyncEnvConfig
+from corerl.utils.maybe import Maybe
 from corerl.utils.opc_connection import make_opc_node_id
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
-@config()
-class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):
-    name: str = "dep_async_env"
-    action_tolerance: timedelta = MISSING
+class SyncNodeData(BaseModel):
+    node: Node
+    var_type: ua.VariantType
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class DeploymentAsyncEnv(AsyncEnv):
@@ -26,8 +31,13 @@ class DeploymentAsyncEnv(AsyncEnv):
     """
 
     def __init__(self, cfg: DepAsyncEnvConfig, tag_configs: list[TagConfig]):
+        self.cfg = cfg
+
         self.url = cfg.opc_conn_url
         self.ns = cfg.opc_ns
+        self.client_cert_path = cfg.client_cert_path
+        self.client_private_key_path = cfg.client_private_key_path
+        self.server_cert_path = cfg.server_cert_path
 
         self.tag_configs = tag_configs
         self.obs_period = cfg.obs_period
@@ -35,7 +45,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         self.action_tolerance = cfg.action_tolerance
 
         self.tag_names = [tag.name for tag in tag_configs]
-        self._action_tags = [tag for tag in tag_configs if tag.action_constructor is not None]
+        self.tag_aggs = {tag.name: tag.agg for tag in tag_configs}
         self._meta_tags = [tag for tag in tag_configs if tag.is_meta]
         self._observation_tags = [
             tag for tag in tag_configs
@@ -44,20 +54,57 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         self.data_reader = DataReader(db_cfg=cfg.db)
 
+        # create dict of action tags
+        action_cfgs = [tag for tag in tag_configs if tag.action_constructor is not None]
+        self._action_cfgs: dict[str, TagConfig] = {}
+        for tag_cfg in sorted(action_cfgs, key=lambda cfg: cfg.name):
+            self._action_cfgs[tag_cfg.name] = tag_cfg
+
         # define opc action nodes
-        self.action_nodes = []
-        with Client(self.url) as opc_client:
-            for tag in sorted(tag_configs, key=lambda cfg: cfg.name):
-                if tag.action_constructor is None:
-                    continue
+        self.action_nodes: dict[str, SyncNodeData] = {}
+        self.agent_step_node: Node | None = None
 
-                node_name = tag.name
-                if tag.node_identifier is not None:
-                    node_name = tag.node_identifier
+        # hacky initialization of OPC client with security settings
+        async def _init_opc_client(cfg: DepAsyncEnvConfig, tag_configs: list[TagConfig]):
+            """TODO: remove these opc_client workarounds once OPC logic is pulled from corerl
+            """
+            opc_client = Client(self.url)
 
-                id = make_opc_node_id(node_name, cfg.opc_ns)
-                node = opc_client.get_node(id)
-                self.action_nodes.append(node)
+            if cfg.client_cert_path and cfg.client_private_key_path:
+                # NOTE: this does not exist within the Sync variant of OPC Client and is the source of why we need to
+                # add these hacky async snippets into our synchronous codebase
+                await opc_client.set_security(
+                    SecurityPolicyBasic256Sha256,
+                    certificate=cfg.client_cert_path,
+                    private_key=cfg.client_private_key_path,
+                    mode=ua.MessageSecurityMode.SignAndEncrypt,
+                    server_certificate=cfg.server_cert_path,
+                )
+
+            async with opc_client:
+                for tag_cfg in sorted(tag_configs, key=lambda cfg: cfg.name):
+                    if tag_cfg.action_constructor is None:
+                        continue
+
+                    tag_name = tag_cfg.name
+                    if tag_cfg.node_identifier is not None:
+                        node_name = tag_cfg.node_identifier
+                    else:
+                        node_name = tag_name
+
+                    id = make_opc_node_id(node_name, cfg.opc_ns)
+                    node = opc_client.get_node(id)
+                    var_type = await node.read_data_type_as_variant_type()
+                    logger.info(f"Registering action '{tag_name}' with OPC node id '{id}'")
+                    self.action_nodes[tag_name] = SyncNodeData(node=node, var_type=var_type)
+
+                try:
+                    id = make_opc_node_id("agent_step", self.ns)
+                    self.agent_step_node = opc_client.get_node(id)
+                except BadNodeIdUnknown:
+                    self.agent_step_node = None
+
+        asyncio.run(_init_opc_client(cfg, tag_configs))
 
 
     def _make_opc_node_id(self, str_id: str, namespace: int = 0):
@@ -69,18 +116,84 @@ class DeploymentAsyncEnv(AsyncEnv):
         """
         self.data_reader.close()
 
-    def emit_action(self, action: pd.DataFrame) -> None:
+    def emit_action(self, action: pd.DataFrame, log_action: bool = False) -> None:
         """Writes directly to the OPC server"""
+        sanitize_actions(action, self._action_cfgs)
 
-        logger.info(f"emitting actions {action}")
-        with Client(self.url) as opc_client:
-            opc_client.write_values(self.action_nodes, action.iloc[0, :])
+        if log_action:
+            logger.info("--- Emitting action ---")
+            [logger.info(line) for line in action.to_string().splitlines()]
+
+        async def _async_opc_emit_action(action: pd.DataFrame):
+            """TODO: remove these opc_client workarounds once OPC logic is pulled from corerl
+            """
+            async with Client(self.url) as opc_client:
+                # if action df got nuked in sanitizer, this for loop does nothing
+                for action_name in action.columns:
+                    node = self.action_nodes[action_name].node
+                    var_type = self.action_nodes[action_name].var_type
+                    action_val = float(action[action_name].iloc[0])
+                    data_value = ua.DataValue(ua.Variant(action_val, var_type))
+                    await opc_client.write_values([node], [data_value])
+
+        asyncio.run(_async_opc_emit_action(action))
+
 
     def get_latest_obs(self) -> pd.DataFrame:
         now = datetime.now(UTC)
         obs = self.data_reader.single_aggregated_read(
-            names=self.tag_names,
-            start_time=now - self.obs_period,
-            end_time=now
+            names=self.tag_names, start_time=now - self.obs_period, end_time=now, tag_aggregations=self.tag_aggs
         )
         return obs
+
+    def maybe_write_agent_step(self, step: int):
+        if self.agent_step_node is None:
+            return
+
+        async def _async_opc_write_agent_step(step_node: Node):
+            async with Client(self.url) as opc_client:
+                logger.info(f"Incrementing agent step node to {step}")
+                await opc_client.write_values([step_node], [float(step)])
+
+        asyncio.run(_async_opc_write_agent_step(self.agent_step_node))
+
+    def get_cfg(self):
+        return self.cfg
+
+
+def sanitize_actions(action: pd.DataFrame, action_cfgs: dict[str, TagConfig]) -> None:
+    if len(action) < 1:
+        logger.error("Action df empty")
+        return
+    if len(action) > 1:
+        logger.error(f"Action df contains {len(action)} rows, clearing action df")
+        action.drop(columns=action.columns, inplace=True)
+        return
+
+    clip_action(action, action_cfgs)
+
+def clip_action(action: pd.DataFrame, action_cfgs: dict[str, TagConfig]) -> None:
+    for action_name in action_cfgs.keys():
+        action_cfg = action_cfgs[action_name]
+        action_val = action[action_name].iloc[0]
+        lo, hi = get_clip_bounds(action_cfg)
+
+        if (action_val < lo) or (action_val > hi):
+            logger.error(
+                f"Action {action_cfg.name} assigned value {action_val}, outside of operating range [{lo}, {hi}]"
+            )
+
+        action[action_name] = np.clip(action_val, lo, hi)
+
+def get_clip_bounds(action_cfg: TagConfig) -> Bounds:
+    # prefer to use red zones, otherwise use operating range
+    lo = (
+        Maybe[float](action_cfg.red_bounds and action_cfg.red_bounds[0])
+        .otherwise(lambda: action_cfg.operating_range and action_cfg.operating_range[0])
+    ).expect()
+
+    hi = (
+        Maybe[float](action_cfg.red_bounds and action_cfg.red_bounds[1])
+        .otherwise(lambda: action_cfg.operating_range and action_cfg.operating_range[1])
+    ).expect()
+    return lo, hi

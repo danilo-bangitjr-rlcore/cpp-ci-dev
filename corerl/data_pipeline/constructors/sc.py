@@ -1,7 +1,8 @@
-from dataclasses import field
+from collections.abc import Iterable
 from functools import cached_property
 
 import pandas as pd
+from pydantic import Field
 
 import corerl.utils.list as list_u
 from corerl.configs.config import config, list_
@@ -16,7 +17,7 @@ from corerl.data_pipeline.transforms.norm import NormalizerConfig
 @config()
 class SCConfig:
     defaults: list[TransformConfig] = list_([NormalizerConfig()])
-    countdown: CountdownConfig = field(default_factory=CountdownConfig)
+    countdown: CountdownConfig = Field(default_factory=CountdownConfig)
 
 
 class StateConstructor(Constructor):
@@ -46,8 +47,28 @@ class StateConstructor(Constructor):
         pf.data = pd.concat([df] + transformed_parts, axis=1, copy=False)
 
         # guarantee an ordering over columns
-        sorted_cols = list_u.multi_level_sort(
-            list(pf.data.columns),
+        sorted_cols = self.sort_cols(pf.data.columns)
+        pf.data = pf.data.loc[:, sorted_cols]
+
+        meta_tags = [tag for tag in self._tag_cfgs if self._tag_cfgs[tag].is_meta]
+        state_cols = [
+            col for col in sorted_cols
+            if col not in meta_tags
+        ]
+        pf.states = pf.data[state_cols]
+
+        return pf
+
+
+    @cached_property
+    def columns(self):
+        pf = self._probe_fake_data()
+        return self.sort_cols(pf.data.columns)
+
+
+    def sort_cols(self, cols: Iterable[str]):
+        return list_u.multi_level_sort(
+            list(cols),
             categories=[
                 # endo observations
                 lambda tag: (
@@ -68,15 +89,6 @@ class StateConstructor(Constructor):
                 # meta tags should be all that are left
             ],
         )
-        pf.data = pf.data.loc[:, sorted_cols]
-
-        return pf
-
-
-    @cached_property
-    def columns(self):
-        pf = self._probe_fake_data()
-        return list(pf.data.columns)
 
 
 def construct_default_sc_configs(sc_cfg: SCConfig, tag_cfgs: list[TagConfig]) -> None:

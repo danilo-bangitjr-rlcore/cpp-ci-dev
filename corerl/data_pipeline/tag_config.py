@@ -1,3 +1,5 @@
+from enum import StrEnum, auto
+
 from pydantic import Field
 
 from corerl.configs.config import MISSING, config, list_
@@ -9,6 +11,10 @@ from corerl.data_pipeline.transforms import NormalizerConfig, NullConfig, Transf
 
 Bounds = tuple[float | None, float | None]
 
+class Agg(StrEnum):
+    avg = auto()
+    last = auto()
+    bool_or = auto()
 
 @config()
 class TagConfig:
@@ -21,7 +27,8 @@ class TagConfig:
 
     # tag metadata
     name: str = MISSING
-    node_identifier: str | None = None
+    agg: Agg = Agg.avg
+    node_identifier: str | int | None = None
     is_meta: bool = False
     is_endogenous: bool = True
 
@@ -37,3 +44,4 @@ class TagConfig:
     reward_constructor: list[TransformConfig] = list_([NullConfig()])
     action_constructor: list[TransformConfig] | None = None
     state_constructor: list[TransformConfig] | None = None
+    filter: list[TransformConfig] | None = None

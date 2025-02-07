@@ -4,7 +4,7 @@ from functools import cached_property
 
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.base import Transform, transform_group
@@ -13,11 +13,11 @@ from corerl.data_pipeline.transforms.interface import TransformCarry
 
 class Constructor(ABC):
     def __init__(self, tag_cfgs: list[TagConfig]):
-        cfgs = self._get_relevant_configs(tag_cfgs)
+        self._relevant_cfgs = self._get_relevant_configs(tag_cfgs)
 
         self._components: dict[str, list[Transform]] = {
             tag_name: self._construct_components(transforms)
-            for tag_name, transforms in cfgs.items()
+            for tag_name, transforms in self._relevant_cfgs.items()
             if transforms is not None
         }
 
@@ -67,7 +67,7 @@ class Constructor(ABC):
 
         pf = PipelineFrame(
             data=fake_data,
-            caller_code=CallerCode.OFFLINE,
+            data_mode=DataMode.OFFLINE,
             temporal_state=defaultdict(lambda: None),
         )
 
@@ -102,7 +102,7 @@ class Constructor(ABC):
         return transformed_parts, tag_names
 
 
-    def _invoke_per_tag(self, df: pd.DataFrame, tag_name: str, ts: dict[str, list[object | None]]):
+    def _invoke_per_tag(self, df: pd.DataFrame, tag_name: str, ts: dict[str, list[object | None]]) -> pd.DataFrame:
         tag_data = df.get([tag_name], None)
         assert tag_data is not None
 

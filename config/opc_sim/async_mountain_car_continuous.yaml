@@ -1,0 +1,14 @@
+gym:
+  gym_name: MountainCarContinuous-v0
+  seed: 1
+  # kwargs:
+  #   render_mode: human
+
+sim_timestep_period: 00:00:00.1 # 10 steps per second
+
+obs_tags:
+- tag-0
+- tag-1
+
+action_tags:
+- action-0

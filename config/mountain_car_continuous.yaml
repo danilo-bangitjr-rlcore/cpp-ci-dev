@@ -9,6 +9,8 @@ experiment:
 
 interaction:
   name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
 
 env:
   name: sim_async_env
@@ -23,7 +25,6 @@ agent:
   name: greedy_ac
   n_critic_updates: 1
   n_actor_updates: 1
-  n_sampler_updates: 1
   num_samples: 32
   uniform_sampling_percentage: 0.8
   discrete_control: ${env.discrete_control}
@@ -31,10 +32,12 @@ agent:
 
   critic:
     buffer:
+      name: uniform
       seed: ${experiment.seed}
 
   actor:
     buffer:
+      name: uniform
       seed: ${experiment.seed}
     actor_optimizer:
       lr: 0.00001
@@ -69,6 +72,8 @@ pipeline:
 
   tags:
   - name: reward
+    preprocess:
+    - name: identity
     outlier:
       name: identity
     imputer:
@@ -78,6 +83,8 @@ pipeline:
     is_meta: true
 
   - name: terminated
+    preprocess:
+    - name: identity
     outlier:
       name: identity
     imputer:
@@ -85,6 +92,8 @@ pipeline:
     is_meta: true
 
   - name: truncated
+    preprocess:
+    - name: identity
     outlier:
       name: identity
     imputer:

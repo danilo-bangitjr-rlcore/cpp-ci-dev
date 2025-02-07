@@ -1,0 +1,53 @@
+# pipeline:
+
+max_data_gap: 00:00:02
+
+state_constructor:
+  defaults: []
+  countdown:
+    kind: 'int'
+    action_period: 00:00:04
+    obs_period: 00:00:01
+    normalize: False
+
+transition_creator:
+  name: anytime
+  max_n_step: 1
+  gamma: 0.99
+
+tags:
+- name: action-0
+  operating_range: [-2, 2]
+  outlier:
+    name: identity
+  imputer:
+    name: copy
+    imputation_horizon: 2
+  state_constructor:
+    - name: "null"
+  action_constructor:
+    - name: delta
+    - name: clip
+      bounds: [-.5, .5]
+    - name: normalize
+      min: -.5
+      max: .5
+      from_data: False
+    - name: add_raw
+
+- name: tag-0
+  operating_range: [-1, 1]
+  outlier:
+    name: identity
+  state_constructor:
+    - name: identity
+
+- name: reward
+  outlier:
+    name: identity
+  state_constructor:
+    - name: 'null'
+  preprocess:
+    - name: identity
+  reward_constructor:
+    - name: identity

@@ -77,10 +77,8 @@ concurrency = ["thread", "multiprocessing"]
 # to support our docker image for running corerl.
 [tool.setuptools.packages.find]
 where = [".", "vendor"]
-include = ["corerl*", "linesearchopt*"]
+include = ["corerl*"]
 
-[tool.setuptools.package-dir]
-"linesearchopt" = "vendor/linesearchopt"
 
 [build-system]
 requires = ["setuptools"]
@@ -88,7 +86,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "corerl"
-version = "0.47.4"
+version = "0.79.0"
 description = ""
 requires-python = ">=3.12,<3.13"
 authors = []
@@ -115,6 +113,7 @@ dependencies = [
     "scipy~=1.13",
     "sqlalchemy~=2.0",
     "sqlalchemy-utils~=0.41",
+    "tabulate~=0.9.0",
     "textual~=1.0.0",
     "torch~=2.5",
     "tqdm~=4.66",
@@ -124,30 +123,25 @@ dependencies = [
 ]
 readme = "README.md"
 
-[project.optional-dependencies]
-linesearchopt_gh = [
-    "linesearchopt@git+ssh://git@github.com/rlcoretech/linesearchopt.git",
-]
-
-dev = [
-    "pip",
-    "uv",
-    "docker",
-    "ruff",
-    "pytest",
-    "pytest-asyncio",
-    "pytest-coverage",
-    "pytest-xdist",
-    "pytest-timeout",
-    "pyright",
-    "debugpy",
-    "boto3",
-    "linesearchopt@git+ssh://git@github.com/rlcoretech/linesearchopt.git",
-]
-
 [project.scripts]
 corerl_main = "corerl.main:main"
 corerl_convertdb_backup = "corerl.bin.convert_db_backup:main"
 corerl_opc_explorer = "corerl.bin.opc_explorer:main"
 corerl_agent_step = "corerl.bin.corerl_step_cli:main"
 corerl_start_web = "corerl.bin.start_web_app:main"
+
+[dependency-groups]
+dev = [
+    "boto3>=1.36.7",
+    "debugpy>=1.8.12",
+    "docker>=7.1.0",
+    "pip>=25.0",
+    "pyright>=1.1.392.post0",
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.2",
+    "pytest-coverage>=0.0",
+    "pytest-timeout>=2.3.1",
+    "pytest-xdist>=3.6.1",
+    "ruff>=0.9.3",
+    "uv>=0.5.24",
+]

@@ -7,7 +7,7 @@ import pandas as pd
 from torch import Tensor
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig, get_n_step_reward
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, Step, Transition
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, Step, Transition
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import NullConfig
 
@@ -52,7 +52,7 @@ def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> Pipelin
     df = pd.DataFrame(cols, index=datetime_index)
     pf = PipelineFrame(
         df,
-        caller_code=CallerCode.OFFLINE,
+        data_mode=DataMode.OFFLINE,
         temporal_state=ts
     )
 
@@ -320,14 +320,14 @@ def test_all_the_time_online():
     assert transitions[2] == expected_2
 
 
-def test_all_the_time_caller_codes():
+def test_all_the_time_data_modes():
     """
     Checks to see if the ts from one caller code is kept separate from the ts of another caller code.
     """
     tc = make_tc(2)
 
     pf_1 = make_pf(0, 1)
-    pf_1.caller_code = CallerCode.OFFLINE
+    pf_1.data_mode = DataMode.OFFLINE
 
     pf_1 = tc(pf_1)
     transitions = pf_1.transitions
@@ -336,7 +336,7 @@ def test_all_the_time_caller_codes():
     ts_1 = pf_1.temporal_state
 
     pf_2 = make_pf(1, 2)
-    pf_2.caller_code = CallerCode.ONLINE
+    pf_2.data_mode = DataMode.ONLINE
 
     pf_2 = tc(pf_2)
     transitions = pf_2.transitions
@@ -346,7 +346,7 @@ def test_all_the_time_caller_codes():
     # now, pass in a pf which is a continuation of the first pf
     # make a pf from another caller code
     pf_3 = make_pf(1, 2, ts=ts_1)
-    pf_3.caller_code = CallerCode.OFFLINE
+    pf_3.data_mode = DataMode.OFFLINE
     pf_3 = tc(pf_3)
     transitions = pf_3.transitions
     assert isinstance(transitions, list)

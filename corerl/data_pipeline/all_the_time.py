@@ -1,14 +1,20 @@
+from __future__ import annotations
+
 from collections import deque
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
 from corerl.component.network.utils import tensor
-from corerl.configs.config import MISSING, config, interpolate
+from corerl.configs.config import MISSING, computed, config, interpolate
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, Step, Transition
 from corerl.data_pipeline.tag_config import TagConfig
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 
 @config()
@@ -17,6 +23,19 @@ class AllTheTimeTCConfig:
     gamma: float = interpolate('${experiment.gamma}')
     min_n_step: int = 1
     max_n_step: int = MISSING
+
+    @computed('max_n_step')
+    @classmethod
+    def _max_n_step(cls, cfg: MainConfig):
+        ap_sec = cfg.interaction.action_period.total_seconds()
+        obs_sec = cfg.interaction.obs_period.total_seconds()
+
+        steps_per_decision = int(ap_sec / obs_sec)
+        assert np.isclose(steps_per_decision, ap_sec / obs_sec), \
+            "Action period must be a multiple of obs period"
+
+        return steps_per_decision
+
 
 
 @dataclass(init=False)

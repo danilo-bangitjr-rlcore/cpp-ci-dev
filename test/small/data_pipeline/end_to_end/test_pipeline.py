@@ -6,15 +6,17 @@ import numpy as np
 import pandas as pd
 from torch import tensor
 
+from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
-from corerl.data_pipeline.datatypes import CallerCode, Step, Transition
+from corerl.data_pipeline.datatypes import DataMode, Step, Transition
 from corerl.data_pipeline.imputers.per_tag.copy import CopyImputerConfig
 from corerl.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transforms import IdentityConfig, NullConfig
+from corerl.data_pipeline.transforms import IdentityConfig, NullConfig, ScaleConfig
+from corerl.data_pipeline.transforms.comparator import ComparatorConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
@@ -26,6 +28,10 @@ def test_pipeline1():
         tags=[
             TagConfig(
                 name='tag-1',
+                filter=[
+                    ScaleConfig(factor=0.5),
+                    ComparatorConfig(op='==', val=2),
+                ],
                 preprocess=[],
                 state_constructor=[],
                 is_endogenous=False
@@ -33,15 +39,17 @@ def test_pipeline1():
             TagConfig(
                 name='tag-2',
                 operating_range=(None, 10),
+                red_bounds=(-1, None),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
-                    NormalizerConfig(),
+                    NormalizerConfig(from_data=True),
                     TraceConfig(trace_values=[0.1]),
                 ],
                 is_endogenous=True
             ),
             TagConfig(
                 name='action-1',
+                operating_range=(0, 1),
                 preprocess=[],
                 action_constructor=[],
                 state_constructor=[NullConfig()],
@@ -67,11 +75,10 @@ def test_pipeline1():
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=5),
                 obs_period=timedelta(minutes=5),
-                kind='int'
+                kind='int',
+                normalize=False,
             ),
         ),
-        obs_period=timedelta(minutes=5),
-        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
@@ -100,7 +107,7 @@ def test_pipeline1():
     pipeline = Pipeline(cfg)
     got = pipeline(
         df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
 
     # returned df has columns sorted in order: action, endogenous, exogenous, state, reward
@@ -112,7 +119,7 @@ def test_pipeline1():
             [1,      1,      0.378],
             [2,      1,      0.5778],
             [np.nan, 1,      0.77778],
-            [4,      1,      0.977778],
+            [np.nan,      1,      0.977778],
             [5,      1,      np.nan],
         ],
         columns=cols,
@@ -169,6 +176,7 @@ def test_pipeline2():
             ),
             TagConfig(
                 name='tag-2',
+                preprocess=[NormalizerConfig(from_data=True)],
                 operating_range=(None, 12),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
@@ -179,6 +187,7 @@ def test_pipeline2():
             TagConfig(
                 name='action-1',
                 preprocess=[],
+                operating_range=(0, 1),
                 action_constructor=[],
                 state_constructor=[],
             ),
@@ -205,10 +214,9 @@ def test_pipeline2():
                 action_period=timedelta(minutes=5),
                 obs_period=timedelta(minutes=5),
                 kind='int',
+                normalize=False,
             ),
         ),
-        obs_period=timedelta(minutes=5),
-        action_period=timedelta(minutes=5),
     )
 
     start = datetime.datetime.now(datetime.UTC)
@@ -236,7 +244,7 @@ def test_pipeline2():
     pipeline = Pipeline(cfg)
     got = pipeline(
         df,
-        caller_code=CallerCode.ONLINE,
+        data_mode=DataMode.ONLINE,
     )
 
     # returned df has columns sorted in order: action, endogenous, exogenous, state
@@ -308,3 +316,103 @@ def test_pipeline2():
             n_step_gamma=0.9,
         ),
     ]
+
+
+def test_delta_action_pipeline():
+    cfg = direct_load_config(
+        PipelineConfig,
+        base='test/small/data_pipeline/end_to_end/assets',
+        config_name='delta_action.yaml',
+    )
+
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(7)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols: Any = ['tag-0', 'reward', 'action-0']
+    df = pd.DataFrame(
+        data=[
+            [np.nan,  0,   -1],
+            [0,       3,    1],
+            [1,       0,    2],
+            [2,       0,    4], # action is out-of-bounds
+            [np.nan,  0,    2],
+            [4,       1,    1],
+            [5,       0,   -2],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    pipeline = Pipeline(cfg)
+    got = pipeline(df, data_mode=DataMode.ONLINE)
+
+    # NOTE: the action-0 column are normalized actions
+    # as a result of the preprocess stage.
+    # Therefore, the delta actions are in normalized space,
+    # and are then normalized _again_ to be between [0, 1].
+    # So a normalized delta of 1.0 is a delta of 0.5 in
+    # the normed action space, or a delta of 2 in the original
+    # action space.
+    expected_actions = pd.DataFrame(
+        data=[
+            [0.25,  np.nan],
+            [0.75,  1.0],
+            [1.,    0.75],
+            [1.,    0.5],
+            [1.,    0.5],
+            [0.75,  0.25],
+            [0.,    0.0],
+        ],
+        columns=['action-0', 'action-0_Δ_clip_norm'],
+        index=idx,
+    )
+
+    pd.testing.assert_frame_equal(got.actions, expected_actions)
+
+def test_delta_action_countdown():
+    """
+    This is a regression test for a bug in which a change in delta triggered
+    a reset of the countdown feature even when the direct action remained the same
+    """
+    cfg = direct_load_config(
+        PipelineConfig,
+        base='test/small/data_pipeline/end_to_end/assets',
+        config_name='delta_action.yaml',
+    )
+
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(8)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols: Any = ['tag-0', 'reward', 'action-0']
+    df = pd.DataFrame(
+        data=[
+            [np.nan,  0,   -1],
+            [np.nan,  0,   -1],
+            [np.nan,  0,   -1],
+            [np.nan,  0,   -1],
+            [1,       0,    2], # delta nonzero
+            [2,       0,    2], # delta zero
+            [np.nan,  0,    2],
+            [np.nan,  0,    2],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    pipeline = Pipeline(cfg)
+    got = pipeline(df, data_mode=DataMode.ONLINE)
+
+    print(got.states)
+    # make sure change in delta did not trigger cd reset
+    cd = np.array(got.states['countdown.[0]'].values)
+    expected = np.array([4, 3, 2, 1, 4, 3, 2, 1])
+    # wrong = np.array([4, 3, 2, 1, 4, 4, 3, 2])
+
+    assert np.allclose(cd, expected)
+

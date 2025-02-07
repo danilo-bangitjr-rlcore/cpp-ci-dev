@@ -3,9 +3,10 @@ from typing import Literal
 
 import torch
 
-from corerl.component.optimizers.custom_torch_opts import CustomAdam
+import corerl.component.optimizers.LineSearchOpt.linesearchopt as lso
+from corerl.component.optimizers.custom_torch_opts import ArmijoAdam
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
-from corerl.configs.config import MISSING, config
+from corerl.configs.config import MISSING, Field, config
 from corerl.configs.group import Group
 
 optim_group = Group[
@@ -21,7 +22,7 @@ class OptimConfig:
     weight_decay: float = 0.0
 
 def _base_optim(
-    optim: type[torch.optim.Adam | torch.optim.SGD | torch.optim.RMSprop | CustomAdam],
+    optim: type[torch.optim.Adam | torch.optim.SGD | torch.optim.RMSprop | ArmijoAdam],
     cfg: OptimConfig,
     param: Iterable[torch.nn.Parameter],
     ensemble: bool,
@@ -69,21 +70,90 @@ def adam(cfg: AdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
     )
 
 
-# ----------------
-# -- CustomAdam --
-# ----------------
+# -------------
+# --   LSO   --
+# -------------
+@config()
+class LSOInitConfig:
+    name: str = 'To'
+    step_size: float = 0.1
+
+@config()
+class SearchConditionKwargsConfig:
+    c: float = 0.1
+    beta: float = 0.9
+    min_step_size: float = 0
+    max_step_size: float = 1
+
+@config()
+class SearchConditionConfig:
+    name: str = 'Armijo'
+    kwargs: SearchConditionKwargsConfig = Field(default_factory=SearchConditionKwargsConfig)
+
 @config(frozen=True)
-class CustomAdamConfig(OptimConfig):
-    name: Literal['custom_adam'] = 'custom_adam'
+class LSOConfig(OptimConfig):
+    name: Literal['lso'] = 'lso'
+
+    init_step_size: float = 0.001
+    max_backtracking_steps: int = 30
+    unit_norm_direction: bool = False
+    fallback_step_size: float = 0.0001
+
+    optim: OptimConfig = Field(default_factory=AdamConfig)
+    init: LSOInitConfig = Field(default_factory=LSOInitConfig)
+    search_condition: SearchConditionConfig = Field(default_factory=SearchConditionConfig)
 
 
 @optim_group.dispatcher
-def custom_adam(cfg: CustomAdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
-    return _base_optim(
-        CustomAdam,
-        cfg, param, ensemble,
+def lso_dispatch(cfg: LSOConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+    if not cfg.optim.name == 'adam':
+        raise ValueError("LSO currently only supports Adam")
+    if not ensemble:
+        return lso.Optimizer(
+            params=param,
+            optim=torch.optim.Adam,
+            search_condition=construct_lso_search_condition(cfg.search_condition),
+            init=construct_lso_init(cfg.init),
+            init_step_size=cfg.init_step_size,
+            max_backtracking_steps=cfg.max_backtracking_steps,
+            fallback_step_size=cfg.fallback_step_size,
+            unit_norm_direction=cfg.unit_norm_direction
+        )
+
+    return EnsembleOptimizer(
+        lso.Optimizer, param,
+        kwargs={
+            "optim": torch.optim.Adam,
+            "search_condition": construct_lso_search_condition(cfg.search_condition),
+            "init": construct_lso_init(cfg.init),
+            "init_step_size": cfg.init_step_size,
+            "max_backtracking_steps": cfg.max_backtracking_steps,
+            "fallback_step_size": cfg.fallback_step_size,
+            "unit_norm_direction": cfg.unit_norm_direction
+        },
     )
 
+
+
+def construct_lso_init(cfg: LSOInitConfig) -> lso.init.StepsizeInit:
+    match cfg.name:
+        case 'To':
+            return lso.init.To(step_size=LSOInitConfig.step_size)
+        case _:
+            raise ValueError("LSO only supports To init condition")
+
+def construct_lso_search_condition(cfg: SearchConditionConfig) -> lso.search.Search:
+    kwargs_cfg = cfg.kwargs
+    match cfg.name:
+        case "Armijo":
+            return lso.search.Armijo(
+                c=kwargs_cfg.c,
+                beta=kwargs_cfg.beta,
+                min_step_size=kwargs_cfg.min_step_size,
+                max_step_size=kwargs_cfg.max_step_size,
+            )
+        case _:
+            raise ValueError("LSO only supports Armijo search condition")
 
 # ---------
 # -- SGD --
@@ -97,5 +167,26 @@ class SgdConfig(OptimConfig):
 def sgd(cfg: SgdConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         torch.optim.SGD,
+        cfg, param, ensemble,
+    )
+
+
+# ----------------
+# -- ArmijoAdam --
+# ----------------
+@config(frozen=True)
+class ArmijoAdamConfig(OptimConfig):
+    name: Literal['armijo_adam'] = 'armijo_adam'
+    c: float = 0.1
+    tau: float = 0.5
+    beta: float = 0.1  # Controls how strict the Armijo condition is
+    max_backtracks: int = 10
+    min_lr: float = 1e-4
+
+
+@optim_group.dispatcher
+def armijo_adam(cfg: ArmijoAdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+    return _base_optim(
+        ArmijoAdam,
         cfg, param, ensemble,
     )

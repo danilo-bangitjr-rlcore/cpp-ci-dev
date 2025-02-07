@@ -1,12 +1,11 @@
 import pickle as pkl
 import random
-from collections.abc import Sequence
-from dataclasses import field
 from pathlib import Path
 from typing import Literal
 
 import numpy
 import torch
+from pydantic import Field
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.component.buffer.factory import init_buffer
@@ -14,8 +13,8 @@ from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.critic.factory import init_q_critic
 from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import Transition, TransitionBatch
-from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.data_pipeline.datatypes import TransitionBatch
+from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
 from corerl.utils.device import device
 
@@ -28,7 +27,7 @@ class EpsilonGreedySarsaConfig(BaseAgentConfig):
     epsilon: float = 0.1
     samples: int = 10_000
 
-    critic: EnsembleCriticConfig = field(default_factory=EnsembleCriticConfig)
+    critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
 
 
 class EpsilonGreedySarsa(BaseAgent):
@@ -41,8 +40,11 @@ class EpsilonGreedySarsa(BaseAgent):
         self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
         self.critic_buffer = init_buffer(cfg.critic.buffer)
 
-    def update_buffer(self, transitions: Sequence[Transition]) -> None:
-        self.critic_buffer.feed(transitions)
+    def update_buffer(self, pr: PipelineReturn) -> None:
+        if pr.transitions is None:
+            return
+
+        self.critic_buffer.feed(pr.transitions, pr.data_mode)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device.device)
@@ -155,5 +157,5 @@ class EpsilonGreedySarsa(BaseAgent):
         with open(critic_buffer_path, "rb") as f:
             self.critic_buffer = pkl.load(f)
 
-    def load_buffer(self, transitions: Sequence[Transition]) -> None:
+    def load_buffer(self, pr: PipelineReturn) -> None:
         ...

@@ -7,7 +7,7 @@ import pytest
 from pandas import DataFrame, DatetimeIndex, Series
 from sqlalchemy import Engine
 
-from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
+from corerl.data_pipeline.db.data_reader import Agg, DataReader, TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
 from test.medium.data_loaders.test_data_writer import write_n_random_vals
 
@@ -160,6 +160,73 @@ class TestDataReaderLogic:
         assert isinstance(df.index, DatetimeIndex) # for typing
         assert (df.index.to_numpy() == expected_index.to_numpy()).all()
 
+    def test_batch_aggregated_read_diff_aggregations(self, data_reader_writer: tuple[DataReader, DataWriter]):
+        reader, writer = data_reader_writer
+
+        obs_period = timedelta(seconds=2)
+        end_time = datetime(year=2025, month=1, day=10, hour=13, minute=30, tzinfo=UTC)
+        start_time = end_time - 5*obs_period
+        for i in range(10):
+            write_time = end_time - i*timedelta(seconds=1)
+            writer.write(
+                timestamp=write_time, name="avg_var", val=1.0 - i*0.1
+            )
+        for i in range(10):
+            write_time = end_time - i*timedelta(seconds=1)
+            writer.write(
+                timestamp=write_time, name="last_var", val=i*0.1
+            )
+        writer.write(timestamp=end_time, name="bool_var", val=True)
+        writer.write(timestamp=end_time - timedelta(seconds=1), name="bool_var", val=False)
+
+        writer.blocking_sync()
+
+        df = reader.batch_aggregated_read(
+            names=["avg_var", "last_var", "bool_var"],
+            start_time=start_time,
+            end_time=end_time,
+            bucket_width=obs_period,
+            tag_aggregations={
+                "avg_var": Agg.avg,
+                "last_var": Agg.last,
+                "bool_var": Agg.bool_or
+            }
+        )
+
+        assert np.allclose(df["avg_var"].iloc[-1], 0.95)
+        assert np.allclose(df["last_var"].iloc[-1], 0.0)
+        assert df["bool_var"].iloc[-1]
+
+    def test_batch_aggregated_read_with_agg_fallback(self, data_reader_writer: tuple[DataReader, DataWriter]):
+        reader, writer = data_reader_writer
+        obs_period = timedelta(seconds=2)
+        end_time = datetime(year=2025, month=1, day=10, hour=13, minute=30, tzinfo=UTC)
+        start_time = end_time - 5*obs_period
+        for i in range(10):
+            write_time = end_time - i*timedelta(seconds=1)
+            writer.write(
+                timestamp=write_time, name="last_var", val=1.0 - i*0.1
+            )
+            writer.write(
+                timestamp=write_time, name="default_var", val=i*0.1
+            )
+
+        writer.blocking_sync()
+
+        df = reader.batch_aggregated_read(
+            names=["last_var", "default_var"],
+            start_time=start_time,
+            end_time=end_time,
+            bucket_width=obs_period,
+            aggregation=Agg.avg,
+            tag_aggregations={
+                "last_var": Agg.last,
+            }
+        )
+
+        assert np.allclose(df["last_var"].iloc[-1], 1.0)
+        assert np.allclose(df["default_var"].iloc[-1], 0.05)
+
 class TestDataReader:
     sensor_names: List[str] = ["sensor1", "sensor2", "sensor3"]
 
@@ -209,7 +276,7 @@ class TestDataReader:
         end_time = now
         start_time = end_time - timedelta(minutes=5)
         result_df = data_reader.single_aggregated_read(
-            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time, aggregation="avg"
+            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time, aggregation=Agg.avg
         )
         assert TestDataReader.sensor_names == result_df.columns.tolist()
 
@@ -218,7 +285,7 @@ class TestDataReader:
         end_time = now
         start_time = end_time - timedelta(minutes=5)
         result_df = data_reader.single_aggregated_read(
-            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time, aggregation="last"
+            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time, aggregation=Agg.last
         )
         assert TestDataReader.sensor_names == result_df.columns.tolist()
 
@@ -231,7 +298,7 @@ class TestDataReader:
             start_time=start_time,
             end_time=end_time,
             bucket_width=timedelta(seconds=10),
-            aggregation="avg",
+            aggregation=Agg.avg,
         )
 
         self._ensure_names_included(result_df)
@@ -245,7 +312,7 @@ class TestDataReader:
             start_time=start_time,
             end_time=end_time,
             bucket_width=timedelta(seconds=10),
-            aggregation="last",
+            aggregation=Agg.last,
         )
 
         self._ensure_names_included(result_df)

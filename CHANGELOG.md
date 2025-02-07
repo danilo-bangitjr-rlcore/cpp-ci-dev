@@ -1,3 +1,530 @@
+## 0.79.0 (2025-02-07)
+
+### Feat
+
+- implemented Monte-Carlo Eval plotting function and a function that calls all metrics plotting functions
+
+### Refactor
+
+- addressing Andy's save_path feedback
+- updated offline utils tests to reflect changes made to configs and OfflineTraining class
+- Enforce all evaluators to be executed at the same offline/online training iters
+
+## 0.78.1 (2025-02-07)
+
+### Fix
+
+- ignore type errors in three_tanks
+
+## 0.78.0 (2025-02-07)
+
+### Feat
+
+- pre and post pipeline hooks
+
+### Fix
+
+- rm entropy and n_samplre from offline_pretrianing.yaml
+- slight modifications to behaviour tests to make stuff pass
+- rm n_sampler_updates from configs
+- ensemble defaults
+
+### Refactor
+
+- pulled out percentile ranking logic
+- further unification of sampler and proposal updates
+- nearly unified sampler and actor updates
+- update sampler
+- critic loss
+- remove awful update info tuple
+
+## 0.77.0 (2025-02-07)
+
+### BREAKING CHANGE
+
+- a result of these simplifications is that configs
+that manipulated the timing controls within the env will no longer
+be valid.
+- this adds a new responsibility to the interaction cfg
+and that is not backwards compatible or defaultable. In fact, the new
+definition of the interaction config should be used to define defaults
+in the other places where `obs_period` and `action_period` are being
+used.
+
+### Feat
+
+- remove env.obs_period interpolations throughout configs
+- add computed and sanitizer config utilities
+
+### Fix
+
+- rename eval->eval_cfgs in vww config
+- migrate pipeline_batch_duration to timedelta
+
+### Refactor
+
+- make action tolerance a computed config
+- pull env cfgs into single source
+- make interaction cfg responsible for periods
+
+## 0.76.0 (2025-02-06)
+
+### Feat
+
+- added autoencoder coverage function
+- initial coverage framework: incld kde and neighbours + tests
+
+## 0.75.2 (2025-02-06)
+
+### Fix
+
+- style issues.
+- greedyAC on gpu and different batch for linesearch
+
+## 0.75.1 (2025-02-06)
+
+### Fix
+
+- remove linesearch dependencies in dockerfile build
+
+## 0.75.0 (2025-02-06)
+
+### Feat
+
+- configure historical data initial timestamp
+
+### Fix
+
+- enable int node id in tag cfg
+
+## 0.74.0 (2025-02-06)
+
+### Feat
+
+- wire up lso
+- reintroduce lso optimizer monorepo style
+
+### Fix
+
+- fix imports in test_sls
+- fix (suppress) linting messages in lso
+
+## 0.73.0 (2025-02-06)
+
+### Feat
+
+- normalize countdown features
+
+### Fix
+
+- countdown feature supports delta actions
+
+## 0.72.0 (2025-02-06)
+
+### Feat
+
+- add per tag aggregation to tagconfig
+
+### Fix
+
+- fix yaml dumper to support strenums
+
+## 0.71.0 (2025-02-06)
+
+### Feat
+
+- support OPC security policy Basic256Sha256 SignAndEncrypt
+
+## 0.70.1 (2025-02-04)
+
+### Fix
+
+- Deployment Async Env now performs VariantType aware writes to OPC (#476)
+
+## 0.70.0 (2025-02-03)
+
+### Feat
+
+- Eval Table read()
+
+### Fix
+
+- use unique name for eval table idx
+- EvalsTable read() needed to match read() in EvalTableProtocol
+
+## 0.69.2 (2025-02-03)
+
+### Fix
+
+- remove a BUG in greedy_ac
+
+## 0.69.1 (2025-01-31)
+
+### Fix
+
+- let ensemble critic use armijo adam
+
+## 0.69.0 (2025-01-31)
+
+### Feat
+
+- implemented Metrics Table read() method for both TSDB and Pandas
+
+### Refactor
+
+- Added blocking_sync() before read() and updated MetricsTable fixture in tests
+
+## 0.68.0 (2025-01-31)
+
+### Feat
+
+- enable delta actions in deployment interaction
+- make ac action labelling aware of delta actions
+- add ability to consume and produce delta actions in GAC
+- add clip xform
+- add is_delta_transformed static method to Delta xform
+
+### Fix
+
+- remove double delta in greedy_ac update
+- move action_dim modification due to integration bug from stale PR
+- wire delta bounds through agent_cfg to gac
+- increase magic level to decrease collision chance Δ
+- define initial action in gym envs as 0
+
+### Refactor
+
+- expose tags used by constructor as protected attribute
+
+## 0.67.0 (2025-01-31)
+
+### Feat
+
+- added saturation to the behaviour test suite
+- add state and action logging to sim_interaction
+
+### Fix
+
+- accidentally deleted evaluation in previous commit
+
+## 0.66.0 (2025-01-31)
+
+### Feat
+
+- support agent step with msg bus
+- dep async env writes to agent step OPC node
+- opc client can optionally sync env steps to agent step
+- option to disable loading checkpoints
+
+### Fix
+
+- update dep smoke test to use new opc sim config
+- heartbeat dtype
+
+### Refactor
+
+- gym sim configs
+- log rewards fn in dep interaction
+
+## 0.65.0 (2025-01-30)
+
+### Feat
+
+- add state and action logging to sim_interaction
+
+### Fix
+
+- accidentally deleted evaluation in previous commit
+
+## 0.64.1 (2025-01-30)
+
+### Fix
+
+- ruff
+- ruff
+- remove network_linesearch and refactor linesearch adam
+
+## 0.64.0 (2025-01-30)
+
+### Feat
+
+- add ensemble buffer to reweight historical data
+- replay buffers take data_mode as feed argument
+
+### Fix
+
+- prefer discriminated union pattern for config schemas
+
+## 0.63.0 (2025-01-30)
+
+### Feat
+
+- add mc evaluator to online mode
+
+### Fix
+
+- fix integration bug due to stale PRs
+- add missing type hints
+- clear numpy deprecation warning
+- only grab the rewards column from rewards df
+
+### Refactor
+
+- add main config to app_state
+- generalize iteration counter label
+- remove nullables and simplify mc eval implementation
+- move transient pipe_return object off of class attributes
+- remove conditional init from monte_carlo eval
+
+## 0.62.1 (2025-01-30)
+
+### Fix
+
+- mc eval config is not a base eval config
+- prefer Field to field in config dataclasses
+- have mc eval own its own config parameters
+- default resolution with Fields now walks through default_factory schemas
+
+## 0.62.0 (2025-01-30)
+
+### Feat
+
+- Implemented Actor-Critic evaluator
+
+## 0.61.0 (2025-01-30)
+
+### Feat
+
+- implemented EvalWriter
+
+### Refactor
+
+- reverted name 'metrics_writer' back to 'metrics' and renamed 'eval_writer' to 'evals'. In MainConfig, renamed 'evals' to 'eval_cfgs'
+- changed 'metrics' to 'metrics_writer' in test_main.py
+- changed 'metrics' to 'metrics_writer' in interaction
+- renaming app_state's 'metrics' attribute to 'metrics_writer'
+- rename eval/writer.py to eval/metrics_writer.py
+
+## 0.60.0 (2025-01-30)
+
+### Feat
+
+- Added a FastAPI endpoint for searching OPC variables (#461)
+
+## 0.59.0 (2025-01-29)
+
+### Feat
+
+- change log_files bool in main cfg to log_path Path
+
+## 0.58.3 (2025-01-29)
+
+### Fix
+
+- comparator to_numpy converts to float dtype
+
+## 0.58.2 (2025-01-29)
+
+### Fix
+
+- fix style
+- fix linesearch initlization
+
+## 0.58.1 (2025-01-29)
+
+### Fix
+
+- use table name to uniquely identify their respective idx
+
+### Perf
+
+- set default low watermark to 1 for metrics
+
+## 0.58.0 (2025-01-29)
+
+### Feat
+
+- support different aggregation method for different tags
+
+### Fix
+
+- fix style issue
+- fixed batch and single read header
+- make ruff happy
+- fix pyright
+- provide fallback aggregation method
+- add back debug message
+- add back debug message
+- allow NaN and to use tryconnectcontextmanager
+- add back missing columns
+- fix styles
+
+## 0.57.0 (2025-01-29)
+
+### Feat
+
+- inverse xform
+
+## 0.56.0 (2025-01-28)
+
+### Feat
+
+- implemented Monte-Carlo evaluator as an exclusively offline training evaluator
+
+### Fix
+
+- PipelineReturn needed __iadd__ instead of __add__ to update the object in place. Also needed to return the object
+
+### Refactor
+
+- moved assertion into helper method
+- moved actor, v_critic, and q_critic initialization to BaseAC for typing purposes
+- ensure every algorithm that inherits from BaseAC has 'actor', 'q_critic', and 'v_critic' attributes
+
+## 0.55.2 (2025-01-28)
+
+### Fix
+
+- update pilot cf operating range
+- default heartbeat to None instead of relying on enabled flag
+- log reward in dep interaction
+- update dv pilot config
+- decouple tag name from node name in dep env action nodes
+
+## 0.55.1 (2025-01-28)
+
+### Fix
+
+- update tests to handle norm default from_data=False
+- do not normalize meta tags in preprocess stage
+- from_data defaults to false in normalizer
+
+## 0.55.0 (2025-01-28)
+
+### Feat
+
+- support for OpenAPI generated TypeScript api client
+- added routing and state/query library, stricter eslint rules
+
+## 0.54.0 (2025-01-28)
+
+### Feat
+
+- config validation endpoint
+- Creating configs from dict in server
+
+### Fix
+
+- first pass at pr comments
+- respond to PR comments
+- added json and yaml requests
+
+## 0.53.0 (2025-01-27)
+
+### Feat
+
+- replace xform
+
+## 0.52.3 (2025-01-27)
+
+### Fix
+
+- create outputs dir if it does not exist
+
+## 0.52.2 (2025-01-27)
+
+### Fix
+
+- ensure state constructor columns are always sorted
+- ensure action constructor columns are always sorted
+
+## 0.52.1 (2025-01-27)
+
+### Fix
+
+- ensure default output_dir is a Path object
+
+## 0.52.0 (2025-01-27)
+
+### Feat
+
+- add event to toggle event logging
+- report generating library
+- plotting module for offline data
+
+### Fix
+
+- .gitignore report/
+- testing-induced bug fixes
+
+## 0.51.0 (2025-01-27)
+
+### Feat
+
+- add filter stage to pipeline
+- add conditional filter
+
+## 0.50.0 (2025-01-25)
+
+### Feat
+
+- add comparator xform
+
+### Fix
+
+- register comparator xform
+
+## 0.49.0 (2025-01-25)
+
+### Feat
+
+- sanitize actions in deployment async env before writing to opc
+
+### Fix
+
+- assert that action tags have operating range specified in config
+
+## 0.48.0 (2025-01-25)
+
+### Feat
+
+- add option to warmup pipeline upon interaction init
+
+## 0.47.9 (2025-01-25)
+
+### Fix
+
+- force all checked configs to be interpolated and non missing
+- WIP config fix
+
+## 0.47.8 (2025-01-24)
+
+### Fix
+
+- make delta xform temporal state a dataclass
+- maintain temporal state for all sub-xforms in split list
+
+## 0.47.7 (2025-01-24)
+
+### Refactor
+
+- remove pipeline hooks from sim_interaction
+
+## 0.47.6 (2025-01-24)
+
+### Fix
+
+- remove maxlen from event bus queue
+- start step cycle immediately when event bus is enabled
+
+## 0.47.5 (2025-01-24)
+
+### Refactor
+
+- make sure calls to update_buffer() and load_buffer() pass PipelineReturn objects
+- ensure each agent's load_buffer() method takes a PipelineReturn as an argument instead of a list of transitions
+- agent's update_buffer() method now takes a PipelineReturn argument instead of a list of transitions
+
 ## 0.47.4 (2025-01-24)
 
 ### Fix

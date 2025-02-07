@@ -17,6 +17,7 @@ class EventType(StrEnum):
     step_get_obs = auto()
     step_agent_update = auto()
     step_emit_action = auto()
+    agent_step = auto()
 
     # -----------
     # -- Agent --
@@ -26,6 +27,7 @@ class EventType(StrEnum):
     agent_load = auto()
     agent_save = auto()
     agent_update_actor = auto()
+    agent_update_sampler = auto()
     agent_update_buffer = auto()
     agent_update_critic = auto()
 
@@ -34,6 +36,10 @@ class EventType(StrEnum):
     # ----------
     ping_setpoints = auto()
 
+    # -----------
+    # -- Debug --
+    # -----------
+    toggle_event_logging = auto()
 
 class EventTopic(StrEnum):
     # Topic filtering occurs using subscriber-side prefixing

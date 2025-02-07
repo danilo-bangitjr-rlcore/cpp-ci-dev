@@ -26,7 +26,7 @@ def init_environment(cfg: GymEnvConfig) -> gym.Env:
 
 
 def init_custom_env(cfg: GymEnvConfig) -> gym.Env:
-    name = cfg.name
+    name = cfg.gym_name
 
     match name:
         case 'model_env':

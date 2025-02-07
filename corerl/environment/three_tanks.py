@@ -66,7 +66,7 @@ class ThreeTankEnvBase:
         type2 = sym.Poly((self.processtau * x + 1))
         type2_c = list(type2.coeffs())
         type2_c = np.array(type2_c, dtype=float)
-        sys2 = signal.TransferFunction([self.processgain], type2_c)
+        sys2: Any = signal.TransferFunction([self.processgain], type2_c)
         sys2 = sys2.to_ss()
         sys2 = sys2.to_discrete(1) # type: ignore
         self.isoffline = isoffline
@@ -99,7 +99,7 @@ class ThreeTankEnvBase:
         type2 = sym.Poly((self.processtau * x + 1))
         type2_c = list(type2.coeffs())
         type2_c = np.array(type2_c, dtype=float)
-        sys2 = signal.TransferFunction([self.processgain], type2_c)
+        sys2: Any = signal.TransferFunction([self.processgain], type2_c)
         sys2 = sys2.to_ss()
         sys2 = sys2.to_discrete(1) # type: ignore
 

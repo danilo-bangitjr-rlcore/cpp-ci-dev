@@ -1,8 +1,8 @@
 # This variant of mountain_car_continuous requires that the OPC server and client be running.
 # All interactions to the mountain car continuous environment is performed through OPC, all state observations are read
 # through TSDB.
-defaults:
-  -
+
+log_path: "outputs/e2e_smoke"
 
 experiment:
   exp_name: OPC_MountainCarContinuous
@@ -12,13 +12,15 @@ experiment:
 
 interaction:
   name: dep_interaction
-  historical_batch_size: 0
+  restore_checkpoint: False
+  historical_batch_size: 100
+  hist_chunk_start: 2025-02-05 12:00:00+0000 # YYYY-MM-DD hh:mm:ss
+  obs_period: 00:00:01
+  action_period: 00:00:01
   heartbeat:
-    opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
-    heartbeat_node_id: "s=heartbeat"
+    heartbeat_node_id: "ns=2;s=heartbeat"
     heartbeat_period: 00:00:01
     max_counter: 10
-    enabled: True
 
 event_bus:
   enabled: True
@@ -28,9 +30,9 @@ env:
   obs_period: 00:00:05
   update_period: 00:00:05
   action_period: 00:00:15
-  setpoint_ping_period: 00:00:01
+  setpoint_ping_period: 00:00:10
   discrete_control: False
-  seed: 1
+  seed: ${experiment.seed}
   db: ${pipeline.db}
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
@@ -41,21 +43,24 @@ agent:
   name: greedy_ac
   n_critic_updates: 1
   n_actor_updates: 1
-  n_sampler_updates: 1
-  num_samples: 32
+  num_samples: 128
   uniform_sampling_percentage: 0.8
   discrete_control: ${env.discrete_control}
   seed: ${experiment.seed}
 
   critic:
     buffer:
+      name: uniform
       seed: ${experiment.seed}
+    critic_optimizer:
+      lr: 0.01
 
   actor:
     buffer:
+      name: uniform
       seed: ${experiment.seed}
     actor_optimizer:
-      lr: 0.00001
+      lr: 0.01
 
 
 metrics:
@@ -90,7 +95,8 @@ pipeline:
 
   tags:
   - name: action-0
-    operating_range: [-1.0, 1.0]
+    agg: last
+    operating_range: [-1.5, 1.5]
     outlier:
       name: identity
     imputer:
@@ -104,7 +110,6 @@ pipeline:
       - name: 'null'
     action_constructor:
     - name: identity
-    is_meta: false
 
   - name: tag-0
     operating_range: [-1.2, 0.6]
@@ -118,10 +123,7 @@ pipeline:
     - name: 'null'
     state_constructor:
     - name: multi_trace
-      trace_values:
-      - 0.0
-      - 0.9
-    is_meta: false
+      trace_values: [0, 0.9]
 
   - name: tag-1
     operating_range: [-0.07, 0.07]
@@ -134,7 +136,4 @@ pipeline:
     - name: 'null'
     state_constructor:
     - name: multi_trace
-      trace_values:
-      - 0.0
-      - 0.9
-    is_meta: false
+      trace_values: [0, 0.9]

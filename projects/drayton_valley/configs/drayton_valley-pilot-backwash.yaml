@@ -1,3 +1,5 @@
+log_path: "outputs/pilot"
+
 experiment:
   exp_name: DraytonValley-Pilot-Backwash
   param_from_hash: True
@@ -7,6 +9,9 @@ experiment:
 
 interaction:
   name: dep_interaction
+  warmup_period: 03:00:00
+  obs_period: 00:05:00
+  action_period: 00:45:00
 
 event_bus:
   enabled: True
@@ -16,6 +21,7 @@ env:
   obs_period: 00:05:00
   update_period: 00:02:30
   action_period: 00:45:00
+  seed: ${experiment.seed}
   db: ${pipeline.db}
   opc_conn_url: "opc.tcp://ignition-services:62541"
   opc_ns: 1
@@ -27,7 +33,6 @@ agent:
   name: greedy_ac
   n_critic_updates: 1
   n_actor_updates: 1
-  n_sampler_updates: 1
   num_samples: 32
   uniform_sampling_percentage: 0.8
   discrete_control: ${env.discrete_control}
@@ -35,10 +40,12 @@ agent:
 
   critic:
     buffer:
+      name: uniform
       seed: ${experiment.seed}
 
   actor:
     buffer:
+      name: uniform
       seed: ${experiment.seed}
     actor_optimizer:
       lr: 0.00001
@@ -79,8 +86,7 @@ pipeline:
     outlier:
       name: identity
     action_constructor:
-      - name: normalize
-        from_data: False
+      - name: identity
     state_constructor: # exclude from state
     - name: "null"
 
@@ -90,44 +96,44 @@ pipeline:
     outlier:
       name: identity
     action_constructor:
-      - name: normalize
-        from_data: False
+      - name: identity
     state_constructor: # exclude from state
     - name: "null"
 
   - name: PRC_INFO.PERMEABILITY # permeability
-    operating_range: [-40, -15] # this tag reports negative permeability
+    operating_range: [-25, -15] # this tag reports negative permeability
+    filter:
+    - name: binary
+      op: replace
+      other: "CTRL_P.STEP"
+      other_xform:
+      - name: identity
+    - name: comparator
+      op: '!='
+      val: 1305
     outlier:
       name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 12
     state_constructor:
-    - name: normalize
-      from_data: false
     - name: multi_trace
       trace_values:
       - 0.0
       - 0.9
     reward_constructor:
-    - name: affine
-      scale: 0.04 # 1 / (max - min)
-      bias: 0.6 # min / (max - min)
-    - name: scale
-      factor: -1.0 # convert from negative permeability normalized to [0, 1] -> positive permeability normalized to [-1, 0]
-    # ignore permeability except when in production mode (CTRL_P.STEP == 1305)
-    # in abscence of "equal to" transform, squeeze with greater/less than
-    - name: binary
-      op: prod
-      other: CTRL_P.STEP
-      other_xform:
-        - name: less_than
-          threshold: 1306
-    - name: binary
-      op: prod
-      other: CTRL_P.STEP
-      other_xform:
-        - name: greater_than
-          threshold: 1304
+    - name: scale # min negative permeability -> max positive permeability
+      factor: -1
+    - name: normalize # normalize to [0, 1]
+      min: 20
+      max: 25
+    - name: affine # compress to [-0.5, 0]
+      scale: 0.5
+      bias: -0.5
 
   - name: CTRL_P.STEP # mode, excluded from state but used in reward fn
+    preprocess:
+    - name: identity
     outlier:
       name: identity
     state_constructor:
@@ -137,9 +143,10 @@ pipeline:
     operating_range: [0, 1.5]
     outlier:
       name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 12
     state_constructor:
-    - name: normalize
-      from_data: false
     - name: multi_trace
       trace_values:
       - 0.0
@@ -149,9 +156,10 @@ pipeline:
     operating_range: [1, 4]
     outlier:
       name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 12
     state_constructor:
-    - name: normalize
-      from_data: false
     - name: multi_trace
       trace_values:
       - 0.0
@@ -161,9 +169,10 @@ pipeline:
     operating_range: [0, 0.7]
     outlier:
       name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 12
     state_constructor:
-    - name: normalize
-      from_data: false
     - name: multi_trace
       trace_values:
       - 0.0
@@ -173,9 +182,10 @@ pipeline:
     operating_range: [0, 15]
     outlier:
       name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 12
     state_constructor:
-    - name: normalize
-      from_data: false
     - name: multi_trace
       trace_values:
       - 0.0

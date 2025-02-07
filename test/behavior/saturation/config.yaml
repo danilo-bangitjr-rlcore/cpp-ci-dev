@@ -1,0 +1,120 @@
+env:
+  name: sim_async_env
+  gym_name : Saturation-v0
+  seed : ${experiment.seed}
+  discrete_control : False
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+experiment :
+  exp_name : "saturation"
+  max_steps : 2500
+  offline_steps : 0
+  timeout: 0
+
+metrics:
+  name : db
+  drivername: "postgresql+psycopg2"
+  username: "postgres"
+  password: "password"
+  ip: "localhost"
+  port: 5432
+  db_name: "postgres"
+  table_schema: "public"
+  table_name: "metrics"
+  enabled: True
+  lo_wm: 1
+
+agent:
+  name: greedy_ac
+  rho : 0.1
+  num_samples: 100
+  seed: ${experiment.seed}
+  gamma: ${experiment.gamma}
+  discrete_control: ${env.discrete_control}
+
+  critic:
+    polyak: 0.995
+    critic_optimizer:
+      lr : 0.0003
+      weight_decay : 0.0
+    critic_network:
+      ensemble: 1
+    buffer:
+      name: ensemble_uniform
+      seed: ${experiment.seed}
+      ensemble: 1
+
+  actor:
+    actor_optimizer:
+      lr : 0.0005
+    buffer:
+      name: uniform
+      seed: ${experiment.seed}
+
+pipeline:
+  state_constructor:
+    defaults: []
+
+  transition_creator:
+    name: anytime
+    gamma: ${experiment.gamma}
+
+  tags:
+  # meta tags
+  - name: reward
+    preprocess:
+    - name: identity
+    outlier:
+      name: identity
+    reward_constructor:
+    - name: identity
+    state_constructor:
+    - name: 'null'
+    preprocess:
+    - name: identity
+
+  - name: terminated
+    preprocess:
+    - name: identity
+    is_meta: True
+    outlier:
+      name: identity
+
+  - name: truncated
+    preprocess:
+    - name: identity
+    is_meta: True
+    outlier:
+      name: identity
+    state_constructor:
+    - name: 'null'
+
+  # observations
+  - name: tag-0
+    is_meta: False
+    preprocess:
+    - name: identity
+    outlier:
+      name: identity
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0.999, 0.99, 0.95, 0.9]
+
+  # actions
+  - name: action-0
+    is_meta: False
+    operating_range: [0, 1]
+    preprocess:
+    - name: identity
+    outlier:
+      name: identity
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0.999, 0.99, 0.95, 0.9]
+    action_constructor:
+      - name: identity
+  

@@ -1,20 +1,37 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Type
+from typing import TYPE_CHECKING, Type
 
 import numpy as np
 import pandas as pd
 
-from corerl.configs.config import config, interpolate
+from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
+from corerl.data_pipeline.transforms.delta import Delta
 from corerl.data_pipeline.utils import get_tag_temporal_state
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 
 @config()
 class CountdownConfig:
-    action_period: timedelta = interpolate('${env.action_period}')
-    obs_period: timedelta = interpolate('${env.obs_period}')
+    action_period: timedelta = MISSING
+    obs_period: timedelta = MISSING
     kind: str = 'no_countdown'
+    normalize: bool = True
+
+    @computed('action_period')
+    @classmethod
+    def _action_period(cls, cfg: MainConfig):
+        return cfg.interaction.action_period
+
+    @computed('obs_period')
+    @classmethod
+    def _obs_period(cls, cfg: MainConfig):
+        return cfg.interaction.obs_period
 
 
 @dataclass
@@ -73,6 +90,8 @@ class DecisionPointDetector:
 
         # otherwise add features to df
         clock_representation = clock_feats.get()
+        if self._cfg.normalize and (self._cfg.kind != 'one_hot'):
+            clock_representation = clock_representation.astype(np.float32) / self._steps_per_decision
         n_clock_feats = clock_representation.shape[1]
         for feat_col in range(n_clock_feats):
             pf.data[f'countdown.[{feat_col}]'] = clock_representation[:, feat_col]
@@ -101,6 +120,7 @@ class DecisionPointDetector:
 
     def _is_action_change(self, actions: pd.DataFrame, ts: CountdownTS, idx: int):
         # define the no action case as never having an action change
+        actions = Delta.get_non_delta(actions)
         if len(actions.columns) == 0:
             return False
 
@@ -108,7 +128,7 @@ class DecisionPointDetector:
             ts.last_row = actions.iloc[0].to_numpy()
 
         row = actions.iloc[idx].to_numpy()
-        is_ac = not np.all(ts.last_row == row)
+        is_ac = not np.allclose(ts.last_row, row)
         ts.last_row = row
 
         return is_ac
