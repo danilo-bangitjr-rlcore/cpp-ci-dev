@@ -15,7 +15,6 @@ import { Route as SetupImport } from './routes/setup'
 import { Route as AboutImport } from './routes/about'
 import { Route as IndexImport } from './routes/index'
 import { Route as SetupIndexImport } from './routes/setup/index'
-import { Route as SetupStubrequiredImport } from './routes/setup/stub_required'
 import { Route as SetupOpctagsconfigImport } from './routes/setup/opc_tags_config'
 import { Route as SetupGeneralconfigImport } from './routes/setup/general_config'
 import { Route as SetupFinishImport } from './routes/setup/finish'
@@ -43,12 +42,6 @@ const IndexRoute = IndexImport.update({
 const SetupIndexRoute = SetupIndexImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => SetupRoute,
-} as any)
-
-const SetupStubrequiredRoute = SetupStubrequiredImport.update({
-  id: '/stub_required',
-  path: '/stub_required',
   getParentRoute: () => SetupRoute,
 } as any)
 
@@ -116,13 +109,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SetupOpctagsconfigImport
       parentRoute: typeof SetupImport
     }
-    '/setup/stub_required': {
-      id: '/setup/stub_required'
-      path: '/stub_required'
-      fullPath: '/setup/stub_required'
-      preLoaderRoute: typeof SetupStubrequiredImport
-      parentRoute: typeof SetupImport
-    }
     '/setup/': {
       id: '/setup/'
       path: '/'
@@ -139,7 +125,6 @@ interface SetupRouteChildren {
   SetupFinishRoute: typeof SetupFinishRoute
   SetupGeneralconfigRoute: typeof SetupGeneralconfigRoute
   SetupOpctagsconfigRoute: typeof SetupOpctagsconfigRoute
-  SetupStubrequiredRoute: typeof SetupStubrequiredRoute
   SetupIndexRoute: typeof SetupIndexRoute
 }
 
@@ -147,7 +132,6 @@ const SetupRouteChildren: SetupRouteChildren = {
   SetupFinishRoute: SetupFinishRoute,
   SetupGeneralconfigRoute: SetupGeneralconfigRoute,
   SetupOpctagsconfigRoute: SetupOpctagsconfigRoute,
-  SetupStubrequiredRoute: SetupStubrequiredRoute,
   SetupIndexRoute: SetupIndexRoute,
 }
 
@@ -160,7 +144,6 @@ export interface FileRoutesByFullPath {
   '/setup/finish': typeof SetupFinishRoute
   '/setup/general_config': typeof SetupGeneralconfigRoute
   '/setup/opc_tags_config': typeof SetupOpctagsconfigRoute
-  '/setup/stub_required': typeof SetupStubrequiredRoute
   '/setup/': typeof SetupIndexRoute
 }
 
@@ -170,7 +153,6 @@ export interface FileRoutesByTo {
   '/setup/finish': typeof SetupFinishRoute
   '/setup/general_config': typeof SetupGeneralconfigRoute
   '/setup/opc_tags_config': typeof SetupOpctagsconfigRoute
-  '/setup/stub_required': typeof SetupStubrequiredRoute
   '/setup': typeof SetupIndexRoute
 }
 
@@ -182,7 +164,6 @@ export interface FileRoutesById {
   '/setup/finish': typeof SetupFinishRoute
   '/setup/general_config': typeof SetupGeneralconfigRoute
   '/setup/opc_tags_config': typeof SetupOpctagsconfigRoute
-  '/setup/stub_required': typeof SetupStubrequiredRoute
   '/setup/': typeof SetupIndexRoute
 }
 
@@ -195,7 +176,6 @@ export interface FileRouteTypes {
     | '/setup/finish'
     | '/setup/general_config'
     | '/setup/opc_tags_config'
-    | '/setup/stub_required'
     | '/setup/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -204,7 +184,6 @@ export interface FileRouteTypes {
     | '/setup/finish'
     | '/setup/general_config'
     | '/setup/opc_tags_config'
-    | '/setup/stub_required'
     | '/setup'
   id:
     | '__root__'
@@ -214,7 +193,6 @@ export interface FileRouteTypes {
     | '/setup/finish'
     | '/setup/general_config'
     | '/setup/opc_tags_config'
-    | '/setup/stub_required'
     | '/setup/'
   fileRoutesById: FileRoutesById
 }
@@ -258,7 +236,6 @@ export const routeTree = rootRoute
         "/setup/finish",
         "/setup/general_config",
         "/setup/opc_tags_config",
-        "/setup/stub_required",
         "/setup/"
       ]
     },
@@ -272,10 +249,6 @@ export const routeTree = rootRoute
     },
     "/setup/opc_tags_config": {
       "filePath": "setup/opc_tags_config.tsx",
-      "parent": "/setup"
-    },
-    "/setup/stub_required": {
-      "filePath": "setup/stub_required.tsx",
       "parent": "/setup"
     },
     "/setup/": {
