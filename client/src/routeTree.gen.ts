@@ -8,27 +8,18 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { createFileRoute } from '@tanstack/react-router'
-
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as SetupImport } from './routes/setup'
+import { Route as AboutImport } from './routes/about'
+import { Route as IndexImport } from './routes/index'
 import { Route as SetupIndexImport } from './routes/setup/index'
-import { Route as SetupNameImport } from './routes/setup/name'
-
-// Create Virtual Routes
-
-const AboutLazyImport = createFileRoute('/about')()
-const IndexLazyImport = createFileRoute('/')()
+import { Route as SetupOpctagsconfigImport } from './routes/setup/opc_tags_config'
+import { Route as SetupGeneralconfigImport } from './routes/setup/general_config'
+import { Route as SetupFinishImport } from './routes/setup/finish'
 
 // Create/Update Routes
-
-const AboutLazyRoute = AboutLazyImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRoute,
-} as any).lazy(() => import('./routes/about.lazy').then((d) => d.Route))
 
 const SetupRoute = SetupImport.update({
   id: '/setup',
@@ -36,11 +27,17 @@ const SetupRoute = SetupImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const IndexLazyRoute = IndexLazyImport.update({
+const AboutRoute = AboutImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRoute,
-} as any).lazy(() => import('./routes/index.lazy').then((d) => d.Route))
+} as any)
 
 const SetupIndexRoute = SetupIndexImport.update({
   id: '/',
@@ -48,9 +45,21 @@ const SetupIndexRoute = SetupIndexImport.update({
   getParentRoute: () => SetupRoute,
 } as any)
 
-const SetupNameRoute = SetupNameImport.update({
-  id: '/name',
-  path: '/name',
+const SetupOpctagsconfigRoute = SetupOpctagsconfigImport.update({
+  id: '/opc_tags_config',
+  path: '/opc_tags_config',
+  getParentRoute: () => SetupRoute,
+} as any)
+
+const SetupGeneralconfigRoute = SetupGeneralconfigImport.update({
+  id: '/general_config',
+  path: '/general_config',
+  getParentRoute: () => SetupRoute,
+} as any)
+
+const SetupFinishRoute = SetupFinishImport.update({
+  id: '/finish',
+  path: '/finish',
   getParentRoute: () => SetupRoute,
 } as any)
 
@@ -62,7 +71,14 @@ declare module '@tanstack/react-router' {
       id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexLazyImport
+      preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutImport
       parentRoute: typeof rootRoute
     }
     '/setup': {
@@ -72,18 +88,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SetupImport
       parentRoute: typeof rootRoute
     }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutLazyImport
-      parentRoute: typeof rootRoute
+    '/setup/finish': {
+      id: '/setup/finish'
+      path: '/finish'
+      fullPath: '/setup/finish'
+      preLoaderRoute: typeof SetupFinishImport
+      parentRoute: typeof SetupImport
     }
-    '/setup/name': {
-      id: '/setup/name'
-      path: '/name'
-      fullPath: '/setup/name'
-      preLoaderRoute: typeof SetupNameImport
+    '/setup/general_config': {
+      id: '/setup/general_config'
+      path: '/general_config'
+      fullPath: '/setup/general_config'
+      preLoaderRoute: typeof SetupGeneralconfigImport
+      parentRoute: typeof SetupImport
+    }
+    '/setup/opc_tags_config': {
+      id: '/setup/opc_tags_config'
+      path: '/opc_tags_config'
+      fullPath: '/setup/opc_tags_config'
+      preLoaderRoute: typeof SetupOpctagsconfigImport
       parentRoute: typeof SetupImport
     }
     '/setup/': {
@@ -99,60 +122,91 @@ declare module '@tanstack/react-router' {
 // Create and export the route tree
 
 interface SetupRouteChildren {
-  SetupNameRoute: typeof SetupNameRoute
+  SetupFinishRoute: typeof SetupFinishRoute
+  SetupGeneralconfigRoute: typeof SetupGeneralconfigRoute
+  SetupOpctagsconfigRoute: typeof SetupOpctagsconfigRoute
   SetupIndexRoute: typeof SetupIndexRoute
 }
 
 const SetupRouteChildren: SetupRouteChildren = {
-  SetupNameRoute: SetupNameRoute,
+  SetupFinishRoute: SetupFinishRoute,
+  SetupGeneralconfigRoute: SetupGeneralconfigRoute,
+  SetupOpctagsconfigRoute: SetupOpctagsconfigRoute,
   SetupIndexRoute: SetupIndexRoute,
 }
 
 const SetupRouteWithChildren = SetupRoute._addFileChildren(SetupRouteChildren)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexLazyRoute
+  '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/setup': typeof SetupRouteWithChildren
-  '/about': typeof AboutLazyRoute
-  '/setup/name': typeof SetupNameRoute
+  '/setup/finish': typeof SetupFinishRoute
+  '/setup/general_config': typeof SetupGeneralconfigRoute
+  '/setup/opc_tags_config': typeof SetupOpctagsconfigRoute
   '/setup/': typeof SetupIndexRoute
 }
 
 export interface FileRoutesByTo {
-  '/': typeof IndexLazyRoute
-  '/about': typeof AboutLazyRoute
-  '/setup/name': typeof SetupNameRoute
+  '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/setup/finish': typeof SetupFinishRoute
+  '/setup/general_config': typeof SetupGeneralconfigRoute
+  '/setup/opc_tags_config': typeof SetupOpctagsconfigRoute
   '/setup': typeof SetupIndexRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
-  '/': typeof IndexLazyRoute
+  '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/setup': typeof SetupRouteWithChildren
-  '/about': typeof AboutLazyRoute
-  '/setup/name': typeof SetupNameRoute
+  '/setup/finish': typeof SetupFinishRoute
+  '/setup/general_config': typeof SetupGeneralconfigRoute
+  '/setup/opc_tags_config': typeof SetupOpctagsconfigRoute
   '/setup/': typeof SetupIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/setup' | '/about' | '/setup/name' | '/setup/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/setup'
+    | '/setup/finish'
+    | '/setup/general_config'
+    | '/setup/opc_tags_config'
+    | '/setup/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/setup/name' | '/setup'
-  id: '__root__' | '/' | '/setup' | '/about' | '/setup/name' | '/setup/'
+  to:
+    | '/'
+    | '/about'
+    | '/setup/finish'
+    | '/setup/general_config'
+    | '/setup/opc_tags_config'
+    | '/setup'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/setup'
+    | '/setup/finish'
+    | '/setup/general_config'
+    | '/setup/opc_tags_config'
+    | '/setup/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
-  IndexLazyRoute: typeof IndexLazyRoute
+  IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   SetupRoute: typeof SetupRouteWithChildren
-  AboutLazyRoute: typeof AboutLazyRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexLazyRoute: IndexLazyRoute,
+  IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   SetupRoute: SetupRouteWithChildren,
-  AboutLazyRoute: AboutLazyRoute,
 }
 
 export const routeTree = rootRoute
@@ -166,25 +220,35 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/setup",
-        "/about"
+        "/about",
+        "/setup"
       ]
     },
     "/": {
-      "filePath": "index.lazy.tsx"
+      "filePath": "index.tsx"
+    },
+    "/about": {
+      "filePath": "about.tsx"
     },
     "/setup": {
       "filePath": "setup.tsx",
       "children": [
-        "/setup/name",
+        "/setup/finish",
+        "/setup/general_config",
+        "/setup/opc_tags_config",
         "/setup/"
       ]
     },
-    "/about": {
-      "filePath": "about.lazy.tsx"
+    "/setup/finish": {
+      "filePath": "setup/finish.tsx",
+      "parent": "/setup"
     },
-    "/setup/name": {
-      "filePath": "setup/name.tsx",
+    "/setup/general_config": {
+      "filePath": "setup/general_config.tsx",
+      "parent": "/setup"
+    },
+    "/setup/opc_tags_config": {
+      "filePath": "setup/opc_tags_config.tsx",
       "parent": "/setup"
     },
     "/setup/": {

@@ -42,6 +42,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/opc/nodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Search Opc */
+        get: operations["read_search_opc_api_opc_nodes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -53,6 +70,16 @@ export interface components {
              * @enum {string}
              */
             name: "action_schedule";
+            /**
+             * Delta Action
+             * @default false
+             */
+            delta_action: boolean;
+            /** Delta Bounds */
+            delta_bounds?: [
+                number,
+                number
+            ] | null;
             /**
              * Discrete Control
              * @default ${env.discrete_control}
@@ -100,6 +127,36 @@ export interface components {
             /** Kwargs */
             kwargs?: Record<string, never>;
         };
+        /** ActorCriticEvalConfig */
+        ActorCriticEvalConfig: {
+            /**
+             * Name
+             * @default actor-critic
+             */
+            name: string;
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /** Offline Eval Steps */
+            offline_eval_steps?: number[];
+            /**
+             * Num Test States
+             * @default 30
+             */
+            num_test_states: number;
+            /**
+             * Num Uniform Actions
+             * @default 100
+             */
+            num_uniform_actions: number;
+            /**
+             * Critic Samples
+             * @default 5
+             */
+            critic_samples: number;
+        };
         /** AdamConfig */
         AdamConfig: {
             /**
@@ -145,6 +202,11 @@ export interface components {
              */
             bias: number;
         };
+        /**
+         * Agg
+         * @enum {string}
+         */
+        Agg: "avg" | "last" | "bool_or";
         /** AllTheTimeTCConfig */
         AllTheTimeTCConfig: {
             /**
@@ -162,8 +224,55 @@ export interface components {
              * @default 1
              */
             min_n_step: number;
-            /** Max N Step */
-            max_n_step?: number | null;
+            /**
+             * Max N Step
+             * @default |???|
+             */
+            max_n_step: number;
+        };
+        /** ArmijoAdamConfig */
+        ArmijoAdamConfig: {
+            /**
+             * Name
+             * @default armijo_adam
+             * @constant
+             */
+            name: "armijo_adam";
+            /**
+             * Lr
+             * @default 0.0001
+             */
+            lr: number;
+            /**
+             * Weight Decay
+             * @default 0
+             */
+            weight_decay: number;
+            /**
+             * C
+             * @default 0.1
+             */
+            c: number;
+            /**
+             * Tau
+             * @default 0.5
+             */
+            tau: number;
+            /**
+             * Beta
+             * @default 0.1
+             */
+            beta: number;
+            /**
+             * Max Backtracks
+             * @default 10
+             */
+            max_backtracks: number;
+            /**
+             * Min Lr
+             * @default 0.0001
+             */
+            min_lr: number;
         };
         /** BaseNNConfig */
         BaseNNConfig: {
@@ -208,13 +317,29 @@ export interface components {
              */
             other: string;
             /** Other Xform */
-            other_xform?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
+            other_xform?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["ClipConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["InverseConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
         };
-        /**
-         * CallerCode
-         * @enum {integer}
-         */
-        CallerCode: 1 | 2 | 3;
+        /** Body_gen_config_file_api_configuration_file_post */
+        Body_gen_config_file_api_configuration_file_post: {
+            /** File */
+            file?: Blob | null;
+        };
+        /** ClipConfig */
+        ClipConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "clip";
+            /**
+             * Bounds
+             * @default |???|
+             */
+            bounds: [
+                number,
+                number
+            ];
+        };
         /** ComparatorConfig */
         ComparatorConfig: {
             /**
@@ -252,13 +377,13 @@ export interface components {
             /**
              * Action Period
              * Format: duration
-             * @default ${env.action_period}
+             * @default |???|
              */
             action_period: string;
             /**
              * Obs Period
              * Format: duration
-             * @default ${env.obs_period}
+             * @default |???|
              */
             obs_period: string;
             /**
@@ -266,26 +391,17 @@ export interface components {
              * @default no_countdown
              */
             kind: string;
+            /**
+             * Normalize
+             * @default true
+             */
+            normalize: boolean;
         };
-        /** CustomAdamConfig */
-        CustomAdamConfig: {
-            /**
-             * Name
-             * @default custom_adam
-             * @constant
-             */
-            name: "custom_adam";
-            /**
-             * Lr
-             * @default 0.0001
-             */
-            lr: number;
-            /**
-             * Weight Decay
-             * @default 0
-             */
-            weight_decay: number;
-        };
+        /**
+         * DataMode
+         * @enum {integer}
+         */
+        DataMode: 1 | 2 | 3;
         /** DeltaConfig */
         DeltaConfig: {
             /**
@@ -301,11 +417,8 @@ export interface components {
              * @default dep_async_env
              */
             name: string;
-            /**
-             * Seed
-             * @default |???|
-             */
-            seed: number;
+            /** Seed */
+            seed?: number | null;
             /**
              * Discrete Control
              * @default |???|
@@ -341,6 +454,12 @@ export interface components {
              * @default |???|
              */
             opc_ns: number;
+            /** Client Cert Path */
+            client_cert_path?: string | null;
+            /** Client Private Key Path */
+            client_private_key_path?: string | null;
+            /** Server Cert Path */
+            server_cert_path?: string | null;
             /** @default |???| */
             db: components["schemas"]["TagDBConfig"];
             /**
@@ -353,6 +472,24 @@ export interface components {
         /** DepInteractionConfig */
         DepInteractionConfig: {
             /**
+             * Obs Period
+             * Format: duration
+             * @default |???|
+             */
+            obs_period: string;
+            /**
+             * Action Period
+             * Format: duration
+             * @default |???|
+             */
+            action_period: string;
+            /**
+             * Action Tolerance
+             * Format: duration
+             * @default |???|
+             */
+            action_tolerance: string;
+            /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
@@ -362,12 +499,19 @@ export interface components {
              * @default 10000
              */
             historical_batch_size: number;
+            /** Hist Chunk Start */
+            hist_chunk_start?: string | null;
             /**
              * Checkpoint Path
              * Format: path
              * @default outputs/checkpoints
              */
             checkpoint_path: string;
+            /**
+             * Restore Checkpoint
+             * @default true
+             */
+            restore_checkpoint: boolean;
             heartbeat?: components["schemas"]["HeartbeatConfig"];
             /** Warmup Period */
             warmup_period?: string | null;
@@ -405,9 +549,9 @@ export interface components {
             name: "ensemble";
             critic_network?: components["schemas"]["EnsembleCriticNetworkConfig"];
             /** Critic Optimizer */
-            critic_optimizer?: components["schemas"]["RmspropConfig"] | components["schemas"]["AdamConfig"] | components["schemas"]["CustomAdamConfig"] | components["schemas"]["SgdConfig"] | components["schemas"]["LSOConfig"];
+            critic_optimizer?: components["schemas"]["RmspropConfig"] | components["schemas"]["AdamConfig"] | components["schemas"]["SgdConfig"] | components["schemas"]["ArmijoAdamConfig"] | components["schemas"]["LSOConfig"];
             /** Buffer */
-            buffer?: components["schemas"]["UniformReplayBufferConfig"] | components["schemas"]["PriorityReplayBufferConfig"] | components["schemas"]["EnsembleUniformReplayBufferConfig"];
+            buffer?: components["schemas"]["UniformReplayBufferConfig"] | components["schemas"]["PriorityReplayBufferConfig"] | components["schemas"]["EnsembleUniformReplayBufferConfig"] | components["schemas"]["MixedHistoryBufferConfig"];
             /**
              * Polyak
              * @default 0.99
@@ -437,8 +581,10 @@ export interface components {
              * @default 1
              */
             ensemble: number;
-            bootstrap_reduct?: components["schemas"]["Reduct"];
-            policy_reduct?: components["schemas"]["Reduct"];
+            /** Bootstrap Reduct */
+            bootstrap_reduct?: components["schemas"]["MinReduct"] | components["schemas"]["MaxReduct"] | components["schemas"]["MeanReduct"] | components["schemas"]["MedianReduct"] | components["schemas"]["PercentileReduct"];
+            /** Policy Reduct */
+            policy_reduct?: components["schemas"]["MinReduct"] | components["schemas"]["MaxReduct"] | components["schemas"]["MeanReduct"] | components["schemas"]["MedianReduct"] | components["schemas"]["PercentileReduct"];
             /**
              * Vmap
              * @default false
@@ -449,9 +595,8 @@ export interface components {
         /** EnsembleUniformReplayBufferConfig */
         EnsembleUniformReplayBufferConfig: {
             /**
-             * Name
-             * @default ensemble_uniform
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
              */
             name: "ensemble_uniform";
             /**
@@ -492,6 +637,16 @@ export interface components {
              * @enum {string}
              */
             name: "epsilon_greedy_sarsa";
+            /**
+             * Delta Action
+             * @default false
+             */
+            delta_action: boolean;
+            /** Delta Bounds */
+            delta_bounds?: [
+                number,
+                number
+            ] | null;
             /**
              * Discrete Control
              * @default ${env.discrete_control}
@@ -546,7 +701,67 @@ export interface components {
         };
         /** EvalConfig */
         EvalConfig: {
+            actor_critic?: components["schemas"]["ActorCriticEvalConfig"];
+            monte_carlo?: components["schemas"]["MonteCarloEvalConfig"];
             raw_data?: components["schemas"]["RawDataEvalConfig"];
+        };
+        /** EvalDBConfig */
+        EvalDBConfig: {
+            /**
+             * Drivername
+             * @default postgresql+psycopg2
+             */
+            drivername: string;
+            /**
+             * Username
+             * @default postgres
+             */
+            username: string;
+            /**
+             * Password
+             * @default password
+             */
+            password: string;
+            /**
+             * Ip
+             * @default localhost
+             */
+            ip: string;
+            /**
+             * Port
+             * @default 5432
+             */
+            port: number;
+            /**
+             * Db Name
+             * @default postgres
+             */
+            db_name: string;
+            /**
+             * Table Name
+             * @default evals
+             */
+            table_name: string;
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "db";
+            /**
+             * Table Schema
+             * @default public
+             */
+            table_schema: string;
+            /**
+             * Lo Wm
+             * @default 10
+             */
+            lo_wm: number;
         };
         /** EventBusConfig */
         EventBusConfig: {
@@ -599,10 +814,11 @@ export interface components {
              */
             offline_steps: number;
             /**
-             * Pipeline Batch Duration Days
-             * @default 7
+             * Pipeline Batch Duration
+             * Format: duration
+             * @default P7D
              */
-            pipeline_batch_duration_days: number;
+            pipeline_batch_duration: string;
             /**
              * Render
              * @default 0
@@ -664,6 +880,16 @@ export interface components {
              * @enum {string}
              */
             name: "greedy_ac";
+            /**
+             * Delta Action
+             * @default false
+             */
+            delta_action: boolean;
+            /** Delta Bounds */
+            delta_bounds?: [
+                number,
+                number
+            ] | null;
             /**
              * Discrete Control
              * @default ${env.discrete_control}
@@ -770,6 +996,16 @@ export interface components {
              */
             name: "greedy_iql";
             /**
+             * Delta Action
+             * @default false
+             */
+            delta_action: boolean;
+            /** Delta Bounds */
+            delta_bounds?: [
+                number,
+                number
+            ] | null;
+            /**
              * Discrete Control
              * @default ${env.discrete_control}
              */
@@ -817,6 +1053,11 @@ export interface components {
              */
             expectile: number;
         };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /** HealthResponse */
         HealthResponse: {
             /**
@@ -826,22 +1067,14 @@ export interface components {
             status: string;
             /**
              * Time
-             * @default 2025-01-28T21:28:28.747322+00:00
+             * @default 2025-01-01T00:00:00+00:00
              */
             time: string;
         };
         /** HeartbeatConfig */
         HeartbeatConfig: {
-            /**
-             * Opc Conn Url
-             * @default |???|
-             */
-            opc_conn_url: string;
-            /**
-             * Heartbeat Node Id
-             * @default |???|
-             */
-            heartbeat_node_id: string;
+            /** Heartbeat Node Id */
+            heartbeat_node_id?: string | null;
             /**
              * Heartbeat Period
              * Format: duration
@@ -853,11 +1086,6 @@ export interface components {
              * @default 1000
              */
             max_counter: number;
-            /**
-             * Enabled
-             * @default false
-             */
-            enabled: boolean;
         };
         /** IQLConfig */
         IQLConfig: {
@@ -866,6 +1094,16 @@ export interface components {
              * @enum {string}
              */
             name: "iql";
+            /**
+             * Delta Action
+             * @default false
+             */
+            delta_action: boolean;
+            /** Delta Bounds */
+            delta_bounds?: [
+                number,
+                number
+            ] | null;
             /**
              * Discrete Control
              * @default ${env.discrete_control}
@@ -956,6 +1194,16 @@ export interface components {
              */
             name: "inac";
             /**
+             * Delta Action
+             * @default false
+             */
+            delta_action: boolean;
+            /** Delta Bounds */
+            delta_bounds?: [
+                number,
+                number
+            ] | null;
+            /**
              * Discrete Control
              * @default ${env.discrete_control}
              */
@@ -1023,6 +1271,19 @@ export interface components {
              */
             temp: number;
         };
+        /** InverseConfig */
+        InverseConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "inverse";
+            /**
+             * Tolerance
+             * @default 0.0001
+             */
+            tolerance: number;
+        };
         /** LSOConfig */
         LSOConfig: {
             /**
@@ -1043,7 +1304,7 @@ export interface components {
             weight_decay: number;
             /**
              * Init Step Size
-             * @default 0.1
+             * @default 0.001
              */
             init_step_size: number;
             /**
@@ -1069,11 +1330,14 @@ export interface components {
         LSOInitConfig: {
             /**
              * Name
-             * @default to
+             * @default To
              */
             name: string;
-            /** Args */
-            args?: unknown[];
+            /**
+             * Step Size
+             * @default 0.1
+             */
+            step_size: number;
         };
         /** LessThanConfig */
         LessThanConfig: {
@@ -1115,6 +1379,8 @@ export interface components {
             interaction: components["schemas"]["SimInteractionConfig"] | components["schemas"]["DepInteractionConfig"];
             /** Metrics */
             metrics?: components["schemas"]["MetricsDBConfig"] | components["schemas"]["PandasMetricsConfig"];
+            /** Evals */
+            evals?: components["schemas"]["EvalDBConfig"];
             event_bus?: components["schemas"]["EventBusConfig"];
             /**
              * Env
@@ -1125,13 +1391,10 @@ export interface components {
             agent?: components["schemas"]["ActionScheduleConfig"] | components["schemas"]["GreedyACConfig"] | components["schemas"]["GreedyIQLConfig"] | components["schemas"]["InACConfig"] | components["schemas"]["IQLConfig"] | components["schemas"]["RandomAgentConfig"] | components["schemas"]["SACConfig"] | components["schemas"]["EpsilonGreedySarsaConfig"] | components["schemas"]["SimpleACConfig"];
             experiment?: components["schemas"]["ExperimentConfig"];
             pipeline?: components["schemas"]["PipelineConfig"];
-            eval?: components["schemas"]["EvalConfig"];
+            eval_cfgs?: components["schemas"]["EvalConfig"];
             report?: components["schemas"]["ReportConfig"];
-            /**
-             * Log Files
-             * @default false
-             */
-            log_files: boolean;
+            /** Log Path */
+            log_path?: string | null;
         };
         /** MaskedAEConfig */
         MaskedAEConfig: {
@@ -1182,6 +1445,30 @@ export interface components {
              * @default 0.25
              */
             training_missing_perc: number;
+        };
+        /** MaxReduct */
+        MaxReduct: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "max";
+        };
+        /** MeanReduct */
+        MeanReduct: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "mean";
+        };
+        /** MedianReduct */
+        MedianReduct: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "median";
         };
         /** MetricsDBConfig */
         MetricsDBConfig: {
@@ -1237,9 +1524,85 @@ export interface components {
             table_schema: string;
             /**
              * Lo Wm
-             * @default 10
+             * @default 1
              */
             lo_wm: number;
+        };
+        /** MinReduct */
+        MinReduct: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "min";
+        };
+        /** MixedHistoryBufferConfig */
+        MixedHistoryBufferConfig: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "mixed_history_buffer";
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
+            /**
+             * Memory
+             * @default 1000000
+             */
+            memory: number;
+            /**
+             * Batch Size
+             * @default 256
+             */
+            batch_size: number;
+            /**
+             * Combined
+             * @default true
+             */
+            combined: boolean;
+            /**
+             * Online Weight
+             * @default 0.75
+             */
+            online_weight: number;
+            /**
+             * Ensemble
+             * @default 10
+             */
+            ensemble: number;
+            /**
+             * Ensemble Probability
+             * @default 0.5
+             */
+            ensemble_probability: number;
+        };
+        /** MonteCarloEvalConfig */
+        MonteCarloEvalConfig: {
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /** Offline Eval Steps */
+            offline_eval_steps?: number[];
+            /**
+             * Gamma
+             * @default ${experiment.gamma}
+             */
+            gamma: number;
+            /**
+             * Precision
+             * @default 0.99
+             */
+            precision: number;
+            /**
+             * Critic Samples
+             * @default 5
+             */
+            critic_samples: number;
         };
         /** NNTorsoConfig */
         NNTorsoConfig: {
@@ -1284,9 +1647,9 @@ export interface components {
             action_max: number;
             actor_network?: components["schemas"]["BaseNNConfig"];
             /** Actor Optimizer */
-            actor_optimizer?: components["schemas"]["RmspropConfig"] | components["schemas"]["AdamConfig"] | components["schemas"]["CustomAdamConfig"] | components["schemas"]["SgdConfig"] | components["schemas"]["LSOConfig"];
+            actor_optimizer?: components["schemas"]["RmspropConfig"] | components["schemas"]["AdamConfig"] | components["schemas"]["SgdConfig"] | components["schemas"]["ArmijoAdamConfig"] | components["schemas"]["LSOConfig"];
             /** Buffer */
-            buffer?: components["schemas"]["UniformReplayBufferConfig"] | components["schemas"]["PriorityReplayBufferConfig"] | components["schemas"]["EnsembleUniformReplayBufferConfig"];
+            buffer?: components["schemas"]["UniformReplayBufferConfig"] | components["schemas"]["PriorityReplayBufferConfig"] | components["schemas"]["EnsembleUniformReplayBufferConfig"] | components["schemas"]["MixedHistoryBufferConfig"];
         };
         /** NormalizerConfig */
         NormalizerConfig: {
@@ -1301,7 +1664,7 @@ export interface components {
             max?: number | null;
             /**
              * From Data
-             * @default true
+             * @default false
              */
             from_data: boolean;
         };
@@ -1312,6 +1675,26 @@ export interface components {
              * @enum {string}
              */
             name: "null";
+        };
+        /** OpcNodeDetail */
+        OpcNodeDetail: {
+            /** Val */
+            val: unknown;
+            /** Datatype */
+            DataType: string;
+            /** Identifier */
+            Identifier: string | number;
+            /** Nodeid */
+            nodeid: string;
+            /** Path */
+            path: string;
+            /** Key */
+            key: string;
+        };
+        /** OpcNodeResponse */
+        OpcNodeResponse: {
+            /** Nodes */
+            nodes: components["schemas"]["OpcNodeDetail"][];
         };
         /** OptimConfig */
         OptimConfig: {
@@ -1339,6 +1722,11 @@ export interface components {
              */
             name: "pandas";
             /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /**
              * Output Path
              * @default metric_outputs
              */
@@ -1357,23 +1745,40 @@ export interface components {
              */
             name: "per-tag";
         };
+        /** PercentileReduct */
+        PercentileReduct: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            name: "percentile";
+            /**
+             * Bootstrap Batch Size
+             * @default 10
+             */
+            bootstrap_batch_size: number;
+            /**
+             * Bootstrap Samples
+             * @default 10
+             */
+            bootstrap_samples: number;
+            /**
+             * Percentile
+             * @default 0.7
+             */
+            percentile: number;
+        };
         /** PipelineConfig */
         PipelineConfig: {
             /** Tags */
             tags?: components["schemas"]["TagConfig"][];
             db?: components["schemas"]["TagDBConfig"];
             /**
-             * Obs Period
+             * Max Data Gap
              * Format: duration
-             * @default ${env.obs_period}
+             * @default |???|
              */
-            obs_period: string;
-            /**
-             * Action Period
-             * Format: duration
-             * @default ${env.action_period}
-             */
-            action_period: string;
+            max_data_gap: string;
             /** Imputer */
             imputer?: components["schemas"]["PerTagImputerConfig"] | components["schemas"]["MaskedAEConfig"];
             state_constructor?: components["schemas"]["SCConfig"];
@@ -1396,10 +1801,10 @@ export interface components {
         /** PriorityReplayBufferConfig */
         PriorityReplayBufferConfig: {
             /**
-             * Name
-             * @default priority
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
              */
-            name: string;
+            name: "priority";
             /**
              * Seed
              * @default |???|
@@ -1439,6 +1844,16 @@ export interface components {
              */
             name: "random";
             /**
+             * Delta Action
+             * @default false
+             */
+            delta_action: boolean;
+            /** Delta Bounds */
+            delta_bounds?: [
+                number,
+                number
+            ] | null;
+            /**
              * Discrete Control
              * @default ${env.discrete_control}
              */
@@ -1476,13 +1891,8 @@ export interface components {
         };
         /** RawDataEvalConfig */
         RawDataEvalConfig: {
-            /**
-             * Name
-             * @default raw_data
-             */
-            name: string;
-            /** Caller Codes */
-            caller_codes?: components["schemas"]["CallerCode"][];
+            /** Data Modes */
+            data_modes?: components["schemas"]["DataMode"][];
             /** Stage Codes */
             stage_codes?: components["schemas"]["StageCode"][];
             /**
@@ -1492,14 +1902,6 @@ export interface components {
             enabled: boolean;
             /** Tags */
             tags?: string[];
-        };
-        /** Reduct */
-        Reduct: {
-            /**
-             * Name
-             * @default |???|
-             */
-            name: string;
         };
         /** ReportConfig */
         ReportConfig: {
@@ -1575,6 +1977,16 @@ export interface components {
              */
             name: "sac";
             /**
+             * Delta Action
+             * @default false
+             */
+            delta_action: boolean;
+            /** Delta Bounds */
+            delta_bounds?: [
+                number,
+                number
+            ] | null;
+            /**
              * Discrete Control
              * @default ${env.discrete_control}
              */
@@ -1645,7 +2057,7 @@ export interface components {
         /** SCConfig */
         SCConfig: {
             /** Defaults */
-            defaults?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
+            defaults?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["ClipConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["InverseConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
             countdown?: components["schemas"]["CountdownConfig"];
         };
         /** ScaleConfig */
@@ -1719,11 +2131,8 @@ export interface components {
              * @default sim_async_env
              */
             name: string;
-            /**
-             * Seed
-             * @default |???|
-             */
-            seed: number;
+            /** Seed */
+            seed?: number | null;
             /**
              * Discrete Control
              * @default |???|
@@ -1767,6 +2176,24 @@ export interface components {
         /** SimInteractionConfig */
         SimInteractionConfig: {
             /**
+             * Obs Period
+             * Format: duration
+             * @default |???|
+             */
+            obs_period: string;
+            /**
+             * Action Period
+             * Format: duration
+             * @default |???|
+             */
+            action_period: string;
+            /**
+             * Action Tolerance
+             * Format: duration
+             * @default |???|
+             */
+            action_tolerance: string;
+            /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
@@ -1779,6 +2206,16 @@ export interface components {
              * @enum {string}
              */
             name: "simple_ac";
+            /**
+             * Delta Action
+             * @default false
+             */
+            delta_action: boolean;
+            /** Delta Bounds */
+            delta_bounds?: [
+                number,
+                number
+            ] | null;
             /**
              * Discrete Control
              * @default ${env.discrete_control}
@@ -1845,9 +2282,9 @@ export interface components {
              */
             name: "split";
             /** Left */
-            left?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
+            left?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["ClipConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["InverseConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
             /** Right */
-            right?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
+            right?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["ClipConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["InverseConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
             /** Passthrough */
             passthrough?: boolean | null;
         };
@@ -1870,8 +2307,10 @@ export interface components {
              * @default |???|
              */
             name: string;
+            /** @default avg */
+            agg: components["schemas"]["Agg"];
             /** Node Identifier */
-            node_identifier?: string | null;
+            node_identifier?: string | number | null;
             /**
              * Is Meta
              * @default false
@@ -1902,15 +2341,15 @@ export interface components {
             /** Imputer */
             imputer?: components["schemas"]["IdentityImputerConfig"] | components["schemas"]["CopyImputerConfig"] | components["schemas"]["LinearImputerConfig"];
             /** Preprocess */
-            preprocess?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
+            preprocess?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["ClipConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["InverseConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
             /** Reward Constructor */
-            reward_constructor?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
+            reward_constructor?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["ClipConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["InverseConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
             /** Action Constructor */
-            action_constructor?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[] | null;
+            action_constructor?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["ClipConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["InverseConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[] | null;
             /** State Constructor */
-            state_constructor?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[] | null;
+            state_constructor?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["ClipConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["InverseConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[] | null;
             /** Filter */
-            filter?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[] | null;
+            filter?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["ClipConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["InverseConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[] | null;
         };
         /** TagDBConfig */
         TagDBConfig: {
@@ -1959,12 +2398,8 @@ export interface components {
              * @default public
              */
             table_schema: string;
-            /**
-             * Data Agg
-             * @default avg
-             * @enum {string}
-             */
-            data_agg: "avg" | "last" | "bool_or";
+            /** @default avg */
+            data_agg: components["schemas"]["Agg"];
         };
         /** TraceConfig */
         TraceConfig: {
@@ -1985,9 +2420,8 @@ export interface components {
         /** UniformReplayBufferConfig */
         UniformReplayBufferConfig: {
             /**
-             * Name
-             * @default uniform
-             * @constant
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
              */
             name: "uniform";
             /**
@@ -2010,6 +2444,15 @@ export interface components {
              * @default true
              */
             combined: boolean;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
         };
     };
     responses: never;
@@ -2058,12 +2501,13 @@ export interface operations {
         };
         requestBody: {
             content: {
+                "multipart/form-data": components["schemas"]["Body_gen_config_file_api_configuration_file_post"];
                 "application/json": components["schemas"]["MainConfig"];
                 "application/yaml": components["schemas"]["MainConfig"];
+                "application/x-yaml": components["schemas"]["MainConfig"];
             };
         };
         responses: {
-            /** @description Successful response */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2073,13 +2517,72 @@ export interface operations {
                     "application/yaml": components["schemas"]["MainConfig"];
                 };
             };
-            /** @description Bad Request Error */
+            /** @description Bad Request */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    read_search_opc_api_opc_nodes_get: {
+        parameters: {
+            query: {
+                opc_url: string;
+                query?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpcNodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
