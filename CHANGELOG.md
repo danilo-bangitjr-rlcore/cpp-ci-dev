@@ -1,3 +1,32 @@
+## 0.77.0 (2025-02-07)
+
+### BREAKING CHANGE
+
+- a result of these simplifications is that configs
+that manipulated the timing controls within the env will no longer
+be valid.
+- this adds a new responsibility to the interaction cfg
+and that is not backwards compatible or defaultable. In fact, the new
+definition of the interaction config should be used to define defaults
+in the other places where `obs_period` and `action_period` are being
+used.
+
+### Feat
+
+- remove env.obs_period interpolations throughout configs
+- add computed and sanitizer config utilities
+
+### Fix
+
+- rename eval->eval_cfgs in vww config
+- migrate pipeline_batch_duration to timedelta
+
+### Refactor
+
+- make action tolerance a computed config
+- pull env cfgs into single source
+- make interaction cfg responsible for periods
+
 ## 0.76.0 (2025-02-06)
 
 ### Feat
