@@ -1,6 +1,8 @@
 experiment:
   gamma: 0.9
   offline_steps: 100
+  offline_eval_iters:
+    - 0
 
 interaction:
   name: sim_interaction
@@ -48,7 +50,6 @@ eval_cfgs:
     enabled: True
     precision: 0.2
     gamma: 0.9
-    offline_eval_steps: [0]
 
 metrics:
   name: db
