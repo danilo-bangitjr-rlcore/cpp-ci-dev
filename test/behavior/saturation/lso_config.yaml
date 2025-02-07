@@ -3,12 +3,11 @@ env:
   gym_name : Saturation-v0
   seed : ${experiment.seed}
   discrete_control : False
-  obs_period: 00:00:01
-  update_period: 00:00:01
-  action_period: 00:00:01
 
 interaction:
   name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
 
 experiment:
   exp_name: "saturation"
@@ -107,7 +106,7 @@ pipeline:
       trace_values: [0., 0.75, 0.95]
     reward_constructor:
     # subtract saturation SP
-    - name: affine 
+    - name: affine
       scale: 1
       bias: -0.5
     # take absolute value

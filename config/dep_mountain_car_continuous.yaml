@@ -15,6 +15,8 @@ interaction:
   restore_checkpoint: False
   historical_batch_size: 100
   hist_chunk_start: 2025-02-05 12:00:00+0000 # YYYY-MM-DD hh:mm:ss
+  obs_period: 00:00:01
+  action_period: 00:00:01
   heartbeat:
     heartbeat_node_id: "ns=2;s=heartbeat"
     heartbeat_period: 00:00:01
@@ -136,4 +138,3 @@ pipeline:
     state_constructor:
     - name: multi_trace
       trace_values: [0, 0.9]
-

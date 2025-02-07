@@ -1,38 +1,25 @@
 import logging
 import shutil
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
-from typing import Literal
 
 import numpy as np
 import pandas as pd
-from pydantic import Field
 
 from corerl.agent.base import BaseAgent
-from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.eval.monte_carlo import MonteCarloEvaluator
+from corerl.interaction.configs import DepInteractionConfig
 from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
-from corerl.messages.heartbeat import Heartbeat, HeartbeatConfig
+from corerl.messages.heartbeat import Heartbeat
 from corerl.state import AppState
 from corerl.utils.maybe import Maybe
 from corerl.utils.time import clock_generator, split_into_chunks, wait_for_timestamp
 
 logger = logging.getLogger(__name__)
-
-@config()
-class DepInteractionConfig:
-    name: Literal["dep_interaction"] = "dep_interaction"
-    historical_batch_size: int = 10000
-    checkpoint_path: Path = Path('outputs/checkpoints')
-    restore_checkpoint: bool = True
-    heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
-    warmup_period: timedelta | None = None
-    hist_chunk_start: datetime | None = None
 
 
 class DeploymentInteraction(Interaction):
