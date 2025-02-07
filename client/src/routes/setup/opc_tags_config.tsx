@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 // import { useContext } from "react";
 import { Field, Fieldset, Legend } from "../../components/fieldset";
-import { SetupConfigNav } from "../../components/setup/SetupConfigNav";
+import { SetupConfigNav } from "../../components/setup/setup-config-nav";
 import { Text } from "../../components/text";
 // import { MainConfigContext } from "../../utils/main-config";
 import { Heading } from "../../components/heading";

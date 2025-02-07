@@ -6,7 +6,7 @@ import DurationInput from "../../components/duration";
 import { Field, Fieldset, Label } from "../../components/fieldset";
 import { Heading } from "../../components/heading";
 import { Input } from "../../components/input";
-import { SetupConfigNav } from "../../components/setup/SetupConfigNav";
+import { SetupConfigNav } from "../../components/setup/setup-config-nav";
 import { Text } from "../../components/text";
 import {
   type DeepPartial,
