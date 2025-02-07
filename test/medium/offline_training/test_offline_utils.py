@@ -103,8 +103,7 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter) -> Offline
     data_writer.blocking_sync()
 
     # Produce offline transitions
-    save_path = utils.prepare_save_dir(offline_cfg)
-    offline_training = OfflineTraining(offline_cfg, save_path, start_time=start_time)
+    offline_training = OfflineTraining(offline_cfg, start_time=start_time)
     pipeline = Pipeline(offline_cfg.pipeline)
     offline_training.load_offline_transitions(pipeline)
 
@@ -162,6 +161,8 @@ def test_offline_training(offline_cfg: MainConfig,
     assert last_loss < first_loss
 
     # ensure metrics and evals tables exist
+    app_state.metrics.close()
+    app_state.evals.close()
     assert table_exists(tsdb_engine, 'metrics')
     assert table_exists(tsdb_engine, 'evals')
 
