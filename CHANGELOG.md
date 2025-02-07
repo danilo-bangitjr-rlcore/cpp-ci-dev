@@ -1,3 +1,9 @@
+## 0.78.1 (2025-02-07)
+
+### Fix
+
+- ignore type errors in three_tanks
+
 ## 0.78.0 (2025-02-07)
 
 ### Feat
