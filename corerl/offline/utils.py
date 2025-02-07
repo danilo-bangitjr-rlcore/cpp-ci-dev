@@ -6,6 +6,7 @@ from typing import Tuple
 import pandas as pd
 from tqdm import tqdm
 
+import corerl.main_utils as utils
 from corerl.agent.base import BaseAgent
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode
@@ -49,12 +50,11 @@ class OfflineTraining:
     def __init__(
         self,
         cfg: MainConfig,
-        save_path: Path,
         start_time: dt.datetime | None = None,
         end_time: dt.datetime | None = None
     ):
         self.cfg = cfg
-        self.save_path = save_path
+        self.save_path: Path = utils.prepare_save_dir(cfg)
         self.start_time = start_time
         self.end_time = end_time
         self.offline_steps = self.cfg.experiment.offline_steps
