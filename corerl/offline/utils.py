@@ -14,6 +14,7 @@ from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import ColumnDescriptions, Pipeline, PipelineReturn
 from corerl.eval.actor_critic import ActorCriticEval
 from corerl.eval.monte_carlo import MonteCarloEvaluator
+from corerl.eval.plotting.evals import plot_evals
 from corerl.eval.plotting.metrics import plot_metrics
 from corerl.state import AppState
 from corerl.utils.time import split_into_chunks
@@ -123,6 +124,14 @@ class OfflineTraining:
         # Create Plots
         labels = [str(j) for j in self.cfg.experiment.offline_eval_iters]
         plot_metrics(
+            cfg=self.cfg,
+            app_state=app_state,
+            save_path=self.save_path,
+            start_time=self.start_time,
+            end_time=self.end_time,
+            labels=labels
+        )
+        plot_evals(
             cfg=self.cfg,
             app_state=app_state,
             save_path=self.save_path,

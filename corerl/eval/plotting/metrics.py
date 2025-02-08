@@ -22,7 +22,6 @@ def make_mc_eval_plot(
         return
 
     for label in labels:
-        print("Make MC Eval Plot Label:", label)
         state_v_df = app_state.metrics.read(
             metric=f"state_v_{label}",
             step_start=step_start,
