@@ -1,3 +1,13 @@
+## 0.82.0 (2025-02-08)
+
+### Feat
+
+- Actor-Critic plotting code + evals plotting tooling
+
+### Refactor
+
+- update test to reflect changes made to the jsonb object written to TSDB by Actor-Critic eval
+
 ## 0.81.0 (2025-02-07)
 
 ### Feat
