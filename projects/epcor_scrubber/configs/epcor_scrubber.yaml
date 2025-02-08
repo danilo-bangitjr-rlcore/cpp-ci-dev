@@ -11,7 +11,7 @@ interaction:
   name: dep_interaction
   warmup_period: 03:00:00
   historical_batch_size: 8640 # 30 days @ 5 minute obs period
-  hist_chunk_start: 2024-11-01 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
+  hist_chunk_start: 2024-10-09 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
   heartbeat:
     heartbeat_node_id: "ns=3;i=1"
     heartbeat_period: 00:00:05
@@ -86,7 +86,7 @@ pipeline:
     port: 5432
     db_name: "postgres"
     table_schema: "public"
-    table_name: scrubber4
+    table_name: scrubber4_tz
 
   state_constructor:
     defaults: []
