@@ -31,11 +31,12 @@ class EnsembleCriticConfig(BaseQConfig, _SharedEnsembleConfig):
 
 class BaseEnsembleCritic:
     def __init__(self, cfg: EnsembleCriticConfig, state_dim: int, action_dim: int, output_dim: int = 1):
+        input_dim = state_dim + action_dim
         self.model = init_critic_network(
-            cfg.critic_network, input_dim=state_dim + action_dim, output_dim=output_dim,
+            cfg.critic_network, input_dim=input_dim, output_dim=output_dim,
         )
         self.target = init_critic_target(
-            cfg.critic_network, input_dim=state_dim + action_dim, output_dim=output_dim,
+            cfg.critic_network, input_dim=input_dim, output_dim=output_dim,
             critic=self.model,
         )
         params = self.model.parameters(independent=True) # type: ignore
@@ -127,7 +128,7 @@ class BaseEnsembleCritic:
 
 class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
     def __init__(self, cfg: EnsembleCriticConfig, state_dim: int, action_dim: int, output_dim: int = 1):
-        BaseEnsembleCritic.__init__(self, cfg, state_dim + action_dim, output_dim)
+        BaseEnsembleCritic.__init__(self, cfg, state_dim, action_dim, output_dim)
 
     def update(
         self,
@@ -178,7 +179,7 @@ class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
         return self._forward_target(input_tensor, bootstrap_reduct=bootstrap_reduct)
 
     def get_q_target(
-        self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor], bootstrap_reduct: bool = True,
+        self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor], bootstrap_reduct: bool = True
     ) -> torch.Tensor:
         q, _ = self.get_qs_target(state_batches, action_batches, bootstrap_reduct=bootstrap_reduct)
         return q
