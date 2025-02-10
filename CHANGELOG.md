@@ -1,3 +1,19 @@
+## 0.83.0 (2025-02-10)
+
+### Feat
+
+- add application uri to opc config
+
+### Fix
+
+- increase size of offline chunk load in epcor scrubber cfg
+- add countdown to epcor scrubber cfg
+- move action/obs period from env to interaction in scrubber cfg
+- remove redundant obs/action period from env cfg in dep mountain car continuous
+- make chkpoint dir name windows compatible
+- update scrubber config
+- explicitly use timestamp with time zone in sql queries/writes
+
 ## 0.82.0 (2025-02-08)
 
 ### Feat
