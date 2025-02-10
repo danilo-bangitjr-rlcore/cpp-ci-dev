@@ -71,6 +71,7 @@ def _parse_pool_price_data(df: pd.DataFrame) -> list[pd.Series]:
     columns = _split_columns(df)
     transformed_columns = []
     for column in columns:
+        assert column.name is not None
         if "Forecast" in column.name:
             column = _adjust_pool_price_forecast_timestamps(column)
 
@@ -104,6 +105,7 @@ def _parse_battery_data(df: pd.DataFrame) -> list[pd.Series]:
     columns = _split_columns(df)
     transformed_columns = []
     for column in columns:
+        assert column.name is not None
         if "CYCLE" in column.name:
             column = _totals_to_deltas(column)
 
@@ -132,6 +134,7 @@ def _parse_solar_data(df: pd.DataFrame) -> list[pd.Series]:
     columns = _split_columns(df)
     transformed_columns = []
     for column in columns:
+        assert column.name is not None
         if "_TOT" in column.name:
             column = _totals_to_deltas(column)
         if column.name[-4:] == "_KVA":
@@ -157,6 +160,7 @@ def _parse_setpoint_data(df: pd.DataFrame) -> list[pd.Series]:
     columns = _split_columns(df)
     transformed_columns = []
     for column in columns:
+        assert column.name is not None
         if "_TOT" in column.name:
             column = _totals_to_deltas(column)
 
