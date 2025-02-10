@@ -279,6 +279,8 @@ class DeploymentInteraction(Interaction):
     # internals
     # ---------
     def _should_take_action(self, step_timestamp: datetime) -> bool:
+        if self._app_state.event_bus.enabled():
+            return True
         if step_timestamp >= self._next_action_timestamp:
             self._next_action_timestamp = step_timestamp + self.action_period
             return True
