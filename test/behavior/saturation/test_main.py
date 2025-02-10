@@ -9,9 +9,9 @@ from corerl.sql_logging.sql_logging import table_exists
 
 
 @pytest.mark.parametrize('config,overrides,expected_outcomes', [
-    ('config.yaml',     {},   {'reward': -0.2, 'critic_loss': 0.02, 'actor_loss': -1.0}),
-    ('lso_config.yaml', {},   {'reward': -0.2, 'critic_loss': 0.02, 'actor_loss': -1.0}),
-    ('lso_delta.yaml',  {},   {'reward': -0.25, 'critic_loss': 0.005, 'actor_loss': -1.0}),
+    ('config.yaml',     {},   {'reward': -0.2, 'avg_critic_loss': 0.02, 'actor_loss': -1.0}),
+    ('lso_config.yaml', {},   {'reward': -0.2, 'avg_critic_loss': 0.02, 'actor_loss': -1.0}),
+    ('lso_delta.yaml',  {},   {'reward': -0.25, 'avg_critic_loss': 0.005, 'actor_loss': -1.0}),
 ])
 @pytest.mark.timeout(900)
 def test_saturation(
@@ -20,6 +20,7 @@ def test_saturation(
     expected_outcomes: dict[str, float],
     tsdb_engine: Engine,
     tsdb_tmp_db_name: str,
+
 ):
     port = tsdb_engine.url.port
     assert port is not None

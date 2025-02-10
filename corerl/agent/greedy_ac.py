@@ -275,7 +275,7 @@ class GreedyAC(BaseAC):
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric="avg_critic_loss",
-            value=loss.detach().numpy(),
+            value=to_np(loss),
         )
 
         return loss
@@ -389,7 +389,7 @@ class GreedyAC(BaseAC):
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric=policy_name + "_loss",
-            value=loss,
+            value=to_np(loss),
         )
 
         # sample another batch for the evaluation of updates when using line search.
