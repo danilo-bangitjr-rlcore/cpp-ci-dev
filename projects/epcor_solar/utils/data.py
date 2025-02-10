@@ -1,6 +1,6 @@
 import datetime as dt
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, cast, Iterable
 
 import pandas as pd
 from cloudpathlib import CloudPath, S3Client, S3Path
@@ -134,10 +134,11 @@ def _parse_solar_data(df: pd.DataFrame) -> list[pd.Series]:
     columns = _split_columns(df)
     transformed_columns = []
     for column in columns:
-        assert isinstance(column.name, str)
-        if "_TOT" in column.name:
+        column_name = column.name
+        column_name = cast(str, column_name)
+        if "_TOT" in column_name:
             column = _totals_to_deltas(column)
-        if column.name[-4:] == "_KVA":
+        if column_name[-4:] == "_KVA":
             column = _abs(column)
 
         transformed_columns.append(column)
