@@ -10,6 +10,8 @@ experiment:
 interaction:
   name: dep_interaction
   restore_checkpoint: False
+  obs_period: 00:05:00
+  action_period: 01:00:00
   warmup_period: 03:00:00
   historical_batch_size: 8640 # 30 days @ 5 minute obs period
   hist_chunk_start: 2024-10-09 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
@@ -24,10 +26,9 @@ event_bus:
 env:
   name: dep_async_env
   discrete_control: False
-  obs_period: 00:05:00
   update_period: 00:00:30
-  action_period: 01:00:00
   action_tolerance: 00:15:00
+  setpoint_ping_period: 00:00:10
   seed: ${experiment.seed}
   db: ${pipeline.db}
 
@@ -37,9 +38,6 @@ env:
   client_private_key_path: certs/agent_key.pem
   server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
   application_uri: urn:agent
-  # client_app_uri: urn:agent
-  # user: admin
-  # passwd: admin
 
 agent:
   name: greedy_ac
