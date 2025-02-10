@@ -252,14 +252,14 @@ class DeploymentInteraction(Interaction):
 
     def checkpoint(self):
         now = datetime.now(UTC)
-        path = self._cfg.checkpoint_path / f'{now}'
+        path = self._cfg.checkpoint_path / f'{str(now).replace(':','_')}'
         path.mkdir(exist_ok=True, parents=True)
         self._agent.save(path)
         self._last_checkpoint = now
 
         chkpoints = self._cfg.checkpoint_path.glob('*')
         for chk in chkpoints:
-            time = datetime.fromisoformat(chk.name)
+            time = datetime.fromisoformat(chk.name.replace('_',':'))
             if now - time > timedelta(days=1):
                 shutil.rmtree(chk)
 

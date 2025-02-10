@@ -16,6 +16,7 @@ from corerl.configs.loader import config_to_dict, direct_load_config
     ('projects/cenovus/configs', 'offline_pretraining'),
     ('projects/drayton_valley/configs', 'drayton_valley-pilot-backwash'),
     ('projects/vww/configs', 'offline_pretraining'),
+    ('projects/epcor_scrubber/configs', 'epcor_scrubber'),
 ])
 def test_main_configs(base: str, config_name: str):
     config = direct_load_config(MainConfig, base, config_name)

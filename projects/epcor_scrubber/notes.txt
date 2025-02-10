@@ -1,0 +1,2 @@
+efficiency lower bound 80 -> 85
+outlet H2S upper bound 5 -> 5000 (ppm to ppb)

@@ -183,7 +183,7 @@ run.sh
 # saved results
 saved_experiments/
 reseau/*
-
+certs/
 output/
 outputs/
 corerl/outputs/
