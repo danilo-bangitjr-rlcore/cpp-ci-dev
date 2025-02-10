@@ -17,6 +17,7 @@ class EnsembleUniformReplayBufferConfig(BaseReplayBufferConfig):
     name: Literal["ensemble_uniform"] = "ensemble_uniform"
     ensemble: int = 1 # Size of the ensemble
     data_subset: float = 1.0 # Proportion of all transitions added to a given buffer in the ensemble
+    seed: int = 0
 
 
 class EnsembleUniformBuffer(ReplayBuffer):
