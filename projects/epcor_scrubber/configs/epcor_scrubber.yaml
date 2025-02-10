@@ -89,6 +89,8 @@ pipeline:
 
   state_constructor:
     defaults: []
+    countdown:
+      kind: int
     # defaults:
     # - name: multi_trace
     #   trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
