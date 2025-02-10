@@ -275,7 +275,7 @@ class GreedyAC(BaseAC):
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric="avg_critic_loss",
-            value=to_np(loss),
+            value=to_np(loss)/ensemble_len,
         )
 
         return loss
