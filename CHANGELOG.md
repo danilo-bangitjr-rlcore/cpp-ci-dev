@@ -1,3 +1,14 @@
+## 0.84.1 (2025-02-10)
+
+### Fix
+
+- style
+- fix input size
+
+### Refactor
+
+- refactor ensemble critic
+
 ## 0.84.0 (2025-02-10)
 
 ### Feat
