@@ -1,3 +1,71 @@
+## 0.83.0 (2025-02-10)
+
+### Feat
+
+- add application uri to opc config
+
+### Fix
+
+- increase size of offline chunk load in epcor scrubber cfg
+- add countdown to epcor scrubber cfg
+- move action/obs period from env to interaction in scrubber cfg
+- remove redundant obs/action period from env cfg in dep mountain car continuous
+- make chkpoint dir name windows compatible
+- update scrubber config
+- explicitly use timestamp with time zone in sql queries/writes
+
+## 0.82.0 (2025-02-08)
+
+### Feat
+
+- Actor-Critic plotting code + evals plotting tooling
+
+### Refactor
+
+- update test to reflect changes made to the jsonb object written to TSDB by Actor-Critic eval
+
+## 0.81.0 (2025-02-07)
+
+### Feat
+
+- added remaining catalyst-ui foundational components
+- added reusable setup main config nav buttons
+- added duration component and sample usage
+- added steps/progress-bar component, refactor for inf. rerender
+- added heading component
+- added fieldset and input
+- port to local forage, fixed lint and build errors, foundational UI components
+- initial yaml creation functionality
+
+### Fix
+
+- addressed form upload button for initial file upload
+- addressed post-rebase pytest failures, removed stub_required route, uv.lock version
+- updated minimal config
+- clear  message when we click Clear Setup Config
+
+## 0.80.0 (2025-02-07)
+
+### Feat
+
+- critics use linesearch by default
+
+### Refactor
+
+- remove defaulted hypers from test configs
+
+## 0.79.0 (2025-02-07)
+
+### Feat
+
+- implemented Monte-Carlo Eval plotting function and a function that calls all metrics plotting functions
+
+### Refactor
+
+- addressing Andy's save_path feedback
+- updated offline utils tests to reflect changes made to configs and OfflineTraining class
+- Enforce all evaluators to be executed at the same offline/online training iters
+
 ## 0.78.1 (2025-02-07)
 
 ### Fix

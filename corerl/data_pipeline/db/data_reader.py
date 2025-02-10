@@ -134,8 +134,8 @@ class DataReader:
                     agg_stmt.label("val")
                 )
                 .filter(
-                    self.sensor_table.c["time"] > text(f"TIMESTAMP '{start_time.isoformat()}'"),
-                    self.sensor_table.c["time"] <= text(f"TIMESTAMP '{end_time.isoformat()}'"),
+                    self.sensor_table.c["time"] > text(f"TIMESTAMP WITH TIME ZONE '{start_time.isoformat()}'"),
+                    self.sensor_table.c["time"] <= text(f"TIMESTAMP WITH TIME ZONE '{end_time.isoformat()}'"),
                     self.sensor_table.c["name"].in_(tags),
                 )
                 .group_by(text("time_bucket"), self.sensor_table.c["name"])

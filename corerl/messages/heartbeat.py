@@ -28,6 +28,8 @@ async def heartbeat(cfg: HeartbeatConfig, opc_env_config: OPCEnvConfig):
     opc_client = Client(opc_env_config.opc_conn_url)
 
     if opc_env_config.client_cert_path and opc_env_config.client_private_key_path:
+        assert opc_env_config.application_uri is not None
+        opc_client.application_uri = opc_env_config.application_uri
         # NOTE: this does not exist within the Sync variant of OPC Client and is the source of why we need to
         # add these hacky async snippets into our synchronous codebase
         await opc_client.set_security(

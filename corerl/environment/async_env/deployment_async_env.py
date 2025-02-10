@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
-from asyncua.ua.uaerrors import BadNodeIdUnknown
 from pydantic import BaseModel, ConfigDict
 
 # Data Pipline
@@ -38,6 +37,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         self.client_cert_path = cfg.client_cert_path
         self.client_private_key_path = cfg.client_private_key_path
         self.server_cert_path = cfg.server_cert_path
+        self.application_uri = cfg.application_uri
 
         self.tag_configs = tag_configs
         self.obs_period = cfg.obs_period
@@ -71,6 +71,8 @@ class DeploymentAsyncEnv(AsyncEnv):
             opc_client = Client(self.url)
 
             if cfg.client_cert_path and cfg.client_private_key_path:
+                assert self.application_uri is not None
+                opc_client.application_uri = self.application_uri
                 # NOTE: this does not exist within the Sync variant of OPC Client and is the source of why we need to
                 # add these hacky async snippets into our synchronous codebase
                 await opc_client.set_security(
@@ -97,12 +99,6 @@ class DeploymentAsyncEnv(AsyncEnv):
                     var_type = await node.read_data_type_as_variant_type()
                     logger.info(f"Registering action '{tag_name}' with OPC node id '{id}'")
                     self.action_nodes[tag_name] = SyncNodeData(node=node, var_type=var_type)
-
-                try:
-                    id = make_opc_node_id("agent_step", self.ns)
-                    self.agent_step_node = opc_client.get_node(id)
-                except BadNodeIdUnknown:
-                    self.agent_step_node = None
 
         asyncio.run(_init_opc_client(cfg, tag_configs))
 

@@ -9,11 +9,33 @@ interaction:
   obs_period: 00:00:01
   action_period: 00:00:01
 
-experiment :
-  exp_name : "saturation"
-  max_steps : 2500
-  offline_steps : 0
-  timeout: 0
+experiment:
+  exp_name: "saturation"
+  seed: 1
+  gamma: 0.99
+  max_steps: 300
+
+agent:
+  name: greedy_ac
+  num_samples: 128
+  uniform_sampling_percentage: 1.0
+  seed: ${experiment.seed}
+  gamma: ${experiment.gamma}
+  discrete_control: ${env.discrete_control}
+
+  critic:
+    polyak: 0.995
+    buffer:
+      name: uniform
+      seed: ${experiment.seed}
+
+  actor:
+    actor_optimizer:
+      lr: 0.001
+    buffer:
+      name: uniform
+      seed: ${experiment.seed}
+
 
 metrics:
   name : db
@@ -28,40 +50,15 @@ metrics:
   enabled: True
   lo_wm: 1
 
-agent:
-  name: greedy_ac
-  rho : 0.1
-  num_samples: 100
-  seed: ${experiment.seed}
-  gamma: ${experiment.gamma}
-  discrete_control: ${env.discrete_control}
-
-  critic:
-    polyak: 0.995
-    critic_optimizer:
-      lr : 0.0003
-      weight_decay : 0.0
-    critic_network:
-      ensemble: 1
-    buffer:
-      name: ensemble_uniform
-      seed: ${experiment.seed}
-      ensemble: 1
-
-  actor:
-    actor_optimizer:
-      lr : 0.0005
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
-
 pipeline:
   state_constructor:
     defaults: []
+    # defaults:
+    # - name: multi_trace
+    #   trace_values: [0., 0.75, 0.95]
 
   transition_creator:
     name: anytime
-    gamma: ${experiment.gamma}
 
   tags:
   # meta tags
@@ -71,7 +68,7 @@ pipeline:
     outlier:
       name: identity
     reward_constructor:
-    - name: identity
+    - name: 'null'
     state_constructor:
     - name: 'null'
     preprocess:
@@ -95,26 +92,43 @@ pipeline:
 
   # observations
   - name: tag-0
-    is_meta: False
     preprocess:
     - name: identity
+    is_meta: False
     outlier:
       name: identity
+    preprocess:
+      - name: identity
     state_constructor:
     - name: multi_trace
-      trace_values: [0.999, 0.99, 0.95, 0.9, 0]
+      trace_values: [0., 0.75, 0.95]
+    reward_constructor:
+    # subtract saturation SP
+    - name: affine
+      scale: 1
+      bias: -0.5
+    # take absolute value
+    - name: power
+      pow: 2.0
+    - name: power
+      pow: 0.5
+    # invert for penalty
+    - name: scale
+      factor: -1
 
   # actions
   - name: action-0
     is_meta: False
-    operating_range: [0, 1]
-    preprocess:
-    - name: identity
+    operating_range: [0, 0.5]
     outlier:
       name: identity
     state_constructor:
-    - name: multi_trace
-      trace_values: [0.999, 0.99, 0.95, 0.9, 0]
+      - name: 'null'
+    preprocess:
+      - name: normalize
+        from_data: False
     action_constructor:
       - name: identity
-  
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0., 0.75, 0.95]

@@ -88,7 +88,7 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         return text(f"""
             INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
             (time, agent_step, metric, value)
-            VALUES (TIMESTAMP :timestamp, :agent_step, :metric, :value)
+            VALUES (TIMESTAMP WITH TIME ZONE :timestamp, :agent_step, :metric, :value)
         """)
 
 
