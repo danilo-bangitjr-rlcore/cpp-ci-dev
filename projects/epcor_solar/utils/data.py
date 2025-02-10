@@ -1,6 +1,6 @@
 import datetime as dt
 from pathlib import Path
-from typing import Any, cast, Iterable
+from typing import Any, Iterable, cast
 
 import pandas as pd
 from cloudpathlib import CloudPath, S3Client, S3Path
