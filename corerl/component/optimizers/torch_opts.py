@@ -8,9 +8,10 @@ from corerl.component.optimizers.custom_torch_opts import ArmijoAdam
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.configs.config import MISSING, Field, config
 from corerl.configs.group import Group
+from corerl.state import AppState
 
 optim_group = Group[
-    [Iterable[torch.nn.Parameter], bool],
+    [AppState, Iterable[torch.nn.Parameter], bool],
     torch.optim.Optimizer | EnsembleOptimizer,
 ]()
 
@@ -24,6 +25,7 @@ class OptimConfig:
 def _base_optim(
     optim: type[torch.optim.Adam | torch.optim.SGD | torch.optim.RMSprop | ArmijoAdam],
     cfg: OptimConfig,
+    app_state : AppState,
     param: Iterable[torch.nn.Parameter],
     ensemble: bool,
 ) -> torch.optim.Optimizer | EnsembleOptimizer:
@@ -47,10 +49,10 @@ class RmspropConfig(OptimConfig):
 
 
 @optim_group.dispatcher
-def rmsprop(cfg: RmspropConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def rmsprop(cfg: RmspropConfig, app_state: AppState, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         torch.optim.RMSprop,
-        cfg, param, ensemble,
+        cfg, app_state, param, ensemble,
     )
 
 
@@ -63,10 +65,10 @@ class AdamConfig(OptimConfig):
 
 
 @optim_group.dispatcher
-def adam(cfg: AdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def adam(cfg: AdamConfig, app_state: AppState, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         torch.optim.Adam,
-        cfg, param, ensemble,
+        cfg, app_state, param, ensemble,
     )
 
 
@@ -105,7 +107,7 @@ class LSOConfig(OptimConfig):
 
 
 @optim_group.dispatcher
-def lso_dispatch(cfg: LSOConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def lso_dispatch(cfg: LSOConfig, app_state: AppState, param: Iterable[torch.nn.Parameter], ensemble: bool):
     if not cfg.optim.name == 'adam':
         raise ValueError("LSO currently only supports Adam")
     if not ensemble:
@@ -164,10 +166,10 @@ class SgdConfig(OptimConfig):
 
 
 @optim_group.dispatcher
-def sgd(cfg: SgdConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def sgd(cfg: SgdConfig, app_state: AppState, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         torch.optim.SGD,
-        cfg, param, ensemble,
+        cfg, app_state, param, ensemble,
     )
 
 
@@ -185,8 +187,8 @@ class ArmijoAdamConfig(OptimConfig):
 
 
 @optim_group.dispatcher
-def armijo_adam(cfg: ArmijoAdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def armijo_adam(cfg: ArmijoAdamConfig, app_state: AppState, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         ArmijoAdam,
-        cfg, param, ensemble,
+        cfg, app_state, param, ensemble,
     )

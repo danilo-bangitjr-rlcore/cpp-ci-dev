@@ -56,7 +56,7 @@ class NetworkActor(BaseActor):
             self.policy.load_state_dict(initializer.policy.state_dict())
 
         self.optimizer = init_optimizer(
-            cfg.actor_optimizer, self.policy.parameters()
+            cfg.actor_optimizer, app_state, self.policy.parameters()
         )
         self.optimizer_name = cfg.actor_optimizer.name
 

@@ -48,6 +48,7 @@ class EnsembleQCritic(BaseQ):
         params = self.model.parameters(independent=True) # type: ignore
         self.optimizer = init_optimizer(
             cfg.critic_optimizer,
+            app_state,
             list(params),
             ensemble=True,
         )
@@ -182,6 +183,7 @@ class EnsembleVCritic(BaseV):
         params = self.model.parameters(independent=True) # type: ignore
         self.optimizer = init_optimizer(
             cfg.critic_optimizer,
+            app_state,
             list(params),
             ensemble=True,
         )
