@@ -213,7 +213,12 @@ class GreedyAC(BaseAC):
 
     # --------------------------- critic updating-------------------------- #
 
-    def _compute_critic_loss(self, ensemble_batch: list[TransitionBatch], with_grad:bool=False) -> torch.Tensor:
+    def _compute_critic_loss(
+            self,
+            ensemble_batch: list[TransitionBatch],
+            with_grad: bool=False,
+            log_metrics: bool=True,
+        ) -> torch.Tensor:
         # First, translate ensemble batches in to list for each property
         ensemble_len = len(ensemble_batch)
         state_batches = []
@@ -269,14 +274,22 @@ class GreedyAC(BaseAC):
         loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble_len):
             target =  reward_batches[i] + gamma_batches[i] * next_qs[i]
-            loss += torch.nn.functional.mse_loss(target, qs[i])
+            loss_i = torch.nn.functional.mse_loss(target, qs[i])
+            loss += loss_i
 
-        # Fourth, log metrics
-        self._app_state.metrics.write(
-            agent_step=self._app_state.agent_step,
-            metric="avg_critic_loss",
-            value=to_np(loss)/ensemble_len,
-        )
+            if log_metrics:
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"critic_loss_{i}",
+                    value=to_np(loss_i),
+                )
+
+        if log_metrics:
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric="avg_critic_loss",
+                value=to_np(loss),
+            )
 
         return loss
 
@@ -286,7 +299,7 @@ class GreedyAC(BaseAC):
 
         self._app_state.event_bus.emit_event(EventType.agent_update_critic)
         batches = self.critic_buffer.sample()
-        q_loss = self._compute_critic_loss(batches, with_grad=True)
+        q_loss = self._compute_critic_loss(batches, with_grad=True, log_metrics=True)
 
         if self.eval_batch:
             eval_batches = self.critic_buffer.sample()
