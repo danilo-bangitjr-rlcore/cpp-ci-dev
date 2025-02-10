@@ -7,12 +7,13 @@ from pydantic import Field
 import corerl.utils.nullable as nullable
 from corerl.component.buffer.ensemble import EnsembleUniformReplayBufferConfig
 from corerl.component.buffer.factory import BufferConfig
-from corerl.component.critic.base_critic import BaseQ, BaseQConfig, BaseV
+from corerl.component.critic.base_critic import BaseCriticConfig, BaseQ, BaseV
 from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
 from corerl.component.network.networks import EnsembleCriticNetworkConfig
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import LSOConfig
 from corerl.configs.config import MISSING, config
+from corerl.state import AppState
 from corerl.utils.device import device
 
 
@@ -27,12 +28,14 @@ class _SharedEnsembleConfig:
 
 
 @config()
-class EnsembleCriticConfig(BaseQConfig, _SharedEnsembleConfig):
+class EnsembleCriticConfig(BaseCriticConfig, _SharedEnsembleConfig):
     name: Literal['ensemble'] = 'ensemble'
 
 
 class EnsembleQCritic(BaseQ):
-    def __init__(self, cfg: EnsembleCriticConfig, state_dim: int, action_dim: int, output_dim: int = 1):
+    def __init__(self, cfg: EnsembleCriticConfig, app_state: AppState, state_dim: int, action_dim: int, output_dim: int = 1):
+        super().__init__(cfg, app_state, state_dim, action_dim)
+
         state_action_dim = state_dim + action_dim
         self.model = init_critic_network(
             cfg.critic_network, input_dim=state_action_dim, output_dim=output_dim,
@@ -165,7 +168,9 @@ class EnsembleQCritic(BaseQ):
 
 
 class EnsembleVCritic(BaseV):
-    def __init__(self, cfg: EnsembleCriticConfig, state_dim: int, output_dim: int = 1):
+    def __init__(self, cfg: EnsembleCriticConfig, app_state: AppState, state_dim: int, output_dim: int = 1):
+        super().__init__(cfg, app_state, state_dim)
+
         self.model = init_critic_network(
             cfg.critic_network, input_dim=state_dim, output_dim=output_dim,
         )

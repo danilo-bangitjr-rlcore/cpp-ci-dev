@@ -4,6 +4,7 @@ from pathlib import Path
 import torch
 
 from corerl.configs.config import config
+from corerl.state import AppState
 
 
 @config()
@@ -13,8 +14,9 @@ class BaseCriticConfig:
 
 class BaseCritic(ABC):
     @abstractmethod
-    def __init__(self, cfg: BaseCriticConfig):
+    def __init__(self, cfg: BaseCriticConfig,  app_state: AppState):
         self.discrete_control = cfg.discrete_control
+        self.app_state = app_state
 
     @abstractmethod
     def update(self, loss: torch.Tensor) -> None:
@@ -29,15 +31,10 @@ class BaseCritic(ABC):
         raise NotImplementedError
 
 
-@config()
-class BaseVConfig(BaseCriticConfig):
-    ...
-
-
 class BaseV(BaseCritic):
     @abstractmethod
-    def __init__(self, cfg: BaseVConfig, state_dim: int):
-        super(BaseV, self).__init__(cfg)
+    def __init__(self, cfg: BaseCriticConfig, app_state: AppState, state_dim: int):
+        super(BaseV, self).__init__(cfg, app_state)
 
     @abstractmethod
     def get_v(
@@ -57,15 +54,10 @@ class BaseV(BaseCritic):
         raise NotImplementedError
 
 
-@config()
-class BaseQConfig(BaseCriticConfig):
-    ...
-
-
 class BaseQ(BaseCritic):
     @abstractmethod
-    def __init__(self, cfg: BaseQConfig, state_dim: int, action_dim: int):
-        super(BaseQ, self).__init__(cfg)
+    def __init__(self, cfg: BaseCriticConfig, app_state: AppState, state_dim: int, action_dim: int):
+        super(BaseQ, self).__init__(cfg, app_state)
 
     @abstractmethod
     def get_q(
