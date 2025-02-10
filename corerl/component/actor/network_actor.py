@@ -12,6 +12,7 @@ from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.component.policy.factory import BaseNNConfig, SquashedGaussianPolicyConfig, create
 from corerl.configs.config import MISSING, config
+from corerl.state import AppState
 from corerl.utils.device import device
 
 
@@ -35,10 +36,13 @@ class NetworkActor(BaseActor):
     def __init__(
         self,
         cfg: NetworkActorConfig,
+        app_state: AppState,
         state_dim: int,
         action_dim: int,
         initializer: BaseActor | None = None,
     ):
+
+        super().__init__(app_state)
         # We always assume actions are normalized in (0, 1) unless otherwise
         # stated
         action_min = cfg.action_min
