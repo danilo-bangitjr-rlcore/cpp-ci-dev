@@ -97,7 +97,6 @@ class BaseEnsembleCritic:
         self.optimizer.zero_grad()
         loss.backward()
 
-
         if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
             self.optimizer.step(closure=lambda: 0.)
         else:
@@ -132,7 +131,7 @@ class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
 
     def update(
         self,
-        loss: list[torch.Tensor] | torch.Tensor,
+        loss: torch.Tensor,
         opt_args: tuple = tuple(),
         opt_kwargs: dict | None = None,
     ) -> None:
@@ -190,7 +189,7 @@ class EnsembleVCritic(BaseV, BaseEnsembleCritic):
 
     def update(
         self,
-        loss: list[torch.Tensor] | torch.Tensor,
+        loss: torch.Tensor,
         opt_args: tuple = tuple(),
         opt_kwargs: dict | None = None,
     ) -> None:
