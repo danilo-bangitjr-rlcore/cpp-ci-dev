@@ -1,7 +1,7 @@
 from torch import Tensor
 
 from corerl.component.buffer.ensemble import EnsembleUniformBuffer, EnsembleUniformReplayBufferConfig
-from corerl.data_pipeline.datatypes import Step, StepBatch, Transition, TransitionBatch
+from corerl.data_pipeline.datatypes import DataMode, Step, StepBatch, Transition, TransitionBatch
 
 
 def test_sample_mini_batch():
@@ -58,9 +58,9 @@ def test_sample_mini_batch():
 
     # With seed=0 and data_subset=0.6, the first buffer in the ensemble is fed trans_1, trans_3
     # and the second buffer in the ensemble is fed trans_2
-    buffer.feed([trans_1])
-    buffer.feed([trans_2])
-    buffer.feed([trans_3])
+    buffer.feed([trans_1], DataMode.OFFLINE)
+    buffer.feed([trans_2], DataMode.OFFLINE)
+    buffer.feed([trans_3], DataMode.OFFLINE)
 
     ensemble_batch = buffer.sample()
     assert len(ensemble_batch) == 2

@@ -1,5 +1,7 @@
 import pytest
 from asyncua import Node, Server
+from asyncua.sync import Server as SyncServer
+from asyncua.sync import SyncNode
 
 from corerl.utils.opc_connection import OpcConfig, OpcConnection
 
@@ -34,6 +36,45 @@ class FakeOpcServer:
         assert self._s is not None
         await self._s.stop()
 
+# Sync Opc may help ameliorate flakiness observed when running
+# pytest async + pytest coverage
+class FakeOpcSyncServer:
+    def __init__(self, port: int = 0):
+        self._port = port
+        self._s: SyncServer | None = None
+        self._sensors: dict[str, SyncNode] = {}
+
+    def start(self):
+        self._s = SyncServer()
+
+        self.url = f'opc.tcp://localhost:{self._port}/opcua/'
+        self._s.set_endpoint(self.url)
+        self._s.set_server_name('RLCore Test Server')
+        idx = self._s.register_namespace('http://rlcore.test.ai/opcua/')
+
+        assert idx is not None
+        virtual_plc = self._s.nodes.objects.add_object(idx, 'vPLC1')
+        self._sensors = {
+            'temp': virtual_plc.add_variable(idx, 'temp', 0.),
+            'pressure': virtual_plc.add_variable(idx, 'pressure', 0.),
+        }
+
+        self._s.start()
+
+    def step(self, v: float):
+        for j, sensor in enumerate(self._sensors.values()):
+            sensor.write_value(float(v + j))
+
+    def close(self):
+        assert self._s is not None
+        self._s.stop()
+
+@pytest.fixture
+def sync_server(free_localhost_port: int):
+    s = FakeOpcSyncServer(free_localhost_port)
+    s.start()
+    yield s
+    s.close()
 
 
 @pytest.fixture

@@ -1,0 +1,149 @@
+log_path: "outputs/e2e_smoke"
+
+experiment:
+  exp_name: stand_still_mountain_car
+  param_from_hash: True
+  seed: 1
+  gamma: 0.99
+  max_steps: 500
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:05
+  action_period: 00:00:15
+
+event_bus:
+  enabled: False
+
+env:
+  name: sim_async_env
+  gym_name: MountainCarContinuous-v0
+  obs_period: 00:00:05
+  update_period: 00:00:05
+  action_period: 00:00:15
+  discrete_control: False
+  seed: ${experiment.seed}
+
+
+agent:
+  name: greedy_ac
+  n_critic_updates: 1
+  n_actor_updates: 1
+  num_samples: 32
+  uniform_sampling_percentage: 0.8
+  discrete_control: ${env.discrete_control}
+  seed: ${experiment.seed}
+
+  critic:
+    buffer:
+      name: uniform
+      seed: ${experiment.seed}
+
+  actor:
+    buffer:
+      name: uniform
+      seed: ${experiment.seed}
+    actor_optimizer:
+      lr: 0.01
+
+
+metrics:
+  name : db
+  drivername: "postgresql+psycopg2"
+  username: "postgres"
+  password: "password"
+  ip: "localhost"
+  port: 5432
+  db_name: "postgres"
+  table_schema: "public"
+  table_name: "metrics"
+  enabled: True
+  lo_wm: 1
+
+pipeline:
+  db:
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: "password"
+    ip: "localhost"
+    port: 5432
+    db_name: "postgres"
+    table_schema: "public"
+    table_name: "opcua"
+
+  state_constructor:
+    defaults: []
+
+  transition_creator:
+    name: anytime
+
+  tags:
+  - name: action-0
+    operating_range: [-1.5, 1.5]
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: power
+      pow: 2
+    - name: scale
+      factor: -0.1
+    state_constructor:
+      - name: 'null'
+    action_constructor:
+    - name: identity
+
+  - name: tag-0
+    operating_range: [-1.2, 0.6]
+    red_bounds: [-1.0, null]
+    yellow_bounds: [-0.8, null]
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0, 0.9]
+
+  - name: tag-1
+    operating_range: [-0.07, 0.07]
+    red_bounds: [-0.06, 0.06]
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    reward_constructor:
+    - name: 'null'
+    state_constructor:
+    - name: multi_trace
+      trace_values: [0, 0.9]
+
+  - name: reward
+    preprocess:
+    - name: identity
+    is_meta: True
+    outlier:
+      name: identity
+    state_constructor:
+    - name: 'null'
+
+  - name: terminated
+    preprocess:
+    - name: identity
+    is_meta: True
+    outlier:
+      name: identity
+    state_constructor:
+    - name: 'null'
+
+  - name: truncated
+    preprocess:
+    - name: identity
+    is_meta: True
+    outlier:
+      name: identity
+    state_constructor:
+    - name: 'null'

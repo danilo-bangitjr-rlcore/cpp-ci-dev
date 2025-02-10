@@ -6,15 +6,10 @@ import gymnasium as gym
 import numpy as np
 import pandas as pd
 
-from corerl.configs.config import config
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.async_env import AsyncEnv, GymEnvConfig
+from corerl.environment.async_env.async_env import AsyncEnv, SimAsyncEnvConfig
 from corerl.utils.gym import space_bounds, space_shape
 
-
-@config()
-class SimAsyncEnvConfig(GymEnvConfig):
-    name: str = "sim_async_env"
 
 @dataclass
 class StepData:
@@ -79,7 +74,7 @@ class SimAsyncEnv(AsyncEnv):
         self._last_step = StepData(
             observation=observation,
             reward=np.nan,
-            action=np.full(self._action_shape, np.nan),
+            action=np.full(self._action_shape, 0),
             truncated=False,
             terminated=False,
         )

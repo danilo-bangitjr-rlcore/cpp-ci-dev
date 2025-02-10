@@ -19,8 +19,8 @@ def test_delta_xform():
     carry, _ = xform(carry, None)
 
     expected = pd.DataFrame({
-        'tag-1_a_delta': [np.nan, 1, 1],
-        'tag-1_b_delta': [np.nan, np.nan, 2],
+        'tag-1_a_Δ': [np.nan, 1, 1],
+        'tag-1_b_Δ': [np.nan, np.nan, 2],
     })
     assert dfs_close(carry.transform_data, expected)
 
@@ -46,8 +46,8 @@ def test_delta_xform_ts():
     expected = pd.DataFrame({
         # df1 -> df2
         # [1, 2, 3] -> [5, 8, 12]
-        'tag-1_a_delta': [2, 3, 4],
-        'tag-1_b_delta': [2, 2, 0],
+        'tag-1_a_Δ': [2, 3, 4],
+        'tag-1_b_Δ': [2, 2, 0],
     })
 
     assert dfs_close(carry.transform_data, expected)

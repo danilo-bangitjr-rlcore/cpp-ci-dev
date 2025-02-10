@@ -2,10 +2,10 @@ from collections.abc import Iterable
 
 import torch
 
-from corerl.component.optimizers.linesearch_optimizer import LSOConfig
 from corerl.component.optimizers.torch_opts import (
     AdamConfig,
-    CustomAdamConfig,
+    ArmijoAdamConfig,
+    LSOConfig,
     OptimConfig,
     RmspropConfig,
     SgdConfig,
@@ -15,8 +15,8 @@ from corerl.component.optimizers.torch_opts import (
 OptimizerConfig = (
     RmspropConfig
     | AdamConfig
-    | CustomAdamConfig
     | SgdConfig
+    | ArmijoAdamConfig
     | LSOConfig
 )
 

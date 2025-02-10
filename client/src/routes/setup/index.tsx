@@ -1,0 +1,182 @@
+import { DocumentIcon } from "@heroicons/react/24/solid";
+import { createFileRoute } from "@tanstack/react-router";
+import createClient from "openapi-react-query";
+import {
+  ChangeEventHandler,
+  FormEvent,
+  FormEventHandler,
+  MouseEventHandler,
+  useContext,
+  useState,
+} from "react";
+import { Alert } from "../../components/alert";
+import { Badge, BadgeButton } from "../../components/badge";
+import { Code, Text } from "../../components/text";
+import { getApiFetchClient } from "../../utils/api";
+import {
+  loadMainConfigDefaults,
+  MainConfigContext,
+} from "../../utils/main-config";
+import { SetupConfigNav } from "../../components/setup/setup-config-nav";
+import { deepEquals } from "../../utils/local-forage";
+import { Field, FieldGroup, Fieldset, Legend } from "../../components/fieldset";
+import { Button } from "../../components/button";
+import clsx from "clsx";
+
+export const Route = createFileRoute("/setup/")({
+  component: SetupIndex,
+});
+
+function SetupIndex() {
+  const client = createClient(getApiFetchClient());
+  const [file, setFile] = useState<File | null>(null);
+  const { mainConfig, setMainConfig } = useContext(MainConfigContext);
+
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+
+  const { mutate, data, error, reset } = client.useMutation(
+    "post",
+    "/api/configuration/file",
+  );
+
+  const uploadFile = async (rawFile: File) => {
+    const rawFileContents = await rawFile.text();
+
+    let body: unknown = rawFileContents;
+    if (rawFile.type == "application/json") {
+      body = JSON.parse(rawFileContents);
+    }
+    mutate(
+      {
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any */
+        body: body as any,
+        headers: { "Content-Type": rawFile.type, Accept: "application/json" },
+      },
+      {
+        onSuccess: (data) => {
+          setMainConfig(data);
+        },
+        onError: (error) => {
+          console.error(error);
+          setIsAlertOpen(true);
+        },
+      },
+    );
+  };
+
+  const handleFormUpload: FormEventHandler<HTMLFormElement> = (
+    event: FormEvent | null | undefined = undefined,
+  ) => {
+    if (event) {
+      event.preventDefault();
+    }
+    if (file) {
+      reset();
+      void uploadFile(file);
+    }
+  };
+
+  const handleFileChange: ChangeEventHandler<HTMLInputElement> = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    if (event.target.files?.[0]) {
+      const file = event.target.files[0];
+      setFile(file);
+      void uploadFile(file);
+    }
+  };
+
+  const clearMainConfig: MouseEventHandler<HTMLButtonElement> = () => {
+    setMainConfig(loadMainConfigDefaults());
+    setFile(null);
+    reset();
+  };
+
+  return (
+    <div className="p-2">
+      <Text>
+        Welcome to the CoreRL setup wizard. Follow the steps below to create
+        your YAML configuration file.
+      </Text>
+      <Text className="mb-2">
+        If a yaml configuration file exists, you may upload it here to
+        prepopulate the setup wizard defaults.
+      </Text>
+
+      <form
+        className="border border-gray-400 rounded-lg p-2 mb-2"
+        onSubmit={handleFormUpload}
+      >
+        <Fieldset className="col-span-full">
+          <Legend className="block text-sm/6 font-medium text-gray-900">
+            Configuration File
+          </Legend>
+
+          <Alert open={isAlertOpen} onClose={() => setIsAlertOpen(false)}>
+            <Code>{JSON.stringify(error)}</Code>
+          </Alert>
+          {!!error && (
+            <BadgeButton
+              onClick={() => setIsAlertOpen(true)}
+              className="cursor-pointer"
+            >
+              There is an error with the provided file.
+            </BadgeButton>
+          )}
+          {!!data && (
+            <Badge color="green">
+              Successfully loaded <code>{file?.name}</code>
+            </Badge>
+          )}
+          <FieldGroup className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
+            <div className="text-center">
+              <DocumentIcon
+                aria-hidden="true"
+                className="mx-auto size-12 text-gray-300"
+              />
+              <Field className="mt-4 flex text-sm/6 text-gray-600">
+                <label
+                  htmlFor="file-upload"
+                  className="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 focus-within:outline-hidden hover:text-indigo-500"
+                >
+                  <span>Upload a file</span>
+                  <input
+                    id="file-upload"
+                    name="file-upload"
+                    type="file"
+                    className="sr-only"
+                    accept=".yaml,.yml,.json"
+                    onChange={handleFileChange}
+                  />
+                </label>
+              </Field>
+              <Text className="text-xs/5 text-gray-600">
+                YAML, YML, or JSON
+              </Text>
+            </div>
+          </FieldGroup>
+        </Fieldset>
+        <Button
+          type="submit"
+          className={clsx(
+            !file ? "cursor-not-allowed" : "cursor-pointer",
+            "rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 mr-1",
+          )}
+          disabled={!file}
+        >
+          Upload
+        </Button>
+        {!deepEquals(mainConfig, loadMainConfigDefaults()) && (
+          <Button
+            type="button"
+            onClick={clearMainConfig}
+            className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+          >
+            Clear Setup Config
+          </Button>
+        )}
+      </form>
+      <SetupConfigNav />
+    </div>
+  );
+}

@@ -15,8 +15,9 @@ type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
 
 class MissingType(IntFlag):
-    NULL = auto()
+    NULL = auto()     # data is not missing
     MISSING = auto()  # indicates data did not exist in db
+    FILTER = auto()   # filtered by conditional filter stage
     BOUNDS = auto()
     OUTLIER = auto()
 
@@ -156,7 +157,7 @@ class TransitionBatch:
         )
 
 
-class CallerCode(Enum):
+class DataMode(Enum):
     OFFLINE = auto()
     ONLINE = auto()
     REFRESH = auto()
@@ -164,6 +165,7 @@ class CallerCode(Enum):
 
 class StageCode(Enum):
     INIT = auto()
+    FILTER = auto()
     BOUNDS = auto()
     PREPROCESS = auto()
     IMPUTER = auto()
@@ -181,7 +183,8 @@ type TemporalState = dict[StageCode, object | None]
 @dataclass
 class PipelineFrame:
     data: pd.DataFrame
-    caller_code: CallerCode
+    data_mode: DataMode
+    states: pd.DataFrame = field(init=False)
     actions: pd.DataFrame = field(init=False)
     rewards: pd.DataFrame = field(default_factory=pd.DataFrame)
     missing_info: pd.DataFrame = field(init=False)

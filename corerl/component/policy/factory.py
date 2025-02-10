@@ -1,8 +1,8 @@
-from dataclasses import field
 from typing import Any, Literal
 
 import torch
 import torch.nn as nn
+from pydantic import Field
 
 import corerl.component.network.utils as utils
 from corerl.component.distribution import get_dist_type
@@ -22,7 +22,7 @@ HeadActivation = list[list[ActivationConfig]]
 class BaseNNConfig:
     name: str = MISSING
 
-    base: NNTorsoConfig = field(default_factory=NNTorsoConfig)
+    base: NNTorsoConfig = Field(default_factory=NNTorsoConfig)
     head_layer_init: str = 'Xavier'
     head_activation: HeadActivation = MISSING
     head_bias: bool = True

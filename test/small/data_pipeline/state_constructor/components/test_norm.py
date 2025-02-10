@@ -19,7 +19,7 @@ def test_norm_part():
         tag='obs',
     )
 
-    norm_cfg = NormalizerConfig()
+    norm_cfg = NormalizerConfig(from_data=True)
     normalizer = transform_group.dispatch(norm_cfg)
 
     new_carry, _ = normalizer(carry, None)

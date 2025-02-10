@@ -1,5 +1,4 @@
 import pickle as pkl
-from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal
 
@@ -7,13 +6,11 @@ import numpy as np
 import torch
 
 from corerl.agent.base import BaseAC, BaseACConfig
-from corerl.component.actor.factory import init_actor
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.critic.factory import init_q_critic
 from corerl.component.network.utils import Float, state_to_tensor, to_np
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import Transition, TransitionBatch
-from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.data_pipeline.datatypes import TransitionBatch
+from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
 from corerl.utils.device import device
 
@@ -31,9 +28,6 @@ class SAC(BaseAC):
     def __init__(self, cfg: SACConfig, app_state: AppState, col_desc: ColumnDescriptions):
         super().__init__(cfg, app_state, col_desc)
         self.ensemble_targets = cfg.ensemble_targets
-        # self.v_critic = init_v_critic(cfg.critic, state_dim) # Paper has V and Q...
-        self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
-        self.actor = init_actor(cfg.actor, self.state_dim, self.action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)
@@ -55,11 +49,14 @@ class SAC(BaseAC):
         action = to_np(tensor_action)[0]
         return action
 
-    def update_buffer(self, transitions: Sequence[Transition]) -> None:
-        self.critic_buffer.feed(transitions)
+    def update_buffer(self, pr: PipelineReturn) -> None:
+        if pr.transitions is None:
+            return
+
+        self.critic_buffer.feed(pr.transitions, pr.data_mode)
         self.policy_buffer.feed([
-            t for t in transitions if t.prior.dp
-        ])
+            t for t in pr.transitions if t.prior.dp
+        ], pr.data_mode)
 
     def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
         ensemble = len(ensemble_batch)

@@ -1,9 +1,3 @@
-agent:
-  message_bus:
-    enable: False
-    host: ''
-    port: ''
-
 pipeline:
   db:
     drivername: "postgresql+psycopg2"

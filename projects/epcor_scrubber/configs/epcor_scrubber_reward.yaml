@@ -1,0 +1,250 @@
+log_path: "outputs/scrubber_agent_logs"
+
+experiment:
+  exp_name: epcor_scrubber
+  param_from_hash: True
+  seed: 1
+  gamma: 0.97 # ~50% of return occurs after 2 hrs (@ 5 min obs period)
+  run_forever: True
+
+interaction:
+  name: dep_interaction
+  warmup_period: 03:00:00
+  historical_batch_size: 8640 # 30 days @ 5 minute obs period
+  hist_chunk_start: 2024-11-01 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
+  heartbeat:
+    heartbeat_node_id: "ns=3;i=1"
+    heartbeat_period: 00:00:05
+    max_counter: 1000
+
+event_bus:
+  enabled: True
+
+env:
+  name: dep_async_env
+  discrete_control: False
+  obs_period: 00:05:00
+  update_period: 00:00:30
+  action_period: 01:00:00
+  action_tolerance: 00:15:00
+  seed: ${experiment.seed}
+  db: ${pipeline.db}
+
+  opc_conn_url: "opc.tcp://localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
+  opc_ns: 1
+  client_cert_path: certs/agent_cert.der
+  client_private_key_path: certs/agent_key.pem
+  server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
+  # client_app_uri: urn:agent
+  # user: admin
+  # passwd: admin
+
+agent:
+  name: greedy_ac
+  num_samples: 128
+  uniform_sampling_percentage: 1.0
+  seed: ${experiment.seed}
+  gamma: ${experiment.gamma}
+  discrete_control: ${env.discrete_control}
+
+  critic:
+    polyak: 0.995
+    critic_optimizer:
+      name: lso
+    buffer:
+      name: uniform
+      seed: ${experiment.seed}
+
+  actor:
+    actor_optimizer:
+      lr: 0.001
+    buffer:
+      name: uniform
+      seed: ${experiment.seed}
+
+
+metrics:
+  name: db
+  drivername: "postgresql+psycopg2"
+  username: "postgres"
+  password: scrubber4data
+  ip: "localhost"
+  port: 5432
+  db_name: "postgres"
+  table_schema: "public"
+  table_name: "metrics"
+  enabled: True
+  lo_wm: 1
+
+pipeline:
+  db:
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: scrubber4data
+    ip: "localhost"
+    port: 5432
+    db_name: "postgres"
+    table_schema: "public"
+    table_name: scrubber4
+
+  state_constructor:
+    defaults: []
+    # defaults:
+    # - name: multi_trace
+    #   trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  transition_creator:
+    name: all-the-time
+    gamma: ${experiment.gamma}
+
+  tags:
+  - name: AIC3730_OUT # pH pump output
+    preprocess: []
+    operating_range: [0, 125]
+    red_bounds: [0, 60]
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    state_constructor:
+    - name: normalize
+      min: 0
+      max: 60
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+    reward_constructor: # generated programattically from test_epcor_reward
+    - name: split
+      left:
+      - name: greater_than
+        threshold: 60.0
+        equal: false
+      - name: scale
+        factor: -1.0
+      right:
+      - name: scale
+        factor: 0.5455
+      - name: binary
+        op: add
+        other: AIC3731_OUT # orp_pumpspeed
+        other_xform:
+        - name: scale
+          factor: 1.355
+      - name: scale
+        factor: -1.0
+      - name: affine
+        scale: 0.008769622
+        bias: 1.0
+      - name: affine
+        scale: 0.5
+        bias: -0.5
+      - name: binary
+        op: prod
+        other: AI0879C # efficiency
+        other_xform:
+        - name: scale
+          factor: -1.0
+        - name: affine
+          scale: 0.2
+          bias: 18.0
+        - name: binary
+          op: min
+          other: AI0879B # outlet_h2s
+          other_xform:
+          - name: affine
+            scale: 0.00025 # manual increase precision
+            bias: -0.25
+        - name: less_than
+          threshold: 0.0
+          equal: true
+      passthrough: false
+
+  - name: AIC3731_OUT # ORP pump output
+    preprocess: []
+    operating_range: [0, 125]
+    red_bounds: [0, 60]
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    state_constructor:
+    - name: normalize
+      min: 0
+      max: 60
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+    reward_constructor:
+    - name: greater_than
+      threshold: 60.0
+      equal: false
+    - name: scale
+      factor: -1.0
+
+  - name: AI0879B # H2S outlet
+    preprocess: []
+    operating_range: [0., 30000]
+    red_bounds: [0., 5000]
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    state_constructor:
+    - name: normalize
+      min: 0
+      max: 5000
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  - name: AI0879C # H2S efficiency
+    preprocess: []
+    operating_range: [0., 100.]
+    red_bounds: [85., 100.]
+    outlier:
+      name: identity
+    imputer:
+      name: identity
+    state_constructor:
+    - name: normalize
+      min: 85
+      max: 100
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+    reward_constructor: # generated programattically from test_epcor_reward
+    - name: scale
+      factor: -1.0
+    - name: affine
+      scale: 0.2
+      bias: 18.0
+    - name: binary
+      op: min
+      other: AI0879B # outlet_h2s
+      other_xform:
+      - name: affine
+        scale: 0.00025
+        bias: -0.25
+    - name: scale
+      factor: -1.0
+    - name: affine
+      scale: 1.0
+      bias: 1.0
+    - name: affine
+      scale: 0.5
+      bias: -1.0
+    - name: binary
+      op: prod
+      other: AI0879C # efficiency
+      other_xform:
+      - name: scale
+        factor: -1.0
+      - name: affine
+        scale: 0.2
+        bias: 18.0
+      - name: binary
+        op: min
+        other: AI0879B # outlet_h2s
+        other_xform:
+        - name: affine
+          scale: 0.00025
+          bias: -0.25
+      - name: greater_than
+        threshold: 0.0
+        equal: false

@@ -3,7 +3,7 @@ import datetime
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import CallerCode, PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.per_tag.copy import CopyImputer, CopyImputerConfig, CopyImputerTemporalState
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from test.infrastructure.utils.pandas import dfs_close
@@ -25,7 +25,7 @@ def test_no_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     # Start data pipeline
     pf = missing_data_checker(pf, 'tag_1')
@@ -55,7 +55,7 @@ def test_all_nan_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     pf = missing_data_checker(pf, 'tag_1')
     pf = missing_data_checker(pf, 'tag_2')
@@ -82,7 +82,7 @@ def test_all_nan_imputation_ts():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     # Create temporal state
     pf.temporal_state = {
@@ -141,7 +141,7 @@ def test_backtrack_imputation():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     pf = missing_data_checker(pf, 'tag_1')
     pf = missing_data_checker(pf, 'tag_2')
@@ -172,7 +172,7 @@ def test_backtrack_imputation_ts():
     indices = pd.to_datetime(indices)
     data = data.set_index(indices)
 
-    pf = PipelineFrame(data, CallerCode.ONLINE)
+    pf = PipelineFrame(data, DataMode.ONLINE)
 
     # Create ImputerTemporalState
     pf.temporal_state = {

@@ -9,7 +9,7 @@ from torch import Tensor
 
 from corerl.configs.config import MISSING, config
 from corerl.configs.group import Group
-from corerl.data_pipeline.datatypes import StepBatch, Transition, TransitionBatch
+from corerl.data_pipeline.datatypes import DataMode, StepBatch, Transition, TransitionBatch
 from corerl.utils.device import device
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ class ReplayBuffer:
     def _last_pos(self):
         return (self.pos - 1) % self.memory
 
-    def feed(self, transitions: Sequence[Transition]) -> np.ndarray:
+    def feed(self, transitions: Sequence[Transition], data_mode: DataMode) -> np.ndarray:
         idxs = np.empty(len(transitions), dtype=np.int64)
 
         for j, transition in enumerate(transitions):
@@ -66,7 +66,7 @@ class ReplayBuffer:
 
         return idxs
 
-    def load(self, transitions: Sequence[Transition]) -> np.ndarray:
+    def load(self, transitions: Sequence[Transition], data_mode: DataMode) -> np.ndarray:
         assert len(transitions) > 0
         idxs = np.empty(len(transitions), dtype=np.int64)
 

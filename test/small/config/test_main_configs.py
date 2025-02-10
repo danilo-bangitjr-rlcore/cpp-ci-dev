@@ -1,7 +1,10 @@
+import re
+
 import pytest
 
 from corerl.config import MainConfig
-from corerl.configs.loader import direct_load_config
+from corerl.configs.config import MISSING
+from corerl.configs.loader import config_to_dict, direct_load_config
 
 
 @pytest.mark.parametrize('base,config_name', [
@@ -9,9 +12,38 @@ from corerl.configs.loader import direct_load_config
     ('config', 'saturation'),
     ('config', 'mountain_car_continuous'),
     ('config', 'dep_mountain_car_continuous'),
+    ('config', 'minimal_config'),
     ('projects/cenovus/configs', 'offline_pretraining'),
     ('projects/drayton_valley/configs', 'drayton_valley-pilot-backwash'),
+    ('projects/vww/configs', 'offline_pretraining'),
+    ('projects/epcor_scrubber/configs', 'epcor_scrubber'),
 ])
 def test_main_configs(base: str, config_name: str):
     config = direct_load_config(MainConfig, base, config_name)
     assert isinstance(config, MainConfig)
+
+    # walk through config, ensure that there are no MISSING symbols or uninterpolated values
+    raw_config_dict = config_to_dict(MainConfig, config)
+
+    def walk_no_missing_or_interpolate(part: object, key_path: str=""):
+        if not isinstance(part, dict):
+            return
+
+        for k, v in part.items():
+            cur_key_path = k
+            if key_path:
+                cur_key_path = f"{key_path}.{k}"
+
+            assert v is not MISSING, cur_key_path
+            if isinstance(v, str):
+                path = re.match(r'\$\{(.+)\}', v)
+                assert path is None, cur_key_path
+
+            elif isinstance(v, dict):
+                walk_no_missing_or_interpolate(v, cur_key_path)
+
+            elif isinstance(v, list):
+                for idx, elem in enumerate(v):
+                    walk_no_missing_or_interpolate(elem, f"{cur_key_path}[{idx}]")
+
+    walk_no_missing_or_interpolate(raw_config_dict)

@@ -1,8 +1,8 @@
-from dataclasses import field
 from pathlib import Path
 from typing import Any, Literal
 
 import torch
+from pydantic import Field
 
 import corerl.utils.nullable as nullable
 from corerl.component.buffer.ensemble import EnsembleUniformReplayBufferConfig
@@ -11,7 +11,7 @@ from corerl.component.critic.base_critic import BaseQ, BaseQConfig, BaseV
 from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
 from corerl.component.network.networks import EnsembleCriticNetworkConfig
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
-from corerl.component.optimizers.torch_opts import AdamConfig
+from corerl.component.optimizers.torch_opts import LSOConfig
 from corerl.configs.config import MISSING, config
 from corerl.utils.device import device
 
@@ -19,9 +19,9 @@ from corerl.utils.device import device
 @config()
 class _SharedEnsembleConfig:
     name: Any = MISSING
-    critic_network: NetworkConfig = field(default_factory=EnsembleCriticNetworkConfig)
-    critic_optimizer: OptimizerConfig = field(default_factory=AdamConfig)
-    buffer: BufferConfig = field(default_factory=EnsembleUniformReplayBufferConfig)
+    critic_network: NetworkConfig = Field(default_factory=EnsembleCriticNetworkConfig)
+    critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
+    buffer: BufferConfig = Field(default_factory=EnsembleUniformReplayBufferConfig)
     polyak: float = 0.99
     target_sync_freq: int = 1
 
@@ -99,7 +99,7 @@ class BaseEnsembleCritic:
             self.ensemble_backward(loss)
         else:
             loss.backward()
-        if self.optimizer_name != "lso":
+        if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
             self.optimizer.step(closure=lambda: 0.)
         else:
             self.optimizer.step(*opt_args, **opt_kwargs)
@@ -183,7 +183,6 @@ class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
     ) -> torch.Tensor:
         q, _ = self.get_qs_target(state_batches, action_batches, bootstrap_reduct=bootstrap_reduct)
         return q
-
 
 class EnsembleVCritic(BaseV, BaseEnsembleCritic):
     def __init__(self, cfg: EnsembleCriticConfig, state_dim: int, output_dim: int = 1):

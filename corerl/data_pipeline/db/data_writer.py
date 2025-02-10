@@ -1,6 +1,7 @@
+import json
 import logging
 from datetime import UTC, datetime
-from typing import Literal, NamedTuple
+from typing import NamedTuple
 
 from sqlalchemy import text
 
@@ -9,12 +10,15 @@ from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfi
 
 logger = logging.getLogger(__name__)
 
+from corerl.data_pipeline.tag_config import Agg
+
+
 @config()
 class TagDBConfig(BufferedWriterConfig):
     db_name: str = "postgres"
     table_name: str = "sensors"
     table_schema: str = "public"
-    data_agg: Literal["avg", "last", "bool_or"] = "avg"
+    data_agg: Agg = Agg.avg
 
 
 class Point(NamedTuple):
@@ -49,10 +53,11 @@ class DataWriter(BufferedWriter[Point]):
         # truncate microseconds
         timestamp = timestamp.replace(microsecond=0)
 
+        jsonb = json.dumps({"val": val})
         point = Point(
             ts=timestamp.isoformat(),
             name=name,
-            jsonb=f'{{"val": {val}}}',
+            jsonb=jsonb,
             host=host or self.host,
             id=id or name,
         )
@@ -79,7 +84,7 @@ class DataWriter(BufferedWriter[Point]):
             );
 
             SELECT create_hypertable('{self.table_name}', 'time', chunk_time_interval => INTERVAL '7d');
-            CREATE INDEX name_idx ON {self.table_name} (name);
+            CREATE INDEX {self.table_name}_idx ON {self.table_name} (name);
             ALTER TABLE {self.table_name} SET (
                 timescaledb.compress,
                 timescaledb.compress_segmentby='name'

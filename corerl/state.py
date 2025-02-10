@@ -1,11 +1,20 @@
+from __future__ import annotations
 
-from corerl.eval.writer import MetricsWriterProtocol
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+from corerl.eval.evals import EvalTableProtocol
+from corerl.eval.metrics import MetricsTableProtocol
 from corerl.messages.event_bus import EventBus
 
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
+
+@dataclass
 class AppState:
-    def __init__(self, metrics: MetricsWriterProtocol, event_bus: EventBus):
-        self.metrics = metrics
-        self.event_bus = event_bus
-        self.agent_step = 0
-
+    cfg: MainConfig
+    evals: EvalTableProtocol
+    metrics: MetricsTableProtocol
+    event_bus: EventBus
+    agent_step: int = 0

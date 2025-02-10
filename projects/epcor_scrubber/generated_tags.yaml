@@ -1,0 +1,157 @@
+- name: efficiency
+  agg: avg
+  node_identifier: null
+  is_meta: false
+  is_endogenous: true
+  operating_range: null
+  red_bounds: null
+  yellow_bounds: null
+  outlier:
+    name: identity
+  imputer:
+    name: identity
+  preprocess: []
+  reward_constructor:
+  - name: scale
+    factor: -1.0
+  - name: affine
+    scale: 0.2
+    bias: 18.0
+  - name: binary
+    op: min
+    other: outlet_h2s
+    other_xform:
+    - name: affine
+      scale: 0.0003
+      bias: -0.25
+  - name: scale
+    factor: -1.0
+  - name: affine
+    scale: 1.0
+    bias: 1.0
+  - name: affine
+    scale: 0.5
+    bias: -1.0
+  - name: binary
+    op: prod
+    other: efficiency
+    other_xform:
+    - name: scale
+      factor: -1.0
+    - name: affine
+      scale: 0.2
+      bias: 18.0
+    - name: binary
+      op: min
+      other: outlet_h2s
+      other_xform:
+      - name: affine
+        scale: 0.0003
+        bias: -0.25
+    - name: greater_than
+      threshold: 0.0
+      equal: false
+  action_constructor: null
+  state_constructor: null
+  filter: null
+- name: outlet_h2s
+  agg: avg
+  node_identifier: null
+  is_meta: false
+  is_endogenous: true
+  operating_range: null
+  red_bounds: null
+  yellow_bounds: null
+  outlier:
+    name: identity
+  imputer:
+    name: identity
+  preprocess: []
+  reward_constructor:
+  - name: 'null'
+  action_constructor: null
+  state_constructor: null
+  filter: null
+- name: ph_pumpspeed
+  agg: avg
+  node_identifier: null
+  is_meta: false
+  is_endogenous: true
+  operating_range: null
+  red_bounds: null
+  yellow_bounds: null
+  outlier:
+    name: identity
+  imputer:
+    name: identity
+  preprocess: []
+  reward_constructor:
+  - name: split
+    left:
+    - name: greater_than
+      threshold: 60.0
+      equal: false
+    - name: scale
+      factor: -1.0
+    right:
+    - name: scale
+      factor: 0.5455
+    - name: binary
+      op: add
+      other: orp_pumpspeed
+      other_xform:
+      - name: scale
+        factor: 1.355
+    - name: scale
+      factor: -1.0
+    - name: affine
+      scale: 0.0088
+      bias: 1.0
+    - name: affine
+      scale: 0.5
+      bias: -0.5
+    - name: binary
+      op: prod
+      other: efficiency
+      other_xform:
+      - name: scale
+        factor: -1.0
+      - name: affine
+        scale: 0.2
+        bias: 18.0
+      - name: binary
+        op: min
+        other: outlet_h2s
+        other_xform:
+        - name: affine
+          scale: 0.0003
+          bias: -0.25
+      - name: less_than
+        threshold: 0.0
+        equal: true
+    passthrough: false
+  action_constructor: null
+  state_constructor: null
+  filter: null
+- name: orp_pumpspeed
+  agg: avg
+  node_identifier: null
+  is_meta: false
+  is_endogenous: true
+  operating_range: null
+  red_bounds: null
+  yellow_bounds: null
+  outlier:
+    name: identity
+  imputer:
+    name: identity
+  preprocess: []
+  reward_constructor:
+  - name: greater_than
+    threshold: 60.0
+    equal: false
+  - name: scale
+    factor: -1.0
+  action_constructor: null
+  state_constructor: null
+  filter: null

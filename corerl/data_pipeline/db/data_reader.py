@@ -1,17 +1,18 @@
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, List, Literal, assert_never
+from itertools import groupby
+from typing import Any, List, assert_never
 
-import numpy as np
 import pandas as pd
-from sqlalchemy import TEXT, TIMESTAMP, Boolean, Column, Engine, Float, MetaData, Table, cast, func, select
+from sqlalchemy import TEXT, TIMESTAMP, Boolean, Column, Engine, Float, MetaData, Table, cast, func, select, union_all
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import text
 
 import corerl.utils.pandas as pd_util
 from corerl.data_pipeline.db.data_writer import TagDBConfig
 from corerl.data_pipeline.db.utils import TryConnectContextManager
+from corerl.data_pipeline.tag_config import Agg
 from corerl.sql_logging.sql_logging import get_sql_engine
 
 logger = logging.getLogger(__name__)
@@ -41,8 +42,9 @@ class DataReader:
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
-        aggregation: Literal["avg", "last", "bool_or"] = "avg",
-    ):
+        aggregation: Agg = Agg.avg,
+        tag_aggregations: dict[str, Agg] | None = None,
+    ) -> pd.DataFrame:
         """
         The intended behavior is for buckets to be inclusive wrt their end_time and exclusive wrt their start_time.
         The bucket start/end times are distinct concepts from the read start_time and end_time.
@@ -91,58 +93,103 @@ class DataReader:
         # also correct for the microsecond that was added to the origin
         time_bucket_stmt += text(f"'{bucket_width-timedelta(microseconds=1)}'")
 
-        match aggregation:
-            case "avg":
-                # https://www.postgresql.org/docs/17/functions-aggregate.html
-                agg_stmt = func.avg(cast(self.sensor_table.c["fields"]["val"], Float))
-            case "last":
-                # https://docs.timescale.com/api/latest/hyperfunctions/last/#last
-                agg_stmt = func.last(self.sensor_table.c["fields"]["val"], self.sensor_table.c["time"])
-            case "bool_or":
-                # needed to support truncated/terminated booleans
-                agg_stmt = func.bool_or(cast(self.sensor_table.c["fields"]["val"], Boolean))
-            case _:
-                assert_never(aggregation)
+        # if tag_aggregations is not provided, use the default aggregation for all tags
+        # if a tag is not in tag_aggregations, use the default aggregation for that tag
+        tag_aggregations = tag_aggregations or {}
+        aggregation_map = {name: tag_aggregations.get(name, aggregation) for name in names}
 
-        stmt = (
-            select(time_bucket_stmt.label("time_bucket"), self.sensor_table.c["name"], agg_stmt.label("val"))
-            .filter(
-                self.sensor_table.c["time"] > text(f"TIMESTAMP '{start_time.isoformat()}'"),
-                self.sensor_table.c["time"] <= text(f"TIMESTAMP '{end_time.isoformat()}'"),
-                self.sensor_table.c["name"].in_(names),
+        agg_groups = {}
+        sorted_names = sorted(names, key=lambda x: str(aggregation_map[x]))
+        for agg_type, group in groupby(sorted_names, key=lambda x: aggregation_map[x]):
+            agg_groups[agg_type] = list(group)
+
+        subqueries = []
+        for agg_type, tags in agg_groups.items():
+            match agg_type:
+                case "avg":
+                    # https://www.postgresql.org/docs/17/functions-aggregate.html
+                    agg_stmt = func.cast(
+                        func.avg(cast(self.sensor_table.c["fields"]["val"], Float)),
+                        TEXT
+                    )
+                case "last":
+                    # https://docs.timescale.com/api/latest/hyperfunctions/last/#last
+                    agg_stmt = func.cast(
+                        func.last(self.sensor_table.c["fields"]["val"], self.sensor_table.c["time"]),
+                        TEXT
+                    )
+                case "bool_or":
+                    # needed to support truncated/terminated booleans
+                    agg_stmt = func.cast(
+                        func.bool_or(cast(self.sensor_table.c["fields"]["val"], Boolean)),
+                        TEXT
+                    )
+                case _:
+                    assert_never(agg_type)
+
+            subquery = (
+                select(
+                    time_bucket_stmt.label("time_bucket"),
+                    self.sensor_table.c["name"],
+                    agg_stmt.label("val")
+                )
+                .filter(
+                    self.sensor_table.c["time"] > text(f"TIMESTAMP WITH TIME ZONE '{start_time.isoformat()}'"),
+                    self.sensor_table.c["time"] <= text(f"TIMESTAMP WITH TIME ZONE '{end_time.isoformat()}'"),
+                    self.sensor_table.c["name"].in_(tags),
+                )
+                .group_by(text("time_bucket"), self.sensor_table.c["name"])
             )
-            .group_by(text("time_bucket"), self.sensor_table.c["name"])
-            .order_by(text("time_bucket ASC"), self.sensor_table.c["name"].asc())
-        )
+            subqueries.append(subquery)
 
+        # after executing the query and getting the df, pivot and convert values
+        stmt = union_all(*subqueries).order_by(text("time_bucket ASC"), self.sensor_table.c["name"].asc())
         logger.debug(stmt.compile(self.engine, compile_kwargs={"literal_binds": True}))
-
         with TryConnectContextManager(self.engine) as connection:
             sensor_data = pd.read_sql(sql=stmt, con=connection)
-        sensor_data = sensor_data.pivot(columns="name", values="val", index="time_bucket")
+            full_range = pd.date_range(
+                start=start_time + bucket_width,
+                end=end_time,
+                freq=bucket_width,
+                tz='UTC',
+                name=None
+            )
 
-        missing_cols = [name for name in names if name not in set(sensor_data.columns)]
-        sensor_data[list(missing_cols)] = np.nan
+            if not sensor_data.empty:
+                sensor_data = sensor_data.pivot(index='time_bucket', columns='name', values='val')
+                missing_cols = set(names) - set(sensor_data.columns)
+                for col in missing_cols:
+                    sensor_data[col] = pd.NA
+                sensor_data = sensor_data.reindex(full_range)
+            else:
+                sensor_data = pd.DataFrame(index=full_range, columns=pd.Index(names))
 
-        full_index = pd.date_range(
-            start=start_time + bucket_width,
-            end=end_time,
-            freq=bucket_width,
-            tz='UTC'
-        )
-        sensor_data = sensor_data.reindex(full_index)
+            for col in sensor_data.columns:
+                col_agg = aggregation_map.get(col)
+                if col_agg == "avg" or col_agg == "last":
+                    sensor_data[col] = pd.to_numeric(sensor_data[col])
+                elif col_agg == "bool_or":
+                    sensor_data[col] = sensor_data[col].replace({"true": True, "false": False})
 
-        return sensor_data.sort_index()
+        return sensor_data
 
     def single_aggregated_read(
         self,
         names: List[str],
         start_time: datetime,
         end_time: datetime,
-        aggregation: Literal["avg", "last", "bool_or"] = "avg",
+        aggregation: Agg = Agg.avg,
+        tag_aggregations: dict[str, Agg] | None = None,
     ) -> pd.DataFrame:
         bucket_width = end_time - start_time
-        df = self.batch_aggregated_read(names, start_time, end_time, bucket_width, aggregation)
+        df = self.batch_aggregated_read(
+            names,
+            start_time,
+            end_time,
+            bucket_width,
+            aggregation,
+            tag_aggregations
+        )
 
         if len(df) > 1:
             logger.warning("single_aggregated_read returned multiple rows. Only the last row will be returned")

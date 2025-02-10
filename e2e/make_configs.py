@@ -5,6 +5,7 @@ import argparse
 import logging
 import shutil
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 from pprint import pformat
 from typing import Any
@@ -16,6 +17,7 @@ from corerl.configs.loader import config_to_dict
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.utils.gymnasium import gen_tag_configs_from_env
 
+log = logging.getLogger(__name__)
 
 @dataclass
 class TagData:
@@ -57,6 +59,10 @@ def generate_tag_yaml(path: Path, tags: list[TagConfig]):
         return dumper.represent_scalar("tag:yaml.org,2002:float", text)
 
     CustomTagYamlDumper.add_representer(float, represent_float)
+    CustomTagYamlDumper.add_multi_representer(
+      StrEnum,
+      yaml.representer.SafeRepresenter.represent_str,
+  )
 
     with open(tag_path, "w+") as f:
         raw_tags = config_to_dict(list[TagConfig], tags)
@@ -125,7 +131,6 @@ def main():
 
 
 if __name__ == "__main__":
-    log = logging.getLogger(__name__)
     logging.basicConfig(
         format="%(asctime)s %(levelname)s: %(message)s",
         encoding="utf-8",

@@ -9,13 +9,13 @@ import zmq
 from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.messages.events import Event, EventTopic, EventType
 
+logger = logging.getLogger(__name__)
 
 def scheduler_task(pub_socket: zmq.Socket, cfg: AsyncEnvConfig, stop_event: threading.Event):
     """
     Thread worker that emits ZMQ messages using our messages Event class.
     Responsible for emitting the step events based on configured observation windows.
     """
-    _logger = logging.getLogger(__name__)
 
     topic = EventTopic.corerl_scheduler
 
@@ -23,9 +23,10 @@ def scheduler_task(pub_socket: zmq.Socket, cfg: AsyncEnvConfig, stop_event: thre
 
     thread_start_time = datetime.now(UTC)
     next_event_dict = {
-        EventType.step_get_obs: EventPeriodTime(cfg.obs_period, thread_start_time + cfg.obs_period),
-        EventType.step_agent_update: EventPeriodTime(cfg.update_period, thread_start_time + cfg.update_period),
-        EventType.step_emit_action: EventPeriodTime(cfg.action_period, thread_start_time + cfg.action_period),
+        EventType.step_get_obs: EventPeriodTime(cfg.obs_period, thread_start_time),
+        EventType.step_agent_update: EventPeriodTime(cfg.update_period, thread_start_time),
+        EventType.step_emit_action: EventPeriodTime(cfg.action_period, thread_start_time),
+        EventType.agent_step: EventPeriodTime(cfg.obs_period, thread_start_time), # this should happen after emit action
     }
     if cfg.setpoint_ping_period is not None:
         next_event_dict[EventType.ping_setpoints] = EventPeriodTime(
@@ -34,6 +35,7 @@ def scheduler_task(pub_socket: zmq.Socket, cfg: AsyncEnvConfig, stop_event: thre
 
 
     def _write_to_zmq(event: Event):
+        logger.debug(f"Scheduling Event: {event}")
         message_data = event.model_dump_json()
         payload = f"{topic} {message_data}"
         pub_socket.send_string(payload)

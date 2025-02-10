@@ -1,7 +1,7 @@
 from corerl.component.actor.base_actor import BaseActor, group
-from corerl.component.actor.network_actor import NetworkActorConfig, NetworkActorLineSearchConfig
+from corerl.component.actor.network_actor import NetworkActorConfig
 
-ActorConfig = NetworkActorConfig | NetworkActorLineSearchConfig
+ActorConfig = NetworkActorConfig
 
 def init_actor(
     cfg: ActorConfig,

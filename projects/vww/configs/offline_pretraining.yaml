@@ -1,0 +1,600 @@
+experiment:
+  exp_name: victoria_ww_offline/
+  device: cpu
+  gamma: 0.95
+  max_steps: 0 # Offline training
+  offline_steps: 100
+  pipeline_batch_duration: 50 days
+  save_path: output
+  seed: 1
+  param_from_hash: True
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:15:00
+  action_period: 01:00:00
+
+env:
+  name: sim_async_env
+  gym_name: "N/A"
+  seed : ${experiment.seed}
+  discrete_control: False
+  action_period: 01:00:00
+  obs_period: 00:15:00
+  update_period: 00:15:00
+
+metrics:
+  name : db
+  drivername: "postgresql+psycopg2"
+  username: "postgres"
+  password: "password"
+  ip: "localhost"
+  port: 5432
+  db_name: "postgres"
+  table_schema: "public"
+  table_name: "metrics"
+  enabled: True
+
+eval_cfgs:
+  monte_carlo:
+    enabled: True
+
+agent:
+  name: greedy_ac
+  n_critic_updates: 1
+  n_actor_updates: 1
+  num_samples: 100 # Number of actions sampled from proposal policy
+  uniform_sampling_percentage: 0.8
+  rho: 0.1
+  prop_rho_mult: 2.0
+  gamma: ${experiment.gamma}
+  discrete_control: ${env.discrete_control}
+  seed: ${experiment.seed}
+
+  critic:
+    name: ensemble
+    critic_network:
+      name: ensemble
+      ensemble: 10
+#      bootstrap_reduct: mean
+#      policy_reduct: mean
+      vmap: False
+      base:
+        name: fc
+        hidden:
+          - 256
+          - 256
+    critic_optimizer: # Ensemble Optimizer?
+      name: adam
+      lr: 0.0001
+      weight_decay: 0.0
+    polyak: 0.995
+    buffer:
+      name: ensemble_uniform
+      ensemble: ${agent.critic.critic_network.ensemble}
+      data_subset: 0.5
+      seed: ${experiment.seed}
+      batch_size: 256
+
+  actor:
+    action_min: 0.0 # Do I need to specify action dimension here?
+    action_max: 1.0
+    #actor_network:
+      #name: 'squashed_gaussian'
+      #base:
+        #name: fc
+        #hidden:
+          #- 256
+          #- 256
+    actor_optimizer:
+      lr: 0.0001
+    buffer:
+      name: uniform
+      seed: ${experiment.seed}
+      batch_size: 256
+
+#eval_writer:
+#  name: 'db'
+#  enabled: True
+
+pipeline:
+  db:
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: "password"
+    ip: "localhost"
+    port: 5432
+    db_name: "victoria_ww"
+    table_name: "tag_data"
+
+  state_constructor:
+    defaults: []
+    countdown:
+      kind: two_clock
+
+  transition_creator:
+    name: "all-the-time"
+    gamma: ${experiment.gamma}
+    min_n_step: 1
+    max_n_step: 4
+
+  transition_filter:
+    filters:
+      - "only_no_action_change"
+      - "no_nan"
+
+  tags:
+    # Observation
+    - name: "dd1_tank_level"
+      is_meta: False
+      operating_range:
+        - 0.0
+        -
+      preprocess:
+        - name: normalize
+          min: 0.0
+          max: 9.369999885559082
+          from_data: False
+      outlier:
+        name: "identity"
+      imputer:
+        name: "copy"
+        imputation_horizon: 96
+      state_constructor:
+        - name: multi_trace
+          trace_values:
+            - 0.0
+            - 0.9
+            - 0.95
+            - 0.99
+
+    - name: "dd1_recirculation_flow_rate"
+      is_meta: False
+      operating_range:
+        - 0.0
+        -
+      preprocess:
+        - name: normalize
+          min: 0.0
+          max: 45.689998626708984
+          from_data: False
+      outlier:
+        name: "identity"
+      imputer:
+        name: "copy"
+        imputation_horizon: 96
+      state_constructor:
+        - name: multi_trace
+          trace_values:
+            - 0.0
+            - 0.9
+            - 0.95
+            - 0.99
+
+    - name: "dd1_frequency_time_sp"
+      is_meta: False
+      operating_range:
+        - 0.0
+        -
+      preprocess:
+        - name: normalize
+          min: 5.0
+          max: 30.0
+          from_data: False
+      outlier:
+        name: "identity"
+      imputer:
+        name: "copy"
+        imputation_horizon: 96
+      state_constructor:
+        - name: multi_trace
+          trace_values:
+            - 0.0
+            - 0.9
+            - 0.95
+            - 0.99
+
+    - name: "dd1_flow_between_blowdowns"
+      is_meta: False
+      operating_range:
+        - 0.0
+        -
+      preprocess:
+        - name: normalize
+          min: 0.0
+          max: 10.5
+          from_data: False
+      outlier:
+        name: "identity"
+      imputer:
+        name: "copy"
+        imputation_horizon: 96
+      state_constructor:
+        - name: multi_trace
+          trace_values:
+            - 0.0
+            - 0.9
+            - 0.95
+            - 0.99
+
+    - name: "dd1_duration_time_sp"
+      is_meta: False
+      operating_range:
+        - 0.0
+        -
+      preprocess:
+        - name: normalize
+          min: 30.0
+          max: 360.0
+          from_data: False
+      outlier:
+        name: "identity"
+      imputer:
+        name: "copy"
+        imputation_horizon: 96
+      state_constructor:
+        - name: multi_trace
+          trace_values:
+            - 0.0
+            - 0.9
+            - 0.95
+            - 0.99
+
+#    - name: "dd_influent_tss"
+#      is_meta: False
+#      operating_range:
+#        - 0.0
+#        -
+#      preprocess:
+#        - name: normalize
+#          min: 163.0
+#          max: 810.0
+#          from_data: False
+#      outlier:
+#        name: "identity"
+#      imputer:
+#        name: "copy"
+#        imputation_horizon: 384
+#      state_constructor:
+#        - name: multi_trace
+#          trace_values:
+#            - 0.0
+#            - 0.9
+#            - 0.95
+#            - 0.99
+#
+#    - name: "dd_influent_cod"
+#      is_meta: False
+#      operating_range:
+#        - 0.0
+#        -
+#      preprocess:
+#        - name: normalize
+#          min: 556.0
+#          max: 1270.0
+#          from_data: False
+#      outlier:
+#        name: "identity"
+#      imputer:
+#        name: "copy"
+#        imputation_horizon: 384
+#      state_constructor:
+#        - name: multi_trace
+#          trace_values:
+#            - 0.0
+#            - 0.9
+#            - 0.95
+#            - 0.99
+#
+#    - name: "dd_influent_cbod5"
+#      is_meta: False
+#      operating_range:
+#        - 0.0
+#        -
+#      preprocess:
+#        - name: normalize
+#          min: 124.0
+#          max: 526.0
+#          from_data: False
+#      outlier:
+#        name: "identity"
+#      imputer:
+#        name: "copy"
+#        imputation_horizon: 384
+#      state_constructor:
+#        - name: multi_trace
+#          trace_values:
+#            - 0.0
+#            - 0.9
+#            - 0.95
+#            - 0.99
+#
+#    - name: "dd_effluent_tss"
+#      is_meta: False
+#      operating_range:
+#        - 0.0
+#        -
+#      preprocess:
+#        - name: normalize
+#          min: 28.0
+#          max: 4800.0
+#          from_data: False
+#      outlier:
+#        name: "identity"
+#      imputer:
+#        name: "copy"
+#        imputation_horizon: 384
+#      state_constructor:
+#        - name: multi_trace
+#          trace_values:
+#            - 0.0
+#            - 0.9
+#            - 0.95
+#            - 0.99
+#
+#    - name: "dd_effluent_cod"
+#      is_meta: False
+#      operating_range:
+#        - 0.0
+#        -
+#      preprocess:
+#        - name: normalize
+#          min: 104.0
+#          max: 9460.0
+#          from_data: False
+#      outlier:
+#        name: "identity"
+#      imputer:
+#        name: "copy"
+#        imputation_horizon: 384
+#      state_constructor:
+#        - name: multi_trace
+#          trace_values:
+#            - 0.0
+#            - 0.9
+#            - 0.95
+#            - 0.99
+#
+#    - name: "dd_effluent_cbod5"
+#      is_meta: False
+#      operating_range:
+#        - 0.0
+#        -
+#      preprocess:
+#        - name: normalize
+#          min: 19.399999618530273
+#          max: 1030.0
+#          from_data: False
+#      outlier:
+#        name: "identity"
+#      imputer:
+#        name: "copy"
+#        imputation_horizon: 384
+#      state_constructor:
+#        - name: multi_trace
+#          trace_values:
+#            - 0.0
+#            - 0.9
+#            - 0.95
+#            - 0.99
+
+    - name: "db_tank_water_level"
+      is_meta: False
+      operating_range:
+        - 0.0
+        -
+      preprocess:
+        - name: normalize
+          min: 0.0
+          max: 5.139999866485596
+          from_data: False
+      outlier:
+        name: "identity"
+      imputer:
+        name: "copy"
+        imputation_horizon: 96
+      state_constructor:
+        - name: multi_trace
+          trace_values:
+            - 0.0
+            - 0.9
+            - 0.95
+            - 0.99
+
+    - name: "db_tank_flow_rate"
+      is_meta: False
+      operating_range:
+        - 0.0
+        -
+      preprocess:
+        - name: normalize
+          min: 0.0
+          max: 564.5399780273438
+          from_data: False
+      outlier:
+        name: "identity"
+      imputer:
+        name: "copy"
+        imputation_horizon: 96
+      state_constructor:
+        - name: multi_trace
+          trace_values:
+            - 0.0
+            - 0.9
+            - 0.95
+            - 0.99
+
+    # Action
+    - name: "dd1_polymer_dose"
+      is_meta: False
+      operating_range:
+        - 0.0
+        -
+      preprocess:
+        - name: normalize
+          min: 1.5
+          max: 2.5
+          from_data: False
+      outlier:
+        name: "identity"
+      imputer:
+        name: "copy"
+        imputation_horizon: 96
+      action_constructor:
+        - name: identity
+      state_constructor:
+        - name: multi_trace
+          trace_values:
+            - 0.0
+            - 0.9
+            - 0.95
+            - 0.99
+#      reward_constructor: # $/sec
+#        - name: "affine"
+#          scale: -0.00000132277 # TODO: Update cost of polymer per mg
+#        - name: "binary"
+#          op: "prod"
+#          other: "db_tank_flow_rate"
+#          other_xform:
+#            - name: identity
+#        - name: "binary"
+#          op: "prod"
+#          other: "dd1_effluent_turbidity"
+#          other_xform:
+#            - name: "affine"
+#              scale: 0.0020230865062303904
+#              bias: 0.0
+#            - name: "exponential"
+#        - name: "affine"
+#          scale: 0.5 # If turbidity constraint isn't violated, chemical cost occupies reward range [0.5, 1.0]
+#          bias: 1.0 # Only apply bias once (Not to ferric cost AND polymer cost)
+#        - name: binary
+#          op: "prod"
+#          other: "dd1_effluent_turbidity"
+#          other_xform:
+#            - name: "less_than"
+#              equal: 0
+#              threshold: 100.0 # Randomly chose this. TODO: ask Sadra
+      reward_constructor: # $/sec
+        - name: "affine"
+          scale: 0.00000132277 # TODO: Update cost of polymer per mg
+        - name: "binary"
+          op: "prod"
+          other: "db_tank_flow_rate"
+          other_xform:
+            - name: identity
+        - name: "affine"
+          # TODO: scale should be positive?
+          scale: -0.6121129 # If turbidity constraint isn't violated, chemical cost occupies reward range [0.5, 1.0]
+          bias: 1.0 # Only apply bias once (Not to ferric cost AND polymer cost)
+        - name: "binary"
+          op: "prod"
+          other: "dd1_effluent_turbidity"
+          other_xform:
+            - name: "less_than"
+              equal: 0
+              threshold: 100.0 # Randomly chose this. TODO: ask Sadra
+
+    - name: "dd1_ferric_dose"
+      is_meta: False
+      operating_range:
+        - 0.0
+        -
+      preprocess:
+        - name: normalize
+          min: 20.0
+          max: 60.0
+          from_data: False
+      outlier:
+        name: "identity"
+      imputer:
+        name: "copy"
+        imputation_horizon: 96
+      action_constructor:
+        - name: identity
+      state_constructor:
+        - name: multi_trace
+          trace_values:
+            - 0.0
+            - 0.9
+            - 0.95
+            - 0.99
+#      reward_constructor: # $/sec
+#        - name: "affine"
+#          scale: -0.00003398 # TODO: Update cost of ferric chloride per mg
+#        - name: "binary"
+#          op: "prod"
+#          other: "db_tank_flow_rate"
+#          other_xform:
+#            - name: identity
+#        - name: "binary"
+#          op: "prod"
+#          other: "dd1_effluent_turbidity"
+#          other_xform:
+#            - name: "affine"
+#              scale: 0.0020230865062303904
+#              bias: 0.0
+#            - name: "exponential"
+#        - name: "affine"
+#          scale: 0.5 # If turbidity constraint isn't violated, chemical cost occupies reward range [0.5, 1.0]
+#          bias: 0.0 # Only apply bias once (Not to ferric cost AND polymer cost)
+#        - name: "binary"
+#          op: "prod"
+#          other: "dd1_effluent_turbidity"
+#          other_xform:
+#            - name: "less_than"
+#              equal: False
+#              threshold: 100.0 # Randomly chose this. TODO: ask Sadra
+      reward_constructor: # $/sec
+        - name: "affine"
+          scale: 0.00003398 # TODO: Update cost of ferric chloride per mg
+        - name: "binary"
+          op: "prod"
+          other: "db_tank_flow_rate"
+          other_xform:
+            - name: identity
+        - name: "affine"
+          scale: -0.6121129 # If turbidity constrain isn't violated, chemical cost occupies reward range [0.5, 1.0]
+          bias: 0.0 # Only apply bias once (Not to ferric cost AND polymer cost)
+        - name: "binary"
+          op: "prod"
+          other: "dd1_effluent_turbidity"
+          other_xform:
+            - name: "less_than"
+              equal: False
+              threshold: 100.0 # Randomly chose this. TODO: ask Sadra
+
+    # Reward
+    - name: "dd1_effluent_turbidity"
+      is_meta: False
+      operating_range:
+        - 0.0
+        -
+      preprocess:
+        - name: normalize
+          min: 0.0
+          max: 206.24000549316406
+          from_data: False
+      outlier:
+        name: "identity"
+      imputer:
+        name: "copy"
+        imputation_horizon: 96
+      state_constructor:
+        - name: multi_trace
+          trace_values:
+            - 0.0
+            - 0.9
+            - 0.95
+            - 0.99
+      reward_constructor:
+        - name: "affine"
+          scale: -0.00238 # If turbidity constraint is violated, turbidity penalty occupies reward range [0.0, 0.5]
+          bias: 0.5
+        - name: "binary"
+          op: "prod"
+          other: "dd1_effluent_turbidity"
+          other_xform:
+            - name: "greater_than"
+              equal: True
+              threshold: 100.0 # Randomly chose this. TODO: ask Sadra
