@@ -3,6 +3,10 @@ name: Style and Tests
 on: [pull_request]
 permissions: write-all # Needed to comment coverage% on PR
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   py-style-check:
     runs-on: ubuntu-latest
