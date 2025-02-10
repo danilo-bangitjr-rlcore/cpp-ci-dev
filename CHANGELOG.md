@@ -1,3 +1,9 @@
+## 0.84.0 (2025-02-10)
+
+### Feat
+
+- multiple action saturation
+
 ## 0.83.0 (2025-02-10)
 
 ### Feat
