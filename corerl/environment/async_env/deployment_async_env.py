@@ -129,7 +129,8 @@ class DeploymentAsyncEnv(AsyncEnv):
                     node = self.action_nodes[action_name].node
                     var_type = self.action_nodes[action_name].var_type
                     action_val = float(action[action_name].iloc[0])
-                    data_value = ua.DataValue(ua.Variant(action_val, var_type))
+                    dt = ua.uatypes.DateTime.now(UTC)
+                    data_value = ua.DataValue(ua.Variant(action_val, var_type), SourceTimestamp=dt)
                     await opc_client.write_values([node], [data_value])
 
         asyncio.run(_async_opc_emit_action(action))
