@@ -4,6 +4,7 @@ import utils.data as utils
 
 from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 
+
 def _load_dataset_from_s3() -> list[tuple[Any, ...]]:
     """
     Read csv files from s3, preprocess the data, and convert into (timestamp, tag, value) tuples

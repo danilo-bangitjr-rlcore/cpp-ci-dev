@@ -1,8 +1,8 @@
-import pandas as pd
 import datetime as dt
 from pathlib import Path
 from typing import Any, Iterable
 
+import pandas as pd
 from cloudpathlib import CloudPath, S3Client, S3Path
 from cloudpathlib.enums import FileCacheMode
 
@@ -115,7 +115,7 @@ def _parse_battery_data(df: pd.DataFrame) -> list[pd.Series]:
 def _parse_solar_timestamps(df: pd.DataFrame) -> pd.DataFrame:
     try:
         df['Timestamp'] = pd.to_datetime(df['Timestamp'], utc=True, format="%m/%d/%y %H:%M")
-    except:
+    except ValueError:
         df['Timestamp'] = pd.to_datetime(df['Timestamp'], utc=True, format="%m/%d/%Y %H:%M")
     df = df.set_index("Timestamp")
     df = df.replace(',', '', regex=True)
