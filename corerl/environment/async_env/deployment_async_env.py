@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
-from asyncua.ua.uaerrors import BadNodeIdUnknown
 from pydantic import BaseModel, ConfigDict
 
 # Data Pipline

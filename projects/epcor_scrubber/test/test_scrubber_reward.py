@@ -415,9 +415,6 @@ def test_epcor_reward_rankings():
     dates = [start + i * Δ for i in range(1)]
     idx = pd.DatetimeIndex(dates)
 
-    prep_stage = Preprocessor(tag_cfgs)
-    rc = RewardConstructor(tag_cfgs, prep_stage)
-
     cols = [t.name for t in tag_cfgs]
     bounds = {}
     for tag_cfg in tag_cfgs:
