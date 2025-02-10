@@ -1,0 +1,15 @@
+name: Behavior Test
+
+on:
+  schedule:
+    - cron: '0 14 * * *' # 2:00PM UTC time daily (or 0700 MST)
+  workflow_dispatch:
+
+
+jobs:
+  behavior-test:
+    uses: ./.github/workflows/reusable-run-test.yml
+    secrets: inherit
+    with:
+      test-suite: behavior
+      upload-coverage: false
