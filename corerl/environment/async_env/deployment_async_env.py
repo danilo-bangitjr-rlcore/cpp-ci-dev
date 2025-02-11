@@ -129,7 +129,13 @@ class DeploymentAsyncEnv(AsyncEnv):
                     node = self.action_nodes[action_name].node
                     var_type = self.action_nodes[action_name].var_type
                     action_val = float(action[action_name].iloc[0])
-                    data_value = ua.DataValue(ua.Variant(action_val, var_type))
+                    # the source timestamp is sent to the OPC server, which itself has a server timestamp
+                    # recorded when it receives the write. if these values are too far apart, some OPC
+                    # implementations will consider the quality of this tag to be bad, so we need
+                    # to ensure that the values we write have an up-to-date timestamp
+                    # (and that they align with the server).
+                    dt = ua.uatypes.DateTime.now(UTC) # this is a load bearing timestamp
+                    data_value = ua.DataValue(ua.Variant(action_val, var_type), SourceTimestamp=dt)
                     await opc_client.write_values([node], [data_value])
 
         asyncio.run(_async_opc_emit_action(action))
