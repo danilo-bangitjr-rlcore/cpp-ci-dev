@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import logging
 import pickle as pkl
 from functools import partial
 from math import floor
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy
 import torch
@@ -17,13 +19,16 @@ from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.network.utils import state_to_tensor, to_np
-from corerl.configs.config import config
+from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.data_pipeline.transforms.delta import Delta
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +124,7 @@ class GreedyACConfig(BaseACConfig):
 
     # metrics
     ingress_loss : bool = True
+    _loss : bool = True
 
     actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
     critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
@@ -179,22 +185,21 @@ class GreedyAC(BaseAC):
         if self.cfg.ingress_loss:
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
-                metric="ingress_policy_loss",
+                metric=f"ingress_policy_loss_{pr.data_mode.name}",
                 value=self._policy_err(self.actor, recent_policy_batch.prior.state, recent_policy_batch.post.action),
             )
 
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
-                metric="ingress_sampler_loss",
+                metric=f"ingress_sampler_loss_{pr.data_mode.name}",
                 value=self._policy_err(self.sampler, recent_policy_batch.prior.state, recent_policy_batch.post.action),
             )
 
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
-                metric="ingress_critic_loss",
+                metric=f"ingress_critic_loss_{pr.data_mode.name}",
                 value=self._compute_critic_loss(recent_critic_batch),
             )
-
 
     def load_buffer(self, pr: PipelineReturn) -> None:
         if pr.transitions is None:
