@@ -6,7 +6,6 @@ from typing import cast
 import matplotlib.pyplot as plt
 import numpy as np
 
-from corerl.config import MainConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.state import AppState
 
@@ -25,12 +24,12 @@ def make_state_info_title(tags: list[TagConfig], state_cols: list[str], state: l
             if tag_name in state_cols[i]:
                 tag_inds.append(i)
         tag_vals = [f"{float(val):.3f}" for val in state_np[tag_inds]]
-        title += f"{tag_name}: {tag_vals}\n"
+        if len(tag_inds) > 0:
+            title += f"{tag_name}: {tag_vals}\n"
 
     return title
 
 def make_actor_critic_plots(
-    cfg: MainConfig,
     app_state: AppState,
     save_path: Path,
     labels: list[str],
@@ -44,10 +43,10 @@ def make_actor_critic_plots(
     Top subplot represents the probability density function of the policy along a given action dim at the given state.
     Bottom subplot represents the critic at the given state along the same action dimension.
     """
-    if not cfg.eval_cfgs.actor_critic.enabled:
+    if not app_state.cfg.eval_cfgs.actor_critic.enabled:
         return
 
-    tags = cfg.pipeline.tags
+    tags = app_state.cfg.pipeline.tags
     for label in labels:
         # Get entry from evals table in TSDB
         ac_eval_df = app_state.evals.read(
@@ -93,9 +92,7 @@ def make_actor_critic_plots(
             state_counter += 1
 
 def plot_evals(
-    cfg: MainConfig,
     app_state: AppState,
-    save_path: Path,
     step_start: int | None = None,
     step_end: int | None = None,
     start_time: datetime | None = None,
@@ -105,4 +102,7 @@ def plot_evals(
     if labels is None or len(labels) == 0:
         labels = [""]
 
-    make_actor_critic_plots(cfg, app_state, save_path, labels, None, None, None, None)
+    save_path = Path(app_state.cfg.experiment.save_path)
+    save_path.mkdir(parents=True, exist_ok=True)
+
+    make_actor_critic_plots(app_state, save_path, labels, None, None, None, None)
