@@ -6,7 +6,13 @@ from corerl.component.critic.ensemble_critic import (
 from corerl.state import AppState
 
 
-def init_q_critic(cfg: EnsembleCriticConfig, app_state: AppState, state_dim: int, action_dim: int, output_dim: int = 1) -> EnsembleQCritic:
+def init_q_critic(
+        cfg: EnsembleCriticConfig,
+        app_state: AppState,
+        state_dim: int,
+        action_dim: int,
+        output_dim: int = 1,
+    ) -> EnsembleQCritic:
     """
     corresponding configs: config/agent/critic
     """
@@ -18,7 +24,12 @@ def init_q_critic(cfg: EnsembleCriticConfig, app_state: AppState, state_dim: int
     return critic
 
 
-def init_v_critic(cfg: EnsembleCriticConfig, app_state: AppState, state_dim: int, output_dim: int = 1) -> EnsembleVCritic:
+def init_v_critic(
+    cfg: EnsembleCriticConfig,
+    app_state: AppState,
+    state_dim: int,
+    output_dim: int = 1
+    ) -> EnsembleVCritic:
     """
     corresponding configs: config/agent/critic
     """
