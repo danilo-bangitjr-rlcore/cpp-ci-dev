@@ -118,6 +118,7 @@ class GreedyACConfig(BaseACConfig):
     rho: float = 0.1
     share_batch: bool = True
     uniform_sampling_percentage: float = 0.5
+    eval_batch : bool = True
 
     actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
     critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
@@ -139,6 +140,8 @@ class GreedyAC(BaseAC):
         self.num_samples = cfg.num_samples
         # whether updates to proposal and actor should share a batch
         self.share_batch = cfg.share_batch
+        # whether the closure function in line search uses a separate batch for evaluation.
+        self.eval_batch = cfg.eval_batch
 
         self.uniform_sampling_percentage = cfg.uniform_sampling_percentage
         self.learned_proposal_percent = 1 - self.uniform_sampling_percentage
@@ -288,9 +291,12 @@ class GreedyAC(BaseAC):
         batches = self.critic_buffer.sample()
         q_loss = self._compute_critic_loss(batches, with_grad=True)
 
-        eval_batches = self.critic_buffer.sample()
-        self.q_critic.update(q_loss, opt_kwargs={"closure": partial(self._compute_critic_loss, eval_batches)})
+        if self.eval_batch:
+            eval_batches = self.critic_buffer.sample()
+        else:
+            eval_batches = batches
 
+        self.q_critic.update(q_loss, opt_kwargs={"closure": partial(self._compute_critic_loss, eval_batches)})
         return [float(q_loss)]
 
     # --------------------------- actor and sampler updating-------------------------- #
@@ -392,16 +398,19 @@ class GreedyAC(BaseAC):
             value=to_np(loss),
         )
 
-        # sample another batch for the evaluation of updates when using line search.
-        eval_states, eval_actions = self._ensure_policy_batch()
-        eval_states, eval_actions, _ = self._get_top_n_sampled_actions(
-            state_batch=eval_states,
-            action_batch=eval_actions,
-            n_samples=self.num_samples,
-            percentile=percentile,
-            uniform_weight=self.uniform_sampling_percentage,
-            sampler=self.sampler,
-        )
+        if self.eval_batch:
+            # sample another batch for the evaluation of updates when using line search.
+            eval_states, eval_actions = self._ensure_policy_batch()
+            eval_states, eval_actions, _ = self._get_top_n_sampled_actions(
+                state_batch=eval_states,
+                action_batch=eval_actions,
+                n_samples=self.num_samples,
+                percentile=percentile,
+                uniform_weight=self.uniform_sampling_percentage,
+                sampler=self.sampler,
+            )
+        else:
+            eval_states, eval_actions = states_for_best_actions, best_actions
 
         # apply the update
         policy.update(
