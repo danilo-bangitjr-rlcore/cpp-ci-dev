@@ -54,7 +54,9 @@ eval_cfgs:
 
 pipeline:
   state_constructor:
-    defaults: []
+    defaults:
+    - name: multi_trace
+      trace_values: [0., 0.75, 0.95]
 
   transition_creator:
     name: anytime
@@ -98,9 +100,6 @@ pipeline:
       name: identity
     preprocess:
       - name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]
     reward_constructor:
     # subtract saturation SP
     - name: affine
@@ -135,6 +134,3 @@ pipeline:
         max: 0.2
         from_data: False
       - name: add_raw
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]

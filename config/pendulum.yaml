@@ -40,6 +40,11 @@ experiment:
   gamma : 0.99
 
 pipeline:
+  state_constructor:
+    defaults:
+      - name: multi_trace
+        trace_values: [0, 0.95]
+
   transition_creator:
     name: anytime
     gamma: ${experiment.gamma}
@@ -69,9 +74,6 @@ pipeline:
     operating_range: [-1, 1]
     outlier:
       name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0.95]
 
   # y
   - name: tag-1
@@ -79,9 +81,6 @@ pipeline:
     operating_range: [-1, 1]
     outlier:
       name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0.95]
 
   # ang_vel
   - name: tag-2
@@ -91,9 +90,6 @@ pipeline:
     yellow_bounds: [-6, 6]
     outlier:
       name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0.95]
 
 
   - name: reward
@@ -116,4 +112,5 @@ pipeline:
     is_meta: True
     outlier:
       name: identity
-    state_constructor: null
+    state_constructor:
+      - name: "null"

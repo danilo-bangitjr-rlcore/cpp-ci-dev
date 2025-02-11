@@ -41,6 +41,11 @@ agent:
       seed: ${experiment.seed}
 
 pipeline:
+  state_constructor:
+    defaults:
+      - name: multi_trace
+        trace_values: [0.0, 0.9, 0.95, 0.99]
+
   transition_creator:
     name: anytime
     gamma: ${experiment.gamma}
@@ -82,9 +87,6 @@ pipeline:
     is_meta: False
     outlier:
       name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0.95]
 
   # actions
   - name: action-0

@@ -47,6 +47,11 @@ agent:
 
 
 pipeline:
+  state_constructor:
+    default:
+      - name: multi_trace
+        trace_values: [0.999, 0.99, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5]
+
   transition_creator:
    name: anytime
    gamma: 0.9
@@ -88,9 +93,6 @@ pipeline:
     - name: identity
     outlier:
       name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0.999, 0.99, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5]
 
   # actions
   - name: action-0
@@ -100,8 +102,5 @@ pipeline:
     - name: identity
     outlier:
       name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0.999, 0.99, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5]
     action_constructor:
       - name: identity

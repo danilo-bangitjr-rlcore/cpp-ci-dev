@@ -46,7 +46,9 @@ metrics:
 
 pipeline:
   state_constructor:
-    defaults: []
+    defaults:
+      - name: multi_trace
+        trace_values: [0, 0.9]
 
   transition_creator:
     name: anytime
@@ -78,9 +80,6 @@ pipeline:
       name: identity
     reward_constructor:
     - name: 'null'
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0, 0.9]
 
   - name: tag-1
     operating_range: [-0.07, 0.07]
@@ -91,9 +90,6 @@ pipeline:
       name: identity
     reward_constructor:
     - name: 'null'
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0, 0.9]
 
   - name: reward
     preprocess:

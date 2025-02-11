@@ -61,6 +61,11 @@ metrics:
   enabled: True
 
 pipeline:
+  state_constructor:
+    defaults:
+      - name: multi_trace
+        trace_values: [0.0, 0.9]
+
   transition_creator:
     name: all-the-time
     gamma: ${experiment.gamma}
@@ -102,11 +107,6 @@ pipeline:
     imputer:
       name: copy
       imputation_horizon: 12
-    state_constructor:
-    - name: multi_trace
-      trace_values:
-      - 0.0
-      - 0.9
     reward_constructor:
     - name: scale # min negative permeability -> max positive permeability
       factor: -1
@@ -132,11 +132,6 @@ pipeline:
     imputer:
       name: copy
       imputation_horizon: 12
-    state_constructor:
-    - name: multi_trace
-      trace_values:
-      - 0.0
-      - 0.9
 
   - name: FTC101.DATA # raw cdom
     operating_range: [1, 4]
@@ -145,11 +140,6 @@ pipeline:
     imputer:
       name: copy
       imputation_horizon: 12
-    state_constructor:
-    - name: multi_trace
-      trace_values:
-      - 0.0
-      - 0.9
 
   - name: FTT100.DATA # raw tryptophan
     operating_range: [0, 0.7]
@@ -158,11 +148,6 @@ pipeline:
     imputer:
       name: copy
       imputation_horizon: 12
-    state_constructor:
-    - name: multi_trace
-      trace_values:
-      - 0.0
-      - 0.9
 
   - name: TIT302.DATA # postfloc water temp
     operating_range: [0, 15]
@@ -171,8 +156,3 @@ pipeline:
     imputer:
       name: copy
       imputation_horizon: 12
-    state_constructor:
-    - name: multi_trace
-      trace_values:
-      - 0.0
-      - 0.9
