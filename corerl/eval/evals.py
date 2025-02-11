@@ -47,7 +47,6 @@ class _EvalPoint(NamedTuple):
 @config()
 class EvalDBConfig(BufferedWriterConfig):
     name: Literal['db'] = 'db'
-    db_name: str = 'postgres'
     table_name: str = 'evals'
     table_schema: str = 'public'
     lo_wm: int = 10

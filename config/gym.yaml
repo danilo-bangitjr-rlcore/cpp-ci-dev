@@ -1,9 +1,0 @@
-pipeline:
-  db:
-    drivername: "postgresql+psycopg2"
-    username: "postgres"
-    password: "password"
-    ip: "localhost"
-    port: 5433
-    db_name: "pytest"
-    table_name: "sensors"

@@ -51,7 +51,6 @@ class _MetricPoint(NamedTuple):
 @config()
 class MetricsDBConfig(BufferedWriterConfig):
     name : Literal['db'] = 'db'
-    db_name: str = 'postgres'
     table_name: str = 'metrics'
     table_schema: str = 'public'
     lo_wm: int = 1

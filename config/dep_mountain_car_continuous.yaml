@@ -2,6 +2,10 @@
 # All interactions to the mountain car continuous environment is performed through OPC, all state observations are read
 # through TSDB.
 
+
+# --------------------
+# -- Infrastructure --
+# --------------------
 log_path: "outputs/e2e_smoke"
 
 experiment:
@@ -10,32 +14,41 @@ experiment:
   seed: 1
   gamma: 0.99
 
+env:
+  name: dep_async_env
+  setpoint_ping_period: 00:00:10
+  action_tolerance: 00:00:01
+  discrete_control: False
+  seed: ${experiment.seed}
+  opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
+  opc_ns: 2
+
+  db:
+    table_name: opcua
+
+event_bus:
+  enabled: True
+
+metrics:
+  name: db
+  enabled: True
+
+# -----------
+# -- Agent --
+# -----------
+
 interaction:
   name: dep_interaction
   restore_checkpoint: False
   historical_batch_size: 100
   hist_chunk_start: 2025-02-05 12:00:00+0000 # YYYY-MM-DD hh:mm:ss
-  obs_period: 00:00:01
-  action_period: 00:00:01
+  obs_period: 00:00:05
+  action_period: 00:00:15
+  update_period: 00:00:05
   heartbeat:
     heartbeat_node_id: "ns=2;s=heartbeat"
     heartbeat_period: 00:00:01
     max_counter: 10
-
-event_bus:
-  enabled: True
-
-env:
-  name: dep_async_env
-  update_period: 00:00:05
-  setpoint_ping_period: 00:00:10
-  discrete_control: False
-  seed: ${experiment.seed}
-  db: ${pipeline.db}
-  opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
-  opc_ns: 2
-  action_tolerance: 00:00:01
-
 
 agent:
   name: greedy_ac
@@ -61,30 +74,7 @@ agent:
       lr: 0.01
 
 
-metrics:
-  name : db
-  drivername: "postgresql+psycopg2"
-  username: "postgres"
-  password: "password"
-  ip: "localhost"
-  port: 5432
-  db_name: "postgres"
-  table_schema: "public"
-  table_name: "metrics"
-  enabled: True
-  lo_wm: 5
-
 pipeline:
-  db:
-    drivername: "postgresql+psycopg2"
-    username: "postgres"
-    password: "password"
-    ip: "localhost"
-    port: 5432
-    db_name: "postgres"
-    table_schema: "public"
-    table_name: "opcua"
-
   state_constructor:
     defaults: []
 

@@ -23,7 +23,6 @@ from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode, TemporalState, Transition
-from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.imputers.factory import ImputerStageConfig, init_imputer
 from corerl.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
@@ -44,7 +43,6 @@ register_dispatchers()
 @config()
 class PipelineConfig:
     tags: list[TagConfig] = list_()
-    db: TagDBConfig = Field(default_factory=TagDBConfig)
     max_data_gap: timedelta = MISSING
 
     # stage-wide configs

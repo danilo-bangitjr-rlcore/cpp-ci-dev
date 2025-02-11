@@ -1,5 +1,4 @@
 defaults:
-  - gym
   - env: env/pendulum
 
 interaction:

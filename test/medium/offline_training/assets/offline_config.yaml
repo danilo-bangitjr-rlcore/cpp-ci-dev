@@ -13,9 +13,16 @@ event_bus:
   enabled: False
 
 env:
-  name: sim_async_env
+  name: dep_async_env
   discrete_control: False
+  setpoint_ping_period: 00:00:10
+  discrete_control: False
+  seed: ${experiment.seed}
+  opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
+  opc_ns: 2
 
+  db:
+    table_name: tags
 
 agent:
   name: greedy_ac
@@ -58,9 +65,6 @@ metrics:
 
 
 pipeline:
-  db:
-    table_name: tags
-
   transition_creator:
     name: anytime
     min_n_step: 1

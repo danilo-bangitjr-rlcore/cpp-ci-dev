@@ -1,5 +1,4 @@
 # This is a minimal config that still passes the test_main_configs test
-
 experiment:
   exp_name: My_Experiment
 
@@ -15,7 +14,6 @@ env:
   action_period: 00:00:15
   discrete_control: False
   seed: ${experiment.seed}
-  db: ${pipeline.db}
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
   action_tolerance: 00:00:01
@@ -35,12 +33,8 @@ agent:
       lr: 0.00001
 
 pipeline:
-  db:
-    username: ""
-
   state_constructor:
     defaults: [] # needed
 
   transition_creator:
     name: anytime # needed
-
