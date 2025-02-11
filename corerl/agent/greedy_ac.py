@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Literal
 
 import numpy
-import numpy as np
 import torch
 from jaxtyping import Float
 from pydantic import Field
@@ -214,7 +213,7 @@ class GreedyAC(BaseAC):
 
     # --------------------------- critic updating-------------------------- #
 
-    def _compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def _compute_critic_loss(self, ensemble_batch: list[TransitionBatch], with_grad:bool=False) -> torch.Tensor:
         # First, translate ensemble batches in to list for each property
         ensemble_len = len(ensemble_batch)
         state_batches = []
@@ -249,12 +248,12 @@ class GreedyAC(BaseAC):
             gamma_batches.append(gamma_batch)
 
         # Second, use this information to compute the targets
-        # Option 1: Using the corresponding target function in the ensemble in the update target:
         if self.ensemble_targets:
+            # Option 1: Using the corresponding target function in the ensemble in the update target:
             _, next_qs = self.q_critic.get_qs_target(next_state_batches, next_action_batches, bootstrap_reduct=True)
 
-            # Option 2: Using the reduction of the ensemble in the update target:
         else:
+            # Option 2: Using the reduction of the ensemble in the update target:
             next_qs = []
             for i in range(ensemble_len):
                 next_q = self.q_critic.get_q_target(
@@ -265,39 +264,32 @@ class GreedyAC(BaseAC):
 
             next_qs = torch.cat(next_qs, dim=0)
 
-        targets = [reward_batches[i] + gamma_batches[i] * next_qs[i] for i in range(ensemble_len)]
-
         # Third, compute losses
-        _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True, bootstrap_reduct=True)
-        losses = []
-
+        _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=with_grad, bootstrap_reduct=True)
+        loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble_len):
-            target = targets[i]
-            losses.append(torch.nn.functional.mse_loss(target, qs[i]))
+            target =  reward_batches[i] + gamma_batches[i] * next_qs[i]
+            loss += torch.nn.functional.mse_loss(target, qs[i])
 
         # Fourth, log metrics
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
-            metric="critic_loss",
-            value=np.mean([loss.detach().numpy() for loss in losses]),
+            metric="avg_critic_loss",
+            value=to_np(loss)/ensemble_len,
         )
 
-        return losses
+        return loss
 
     def update_critic(self) -> list[float]:
         if min(self.critic_buffer.size) <= 0:
             return []
 
         self._app_state.event_bus.emit_event(EventType.agent_update_critic)
-
         batches = self.critic_buffer.sample()
+        q_loss = self._compute_critic_loss(batches, with_grad=True)
 
-        def closure():
-            losses = self._compute_critic_loss(batches)  # noqa: B023
-            return torch.stack(losses, dim=-1).sum(dim=-1)
-
-        q_loss = closure()
-        self.q_critic.update(q_loss, opt_kwargs={"closure": closure})
+        eval_batches = self.critic_buffer.sample()
+        self.q_critic.update(q_loss, opt_kwargs={"closure": partial(self._compute_critic_loss, eval_batches)})
 
         return [float(q_loss)]
 
@@ -392,19 +384,30 @@ class GreedyAC(BaseAC):
         )
 
         # compute loss
-        loss = self._policy_err(policy, states_for_best_actions, best_actions)
+        loss = self._policy_err(policy, states_for_best_actions, best_actions, with_grad=True)
 
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric=policy_name + "_loss",
-            value=loss,
+            value=to_np(loss),
+        )
+
+        # sample another batch for the evaluation of updates when using line search.
+        eval_states, eval_actions = self._ensure_policy_batch()
+        eval_states, eval_actions, _ = self._get_top_n_sampled_actions(
+            state_batch=eval_states,
+            action_batch=eval_actions,
+            n_samples=self.num_samples,
+            percentile=percentile,
+            uniform_weight=self.uniform_sampling_percentage,
+            sampler=self.sampler,
         )
 
         # apply the update
         policy.update(
             loss,
             opt_kwargs={
-                "closure": partial(self._policy_err, policy, states_for_best_actions, best_actions),
+                "closure": partial(self._policy_err, policy, eval_states, eval_actions),
             },
         )
 
@@ -448,11 +451,17 @@ class GreedyAC(BaseAC):
         state_batch, action_batch = self._ensure_policy_batch(update_batch)
         self._update_policy(state_batch, action_batch, self.sampler, "sampler", self.rho_proposal)
 
-    def _policy_err(self, policy: BaseActor, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
+    def _policy_err(
+            self,
+            policy: BaseActor,
+            states: torch.Tensor,
+            actions: torch.Tensor,
+            with_grad:bool=False,
+        ) -> torch.Tensor:
         logp, _ = policy.get_log_prob(
             states,
             actions,
-            with_grad=True,
+            with_grad=with_grad,
         )
         return -logp.mean()
 

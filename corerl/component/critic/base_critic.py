@@ -17,7 +17,7 @@ class BaseCritic(ABC):
         self.discrete_control = cfg.discrete_control
 
     @abstractmethod
-    def update(self, loss: list[torch.Tensor]) -> None:
+    def update(self, loss: torch.Tensor) -> None:
         raise NotImplementedError
 
     @abstractmethod

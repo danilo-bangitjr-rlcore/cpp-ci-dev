@@ -73,7 +73,7 @@ class SimpleAC(BaseAC):
 
         return tuple()
 
-    def compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_critic_loss(self, ensemble_batch: list[TransitionBatch]) -> torch.Tensor:
         ensemble = len(ensemble_batch)
         state_batches = []
         reward_batches = []
@@ -105,12 +105,12 @@ class SimpleAC(BaseAC):
             next_vs = torch.cat(next_vs, dim=0)
 
         _, vs = self.v_critic.get_vs(state_batches, with_grad=True)
-        losses = []
+        loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble):
             target = reward_batches[i] + gamma_batches[i] * next_vs[i]
-            losses.append(torch.nn.functional.mse_loss(target, vs[i]))
+            loss += torch.nn.functional.mse_loss(target, vs[i])
 
-        return losses
+        return loss
 
     def update_critic(self) -> list[float]:
         critic_losses = []

@@ -89,20 +89,19 @@ class BaseEnsembleCritic:
 
     def update(
         self,
-        loss: list[torch.Tensor] | torch.Tensor,
+        loss: torch.Tensor,
         opt_args: tuple = tuple(),
         opt_kwargs: dict | None = None,
     ) -> None:
         opt_kwargs = nullable.default(opt_kwargs, dict)
         self.optimizer.zero_grad()
-        if isinstance(loss, (list, tuple)):
-            self.ensemble_backward(loss)
-        else:
-            loss.backward()
+        loss.backward()
+
         if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
             self.optimizer.step(closure=lambda: 0.)
         else:
             self.optimizer.step(*opt_args, **opt_kwargs)
+
         self._update_target()
 
     def sync_target(self) -> None:
@@ -132,7 +131,7 @@ class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
 
     def update(
         self,
-        loss: list[torch.Tensor] | torch.Tensor,
+        loss: torch.Tensor,
         opt_args: tuple = tuple(),
         opt_kwargs: dict | None = None,
     ) -> None:
@@ -190,7 +189,7 @@ class EnsembleVCritic(BaseV, BaseEnsembleCritic):
 
     def update(
         self,
-        loss: list[torch.Tensor] | torch.Tensor,
+        loss: torch.Tensor,
         opt_args: tuple = tuple(),
         opt_kwargs: dict | None = None,
     ) -> None:
@@ -205,8 +204,10 @@ class EnsembleVCritic(BaseV, BaseEnsembleCritic):
     def get_vs(
         self, state_batches: list[torch.Tensor], with_grad: bool = False, bootstrap_reduct: bool = True,
     ) -> tuple[torch.Tensor, torch.Tensor]:
+
         input_tensor = self._prepare_input(state_batches)
         return self._forward(input_tensor, with_grad=with_grad, bootstrap_reduct=bootstrap_reduct)
+
 
     def get_v(
         self,

@@ -36,10 +36,17 @@ agent:
   critic:
     polyak: 0.995
     critic_optimizer:
+      name: 'armijo_adam'
       lr : 0.0003
       weight_decay : 0.0
+    # buffer:
+    #   name: uniform
+    #   seed: ${experiment.seed}
+    critic_network:
+      ensemble: 2
     buffer:
-      name: uniform
+      name : 'ensemble_uniform'
+      ensemble: 2
       seed: ${experiment.seed}
 
   actor:
