@@ -21,8 +21,10 @@ class BaseReplayBufferConfig:
     seed: int = MISSING
     memory: int = 1_000_000
     batch_size: int = 256
-    combined: bool = True
-
+    # Whether or not to use combined experience replay:
+    #   https://arxiv.org/pdf/1712.01275
+    # the number of samples in the batch from most recent data.
+    n_most_recent: int = 1
 
 class ReplayBuffer:
     def __init__(self, cfg: BaseReplayBufferConfig):
@@ -31,9 +33,8 @@ class ReplayBuffer:
         self.memory = cfg.memory
         self.batch_size = cfg.batch_size
 
-        # Whether or not to use combined experience replay:
-        #   https://arxiv.org/pdf/1712.01275
-        self.combined = cfg.combined
+        self.n_most_recent = cfg.n_most_recent
+        assert self.n_most_recent <= self.batch_size
 
         self.data = None
         self.pos = 0
@@ -88,8 +89,8 @@ class ReplayBuffer:
         if self.size == [0] or self.data is None:
             return []
 
-        if self.combined:
-            idxs[0] = self._last_pos
+        for i in range(self.n_most_recent):
+            idxs[i] = self._last_pos-i
 
         sampled_data = [self.data[i][idxs] for i in range(len(self.data))]
         return [self._prepare(idxs, sampled_data)]

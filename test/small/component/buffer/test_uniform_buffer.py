@@ -5,7 +5,7 @@ from corerl.data_pipeline.datatypes import DataMode, Step, StepBatch, Transition
 
 
 def test_sample_mini_batch():
-    cfg = UniformReplayBufferConfig(seed=0, memory=5, batch_size=2, combined=True)
+    cfg = UniformReplayBufferConfig(seed=0, memory=5, batch_size=2, n_most_recent=1)
     buffer = UniformBuffer(cfg)
 
     step_1 = Step(
