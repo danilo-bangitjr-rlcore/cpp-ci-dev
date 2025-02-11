@@ -97,8 +97,6 @@ pipeline:
     is_meta: True
     outlier:
       name: identity
-    state_constructor:
-    - name: 'null'
 
   - name: terminated
     preprocess:
@@ -106,8 +104,6 @@ pipeline:
     is_meta: True
     outlier:
       name: identity
-    state_constructor:
-    - name: 'null'
 
   - name: truncated
     preprocess:
@@ -115,5 +111,3 @@ pipeline:
     is_meta: True
     outlier:
       name: identity
-    state_constructor:
-    - name: 'null'

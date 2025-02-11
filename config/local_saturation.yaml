@@ -83,12 +83,9 @@ pipeline:
     is_meta: True
     outlier:
       name: identity
-    state_constructor:
-    - name: 'null'
 
   # observations
   - name: tag-0
-    is_meta: False
     preprocess:
     - name: identity
     outlier:
@@ -96,7 +93,6 @@ pipeline:
 
   # actions
   - name: action-0
-    is_meta: False
     operating_range: [0, 1]
     preprocess:
     - name: identity

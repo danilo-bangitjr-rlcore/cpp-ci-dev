@@ -52,7 +52,8 @@ pipeline:
       name: identity
     reward_constructor:
     - name: identity
-    is_meta: true
+    state_constructor:
+    - name: 'null'
 
   - name: terminated
     preprocess:
@@ -81,10 +82,7 @@ pipeline:
     state_constructor:
       - name: 'null'
     action_constructor:
-      - name: normalize
-        min: -1
-        max: 1
-        from_data: False
+      - name: identity
 
   - name: tag-0
     operating_range: [-1.2, 0.6]
