@@ -17,15 +17,42 @@ from corerl.messages.factory import EventBusConfig
 
 
 @config()
+class DBConfig:
+    drivername: str = 'postgresql+psycopg2'
+    username: str = 'postgres'
+    password: str = 'password'
+    ip: str = 'localhost'
+    port: int = 5432
+    db_name: str = 'postgres'
+
+
+@config()
+class InfraConfig:
+    db: DBConfig = Field(default_factory=DBConfig)
+
+
+@config()
 class MainConfig:
-    interaction: InteractionConfig = MISSING
+    # --------------------
+    # -- Infrastructure --
+    # --------------------
+    infra: InfraConfig = Field(default_factory=InfraConfig)
     metrics: MetricsConfig = Field(default_factory=MetricsDBConfig, discriminator='name')
     evals: EvalDBConfig = Field(default_factory=EvalDBConfig, discriminator='name')
     event_bus: EventBusConfig = Field(default_factory=EventBusConfig)
-    env: AsyncEnvConfig = MISSING
-    agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')
     experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
+    log_path: Path | None = None
+
+    # -----------
+    # -- Agent --
+    # -----------
+    env: AsyncEnvConfig = MISSING
+    interaction: InteractionConfig = MISSING
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
+    agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')
+
+    # ----------------
+    # -- Evaluation --
+    # ----------------
     eval_cfgs: EvalConfig = Field(default_factory=EvalConfig)
     report : ReportConfig = Field(default_factory=ReportConfig)
-    log_path: Path | None = None

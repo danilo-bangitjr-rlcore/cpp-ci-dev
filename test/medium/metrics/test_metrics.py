@@ -21,9 +21,13 @@ def db_metrics_table(
 
     metrics_db_cfg = MetricsDBConfig(
         enabled=True,
+        drivername='postgresql+psycopg2',
+        username='postgres',
+        password='password',
+        ip='localhost',
         port=port,
         db_name=tsdb_tmp_db_name,
-        lo_wm=1
+        lo_wm=1,
     )
 
     metrics_table = MetricsTable(metrics_db_cfg)

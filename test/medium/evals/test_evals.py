@@ -21,9 +21,13 @@ def db_evals_table(
 
     evals_db_cfg = EvalDBConfig(
         enabled=True,
+        drivername='postgresql+psycopg2',
+        username='postgres',
+        password='password',
+        ip='localhost',
         port=port,
         db_name=tsdb_tmp_db_name,
-        lo_wm=1
+        lo_wm=1,
     )
 
     evals_table = EvalsTable(evals_db_cfg)

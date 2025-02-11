@@ -1,3 +1,53 @@
+## 0.86.0 (2025-02-11)
+
+### Feat
+
+- eval batch for lso with critic + refactor of critic loss to return single tensor
+- separate eval batch for policy
+
+### Fix
+
+- remove extra line in saturation test
+- loss is not list (again)
+- actually avg_critic_loss
+- avg_critic_loss in tests
+- add 0 to traces in saturation behaviour
+- no gradients in closures
+
+## 0.85.2 (2025-02-11)
+
+### Fix
+
+- add default seed to the ensemble buffer
+
+## 0.85.1 (2025-02-11)
+
+### Fix
+
+- migrate new configs to new schema
+- move db infra configs into dedicated top-level config
+
+### Refactor
+
+- pull action_tolerance into interaction instead of env
+
+## 0.85.0 (2025-02-11)
+
+### Feat
+
+- Epcor Solar dataloader adapted to s3
+
+## 0.84.1 (2025-02-10)
+
+### Fix
+
+- style
+- fix input size
+
+### Refactor
+
+- refactor ensemble critic
+
 ## 0.84.0 (2025-02-10)
 
 ### Feat

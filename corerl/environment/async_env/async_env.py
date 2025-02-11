@@ -51,7 +51,7 @@ class OPCEnvConfig(BaseAsyncEnvConfig):
 
 @config()
 class TSDBEnvConfig(BaseAsyncEnvConfig):
-    db: TagDBConfig = MISSING
+    db: TagDBConfig = Field(default_factory=TagDBConfig)
 
 
 @config()
@@ -69,6 +69,11 @@ class GymEnvConfig:
 class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):
     name: str = "dep_async_env"
     action_tolerance: timedelta = MISSING
+
+    @computed('action_tolerance')
+    @classmethod
+    def _action_tolerance(cls, cfg: MainConfig):
+        return cfg.interaction.obs_period
 
 
 @config()

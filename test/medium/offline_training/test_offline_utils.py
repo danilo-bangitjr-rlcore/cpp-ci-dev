@@ -14,13 +14,13 @@ from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
+from corerl.environment.async_env.async_env import DepAsyncEnvConfig
 from corerl.eval.evals import EvalDBConfig, evals_group
 from corerl.eval.metrics import MetricsDBConfig, metrics_group
 from corerl.messages.event_bus import EventBus
 from corerl.offline.utils import OfflineTraining
 from corerl.sql_logging.sql_logging import table_exists
 from corerl.state import AppState
-from test.infrastructure.utils.docker import init_docker_container  # noqa: F401
 
 
 @pytest.fixture()
@@ -55,7 +55,9 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
         base='test/medium/offline_training/assets',
         config_name='offline_config.yaml',
     )
-    cfg.pipeline.db = test_db_config
+
+    assert isinstance(cfg.env, DepAsyncEnvConfig)
+    cfg.env.db = test_db_config
 
     assert isinstance(cfg.metrics, MetricsDBConfig)
     cfg.metrics.port = test_db_config.port

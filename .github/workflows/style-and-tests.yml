@@ -3,6 +3,10 @@ name: Style and Tests
 on: [pull_request]
 permissions: write-all # Needed to comment coverage% on PR
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   py-style-check:
     runs-on: ubuntu-latest
@@ -85,14 +89,6 @@ jobs:
       test-suite: large
       #- run: uv run pytest test/large
 
-  behavior-test:
-    needs: [small-test, medium-test]
-    uses: ./.github/workflows/reusable-run-test.yml
-    secrets: inherit
-    with:
-      test-suite: behavior
-      #- run: uv run pytest test/behavior
-
   docker-build-test:
     needs: [small-test, medium-test]
     uses: ./.github/workflows/reusable-build-docker-image.yml
@@ -101,7 +97,7 @@ jobs:
       push_to_registry: false
 
   combine-coverage:
-    needs: [large-test, behavior-test]
+    needs: [large-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

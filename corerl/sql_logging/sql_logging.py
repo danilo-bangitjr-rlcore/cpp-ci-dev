@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import logging
 import time
 from collections.abc import MutableMapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import sqlalchemy
 from sqlalchemy import URL, Column, DateTime, Engine, MetaData, Table, inspect, select
@@ -10,23 +12,51 @@ from sqlalchemy.sql import func
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
 import corerl.utils.dict as dict_u
-from corerl.configs.config import config
+from corerl.configs.config import MISSING, computed, config
 from corerl.sql_logging.base_schema import (
     Base,
     HParam,
     Run,
 )
 
-logger = logging.getLogger(__name__)
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
+
+logger = logging.getLogger(__name__)
 
 @config()
 class SQLEngineConfig:
-    drivername: str = "postgresql+psycopg2"
-    username: str = "postgres"
-    password: str = "password"
-    ip: str = "localhost"
-    port: int = 5432
+    drivername: str = MISSING
+    username: str = MISSING
+    password: str = MISSING
+    ip: str = MISSING
+    port: int = MISSING
+
+    @computed('drivername')
+    @classmethod
+    def _drivername(cls, cfg: MainConfig):
+        return cfg.infra.db.drivername
+
+    @computed('username')
+    @classmethod
+    def _username(cls, cfg: MainConfig):
+        return cfg.infra.db.username
+
+    @computed('password')
+    @classmethod
+    def _password(cls, cfg: MainConfig):
+        return cfg.infra.db.password
+
+    @computed('ip')
+    @classmethod
+    def _ip(cls, cfg: MainConfig):
+        return cfg.infra.db.ip
+
+    @computed('port')
+    @classmethod
+    def _port(cls, cfg: MainConfig):
+        return cfg.infra.db.port
 
 
 def get_sql_engine(db_data: SQLEngineConfig, db_name: str, force_drop: bool = False) -> Engine:

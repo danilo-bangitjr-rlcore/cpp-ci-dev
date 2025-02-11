@@ -15,7 +15,6 @@ from corerl.data_pipeline.tag_config import Agg
 
 @config()
 class TagDBConfig(BufferedWriterConfig):
-    db_name: str = "postgres"
     table_name: str = "sensors"
     table_schema: str = "public"
     data_agg: Agg = Agg.avg
