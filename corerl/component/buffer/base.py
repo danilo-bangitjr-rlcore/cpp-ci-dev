@@ -85,7 +85,7 @@ class ReplayBuffer:
 
         return idxs
 
-    def _prepare_sample(self, idxs: np.ndarray) -> list[TransitionBatch]:
+    def prepare_sample(self, idxs: np.ndarray) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
             return []
 
@@ -98,7 +98,7 @@ class ReplayBuffer:
 
     def sample(self) -> list[TransitionBatch]:
         idxs = self._sample_indices()
-        return self._prepare_sample(idxs)
+        return self.prepare_sample(idxs)
 
     def full_batch(self) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
