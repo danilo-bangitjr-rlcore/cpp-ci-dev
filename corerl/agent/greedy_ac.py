@@ -121,7 +121,6 @@ class GreedyACConfig(BaseACConfig):
 
     # metrics
     ingress_loss : bool = True
-    _loss : bool = True
 
     actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
     critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
@@ -246,7 +245,7 @@ class GreedyAC(BaseAC):
             self,
             ensemble_batch: list[TransitionBatch],
             with_grad: bool=False,
-            log_metrics: bool=True,
+            log_metrics: bool=False,
         ) -> torch.Tensor:
         # First, translate ensemble batches in to list for each property
         ensemble_len = len(ensemble_batch)
@@ -317,7 +316,7 @@ class GreedyAC(BaseAC):
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
                 metric="avg_critic_loss",
-                value=to_np(loss),
+                value=to_np(loss)/ensemble_len,
             )
 
         return loss
