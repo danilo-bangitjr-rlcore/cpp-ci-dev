@@ -1,5 +1,14 @@
 log_path: "outputs/scrubber_agent_logs"
 
+infra:
+  db:
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: scrubber4data
+    ip: "localhost"
+    port: 5432
+    db_name: "postgres"
+
 experiment:
   exp_name: epcor_scrubber
   param_from_hash: True
@@ -30,7 +39,6 @@ env:
   action_tolerance: 00:15:00
   setpoint_ping_period: 00:00:10
   seed: ${experiment.seed}
-  db: ${pipeline.db}
 
   opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
   opc_ns: 3
@@ -38,6 +46,9 @@ env:
   client_private_key_path: certs/agent_key.pem
   server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
   application_uri: urn:agent
+
+  db:
+    table_name: scrubber4_tz
 
 agent:
   name: greedy_ac
@@ -65,28 +76,9 @@ agent:
 
 metrics:
   name: db
-  drivername: "postgresql+psycopg2"
-  username: "postgres"
-  password: scrubber4data
-  ip: "localhost"
-  port: 5432
-  db_name: "postgres"
-  table_schema: "public"
-  table_name: "metrics"
   enabled: True
-  lo_wm: 1
 
 pipeline:
-  db:
-    drivername: "postgresql+psycopg2"
-    username: "postgres"
-    password: scrubber4data
-    ip: "localhost"
-    port: 5432
-    db_name: "postgres"
-    table_schema: "public"
-    table_name: scrubber4_tz
-
   state_constructor:
     defaults: []
     countdown:
