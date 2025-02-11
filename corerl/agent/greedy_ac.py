@@ -195,7 +195,7 @@ class GreedyAC(BaseAC):
         delta_idxs = [i for i, col in enumerate(self._col_desc.action_cols) if Delta.is_delta_transformed(col)]
         return actions[:, delta_idxs]
 
-    def _ensure_direct_action(self, action: torch.Tensor, next_action: torch.Tensor):
+    def _ensure_direct_action(self, direct_action: torch.Tensor, next_action: torch.Tensor):
         if not self.cfg.delta_action:
             return next_action
 
@@ -205,7 +205,7 @@ class GreedyAC(BaseAC):
         bias = bounds[0]
 
         delta = scale * next_action + bias
-        direct_action = action + delta
+        direct_action = direct_action + delta
 
         # because we are always operating in normalized space,
         # we can hardcode the spatial constraints
@@ -225,7 +225,7 @@ class GreedyAC(BaseAC):
         next_qs = []
         for batch in ensemble_batch:
             state_batch = batch.prior.state
-            action_batch = batch.post.action
+            direct_action_batch = batch.post.action
             reward_batch = batch.n_step_reward
             next_state_batch = batch.post.state
             gamma_batch = batch.n_step_gamma
@@ -233,18 +233,18 @@ class GreedyAC(BaseAC):
 
             # put actions into direct form
             next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
-            action_batch = self._filter_only_direct_actions(action_batch)
-            next_actions = self._ensure_direct_action(action_batch, next_actions)
+            direct_action_batch = self._filter_only_direct_actions(direct_action_batch)
+            next_direct_actions = self._ensure_direct_action(direct_action_batch, next_actions)
             # For the 'Anytime' paradigm, only states at decision points can sample next_actions
             # If a state isn't at a decision point, its next_action is set to the current action
             with torch.no_grad():
-                next_actions = (dp_mask * next_actions) + ((1.0 - dp_mask) * action_batch)
+                next_direct_actions = (dp_mask * next_direct_actions) + ((1.0 - dp_mask) * direct_action_batch)
 
             state_batches.append(state_batch)
-            action_batches.append(action_batch)
+            action_batches.append(direct_action_batch)
             reward_batches.append(reward_batch)
             next_state_batches.append(next_state_batch)
-            next_action_batches.append(next_actions)
+            next_action_batches.append(next_direct_actions)
             gamma_batches.append(gamma_batch)
 
         # Second, use this information to compute the targets
@@ -301,7 +301,7 @@ class GreedyAC(BaseAC):
     def _get_top_n_sampled_actions(
         self,
         state_batch: Float[torch.Tensor, "batch_size state_dim"],
-        action_batch: Float[torch.Tensor, "batch_size action_dim"],
+        direct_action_batch: Float[torch.Tensor, "batch_size action_dim"],
         n_samples: int,
         percentile: float,
         uniform_weight: float,  # proportion of samples coming from uniform dist
@@ -321,7 +321,7 @@ class GreedyAC(BaseAC):
         BATCH_DIM = 0
         SAMPLE_DIM = 1
 
-        ACTION_DIM = action_batch.size(1)
+        ACTION_DIM = direct_action_batch.size(1)
         STATE_DIM = state_batch.size(1)
 
         # FIRST, sample actions. These can be direct or delta, depending on self.cfg.delta_action
@@ -338,13 +338,13 @@ class GreedyAC(BaseAC):
         assert sampled_actions.size(SAMPLE_DIM) == repeated_states.size(SAMPLE_DIM) == n_samples
 
         # the next few lines produce direct actions, which is what the critic takes in
-        action_batch = unsqueeze_repeat(action_batch, SAMPLE_DIM, n_samples)
-        assert action_batch.size(BATCH_DIM) == batch_size
-        assert action_batch.size(SAMPLE_DIM) == n_samples
-        assert action_batch.size(-1) == ACTION_DIM
+        direct_action_batch = unsqueeze_repeat(direct_action_batch, SAMPLE_DIM, n_samples)
+        assert direct_action_batch.size(BATCH_DIM) == batch_size
+        assert direct_action_batch.size(SAMPLE_DIM) == n_samples
+        assert direct_action_batch.size(-1) == ACTION_DIM
 
         # after this line, sampled sampled_direct_actions are guaranteed to be direct
-        sampled_direct_actions = self._ensure_direct_action(action_batch, sampled_actions)
+        sampled_direct_actions = self._ensure_direct_action(direct_action_batch, sampled_actions)
 
         # NEXT we will query the critic for q_values
         # however, we first need to reshape the repeated_states and actions
@@ -389,7 +389,7 @@ class GreedyAC(BaseAC):
     def _update_policy(
         self,
         state_batch: torch.Tensor,
-        action_batch: torch.Tensor,
+        direct_action_batch: torch.Tensor,
         policy: BaseActor,
         policy_name: str,
         percentile: float,
@@ -399,7 +399,7 @@ class GreedyAC(BaseAC):
         # get the top percentile of actions
         states_for_best_actions, best_actions, _, _, _ = self._get_top_n_sampled_actions(
             state_batch=state_batch,
-            action_batch=action_batch,
+            direct_action_batch=direct_action_batch,
             n_samples=self.num_samples,
             percentile=percentile,
             uniform_weight=self.uniform_sampling_percentage,
@@ -417,10 +417,10 @@ class GreedyAC(BaseAC):
 
         if self.eval_batch:
             # sample another batch for the evaluation of updates when using line search.
-            eval_states, eval_actions = self._ensure_policy_batch()
+            eval_states, eval_direct_actions = self._ensure_policy_batch()
             eval_states, eval_actions, _, _, _ = self._get_top_n_sampled_actions(
                 state_batch=eval_states,
-                action_batch=eval_actions,
+                direct_action_batch=eval_direct_actions,
                 n_samples=self.num_samples,
                 percentile=percentile,
                 uniform_weight=self.uniform_sampling_percentage,
@@ -437,7 +437,7 @@ class GreedyAC(BaseAC):
             },
         )
 
-        return state_batch, action_batch
+        return state_batch, direct_action_batch
 
     def _ensure_policy_batch(
         self, update_batch: tuple[torch.Tensor, torch.Tensor] | None = None
@@ -452,31 +452,31 @@ class GreedyAC(BaseAC):
             batch = batches[0]
 
             state_batch = batch.prior.state
-            action_batch = batch.post.action
+            direct_action_batch = batch.post.action
 
             # grab only direct actions
-            action_batch = self._filter_only_direct_actions(action_batch)
+            direct_action_batch = self._filter_only_direct_actions(direct_action_batch)
         else:
-            state_batch, action_batch = update_batch
+            state_batch, direct_action_batch = update_batch
 
-        return state_batch, action_batch
+        return state_batch, direct_action_batch
 
     def update_actor(self) -> tuple[torch.Tensor, torch.Tensor] | None:
         self._app_state.event_bus.emit_event(EventType.agent_update_actor)
         if min(self.policy_buffer.size) <= 0:
             return None
 
-        state_batch, action_batch = self._ensure_policy_batch()
-        self._update_policy(state_batch, action_batch, self.actor, "actor", self.rho)
-        return state_batch, action_batch
+        state_batch, direct_action_batch = self._ensure_policy_batch()
+        self._update_policy(state_batch, direct_action_batch, self.actor, "actor", self.rho)
+        return state_batch, direct_action_batch
 
     def update_sampler(self, update_batch: tuple[torch.Tensor, torch.Tensor] | None = None) -> None:
         self._app_state.event_bus.emit_event(EventType.agent_update_sampler)
         if min(self.policy_buffer.size) <= 0:
             return None
 
-        state_batch, action_batch = self._ensure_policy_batch(update_batch)
-        self._update_policy(state_batch, action_batch, self.sampler, "sampler", self.rho_proposal)
+        state_batch, direct_action_batch = self._ensure_policy_batch(update_batch)
+        self._update_policy(state_batch, direct_action_batch, self.sampler, "sampler", self.rho_proposal)
 
     def _policy_err(
             self,
