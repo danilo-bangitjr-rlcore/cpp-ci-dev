@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 import pickle as pkl
 from functools import partial
@@ -174,28 +172,29 @@ class GreedyAC(BaseAC):
         recent_critic_idxs = self.critic_buffer.feed(pr.transitions, pr.data_mode)
         recent_policy_idxs = self.policy_buffer.feed([t for t in pr.transitions if t.prior.dp], pr.data_mode)
         recent_critic_batch = self.critic_buffer.prepare_sample(recent_critic_idxs)
-        recent_policy_batch = self.critic_buffer.prepare_sample(recent_policy_idxs)
-        assert len(recent_policy_batch) == 1
-        recent_policy_batch = recent_policy_batch[0]
+        recent_policy_batch = self.policy_buffer.prepare_sample(recent_policy_idxs)
 
         if self.cfg.ingress_loss:
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"ingress_policy_loss_{pr.data_mode.name}",
-                value=self._policy_err(self.actor, recent_policy_batch.prior.state, recent_policy_batch.post.action),
-            )
+            if len(recent_policy_batch):
+                assert len(recent_policy_batch) == 1
+                recent_policy_batch = recent_policy_batch[0]
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"ingress_policy_loss_{pr.data_mode.name}",
+                    value=self._policy_err(self.actor, recent_policy_batch.prior.state, recent_policy_batch.post.action),
+                )
 
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"ingress_sampler_loss_{pr.data_mode.name}",
-                value=self._policy_err(self.sampler, recent_policy_batch.prior.state, recent_policy_batch.post.action),
-            )
-
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"ingress_critic_loss_{pr.data_mode.name}",
-                value=self._compute_critic_loss(recent_critic_batch),
-            )
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"ingress_sampler_loss_{pr.data_mode.name}",
+                    value=self._policy_err(self.sampler, recent_policy_batch.prior.state, recent_policy_batch.post.action),
+                )
+            if len(recent_critic_batch):
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"ingress_critic_loss_{pr.data_mode.name}",
+                    value=self._compute_critic_loss(recent_critic_batch),
+                )
 
     def load_buffer(self, pr: PipelineReturn) -> None:
         if pr.transitions is None:
