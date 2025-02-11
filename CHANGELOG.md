@@ -1,3 +1,10 @@
+## 0.86.1 (2025-02-11)
+
+### Fix
+
+- include timestamp in opc write
+- always take action if requested from event bus
+
 ## 0.86.0 (2025-02-11)
 
 ### Feat
