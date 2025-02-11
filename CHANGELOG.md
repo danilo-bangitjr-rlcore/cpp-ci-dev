@@ -1,3 +1,13 @@
+## 0.88.0 (2025-02-11)
+
+### Feat
+
+- wire Actor-Critic eval and evals plotting into online interaction
+
+### Refactor
+
+- access MainConfig through app_state
+
 ## 0.87.0 (2025-02-11)
 
 ### Feat
