@@ -1,3 +1,14 @@
+## 0.85.1 (2025-02-11)
+
+### Fix
+
+- migrate new configs to new schema
+- move db infra configs into dedicated top-level config
+
+### Refactor
+
+- pull action_tolerance into interaction instead of env
+
 ## 0.85.0 (2025-02-11)
 
 ### Feat
