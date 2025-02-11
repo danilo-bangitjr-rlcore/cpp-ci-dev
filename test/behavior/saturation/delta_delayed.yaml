@@ -1,0 +1,74 @@
+env:
+  name: sim_async_env
+  gym_name : DelayedSaturation-v0
+  discrete_control : False
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+experiment:
+  exp_name: "saturation"
+  seed: 1
+  gamma: 0.99
+  max_steps: 700
+
+agent:
+  name: greedy_ac
+  uniform_sampling_percentage: 1.0
+  actor:
+    actor_optimizer:
+      lr: 0.005
+
+feature_flags:
+  delta_actions: True
+
+metrics:
+  enabled: True
+
+evals:
+  name: db
+  enabled: True
+
+eval_cfgs:
+  actor_critic:
+    enabled: True
+  monte_carlo:
+    enabled: True
+
+pipeline:
+  state_constructor:
+    defaults:
+    - name: multi_trace
+      trace_values: [0., 0.75, 0.95]
+
+  tags:
+  # meta tags
+  - name: terminated
+    is_meta: True
+
+  - name: truncated
+    is_meta: True
+
+  # observations
+  - name: tag-0
+    operating_range: [0, 1]
+    reward_constructor:
+    # subtract saturation SP
+    - name: affine
+      scale: 1
+      bias: -0.5
+    # take absolute value
+    - name: power
+      pow: 2.0
+    - name: power
+      pow: 0.5
+    # invert for penalty
+    - name: scale
+      factor: -1
+
+  # actions
+  - name: action-0
+    operating_range: [0, 0.5]
+    change_bounds: [-0.2, 0.2]
