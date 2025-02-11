@@ -140,7 +140,8 @@ class GreedyAC(BaseAC):
         self.num_samples = cfg.num_samples
         # whether updates to proposal and actor should share a batch
         self.share_batch = cfg.share_batch
-        self.eval_batch = cfg.eval_batch # whether the closure function in line search uses a separate batch for evaluation.
+        # whether the closure function in line search uses a separate batch for evaluation.
+        self.eval_batch = cfg.eval_batch
 
         self.uniform_sampling_percentage = cfg.uniform_sampling_percentage
         self.learned_proposal_percent = 1 - self.uniform_sampling_percentage
