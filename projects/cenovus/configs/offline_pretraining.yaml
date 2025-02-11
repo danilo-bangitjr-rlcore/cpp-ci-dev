@@ -58,9 +58,6 @@ experiment:
   gamma: 0.99
 
 pipeline:
-  state_constructor:
-    defaults: []
-
   transition_creator:
     name: anytime
     gamma: ${experiment.gamma}

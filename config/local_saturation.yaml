@@ -47,9 +47,6 @@ agent:
 
 
 pipeline:
-  state_constructor:
-    defaults: []
-
   transition_creator:
    name: anytime
    gamma: 0.9

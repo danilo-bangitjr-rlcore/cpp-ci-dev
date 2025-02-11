@@ -97,7 +97,6 @@ eval_cfgs:
 
 pipeline:
   state_constructor:
-    defaults: []
     countdown:
       kind: int
     # defaults:

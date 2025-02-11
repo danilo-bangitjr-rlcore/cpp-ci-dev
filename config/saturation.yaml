@@ -41,9 +41,6 @@ agent:
       seed: ${experiment.seed}
 
 pipeline:
-  state_constructor:
-    defaults: []
-
   transition_creator:
     name: anytime
     gamma: ${experiment.gamma}

@@ -93,7 +93,6 @@ agent:
 
 pipeline:
   state_constructor:
-    defaults: []
     countdown:
       kind: two_clock
 

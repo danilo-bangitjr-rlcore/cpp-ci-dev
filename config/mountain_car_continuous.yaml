@@ -39,9 +39,6 @@ agent:
       lr: 0.00001
 
 pipeline:
-  state_constructor:
-    defaults: []
-
   transition_creator:
     name: anytime
 
