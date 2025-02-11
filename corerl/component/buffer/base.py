@@ -89,7 +89,8 @@ class ReplayBuffer:
         if self.size == [0] or self.data is None:
             return []
 
-        for i in range(self.n_most_recent):
+        max_n_most_recent = min(len(idxs), self.n_most_recent)
+        for i in range(max_n_most_recent):
             idxs[i] = self._last_pos-i
 
         sampled_data = [self.data[i][idxs] for i in range(len(self.data))]
