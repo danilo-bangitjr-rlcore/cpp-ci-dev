@@ -1,7 +1,13 @@
 import { MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 import { createFileRoute } from "@tanstack/react-router";
 import createClient from "openapi-react-query";
-import { memo, useEffect, useState } from "react";
+import {
+  memo,
+  MouseEventHandler,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { Badge } from "../../components/badge";
 import { Fieldset, Legend } from "../../components/fieldset";
 import { Input, InputGroup } from "../../components/input";
@@ -16,6 +22,17 @@ import {
 } from "../../components/table";
 import { getApiFetchClient } from "../../utils/api";
 import { Code, Text } from "../../components/text";
+import { DeepPartial, MainConfigContext } from "../../utils/main-config";
+import { components } from "../../api-schema";
+import { Dialog, DialogTitle } from "../../components/dialog";
+import {
+  useReactTable,
+  getCoreRowModel,
+  createColumnHelper,
+  flexRender,
+  getFilteredRowModel,
+} from "@tanstack/react-table";
+import { Spinner } from "../../components/spinner";
 
 export const Route = createFileRoute("/setup/opc_tags_config")({
   component: OPCTagsConfig,
@@ -43,101 +60,205 @@ const HighlightText = memo(
 );
 HighlightText.displayName = "HighlightText";
 
-function OPCTagsConfig() {
-  // const { mainConfig, setMainConfig } = useContext(MainConfigContext);
-  const opc_url = "opc.tcp://admin@0.0.0.0:4840/rlcore/server/";
+const columnHelper =
+  createColumnHelper<components["schemas"]["OpcNodeDetail"]>();
 
-  const [searchString, setSearchString] = useState<string>("");
+function OPCTagsConfig() {
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const { mainConfig, setMainConfig } = useContext(MainConfigContext);
+  const env = mainConfig.env as DeepPartial<
+    components["schemas"]["DepAsyncEnvConfig"]
+  >;
+  const opc_url = env.opc_conn_url ?? "";
+
+  const [globalFilter, setGlobalFilter] = useState<string>("");
   const [debouncedSearchString, setDebouncedSearchString] =
     useState<string>("");
 
-  const handleSearchStringChange: React.ChangeEventHandler<HTMLInputElement> = (
+  const client = createClient(getApiFetchClient());
+  const { data, error, status } = client.useQuery("get", "/api/opc/nodes", {
+    params: { query: { opc_url, query: "" } },
+  });
+
+  const columns = [
+    columnHelper.accessor("nodeid", {
+      cell: (info) => (
+        <HighlightText
+          text={info.getValue()}
+          highlight={debouncedSearchString}
+        />
+      ),
+      footer: (info) => info.column.id,
+      header: "OPC Node ID",
+    }),
+    columnHelper.accessor("path", {
+      cell: (info) => (
+        <HighlightText
+          text={info.getValue()}
+          highlight={debouncedSearchString}
+        />
+      ),
+      footer: (info) => info.column.id,
+      header: "Path",
+    }),
+    columnHelper.accessor("key", {
+      cell: (info) => (
+        <HighlightText
+          text={info.getValue()}
+          highlight={debouncedSearchString}
+        />
+      ),
+      footer: (info) => info.column.id,
+      header: "Key",
+    }),
+    columnHelper.accessor("DataType", {
+      cell: (info) => <Code>{info.getValue()}</Code>,
+      footer: (info) => info.column.id,
+      header: "DataType",
+      enableGlobalFilter: false,
+    }),
+  ];
+
+  const table = useReactTable({
+    data: data?.nodes ?? [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    globalFilterFn: "includesString",
+    state: {
+      globalFilter,
+    },
+    onGlobalFilterChange: setGlobalFilter,
+  });
+
+  const handleSearchChange: React.ChangeEventHandler<HTMLInputElement> = (
     e,
   ) => {
-    setSearchString(e.target.value);
+    setGlobalFilter(e.target.value);
+    table.setGlobalFilter(String(e.target.value));
   };
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      setDebouncedSearchString(searchString);
+      setDebouncedSearchString(globalFilter);
     }, 500);
     return () => clearTimeout(timeoutId);
-  }, [searchString]);
+  }, [globalFilter]);
 
-  const client = createClient(getApiFetchClient());
-  const { data, error, status } = client.useQuery("get", "/api/opc/nodes", {
-    params: { query: { opc_url, query: debouncedSearchString } },
-  });
+  const loading =
+    debouncedSearchString !== globalFilter || status === "pending";
+
+  const handleRowClick: (
+    key: string,
+  ) => MouseEventHandler<HTMLTableRowElement> = (key: string) => (e) => {
+    console.log(key, e);
+    setDialogOpen(true);
+  };
 
   console.log(new Date().toISOString());
 
-  const loading =
-    debouncedSearchString !== searchString || status === "pending";
-
   return (
-    <div className="p-2">
-      <Fieldset className="border border-gray-400 rounded-lg p-2 mb-2">
-        <Legend>OPC Tags</Legend>
-        {debouncedSearchString != searchString && <Badge>Loading...</Badge>}
-        {error && <Badge color="red">{JSON.stringify(error)}</Badge>}
-        {status && <Badge>{status}</Badge>}
-        <InputGroup>
-          <MagnifyingGlassIcon />
-          <Input
-            name="search"
-            placeholder="Search&hellip;"
-            aria-label="Search"
-            type="text"
-            defaultValue={searchString}
-            onChange={handleSearchStringChange}
-          />
-        </InputGroup>
-      </Fieldset>
+    <>
+      <div className="p-2">
+        <Fieldset className="border border-gray-400 rounded-lg p-2 mb-2">
+          <Legend>OPC Tags</Legend>
+          {loading && <Badge>Loading...</Badge>}
+          {error && <Badge color="red">{JSON.stringify(error)}</Badge>}
+          {status && <Badge>{status}</Badge>}
+          <InputGroup>
+            <MagnifyingGlassIcon />
+            <Input
+              name="search"
+              placeholder="Search&hellip;"
+              aria-label="Search"
+              type="text"
+              defaultValue={globalFilter}
+              onChange={handleSearchChange}
+            />
+          </InputGroup>
+        </Fieldset>
 
-      {loading ? (
-        <svg className="animate-spin mr-3 size-5">
-          <path d="M10.14,1.16a11,11,0,0,0-9,8.92A1.59,1.59,0,0,0,2.46,12,1.52,1.52,0,0,0,4.11,10.7a8,8,0,0,1,6.66-6.61A1.42,1.42,0,0,0,12,2.69h0A1.57,1.57,0,0,0,10.14,1.16Z" />
-        </svg>
-      ) : (
-        <Table dense className="max-w-full">
-          <TableHead>
-            <TableRow>
-              <TableHeader>OPC ID</TableHeader>
-              <TableHeader className="max-w-80">Path</TableHeader>
-              <TableHeader>Key</TableHeader>
-              <TableHeader className="max-w-80">Val</TableHeader>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data?.nodes.map((opc_node) => (
-              <TableRow key={opc_node.nodeid}>
-                <TableCell>
-                  <HighlightText
-                    text={opc_node.nodeid}
-                    highlight={debouncedSearchString}
-                  />
-                </TableCell>
-                <TableCell className="max-w-80 overflow-x-auto">
-                  <HighlightText
-                    text={opc_node.path}
-                    highlight={debouncedSearchString}
-                  />
-                </TableCell>
-                <TableCell>
-                  <HighlightText
-                    text={opc_node.key}
-                    highlight={debouncedSearchString}
-                  />
-                </TableCell>
-                <TableCell className="max-w-80 overflow-x-auto">
-                  <Code>{JSON.stringify(opc_node.val)}</Code>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-      <SetupConfigNav />
-    </div>
+        {loading ? (
+          <Spinner />
+        ) : (
+          <Table dense className="max-w-full max-h-[70vh] mb-2">
+            <TableHead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHeader
+                      key={header.id}
+                      className="max-w-80 overflow-x-auto sticky"
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </TableHeader>
+                  ))}
+                </TableRow>
+              ))}
+            </TableHead>
+            <TableBody>
+              {table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  onClick={handleRowClick(row.id)}
+                  href="#"
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className="max-w-80 overflow-x-auto"
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+              {/* {data?.nodes.map((opc_node) => (
+                <TableRow
+                  key={opc_node.nodeid}
+                  className="cursor-pointer hover:bg-gray-200"
+                  onClick={handleRowClick(opc_node.nodeid)}
+                  href="#"
+                >
+                  <TableCell>
+                    <HighlightText
+                      text={opc_node.nodeid}
+                      highlight={debouncedSearchString}
+                    />
+                  </TableCell>
+                  <TableCell className="max-w-80 overflow-x-auto">
+                    <HighlightText
+                      text={opc_node.path}
+                      highlight={debouncedSearchString}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <HighlightText
+                      text={opc_node.key}
+                      highlight={debouncedSearchString}
+                    />
+                  </TableCell>
+                  <TableCell className="max-w-80 overflow-x-auto">
+                    <Code>{JSON.stringify(opc_node.DataType)}</Code>
+                  </TableCell>
+                </TableRow>
+              ))} */}
+            </TableBody>
+          </Table>
+        )}
+        <SetupConfigNav />
+      </div>
+      <Dialog open={dialogOpen} onClose={setDialogOpen}>
+        <DialogTitle>Configure Tag</DialogTitle>
+      </Dialog>
+    </>
   );
 }
