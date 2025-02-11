@@ -134,7 +134,14 @@ class BaseEnsembleCritic:
         self.optimizer.load_state_dict(torch.load(path / "critic_opt", map_location=device.device))
 
 class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
-    def __init__(self, cfg: EnsembleCriticConfig, app_state: AppState, state_dim: int, action_dim: int, output_dim: int = 1):
+    def __init__(
+            self,
+            cfg: EnsembleCriticConfig,
+            app_state: AppState,
+            state_dim: int,
+            action_dim: int,
+            output_dim: int = 1
+        ):
         BaseEnsembleCritic.__init__(self, cfg, app_state, state_dim, action_dim, output_dim)
 
     def update(
