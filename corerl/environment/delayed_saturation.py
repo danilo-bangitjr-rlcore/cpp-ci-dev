@@ -87,3 +87,9 @@ class DelayedSaturation(gym.Env):
 
     def close(self):
         pass
+
+gym.register(
+    id='DelayedSaturation-v0',
+    entry_point='corerl.environment.delayed_saturation:DelayedSaturation',
+    kwargs={'cfg': DelayedSaturationConfig()}
+)
