@@ -246,7 +246,7 @@ def test_get_top_n_sampled_actions(batch_size:int, state_dim:int, action_dim:int
 
     top_states, top_actions, sampled_actions, top_direct_actions, sampled_direct_actions = greedy_ac._get_top_n_sampled_actions(  # noqa: E501
         state_batch=state_batch,
-        action_batch=action_batch,
+        direct_action_batch=action_batch,
         n_samples=n_samples,
         percentile=percentile,
         uniform_weight=uniform_weight,
@@ -301,7 +301,7 @@ def test_get_top_n_sampled_delta_actions(batch_size:int, state_dim:int, action_d
 
     top_states, top_actions, sampled_actions, top_direct_actions, sampled_direct_actions = greedy_ac._get_top_n_sampled_actions(  # noqa: E501
         state_batch=state_batch,
-        action_batch=action_batch,
+        direct_action_batch=action_batch,
         n_samples=n_samples,
         percentile=percentile,
         uniform_weight=uniform_weight,
