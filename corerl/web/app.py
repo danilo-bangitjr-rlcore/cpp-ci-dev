@@ -153,10 +153,16 @@ async def read_search_opc(opc_url: str, query: str = "") -> OpcNodeResponse:
 
     opc_variables = get_variables_from_dict(opc_structure)
     if query != "":
-        opc_variables = [variable for variable in opc_variables if query in variable.key or query in variable.path]
+        query_lc = query.lower()
+        opc_variables = [
+            variable
+            for variable in opc_variables
+            if query_lc in variable.key.lower()
+            or query_lc in variable.path.lower()
+            or query_lc in variable.nodeid.lower()
+        ]
 
     return OpcNodeResponse(nodes=opc_variables)
-    # Also add e2e tests
 
 
 def get_variables_from_dict(opc_structure: dict) -> List[OpcNodeDetail]:

@@ -159,7 +159,7 @@ export const SidebarItem = forwardRef(function SidebarItem(
 
   const location = useLocation();
 
-  let match = ""
+  let match = "";
   if ("to" in props) {
     match = props.to ?? "";
   } else if ("href" in props) {
@@ -168,12 +168,12 @@ export const SidebarItem = forwardRef(function SidebarItem(
 
   let exact = true;
   if ("activeOptions" in props) {
-    exact = !!(props.activeOptions?.exact);
+    exact = !!props.activeOptions?.exact;
   }
   if (exact) {
-    current = current || location.pathname == match;
+    current = current ?? location.pathname == match;
   } else {
-    current = current || location.pathname.startsWith(match)
+    current = current ?? location.pathname.startsWith(match);
   }
 
   return (
