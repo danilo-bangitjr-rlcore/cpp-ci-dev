@@ -62,23 +62,23 @@ agent:
     polyak: 0.995
     critic_optimizer:
       name: lso
+
     buffer:
       name: mixed_history_buffer
       n_most_recent: 24
       ensemble: 1
       ensemble_probability: 1
-      seed: ${experiment.seed}
       id: critic # for metric logging
 
   actor:
     actor_optimizer:
       lr: 0.001
+
     buffer:
       name: mixed_history_buffer
       n_most_recent: 24
       ensemble: 1
       ensemble_probability: 1
-      seed: ${experiment.seed}
       id: actor # for metric logging
 
 

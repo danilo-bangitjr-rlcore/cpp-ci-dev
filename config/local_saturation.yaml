@@ -28,22 +28,15 @@ agent:
       name: 'armijo_adam'
       lr : 0.0003
       weight_decay : 0.0
-    # buffer:
-    #   name: uniform
-    #   seed: ${experiment.seed}
     critic_network:
       ensemble: 1
     buffer:
       name : 'ensemble_uniform'
-      ensemble: 1
-      seed: ${experiment.seed}
+      ensemble: 2
 
   actor:
     actor_optimizer:
       lr : 0.0005
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
 
 
 pipeline:

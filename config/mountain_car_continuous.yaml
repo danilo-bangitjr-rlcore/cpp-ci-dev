@@ -26,15 +26,7 @@ agent:
   discrete_control: ${env.discrete_control}
   seed: ${experiment.seed}
 
-  critic:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
-
   actor:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
     actor_optimizer:
       lr: 0.00001
 

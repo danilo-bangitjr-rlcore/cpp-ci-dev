@@ -58,16 +58,10 @@ agent:
   seed: ${experiment.seed}
 
   critic:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
     critic_optimizer:
       lr: 0.01
 
   actor:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
     actor_optimizer:
       lr: 0.01
 
