@@ -11,7 +11,6 @@ infra:
 
 experiment:
   exp_name: DraytonValley-Pilot-Backwash
-  param_from_hash: True
   seed: 1
   gamma: 0.99
   run_forever: True
@@ -59,11 +58,9 @@ agent:
 
 
 metrics:
-  name: db
   enabled: True
 
 pipeline:
-
   transition_creator:
     name: all-the-time
     gamma: ${experiment.gamma}

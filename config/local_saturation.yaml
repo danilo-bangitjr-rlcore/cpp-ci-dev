@@ -9,19 +9,8 @@ interaction:
 experiment :
   exp_name : "saturation"
   max_steps : 5000
-  offline_steps : 0
-  timeout: 0
 
 metrics:
-  name : db
-  drivername: "postgresql+psycopg2"
-  username: "postgres"
-  password: "password"
-  ip: "localhost"
-  port: 5432
-  db_name: "postgres"
-  table_schema: "public"
-  table_name: "metrics"
   enabled: True
 
 
@@ -119,4 +108,3 @@ pipeline:
       trace_values: [0.999, 0.99, 0.95, 0.9, 0.8, 0.7, 0.6, 0.5]
     action_constructor:
       - name: identity
-  

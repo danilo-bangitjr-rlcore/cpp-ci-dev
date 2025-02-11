@@ -40,7 +40,6 @@ agent:
 
 
 metrics:
-  name: db
   enabled: True
 
 evals:

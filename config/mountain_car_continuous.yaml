@@ -1,6 +1,5 @@
 experiment:
   exp_name: MountainCarContinuous
-  param_from_hash: True
   seed: 1
   gamma: 0.99
 
@@ -8,6 +7,9 @@ interaction:
   name: sim_interaction
   obs_period: 00:00:01
   action_period: 00:00:01
+
+metrics:
+  enabled: False
 
 env:
   name: sim_async_env
@@ -35,10 +37,6 @@ agent:
       seed: ${experiment.seed}
     actor_optimizer:
       lr: 0.00001
-
-metrics:
-  name: db
-  enabled: False
 
 pipeline:
   state_constructor:

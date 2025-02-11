@@ -6,7 +6,6 @@ experiment:
   pipeline_batch_duration: 50 days
   save_path: output
   seed: 1
-  param_from_hash: True
 
 infra:
   db:
@@ -32,8 +31,6 @@ env:
     table_name: "tag_data"
 
 metrics:
-  name: db
-  table_name: "metrics"
   enabled: True
 
 eval_cfgs:

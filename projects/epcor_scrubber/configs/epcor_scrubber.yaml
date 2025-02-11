@@ -12,7 +12,6 @@ infra:
 experiment:
   exp_name: epcor_scrubber
   save_path: outputs/scrubber_evals
-  param_from_hash: True
   seed: 1
   gamma: 0.97 # ~50% of return occurs after 2 hrs (@ 5 min obs period)
   run_forever: True
@@ -84,7 +83,6 @@ agent:
 
 
 metrics:
-  name: db
   enabled: True
 
 evals:

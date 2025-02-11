@@ -52,9 +52,7 @@ experiment:
   exp_name: cenovus
   save_path: output
   max_steps: 10000
-  debug: 0
   seed: 1
-  timeout: 0
   offline_steps: 10
   pipeline_batch_duration: 7 days
   gamma: 0.99

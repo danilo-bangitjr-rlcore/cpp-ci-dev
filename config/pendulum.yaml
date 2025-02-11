@@ -6,6 +6,9 @@ interaction:
   obs_period: 00:00:01
   action_period: 00:00:01
 
+metrics:
+  enabled: False
+
 agent:
   name: greedy_ac
   n_critic_updates : 1
@@ -33,25 +36,8 @@ agent:
 experiment:
   exp_name: pendulum_test/
   max_steps: 10000
-  debug : 0
   seed : 1
-  device : cpu
-  timeout : 0
-  offline_steps : 0
-  render : 1
   gamma : 0.99
-
-metrics:
-  name : db
-  drivername: "postgresql+psycopg2"
-  username: "postgres"
-  password: "password"
-  ip: "localhost"
-  port: 5432
-  db_name: "postgres"
-  table_schema: "public"
-  table_name: "metrics"
-  enabled: False
 
 pipeline:
   state_constructor:
