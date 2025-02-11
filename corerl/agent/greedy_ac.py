@@ -5,7 +5,7 @@ import pickle as pkl
 from functools import partial
 from math import floor
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 import numpy
 import torch
@@ -19,16 +19,13 @@ from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer.factory import init_buffer
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.network.utils import state_to_tensor, to_np
-from corerl.configs.config import MISSING, computed, config
+from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.data_pipeline.transforms.delta import Delta
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
-
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
 
 logger = logging.getLogger(__name__)
 
