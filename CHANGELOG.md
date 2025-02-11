@@ -1,3 +1,11 @@
+## 0.88.1 (2025-02-11)
+
+### Fix
+
+- gac test var names
+- remove unused return values from _update_policy
+- delta_action_bug
+
 ## 0.88.0 (2025-02-11)
 
 ### Feat
