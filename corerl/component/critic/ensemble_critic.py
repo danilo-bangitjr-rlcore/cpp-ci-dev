@@ -191,7 +191,7 @@ class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
         q, _ = self.get_qs_target(state_batches, action_batches, bootstrap_reduct=bootstrap_reduct)
         return q
 
-      
+
 class EnsembleVCritic(BaseV, BaseEnsembleCritic):
     def __init__(self, cfg: EnsembleCriticConfig, app_state: AppState, state_dim: int, output_dim: int = 1):
         BaseEnsembleCritic.__init__(self, cfg, app_state, state_dim, output_dim)
