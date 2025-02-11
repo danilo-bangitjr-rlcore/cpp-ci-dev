@@ -399,15 +399,15 @@ class GreedyAC(BaseAC):
             direct_top_actions_2d, direct_sampled_actions_2d
 
 
-    def _update_policy(
-        self,
-        state_batch: torch.Tensor,
-        direct_action_batch: torch.Tensor,
-        policy: BaseActor,
-        policy_name: str,
-        percentile: float,
-    ) -> tuple[torch.Tensor, torch.Tensor] | None:
-        assert policy_name == "actor" or policy_name == "sampler"
+    def _compute_policy_loss(
+            self,
+            policy: BaseActor,
+            batch: TransitionBatch,
+            percentile: float,
+            with_grad:bool=False
+        ) -> torch.Tensor:
+        state_batch = batch.prior.state
+        direct_action_batch = batch.post.action
 
         # get the top percentile of actions
         states_for_best_actions, best_actions, _, _, _ = self._get_top_n_sampled_actions(
@@ -418,9 +418,21 @@ class GreedyAC(BaseAC):
             uniform_weight=self.uniform_sampling_percentage,
             sampler=self.sampler,
         )
+        loss = self._policy_err(policy, states_for_best_actions, best_actions, with_grad=with_grad)
+        return loss
 
-        # compute loss
-        loss = self._policy_err(policy, states_for_best_actions, best_actions, with_grad=True)
+
+    def _update_policy(
+        self,
+        policy: BaseActor,
+        policy_name: str,
+        percentile: float,
+        update_batch : TransitionBatch | None = None,
+    ) -> TransitionBatch:
+
+        assert policy_name == "actor" or policy_name == "sampler"
+        update_batch = self._ensure_policy_batch(update_batch)
+        loss = self._compute_policy_loss(policy, update_batch, percentile, with_grad=True)
 
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
@@ -430,64 +442,44 @@ class GreedyAC(BaseAC):
 
         if self.eval_batch:
             # sample another batch for the evaluation of updates when using line search.
-            eval_states, eval_direct_actions = self._ensure_policy_batch()
-            eval_states, eval_actions, _, _, _ = self._get_top_n_sampled_actions(
-                state_batch=eval_states,
-                direct_action_batch=eval_direct_actions,
-                n_samples=self.num_samples,
-                percentile=percentile,
-                uniform_weight=self.uniform_sampling_percentage,
-                sampler=self.sampler,
-            )
+            eval_batch = self._ensure_policy_batch()
         else:
-            eval_states, eval_actions = states_for_best_actions, best_actions
+            eval_batch = update_batch
 
         # apply the update
         policy.update(
             loss,
             opt_kwargs={
-                "closure": partial(self._policy_err, policy, eval_states, eval_actions),
+                "closure": partial( self._compute_policy_loss, policy, eval_batch, percentile),
             },
         )
 
-    def _ensure_policy_batch(
-        self, update_batch: tuple[torch.Tensor, torch.Tensor] | None = None
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        """
-        Returns the state and DIRECT actions from the batch.
-        """
+        return update_batch
+
+    def _ensure_policy_batch(self, update_batch: TransitionBatch | None = None) -> TransitionBatch:
         if update_batch is None:
             # Assuming we don't have an ensemble of policies
             batches = self.policy_buffer.sample()
             assert len(batches) == 1
-            batch = batches[0]
+            update_batch = batches[0]
 
-            state_batch = batch.prior.state
-            direct_action_batch = batch.post.action
+        assert update_batch is not None
+        return update_batch
 
-            # grab only direct actions
-            direct_action_batch = self._filter_only_direct_actions(direct_action_batch)
-        else:
-            state_batch, direct_action_batch = update_batch
-
-        return state_batch, direct_action_batch
-
-    def update_actor(self) -> tuple[torch.Tensor, torch.Tensor] | None:
+    def update_actor(self) -> TransitionBatch | None:
         self._app_state.event_bus.emit_event(EventType.agent_update_actor)
         if min(self.policy_buffer.size) <= 0:
             return None
 
-        state_batch, direct_action_batch = self._ensure_policy_batch()
-        self._update_policy(state_batch, direct_action_batch, self.actor, "actor", self.rho)
-        return state_batch, direct_action_batch
+        batch = self._update_policy(self.actor, "actor", self.rho)
+        return batch
 
-    def update_sampler(self, update_batch: tuple[torch.Tensor, torch.Tensor] | None = None) -> None:
+    def update_sampler(self, update_batch: TransitionBatch | None = None) -> None:
         self._app_state.event_bus.emit_event(EventType.agent_update_sampler)
         if min(self.policy_buffer.size) <= 0:
             return None
 
-        state_batch, direct_action_batch = self._ensure_policy_batch(update_batch)
-        self._update_policy(state_batch, direct_action_batch, self.sampler, "sampler", self.rho_proposal)
+        self._update_policy(self.sampler, "sampler", self.rho_proposal, update_batch)
 
     def _policy_err(
             self,
