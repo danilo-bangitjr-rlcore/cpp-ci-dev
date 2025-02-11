@@ -6,6 +6,7 @@ import {
   MouseEventHandler,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { Badge } from "../../components/badge";
@@ -21,10 +22,10 @@ import {
   TableRow,
 } from "../../components/table";
 import { getApiFetchClient } from "../../utils/api";
-import { Code, Text } from "../../components/text";
+import { Code, Text, TextSpan } from "../../components/text";
 import { DeepPartial, MainConfigContext } from "../../utils/main-config";
 import { components } from "../../api-schema";
-import { Dialog, DialogTitle } from "../../components/dialog";
+
 import {
   useReactTable,
   getCoreRowModel,
@@ -33,6 +34,7 @@ import {
   getFilteredRowModel,
 } from "@tanstack/react-table";
 import { Spinner } from "../../components/spinner";
+import { TagConfigDialog } from "../../components/setup/opc-tag-config-dialog";
 
 export const Route = createFileRoute("/setup/opc_tags_config")({
   component: OPCTagsConfig,
@@ -60,11 +62,68 @@ const HighlightText = memo(
 );
 HighlightText.displayName = "HighlightText";
 
-const columnHelper =
+const opcSearchColumnHelper =
   createColumnHelper<components["schemas"]["OpcNodeDetail"]>();
+
+const tagConfigColumnHelper =
+  createColumnHelper<DeepPartial<components["schemas"]["TagConfig"]>>();
+
+const renderRangeCell: (
+  val: DeepPartial<[number | null, number | null] | null | undefined>,
+) => React.ReactNode = (val) => {
+  if (!val) {
+    return <Code>null</Code>;
+  }
+  const low = val[0];
+  const high = val[1];
+  let renderedLow = <Code>null</Code>;
+  if (typeof low === "number") {
+    renderedLow = <TextSpan>{low}</TextSpan>;
+  }
+  let renderedHigh = <Code>null</Code>;
+  if (typeof high === "number") {
+    renderedHigh = <TextSpan>{high}</TextSpan>;
+  }
+
+  return (
+    <span>
+      {renderedLow} to {renderedHigh}
+    </span>
+  );
+};
+
+const tagConfigColumns = [
+  tagConfigColumnHelper.accessor("node_identifier", {
+    cell: (info) => info.getValue(),
+    header: "OPC Node ID",
+  }),
+  tagConfigColumnHelper.accessor("action_constructor", {
+    cell: (info) => (
+      <input
+        type="checkbox"
+        checked={!!info.getValue()?.length}
+        disabled={true}
+      />
+    ),
+    header: "Is Setpoint",
+  }),
+  tagConfigColumnHelper.accessor("operating_range", {
+    cell: (info) => renderRangeCell(info.getValue()),
+    header: "Operating Range",
+  }),
+  tagConfigColumnHelper.accessor("yellow_bounds", {
+    cell: (info) => renderRangeCell(info.getValue()),
+    header: "Yellow Bounds",
+  }),
+  tagConfigColumnHelper.accessor("red_bounds", {
+    cell: (info) => renderRangeCell(info.getValue()),
+    header: "Red Bounds",
+  }),
+];
 
 function OPCTagsConfig() {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string>("");
   const { mainConfig, setMainConfig } = useContext(MainConfigContext);
   const env = mainConfig.env as DeepPartial<
     components["schemas"]["DepAsyncEnvConfig"]
@@ -76,52 +135,60 @@ function OPCTagsConfig() {
     useState<string>("");
 
   const client = createClient(getApiFetchClient());
+
   const { data, error, status } = client.useQuery("get", "/api/opc/nodes", {
-    params: { query: { opc_url, query: "" } },
+    params: { query: { opc_url, query: "" } }, // query can be updated to make search occur on server side
   });
 
-  const columns = [
-    columnHelper.accessor("nodeid", {
-      cell: (info) => (
-        <HighlightText
-          text={info.getValue()}
-          highlight={debouncedSearchString}
-        />
-      ),
-      footer: (info) => info.column.id,
-      header: "OPC Node ID",
-    }),
-    columnHelper.accessor("path", {
-      cell: (info) => (
-        <HighlightText
-          text={info.getValue()}
-          highlight={debouncedSearchString}
-        />
-      ),
-      footer: (info) => info.column.id,
-      header: "Path",
-    }),
-    columnHelper.accessor("key", {
-      cell: (info) => (
-        <HighlightText
-          text={info.getValue()}
-          highlight={debouncedSearchString}
-        />
-      ),
-      footer: (info) => info.column.id,
-      header: "Key",
-    }),
-    columnHelper.accessor("DataType", {
-      cell: (info) => <Code>{info.getValue()}</Code>,
-      footer: (info) => info.column.id,
-      header: "DataType",
-      enableGlobalFilter: false,
-    }),
-  ];
+  const tagConfigsTable = useReactTable({
+    data: (mainConfig?.pipeline?.tags ?? []) as DeepPartial<
+      components["schemas"]["TagConfig"]
+    >[],
+    columns: tagConfigColumns,
+    getCoreRowModel: getCoreRowModel(),
+  });
 
-  const table = useReactTable({
+  const opcNodeSearchColumns = useMemo(
+    () => [
+      opcSearchColumnHelper.accessor("nodeid", {
+        cell: (info) => (
+          <HighlightText
+            text={info.getValue()}
+            highlight={debouncedSearchString}
+          />
+        ),
+        header: "OPC Node ID",
+      }),
+      opcSearchColumnHelper.accessor("path", {
+        cell: (info) => (
+          <HighlightText
+            text={info.getValue()}
+            highlight={debouncedSearchString}
+          />
+        ),
+        header: "Path",
+      }),
+      opcSearchColumnHelper.accessor("key", {
+        cell: (info) => (
+          <HighlightText
+            text={info.getValue()}
+            highlight={debouncedSearchString}
+          />
+        ),
+        header: "Key",
+      }),
+      opcSearchColumnHelper.accessor("DataType", {
+        cell: (info) => <Code>{info.getValue()}</Code>,
+        header: "DataType",
+        enableGlobalFilter: false,
+      }),
+    ],
+    [debouncedSearchString],
+  );
+
+  const opcNodesSearchTable = useReactTable({
     data: data?.nodes ?? [],
-    columns,
+    columns: opcNodeSearchColumns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     globalFilterFn: "includesString",
@@ -135,7 +202,7 @@ function OPCTagsConfig() {
     e,
   ) => {
     setGlobalFilter(e.target.value);
-    table.setGlobalFilter(String(e.target.value));
+    opcNodesSearchTable.setGlobalFilter(String(e.target.value));
   };
 
   useEffect(() => {
@@ -150,21 +217,120 @@ function OPCTagsConfig() {
 
   const handleRowClick: (
     key: string,
-  ) => MouseEventHandler<HTMLTableRowElement> = (key: string) => (e) => {
-    console.log(key, e);
+  ) => MouseEventHandler<HTMLTableRowElement> = (key: string) => () => {
+    setSelectedNodeId(key);
     setDialogOpen(true);
   };
 
-  console.log(new Date().toISOString());
+  const selectedNode = useMemo(() => {
+    const nodeIdx = data?.nodes.findIndex(
+      ({ nodeid }) => nodeid === selectedNodeId,
+    );
+    if (nodeIdx === undefined) {
+      return undefined;
+    }
+    return data?.nodes[nodeIdx];
+  }, [selectedNodeId, data]);
+
+  const selectedTagConfig = useMemo(() => {
+    const tags = mainConfig.pipeline?.tags ?? [];
+    const existingNodeIndex = tags.findIndex(
+      (tagConfig) => tagConfig?.node_identifier === selectedNodeId,
+    );
+
+    if (existingNodeIndex >= 0) {
+      return tags[existingNodeIndex];
+    }
+    return undefined;
+  }, [selectedNodeId, mainConfig]);
+
+  const handleSubmitOPCNodeTagConfig = (
+    updatedTagConfig: components["schemas"]["TagConfig"],
+  ) => {
+    setMainConfig((prevMainConfig) => {
+      const newMainConfig = structuredClone(prevMainConfig);
+      const tags = newMainConfig?.pipeline?.tags ?? [];
+
+      const existingNodeIndex = tags.findIndex(
+        (tagConfig) =>
+          tagConfig?.node_identifier === updatedTagConfig.node_identifier,
+      );
+
+      if (existingNodeIndex >= 0) {
+        tags[existingNodeIndex] = updatedTagConfig;
+      } else {
+        tags.push(updatedTagConfig);
+      }
+
+      newMainConfig.pipeline = { ...prevMainConfig.pipeline, tags };
+      return newMainConfig;
+    });
+  };
+
+  const handleDeleteOPCNodeTagConfig = (nodeIdentifier: string | number) => {
+    setMainConfig((prevMainConfig) => {
+      const newMainConfig = structuredClone(prevMainConfig);
+      const tags = newMainConfig?.pipeline?.tags ?? [];
+
+      const existingNodeIndex = tags.findIndex(
+        (tagConfig) => tagConfig?.node_identifier === nodeIdentifier,
+      );
+
+      if (existingNodeIndex >= 0) {
+        tags.splice(existingNodeIndex, 1);
+      }
+
+      newMainConfig.pipeline = { ...prevMainConfig.pipeline, tags };
+      return newMainConfig;
+    });
+  };
 
   return (
     <>
       <div className="p-2">
+        <Table dense className="max-w-full mb-2">
+          <TableHead>
+            {tagConfigsTable.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHeader
+                    key={header.id}
+                    className="max-w-80 overflow-x-auto sticky"
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                  </TableHeader>
+                ))}
+              </TableRow>
+            ))}
+          </TableHead>
+          <TableBody>
+            {/* TODO: virtualize this to support large number of rows
+          https://tanstack.com/table/latest/docs/framework/react/examples/virtualized-rows */}
+            {tagConfigsTable.getRowModel().rows.map((row) => (
+              <TableRow
+                key={row.id}
+                onClick={handleRowClick(
+                  `${row.original.node_identifier ?? ""}`,
+                )}
+                href="#"
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id} className="max-w-80 overflow-x-auto">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
         <Fieldset className="border border-gray-400 rounded-lg p-2 mb-2">
-          <Legend>OPC Tags</Legend>
-          {loading && <Badge>Loading...</Badge>}
+          <Legend>Search OPC Tags</Legend>
           {error && <Badge color="red">{JSON.stringify(error)}</Badge>}
-          {status && <Badge>{status}</Badge>}
           <InputGroup>
             <MagnifyingGlassIcon />
             <Input
@@ -183,7 +349,7 @@ function OPCTagsConfig() {
         ) : (
           <Table dense className="max-w-full max-h-[70vh] mb-2">
             <TableHead>
-              {table.getHeaderGroups().map((headerGroup) => (
+              {opcNodesSearchTable.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <TableHeader
@@ -202,10 +368,12 @@ function OPCTagsConfig() {
               ))}
             </TableHead>
             <TableBody>
-              {table.getRowModel().rows.map((row) => (
+              {/* TODO: virtualize this to support large number of rows
+              https://tanstack.com/table/latest/docs/framework/react/examples/virtualized-rows */}
+              {opcNodesSearchTable.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  onClick={handleRowClick(row.id)}
+                  onClick={handleRowClick(row.original.nodeid)}
                   href="#"
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -221,44 +389,19 @@ function OPCTagsConfig() {
                   ))}
                 </TableRow>
               ))}
-              {/* {data?.nodes.map((opc_node) => (
-                <TableRow
-                  key={opc_node.nodeid}
-                  className="cursor-pointer hover:bg-gray-200"
-                  onClick={handleRowClick(opc_node.nodeid)}
-                  href="#"
-                >
-                  <TableCell>
-                    <HighlightText
-                      text={opc_node.nodeid}
-                      highlight={debouncedSearchString}
-                    />
-                  </TableCell>
-                  <TableCell className="max-w-80 overflow-x-auto">
-                    <HighlightText
-                      text={opc_node.path}
-                      highlight={debouncedSearchString}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <HighlightText
-                      text={opc_node.key}
-                      highlight={debouncedSearchString}
-                    />
-                  </TableCell>
-                  <TableCell className="max-w-80 overflow-x-auto">
-                    <Code>{JSON.stringify(opc_node.DataType)}</Code>
-                  </TableCell>
-                </TableRow>
-              ))} */}
             </TableBody>
           </Table>
         )}
         <SetupConfigNav />
       </div>
-      <Dialog open={dialogOpen} onClose={setDialogOpen}>
-        <DialogTitle>Configure Tag</DialogTitle>
-      </Dialog>
+      <TagConfigDialog
+        dialogOpen={dialogOpen}
+        setDialogOpen={setDialogOpen}
+        selectedNode={selectedNode}
+        selectedTagConfig={selectedTagConfig}
+        handleSubmittedOPCNodeTagConfig={handleSubmitOPCNodeTagConfig}
+        handleDeleteOPCNodeTagConfig={handleDeleteOPCNodeTagConfig}
+      />
     </>
   );
 }
