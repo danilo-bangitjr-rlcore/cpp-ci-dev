@@ -63,7 +63,9 @@ agent:
     critic_optimizer:
       name: lso
     buffer:
-      name: uniform
+      name: mixed_history_buffer
+      ensemble: 1
+      ensemble_probability: 1
       seed: ${experiment.seed}
       id: critic # for metric logging
 
@@ -71,7 +73,9 @@ agent:
     actor_optimizer:
       lr: 0.001
     buffer:
-      name: uniform
+      name: mixed_history_buffer
+      ensemble: 1
+      ensemble_probability: 1
       seed: ${experiment.seed}
       id: actor # for metric logging
 
