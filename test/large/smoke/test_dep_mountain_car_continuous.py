@@ -177,7 +177,6 @@ def check_sim_farama_environment_ready(run_background_opc_client: None, request:
                 end
             )
 
-            print(df)
             successful_query = not bool(df.isnull().values.any())
         except Exception:
             # sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedTable) relation "public.opcua" does not exist

@@ -172,7 +172,7 @@ class GreedyAC(BaseAC):
         recent_critic_idxs = self.critic_buffer.feed(pr.transitions, pr.data_mode)
         recent_policy_idxs = self.policy_buffer.feed([t for t in pr.transitions if t.prior.dp], pr.data_mode)
 
-        if self.cfg.ingress_loss:
+        if self.cfg.ingress_loss and len(recent_policy_idxs) > 0:
             recent_policy_batch = self.policy_buffer.prepare_sample(recent_policy_idxs)
             if len(recent_policy_batch):
                 assert len(recent_policy_batch) == 1
@@ -195,6 +195,7 @@ class GreedyAC(BaseAC):
                         recent_policy_batch.post.action),
                 )
 
+        if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
             recent_critic_batch = self.critic_buffer.prepare_sample(recent_critic_idxs)
             if len(recent_critic_batch):
                 self._app_state.metrics.write(
