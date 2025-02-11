@@ -437,8 +437,6 @@ class GreedyAC(BaseAC):
             },
         )
 
-        return state_batch, direct_action_batch
-
     def _ensure_policy_batch(
         self, update_batch: tuple[torch.Tensor, torch.Tensor] | None = None
     ) -> tuple[torch.Tensor, torch.Tensor]:
