@@ -108,6 +108,11 @@ pipeline:
     name: all-the-time
     gamma: ${experiment.gamma}
 
+  transition_filter:
+    filters:
+    - "only_no_action_change"
+    - "only_dp"
+
   tags:
   - name: AIC3730_SP # pH SP
     node_identifier: 14
