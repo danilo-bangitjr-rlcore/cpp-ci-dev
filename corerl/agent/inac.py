@@ -33,7 +33,7 @@ class InAC(BaseAC):
         self.temp = cfg.temp
         self.eps = cfg.eps
         self.exp_threshold = cfg.exp_threshold
-        self.behaviour = init_actor(cfg.actor, self.state_dim, self.action_dim)
+        self.behaviour = init_actor(cfg.actor, app_state, self.state_dim, self.action_dim)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic_buffer = init_buffer(cfg.critic.buffer)
         self.policy_buffer = init_buffer(cfg.actor.buffer)
