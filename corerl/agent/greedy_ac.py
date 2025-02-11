@@ -434,7 +434,7 @@ class GreedyAC(BaseAC):
             with_grad:bool=False
         ) -> torch.Tensor:
         state_batch = batch.prior.state
-        direct_action_batch = batch.post.action
+        direct_action_batch = self._filter_only_direct_actions(batch.post.action)
 
         # get the top percentile of actions
         states_for_best_actions, best_actions, _, _, _ = self._get_top_n_sampled_actions(
@@ -477,7 +477,7 @@ class GreedyAC(BaseAC):
         policy.update(
             loss,
             opt_kwargs={
-                "closure": partial( self._compute_policy_loss, policy, eval_batch, percentile),
+                "closure": partial(self._compute_policy_loss, policy, eval_batch, percentile),
             },
         )
 
