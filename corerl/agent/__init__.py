@@ -1,3 +1,7 @@
+from typing import Annotated
+
+from pydantic import Field
+
 from corerl.agent.action_schedule import ActionScheduleAgent, ActionScheduleConfig
 from corerl.agent.base import BaseAgent
 from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig
@@ -17,7 +21,7 @@ agent_group = Group[
     BaseAgent,
 ]()
 
-AgentConfig = (
+AgentConfig = Annotated[
     ActionScheduleConfig
     | GreedyACConfig
     | GreedyIQLConfig
@@ -27,7 +31,8 @@ AgentConfig = (
     | SACConfig
     | EpsilonGreedySarsaConfig
     | SimpleACConfig
-)
+, Field(discriminator='name')]
+
 
 def register():
     agent_group.dispatcher(ActionScheduleAgent)
