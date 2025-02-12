@@ -39,15 +39,6 @@ eval_cfgs:
 
 agent:
   name: greedy_ac
-  n_critic_updates: 1
-  n_actor_updates: 1
-  num_samples: 100 # Number of actions sampled from proposal policy
-  uniform_sampling_percentage: 0.8
-  rho: 0.1
-  prop_rho_mult: 2.0
-  gamma: ${experiment.gamma}
-  discrete_control: ${env.discrete_control}
-  seed: ${experiment.seed}
 
   critic:
     name: ensemble
@@ -66,12 +57,10 @@ agent:
       name: adam
       lr: 0.0001
       weight_decay: 0.0
-    polyak: 0.995
     buffer:
       name: ensemble_uniform
       ensemble: ${agent.critic.critic_network.ensemble}
       data_subset: 0.5
-      seed: ${experiment.seed}
       batch_size: 256
 
   actor:
@@ -88,7 +77,6 @@ agent:
       lr: 0.0001
     buffer:
       name: uniform
-      seed: ${experiment.seed}
       batch_size: 256
 
 pipeline:

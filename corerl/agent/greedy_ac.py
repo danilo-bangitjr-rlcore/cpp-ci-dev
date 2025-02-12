@@ -8,14 +8,11 @@ from typing import Literal
 import numpy
 import torch
 from jaxtyping import Float
-from pydantic import Field
 
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.base_actor import BaseActor
 from corerl.component.actor.factory import init_actor
-from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import TransitionBatch
@@ -114,15 +111,12 @@ class GreedyACConfig(BaseACConfig):
     prop_rho_mult: float = 2.0
     rho: float = 0.1
     share_batch: bool = True
-    uniform_sampling_percentage: float = 0.5
+    uniform_sampling_percentage: float = 0.8
     eval_batch : bool = True
 
     # metrics
     ingress_loss : bool = True
     most_recent_batch_loss : bool = True
-
-    actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
-    critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
 
 
 class GreedyAC(BaseAC):

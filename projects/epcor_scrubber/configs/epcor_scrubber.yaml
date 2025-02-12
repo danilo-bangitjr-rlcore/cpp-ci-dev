@@ -54,15 +54,8 @@ agent:
   name: greedy_ac
   num_samples: 128
   uniform_sampling_percentage: 1.0
-  seed: ${experiment.seed}
-  gamma: ${experiment.gamma}
-  discrete_control: ${env.discrete_control}
 
   critic:
-    polyak: 0.995
-    critic_optimizer:
-      name: lso
-
     buffer:
       name: mixed_history_buffer
       n_most_recent: 24

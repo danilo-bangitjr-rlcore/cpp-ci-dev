@@ -1,6 +1,6 @@
 env:
   name: sim_async_env
-  gym_name : MultiActionSaturation-v0  
+  gym_name : MultiActionSaturation-v0
   seed : ${experiment.seed}
   discrete_control : False
 
@@ -17,24 +17,16 @@ experiment:
 
 agent:
   name: greedy_ac
-  num_samples: 128
-  uniform_sampling_percentage: 1.0
-  seed: ${experiment.seed}
-  gamma: ${experiment.gamma}
-  discrete_control: ${env.discrete_control}
 
   critic:
-    polyak: 0.995
     buffer:
       name: uniform
-      seed: ${experiment.seed}
 
   actor:
     actor_optimizer:
       lr: 0.001
     buffer:
       name: uniform
-      seed: ${experiment.seed}
 
 
 metrics:
@@ -43,10 +35,9 @@ metrics:
 
 pipeline:
   state_constructor:
-    defaults: []
-    # defaults:
-    # - name: multi_trace
-    #   trace_values: [0., 0.75, 0.95]
+    defaults:
+    - name: multi_trace
+      trace_values: [0., 0.75, 0.95]
 
   transition_creator:
     name: anytime
@@ -90,9 +81,6 @@ pipeline:
       name: identity
     preprocess:
       - name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]
     reward_constructor:
     # subtract saturation SP
     - name: affine
@@ -116,9 +104,6 @@ pipeline:
       name: identity
     preprocess:
       - name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]
     reward_constructor:
     # subtract saturation SP
     - name: affine
@@ -142,9 +127,6 @@ pipeline:
       name: identity
     preprocess:
       - name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]
     reward_constructor:
     # subtract saturation SP
     - name: affine
@@ -167,15 +149,9 @@ pipeline:
       name: identity
     state_constructor:
       - name: 'null'
-    preprocess:
-      - name: normalize
-        from_data: False
     action_constructor:
       - name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]
-  
+
   # actions
   - name: action-1
     is_meta: False
@@ -184,15 +160,9 @@ pipeline:
       name: identity
     state_constructor:
       - name: 'null'
-    preprocess:
-      - name: normalize
-        from_data: False
     action_constructor:
       - name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]
-  
+
   # actions
   - name: action-2
     is_meta: False
@@ -201,11 +171,5 @@ pipeline:
       name: identity
     state_constructor:
       - name: 'null'
-    preprocess:
-      - name: normalize
-        from_data: False
     action_constructor:
       - name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]

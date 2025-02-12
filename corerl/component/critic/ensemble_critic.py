@@ -30,7 +30,7 @@ class _SharedEnsembleConfig:
             ensemble_probability=1.0,
         ),
     )
-    polyak: float = 0.99
+    polyak: float = 0.995
     target_sync_freq: int = 1
 
 @config()
