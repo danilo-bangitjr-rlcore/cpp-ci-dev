@@ -65,6 +65,7 @@ agent:
       name: lso
     buffer:
       name: mixed_history_buffer
+      n_most_recent: 24
       ensemble: 1
       ensemble_probability: 1
       seed: ${experiment.seed}
@@ -75,6 +76,7 @@ agent:
       lr: 0.001
     buffer:
       name: mixed_history_buffer
+      n_most_recent: 24
       ensemble: 1
       ensemble_probability: 1
       seed: ${experiment.seed}
