@@ -1,4 +1,6 @@
 from collections.abc import Iterable
+from functools import partial
+from re import A
 from typing import Literal
 
 import torch
@@ -109,6 +111,7 @@ def lso_dispatch(cfg: LSOConfig, app_state: AppState, param: Iterable[torch.nn.P
         raise ValueError("LSO currently only supports Adam")
     if not ensemble:
         return lso.Optimizer(
+            app_state=app_state,
             params=param,
             optim=torch.optim.Adam,
             search_condition=construct_lso_search_condition(cfg.search_condition),
@@ -130,6 +133,7 @@ def lso_dispatch(cfg: LSOConfig, app_state: AppState, param: Iterable[torch.nn.P
             "fallback_step_size": cfg.fallback_step_size,
             "unit_norm_direction": cfg.unit_norm_direction
         },
+        app_state=app_state
     )
 
 

@@ -2,6 +2,8 @@ from typing import Any, Callable
 
 from torch.optim.optimizer import ParamsT
 
+from corerl.state import AppState
+
 
 class EnsembleOptimizer:
     def __init__(
@@ -9,8 +11,13 @@ class EnsembleOptimizer:
         individual_optim: Callable,
         param: ParamsT,
         kwargs: dict[str, Any],
+        app_state: AppState | None = None,
     ):
-        self.optim = [individual_optim(list(p), **kwargs) for p in param]
+
+        if app_state is not None: # this should only be with LSO
+            self.optim = [individual_optim(app_state, list(p), **kwargs) for p in param]
+        else:
+            self.optim = [individual_optim(list(p), **kwargs) for p in param]
 
     def zero_grad(self) -> None:
         for opt in self.optim:
