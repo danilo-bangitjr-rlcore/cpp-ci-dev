@@ -172,6 +172,7 @@ class GreedyAC(BaseAC):
         recent_critic_idxs = self.critic_buffer.feed(pr.transitions, pr.data_mode)
         recent_policy_idxs = self.policy_buffer.feed([t for t in pr.transitions if t.prior.dp], pr.data_mode)
 
+        # ---------------------------------- ingress loss metic --------------------------------- #
         if self.cfg.ingress_loss and len(recent_policy_idxs) > 0:
             recent_policy_batch = self.policy_buffer.prepare_sample(recent_policy_idxs)
             if len(recent_policy_batch):
@@ -203,6 +204,17 @@ class GreedyAC(BaseAC):
                     metric=f"ingress_critic_loss_{pr.data_mode.name}",
                     value=self._compute_critic_loss(recent_critic_batch),
                 )
+
+        # ------------------------- transition length metric ------------------------- #
+
+        for t in pr.transitions:
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric="transition_len",
+                value=len(t),
+            )
+
+
 
     def load_buffer(self, pr: PipelineReturn) -> None:
         if pr.transitions is None:
