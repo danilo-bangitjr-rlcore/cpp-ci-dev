@@ -50,7 +50,6 @@ interaction:
 
 agent:
   name: greedy_ac
-  num_samples: 128
 
   actor:
     actor_optimizer:

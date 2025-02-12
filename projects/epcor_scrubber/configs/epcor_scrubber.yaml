@@ -52,8 +52,6 @@ env:
 
 agent:
   name: greedy_ac
-  num_samples: 128
-  uniform_sampling_percentage: 1.0
 
   critic:
     buffer:

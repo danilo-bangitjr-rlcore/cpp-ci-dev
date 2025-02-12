@@ -107,7 +107,7 @@ class GreedyACConfig(BaseACConfig):
     name: Literal["greedy_ac"] = "greedy_ac"
 
     ensemble_targets: bool = False
-    num_samples: int = 500
+    num_samples: int = 128
     prop_rho_mult: float = 2.0
     rho: float = 0.1
     share_batch: bool = True

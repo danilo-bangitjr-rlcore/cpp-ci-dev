@@ -11,13 +11,8 @@ metrics:
 
 agent:
   name: greedy_ac
-  num_samples: 32
   delta_action: True
   delta_bounds: [-0.5, 0.5]
-
-  actor:
-    actor_optimizer:
-      lr: 0.00001
 
 experiment:
   exp_name: pendulum_test/

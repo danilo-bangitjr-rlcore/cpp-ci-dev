@@ -19,11 +19,6 @@ env:
 
 agent:
   name: greedy_ac
-  num_samples: 32
-
-  actor:
-    actor_optimizer:
-      lr: 0.00001
 
 pipeline:
   transition_creator:

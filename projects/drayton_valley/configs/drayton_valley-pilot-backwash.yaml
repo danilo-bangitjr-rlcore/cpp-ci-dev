@@ -37,10 +37,6 @@ env:
 
 agent:
   name: greedy_ac
-  actor:
-    actor_optimizer:
-      lr: 0.00001
-
 
 metrics:
   enabled: True

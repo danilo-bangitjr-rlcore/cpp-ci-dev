@@ -16,7 +16,6 @@ metrics:
 
 agent:
   name: greedy_ac
-  num_samples: 100
 
   critic:
     critic_network:
@@ -24,11 +23,6 @@ agent:
     buffer:
       name : 'ensemble_uniform'
       ensemble: 2
-
-  actor:
-    actor_optimizer:
-      lr : 0.0005
-
 
 pipeline:
   state_constructor:
