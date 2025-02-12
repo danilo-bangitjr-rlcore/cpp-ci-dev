@@ -78,6 +78,12 @@ agent:
       batch_size: 256
 
 pipeline:
+  imputer:
+    name: per-tag
+    default:
+      name: copy
+      imputation_horizon: 96
+
   state_constructor:
     countdown:
       kind: two_clock
@@ -110,9 +116,6 @@ pipeline:
           from_data: False
       outlier:
         name: "identity"
-      imputer:
-        name: "copy"
-        imputation_horizon: 96
 
     - name: "dd1_recirculation_flow_rate"
       is_meta: False
@@ -126,9 +129,6 @@ pipeline:
           from_data: False
       outlier:
         name: "identity"
-      imputer:
-        name: "copy"
-        imputation_horizon: 96
 
     - name: "dd1_frequency_time_sp"
       is_meta: False
@@ -142,9 +142,6 @@ pipeline:
           from_data: False
       outlier:
         name: "identity"
-      imputer:
-        name: "copy"
-        imputation_horizon: 96
 
     - name: "dd1_flow_between_blowdowns"
       is_meta: False
@@ -158,9 +155,6 @@ pipeline:
           from_data: False
       outlier:
         name: "identity"
-      imputer:
-        name: "copy"
-        imputation_horizon: 96
 
     - name: "dd1_duration_time_sp"
       is_meta: False
@@ -174,9 +168,6 @@ pipeline:
           from_data: False
       outlier:
         name: "identity"
-      imputer:
-        name: "copy"
-        imputation_horizon: 96
 
 #    - name: "dd_influent_tss"
 #      is_meta: False
@@ -286,9 +277,6 @@ pipeline:
           from_data: False
       outlier:
         name: "identity"
-      imputer:
-        name: "copy"
-        imputation_horizon: 96
 
     - name: "db_tank_flow_rate"
       is_meta: False
@@ -302,9 +290,6 @@ pipeline:
           from_data: False
       outlier:
         name: "identity"
-      imputer:
-        name: "copy"
-        imputation_horizon: 96
 
     # Action
     - name: "dd1_polymer_dose"
@@ -319,9 +304,6 @@ pipeline:
           from_data: False
       outlier:
         name: "identity"
-      imputer:
-        name: "copy"
-        imputation_horizon: 96
       action_constructor:
         - name: identity
 #      reward_constructor: # $/sec
@@ -382,9 +364,6 @@ pipeline:
           from_data: False
       outlier:
         name: "identity"
-      imputer:
-        name: "copy"
-        imputation_horizon: 96
       action_constructor:
         - name: identity
 #      reward_constructor: # $/sec
@@ -445,9 +424,6 @@ pipeline:
           from_data: False
       outlier:
         name: "identity"
-      imputer:
-        name: "copy"
-        imputation_horizon: 96
       reward_constructor:
         - name: "affine"
           scale: -0.00238 # If turbidity constraint is violated, turbidity penalty occupies reward range [0.0, 0.5]

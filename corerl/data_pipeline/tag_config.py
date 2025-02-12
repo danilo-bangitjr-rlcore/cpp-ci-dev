@@ -4,7 +4,6 @@ from pydantic import Field
 
 from corerl.configs.config import MISSING, config, list_
 from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
-from corerl.data_pipeline.imputers.per_tag.identity import IdentityImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.transforms import NormalizerConfig, NullConfig, TransformConfig
@@ -39,7 +38,9 @@ class TagConfig:
 
     # per-tag pipeline configuration
     outlier: OddityFilterConfig = Field(default_factory=IdentityFilterConfig)
-    imputer: ImputerConfig = Field(default_factory=IdentityImputerConfig)
+    imputer: ImputerConfig | None = None
+
+    # per-tag constructors
     preprocess: list[TransformConfig] = list_([NormalizerConfig()])
     reward_constructor: list[TransformConfig] = list_([NullConfig()])
     action_constructor: list[TransformConfig] | None = None

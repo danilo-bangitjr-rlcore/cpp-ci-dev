@@ -42,6 +42,12 @@ metrics:
   enabled: True
 
 pipeline:
+  imputer:
+    name: per-tag
+    default:
+      name: copy
+      imputation_horizon: 12
+
   state_constructor:
     defaults:
       - name: multi_trace
@@ -85,9 +91,6 @@ pipeline:
       val: 1305
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 12
     reward_constructor:
     - name: scale # min negative permeability -> max positive permeability
       factor: -1
@@ -105,35 +108,25 @@ pipeline:
       name: identity
     state_constructor:
     - name: "null"
+    imputer:
+      name: identity
 
   - name: TUIT101.DATA # raw turbidity
     operating_range: [0, 1.5]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 12
 
   - name: FTC101.DATA # raw cdom
     operating_range: [1, 4]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 12
 
   - name: FTT100.DATA # raw tryptophan
     operating_range: [0, 0.7]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 12
 
   - name: TIT302.DATA # postfloc water temp
     operating_range: [0, 15]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 12
