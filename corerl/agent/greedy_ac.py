@@ -119,7 +119,7 @@ class GreedyACConfig(BaseACConfig):
 
     # metrics
     ingress_loss : bool = True
-    split_batch_loss : bool = True
+    most_recent_batch_loss : bool = True
 
     actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
     critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
@@ -197,7 +197,7 @@ class GreedyAC(BaseAC):
                 )
 
         if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
-            recent_critic_batch = self.critic_buffer.prepare_sample(recent_critic_idxs)
+            recent_critic_batch = self.critic_buffer.get_idxs(recent_critic_idxs)
             if len(recent_critic_batch):
                 self._app_state.metrics.write(
                     agent_step=self._app_state.agent_step,
@@ -337,8 +337,8 @@ class GreedyAC(BaseAC):
         batches = self.critic_buffer.sample()
         q_loss = self._compute_critic_loss(batches, with_grad=True, log_metrics=True)
 
-        log_split_batch_loss = self.cfg.split_batch_loss and self.critic_buffer.n_most_recent > 0
-        if log_split_batch_loss:
+        log_most_recent_batch_loss = self.cfg.most_recent_batch_loss and self.critic_buffer.n_most_recent > 0
+        if log_most_recent_batch_loss:
             # grab the most recent samples from the batch and log the loss on only these samples
             batch_slices = [b[:self.critic_buffer.n_most_recent] for b in batches]
             n_most_recent_loss = self._compute_critic_loss(batch_slices)
@@ -488,8 +488,8 @@ class GreedyAC(BaseAC):
             value=to_np(loss),
         )
 
-        log_split_batch_loss = self.cfg.split_batch_loss and self.policy_buffer.n_most_recent > 0
-        if log_split_batch_loss:
+        log_most_recent_batch_loss = self.cfg.most_recent_batch_loss and self.policy_buffer.n_most_recent > 0
+        if log_most_recent_batch_loss:
             # grab the most recent samples from the batch and log the loss on only these samples
             n_most_recent_loss = self._compute_policy_loss(
                 policy,
