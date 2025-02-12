@@ -109,7 +109,6 @@ class Armijo(Search):
         thresh = (loss + step_size * self._c * directional_derivative)
         break_condition = loss_next - thresh
         if break_condition <= 0:
-            logger.info(f"Armijo accept: {loss=}, {loss_next=}, {step_size=:.2E}")
             return True, step_size
         else:
             # Decrease the step-size by a multiplicative factor
