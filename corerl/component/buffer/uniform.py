@@ -7,6 +7,7 @@ from discrete_dists.uniform import Uniform
 from corerl.component.buffer.base import BaseReplayBufferConfig, ReplayBuffer, buffer_group
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import DataMode, Transition
+from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +18,8 @@ class UniformReplayBufferConfig(BaseReplayBufferConfig):
 
 
 class UniformBuffer(ReplayBuffer):
-    def __init__(self, cfg: UniformReplayBufferConfig):
-        super().__init__(cfg)
+    def __init__(self, cfg: UniformReplayBufferConfig, app_state: AppState):
+        super().__init__(cfg, app_state)
 
         # initially this dist has no support
         # support expands as samples are added

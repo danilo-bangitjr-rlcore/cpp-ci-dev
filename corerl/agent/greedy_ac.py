@@ -149,8 +149,8 @@ class GreedyAC(BaseAC):
 
         self.sampler = init_actor(cfg.actor, app_state, self.state_dim, self.action_dim, initializer=self.actor)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
-        self.critic_buffer = init_buffer(cfg.critic.buffer)
-        self.policy_buffer = init_buffer(cfg.actor.buffer)
+        self.critic_buffer = init_buffer(cfg.critic.buffer, app_state)
+        self.policy_buffer = init_buffer(cfg.actor.buffer, app_state)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         self._app_state.event_bus.emit_event(EventType.agent_get_action)
