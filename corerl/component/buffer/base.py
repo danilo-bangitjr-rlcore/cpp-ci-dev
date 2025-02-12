@@ -10,6 +10,7 @@ from torch import Tensor
 from corerl.configs.config import MISSING, config
 from corerl.configs.group import Group
 from corerl.data_pipeline.datatypes import DataMode, StepBatch, Transition, TransitionBatch
+from corerl.state import AppState
 from corerl.utils.device import device
 
 logger = logging.getLogger(__name__)
@@ -25,13 +26,15 @@ class BaseReplayBufferConfig:
     #   https://arxiv.org/pdf/1712.01275
     # the number of samples in the batch from most recent data.
     n_most_recent: int = 1
+    id: str = ""
 
 class ReplayBuffer:
-    def __init__(self, cfg: BaseReplayBufferConfig):
+    def __init__(self, cfg: BaseReplayBufferConfig, app_state: AppState):
         self.seed = cfg.seed
         self.rng = np.random.default_rng(self.seed)
         self.memory = cfg.memory
         self.batch_size = cfg.batch_size
+        self.app_state = app_state
 
         self.n_most_recent = cfg.n_most_recent
         assert self.n_most_recent <= self.batch_size
@@ -39,6 +42,7 @@ class ReplayBuffer:
         self.data = None
         self.pos = 0
         self.full = False
+        self.id = cfg.id
 
     @abstractmethod
     def _sample_indices(self) -> np.ndarray:
@@ -65,7 +69,16 @@ class ReplayBuffer:
             if not self.full and self.pos == 0:
                 self.full = True
 
+        self.write_buffer_sizes()
         return idxs
+
+    def write_buffer_sizes(self):
+        """
+        Supports writing size of multiple sub buffers
+        """
+        sizes = self.size
+        for i, size in enumerate(sizes):
+            self.app_state.metrics.write(self.app_state.agent_step, metric=f"buffer_{self.id}[{i}]_size", value=size)
 
     def load(self, transitions: Sequence[Transition], data_mode: DataMode) -> np.ndarray:
         assert len(transitions) > 0
@@ -134,7 +147,7 @@ class ReplayBuffer:
 
 
 buffer_group = Group[
-    [], ReplayBuffer
+    [AppState], ReplayBuffer
 ]()
 
 

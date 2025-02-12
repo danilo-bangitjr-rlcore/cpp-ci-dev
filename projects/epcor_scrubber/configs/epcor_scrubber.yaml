@@ -65,6 +65,7 @@ agent:
     buffer:
       name: uniform
       seed: ${experiment.seed}
+      id: critic # for metric logging
 
   actor:
     actor_optimizer:
@@ -72,6 +73,7 @@ agent:
     buffer:
       name: uniform
       seed: ${experiment.seed}
+      id: actor # for metric logging
 
 
 metrics:
