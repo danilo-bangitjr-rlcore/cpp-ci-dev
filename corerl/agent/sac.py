@@ -29,8 +29,8 @@ class SAC(BaseAC):
         super().__init__(cfg, app_state, col_desc)
         self.ensemble_targets = cfg.ensemble_targets
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
-        self.critic_buffer = init_buffer(cfg.critic.buffer)
-        self.policy_buffer = init_buffer(cfg.actor.buffer)
+        self.critic_buffer = init_buffer(cfg.critic.buffer, app_state)
+        self.policy_buffer = init_buffer(cfg.actor.buffer, app_state)
         self.n_entropy_updates = cfg.n_entropy_updates
 
         # Entropy

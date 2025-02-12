@@ -29,8 +29,8 @@ class SimpleAC(BaseAC):
         self.ensemble_targets = cfg.ensemble_targets
         self.tau = cfg.tau
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
-        self.critic_buffer = init_buffer(cfg.critic.buffer)
-        self.policy_buffer = init_buffer(cfg.actor.buffer)
+        self.critic_buffer = init_buffer(cfg.critic.buffer, app_state)
+        self.policy_buffer = init_buffer(cfg.actor.buffer, app_state)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device.device)
