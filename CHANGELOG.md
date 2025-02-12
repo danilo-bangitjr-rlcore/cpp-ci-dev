@@ -1,3 +1,13 @@
+## 0.90.0 (2025-02-12)
+
+### Feat
+
+- write buffer size metric
+
+### Fix
+
+- pipe app state to buffers in aux agents
+
 ## 0.89.0 (2025-02-12)
 
 ### Feat
