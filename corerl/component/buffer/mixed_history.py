@@ -52,7 +52,7 @@ class MixedHistoryBuffer(ReplayBuffer):
         ensemble_batch: list[TransitionBatch] = []
         for dist in self._sub_dists:
             idxs = dist.sample(self.rng, self.batch_size)
-            batch = self._prepare_sample(idxs)
+            batch = self.prepare_sample(idxs)
             ensemble_batch.append(batch[0])
 
         return ensemble_batch

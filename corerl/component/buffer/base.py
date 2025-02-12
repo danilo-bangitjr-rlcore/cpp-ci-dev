@@ -21,8 +21,10 @@ class BaseReplayBufferConfig:
     seed: int = MISSING
     memory: int = 1_000_000
     batch_size: int = 256
-    combined: bool = True
-
+    # Whether or not to use combined experience replay:
+    #   https://arxiv.org/pdf/1712.01275
+    # the number of samples in the batch from most recent data.
+    n_most_recent: int = 1
 
 class ReplayBuffer:
     def __init__(self, cfg: BaseReplayBufferConfig):
@@ -31,9 +33,8 @@ class ReplayBuffer:
         self.memory = cfg.memory
         self.batch_size = cfg.batch_size
 
-        # Whether or not to use combined experience replay:
-        #   https://arxiv.org/pdf/1712.01275
-        self.combined = cfg.combined
+        self.n_most_recent = cfg.n_most_recent
+        assert self.n_most_recent <= self.batch_size
 
         self.data = None
         self.pos = 0
@@ -84,19 +85,20 @@ class ReplayBuffer:
 
         return idxs
 
-    def _prepare_sample(self, idxs: np.ndarray) -> list[TransitionBatch]:
+    def prepare_sample(self, idxs: np.ndarray) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
             return []
 
-        if self.combined:
-            idxs[0] = self._last_pos
+        max_n_most_recent = min(*self.size, self.n_most_recent)
+        for i in range(max_n_most_recent):
+            idxs[i] = self._last_pos-i
 
         sampled_data = [self.data[i][idxs] for i in range(len(self.data))]
         return [self._prepare(idxs, sampled_data)]
 
     def sample(self) -> list[TransitionBatch]:
         idxs = self._sample_indices()
-        return self._prepare_sample(idxs)
+        return self.prepare_sample(idxs)
 
     def full_batch(self) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:

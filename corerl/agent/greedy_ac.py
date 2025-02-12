@@ -117,6 +117,9 @@ class GreedyACConfig(BaseACConfig):
     uniform_sampling_percentage: float = 0.5
     eval_batch : bool = True
 
+    # metrics
+    ingress_loss : bool = True
+
     actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
     critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
 
@@ -166,8 +169,40 @@ class GreedyAC(BaseAC):
 
         self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
 
-        self.critic_buffer.feed(pr.transitions, pr.data_mode)
-        self.policy_buffer.feed([t for t in pr.transitions if t.prior.dp], pr.data_mode)
+        recent_critic_idxs = self.critic_buffer.feed(pr.transitions, pr.data_mode)
+        recent_policy_idxs = self.policy_buffer.feed([t for t in pr.transitions if t.prior.dp], pr.data_mode)
+
+        if self.cfg.ingress_loss and len(recent_policy_idxs) > 0:
+            recent_policy_batch = self.policy_buffer.prepare_sample(recent_policy_idxs)
+            if len(recent_policy_batch):
+                assert len(recent_policy_batch) == 1
+                recent_policy_batch = recent_policy_batch[0]
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"ingress_policy_loss_{pr.data_mode.name}",
+                    value=self._policy_err(
+                        self.actor,
+                        recent_policy_batch.prior.state,
+                        recent_policy_batch.post.action),
+                )
+
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"ingress_sampler_loss_{pr.data_mode.name}",
+                    value=self._policy_err(
+                        self.sampler,
+                        recent_policy_batch.prior.state,
+                        recent_policy_batch.post.action),
+                )
+
+        if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
+            recent_critic_batch = self.critic_buffer.prepare_sample(recent_critic_idxs)
+            if len(recent_critic_batch):
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"ingress_critic_loss_{pr.data_mode.name}",
+                    value=self._compute_critic_loss(recent_critic_batch),
+                )
 
     def load_buffer(self, pr: PipelineReturn) -> None:
         if pr.transitions is None:
@@ -213,7 +248,12 @@ class GreedyAC(BaseAC):
 
     # --------------------------- critic updating-------------------------- #
 
-    def _compute_critic_loss(self, ensemble_batch: list[TransitionBatch], with_grad:bool=False) -> torch.Tensor:
+    def _compute_critic_loss(
+            self,
+            ensemble_batch: list[TransitionBatch],
+            with_grad: bool=False,
+            log_metrics: bool=False,
+        ) -> torch.Tensor:
         # First, translate ensemble batches in to list for each property
         ensemble_len = len(ensemble_batch)
         state_batches = []
@@ -269,14 +309,22 @@ class GreedyAC(BaseAC):
         loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble_len):
             target =  reward_batches[i] + gamma_batches[i] * next_qs[i]
-            loss += torch.nn.functional.mse_loss(target, qs[i])
+            loss_i = torch.nn.functional.mse_loss(target, qs[i])
+            loss += loss_i
 
-        # Fourth, log metrics
-        self._app_state.metrics.write(
-            agent_step=self._app_state.agent_step,
-            metric="avg_critic_loss",
-            value=to_np(loss)/ensemble_len,
-        )
+            if log_metrics:
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"critic_loss_{i}",
+                    value=to_np(loss_i),
+                )
+
+        if log_metrics:
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric="avg_critic_loss",
+                value=to_np(loss)/ensemble_len,
+            )
 
         return loss
 
@@ -286,7 +334,7 @@ class GreedyAC(BaseAC):
 
         self._app_state.event_bus.emit_event(EventType.agent_update_critic)
         batches = self.critic_buffer.sample()
-        q_loss = self._compute_critic_loss(batches, with_grad=True)
+        q_loss = self._compute_critic_loss(batches, with_grad=True, log_metrics=True)
 
         if self.eval_batch:
             eval_batches = self.critic_buffer.sample()
@@ -386,15 +434,15 @@ class GreedyAC(BaseAC):
             direct_top_actions_2d, direct_sampled_actions_2d
 
 
-    def _update_policy(
-        self,
-        state_batch: torch.Tensor,
-        direct_action_batch: torch.Tensor,
-        policy: BaseActor,
-        policy_name: str,
-        percentile: float,
-    ) -> tuple[torch.Tensor, torch.Tensor] | None:
-        assert policy_name == "actor" or policy_name == "sampler"
+    def _compute_policy_loss(
+            self,
+            policy: BaseActor,
+            batch: TransitionBatch,
+            percentile: float,
+            with_grad:bool=False
+        ) -> torch.Tensor:
+        state_batch = batch.prior.state
+        direct_action_batch = self._filter_only_direct_actions(batch.post.action)
 
         # get the top percentile of actions
         states_for_best_actions, best_actions, _, _, _ = self._get_top_n_sampled_actions(
@@ -405,9 +453,21 @@ class GreedyAC(BaseAC):
             uniform_weight=self.uniform_sampling_percentage,
             sampler=self.sampler,
         )
+        loss = self._policy_err(policy, states_for_best_actions, best_actions, with_grad=with_grad)
+        return loss
 
-        # compute loss
-        loss = self._policy_err(policy, states_for_best_actions, best_actions, with_grad=True)
+
+    def _update_policy(
+        self,
+        policy: BaseActor,
+        policy_name: str,
+        percentile: float,
+        update_batch : TransitionBatch | None = None,
+    ) -> TransitionBatch:
+
+        assert policy_name == "actor" or policy_name == "sampler"
+        update_batch = self._ensure_policy_batch(update_batch)
+        loss = self._compute_policy_loss(policy, update_batch, percentile, with_grad=True)
 
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
@@ -417,64 +477,44 @@ class GreedyAC(BaseAC):
 
         if self.eval_batch:
             # sample another batch for the evaluation of updates when using line search.
-            eval_states, eval_direct_actions = self._ensure_policy_batch()
-            eval_states, eval_actions, _, _, _ = self._get_top_n_sampled_actions(
-                state_batch=eval_states,
-                direct_action_batch=eval_direct_actions,
-                n_samples=self.num_samples,
-                percentile=percentile,
-                uniform_weight=self.uniform_sampling_percentage,
-                sampler=self.sampler,
-            )
+            eval_batch = self._ensure_policy_batch()
         else:
-            eval_states, eval_actions = states_for_best_actions, best_actions
+            eval_batch = update_batch
 
         # apply the update
         policy.update(
             loss,
             opt_kwargs={
-                "closure": partial(self._policy_err, policy, eval_states, eval_actions),
+                "closure": partial(self._compute_policy_loss, policy, eval_batch, percentile),
             },
         )
 
-    def _ensure_policy_batch(
-        self, update_batch: tuple[torch.Tensor, torch.Tensor] | None = None
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        """
-        Returns the state and DIRECT actions from the batch.
-        """
+        return update_batch
+
+    def _ensure_policy_batch(self, update_batch: TransitionBatch | None = None) -> TransitionBatch:
         if update_batch is None:
             # Assuming we don't have an ensemble of policies
             batches = self.policy_buffer.sample()
             assert len(batches) == 1
-            batch = batches[0]
+            update_batch = batches[0]
 
-            state_batch = batch.prior.state
-            direct_action_batch = batch.post.action
+        assert update_batch is not None
+        return update_batch
 
-            # grab only direct actions
-            direct_action_batch = self._filter_only_direct_actions(direct_action_batch)
-        else:
-            state_batch, direct_action_batch = update_batch
-
-        return state_batch, direct_action_batch
-
-    def update_actor(self) -> tuple[torch.Tensor, torch.Tensor] | None:
+    def update_actor(self) -> TransitionBatch | None:
         self._app_state.event_bus.emit_event(EventType.agent_update_actor)
         if min(self.policy_buffer.size) <= 0:
             return None
 
-        state_batch, direct_action_batch = self._ensure_policy_batch()
-        self._update_policy(state_batch, direct_action_batch, self.actor, "actor", self.rho)
-        return state_batch, direct_action_batch
+        batch = self._update_policy(self.actor, "actor", self.rho)
+        return batch
 
-    def update_sampler(self, update_batch: tuple[torch.Tensor, torch.Tensor] | None = None) -> None:
+    def update_sampler(self, update_batch: TransitionBatch | None = None) -> None:
         self._app_state.event_bus.emit_event(EventType.agent_update_sampler)
         if min(self.policy_buffer.size) <= 0:
             return None
 
-        state_batch, direct_action_batch = self._ensure_policy_batch(update_batch)
-        self._update_policy(state_batch, direct_action_batch, self.sampler, "sampler", self.rho_proposal)
+        self._update_policy(self.sampler, "sampler", self.rho_proposal, update_batch)
 
     def _policy_err(
             self,
