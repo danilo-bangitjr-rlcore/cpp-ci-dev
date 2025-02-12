@@ -1,3 +1,19 @@
+## 0.89.0 (2025-02-12)
+
+### Feat
+
+- ingress loss metrics
+- genearlized combined replay
+
+### Fix
+
+- check if idx empty
+- adding da filtering after sample
+
+### Refactor
+
+- policy loss
+
 ## 0.88.1 (2025-02-11)
 
 ### Fix
