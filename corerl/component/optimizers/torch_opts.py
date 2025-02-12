@@ -1,6 +1,4 @@
 from collections.abc import Iterable
-from functools import partial
-from re import A
 from typing import Literal
 
 import torch
