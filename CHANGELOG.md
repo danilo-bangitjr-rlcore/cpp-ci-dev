@@ -1,3 +1,13 @@
+## 0.91.0 (2025-02-12)
+
+### Feat
+
+- metric logging loss on n_most_recent samples
+
+### Fix
+
+- ingress will work iwth n_most_recent > 1
+
 ## 0.90.0 (2025-02-12)
 
 ### Feat
