@@ -18,3 +18,9 @@ class AppState:
     metrics: MetricsTableProtocol
     event_bus: EventBus
     agent_step: int = 0
+
+    def __getstate__(self):
+      return {}
+
+    def __setstate__(self, state: dict):
+        ...
