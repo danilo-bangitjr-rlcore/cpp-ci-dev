@@ -228,6 +228,8 @@ class GreedyAC(BaseAC):
 
         self.policy_buffer.load(policy_transitions, pr.data_mode)
         self.critic_buffer.load(pr.transitions, pr.data_mode)
+        self.policy_buffer.app_state = self._app_state
+        self.critic_buffer.app_state = self._app_state
 
     def _filter_only_direct_actions(self, actions: torch.Tensor):
         if not self.cfg.delta_action:
