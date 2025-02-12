@@ -283,6 +283,18 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
                         step_size, loss, directional_derivative, loss_next,
                     )
                     if found:
+                        self._app_state.metrics.write(
+                            agent_step=self._app_state.agent_step,
+                            metric="lso_step_size",
+                            value=step_size,
+                        )
+
+                        self._app_state.metrics.write(
+                            agent_step=self._app_state.agent_step,
+                            metric="lso_backtrack_steps",
+                            value=backtrack_step,
+                        )
+
                         break
 
                 if not found:  # Line search exceeded maximum number of epochs
@@ -304,6 +316,19 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
 
                     # Restart next line search at the fallback stepsize
                     step_size = group["fallback_step_size"]
+
+                    self._app_state.metrics.write(
+                        agent_step=self._app_state.agent_step,
+                        metric="lso_step_size",
+                        value=step_size,
+                    )
+
+                    self._app_state.metrics.write(
+                            agent_step=self._app_state.agent_step,
+                            metric="lso_backtrack_steps",
+                            value=group["max_backtracking_steps"],
+                    )
+
                 group["init"].record_used(step_size)
 
             # save the new step-size
