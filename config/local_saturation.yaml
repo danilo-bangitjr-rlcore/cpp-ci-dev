@@ -4,7 +4,7 @@ defaults:
 interaction:
   name: sim_interaction
   obs_period: 00:00:01
-  action_period: 00:00:01
+  action_period: 00:00:02
 
 experiment :
   exp_name : "saturation"
@@ -43,10 +43,10 @@ agent:
     #   name: uniform
     #   seed: ${experiment.seed}
     critic_network:
-      ensemble: 2
+      ensemble: 1
     buffer:
       name : 'ensemble_uniform'
-      ensemble: 2
+      ensemble: 1
       seed: ${experiment.seed}
 
   actor:

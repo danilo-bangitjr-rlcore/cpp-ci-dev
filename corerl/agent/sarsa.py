@@ -37,8 +37,8 @@ class EpsilonGreedySarsa(BaseAgent):
         self.samples = cfg.samples
         self.epsilon = cfg.epsilon
         self.action_dim = self.action_dim
-        self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
-        self.critic_buffer = init_buffer(cfg.critic.buffer)
+        self.q_critic = init_q_critic(cfg.critic, app_state, self.state_dim, self.action_dim)
+        self.critic_buffer = init_buffer(cfg.critic.buffer, app_state)
 
     def update_buffer(self, pr: PipelineReturn) -> None:
         if pr.transitions is None:

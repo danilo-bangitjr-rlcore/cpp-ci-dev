@@ -1,12 +1,22 @@
 import multiprocessing
+import shutil
 import subprocess
 import time
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 from pytest import FixtureRequest
 
+from corerl.agent.factory import init_agent
+from corerl.config import MainConfig
+from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
+from corerl.data_pipeline.pipeline import Pipeline
+from corerl.eval.evals import evals_group
+from corerl.eval.metrics import metrics_group
+from corerl.messages.event_bus import EventBus
+from corerl.state import AppState
 
 raw_service_names = [
     "core-rl-opc-server-1",
@@ -177,7 +187,6 @@ def check_sim_farama_environment_ready(run_background_opc_client: None, request:
                 end
             )
 
-            print(df)
             successful_query = not bool(df.isnull().values.any())
         except Exception:
             # sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedTable) relation "public.opcua" does not exist
@@ -211,3 +220,28 @@ def test_dep_mountain_car_continuous(check_sim_farama_environment_ready: None, r
         cwd=request.config.rootpath,
     )
     proc.check_returncode()
+
+def test_agent_checkpoint(run_docker_compose: None):
+    cfg = direct_load_config(MainConfig, base=".", config_name="config/dep_mountain_car_continuous")
+    event_bus = EventBus(cfg.event_bus, cfg.env)
+    app_state = AppState(
+        cfg=cfg,
+        metrics=metrics_group.dispatch(cfg.metrics),
+        evals=evals_group.dispatch(cfg.evals),
+        event_bus=event_bus,
+    )
+    pipeline = Pipeline(cfg.pipeline)
+    column_desc = pipeline.column_descriptions
+    agent = init_agent(
+        cfg.agent,
+        app_state,
+        column_desc,
+    )
+    now = datetime.now(UTC)
+    output_dir = Path('test/medium/smoke/test_save_agent/')
+    path = output_dir / str(now).replace(':','_')
+    path.mkdir(exist_ok=True, parents=True)
+    agent.save(path)
+    agent.load(path)
+    shutil.rmtree(output_dir)
+

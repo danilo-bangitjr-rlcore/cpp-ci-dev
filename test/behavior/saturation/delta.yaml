@@ -13,7 +13,7 @@ experiment:
   exp_name: "saturation"
   seed: 1
   gamma: 0.99
-  max_steps: 400
+  max_steps: 2500
 
 agent:
   name: greedy_ac
@@ -43,12 +43,19 @@ metrics:
   name: db
   enabled: True
 
+evals:
+  name: db
+  enabled: True
+
+eval_cfgs:
+  actor_critic:
+    enabled: True
+  monte_carlo:
+    enabled: True
+
 pipeline:
   state_constructor:
     defaults: []
-    # defaults:
-    # - name: multi_trace
-    #   trace_values: [0., 0.75, 0.95]
 
   transition_creator:
     name: anytime

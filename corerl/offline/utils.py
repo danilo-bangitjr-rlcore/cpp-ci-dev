@@ -1,12 +1,10 @@
 import datetime as dt
 import logging
-from pathlib import Path
 from typing import Tuple
 
 import pandas as pd
 from tqdm import tqdm
 
-import corerl.main_utils as utils
 from corerl.agent.base import BaseAgent
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode
@@ -57,7 +55,6 @@ class OfflineTraining:
         end_time: dt.datetime | None = None
     ):
         self.cfg = cfg
-        self.save_path: Path = utils.prepare_save_dir(cfg)
         self.start_time = start_time
         self.end_time = end_time
         self.offline_steps = self.cfg.experiment.offline_steps
@@ -127,17 +124,13 @@ class OfflineTraining:
         # Create Plots
         labels = [str(j) for j in self.cfg.experiment.offline_eval_iters]
         plot_metrics(
-            cfg=self.cfg,
             app_state=app_state,
-            save_path=self.save_path,
             start_time=self.start_time,
             end_time=self.end_time,
             labels=labels
         )
         plot_evals(
-            cfg=self.cfg,
             app_state=app_state,
-            save_path=self.save_path,
             start_time=self.start_time,
             end_time=self.end_time,
             labels=labels

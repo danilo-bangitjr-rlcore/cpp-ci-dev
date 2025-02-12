@@ -9,6 +9,7 @@ from numpy.random._generator import Generator as Generator
 from corerl.component.buffer.base import BaseReplayBufferConfig, ReplayBuffer, buffer_group
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import DataMode, Transition, TransitionBatch
+from corerl.state import AppState
 
 
 @config()
@@ -21,8 +22,8 @@ class MixedHistoryBufferConfig(BaseReplayBufferConfig):
 
 
 class MixedHistoryBuffer(ReplayBuffer):
-    def __init__(self, cfg: MixedHistoryBufferConfig):
-        super().__init__(cfg)
+    def __init__(self, cfg: MixedHistoryBufferConfig, app_state: AppState):
+        super().__init__(cfg, app_state)
         self._cfg = cfg
 
         self._sub_dists = [
@@ -52,7 +53,7 @@ class MixedHistoryBuffer(ReplayBuffer):
         ensemble_batch: list[TransitionBatch] = []
         for dist in self._sub_dists:
             idxs = dist.sample(self.rng, self.batch_size)
-            batch = self._prepare_sample(idxs)
+            batch = self.prepare_sample(idxs)
             ensemble_batch.append(batch[0])
 
         return ensemble_batch

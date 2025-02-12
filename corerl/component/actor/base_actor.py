@@ -5,10 +5,13 @@ import torch
 
 from corerl.component.policy.policy import Policy
 from corerl.configs.group import Group
+from corerl.state import AppState
 
 
 class BaseActor(ABC):
     policy: Policy
+    def __init__(self, app_state: AppState):
+        self.app_state = app_state
 
     @abstractmethod
     def get_action(
@@ -46,6 +49,6 @@ class BaseActor(ABC):
 
 
 group = Group[
-    [int, int, BaseActor | None],
+    [AppState, int, int, BaseActor | None],
     BaseActor,
 ]()

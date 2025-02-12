@@ -2,11 +2,13 @@ from torch import Tensor
 
 from corerl.component.buffer.ensemble import EnsembleUniformBuffer, EnsembleUniformReplayBufferConfig
 from corerl.data_pipeline.datatypes import DataMode, Step, StepBatch, Transition, TransitionBatch
+from corerl.state import AppState
 
 
-def test_sample_mini_batch():
-    cfg = EnsembleUniformReplayBufferConfig(seed=0, memory=5, batch_size=2, combined=True, ensemble=2, data_subset=0.6)
-    buffer = EnsembleUniformBuffer(cfg)
+def test_sample_mini_batch(dummy_app_state: AppState):
+    cfg = EnsembleUniformReplayBufferConfig(seed=0, memory=5, batch_size=2,
+                                            n_most_recent=1, ensemble=2, data_subset=0.6)
+    buffer = EnsembleUniformBuffer(cfg, dummy_app_state)
 
     step_1 = Step(
         reward=1.0,

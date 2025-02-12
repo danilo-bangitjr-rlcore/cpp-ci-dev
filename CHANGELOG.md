@@ -1,3 +1,74 @@
+## 0.92.0 (2025-02-12)
+
+### Feat
+
+- transition_len metric
+
+### Fix
+
+- set app state when loading buffer in gac
+- ignore app state in pickle
+
+## 0.91.0 (2025-02-12)
+
+### Feat
+
+- metric logging loss on n_most_recent samples
+
+### Fix
+
+- ingress will work iwth n_most_recent > 1
+
+## 0.90.0 (2025-02-12)
+
+### Feat
+
+- write buffer size metric
+
+### Fix
+
+- pipe app state to buffers in aux agents
+
+## 0.89.0 (2025-02-12)
+
+### Feat
+
+- ingress loss metrics
+- genearlized combined replay
+
+### Fix
+
+- check if idx empty
+- adding da filtering after sample
+
+### Refactor
+
+- policy loss
+
+## 0.88.1 (2025-02-11)
+
+### Fix
+
+- gac test var names
+- remove unused return values from _update_policy
+- delta_action_bug
+
+## 0.88.0 (2025-02-11)
+
+### Feat
+
+- wire Actor-Critic eval and evals plotting into online interaction
+
+### Refactor
+
+- access MainConfig through app_state
+
+## 0.87.0 (2025-02-11)
+
+### Feat
+
+- eval_batch cfg in GAC
+
 ## 0.86.1 (2025-02-11)
 
 ### Fix
