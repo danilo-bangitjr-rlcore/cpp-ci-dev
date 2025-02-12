@@ -78,7 +78,6 @@ def adam(cfg: AdamConfig, app_state: AppState, param: Iterable[torch.nn.Paramete
 @config()
 class LSOInitConfig:
     name: str = 'To'
-    step_size: float = 0.1
 
 @config()
 class SearchConditionKwargsConfig:
@@ -96,7 +95,6 @@ class SearchConditionConfig:
 class LSOConfig(OptimConfig):
     name: Literal['lso'] = 'lso'
 
-    init_step_size: float = 0.001
     max_backtracking_steps: int = 30
     unit_norm_direction: bool = False
     fallback_step_size: float = 0.0001
@@ -104,7 +102,6 @@ class LSOConfig(OptimConfig):
     optim: OptimConfig = Field(default_factory=AdamConfig)
     init: LSOInitConfig = Field(default_factory=LSOInitConfig)
     search_condition: SearchConditionConfig = Field(default_factory=SearchConditionConfig)
-
 
 @optim_group.dispatcher
 def lso_dispatch(cfg: LSOConfig, app_state: AppState, param: Iterable[torch.nn.Parameter], ensemble: bool):
@@ -115,8 +112,8 @@ def lso_dispatch(cfg: LSOConfig, app_state: AppState, param: Iterable[torch.nn.P
             params=param,
             optim=torch.optim.Adam,
             search_condition=construct_lso_search_condition(cfg.search_condition),
-            init=construct_lso_init(cfg.init),
-            init_step_size=cfg.init_step_size,
+            init=construct_lso_init(cfg.init, cfg.lr),
+            init_step_size=cfg.lr,
             max_backtracking_steps=cfg.max_backtracking_steps,
             fallback_step_size=cfg.fallback_step_size,
             unit_norm_direction=cfg.unit_norm_direction
@@ -127,8 +124,8 @@ def lso_dispatch(cfg: LSOConfig, app_state: AppState, param: Iterable[torch.nn.P
         kwargs={
             "optim": torch.optim.Adam,
             "search_condition": construct_lso_search_condition(cfg.search_condition),
-            "init": construct_lso_init(cfg.init),
-            "init_step_size": cfg.init_step_size,
+            "init": construct_lso_init(cfg.init, cfg.lr),
+            "init_step_size": cfg.lr,
             "max_backtracking_steps": cfg.max_backtracking_steps,
             "fallback_step_size": cfg.fallback_step_size,
             "unit_norm_direction": cfg.unit_norm_direction
@@ -137,10 +134,10 @@ def lso_dispatch(cfg: LSOConfig, app_state: AppState, param: Iterable[torch.nn.P
 
 
 
-def construct_lso_init(cfg: LSOInitConfig) -> lso.init.StepsizeInit:
+def construct_lso_init(cfg: LSOInitConfig, lr: float) -> lso.init.StepsizeInit:
     match cfg.name:
         case 'To':
-            return lso.init.To(step_size=LSOInitConfig.step_size)
+            return lso.init.To(step_size=lr)
         case _:
             raise ValueError("LSO only supports To init condition")
 
