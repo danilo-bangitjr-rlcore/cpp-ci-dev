@@ -114,8 +114,6 @@ pipeline:
           min: 0.0
           max: 9.369999885559082
           from_data: False
-      outlier:
-        name: "identity"
 
     - name: "dd1_recirculation_flow_rate"
       is_meta: False
@@ -127,8 +125,6 @@ pipeline:
           min: 0.0
           max: 45.689998626708984
           from_data: False
-      outlier:
-        name: "identity"
 
     - name: "dd1_frequency_time_sp"
       is_meta: False
@@ -140,8 +136,6 @@ pipeline:
           min: 5.0
           max: 30.0
           from_data: False
-      outlier:
-        name: "identity"
 
     - name: "dd1_flow_between_blowdowns"
       is_meta: False
@@ -153,8 +147,6 @@ pipeline:
           min: 0.0
           max: 10.5
           from_data: False
-      outlier:
-        name: "identity"
 
     - name: "dd1_duration_time_sp"
       is_meta: False
@@ -166,8 +158,6 @@ pipeline:
           min: 30.0
           max: 360.0
           from_data: False
-      outlier:
-        name: "identity"
 
 #    - name: "dd_influent_tss"
 #      is_meta: False
@@ -275,8 +265,6 @@ pipeline:
           min: 0.0
           max: 5.139999866485596
           from_data: False
-      outlier:
-        name: "identity"
 
     - name: "db_tank_flow_rate"
       is_meta: False
@@ -288,8 +276,6 @@ pipeline:
           min: 0.0
           max: 564.5399780273438
           from_data: False
-      outlier:
-        name: "identity"
 
     # Action
     - name: "dd1_polymer_dose"
@@ -302,8 +288,6 @@ pipeline:
           min: 1.5
           max: 2.5
           from_data: False
-      outlier:
-        name: "identity"
       action_constructor:
         - name: identity
 #      reward_constructor: # $/sec
@@ -362,8 +346,6 @@ pipeline:
           min: 20.0
           max: 60.0
           from_data: False
-      outlier:
-        name: "identity"
       action_constructor:
         - name: identity
 #      reward_constructor: # $/sec
@@ -422,8 +404,6 @@ pipeline:
           min: 0.0
           max: 206.24000549316406
           from_data: False
-      outlier:
-        name: "identity"
       reward_constructor:
         - name: "affine"
           scale: -0.00238 # If turbidity constraint is violated, turbidity penalty occupies reward range [0.0, 0.5]

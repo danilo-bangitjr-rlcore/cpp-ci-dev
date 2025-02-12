@@ -33,8 +33,6 @@ pipeline:
   tags:
   - name: action-0
     operating_range: [-2, 2]
-    outlier:
-      name: identity
     state_constructor:
       - name: "null"
     action_constructor:
@@ -51,41 +49,29 @@ pipeline:
   # x
   - name: tag-0
     operating_range: [-1, 1]
-    outlier:
-      name: identity
 
   # y
   - name: tag-1
     operating_range: [-1, 1]
-    outlier:
-      name: identity
 
   # ang_vel
   - name: tag-2
     operating_range: [-8, 8]
     red_bounds: [-7.5, 7.5]
     yellow_bounds: [-6, 6]
-    outlier:
-      name: identity
 
 
   - name: reward
     preprocess:
     - name: identity
     is_meta: True
-    outlier:
-      name: identity
 
   - name: terminated
     preprocess:
     - name: identity
     is_meta: True
-    outlier:
-      name: identity
 
   - name: truncated
     preprocess:
     - name: identity
     is_meta: True
-    outlier:
-      name: identity

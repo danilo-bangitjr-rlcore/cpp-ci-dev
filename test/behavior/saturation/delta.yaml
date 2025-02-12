@@ -52,8 +52,6 @@ pipeline:
   - name: reward
     preprocess:
     - name: identity
-    outlier:
-      name: identity
     reward_constructor:
     - name: 'null'
     state_constructor:
@@ -65,22 +63,16 @@ pipeline:
     preprocess:
     - name: identity
     is_meta: True
-    outlier:
-      name: identity
 
   - name: truncated
     preprocess:
     - name: identity
     is_meta: True
-    outlier:
-      name: identity
 
   # observations
   - name: tag-0
     preprocess:
     - name: identity
-    outlier:
-      name: identity
     preprocess:
       - name: identity
     reward_constructor:
@@ -100,8 +92,6 @@ pipeline:
   # actions
   - name: action-0
     operating_range: [0, 0.5]
-    outlier:
-      name: identity
     state_constructor:
       - name: 'null'
     action_constructor:

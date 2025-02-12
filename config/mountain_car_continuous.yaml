@@ -28,8 +28,6 @@ pipeline:
   - name: reward
     preprocess:
     - name: identity
-    outlier:
-      name: identity
     reward_constructor:
     - name: identity
     state_constructor:
@@ -38,21 +36,15 @@ pipeline:
   - name: terminated
     preprocess:
     - name: identity
-    outlier:
-      name: identity
     is_meta: true
 
   - name: truncated
     preprocess:
     - name: identity
-    outlier:
-      name: identity
     is_meta: true
 
   - name: action-0
     operating_range: [-1, 1]
-    outlier:
-      name: identity
     state_constructor:
       - name: 'null'
     action_constructor:
@@ -60,10 +52,6 @@ pipeline:
 
   - name: tag-0
     operating_range: [-1.2, 0.6]
-    outlier:
-      name: identity
 
   - name: tag-1
     operating_range: [-0.07, 0.07]
-    outlier:
-      name: identity

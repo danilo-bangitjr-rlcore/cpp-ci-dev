@@ -61,8 +61,6 @@ pipeline:
   - name: PERM_SP.BW_SP # flow rate setpoint
     node_identifier: "[pilot]Program:ZW.PERM_SP.BW_SP"
     operating_range: [0.9, 1.4]
-    outlier:
-      name: identity
     action_constructor:
       - name: identity
     state_constructor: # exclude from state
@@ -71,8 +69,6 @@ pipeline:
   - name: BW_SP.KY2 # backpulse duration setpoint
     node_identifier: "[pilot]Program:ZW.BW_SP.KY2"
     operating_range: [20, 40]
-    outlier:
-      name: identity
     action_constructor:
       - name: identity
     state_constructor: # exclude from state
@@ -89,8 +85,6 @@ pipeline:
     - name: comparator
       op: '!='
       val: 1305
-    outlier:
-      name: identity
     reward_constructor:
     - name: scale # min negative permeability -> max positive permeability
       factor: -1
@@ -104,8 +98,6 @@ pipeline:
   - name: CTRL_P.STEP # mode, excluded from state but used in reward fn
     preprocess:
     - name: identity
-    outlier:
-      name: identity
     state_constructor:
     - name: "null"
     imputer:
@@ -113,20 +105,12 @@ pipeline:
 
   - name: TUIT101.DATA # raw turbidity
     operating_range: [0, 1.5]
-    outlier:
-      name: identity
 
   - name: FTC101.DATA # raw cdom
     operating_range: [1, 4]
-    outlier:
-      name: identity
 
   - name: FTT100.DATA # raw tryptophan
     operating_range: [0, 0.7]
-    outlier:
-      name: identity
 
   - name: TIT302.DATA # postfloc water temp
     operating_range: [0, 15]
-    outlier:
-      name: identity
