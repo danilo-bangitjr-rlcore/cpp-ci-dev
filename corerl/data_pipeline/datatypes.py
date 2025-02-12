@@ -109,6 +109,9 @@ class Transition:
             else:
                 yield attr
 
+    def __len__(self) -> int:
+        return len(self.steps)-1
+
 
 @dataclass
 class StepBatch:
