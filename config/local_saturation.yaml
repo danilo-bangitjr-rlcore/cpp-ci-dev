@@ -36,8 +36,8 @@ agent:
   critic:
     polyak: 0.995
     critic_optimizer:
-      name: 'armijo_adam'
-      lr : 0.0003
+      name: 'lso'
+      lr : 0.01
       weight_decay : 0.0
     # buffer:
     #   name: uniform
