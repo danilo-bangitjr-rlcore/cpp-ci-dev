@@ -119,6 +119,7 @@ class GreedyACConfig(BaseACConfig):
 
     # metrics
     ingress_loss : bool = True
+    most_recent_batch_loss : bool = True
 
     actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
     critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
@@ -173,7 +174,7 @@ class GreedyAC(BaseAC):
         recent_policy_idxs = self.policy_buffer.feed([t for t in pr.transitions if t.prior.dp], pr.data_mode)
 
         if self.cfg.ingress_loss and len(recent_policy_idxs) > 0:
-            recent_policy_batch = self.policy_buffer.prepare_sample(recent_policy_idxs)
+            recent_policy_batch = self.policy_buffer.get_batch(recent_policy_idxs)
             if len(recent_policy_batch):
                 assert len(recent_policy_batch) == 1
                 recent_policy_batch = recent_policy_batch[0]
@@ -196,7 +197,7 @@ class GreedyAC(BaseAC):
                 )
 
         if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
-            recent_critic_batch = self.critic_buffer.prepare_sample(recent_critic_idxs)
+            recent_critic_batch = self.critic_buffer.get_batch(recent_critic_idxs)
             if len(recent_critic_batch):
                 self._app_state.metrics.write(
                     agent_step=self._app_state.agent_step,
@@ -336,6 +337,18 @@ class GreedyAC(BaseAC):
         batches = self.critic_buffer.sample()
         q_loss = self._compute_critic_loss(batches, with_grad=True, log_metrics=True)
 
+        log_most_recent_batch_loss = self.cfg.most_recent_batch_loss and self.critic_buffer.n_most_recent > 0
+        if log_most_recent_batch_loss:
+            # grab the most recent samples from the batch and log the loss on only these samples
+            batch_slices = [b[:self.critic_buffer.n_most_recent] for b in batches]
+            n_most_recent_loss = self._compute_critic_loss(batch_slices)
+
+            self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"critic_loss_{self.policy_buffer.n_most_recent}_most_recent",
+                    value=n_most_recent_loss,
+            )
+
         if self.eval_batch:
             eval_batches = self.critic_buffer.sample()
         else:
@@ -474,6 +487,21 @@ class GreedyAC(BaseAC):
             metric=policy_name + "_loss",
             value=to_np(loss),
         )
+
+        log_most_recent_batch_loss = self.cfg.most_recent_batch_loss and self.policy_buffer.n_most_recent > 0
+        if log_most_recent_batch_loss:
+            # grab the most recent samples from the batch and log the loss on only these samples
+            n_most_recent_loss = self._compute_policy_loss(
+                policy,
+                update_batch[:self.policy_buffer.n_most_recent],
+                percentile,
+            )
+
+            self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"{policy_name}_loss_{self.policy_buffer.n_most_recent}_most_recent",
+                    value=n_most_recent_loss,
+            )
 
         if self.eval_batch:
             # sample another batch for the evaluation of updates when using line search.
