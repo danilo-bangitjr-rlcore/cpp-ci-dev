@@ -56,25 +56,16 @@ pipeline:
     - name: 'null'
     state_constructor:
     - name: 'null'
-    preprocess:
-    - name: identity
 
   - name: terminated
-    preprocess:
-    - name: identity
     is_meta: True
 
   - name: truncated
-    preprocess:
-    - name: identity
     is_meta: True
 
   # observations
   - name: tag-0
-    preprocess:
-    - name: identity
-    preprocess:
-      - name: identity
+    operating_range: [0, 1]
     reward_constructor:
     # subtract saturation SP
     - name: affine

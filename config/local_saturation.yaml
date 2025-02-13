@@ -43,28 +43,19 @@ pipeline:
     - name: identity
     state_constructor:
     - name: 'null'
-    preprocess:
-    - name: identity
 
   - name: terminated
-    preprocess:
-    - name: identity
     is_meta: True
 
   - name: truncated
-    preprocess:
-    - name: identity
     is_meta: True
 
   # observations
   - name: tag-0
-    preprocess:
-    - name: identity
+    operating_range: [0, 0.5]
 
   # actions
   - name: action-0
     operating_range: [0, 1]
-    preprocess:
-    - name: identity
     action_constructor:
       - name: identity

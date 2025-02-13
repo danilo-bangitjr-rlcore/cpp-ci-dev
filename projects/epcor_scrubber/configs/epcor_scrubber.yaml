@@ -198,13 +198,8 @@ pipeline:
     red_bounds: [5, 20]
 
   - name: AIC3730_OUT # pH pump output
-    preprocess: []
     operating_range: [0, 125]
     red_bounds: [0, 60]
-    state_constructor:
-    - name: normalize
-      min: 0
-      max: 60
     reward_constructor: # generated programattically from test_epcor_reward
     - name: split
       left:
@@ -252,13 +247,8 @@ pipeline:
       passthrough: false
 
   - name: AIC3731_OUT # ORP pump output
-    preprocess: []
     operating_range: [0, 125]
     red_bounds: [0, 60]
-    state_constructor:
-    - name: normalize
-      min: 0
-      max: 60
     reward_constructor:
     - name: greater_than
       threshold: 60.0
@@ -267,22 +257,12 @@ pipeline:
       factor: -1.0
 
   - name: AI0879B # H2S outlet
-    preprocess: []
     operating_range: [0., 30000]
     red_bounds: [0., 5000]
-    state_constructor:
-    - name: normalize
-      min: 0
-      max: 5000
 
   - name: AI0879C # H2S efficiency
-    preprocess: []
     operating_range: [0., 100.]
     red_bounds: [85., 100.]
-    state_constructor:
-    - name: normalize
-      min: 85
-      max: 100
     reward_constructor: # generated programattically from test_epcor_reward
     - name: scale
       factor: -1.0

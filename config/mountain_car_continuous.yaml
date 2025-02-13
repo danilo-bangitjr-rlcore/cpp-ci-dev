@@ -34,13 +34,9 @@ pipeline:
     - name: 'null'
 
   - name: terminated
-    preprocess:
-    - name: identity
     is_meta: true
 
   - name: truncated
-    preprocess:
-    - name: identity
     is_meta: true
 
   - name: action-0

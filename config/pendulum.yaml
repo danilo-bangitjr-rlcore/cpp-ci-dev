@@ -62,16 +62,10 @@ pipeline:
 
 
   - name: reward
-    preprocess:
-    - name: identity
     is_meta: True
 
   - name: terminated
-    preprocess:
-    - name: identity
     is_meta: True
 
   - name: truncated
-    preprocess:
-    - name: identity
     is_meta: True
