@@ -1,3 +1,19 @@
+## 0.94.0 (2025-02-13)
+
+### Feat
+
+- allow specifying a single top-level default imputer for all tags
+
+### Fix
+
+- ignore checkpointing the optimizer
+- annotate agent config types with discriminator
+
+### Refactor
+
+- default out stepsizes and action samples in cfgs
+- default out several agent configs
+
 ## 0.93.3 (2025-02-13)
 
 ### Refactor
