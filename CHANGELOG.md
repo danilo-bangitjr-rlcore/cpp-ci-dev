@@ -1,3 +1,15 @@
+## 0.96.0 (2025-02-13)
+
+### Feat
+
+- support specifying a subset of tags in sim environments
+
+### Refactor
+
+- cleanup lingering default values in cfg YAMLs
+- pull preprocessor normalization defaults into computed cfgs
+- move oddity detection defaults into global default
+
 ## 0.95.0 (2025-02-13)
 
 ### Feat
