@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections import deque
 from collections.abc import Iterable
 from copy import deepcopy
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -37,21 +36,7 @@ class AllTheTimeTCConfig:
 
         return steps_per_decision
 
-
-
-@dataclass(init=False)
-class NStepInfo:
-    """
-    Dataclass for holding on to information for producing transitions for each bootstrap length (n)
-    Holds:
-     * a queue of steps
-    """
-
-    def __init__(self, n: int):
-        self.step_q = deque[Step](maxlen=n + 1)
-
-type StepInfo = dict[int, NStepInfo]
-
+type StepInfo = dict[int, deque[Step]]
 
 def get_tags(df: pd.DataFrame, tags: Iterable[str]):
     data_np = df[list(tags)].to_numpy().astype(np.float32)
@@ -75,7 +60,7 @@ def get_n_step_reward(step_q: deque[Step]):
 
 def _reset_step_info(min_n_step: int, max_n_step: int):
     step_info: StepInfo = {
-        n: NStepInfo(n) for n in range(min_n_step, max_n_step + 1)
+        n: deque[Step](maxlen=n+1) for n in range(min_n_step, max_n_step + 1)
     }
     return step_info
 
@@ -147,8 +132,7 @@ class AllTheTimeTC:
         """
         new_transitions: list[Transition] = []
         for n in range(self.min_n_step, self.max_n_step + 1):
-            n_step_info = step_info[n]
-            step_q = n_step_info.step_q
+            step_q = step_info[n]
             step_q.append(step)
 
             is_full = len(step_q) == step_q.maxlen
