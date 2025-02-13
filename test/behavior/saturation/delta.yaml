@@ -17,13 +17,12 @@ experiment:
 
 agent:
   name: greedy_ac
-  delta_action: True
-  delta_bounds: [-0.2, 0.2]
-
   actor:
     actor_optimizer:
       lr: 0.001
 
+feature_flags:
+  delta_actions: True
 
 metrics:
   enabled: True
@@ -75,14 +74,6 @@ pipeline:
   # actions
   - name: action-0
     operating_range: [0, 0.5]
+    change_bounds: [-0.2, 0.2]
     state_constructor:
       - name: 'null'
-    action_constructor:
-      - name: delta
-      - name: clip
-        bounds: [-0.2, 0.2]
-      - name: normalize
-        min: -0.2
-        max: 0.2
-        from_data: False
-      - name: add_raw

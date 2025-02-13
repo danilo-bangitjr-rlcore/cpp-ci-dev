@@ -16,6 +16,9 @@ experiment:
   gamma: 0.97 # ~50% of return occurs after 2 hrs (@ 5 min obs period)
   run_forever: True
 
+feature_flags:
+  delta_actions: True
+
 interaction:
   name: dep_interaction
   restore_checkpoint: False
@@ -113,41 +116,17 @@ pipeline:
   - name: AIC3730_SP # pH SP
     node_identifier: 14
     operating_range: [9.4, 10.]
-    action_constructor:
-      - name: delta
-      - name: clip
-        bounds: [-.33, .33] # +/- 0.2 pH
-      - name: normalize
-        min: -.33
-        max: .33
-        from_data: False
-      - name: add_raw
+    change_bounds: [-.33, .33] # +/- 0.2 pH
 
   - name: AIC3731_SP # ORP SP
     node_identifier: 15
     operating_range: [650., 700.]
-    action_constructor:
-      - name: delta
-      - name: clip
-        bounds: [-.2, .2] # +/- 10 mV
-      - name: normalize
-        min: -.2
-        max: .2
-        from_data: False
-      - name: add_raw
+    change_bounds: [-.2, .2] # +/- 10 mV
 
   - name: FIC3734_SP # flow SP
     node_identifier: 17
     operating_range: [15., 30.]
-    action_constructor:
-      - name: delta
-      - name: clip
-        bounds: [-.33, .33] # +/- 5
-      - name: normalize
-        min: -.33
-        max: .33
-        from_data: False
-      - name: add_raw
+    change_bounds: [-.33, .33] # +/- 5
 
   - name: AIC3730_PV # pH process value
     operating_range: [0., 14.]

@@ -43,6 +43,7 @@ class TagConfig:
     operating_range: Bounds | None = None
     red_bounds: Bounds | None = None
     yellow_bounds: Bounds | None = None
+    change_bounds: tuple[float, float] | None = None
 
     # per-tag pipeline configuration
     outlier: OddityFilterConfig = Field(default_factory=IdentityFilterConfig)
