@@ -87,7 +87,7 @@ class MainConfig:
 
             tag.action_constructor = [
                 DeltaConfig(),
-                BoundsConfig(bounds=tag.change_bounds),
+                BoundsConfig(bounds=tag.change_bounds, mode='nan'),
                 NormalizerConfig(min=tag.change_bounds[0], max=tag.change_bounds[1]),
                 AddRawConfig(),
             ] + tag.action_constructor
