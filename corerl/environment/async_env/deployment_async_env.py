@@ -89,12 +89,18 @@ class DeploymentAsyncEnv(AsyncEnv):
                         continue
 
                     tag_name = tag_cfg.name
-                    if tag_cfg.node_identifier is not None:
-                        node_name = tag_cfg.node_identifier
-                    else:
+                    if tag_cfg.node_identifier is None:
                         node_name = tag_name
+                        id = make_opc_node_id(node_name, cfg.opc_ns)
+                    else:
+                        # PR 531: assume node_identifier is the full OPC node identifier, fallback to just identifier
+                        # and construct the full node id using ns defined within cfg.opc_ns
+                        if isinstance(tag_cfg.node_identifier, str) and tag_cfg.node_identifier.startswith("ns="):
+                            id = tag_cfg.node_identifier
+                        else:
+                            id = make_opc_node_id(tag_cfg.node_identifier, cfg.opc_ns)
+                            logger.warning(f"node_identifier defined without ns: {tag_cfg.node_identifier}")
 
-                    id = make_opc_node_id(node_name, cfg.opc_ns)
                     node = opc_client.get_node(id)
                     var_type = await node.read_data_type_as_variant_type()
                     logger.info(f"Registering action '{tag_name}' with OPC node id '{id}'")

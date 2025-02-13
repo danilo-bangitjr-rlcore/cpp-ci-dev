@@ -35,7 +35,7 @@ class TagConfig:
     # tag metadata
     name: str = MISSING
     agg: Agg = Agg.avg
-    node_identifier: str | int | None = None
+    node_identifier: str | int | None = None # prefer full opc node_id path (specified in web GUI)
     is_meta: bool = False
     is_endogenous: bool = True
 
