@@ -1,3 +1,20 @@
+## 0.93.0 (2025-02-13)
+
+### Feat
+
+- mpc on saturation
+
+## 0.92.0 (2025-02-12)
+
+### Feat
+
+- transition_len metric
+
+### Fix
+
+- set app state when loading buffer in gac
+- ignore app state in pickle
+
 ## 0.91.0 (2025-02-12)
 
 ### Feat
