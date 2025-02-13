@@ -74,3 +74,27 @@ export function Code({
     />
   );
 }
+
+export function HighlightText({
+  text,
+  highlight,
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<"p"> & { text: string; highlight: string }) {
+  // Split on highlight term and include term into parts, ignore case
+  const parts = text.split(new RegExp(`(${highlight})`, "gi"));
+  return (
+    <Text className={className} {...props}>
+      {parts.map((part, i) => (
+        <span
+          key={i}
+          className={
+            part.toLowerCase() === highlight.toLowerCase() ? "font-bold" : ""
+          }
+        >
+          {part}
+        </span>
+      ))}
+    </Text>
+  );
+}

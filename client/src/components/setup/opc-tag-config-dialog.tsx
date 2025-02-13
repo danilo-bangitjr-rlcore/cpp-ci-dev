@@ -28,26 +28,23 @@ import { DeepPartial } from "../../utils/main-config";
 interface TagConfigProps {
   dialogOpen: boolean;
   setDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  selectedNode?: components["schemas"]["OpcNodeDetail"] | undefined;
-  selectedTagConfig?:
-    | DeepPartial<components["schemas"]["TagConfig"]>
-    | undefined;
+  selectedTagConfig?: DeepPartial<components["schemas"]["TagConfig"]>;
+  tagConfigIndex?: number;
   handleSubmittedOPCNodeTagConfig: (
     updatedNode: components["schemas"]["TagConfig"],
   ) => void;
-  handleDeleteOPCNodeTagConfig: (nodeIdentifier: string | number) => void;
+  handleDeleteOPCNodeTagConfig: (tagConfigIndex: number) => void;
 }
 
 export const TagConfigDialog = ({
   dialogOpen,
   setDialogOpen,
-  selectedNode,
   selectedTagConfig,
+  tagConfigIndex,
   handleSubmittedOPCNodeTagConfig,
   handleDeleteOPCNodeTagConfig,
 }: TagConfigProps) => {
-  const nodeIdentifier =
-    selectedNode?.nodeid ?? selectedTagConfig?.node_identifier ?? "";
+  const nodeIdentifier = selectedTagConfig?.node_identifier ?? "";
 
   const [name, setName] = useState<string>("");
   const [isSetpoint, setIsSetpoint] = useState<boolean>(false);
@@ -59,13 +56,11 @@ export const TagConfigDialog = ({
   const [yellowBoundsHigh, setYellowBoundsHigh] = useState<number | "">("");
 
   useEffect(() => {
-    setName(selectedTagConfig?.name ?? selectedNode?.key ?? "");
+    setName(selectedTagConfig?.name ?? "");
 
     // action_constructor to isSetpoint boolean
     const lenAc = selectedTagConfig?.action_constructor?.length ?? 0;
-    setIsSetpoint(
-      lenAc > 0 || (selectedNode?.key.toLowerCase().endsWith("sp") ?? false),
-    );
+    setIsSetpoint(lenAc > 0);
 
     setOperatingRangeLow(selectedTagConfig?.operating_range?.[0] ?? "");
     setOperatingRangeHigh(selectedTagConfig?.operating_range?.[1] ?? "");
@@ -73,7 +68,7 @@ export const TagConfigDialog = ({
     setYellowBoundsHigh(selectedTagConfig?.yellow_bounds?.[1] ?? "");
     setRedBoundsLow(selectedTagConfig?.red_bounds?.[0] ?? "");
     setRedBoundsHigh(selectedTagConfig?.red_bounds?.[1] ?? "");
-  }, [selectedNode, selectedTagConfig]);
+  }, [selectedTagConfig]);
 
   const setNumberWithUndefined: (
     chevt: React.Dispatch<React.SetStateAction<number | "">>,
@@ -130,7 +125,9 @@ export const TagConfigDialog = ({
   };
 
   const handleDeleteNode: MouseEventHandler<HTMLButtonElement> = () => {
-    handleDeleteOPCNodeTagConfig(nodeIdentifier);
+    if (tagConfigIndex !== undefined) {
+      handleDeleteOPCNodeTagConfig(tagConfigIndex);
+    }
     setDialogOpen(false);
   };
 
@@ -253,7 +250,7 @@ export const TagConfigDialog = ({
           <Button plain onClick={() => setDialogOpen(false)}>
             Cancel
           </Button>
-          {selectedTagConfig && (
+          {tagConfigIndex !== undefined && (
             <Button color="red" onClick={handleDeleteNode}>
               Delete
             </Button>
