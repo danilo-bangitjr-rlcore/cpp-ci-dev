@@ -12,6 +12,7 @@ from corerl.component.network.utils import tensor
 from corerl.configs.config import MISSING, computed, config, interpolate
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, Step, Transition
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.utils.maybe import Maybe
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -101,6 +102,12 @@ class AllTheTimeTC:
                 gamma=self.gamma,
                 state=states[i],
                 dp=bool(dps[i]),
+                timestamp=( # curse you pandas
+                    Maybe(pf.data.index[i])
+                    .is_instance(pd.Timestamp)
+                    .map(lambda x: x.to_pydatetime())
+                    .unwrap()
+                )
             )
             steps.append(step)
         return pf, steps

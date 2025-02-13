@@ -37,6 +37,7 @@ class Step:
     gamma: float
     state: Tensor
     dp: bool
+    timestamp: datetime.datetime | None = None
 
     def __eq__(self, other: object):
         if not isinstance(other, Step):
