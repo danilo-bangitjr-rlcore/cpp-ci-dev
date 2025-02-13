@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from abc import abstractmethod
 from collections.abc import Sequence
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -100,8 +101,12 @@ class ReplayBuffer:
         self.data = [torch.empty((self.memory, *s)) for s in data_size]
 
         for idx, transition in enumerate(transitions):
-            for i, elem in enumerate(transition):
+            i = 0
+            for elem in transition:
+                if isinstance(elem, datetime):
+                    continue
                 self.data[i][self.pos] = _to_tensor(elem)
+                i += 1
 
             idxs[idx] = self.pos
             self.pos = (self.pos + 1) % self.memory
@@ -195,6 +200,8 @@ def _get_size(experience: Transition) -> list[tuple]:
             size.append((1,))
         elif isinstance(elem, list):
             size.append((len(elem),))
+        elif isinstance(elem, datetime):
+            continue
         else:
             raise TypeError(f"unknown type {type(elem)}")
 
