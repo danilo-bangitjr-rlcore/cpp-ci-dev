@@ -52,17 +52,8 @@ env:
 
 agent:
   name: greedy_ac
-  num_samples: 128
-  uniform_sampling_percentage: 1.0
-  seed: ${experiment.seed}
-  gamma: ${experiment.gamma}
-  discrete_control: ${env.discrete_control}
 
   critic:
-    polyak: 0.995
-    critic_optimizer:
-      name: lso
-
     buffer:
       name: mixed_history_buffer
       n_most_recent: 24
@@ -96,6 +87,12 @@ eval_cfgs:
     enabled: True
 
 pipeline:
+  imputer:
+    name: per-tag
+    default:
+      name: copy
+      imputation_horizon: 2
+
   state_constructor:
     countdown:
       kind: int
@@ -118,9 +115,6 @@ pipeline:
     operating_range: [9.4, 10.]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
     action_constructor:
       - name: delta
       - name: clip
@@ -136,9 +130,6 @@ pipeline:
     operating_range: [650., 700.]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
     action_constructor:
       - name: delta
       - name: clip
@@ -154,9 +145,6 @@ pipeline:
     operating_range: [15., 30.]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
     action_constructor:
       - name: delta
       - name: clip
@@ -172,108 +160,72 @@ pipeline:
     red_bounds: [9.4, 10.]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
 
   - name: AIC3731_PV # ORP process value
     operating_range: [0., 800.]
     red_bounds: [650., 700.]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
 
   - name: FIC3734_PV # flow rate PV
     operating_range: [0, 100]
     red_bounds: [15, 30]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
 
   - name: FIC3734_OUT # flow rate controller output
     operating_range: [0, 100]
     red_bounds: [40, 60]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
 
   - name: LI3734 # scrubber tower sump level
     operating_range: [500, 700]
     red_bounds: [585, 595]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
 
   - name: FI0872 # scrubber recirc flow
     operating_range: [0, 2300]
     red_bounds: [1900, 2100]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
 
   - name: AI0879A # H2S inlet
     operating_range: [0., 100]
     red_bounds: [5., 60]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
 
   - name: PDIC3738_PV # PDIC-3738 (PID Process Value)
     operating_range: [0, 3]
     red_bounds: [2.3, 2.5]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
 
   - name: PDIC3738_OUT # PDIC-3738 (PID Output)
     operating_range: [0, 100]
     red_bounds: [45, 50]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
 
   - name: PI0169 # blower discharge pressure
     operating_range: [0, 1]
     red_bounds: [0.3, 0.5]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
 
   - name: TI0880 # scrubber inlet temp
     operating_range: [0, 75]
     red_bounds: [0, 30]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
 
   - name: AI0897B # scrubber softened water conductivity
     operating_range: [0, 30]
     red_bounds: [5, 20]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
 
   - name: AIC3730_OUT # pH pump output
     preprocess: []
@@ -281,9 +233,6 @@ pipeline:
     red_bounds: [0, 60]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
     state_constructor:
     - name: normalize
       min: 0
@@ -340,9 +289,6 @@ pipeline:
     red_bounds: [0, 60]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
     state_constructor:
     - name: normalize
       min: 0
@@ -360,9 +306,6 @@ pipeline:
     red_bounds: [0., 5000]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
     state_constructor:
     - name: normalize
       min: 0
@@ -374,9 +317,6 @@ pipeline:
     red_bounds: [85., 100.]
     outlier:
       name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 2
     state_constructor:
     - name: normalize
       min: 85

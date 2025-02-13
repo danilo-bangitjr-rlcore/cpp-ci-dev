@@ -21,12 +21,6 @@ env:
 
 agent:
   name: greedy_ac
-  n_critic_updates: 1
-  n_actor_updates: 1
-  num_samples: 32
-  uniform_sampling_percentage: 0.8
-  discrete_control: ${env.discrete_control}
-  seed: ${experiment.seed}
 
   actor:
     actor_optimizer:
@@ -50,8 +44,6 @@ pipeline:
     operating_range: [-1.5, 1.5]
     outlier:
       name: identity
-    imputer:
-      name: identity
     reward_constructor:
     - name: power
       pow: 2
@@ -68,8 +60,6 @@ pipeline:
     yellow_bounds: [-0.8, null]
     outlier:
       name: identity
-    imputer:
-      name: identity
     reward_constructor:
     - name: 'null'
 
@@ -77,8 +67,6 @@ pipeline:
     operating_range: [-0.07, 0.07]
     red_bounds: [-0.06, 0.06]
     outlier:
-      name: identity
-    imputer:
       name: identity
     reward_constructor:
     - name: 'null'

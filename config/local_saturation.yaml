@@ -16,28 +16,13 @@ metrics:
 
 agent:
   name: greedy_ac
-  rho : 0.1
-  num_samples: 100
-  seed: ${experiment.seed}
-  gamma: ${experiment.gamma}
-  discrete_control: ${env.discrete_control}
 
   critic:
-    polyak: 0.995
-    critic_optimizer:
-      name: 'armijo_adam'
-      lr : 0.0003
-      weight_decay : 0.0
     critic_network:
       ensemble: 1
     buffer:
       name : 'ensemble_uniform'
       ensemble: 2
-
-  actor:
-    actor_optimizer:
-      lr : 0.0005
-
 
 pipeline:
   state_constructor:

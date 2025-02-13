@@ -14,7 +14,7 @@ import pandas as pd
 from pandas import DataFrame
 from pydantic import Field
 
-from corerl.configs.config import MISSING, computed, config, list_
+from corerl.configs.config import MISSING, computed, config, list_, sanitizer
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
@@ -50,6 +50,19 @@ class PipelineConfig:
     state_constructor: SCConfig = Field(default_factory=SCConfig)
     transition_creator: AllTheTimeTCConfig = Field(default_factory=AllTheTimeTCConfig)
     transition_filter: TransitionFilterConfig = Field(default_factory=TransitionFilterConfig)
+
+
+    @sanitizer
+    def _default_imputers(self, cfg: MainConfig):
+        if not isinstance(self.imputer, PerTagImputerConfig):
+            return
+
+        for tag in self.tags:
+            if tag.imputer is not None:
+                continue
+
+            tag.imputer = self.imputer.default
+
 
     @computed('max_data_gap')
     @classmethod

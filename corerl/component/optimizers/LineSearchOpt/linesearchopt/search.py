@@ -1,6 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 
+import torch
 from numpy import clip as clip
 from typing_extensions import override
 
@@ -207,3 +208,5 @@ class Goldstein(Search):
             step_size = step_size * self._beta_b
 
         return found == 3, step_size
+
+torch.serialization.add_safe_globals([Armijo, Goldstein])
