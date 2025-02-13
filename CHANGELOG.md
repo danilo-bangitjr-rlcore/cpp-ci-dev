@@ -1,3 +1,10 @@
+## 0.93.3 (2025-02-13)
+
+### Refactor
+
+- remove NStepInfo dataclass
+- simplify all-the-time TC
+
 ## 0.93.2 (2025-02-13)
 
 ### Fix
