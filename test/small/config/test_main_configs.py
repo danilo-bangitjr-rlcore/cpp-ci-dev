@@ -19,7 +19,7 @@ from corerl.configs.loader import config_to_dict, direct_load_config
     ('projects/epcor_scrubber/configs', 'epcor_scrubber'),
 ])
 def test_main_configs(base: str, config_name: str):
-    config = direct_load_config(MainConfig, base, config_name)
+    config = direct_load_config(MainConfig, base=base, config_name=config_name)
     assert isinstance(config, MainConfig)
 
     # walk through config, ensure that there are no MISSING symbols or uninterpolated values

@@ -149,10 +149,16 @@ def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
     return config
 
 
-def direct_load_config[T](Config: type[T], base: str | None = None, config_name: str | None = None):
+def direct_load_config[T](
+    Config: type[T],
+    overrides: dict[str, str] | None = None,
+    base: str | None = None,
+    config_name: str | None = None,
+):
     # parse all of the command line flags
     # gracefully ignore those we can't parse
     flags = _flags_from_cli()
+    flags |= (overrides or {})
 
     # give precedence to cli overrides
     # else, require function args to be specified
@@ -207,7 +213,7 @@ def config_from_dict[T](Config: type[T], raw_config: dict, flags: dict[str, str]
 def load_config[T](Config: type[T], base: str | None = None, config_name: str | None = None):
     def _inner[**U, R](f: Callable[Concatenate[T, U], R]):
         def __inner(*args: U.args, **kwargs: U.kwargs) -> R:
-            config = direct_load_config(Config, base, config_name)
+            config = direct_load_config(Config, base=base, config_name=config_name)
             return f(config, *args, **kwargs)
         return __inner
     return _inner
