@@ -4,8 +4,8 @@ experiment:
 
 interaction:
   name: dep_interaction
-  action_period: 00:00:15
-  obs_period: 00:00:05
+  action_period: 00:00:01
+  obs_period: 00:00:01
 
 env:
   name: dep_async_env
