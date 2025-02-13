@@ -25,20 +25,13 @@ agent:
 
   critic:
     polyak: 0.995
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
 
   actor:
     actor_optimizer:
       lr: 0.001
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
 
 
 metrics:
-  name: db
   enabled: True
 
 evals:
@@ -53,10 +46,9 @@ eval_cfgs:
 
 pipeline:
   state_constructor:
-    defaults: []
-    # defaults:
-    # - name: multi_trace
-    #   trace_values: [0., 0.75, 0.95]
+    defaults:
+    - name: multi_trace
+      trace_values: [0., 0.75, 0.95]
 
   transition_creator:
     name: anytime
@@ -88,21 +80,15 @@ pipeline:
     is_meta: True
     outlier:
       name: identity
-    state_constructor:
-    - name: 'null'
 
   # observations
   - name: tag-0
     preprocess:
     - name: identity
-    is_meta: False
     outlier:
       name: identity
     preprocess:
       - name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]
     reward_constructor:
     # subtract saturation SP
     - name: affine
@@ -119,17 +105,10 @@ pipeline:
 
   # actions
   - name: action-0
-    is_meta: False
     operating_range: [0, 0.5]
     outlier:
       name: identity
     state_constructor:
       - name: 'null'
-    preprocess:
-      - name: normalize
-        from_data: False
     action_constructor:
       - name: identity
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]

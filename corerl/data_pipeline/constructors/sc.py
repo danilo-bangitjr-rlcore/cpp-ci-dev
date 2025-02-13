@@ -11,12 +11,11 @@ from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import TransformConfig
-from corerl.data_pipeline.transforms.norm import NormalizerConfig
 
 
 @config()
 class SCConfig:
-    defaults: list[TransformConfig] = list_([NormalizerConfig()])
+    defaults: list[TransformConfig] = list_([])
     countdown: CountdownConfig = Field(default_factory=CountdownConfig)
 
 

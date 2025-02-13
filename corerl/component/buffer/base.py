@@ -1,17 +1,23 @@
+from __future__ import annotations
+
 import logging
 from abc import abstractmethod
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import torch
 from torch import Tensor
 
-from corerl.configs.config import MISSING, config
+from corerl.configs.config import MISSING, computed, config
 from corerl.configs.group import Group
 from corerl.data_pipeline.datatypes import DataMode, StepBatch, Transition, TransitionBatch
 from corerl.state import AppState
 from corerl.utils.device import device
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +33,12 @@ class BaseReplayBufferConfig:
     # the number of samples in the batch from most recent data.
     n_most_recent: int = 1
     id: str = ""
+
+    @computed('seed')
+    @classmethod
+    def _seed(cls, cfg: MainConfig):
+        return cfg.experiment.seed
+
 
 class ReplayBuffer:
     def __init__(self, cfg: BaseReplayBufferConfig, app_state: AppState):

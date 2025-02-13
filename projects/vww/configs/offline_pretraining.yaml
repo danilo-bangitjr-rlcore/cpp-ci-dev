@@ -6,7 +6,6 @@ experiment:
   pipeline_batch_duration: 50 days
   save_path: output
   seed: 1
-  param_from_hash: True
 
 infra:
   db:
@@ -32,8 +31,6 @@ env:
     table_name: "tag_data"
 
 metrics:
-  name: db
-  table_name: "metrics"
   enabled: True
 
 eval_cfgs:
@@ -96,9 +93,11 @@ agent:
 
 pipeline:
   state_constructor:
-    defaults: []
     countdown:
       kind: two_clock
+    defaults:
+      - name: multi_trace
+        trace_values: [0.0, 0.9, 0.95, 0.99]
 
   transition_creator:
     name: "all-the-time"
@@ -128,13 +127,6 @@ pipeline:
       imputer:
         name: "copy"
         imputation_horizon: 96
-      state_constructor:
-        - name: multi_trace
-          trace_values:
-            - 0.0
-            - 0.9
-            - 0.95
-            - 0.99
 
     - name: "dd1_recirculation_flow_rate"
       is_meta: False
@@ -151,13 +143,6 @@ pipeline:
       imputer:
         name: "copy"
         imputation_horizon: 96
-      state_constructor:
-        - name: multi_trace
-          trace_values:
-            - 0.0
-            - 0.9
-            - 0.95
-            - 0.99
 
     - name: "dd1_frequency_time_sp"
       is_meta: False
@@ -174,13 +159,6 @@ pipeline:
       imputer:
         name: "copy"
         imputation_horizon: 96
-      state_constructor:
-        - name: multi_trace
-          trace_values:
-            - 0.0
-            - 0.9
-            - 0.95
-            - 0.99
 
     - name: "dd1_flow_between_blowdowns"
       is_meta: False
@@ -197,13 +175,6 @@ pipeline:
       imputer:
         name: "copy"
         imputation_horizon: 96
-      state_constructor:
-        - name: multi_trace
-          trace_values:
-            - 0.0
-            - 0.9
-            - 0.95
-            - 0.99
 
     - name: "dd1_duration_time_sp"
       is_meta: False
@@ -220,13 +191,6 @@ pipeline:
       imputer:
         name: "copy"
         imputation_horizon: 96
-      state_constructor:
-        - name: multi_trace
-          trace_values:
-            - 0.0
-            - 0.9
-            - 0.95
-            - 0.99
 
 #    - name: "dd_influent_tss"
 #      is_meta: False
@@ -243,13 +207,6 @@ pipeline:
 #      imputer:
 #        name: "copy"
 #        imputation_horizon: 384
-#      state_constructor:
-#        - name: multi_trace
-#          trace_values:
-#            - 0.0
-#            - 0.9
-#            - 0.95
-#            - 0.99
 #
 #    - name: "dd_influent_cod"
 #      is_meta: False
@@ -266,13 +223,6 @@ pipeline:
 #      imputer:
 #        name: "copy"
 #        imputation_horizon: 384
-#      state_constructor:
-#        - name: multi_trace
-#          trace_values:
-#            - 0.0
-#            - 0.9
-#            - 0.95
-#            - 0.99
 #
 #    - name: "dd_influent_cbod5"
 #      is_meta: False
@@ -289,13 +239,6 @@ pipeline:
 #      imputer:
 #        name: "copy"
 #        imputation_horizon: 384
-#      state_constructor:
-#        - name: multi_trace
-#          trace_values:
-#            - 0.0
-#            - 0.9
-#            - 0.95
-#            - 0.99
 #
 #    - name: "dd_effluent_tss"
 #      is_meta: False
@@ -312,13 +255,6 @@ pipeline:
 #      imputer:
 #        name: "copy"
 #        imputation_horizon: 384
-#      state_constructor:
-#        - name: multi_trace
-#          trace_values:
-#            - 0.0
-#            - 0.9
-#            - 0.95
-#            - 0.99
 #
 #    - name: "dd_effluent_cod"
 #      is_meta: False
@@ -335,13 +271,6 @@ pipeline:
 #      imputer:
 #        name: "copy"
 #        imputation_horizon: 384
-#      state_constructor:
-#        - name: multi_trace
-#          trace_values:
-#            - 0.0
-#            - 0.9
-#            - 0.95
-#            - 0.99
 #
 #    - name: "dd_effluent_cbod5"
 #      is_meta: False
@@ -358,13 +287,6 @@ pipeline:
 #      imputer:
 #        name: "copy"
 #        imputation_horizon: 384
-#      state_constructor:
-#        - name: multi_trace
-#          trace_values:
-#            - 0.0
-#            - 0.9
-#            - 0.95
-#            - 0.99
 
     - name: "db_tank_water_level"
       is_meta: False
@@ -381,13 +303,6 @@ pipeline:
       imputer:
         name: "copy"
         imputation_horizon: 96
-      state_constructor:
-        - name: multi_trace
-          trace_values:
-            - 0.0
-            - 0.9
-            - 0.95
-            - 0.99
 
     - name: "db_tank_flow_rate"
       is_meta: False
@@ -404,13 +319,6 @@ pipeline:
       imputer:
         name: "copy"
         imputation_horizon: 96
-      state_constructor:
-        - name: multi_trace
-          trace_values:
-            - 0.0
-            - 0.9
-            - 0.95
-            - 0.99
 
     # Action
     - name: "dd1_polymer_dose"
@@ -430,13 +338,6 @@ pipeline:
         imputation_horizon: 96
       action_constructor:
         - name: identity
-      state_constructor:
-        - name: multi_trace
-          trace_values:
-            - 0.0
-            - 0.9
-            - 0.95
-            - 0.99
 #      reward_constructor: # $/sec
 #        - name: "affine"
 #          scale: -0.00000132277 # TODO: Update cost of polymer per mg
@@ -500,13 +401,6 @@ pipeline:
         imputation_horizon: 96
       action_constructor:
         - name: identity
-      state_constructor:
-        - name: multi_trace
-          trace_values:
-            - 0.0
-            - 0.9
-            - 0.95
-            - 0.99
 #      reward_constructor: # $/sec
 #        - name: "affine"
 #          scale: -0.00003398 # TODO: Update cost of ferric chloride per mg
@@ -568,13 +462,6 @@ pipeline:
       imputer:
         name: "copy"
         imputation_horizon: 96
-      state_constructor:
-        - name: multi_trace
-          trace_values:
-            - 0.0
-            - 0.9
-            - 0.95
-            - 0.99
       reward_constructor:
         - name: "affine"
           scale: -0.00238 # If turbidity constraint is violated, turbidity penalty occupies reward range [0.0, 0.5]
