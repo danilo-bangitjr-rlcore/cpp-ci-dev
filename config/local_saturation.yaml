@@ -4,7 +4,7 @@ defaults:
 interaction:
   name: sim_interaction
   obs_period: 00:00:01
-  action_period: 00:00:02
+  action_period: 00:00:01
 
 experiment :
   exp_name : "saturation"
@@ -24,7 +24,7 @@ agent:
       lr : 0.01
       weight_decay : 0.0
     critic_network:
-      ensemble: 1
+      ensemble: 5
     buffer:
       name : 'ensemble_uniform'
       ensemble: 2
