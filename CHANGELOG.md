@@ -1,3 +1,15 @@
+## 0.97.0 (2025-02-13)
+
+### Feat
+
+- add ability to override directly loaded config options
+- delta action cfg encantation is computed from feature flag
+- allow GAC to have different delta percents per setpoint tag
+
+### Fix
+
+- configs should no longer be assumed frozen
+
 ## 0.96.0 (2025-02-13)
 
 ### Feat
