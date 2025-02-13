@@ -53,10 +53,6 @@ pipeline:
       - name: multi_trace
         trace_values: [0.0, 0.9]
 
-  transition_creator:
-    name: all-the-time
-    gamma: ${experiment.gamma}
-
   tags:
   - name: PERM_SP.BW_SP # flow rate setpoint
     node_identifier: "[pilot]Program:ZW.PERM_SP.BW_SP"

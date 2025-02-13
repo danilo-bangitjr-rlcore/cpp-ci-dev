@@ -36,9 +36,6 @@ pipeline:
       - name: multi_trace
         trace_values: [0, 0.9]
 
-  transition_creator:
-    name: anytime
-
   tags:
   - name: action-0
     operating_range: [-1.5, 1.5]

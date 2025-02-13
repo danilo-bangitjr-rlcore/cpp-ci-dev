@@ -93,7 +93,6 @@ pipeline:
 
   transition_creator:
     name: "all-the-time"
-    gamma: ${experiment.gamma}
     min_n_step: 1
     max_n_step: 4
 

@@ -37,8 +37,3 @@ experiment:
   offline_steps: 10
   pipeline_batch_duration: 7 days
   gamma: 0.99
-
-pipeline:
-  transition_creator:
-    name: anytime
-    gamma: ${experiment.gamma}

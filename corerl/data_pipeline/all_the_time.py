@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from corerl.component.network.utils import tensor
-from corerl.configs.config import MISSING, computed, config, interpolate
+from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, Step, Transition
 from corerl.utils.maybe import Maybe
 
@@ -19,9 +19,9 @@ if TYPE_CHECKING:
 @config()
 class AllTheTimeTCConfig:
     name: str = "all-the-time"
-    gamma: float = interpolate('${experiment.gamma}')
     min_n_step: int = 1
     max_n_step: int = MISSING
+    gamma: float = MISSING
 
     @computed('max_n_step')
     @classmethod
@@ -34,6 +34,12 @@ class AllTheTimeTCConfig:
             "Action period must be a multiple of obs period"
 
         return steps_per_decision
+
+    @computed('gamma')
+    @classmethod
+    def _gamma(cls, cfg: MainConfig):
+        return cfg.experiment.gamma
+
 
 type StepInfo = dict[int, deque[Step]]
 

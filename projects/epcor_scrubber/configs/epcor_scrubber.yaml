@@ -103,10 +103,6 @@ pipeline:
       - name: multi_trace
         trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
 
-  transition_creator:
-    name: all-the-time
-    gamma: ${experiment.gamma}
-
   transition_filter:
     filters:
     - "only_no_action_change"

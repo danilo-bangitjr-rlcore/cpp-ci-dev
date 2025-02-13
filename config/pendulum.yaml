@@ -27,10 +27,6 @@ pipeline:
       - name: multi_trace
         trace_values: [0, 0.95]
 
-  transition_creator:
-    name: anytime
-    gamma: ${experiment.gamma}
-
   tags:
   - name: action-0
     operating_range: [-2, 2]

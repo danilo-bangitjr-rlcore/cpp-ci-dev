@@ -20,7 +20,3 @@ env:
 
 agent:
   name: greedy_ac
-
-pipeline:
-  transition_creator:
-    name: anytime # needed
