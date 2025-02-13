@@ -229,6 +229,7 @@ class PipelineFrame:
     rewards: pd.DataFrame = field(default_factory=pd.DataFrame)
     missing_info: pd.DataFrame = field(init=False)
     decision_points: np.ndarray = field(init=False)
+    action_change: np.ndarray = field(init=False)
     temporal_state: TemporalState = field(default_factory=dict)
     transitions: list[Transition] | None = None
 
@@ -241,6 +242,8 @@ class PipelineFrame:
 
         # initialize dp flags
         self.decision_points = np.zeros(N, dtype=np.bool_)
+        # initialize action change flags
+        self.action_change = np.zeros(N, dtype=np.bool_)
 
         # initialize rl containers
         self.actions = self.data.copy(deep=False)

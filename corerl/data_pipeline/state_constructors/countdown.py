@@ -74,7 +74,11 @@ class DecisionPointDetector:
             is_dp = ts.steps_until_dp == 0
             is_ac = self._is_action_change(pf.actions, ts, i)
 
-            if is_dp or is_ac:
+            if is_ac:
+                pf.action_change[i] = True
+                ts.steps_until_dp = self._steps_per_decision - 1
+
+            if is_dp:
                 pf.decision_points[i] = True
                 ts.steps_until_dp = self._steps_per_decision
 
