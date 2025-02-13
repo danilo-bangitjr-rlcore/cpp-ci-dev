@@ -1,3 +1,17 @@
+## 0.93.2 (2025-02-13)
+
+### Fix
+
+- update dependency versions
+
+### Refactor
+
+- remove all buffer config overrides in favor of defaults
+- remove lots of unnecessary is_meta and sc: null cfgs
+- prefer global sc defaults over tag-specific sc xforms
+- remove normalizer from default sc cfgs
+- remove many unused cfg values
+
 ## 0.93.1 (2025-02-13)
 
 ### Fix
