@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import Iterable
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -44,16 +45,10 @@ class NStepInfo:
     Dataclass for holding on to information for producing transitions for each bootstrap length (n)
     Holds:
      * a queue of steps
-     * the discounted sum of rewards for steps in step_q. The first step's reward is ignored since it occurred
-        prior to the first step's state being created
-     * the discount factor for bootstrapping off step_q[-1].state
     """
 
     def __init__(self, n: int):
         self.step_q = deque[Step](maxlen=n + 1)
-        self.n_step_reward: float = 0
-        self.n_step_gamma: float = 1
-
 
 type StepInfo = dict[int, NStepInfo]
 
@@ -64,16 +59,18 @@ def get_tags(df: pd.DataFrame, tags: Iterable[str]):
 
 
 def get_n_step_reward(step_q: deque[Step]):
-    last_step = step_q[-1]
-    n_step_reward = last_step.reward
-    n_step_gamma = last_step.gamma
+    steps = deepcopy(step_q) # deque is mutable
+    steps.popleft() # drop the first step, it does not contribute to return
 
-    for step_backwards in range(len(step_q) - 2, 0, -1):
-        step = step_q[step_backwards]
-        n_step_reward = step.reward + step.gamma * n_step_reward
-        n_step_gamma *= step.gamma
+    partial_return = 0
+    discount = 1
 
-    return n_step_reward, n_step_gamma
+    while len(steps) > 0:
+        step = steps.popleft()
+        partial_return += discount * step.reward
+        discount *= step.gamma
+
+    return partial_return, discount
 
 
 def _reset_step_info(min_n_step: int, max_n_step: int):
@@ -90,7 +87,6 @@ class AllTheTimeTC:
     ):
         self.cfg = cfg
         self.tag_configs = tag_configs
-        self.meta_tags = sorted(tag.name for tag in tag_configs if tag.is_meta)
 
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
@@ -102,37 +98,27 @@ class AllTheTimeTC:
         """
         Constructs steps from pipeframe elements
         """
-        pf, actions, states = self._extract_columns(pf)
 
-        df = pf.data
+        states = tensor(pf.states.to_numpy())
+        actions = tensor(pf.actions.to_numpy())
         rewards = pf.rewards['reward'].to_numpy()
-        gammas = np.ones(len(rewards))
-        if 'terminated' in df.columns:
-            gammas = 1 - df['terminated'].to_numpy()
 
         dps = pf.decision_points
-        assert len(actions) == len(states) and len(states) == len(rewards) == len(gammas) == len(dps)
+        n = len(pf.data)
+
+        assert n == len(actions) == len(states) and len(states) == len(rewards) == len(dps)
 
         steps: list[Step] = []
-        for i in range(len(actions)):
+        for i in range(n):
             step = Step(
                 reward=rewards[i],
                 action=actions[i],
-                gamma=float(self.gamma * gammas[i]),
+                gamma=self.gamma,
                 state=states[i],
                 dp=bool(dps[i]),
             )
             steps.append(step)
         return pf, steps
-
-    def _extract_columns(self, pf: PipelineFrame):
-        state_cols = [
-            col for col in pf.data.columns
-            if col not in self.meta_tags
-        ]
-        states = get_tags(pf.data, state_cols)
-        actions = tensor(pf.actions.to_numpy(np.float32))
-        return pf, actions, states
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         step_info = pf.temporal_state.get(
@@ -165,14 +151,14 @@ class AllTheTimeTC:
             step_q = n_step_info.step_q
             step_q.append(step)
 
-            is_full = len(step_q) == n + 1
+            is_full = len(step_q) == step_q.maxlen
             if is_full:
-                n_step_info.n_step_reward, n_step_info.n_step_gamma = get_n_step_reward(step_q)
+                n_step_reward, n_step_gamma = get_n_step_reward(step_q)
 
                 new_transition = Transition(
                     list(step_q),
-                    n_step_reward=n_step_info.n_step_reward,
-                    n_step_gamma=n_step_info.n_step_gamma,
+                    n_step_reward=n_step_reward,
+                    n_step_gamma=n_step_gamma,
                 )
 
                 new_transitions.append(new_transition)
