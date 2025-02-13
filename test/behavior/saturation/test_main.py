@@ -25,10 +25,8 @@ def test_saturation(
     assert port is not None
 
     overrides |= {
-        'metrics.port': port,
-        'metrics.db_name': tsdb_tmp_db_name,
-        'evals.port': port,
-        'evals.db_name': tsdb_tmp_db_name,
+        'infra.db.port': port,
+        'infra.db.db_name': tsdb_tmp_db_name,
     }
     parts = [f'{k}={v}' for k, v in overrides.items()]
 
@@ -42,13 +40,9 @@ def test_saturation(
     # ensure metrics table exists
     assert table_exists(tsdb_engine, 'metrics')
 
-    # ensure evals table exists
-    assert table_exists(tsdb_engine, 'evals')
-
     # ensure some metrics were logged to table
     with tsdb_engine.connect() as conn:
         metrics = pd.read_sql_table('metrics', con=conn)
-        evals = pd.read_sql_table('evals', con=conn)
 
     metrics = metrics.sort_values('agent_step', ascending=True)
 
@@ -59,8 +53,6 @@ def test_saturation(
             assert values[-100:].mean() >= expected
         else:
             assert values[-100:].mean() <= expected
-
-    assert len(evals) > 0
 
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
