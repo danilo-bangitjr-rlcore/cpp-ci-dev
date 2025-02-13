@@ -90,7 +90,7 @@ jobs:
       #- run: uv run pytest test/large
 
   docker-build-test:
-    needs: [small-test, medium-test]
+    # needs: [small-test, medium-test]
     uses: ./.github/workflows/reusable-build-docker-image.yml
     secrets: inherit
     with:

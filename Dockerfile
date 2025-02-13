@@ -53,7 +53,7 @@ WORKDIR /app
 # Our corerl image is quite large with default cuda dependencies.
 # RUN pip install /app/dist/corerl-*.whl
 # Minimal CPU supported installation is used instead.
-RUN pip install torch --index-url https://download.pytorch.org/whl/CPU
+RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
 
 RUN pip --no-cache-dir install --no-compile /app/dist/corerl-*.whl
 
