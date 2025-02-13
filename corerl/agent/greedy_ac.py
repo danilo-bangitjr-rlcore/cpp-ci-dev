@@ -244,11 +244,10 @@ class GreedyAC(BaseAC):
             return next_action
 
         bounds = self.cfg.delta_bounds
-        assert bounds is not None, "Delta actions are enabled, however the agent has no delta bounds"
-        scale = bounds[1] - bounds[0]
-        bias = bounds[0]
+        scales = torch.tensor([b[1] - b[0] for b in bounds])
+        biases = torch.tensor([b[0] for b in bounds])
 
-        delta = scale * next_action + bias
+        delta = scales * next_action + biases
         direct_action = direct_action + delta
 
         # because we are always operating in normalized space,

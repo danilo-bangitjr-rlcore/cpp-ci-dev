@@ -23,7 +23,7 @@ class BaseAgentConfig:
     name: Any = MISSING
 
     delta_action: bool = False
-    delta_bounds: tuple[float, float] | None = None
+    delta_bounds: list[tuple[float, float]] = Field(default_factory=list)
     n_updates: int = 1
     replay_ratio: int = 1
     update_freq: int = 1
