@@ -49,14 +49,6 @@ pipeline:
 
   tags:
   # meta tags
-  - name: reward
-    preprocess:
-    - name: identity
-    reward_constructor:
-    - name: 'null'
-    state_constructor:
-    - name: 'null'
-
   - name: terminated
     is_meta: True
 
