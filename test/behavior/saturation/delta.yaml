@@ -13,7 +13,7 @@ experiment:
   exp_name: "saturation"
   seed: 1
   gamma: 0.99
-  max_steps: 2500
+  max_steps: 400
 
 agent:
   name: greedy_ac
