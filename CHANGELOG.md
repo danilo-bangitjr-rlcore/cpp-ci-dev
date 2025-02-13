@@ -1,3 +1,14 @@
+## 0.98.0 (2025-02-13)
+
+### Feat
+
+- add timestamp to steps
+
+### Fix
+
+- ensure None values are ignored in replay buffer
+- ignore step timestamp in buffer
+
 ## 0.97.0 (2025-02-13)
 
 ### Feat
