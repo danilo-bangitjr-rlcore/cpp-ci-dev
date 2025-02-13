@@ -1,3 +1,10 @@
+## 0.93.1 (2025-02-13)
+
+### Fix
+
+- more debugging
+- Small fix for Docker build
+
 ## 0.93.0 (2025-02-13)
 
 ### Feat
