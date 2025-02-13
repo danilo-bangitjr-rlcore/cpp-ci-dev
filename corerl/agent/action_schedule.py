@@ -20,7 +20,7 @@ def step(start: float, end: float, step: float):
     return out
 
 
-@config(frozen=True)
+@config()
 class ActionScheduleConfig(BaseAgentConfig):
     name: Literal['action_schedule'] = 'action_schedule'
     action_schedule: list[list[float]] = list_([

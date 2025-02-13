@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from corerl.config import MainConfig
 
 
-@config(frozen=True)
+@config()
 class BaseAgentConfig:
     name: Any = MISSING
 
@@ -97,7 +97,7 @@ class BaseAgent(ABC):
 
 
 
-@config(frozen=True)
+@config()
 class BaseACConfig(BaseAgentConfig):
     critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
     actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)

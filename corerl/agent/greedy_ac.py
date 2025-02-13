@@ -102,7 +102,7 @@ def grab_percentile(
     return top_n_indices
 
 
-@config(frozen=True)
+@config()
 class GreedyACConfig(BaseACConfig):
     name: Literal["greedy_ac"] = "greedy_ac"
 
