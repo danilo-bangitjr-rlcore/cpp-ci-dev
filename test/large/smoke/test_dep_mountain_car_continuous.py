@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 from pytest import FixtureRequest
+from sqlalchemy import Engine
 
 from corerl.agent.factory import init_agent
 from corerl.config import MainConfig
@@ -221,8 +222,17 @@ def test_dep_mountain_car_continuous(check_sim_farama_environment_ready: None, r
     )
     proc.check_returncode()
 
-def test_agent_checkpoint(run_docker_compose: None):
-    cfg = direct_load_config(MainConfig, base=".", config_name="config/dep_mountain_car_continuous")
+def test_agent_checkpoint(tsdb_engine: Engine, tsdb_tmp_db_name: str):
+    cfg = direct_load_config(
+        MainConfig,
+        overrides={
+            'infra.db.db_name': tsdb_tmp_db_name,
+            'infra.db.port': str(tsdb_engine.url.port),
+        },
+        base=".",
+        config_name="config/dep_mountain_car_continuous",
+    )
+
     event_bus = EventBus(cfg.event_bus, cfg.env)
     app_state = AppState(
         cfg=cfg,
@@ -244,4 +254,3 @@ def test_agent_checkpoint(run_docker_compose: None):
     agent.save(path)
     agent.load(path)
     shutil.rmtree(output_dir)
-
