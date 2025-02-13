@@ -23,7 +23,6 @@ interaction:
 
 env:
   name: dep_async_env
-  seed: ${experiment.seed}
   opc_conn_url: "opc.tcp://ignition-services:62541"
   opc_ns: 1
   discrete_control: False

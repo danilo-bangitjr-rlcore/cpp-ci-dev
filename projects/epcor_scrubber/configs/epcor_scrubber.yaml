@@ -41,7 +41,6 @@ env:
   update_period: 00:00:30
   action_tolerance: 00:15:00
   setpoint_ping_period: 00:00:10
-  seed: ${experiment.seed}
 
   opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
   opc_ns: 3

@@ -1,7 +1,6 @@
 env:
   name: sim_async_env
   gym_name : MultiActionSaturation-v0
-  seed : ${experiment.seed}
   discrete_control : False
 
 interaction:
