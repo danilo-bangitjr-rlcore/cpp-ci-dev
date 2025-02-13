@@ -41,8 +41,9 @@ def test_pipeline1():
                 operating_range=(None, 10),
                 red_bounds=(-1, None),
                 imputer=LinearImputerConfig(max_gap=2),
+                preprocess=[],
                 state_constructor=[
-                    NormalizerConfig(from_data=True),
+                    NormalizerConfig(min=0, max=10),
                     TraceConfig(trace_values=[0.1]),
                 ],
                 is_endogenous=True
@@ -415,4 +416,3 @@ def test_delta_action_countdown():
     # wrong = np.array([4, 3, 2, 1, 4, 4, 3, 2])
 
     assert np.allclose(cd, expected)
-

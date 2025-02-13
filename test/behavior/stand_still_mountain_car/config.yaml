@@ -42,8 +42,6 @@ pipeline:
   tags:
   - name: action-0
     operating_range: [-1.5, 1.5]
-    outlier:
-      name: identity
     reward_constructor:
     - name: power
       pow: 2
@@ -58,36 +56,13 @@ pipeline:
     operating_range: [-1.2, 0.6]
     red_bounds: [-1.0, null]
     yellow_bounds: [-0.8, null]
-    outlier:
-      name: identity
-    reward_constructor:
-    - name: 'null'
 
   - name: tag-1
     operating_range: [-0.07, 0.07]
     red_bounds: [-0.06, 0.06]
-    outlier:
-      name: identity
-    reward_constructor:
-    - name: 'null'
-
-  - name: reward
-    preprocess:
-    - name: identity
-    is_meta: True
-    outlier:
-      name: identity
 
   - name: terminated
-    preprocess:
-    - name: identity
     is_meta: True
-    outlier:
-      name: identity
 
   - name: truncated
-    preprocess:
-    - name: identity
     is_meta: True
-    outlier:
-      name: identity

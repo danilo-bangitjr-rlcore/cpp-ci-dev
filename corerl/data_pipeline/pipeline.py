@@ -26,12 +26,12 @@ from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode, T
 from corerl.data_pipeline.imputers.factory import ImputerStageConfig, init_imputer
 from corerl.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
+from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
 from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
-from corerl.data_pipeline.zones import default_configs_from_zones
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -47,6 +47,7 @@ class PipelineConfig:
 
     # stage-wide configs
     imputer: ImputerStageConfig = Field(default_factory=PerTagImputerConfig)
+    oddity_filter: GlobalOddityFilterConfig = Field(default_factory=GlobalOddityFilterConfig)
     state_constructor: SCConfig = Field(default_factory=SCConfig)
     transition_creator: AllTheTimeTCConfig = Field(default_factory=AllTheTimeTCConfig)
     transition_filter: TransitionFilterConfig = Field(default_factory=TransitionFilterConfig)
@@ -62,6 +63,14 @@ class PipelineConfig:
                 continue
 
             tag.imputer = self.imputer.default
+
+    @sanitizer
+    def _default_oddity_filter(self, cfg: MainConfig):
+        for tag in self.tags:
+            if tag.outlier is not None:
+                continue
+
+            tag.outlier = self.oddity_filter.default
 
 
     @computed('max_data_gap')
@@ -189,7 +198,6 @@ class Pipeline:
 
     def _construct_config(self, cfg: PipelineConfig) -> PipelineConfig:
         construct_default_sc_configs(cfg.state_constructor, cfg.tags)
-        default_configs_from_zones(cfg.tags)
         return cfg
 
 

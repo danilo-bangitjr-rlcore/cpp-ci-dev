@@ -13,7 +13,7 @@ experiment:
   exp_name: "saturation"
   seed: 1
   gamma: 0.99
-  max_steps: 2500
+  max_steps: 400
 
 agent:
   name: greedy_ac
@@ -49,40 +49,15 @@ pipeline:
 
   tags:
   # meta tags
-  - name: reward
-    preprocess:
-    - name: identity
-    outlier:
-      name: identity
-    reward_constructor:
-    - name: 'null'
-    state_constructor:
-    - name: 'null'
-    preprocess:
-    - name: identity
-
   - name: terminated
-    preprocess:
-    - name: identity
     is_meta: True
-    outlier:
-      name: identity
 
   - name: truncated
-    preprocess:
-    - name: identity
     is_meta: True
-    outlier:
-      name: identity
 
   # observations
   - name: tag-0
-    preprocess:
-    - name: identity
-    outlier:
-      name: identity
-    preprocess:
-      - name: identity
+    operating_range: [0, 1]
     reward_constructor:
     # subtract saturation SP
     - name: affine
@@ -100,8 +75,6 @@ pipeline:
   # actions
   - name: action-0
     operating_range: [0, 0.5]
-    outlier:
-      name: identity
     state_constructor:
       - name: 'null'
     action_constructor:

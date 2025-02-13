@@ -113,8 +113,6 @@ pipeline:
   - name: AIC3730_SP # pH SP
     node_identifier: 14
     operating_range: [9.4, 10.]
-    outlier:
-      name: identity
     action_constructor:
       - name: delta
       - name: clip
@@ -128,8 +126,6 @@ pipeline:
   - name: AIC3731_SP # ORP SP
     node_identifier: 15
     operating_range: [650., 700.]
-    outlier:
-      name: identity
     action_constructor:
       - name: delta
       - name: clip
@@ -143,8 +139,6 @@ pipeline:
   - name: FIC3734_SP # flow SP
     node_identifier: 17
     operating_range: [15., 30.]
-    outlier:
-      name: identity
     action_constructor:
       - name: delta
       - name: clip
@@ -158,85 +152,54 @@ pipeline:
   - name: AIC3730_PV # pH process value
     operating_range: [0., 14.]
     red_bounds: [9.4, 10.]
-    outlier:
-      name: identity
 
   - name: AIC3731_PV # ORP process value
     operating_range: [0., 800.]
     red_bounds: [650., 700.]
-    outlier:
-      name: identity
 
   - name: FIC3734_PV # flow rate PV
     operating_range: [0, 100]
     red_bounds: [15, 30]
-    outlier:
-      name: identity
 
   - name: FIC3734_OUT # flow rate controller output
     operating_range: [0, 100]
     red_bounds: [40, 60]
-    outlier:
-      name: identity
 
   - name: LI3734 # scrubber tower sump level
     operating_range: [500, 700]
     red_bounds: [585, 595]
-    outlier:
-      name: identity
 
   - name: FI0872 # scrubber recirc flow
     operating_range: [0, 2300]
     red_bounds: [1900, 2100]
-    outlier:
-      name: identity
 
   - name: AI0879A # H2S inlet
     operating_range: [0., 100]
     red_bounds: [5., 60]
-    outlier:
-      name: identity
 
   - name: PDIC3738_PV # PDIC-3738 (PID Process Value)
     operating_range: [0, 3]
     red_bounds: [2.3, 2.5]
-    outlier:
-      name: identity
 
   - name: PDIC3738_OUT # PDIC-3738 (PID Output)
     operating_range: [0, 100]
     red_bounds: [45, 50]
-    outlier:
-      name: identity
 
   - name: PI0169 # blower discharge pressure
     operating_range: [0, 1]
     red_bounds: [0.3, 0.5]
-    outlier:
-      name: identity
 
   - name: TI0880 # scrubber inlet temp
     operating_range: [0, 75]
     red_bounds: [0, 30]
-    outlier:
-      name: identity
 
   - name: AI0897B # scrubber softened water conductivity
     operating_range: [0, 30]
     red_bounds: [5, 20]
-    outlier:
-      name: identity
 
   - name: AIC3730_OUT # pH pump output
-    preprocess: []
     operating_range: [0, 125]
     red_bounds: [0, 60]
-    outlier:
-      name: identity
-    state_constructor:
-    - name: normalize
-      min: 0
-      max: 60
     reward_constructor: # generated programattically from test_epcor_reward
     - name: split
       left:
@@ -284,15 +247,8 @@ pipeline:
       passthrough: false
 
   - name: AIC3731_OUT # ORP pump output
-    preprocess: []
     operating_range: [0, 125]
     red_bounds: [0, 60]
-    outlier:
-      name: identity
-    state_constructor:
-    - name: normalize
-      min: 0
-      max: 60
     reward_constructor:
     - name: greater_than
       threshold: 60.0
@@ -301,26 +257,12 @@ pipeline:
       factor: -1.0
 
   - name: AI0879B # H2S outlet
-    preprocess: []
     operating_range: [0., 30000]
     red_bounds: [0., 5000]
-    outlier:
-      name: identity
-    state_constructor:
-    - name: normalize
-      min: 0
-      max: 5000
 
   - name: AI0879C # H2S efficiency
-    preprocess: []
     operating_range: [0., 100.]
     red_bounds: [85., 100.]
-    outlier:
-      name: identity
-    state_constructor:
-    - name: normalize
-      min: 85
-      max: 100
     reward_constructor: # generated programattically from test_epcor_reward
     - name: scale
       factor: -1.0
