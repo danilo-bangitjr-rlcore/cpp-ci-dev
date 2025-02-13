@@ -1,3 +1,9 @@
+## 0.95.0 (2025-02-13)
+
+### Feat
+
+- Web Client has can verify if DB and OPC connections are available (#506)
+
 ## 0.94.0 (2025-02-13)
 
 ### Feat
