@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from torch import Tensor
 
+import corerl.eval.agent as agent_eval
 from corerl.agent.base import BaseAgent
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
@@ -108,8 +109,13 @@ class SimInteraction(Interaction):
 
         delta = self._agent.get_action(s)
         a_df = self._pipeline.action_constructor.assign_action_names(a, delta)
+        a_np = a_df.to_numpy()
         a_df = self._pipeline.preprocessor.inverse(a_df)
         self._env.emit_action(a_df)
+
+        # metrics + eval
+        agent_eval.eval_policy_variance(self._app_state, s, self._agent)
+        agent_eval.eval_q_online(self._app_state, s, self._agent, a_np)
 
         # log actions
         self._write_to_metrics(a_df)
