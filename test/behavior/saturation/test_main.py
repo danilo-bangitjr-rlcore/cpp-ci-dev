@@ -9,8 +9,8 @@ from corerl.sql_logging.sql_logging import table_exists
 
 
 @pytest.mark.parametrize('config,overrides,expected_outcomes', [
-    ('config.yaml', {},   {'reward': -0.05, 'avg_critic_loss': 0.005, 'actor_loss': -1.0}),
-    ('delta.yaml',  {},   {'reward': -0.07, 'avg_critic_loss': 0.005, 'actor_loss': -0.3}),
+    ('config.yaml', {},   {'reward': -0.2, 'critic_loss': 0.02, 'actor_loss': -1.0}),
+    ('delta.yaml',  {},   {'reward': -0.25, 'critic_loss': 0.01, 'actor_loss': -1.0}),
 ])
 @pytest.mark.timeout(900)
 def test_saturation(

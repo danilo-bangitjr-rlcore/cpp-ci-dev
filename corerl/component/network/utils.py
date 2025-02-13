@@ -24,37 +24,52 @@ def expectile_loss(diff: torch.Tensor, expectile: float = 0.9) -> torch.Tensor:
 
 
 def layer_init_normal(layer: nn.Module, bias: bool = True) -> nn.Module:
-    nn.init.normal_(layer.weight)
-    if int(bias):
-        nn.init.constant_(layer.bias.data, 0)
+    w = layer.weight
+    b = layer.bias.data
+    assert isinstance(w, torch.Tensor) and isinstance(b, torch.Tensor)
+    nn.init.normal_(w)
+    if bias:
+        nn.init.constant_(b, 0)
     return layer.to(global_device.device)
 
 
 def layer_init_zero(layer: nn.Module, bias: bool = True) -> nn.Module:
-    nn.init.constant_(layer.weight, 0)
-    if int(bias):
-        nn.init.constant_(layer.bias.data, 0)
+    w = layer.weight
+    b = layer.bias.data
+    assert isinstance(w, torch.Tensor) and isinstance(b, torch.Tensor)
+    nn.init.constant_(w, 0)
+    if bias:
+        nn.init.constant_(b, 0)
     return layer.to(global_device.device)
 
 
 def layer_init_constant(layer: nn.Module, const: float, bias: bool = True) -> nn.Module:
-    nn.init.constant_(layer.weight, float(const))
-    if int(bias):
-        nn.init.constant_(layer.bias.data, float(const))
+    w = layer.weight
+    b = layer.bias.data
+    assert isinstance(w, torch.Tensor) and isinstance(b, torch.Tensor)
+    nn.init.constant_(w, float(const))
+    if bias:
+        nn.init.constant_(b, float(const))
     return layer.to(global_device.device)
 
 
 def layer_init_xavier(layer: nn.Module, bias: bool = True) -> nn.Module:
-    nn.init.xavier_uniform_(layer.weight)
-    if int(bias):
-        nn.init.constant_(layer.bias.data, 0)
+    w = layer.weight
+    b = layer.bias.data
+    assert isinstance(w, torch.Tensor) and isinstance(b, torch.Tensor)
+    nn.init.xavier_uniform_(w)
+    if bias:
+        nn.init.constant_(b, 0)
     return layer.to(global_device.device)
 
 
 def layer_init_uniform(layer: nn.Module, low: float = -0.003, high: float = 0.003, bias: float = 0) -> nn.Module:
-    nn.init.uniform_(layer.weight, low, high)
-    if float(bias):
-        nn.init.constant_(layer.bias.data, bias)
+    w = layer.weight
+    b = layer.bias.data
+    assert isinstance(w, torch.Tensor) and isinstance(b, torch.Tensor)
+    nn.init.uniform_(w, low, high)
+    if bias > 0:
+        nn.init.constant_(b, bias)
     return layer.to(global_device.device)
 
 

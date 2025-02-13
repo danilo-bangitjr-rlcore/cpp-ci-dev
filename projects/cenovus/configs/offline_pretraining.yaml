@@ -24,16 +24,7 @@ agent:
   gamma: ${experiment.gamma}
   discrete_control: ${env.discrete_control}
   seed: ${experiment.seed}
-
-  critic:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
-
   actor:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
     actor_optimizer:
       lr: 0.00001
 
@@ -52,17 +43,12 @@ experiment:
   exp_name: cenovus
   save_path: output
   max_steps: 10000
-  debug: 0
   seed: 1
-  timeout: 0
   offline_steps: 10
   pipeline_batch_duration: 7 days
   gamma: 0.99
 
 pipeline:
-  state_constructor:
-    defaults: []
-
   transition_creator:
     name: anytime
     gamma: ${experiment.gamma}
