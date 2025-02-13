@@ -6,13 +6,13 @@ import torch
 
 from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import PipelineFrame, Transition
-from corerl.utils.torch import tensor_allclose
 
 type TransitionFilterType = (
     Literal['only_dp']
     | Literal['only_no_action_change']
     | Literal['only_post_dp']
     | Literal['no_nan']
+    | Literal['only_pre_dp_or_ac']
 )
 
 
@@ -44,6 +44,8 @@ def call_filter(transitions: Iterable[Transition], filter_name: TransitionFilter
         transition_filter = only_post_dp
     elif filter_name == 'no_nan':
         transition_filter = no_nan
+    elif filter_name == 'only_pre_dp_or_ac':
+        transition_filter = only_pre_dp_or_ac
     else:
         assert_never(filter_name)
 
@@ -53,16 +55,28 @@ def call_filter(transitions: Iterable[Transition], filter_name: TransitionFilter
 def only_dp(transition: Transition):
     return transition.prior.dp and transition.post.dp
 
+def only_pre_dp_or_ac(transition: Transition):
+    return transition.prior.dp or transition.steps[1].ac
 
 def only_post_dp(transition: Transition):
     return transition.post.dp
 
 
 def only_no_action_change(transition: Transition):
-    action = transition.steps[1].action
-    for i in range(1, len(transition.steps)):
-        if not tensor_allclose(transition.steps[i].action, action):
+    """
+    The initial action change typically occurs on index 1:
+        The agent takes action transition.steps[1].action in response
+        to the state from transition.steps[0].state.
+    This function checks for action changes after index 1.
+    """
+    i = 2 # check for action changes after initial action
+    while i < len(transition.steps):
+        # trust the countdown creator
+        # NOTE: otherwise, we need to deal with delta actions correctly
+        if transition.steps[i].ac:
             return False
+        i += 1
+
     return True
 
 

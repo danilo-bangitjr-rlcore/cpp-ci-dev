@@ -36,7 +36,8 @@ class Step:
     action: Tensor
     gamma: float
     state: Tensor
-    dp: bool
+    dp: bool # decision point
+    ac: bool # action change
     timestamp: datetime.datetime | None = None
 
     def __eq__(self, other: object):

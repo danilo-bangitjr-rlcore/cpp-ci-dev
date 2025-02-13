@@ -86,8 +86,9 @@ class AllTheTimeTC:
         rewards = pf.rewards['reward'].to_numpy()
 
         dps = pf.decision_points
-        n = len(pf.data)
+        acs = pf.action_change
 
+        n = len(pf.data)
         assert n == len(actions) == len(states) and len(states) == len(rewards) == len(dps)
 
         steps: list[Step] = []
@@ -98,6 +99,7 @@ class AllTheTimeTC:
                 gamma=self.gamma,
                 state=states[i],
                 dp=bool(dps[i]),
+                ac=bool(acs[i]),
                 timestamp=( # curse you pandas
                     Maybe(pf.data.index[i])
                     .is_instance(pd.Timestamp)
