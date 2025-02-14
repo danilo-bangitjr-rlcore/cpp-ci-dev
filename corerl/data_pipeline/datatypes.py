@@ -58,8 +58,15 @@ class Step:
         )
 
     def __iter__(self):
+        """
+        This iterator is used in the buffer with magic ordering
+        """
         for f in fields(self):
-            yield getattr(self, f.name)
+            attr = getattr(self, f.name)
+            # skip timestamp in buffer
+            if f.name == "timestamp":
+                continue
+            yield attr
 
 
 @dataclass
@@ -100,6 +107,9 @@ class Transition:
         return True
 
     def __iter__(self):
+        """
+        This iterator is used in the buffer with magic ordering
+        """
         for f in fields(self):
             attr = getattr(self, f.name)
             if isinstance(attr, list):  # if attr = steps
@@ -126,6 +136,9 @@ class StepBatch:
     dp: Tensor
 
     def __iter__(self):
+        """
+        This iterator is used in the buffer with magic ordering
+        """
         for f in fields(self):
             yield getattr(self, f.name)
 
