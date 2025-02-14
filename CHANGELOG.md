@@ -1,3 +1,10 @@
+## 0.101.0 (2025-02-14)
+
+### Feat
+
+- consider out-of-bounds delta actions as nan instead of clipping
+- broaden clip xform to do general bounds checking
+
 ## 0.100.0 (2025-02-14)
 
 ### Feat
