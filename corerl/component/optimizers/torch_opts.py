@@ -19,7 +19,7 @@ optim_group = Group[
 class OptimConfig:
     name: str = MISSING
 
-    lr: float = 0.0001
+    lr: float = 0.01
     weight_decay: float = 0.0
 
 def _base_optim(
