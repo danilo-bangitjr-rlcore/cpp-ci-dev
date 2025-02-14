@@ -44,7 +44,8 @@ function Setup() {
     let nextStep: LinkComponentProps["to"] | null = null;
 
     const currentStepIdx = steps.findIndex(
-      (step) => step.to === currentPathName,
+      (step) =>
+        step.to === currentPathName || step.to === currentPathName + "/",
     );
     for (let i = 0; i < steps.length; i++) {
       if (i > currentStepIdx) {

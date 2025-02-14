@@ -19,6 +19,8 @@
     "@tanstack/react-query": "^5.65.0",
     "@tanstack/react-query-devtools": "^5.65.0",
     "@tanstack/react-router": "^1.97.23",
+    "@tanstack/react-table": "^8.20.6",
+    "@tanstack/react-virtual": "^3.13.0",
     "localforage": "^1.10.0",
     "motion": "^12.1.0",
     "openapi-fetch": "^0.13.4",

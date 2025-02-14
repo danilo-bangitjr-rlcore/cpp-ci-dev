@@ -8,6 +8,9 @@ export type DeepPartial<T> = T extends object
     }
   : T;
 
+// interface ClientMainConfig extends (components["schemas"]["MainConfig"]) {
+
+// }
 export type DeepPartialMainConfig = DeepPartial<
   components["schemas"]["MainConfig"]
 >;
