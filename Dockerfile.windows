@@ -25,7 +25,8 @@ RUN uv build --wheel
 # See also: https://github.com/rlcoretech/core-rl/pull/347#discussion_r1906215954
 # Convert our wheel such that we only include .pyc files
 RUN uv venv && uv pip install pyc_wheel
-RUN powershell -c python -m pyc_wheel $(Get-ChildItem -Filter corerl-*.whl .\dist\).FullName
+RUN powershell -c uv run python -m pyc_wheel $(Get-ChildItem -Filter corerl-*.whl .\dist\).FullName
+RUN powershell -c Remove-Item -Force $(Get-ChildItem -Filter corerl-*py3-none-any.whl .\dist\).FullName
 
 # Stage: install corerl to minimal Python 3 image
 # FROM python:3.12-slim AS corerl
@@ -36,9 +37,7 @@ COPY --from=base /app/dist /app/dist
 #COPY --from=web_client /app/dist /app/client/dist
 
 # Microsoft Visual C++ Redistributable needs to exist in order to load DLLs
-RUN powershell -c 'Invoke-WebRequest "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "vc_redist.x64.exe"';
-RUN powershell -c 'Start-Process -filepath C:\app\vc_redist.x64.exe -ArgumentList "/install", "/passive", "/norestart" -Passthru | Wait-Process';
-RUN powershell -c 'Remove-Item -Force vc_redist.x64.exe';
+RUN powershell -c 'Invoke-WebRequest "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "vc_redist.x64.exe"; Start-Process -filepath C:\app\vc_redist.x64.exe -ArgumentList "/install", "/passive", "/norestart" -Passthru | Wait-Process; Remove-Item -Force vc_redist.x64.exe'
 
 # Our corerl image is quite large with default cuda dependencies.
 # RUN pip install /app/dist/corerl-*.whl
