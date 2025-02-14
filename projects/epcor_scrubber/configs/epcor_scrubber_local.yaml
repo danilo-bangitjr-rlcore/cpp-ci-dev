@@ -4,7 +4,7 @@ infra:
   db:
     drivername: "postgresql+psycopg2"
     username: "postgres"
-    password: scrubber4data
+    password: password
     ip: "localhost"
     port: 5432
     db_name: "postgres"
@@ -43,12 +43,8 @@ env:
   setpoint_ping_period: 00:00:10
   seed: ${experiment.seed}
 
-  opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
-  opc_ns: 3
-  client_cert_path: certs/agent_cert.der
-  client_private_key_path: certs/agent_key.pem
-  server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
-  application_uri: urn:agent
+  opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
+  opc_ns: 2
 
   db:
     table_name: scrubber4_tz
@@ -118,12 +114,76 @@ pipeline:
     - "only_no_action_change"
 
   tags:
+  - name: AIC3730_SP # pH SP
+    node_identifier: 14
+    operating_range: [9.4, 10.]
+    change_bounds: [-.33, .33] # +/- 0.2 pH
+    agg: last
+
+  - name: AIC3731_SP # ORP SP
+    node_identifier: 15
+    operating_range: [650., 700.]
+    change_bounds: [-.2, .2] # +/- 10 mV
+    agg: last
+
+  - name: FIC3734_SP # flow SP
+    node_identifier: 17
+    operating_range: [15., 30.]
+    change_bounds: [-.33, .33] # +/- 5
+    agg: last
+
+  - name: AIC3730_PV # pH process value
+    operating_range: [0., 14.]
+    red_bounds: [9.4, 10.]
+
+  - name: AIC3731_PV # ORP process value
+    operating_range: [0., 800.]
+    red_bounds: [650., 700.]
+
+  - name: FIC3734_PV # flow rate PV
+    operating_range: [0, 100]
+    red_bounds: [15, 30]
+
+  - name: FIC3734_OUT # flow rate controller output
+    operating_range: [0, 100]
+    red_bounds: [40, 60]
+
+  - name: LI3734 # scrubber tower sump level
+    operating_range: [500, 700]
+    red_bounds: [585, 595]
+
+  - name: FI0872 # scrubber recirc flow
+    operating_range: [0, 2300]
+    red_bounds: [1900, 2100]
+
+  - name: AI0879A # H2S inlet
+    operating_range: [0., 100]
+    red_bounds: [5., 60]
+
+  - name: PDIC3738_PV # PDIC-3738 (PID Process Value)
+    operating_range: [0, 3]
+    red_bounds: [2.3, 2.5]
+
+  - name: PDIC3738_OUT # PDIC-3738 (PID Output)
+    operating_range: [0, 100]
+    red_bounds: [45, 50]
+
+  - name: PI0169 # blower discharge pressure
+    operating_range: [0, 1]
+    red_bounds: [0.3, 0.5]
+
+  - name: TI0880 # scrubber inlet temp
+    operating_range: [0, 75]
+    red_bounds: [0, 30]
+
+  - name: AI0897B # scrubber softened water conductivity
+    operating_range: [0, 30]
+    red_bounds: [5, 20]
+
   - name: AIC3730_OUT # pH pump output
     preprocess: []
     operating_range: [0, 125]
     red_bounds: [0, 60]
-    imputer:
-      name: identity
     state_constructor:
     - name: normalize
       min: 0
@@ -180,8 +240,6 @@ pipeline:
     preprocess: []
     operating_range: [0, 125]
     red_bounds: [0, 60]
-    imputer:
-      name: identity
     state_constructor:
     - name: normalize
       min: 0
@@ -199,8 +257,6 @@ pipeline:
     preprocess: []
     operating_range: [0., 30000]
     red_bounds: [0., 5000]
-    imputer:
-      name: identity
     state_constructor:
     - name: normalize
       min: 0
@@ -212,8 +268,6 @@ pipeline:
     preprocess: []
     operating_range: [0., 100.]
     red_bounds: [85., 100.]
-    imputer:
-      name: identity
     state_constructor:
     - name: normalize
       min: 85
