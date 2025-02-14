@@ -1,3 +1,9 @@
+## 0.100.0 (2025-02-14)
+
+### Feat
+
+- action variance and q val metrics
+
 ## 0.99.0 (2025-02-14)
 
 ### Feat
