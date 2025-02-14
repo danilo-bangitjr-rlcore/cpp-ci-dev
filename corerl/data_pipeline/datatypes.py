@@ -135,6 +135,7 @@ class StepBatch:
     gamma: Tensor
     state: Tensor
     dp: Tensor
+    ac: Tensor
 
     def __iter__(self):
         """
@@ -164,7 +165,8 @@ class StepBatch:
             action=self.action[idx],
             gamma=self.gamma[idx],
             state=self.state[idx],
-            dp=self.dp[idx]
+            dp=self.dp[idx],
+            ac=self.ac[idx]
         )
 
 @dataclass
