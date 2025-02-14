@@ -1,3 +1,11 @@
+## 0.105.0 (2025-02-14)
+
+### Feat
+
+- search opc nodes, edit tag configs functionality
+- working tag config bounds, create/update/delete
+- in-progress search OPC nodes using GUI
+
 ## 0.104.0 (2025-02-14)
 
 ### Feat
