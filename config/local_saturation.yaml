@@ -18,6 +18,11 @@ agent:
   name: greedy_ac
 
   critic:
+    polyak: 0.995
+    critic_optimizer:
+      name: 'lso'
+      lr : 0.01
+      weight_decay : 0.0
     critic_network:
       ensemble: 1
     buffer:
