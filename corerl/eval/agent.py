@@ -43,9 +43,9 @@ def eval_policy_variance(
     sample_var = torch.var(sampled_actions, dim=0)
     mean_var = torch.mean(sample_var)
     app_state.metrics.write(
-            agent_step=app_state.agent_step,
-            metric="actor_action_var",
-            value=mean_var,
+        agent_step=app_state.agent_step,
+        metric="actor_action_var",
+        value=mean_var,
     )
 
     # log var for the sampler
@@ -56,9 +56,9 @@ def eval_policy_variance(
     sample_var = torch.var(sampled_actions, dim=0)
     mean_var = torch.mean(sample_var)
     app_state.metrics.write(
-            agent_step=app_state.agent_step,
-            metric="sampler_action_var",
-            value=mean_var,
+        agent_step=app_state.agent_step,
+        metric="sampler_action_var",
+        value=mean_var,
     )
 
 
