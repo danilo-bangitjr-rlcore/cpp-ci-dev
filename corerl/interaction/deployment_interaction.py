@@ -170,15 +170,13 @@ class DeploymentInteraction(Interaction):
 
         s, a = sa
         delta = self._agent.get_action(s)
-        a_df = self._pipeline.action_constructor.assign_action_names(a, delta)
-        a_np = a_df.to_numpy()
-        a_df = self._pipeline.preprocessor.inverse(a_df)
+        norm_a_df = self._pipeline.action_constructor.assign_action_names(a, delta)
+        a_df = self._pipeline.preprocessor.inverse(norm_a_df)
         self._env.emit_action(a_df, log_action=True)
         self._last_action_df = a_df
 
-        # metrics + eval
         agent_eval.eval_policy_variance(self._app_state, s, self._agent)
-        agent_eval.eval_q_online(self._app_state, s, self._agent, a_np)
+        agent_eval.eval_q_online(self._app_state, s, self._agent, norm_a_df.to_numpy())
 
     # ------------------
     # -- No Event Bus --
