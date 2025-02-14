@@ -1,3 +1,14 @@
+## 0.99.0 (2025-02-14)
+
+### Feat
+
+- logging backtrack steps and step_size
+
+### Fix
+
+- lso example
+- pass optimizer lr to LSO
+
 ## 0.98.0 (2025-02-13)
 
 ### Feat
