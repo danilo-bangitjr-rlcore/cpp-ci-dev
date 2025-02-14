@@ -6,7 +6,7 @@ from corerl.agent import AgentConfig
 from corerl.agent.random import RandomAgentConfig
 from corerl.configs.config import MISSING, config, sanitizer
 from corerl.data_pipeline.pipeline import PipelineConfig
-from corerl.data_pipeline.transforms import AddRawConfig, ClipConfig, DeltaConfig, NormalizerConfig
+from corerl.data_pipeline.transforms import AddRawConfig, BoundsConfig, DeltaConfig, NormalizerConfig
 from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.data_report import ReportConfig
@@ -87,7 +87,7 @@ class MainConfig:
 
             tag.action_constructor = [
                 DeltaConfig(),
-                ClipConfig(bounds=tag.change_bounds),
+                BoundsConfig(bounds=tag.change_bounds, mode='nan'),
                 NormalizerConfig(min=tag.change_bounds[0], max=tag.change_bounds[1]),
                 AddRawConfig(),
             ] + tag.action_constructor
