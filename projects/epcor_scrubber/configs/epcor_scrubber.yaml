@@ -13,7 +13,7 @@ experiment:
   exp_name: epcor_scrubber
   save_path: outputs/scrubber_evals
   seed: 1
-  gamma: 0.97 # ~50% of return occurs after 2 hrs (@ 5 min obs period)
+  gamma: 0.944 # ~50% of return occurs after 1 hrs (@ 5 min obs period)
   run_forever: True
 
 feature_flags:
@@ -84,7 +84,7 @@ evals:
 
 eval_cfgs:
   actor_critic:
-    enabled: True
+    enabled: False
   monte_carlo:
     enabled: True
 
@@ -112,16 +112,19 @@ pipeline:
     node_identifier: 14
     operating_range: [9.4, 10.]
     change_bounds: [-.33, .33] # +/- 0.2 pH
+    agg: last
 
   - name: AIC3731_SP # ORP SP
     node_identifier: 15
     operating_range: [650., 700.]
     change_bounds: [-.2, .2] # +/- 10 mV
+    agg: last
 
   - name: FIC3734_SP # flow SP
     node_identifier: 17
     operating_range: [15., 30.]
     change_bounds: [-.33, .33] # +/- 5
+    agg: last
 
   - name: AIC3730_PV # pH process value
     operating_range: [0., 14.]
@@ -172,8 +175,15 @@ pipeline:
     red_bounds: [5, 20]
 
   - name: AIC3730_OUT # pH pump output
+    preprocess: [] # NOTE: CHECK IF NEEDED
     operating_range: [0, 125]
     red_bounds: [0, 60]
+    state_constructor:
+    - name: normalize
+      min: 0
+      max: 60
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
     reward_constructor: # generated programattically from test_epcor_reward
     - name: split
       left:
@@ -221,8 +231,15 @@ pipeline:
       passthrough: false
 
   - name: AIC3731_OUT # ORP pump output
+    preprocess: []
     operating_range: [0, 125]
     red_bounds: [0, 60]
+    state_constructor:
+    - name: normalize
+      min: 0
+      max: 60
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
     reward_constructor:
     - name: greater_than
       threshold: 60.0
@@ -231,12 +248,26 @@ pipeline:
       factor: -1.0
 
   - name: AI0879B # H2S outlet
+    preprocess: []
     operating_range: [0., 30000]
     red_bounds: [0., 5000]
+    state_constructor:
+    - name: normalize
+      min: 0
+      max: 5000
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
 
   - name: AI0879C # H2S efficiency
+    preprocess: []
     operating_range: [0., 100.]
     red_bounds: [85., 100.]
+    state_constructor:
+    - name: normalize
+      min: 85
+      max: 100
+    - name: multi_trace
+      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
     reward_constructor: # generated programattically from test_epcor_reward
     - name: scale
       factor: -1.0
