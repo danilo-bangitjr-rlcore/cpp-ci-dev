@@ -21,6 +21,7 @@ class BaseInteractionConfig:
     obs_period: timedelta = MISSING
     action_period: timedelta = MISSING
     update_period: timedelta = MISSING
+    update_warmup: int = 0 # number of updates before interacting
 
     @computed('update_period')
     @classmethod

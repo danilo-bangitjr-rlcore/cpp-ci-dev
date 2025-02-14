@@ -26,6 +26,7 @@ interaction:
   update_period: 00:00:30
   action_period: 01:00:00
   warmup_period: 03:00:00
+  update_warmup: 100 # number of updates before interacting
   historical_batch_size: 25920 # 90 days @ 5 minute obs period
   hist_chunk_start: 2024-10-09 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
   heartbeat:

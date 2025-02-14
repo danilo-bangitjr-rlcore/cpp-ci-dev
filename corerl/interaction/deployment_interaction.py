@@ -94,6 +94,11 @@ class DeploymentInteraction(Interaction):
             self._column_desc,
         )
 
+        # load first historical chunk
+        self.load_historical_chunk()
+        # and then perform warmup updates
+        for _ in range(cfg.update_warmup):
+            self._agent.update()
 
     # -----------------------
     # -- Lifecycle Methods --
