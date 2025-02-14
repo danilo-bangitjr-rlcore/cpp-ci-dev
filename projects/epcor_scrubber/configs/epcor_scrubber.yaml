@@ -23,6 +23,7 @@ interaction:
   name: dep_interaction
   restore_checkpoint: False
   obs_period: 00:05:00
+  update_period: 00:00:30
   action_period: 01:00:00
   warmup_period: 03:00:00
   historical_batch_size: 25920 # 90 days @ 5 minute obs period
@@ -96,8 +97,6 @@ pipeline:
       imputation_horizon: 2
 
   state_constructor:
-    countdown:
-      kind: int
     defaults:
       - name: multi_trace
         trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
