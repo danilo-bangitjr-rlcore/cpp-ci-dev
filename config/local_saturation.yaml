@@ -16,11 +16,6 @@ metrics:
 
 agent:
   name: greedy_ac
-  rho : 0.1
-  num_samples: 100
-  seed: ${experiment.seed}
-  gamma: ${experiment.gamma}
-  discrete_control: ${env.discrete_control}
 
   critic:
     polyak: 0.995
@@ -33,11 +28,6 @@ agent:
     buffer:
       name : 'ensemble_uniform'
       ensemble: 2
-
-  actor:
-    actor_optimizer:
-      lr : 0.0005
-
 
 pipeline:
   state_constructor:
@@ -54,42 +44,23 @@ pipeline:
   - name: reward
     preprocess:
     - name: identity
-    outlier:
-      name: identity
     reward_constructor:
     - name: identity
     state_constructor:
     - name: 'null'
-    preprocess:
-    - name: identity
 
   - name: terminated
-    preprocess:
-    - name: identity
     is_meta: True
-    outlier:
-      name: identity
 
   - name: truncated
-    preprocess:
-    - name: identity
     is_meta: True
-    outlier:
-      name: identity
 
   # observations
   - name: tag-0
-    preprocess:
-    - name: identity
-    outlier:
-      name: identity
+    operating_range: [0, 0.5]
 
   # actions
   - name: action-0
     operating_range: [0, 1]
-    preprocess:
-    - name: identity
-    outlier:
-      name: identity
     action_constructor:
       - name: identity

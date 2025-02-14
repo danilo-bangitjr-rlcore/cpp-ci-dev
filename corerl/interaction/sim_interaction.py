@@ -19,9 +19,6 @@ from corerl.state import AppState
 logger = logging.getLogger(__file__)
 
 
-
-
-
 class SimInteraction(Interaction):
     def __init__(
         self,

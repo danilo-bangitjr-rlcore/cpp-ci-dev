@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from abc import abstractmethod
 from collections.abc import Sequence
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -73,8 +74,12 @@ class ReplayBuffer:
                 data_size = _get_size(transition)
                 self.data = [torch.empty((self.memory, *s), device=device.device) for s in data_size]
 
-            for i, elem in enumerate(transition):
+            i = 0
+            for elem in transition:
+                if isinstance(elem, datetime) or elem is None:
+                    continue
                 self.data[i][self.pos] = _to_tensor(elem)
+                i += 1
 
             idxs[j] = self.pos
             self.pos = (self.pos + 1) % self.memory
@@ -100,8 +105,12 @@ class ReplayBuffer:
         self.data = [torch.empty((self.memory, *s)) for s in data_size]
 
         for idx, transition in enumerate(transitions):
-            for i, elem in enumerate(transition):
+            i = 0
+            for elem in transition:
+                if isinstance(elem, datetime) or elem is None:
+                    continue
                 self.data[i][self.pos] = _to_tensor(elem)
+                i += 1
 
             idxs[idx] = self.pos
             self.pos = (self.pos + 1) % self.memory
@@ -189,12 +198,12 @@ def _get_size(experience: Transition) -> list[tuple]:
             size.append(elem.shape)
         elif isinstance(elem, Tensor):
             size.append(tuple(elem.shape))
-        elif elem is None:
-            size.append((0,))
         elif isinstance(elem, int) or isinstance(elem, float) or isinstance(elem, bool):
             size.append((1,))
         elif isinstance(elem, list):
             size.append((len(elem),))
+        elif isinstance(elem, datetime) or elem is None:
+            continue
         else:
             raise TypeError(f"unknown type {type(elem)}")
 

@@ -1,3 +1,60 @@
+## 0.98.0 (2025-02-13)
+
+### Feat
+
+- add timestamp to steps
+
+### Fix
+
+- ensure None values are ignored in replay buffer
+- ignore step timestamp in buffer
+
+## 0.97.0 (2025-02-13)
+
+### Feat
+
+- add ability to override directly loaded config options
+- delta action cfg encantation is computed from feature flag
+- allow GAC to have different delta percents per setpoint tag
+
+### Fix
+
+- configs should no longer be assumed frozen
+
+## 0.96.0 (2025-02-13)
+
+### Feat
+
+- support specifying a subset of tags in sim environments
+
+### Refactor
+
+- cleanup lingering default values in cfg YAMLs
+- pull preprocessor normalization defaults into computed cfgs
+- move oddity detection defaults into global default
+
+## 0.95.0 (2025-02-13)
+
+### Feat
+
+- Web Client has can verify if DB and OPC connections are available (#506)
+
+## 0.94.0 (2025-02-13)
+
+### Feat
+
+- allow specifying a single top-level default imputer for all tags
+
+### Fix
+
+- ignore checkpointing the optimizer
+- annotate agent config types with discriminator
+
+### Refactor
+
+- default out stepsizes and action samples in cfgs
+- default out several agent configs
+
 ## 0.93.3 (2025-02-13)
 
 ### Refactor

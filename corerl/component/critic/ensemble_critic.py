@@ -30,7 +30,7 @@ class _SharedEnsembleConfig:
             ensemble_probability=1.0,
         ),
     )
-    polyak: float = 0.99
+    polyak: float = 0.995
     target_sync_freq: int = 1
 
 @config()
@@ -133,12 +133,10 @@ class BaseEnsembleCritic:
         path.mkdir(parents=True, exist_ok=True)
         torch.save(self.model.state_dict(), path / "critic_net")
         torch.save(self.target.state_dict(), path / "critic_target")
-        torch.save(self.optimizer.state_dict(), path / "critic_opt")
 
     def load(self, path: Path) -> None:
         self.model.load_state_dict(torch.load(path / "critic_net", map_location=device.device))
         self.target.load_state_dict(torch.load(path / "critic_target", map_location=device.device))
-        self.optimizer.load_state_dict(torch.load(path / "critic_opt", map_location=device.device))
 
 class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
     def __init__(

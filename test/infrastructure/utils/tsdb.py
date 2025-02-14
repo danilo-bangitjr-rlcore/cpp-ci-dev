@@ -1,3 +1,5 @@
+import random
+
 import pytest
 from sqlalchemy_utils.functions import drop_database
 
@@ -7,7 +9,8 @@ from test.infrastructure.utils.docker import init_docker_container
 
 @pytest.fixture(scope="module")
 def tsdb_container(free_localhost_port: int):
-    container = init_docker_container(ports={"5432": free_localhost_port})
+    name = 'test_timescale' + str(random.randint(0, int(1e24)))
+    container = init_docker_container(name=name, ports={"5432": free_localhost_port})
     yield container
     container.stop()
     container.remove()

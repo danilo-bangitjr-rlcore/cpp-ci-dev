@@ -43,6 +43,8 @@ class SimAsyncEnv(AsyncEnv):
             if not tag.is_meta and tag.action_constructor is None
         ]
 
+        self._all_tag_names = set(self._action_tag_names + self._meta_tag_names + self._observation_tag_names)
+
         self.clock = datetime(1984, 1, 1, tzinfo=UTC)
         self._clock_inc = cfg.obs_period
 
@@ -107,6 +109,11 @@ class SimAsyncEnv(AsyncEnv):
             "terminated": step.terminated,
         }
 
+        # mash all columns together to simulate tags from OPC
+        tags = obs_data | action_data | meta_data
+        # filter for only the tags specified in the tag configs
+        tags = { k: v for k, v in tags.items() if k in self._all_tag_names }
+
         idx = pd.DatetimeIndex([self.clock])
-        df = pd.DataFrame(obs_data | action_data | meta_data, index=idx)
+        df = pd.DataFrame(tags, index=idx)
         return df

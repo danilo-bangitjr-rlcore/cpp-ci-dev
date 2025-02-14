@@ -76,19 +76,17 @@ export const loadMainConfigDefaults = (
 ) => {
   const newMainConfig = structuredClone(prevMainConfig);
 
-  type DatabaseCommon = Omit<components["schemas"]["TagDBConfig"], "data_agg">;
-
-  // shared default database stub
-  const database_common: DatabaseCommon = {
-    enabled: true,
-    drivername: "postgresql+psycopg2",
-    username: "postgres",
-    password: "password",
-    ip: "localhost",
-    port: 5432,
-    db_name: "postgres",
-    table_schema: "public",
-    table_name: "opc_ua",
+  // corerl/config.py
+  newMainConfig.infra = {
+    ...(newMainConfig.infra ?? {}),
+    db: {
+      drivername: "postgresql+psycopg2",
+      username: "postgres",
+      password: "password",
+      ip: "localhost",
+      port: 5432,
+      db_name: "postgres",
+    },
   };
 
   // corerl/interaction/factory.py
@@ -102,10 +100,10 @@ export const loadMainConfigDefaults = (
   // corerl/eval/metrics.py
   newMainConfig.metrics = {
     ...(newMainConfig.metrics ?? {}),
-    ...database_common,
     name: "db",
     table_name: "metrics",
-    lo_wm: 5,
+    lo_wm: 1,
+    enabled: true,
   } as DeepPartial<components["schemas"]["MetricsDBConfig"]>;
 
   // corerl/environment/async_env/factory.py
@@ -113,7 +111,9 @@ export const loadMainConfigDefaults = (
   newMainConfig.env = {
     ...(newMainConfig.env ?? {}),
     discrete_control: false,
-    db: database_common,
+    db: {
+      table_name: "opcua",
+    },
     opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/",
     opc_ns: 2,
     obs_period: "PT5M",
@@ -127,7 +127,6 @@ export const loadMainConfigDefaults = (
     name: "greedy_ac",
     n_critic_updates: 1,
     n_actor_updates: 1,
-    n_sampler_updates: 1,
     num_samples: 128,
     uniform_sampling_percentage: 0.8,
     discrete_control: false,
@@ -163,7 +162,6 @@ export const loadMainConfigDefaults = (
   // corerl/data_pipeline/pipeline.py
   newMainConfig.pipeline = {
     ...(newMainConfig.pipeline ?? {}),
-    db: { ...(newMainConfig.pipeline?.db ?? {}), ...database_common },
     state_constructor: { defaults: [] },
     transition_creator: { name: "anytime" },
   } as DeepPartial<components["schemas"]["PipelineConfig"]>;

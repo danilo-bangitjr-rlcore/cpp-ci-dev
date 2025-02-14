@@ -37,21 +37,17 @@ env:
 
 agent:
   name: greedy_ac
-  n_critic_updates: 1
-  n_actor_updates: 1
-  num_samples: 32
-  uniform_sampling_percentage: 0.8
-  discrete_control: ${env.discrete_control}
-  seed: ${experiment.seed}
-  actor:
-    actor_optimizer:
-      lr: 0.00001
-
 
 metrics:
   enabled: True
 
 pipeline:
+  imputer:
+    name: per-tag
+    default:
+      name: copy
+      imputation_horizon: 12
+
   state_constructor:
     defaults:
       - name: multi_trace
@@ -65,8 +61,6 @@ pipeline:
   - name: PERM_SP.BW_SP # flow rate setpoint
     node_identifier: "[pilot]Program:ZW.PERM_SP.BW_SP"
     operating_range: [0.9, 1.4]
-    outlier:
-      name: identity
     action_constructor:
       - name: identity
     state_constructor: # exclude from state
@@ -75,8 +69,6 @@ pipeline:
   - name: BW_SP.KY2 # backpulse duration setpoint
     node_identifier: "[pilot]Program:ZW.BW_SP.KY2"
     operating_range: [20, 40]
-    outlier:
-      name: identity
     action_constructor:
       - name: identity
     state_constructor: # exclude from state
@@ -93,11 +85,6 @@ pipeline:
     - name: comparator
       op: '!='
       val: 1305
-    outlier:
-      name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 12
     reward_constructor:
     - name: scale # min negative permeability -> max positive permeability
       factor: -1
@@ -111,39 +98,19 @@ pipeline:
   - name: CTRL_P.STEP # mode, excluded from state but used in reward fn
     preprocess:
     - name: identity
-    outlier:
-      name: identity
     state_constructor:
     - name: "null"
+    imputer:
+      name: identity
 
   - name: TUIT101.DATA # raw turbidity
     operating_range: [0, 1.5]
-    outlier:
-      name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 12
 
   - name: FTC101.DATA # raw cdom
     operating_range: [1, 4]
-    outlier:
-      name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 12
 
   - name: FTT100.DATA # raw tryptophan
     operating_range: [0, 0.7]
-    outlier:
-      name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 12
 
   - name: TIT302.DATA # postfloc water temp
     operating_range: [0, 15]
-    outlier:
-      name: identity
-    imputer:
-      name: copy
-      imputation_horizon: 12

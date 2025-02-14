@@ -10,7 +10,7 @@ from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
 
 
-@config(frozen=True)
+@config()
 class RandomAgentConfig(BaseAgentConfig):
     name: Literal['random'] = 'random'
 
