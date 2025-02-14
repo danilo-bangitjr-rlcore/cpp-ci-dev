@@ -242,11 +242,6 @@ export interface components {
              */
             name: string;
             /**
-             * Gamma
-             * @default ${experiment.gamma}
-             */
-            gamma: number;
-            /**
              * Min N Step
              * @default 1
              */
@@ -256,6 +251,11 @@ export interface components {
              * @default |???|
              */
             max_n_step: number;
+            /**
+             * Gamma
+             * @default |???|
+             */
+            gamma: number;
         };
         /** ArmijoAdamConfig */
         ArmijoAdamConfig: {
@@ -498,8 +498,11 @@ export interface components {
              * @default dep_async_env
              */
             name: string;
-            /** Seed */
-            seed?: number | null;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
             /**
              * Discrete Control
              * @default |???|
@@ -1657,11 +1660,6 @@ export interface components {
              */
             enabled: boolean;
             /**
-             * Gamma
-             * @default ${experiment.gamma}
-             */
-            gamma: number;
-            /**
              * Precision
              * @default 0.99
              */
@@ -1671,6 +1669,11 @@ export interface components {
              * @default 5
              */
             critic_samples: number;
+            /**
+             * Gamma
+             * @default |???|
+             */
+            gamma: number;
         };
         /** NNTorsoConfig */
         NNTorsoConfig: {
@@ -2229,8 +2232,11 @@ export interface components {
              * @default sim_async_env
              */
             name: string;
-            /** Seed */
-            seed?: number | null;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
             /**
              * Discrete Control
              * @default |???|
