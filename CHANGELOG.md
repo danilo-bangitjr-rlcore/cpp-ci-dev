@@ -1,3 +1,11 @@
+## 0.103.1 (2025-02-14)
+
+### Fix
+
+- remove gamma interp from epcor scrubber cfg
+- increase lso initial lr
+- respect tag config aggregation in offline chunk loading
+
 ## 0.103.0 (2025-02-14)
 
 ### Feat
