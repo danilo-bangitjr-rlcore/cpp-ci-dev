@@ -54,7 +54,7 @@ WORKDIR /app
 # RUN pip install /app/dist/corerl-*.whl
 # Minimal CPU supported installation is used instead.
 RUN pip install torch --index-url https://download.pytorch.org/whl/cpu &&\
-  pip --no-cache-dir install --no-compile /app/dist/corerl-*.whl
+  pip --no-cache-dir install --no-compile /app/dist/corerl-*cp*.whl
 
 # Set up the entrypoint to reference our corerl main script, dynamically pass arguments on run
 ENTRYPOINT ["corerl_main"]

@@ -4,8 +4,8 @@ experiment:
 
 interaction:
   name: dep_interaction
-  action_period: 00:00:15
-  obs_period: 00:00:05
+  action_period: 00:00:01
+  obs_period: 00:00:01
 
 env:
   name: dep_async_env
@@ -13,28 +13,9 @@ env:
   update_period: 00:00:05
   action_period: 00:00:15
   discrete_control: False
-  seed: ${experiment.seed}
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
   action_tolerance: 00:00:01
 
 agent:
   name: greedy_ac
-  critic:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
-
-  actor:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
-    actor_optimizer:
-      lr: 0.00001
-
-pipeline:
-  state_constructor:
-    defaults: [] # needed
-
-  transition_creator:
-    name: anytime # needed

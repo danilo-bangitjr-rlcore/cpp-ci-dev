@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from torch import Tensor
 
+import corerl.eval.agent as agent_eval
 from corerl.agent.base import BaseAgent
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
@@ -169,10 +170,13 @@ class DeploymentInteraction(Interaction):
 
         s, a = sa
         delta = self._agent.get_action(s)
-        a_df = self._pipeline.action_constructor.assign_action_names(a, delta)
-        a_df = self._pipeline.preprocessor.inverse(a_df)
+        norm_a_df = self._pipeline.action_constructor.assign_action_names(a, delta)
+        a_df = self._pipeline.preprocessor.inverse(norm_a_df)
         self._env.emit_action(a_df, log_action=True)
         self._last_action_df = a_df
+
+        agent_eval.eval_policy_variance(self._app_state, s, self._agent)
+        agent_eval.eval_q_online(self._app_state, s, self._agent, norm_a_df.to_numpy())
 
     # ------------------
     # -- No Event Bus --

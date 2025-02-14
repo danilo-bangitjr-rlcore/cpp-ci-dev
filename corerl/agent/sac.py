@@ -15,7 +15,7 @@ from corerl.state import AppState
 from corerl.utils.device import device
 
 
-@config(frozen=True)
+@config()
 class SACConfig(BaseACConfig):
     name: Literal['sac'] = 'sac'
 

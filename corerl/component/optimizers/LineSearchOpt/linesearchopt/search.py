@@ -1,6 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 
+import torch
 from numpy import clip as clip
 from typing_extensions import override
 
@@ -109,7 +110,6 @@ class Armijo(Search):
         thresh = (loss + step_size * self._c * directional_derivative)
         break_condition = loss_next - thresh
         if break_condition <= 0:
-            logger.info(f"Armijo accept: {loss=}, {loss_next=}, {step_size=:.2E}")
             return True, step_size
         else:
             # Decrease the step-size by a multiplicative factor
@@ -207,3 +207,5 @@ class Goldstein(Search):
             step_size = step_size * self._beta_b
 
         return found == 3, step_size
+
+torch.serialization.add_safe_globals([Armijo, Goldstein])

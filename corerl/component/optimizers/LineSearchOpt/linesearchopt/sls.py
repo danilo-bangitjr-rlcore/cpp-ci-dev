@@ -9,6 +9,8 @@ from warnings import warn
 
 import torch
 
+from corerl.state import AppState
+
 from . import util as ut
 from .init import StepsizeInit
 from .search import Search
@@ -25,6 +27,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
     """
     def __init__(
         self,
+        app_state: AppState,
         params: Iterable[torch.nn.parameter.Parameter],
         optim: type[OPT],
         search_condition: Search,
@@ -40,6 +43,8 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
         """Initializes the instance.
 
         Args:
+            app_state:
+                App state used for logging metrics.
             params:
                 The parameters to optimise, usually gotten from a PyTorch model
                 as `model.parameters()`
@@ -86,6 +91,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
                 should be compared to the loss on the original parameters or
                 the loss on the parameters at which the gradient step is taken.
         """
+
         if optim_kwargs is None:
             optim_kwargs = {}
 
@@ -97,6 +103,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
 
         assert max_backtracking_steps > 0
 
+        self._app_state = app_state
         params = list(params)
         self._optim_type = optim
         optimizer = optim(params, *optim_args, **optim_kwargs)
@@ -251,7 +258,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
 
                 found = False
                 # Run backtracking line search
-                for _ in range(group["max_backtracking_steps"]):
+                for backtrack_step in range(group["max_backtracking_steps"]):
                     # Backtracking step -> revert optimiser state to
                     # what it was before the last optimiser step
                     opt.load_state_dict(copy.deepcopy(opt_state_current))
@@ -268,7 +275,6 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
                     # breakpoint()
                     opt.step()
 
-
                     # compute the loss at the next step; no need to compute
                     # gradients.
                     loss_next = _closure()
@@ -277,6 +283,18 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
                         step_size, loss, directional_derivative, loss_next,
                     )
                     if found:
+                        self._app_state.metrics.write(
+                            agent_step=self._app_state.agent_step,
+                            metric="lso_step_size",
+                            value=step_size,
+                        )
+
+                        self._app_state.metrics.write(
+                            agent_step=self._app_state.agent_step,
+                            metric="lso_backtrack_steps",
+                            value=backtrack_step,
+                        )
+
                         break
 
                 if not found:  # Line search exceeded maximum number of epochs
@@ -298,6 +316,19 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
 
                     # Restart next line search at the fallback stepsize
                     step_size = group["fallback_step_size"]
+
+                    self._app_state.metrics.write(
+                        agent_step=self._app_state.agent_step,
+                        metric="lso_step_size",
+                        value=step_size,
+                    )
+
+                    self._app_state.metrics.write(
+                            agent_step=self._app_state.agent_step,
+                            metric="lso_backtrack_steps",
+                            value=group["max_backtracking_steps"],
+                    )
+
                 group["init"].record_used(step_size)
 
             # save the new step-size

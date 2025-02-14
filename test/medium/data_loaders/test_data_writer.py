@@ -3,32 +3,23 @@ from random import random
 from typing import Generator
 
 import pytest
-from docker.models.containers import Container
+from sqlalchemy import Engine
 
 import corerl.utils.nullable as nullable
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
-from test.infrastructure.utils.docker import init_docker_container
 
 
-@pytest.fixture(scope="module")
-def init_data_writer_tsdb_container():
-    container = init_docker_container(ports={"5432": 5433})
-    yield container
-    container.stop()
-    container.remove()
-
-
-@pytest.fixture(scope="module")
-def data_writer(init_data_writer_tsdb_container: Container) -> Generator[DataWriter, None, None]:
-    assert init_data_writer_tsdb_container.name == "test_timescale"
+@pytest.fixture()
+def data_writer(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> Generator[DataWriter, None, None]:
+    assert tsdb_engine.url.port is not None
     db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",
         username="postgres",
         password="password",
         ip="localhost",
-        port=5433, # default is 5432, but we want to use different port for test db
-        db_name="pytest",
+        port=tsdb_engine.url.port,
+        db_name=tsdb_tmp_db_name,
         table_name="sensors",
     )
 

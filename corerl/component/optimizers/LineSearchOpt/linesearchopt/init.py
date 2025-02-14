@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Collection
 from typing import Callable, Union
 
+import torch
 from typing_extensions import override
 
 
@@ -52,6 +53,8 @@ class To(StepsizeInit):
     def reinit(self, step_size: float) -> float:
         return self._step_size
 
+
+torch.serialization.add_safe_globals([To])
 
 class Multiply(StepsizeInit):
     """Re-initializes stepsizes to a multiple of the last used stepsize.

@@ -59,6 +59,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/verify-connection/db": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Connection Db */
+        post: operations["verify_connection_db_api_verify_connection_db_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/verify-connection/opc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Connection Opc */
+        post: operations["verify_connection_opc_api_verify_connection_opc_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -81,21 +115,6 @@ export interface components {
                 number
             ] | null;
             /**
-             * Discrete Control
-             * @default ${env.discrete_control}
-             */
-            discrete_control: boolean;
-            /**
-             * Freezer Freq
-             * @default 1
-             */
-            freezer_freq: number;
-            /**
-             * Gamma
-             * @default ${experiment.gamma}
-             */
-            gamma: number;
-            /**
              * N Updates
              * @default 1
              */
@@ -106,15 +125,25 @@ export interface components {
              */
             replay_ratio: number;
             /**
-             * Seed
-             * @default ${experiment.seed}
-             */
-            seed: number;
-            /**
              * Update Freq
              * @default 1
              */
             update_freq: number;
+            /**
+             * Discrete Control
+             * @default |???|
+             */
+            discrete_control: boolean;
+            /**
+             * Gamma
+             * @default |???|
+             */
+            gamma: number;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
             /** Action Schedule */
             action_schedule?: number[][];
         };
@@ -139,8 +168,6 @@ export interface components {
              * @default false
              */
             enabled: boolean;
-            /** Offline Eval Steps */
-            offline_eval_steps?: number[];
             /**
              * Num Test States
              * @default 30
@@ -322,7 +349,7 @@ export interface components {
         /** Body_gen_config_file_api_configuration_file_post */
         Body_gen_config_file_api_configuration_file_post: {
             /** File */
-            file?: Blob | null;
+            file?: string | null;
         };
         /** ClipConfig */
         ClipConfig: {
@@ -397,6 +424,54 @@ export interface components {
              */
             normalize: boolean;
         };
+        /** DBConfig */
+        DBConfig: {
+            /**
+             * Drivername
+             * @default postgresql+psycopg2
+             */
+            drivername: string;
+            /**
+             * Username
+             * @default postgres
+             */
+            username: string;
+            /**
+             * Password
+             * @default password
+             */
+            password: string;
+            /**
+             * Ip
+             * @default localhost
+             */
+            ip: string;
+            /**
+             * Port
+             * @default 5432
+             */
+            port: number;
+            /**
+             * Db Name
+             * @default postgres
+             */
+            db_name: string;
+        };
+        /** DB_Status_Request */
+        DB_Status_Request: {
+            db_config: components["schemas"]["DBConfig"];
+            /** Table Name */
+            table_name: string;
+        };
+        /** DB_Status_Response */
+        DB_Status_Response: {
+            /** Db Status */
+            db_status: boolean;
+            /** Table Status */
+            table_status: boolean;
+            /** Has Connected */
+            has_connected: boolean;
+        };
         /**
          * DataMode
          * @enum {integer}
@@ -460,8 +535,9 @@ export interface components {
             client_private_key_path?: string | null;
             /** Server Cert Path */
             server_cert_path?: string | null;
-            /** @default |???| */
-            db: components["schemas"]["TagDBConfig"];
+            /** Application Uri */
+            application_uri?: string | null;
+            db?: components["schemas"]["TagDBConfig"];
             /**
              * Action Tolerance
              * Format: duration
@@ -484,11 +560,11 @@ export interface components {
              */
             action_period: string;
             /**
-             * Action Tolerance
+             * Update Period
              * Format: duration
              * @default |???|
              */
-            action_tolerance: string;
+            update_period: string;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -554,7 +630,7 @@ export interface components {
             buffer?: components["schemas"]["UniformReplayBufferConfig"] | components["schemas"]["PriorityReplayBufferConfig"] | components["schemas"]["EnsembleUniformReplayBufferConfig"] | components["schemas"]["MixedHistoryBufferConfig"];
             /**
              * Polyak
-             * @default 0.99
+             * @default 0.995
              */
             polyak: number;
             /**
@@ -601,7 +677,7 @@ export interface components {
             name: "ensemble_uniform";
             /**
              * Seed
-             * @default |???|
+             * @default 0
              */
             seed: number;
             /**
@@ -615,18 +691,23 @@ export interface components {
              */
             batch_size: number;
             /**
-             * Combined
-             * @default true
+             * N Most Recent
+             * @default 1
              */
-            combined: boolean;
+            n_most_recent: number;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
             /**
              * Ensemble
-             * @default 10
+             * @default 1
              */
             ensemble: number;
             /**
              * Data Subset
-             * @default 0.5
+             * @default 1
              */
             data_subset: number;
         };
@@ -648,21 +729,6 @@ export interface components {
                 number
             ] | null;
             /**
-             * Discrete Control
-             * @default ${env.discrete_control}
-             */
-            discrete_control: boolean;
-            /**
-             * Freezer Freq
-             * @default 1
-             */
-            freezer_freq: number;
-            /**
-             * Gamma
-             * @default ${experiment.gamma}
-             */
-            gamma: number;
-            /**
              * N Updates
              * @default 1
              */
@@ -673,15 +739,25 @@ export interface components {
              */
             replay_ratio: number;
             /**
-             * Seed
-             * @default ${experiment.seed}
-             */
-            seed: number;
-            /**
              * Update Freq
              * @default 1
              */
             update_freq: number;
+            /**
+             * Discrete Control
+             * @default |???|
+             */
+            discrete_control: boolean;
+            /**
+             * Gamma
+             * @default |???|
+             */
+            gamma: number;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
             /**
              * Ensemble Targets
              * @default false
@@ -709,32 +785,32 @@ export interface components {
         EvalDBConfig: {
             /**
              * Drivername
-             * @default postgresql+psycopg2
+             * @default |???|
              */
             drivername: string;
             /**
              * Username
-             * @default postgres
+             * @default |???|
              */
             username: string;
             /**
              * Password
-             * @default password
+             * @default |???|
              */
             password: string;
             /**
              * Ip
-             * @default localhost
+             * @default |???|
              */
             ip: string;
             /**
              * Port
-             * @default 5432
+             * @default |???|
              */
             port: number;
             /**
              * Db Name
-             * @default postgres
+             * @default |???|
              */
             db_name: string;
             /**
@@ -813,6 +889,8 @@ export interface components {
              * @default 0
              */
             offline_steps: number;
+            /** Offline Eval Iters */
+            offline_eval_iters?: number[];
             /**
              * Pipeline Batch Duration
              * Format: duration
@@ -844,11 +922,6 @@ export interface components {
              * @default 0
              */
             seed: number;
-            /**
-             * Timeout
-             * @default 1
-             */
-            timeout: number;
             /**
              * Run Forever
              * @default false
@@ -891,21 +964,6 @@ export interface components {
                 number
             ] | null;
             /**
-             * Discrete Control
-             * @default ${env.discrete_control}
-             */
-            discrete_control: boolean;
-            /**
-             * Freezer Freq
-             * @default 1
-             */
-            freezer_freq: number;
-            /**
-             * Gamma
-             * @default ${experiment.gamma}
-             */
-            gamma: number;
-            /**
              * N Updates
              * @default 1
              */
@@ -916,15 +974,25 @@ export interface components {
              */
             replay_ratio: number;
             /**
-             * Seed
-             * @default ${experiment.seed}
-             */
-            seed: number;
-            /**
              * Update Freq
              * @default 1
              */
             update_freq: number;
+            /**
+             * Discrete Control
+             * @default |???|
+             */
+            discrete_control: boolean;
+            /**
+             * Gamma
+             * @default |???|
+             */
+            gamma: number;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
             critic?: components["schemas"]["EnsembleCriticConfig"];
             actor?: components["schemas"]["NetworkActorConfig"];
             /**
@@ -938,28 +1006,13 @@ export interface components {
              */
             n_critic_updates: number;
             /**
-             * Average Entropy
-             * @default true
-             */
-            average_entropy: boolean;
-            /**
              * Ensemble Targets
              * @default false
              */
             ensemble_targets: boolean;
             /**
-             * Interleave Updates
-             * @default true
-             */
-            interleave_updates: boolean;
-            /**
-             * N Sampler Updates
-             * @default 1
-             */
-            n_sampler_updates: number;
-            /**
              * Num Samples
-             * @default 500
+             * @default 128
              */
             num_samples: number;
             /**
@@ -978,15 +1031,25 @@ export interface components {
              */
             share_batch: boolean;
             /**
-             * Tau
-             * @default 0
-             */
-            tau: number;
-            /**
              * Uniform Sampling Percentage
-             * @default 0.5
+             * @default 0.8
              */
             uniform_sampling_percentage: number;
+            /**
+             * Eval Batch
+             * @default true
+             */
+            eval_batch: boolean;
+            /**
+             * Ingress Loss
+             * @default true
+             */
+            ingress_loss: boolean;
+            /**
+             * Most Recent Batch Loss
+             * @default true
+             */
+            most_recent_batch_loss: boolean;
         };
         /** GreedyIQLConfig */
         GreedyIQLConfig: {
@@ -1006,21 +1069,6 @@ export interface components {
                 number
             ] | null;
             /**
-             * Discrete Control
-             * @default ${env.discrete_control}
-             */
-            discrete_control: boolean;
-            /**
-             * Freezer Freq
-             * @default 1
-             */
-            freezer_freq: number;
-            /**
-             * Gamma
-             * @default ${experiment.gamma}
-             */
-            gamma: number;
-            /**
              * N Updates
              * @default 1
              */
@@ -1031,15 +1079,25 @@ export interface components {
              */
             replay_ratio: number;
             /**
-             * Seed
-             * @default ${experiment.seed}
-             */
-            seed: number;
-            /**
              * Update Freq
              * @default 1
              */
             update_freq: number;
+            /**
+             * Discrete Control
+             * @default |???|
+             */
+            discrete_control: boolean;
+            /**
+             * Gamma
+             * @default |???|
+             */
+            gamma: number;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
             gac?: components["schemas"]["GreedyACConfig"];
             iql?: components["schemas"]["IQLConfig"];
             /**
@@ -1105,21 +1163,6 @@ export interface components {
                 number
             ] | null;
             /**
-             * Discrete Control
-             * @default ${env.discrete_control}
-             */
-            discrete_control: boolean;
-            /**
-             * Freezer Freq
-             * @default 1
-             */
-            freezer_freq: number;
-            /**
-             * Gamma
-             * @default ${experiment.gamma}
-             */
-            gamma: number;
-            /**
              * N Updates
              * @default 1
              */
@@ -1130,15 +1173,25 @@ export interface components {
              */
             replay_ratio: number;
             /**
-             * Seed
-             * @default ${experiment.seed}
-             */
-            seed: number;
-            /**
              * Update Freq
              * @default 1
              */
             update_freq: number;
+            /**
+             * Discrete Control
+             * @default |???|
+             */
+            discrete_control: boolean;
+            /**
+             * Gamma
+             * @default |???|
+             */
+            gamma: number;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
             critic?: components["schemas"]["EnsembleCriticConfig"];
             actor?: components["schemas"]["NetworkActorConfig"];
             /**
@@ -1204,21 +1257,6 @@ export interface components {
                 number
             ] | null;
             /**
-             * Discrete Control
-             * @default ${env.discrete_control}
-             */
-            discrete_control: boolean;
-            /**
-             * Freezer Freq
-             * @default 1
-             */
-            freezer_freq: number;
-            /**
-             * Gamma
-             * @default ${experiment.gamma}
-             */
-            gamma: number;
-            /**
              * N Updates
              * @default 1
              */
@@ -1229,15 +1267,25 @@ export interface components {
              */
             replay_ratio: number;
             /**
-             * Seed
-             * @default ${experiment.seed}
-             */
-            seed: number;
-            /**
              * Update Freq
              * @default 1
              */
             update_freq: number;
+            /**
+             * Discrete Control
+             * @default |???|
+             */
+            discrete_control: boolean;
+            /**
+             * Gamma
+             * @default |???|
+             */
+            gamma: number;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
             critic?: components["schemas"]["EnsembleCriticConfig"];
             actor?: components["schemas"]["NetworkActorConfig"];
             /**
@@ -1270,6 +1318,10 @@ export interface components {
              * @default 1
              */
             temp: number;
+        };
+        /** InfraConfig */
+        InfraConfig: {
+            db?: components["schemas"]["DBConfig"];
         };
         /** InverseConfig */
         InverseConfig: {
@@ -1372,29 +1424,30 @@ export interface components {
         };
         /** MainConfig */
         MainConfig: {
-            /**
-             * Interaction
-             * @default |???|
-             */
-            interaction: components["schemas"]["SimInteractionConfig"] | components["schemas"]["DepInteractionConfig"];
+            infra?: components["schemas"]["InfraConfig"];
             /** Metrics */
             metrics?: components["schemas"]["MetricsDBConfig"] | components["schemas"]["PandasMetricsConfig"];
             /** Evals */
             evals?: components["schemas"]["EvalDBConfig"];
             event_bus?: components["schemas"]["EventBusConfig"];
+            experiment?: components["schemas"]["ExperimentConfig"];
+            /** Log Path */
+            log_path?: string | null;
             /**
              * Env
              * @default |???|
              */
             env: components["schemas"]["SimAsyncEnvConfig"] | components["schemas"]["DepAsyncEnvConfig"];
+            /**
+             * Interaction
+             * @default |???|
+             */
+            interaction: components["schemas"]["SimInteractionConfig"] | components["schemas"]["DepInteractionConfig"];
+            pipeline?: components["schemas"]["PipelineConfig"];
             /** Agent */
             agent?: components["schemas"]["ActionScheduleConfig"] | components["schemas"]["GreedyACConfig"] | components["schemas"]["GreedyIQLConfig"] | components["schemas"]["InACConfig"] | components["schemas"]["IQLConfig"] | components["schemas"]["RandomAgentConfig"] | components["schemas"]["SACConfig"] | components["schemas"]["EpsilonGreedySarsaConfig"] | components["schemas"]["SimpleACConfig"];
-            experiment?: components["schemas"]["ExperimentConfig"];
-            pipeline?: components["schemas"]["PipelineConfig"];
             eval_cfgs?: components["schemas"]["EvalConfig"];
             report?: components["schemas"]["ReportConfig"];
-            /** Log Path */
-            log_path?: string | null;
         };
         /** MaskedAEConfig */
         MaskedAEConfig: {
@@ -1474,32 +1527,32 @@ export interface components {
         MetricsDBConfig: {
             /**
              * Drivername
-             * @default postgresql+psycopg2
+             * @default |???|
              */
             drivername: string;
             /**
              * Username
-             * @default postgres
+             * @default |???|
              */
             username: string;
             /**
              * Password
-             * @default password
+             * @default |???|
              */
             password: string;
             /**
              * Ip
-             * @default localhost
+             * @default |???|
              */
             ip: string;
             /**
              * Port
-             * @default 5432
+             * @default |???|
              */
             port: number;
             /**
              * Db Name
-             * @default postgres
+             * @default |???|
              */
             db_name: string;
             /**
@@ -1559,10 +1612,15 @@ export interface components {
              */
             batch_size: number;
             /**
-             * Combined
-             * @default true
+             * N Most Recent
+             * @default 1
              */
-            combined: boolean;
+            n_most_recent: number;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
             /**
              * Online Weight
              * @default 0.75
@@ -1586,8 +1644,6 @@ export interface components {
              * @default false
              */
             enabled: boolean;
-            /** Offline Eval Steps */
-            offline_eval_steps?: number[];
             /**
              * Gamma
              * @default ${experiment.gamma}
@@ -1676,6 +1732,18 @@ export interface components {
              */
             name: "null";
         };
+        /** OPC_Status_Request */
+        OPC_Status_Request: {
+            /** Opc Url */
+            opc_url: string;
+        };
+        /** OPC_Status_Response */
+        OPC_Status_Response: {
+            /** Opc Status */
+            opc_status: boolean;
+            /** Has Connected */
+            has_connected: boolean;
+        };
         /** OpcNodeDetail */
         OpcNodeDetail: {
             /** Val */
@@ -1744,6 +1812,8 @@ export interface components {
              * @enum {string}
              */
             name: "per-tag";
+            /** Default */
+            default?: components["schemas"]["IdentityImputerConfig"] | components["schemas"]["CopyImputerConfig"] | components["schemas"]["LinearImputerConfig"];
         };
         /** PercentileReduct */
         PercentileReduct: {
@@ -1772,7 +1842,6 @@ export interface components {
         PipelineConfig: {
             /** Tags */
             tags?: components["schemas"]["TagConfig"][];
-            db?: components["schemas"]["TagDBConfig"];
             /**
              * Max Data Gap
              * Format: duration
@@ -1821,10 +1890,15 @@ export interface components {
              */
             batch_size: number;
             /**
-             * Combined
-             * @default true
+             * N Most Recent
+             * @default 1
              */
-            combined: boolean;
+            n_most_recent: number;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
             /**
              * Uniform Probability
              * @default 0.01
@@ -1854,21 +1928,6 @@ export interface components {
                 number
             ] | null;
             /**
-             * Discrete Control
-             * @default ${env.discrete_control}
-             */
-            discrete_control: boolean;
-            /**
-             * Freezer Freq
-             * @default 1
-             */
-            freezer_freq: number;
-            /**
-             * Gamma
-             * @default ${experiment.gamma}
-             */
-            gamma: number;
-            /**
              * N Updates
              * @default 1
              */
@@ -1879,15 +1938,25 @@ export interface components {
              */
             replay_ratio: number;
             /**
-             * Seed
-             * @default ${experiment.seed}
-             */
-            seed: number;
-            /**
              * Update Freq
              * @default 1
              */
             update_freq: number;
+            /**
+             * Discrete Control
+             * @default |???|
+             */
+            discrete_control: boolean;
+            /**
+             * Gamma
+             * @default |???|
+             */
+            gamma: number;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
         };
         /** RawDataEvalConfig */
         RawDataEvalConfig: {
@@ -1987,21 +2056,6 @@ export interface components {
                 number
             ] | null;
             /**
-             * Discrete Control
-             * @default ${env.discrete_control}
-             */
-            discrete_control: boolean;
-            /**
-             * Freezer Freq
-             * @default 1
-             */
-            freezer_freq: number;
-            /**
-             * Gamma
-             * @default ${experiment.gamma}
-             */
-            gamma: number;
-            /**
              * N Updates
              * @default 1
              */
@@ -2012,15 +2066,25 @@ export interface components {
              */
             replay_ratio: number;
             /**
-             * Seed
-             * @default ${experiment.seed}
-             */
-            seed: number;
-            /**
              * Update Freq
              * @default 1
              */
             update_freq: number;
+            /**
+             * Discrete Control
+             * @default |???|
+             */
+            discrete_control: boolean;
+            /**
+             * Gamma
+             * @default |???|
+             */
+            gamma: number;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
             critic?: components["schemas"]["EnsembleCriticConfig"];
             actor?: components["schemas"]["NetworkActorConfig"];
             /**
@@ -2188,11 +2252,11 @@ export interface components {
              */
             action_period: string;
             /**
-             * Action Tolerance
+             * Update Period
              * Format: duration
              * @default |???|
              */
-            action_tolerance: string;
+            update_period: string;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -2217,21 +2281,6 @@ export interface components {
                 number
             ] | null;
             /**
-             * Discrete Control
-             * @default ${env.discrete_control}
-             */
-            discrete_control: boolean;
-            /**
-             * Freezer Freq
-             * @default 1
-             */
-            freezer_freq: number;
-            /**
-             * Gamma
-             * @default ${experiment.gamma}
-             */
-            gamma: number;
-            /**
              * N Updates
              * @default 1
              */
@@ -2242,15 +2291,25 @@ export interface components {
              */
             replay_ratio: number;
             /**
-             * Seed
-             * @default ${experiment.seed}
-             */
-            seed: number;
-            /**
              * Update Freq
              * @default 1
              */
             update_freq: number;
+            /**
+             * Discrete Control
+             * @default |???|
+             */
+            discrete_control: boolean;
+            /**
+             * Gamma
+             * @default |???|
+             */
+            gamma: number;
+            /**
+             * Seed
+             * @default |???|
+             */
+            seed: number;
             critic?: components["schemas"]["EnsembleCriticConfig"];
             actor?: components["schemas"]["NetworkActorConfig"];
             /**
@@ -2339,7 +2398,7 @@ export interface components {
             /** Outlier */
             outlier?: components["schemas"]["EMAFilterConfig"] | components["schemas"]["IdentityFilterConfig"];
             /** Imputer */
-            imputer?: components["schemas"]["IdentityImputerConfig"] | components["schemas"]["CopyImputerConfig"] | components["schemas"]["LinearImputerConfig"];
+            imputer?: (components["schemas"]["IdentityImputerConfig"] | components["schemas"]["CopyImputerConfig"] | components["schemas"]["LinearImputerConfig"]) | null;
             /** Preprocess */
             preprocess?: (components["schemas"]["AddRawConfig"] | components["schemas"]["AffineConfig"] | components["schemas"]["ClipConfig"] | components["schemas"]["DeltaConfig"] | components["schemas"]["GreaterThanConfig"] | components["schemas"]["IdentityConfig"] | components["schemas"]["InverseConfig"] | components["schemas"]["LessThanConfig"] | components["schemas"]["NormalizerConfig"] | components["schemas"]["NullConfig"] | components["schemas"]["PowerConfig"] | components["schemas"]["BinaryConfig"] | components["schemas"]["ScaleConfig"] | components["schemas"]["SplitConfig"] | components["schemas"]["TraceConfig"] | components["schemas"]["ComparatorConfig"])[];
             /** Reward Constructor */
@@ -2355,32 +2414,32 @@ export interface components {
         TagDBConfig: {
             /**
              * Drivername
-             * @default postgresql+psycopg2
+             * @default |???|
              */
             drivername: string;
             /**
              * Username
-             * @default postgres
+             * @default |???|
              */
             username: string;
             /**
              * Password
-             * @default password
+             * @default |???|
              */
             password: string;
             /**
              * Ip
-             * @default localhost
+             * @default |???|
              */
             ip: string;
             /**
              * Port
-             * @default 5432
+             * @default |???|
              */
             port: number;
             /**
              * Db Name
-             * @default postgres
+             * @default |???|
              */
             db_name: string;
             /**
@@ -2440,10 +2499,15 @@ export interface components {
              */
             batch_size: number;
             /**
-             * Combined
-             * @default true
+             * N Most Recent
+             * @default 1
              */
-            combined: boolean;
+            n_most_recent: number;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -2574,6 +2638,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OpcNodeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_connection_db_api_verify_connection_db_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DB_Status_Request"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DB_Status_Response"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_connection_opc_api_verify_connection_opc_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OPC_Status_Request"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OPC_Status_Response"];
                 };
             };
             /** @description Validation Error */

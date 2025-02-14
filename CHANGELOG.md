@@ -1,3 +1,151 @@
+## 0.103.0 (2025-02-14)
+
+### Feat
+
+- remove last remaining concept of interpolation
+
+### Refactor
+
+- remove interpolation from monte carlo eval
+- no longer use interpolation for environment seed
+- remove the need to specify a transition creator
+
+## 0.102.0 (2025-02-14)
+
+### Feat
+
+- add filter for pre dp or action change
+
+### Fix
+
+- add action change to step batch
+- decouple action change from decision point
+
+### Refactor
+
+- countdown uses 0 instead of steps_per_decision on decision point
+- remove tag config from transition creator
+- ignore step timestamp in step iterator
+
+### Perf
+
+- copy instead of deepcopy in all-the-time transition creator
+
+## 0.101.0 (2025-02-14)
+
+### Feat
+
+- consider out-of-bounds delta actions as nan instead of clipping
+- broaden clip xform to do general bounds checking
+
+## 0.100.0 (2025-02-14)
+
+### Feat
+
+- action variance and q val metrics
+
+## 0.99.0 (2025-02-14)
+
+### Feat
+
+- logging backtrack steps and step_size
+
+### Fix
+
+- lso example
+- pass optimizer lr to LSO
+
+## 0.98.0 (2025-02-13)
+
+### Feat
+
+- add timestamp to steps
+
+### Fix
+
+- ensure None values are ignored in replay buffer
+- ignore step timestamp in buffer
+
+## 0.97.0 (2025-02-13)
+
+### Feat
+
+- add ability to override directly loaded config options
+- delta action cfg encantation is computed from feature flag
+- allow GAC to have different delta percents per setpoint tag
+
+### Fix
+
+- configs should no longer be assumed frozen
+
+## 0.96.0 (2025-02-13)
+
+### Feat
+
+- support specifying a subset of tags in sim environments
+
+### Refactor
+
+- cleanup lingering default values in cfg YAMLs
+- pull preprocessor normalization defaults into computed cfgs
+- move oddity detection defaults into global default
+
+## 0.95.0 (2025-02-13)
+
+### Feat
+
+- Web Client has can verify if DB and OPC connections are available (#506)
+
+## 0.94.0 (2025-02-13)
+
+### Feat
+
+- allow specifying a single top-level default imputer for all tags
+
+### Fix
+
+- ignore checkpointing the optimizer
+- annotate agent config types with discriminator
+
+### Refactor
+
+- default out stepsizes and action samples in cfgs
+- default out several agent configs
+
+## 0.93.3 (2025-02-13)
+
+### Refactor
+
+- remove NStepInfo dataclass
+- simplify all-the-time TC
+
+## 0.93.2 (2025-02-13)
+
+### Fix
+
+- update dependency versions
+
+### Refactor
+
+- remove all buffer config overrides in favor of defaults
+- remove lots of unnecessary is_meta and sc: null cfgs
+- prefer global sc defaults over tag-specific sc xforms
+- remove normalizer from default sc cfgs
+- remove many unused cfg values
+
+## 0.93.1 (2025-02-13)
+
+### Fix
+
+- more debugging
+- Small fix for Docker build
+
+## 0.93.0 (2025-02-13)
+
+### Feat
+
+- mpc on saturation
+
 ## 0.92.0 (2025-02-12)
 
 ### Feat

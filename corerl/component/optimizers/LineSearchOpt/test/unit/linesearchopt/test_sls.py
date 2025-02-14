@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import corerl.component.optimizers.LineSearchOpt.linesearchopt as lso
+from corerl.state import AppState
 
 CLOSURE_CREATOR = Callable[
     [torch.nn.Module, int, torch.Tensor, torch.Tensor],
@@ -111,7 +112,7 @@ def closure():
 
 
 @pytest.fixture
-def armijo_lso_no_backtrack():
+def armijo_lso_no_backtrack(dummy_app_state: AppState):
     init = lso.init.Multiply(1.5)
     def _get_opt(
         net: torch.nn.Module,
@@ -125,6 +126,7 @@ def armijo_lso_no_backtrack():
             max_step_size=max_step_size,
         )
         return lso.Optimizer(
+            dummy_app_state,
             net.parameters(),
             torch.optim.Adam,  #pyright: ignore[reportPrivateImportUsage]
             condition,
@@ -136,7 +138,7 @@ def armijo_lso_no_backtrack():
     return _get_opt
 
 @pytest.fixture
-def armijo_lso_sgd():
+def armijo_lso_sgd(dummy_app_state: AppState):
     init = lso.init.Multiply(1.5)
     def _get_opt(
         net: torch.nn.Module,
@@ -150,6 +152,7 @@ def armijo_lso_sgd():
             max_step_size=max_step_size,
         )
         return lso.Optimizer(
+            dummy_app_state,
             net.parameters(),
             torch.optim.SGD,  #pyright: ignore[reportPrivateImportUsage]
             condition,
@@ -160,7 +163,7 @@ def armijo_lso_sgd():
     return _get_opt
 
 @pytest.fixture
-def armijo_lso():
+def armijo_lso(dummy_app_state: AppState):
     init = lso.init.Multiply(1.5)
     def _get_opt(
         net: torch.nn.Module,
@@ -174,6 +177,7 @@ def armijo_lso():
             max_step_size=max_step_size,
         )
         return lso.Optimizer(
+            dummy_app_state,
             net.parameters(),
             torch.optim.Adam,  #pyright: ignore[reportPrivateImportUsage]
             condition,
