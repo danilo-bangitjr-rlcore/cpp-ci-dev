@@ -150,7 +150,7 @@ class Pipeline:
         }
         self.conditional_filter = ConditionalFilter(self.tags)
         self.preprocessor = Preprocessor(self.tags)
-        self.transition_creator = AllTheTimeTC(cfg.transition_creator, self.tags)
+        self.transition_creator = AllTheTimeTC(cfg.transition_creator)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
         self.outlier_detectors = {tag.name: init_oddity_filter(tag.outlier) for tag in self.tags}
         self.imputers = init_imputer(cfg.imputer, self.tags)

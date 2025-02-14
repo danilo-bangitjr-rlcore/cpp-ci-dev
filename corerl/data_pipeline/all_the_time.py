@@ -11,7 +11,6 @@ import pandas as pd
 from corerl.component.network.utils import tensor
 from corerl.configs.config import MISSING, computed, config, interpolate
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, Step, Transition
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.utils.maybe import Maybe
 
 if TYPE_CHECKING:
@@ -69,10 +68,8 @@ class AllTheTimeTC:
     def __init__(
             self,
             cfg: AllTheTimeTCConfig,
-            tag_configs: list[TagConfig],
     ):
         self.cfg = cfg
-        self.tag_configs = tag_configs
 
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
