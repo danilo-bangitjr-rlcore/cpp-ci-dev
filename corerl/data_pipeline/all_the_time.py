@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import Iterable
-from copy import deepcopy
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -11,7 +10,6 @@ import pandas as pd
 from corerl.component.network.utils import tensor
 from corerl.configs.config import MISSING, computed, config, interpolate
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, Step, Transition
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.utils.maybe import Maybe
 
 if TYPE_CHECKING:
@@ -45,7 +43,7 @@ def get_tags(df: pd.DataFrame, tags: Iterable[str]):
 
 
 def get_n_step_reward(step_q: deque[Step]):
-    steps = deepcopy(step_q) # deque is mutable
+    steps = step_q.copy() # deque is mutable
     steps.popleft() # drop the first step, it does not contribute to return
 
     partial_return = 0
@@ -69,10 +67,8 @@ class AllTheTimeTC:
     def __init__(
             self,
             cfg: AllTheTimeTCConfig,
-            tag_configs: list[TagConfig],
     ):
         self.cfg = cfg
-        self.tag_configs = tag_configs
 
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
@@ -90,8 +86,9 @@ class AllTheTimeTC:
         rewards = pf.rewards['reward'].to_numpy()
 
         dps = pf.decision_points
-        n = len(pf.data)
+        acs = pf.action_change
 
+        n = len(pf.data)
         assert n == len(actions) == len(states) and len(states) == len(rewards) == len(dps)
 
         steps: list[Step] = []
@@ -102,6 +99,7 @@ class AllTheTimeTC:
                 gamma=self.gamma,
                 state=states[i],
                 dp=bool(dps[i]),
+                ac=bool(acs[i]),
                 timestamp=( # curse you pandas
                     Maybe(pf.data.index[i])
                     .is_instance(pd.Timestamp)

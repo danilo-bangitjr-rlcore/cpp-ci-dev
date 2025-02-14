@@ -74,15 +74,18 @@ class DecisionPointDetector:
             is_dp = ts.steps_until_dp == 0
             is_ac = self._is_action_change(pf.actions, ts, i)
 
-            if is_dp or is_ac:
+            if is_ac:
+                pf.action_change[i] = True
+                ts.steps_until_dp = self._steps_per_decision - 1
+
+            if is_dp:
                 pf.decision_points[i] = True
-                ts.steps_until_dp = self._steps_per_decision
 
             clock_feats.tick(i, ts.clock, ts.steps_until_dp)
 
             # loop carry state
             ts.clock = (ts.clock - 1) % self._steps_per_decision
-            ts.steps_until_dp -= 1
+            ts.steps_until_dp = (ts.steps_until_dp - 1) % self._steps_per_decision
 
         # special case if no countdown features are needed
         if isinstance(clock_feats, NoCountdown):
@@ -109,7 +112,7 @@ class DecisionPointDetector:
         for i in range(n_rows):
             is_ac = self._is_action_change(df, ts, i)
             if is_ac:
-                ts.steps_until_dp = i % self._steps_per_decision
+                ts.steps_until_dp = (i - 1) % self._steps_per_decision
                 ts.clock = (i - 1) % self._steps_per_decision
                 break
 
@@ -176,9 +179,8 @@ class TwoClockCountdown(CountdownFeatureBuilder):
         self._x = np.zeros((n_rows, 2), dtype=np.int_)
 
     def tick(self, row: int, clock: int, steps_until_dp: int):
-        # shift clock to be [1, period]
-        # instead of        [0, period)
-        self._x[row, 0] = clock + 1
+        # clock in [0, period) like steps_until_dp
+        self._x[row, 0] = clock
         self._x[row, 1] = steps_until_dp
 
     def get(self):

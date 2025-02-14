@@ -36,7 +36,8 @@ class Step:
     action: Tensor
     gamma: float
     state: Tensor
-    dp: bool
+    dp: bool # decision point
+    ac: bool # action change
     timestamp: datetime.datetime | None = None
 
     def __eq__(self, other: object):
@@ -58,8 +59,15 @@ class Step:
         )
 
     def __iter__(self):
+        """
+        This iterator is used in the buffer with magic ordering
+        """
         for f in fields(self):
-            yield getattr(self, f.name)
+            attr = getattr(self, f.name)
+            # skip timestamp in buffer
+            if f.name == "timestamp":
+                continue
+            yield attr
 
 
 @dataclass
@@ -100,6 +108,9 @@ class Transition:
         return True
 
     def __iter__(self):
+        """
+        This iterator is used in the buffer with magic ordering
+        """
         for f in fields(self):
             attr = getattr(self, f.name)
             if isinstance(attr, list):  # if attr = steps
@@ -124,8 +135,12 @@ class StepBatch:
     gamma: Tensor
     state: Tensor
     dp: Tensor
+    ac: Tensor
 
     def __iter__(self):
+        """
+        This iterator is used in the buffer with magic ordering
+        """
         for f in fields(self):
             yield getattr(self, f.name)
 
@@ -150,7 +165,8 @@ class StepBatch:
             action=self.action[idx],
             gamma=self.gamma[idx],
             state=self.state[idx],
-            dp=self.dp[idx]
+            dp=self.dp[idx],
+            ac=self.ac[idx]
         )
 
 @dataclass
@@ -216,6 +232,7 @@ class PipelineFrame:
     rewards: pd.DataFrame = field(default_factory=pd.DataFrame)
     missing_info: pd.DataFrame = field(init=False)
     decision_points: np.ndarray = field(init=False)
+    action_change: np.ndarray = field(init=False)
     temporal_state: TemporalState = field(default_factory=dict)
     transitions: list[Transition] | None = None
 
@@ -228,6 +245,8 @@ class PipelineFrame:
 
         # initialize dp flags
         self.decision_points = np.zeros(N, dtype=np.bool_)
+        # initialize action change flags
+        self.action_change = np.zeros(N, dtype=np.bool_)
 
         # initialize rl containers
         self.actions = self.data.copy(deep=False)
