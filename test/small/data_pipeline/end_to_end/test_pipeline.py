@@ -115,13 +115,13 @@ def test_pipeline1():
     cols = ['tag-1', 'countdown.[0]', 'tag-2_norm_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
-            [np.nan, 1,      0],
-            [0,      1,      0.18],
-            [1,      1,      0.378],
-            [2,      1,      0.5778],
-            [np.nan, 1,      0.77778],
-            [np.nan,      1,      0.977778],
-            [5,      1,      np.nan],
+            [np.nan, 0,      0],
+            [0,      0,      0.18],
+            [1,      0,      0.378],
+            [2,      0,      0.5778],
+            [np.nan, 0,      0.77778],
+            [np.nan, 0,      0.977778],
+            [5,      0,      np.nan],
         ],
         columns=cols,
         index=idx,
@@ -141,6 +141,7 @@ def test_pipeline1():
         index=idx,
     )
 
+    # breakpoint()
     assert dfs_close(got.df, expected_df, col_order_matters=True)
     assert dfs_close(got.rewards, expected_reward)
     assert got.transitions == [
@@ -148,16 +149,16 @@ def test_pipeline1():
         Transition(
             steps=[
                 # expected state order: states sorted. Thus, [tag-1, countdown.[0], tag-2_norm_trace-0.1]
-                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0.0, 1, 0.18]), dp=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 1, 0.378]), dp=True),
+                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0.0, 0, 0.18]), dp=True, ac=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0, 0.378]), dp=True, ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9
         ),
         Transition(
             steps=[
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 1,  0.378]), dp=True),
-                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([2.0, 1,  0.5778]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0,  0.378]), dp=True, ac=True),
+                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([2.0, 0,  0.5778]), dp=True, ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9
@@ -252,13 +253,13 @@ def test_pipeline2():
     cols = ['action-1', 'tag-1', 'countdown.[0]', 'tag-2_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
-            [0,    0,     1,     0],
-            [1,    0,     1,     0.15],
-            [0,    1,     1,     0.315],
-            [1,    1,     1,     0.4815],
-            [0,    1,     1,     0.64815],
-            [1,    4,     1,     0.814815],
-            [0,    4,     1,     0.981482],
+            [0,    0,     0,     0],
+            [1,    0,     0,     0.15],
+            [0,    1,     0,     0.315],
+            [1,    1,     0,     0.4815],
+            [0,    1,     0,     0.64815],
+            [1,    4,     0,     0.814815],
+            [0,    4,     0,     0.981482],
         ],
         columns=cols,
         index=idx,
@@ -270,48 +271,48 @@ def test_pipeline2():
         Transition(
             steps=[
                 # countdown comes first in the state
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 0., 1, 0.0]), dp=True),
-                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 1, 0.15]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 0., 0, 0.0]), dp=True, ac=True),
+                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 0, 0.15]), dp=True, ac=True),
             ],
             n_step_reward=3.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 1, 0.15]), dp=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 1, 0.315]), dp=True),
+                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 0, 0.15]), dp=True, ac=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.315]), dp=True, ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 1, 0.315]), dp=True),
-                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 1, 0.4815]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.315]), dp=True, ac=True),
+                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 0, 0.4815]), dp=True, ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 1, 0.4815]), dp=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 1, 0.64815]), dp=True),
+                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 0, 0.4815]), dp=True, ac=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.64815]), dp=True, ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 1, 0.64815]), dp=True),
-                Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 1, 0.814815]), dp=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.64815]), dp=True, ac=True),
+                Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 0, 0.814815]), dp=True, ac=True),
             ],
             n_step_reward=1.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 1, 0.814815]), dp=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 4., 1, 0.981482]), dp=True),
+                Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 0, 0.814815]), dp=True, ac=True),
+                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 4., 0, 0.981482]), dp=True, ac=True),
             ],
             n_step_reward=1.,
             n_step_gamma=0.9,
@@ -387,12 +388,13 @@ def test_delta_action_countdown():
     start = datetime.datetime.now(datetime.UTC)
     Δ = datetime.timedelta(minutes=5)
 
-    dates = [start + i * Δ for i in range(8)]
+    dates = [start + i * Δ for i in range(9)]
     idx = pd.DatetimeIndex(dates)
 
     cols: Any = ['tag-0', 'reward', 'action-0']
     df = pd.DataFrame(
         data=[
+            [np.nan,  0,   -1],
             [np.nan,  0,   -1],
             [np.nan,  0,   -1],
             [np.nan,  0,   -1],
@@ -409,10 +411,9 @@ def test_delta_action_countdown():
     pipeline = Pipeline(cfg)
     got = pipeline(df, data_mode=DataMode.ONLINE)
 
-    print(got.states)
     # make sure change in delta did not trigger cd reset
     cd = np.array(got.states['countdown.[0]'].values)
-    expected = np.array([4, 3, 2, 1, 4, 3, 2, 1])
-    # wrong = np.array([4, 3, 2, 1, 4, 4, 3, 2])
+    expected = np.array([0, 3, 2, 1, 0, 3, 2, 1, 0])
+    # wrong = np.array([0, 3, 2, 1, 0, 3, 3, 2, 1])
 
     assert np.allclose(cd, expected)
