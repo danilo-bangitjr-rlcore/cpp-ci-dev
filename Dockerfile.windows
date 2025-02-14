@@ -1,11 +1,7 @@
 # syntax=docker/dockerfile:1
 # Windows compatible docker file, assuming using x64 architecture
 
-# Stage: compile dependencies with SSH key forwarding to pull dependencies from private Github repository
-# Bookworm image is needed due to dependency on git cli
-# FROM ghcr.io/astral-sh/uv:python3.12-bookworm AS base
 FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS base
-#FROM winamd64/python:3-windowsservercore-ltsc2022 AS base
 
 RUN powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex" 
 
@@ -28,10 +24,8 @@ RUN uv build --wheel
 
 # See also: https://github.com/rlcoretech/core-rl/pull/347#discussion_r1906215954
 # Convert our wheel such that we only include .pyc files
-# SKIP: tbd, windows variable binding to whl_file_name, potentially use system python
-#RUN uv venv && uv pip install pyc_wheel &&\
-#  whl_file_name=$(ls /app/dist/corerl-*.whl) &&\
-#  python -m pyc_wheel "$whl_file_name"
+RUN uv venv && uv pip install pyc_wheel
+RUN powershell -c python -m pyc_wheel $(Get-ChildItem -Filter corerl-*.whl .\dist\).FullName
 
 # Stage: install corerl to minimal Python 3 image
 # FROM python:3.12-slim AS corerl
@@ -41,6 +35,11 @@ WORKDIR /app
 COPY --from=base /app/dist /app/dist
 #COPY --from=web_client /app/dist /app/client/dist
 
+# Microsoft Visual C++ Redistributable needs to exist in order to load DLLs
+RUN powershell -c 'Invoke-WebRequest "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "vc_redist.x64.exe"';
+RUN powershell -c 'Start-Process -filepath C:\app\vc_redist.x64.exe -ArgumentList "/install", "/passive", "/norestart" -Passthru | Wait-Process';
+RUN powershell -c 'Remove-Item -Force vc_redist.x64.exe';
+
 # Our corerl image is quite large with default cuda dependencies.
 # RUN pip install /app/dist/corerl-*.whl
 # Minimal CPU supported installation is used instead.
@@ -48,10 +47,6 @@ RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
 #RUN pip --no-cache-dir install --no-compile C:\app\dist\corerl-*.whl
 RUN powershell -c pip --no-cache-dir install --no-compile $(Get-ChildItem -Filter corerl-*.whl .\dist\).FullName
 
-# Microsoft Visual C++ Redistributable needs to exist in order to load DLLs
-RUN powershell -c 'Invoke-WebRequest "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "vc_redist.x64.exe"';
-RUN powershell -c 'Start-Process -filepath C:\app\vc_redist.x64.exe -ArgumentList "/install", "/passive", "/norestart" -Passthru | Wait-Process'; 
-RUN powershell -c 'Remove-Item -Force vc_redist.x64.exe';
 
 # Set up the entrypoint to reference our corerl main script, dynamically pass arguments on run
 ENTRYPOINT ["corerl_main"]
