@@ -1,3 +1,24 @@
+## 0.102.0 (2025-02-14)
+
+### Feat
+
+- add filter for pre dp or action change
+
+### Fix
+
+- add action change to step batch
+- decouple action change from decision point
+
+### Refactor
+
+- countdown uses 0 instead of steps_per_decision on decision point
+- remove tag config from transition creator
+- ignore step timestamp in step iterator
+
+### Perf
+
+- copy instead of deepcopy in all-the-time transition creator
+
 ## 0.101.0 (2025-02-14)
 
 ### Feat
