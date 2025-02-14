@@ -19,6 +19,7 @@ import { TagConfigsTable } from "../../components/setup/tag-configs-table";
 import { Spinner } from "../../components/spinner";
 import { getApiFetchClient } from "../../utils/api";
 import { DeepPartial, MainConfigContext } from "../../utils/main-config";
+import { Button } from "../../components/button";
 
 export const Route = createFileRoute("/setup/opc_tags_config")({
   component: OPCTagsConfig,
@@ -71,6 +72,14 @@ function OPCTagsConfig() {
     [mainConfig],
   );
 
+  const handleManualAddTagConfiguration: MouseEventHandler<
+    HTMLButtonElement
+  > = () => {
+    setTagConfigIndex(undefined);
+    setTagConfig({});
+    setDialogOpen(true);
+  };
+
   const handleRowClick: (
     tableType: "opc" | "tag_config",
     key: string | number,
@@ -121,13 +130,8 @@ function OPCTagsConfig() {
   ) => {
     const tags = structuredClone(mainConfig?.pipeline?.tags ?? []);
 
-    const existingNodeIndex = tags.findIndex(
-      (tagConfig) =>
-        tagConfig?.node_identifier === updatedTagConfig.node_identifier,
-    );
-
-    if (existingNodeIndex >= 0) {
-      tags[existingNodeIndex] = updatedTagConfig;
+    if (tagConfigIndex !== undefined) {
+      tags[tagConfigIndex] = updatedTagConfig;
     } else {
       tags.push(updatedTagConfig);
     }
@@ -159,7 +163,12 @@ function OPCTagsConfig() {
   return (
     <>
       <div className="p-2">
-        <TagConfigsTable data={tagConfigs} handleRowClick={handleRowClick} />
+        <div className="mb-2">
+          <TagConfigsTable data={tagConfigs} handleRowClick={handleRowClick} />
+          <Button onClick={handleManualAddTagConfiguration}>
+            Manual Add Tag Configuration
+          </Button>
+        </div>
         <Fieldset className="border border-gray-400 rounded-lg p-2 mb-2">
           <Legend>Search OPC Tags</Legend>
           {error && <Badge color="red">{JSON.stringify(error)}</Badge>}

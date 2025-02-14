@@ -16,6 +16,7 @@ import { components } from "../../api-schema";
 import { DeepPartial } from "../../utils/main-config";
 import { Code, TextSpan } from "../text";
 import { MouseEventHandler } from "react";
+import clsx from "clsx";
 
 interface TagConfigsTableProps {
   data: DeepPartial<components["schemas"]["TagConfig"]>[];
@@ -27,7 +28,8 @@ interface TagConfigsTableProps {
 
 const renderRangeCell: (
   val: DeepPartial<[number | null, number | null] | null | undefined>,
-) => React.ReactNode = (val) => {
+  columnId: string,
+) => React.ReactNode = (val, columnId) => {
   if (!val) {
     return <Code>null</Code>;
   }
@@ -43,9 +45,15 @@ const renderRangeCell: (
   }
 
   return (
-    <span>
+    <TextSpan
+      className={clsx(
+        columnId === "operating_range" && "bg-gray-100 rounded-sm pb-1 px-1",
+        columnId === "yellow_bounds" && "bg-amber-100 rounded-sm pb-1 px-1",
+        columnId === "red_bounds" && "bg-rose-100 rounded-sm pb-1 px-1",
+      )}
+    >
       {renderedLow} to {renderedHigh}
-    </span>
+    </TextSpan>
   );
 };
 
@@ -68,16 +76,16 @@ const tagConfigColumns = [
     header: "Is Setpoint",
   }),
   tagConfigColumnHelper.accessor("operating_range", {
-    cell: (info) => renderRangeCell(info.getValue()),
+    cell: (info) => renderRangeCell(info.getValue(), info.column.id),
     header: "Operating Range",
   }),
-  tagConfigColumnHelper.accessor("yellow_bounds", {
-    cell: (info) => renderRangeCell(info.getValue()),
-    header: "Yellow Bounds",
-  }),
   tagConfigColumnHelper.accessor("red_bounds", {
-    cell: (info) => renderRangeCell(info.getValue()),
+    cell: (info) => renderRangeCell(info.getValue(), info.column.id),
     header: "Red Bounds",
+  }),
+  tagConfigColumnHelper.accessor("yellow_bounds", {
+    cell: (info) => renderRangeCell(info.getValue(), info.column.id),
+    header: "Yellow Bounds",
   }),
 ];
 
@@ -120,11 +128,16 @@ export const TagConfigsTable = ({
             key={`tc-${row.id}`}
             onClick={handleRowClick("tag_config", row_index)}
           >
-            {row.getVisibleCells().map((cell) => (
-              <TableCell key={cell.id} className="max-w-80 overflow-x-auto">
-                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-              </TableCell>
-            ))}
+            {row.getVisibleCells().map((cell) => {
+              return (
+                <TableCell
+                  key={cell.id}
+                  className={clsx("max-w-80 overflow-x-auto")}
+                >
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
+              );
+            })}
           </TableRow>
         ))}
       </TableBody>

@@ -2,7 +2,6 @@ import {
   Dialog,
   DialogActions,
   DialogBody,
-  DialogDescription,
   DialogTitle,
 } from "../../components/dialog";
 import {
@@ -24,6 +23,7 @@ import {
 } from "react";
 import { Checkbox, CheckboxField } from "../checkbox";
 import { DeepPartial } from "../../utils/main-config";
+import { Text } from "../text";
 
 interface TagConfigProps {
   dialogOpen: boolean;
@@ -44,8 +44,7 @@ export const TagConfigDialog = ({
   handleSubmittedOPCNodeTagConfig,
   handleDeleteOPCNodeTagConfig,
 }: TagConfigProps) => {
-  const nodeIdentifier = selectedTagConfig?.node_identifier ?? "";
-
+  const [nodeIdentifier, setNodeIdentifier] = useState<string>("");
   const [name, setName] = useState<string>("");
   const [isSetpoint, setIsSetpoint] = useState<boolean>(false);
   const [operatingRangeLow, setOperatingRangeLow] = useState<number | "">("");
@@ -56,6 +55,7 @@ export const TagConfigDialog = ({
   const [yellowBoundsHigh, setYellowBoundsHigh] = useState<number | "">("");
 
   useEffect(() => {
+    setNodeIdentifier(`${selectedTagConfig?.node_identifier ?? ""}`);
     setName(selectedTagConfig?.name ?? "");
 
     // action_constructor to isSetpoint boolean
@@ -134,11 +134,10 @@ export const TagConfigDialog = ({
   return (
     <Dialog size="xl" open={dialogOpen} onClose={setDialogOpen}>
       <DialogTitle>Configure Tag</DialogTitle>
-      <DialogDescription>Configure bounds for this tag.</DialogDescription>
       <form onSubmit={handleSubmitOPCNodeTagConfig}>
         <DialogBody>
           <Fieldset>
-            <FieldGroup className="mb-2">
+            <FieldGroup>
               <Field className="mb-2">
                 <Label htmlFor="node_identifier">OPC Node ID</Label>
                 <Input
@@ -146,9 +145,11 @@ export const TagConfigDialog = ({
                   id="node_identifier"
                   name="node_identifier"
                   type="text"
-                  disabled={true}
                   value={nodeIdentifier}
+                  onChange={(e) => setNodeIdentifier(e.target.value)}
+                  autoFocus={true}
                 />
+                <Text className="">Full OPC-UA Node Identifier.</Text>
               </Field>
               <Field className="mb-2">
                 <Label>Name</Label>
@@ -157,105 +158,129 @@ export const TagConfigDialog = ({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
+                <Text className="">Tag Configuration name.</Text>
               </Field>
             </FieldGroup>
-            <CheckboxField>
-              <Checkbox
-                name="is_setpoint"
-                checked={isSetpoint}
-                onChange={setIsSetpoint}
-              />
-              <Label>Is Setpoint</Label>
+            <div className="border-gray-200 border-2 rounded-sm p-1 mt-1 mb-1">
+              <FieldGroup className="flex flex-row justify-between content-between">
+                <Field className="flex flex-col mb-0">
+                  <Label htmlFor="operating_range_low">
+                    Operating Range Low
+                  </Label>
+                  <Input
+                    className="mb-0"
+                    id="operating_range_low"
+                    name="operating_range_low"
+                    type="number"
+                    value={operatingRangeLow}
+                    onChange={setNumberWithUndefined(setOperatingRangeLow)}
+                  />
+                </Field>
+                <Field className="flex flex-col mb-0">
+                  <Label htmlFor="operating_range_high">
+                    Operating Range High
+                  </Label>
+                  <Input
+                    className="mb-0"
+                    id="operating_range_high"
+                    name="operating_range_high"
+                    type="number"
+                    value={operatingRangeHigh}
+                    onChange={setNumberWithUndefined(setOperatingRangeHigh)}
+                  />
+                </Field>
+              </FieldGroup>
               <Description>
-                Specify that this OPC Node represents a plant tunable setpoint.
+                Absolute range within which a process or equipment can function.
               </Description>
-            </CheckboxField>
-            <FieldGroup className="flex flex-row justify-between content-between">
-              <Field className="flex flex-col mb-0">
-                <Label htmlFor="operating_range_low">Operating Range Low</Label>
-                <Input
-                  className="mb-0"
-                  id="operating_range_low"
-                  name="operating_range_low"
-                  type="number"
-                  value={operatingRangeLow}
-                  onChange={setNumberWithUndefined(setOperatingRangeLow)}
-                />
-              </Field>
-              <Field className="flex flex-col mb-0">
-                <Label htmlFor="operating_range_high">
-                  Operating Range High
-                </Label>
-                <Input
-                  className="mb-0"
-                  id="operating_range_high"
-                  name="operating_range_high"
-                  type="number"
-                  value={operatingRangeHigh}
-                  onChange={setNumberWithUndefined(setOperatingRangeHigh)}
-                />
-              </Field>
-            </FieldGroup>
-            <FieldGroup className="flex flex-row justify-between content-between">
-              <Field className="flex flex-col mb-0">
-                <Label htmlFor="red_bounds_low">Red Bounds Low</Label>
-                <Input
-                  className="mb-0"
-                  id="red_bounds_low"
-                  name="red_bounds_low"
-                  type="number"
-                  value={redBoundsLow}
-                  onChange={setNumberWithUndefined(setRedBoundsLow)}
-                />
-              </Field>
-              <Field className="flex flex-col mb-0">
-                <Label htmlFor="red_bounds_high">Red Bounds High</Label>
-                <Input
-                  className="mb-0"
-                  id="red_bounds_high"
-                  name="red_bounds_high"
-                  type="number"
-                  value={redBoundsHigh}
-                  onChange={setNumberWithUndefined(setRedBoundsHigh)}
-                />
-              </Field>
-            </FieldGroup>
-            <FieldGroup className="flex flex-row justify-between content-between">
-              <Field className="flex flex-col mb-0">
-                <Label htmlFor="yellow_bounds_low">Yellow Bounds Low</Label>
-                <Input
-                  className="mb-0"
-                  id="yellow_bounds_low"
-                  name="yellow_bounds_low"
-                  type="number"
-                  value={yellowBoundsLow}
-                  onChange={setNumberWithUndefined(setYellowBoundsLow)}
-                />
-              </Field>
-              <Field className="flex flex-col mb-0">
-                <Label htmlFor="yellow_bounds_high">Yellow Bounds High</Label>
-                <Input
-                  className="mb-0"
-                  id="yellow_bounds_high"
-                  name="yellow_bounds_high"
-                  type="number"
-                  value={yellowBoundsHigh}
-                  onChange={setNumberWithUndefined(setYellowBoundsHigh)}
-                />
-              </Field>
-            </FieldGroup>
+            </div>
+            <div className="border-rose-200 border-2 rounded-sm p-1 mt-1 mb-1">
+              <FieldGroup className="flex flex-row justify-between content-between">
+                <Field className="flex flex-col mb-0">
+                  <Label htmlFor="red_bounds_low">Red Bounds Low</Label>
+                  <Input
+                    className="mb-0"
+                    id="red_bounds_low"
+                    name="red_bounds_low"
+                    type="number"
+                    value={redBoundsLow}
+                    onChange={setNumberWithUndefined(setRedBoundsLow)}
+                  />
+                </Field>
+                <Field className="flex flex-col mb-0">
+                  <Label htmlFor="red_bounds_high">Red Bounds High</Label>
+                  <Input
+                    className="mb-0"
+                    id="red_bounds_high"
+                    name="red_bounds_high"
+                    type="number"
+                    value={redBoundsHigh}
+                    onChange={setNumberWithUndefined(setRedBoundsHigh)}
+                  />
+                </Field>
+              </FieldGroup>
+              <Description>
+                Critical limits that indicate a risk of failure, damage, or
+                unsafe conditions.
+              </Description>
+            </div>
+            <div className="border-amber-200 border-2 rounded-sm p-1 mt-1 mb-1">
+              <FieldGroup className="flex flex-row justify-between content-between">
+                <Field className="flex flex-col mb-0">
+                  <Label htmlFor="yellow_bounds_low">Yellow Bounds Low</Label>
+                  <Input
+                    className="mb-0"
+                    id="yellow_bounds_low"
+                    name="yellow_bounds_low"
+                    type="number"
+                    value={yellowBoundsLow}
+                    onChange={setNumberWithUndefined(setYellowBoundsLow)}
+                  />
+                </Field>
+                <Field className="flex flex-col mb-0">
+                  <Label htmlFor="yellow_bounds_high">Yellow Bounds High</Label>
+                  <Input
+                    className="mb-0"
+                    id="yellow_bounds_high"
+                    name="yellow_bounds_high"
+                    type="number"
+                    value={yellowBoundsHigh}
+                    onChange={setNumberWithUndefined(setYellowBoundsHigh)}
+                  />
+                </Field>
+              </FieldGroup>
+              <Description>
+                Warning limits that signal deviations from the optimal operating
+                range, requiring attention to prevent escalation to red bounds.
+              </Description>
+            </div>
           </Fieldset>
+          <CheckboxField>
+            <Checkbox
+              name="is_setpoint"
+              checked={isSetpoint}
+              onChange={setIsSetpoint}
+            />
+            <Label>Is Setpoint</Label>
+            <Description>
+              Specify that this OPC Node represents a plant tunable setpoint.
+            </Description>
+          </CheckboxField>
         </DialogBody>
-        <DialogActions>
+        <DialogActions className="">
           <Button plain onClick={() => setDialogOpen(false)}>
             Cancel
           </Button>
-          {tagConfigIndex !== undefined && (
-            <Button color="red" onClick={handleDeleteNode}>
-              Delete
-            </Button>
+          {tagConfigIndex !== undefined ? (
+            <>
+              <Button color="red" onClick={handleDeleteNode}>
+                Delete
+              </Button>
+              <Button type="submit">Save</Button>
+            </>
+          ) : (
+            <Button type="submit">Add</Button>
           )}
-          <Button type="submit">Save</Button>
         </DialogActions>
       </form>
     </Dialog>

@@ -169,13 +169,13 @@ export function TableCell({
       ref={href ? setCellRef : undefined}
       {...props}
       className={clsx(
-        className,
         "relative px-4 first:pl-(--gutter,--spacing(2)) last:pr-(--gutter,--spacing(2))",
         !striped && "border-b border-zinc-950/5 dark:border-white/5",
         grid &&
           "border-l border-l-zinc-950/5 first:border-l-0 dark:border-l-white/5",
         dense ? "py-2.5" : "py-4",
         !bleed && "sm:first:pl-1 sm:last:pr-1",
+        className,
       )}
     >
       {href && (
