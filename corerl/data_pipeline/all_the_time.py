@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import Iterable
-from copy import deepcopy
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -44,7 +43,7 @@ def get_tags(df: pd.DataFrame, tags: Iterable[str]):
 
 
 def get_n_step_reward(step_q: deque[Step]):
-    steps = deepcopy(step_q) # deque is mutable
+    steps = step_q.copy() # deque is mutable
     steps.popleft() # drop the first step, it does not contribute to return
 
     partial_return = 0
