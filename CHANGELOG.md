@@ -1,3 +1,15 @@
+## 0.103.0 (2025-02-14)
+
+### Feat
+
+- remove last remaining concept of interpolation
+
+### Refactor
+
+- remove interpolation from monte carlo eval
+- no longer use interpolation for environment seed
+- remove the need to specify a transition creator
+
 ## 0.102.0 (2025-02-14)
 
 ### Feat
