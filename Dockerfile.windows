@@ -1,0 +1,87 @@
+# syntax=docker/dockerfile:1
+# Windows compatible docker file, assuming using x64 architecture
+
+# Stage: Build our web client
+FROM mcr.microsoft.com/windows/nanoserver:ltsc2022 AS web_client
+
+RUN curl.exe -o node.zip https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip && \
+  mkdir "C:\\nodejs" && \
+  tar.exe -xf node.zip -C "C:\\nodejs" --strip-components=1
+
+ARG NODE_PATH="C:\nodejs"
+ENV PATH "${NODE_PATH};C:\Windows\System32"
+RUN npm config set registry https://registry.npmjs.org/
+
+WORKDIR /app
+COPY ./client /app
+
+RUN npm install
+RUN npm run build
+
+# Stage: compile dependencies with SSH key forwarding to pull dependencies from private Github repository
+# Bookworm image is needed due to dependency on git cli
+# FROM ghcr.io/astral-sh/uv:python3.12-bookworm AS base
+FROM mcr.microsoft.com/windows/nanoserver:ltsc2022 AS base
+
+RUN powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Setup and download public key for Github
+RUN mkdir -p -m 0600 ~/.ssh &&\
+  ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+WORKDIR /app
+
+# Copy minimal source code for building corerl package
+COPY ./corerl /app/corerl
+COPY ./pyproject.toml /app/pyproject.toml
+
+# Install the corerl dependencies
+RUN --mount=type=ssh \
+  uv pip compile pyproject.toml -o deps.txt && \
+  # This step ensures that our dependencies exist in a folder called 'vendor'
+  # which can be referenced within setuptools and added to our generated corerl wheel
+  uv pip install --system --target /app/vendor -r deps.txt
+
+# Build corerl package which emits built .whl into /app/dist
+RUN uv build --wheel
+
+# See also: https://github.com/rlcoretech/core-rl/pull/347#discussion_r1906215954
+# Convert our wheel such that we only include .pyc files
+RUN uv pip install --system pyc_wheel &&\
+  whl_file_name=$(ls /app/dist/corerl-*.whl) &&\
+  python -m pyc_wheel "$whl_file_name"
+
+# Stage: install corerl to minimal Python 3 image
+# FROM python:3.12-slim AS corerl
+FROM python:windowsservercore-ltsc2022 AS corerl
+
+COPY --from=base /app/dist /app/dist
+COPY --from=web_client /app/dist /app/client/dist
+WORKDIR /app
+
+# Our corerl image is quite large with default cuda dependencies.
+# RUN pip install /app/dist/corerl-*.whl
+# Minimal CPU supported installation is used instead.
+RUN pip install torch --index-url https://download.pytorch.org/whl/cpu &&\
+  pip --no-cache-dir install --no-compile /app/dist/corerl-*cp*.whl
+
+# Set up the entrypoint to reference our corerl main script, dynamically pass arguments on run
+ENTRYPOINT ["corerl_main"]
+
+# To open an interactive shell with the local configurations mounted:
+#
+#  docker run --volume $(pwd)/config:/app/config:ro --entrypoint=/bin/sh -it rlcoretech/corerl
+#
+# To run the `corerl_main` script using a configuration, e.g. mountain_car_continuous
+# and have any emitted outputs written to a local machine accessible output directory:
+#
+#  docker run \
+#    --volume $(pwd)/config:/app/config:ro \
+#    --volume $(pwd)/output:/app/output \
+#    rlcoretech/corerl \
+#    --config-name mountain_car_continuous
+#
+# After this runs, the experiment output should exist within your $(pwd)/output folder.
+# This may require permissions to be adjusted after the container runs:
+#
+#   sudo chown -R $(id -u):$(id -g) $(pwd)/output
