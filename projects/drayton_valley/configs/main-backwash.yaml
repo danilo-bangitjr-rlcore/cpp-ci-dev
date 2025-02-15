@@ -1,0 +1,354 @@
+log_path: outputs/main
+
+experiment:
+  exp_name: main_backwash
+  param_from_hash: True
+  seed: 1
+  gamma: 0.99
+  run_forever: True
+
+interaction:
+  name: dep_interaction
+  warmup_period: 12:00:00
+  checkpoint_path: outputs/checkpoints/main
+
+event_bus:
+  enabled: True
+
+env:
+  name: dep_async_env
+  obs_period: 00:15:00 # prod lasts ~45 minutes
+  update_period: 00:01:00
+  action_period: 04:00:00 # backwash every ~4.5 hours
+  seed: ${experiment.seed}
+  db: ${pipeline.db}
+  opc_conn_url: "opc.tcp://backwash-workaround:50505"
+  opc_ns: 1
+  discrete_control: False
+  action_tolerance: 00:30:00
+
+
+agent:
+  name: greedy_ac
+  n_critic_updates: 1
+  n_actor_updates: 1
+  n_sampler_updates: 1
+  num_samples: 32
+  uniform_sampling_percentage: 0.8
+  discrete_control: ${env.discrete_control}
+  seed: ${experiment.seed}
+
+  critic:
+    buffer:
+      seed: ${experiment.seed}
+
+  actor:
+    buffer:
+      seed: ${experiment.seed}
+    actor_optimizer:
+      lr: 0.00001
+
+
+metrics:
+  name : db
+  drivername: "postgresql+psycopg2"
+  username: "postgres"
+  password: "password"
+  ip: "timescaledb"
+  port: 5432
+  db_name: "postgres"
+  table_schema: "public"
+  table_name: "metrics_main"
+  enabled: True
+  lo_wm: 5
+
+pipeline:
+  db:
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: "password"
+    ip: "timescaledb"
+    port: 5432
+    db_name: "postgres"
+    table_schema: "public"
+    table_name: "main"
+
+  transition_creator:
+    name: all-the-time
+    gamma: ${experiment.gamma}
+
+  state_constructor:
+    defaults: []
+    countdown:
+      obs_period: 00:15:00 # prod lasts ~45 minutes
+      action_period: 04:00:00 # backwash every ~4.5 hours
+
+  tags:
+  - name: DEP_BP_FLOW_SP_WA
+    operating_range: [120, 179]
+    node_identifier: "ai_flow_sp"
+    outlier:
+      name: identity
+    action_constructor:
+    - name: identity
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.97
+
+  - name: DEP_BP_DUR_SP_WA
+    operating_range: [10, 30]
+    node_identifier: "ai_dur_sp"
+    outlier:
+      name: identity
+    action_constructor:
+    - name: identity
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.97
+
+  - name: UF2_FIT301_PV # permeate flow rate
+    preprocess:
+    - name: identity
+    # It would be preferable to keep one source of truth
+    # for conversion to permeability in the preprocessor,
+    # but the config below breaks the reward constructor
+    # 
+    # - name: binary # divide by TMP to get val proportional to permeability 
+    #   op: prod
+    #   other: UF2_TMP_PV
+    #   other_xform:
+    #   - name: inverse
+    # - name: scale # multiply by -1 to correct negative TMP
+    #   factor: -1
+    # - name: normalize
+    #   min: 4
+    #   max: 6
+    filter: # ignore perm outside of production mode
+    - name: binary
+      op: replace
+      other: UF2_SEQ_STATE
+      other_xform:
+      - name: identity
+    - name: comparator
+      op: '!='
+      val: 8
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: binary # divide by TMP to get val proportional to permeability 
+      op: prod
+      other: UF2_TMP_PV
+      other_xform:
+      - name: inverse
+    - name: scale # multiply by -1 to correct negative TMP
+      factor: -1
+    - name: normalize
+      min: 4
+      max: 6
+    reward_constructor:
+    - name: binary # divide by TMP to get val proportional to permeability 
+      op: prod
+      other: UF2_TMP_PV
+      other_xform:
+      - name: inverse
+    - name: scale # multiply by -1 to correct negative TMP
+      factor: -1
+    - name: normalize
+      min: 4
+      max: 6
+    - name: affine # compress to [-0.5, 0] 
+      scale: 0.5
+      bias: -0.5
+
+  - name: UF2_TMP_PV # used in permeability calculation
+    preprocess:
+    - name: identity
+    filter: # ignore perm outside of production mode
+    - name: binary
+      op: replace
+      other: UF2_SEQ_STATE
+      other_xform:
+      - name: identity
+    - name: comparator
+      op: '!='
+      val: 8
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: "null"
+
+  - name: UF2_SEQ_STATE # used in permeability calculation
+    preprocess:
+    - name: identity
+    outlier:
+      name: identity
+    state_constructor:
+    - name: "null"
+
+  - name: UV01_UV254_PV # raw uvt
+    operating_range: [0, 100]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.97
+
+  - name: UV03_UV254_PV # permeate uvt
+    operating_range: [0, 100]
+    red_bounds: [90, null]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.97
+
+  - name: FLR01_TRYP_PV # raw tryptophan
+    operating_range: [0, 10]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.97
+
+  - name: FLR03_TRYP_PV # permeate tryptophan
+    operating_range: [0, 10]
+    red_bounds: [null, 6]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.97
+
+  - name: FLR04_TRYP_PV # drain tryptophan
+    operating_range: [0, 20]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.97
+
+  - name: FLR01_CDOM_PV # raw cdom
+    operating_range: [0, 100]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.97
+
+  - name: FLR03_CDOM_PV # permeate cdom
+    operating_range: [0, 100]
+    red_bounds: [null, 60]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.97
+
+  - name: AIT310_PV # raw turbidity
+    operating_range: [0, 30]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.97
+
+  - name: AIT320_PV # permeate turbidity
+    operating_range: [0, 30]
+    red_bounds: [null, 20]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.97
+
+  - name: AIT_130_PV # raw pH
+    operating_range: [6.5, 8.5]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.97
+
+  - name: COL01_C4025_PV # color 4025
+    operating_range: [0, 425]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.97
+
+  - name: COL01_C4100_PV # color 4100
+    operating_range: [0, 20]
+    outlier:
+      name: identity
+    imputer:
+      name: copy
+      imputation_horizon: 32
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+      - 0.97
