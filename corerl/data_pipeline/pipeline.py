@@ -184,7 +184,7 @@ class Pipeline:
             StageCode.TF:         self.transition_filter,
         }
 
-        self._default_stages = (
+        self.default_stages = (
             StageCode.INIT,
             StageCode.FILTER,
             StageCode.BOUNDS,
@@ -230,7 +230,7 @@ class Pipeline:
             stages: Sequence[StageCode] | None = None,
     ) -> PipelineReturn:
         if stages is None:
-            stages = self._default_stages
+            stages = self.default_stages
 
         # handle the no data case with an empty return
         if data.empty:
