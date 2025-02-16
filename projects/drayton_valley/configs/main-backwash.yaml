@@ -19,6 +19,7 @@ experiment:
 interaction:
   name: dep_interaction
   restore_checkpoint: False
+  checkpoint_path: 'outputs/checkpoints/main'
   obs_period: 00:15:00 # prod lasts ~45 minutes
   update_period: 00:01:00
   action_period: 04:00:00 # backwash every ~4.5 hours
@@ -75,7 +76,7 @@ evals:
 
 eval_cfgs:
   actor_critic:
-    enabled: True
+    enabled: False
   monte_carlo:
     enabled: True
 
@@ -106,7 +107,7 @@ pipeline:
 
   tags:
   - name: DEP_BP_FLOW_SP_WA
-    node_identifier: "ai_flow_sp"
+    node_identifier: "ns=1;s=ai_flow_sp"
     operating_range: [120, 179]
     action_constructor:
     - name: identity
@@ -116,7 +117,7 @@ pipeline:
     agg: last
 
   - name: DEP_BP_DUR_SP_WA
-    node_identifier: "ai_dur_sp"
+    node_identifier: "ns=1;s=ai_dur_sp"
     operating_range: [10, 30]
     action_constructor:
     - name: identity
@@ -233,8 +234,9 @@ pipeline:
   - name: AIT_130_PV # raw pH
     operating_range: [6.5, 8.5]
 
-  - name: COL01_C4025_PV # color 4025
-    operating_range: [0, 425]
+# C4025 temporarily disabled
+#  - name: COL01_C4025_PV # color 4025
+#    operating_range: [0, 425]
 
   - name: COL01_C4100_PV # color 4100
     operating_range: [0, 20]
