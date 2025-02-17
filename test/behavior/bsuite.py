@@ -45,38 +45,38 @@ class BSuiteTestCase:
             metrics_table = pd.read_sql_table('metrics', con=conn)
 
         metrics_table = metrics_table.sort_values('agent_step', ascending=True)
-        self._evaluate_outcomes(metrics_table)
+        return metrics_table
 
-
-    def _evaluate_outcomes(self, metrics_table: pd.DataFrame):
+    def evaluate_outcomes(self, metrics_table: pd.DataFrame):
         self._evaluate_warnings(metrics_table)
         self._evaluate_bounds(metrics_table)
 
 
+    def summarize_over_time(self, metric: str, metrics_table: pd.DataFrame):
+        values = get_metric(metrics_table, metric)
+        return values[-100:].mean()
+
+
     def _evaluate_bounds(self, metrics_table: pd.DataFrame):
         for metric, expected in self.lower_bounds.items():
-            values = get_metric(metrics_table, metric)
-            got = values[-100:].mean()
+            got = self.summarize_over_time(metric, metrics_table)
             assert got >= expected, \
                 f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}'
 
         for metric, expected in self.upper_bounds.items():
-            values = get_metric(metrics_table, metric)
-            got = values[-100:].mean()
+            got = self.summarize_over_time(metric, metrics_table)
             assert got <= expected, \
                 f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}'
 
 
     def _evaluate_warnings(self, metrics_table: pd.DataFrame):
         for metric, expected in self.lower_bounds.items():
-            values = get_metric(metrics_table, metric)
-            got = values[-100:].mean()
+            got = self.summarize_over_time(metric, metrics_table)
             if got < expected:
                 warnings.warn(f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}', stacklevel=0)
 
         for metric, expected in self.upper_bounds.items():
-            values = get_metric(metrics_table, metric)
-            got = values[-100:].mean()
+            got = self.summarize_over_time(metric, metrics_table)
             if got > expected:
                 warnings.warn(f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}', stacklevel=0)
 

@@ -20,4 +20,5 @@ def test_bsuite(
 ):
     port = tsdb_engine.url.port
     assert port is not None
-    test_case.execute_test(tsdb_engine, port, tsdb_tmp_db_name)
+    metrics_table = test_case.execute_test(tsdb_engine, port, tsdb_tmp_db_name)
+    test_case.evaluate_outcomes(metrics_table)
