@@ -2,6 +2,7 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from itertools import groupby
+from math import floor
 from typing import Any, List, assert_never
 
 import pandas as pd
@@ -145,10 +146,12 @@ class DataReader:
         # after executing the query and getting the df, pivot and convert values
         stmt = union_all(*subqueries).order_by(text("time_bucket ASC"), self.sensor_table.c["name"].asc())
         logger.debug(stmt.compile(self.engine, compile_kwargs={"literal_binds": True}))
+        n_buckets = floor((end_time - start_time).total_seconds() / bucket_width.total_seconds())
         with TryConnectContextManager(self.engine) as connection:
             sensor_data = pd.read_sql(sql=stmt, con=connection)
             full_range = pd.date_range(
-                start=start_time + bucket_width,
+                start=end_time - (n_buckets - 1) * bucket_width,
+                # start=start_time + bucket_width,
                 end=end_time,
                 freq=bucket_width,
                 tz='UTC',
