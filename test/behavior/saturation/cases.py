@@ -5,10 +5,13 @@ class SaturationTest(BSuiteTestCase):
     name = 'saturation'
     config = 'test/behavior/saturation/config.yaml'
 
-    lower_bounds = { 'reward': -0.25 }
-    upper_warns = { 'critic_loss': 0.05, 'actor_loss': -1.0 }
+    lower_bounds = { 'reward': -0.07 }
+    upper_warns = { 'avg_critic_loss': 0.003, 'actor_loss': -1.46 }
 
 
 class DeltaSaturationTest(SaturationTest):
     name = 'delta saturation'
     config = 'test/behavior/saturation/delta.yaml'
+
+    lower_bounds = { 'reward': -0.123 }
+    upper_warns = { 'avg_critic_loss': 0.005, 'actor_loss': -1.0 }
