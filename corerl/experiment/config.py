@@ -7,6 +7,7 @@ from corerl.configs.config import config, list_
 class ExperimentConfig:
     debug: bool = False
     device: str = 'cpu'
+    num_threads: int = 4
     exp_name: str = 'experiment'
     gamma: float = 0.9
     max_steps: int = 200
