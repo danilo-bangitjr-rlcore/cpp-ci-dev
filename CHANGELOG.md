@@ -1,3 +1,9 @@
+## 0.105.1 (2025-02-18)
+
+### Fix
+
+- in datareader start time is computed from endtime and bucket width
+
 ## 0.105.0 (2025-02-14)
 
 ### Feat
