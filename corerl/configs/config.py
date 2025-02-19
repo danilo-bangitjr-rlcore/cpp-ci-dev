@@ -15,7 +15,7 @@ def list_(vals: list[Any] | None = None) -> Any:
     return Field(default_factory=lambda: copy.deepcopy(vals))
 
 
-def sanitizer[M](f: Callable[[Any, M], Any]):
+def post_processor[M](f: Callable[[Any, M], Any]):
     def _inner(self: Any, info: ValidationInfo):
         if info.context is None:
             return self

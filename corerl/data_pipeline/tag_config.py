@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import Field
 
-from corerl.configs.config import MISSING, config, list_, sanitizer
+from corerl.configs.config import MISSING, config, list_, post_processor
 from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
@@ -56,7 +56,7 @@ class TagConfig:
     state_constructor: list[TransformConfig] | None = None
     filter: list[TransformConfig] | None = None
 
-    @sanitizer
+    @post_processor
     def _default_normalize_preprocessor(self, cfg: MainConfig):
         lo, hi = get_tag_bounds(self)
 
