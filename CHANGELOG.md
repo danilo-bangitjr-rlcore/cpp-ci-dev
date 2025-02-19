@@ -1,3 +1,10 @@
+## 0.108.1 (2025-02-19)
+
+### Fix
+
+- Remove the web client (#549)
+- Minor GUI touch-ups (#548)
+
 ## 0.108.0 (2025-02-19)
 
 ### Feat
