@@ -17,6 +17,22 @@ export function Text({
   );
 }
 
+export function TextSpan({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<"span">) {
+  return (
+    <span
+      data-slot="text"
+      {...props}
+      className={clsx(
+        className,
+        "text-base/6 text-zinc-500 sm:text-sm/6 dark:text-zinc-400",
+      )}
+    />
+  );
+}
+
 export function TextLink({
   className,
   ...props
@@ -56,5 +72,29 @@ export function Code({
         "rounded-sm border border-zinc-950/10 bg-zinc-950/[2.5%] px-0.5 text-sm font-medium text-zinc-950 sm:text-[0.8125rem] dark:border-white/20 dark:bg-white/5 dark:text-white",
       )}
     />
+  );
+}
+
+export function HighlightText({
+  text,
+  highlight,
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<"p"> & { text: string; highlight: string }) {
+  // Split on highlight term and include term into parts, ignore case
+  const parts = text.split(new RegExp(`(${highlight})`, "gi"));
+  return (
+    <Text className={className} {...props}>
+      {parts.map((part, i) => (
+        <span
+          key={i}
+          className={
+            part.toLowerCase() === highlight.toLowerCase() ? "font-bold" : ""
+          }
+        >
+          {part}
+        </span>
+      ))}
+    </Text>
   );
 }

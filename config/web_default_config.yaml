@@ -1,0 +1,59 @@
+interaction:
+  name: dep_interaction
+  action_period: PT5M
+  obs_period: PT5M
+
+metrics:
+  name: db
+  table_name: metrics
+  enabled: true
+  lo_wm: 1
+
+infra:
+  db:
+    drivername: postgresql+psycopg2
+    username: postgres
+    password: password
+    ip: localhost
+    port: 5432
+    db_name: postgres
+
+env:
+  discrete_control: false
+  db:
+    table_name: opcua
+
+  opc_conn_url: opc.tcp://admin@0.0.0.0:4840/rlcore/server/
+  opc_ns: 2
+  obs_period: PT5M
+  update_period: PT5M
+  action_period: PT5M
+  action_tolerance: PT5M
+agent:
+  name: greedy_ac
+  n_critic_updates: 1
+  n_actor_updates: 1
+  num_samples: 128
+  uniform_sampling_percentage: 0.8
+  discrete_control: false
+  seed: 1
+  critic:
+    buffer:
+      name: uniform
+      seed: 1
+    critic_optimizer:
+      lr: 0.01
+  actor:
+    buffer:
+      name: uniform
+      seed: 1
+    actor_optimizer:
+      lr: 0.01
+experiment:
+  exp_name: CoreRL_Experiment
+
+pipeline:
+  state_constructor:
+    defaults: []
+  transition_creator:
+    name: anytime

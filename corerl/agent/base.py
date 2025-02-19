@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy
 from pydantic import Field
@@ -10,24 +10,42 @@ from corerl.component.actor.factory import init_actor
 from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig, EnsembleQCritic, EnsembleVCritic
 from corerl.component.critic.factory import init_q_critic, init_v_critic
-from corerl.configs.config import MISSING, config, interpolate
+from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
 
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
-@config(frozen=True)
+
+@config()
 class BaseAgentConfig:
     name: Any = MISSING
 
     delta_action: bool = False
-    delta_bounds: tuple[float, float] | None = None
-    discrete_control: bool = interpolate('${env.discrete_control}')
-    freezer_freq: int = 1
-    gamma: float = interpolate('${experiment.gamma}')
+    delta_bounds: list[tuple[float, float]] = Field(default_factory=list)
     n_updates: int = 1
     replay_ratio: int = 1
-    seed: int = interpolate('${experiment.seed}')
     update_freq: int = 1
+
+    discrete_control: bool = MISSING
+    gamma: float = MISSING
+    seed: int = MISSING
+
+    @computed('gamma')
+    @classmethod
+    def _gamma(cls, cfg: 'MainConfig'):
+        return cfg.experiment.gamma
+
+    @computed('discrete_control')
+    @classmethod
+    def _discrete_control(cls, cfg: 'MainConfig'):
+        return cfg.env.discrete_control
+
+    @computed('seed')
+    @classmethod
+    def _seed(cls, cfg: 'MainConfig'):
+        return cfg.experiment.seed
 
 
 class BaseAgent(ABC):
@@ -42,7 +60,6 @@ class BaseAgent(ABC):
         self.discrete_control = cfg.discrete_control
         self.seed = cfg.seed
         self.n_updates = cfg.n_updates  # how many updates to apply each time update() is called
-        self.freezer_freq = cfg.freezer_freq  # how often to save to freezer. This counter is not used currently.
 
     @abstractmethod
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:  # must return a numpy array, not a tensor.
@@ -80,7 +97,7 @@ class BaseAgent(ABC):
 
 
 
-@config(frozen=True)
+@config()
 class BaseACConfig(BaseAgentConfig):
     critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
     actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)

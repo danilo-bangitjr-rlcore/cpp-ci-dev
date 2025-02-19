@@ -118,3 +118,15 @@ def test_or_else_double_negative():
             Maybe[int](None)
             .or_else(other, 'Uh-oh!')
         )
+
+def test_find_positive():
+    m = Maybe.find(lambda x: x == 2, [1, 2, 3])
+    got = m.unwrap()
+
+    assert got == 2
+
+def test_find_negative():
+    m = Maybe.find(lambda x: x == 4, [1, 2, 3])
+    got = m.unwrap()
+
+    assert got is None

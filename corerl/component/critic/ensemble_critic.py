@@ -5,8 +5,8 @@ import torch
 from pydantic import Field
 
 import corerl.utils.nullable as nullable
-from corerl.component.buffer.ensemble import EnsembleUniformReplayBufferConfig
 from corerl.component.buffer.factory import BufferConfig
+from corerl.component.buffer.mixed_history import MixedHistoryBufferConfig
 from corerl.component.critic.base_critic import BaseCriticConfig, BaseQ, BaseV
 from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
 from corerl.component.network.networks import EnsembleCriticNetworkConfig
@@ -22,8 +22,15 @@ class _SharedEnsembleConfig:
     name: Any = MISSING
     critic_network: NetworkConfig = Field(default_factory=EnsembleCriticNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
-    buffer: BufferConfig = Field(default_factory=EnsembleUniformReplayBufferConfig)
-    polyak: float = 0.99
+    buffer: BufferConfig = Field(
+        default_factory=lambda: MixedHistoryBufferConfig(
+            # TODO: this should default to 10,
+            # but need to first sync this ensemble size with agent's ensemble
+            ensemble=1,
+            ensemble_probability=1.0,
+        ),
+    )
+    polyak: float = 0.995
     target_sync_freq: int = 1
 
 @config()
@@ -126,12 +133,10 @@ class BaseEnsembleCritic:
         path.mkdir(parents=True, exist_ok=True)
         torch.save(self.model.state_dict(), path / "critic_net")
         torch.save(self.target.state_dict(), path / "critic_target")
-        torch.save(self.optimizer.state_dict(), path / "critic_opt")
 
     def load(self, path: Path) -> None:
         self.model.load_state_dict(torch.load(path / "critic_net", map_location=device.device))
         self.target.load_state_dict(torch.load(path / "critic_target", map_location=device.device))
-        self.optimizer.load_state_dict(torch.load(path / "critic_opt", map_location=device.device))
 
 class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
     def __init__(

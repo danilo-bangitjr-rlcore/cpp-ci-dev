@@ -15,10 +15,6 @@ def list_(vals: list[Any] | None = None) -> Any:
     return Field(default_factory=lambda: copy.deepcopy(vals))
 
 
-def interpolate(path: str) -> Any:
-    return path
-
-
 def sanitizer[M](f: Callable[[Any, M], Any]):
     def _inner(self: Any, info: ValidationInfo):
         if info.context is None:

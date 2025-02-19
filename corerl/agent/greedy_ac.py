@@ -8,14 +8,11 @@ from typing import Literal
 import numpy
 import torch
 from jaxtyping import Float
-from pydantic import Field
 
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.base_actor import BaseActor
 from corerl.component.actor.factory import init_actor
-from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer.factory import init_buffer
-from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
 from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import TransitionBatch
@@ -105,23 +102,21 @@ def grab_percentile(
     return top_n_indices
 
 
-@config(frozen=True)
+@config()
 class GreedyACConfig(BaseACConfig):
     name: Literal["greedy_ac"] = "greedy_ac"
 
     ensemble_targets: bool = False
-    num_samples: int = 500
+    num_samples: int = 128
     prop_rho_mult: float = 2.0
     rho: float = 0.1
     share_batch: bool = True
-    uniform_sampling_percentage: float = 0.5
+    uniform_sampling_percentage: float = 0.8
     eval_batch : bool = True
 
     # metrics
     ingress_loss : bool = True
-
-    actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
-    critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
+    most_recent_batch_loss : bool = True
 
 
 class GreedyAC(BaseAC):
@@ -172,18 +167,20 @@ class GreedyAC(BaseAC):
         recent_critic_idxs = self.critic_buffer.feed(pr.transitions, pr.data_mode)
         recent_policy_idxs = self.policy_buffer.feed([t for t in pr.transitions if t.prior.dp], pr.data_mode)
 
+        # ---------------------------------- ingress loss metic --------------------------------- #
         if self.cfg.ingress_loss and len(recent_policy_idxs) > 0:
-            recent_policy_batch = self.policy_buffer.prepare_sample(recent_policy_idxs)
+            recent_policy_batch = self.policy_buffer.get_batch(recent_policy_idxs)
             if len(recent_policy_batch):
                 assert len(recent_policy_batch) == 1
                 recent_policy_batch = recent_policy_batch[0]
+                delta_action_batch = self._filter_only_delta_actions(recent_policy_batch.post.action)
                 self._app_state.metrics.write(
                     agent_step=self._app_state.agent_step,
                     metric=f"ingress_policy_loss_{pr.data_mode.name}",
                     value=self._policy_err(
                         self.actor,
                         recent_policy_batch.prior.state,
-                        recent_policy_batch.post.action),
+                        delta_action_batch),
                 )
 
                 self._app_state.metrics.write(
@@ -192,17 +189,28 @@ class GreedyAC(BaseAC):
                     value=self._policy_err(
                         self.sampler,
                         recent_policy_batch.prior.state,
-                        recent_policy_batch.post.action),
+                        delta_action_batch),
                 )
 
         if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
-            recent_critic_batch = self.critic_buffer.prepare_sample(recent_critic_idxs)
+            recent_critic_batch = self.critic_buffer.get_batch(recent_critic_idxs)
             if len(recent_critic_batch):
                 self._app_state.metrics.write(
                     agent_step=self._app_state.agent_step,
                     metric=f"ingress_critic_loss_{pr.data_mode.name}",
                     value=self._compute_critic_loss(recent_critic_batch),
                 )
+
+        # ------------------------- transition length metric ------------------------- #
+
+        for t in pr.transitions:
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric="transition_len",
+                value=len(t),
+            )
+
+
 
     def load_buffer(self, pr: PipelineReturn) -> None:
         if pr.transitions is None:
@@ -215,6 +223,8 @@ class GreedyAC(BaseAC):
 
         self.policy_buffer.load(policy_transitions, pr.data_mode)
         self.critic_buffer.load(pr.transitions, pr.data_mode)
+        self.policy_buffer.app_state = self._app_state
+        self.critic_buffer.app_state = self._app_state
 
     def _filter_only_direct_actions(self, actions: torch.Tensor):
         if not self.cfg.delta_action:
@@ -235,11 +245,10 @@ class GreedyAC(BaseAC):
             return next_action
 
         bounds = self.cfg.delta_bounds
-        assert bounds is not None, "Delta actions are enabled, however the agent has no delta bounds"
-        scale = bounds[1] - bounds[0]
-        bias = bounds[0]
+        scales = torch.tensor([b[1] - b[0] for b in bounds])
+        biases = torch.tensor([b[0] for b in bounds])
 
-        delta = scale * next_action + bias
+        delta = scales * next_action + biases
         direct_action = direct_action + delta
 
         # because we are always operating in normalized space,
@@ -335,6 +344,18 @@ class GreedyAC(BaseAC):
         self._app_state.event_bus.emit_event(EventType.agent_update_critic)
         batches = self.critic_buffer.sample()
         q_loss = self._compute_critic_loss(batches, with_grad=True, log_metrics=True)
+
+        log_most_recent_batch_loss = self.cfg.most_recent_batch_loss and self.critic_buffer.n_most_recent > 0
+        if log_most_recent_batch_loss:
+            # grab the most recent samples from the batch and log the loss on only these samples
+            batch_slices = [b[:self.critic_buffer.n_most_recent] for b in batches]
+            n_most_recent_loss = self._compute_critic_loss(batch_slices)
+
+            self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"critic_loss_{self.policy_buffer.n_most_recent}_most_recent",
+                    value=n_most_recent_loss,
+            )
 
         if self.eval_batch:
             eval_batches = self.critic_buffer.sample()
@@ -474,6 +495,21 @@ class GreedyAC(BaseAC):
             metric=policy_name + "_loss",
             value=to_np(loss),
         )
+
+        log_most_recent_batch_loss = self.cfg.most_recent_batch_loss and self.policy_buffer.n_most_recent > 0
+        if log_most_recent_batch_loss:
+            # grab the most recent samples from the batch and log the loss on only these samples
+            n_most_recent_loss = self._compute_policy_loss(
+                policy,
+                update_batch[:self.policy_buffer.n_most_recent],
+                percentile,
+            )
+
+            self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"{policy_name}_loss_{self.policy_buffer.n_most_recent}_most_recent",
+                    value=n_most_recent_loss,
+            )
 
         if self.eval_batch:
             # sample another batch for the evaluation of updates when using line search.

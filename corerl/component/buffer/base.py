@@ -1,17 +1,23 @@
+from __future__ import annotations
+
 import logging
 from abc import abstractmethod
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import torch
 from torch import Tensor
 
-from corerl.configs.config import MISSING, config
+from corerl.configs.config import MISSING, computed, config
 from corerl.configs.group import Group
 from corerl.data_pipeline.datatypes import DataMode, StepBatch, Transition, TransitionBatch
 from corerl.state import AppState
 from corerl.utils.device import device
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
+
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +33,12 @@ class BaseReplayBufferConfig:
     # the number of samples in the batch from most recent data.
     n_most_recent: int = 1
     id: str = ""
+
+    @computed('seed')
+    @classmethod
+    def _seed(cls, cfg: MainConfig):
+        return cfg.experiment.seed
+
 
 class ReplayBuffer:
     def __init__(self, cfg: BaseReplayBufferConfig, app_state: AppState):
@@ -61,8 +73,10 @@ class ReplayBuffer:
                 data_size = _get_size(transition)
                 self.data = [torch.empty((self.memory, *s), device=device.device) for s in data_size]
 
-            for i, elem in enumerate(transition):
+            i = 0
+            for elem in transition:
                 self.data[i][self.pos] = _to_tensor(elem)
+                i += 1
 
             idxs[j] = self.pos
             self.pos = (self.pos + 1) % self.memory
@@ -88,8 +102,10 @@ class ReplayBuffer:
         self.data = [torch.empty((self.memory, *s)) for s in data_size]
 
         for idx, transition in enumerate(transitions):
-            for i, elem in enumerate(transition):
+            i = 0
+            for elem in transition:
                 self.data[i][self.pos] = _to_tensor(elem)
+                i += 1
 
             idxs[idx] = self.pos
             self.pos = (self.pos + 1) % self.memory
@@ -97,6 +113,13 @@ class ReplayBuffer:
                 self.full = True
 
         return idxs
+
+    def get_batch(self, idxs:np.ndarray) -> list[TransitionBatch]:
+        if self.size == [0] or self.data is None:
+            return []
+
+        sampled_data = [self.data[i][idxs] for i in range(len(self.data))]
+        return [self._prepare(idxs, sampled_data)]
 
     def prepare_sample(self, idxs: np.ndarray) -> list[TransitionBatch]:
         if self.size == [0] or self.data is None:
@@ -106,8 +129,7 @@ class ReplayBuffer:
         for i in range(max_n_most_recent):
             idxs[i] = self._last_pos-i
 
-        sampled_data = [self.data[i][idxs] for i in range(len(self.data))]
-        return [self._prepare(idxs, sampled_data)]
+        return self.get_batch(idxs)
 
     def sample(self) -> list[TransitionBatch]:
         idxs = self._sample_indices()
@@ -171,8 +193,6 @@ def _get_size(experience: Transition) -> list[tuple]:
             size.append(elem.shape)
         elif isinstance(elem, Tensor):
             size.append(tuple(elem.shape))
-        elif elem is None:
-            size.append((0,))
         elif isinstance(elem, int) or isinstance(elem, float) or isinstance(elem, bool):
             size.append((1,))
         elif isinstance(elem, list):

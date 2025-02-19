@@ -19,7 +19,7 @@ from corerl.state import AppState
 from corerl.utils.device import device
 
 
-@config(frozen=True)
+@config()
 class EpsilonGreedySarsaConfig(BaseAgentConfig):
     name: Literal['epsilon_greedy_sarsa'] = 'epsilon_greedy_sarsa'
 

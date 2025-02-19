@@ -1,8 +1,7 @@
 experiment:
   gamma: 0.9
   offline_steps: 100
-  offline_eval_iters:
-    - 0
+  offline_eval_iters: [0]
 
 interaction:
   name: sim_interaction
@@ -17,7 +16,6 @@ env:
   discrete_control: False
   setpoint_ping_period: 00:00:10
   discrete_control: False
-  seed: ${experiment.seed}
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
 
@@ -26,25 +24,9 @@ env:
 
 agent:
   name: greedy_ac
-  critic:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
-    critic_optimizer:
-      lr: 0.0001
-      weight_decay: 0.1
-
-  actor:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
-
 
 evals:
-  name: db
   enabled: True
-  lo_wm: 1
-
 
 eval_cfgs:
   actor_critic:
@@ -56,17 +38,13 @@ eval_cfgs:
   monte_carlo:
     enabled: True
     precision: 0.2
-    gamma: 0.9
 
 metrics:
-  name: db
   enabled: True
-  lo_wm: 1
 
 
 pipeline:
   transition_creator:
-    name: anytime
     min_n_step: 1
     max_n_step: 2
 

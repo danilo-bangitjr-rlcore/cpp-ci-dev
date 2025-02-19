@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from torch import Tensor
 
+import corerl.eval.agent as agent_eval
 from corerl.agent.base import BaseAgent
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
@@ -17,9 +18,6 @@ from corerl.messages.events import Event, EventType
 from corerl.state import AppState
 
 logger = logging.getLogger(__file__)
-
-
-
 
 
 class SimInteraction(Interaction):
@@ -111,9 +109,14 @@ class SimInteraction(Interaction):
             a = np.zeros_like(a)
 
         delta = self._agent.get_action(s)
-        a_df = self._pipeline.action_constructor.assign_action_names(a, delta)
-        a_df = self._pipeline.preprocessor.inverse(a_df)
+        norm_a_df = self._pipeline.action_constructor.assign_action_names(a, delta)
+        a_df = self._pipeline.preprocessor.inverse(norm_a_df)
         self._env.emit_action(a_df)
+        self._last_action_df = a_df
+
+        # metrics + eval
+        agent_eval.eval_policy_variance(self._app_state, s, self._agent)
+        agent_eval.eval_q_online(self._app_state, s, self._agent, norm_a_df.to_numpy())
 
         # log actions
         self._write_to_metrics(a_df)

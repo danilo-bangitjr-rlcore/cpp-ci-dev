@@ -121,11 +121,11 @@ def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: Offl
 
     # Expected transitions
     gamma = offline_cfg.experiment.gamma
-    step_0 = Step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([0.0]), dp=True)
-    step_1 = Step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([1.0]), dp=False)
-    step_2 = Step(reward=1.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([2.0]), dp=True)
-    step_3 = Step(reward=0.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([3.0]), dp=False)
-    step_4 = Step(reward=0.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([4.0]), dp=True)
+    step_0 = Step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([0.0]), dp=False, ac=False)
+    step_1 = Step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([1.0]), dp=True,  ac=False) # dp
+    step_2 = Step(reward=1.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([2.0]), dp=False, ac=True)  # ac
+    step_3 = Step(reward=0.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([3.0]), dp=True,  ac=False) # dp
+    step_4 = Step(reward=0.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([4.0]), dp=False, ac=True)  # ac
     expected_transitions = [Transition([step_0, step_1], 1.0, gamma),
                             Transition([step_1, step_2], 1.0, gamma),
                             Transition([step_2, step_3], 0.0, gamma),

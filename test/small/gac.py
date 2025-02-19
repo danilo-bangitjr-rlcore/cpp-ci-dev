@@ -284,7 +284,7 @@ def test_get_top_n_sampled_delta_actions(batch_size:int, state_dim:int, action_d
     """
     cfg = GreedyACConfig(
         delta_action=True,
-        delta_bounds=(-.1, .1),
+        delta_bounds=[(-.1, .1) for _ in range(action_dim)],
         actor=NetworkActorConfig(buffer=EnsembleUniformReplayBufferConfig(seed=0)),
         critic=EnsembleCriticConfig(buffer=EnsembleUniformReplayBufferConfig(seed=0)),
     )
@@ -321,4 +321,3 @@ def test_get_top_n_sampled_delta_actions(batch_size:int, state_dim:int, action_d
 
     assert_n_rows_equal(top_states, state_batch, top_n)
     assert_best_actions(sampled_direct_actions, top_direct_actions, batch_size, n_samples, top_n)
-

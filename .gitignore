@@ -180,6 +180,8 @@ control/out/
 control/bin/*.txt
 run.sh
 
+saturation_debug.yaml
+
 # saved results
 saved_experiments/
 reseau/*

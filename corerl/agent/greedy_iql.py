@@ -12,7 +12,7 @@ from corerl.data_pipeline.pipeline import ColumnDescriptions
 from corerl.state import AppState
 
 
-@config(frozen=True)
+@config()
 class GreedyIQLConfig(BaseAgentConfig):
     name: Literal['greedy_iql'] = 'greedy_iql'
 

@@ -32,10 +32,11 @@ def test_int_countdown1():
     expected = pd.DataFrame({
         'tag-1':         [1, 1, 1, 1, 2, 2, 2],
         'tag-2':         [0, 0, 0, 0, 0, 0, 0],
-        'countdown.[0]': [4, 3, 2, 1, 4, 3, 2],
+        'countdown.[0]': [3, 2, 1, 0, 3, 2, 1],
     })
     assert dfs_close(pf.data, expected)
-    assert np.all(pf.decision_points == [1, 0, 0, 0, 1, 0, 0])
+    assert np.all(pf.decision_points == [0, 0, 0, 1, 0, 0, 0])
+    assert np.all(pf.action_change  ==  [0, 0, 0, 0, 1, 0, 0])
 
 
     # -----------------
@@ -58,10 +59,11 @@ def test_int_countdown1():
     expected = pd.DataFrame({
         'tag-1':         [2, 3, 3, 3, 3],
         'tag-2':         [0, 0, 0, 0, 0],
-        'countdown.[0]': [1, 4, 3, 2, 1],
+        'countdown.[0]': [0, 3, 2, 1, 0],
     })
     assert dfs_close(pf.data, expected)
-    assert np.all(pf.decision_points == [0, 1, 0, 0, 0])
+    assert np.all(pf.decision_points == [1, 0, 0, 0, 1])
+    assert np.all(pf.action_change  ==  [0, 1, 0, 0, 0])
 
 def test_normalized_int_countdown1():
     actions = pd.DataFrame({
@@ -87,10 +89,11 @@ def test_normalized_int_countdown1():
     expected = pd.DataFrame({
         'tag-1':         [1, 1, 1, 1, 2, 2, 2],
         'tag-2':         [0, 0, 0, 0, 0, 0, 0],
-        'countdown.[0]': [1., 0.75, 0.5, 0.25, 1., 0.75, 0.5],
+        'countdown.[0]': [0.75, 0.5, 0.25, 0., 0.75, 0.5, 0.25],
     })
     assert dfs_close(pf.data, expected)
-    assert np.all(pf.decision_points == [1, 0, 0, 0, 1, 0, 0])
+    assert np.all(pf.decision_points == [0, 0, 0, 1, 0, 0, 0])
+    assert np.all(pf.action_change  ==  [0, 0, 0, 0, 1, 0, 0])
 
 def test_int_countdown2():
     """
@@ -121,10 +124,11 @@ def test_int_countdown2():
     expected = pd.DataFrame({
         'tag-1':         [1, 1, 1, 1, 2, 2, 2, 2],
         'tag-2':         [0, 0, 1, 1, 1, 1, 0, 0],
-        'countdown.[0]': [2, 1, 4, 3, 4, 3, 4, 3],
+        'countdown.[0]': [1, 0, 3, 2, 3, 2, 3, 2], # first two cds (1, 0) are computed via lookahead
     })
     assert dfs_close(pf.data, expected)
-    assert np.all(pf.decision_points == [0, 0, 1, 0, 1, 0, 1, 0])
+    assert np.all(pf.decision_points == [0, 1, 0, 0, 0, 0, 0, 0])
+    assert np.all(pf.action_change  ==  [0, 0, 1, 0, 1, 0, 1, 0])
 
 
 def test_int_countdown3():
@@ -154,10 +158,11 @@ def test_int_countdown3():
 
     expected = pd.DataFrame({
         'tag-1':         [1, 1, 1, 1, 1, 1, 1, 1],
-        'countdown.[0]': [4, 3, 2, 1, 4, 3, 2, 1],
+        'countdown.[0]': [0, 3, 2, 1, 0, 3, 2, 1],
     })
     assert dfs_close(pf.data, expected)
     assert np.all(pf.decision_points == [1, 0, 0, 0, 1, 0, 0, 0])
+    assert np.all(pf.action_change == [0, 0, 0, 0, 0, 0, 0, 0])
 
 
 def test_two_clock1():
@@ -182,8 +187,42 @@ def test_two_clock1():
 
     expected = pd.DataFrame({
         'tag-1':         [1, 1, 2, 2, 2, 2, 3, 3],
-        'countdown.[0]': [2, 1, 4, 3, 2, 1, 4, 3],
-        'countdown.[1]': [2, 1, 4, 3, 2, 1, 4, 3],
+        'countdown.[0]': [1, 0, 3, 2, 1, 0, 3, 2],
+        'countdown.[1]': [1, 0, 3, 2, 1, 0, 3, 2],
     })
     assert dfs_close(pf.data, expected)
-    assert np.all(pf.decision_points == [0, 0, 1, 0, 0, 0, 1, 0])
+    assert np.all(pf.decision_points == [0, 1, 0, 0, 0, 1, 0, 0])
+    assert np.all(pf.action_change  ==  [0, 0, 1, 0, 0, 0, 1, 0])
+
+def test_two_clock2():
+    """
+    Clock doesn't reset on unexpected action change
+    """
+
+    actions = pd.DataFrame({
+        'tag-1': [1, 1, 2, 2, 3, 3, 3, 3],
+    })
+
+    pf = PipelineFrame(
+        data=actions,
+        data_mode=DataMode.ONLINE,
+    )
+
+    cd_cfg = CountdownConfig(
+        action_period=timedelta(minutes=4),
+        obs_period=timedelta(minutes=1),
+        kind='two_clock',
+        normalize=False,
+    )
+
+    cd_adder = DecisionPointDetector(cd_cfg)
+    pf = cd_adder(pf)
+
+    expected = pd.DataFrame({
+        'tag-1':         [1, 1, 2, 2, 3, 3, 3, 3],
+        'countdown.[0]': [1, 0, 3, 2, 1, 0, 3, 2],
+        'countdown.[1]': [1, 0, 3, 2, 3, 2, 1, 0],
+    })
+    assert dfs_close(pf.data, expected)
+    assert np.all(pf.decision_points == [0, 1, 0, 0, 0, 0, 0, 1])
+    assert np.all(pf.action_change  ==  [0, 0, 1, 0, 1, 0, 0, 0])

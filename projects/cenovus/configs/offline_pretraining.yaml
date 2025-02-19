@@ -17,32 +17,12 @@ interaction:
 
 agent:
   name: greedy_ac
-  n_critic_updates: 1
-  n_actor_updates: 1
-  num_samples: 32
-  uniform_sampling_percentage: 0.8
-  gamma: ${experiment.gamma}
-  discrete_control: ${env.discrete_control}
-  seed: ${experiment.seed}
-
-  critic:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
-
-  actor:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
-    actor_optimizer:
-      lr: 0.00001
 
 env:
   name: dep_async_env
   obs_period: 00:05:00
   update_period: 00:05:00
   action_period: 01:00:00
-  seed: ${experiment.seed}
   opc_conn_url: "opc.tcp://ignition-services:62541"
   opc_ns: 1
   discrete_control: False
@@ -52,17 +32,7 @@ experiment:
   exp_name: cenovus
   save_path: output
   max_steps: 10000
-  debug: 0
   seed: 1
-  timeout: 0
   offline_steps: 10
   pipeline_batch_duration: 7 days
   gamma: 0.99
-
-pipeline:
-  state_constructor:
-    defaults: []
-
-  transition_creator:
-    name: anytime
-    gamma: ${experiment.gamma}

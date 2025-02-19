@@ -1,0 +1,242 @@
+log_path: outputs/main
+
+infra:
+  db:
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: "password"
+    ip: "timescaledb"
+    port: 5432
+    db_name: "postgres"
+
+experiment:
+  exp_name: main_backwash
+  save_path: outputs/main_bw
+  seed: 1
+  gamma: 0.99
+  run_forever: True
+
+interaction:
+  name: dep_interaction
+  restore_checkpoint: False
+  checkpoint_path: 'outputs/checkpoints/main'
+  obs_period: 00:15:00 # prod lasts ~45 minutes
+  update_period: 00:01:00
+  action_period: 04:00:00 # backwash every ~4.5 hours
+  warmup_period: 12:00:00
+  update_warmup: 0 # number of updates before interacting
+  historical_batch_size: 8640 # 90 days @ 15 minute obs period
+  hist_chunk_start: 2025-01-01 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
+
+event_bus:
+  enabled: True
+
+env:
+  name: dep_async_env
+  discrete_control: False
+  update_period: 00:01:00
+  action_tolerance: 00:30:00
+
+  opc_conn_url: "opc.tcp://backwash-workaround:50505"
+  opc_ns: 1
+  
+  db:
+    table_name: main
+
+
+agent:
+  name: greedy_ac
+
+  critic:
+    buffer:
+      name: mixed_history_buffer
+      n_most_recent: 24
+      ensemble: 1
+      ensemble_probability: 1
+      id: critic # for metric logging
+
+  actor:
+    actor_optimizer:
+      lr: 0.001
+
+    buffer:
+      name: mixed_history_buffer
+      n_most_recent: 24
+      ensemble: 1
+      ensemble_probability: 1
+      id: actor # for metric logging
+
+
+metrics:
+  enabled: True
+
+evals:
+  name: db
+  enabled: True
+
+eval_cfgs:
+  actor_critic:
+    enabled: False
+  monte_carlo:
+    enabled: True
+
+pipeline:
+  imputer:
+    name: per-tag
+    default:
+      name: copy
+      imputation_horizon: 32
+
+  state_constructor:
+    defaults:
+      - name: multi_trace
+        trace_values: [0., 0.97] # half life 2 hours
+
+  transition_creator:
+    name: all-the-time
+    # n_step should be 16, give some buffer
+    min_n_step: 15
+    max_n_step: 17
+
+  transition_filter:
+    filters:
+    - "only_pre_dp_or_ac"
+    - "only_post_dp"
+    - "no_nan"
+    - "only_no_action_change"
+
+  tags:
+  - name: DEP_BP_FLOW_SP_WA
+    node_identifier: "ns=1;s=ai_flow_sp"
+    operating_range: [120, 179]
+    action_constructor:
+    - name: identity
+    # - name: normalize
+    #   min: 120
+    #   max: 179
+    agg: last
+
+  - name: DEP_BP_DUR_SP_WA
+    node_identifier: "ns=1;s=ai_dur_sp"
+    operating_range: [10, 30]
+    action_constructor:
+    - name: identity
+    # - name: normalize
+    #   min: 10
+    #   max: 30
+    agg: last
+
+  - name: UF2_FIT301_PV # permeate flow rate
+    preprocess:
+    - name: identity
+    # It would be preferable to keep one source of truth
+    # for conversion to permeability in the preprocessor,
+    # but the config below breaks the reward constructor
+    # 
+    # - name: binary # divide by TMP to get val proportional to permeability 
+    #   op: prod
+    #   other: UF2_TMP_PV
+    #   other_xform:
+    #   - name: inverse
+    # - name: scale # multiply by -1 to correct negative TMP
+    #   factor: -1
+    # - name: normalize
+    #   min: 4
+    #   max: 6
+    filter: # ignore perm outside of production mode
+    - name: binary
+      op: replace
+      other: UF2_SEQ_STATE
+      other_xform:
+      - name: identity
+    - name: comparator
+      op: '!='
+      val: 8
+    state_constructor:
+    - name: binary # divide by TMP to get val proportional to permeability 
+      op: prod
+      other: UF2_TMP_PV
+      other_xform:
+      - name: inverse
+    - name: scale # multiply by -1 to correct negative TMP
+      factor: -1
+    - name: normalize
+      min: 4
+      max: 6
+    reward_constructor:
+    - name: binary # divide by TMP to get val proportional to permeability 
+      op: prod
+      other: UF2_TMP_PV
+      other_xform:
+      - name: inverse
+    - name: scale # multiply by -1 to correct negative TMP
+      factor: -1
+    - name: normalize
+      min: 4
+      max: 6
+    - name: affine # compress to [-0.5, 0] 
+      scale: 0.5
+      bias: -0.5
+
+  - name: UF2_TMP_PV # used in permeability calculation
+    preprocess:
+    - name: identity
+    filter: # ignore perm outside of production mode
+    - name: binary
+      op: replace
+      other: UF2_SEQ_STATE
+      other_xform:
+      - name: identity
+    - name: comparator
+      op: '!='
+      val: 8
+    state_constructor:
+    - name: "null"
+
+  - name: UF2_SEQ_STATE # used in permeability calculation
+    operating_range: [1, 2048]
+    preprocess:
+    - name: identity
+    state_constructor:
+    - name: "null"
+
+  - name: UV01_UV254_PV # raw uvt
+    operating_range: [0, 100]
+
+  - name: UV03_UV254_PV # permeate uvt
+    operating_range: [0, 100]
+    red_bounds: [90, null]
+
+  - name: FLR01_TRYP_PV # raw tryptophan
+    operating_range: [0, 10]
+
+  - name: FLR03_TRYP_PV # permeate tryptophan
+    operating_range: [0, 10]
+    red_bounds: [null, 6]
+
+  - name: FLR04_TRYP_PV # drain tryptophan
+    operating_range: [0, 20]
+
+  - name: FLR01_CDOM_PV # raw cdom
+    operating_range: [0, 100]
+
+  - name: FLR03_CDOM_PV # permeate cdom
+    operating_range: [0, 100]
+    red_bounds: [null, 60]
+
+  - name: AIT310_PV # raw turbidity
+    operating_range: [0, 30]
+
+  - name: AIT320_PV # permeate turbidity
+    operating_range: [0, 30]
+    red_bounds: [null, 20]
+
+  - name: AIT_130_PV # raw pH
+    operating_range: [6.5, 8.5]
+
+# C4025 temporarily disabled
+#  - name: COL01_C4025_PV # color 4025
+#    operating_range: [0, 425]
+
+  - name: COL01_C4100_PV # color 4100
+    operating_range: [0, 20]

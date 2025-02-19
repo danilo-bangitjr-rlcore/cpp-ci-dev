@@ -22,12 +22,18 @@ export function Table({
   striped = false,
   className,
   children,
+  scrollRootRef,
+  virtualScrollRootRefClassname,
+  virtualTableWrapStyle,
   ...props
 }: {
   bleed?: boolean;
   dense?: boolean;
   grid?: boolean;
   striped?: boolean;
+  scrollRootRef?: React.RefObject<HTMLDivElement>;
+  virtualScrollRootRefClassname?: string;
+  virtualTableWrapStyle?: React.CSSProperties;
 } & React.ComponentPropsWithoutRef<"div">) {
   return (
     <TableContext.Provider
@@ -47,13 +53,17 @@ export function Table({
         >
           <div
             className={clsx(
-              "inline-block min-w-full align-middle",
+              "inline-block min-w-full align-middle overflow-auto",
               !bleed && "sm:px-(--gutter)",
+              virtualScrollRootRefClassname,
             )}
+            ref={scrollRootRef}
           >
-            <table className="min-w-full text-left text-sm/6 text-zinc-950 dark:text-white">
-              {children}
-            </table>
+            <div style={virtualTableWrapStyle}>
+              <table className="min-w-full text-left text-sm/6 text-zinc-950 dark:text-white">
+                {children}
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -100,6 +110,8 @@ export function TableRow({
 } & React.ComponentPropsWithoutRef<"tr">) {
   const { striped } = useContext(TableContext);
 
+  const isClickable = Boolean(href ?? props.onClick);
+
   return (
     <TableRowContext.Provider
       value={
@@ -110,11 +122,11 @@ export function TableRow({
         {...props}
         className={clsx(
           className,
-          href &&
-            "has-[[data-row-link][data-focus]]:outline-2 has-[[data-row-link][data-focus]]:-outline-offset-2 has-[[data-row-link][data-focus]]:outline-blue-500 dark:focus-within:bg-white/[2.5%]",
+          isClickable &&
+            "has-[[data-row-link][data-focus]]:outline-2 has-[[data-row-link][data-focus]]:-outline-offset-2 has-[[data-row-link][data-focus]]:outline-blue-500 dark:focus-within:bg-white/[2.5%] cursor-pointer",
           striped && "even:bg-zinc-950/[2.5%] dark:even:bg-white/[2.5%]",
-          href && striped && "hover:bg-zinc-950/5 dark:hover:bg-white/5",
-          href &&
+          isClickable && striped && "hover:bg-zinc-950/5 dark:hover:bg-white/5",
+          isClickable &&
             !striped &&
             "hover:bg-zinc-950/[2.5%] dark:hover:bg-white/[2.5%]",
         )}
@@ -157,13 +169,13 @@ export function TableCell({
       ref={href ? setCellRef : undefined}
       {...props}
       className={clsx(
-        className,
         "relative px-4 first:pl-(--gutter,--spacing(2)) last:pr-(--gutter,--spacing(2))",
         !striped && "border-b border-zinc-950/5 dark:border-white/5",
         grid &&
           "border-l border-l-zinc-950/5 first:border-l-0 dark:border-l-white/5",
         dense ? "py-2.5" : "py-4",
         !bleed && "sm:first:pl-1 sm:last:pr-1",
+        className,
       )}
     >
       {href && (

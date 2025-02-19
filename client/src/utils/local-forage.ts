@@ -44,9 +44,13 @@ export function useLocalForage<T>(
   initialValue: T,
 ): [T, (value: T | ((val: T) => T)) => void] {
   const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const [initialLoaded, setInitialLoaded] = useState(false);
 
   useEffect(() => {
     async function get() {
+      if (initialLoaded) {
+        return;
+      }
       try {
         const value = await localforage.getItem<T>(key);
         if (value == null) {
@@ -56,10 +60,12 @@ export function useLocalForage<T>(
         }
       } catch (error) {
         console.error(error);
+      } finally {
+        setInitialLoaded(true);
       }
     }
     void get();
-  }, [key, storedValue, initialValue]);
+  }, [key, storedValue, initialValue, initialLoaded, setInitialLoaded]);
 
   // Return a wrapped version of useState's setter function that persists the new value to localForage.
   const setValue = useCallback(
@@ -70,8 +76,8 @@ export function useLocalForage<T>(
           value instanceof Function ? value(storedValue) : value;
         // console.log(valueToStore)
         try {
-          await localforage.setItem(key, valueToStore);
           setStoredValue(valueToStore);
+          await localforage.setItem(key, valueToStore);
         } catch (error) {
           console.error(error);
         }

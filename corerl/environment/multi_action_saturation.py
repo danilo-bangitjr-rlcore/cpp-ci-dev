@@ -3,7 +3,10 @@ from pathlib import Path
 from typing import Any
 
 import gymnasium as gym
+import matplotlib.pyplot as plt
 import numpy as np
+import tqdm
+from scipy.optimize import minimize
 
 from corerl.configs.config import config
 
@@ -20,6 +23,9 @@ class MultiActionSaturationConfig:
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0]
     ])
+    frequencies: list[float] = field(default_factory=lambda: [1.0, 1.5, 2.0])
+    phase_shifts: list[float] = field(default_factory=lambda: [0.0, np.pi/4, np.pi/2])
+    setpoints: list[float] = field(default_factory=lambda: [0.3, 0.5, 0.7])
 
 
 class MultiActionSaturation(gym.Env):
@@ -30,11 +36,11 @@ class MultiActionSaturation(gym.Env):
 
     Dynamics:
         - Multiple controllers (default: 3) operate simultaneously
-        - Each controller has its own target setpoint [0.3, 0.5, 0.7]
+        - Each controller has its own target setpoint e.g. [0.3, 0.5, 0.7]
         - System state evolves based on:
             1. Base periodic effects (different frequencies per controller)
-                - Each controller has different frequency (1.0, 1.5, 2.0)
-                - Different phase shifts (0, π/4, π/2)
+                - Each controller has different frequency, e.g. (1.0, 1.5, 2.0)
+                - Different phase shifts, e.g. (0, π/4, π/2)
                 - Amplitude: 0.15 * cos(.) + 0.75
             3. Exponential smoothing of actions
             4. Random noise
@@ -48,7 +54,7 @@ class MultiActionSaturation(gym.Env):
         self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max)
 
         self.saturations = np.zeros(self.num_controllers)
-        self.setpoints = np.array([0.3, 0.5, 0.7])[:self.num_controllers]
+        self.setpoints = np.array(cfg.setpoints[:self.num_controllers])
         self.effect_period = cfg.effect_period
         self.noise_std = cfg.noise_std
 
@@ -66,8 +72,8 @@ class MultiActionSaturation(gym.Env):
         self.action_traces = np.zeros(self.num_controllers)
         self.trace_val = cfg.trace_val
 
-        self.frequencies = np.array([1.0, 1.5, 2.0])[:self.num_controllers]
-        self.phase_shifts = np.array([0, np.pi/4, np.pi/2])[:self.num_controllers]
+        self.frequencies = np.array(cfg.frequencies[:self.num_controllers])
+        self.phase_shifts = np.array(cfg.phase_shifts[:self.num_controllers])
 
         self.coupling_matrix = np.array(cfg.coupling_matrix[:self.num_controllers])[:, :self.num_controllers]
 
@@ -91,7 +97,7 @@ class MultiActionSaturation(gym.Env):
 
         coupled_effects = np.dot(self.coupling_matrix, self.saturations)
 
-        self.saturations = coupled_effects + (
+        self.saturations = self.saturations + (
             self.action_traces * base_effects +
             noise +
             coupled_effects
@@ -109,8 +115,7 @@ class MultiActionSaturation(gym.Env):
         return self.saturations, reward, False, False, {}
 
     def plot(self, save_path: Path):
-        import matplotlib.pyplot as plt
-        _fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
+        _, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
 
         history_saturations = np.array(self.history_saturations)
         history_actions = np.array(self.history_actions)
@@ -133,6 +138,76 @@ class MultiActionSaturation(gym.Env):
         plt.savefig(save_path / 'env.png', bbox_inches='tight')
         plt.close()
 
+    def _mpc_objective(
+        self,
+        actions_flat: np.ndarray,
+        initial_state: np.ndarray,
+        time_step: int,
+        horizon: int,
+        regularization: float = 0.1,
+    ) -> float:
+        actions = actions_flat.reshape(horizon, self.num_controllers)
+        states = np.zeros((horizon + 1, self.num_controllers))
+        action_traces = np.zeros((horizon + 1, self.num_controllers))
+
+        states[0] = initial_state
+        action_traces[0] = np.zeros(self.num_controllers)
+
+        total_cost = 0
+        for t in range(horizon):
+            action_traces[t + 1] = self.trace_val * action_traces[t] + (1 - self.trace_val) * actions[t]
+            base_effects = 0.15 * np.cos(
+                (time_step + t) * np.pi * (2 / self.effect_period) *
+                self.frequencies + self.phase_shifts
+            ) + 0.75
+            states[t + 1] = states[t] * self.decay + action_traces[t + 1] * base_effects
+            states[t + 1] = np.clip(states[t + 1], 0, 1)
+
+            errors = states[t] - self.setpoints
+            total_cost += np.sum(np.square(errors)) + regularization * np.sum(np.square(actions[t]))
+
+        errors = states[-1] - self.setpoints
+        total_cost += np.sum(np.square(errors))
+
+        return total_cost
+
+    def plot_mpc(self, save_path: Path, horizon: int = 100, max_steps: int = 100):
+        self.reset(seed=1)
+        state = self.reset()[0]
+
+        for t in tqdm.tqdm(range(max_steps)):
+            result = minimize(
+                self._mpc_objective,
+                np.ones(horizon * self.num_controllers) * 0.5,
+                args=(state, t, horizon),
+                method='SLSQP',
+                bounds=[(0, 1)] * (horizon * self.num_controllers),
+            )
+
+            action = result.x.reshape(horizon, self.num_controllers)[0]
+            state, _, _, _, _ = self.step(action)
+
+        history_saturations = np.array(self.history_saturations)
+        history_actions = np.array(self.history_actions)
+        history_effects = np.array(self.history_effects)
+
+        _, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
+        for i in range(self.num_controllers):
+            color = f'C{i}'
+            difference = np.abs(history_saturations[:, i] - self.setpoints[i])
+            ax1.plot(difference, color=color, label=f"difference to setpoint {i}")
+            ax1.plot(history_effects[:, i], color=color, linestyle=':', label=f"effect {i}")
+        ax1.legend()
+        ax1.set_title("Difference to setpoint and Effects")
+
+        for i in range(self.num_controllers):
+            color = f'C{i}'
+            ax2.plot(history_actions[:, i], color=color, label=f"action trace {i}")
+        ax2.legend()
+        ax2.set_title("Action Traces")
+        plt.savefig(save_path / 'mpc_control.png', bbox_inches='tight')
+        plt.close()
+
     def reset(
         self,
         *,
@@ -151,7 +226,7 @@ class MultiActionSaturation(gym.Env):
         self.history_actions = []
         self.history_raw_actions = []
 
-        obs = np.concatenate([self.saturations, self.saturations - self.setpoints])
+        obs = np.zeros(self.num_controllers) if options is None else options['state']
         return obs, {}
 
     def close(self):
@@ -162,4 +237,3 @@ gym.register(
     entry_point='corerl.environment.multi_action_saturation:MultiActionSaturation',
     kwargs={'cfg': MultiActionSaturationConfig()}
 )
-

@@ -4,22 +4,10 @@ from math import comb
 
 import numpy as np
 import pandas as pd
-from torch import Tensor
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig, get_n_step_reward
-from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, Step, Transition
-from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transforms import NullConfig
-
-
-def make_test_step(i: int, action: float = 0., gamma: float = 0.9, reward: float = 1.0, dp: bool = False) -> Step:
-    return Step(
-        state=Tensor([i]),
-        action=Tensor([action]),
-        reward=reward,
-        gamma=gamma,
-        dp=dp,
-    )
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, Transition
+from test.small.data_pipeline.test_transition_filter import make_test_step
 
 
 def test_get_n_step_reward_1():
@@ -57,37 +45,20 @@ def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> Pipelin
     )
 
     # stub out action constructor
+    pf.states = df
     pf.actions = pd.DataFrame({ "action": [0] * length }, index=datetime_index)
     pf.rewards = pd.DataFrame({ "reward": [1] * length }, index=datetime_index)
     return pf
 
 
 def make_tc(max_n_step: int, min_n_step: int = 1) -> AllTheTimeTC:
-    tags = [
-        TagConfig(
-            name='state',
-            is_meta=False,
-        ),
-        TagConfig(
-            name='action',
-            action_constructor=[],
-            state_constructor=[NullConfig()],
-            is_meta=False,
-        ),
-        TagConfig(
-            name='reward',
-            is_meta=True,
-            state_constructor=[NullConfig()],
-        )
-    ]
-
     cfg = AllTheTimeTCConfig(
         gamma=0.9,
         max_n_step=max_n_step,
         min_n_step=min_n_step,
     )
 
-    tc = AllTheTimeTC(cfg, tags)
+    tc = AllTheTimeTC(cfg)
     return tc
 
 
