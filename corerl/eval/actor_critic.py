@@ -4,14 +4,15 @@ import random
 from copy import deepcopy
 from typing import Tuple, cast
 
+import numpy as np
 import torch
 from torch import Tensor
-from torch.distributions.constraints import interval
 
 from corerl.agent.base import BaseAC, BaseAgent
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import Transition
-from corerl.data_pipeline.pipeline import ColumnDescriptions
+from corerl.data_pipeline.pipeline import ColumnDescriptions, Pipeline
+from corerl.data_pipeline.transforms.delta import Delta
 from corerl.data_pipeline.transition_filter import call_filter
 from corerl.state import AppState
 
@@ -30,6 +31,7 @@ class ActorCriticEval:
         self,
         cfg: ActorCriticEvalConfig,
         app_state: AppState,
+        pipeline: Pipeline,
         agent: BaseAgent,
         column_desc: ColumnDescriptions
     ):
@@ -45,23 +47,11 @@ class ActorCriticEval:
         agent = cast(BaseAC, agent)
         self.agent = agent
         self.app_state = app_state
+        self.pipeline = pipeline
         self.col_desc = column_desc
+        self.action_cols = [col for col in self.col_desc.action_cols if not Delta.is_delta_transformed(col)]
         self.test_states: list[Tensor] | None = None
-
-    def _get_a_dim_range(self) -> Tensor:
-        """
-        Produce evenly spaced action values along a given action dimension's support.
-        The policy's probability density and the critic will be evaluated
-        at each of these evenly spaced action values
-        """
-        support = self.agent.actor.policy.support
-        assert isinstance(support, interval)
-        support_low = float(support.lower_bound)
-        support_high = float(support.upper_bound)
-        a_dim_spacing = (support_high - support_low) / self.num_uniform_actions
-        a_dim_range = torch.arange(support_low, support_high, a_dim_spacing)
-
-        return a_dim_range
+        self.test_actions: list[Tensor] | None = None
 
     def _get_repeat_state_actions(
         self,
@@ -112,54 +102,265 @@ class ActorCriticEval:
         Will only evaluate these test states when execute_offline() is called.
         """
         # Only want to evaluate policy at states that are decision points
-        dp_transitions = call_filter(transitions, 'only_post_dp')
-        assert len(dp_transitions) > 0
+        post_dp_transitions = call_filter(transitions, 'only_post_dp')
+        assert len(post_dp_transitions) > 0
 
-        self.test_states = [
-            transition.post.state for transition in
-            random.sample(dp_transitions, self.num_test_states)
-        ]
+        test_transitions = random.sample(post_dp_transitions, self.num_test_states)
+
+        self.test_states = [transition.post.state for transition in test_transitions]
+        self.test_actions = [transition.post.action for transition in test_transitions]
+
+    def _get_raw_state(self, state: Tensor) -> np.ndarray:
+        """
+        Convert normalized state into raw state
+        """
+        state_np = state.numpy()
+        state_df = self.pipeline.state_constructor.get_state_df(state_np)
+        raw_state_df = self.pipeline.preprocessor.inverse(state_df)
+        raw_state = raw_state_df.to_numpy()[0]
+
+        return raw_state
+
+    def _get_raw_direct_action(self, action: Tensor) -> np.ndarray:
+        """
+        Convert a normalized direct action into a raw direct action
+        """
+        action_np = action.numpy()
+        action_df = self.pipeline.action_constructor.get_action_df(action_np)
+        raw_action_df = self.pipeline.preprocessor.inverse(action_df)
+        raw_direct_action_df = Delta.get_non_delta(raw_action_df)
+        raw_direct_action = raw_direct_action_df.to_numpy()[0]
+
+        return raw_direct_action
+
+    def _get_norm_raw_action(self, offset: np.ndarray, delta: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Get the normalized and raw forms of a direct action from an offset and delta
+        """
+        norm_delta_df = self.pipeline.action_constructor.assign_action_names(offset, delta)
+        norm_action = norm_delta_df.to_numpy()[0]
+        raw_delta_df = self.pipeline.preprocessor.inverse(norm_delta_df)
+        raw_action = raw_delta_df.to_numpy()[0]
+
+        return norm_action, raw_action
+
+    def _get_a_dim_range(self, low_action: float, high_action: float) -> Tensor:
+        """
+        Get a uniformly spaced range of actions for a given action dimension
+        """
+        a_dim_spacing = (high_action - low_action) / self.num_uniform_actions
+        a_dim_range = torch.arange(low_action, high_action, a_dim_spacing)
+
+        return a_dim_range
+
+    def _get_delta_action_bounds(
+        self,
+        curr_action_np: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Get the min and max possible delta actions for each action dimension given the current action offset
+        """
+        low_delta = np.zeros(len(self.action_cols))
+        norm_delta_low, raw_delta_low = self._get_norm_raw_action(curr_action_np, low_delta)
+        high_delta = np.ones(len(self.action_cols))
+        norm_delta_high, raw_delta_high = self._get_norm_raw_action(curr_action_np, high_delta)
+
+        return norm_delta_low, raw_delta_low, norm_delta_high, raw_delta_high
+
+    def _get_direct_action_bounds(
+        self,
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Get the min and max possible direct actions for each action dimension
+        """
+        if self.app_state.cfg.agent.delta_action:
+            dummy = np.ones(len(self.action_cols)) * 0.5
+            low_direct = np.zeros(len(self.action_cols))
+            norm_direct_low, raw_direct_low = self._get_norm_raw_action(low_direct, dummy)
+            high_direct = np.ones(len(self.action_cols))
+            norm_direct_high, raw_direct_high = self._get_norm_raw_action(high_direct, dummy)
+        else:
+            dummy = np.zeros(len(self.action_cols))
+            low_direct = np.zeros(len(self.action_cols))
+            norm_direct_low, raw_direct_low = self._get_norm_raw_action(dummy, low_direct)
+            high_direct = np.ones(len(self.action_cols))
+            norm_direct_high, raw_direct_high = self._get_norm_raw_action(dummy, high_direct)
+
+        return norm_direct_low, raw_direct_low, norm_direct_high, raw_direct_high
+
+    def _get_policy_plot_info(
+        self,
+        qs_and_policy: dict,
+        state: Tensor,
+        sampled_actions: Tensor,
+        a_dim: int,
+        norm_a_dim_range: Tensor,
+        raw_a_dim_range: Tensor,
+    ) -> dict:
+        state_key = json.dumps(self._get_raw_state(state).tolist())
+        action_tag = self.action_cols[a_dim]
+        state_copies, built_actions = self._get_repeat_state_actions(state,
+                                                                     sampled_actions,
+                                                                     a_dim,
+                                                                     norm_a_dim_range)
+
+        pdfs = self._get_pdf(state_copies, built_actions)
+        qs_and_policy["plot_info"][state_key]["a_dim"][action_tag]["pdf"] = pdfs
+        qs_and_policy["plot_info"][state_key]["a_dim"][action_tag]["policy_actions"] = raw_a_dim_range.tolist()
+
+        return qs_and_policy
+
+    def _get_critic_plot_info(
+        self,
+        qs_and_policy: dict,
+        state: Tensor,
+        sampled_actions: Tensor,
+        a_dim: int,
+        norm_a_dim_range: Tensor,
+        raw_a_dim_range: Tensor,
+        label: str,
+    ) -> dict:
+        state_key = json.dumps(self._get_raw_state(state).tolist())
+        action_tag = self.action_cols[a_dim]
+        state_copies, built_actions = self._get_repeat_state_actions(state,
+                                                                     sampled_actions,
+                                                                     a_dim,
+                                                                     norm_a_dim_range)
+
+        same_action_qs = self._get_action_vals(state_copies, built_actions)
+        qs_and_policy["plot_info"][state_key]["a_dim"][action_tag][f"{label}_critic"] = same_action_qs
+        qs_and_policy["plot_info"][state_key]["a_dim"][action_tag][f"{label}_critic_actions"] = raw_a_dim_range.tolist()
+
+        return qs_and_policy
+
+    def _get_delta_action_plot_info(
+        self,
+        state: Tensor,
+        curr_action: Tensor,
+        sampled_actions: Tensor,
+        qs_and_policy: dict,
+    ) -> dict:
+        state_key = json.dumps(self._get_raw_state(state).tolist())
+        curr_action_np = curr_action.numpy()
+
+        norm_delta_low, raw_delta_low, norm_delta_high, raw_delta_high = self._get_delta_action_bounds(curr_action_np)
+        norm_direct_low, raw_direct_low, norm_direct_high, raw_direct_high = self._get_direct_action_bounds()
+
+        for a_dim in range(len(self.action_cols)):
+            action_tag = self.action_cols[a_dim]
+            qs_and_policy["plot_info"][state_key]["a_dim"][action_tag] = {}
+
+            # Get policy pdf and critic q-values over delta action range
+            norm_delta_a_dim_range = self._get_a_dim_range(float(norm_delta_low[a_dim]),
+                                                           float(norm_delta_high[a_dim]))
+            raw_delta_a_dim_range = self._get_a_dim_range(float(raw_delta_low[a_dim]),
+                                                          float(raw_delta_high[a_dim]))
+            qs_and_policy = self._get_policy_plot_info(qs_and_policy,
+                                                       state,
+                                                       sampled_actions,
+                                                       a_dim,
+                                                       norm_delta_a_dim_range,
+                                                       raw_delta_a_dim_range)
+            qs_and_policy = self._get_critic_plot_info(qs_and_policy,
+                                                       state,
+                                                       sampled_actions,
+                                                       a_dim,
+                                                       norm_delta_a_dim_range,
+                                                       raw_delta_a_dim_range,
+                                                       "delta")
+
+            # Get critic q-values over full direct action range
+            norm_direct_a_dim_range = self._get_a_dim_range(float(norm_direct_low[a_dim]),
+                                                            float(norm_direct_high[a_dim]))
+            raw_direct_a_dim_range = self._get_a_dim_range(float(raw_direct_low[a_dim]),
+                                                           float(raw_direct_high[a_dim]))
+            qs_and_policy = self._get_critic_plot_info(qs_and_policy,
+                                                       state,
+                                                       sampled_actions,
+                                                       a_dim,
+                                                       norm_direct_a_dim_range,
+                                                       raw_direct_a_dim_range,
+                                                       "direct")
+
+        return qs_and_policy
+
+    def _get_direct_action_plot_info(
+        self,
+        state: Tensor,
+        sampled_actions: Tensor,
+        qs_and_policy: dict,
+    ) -> dict:
+        state_key = json.dumps(self._get_raw_state(state).tolist())
+
+        norm_direct_low, raw_direct_low, norm_direct_high, raw_direct_high = self._get_direct_action_bounds()
+
+        for a_dim in range(self.agent.action_dim):
+            action_tag = self.action_cols[a_dim]
+            qs_and_policy["plot_info"][state_key]["a_dim"][action_tag] = {}
+
+            # Get critic q-values and policy pdf over full direct action range
+            norm_direct_a_dim_range = self._get_a_dim_range(float(norm_direct_low[a_dim]),
+                                                            float(norm_direct_high[a_dim]))
+            raw_direct_a_dim_range = self._get_a_dim_range(float(raw_direct_low[a_dim]),
+                                                           float(raw_direct_high[a_dim]))
+            qs_and_policy = self._get_policy_plot_info(qs_and_policy,
+                                                       state,
+                                                       sampled_actions,
+                                                       a_dim,
+                                                       norm_direct_a_dim_range,
+                                                       raw_direct_a_dim_range)
+            qs_and_policy = self._get_critic_plot_info(qs_and_policy,
+                                                       state,
+                                                       sampled_actions,
+                                                       a_dim,
+                                                       norm_direct_a_dim_range,
+                                                       raw_direct_a_dim_range,
+                                                       "direct")
+
+        return qs_and_policy
 
     def execute_offline(self, iter_num: int):
-        if self.test_states is None:
+        if self.test_states is None or self.test_actions is None:
             logger.error("Call ActorCriticEval.get_test_states() before calling ActorCriticEval.execute_offline()."
                          "len(self.test_states) must be greater than 0")
             return
 
-        self.execute(self.test_states, str(iter_num))
+        self.execute(self.test_states, self.test_actions, str(iter_num))
 
-    def execute(self, states: list[Tensor], label: str = ""):
+    def execute(self, states: list[Tensor], actions: list[Tensor], label: str = ""):
+        """
+        Get the information needed to produce an Actor-Critic plot for either the direct action or delta action case.
+        For each state S_t passed to the Actor-Critic Eval, the corresponding action A_{t-1} is also passed because
+        when delta actions are being used, we need to know the offset to determine the support of the policy
+        """
         if not self.enabled:
+            return
+
+        if len(states) != len(actions):
+            logger.error("The Actor-Critic Eval must be passed an action for every state and vice-versa")
             return
 
         qs_and_policy = {}
         qs_and_policy["state_cols"] = self.col_desc.state_cols
-        qs_and_policy["states"] = {}
-        for state in states:
-            state_key = json.dumps(state.tolist())
-            qs_and_policy["states"][state_key] = {}
+        qs_and_policy["action_cols"] = self.action_cols
+        qs_and_policy["plot_info"] = {}
+        for i in range(len(states)):
+            state = states[i]
+            action = actions[i]
+            state_key = json.dumps(self._get_raw_state(state).tolist())
+            action_json = json.dumps(self._get_raw_direct_action(action).tolist())
+            qs_and_policy["plot_info"][state_key] = {}
+            qs_and_policy["plot_info"][state_key]["current_action"] = action_json
+            qs_and_policy["plot_info"][state_key]["a_dim"] = {}
 
             # When evaluating the critic over a given action dim, need sampled actions for the other action dims
             repeat_state = state.repeat((self.critic_samples, 1))
             sampled_actions, _ = self.agent.actor.get_action(repeat_state, with_grad=False)
 
-            # Determine the interval of values that the current action dimension will be evaluated at
-            a_dim_range = self._get_a_dim_range()
-
-            # Get policy's pdf and evaluate critic over each action dim
-            for a_dim in range(self.agent.action_dim):
-                action_tag = self.col_desc.action_cols[a_dim]
-                qs_and_policy["states"][state_key][action_tag] = {}
-                qs_and_policy["states"][state_key][action_tag]["actions"] = a_dim_range.tolist()
-
-                state_copies, built_actions = self._get_repeat_state_actions(state, sampled_actions, a_dim, a_dim_range)
-
-                # Get policy pdf
-                pdfs = self._get_pdf(state_copies, built_actions)
-                qs_and_policy["states"][state_key][action_tag]["pdf"] = pdfs
-
-                # Evaluate critic at each value of 'a_dim' in 'a_dim_range'
-                same_action_qs = self._get_action_vals(state_copies, built_actions)
-                qs_and_policy["states"][state_key][action_tag]["critic"] = same_action_qs
+            # Produce different plots for direct action and delta action agents
+            if self.app_state.cfg.agent.delta_action:
+                qs_and_policy = self._get_delta_action_plot_info(state, action, sampled_actions, qs_and_policy)
+            else:
+                qs_and_policy = self._get_direct_action_plot_info(state, sampled_actions, qs_and_policy)
 
         self.app_state.evals.write(self.app_state.agent_step, f"actor-critic_{label}", qs_and_policy)

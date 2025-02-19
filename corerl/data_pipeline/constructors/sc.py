@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from functools import cached_property
 
+import numpy as np
 import pandas as pd
 from pydantic import Field
 
@@ -89,6 +90,14 @@ class StateConstructor(Constructor):
                 # meta tags should be all that are left
             ],
         )
+
+    def get_state_df(self, state_arr: np.ndarray) -> pd.DataFrame:
+        """
+        Given a state, return a dataframe that contains the state info and the corresponding column names
+        """
+        df = pd.DataFrame(data=[state_arr], columns=self.columns)
+
+        return df
 
 
 def construct_default_sc_configs(sc_cfg: SCConfig, tag_cfgs: list[TagConfig]) -> None:

@@ -51,6 +51,7 @@ class SimInteraction(Interaction):
         self._actor_critic_eval = ActorCriticEval(
             self._app_state.cfg.eval_cfgs.actor_critic,
             app_state,
+            pipeline,
             agent,
             self._column_desc,
         )
@@ -89,7 +90,7 @@ class SimInteraction(Interaction):
         # perform evaluations
         self._monte_carlo_eval.execute(pipe_return, "online")
         label = str(self._app_state.agent_step)
-        self._actor_critic_eval.execute([Tensor(self._last_state)], label)
+        self._actor_critic_eval.execute([Tensor(self._last_state)], [Tensor(self._last_action)], label)
         plot_evals(
             app_state=self._app_state,
             step_start=self._app_state.agent_step,

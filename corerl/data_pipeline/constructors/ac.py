@@ -92,6 +92,14 @@ class ActionConstructor(Constructor):
         df = pd.DataFrame(d)
         return df
 
+    def get_action_df(self, action_arr: np.ndarray) -> pd.DataFrame:
+        """
+        Given an action, return a dataframe that contains the action info and the corresponding column names
+        """
+        df = pd.DataFrame(data=[action_arr], columns=self.columns)
+
+        return df
+
 
     def invert(self, action: np.ndarray, col: str):
         tag_name = find(lambda tag: col.startswith(tag), self._components)

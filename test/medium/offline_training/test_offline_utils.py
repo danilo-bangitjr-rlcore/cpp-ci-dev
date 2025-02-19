@@ -155,7 +155,7 @@ def test_offline_training(offline_cfg: MainConfig,
     agent = init_agent(offline_cfg.agent, app_state, col_desc)
 
     # Offline training
-    critic_losses = offline_trainer.train(app_state, agent, col_desc)
+    critic_losses = offline_trainer.train(app_state, agent, pipeline, col_desc)
     first_loss = critic_losses[0]
     last_loss = critic_losses[-1]
 
@@ -183,12 +183,12 @@ def test_offline_training(offline_cfg: MainConfig,
         assert len(ac_eval_rows) == len(offline_cfg.experiment.offline_eval_iters)
         for i in range(len(ac_eval_rows)):
             ac_out = ac_eval_rows.iloc[i]["value"]
-            assert len(ac_out["states"]) == ac_cfg.num_test_states
-            for test_state in ac_out["states"]:
-                for action_tag in ac_out["states"][test_state]:
-                    a_dim_range = np.array(ac_out["states"][test_state][action_tag]["actions"])
-                    pdfs = np.array(ac_out["states"][test_state][action_tag]["pdf"])
-                    qs = np.array(ac_out["states"][test_state][action_tag]["critic"])
+            assert len(ac_out["plot_info"]) == ac_cfg.num_test_states
+            for test_state in ac_out["plot_info"]:
+                for action_tag in ac_out["plot_info"][test_state]["a_dim"]:
+                    a_dim_range = np.array(ac_out["plot_info"][test_state]["a_dim"][action_tag]["policy_actions"])
+                    pdfs = np.array(ac_out["plot_info"][test_state]["a_dim"][action_tag]["pdf"])
+                    qs = np.array(ac_out["plot_info"][test_state]["a_dim"][action_tag]["direct_critic"])
                     assert a_dim_range.shape == (ac_cfg.num_uniform_actions,)
                     assert pdfs.shape == (ac_cfg.critic_samples, ac_cfg.num_uniform_actions)
                     assert qs.shape == (ac_cfg.critic_samples, ac_cfg.num_uniform_actions)
