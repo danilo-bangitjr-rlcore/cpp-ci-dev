@@ -14,7 +14,7 @@ def test_client():
     yield TestClient(app)
 
 def test_healthcheck(test_client: TestClient):
-    response = test_client.get("/health")
+    response = test_client.get("/api/corerl/health")
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "OK"
@@ -34,7 +34,7 @@ def test_config_file(req_type: str, res_type: str, test_client: TestClient):
         raise NotImplementedError
 
     response = test_client.post(
-        "/api/configuration/file",
+        "/api/corerl/configuration/file",
         content=config_data,
         headers={
             "Content-Type": req_type,

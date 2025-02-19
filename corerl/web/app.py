@@ -61,7 +61,7 @@ async def redirect():
     return response
 
 @app.get(
-    "/health",
+    "/api/corerl/health",
     response_model=HealthResponse,
     tags=["Health"],
     responses={status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal Server Error", "model": str}},
@@ -71,7 +71,7 @@ async def health():
 
 
 @app.post(
-    "/api/configuration/file",
+    "/api/corerl/configuration/file",
     response_model=MainConfig,
     tags=["Configuration"],
     responses={
@@ -146,7 +146,7 @@ async def gen_config_file(request: Request, file: UploadFile | None = None):
 
 
 @app.get(
-    "/api/opc/nodes",
+    "/api/corerl/opc/nodes",
     tags=["Opc"],
 )
 async def read_search_opc(opc_url: str, query: str = "") -> OpcNodeResponse:
@@ -202,7 +202,7 @@ class DB_Status_Response(BaseModel):
     table_status: bool
     has_connected: bool
 
-@app.post("/api/verify-connection/db")
+@app.post("/api/corerl/verify-connection/db")
 async def verify_connection_db(db_req: DB_Status_Request) -> DB_Status_Response:
 
     db_status = False
@@ -245,7 +245,7 @@ class OPC_Status_Response(BaseModel):
 class OPC_Status_Request(BaseModel):
     opc_url: str
 
-@app.post("/api/verify-connection/opc")
+@app.post("/api/corerl/verify-connection/opc")
 async def verify_connection_opc(opc_req: OPC_Status_Request) -> OPC_Status_Response:
     opc_status = False
     opc_client = Client(opc_req.opc_url)
