@@ -10,8 +10,7 @@ from asyncua import Client
 from asyncua.sync import Client as SyncClient
 from fastapi import FastAPI, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -56,6 +55,10 @@ class OpcNodeDetail(BaseModel):
 class OpcNodeResponse(BaseModel):
     nodes: List[OpcNodeDetail]
 
+@app.get("/")
+async def redirect():
+    response = RedirectResponse(url="/docs")
+    return response
 
 @app.get(
     "/health",
@@ -263,4 +266,3 @@ async def verify_connection_opc(opc_req: OPC_Status_Request) -> OPC_Status_Respo
     return opc_status
 
 
-app.mount("/", StaticFiles(directory="client/dist", html=True, check_dir=False), name="static")
