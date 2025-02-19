@@ -1,3 +1,20 @@
+## 0.106.0 (2025-02-19)
+
+### Feat
+
+- add goal contstructor as alternative to reward constructor
+- add basic reward spec schema
+- add find utility as staticmethod on Maybe
+
+### Fix
+
+- expose pipeline default stages attribute
+- ensure pipeframe states attribute is initialized
+
+### Refactor
+
+- expose get_tag_bounds utility as public func
+
 ## 0.105.1 (2025-02-18)
 
 ### Fix
