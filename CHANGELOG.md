@@ -1,3 +1,13 @@
+## 0.107.0 (2025-02-19)
+
+### Feat
+
+- allow changing num torch threads from cfg
+
+### Refactor
+
+- move app_state fixture out to dedicate file
+
 ## 0.106.0 (2025-02-19)
 
 ### Feat
