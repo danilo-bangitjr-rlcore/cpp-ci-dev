@@ -32,6 +32,7 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
+from corerl.environment.reward.config import RewardConfig
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -51,6 +52,7 @@ class PipelineConfig:
     state_constructor: SCConfig = Field(default_factory=SCConfig)
     transition_creator: AllTheTimeTCConfig = Field(default_factory=AllTheTimeTCConfig)
     transition_filter: TransitionFilterConfig = Field(default_factory=TransitionFilterConfig)
+    reward: RewardConfig | None = None
 
 
     @sanitizer
@@ -182,7 +184,7 @@ class Pipeline:
             StageCode.TF:         self.transition_filter,
         }
 
-        self._default_stages = (
+        self.default_stages = (
             StageCode.INIT,
             StageCode.FILTER,
             StageCode.BOUNDS,
@@ -228,7 +230,7 @@ class Pipeline:
             stages: Sequence[StageCode] | None = None,
     ) -> PipelineReturn:
         if stages is None:
-            stages = self._default_stages
+            stages = self.default_stages
 
         # handle the no data case with an empty return
         if data.empty:

@@ -249,6 +249,7 @@ class PipelineFrame:
         self.action_change = np.zeros(N, dtype=np.bool_)
 
         # initialize rl containers
+        self.states = self.data.copy(deep=False)
         self.actions = self.data.copy(deep=False)
 
     def get_last_timestamp(self) -> datetime.datetime:

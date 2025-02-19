@@ -58,21 +58,7 @@ class TagConfig:
 
     @sanitizer
     def _default_normalize_preprocessor(self, cfg: MainConfig):
-        # each bound type is fully optional
-        # prefer to use red zone, fallback to black zone then yellow
-        # finally fallback to learning online if no other options
-        # available
-        lo = (
-            Maybe[float](self.red_bounds and self.red_bounds[0])
-            .otherwise(lambda: self.operating_range and self.operating_range[0])
-            .otherwise(lambda: self.yellow_bounds and self.yellow_bounds[0])
-        )
-
-        hi = (
-            Maybe[float](self.red_bounds and self.red_bounds[1])
-            .otherwise(lambda: self.operating_range and self.operating_range[1])
-            .otherwise(lambda: self.yellow_bounds and self.yellow_bounds[1])
-        )
+        lo, hi = get_tag_bounds(self)
 
         # although each constructor type may _also_ have a normalizer
         # only automatically set the preprocessor normalizer bounds
@@ -94,3 +80,21 @@ class TagConfig:
 
         if norm_cfg.min is None or norm_cfg.max is None:
             norm_cfg.from_data = True
+
+
+def get_tag_bounds(cfg: TagConfig) -> tuple[Maybe[float], Maybe[float]]:
+    # each bound type is fully optional
+    # prefer to use red zone, fallback to black zone then yellow
+    lo = (
+        Maybe[float](cfg.red_bounds and cfg.red_bounds[0])
+        .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
+        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[0])
+    )
+
+    hi = (
+        Maybe[float](cfg.red_bounds and cfg.red_bounds[1])
+        .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
+        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[1])
+    )
+
+    return lo, hi
