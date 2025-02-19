@@ -1,3 +1,9 @@
+## 0.108.0 (2025-02-19)
+
+### Feat
+
+- Setting up playwright GUI tests (#540)
+
 ## 0.107.0 (2025-02-19)
 
 ### Feat
