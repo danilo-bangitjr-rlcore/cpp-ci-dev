@@ -42,6 +42,8 @@ logging.getLogger('asyncua').setLevel(logging.CRITICAL)
 def main(cfg: MainConfig):
     if cfg.log_path is not None:
         enable_log_files(cfg.log_path)
+
+    torch.set_num_threads(cfg.experiment.num_threads)
     device.update_device(cfg.experiment.device)
 
     event_bus = EventBus(cfg.event_bus, cfg.env)
