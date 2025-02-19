@@ -5,17 +5,17 @@ import { Input } from "./input";
 
 interface DurationInputProps {
   onChange: (isoDuration: string) => void;
-  defaultValue?: string;
+  value?: string;
   units?: (keyof Temporal.DurationLike)[];
 }
 
 const DurationInput: React.FC<DurationInputProps> = ({
   onChange,
-  defaultValue,
+  value,
   units = ["hours", "minutes", "seconds"],
 }) => {
-  const rawDuration = defaultValue
-    ? Temporal.Duration.from(defaultValue)
+  const rawDuration = value
+    ? Temporal.Duration.from(value)
     : new Temporal.Duration();
   const [durationParts, setDurationParts] = useState<Temporal.DurationLike>({
     years: rawDuration.years,
@@ -25,8 +25,8 @@ const DurationInput: React.FC<DurationInputProps> = ({
     hours: rawDuration.hours,
     minutes: rawDuration.minutes,
     seconds: rawDuration.seconds,
-    microseconds: rawDuration.microseconds,
     milliseconds: rawDuration.milliseconds,
+    microseconds: rawDuration.microseconds,
   });
 
   const handleChange = (value: string, unit: keyof Temporal.DurationLike) => {
@@ -51,12 +51,12 @@ const DurationInput: React.FC<DurationInputProps> = ({
   return (
     <FieldGroup className="grid grid-cols-3 grid-gap-2">
       {units.map((unit) => (
-        <Field className="flex flex-col" key={unit}>
+        <Field className="flex flex-col mr-2" key={unit}>
           <Label>{capitalizeFirstLetter(unit)}</Label>
           <Input
             name={unit}
             type="number"
-            defaultValue={durationParts[unit]}
+            value={rawDuration[unit]}
             onChange={(e) => handleChange(e.target.value, unit)}
             min="0"
           />

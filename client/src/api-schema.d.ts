@@ -194,7 +194,7 @@ export interface components {
             name: "adam";
             /**
              * Lr
-             * @default 0.0001
+             * @default 0.01
              */
             lr: number;
             /**
@@ -267,7 +267,7 @@ export interface components {
             name: "armijo_adam";
             /**
              * Lr
-             * @default 0.0001
+             * @default 0.01
              */
             lr: number;
             /**
@@ -574,6 +574,11 @@ export interface components {
              * @default |???|
              */
             update_period: string;
+            /**
+             * Update Warmup
+             * @default 0
+             */
+            update_warmup: number;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -1370,7 +1375,7 @@ export interface components {
             name: "lso";
             /**
              * Lr
-             * @default 0.0001
+             * @default 0.01
              */
             lr: number;
             /**
@@ -1788,7 +1793,7 @@ export interface components {
             name: string;
             /**
              * Lr
-             * @default 0.0001
+             * @default 0.01
              */
             lr: number;
             /**
@@ -2066,7 +2071,7 @@ export interface components {
             name: "rms_prop";
             /**
              * Lr
-             * @default 0.0001
+             * @default 0.01
              */
             lr: number;
             /**
@@ -2216,7 +2221,7 @@ export interface components {
             name: "sgd";
             /**
              * Lr
-             * @default 0.0001
+             * @default 0.01
              */
             lr: number;
             /**
@@ -2297,6 +2302,11 @@ export interface components {
              * @default |???|
              */
             update_period: string;
+            /**
+             * Update Warmup
+             * @default 0
+             */
+            update_warmup: number;
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}

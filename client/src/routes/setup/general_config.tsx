@@ -8,7 +8,7 @@ import { Field, FieldGroup, Fieldset, Label } from "../../components/fieldset";
 import { Heading } from "../../components/heading";
 import { Input } from "../../components/input";
 import { SetupConfigNav } from "../../components/setup/setup-config-nav";
-import { Text } from "../../components/text";
+import { Strong, Text } from "../../components/text";
 import { Button } from "../../components/button";
 import {
   type DeepPartial,
@@ -125,7 +125,6 @@ function GeneralConfig() {
       mainConfig.infra?.db !== undefined &&
       areKeysDefined(mainConfig.infra.db, keysToCheck)
     ) {
-      console.log("All keys defined");
       verifyConnectionDB({
         body: {
           db_config: mainConfig.infra.db as components["schemas"]["DBConfig"],
@@ -249,6 +248,7 @@ function GeneralConfig() {
               id="username"
               name="infra.db.username"
               type="text"
+              autoComplete="off"
               placeholder=""
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 handleInputChange(e);
@@ -267,6 +267,11 @@ function GeneralConfig() {
               name="infra.db.password"
               type="password"
               autoComplete="off"
+              data-1p-ignore
+              data-lpignore="true"
+              data-protonpass-ignore="true"
+              data-bwignore
+              data-form-type="other"
               placeholder=""
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 handleInputChange(e);
@@ -382,19 +387,25 @@ function GeneralConfig() {
 
         <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-0">
           <Field className="m-0 p-0">
-            <Label className="mr-2">Check database connection:</Label>
+            <Strong className="mr-2 text-base/6 sm:text-sm/6">
+              Check database connection:
+            </Strong>
             <Button onClick={checkDBStatus}>Check</Button>
           </Field>
 
           <Field className="m-0 p-0">
-            <Label className="mr-2">Database status:</Label>
+            <Strong className="mr-2 text-base/6 sm:text-sm/6">
+              Database status:
+            </Strong>
             <Badge color={getDBStyle()} className="mr-1">
               {getDBLabel()}
             </Badge>
           </Field>
 
           <Field className="sm:row-start-2 sm:col-start-2">
-            <Label className="mr-8">Table status:</Label>
+            <Strong className="mr-2 text-base/6 sm:text-sm/6">
+              Table status:
+            </Strong>
             <Badge color={getTableStyle()} className="mr-1">
               {getTableLabel()}
             </Badge>
@@ -442,12 +453,16 @@ function GeneralConfig() {
 
         <FieldGroup className="grid grid-cols-1 sm:grid-cols-2 sm:gap-x-4 sm:gap-y-0">
           <Field className="m-0 p-0">
-            <Label className="mr-2">Check OPC connection:</Label>
+            <Strong className="mr-2 text-base/6 sm:text-sm/6">
+              Check OPC connection:
+            </Strong>
             <Button onClick={checkOPCStatus}>Check</Button>
           </Field>
 
           <Field className="m-0 p-0">
-            <Label className="mr-2">OPC status:</Label>
+            <Strong className="mr-2 text-base/6 sm:text-sm/6">
+              OPC status:
+            </Strong>
             <Badge color={getOPCStyle()} className="mr-1">
               {getOPCLabel()}
             </Badge>
@@ -462,7 +477,9 @@ function GeneralConfig() {
 
         <FieldGroup className="mb-1">
           <Field>
-            <Label>Environment Observation Period</Label>
+            <Strong className="text-base/6 sm:text-sm/6">
+              Environment Observation Period
+            </Strong>
             <Text>
               How much time should pass in-between sensor readings?
               <Badge className="ml-1">{mainConfig.env?.obs_period}</Badge>
@@ -472,28 +489,30 @@ function GeneralConfig() {
                 "env.obs_period",
                 "interaction.obs_period",
               ])}
-              defaultValue={mainConfig.env?.obs_period ?? ""}
+              value={mainConfig.env?.obs_period ?? ""}
             />
           </Field>
         </FieldGroup>
 
         <FieldGroup className="mb-1">
           <Field>
-            <Label>Agent Update Period</Label>
+            <Strong className="text-base/6 sm:text-sm/6">
+              Agent Update Period
+            </Strong>
             <Text>
               How often should the agent perform a learning update?
               <Badge className="ml-1">{mainConfig.env?.update_period}</Badge>
             </Text>
             <DurationInput
               onChange={handleDurationChange("env.update_period")}
-              defaultValue={mainConfig.env?.update_period ?? ""}
+              value={mainConfig.env?.update_period ?? ""}
             />
           </Field>
         </FieldGroup>
 
         <FieldGroup className="mb-1">
           <Field>
-            <Label>Action Period</Label>
+            <Strong className="text-base/6 sm:text-sm/6">Action Period</Strong>
             <Text>
               How often should the agent emit a new set point?
               <Badge className="ml-1">{mainConfig.env?.action_period}</Badge>
@@ -503,14 +522,16 @@ function GeneralConfig() {
                 "env.action_period",
                 "interaction.action_period",
               ])}
-              defaultValue={mainConfig.env?.action_period ?? ""}
+              value={mainConfig.env?.action_period ?? ""}
             />
           </Field>
         </FieldGroup>
 
         <FieldGroup className="mb-1">
           <Field>
-            <Label>Observation Staleness Tolearance</Label>
+            <Strong className="text-base/6 sm:text-sm/6">
+              Observation Staleness Tolerance
+            </Strong>
             <Text>
               How old can an observation be to reliably use for taking actions?
               <Badge className="ml-1">
@@ -519,7 +540,7 @@ function GeneralConfig() {
             </Text>
             <DurationInput
               onChange={handleDurationChange("env.action_tolerance")}
-              defaultValue={
+              value={
                 (mainConfig.env as PartialDepAsyncEnvConfig)
                   ?.action_tolerance ?? ""
               }
