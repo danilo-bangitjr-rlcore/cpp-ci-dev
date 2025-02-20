@@ -1,3 +1,9 @@
+## 0.109.1 (2025-02-20)
+
+### Fix
+
+- prefer Exception to BaseException
+
 ## 0.109.0 (2025-02-20)
 
 ### Feat
