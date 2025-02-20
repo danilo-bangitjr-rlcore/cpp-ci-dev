@@ -83,7 +83,7 @@ def main_loop(cfg: MainConfig, app_state: AppState, pipeline: Pipeline, env: Asy
             break
 
 
-def main(cfg: MainConfig):
+def retryable_main(cfg: MainConfig):
     if cfg.log_path is not None:
         enable_log_files(cfg.log_path)
 
@@ -124,17 +124,17 @@ def main(cfg: MainConfig):
 
 
 @load_config(MainConfig, base='config/')
-def retry_main(cfg: MainConfig):
+def main(cfg: MainConfig):
     # only do retry logic if we want to "run forever"
     if not cfg.experiment.run_forever:
-        return main(cfg)
+        return retryable_main(cfg)
 
     # retry logic
     retries = 0
     last_error = datetime.now(UTC)
 
     while True:
-        main(cfg)
+        retryable_main(cfg)
 
         now = datetime.now(UTC)
         if now - last_error < timedelta(hours=1):
@@ -169,4 +169,4 @@ def enable_log_files(log_path: Path):
 
 
 if __name__ == "__main__":
-    retry_main()
+    main()
