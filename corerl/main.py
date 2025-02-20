@@ -146,8 +146,9 @@ def main(cfg: MainConfig):
                 log.error("Too many retries, exiting!")
                 sys.exit(os.EX_SOFTWARE)
 
-            # sleep for num_retries minutes
-            time.sleep(60 * retries)
+            # backoff exponentially over minutes
+            min = 2 ** (retries - 1)
+            time.sleep(60 * min)
 
         else:
             # if it has been more than an hour since the last error,
