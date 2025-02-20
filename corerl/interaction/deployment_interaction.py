@@ -175,8 +175,23 @@ class DeploymentInteraction(Interaction):
         self._env.emit_action(a_df, log_action=True)
         self._last_action_df = a_df
 
-        agent_eval.eval_policy_variance(self._app_state, s, self._agent)
-        agent_eval.eval_q_online(self._app_state, s, self._agent, norm_a_df.to_numpy())
+        # metrics + eval
+        agent_eval.policy_variance(self._app_state, self._agent, args=(s,))
+        agent_eval.q_online(
+            self._app_state, self._agent,
+            args=(s, norm_a_df.to_numpy()),
+        )
+        agent_eval.greed_dist_online(self._app_state, self._agent, args=(s, a))
+        agent_eval.greed_values_online(self._app_state, self._agent, args=(s, a))
+
+    def _on_update(self):
+        self._agent.update()
+
+        # metrics + eval
+        agent_eval.greed_dist_batch(self._app_state, self._agent)
+        agent_eval.greed_values_batch(self._app_state, self._agent)
+
+
 
     # ------------------
     # -- No Event Bus --
@@ -188,7 +203,7 @@ class DeploymentInteraction(Interaction):
         self._heartbeat.healthcheck()
 
         self._on_get_obs()
-        self._agent.update()
+        self._on_update()
         self._on_emit_action()
 
     # ---------------
@@ -205,7 +220,7 @@ class DeploymentInteraction(Interaction):
                 self._on_get_obs()
 
             case EventType.step_agent_update:
-                self._agent.update()
+                self._on_update()
 
             case EventType.step_emit_action:
                 self._on_emit_action()
