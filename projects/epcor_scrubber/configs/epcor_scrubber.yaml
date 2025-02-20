@@ -13,7 +13,7 @@ experiment:
   exp_name: epcor_scrubber
   save_path: outputs/scrubber_evals
   seed: 1
-  gamma: 0.944 # ~50% of return occurs after 1 hrs (@ 5 min obs period)
+  gamma: 0.9727 # ~50% of return occurs after 2 hrs (@ 5 min obs period)
   run_forever: True
 
 feature_flags:
