@@ -468,8 +468,8 @@ class PVSChangeAction(BasePVSEnv):
             dtype=np.float32,
         )
         self.action_space = spaces.Box(
-            low=np.array([-0.01, -0.01]),
-            high=np.array([0.01, 0.01]),
+            low=np.array([-0.1, -0.1]),
+            high=np.array([0.1, 0.1]),
             shape=(2,),
             dtype=np.float32,
         )
