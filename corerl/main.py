@@ -38,14 +38,7 @@ logging.basicConfig(
 logging.getLogger('asyncua').setLevel(logging.CRITICAL)
 
 
-@load_config(MainConfig, base='config/')
-def main(cfg: MainConfig):
-    if cfg.log_path is not None:
-        enable_log_files(cfg.log_path)
-
-    torch.set_num_threads(cfg.experiment.num_threads)
-    device.update_device(cfg.experiment.device)
-
+def main_loop(cfg: MainConfig):
     event_bus = EventBus(cfg.event_bus, cfg.env)
     app_state = AppState(
         cfg=cfg,
@@ -117,6 +110,17 @@ def main(cfg: MainConfig):
         app_state.evals.close()
         env.cleanup()
         event_bus.cleanup()
+
+
+@load_config(MainConfig, base='config/')
+def main(cfg: MainConfig):
+    if cfg.log_path is not None:
+        enable_log_files(cfg.log_path)
+
+    torch.set_num_threads(cfg.experiment.num_threads)
+    device.update_device(cfg.experiment.device)
+
+    main_loop(cfg)
 
 
 def enable_log_files(log_path: Path):
