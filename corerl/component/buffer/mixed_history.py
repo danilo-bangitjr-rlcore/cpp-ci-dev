@@ -50,6 +50,9 @@ class MixedHistoryBuffer(ReplayBuffer):
         return idxs
 
     def sample(self) -> list[TransitionBatch]:
+        if max(self.size) == 0:
+            return []
+
         ensemble_batch: list[TransitionBatch] = []
         for dist in self._sub_dists:
             idxs = dist.sample(self.rng, self.batch_size)
