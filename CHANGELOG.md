@@ -1,3 +1,9 @@
+## 0.109.0 (2025-02-20)
+
+### Feat
+
+- add exponential backoff to opc connection attempts
+
 ## 0.108.1 (2025-02-19)
 
 ### Fix
