@@ -16,7 +16,7 @@ async def maybe_await[T](t: MaybeAwaitable[T]) -> T:
     return t
 
 def exponential_backoff(
-    exceptions: Iterable[type[BaseException]] = (BaseException,),
+    exceptions: Iterable[type[Exception]] = (Exception,),
     attempts: int = 10,
 ):
     def _inner[T, **P](f: Callable[P, Coroutine[None, None, T]]):
