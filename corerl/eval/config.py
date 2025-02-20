@@ -20,7 +20,7 @@ class EvalConfig:
     policy_variance: PolicyVarianceConfig = Field(default_factory=PolicyVarianceConfig)
     q_online: QOnlineConfig = Field(default_factory=QOnlineConfig)
 
-def register_evals(cfg: EvalConfig, agent: BaseAgent, pipeline: Pipeline, app_state: AppState):
+def register_pipeline_evals(cfg: EvalConfig, agent: BaseAgent, pipeline: Pipeline, app_state: AppState):
     pipeline.register_hook(
         cfg.raw_data.data_modes,
         cfg.raw_data.stage_codes,
