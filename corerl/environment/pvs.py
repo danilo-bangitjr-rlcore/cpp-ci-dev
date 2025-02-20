@@ -269,7 +269,7 @@ class BasePVSEnv(Env):
         ax1 = fig.add_subplot(gs[0, 0])
         ax2 = fig.add_subplot(gs[0, 1])
 
-        plt.suptitle('Three Tank System - Time Step: 0', y=0.98)
+        plt.suptitle('Time Step: 0', y=0.98)
 
         x = np.arange(self.config.internal_iterations)
         y_max = max(np.max(h) for h in self.height_T1_record) * 1.2
@@ -279,7 +279,7 @@ class BasePVSEnv(Env):
         line_setpoint, = ax1.plot([], [], 'r--', label='Setpoint')
         ax1.set_xlim(0, self.config.internal_iterations)
         ax1.set_ylim(y_min, y_max)
-        ax1.set_title('Tank 1 Water Level')
+        ax1.set_title('Water Level')
         ax1.set_xlabel('Time Step')
         ax1.set_ylabel('Height (cm)')
         ax1.legend()
@@ -340,7 +340,7 @@ class BasePVSEnv(Env):
 
         ax_water.plot(x, heights, label='Water Level')
         ax_water.plot(x, setpoints, 'r--', label='Setpoint')
-        ax_water.set_title('Final Tank 1 Water Level')
+        ax_water.set_title('Final Water Level')
         ax_water.set_xlabel('Time Step')
         ax_water.set_ylabel('Height (cm)')
         ax_water.legend()
