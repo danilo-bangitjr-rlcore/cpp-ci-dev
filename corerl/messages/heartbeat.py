@@ -33,7 +33,7 @@ def heartbeat(cfg: HeartbeatConfig, opc_env_config: OPCEnvConfig):
     while True:
 
         @exponential_backoff()
-        async def _beat():
+        async def _beat(counter: int):
             # initialize client on every beat
             opc_client = Client(opc_env_config.opc_conn_url)
 
@@ -53,13 +53,13 @@ def heartbeat(cfg: HeartbeatConfig, opc_env_config: OPCEnvConfig):
                 heartbeat_node = opc_client.get_node(heartbeat_node_id)
             # write counter
             async with opc_client:
-                await opc_client.write_values([heartbeat_node], [float(heartbeat_counter)])
+                await opc_client.write_values([heartbeat_node], [float(counter)])
 
             # wait for next heartbeat
             next_heartbeat_ts = next(heartbeat_clock)
             wait_for_timestamp(next_heartbeat_ts)
 
-        asyncio.run(_beat())
+        asyncio.run(_beat(heartbeat_counter))
         # increment counter
         heartbeat_counter += 1
         heartbeat_counter %= cfg.max_counter
