@@ -227,6 +227,7 @@ type TemporalState = dict[StageCode, object | None]
 class PipelineFrame:
     data: pd.DataFrame
     data_mode: DataMode
+    last_stage : StageCode | None = None
     states: pd.DataFrame = field(init=False)
     actions: pd.DataFrame = field(init=False)
     rewards: pd.DataFrame = field(default_factory=pd.DataFrame)
