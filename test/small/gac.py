@@ -112,9 +112,9 @@ def test_sample_actions():
 
     sampled_actions, repeated_states = sample_actions(
         state_batch,
-        policy,  # type: ignore
         n_samples,
         action_dim,
+        policy,  # type: ignore
         uniform_weight,
     )
 
