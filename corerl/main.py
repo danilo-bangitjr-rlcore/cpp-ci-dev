@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import logging
-import os
 import random
 import sys
 import time
@@ -144,7 +143,8 @@ def main(cfg: MainConfig):
             retries += 1
             if retries >= 5:
                 log.error("Too many retries, exiting!")
-                sys.exit(os.EX_SOFTWARE)
+                # exit code 70 corresponds to EX_SOFTWARE, which is unix-only
+                sys.exit(70)
 
             # backoff exponentially over minutes
             min = 2 ** (retries - 1)
