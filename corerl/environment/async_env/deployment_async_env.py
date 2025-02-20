@@ -13,6 +13,7 @@ from corerl.data_pipeline.bound_checker import Bounds
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv, DepAsyncEnvConfig
+from corerl.utils.asyncio import exponential_backoff
 from corerl.utils.maybe import Maybe
 from corerl.utils.opc_connection import make_opc_node_id
 
@@ -65,6 +66,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         self.agent_step_node: Node | None = None
 
         # hacky initialization of OPC client with security settings
+        @exponential_backoff()
         async def _init_opc_client(cfg: DepAsyncEnvConfig, tag_configs: list[TagConfig]):
             """TODO: remove these opc_client workarounds once OPC logic is pulled from corerl
             """
@@ -126,6 +128,7 @@ class DeploymentAsyncEnv(AsyncEnv):
             logger.info("--- Emitting action ---")
             [logger.info(line) for line in action.to_string().splitlines()]
 
+        @exponential_backoff()
         async def _async_opc_emit_action(action: pd.DataFrame):
             """TODO: remove these opc_client workarounds once OPC logic is pulled from corerl
             """
