@@ -101,7 +101,7 @@ def get_q_for_sample(
     N_SAMPLES = direct_actions.size(1)
 
     states_2d = states.reshape(BATCH_SIZE * N_SAMPLES, -1)
-    direct_actions_2d = direct_actions.reshape(BATCH_SIZE * N_SAMPLES, 1)
+    direct_actions_2d = direct_actions.reshape(BATCH_SIZE * N_SAMPLES, -1)
 
     q_values_1d = agent.q_critic.get_q(
         [states_2d],
