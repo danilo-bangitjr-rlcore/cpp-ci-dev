@@ -311,7 +311,7 @@ class BasePVSEnv(Env):
             points = np.c_[np.array(np.array(self.ti_record[:actual_frame+1])), self.kp_record[:actual_frame+1]]
             scatter.set_offsets(points)
 
-            plt.suptitle(f'Three Tank System - Time Step: {actual_frame}', y=0.98)
+            plt.suptitle(f'Time Step: {actual_frame}', y=0.98)
 
             return line_height, line_setpoint, scatter
 
