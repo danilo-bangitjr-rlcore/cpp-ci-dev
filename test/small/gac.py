@@ -3,7 +3,7 @@ from math import floor
 import pytest
 import torch
 
-from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig, grab_percentile, sample_actions
+from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig, get_percentile_inds, sample_actions
 from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer.ensemble import EnsembleUniformReplayBufferConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
@@ -31,7 +31,7 @@ def test_grab_percentile_1():
     )
 
     percentile = 0.5
-    top_inds = grab_percentile(values, keys, percentile)
+    top_inds = get_percentile_inds(values, keys, percentile)
     top_keys =  torch.gather(keys, dim=1, index=top_inds)
 
     expected_top_keys = torch.tensor(
@@ -70,7 +70,7 @@ def test_grab_percentile_2():
     )
 
     percentile = 0.25
-    top_inds = grab_percentile(values, keys, percentile)
+    top_inds = get_percentile_inds(values, keys, percentile)
     top_keys =  torch.gather(keys, dim=1, index=top_inds)
 
     expected_top_keys = torch.tensor([[[3, 4]], [[15, 16]], [[23, 24]]])

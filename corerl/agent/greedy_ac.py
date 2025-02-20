@@ -38,7 +38,6 @@ def unsqueeze_repeat(tensor: torch.Tensor, dim: int, repeats: int) -> torch.Tens
 
 def sample_actions(
     state_batch: Float[torch.Tensor, "batch_size state_dim"],
-    policy: BaseActor,
     n_samples: int,
     action_dim: int,
     policy: BaseActor | None = None,
@@ -126,7 +125,7 @@ def get_percentile_threshold(
     return torch.mean(top_n_values, dim=1)
 
 
-def grab_percentile(
+def get_percentile_inds(
         values: torch.Tensor,
         keys: torch.Tensor,
         percentile: float,
@@ -140,7 +139,6 @@ def grab_percentile(
     n_samples = values.size(1)
     top_n = floor(percentile * n_samples)
 
-    values = values.squeeze(dim=-1)
     sorted_inds = torch.argsort(values, dim=1, descending=True)
     top_n_indices = sorted_inds[:, :top_n]
     top_n_indices = top_n_indices.unsqueeze(-1)
@@ -475,7 +473,7 @@ class GreedyAC(BaseAC):
 
         # NEXT, we will grab the top percentile of direct_actions according to the q_values
         top_actions: Float[torch.Tensor, "batch_size top_n action_dim"]
-        top_action_inds = grab_percentile(q_values, sampled_direct_actions, percentile)
+        top_action_inds = get_percentile_inds(q_values, sampled_direct_actions, percentile)
         top_n = top_action_inds.size(SAMPLE_DIM)
 
         # grab the top actions. Can be direct OR delta
