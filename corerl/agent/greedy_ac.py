@@ -41,6 +41,7 @@ def sample_actions(
     policy: BaseActor,
     n_samples: int,
     action_dim: int,
+    policy: BaseActor | None = None,
     uniform_weight: float = 0.0,
 ) -> tuple[
     Float[torch.Tensor, "batch_size num_samples action_dim"], Float[torch.Tensor, "batch_size num_samples state_dim"]
@@ -57,11 +58,17 @@ def sample_actions(
     n_samples_uniform = n_samples - n_samples_policy
 
     SAMPLE_DIM = 1
-    # sample n_samples_policy actions from the policy
-    repeated_states: Float[torch.Tensor, "batch_size n_samples_policy state_dim"]
-    repeated_states = unsqueeze_repeat(state_batch, SAMPLE_DIM, n_samples_policy)
-    proposed_actions: Float[torch.Tensor, "batch_size n_samples_policy action_dim"]
-    proposed_actions, _ = policy.get_action(repeated_states, with_grad=False)
+
+    if policy_weight > 0:
+        assert policy is not None
+        # sample n_samples_policy actions from the policy
+        repeated_states: Float[torch.Tensor, "batch_size n_samples_policy state_dim"]
+        repeated_states = unsqueeze_repeat(state_batch, SAMPLE_DIM, n_samples_policy)
+        proposed_actions: Float[torch.Tensor, "batch_size n_samples_policy action_dim"]
+        proposed_actions, _ = policy.get_action(repeated_states, with_grad=False)
+
+    else:
+        proposed_actions = torch.empty(batch_size, 0, action_dim)
 
     # sample remaining n_samples_uniform actions uniformly
     uniform_sample_actions = torch.rand(batch_size, n_samples_uniform, action_dim)
@@ -76,6 +83,7 @@ def sample_actions(
     logger.debug(f"{uniform_sample_actions.shape=}")
 
     sample_actions.to(device.device)
+    repeated_states.to(device.device)
 
     return sample_actions, repeated_states
 
