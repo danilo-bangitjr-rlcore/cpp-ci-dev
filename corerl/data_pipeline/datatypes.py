@@ -36,7 +36,9 @@ class Step:
     action: Tensor
     gamma: float
     state: Tensor
-    dp: bool
+    dp: bool # decision point
+    ac: bool # action change
+    timestamp: datetime.datetime | None = None
 
     def __eq__(self, other: object):
         if not isinstance(other, Step):
@@ -57,8 +59,15 @@ class Step:
         )
 
     def __iter__(self):
+        """
+        This iterator is used in the buffer with magic ordering
+        """
         for f in fields(self):
-            yield getattr(self, f.name)
+            attr = getattr(self, f.name)
+            # skip timestamp in buffer
+            if f.name == "timestamp":
+                continue
+            yield attr
 
 
 @dataclass
@@ -99,6 +108,9 @@ class Transition:
         return True
 
     def __iter__(self):
+        """
+        This iterator is used in the buffer with magic ordering
+        """
         for f in fields(self):
             attr = getattr(self, f.name)
             if isinstance(attr, list):  # if attr = steps
@@ -108,6 +120,9 @@ class Transition:
                 yield from iter(post)
             else:
                 yield attr
+
+    def __len__(self) -> int:
+        return len(self.steps)-1
 
 
 @dataclass
@@ -120,8 +135,12 @@ class StepBatch:
     gamma: Tensor
     state: Tensor
     dp: Tensor
+    ac: Tensor
 
     def __iter__(self):
+        """
+        This iterator is used in the buffer with magic ordering
+        """
         for f in fields(self):
             yield getattr(self, f.name)
 
@@ -135,6 +154,19 @@ class StepBatch:
                 and torch.equal(self.gamma, other.gamma)
                 and torch.equal(self.state, other.state)
                 and torch.equal(self.dp, other.dp)
+        )
+
+    def __getitem__(self, idx: int|slice) -> "StepBatch":
+        if isinstance(idx, int):
+            idx = slice(idx, idx+1)
+
+        return StepBatch(
+            reward=self.reward[idx],
+            action=self.action[idx],
+            gamma=self.gamma[idx],
+            state=self.state[idx],
+            dp=self.dp[idx],
+            ac=self.ac[idx]
         )
 
 @dataclass
@@ -156,6 +188,17 @@ class TransitionBatch:
                 and torch.equal(self.n_step_gamma, other.n_step_gamma)
         )
 
+    def __getitem__(self, idx: int|slice) -> "TransitionBatch":
+        if isinstance(idx, (int, np.integer)):
+            idx = slice(idx, idx+1)
+
+        return TransitionBatch(
+            idxs=self.idxs[idx],
+            prior=self.prior[idx],
+            post=self.post[idx],
+            n_step_reward=self.n_step_reward[idx],
+            n_step_gamma=self.n_step_gamma[idx]
+        )
 
 class DataMode(Enum):
     OFFLINE = auto()
@@ -189,6 +232,7 @@ class PipelineFrame:
     rewards: pd.DataFrame = field(default_factory=pd.DataFrame)
     missing_info: pd.DataFrame = field(init=False)
     decision_points: np.ndarray = field(init=False)
+    action_change: np.ndarray = field(init=False)
     temporal_state: TemporalState = field(default_factory=dict)
     transitions: list[Transition] | None = None
 
@@ -201,8 +245,11 @@ class PipelineFrame:
 
         # initialize dp flags
         self.decision_points = np.zeros(N, dtype=np.bool_)
+        # initialize action change flags
+        self.action_change = np.zeros(N, dtype=np.bool_)
 
         # initialize rl containers
+        self.states = self.data.copy(deep=False)
         self.actions = self.data.copy(deep=False)
 
     def get_last_timestamp(self) -> datetime.datetime:

@@ -19,7 +19,7 @@ from corerl.state import AppState
 from corerl.utils.device import device
 
 
-@config(frozen=True)
+@config()
 class EpsilonGreedySarsaConfig(BaseAgentConfig):
     name: Literal['epsilon_greedy_sarsa'] = 'epsilon_greedy_sarsa'
 
@@ -37,8 +37,8 @@ class EpsilonGreedySarsa(BaseAgent):
         self.samples = cfg.samples
         self.epsilon = cfg.epsilon
         self.action_dim = self.action_dim
-        self.q_critic = init_q_critic(cfg.critic, self.state_dim, self.action_dim)
-        self.critic_buffer = init_buffer(cfg.critic.buffer)
+        self.q_critic = init_q_critic(cfg.critic, app_state, self.state_dim, self.action_dim)
+        self.critic_buffer = init_buffer(cfg.critic.buffer, app_state)
 
     def update_buffer(self, pr: PipelineReturn) -> None:
         if pr.transitions is None:
@@ -72,7 +72,7 @@ class EpsilonGreedySarsa(BaseAgent):
         greedy_action = action_samples[max_q_idx, :]
         return greedy_action
 
-    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> torch.Tensor:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
@@ -114,12 +114,12 @@ class EpsilonGreedySarsa(BaseAgent):
             next_qs = torch.cat(next_qs, dim=0)
 
         _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
-        losses = []
+        loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble):
             target = reward_batches[i] + gamma_batches[i] * next_qs[i]
-            losses.append(torch.nn.functional.mse_loss(target, qs[i]))
+            loss += torch.nn.functional.mse_loss(target, qs[i])
 
-        return losses
+        return loss
 
     def atomic_critic_update(self) -> float:
         batches = self.critic_buffer.sample()

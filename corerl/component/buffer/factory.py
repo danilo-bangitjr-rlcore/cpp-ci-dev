@@ -9,6 +9,7 @@ from corerl.component.buffer.ensemble import (
 from corerl.component.buffer.mixed_history import MixedHistoryBufferConfig
 from corerl.component.buffer.priority import PriorityReplayBufferConfig
 from corerl.component.buffer.uniform import UniformReplayBufferConfig
+from corerl.state import AppState
 
 BufferConfig = Annotated[
     UniformReplayBufferConfig
@@ -18,5 +19,5 @@ BufferConfig = Annotated[
 , Field(discriminator='name')]
 
 
-def init_buffer(cfg: BufferConfig):
-    return buffer_group.dispatch(cfg)
+def init_buffer(cfg: BufferConfig, app_state: AppState):
+    return buffer_group.dispatch(cfg, app_state)

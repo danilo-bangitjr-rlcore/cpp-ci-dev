@@ -3,11 +3,12 @@ from torch import Tensor
 
 from corerl.component.buffer.priority import PriorityBuffer, PriorityReplayBufferConfig
 from corerl.data_pipeline.datatypes import DataMode, Step, StepBatch, Transition, TransitionBatch
+from corerl.state import AppState
 
 
-def test_sample_mini_batch():
+def test_sample_mini_batch(dummy_app_state: AppState):
     cfg = PriorityReplayBufferConfig(seed=0, memory=5, batch_size=2)
-    buffer = PriorityBuffer(cfg)
+    buffer = PriorityBuffer(cfg, dummy_app_state)
 
     step_1 = Step(
         reward=1.0,
@@ -15,6 +16,7 @@ def test_sample_mini_batch():
         gamma=0.99,
         state=Tensor([0.2, 0.4, 0.6, 0.8]),
         dp=True,
+        ac=False
     )
     step_2 = Step(
         reward=0.9,
@@ -22,6 +24,7 @@ def test_sample_mini_batch():
         gamma=0.99,
         state=Tensor([0.3, 0.5, 0.7, 0.9]),
         dp=True,
+        ac=True
     )
     step_3 = Step(
         reward=0.8,
@@ -29,6 +32,7 @@ def test_sample_mini_batch():
         gamma=0.99,
         state=Tensor([0.4, 0.6, 0.8, 1.0]),
         dp=True,
+        ac=True
     )
 
     trans_1 = Transition(
@@ -77,12 +81,14 @@ def test_sample_mini_batch():
             Tensor([[0.99], [0.99]]),
             Tensor([[0.2, 0.4, 0.6, 0.8], [0.3, 0.5, 0.7, 0.9]]),
             Tensor([[True], [True]]),
+            Tensor([[False], [True]]),
         ),
         StepBatch(
             Tensor([[0.8], [0.8]]),
             Tensor([[0.7], [0.7]]),
             Tensor([[0.99], [0.99]]),
             Tensor([[0.4, 0.6, 0.8, 1.0], [0.4, 0.6, 0.8, 1.0]]),
+            Tensor([[True], [True]]),
             Tensor([[True], [True]]),
         ),
         Tensor([[0.9+0.99*0.8], [0.8]]),

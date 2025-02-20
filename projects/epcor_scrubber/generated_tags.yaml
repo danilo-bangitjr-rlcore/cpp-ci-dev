@@ -6,10 +6,10 @@
   operating_range: null
   red_bounds: null
   yellow_bounds: null
+  change_bounds: null
   outlier:
     name: identity
-  imputer:
-    name: identity
+  imputer: null
   preprocess: []
   reward_constructor:
   - name: scale
@@ -62,10 +62,10 @@
   operating_range: null
   red_bounds: null
   yellow_bounds: null
+  change_bounds: null
   outlier:
     name: identity
-  imputer:
-    name: identity
+  imputer: null
   preprocess: []
   reward_constructor:
   - name: 'null'
@@ -80,10 +80,10 @@
   operating_range: null
   red_bounds: null
   yellow_bounds: null
+  change_bounds: null
   outlier:
     name: identity
-  imputer:
-    name: identity
+  imputer: null
   preprocess: []
   reward_constructor:
   - name: split
@@ -141,10 +141,10 @@
   operating_range: null
   red_bounds: null
   yellow_bounds: null
+  change_bounds: null
   outlier:
     name: identity
-  imputer:
-    name: identity
+  imputer: null
   preprocess: []
   reward_constructor:
   - name: greater_than

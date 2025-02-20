@@ -355,7 +355,7 @@ class TestDataReader:
         for name in TestDataReader.sensor_names:
             assert name in data.columns
 
-    def test_batch_read_timestamp_precision(
+    def test_batch_read_missing_time_bucket(
         self,
         data_reader_writer: tuple[DataReader, DataWriter],
         populate_db: None,
@@ -364,9 +364,8 @@ class TestDataReader:
         data_reader, data_writer = data_reader_writer
 
         # timestamps with different precisions
-        base_time = datetime(2024, 5, 16, 3, 15, 0, tzinfo=UTC)
-        end_time = datetime(2024, 5, 16, 3, 15, 0, 123456, tzinfo=UTC)
-        start_time = base_time - timedelta(minutes=4)
+        end_time = datetime(2024, 5, 16, 3, 15, 0, tzinfo=UTC)
+        start_time = end_time - timedelta(minutes=4)
 
         # write some data but skip one timestamp to create a gap
         test_times = pd.date_range(start=start_time, end=end_time, freq=timedelta(minutes=1))
@@ -376,7 +375,7 @@ class TestDataReader:
             for t in test_times:
                 if t != missing_time:
                     data_writer.write(name=name, val=1.0, timestamp=t)
-                    data_writer.blocking_sync()
+        data_writer.blocking_sync()
 
         result_df = data_reader.batch_aggregated_read(
             names=TestDataReader.sensor_names,
@@ -396,4 +395,8 @@ class TestDataReader:
         assert result_df.index.is_unique
         missing_time_data = result_df.loc[missing_time]
         assert missing_time_data.isna().all()
+        for t in test_times[1:]:
+            if t != missing_time:
+                assert not result_df.loc[t].isna().any()
+
         self._ensure_names_included(result_df)

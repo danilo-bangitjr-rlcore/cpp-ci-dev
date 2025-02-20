@@ -8,6 +8,7 @@ from discrete_dists.proportional import Proportional
 from corerl.component.buffer.base import BaseReplayBufferConfig, ReplayBuffer, buffer_group
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import DataMode, Transition, TransitionBatch
+from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +22,8 @@ class EnsembleUniformReplayBufferConfig(BaseReplayBufferConfig):
 
 
 class EnsembleUniformBuffer(ReplayBuffer):
-    def __init__(self, cfg: EnsembleUniformReplayBufferConfig):
-        super().__init__(cast(Any,  cfg))
+    def __init__(self, cfg: EnsembleUniformReplayBufferConfig, app_state: AppState):
+        super().__init__(cast(Any,  cfg), app_state)
         random.seed(self.seed)
         self.ensemble = cfg.ensemble
         self.data_subset = cfg.data_subset
@@ -57,7 +58,7 @@ class EnsembleUniformBuffer(ReplayBuffer):
         ensemble_batch: list[TransitionBatch] = []
         for dist in self._sub_dists:
             idxs = dist.sample(self.rng, self.batch_size)
-            batch = self._prepare_sample(idxs)
+            batch = self.prepare_sample(idxs)
             ensemble_batch.append(batch[0])
 
         return ensemble_batch

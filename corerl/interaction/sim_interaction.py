@@ -2,21 +2,22 @@ import logging
 
 import numpy as np
 import pandas as pd
+from torch import Tensor
 
+import corerl.eval.agent as agent_eval
 from corerl.agent.base import BaseAgent
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
+from corerl.eval.actor_critic import ActorCriticEval
 from corerl.eval.monte_carlo import MonteCarloEvaluator
+from corerl.eval.plotting.evals import plot_evals
 from corerl.interaction.configs import SimInteractionConfig
 from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
 from corerl.state import AppState
 
 logger = logging.getLogger(__file__)
-
-
-
 
 
 class SimInteraction(Interaction):
@@ -40,7 +41,17 @@ class SimInteraction(Interaction):
         self._last_action: np.ndarray | None = None
 
         # evals
-        self._monte_carlo_eval = MonteCarloEvaluator(app_state.cfg.eval_cfgs.monte_carlo, app_state, agent)
+        self._monte_carlo_eval = MonteCarloEvaluator(
+            app_state.cfg.eval_cfgs.monte_carlo,
+            app_state,
+            agent,
+        )
+        self._actor_critic_eval = ActorCriticEval(
+            self._app_state.cfg.eval_cfgs.actor_critic,
+            app_state,
+            agent,
+            self._column_desc,
+        )
 
 
     # -----------------------
@@ -74,7 +85,15 @@ class SimInteraction(Interaction):
         self._write_to_metrics(pipe_return.rewards)
 
         # perform evaluations
-        self._monte_carlo_eval.execute(pipe_return)
+        self._monte_carlo_eval.execute(pipe_return, "online")
+        label = str(self._app_state.agent_step)
+        self._actor_critic_eval.execute([Tensor(self._last_state)], label)
+        plot_evals(
+            app_state=self._app_state,
+            step_start=self._app_state.agent_step,
+            step_end=self._app_state.agent_step,
+            labels=[label]
+        )
 
         self._app_state.agent_step += 1
 
@@ -89,9 +108,14 @@ class SimInteraction(Interaction):
             a = np.zeros_like(a)
 
         delta = self._agent.get_action(s)
-        a_df = self._pipeline.action_constructor.assign_action_names(a, delta)
-        a_df = self._pipeline.preprocessor.inverse(a_df)
+        norm_a_df = self._pipeline.action_constructor.assign_action_names(a, delta)
+        a_df = self._pipeline.preprocessor.inverse(norm_a_df)
         self._env.emit_action(a_df)
+        self._last_action_df = a_df
+
+        # metrics + eval
+        agent_eval.eval_policy_variance(self._app_state, s, self._agent)
+        agent_eval.eval_q_online(self._app_state, s, self._agent, norm_a_df.to_numpy())
 
         # log actions
         self._write_to_metrics(a_df)

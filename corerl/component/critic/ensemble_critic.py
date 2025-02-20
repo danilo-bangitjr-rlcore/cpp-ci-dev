@@ -5,14 +5,15 @@ import torch
 from pydantic import Field
 
 import corerl.utils.nullable as nullable
-from corerl.component.buffer.ensemble import EnsembleUniformReplayBufferConfig
 from corerl.component.buffer.factory import BufferConfig
-from corerl.component.critic.base_critic import BaseQ, BaseQConfig, BaseV
+from corerl.component.buffer.mixed_history import MixedHistoryBufferConfig
+from corerl.component.critic.base_critic import BaseCriticConfig, BaseQ, BaseV
 from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
 from corerl.component.network.networks import EnsembleCriticNetworkConfig
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import LSOConfig
 from corerl.configs.config import MISSING, config
+from corerl.state import AppState
 from corerl.utils.device import device
 
 
@@ -21,16 +22,30 @@ class _SharedEnsembleConfig:
     name: Any = MISSING
     critic_network: NetworkConfig = Field(default_factory=EnsembleCriticNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
-    buffer: BufferConfig = Field(default_factory=EnsembleUniformReplayBufferConfig)
-    polyak: float = 0.99
+    buffer: BufferConfig = Field(
+        default_factory=lambda: MixedHistoryBufferConfig(
+            # TODO: this should default to 10,
+            # but need to first sync this ensemble size with agent's ensemble
+            ensemble=1,
+            ensemble_probability=1.0,
+        ),
+    )
+    polyak: float = 0.995
     target_sync_freq: int = 1
 
 @config()
-class EnsembleCriticConfig(BaseQConfig, _SharedEnsembleConfig):
+class EnsembleCriticConfig(BaseCriticConfig, _SharedEnsembleConfig):
     name: Literal['ensemble'] = 'ensemble'
 
 class BaseEnsembleCritic:
-    def __init__(self, cfg: EnsembleCriticConfig, state_dim: int, action_dim: int, output_dim: int = 1):
+    def __init__(
+        self,
+        cfg: EnsembleCriticConfig,
+        app_state: AppState,
+        state_dim: int,
+        action_dim: int,
+        output_dim: int = 1
+    ):
         input_dim = state_dim + action_dim
         self.model = init_critic_network(
             cfg.critic_network, input_dim=input_dim, output_dim=output_dim,
@@ -42,6 +57,7 @@ class BaseEnsembleCritic:
         params = self.model.parameters(independent=True) # type: ignore
         self.optimizer = init_optimizer(
             cfg.critic_optimizer,
+            app_state,
             list(params),
             ensemble=True,
         )
@@ -89,16 +105,14 @@ class BaseEnsembleCritic:
 
     def update(
         self,
-        loss: list[torch.Tensor] | torch.Tensor,
+        loss: torch.Tensor,
         opt_args: tuple = tuple(),
         opt_kwargs: dict | None = None,
     ) -> None:
         opt_kwargs = nullable.default(opt_kwargs, dict)
         self.optimizer.zero_grad()
-        if isinstance(loss, (list, tuple)):
-            self.ensemble_backward(loss)
-        else:
-            loss.backward()
+        loss.backward()
+
         if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
             self.optimizer.step(closure=lambda: 0.)
         else:
@@ -119,20 +133,25 @@ class BaseEnsembleCritic:
         path.mkdir(parents=True, exist_ok=True)
         torch.save(self.model.state_dict(), path / "critic_net")
         torch.save(self.target.state_dict(), path / "critic_target")
-        torch.save(self.optimizer.state_dict(), path / "critic_opt")
 
     def load(self, path: Path) -> None:
         self.model.load_state_dict(torch.load(path / "critic_net", map_location=device.device))
         self.target.load_state_dict(torch.load(path / "critic_target", map_location=device.device))
-        self.optimizer.load_state_dict(torch.load(path / "critic_opt", map_location=device.device))
 
 class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
-    def __init__(self, cfg: EnsembleCriticConfig, state_dim: int, action_dim: int, output_dim: int = 1):
-        BaseEnsembleCritic.__init__(self, cfg, state_dim, action_dim, output_dim)
+    def __init__(
+            self,
+            cfg: EnsembleCriticConfig,
+            app_state: AppState,
+            state_dim: int,
+            action_dim: int,
+            output_dim: int = 1
+        ):
+        BaseEnsembleCritic.__init__(self, cfg, app_state, state_dim, action_dim, output_dim)
 
     def update(
         self,
-        loss: list[torch.Tensor] | torch.Tensor,
+        loss: torch.Tensor,
         opt_args: tuple = tuple(),
         opt_kwargs: dict | None = None,
     ) -> None:
@@ -184,13 +203,14 @@ class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
         q, _ = self.get_qs_target(state_batches, action_batches, bootstrap_reduct=bootstrap_reduct)
         return q
 
+
 class EnsembleVCritic(BaseV, BaseEnsembleCritic):
-    def __init__(self, cfg: EnsembleCriticConfig, state_dim: int, output_dim: int = 1):
-        BaseEnsembleCritic.__init__(self, cfg, state_dim, output_dim)
+    def __init__(self, cfg: EnsembleCriticConfig, app_state: AppState, state_dim: int, output_dim: int = 1):
+        BaseEnsembleCritic.__init__(self, cfg, app_state, state_dim, output_dim)
 
     def update(
         self,
-        loss: list[torch.Tensor] | torch.Tensor,
+        loss: torch.Tensor,
         opt_args: tuple = tuple(),
         opt_kwargs: dict | None = None,
     ) -> None:

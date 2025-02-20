@@ -10,6 +10,7 @@ from discrete_dists.uniform import Uniform
 from corerl.component.buffer.base import BaseReplayBufferConfig, ReplayBuffer, buffer_group
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import DataMode, Transition
+from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +24,8 @@ class PriorityReplayBufferConfig(BaseReplayBufferConfig):
 
 
 class PriorityBuffer(ReplayBuffer):
-    def __init__(self, cfg: PriorityReplayBufferConfig):
-        super().__init__(cfg)
+    def __init__(self, cfg: PriorityReplayBufferConfig, app_state: AppState):
+        super().__init__(cfg, app_state)
         self._cfg = cfg
 
         self._idx_dist = MixtureDistribution([

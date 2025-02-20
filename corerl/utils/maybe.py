@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import Any, overload
+
+from corerl.utils.list import find
 
 
 class Maybe[T]:
@@ -156,3 +158,8 @@ class Maybe[T]:
         except e:
             logging.exception('Maybe.from_try caught an exception')
             return Maybe(None)
+
+
+    @staticmethod
+    def find[U](pred: Callable[[U], bool], li: Iterable[U]) -> Maybe[U]:
+        return Maybe[U](find(pred, li))

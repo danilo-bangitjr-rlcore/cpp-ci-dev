@@ -89,12 +89,18 @@ class DeploymentAsyncEnv(AsyncEnv):
                         continue
 
                     tag_name = tag_cfg.name
-                    if tag_cfg.node_identifier is not None:
-                        node_name = tag_cfg.node_identifier
-                    else:
+                    if tag_cfg.node_identifier is None:
                         node_name = tag_name
+                        id = make_opc_node_id(node_name, cfg.opc_ns)
+                    else:
+                        # PR 531: assume node_identifier is the full OPC node identifier, fallback to just identifier
+                        # and construct the full node id using ns defined within cfg.opc_ns
+                        if isinstance(tag_cfg.node_identifier, str) and tag_cfg.node_identifier.startswith("ns="):
+                            id = tag_cfg.node_identifier
+                        else:
+                            id = make_opc_node_id(tag_cfg.node_identifier, cfg.opc_ns)
+                            logger.warning(f"node_identifier defined without ns: {tag_cfg.node_identifier}")
 
-                    id = make_opc_node_id(node_name, cfg.opc_ns)
                     node = opc_client.get_node(id)
                     var_type = await node.read_data_type_as_variant_type()
                     logger.info(f"Registering action '{tag_name}' with OPC node id '{id}'")
@@ -129,7 +135,13 @@ class DeploymentAsyncEnv(AsyncEnv):
                     node = self.action_nodes[action_name].node
                     var_type = self.action_nodes[action_name].var_type
                     action_val = float(action[action_name].iloc[0])
-                    data_value = ua.DataValue(ua.Variant(action_val, var_type))
+                    # the source timestamp is sent to the OPC server, which itself has a server timestamp
+                    # recorded when it receives the write. if these values are too far apart, some OPC
+                    # implementations will consider the quality of this tag to be bad, so we need
+                    # to ensure that the values we write have an up-to-date timestamp
+                    # (and that they align with the server).
+                    dt = ua.uatypes.DateTime.now(UTC) # this is a load bearing timestamp
+                    data_value = ua.DataValue(ua.Variant(action_val, var_type), SourceTimestamp=dt)
                     await opc_client.write_values([node], [data_value])
 
         asyncio.run(_async_opc_emit_action(action))

@@ -7,8 +7,29 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import corerl.component.optimizers.LineSearchOpt.linesearchopt as lso
+from corerl.config import MainConfig
+from corerl.configs.loader import direct_load_config
+from corerl.eval.evals import evals_group
+from corerl.eval.metrics import metrics_group
+from corerl.messages.event_bus import EventBus
+from corerl.state import AppState
+
 sys.path.append(".")
-import linesearchopt as lso
+
+
+def dummy_app_state() -> AppState:
+    cfg = direct_load_config(MainConfig, config_name='config/dep_mountain_car_continuous.yaml', base='.')
+    cfg.metrics.enabled = False
+    cfg.evals.enabled = False
+    event_bus = EventBus(cfg.event_bus, cfg.env)
+    app_state = AppState(
+        cfg=cfg,
+        metrics=metrics_group.dispatch(cfg.metrics),
+        evals=evals_group.dispatch(cfg.evals),
+        event_bus=event_bus,
+    )
+    return app_state
 
 
 def param_vec(params):
@@ -68,10 +89,11 @@ condition = lso.search.Armijo(
 use_line_search = True
 if use_line_search:
     opt = lso.Optimizer(
-        net.parameters(),
-        torch.optim.Adam,
-        condition,
-        init,
+        app_state=dummy_app_state(),
+        params=net.parameters(),
+        optim=torch.optim.Adam,
+        search_condition=condition,
+        init=init,
         init_step_size=init_step_size,
         max_backtracking_steps=100,
         unit_norm_direction=False,

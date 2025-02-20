@@ -6,12 +6,12 @@ from pydantic import Field
 
 import corerl.utils.nullable as nullable
 from corerl.component.actor.base_actor import BaseActor, group
-from corerl.component.buffer.ensemble import EnsembleUniformReplayBufferConfig
-from corerl.component.buffer.factory import BufferConfig
+from corerl.component.buffer.factory import BufferConfig, MixedHistoryBufferConfig
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.component.policy.factory import BaseNNConfig, SquashedGaussianPolicyConfig, create
 from corerl.configs.config import MISSING, config
+from corerl.state import AppState
 from corerl.utils.device import device
 
 
@@ -23,7 +23,12 @@ class _SharedNetworkActorConfig:
 
     actor_network: BaseNNConfig = Field(default_factory=SquashedGaussianPolicyConfig)
     actor_optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
-    buffer: BufferConfig = Field(default_factory=EnsembleUniformReplayBufferConfig)
+    buffer: BufferConfig = Field(
+        default_factory=lambda: MixedHistoryBufferConfig(
+            ensemble=1,
+            ensemble_probability=1.0,
+        ),
+    )
 
 
 @config(frozen=True)
@@ -35,10 +40,13 @@ class NetworkActor(BaseActor):
     def __init__(
         self,
         cfg: NetworkActorConfig,
+        app_state: AppState,
         state_dim: int,
         action_dim: int,
         initializer: BaseActor | None = None,
     ):
+
+        super().__init__(app_state)
         # We always assume actions are normalized in (0, 1) unless otherwise
         # stated
         action_min = cfg.action_min
@@ -52,7 +60,7 @@ class NetworkActor(BaseActor):
             self.policy.load_state_dict(initializer.policy.state_dict())
 
         self.optimizer = init_optimizer(
-            cfg.actor_optimizer, self.policy.parameters()
+            cfg.actor_optimizer, app_state, self.policy.parameters()
         )
         self.optimizer_name = cfg.actor_optimizer.name
 

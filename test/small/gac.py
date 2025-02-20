@@ -31,7 +31,8 @@ def test_grab_percentile_1():
     )
 
     percentile = 0.5
-    top_keys = grab_percentile(values, keys, percentile)
+    top_inds = grab_percentile(values, keys, percentile)
+    top_keys =  torch.gather(keys, dim=1, index=top_inds)
 
     expected_top_keys = torch.tensor(
         [
@@ -69,7 +70,8 @@ def test_grab_percentile_2():
     )
 
     percentile = 0.25
-    top_keys = grab_percentile(values, keys, percentile)
+    top_inds = grab_percentile(values, keys, percentile)
+    top_keys =  torch.gather(keys, dim=1, index=top_inds)
 
     expected_top_keys = torch.tensor([[[3, 4]], [[15, 16]], [[23, 24]]])
 
@@ -242,14 +244,17 @@ def test_get_top_n_sampled_actions(batch_size:int, state_dim:int, action_dim:int
     state_batch = torch.rand(batch_size, state_dim)
     action_batch = torch.rand(batch_size, action_dim)
 
-    top_states, top_actions, sampled_actions = greedy_ac._get_top_n_sampled_actions(
+    top_states, top_actions, sampled_actions, top_direct_actions, sampled_direct_actions = greedy_ac._get_top_n_sampled_actions(  # noqa: E501
         state_batch=state_batch,
-        action_batch=action_batch,
+        direct_action_batch=action_batch,
         n_samples=n_samples,
         percentile=percentile,
         uniform_weight=uniform_weight,
         sampler=greedy_ac.sampler,
     )
+
+    assert torch.all(top_actions == top_direct_actions)
+    assert torch.all(sampled_actions == sampled_direct_actions)
 
     top_n = floor(n_samples * percentile)
     assert top_states.shape[1] == state_dim
@@ -279,7 +284,7 @@ def test_get_top_n_sampled_delta_actions(batch_size:int, state_dim:int, action_d
     """
     cfg = GreedyACConfig(
         delta_action=True,
-        delta_bounds=(-.1, .1),
+        delta_bounds=[(-.1, .1) for _ in range(action_dim)],
         actor=NetworkActorConfig(buffer=EnsembleUniformReplayBufferConfig(seed=0)),
         critic=EnsembleCriticConfig(buffer=EnsembleUniformReplayBufferConfig(seed=0)),
     )
@@ -294,14 +299,17 @@ def test_get_top_n_sampled_delta_actions(batch_size:int, state_dim:int, action_d
     state_batch = torch.rand(batch_size, state_dim)
     action_batch = torch.rand(batch_size, action_dim)
 
-    top_states, top_actions, sampled_actions = greedy_ac._get_top_n_sampled_actions(
+    top_states, top_actions, sampled_actions, top_direct_actions, sampled_direct_actions = greedy_ac._get_top_n_sampled_actions(  # noqa: E501
         state_batch=state_batch,
-        action_batch=action_batch,
+        direct_action_batch=action_batch,
         n_samples=n_samples,
         percentile=percentile,
         uniform_weight=uniform_weight,
         sampler=greedy_ac.sampler,
     )
+
+    assert torch.any(top_actions != top_direct_actions)
+    assert torch.any(sampled_actions != sampled_direct_actions)
 
     top_n = floor(n_samples * percentile)
     assert top_states.shape[1] == state_dim
@@ -312,4 +320,4 @@ def test_get_top_n_sampled_delta_actions(batch_size:int, state_dim:int, action_d
     assert sampled_actions.shape[1] == action_dim
 
     assert_n_rows_equal(top_states, state_batch, top_n)
-    assert_best_actions(sampled_actions, top_actions, batch_size, n_samples, top_n)
+    assert_best_actions(sampled_direct_actions, top_direct_actions, batch_size, n_samples, top_n)

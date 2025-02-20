@@ -10,7 +10,6 @@ log_path: "outputs/e2e_smoke"
 
 experiment:
   exp_name: OPC_MountainCarContinuous
-  param_from_hash: True
   seed: 1
   gamma: 0.99
 
@@ -19,7 +18,6 @@ env:
   setpoint_ping_period: 00:00:10
   action_tolerance: 00:00:01
   discrete_control: False
-  seed: ${experiment.seed}
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
 
@@ -30,7 +28,6 @@ event_bus:
   enabled: True
 
 metrics:
-  name: db
   enabled: True
 
 # -----------
@@ -52,43 +49,22 @@ interaction:
 
 agent:
   name: greedy_ac
-  n_critic_updates: 1
-  n_actor_updates: 1
-  num_samples: 128
-  uniform_sampling_percentage: 0.8
-  discrete_control: ${env.discrete_control}
-  seed: ${experiment.seed}
-
-  critic:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
-    critic_optimizer:
-      lr: 0.01
 
   actor:
-    buffer:
-      name: uniform
-      seed: ${experiment.seed}
     actor_optimizer:
       lr: 0.01
 
 
 pipeline:
   state_constructor:
-    defaults: []
-
-  transition_creator:
-    name: anytime
+    defaults:
+      - name: multi_trace
+        trace_values: [0, 0.9]
 
   tags:
   - name: action-0
     agg: last
     operating_range: [-1.5, 1.5]
-    outlier:
-      name: identity
-    imputer:
-      name: identity
     reward_constructor:
     - name: power
       pow: 2
@@ -103,25 +79,7 @@ pipeline:
     operating_range: [-1.2, 0.6]
     red_bounds: [-1.0, null]
     yellow_bounds: [-0.8, null]
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    reward_constructor:
-    - name: 'null'
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0, 0.9]
 
   - name: tag-1
     operating_range: [-0.07, 0.07]
     red_bounds: [-0.06, 0.06]
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    reward_constructor:
-    - name: 'null'
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0, 0.9]

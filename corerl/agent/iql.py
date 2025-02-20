@@ -15,7 +15,7 @@ from corerl.state import AppState
 from corerl.utils.device import device
 
 
-@config(frozen=True)
+@config()
 class IQLConfig(BaseACConfig):
     name: Literal['iql'] = 'iql'
 
@@ -30,8 +30,8 @@ class IQL(BaseAC):
         self.expectile = cfg.expectile
 
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
-        self.critic_buffer = init_buffer(cfg.critic.buffer)
-        self.policy_buffer = init_buffer(cfg.actor.buffer)
+        self.critic_buffer = init_buffer(cfg.critic.buffer, app_state)
+        self.policy_buffer = init_buffer(cfg.actor.buffer, app_state)
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         tensor_state = state_to_tensor(state, device.device)
@@ -70,7 +70,7 @@ class IQL(BaseAC):
         return value_loss
     """
 
-    def compute_v_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_v_loss(self, ensemble_batch: list[TransitionBatch]) -> torch.Tensor:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
@@ -84,15 +84,14 @@ class IQL(BaseAC):
 
         _, qs = self.q_critic.get_qs_target(state_batches, action_batches)
         _, vs = self.v_critic.get_vs(state_batches, with_grad=True)
-        losses = []
+        loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble):
             diff = qs[i] - vs[i]
-            loss = expectile_loss(diff, self.expectile)
-            losses.append(loss)
+            loss += expectile_loss(diff, self.expectile)
 
-        return losses
+        return loss
 
-    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> list[torch.Tensor]:
+    def compute_q_loss(self, ensemble_batch: list[TransitionBatch]) -> torch.Tensor:
         ensemble = len(ensemble_batch)
         state_batches = []
         action_batches = []
@@ -115,12 +114,12 @@ class IQL(BaseAC):
 
         _, next_vs = self.v_critic.get_vs(next_state_batches)
         _, qs = self.q_critic.get_qs(state_batches, action_batches, with_grad=True)
-        losses = []
+        loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble):
             target = reward_batches[i] + gamma_batches[i] * next_vs[i]
-            losses.append(torch.nn.functional.mse_loss(target, qs[i]))
+            loss += torch.nn.functional.mse_loss(target, qs[i])
 
-        return losses
+        return loss
 
     def update_critic(self) -> list[float]:
         critic_losses = []

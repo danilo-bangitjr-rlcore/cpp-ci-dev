@@ -1,17 +1,32 @@
 log_path: "outputs/scrubber_agent_logs"
 
+infra:
+  db:
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: scrubber4data
+    ip: "localhost"
+    port: 5432
+    db_name: "postgres"
+
 experiment:
   exp_name: epcor_scrubber
-  param_from_hash: True
+  save_path: outputs/scrubber_evals
   seed: 1
-  gamma: 0.97 # ~50% of return occurs after 2 hrs (@ 5 min obs period)
+  gamma: 0.944 # ~50% of return occurs after 1 hrs (@ 5 min obs period)
   run_forever: True
+
+feature_flags:
+  delta_actions: True
 
 interaction:
   name: dep_interaction
+  restore_checkpoint: False
+  obs_period: 00:05:00
+  action_period: 01:00:00
   warmup_period: 03:00:00
-  historical_batch_size: 8640 # 30 days @ 5 minute obs period
-  hist_chunk_start: 2024-11-01 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
+  historical_batch_size: 25920 # 90 days @ 5 minute obs period
+  hist_chunk_start: 2024-10-09 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
   heartbeat:
     heartbeat_node_id: "ns=3;i=1"
     heartbeat_period: 00:00:05
@@ -23,87 +38,90 @@ event_bus:
 env:
   name: dep_async_env
   discrete_control: False
-  obs_period: 00:05:00
   update_period: 00:00:30
-  action_period: 01:00:00
   action_tolerance: 00:15:00
+  setpoint_ping_period: 00:00:10
   seed: ${experiment.seed}
-  db: ${pipeline.db}
 
-  opc_conn_url: "opc.tcp://localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
-  opc_ns: 1
+  opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
+  opc_ns: 3
   client_cert_path: certs/agent_cert.der
   client_private_key_path: certs/agent_key.pem
   server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
-  # client_app_uri: urn:agent
-  # user: admin
-  # passwd: admin
+  application_uri: urn:agent
+
+  db:
+    table_name: scrubber4_tz
 
 agent:
   name: greedy_ac
-  num_samples: 128
-  uniform_sampling_percentage: 1.0
-  seed: ${experiment.seed}
-  gamma: ${experiment.gamma}
-  discrete_control: ${env.discrete_control}
 
   critic:
-    polyak: 0.995
-    critic_optimizer:
-      name: lso
     buffer:
-      name: uniform
-      seed: ${experiment.seed}
+      name: mixed_history_buffer
+      n_most_recent: 24
+      ensemble: 1
+      ensemble_probability: 1
+      id: critic # for metric logging
 
   actor:
     actor_optimizer:
       lr: 0.001
+
     buffer:
-      name: uniform
-      seed: ${experiment.seed}
+      name: mixed_history_buffer
+      n_most_recent: 24
+      ensemble: 1
+      ensemble_probability: 1
+      id: actor # for metric logging
 
 
 metrics:
-  name: db
-  drivername: "postgresql+psycopg2"
-  username: "postgres"
-  password: scrubber4data
-  ip: "localhost"
-  port: 5432
-  db_name: "postgres"
-  table_schema: "public"
-  table_name: "metrics"
   enabled: True
-  lo_wm: 1
+
+evals:
+  name: db
+  enabled: True
+
+eval_cfgs:
+  actor_critic:
+    enabled: False
+  monte_carlo:
+    enabled: True
 
 pipeline:
-  db:
-    drivername: "postgresql+psycopg2"
-    username: "postgres"
-    password: scrubber4data
-    ip: "localhost"
-    port: 5432
-    db_name: "postgres"
-    table_schema: "public"
-    table_name: scrubber4
+  imputer:
+    name: per-tag
+    default:
+      name: copy
+      imputation_horizon: 2
 
   state_constructor:
-    defaults: []
-    # defaults:
-    # - name: multi_trace
-    #   trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+    countdown:
+      kind: int
+    defaults:
+      - name: multi_trace
+        trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
 
   transition_creator:
     name: all-the-time
     gamma: ${experiment.gamma}
+    # n_step should be 12, give some buffer
+    min_n_step: 11
+    max_n_step: 13
+
+  transition_filter:
+    filters:
+    - "only_pre_dp_or_ac"
+    - "only_post_dp"
+    - "no_nan"
+    - "only_no_action_change"
 
   tags:
   - name: AIC3730_OUT # pH pump output
     preprocess: []
     operating_range: [0, 125]
     red_bounds: [0, 60]
-    outlier:
-      name: identity
     imputer:
       name: identity
     state_constructor:
@@ -162,8 +180,6 @@ pipeline:
     preprocess: []
     operating_range: [0, 125]
     red_bounds: [0, 60]
-    outlier:
-      name: identity
     imputer:
       name: identity
     state_constructor:
@@ -183,8 +199,6 @@ pipeline:
     preprocess: []
     operating_range: [0., 30000]
     red_bounds: [0., 5000]
-    outlier:
-      name: identity
     imputer:
       name: identity
     state_constructor:
@@ -198,8 +212,6 @@ pipeline:
     preprocess: []
     operating_range: [0., 100.]
     red_bounds: [85., 100.]
-    outlier:
-      name: identity
     imputer:
       name: identity
     state_constructor:

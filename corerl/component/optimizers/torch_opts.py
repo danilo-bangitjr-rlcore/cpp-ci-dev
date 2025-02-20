@@ -8,9 +8,10 @@ from corerl.component.optimizers.custom_torch_opts import ArmijoAdam
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.configs.config import MISSING, Field, config
 from corerl.configs.group import Group
+from corerl.state import AppState
 
 optim_group = Group[
-    [Iterable[torch.nn.Parameter], bool],
+    [AppState, Iterable[torch.nn.Parameter], bool],
     torch.optim.Optimizer | EnsembleOptimizer,
 ]()
 
@@ -18,12 +19,13 @@ optim_group = Group[
 class OptimConfig:
     name: str = MISSING
 
-    lr: float = 0.0001
+    lr: float = 0.01
     weight_decay: float = 0.0
 
 def _base_optim(
     optim: type[torch.optim.Adam | torch.optim.SGD | torch.optim.RMSprop | ArmijoAdam],
     cfg: OptimConfig,
+    app_state : AppState,
     param: Iterable[torch.nn.Parameter],
     ensemble: bool,
 ) -> torch.optim.Optimizer | EnsembleOptimizer:
@@ -47,10 +49,10 @@ class RmspropConfig(OptimConfig):
 
 
 @optim_group.dispatcher
-def rmsprop(cfg: RmspropConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def rmsprop(cfg: RmspropConfig, app_state: AppState, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         torch.optim.RMSprop,
-        cfg, param, ensemble,
+        cfg, app_state, param, ensemble,
     )
 
 
@@ -63,10 +65,10 @@ class AdamConfig(OptimConfig):
 
 
 @optim_group.dispatcher
-def adam(cfg: AdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def adam(cfg: AdamConfig, app_state: AppState, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         torch.optim.Adam,
-        cfg, param, ensemble,
+        cfg, app_state, param, ensemble,
     )
 
 
@@ -76,7 +78,6 @@ def adam(cfg: AdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
 @config()
 class LSOInitConfig:
     name: str = 'To'
-    step_size: float = 0.1
 
 @config()
 class SearchConditionKwargsConfig:
@@ -94,7 +95,6 @@ class SearchConditionConfig:
 class LSOConfig(OptimConfig):
     name: Literal['lso'] = 'lso'
 
-    init_step_size: float = 0.001
     max_backtracking_steps: int = 30
     unit_norm_direction: bool = False
     fallback_step_size: float = 0.0001
@@ -103,18 +103,18 @@ class LSOConfig(OptimConfig):
     init: LSOInitConfig = Field(default_factory=LSOInitConfig)
     search_condition: SearchConditionConfig = Field(default_factory=SearchConditionConfig)
 
-
 @optim_group.dispatcher
-def lso_dispatch(cfg: LSOConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def lso_dispatch(cfg: LSOConfig, app_state: AppState, param: Iterable[torch.nn.Parameter], ensemble: bool):
     if not cfg.optim.name == 'adam':
         raise ValueError("LSO currently only supports Adam")
     if not ensemble:
         return lso.Optimizer(
+            app_state=app_state,
             params=param,
             optim=torch.optim.Adam,
             search_condition=construct_lso_search_condition(cfg.search_condition),
-            init=construct_lso_init(cfg.init),
-            init_step_size=cfg.init_step_size,
+            init=construct_lso_init(cfg.init, cfg.lr),
+            init_step_size=cfg.lr,
             max_backtracking_steps=cfg.max_backtracking_steps,
             fallback_step_size=cfg.fallback_step_size,
             unit_norm_direction=cfg.unit_norm_direction
@@ -125,20 +125,21 @@ def lso_dispatch(cfg: LSOConfig, param: Iterable[torch.nn.Parameter], ensemble: 
         kwargs={
             "optim": torch.optim.Adam,
             "search_condition": construct_lso_search_condition(cfg.search_condition),
-            "init": construct_lso_init(cfg.init),
-            "init_step_size": cfg.init_step_size,
+            "init": construct_lso_init(cfg.init, cfg.lr),
+            "init_step_size": cfg.lr,
             "max_backtracking_steps": cfg.max_backtracking_steps,
             "fallback_step_size": cfg.fallback_step_size,
             "unit_norm_direction": cfg.unit_norm_direction
         },
+        app_state=app_state
     )
 
 
 
-def construct_lso_init(cfg: LSOInitConfig) -> lso.init.StepsizeInit:
+def construct_lso_init(cfg: LSOInitConfig, lr: float) -> lso.init.StepsizeInit:
     match cfg.name:
         case 'To':
-            return lso.init.To(step_size=LSOInitConfig.step_size)
+            return lso.init.To(step_size=lr)
         case _:
             raise ValueError("LSO only supports To init condition")
 
@@ -164,10 +165,10 @@ class SgdConfig(OptimConfig):
 
 
 @optim_group.dispatcher
-def sgd(cfg: SgdConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def sgd(cfg: SgdConfig, app_state: AppState, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         torch.optim.SGD,
-        cfg, param, ensemble,
+        cfg, app_state, param, ensemble,
     )
 
 
@@ -185,8 +186,8 @@ class ArmijoAdamConfig(OptimConfig):
 
 
 @optim_group.dispatcher
-def armijo_adam(cfg: ArmijoAdamConfig, param: Iterable[torch.nn.Parameter], ensemble: bool):
+def armijo_adam(cfg: ArmijoAdamConfig, app_state: AppState, param: Iterable[torch.nn.Parameter], ensemble: bool):
     return _base_optim(
         ArmijoAdam,
-        cfg, param, ensemble,
+        cfg, app_state, param, ensemble,
     )
