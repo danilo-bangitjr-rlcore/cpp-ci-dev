@@ -4,7 +4,8 @@ import logging
 import os
 import random
 import sys
-from datetime import UTC, datetime
+import time
+from datetime import UTC, datetime, timedelta
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -82,7 +83,6 @@ def main_loop(cfg: MainConfig, app_state: AppState, pipeline: Pipeline, env: Asy
             break
 
 
-@load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
     if cfg.log_path is not None:
         enable_log_files(cfg.log_path)
@@ -107,9 +107,7 @@ def main(cfg: MainConfig):
         evals=evals_group.dispatch(cfg.evals),
         event_bus=event_bus,
     )
-
     pipeline = Pipeline(cfg.pipeline)
-
     env = init_async_env(cfg.env, cfg.pipeline.tags)
 
     try:
@@ -117,13 +115,45 @@ def main(cfg: MainConfig):
 
     except BaseException as e:
         log.exception(e)
-        sys.exit(os.EX_SOFTWARE)
 
     finally:
         app_state.metrics.close()
         app_state.evals.close()
         env.cleanup()
         event_bus.cleanup()
+
+
+@load_config(MainConfig, base='config/')
+def retry_main(cfg: MainConfig):
+    # only do retry logic if we want to "run forever"
+    if not cfg.experiment.run_forever:
+        return main(cfg)
+
+    # retry logic
+    retries = 0
+    last_error = datetime.now(UTC)
+
+    while True:
+        main(cfg)
+
+        now = datetime.now(UTC)
+        if now - last_error < timedelta(hours=1):
+            # if less than an hour, retry up to 5 times
+            # then exit if still failing
+            last_error = now
+            retries += 1
+            if retries >= 5:
+                log.error("Too many retries, exiting!")
+                sys.exit(os.EX_SOFTWARE)
+
+            # sleep for num_retries minutes
+            time.sleep(60 * retries)
+
+        else:
+            # if it has been more than an hour since the last error,
+            # then perform the first retry
+            retries = 1
+            last_error = now
 
 
 def enable_log_files(log_path: Path):
@@ -139,4 +169,4 @@ def enable_log_files(log_path: Path):
 
 
 if __name__ == "__main__":
-    main()
+    retry_main()
