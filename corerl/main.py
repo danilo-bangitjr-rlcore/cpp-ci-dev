@@ -113,7 +113,7 @@ def main(cfg: MainConfig):
     try:
         main_loop(cfg, app_state, pipeline, env)
 
-    except BaseException as e:
+    except Exception as e:
         log.exception(e)
 
     finally:
