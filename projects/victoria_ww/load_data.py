@@ -36,12 +36,12 @@ def load_dataset(dl_cfg: utils.VictoriaWWConfig, db_cfg: TagDBConfig):
 
 if __name__ == '__main__':
     db_cfg = TagDBConfig(
-        table_name='victoria_ww',
         drivername=DBConfig.drivername,
         username=DBConfig.username,
         password=DBConfig.password,
         ip=DBConfig.ip,
         port=DBConfig.port,
-        db_name=DBConfig.db_name
+        db_name='victoria_ww',
+        table_name='tag_data',
     )
     load_dataset(db_cfg)
