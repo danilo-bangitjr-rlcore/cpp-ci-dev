@@ -2,6 +2,7 @@ from typing import Any
 
 import utils.data as utils
 
+from corerl.config import DBConfig
 from corerl.configs.loader import load_config
 from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 
@@ -36,5 +37,11 @@ def load_dataset(dl_cfg: utils.VictoriaWWConfig, db_cfg: TagDBConfig):
 if __name__ == '__main__':
     db_cfg = TagDBConfig(
         table_name='victoria_ww',
+        drivername=DBConfig.drivername,
+        username=DBConfig.username,
+        password=DBConfig.password,
+        ip=DBConfig.ip,
+        port=DBConfig.port,
+        db_name=DBConfig.db_name
     )
     load_dataset(db_cfg)
