@@ -11,6 +11,7 @@ def _load_dataset_from_s3() -> list[tuple[Any, ...]]:
     """
     offline_files = utils.get_s3_files()
     columns = utils.load_csv_files(offline_files)
+    utils.get_min_max(columns)
     sql_tups = utils.columns_to_sql_tups(columns)
 
     return sql_tups
