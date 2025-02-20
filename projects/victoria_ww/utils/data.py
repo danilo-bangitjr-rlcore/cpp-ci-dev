@@ -1,6 +1,6 @@
 import datetime as dt
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, cast
 
 import pandas as pd
 from cloudpathlib import CloudPath, S3Client, S3Path
@@ -79,14 +79,17 @@ def _parse_setpoint_change_data(
 
     while next_idx < column_len:
         current_timestamp = column.index[current_idx]
+        current_timestamp = cast(dt.datetime, current_timestamp)
         curr_val = column.iloc[current_idx]
         next_timestamp = column.index[next_idx]
+        next_timestamp = cast(dt.datetime, next_timestamp)
         sql_tups += _get_sql_tups_between_timestamps(dl_cfg, current_timestamp, next_timestamp, tag_name, curr_val)
         current_idx += 1
         next_idx += 1
 
     # Fill in missing sql tups between last timestamp in series and global 'final_timestamp'
     current_timestamp = column.index[current_idx]
+    current_timestamp = cast(dt.datetime, current_timestamp)
     curr_val = column.iloc[current_idx]
     sql_tups += _get_sql_tups_between_timestamps(dl_cfg, current_timestamp, final_timestamp, tag_name, curr_val)
 
