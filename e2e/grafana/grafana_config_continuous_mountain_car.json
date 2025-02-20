@@ -974,7 +974,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT value, time, metric \nFROM metrics \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'transition_len'\nORDER BY \"time\"",
+          "rawSql": "SELECT value, time, metric \nFROM metrics \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'pipeline%'\nORDER BY \"time\"",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1235,6 +1235,6 @@
   "timezone": "browser",
   "title": "OPC TSDB Local Visualization",
   "uid": "ee9wfo0vhboxsb",
-  "version": 2,
+  "version": 5,
   "weekStart": ""
 }
