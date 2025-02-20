@@ -13,7 +13,6 @@ def _load_dataset_from_s3(dl_cfg: utils.VictoriaWWConfig) -> list[tuple[Any, ...
     """
     offline_files = utils.get_s3_files()
     columns = utils.load_excel_files(offline_files)
-    utils.get_min_max(columns)
     last_timestamp = utils.get_last_timestamp(columns)
     sql_tups = utils.get_sql_tups(dl_cfg, columns, last_timestamp)
 

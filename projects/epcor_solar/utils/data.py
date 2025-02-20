@@ -14,16 +14,6 @@ def _split_columns(df: pd.DataFrame) -> list[pd.Series]:
 
     return dfs
 
-def get_min_max(series_list: list[pd.Series]):
-    """
-    Prints min and max for each tag to help set operating ranges
-    """
-    for series in series_list:
-        tag_name = series.name
-        min_val = min(series)
-        max_val = max(series)
-        print(f"{tag_name} Min: {min_val}, Max: {max_val}")
-
 def _totals_to_deltas(df: pd.Series) -> pd.Series:
     """
     Some tags track running totals.
