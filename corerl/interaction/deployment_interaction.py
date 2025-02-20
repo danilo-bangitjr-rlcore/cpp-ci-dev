@@ -176,13 +176,15 @@ class DeploymentInteraction(Interaction):
         self._last_action_df = a_df
 
         # metrics + eval
+        prev_direct = self._pipeline.action_constructor.get_direct_action(a)
+        curr_direct = norm_a_df.to_numpy()
         agent_eval.policy_variance(self._app_state, self._agent, args=(s,))
         agent_eval.q_online(
             self._app_state, self._agent,
-            args=(s, norm_a_df.to_numpy()),
+            args=(s, curr_direct),
         )
-        agent_eval.greed_dist_online(self._app_state, self._agent, args=(s, a))
-        agent_eval.greed_values_online(self._app_state, self._agent, args=(s, a))
+        agent_eval.greed_dist_online(self._app_state, self._agent, args=(s, prev_direct))
+        agent_eval.greed_values_online(self._app_state, self._agent, args=(s, prev_direct))
 
     def _on_update(self):
         self._agent.update()

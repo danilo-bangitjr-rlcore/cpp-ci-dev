@@ -50,6 +50,17 @@ class ActionConstructor(Constructor):
 
         return pf
 
+    def get_direct_action(self, arr: np.ndarray):
+        da_indices = []
+        for _, tag_name in enumerate(self._relevant_cfgs.keys()):
+            direct_idx = find_index(
+                lambda c: c.startswith(tag_name) and not Delta.is_delta_transformed(c), # noqa: B023
+                self.columns,
+            )
+            assert direct_idx is not None, 'failed to find a direct action index when a delta action index exists'
+            da_indices.append(direct_idx)
+
+        return arr[da_indices]
 
     def assign_action_names(self, offset_arr: np.ndarray, delta_arr: np.ndarray):
         """
