@@ -203,7 +203,12 @@ def check_sim_farama_environment_ready(run_background_opc_client: None, request:
     should_skip_test(), reason="Docker compose ps saw core-rl services, or failed to run, do not run opc tsdb test"
 )
 @pytest.mark.timeout(500)
-def test_dep_mountain_car_continuous(check_sim_farama_environment_ready: None, request: FixtureRequest):
+def test_dep_mountain_car_continuous(
+    check_sim_farama_environment_ready: None,
+    request: FixtureRequest,
+    free_localhost_port: int,
+):
+    event_bus_url = f'tcp://localhost:{free_localhost_port}'
     proc = subprocess.run(
         [
             "corerl_main",
@@ -213,6 +218,7 @@ def test_dep_mountain_car_continuous(check_sim_farama_environment_ready: None, r
             "env.obs_period=00:00:01",
             "env.update_period=00:00:01",
             "env.action_period=00:00:01",
+            "event_bus.cli_connection=" + event_bus_url,
             "experiment.run_forever="
         ],
         stdout=subprocess.PIPE,

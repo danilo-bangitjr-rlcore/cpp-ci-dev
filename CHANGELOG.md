@@ -1,3 +1,104 @@
+## 0.108.1 (2025-02-19)
+
+### Fix
+
+- Remove the web client (#549)
+- Minor GUI touch-ups (#548)
+
+## 0.108.0 (2025-02-19)
+
+### Feat
+
+- Setting up playwright GUI tests (#540)
+
+## 0.107.0 (2025-02-19)
+
+### Feat
+
+- allow changing num torch threads from cfg
+
+### Refactor
+
+- move app_state fixture out to dedicate file
+
+## 0.106.0 (2025-02-19)
+
+### Feat
+
+- add goal contstructor as alternative to reward constructor
+- add basic reward spec schema
+- add find utility as staticmethod on Maybe
+
+### Fix
+
+- expose pipeline default stages attribute
+- ensure pipeframe states attribute is initialized
+
+### Refactor
+
+- expose get_tag_bounds utility as public func
+
+## 0.105.1 (2025-02-18)
+
+### Fix
+
+- in datareader start time is computed from endtime and bucket width
+
+## 0.105.0 (2025-02-14)
+
+### Feat
+
+- search opc nodes, edit tag configs functionality
+- working tag config bounds, create/update/delete
+- in-progress search OPC nodes using GUI
+
+## 0.104.0 (2025-02-14)
+
+### Feat
+
+- warmup updates
+
+## 0.103.1 (2025-02-14)
+
+### Fix
+
+- remove gamma interp from epcor scrubber cfg
+- increase lso initial lr
+- respect tag config aggregation in offline chunk loading
+
+## 0.103.0 (2025-02-14)
+
+### Feat
+
+- remove last remaining concept of interpolation
+
+### Refactor
+
+- remove interpolation from monte carlo eval
+- no longer use interpolation for environment seed
+- remove the need to specify a transition creator
+
+## 0.102.0 (2025-02-14)
+
+### Feat
+
+- add filter for pre dp or action change
+
+### Fix
+
+- add action change to step batch
+- decouple action change from decision point
+
+### Refactor
+
+- countdown uses 0 instead of steps_per_decision on decision point
+- remove tag config from transition creator
+- ignore step timestamp in step iterator
+
+### Perf
+
+- copy instead of deepcopy in all-the-time transition creator
+
 ## 0.101.0 (2025-02-14)
 
 ### Feat

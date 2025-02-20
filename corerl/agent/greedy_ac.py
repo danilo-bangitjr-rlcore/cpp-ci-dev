@@ -217,13 +217,14 @@ class GreedyAC(BaseAC):
             if len(recent_policy_batch):
                 assert len(recent_policy_batch) == 1
                 recent_policy_batch = recent_policy_batch[0]
+                delta_action_batch = self._filter_only_delta_actions(recent_policy_batch.post.action)
                 self._app_state.metrics.write(
                     agent_step=self._app_state.agent_step,
                     metric=f"ingress_policy_loss_{pr.data_mode.name}",
                     value=self._policy_err(
                         self.actor,
                         recent_policy_batch.prior.state,
-                        recent_policy_batch.post.action),
+                        delta_action_batch),
                 )
 
                 self._app_state.metrics.write(
@@ -232,7 +233,7 @@ class GreedyAC(BaseAC):
                     value=self._policy_err(
                         self.sampler,
                         recent_policy_batch.prior.state,
-                        recent_policy_batch.post.action),
+                        delta_action_batch),
                 )
 
         if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:

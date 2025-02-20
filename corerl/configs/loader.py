@@ -1,4 +1,3 @@
-import re
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -76,34 +75,6 @@ def _flags_from_cli():
         )
 
     return flags
-
-
-# --------------------
-# -- Interpolations --
-# --------------------
-def _walk_config_and_interpolate(root: dict[str, Any]):
-    def _inner(part: object):
-        if not isinstance(part, dict):
-            return
-
-        for k, v in part.items():
-            if isinstance(v, str):
-                # check if value matches the pattern:
-                #   ${some.path.to.config.value}
-                # and give back the group:
-                #   some.path.to.config.value
-                path = re.match(r'\$\{(.+)\}', v)
-                if path:
-                    part[k] = dict_u.get_at_path(root, path.group(1))
-
-            elif isinstance(v, dict):
-                _inner(v)
-
-            elif isinstance(v, list):
-                list(map(_inner, v))
-
-    _inner(root)
-    return root
 
 
 # --------------------------
@@ -199,12 +170,11 @@ def config_from_dict[T](Config: type[T], raw_config: dict, flags: dict[str, str]
     # raise exception on extra values not in schema
     ta = TypeAdapter(Config)
 
-    # handle preliminary interpolations and populate unspecified defaults
-    raw_config = _walk_config_and_interpolate(raw_config)
+    # first validation pass to resolve discriminated unions
     obj_config: Any = ta.validate_python(raw_config)
 
-    # second interpolate & validation pass to support config defaults w/ interpolate
-    output_config = _walk_config_and_interpolate(config_to_dict(Config, obj_config))
+    # second validation pass to execute pre/post computed hooks
+    output_config = config_to_dict(Config, obj_config)
     return ta.validate_python(output_config, context=obj_config)
 
 # ----------------

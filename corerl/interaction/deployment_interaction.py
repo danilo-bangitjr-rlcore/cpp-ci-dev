@@ -94,6 +94,11 @@ class DeploymentInteraction(Interaction):
             self._column_desc,
         )
 
+        # load first historical chunk
+        self.load_historical_chunk()
+        # and then perform warmup updates
+        for _ in range(cfg.update_warmup):
+            self._agent.update()
 
     # -----------------------
     # -- Lifecycle Methods --
@@ -252,7 +257,8 @@ class DeploymentInteraction(Interaction):
             names=self._env.tag_names,
             start_time=warmup_end - self._cfg.warmup_period,
             end_time=warmup_end,
-            bucket_width=self.obs_period
+            bucket_width=self.obs_period,
+            tag_aggregations=self._env.tag_aggs,
         )
         self._pipeline(warmup_obs, data_mode=DataMode.ONLINE)
 
@@ -272,6 +278,7 @@ class DeploymentInteraction(Interaction):
             start_time=start_time,
             end_time=end_time,
             bucket_width=self.obs_period,
+            tag_aggregations=self._env.tag_aggs,
         )
         logger.info(f"Loading chunk data from {chunk_data.index[0]} to {chunk_data.index[-1]}")
 

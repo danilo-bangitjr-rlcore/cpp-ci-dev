@@ -21,9 +21,6 @@ agent:
   name: greedy_ac
 
 pipeline:
-  transition_creator:
-    name: anytime
-
   tags:
   - name: reward
     preprocess:

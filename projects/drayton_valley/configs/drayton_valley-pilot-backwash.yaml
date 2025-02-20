@@ -27,7 +27,6 @@ event_bus:
 
 env:
   name: dep_async_env
-  seed: ${experiment.seed}
   opc_conn_url: "opc.tcp://ignition-services:62541"
   opc_ns: 1
   discrete_control: False
@@ -52,10 +51,6 @@ pipeline:
     defaults:
       - name: multi_trace
         trace_values: [0.0, 0.9]
-
-  transition_creator:
-    name: all-the-time
-    gamma: ${experiment.gamma}
 
   tags:
   - name: PERM_SP.BW_SP # flow rate setpoint

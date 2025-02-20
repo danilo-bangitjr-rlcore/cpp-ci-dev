@@ -58,7 +58,7 @@ class TSDBEnvConfig(BaseAsyncEnvConfig):
 class GymEnvConfig:
     gym_name: str = MISSING
     init_type: Literal["gym.make", "custom"] | None = "gym.make"
-    seed: int | None = None
+    seed: int = MISSING
 
     # gym environment init args and kwargs, ignored for deployment_async_env
     args: list[Any] = Field(default_factory=list)

@@ -4,7 +4,7 @@ experiment:
   exp_name: stand_still_mountain_car
   param_from_hash: True
   seed: 1
-  gamma: 0.99
+  gamma: 0.0
   max_steps: 500
 
 interaction:
@@ -16,7 +16,6 @@ env:
   name: sim_async_env
   gym_name: MountainCarContinuous-v0
   discrete_control: False
-  seed: ${experiment.seed}
 
 
 agent:
@@ -35,9 +34,6 @@ pipeline:
     defaults:
       - name: multi_trace
         trace_values: [0, 0.9]
-
-  transition_creator:
-    name: anytime
 
   tags:
   - name: action-0

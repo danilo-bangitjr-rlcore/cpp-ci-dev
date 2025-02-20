@@ -4,15 +4,6 @@
 #
 #  docker build -t rlcoretech/corerl --ssh default=$SSH_AUTH_SOCK .
 
-# Stage: Build our webclient
-FROM node:18-alpine AS web_client
-
-WORKDIR /app
-COPY ./client /app
-
-RUN npm install
-RUN npm run build
-
 # Stage: compile dependencies with SSH key forwarding to pull dependencies from private Github repository
 # Bookworm image is needed due to dependency on git cli
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm AS base
@@ -47,7 +38,6 @@ RUN uv pip install --system pyc_wheel &&\
 FROM python:3.12-slim AS corerl
 
 COPY --from=base /app/dist /app/dist
-COPY --from=web_client /app/dist /app/client/dist
 WORKDIR /app
 
 # Our corerl image is quite large with default cuda dependencies.

@@ -1,7 +1,6 @@
 env:
   name: sim_async_env
   gym_name : Saturation-v0
-  seed : ${experiment.seed}
   discrete_control : False
 
 interaction:
@@ -40,9 +39,6 @@ pipeline:
     defaults:
     - name: multi_trace
       trace_values: [0., 0.75, 0.95]
-
-  transition_creator:
-    name: anytime
 
   tags:
   # meta tags

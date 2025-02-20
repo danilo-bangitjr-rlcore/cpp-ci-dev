@@ -23,7 +23,6 @@ interaction:
 
 env:
   name: dep_async_env
-  seed: ${experiment.seed}
   opc_conn_url: "opc.tcp://ignition-services:62541"
   opc_ns: 1
   discrete_control: False
@@ -59,7 +58,7 @@ agent:
       weight_decay: 0.0
     buffer:
       name: ensemble_uniform
-      ensemble: ${agent.critic.critic_network.ensemble}
+      ensemble: 10
       data_subset: 0.5
       batch_size: 256
 
@@ -93,7 +92,6 @@ pipeline:
 
   transition_creator:
     name: "all-the-time"
-    gamma: ${experiment.gamma}
     min_n_step: 1
     max_n_step: 4
 

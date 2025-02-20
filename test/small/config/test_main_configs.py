@@ -1,5 +1,3 @@
-import re
-
 import pytest
 
 from corerl.config import MainConfig
@@ -25,7 +23,7 @@ def test_main_configs(base: str, config_name: str):
     # walk through config, ensure that there are no MISSING symbols or uninterpolated values
     raw_config_dict = config_to_dict(MainConfig, config)
 
-    def walk_no_missing_or_interpolate(part: object, key_path: str=""):
+    def walk_no_missing(part: object, key_path: str=""):
         if not isinstance(part, dict):
             return
 
@@ -35,15 +33,11 @@ def test_main_configs(base: str, config_name: str):
                 cur_key_path = f"{key_path}.{k}"
 
             assert v is not MISSING, cur_key_path
-            if isinstance(v, str):
-                path = re.match(r'\$\{(.+)\}', v)
-                assert path is None, cur_key_path
-
-            elif isinstance(v, dict):
-                walk_no_missing_or_interpolate(v, cur_key_path)
+            if isinstance(v, dict):
+                walk_no_missing(v, cur_key_path)
 
             elif isinstance(v, list):
                 for idx, elem in enumerate(v):
-                    walk_no_missing_or_interpolate(elem, f"{cur_key_path}[{idx}]")
+                    walk_no_missing(elem, f"{cur_key_path}[{idx}]")
 
-    walk_no_missing_or_interpolate(raw_config_dict)
+    walk_no_missing(raw_config_dict)

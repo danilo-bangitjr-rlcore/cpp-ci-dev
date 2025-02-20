@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from abc import abstractmethod
 from collections.abc import Sequence
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -76,8 +75,6 @@ class ReplayBuffer:
 
             i = 0
             for elem in transition:
-                if isinstance(elem, datetime) or elem is None:
-                    continue
                 self.data[i][self.pos] = _to_tensor(elem)
                 i += 1
 
@@ -107,8 +104,6 @@ class ReplayBuffer:
         for idx, transition in enumerate(transitions):
             i = 0
             for elem in transition:
-                if isinstance(elem, datetime) or elem is None:
-                    continue
                 self.data[i][self.pos] = _to_tensor(elem)
                 i += 1
 
@@ -202,8 +197,6 @@ def _get_size(experience: Transition) -> list[tuple]:
             size.append((1,))
         elif isinstance(elem, list):
             size.append((len(elem),))
-        elif isinstance(elem, datetime) or elem is None:
-            continue
         else:
             raise TypeError(f"unknown type {type(elem)}")
 

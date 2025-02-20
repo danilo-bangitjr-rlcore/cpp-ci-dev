@@ -23,7 +23,6 @@ env:
   obs_period: 00:05:00
   update_period: 00:05:00
   action_period: 01:00:00
-  seed: ${experiment.seed}
   opc_conn_url: "opc.tcp://ignition-services:62541"
   opc_ns: 1
   discrete_control: False
@@ -37,8 +36,3 @@ experiment:
   offline_steps: 10
   pipeline_batch_duration: 7 days
   gamma: 0.99
-
-pipeline:
-  transition_creator:
-    name: anytime
-    gamma: ${experiment.gamma}
