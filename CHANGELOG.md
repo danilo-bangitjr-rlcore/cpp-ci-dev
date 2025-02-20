@@ -1,3 +1,13 @@
+## 0.110.0 (2025-02-20)
+
+### Feat
+
+- add exponential backoff to heartbeat OPC write
+
+### Fix
+
+- bind heartbeat loop variable
+
 ## 0.109.1 (2025-02-20)
 
 ### Fix
