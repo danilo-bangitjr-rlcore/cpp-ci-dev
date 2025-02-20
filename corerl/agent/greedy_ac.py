@@ -88,6 +88,44 @@ def sample_actions(
     return sample_actions, repeated_states
 
 
+def get_q_for_sample(
+        agent: "GreedyAC",
+        states: Float[torch.Tensor, "batch_size n_samples state_dim"],
+        direct_actions: Float[torch.Tensor, "batch_size n_samples action_dim"],
+    ) ->  Float[torch.Tensor, "batch_size n_samples"]:
+
+    assert direct_actions.dim() == states.dim()
+    assert states.size(0) == direct_actions.size(0)
+    assert states.size(1) == direct_actions.size(1)
+
+    BATCH_SIZE = direct_actions.size(0)
+    N_SAMPLES = direct_actions.size(1)
+
+    states_2d = states.reshape(BATCH_SIZE * N_SAMPLES, -1)
+    direct_actions_2d = direct_actions.reshape(BATCH_SIZE * N_SAMPLES, 1)
+
+    q_values_1d = agent.q_critic.get_q(
+        [states_2d],
+        [direct_actions_2d],
+        with_grad=False,
+        bootstrap_reduct=False,
+    )
+    q_values_2d = q_values_1d.reshape(BATCH_SIZE, N_SAMPLES)
+
+    return q_values_2d
+
+
+def get_percentile_threshold(
+        q_vals: Float[torch.Tensor, "batch_size n_samples"],
+        percentile: float,
+    ):
+    assert q_vals.dim() == 2
+    n_samples = q_vals.size(1)
+    top_n = floor(percentile*n_samples)
+    top_n_values, _ = torch.topk(q_vals, k=top_n, dim=1)
+    return torch.mean(top_n_values, dim=1)
+
+
 def grab_percentile(
         values: torch.Tensor,
         keys: torch.Tensor,
@@ -405,7 +443,7 @@ class GreedyAC(BaseAC):
         # states that each of the sampled actions correspond to:
         repeated_states: Float[torch.Tensor, "batch_size num_samples state_dim"]
         sampled_actions, repeated_states = sample_actions(
-            state_batch, sampler, n_samples, self.action_dim, uniform_weight
+            state_batch, n_samples, self.action_dim, policy=sampler, uniform_weight=uniform_weight
         )
 
         batch_size = state_batch.size(BATCH_DIM)
