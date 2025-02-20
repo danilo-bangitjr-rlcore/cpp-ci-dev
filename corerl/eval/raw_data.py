@@ -121,7 +121,7 @@ def raw_data_eval(
         for stat_name, stat_value in stat_dict.items():
             app_state.metrics.write(
                 agent_step=app_state.agent_step,
-                metric=f'{tag}_{stat_name}',
+                metric=f'pipeline_{tag}_{stat_name}',
                 value=stat_value,
             )
 
