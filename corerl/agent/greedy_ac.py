@@ -12,7 +12,7 @@ from corerl.agent.ac_utils import get_percentile_inds, sample_actions, unsqueeze
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.base_actor import BaseActor
 from corerl.component.actor.factory import init_actor
-from corerl.component.buffer import init_buffer
+from corerl.component.buffer import MixedHistoryBuffer
 from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import TransitionBatch
@@ -71,8 +71,10 @@ class GreedyAC(BaseAC):
 
         self.sampler = init_actor(cfg.actor, app_state, self.state_dim, self.action_dim, initializer=self.actor)
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
-        self.critic_buffer = init_buffer(cfg.critic.buffer, app_state)
-        self.policy_buffer = init_buffer(cfg.actor.buffer, app_state)
+        self.critic_buffer = MixedHistoryBuffer(cfg.critic.buffer, app_state)
+        self.policy_buffer = MixedHistoryBuffer(cfg.actor.buffer, app_state)
+
+        self.ensemble = self.cfg.critic.buffer.ensemble
 
     def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
         self._app_state.event_bus.emit_event(EventType.agent_get_action)

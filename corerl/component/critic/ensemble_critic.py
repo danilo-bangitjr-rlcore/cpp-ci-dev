@@ -5,7 +5,6 @@ import torch
 from pydantic import Field
 
 import corerl.utils.nullable as nullable
-from corerl.component.buffer.factory import BufferConfig
 from corerl.component.buffer import MixedHistoryBufferConfig
 from corerl.component.critic.base_critic import BaseCriticConfig, BaseQ, BaseV
 from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
@@ -22,7 +21,14 @@ class _SharedEnsembleConfig:
     name: Any = MISSING
     critic_network: NetworkConfig = Field(default_factory=EnsembleCriticNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
-    buffer: BufferConfig = Field(default_factory=MixedHistoryBufferConfig)
+    buffer: MixedHistoryBufferConfig = Field(
+        default_factory=lambda: MixedHistoryBufferConfig(
+            # TODO: this should default to 10,
+            # but need to first sync this ensemble size with agent's ensemble
+            ensemble=1,
+            ensemble_probability=1.0,
+        ),
+    )
     polyak: float = 0.995
     target_sync_freq: int = 1
 

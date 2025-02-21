@@ -6,7 +6,7 @@ from pydantic import Field
 
 import corerl.utils.nullable as nullable
 from corerl.component.actor.base_actor import BaseActor, group
-from corerl.component.buffer.factory import BufferConfig, MixedHistoryBufferConfig
+from corerl.component.buffer import MixedHistoryBufferConfig
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.component.policy.factory import BaseNNConfig, SquashedGaussianPolicyConfig, create
@@ -23,7 +23,7 @@ class _SharedNetworkActorConfig:
 
     actor_network: BaseNNConfig = Field(default_factory=SquashedGaussianPolicyConfig)
     actor_optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
-    buffer: BufferConfig = Field(
+    buffer: MixedHistoryBufferConfig = Field(
         default_factory=lambda: MixedHistoryBufferConfig(
             ensemble=1,
             ensemble_probability=1.0,
