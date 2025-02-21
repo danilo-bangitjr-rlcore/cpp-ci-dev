@@ -1,3 +1,18 @@
+## 0.112.0 (2025-02-21)
+
+### Feat
+
+- parameter varying system and grid search method
+
+### Fix
+
+- add seaborn dependency
+- renaming stuff
+- change a few more names of things
+- style issues
+- change delta action to 0.1
+- pvs registeration
+
 ## 0.111.0 (2025-02-21)
 
 ### Feat
