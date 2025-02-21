@@ -32,8 +32,8 @@ def agent_eval(
     cfg_lens : Callable[[AppState], T],
     eval_fn: EvalFn[T, P],
     metric_names: list[str],
-    args: tuple = (),
-    kwargs: dict | None = None,
+    *args: P.args,
+    **kwargs: P.kwargs,
 ):
 
     cfg = cfg_lens(app_state)
