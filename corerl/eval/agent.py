@@ -148,12 +148,15 @@ def _policy_variance(
     sampler_sample_var = torch.var(sampled_actions, dim=0)
     return actor_sample_var, sampler_sample_var
 
-policy_variance = partial(
-    agent_eval,
-    cfg_lens = lambda app_state: app_state.cfg.eval_cfgs.policy_variance,
-    eval_fn = _policy_variance,
-    metric_names = ['actor_var', 'sampler_var']
-)
+def policy_variance(app_state: AppState, agent: BaseAgent, state: torch.Tensor):
+    return agent_eval(
+        app_state,
+        agent,
+        cfg_lens=lambda app_state: app_state.cfg.eval_cfgs.policy_variance,
+        eval_fn=_policy_variance,
+        metric_names=['actor_var', 'sampler_var'],
+        state=state,
+    )
 
 # ------------------------------ Q Values Online ----------------------------- #
 
