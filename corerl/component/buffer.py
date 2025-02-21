@@ -62,6 +62,9 @@ class MixedHistoryBuffer:
         self.most_recent_online_idxs = deque(maxlen=cfg.n_most_recent)
 
     def feed(self, transitions: Sequence[Transition], data_mode: DataMode) -> np.ndarray:
+        """
+        Adds transitions to the buffer.
+        """
         idxs = np.empty(len(transitions), dtype=np.int64)
 
         for j, transition in enumerate(transitions):
@@ -93,9 +96,13 @@ class MixedHistoryBuffer:
         return idxs
 
     def sample(self) -> list[TransitionBatch]:
-        if max(self.size) == 0:
-            return []
+        """
+        Samples a list of TransitionBatch from the buffer.
 
+        Currently does not support the case where one of the sub-distributions is empty.
+        This is currently handled in the agent.
+        """
+        assert min(self.size) > 0
         ensemble_batch: list[TransitionBatch] = []
         for dist in self._sub_dists:
             idxs = dist.sample(self.rng, self.batch_size)
@@ -106,16 +113,27 @@ class MixedHistoryBuffer:
         return ensemble_batch
 
     def _add_n_most_recent(self, idxs: np.ndarray) -> np.ndarray:
+        """
+        Iterates over the sampled idxs and adds the n most recent online idxs to the beginning of the list.
+        """
         for i, j in enumerate(self.most_recent_online_idxs):
             idxs[i] = j
         return idxs
 
     def get_batch(self, idxs: np.ndarray) -> TransitionBatch:
+        """
+        Given an array of indices, returns a TransitionBatch where the entries are the transitions
+        at the given indices.
+        """
         assert self.data is not None
         sampled_data = [self.data[i][idxs] for i in range(len(self.data))]
         return self._prepare_batch(idxs, sampled_data)
 
     def _prepare_batch(self, idxs: np.ndarray, batch: list[torch.Tensor]) -> TransitionBatch:
+        """
+        Given an array of indices and a list of tensors representing the raw data of transitions,
+        returns a TransitionBatch.
+        """
         step_attrs = len(StepBatch.__annotations__.keys())
         prior_step_batch = StepBatch(*batch[:step_attrs])
         post_step_batch = StepBatch(*batch[step_attrs : step_attrs * 2])
@@ -129,13 +147,23 @@ class MixedHistoryBuffer:
 
     @property
     def size(self) -> list[int]:
+        """
+        Size of each sub-distribution.
+        """
         return [d.size() for d in self._sub_dists]
 
     def reset(self) -> None:
+        """
+        Resets the buffer to its original state.
+        """
+        self.data = None
         self.pos = 0
         self.full = False
 
     def write_buffer_sizes(self):
+        """
+        Write the sizes of the sub buffers to metrics.
+        """
         sizes = self.size
         for i, size in enumerate(sizes):
             self.app_state.metrics.write(self.app_state.agent_step, metric=f"buffer_{self.id}[{i}]_size", value=size)
