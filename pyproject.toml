@@ -144,5 +144,6 @@ dev = [
     "pytest-xdist>=3.6.1",
     "rlevaluation>=1.1.0",
     "ruff>=0.9.3",
+    "seaborn>=0.13.2",
     "uv>=0.5.24",
 ]
