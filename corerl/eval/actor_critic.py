@@ -1,11 +1,12 @@
-import json
 import logging
 import random
+from collections import namedtuple
 from copy import deepcopy
 from typing import Tuple, cast
 
 import numpy as np
 import torch
+from pydantic import BaseModel
 from torch import Tensor
 
 from corerl.agent.base import BaseAC, BaseAgent
@@ -17,6 +18,14 @@ from corerl.data_pipeline.transition_filter import call_filter
 from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
+
+Bounds = namedtuple('Bounds', ['low', 'high'])
+
+class State(BaseModel):
+    state: list[float]
+
+class Action(BaseModel):
+    action: list[float]
 
 @config()
 class ActorCriticEvalConfig:
@@ -110,83 +119,49 @@ class ActorCriticEval:
         self.test_states = [transition.post.state for transition in test_transitions]
         self.test_actions = [transition.post.action for transition in test_transitions]
 
-    def _get_raw_state(self, state: Tensor) -> np.ndarray:
+    def _get_norm_action(self, action_arr: np.ndarray, delta: np.ndarray) -> np.ndarray:
         """
-        Convert normalized state into raw state
+        Get the normalized direct action from an offset and delta
         """
-        state_np = state.numpy()
-        state_df = self.pipeline.state_constructor.get_state_df(state_np)
-        raw_state_df = self.pipeline.preprocessor.inverse(state_df)
-        raw_state = raw_state_df.to_numpy()[0]
-
-        return raw_state
-
-    def _get_raw_direct_action(self, action: Tensor) -> np.ndarray:
-        """
-        Convert a normalized direct action into a raw direct action
-        """
-        action_np = action.numpy()
-        action_df = self.pipeline.action_constructor.get_action_df(action_np)
-        raw_action_df = self.pipeline.preprocessor.inverse(action_df)
-        raw_direct_action_df = Delta.get_non_delta(raw_action_df)
-        raw_direct_action = raw_direct_action_df.to_numpy()[0]
-
-        return raw_direct_action
-
-    def _get_norm_raw_action(self, offset: np.ndarray, delta: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Get the normalized and raw forms of a direct action from an offset and delta
-        """
-        norm_delta_df = self.pipeline.action_constructor.assign_action_names(offset, delta)
+        norm_delta_df = self.pipeline.action_constructor.assign_action_names(action_arr, delta)
         norm_action = norm_delta_df.to_numpy()[0]
-        raw_delta_df = self.pipeline.preprocessor.inverse(norm_delta_df)
-        raw_action = raw_delta_df.to_numpy()[0]
 
-        return norm_action, raw_action
-
-    def _get_a_dim_range(self, low_action: float, high_action: float) -> Tensor:
-        """
-        Get a uniformly spaced range of actions for a given action dimension
-        """
-        a_dim_spacing = (high_action - low_action) / self.num_uniform_actions
-        a_dim_range = torch.arange(low_action, high_action, a_dim_spacing)
-
-        return a_dim_range
+        return norm_action
 
     def _get_delta_action_bounds(
         self,
         curr_action_np: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Bounds:
         """
         Get the min and max possible delta actions for each action dimension given the current action offset
         """
         low_delta = np.zeros(len(self.action_cols))
-        norm_delta_low, raw_delta_low = self._get_norm_raw_action(curr_action_np, low_delta)
+        norm_delta_low = self._get_norm_action(curr_action_np, low_delta)
         high_delta = np.ones(len(self.action_cols))
-        norm_delta_high, raw_delta_high = self._get_norm_raw_action(curr_action_np, high_delta)
+        norm_delta_high = self._get_norm_action(curr_action_np, high_delta)
 
-        return norm_delta_low, raw_delta_low, norm_delta_high, raw_delta_high
+        return Bounds(norm_delta_low, norm_delta_high)
 
     def _get_direct_action_bounds(
         self,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> Bounds:
         """
         Get the min and max possible direct actions for each action dimension
         """
         if self.app_state.cfg.agent.delta_action:
             dummy = np.ones(len(self.action_cols)) * 0.5
-            low_direct = np.zeros(len(self.action_cols))
-            norm_direct_low, raw_direct_low = self._get_norm_raw_action(low_direct, dummy)
-            high_direct = np.ones(len(self.action_cols))
-            norm_direct_high, raw_direct_high = self._get_norm_raw_action(high_direct, dummy)
+            low_direct = np.zeros(len(self.col_desc.action_cols))
+            norm_direct_low = self._get_norm_action(low_direct, dummy)
+            high_direct = np.ones(len(self.col_desc.action_cols))
+            norm_direct_high = self._get_norm_action(high_direct, dummy)
         else:
             dummy = np.zeros(len(self.action_cols))
-            low_direct = np.zeros(len(self.action_cols))
-            norm_direct_low, raw_direct_low = self._get_norm_raw_action(dummy, low_direct)
-            high_direct = np.ones(len(self.action_cols))
-            norm_direct_high, raw_direct_high = self._get_norm_raw_action(dummy, high_direct)
+            low_direct = np.zeros(len(self.col_desc.action_cols))
+            norm_direct_low = self._get_norm_action(dummy, low_direct)
+            high_direct = np.ones(len(self.col_desc.action_cols))
+            norm_direct_high = self._get_norm_action(dummy, high_direct)
 
-        return norm_direct_low, raw_direct_low, norm_direct_high, raw_direct_high
+        return Bounds(norm_direct_low, norm_direct_high)
 
     def _get_policy_plot_info(
         self,
@@ -195,9 +170,8 @@ class ActorCriticEval:
         sampled_actions: Tensor,
         a_dim: int,
         norm_a_dim_range: Tensor,
-        raw_a_dim_range: Tensor,
     ) -> dict:
-        state_key = json.dumps(self._get_raw_state(state).tolist())
+        state_key = State(state=state.tolist()).model_dump_json()
         action_tag = self.action_cols[a_dim]
         state_copies, built_actions = self._get_repeat_state_actions(state,
                                                                      sampled_actions,
@@ -206,7 +180,7 @@ class ActorCriticEval:
 
         pdfs = self._get_pdf(state_copies, built_actions)
         qs_and_policy["plot_info"][state_key]["a_dim"][action_tag]["pdf"] = pdfs
-        qs_and_policy["plot_info"][state_key]["a_dim"][action_tag]["policy_actions"] = raw_a_dim_range.tolist()
+        qs_and_policy["plot_info"][state_key]["a_dim"][action_tag]["policy_actions"] = norm_a_dim_range.tolist()
 
         return qs_and_policy
 
@@ -217,10 +191,9 @@ class ActorCriticEval:
         sampled_actions: Tensor,
         a_dim: int,
         norm_a_dim_range: Tensor,
-        raw_a_dim_range: Tensor,
         label: str,
     ) -> dict:
-        state_key = json.dumps(self._get_raw_state(state).tolist())
+        state_key = State(state=state.tolist()).model_dump_json()
         action_tag = self.action_cols[a_dim]
         state_copies, built_actions = self._get_repeat_state_actions(state,
                                                                      sampled_actions,
@@ -229,7 +202,8 @@ class ActorCriticEval:
 
         same_action_qs = self._get_action_vals(state_copies, built_actions)
         qs_and_policy["plot_info"][state_key]["a_dim"][action_tag][f"{label}_critic"] = same_action_qs
-        qs_and_policy["plot_info"][state_key]["a_dim"][action_tag][f"{label}_critic_actions"] = raw_a_dim_range.tolist()
+        a_range = norm_a_dim_range.tolist()
+        qs_and_policy["plot_info"][state_key]["a_dim"][action_tag][f"{label}_critic_actions"] = a_range
 
         return qs_and_policy
 
@@ -240,46 +214,41 @@ class ActorCriticEval:
         sampled_actions: Tensor,
         qs_and_policy: dict,
     ) -> dict:
-        state_key = json.dumps(self._get_raw_state(state).tolist())
+        state_key = State(state=state.tolist()).model_dump_json()
         curr_action_np = curr_action.numpy()
 
-        norm_delta_low, raw_delta_low, norm_delta_high, raw_delta_high = self._get_delta_action_bounds(curr_action_np)
-        norm_direct_low, raw_direct_low, norm_direct_high, raw_direct_high = self._get_direct_action_bounds()
+        norm_delta_low, norm_delta_high = self._get_delta_action_bounds(curr_action_np)
+        norm_direct_low, norm_direct_high = self._get_direct_action_bounds()
 
         for a_dim in range(len(self.action_cols)):
             action_tag = self.action_cols[a_dim]
             qs_and_policy["plot_info"][state_key]["a_dim"][action_tag] = {}
 
             # Get policy pdf and critic q-values over delta action range
-            norm_delta_a_dim_range = self._get_a_dim_range(float(norm_delta_low[a_dim]),
-                                                           float(norm_delta_high[a_dim]))
-            raw_delta_a_dim_range = self._get_a_dim_range(float(raw_delta_low[a_dim]),
-                                                          float(raw_delta_high[a_dim]))
+            norm_delta_a_dim_range = torch.linspace(float(norm_delta_low[a_dim]),
+                                                    float(norm_delta_high[a_dim]),
+                                                    self.num_uniform_actions)
             qs_and_policy = self._get_policy_plot_info(qs_and_policy,
                                                        state,
                                                        sampled_actions,
                                                        a_dim,
-                                                       norm_delta_a_dim_range,
-                                                       raw_delta_a_dim_range)
+                                                       norm_delta_a_dim_range)
             qs_and_policy = self._get_critic_plot_info(qs_and_policy,
                                                        state,
                                                        sampled_actions,
                                                        a_dim,
                                                        norm_delta_a_dim_range,
-                                                       raw_delta_a_dim_range,
                                                        "delta")
 
             # Get critic q-values over full direct action range
-            norm_direct_a_dim_range = self._get_a_dim_range(float(norm_direct_low[a_dim]),
-                                                            float(norm_direct_high[a_dim]))
-            raw_direct_a_dim_range = self._get_a_dim_range(float(raw_direct_low[a_dim]),
-                                                           float(raw_direct_high[a_dim]))
+            norm_direct_a_dim_range = torch.linspace(float(norm_direct_low[a_dim]),
+                                                     float(norm_direct_high[a_dim]),
+                                                     self.num_uniform_actions)
             qs_and_policy = self._get_critic_plot_info(qs_and_policy,
                                                        state,
                                                        sampled_actions,
                                                        a_dim,
                                                        norm_direct_a_dim_range,
-                                                       raw_direct_a_dim_range,
                                                        "direct")
 
         return qs_and_policy
@@ -290,31 +259,28 @@ class ActorCriticEval:
         sampled_actions: Tensor,
         qs_and_policy: dict,
     ) -> dict:
-        state_key = json.dumps(self._get_raw_state(state).tolist())
+        state_key = State(state=state.tolist()).model_dump_json()
 
-        norm_direct_low, raw_direct_low, norm_direct_high, raw_direct_high = self._get_direct_action_bounds()
+        norm_direct_low, norm_direct_high = self._get_direct_action_bounds()
 
         for a_dim in range(self.agent.action_dim):
             action_tag = self.action_cols[a_dim]
             qs_and_policy["plot_info"][state_key]["a_dim"][action_tag] = {}
 
             # Get critic q-values and policy pdf over full direct action range
-            norm_direct_a_dim_range = self._get_a_dim_range(float(norm_direct_low[a_dim]),
-                                                            float(norm_direct_high[a_dim]))
-            raw_direct_a_dim_range = self._get_a_dim_range(float(raw_direct_low[a_dim]),
-                                                           float(raw_direct_high[a_dim]))
+            norm_direct_a_dim_range = torch.linspace(float(norm_direct_low[a_dim]),
+                                                     float(norm_direct_high[a_dim]),
+                                                     self.num_uniform_actions)
             qs_and_policy = self._get_policy_plot_info(qs_and_policy,
                                                        state,
                                                        sampled_actions,
                                                        a_dim,
-                                                       norm_direct_a_dim_range,
-                                                       raw_direct_a_dim_range)
+                                                       norm_direct_a_dim_range)
             qs_and_policy = self._get_critic_plot_info(qs_and_policy,
                                                        state,
                                                        sampled_actions,
                                                        a_dim,
                                                        norm_direct_a_dim_range,
-                                                       raw_direct_a_dim_range,
                                                        "direct")
 
         return qs_and_policy
@@ -347,10 +313,10 @@ class ActorCriticEval:
         for i in range(len(states)):
             state = states[i]
             action = actions[i]
-            state_key = json.dumps(self._get_raw_state(state).tolist())
-            action_json = json.dumps(self._get_raw_direct_action(action).tolist())
+            state_key = State(state=state.tolist()).model_dump_json()
+            action_dump = Action(action=action.tolist()).model_dump_json()
             qs_and_policy["plot_info"][state_key] = {}
-            qs_and_policy["plot_info"][state_key]["current_action"] = action_json
+            qs_and_policy["plot_info"][state_key]["current_action"] = action_dump
             qs_and_policy["plot_info"][state_key]["a_dim"] = {}
 
             # When evaluating the critic over a given action dim, need sampled actions for the other action dims

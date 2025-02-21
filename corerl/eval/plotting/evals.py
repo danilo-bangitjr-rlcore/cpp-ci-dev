@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from pathlib import Path
 from typing import cast
@@ -7,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.eval.actor_critic import Action, State
 from corerl.state import AppState
 
 
@@ -121,8 +121,9 @@ def make_actor_critic_plots(
                 axs[-1].set_ylabel("Q")
 
                 # Format state info in plot title
-                state_l: list[float] = json.loads(state)
-                current_action_l: list[float] = json.loads(qs_and_policy["plot_info"][state]["current_action"])
+                state_l = State.model_validate_json(state).state
+                action_json = qs_and_policy["plot_info"][state]["current_action"]
+                current_action_l = Action.model_validate_json(action_json).action
                 title = make_state_info_title(tags, state_cols, action_cols, state_l, current_action_l)
                 fig.suptitle(title, fontsize=12)
                 fig.tight_layout()
