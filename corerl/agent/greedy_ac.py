@@ -99,36 +99,33 @@ class GreedyAC(BaseAC):
         # ---------------------------------- ingress loss metic --------------------------------- #
         if self.cfg.ingress_loss and len(recent_policy_idxs) > 0:
             recent_policy_batch = self.policy_buffer.get_batch(recent_policy_idxs)
-            if len(recent_policy_batch):
-                assert len(recent_policy_batch) == 1
-                recent_policy_batch = recent_policy_batch[0]
-                delta_action_batch = self._filter_only_delta_actions(recent_policy_batch.post.action)
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric=f"ingress_policy_loss_{pr.data_mode.name}",
-                    value=self._policy_err(
-                        self.actor,
-                        recent_policy_batch.prior.state,
-                        delta_action_batch),
-                )
+            delta_action_batch = self._filter_only_delta_actions(recent_policy_batch.post.action)
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f"ingress_policy_loss_{pr.data_mode.name}",
+                value=self._policy_err(
+                    self.actor,
+                    recent_policy_batch.prior.state,
+                    delta_action_batch),
+            )
 
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric=f"ingress_sampler_loss_{pr.data_mode.name}",
-                    value=self._policy_err(
-                        self.sampler,
-                        recent_policy_batch.prior.state,
-                        delta_action_batch),
-                )
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f"ingress_sampler_loss_{pr.data_mode.name}",
+                value=self._policy_err(
+                    self.sampler,
+                    recent_policy_batch.prior.state,
+                    delta_action_batch),
+            )
 
         if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
             recent_critic_batch = self.critic_buffer.get_batch(recent_critic_idxs)
-            if len(recent_critic_batch):
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric=f"ingress_critic_loss_{pr.data_mode.name}",
-                    value=self._compute_critic_loss(recent_critic_batch),
-                )
+            duplicated_critic_batch = [recent_critic_batch for i in range(self.ensemble)]
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f"ingress_critic_loss_{pr.data_mode.name}",
+                value=self._compute_critic_loss(duplicated_critic_batch),
+            )
 
         # ------------------------- transition length metric ------------------------- #
 
@@ -150,8 +147,10 @@ class GreedyAC(BaseAC):
             if transition.prior.dp:
                 policy_transitions.append(transition)
 
-        self.policy_buffer.load(policy_transitions, pr.data_mode)
-        self.critic_buffer.load(pr.transitions, pr.data_mode)
+        self.policy_buffer.reset()
+        self.critic_buffer.reset()
+        self.policy_buffer.feed(policy_transitions, pr.data_mode)
+        self.critic_buffer.feed(pr.transitions, pr.data_mode)
         self.policy_buffer.app_state = self._app_state
         self.critic_buffer.app_state = self._app_state
 
