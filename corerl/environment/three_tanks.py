@@ -7,14 +7,17 @@ import numpy as np
 
 @dataclass
 class ThreeTankConfig:
-    steps_between_target_updates: int | None = 20   # Number of steps between target height updates
-                                                    #   None results in no updates
-                                                    #   <=1 results in updates every step
-                                                    #   2 results in every other step
-    target_filter_alpha: float = 0.95
+    steps_between_target_updates: int | None = 30  # Number of steps between target updates
+                                                    #   None: no updates
+                                                    #   <=1: updates every step
+                                                    #   2: updates every other step
+    target_filter_alpha: float = 0.9 # Filter the target values to ensure smooth updates
+                                     #    0: No filtering
+                                     #    1: Target won't change 
 
 @dataclass
 class ThreeTankConstants:
+    # These constants come from the paper linked below
     g: float = 983.991  # gravitational constant [cm/s^2]
     A_T: float = 180.54 # tank x-sectional area [cm^2]
     A_V: float = 0.385   # valve x-sectional area [cm^2]
@@ -45,22 +48,22 @@ class ThreeTankEnv(gym.Env):
          └───┬───┘
              │
    ┌─┐  ┌────┴────┐
-   │ ├──┤ Tank 1  │ 
-   │ │ ┌┴────┬──┬─┘
-   │ │ │     │  │
-   │ │ └┬────┴──┴─┐
-   │ ├──┤ Tank 2  │
-   │ │ ┌┴────┬──┬─┘
-   │ │ │     │  │
-   │ │ └┬────┴──┴─┐
-   │ ├──┤ Tank 3  │
+   │R├──┤ Tank 1  │ 
+   │e│ ┌┴────┬──┬─┘
+   │s│ │     │  │
+   │e│ └┬────┴──┴─┐
+   │r├──┤ Tank 2  │
+   │v│ ┌┴────┬──┬─┘
+   │o│ │     │  │
+   │i│ └┬────┴──┴─┐
+   │r├──┤ Tank 3  │
    └─┘  └────┬────┘
              │
          ┌───┴───┐
          │Pump 2 │
          └───────┘
     
-    States: [H_1, H_2, H_3, H1_SP, H3_SP] ()
+    States: [H_1, H_2, H_3, H1_SP, H3_SP] (Tank heights and setpoint heights)
     Actions: [p_1, p_2] (Pump flowrates)
     """
     def __init__(self, cfg: ThreeTankConfig):
@@ -100,6 +103,7 @@ class ThreeTankEnv(gym.Env):
         return np.hstack([self.H,self.H_t]), {}
 
     def update_tank_heights(self, action: np.ndarray):
+        # These equations come from section 4 of the above paper
         c = self.constants
         H_1, H_2, H_3 = self.H
         P_1, P_2 = action
@@ -140,7 +144,8 @@ class ThreeTankEnv(gym.Env):
         self.H_t = a * self.H_t + (1 - a) * self.H_t_unfilt
 
     def calc_reward(self):
-        return -((self.H[0] - self.H_t[0])**2 + (self.H[2] - self.H_t[1])**2)/(2*self.constants.H_Max**2)
+        error = -((self.H[0] - self.H_t[0])**2 + (self.H[2] - self.H_t[1])**2)
+        return error/(2*self.constants.H_Max**2)
 
 
 gym.register(
