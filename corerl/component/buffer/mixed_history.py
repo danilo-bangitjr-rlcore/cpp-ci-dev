@@ -1,51 +1,96 @@
+from __future__ import annotations
+
+from collections import deque
 from collections.abc import Sequence
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
+import torch
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
 from numpy.random._generator import Generator as Generator
 
-from corerl.component.buffer.base import BaseReplayBufferConfig, ReplayBuffer, buffer_group
-from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import DataMode, Transition, TransitionBatch
+from corerl.configs.config import MISSING, computed, config
+from corerl.configs.group import Group
+from corerl.data_pipeline.datatypes import DataMode, StepBatch, Transition, TransitionBatch
 from corerl.state import AppState
+from corerl.utils.device import device
 
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 @config()
-class MixedHistoryBufferConfig(BaseReplayBufferConfig):
+class MixedHistoryBufferConfig:
     name: Literal["mixed_history_buffer"] = "mixed_history_buffer"
-
     online_weight: float = 0.75
-    ensemble: int = 1
-    ensemble_probability: float = 1.0
+    ensemble: int = 10
+    ensemble_probability: float = 0.5
+    seed: int = MISSING
+    memory: int = 1_000_000
+    batch_size: int = 256
+    # Whether or not to use combined experience replay:
+    #   https://arxiv.org/pdf/1712.01275
+    # the number of samples in the batch from most recent data.
+    n_most_recent: int = 1
+    id: str = ""
+
+    @computed('seed')
+    @classmethod
+    def _seed(cls, cfg: MainConfig):
+        return cfg.experiment.seed
 
 
-class MixedHistoryBuffer(ReplayBuffer):
+class MixedHistoryBuffer:
     def __init__(self, cfg: MixedHistoryBufferConfig, app_state: AppState):
-        super().__init__(cfg, app_state)
         self._cfg = cfg
+
+        self.seed = cfg.seed
+        self.rng = np.random.default_rng(self.seed)
+        self.memory = cfg.memory
+        self.batch_size = cfg.batch_size
+        self.app_state = app_state
+
+        assert cfg.n_most_recent <= self.batch_size
+
+        self.data = None
+        self.pos = 0
+        self.full = False
+        self.id = cfg.id
 
         self._sub_dists = [
             MaskedABDistribution(self.memory, cfg.online_weight, cfg.ensemble_probability)
             for _ in range(cfg.ensemble)
         ]
+        self.most_recent_online_idxs = deque(maxlen=cfg.n_most_recent)
 
+    def feed(self, transitions: Sequence[Transition], data_mode: DataMode) -> np.ndarray:
+        idxs = np.empty(len(transitions), dtype=np.int64)
 
-    def feed(self, transitions: Sequence[Transition], data_mode: DataMode):
-        idxs = super().feed(transitions, data_mode)
+        for j, transition in enumerate(transitions):
+            if self.data is None:
+                # Lazy instantiation
+                data_size = _get_size(transition)
+                self.data = [torch.empty((self.memory, *s), device=device.device) for s in data_size]
+
+            i = 0
+            for elem in transition:
+                self.data[i][self.pos] = _to_tensor(elem)
+                i += 1
+
+            idxs[j] = self.pos
+            self.pos = (self.pos + 1) % self.memory
+            if not self.full and self.pos == 0:
+                self.full = True
+
+        self.write_buffer_sizes()
 
         for dist in self._sub_dists:
             dist.update(self.rng, idxs, data_mode)
 
-        return idxs
-
-
-    def load(self, transitions: Sequence[Transition], data_mode: DataMode):
-        idxs = super().load(transitions, data_mode)
-
-        for dist in self._sub_dists:
-            dist.update(self.rng, idxs, data_mode)
+        # update the most_recent_idxs
+        if data_mode == DataMode.ONLINE:
+            for i in idxs:
+                self.most_recent_online_idxs.appendleft(i)
 
         return idxs
 
@@ -56,26 +101,46 @@ class MixedHistoryBuffer(ReplayBuffer):
         ensemble_batch: list[TransitionBatch] = []
         for dist in self._sub_dists:
             idxs = dist.sample(self.rng, self.batch_size)
-            batch = self.prepare_sample(idxs)
-            ensemble_batch.append(batch[0])
-
-        return ensemble_batch
-
-
-    def full_batch(self) -> list[TransitionBatch]:
-        ensemble_batch: list[TransitionBatch] = []
-        for _ in range(self._cfg.ensemble):
-            batch = super().full_batch()[0]
+            idxs = self._add_n_most_recent(idxs)
+            batch = self.get_batch(idxs)
             ensemble_batch.append(batch)
 
         return ensemble_batch
+
+    def _add_n_most_recent(self, idxs: np.ndarray) -> np.ndarray:
+        for i, j in enumerate(self.most_recent_online_idxs):
+            idxs[i] = j
+        return idxs
+
+    def get_batch(self, idxs: np.ndarray) -> TransitionBatch:
+        assert self.data is not None
+        sampled_data = [self.data[i][idxs] for i in range(len(self.data))]
+        return self._prepare_batch(idxs, sampled_data)
+
+    def _prepare_batch(self, idxs: np.ndarray, batch: list[torch.Tensor]) -> TransitionBatch:
+        step_attrs = len(StepBatch.__annotations__.keys())
+        prior_step_batch = StepBatch(*batch[:step_attrs])
+        post_step_batch = StepBatch(*batch[step_attrs: step_attrs * 2])
+        return TransitionBatch(
+            idxs,
+            prior_step_batch,
+            post_step_batch,
+            n_step_reward=batch[-2],
+            n_step_gamma=batch[-1],
+        )
 
     @property
     def size(self) -> list[int]:
         return [d.size() for d in self._sub_dists]
 
+    def reset(self) -> None:
+        self.pos = 0
+        self.full = False
 
-buffer_group.dispatcher(MixedHistoryBuffer)
+    def write_buffer_sizes(self):
+        sizes = self.size
+        for i, size in enumerate(sizes):
+            self.app_state.metrics.write(self.app_state.agent_step, metric=f"buffer_{self.id}[{i}]_size", value=size)
 
 
 class MaskedABDistribution:
@@ -113,3 +178,43 @@ class MaskedABDistribution:
 
         self._online.update(elements, ensemble_mask & online_mask)
         self._historical.update(elements, ensemble_mask & ~online_mask)
+
+
+def _to_tensor(elem: object):
+    if (
+            isinstance(elem, torch.Tensor)
+            or isinstance(elem, np.ndarray)
+            or isinstance(elem, list)
+    ):
+        return torch.Tensor(elem)
+    elif elem is None:
+        return torch.empty((1, 0))
+    else:
+        return torch.Tensor([elem])
+
+
+def _get_size(experience: Transition) -> list[tuple]:
+    size = []
+    for elem in experience:
+        if isinstance(elem, np.ndarray):
+            size.append(elem.shape)
+        elif isinstance(elem, torch.Tensor):
+            size.append(tuple(elem.shape))
+        elif isinstance(elem, int) or isinstance(elem, float) or isinstance(elem, bool):
+            size.append((1,))
+        elif isinstance(elem, list):
+            size.append((len(elem),))
+        else:
+            raise TypeError(f"unknown type {type(elem)}")
+
+    return size
+
+
+buffer_group = Group[
+    [AppState], MixedHistoryBuffer
+]()
+
+buffer_group.dispatcher(MixedHistoryBuffer)
+
+def init_buffer(cfg: MixedHistoryBufferConfig, app_state: AppState):
+    return buffer_group.dispatch(cfg, app_state)
