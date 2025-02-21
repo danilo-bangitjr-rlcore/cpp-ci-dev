@@ -75,8 +75,8 @@ class ThreeTankEnv(gym.Env):
         self.H_t_unfilt = np.zeros(2)
         self.target_counter = self.cfg.steps_between_target_updates
 
-        self.action_space = gym.spaces.Box(np.zeros(2), np.ones(2) * 100)
-        self.observation_space = gym.spaces.Box(np.zeros(5), np.ones(5) * self.constants.H_Max)
+        self.action_space = gym.spaces.Box(np.zeros(2), np.ones(2) * 100, dtype=np.float64)
+        self.observation_space = gym.spaces.Box(np.zeros(5), np.ones(5) * self.constants.H_Max, dtype=np.float64)
 
     def step(self, action: np.ndarray):
         # Calculate the next step 
@@ -95,9 +95,9 @@ class ThreeTankEnv(gym.Env):
         options: dict[str, Any] | None = None,
     ):
         super().reset(seed=seed)
-        self.H = self.np_random.random(3) * self.constants.H_Max
-        self.H_t = self.np_random.random(2) * self.constants.H_Max
-        self.H_t_unfilt = self.H_t
+        self.H[:] = self.np_random.random(3) * self.constants.H_Max
+        self.H_t[:] = self.np_random.random(2) * self.constants.H_Max
+        self.H_t_unfilt[:] = self.H_t
         self.target_counter = self.cfg.steps_between_target_updates
 
         return np.hstack([self.H,self.H_t]), {}
@@ -129,7 +129,7 @@ class ThreeTankEnv(gym.Env):
         self.H[1] += c.dt * Q_T2 / c.A_T
         self.H[2] += c.dt * Q_T3 / c.A_T
 
-        self.H = np.clip(self.H, np.zeros(3), np.ones(3) * c.H_Max)
+        self.H[:] = np.clip(self.H, np.zeros(3), np.ones(3) * c.H_Max)
 
     def update_target_heights(self):
         if self.target_counter is not None:
