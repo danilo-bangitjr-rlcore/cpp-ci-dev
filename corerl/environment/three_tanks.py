@@ -108,13 +108,16 @@ class ThreeTankEnv(gym.Env):
         H_1, H_2, H_3 = self.H
         P_1, P_2 = action
         def delta_valve(H_a: float, H_b: float, H_v: float):
+            # Difference in tank height above a given valve height
             return max( H_a - H_v, 0) - max( H_b - H_v, 0)
-        def Q_valve(C: float, dv: float):
-            return C * c.A_V * np.sign(dv) * np.sqrt(2 * c.g * np.abs(dv))
+        def Q_valve(C: float, dh: float):
+            # Valve flow given a difference in height across the valve
+            return C * c.A_V * np.sign(dh) * np.sqrt(2 * c.g * np.abs(dh))
 
+        # Flow through the pumps
         Q_P1 = c.K_1 * P_1
         Q_P2 = c.K_2 * P_2
-
+        # Flow through each of the valves (see Fig. 4 in the paper)
         Q_V1 = Q_valve(c.C_V12, delta_valve(H_2, H_1, c.H_V12))
         Q_V2 = Q_valve(c.C_V12, delta_valve(H_2, H_3, c.H_V12))
         Q_V3 = Q_valve(c.C_V3,  delta_valve(H_2, H_1, c.H_V34))
@@ -122,15 +125,19 @@ class ThreeTankEnv(gym.Env):
         Q_V5 = -c.C_V5 * c.A_V * np.sqrt(2 * c.g * H_1)
         Q_V7 = -c.C_V7 * c.A_V * np.sqrt(2 * c.g * H_2)
         Q_V9 = -c.C_V9 * c.A_V * np.sqrt(2 * c.g * H_3)
-
+        # Cumulative flow into each tank
         Q_T1 =  Q_V1 + Q_V3 + Q_V5 + Q_P1
         Q_T2 = -Q_V1 - Q_V2 - Q_V3 - Q_V4 + Q_V7
         Q_T3 =  Q_V2 + Q_V4 + Q_V9 + Q_P2
 
+        # Update each tank height based on cumulative flow
         self.H[0] += c.dt * Q_T1 / c.A_T
         self.H[1] += c.dt * Q_T2 / c.A_T
         self.H[2] += c.dt * Q_T3 / c.A_T
 
+        # Clip the heights based on the max height of the tanks
+        # Note: This is not in the paper, but we assume the presence
+        # of a large overflow drain at the top of the tanks
         self.H[:] = np.clip(self.H, np.zeros(3), np.ones(3) * c.H_Max)
 
     def update_target_heights(self):
