@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
-from corerl.configs.config import MISSING, computed, config, sanitizer
+from corerl.configs.config import MISSING, computed, config, post_processor
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.utils.maybe import Maybe
 
@@ -54,19 +54,19 @@ class RewardConfig:
     # ----------------
     # -- Validators --
     # ----------------
-    @sanitizer
+    @post_processor
     def _check_optimization(self, cfg: MainConfig):
         for priority in self.priorities[:-1]:
             assert not isinstance(priority, Optimization), 'Optimization can only be applied to the last priority'
 
         assert isinstance(self.priorities[-1], Optimization), 'Last priority must be an optimization'
 
-    @sanitizer
+    @post_processor
     def _check_tags_exist(self, cfg: MainConfig):
         known_tags = set(tag.name for tag in cfg.pipeline.tags)
         _assert_tags_exist(self.priorities, known_tags)
 
-    @sanitizer
+    @post_processor
     def _check_in_range(self, cfg: MainConfig):
         for priority in self.priorities:
             _assert_tag_in_range(priority, cfg.pipeline.tags)

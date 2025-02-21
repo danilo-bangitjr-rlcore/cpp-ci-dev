@@ -4,7 +4,7 @@ from pydantic import Field
 
 from corerl.agent import AgentConfig
 from corerl.agent.random import RandomAgentConfig
-from corerl.configs.config import MISSING, config, sanitizer
+from corerl.configs.config import MISSING, config, post_processor
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.data_pipeline.transforms import AddRawConfig, BoundsConfig, DeltaConfig, NormalizerConfig
 from corerl.environment.async_env.factory import AsyncEnvConfig
@@ -67,7 +67,7 @@ class MainConfig:
     # ---------------
     # -- Computeds --
     # ---------------
-    @sanitizer
+    @post_processor
     def _enable_delta_actions(self, cfg: 'MainConfig'):
         if not self.feature_flags.delta_actions:
             assert self.agent.delta_action is False, \
