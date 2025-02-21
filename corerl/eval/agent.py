@@ -5,6 +5,7 @@ import numpy as np
 import torch
 
 from corerl.agent.ac_utils import get_percentile_threshold, get_q_for_sample, sample_actions, unsqueeze_repeat
+from corerl.agent.base import BaseAgent
 from corerl.agent.greedy_ac import (
     GreedyAC,
 )
@@ -23,7 +24,7 @@ EvalFn = Callable[Concatenate[T, GreedyAC, P], Sequence[torch.Tensor]]
 
 def agent_eval(
     app_state: AppState,
-    agent: GreedyAC,
+    agent: BaseAgent,
     cfg_lens : Callable[[AppState], T],
     eval_fn: EvalFn[T, P],
     metric_names: list[str],
@@ -34,6 +35,9 @@ def agent_eval(
     cfg = cfg_lens(app_state)
 
     if not cfg.enabled:
+        return
+
+    if not isinstance(agent, GreedyAC):
         return
 
     metrics_tuple = eval_fn(cfg, agent, *args, **kwargs)
@@ -117,7 +121,7 @@ def _policy_variance(
     sampler_sample_var = torch.var(sampled_actions, dim=0)
     return actor_sample_var, sampler_sample_var
 
-def policy_variance(app_state: AppState, agent: GreedyAC, state: torch.Tensor):
+def policy_variance(app_state: AppState, agent: BaseAgent, state: np.ndarray | torch.Tensor):
     return agent_eval(
         app_state,
         agent,
@@ -151,7 +155,12 @@ def _q_online(
 
     return q, qs
 
-def q_online(app_state: AppState, agent: GreedyAC, state: torch.Tensor, direct_action: torch.Tensor):
+def q_online(
+        app_state: AppState,
+        agent: BaseAgent,
+        state: np.ndarray | torch.Tensor,
+        direct_action: np.ndarray | torch.Tensor,
+    ):
     return agent_eval(
         app_state,
         agent,
@@ -232,7 +241,12 @@ def _greed_dist(
 
     return (distances,)
 
-def greed_dist_online(app_state: AppState, agent: GreedyAC, states: torch.Tensor, direct_actions: torch.Tensor):
+def greed_dist_online(
+        app_state: AppState,
+        agent: BaseAgent,
+        states: np.ndarray | torch.Tensor,
+        direct_actions: np.ndarray | torch.Tensor,
+    ):
     return agent_eval(
         app_state,
         agent,
@@ -244,7 +258,7 @@ def greed_dist_online(app_state: AppState, agent: GreedyAC, states: torch.Tensor
     )
 
 
-def greed_dist_batch(app_state: AppState, agent: GreedyAC):
+def greed_dist_batch(app_state: AppState, agent: BaseAgent):
     return agent_eval(
         app_state,
         agent,
@@ -264,8 +278,8 @@ class GreedValuesConfig:
 def _greed_values(
     cfg : GreedValuesConfig,
     agent: GreedyAC,
-    states: torch.Tensor,
-    direct_actions: torch.Tensor,
+    states: np.ndarray | torch.Tensor,
+    direct_actions: np.ndarray | torch.Tensor,
 ) -> Sequence[torch.Tensor]:
     """
     Returns the average q value of actions sampled from the policy that are above a threshold
@@ -306,7 +320,12 @@ def _greed_values(
     x = torch.mean(act_q_vals_2d - percentile_q_threshold.unsqueeze(1), dim=1)
     return (x,)
 
-def greed_values_online(app_state: AppState, agent: GreedyAC, states: torch.Tensor, direct_actions: torch.Tensor):
+def greed_values_online(
+        app_state: AppState,
+        agent: BaseAgent,
+        states: np.ndarray | torch.Tensor,
+        direct_actions: np.ndarray | torch.Tensor
+    ):
     return agent_eval(
         app_state,
         agent,
@@ -317,7 +336,7 @@ def greed_values_online(app_state: AppState, agent: GreedyAC, states: torch.Tens
         direct_actions=direct_actions,
     )
 
-def greed_values_batch(app_state: AppState, agent: GreedyAC):
+def greed_values_batch(app_state: AppState, agent: BaseAgent):
     return agent_eval(
         app_state,
         agent,

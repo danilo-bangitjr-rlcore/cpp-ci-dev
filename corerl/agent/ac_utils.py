@@ -1,13 +1,16 @@
+import logging
 from math import floor
 
 import torch
 from jaxtyping import Float
 
 from corerl.agent.base import BaseAC
-from corerl.agent.greedy_ac import EPSILON, logger
 from corerl.component.actor.base_actor import BaseActor
 from corerl.utils.device import device
 
+logger = logging.getLogger(__name__)
+
+EPSILON = 1e-6
 
 def get_q_for_sample(
         agent: BaseAC,
