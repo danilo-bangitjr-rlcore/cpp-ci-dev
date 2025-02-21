@@ -1,17 +1,12 @@
 from collections.abc import Sequence
-from functools import partial
-from typing import Callable, Concatenate, ParamSpec, Protocol, TypeVar
+from typing import Callable, Concatenate, ParamSpec, Protocol, SupportsFloat, TypeVar
 
 import numpy as np
 import torch
 
-from corerl.agent.base import BaseAC, BaseAgent
+from corerl.agent.ac_utils import get_percentile_threshold, get_q_for_sample, sample_actions, unsqueeze_repeat
 from corerl.agent.greedy_ac import (
     GreedyAC,
-    get_percentile_threshold,
-    get_q_for_sample,
-    sample_actions,
-    unsqueeze_repeat,
 )
 from corerl.configs.config import config
 from corerl.state import AppState
@@ -28,7 +23,7 @@ EvalFn = Callable[Concatenate[T, GreedyAC, P], Sequence[torch.Tensor]]
 
 def agent_eval(
     app_state: AppState,
-    agent: BaseAgent,
+    agent: GreedyAC,
     cfg_lens : Callable[[AppState], T],
     eval_fn: EvalFn[T, P],
     metric_names: list[str],
@@ -41,51 +36,25 @@ def agent_eval(
     if not cfg.enabled:
         return
 
-    if not isinstance(agent, GreedyAC):
-        return
-
-    if kwargs is None:
-        kwargs = {}
-
     metrics_tuple = eval_fn(cfg, agent, *args, **kwargs)
 
     if len(metrics_tuple) == 0:
         return
 
-    assert len(metrics_tuple) == len(metric_names)
-
-    for metric_i, metrics  in enumerate(metrics_tuple):
-        metric_name = metric_names[metric_i]
-        if metrics.numel() == 1:
-            app_state.metrics.write(
-                agent_step=app_state.agent_step,
-                metric=metric_name,
-                value=metrics.max(),
-            )
+    for name, values in zip(metric_names, metrics_tuple, strict=True):
+        metrics: dict[str, SupportsFloat] = {}
+        if values.numel() == 1:
+            metrics[name] = values.max()
         else:
-            app_state.metrics.write(
-                agent_step=app_state.agent_step,
-                metric=f"{metric_name}_min",
-                value=metrics.min(),
-            )
+            metrics = {
+                f'{name}_max':  values.max(),
+                f'{name}_min':  values.min(),
+                f'{name}_mean': values.mean(),
+                f'{name}_var':  values.var(),
+            }
 
-            app_state.metrics.write(
-                agent_step=app_state.agent_step,
-                metric=f"{metric_name}_max",
-                value=metrics.max(),
-            )
-
-            app_state.metrics.write(
-                agent_step=app_state.agent_step,
-                metric=f"{metric_name}_mean",
-                value=metrics.mean(),
-            )
-
-            app_state.metrics.write(
-                agent_step=app_state.agent_step,
-                metric=f"{metric_name}_var",
-                value=metrics.var(),
-            )
+        for k, v in metrics.items():
+            app_state.metrics.write(app_state.agent_step, k, v)
 
 SAEvalFn = Callable[[T, GreedyAC, torch.Tensor, torch.Tensor], Sequence[torch.Tensor]]
 BatchSAEvalFn = Callable[[EvalConfig, GreedyAC], Sequence[torch.Tensor]]
@@ -148,15 +117,12 @@ def _policy_variance(
     sampler_sample_var = torch.var(sampled_actions, dim=0)
     return actor_sample_var, sampler_sample_var
 
-def policy_variance(app_state: AppState, agent: BaseAgent, state: torch.Tensor):
+def policy_variance(app_state: AppState, agent: GreedyAC, state: torch.Tensor):
     return agent_eval(
         app_state,
         agent,
         cfg_lens=lambda app_state: app_state.cfg.eval_cfgs.policy_variance,
         eval_fn=_policy_variance,
-        metric_names=['actor_var', 'sampler_var'],
-        state=state,
-    )
         metric_names=['actor_var', 'sampler_var'],
         state=state,
     )
@@ -169,7 +135,7 @@ class QOnlineConfig:
 
 def _q_online(
     cfg: QOnlineConfig,
-    agent: BaseAC,
+    agent: GreedyAC,
     state: np.ndarray | torch.Tensor,
     direct_action: np.ndarray | torch.Tensor,
 )-> Sequence[torch.Tensor]:
@@ -185,24 +151,12 @@ def _q_online(
 
     return q, qs
 
-def q_online(app_state: AppState, agent: BaseAgent, state: torch.Tensor, direct_action: torch.Tensor):
+def q_online(app_state: AppState, agent: GreedyAC, state: torch.Tensor, direct_action: torch.Tensor):
     return agent_eval(
         app_state,
         agent,
         cfg_lens=lambda app_state: app_state.cfg.eval_cfgs.q_online,
         eval_fn=_q_online,
-        metric_names=['q', 'q_ensemble'],
-        state=state,
-        direct_action=direct_action,
-    )
-        metric_names=['q', 'q_ensemble'],
-        state=state,
-        direct_action=direct_action,
-    )
-        metric_names=['q', 'q_ensemble'],
-        state=state,
-        direct_action=direct_action,
-    )
         metric_names=['q', 'q_ensemble'],
         state=state,
         direct_action=direct_action,
@@ -278,19 +232,26 @@ def _greed_dist(
 
     return (distances,)
 
-greed_dist_online = partial(
-    agent_eval,
-    cfg_lens = lambda app_state: app_state.cfg.eval_cfgs.greed_dist_online,
-    eval_fn = _greed_dist,
-    metric_names = ['greed_dist_online']
-)
+def greed_dist_online(app_state: AppState, agent: GreedyAC, states: torch.Tensor, direct_actions: torch.Tensor):
+    return agent_eval(
+        app_state,
+        agent,
+        cfg_lens=lambda app_state: app_state.cfg.eval_cfgs.greed_dist_online,
+        eval_fn=_greed_dist,
+        metric_names=['greed_dist_online'],
+        states=states,
+        direct_actions=direct_actions,
+    )
 
-greed_dist_batch = partial(
-    agent_eval,
-    cfg_lens = lambda app_state: app_state.cfg.eval_cfgs.greed_dist_batch,
-    eval_fn = policy_buffer_batchify(_greed_dist),
-    metric_names = ['greed_dist_batch']
-)
+
+def greed_dist_batch(app_state: AppState, agent: GreedyAC):
+    return agent_eval(
+        app_state,
+        agent,
+        cfg_lens=lambda app_state: app_state.cfg.eval_cfgs.greed_dist_batch,
+        eval_fn=policy_buffer_batchify(_greed_dist),
+        metric_names=['greed_dist_batch'],
+    )
 
 # ------------------------------- Greed Values ------------------------------ #
 
@@ -345,18 +306,23 @@ def _greed_values(
     x = torch.mean(act_q_vals_2d - percentile_q_threshold.unsqueeze(1), dim=1)
     return (x,)
 
-greed_values_online = partial(
-    agent_eval,
-    cfg_lens = lambda app_state: app_state.cfg.eval_cfgs.greed_percent_online,
-    eval_fn = _greed_values,
-    metric_names = ['greed_values_online']
-)
+def greed_values_online(app_state: AppState, agent: GreedyAC, states: torch.Tensor, direct_actions: torch.Tensor):
+    return agent_eval(
+        app_state,
+        agent,
+        cfg_lens=lambda app_state: app_state.cfg.eval_cfgs.greed_percent_online,
+        eval_fn=_greed_values,
+        metric_names=['greed_values_online'],
+        states=states,
+        direct_actions=direct_actions,
+    )
 
-greed_values_batch = partial(
-    agent_eval,
-    cfg_lens = lambda app_state: app_state.cfg.eval_cfgs.greed_percent_batch,
-    eval_fn = policy_buffer_batchify(_greed_values),
-    metric_names = ['greed_values_batch']
-)
-
+def greed_values_batch(app_state: AppState, agent: GreedyAC):
+    return agent_eval(
+        app_state,
+        agent,
+        cfg_lens=lambda app_state: app_state.cfg.eval_cfgs.greed_percent_batch,
+        eval_fn=policy_buffer_batchify(_greed_values),
+        metric_names=['greed_values_batch'],
+    )
 
