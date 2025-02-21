@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections import deque
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Literal
@@ -37,7 +35,7 @@ class MixedHistoryBufferConfig:
 
     @computed("seed")
     @classmethod
-    def _seed(cls, cfg: MainConfig):
+    def _seed(cls, cfg: "MainConfig"):
         return cfg.experiment.seed
 
 
@@ -52,6 +50,7 @@ class MixedHistoryBuffer:
         self.app_state = app_state
 
         assert cfg.n_most_recent <= self.batch_size
+        self.n_most_recent = cfg.n_most_recent
 
         self.data = None
         self.pos = 0
@@ -90,7 +89,7 @@ class MixedHistoryBuffer:
         # update the most_recent_idxs
         if data_mode == DataMode.ONLINE:
             for i in idxs:
-                self.most_recent_online_idxs.appendleft(i)
+                self.most_recent_online_idxs.appendleft(int(i))
 
         return idxs
 
@@ -203,12 +202,3 @@ def _get_size(experience: Transition) -> list[tuple]:
             raise TypeError(f"unknown type {type(elem)}")
 
     return size
-
-
-buffer_group = Group[[AppState], MixedHistoryBuffer]()
-
-buffer_group.dispatcher(MixedHistoryBuffer)
-
-
-def init_buffer(cfg: MixedHistoryBufferConfig, app_state: AppState):
-    return buffer_group.dispatch(cfg, app_state)
