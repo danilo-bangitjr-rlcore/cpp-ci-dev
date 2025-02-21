@@ -254,6 +254,7 @@ class Pipeline:
                 hook(pf)
 
             pf = self._stage_invokers[stage](pf)
+            pf.last_stage = stage
 
             for hook in self._post_invoke_hooks[data_mode][stage]:
                 hook(pf)

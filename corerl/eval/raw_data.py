@@ -111,6 +111,10 @@ def raw_data_eval(
 
     result_dict: dict[str, dict[str, float]] = {}
     df = pf.data
+    dm = pf.data_mode.name
+    ls = pf.last_stage
+    assert ls is not None
+    sc = ls.name
     for tag in cfg.tags:
         if tag not in df.columns:
             logging.warning(f"Tag {tag} not found in data frame columns.")
@@ -121,7 +125,7 @@ def raw_data_eval(
         for stat_name, stat_value in stat_dict.items():
             app_state.metrics.write(
                 agent_step=app_state.agent_step,
-                metric=f'{tag}_{stat_name}',
+                metric=f'pipeline_{dm}_{sc}_{tag}_{stat_name}',
                 value=stat_value,
             )
 

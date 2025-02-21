@@ -1,3 +1,15 @@
+## 0.111.0 (2025-02-21)
+
+### Feat
+
+- behavior test config for delayed saturation
+- register delayed saturation
+- start delayed saturation from okay state
+
+### Fix
+
+- bugs in multi action saturation
+
 ## 0.110.0 (2025-02-20)
 
 ### Feat
