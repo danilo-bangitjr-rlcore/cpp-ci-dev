@@ -13,7 +13,7 @@ class ThreeTankConfig:
                                                     #   2: updates every other step
     target_filter_alpha: float = 0.9 # Filter the target values to ensure smooth updates
                                      #    0: No filtering
-                                     #    1: Target won't change 
+                                     #    1: Target won't change
 
 @dataclass
 class ThreeTankConstants:
@@ -21,7 +21,7 @@ class ThreeTankConstants:
     g: float = 983.991  # gravitational constant [cm/s^2]
     A_T: float = 180.54 # tank x-sectional area [cm^2]
     A_V: float = 0.385   # valve x-sectional area [cm^2]
-    H_Max: float = 43.1 # Max water height of the tanks [cm] 
+    H_Max: float = 43.1 # Max water height of the tanks [cm]
                         # Note: this was not in the paper, we chose a reasonable value
     H_V12: float = 30.6 # Height of valve 1 and 2 from the tank bottom [cm]
     H_V34: float = 15.3 # Height of valve 3 and 4 from the tank bottom [cm]
@@ -37,18 +37,18 @@ class ThreeTankConstants:
 
 class ThreeTankEnv(gym.Env):
     """
-    A Three Tank Environment with PID Controller. 
+    A Three Tank Environment with PID Controller.
     Taken from: https://www.sciencedirect.com/science/article/pii/S0959152421000950#sec4
-    The flow from pumps 1 and 2 is controlled in order to track target heights in 
+    The flow from pumps 1 and 2 is controlled in order to track target heights in
     tanks 1 and 3 respectively. The 3 tanks are connected with level-dependent connections
     and are each connected to a central drain reservoir
 
          ┌───────┐
-         │Pump 1 │ 
+         │Pump 1 │
          └───┬───┘
              │
    ┌─┐  ┌────┴────┐
-   │R├──┤ Tank 1  │ 
+   │R├──┤ Tank 1  │
    │e│ ┌┴────┬──┬─┘
    │s│ │     │  │
    │e│ └┬────┴──┴─┐
@@ -62,7 +62,7 @@ class ThreeTankEnv(gym.Env):
          ┌───┴───┐
          │Pump 2 │
          └───────┘
-    
+
     States: [H_1, H_2, H_3, H1_SP, H3_SP] (Tank heights and setpoint heights)
     Actions: [p_1, p_2] (Pump flowrates)
     """
@@ -79,7 +79,7 @@ class ThreeTankEnv(gym.Env):
         self.observation_space = gym.spaces.Box(np.zeros(5), np.ones(5) * self.constants.H_Max, dtype=np.float64)
 
     def step(self, action: np.ndarray):
-        # Calculate the next step 
+        # Calculate the next step
 
         self.update_tank_heights(action)
         reward = self.calc_reward()
@@ -87,7 +87,7 @@ class ThreeTankEnv(gym.Env):
         self.update_target_heights()
 
         return np.hstack([self.H,self.H_t]), reward, False, False, {}
-    
+
     def reset(
         self,
         *,
@@ -107,8 +107,10 @@ class ThreeTankEnv(gym.Env):
         c = self.constants
         H_1, H_2, H_3 = self.H
         P_1, P_2 = action
-        delta_valve = lambda H_a, H_b, H_v: max( H_a - H_v, 0) - max( H_b - H_v, 0)
-        Q_valve = lambda C, dv: C * c.A_V * np.sign(dv) * np.sqrt(2 * c.g * np.abs(dv))
+        def delta_valve(H_a: float, H_b: float, H_v: float): 
+            return max( H_a - H_v, 0) - max( H_b - H_v, 0)
+        def Q_valve(C: float, dv: float): 
+            return C * c.A_V * np.sign(dv) * np.sqrt(2 * c.g * np.abs(dv))
 
         Q_P1 = c.K_1 * P_1
         Q_P2 = c.K_2 * P_2
@@ -133,7 +135,7 @@ class ThreeTankEnv(gym.Env):
 
     def update_target_heights(self):
         if self.target_counter is not None:
-            # Update the setpoints at a fixed interval 
+            # Update the setpoints at a fixed interval
             self.target_counter = self.target_counter - 1
 
             if self.target_counter <= 0:
