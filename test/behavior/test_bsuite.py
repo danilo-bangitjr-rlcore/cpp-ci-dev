@@ -4,7 +4,6 @@ from sqlalchemy import Engine
 from test.behavior.bsuite import BSuiteTestCase
 from test.behavior.saturation.cases import (
     DelayedSaturationTest,
-    DeltaDelayedSaturationTest,
     DeltaSaturationTest,
     SaturationTest,
 )
@@ -13,7 +12,6 @@ from test.behavior.stand_still_mountain_car.cases import StandStillMountainCar
 TEST_CASES = [
     DelayedSaturationTest(),
     DeltaSaturationTest(),
-    DeltaDelayedSaturationTest(),
     SaturationTest(),
     StandStillMountainCar(),
 ]

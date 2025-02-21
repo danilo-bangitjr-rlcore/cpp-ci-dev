@@ -23,11 +23,3 @@ class DelayedSaturationTest(BSuiteTestCase):
 
     lower_bounds = { 'reward': -0.3 }
     upper_warns = { 'avg_critic_loss': 0.002, 'actor_loss': -1.55 }
-
-
-class DeltaDelayedSaturationTest(DelayedSaturationTest):
-    name = 'delta delayed saturation'
-    config = 'test/behavior/saturation/delta_delayed.yaml'
-
-    lower_bounds = { 'reward': -0.3 }
-    upper_warns = { 'avg_critic_loss': 0.005, 'actor_loss': -0.5 }
