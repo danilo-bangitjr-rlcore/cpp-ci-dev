@@ -24,7 +24,7 @@ class DelayedSaturation(gym.Env):
         self._obs_max = np.array([1.])
         self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max)
 
-        self.saturation = np.array([0.])
+        self.saturation = np.array([0.5])
         self.saturation_sp = np.array([0.5])
         self.effect_period = cfg.effect_period
 
@@ -87,3 +87,9 @@ class DelayedSaturation(gym.Env):
 
     def close(self):
         pass
+
+gym.register(
+    id='DelayedSaturation-v0',
+    entry_point='corerl.environment.delayed_saturation:DelayedSaturation',
+    kwargs={'cfg': DelayedSaturationConfig()}
+)

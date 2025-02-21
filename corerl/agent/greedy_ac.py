@@ -206,7 +206,7 @@ class GreedyAC(BaseAC):
         for t in pr.transitions:
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
-                metric="transition_len",
+                metric="pipeline_transition_len",
                 value=len(t),
             )
 

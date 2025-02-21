@@ -14,7 +14,7 @@ import pandas as pd
 from pandas import DataFrame
 from pydantic import Field
 
-from corerl.configs.config import MISSING, computed, config, list_, sanitizer
+from corerl.configs.config import MISSING, computed, config, list_, post_processor
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
@@ -55,7 +55,7 @@ class PipelineConfig:
     reward: RewardConfig | None = None
 
 
-    @sanitizer
+    @post_processor
     def _default_imputers(self, cfg: MainConfig):
         if not isinstance(self.imputer, PerTagImputerConfig):
             return
@@ -66,7 +66,7 @@ class PipelineConfig:
 
             tag.imputer = self.imputer.default
 
-    @sanitizer
+    @post_processor
     def _default_oddity_filter(self, cfg: MainConfig):
         for tag in self.tags:
             if tag.outlier is not None:
@@ -254,6 +254,7 @@ class Pipeline:
                 hook(pf)
 
             pf = self._stage_invokers[stage](pf)
+            pf.last_stage = stage
 
             for hook in self._post_invoke_hooks[data_mode][stage]:
                 hook(pf)
