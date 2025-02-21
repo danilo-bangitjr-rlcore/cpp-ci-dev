@@ -9,7 +9,6 @@ from discrete_dists.proportional import Proportional
 from numpy.random._generator import Generator as Generator
 
 from corerl.configs.config import MISSING, computed, config
-from corerl.configs.group import Group
 from corerl.data_pipeline.datatypes import DataMode, StepBatch, Transition, TransitionBatch
 from corerl.state import AppState
 from corerl.utils.device import device
