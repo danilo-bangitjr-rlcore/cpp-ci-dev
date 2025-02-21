@@ -1,6 +1,7 @@
 import datetime as dt
+from collections import namedtuple
 from pathlib import Path
-from typing import Any, Iterable, cast
+from typing import Iterable, cast
 
 import pandas as pd
 from cloudpathlib import CloudPath, S3Client, S3Path
@@ -8,6 +9,7 @@ from cloudpathlib.enums import FileCacheMode
 
 from corerl.configs.config import config, list_
 
+SQLEntry = namedtuple('SQLEntry', ['time', 'val', 'tag'])
 
 @config()
 class VictoriaWWConfig:
@@ -37,19 +39,18 @@ def get_last_timestamp(series_list: list[pd.Series]) -> dt.datetime:
 
     return global_last_timestamp
 
-def _get_sql_tups_between_timestamps(
-    dl_cfg: VictoriaWWConfig,
+def _copy_tag_val_between_timestamps(
     start: dt.datetime,
     end: dt.datetime,
+    step: dt.timedelta,
     tag_name: str,
     value: float
-) -> list[tuple[Any, ...]]:
+) -> list[SQLEntry]:
     sql_tups = []
     curr_time = start
-    delta = dl_cfg.default_tag_freq
     while curr_time < end:
-        sql_tups.append((curr_time, float(value), tag_name))
-        curr_time += delta
+        sql_tups.append(SQLEntry(curr_time, float(value), tag_name))
+        curr_time += step
 
     return sql_tups
 
@@ -57,7 +58,7 @@ def _parse_setpoint_change_data(
     dl_cfg: VictoriaWWConfig,
     column: pd.Series,
     final_timestamp: dt.datetime
-) -> list[tuple[Any, ...]]:
+) -> list[SQLEntry]:
     """
     Parse tags that only have entries at setpoint changes
     """
@@ -73,7 +74,11 @@ def _parse_setpoint_change_data(
         curr_val = column.iloc[current_idx]
         next_timestamp = column.index[next_idx]
         next_timestamp = cast(dt.datetime, next_timestamp)
-        sql_tups += _get_sql_tups_between_timestamps(dl_cfg, current_timestamp, next_timestamp, tag_name, curr_val)
+        sql_tups += _copy_tag_val_between_timestamps(current_timestamp,
+                                                     next_timestamp,
+                                                     dl_cfg.default_tag_freq,
+                                                     tag_name,
+                                                     curr_val)
         current_idx += 1
         next_idx += 1
 
@@ -81,20 +86,24 @@ def _parse_setpoint_change_data(
     current_timestamp = column.index[current_idx]
     current_timestamp = cast(dt.datetime, current_timestamp)
     curr_val = column.iloc[current_idx]
-    sql_tups += _get_sql_tups_between_timestamps(dl_cfg, current_timestamp, final_timestamp, tag_name, curr_val)
+    sql_tups += _copy_tag_val_between_timestamps(current_timestamp,
+                                                 final_timestamp,
+                                                 dl_cfg.default_tag_freq,
+                                                 tag_name,
+                                                 curr_val)
 
     return  sql_tups
 
 def _series_to_sql_tups(
     series: pd.Series
-) -> list[tuple[Any, ...]]:
+) -> list[SQLEntry]:
     """
     Converting pd.Series into (timestamp, tag_name, value) tuples
     """
     tag = series.name
     df = series.to_frame()
     df["Tag"] = [tag] * len(df)
-    sql_tups = list(df.itertuples(index=True, name=None))
+    sql_tups = list(map(lambda tup: SQLEntry(*tup), df.itertuples(index=True, name=None)))
 
     return sql_tups
 
@@ -102,7 +111,7 @@ def get_sql_tups(
     dl_cfg: VictoriaWWConfig,
     series_list: list[pd.Series],
     last_timestamp: dt.datetime
-) -> list[tuple[Any, ...]]:
+) -> list[SQLEntry]:
     sql_tups = []
     for series in series_list:
         tag_name = series.name

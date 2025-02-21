@@ -1,5 +1,3 @@
-from typing import Any
-
 import utils.data as utils
 
 from corerl.config import DBConfig
@@ -7,7 +5,7 @@ from corerl.configs.loader import load_config
 from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 
 
-def _load_dataset_from_s3(dl_cfg: utils.VictoriaWWConfig) -> list[tuple[Any, ...]]:
+def _load_dataset_from_s3(dl_cfg: utils.VictoriaWWConfig) -> list[utils.SQLEntry]:
     """
     Read excel files from s3, preprocess the data, and convert into (timestamp, tag, value) tuples
     """
@@ -32,7 +30,7 @@ def load_dataset(dl_cfg: utils.VictoriaWWConfig, db_cfg: TagDBConfig):
     )
 
     for sql_tup in sql_tups:
-        writer.write(timestamp=sql_tup[0], name=sql_tup[2], val=sql_tup[1])
+        writer.write(timestamp=sql_tup.time, name=sql_tup.tag, val=sql_tup.val)
 
     writer.close()
 
