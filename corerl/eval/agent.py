@@ -185,12 +185,16 @@ def _q_online(
 
     return q, qs
 
-q_online = partial(
-    agent_eval,
-    cfg_lens = lambda app_state: app_state.cfg.eval_cfgs.q_online,
-    eval_fn = _q_online,
-    metric_names = ['q', 'q_ensemble']
-)
+def q_online(app_state: AppState, agent: BaseAgent, state: torch.Tensor, direct_action: torch.Tensor):
+    return agent_eval(
+        app_state,
+        agent,
+        cfg_lens=lambda app_state: app_state.cfg.eval_cfgs.q_online,
+        eval_fn=_q_online,
+        metric_names=['q', 'q_ensemble'],
+        state=state,
+        direct_action=direct_action,
+    )
 
 # ------------------------------ Greed Dist ------------------------------ #
 
