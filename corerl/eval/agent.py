@@ -195,6 +195,10 @@ def q_online(app_state: AppState, agent: BaseAgent, state: torch.Tensor, direct_
         state=state,
         direct_action=direct_action,
     )
+        metric_names=['q', 'q_ensemble'],
+        state=state,
+        direct_action=direct_action,
+    )
 
 # ------------------------------ Greed Dist ------------------------------ #
 
