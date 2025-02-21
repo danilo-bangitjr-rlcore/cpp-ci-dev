@@ -107,9 +107,9 @@ class ThreeTankEnv(gym.Env):
         c = self.constants
         H_1, H_2, H_3 = self.H
         P_1, P_2 = action
-        def delta_valve(H_a: float, H_b: float, H_v: float): 
+        def delta_valve(H_a: float, H_b: float, H_v: float):
             return max( H_a - H_v, 0) - max( H_b - H_v, 0)
-        def Q_valve(C: float, dv: float): 
+        def Q_valve(C: float, dv: float):
             return C * c.A_V * np.sign(dv) * np.sqrt(2 * c.g * np.abs(dv))
 
         Q_P1 = c.K_1 * P_1
