@@ -3,7 +3,8 @@ from math import floor
 import pytest
 import torch
 
-from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig, get_percentile_inds, sample_actions
+from corerl.agent.ac_utils import get_percentile_inds, sample_actions
+from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig
 from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer.ensemble import EnsembleUniformReplayBufferConfig
 from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
