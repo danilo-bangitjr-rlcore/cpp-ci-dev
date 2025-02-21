@@ -157,6 +157,9 @@ def policy_variance(app_state: AppState, agent: BaseAgent, state: torch.Tensor):
         metric_names=['actor_var', 'sampler_var'],
         state=state,
     )
+        metric_names=['actor_var', 'sampler_var'],
+        state=state,
+    )
 
 # ------------------------------ Q Values Online ----------------------------- #
 
