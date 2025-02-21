@@ -12,7 +12,7 @@ from corerl.agent.ac_utils import get_percentile_inds, sample_actions, unsqueeze
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.base_actor import BaseActor
 from corerl.component.actor.factory import init_actor
-from corerl.component.buffer.mixed_history import init_buffer
+from corerl.component.buffer import init_buffer
 from corerl.component.network.utils import state_to_tensor, to_np
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import TransitionBatch

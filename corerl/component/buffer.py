@@ -19,6 +19,7 @@ from corerl.utils.device import device
 if TYPE_CHECKING:
     from corerl.config import MainConfig
 
+
 @config()
 class MixedHistoryBufferConfig:
     name: Literal["mixed_history_buffer"] = "mixed_history_buffer"
@@ -34,7 +35,7 @@ class MixedHistoryBufferConfig:
     n_most_recent: int = 1
     id: str = ""
 
-    @computed('seed')
+    @computed("seed")
     @classmethod
     def _seed(cls, cfg: MainConfig):
         return cfg.experiment.seed
@@ -58,8 +59,7 @@ class MixedHistoryBuffer:
         self.id = cfg.id
 
         self._sub_dists = [
-            MaskedABDistribution(self.memory, cfg.online_weight, cfg.ensemble_probability)
-            for _ in range(cfg.ensemble)
+            MaskedABDistribution(self.memory, cfg.online_weight, cfg.ensemble_probability) for _ in range(cfg.ensemble)
         ]
         self.most_recent_online_idxs = deque(maxlen=cfg.n_most_recent)
 
@@ -120,7 +120,7 @@ class MixedHistoryBuffer:
     def _prepare_batch(self, idxs: np.ndarray, batch: list[torch.Tensor]) -> TransitionBatch:
         step_attrs = len(StepBatch.__annotations__.keys())
         prior_step_batch = StepBatch(*batch[:step_attrs])
-        post_step_batch = StepBatch(*batch[step_attrs: step_attrs * 2])
+        post_step_batch = StepBatch(*batch[step_attrs : step_attrs * 2])
         return TransitionBatch(
             idxs,
             prior_step_batch,
@@ -149,20 +149,19 @@ class MaskedABDistribution:
 
         self._online = Proportional(support)
         self._historical = Proportional(support)
-        self._dist = MixtureDistribution([
-            SubDistribution(d=self._online, p=left_prob),
-            SubDistribution(d=self._historical, p=1-left_prob),
-        ])
+        self._dist = MixtureDistribution(
+            [
+                SubDistribution(d=self._online, p=left_prob),
+                SubDistribution(d=self._historical, p=1 - left_prob),
+            ]
+        )
 
     def size(self):
         # define the number of elements in this buffer
         # as the total number of non-zero elements in either
         # distribution --- represented by the sum of the sumtree
         # since elements are either 1 or 0
-        return int(
-            self._online.tree.total() + \
-            self._historical.tree.total()
-        )
+        return int(self._online.tree.total() + self._historical.tree.total())
 
     def probs(self, elements: np.ndarray) -> np.ndarray:
         return self._dist.probs(elements)
@@ -181,11 +180,7 @@ class MaskedABDistribution:
 
 
 def _to_tensor(elem: object):
-    if (
-            isinstance(elem, torch.Tensor)
-            or isinstance(elem, np.ndarray)
-            or isinstance(elem, list)
-    ):
+    if isinstance(elem, torch.Tensor) or isinstance(elem, np.ndarray) or isinstance(elem, list):
         return torch.Tensor(elem)
     elif elem is None:
         return torch.empty((1, 0))
@@ -210,11 +205,10 @@ def _get_size(experience: Transition) -> list[tuple]:
     return size
 
 
-buffer_group = Group[
-    [AppState], MixedHistoryBuffer
-]()
+buffer_group = Group[[AppState], MixedHistoryBuffer]()
 
 buffer_group.dispatcher(MixedHistoryBuffer)
+
 
 def init_buffer(cfg: MixedHistoryBufferConfig, app_state: AppState):
     return buffer_group.dispatch(cfg, app_state)

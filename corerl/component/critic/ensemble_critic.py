@@ -6,7 +6,7 @@ from pydantic import Field
 
 import corerl.utils.nullable as nullable
 from corerl.component.buffer.factory import BufferConfig
-from corerl.component.buffer.mixed_history import MixedHistoryBufferConfig
+from corerl.component.buffer import MixedHistoryBufferConfig
 from corerl.component.critic.base_critic import BaseCriticConfig, BaseQ, BaseV
 from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
 from corerl.component.network.networks import EnsembleCriticNetworkConfig
