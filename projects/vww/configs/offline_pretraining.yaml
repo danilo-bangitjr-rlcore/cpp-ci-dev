@@ -2,7 +2,12 @@ experiment:
   exp_name: victoria_ww_offline/
   gamma: 0.95
   max_steps: 0 # Offline training
-  offline_steps: 100
+  offline_steps: 1000
+  offline_eval_iters:
+    - 0
+    - 10
+    - 100
+    - 999
   pipeline_batch_duration: 50 days
   save_path: output
   seed: 1
@@ -32,9 +37,14 @@ env:
 metrics:
   enabled: True
 
+evals:
+  enabled: True
+
 eval_cfgs:
-  monte_carlo:
+  actor_critic:
     enabled: True
+  monte_carlo:
+    enabled: False
 
 agent:
   name: greedy_ac
@@ -279,8 +289,9 @@ pipeline:
     - name: "dd1_polymer_dose"
       is_meta: False
       operating_range:
-        - 0.0
-        -
+        - 1.5
+        - 2.5
+      # change_bounds: [-0.2, 0.2]
       preprocess:
         - name: normalize
           min: 1.5
@@ -337,8 +348,9 @@ pipeline:
     - name: "dd1_ferric_dose"
       is_meta: False
       operating_range:
-        - 0.0
-        -
+        - 20.0
+        - 60.0
+      # change_bounds: [-0.2, 0.2]
       preprocess:
         - name: normalize
           min: 20.0
