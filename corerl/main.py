@@ -12,7 +12,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from corerl.agent.factory import init_agent
+from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
@@ -68,7 +68,7 @@ def main(cfg: MainConfig):
     env = init_async_env(cfg.env, cfg.pipeline.tags)
     try:
         column_desc = pipeline.column_descriptions
-        agent = init_agent(
+        agent = GreedyAC(
             cfg.agent,
             app_state,
             column_desc,

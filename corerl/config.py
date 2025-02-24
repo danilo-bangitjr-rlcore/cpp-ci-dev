@@ -2,7 +2,7 @@ from pathlib import Path
 
 from pydantic import Field
 
-from corerl.agent import AgentConfig, GreedyACConfig
+from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.configs.config import MISSING, config, post_processor
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.data_pipeline.transforms import AddRawConfig, BoundsConfig, DeltaConfig, NormalizerConfig
@@ -55,7 +55,7 @@ class MainConfig:
     # -----------
     env: AsyncEnvConfig = MISSING
     interaction: InteractionConfig = MISSING
-    agent: AgentConfig = Field(default_factory=GreedyACConfig, discriminator='name')
+    agent: GreedyACConfig = Field(default_factory=GreedyACConfig, discriminator='name')
 
     # ----------------
     # -- Evaluation --
