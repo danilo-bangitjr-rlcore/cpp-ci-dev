@@ -3,6 +3,7 @@ from pathlib import Path
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
+from corerl.component.buffer.factory import EnsembleUniformReplayBufferConfig, MixedHistoryBufferConfig
 from corerl.configs.config import MISSING, config, post_processor
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.data_pipeline.transforms import AddRawConfig, BoundsConfig, DeltaConfig, NormalizerConfig
@@ -34,6 +35,7 @@ class InfraConfig:
 @config()
 class FeatureFlags:
     delta_actions: bool = False
+    ensemble: int = 1
 
 
 @config()
@@ -90,3 +92,21 @@ class MainConfig:
                 NormalizerConfig(min=tag.change_bounds[0], max=tag.change_bounds[1]),
                 AddRawConfig(),
             ] + tag.action_constructor
+
+    @post_processor
+    def _enable_ensemble(self, cfg: 'MainConfig'):
+        ensemble_size = self.feature_flags.ensemble
+
+        if hasattr(self.agent, 'critic') and isinstance(self.agent, GreedyACConfig):
+            self.agent.critic.critic_network = self.agent.critic.critic_network.__class__(
+                ensemble=ensemble_size,
+                **{k: v for k, v in self.agent.critic.critic_network.__dict__.items() if k != 'ensemble'}
+            )
+
+            buffer_params = {k: v for k, v in self.agent.critic.buffer.__dict__.items()}
+            mixed_history = isinstance(self.agent.critic.buffer, MixedHistoryBufferConfig)
+            ensemble_uniform = isinstance(self.agent.critic.buffer, EnsembleUniformReplayBufferConfig)
+            if mixed_history or ensemble_uniform:
+                buffer_params['ensemble'] = ensemble_size
+            new_buffer_config = self.agent.critic.buffer.__class__(**buffer_params)
+            self.agent.critic.buffer = new_buffer_config
