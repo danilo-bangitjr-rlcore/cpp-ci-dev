@@ -1,6 +1,8 @@
 from collections.abc import Iterable
+from typing import Annotated
 
 import torch
+from pydantic import Field
 
 from corerl.component.optimizers.torch_opts import (
     AdamConfig,
@@ -13,13 +15,13 @@ from corerl.component.optimizers.torch_opts import (
 )
 from corerl.state import AppState
 
-OptimizerConfig = (
+OptimizerConfig = Annotated[
     RmspropConfig
     | AdamConfig
     | SgdConfig
     | ArmijoAdamConfig
     | LSOConfig
-)
+, Field(discriminator='name')]
 
 def init_optimizer(
     cfg: OptimConfig,
