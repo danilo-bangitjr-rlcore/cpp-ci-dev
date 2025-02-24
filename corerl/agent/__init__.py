@@ -4,7 +4,6 @@ from pydantic import Field
 
 from corerl.agent.base import BaseAgent
 from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig
-from corerl.agent.random import RandomAgent, RandomAgentConfig
 from corerl.agent.sac import SAC, SACConfig
 from corerl.agent.sarsa import EpsilonGreedySarsa, EpsilonGreedySarsaConfig
 from corerl.agent.simple_ac import SimpleAC, SimpleACConfig
@@ -19,7 +18,6 @@ agent_group = Group[
 
 AgentConfig = Annotated[
     GreedyACConfig
-    | RandomAgentConfig
     | SACConfig
     | EpsilonGreedySarsaConfig
     | SimpleACConfig
@@ -28,7 +26,6 @@ AgentConfig = Annotated[
 
 def register():
     agent_group.dispatcher(GreedyAC)
-    agent_group.dispatcher(RandomAgent)
     agent_group.dispatcher(SAC)
     agent_group.dispatcher(EpsilonGreedySarsa)
     agent_group.dispatcher(SimpleAC)
