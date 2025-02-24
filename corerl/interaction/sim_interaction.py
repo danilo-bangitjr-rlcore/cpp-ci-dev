@@ -101,6 +101,10 @@ class SimInteraction(Interaction):
     def _on_update(self):
         self._agent.update()
 
+        # metrics + eval
+        agent_eval.greed_dist_batch(self._app_state, self._agent)
+        agent_eval.greed_values_batch(self._app_state, self._agent)
+
     def _on_emit_action(self):
         sa = self._get_latest_state_action()
         assert sa is not None
@@ -115,10 +119,14 @@ class SimInteraction(Interaction):
         self._last_action_df = a_df
 
         # metrics + eval
-        agent_eval.eval_policy_variance(self._app_state, s, self._agent)
-        agent_eval.eval_q_online(self._app_state, s, self._agent, norm_a_df.to_numpy())
+        prev_direct = self._pipeline.action_constructor.get_direct_action(a)
+        curr_direct = norm_a_df.to_numpy()
+        agent_eval.policy_variance(self._app_state, self._agent, s)
+        agent_eval.q_online(self._app_state, self._agent, s, curr_direct)
+        agent_eval.greed_dist_online(self._app_state, self._agent, s, prev_direct)
+        agent_eval.greed_values_online(self._app_state, self._agent, s, prev_direct)
 
-        # log actions
+            # log actions
         self._write_to_metrics(a_df)
 
     # ------------------

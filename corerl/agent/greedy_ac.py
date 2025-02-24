@@ -1,7 +1,6 @@
 import logging
 import pickle as pkl
 from functools import partial
-from math import floor
 from pathlib import Path
 from typing import Literal
 
@@ -9,6 +8,7 @@ import numpy
 import torch
 from jaxtyping import Float
 
+from corerl.agent.ac_utils import get_percentile_inds, sample_actions, unsqueeze_repeat
 from corerl.agent.base import BaseAC, BaseACConfig
 from corerl.component.actor.base_actor import BaseActor
 from corerl.component.actor.factory import init_actor
@@ -27,79 +27,6 @@ logger = logging.getLogger(__name__)
 torch.autograd.set_detect_anomaly(True)
 
 EPSILON = 1e-6
-
-
-# --------------------------------- Utilities -------------------------------- #
-def unsqueeze_repeat(tensor: torch.Tensor, dim: int, repeats: int) -> torch.Tensor:
-    tensor = tensor.unsqueeze(dim)
-    tensor = tensor.repeat_interleave(repeats, dim=dim)
-    return tensor
-
-
-def sample_actions(
-    state_batch: Float[torch.Tensor, "batch_size state_dim"],
-    policy: BaseActor,
-    n_samples: int,
-    action_dim: int,
-    uniform_weight: float = 0.0,
-) -> tuple[
-    Float[torch.Tensor, "batch_size num_samples action_dim"], Float[torch.Tensor, "batch_size num_samples state_dim"]
-]:
-    """
-    For each state in the state_batch, sample n actions according to policy.
-
-    Returns a tensor with dimensions (batch_size, num_samples, action_dim)
-    """
-    batch_size = state_batch.shape[0]
-
-    policy_weight = 1 - uniform_weight
-    n_samples_policy = floor(policy_weight * n_samples)  # number of samples from the policy
-    n_samples_uniform = n_samples - n_samples_policy
-
-    SAMPLE_DIM = 1
-    # sample n_samples_policy actions from the policy
-    repeated_states: Float[torch.Tensor, "batch_size n_samples_policy state_dim"]
-    repeated_states = unsqueeze_repeat(state_batch, SAMPLE_DIM, n_samples_policy)
-    proposed_actions: Float[torch.Tensor, "batch_size n_samples_policy action_dim"]
-    proposed_actions, _ = policy.get_action(repeated_states, with_grad=False)
-
-    # sample remaining n_samples_uniform actions uniformly
-    uniform_sample_actions = torch.rand(batch_size, n_samples_uniform, action_dim)
-    uniform_sample_actions = torch.clip(uniform_sample_actions, EPSILON, 1)
-
-    sample_actions = torch.cat([proposed_actions, uniform_sample_actions], dim=SAMPLE_DIM)
-
-    repeated_states: Float[torch.Tensor, "batch_size n_samples state_dim"]
-    repeated_states = unsqueeze_repeat(state_batch, SAMPLE_DIM, n_samples)
-
-    logger.debug(f"{proposed_actions.shape=}")
-    logger.debug(f"{uniform_sample_actions.shape=}")
-
-    sample_actions.to(device.device)
-
-    return sample_actions, repeated_states
-
-
-def grab_percentile(
-        values: torch.Tensor,
-        keys: torch.Tensor,
-        percentile: float,
-    ) -> torch.Tensor:
-    assert keys.dim() == 3
-    assert values.dim() == 2
-    assert values.size(0) == keys.size(0)
-    assert values.size(1) == keys.size(1)
-    key_dim = keys.size(2)
-
-    n_samples = values.size(1)
-    top_n = floor(percentile * n_samples)
-
-    values = values.squeeze(dim=-1)
-    sorted_inds = torch.argsort(values, dim=1, descending=True)
-    top_n_indices = sorted_inds[:, :top_n]
-    top_n_indices = top_n_indices.unsqueeze(-1)
-    top_n_indices = top_n_indices.repeat_interleave(key_dim, -1)
-    return top_n_indices
 
 
 @config()
@@ -398,7 +325,7 @@ class GreedyAC(BaseAC):
         # states that each of the sampled actions correspond to:
         repeated_states: Float[torch.Tensor, "batch_size num_samples state_dim"]
         sampled_actions, repeated_states = sample_actions(
-            state_batch, sampler, n_samples, self.action_dim, uniform_weight
+            state_batch, n_samples, self.action_dim, policy=sampler, uniform_weight=uniform_weight
         )
 
         batch_size = state_batch.size(BATCH_DIM)
@@ -430,7 +357,7 @@ class GreedyAC(BaseAC):
 
         # NEXT, we will grab the top percentile of direct_actions according to the q_values
         top_actions: Float[torch.Tensor, "batch_size top_n action_dim"]
-        top_action_inds = grab_percentile(q_values, sampled_direct_actions, percentile)
+        top_action_inds = get_percentile_inds(q_values, sampled_direct_actions, percentile)
         top_n = top_action_inds.size(SAMPLE_DIM)
 
         # grab the top actions. Can be direct OR delta
