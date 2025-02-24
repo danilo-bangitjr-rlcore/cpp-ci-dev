@@ -95,7 +95,7 @@ class SearchConditionConfig:
 class LSOConfig(OptimConfig):
     name: Literal['lso'] = 'lso'
 
-    max_backtracking_steps: int = 30
+    max_backtracking_steps: int = 50
     unit_norm_direction: bool = False
     fallback_step_size: float = 0.0001
 
