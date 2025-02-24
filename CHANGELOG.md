@@ -1,3 +1,14 @@
+## 0.114.0 (2025-02-24)
+
+### Feat
+
+- Victoria WW S3 Dataloader
+
+### Refactor
+
+- will use DataReader's get_tag_stats() method to get operating range for tags
+- populate TagDBConfig with DBConfig
+
 ## 0.113.0 (2025-02-24)
 
 ### Feat
