@@ -1,0 +1,5 @@
+setpoint_change_tags:
+  - "dd1_polymer_dose" # 10/24/23 10:29
+  - "dd1_ferric_dose" # 10/27/23 11:26
+  - "dd1_effluent_turbidity" # 10/15/23 21:50
+default_tag_freq: 00:15:00

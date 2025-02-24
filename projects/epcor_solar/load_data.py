@@ -2,6 +2,7 @@ from typing import Any
 
 import utils.data as utils
 
+from corerl.config import DBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 
 
@@ -31,6 +32,12 @@ def load_dataset(cfg: TagDBConfig):
 
 if __name__ == '__main__':
     cfg = TagDBConfig(
-        table_name='epcor_solar',
+        drivername=DBConfig.drivername,
+        username=DBConfig.username,
+        password=DBConfig.password,
+        ip=DBConfig.ip,
+        port=DBConfig.port,
+        db_name='epcor_solar',
+        table_name='tag_data',
     )
     load_dataset(cfg)

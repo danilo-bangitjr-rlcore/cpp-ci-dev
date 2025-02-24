@@ -14,7 +14,6 @@ def _split_columns(df: pd.DataFrame) -> list[pd.Series]:
 
     return dfs
 
-
 def _totals_to_deltas(df: pd.Series) -> pd.Series:
     """
     Some tags track running totals.
