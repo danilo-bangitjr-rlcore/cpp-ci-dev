@@ -13,7 +13,7 @@ experiment:
   exp_name: epcor_scrubber
   save_path: outputs/scrubber_evals
   seed: 1
-  gamma: 0.944 # ~50% of return occurs after 1 hrs (@ 5 min obs period)
+  gamma: 0.9727 # ~50% of return occurs after 2 hrs (@ 5 min obs period)
   run_forever: True
 
 feature_flags:
@@ -26,8 +26,8 @@ interaction:
   update_period: 00:00:30
   action_period: 01:00:00
   warmup_period: 03:00:00
-  update_warmup: 100 # number of updates before interacting
-  historical_batch_size: 25920 # 90 days @ 5 minute obs period
+  update_warmup: 300 # number of updates before interacting
+  historical_batch_size: 51840 # 180 days @ 5 minute obs period
   hist_chunk_start: 2024-10-09 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
   heartbeat:
     heartbeat_node_id: "ns=3;i=1"
@@ -119,7 +119,7 @@ pipeline:
   - name: AIC3730_SP # pH SP
     node_identifier: 14
     operating_range: [9.4, 10.]
-    change_bounds: [-.33, .33] # +/- 0.2 pH
+    change_bounds: [-.334, .334] # +/- 0.2 pH
     agg: last
 
   - name: AIC3731_SP # ORP SP
@@ -131,7 +131,7 @@ pipeline:
   - name: FIC3734_SP # flow SP
     node_identifier: 17
     operating_range: [15., 30.]
-    change_bounds: [-.33, .33] # +/- 5
+    change_bounds: [-.334, .334] # +/- 5
     agg: last
 
   - name: AIC3730_PV # pH process value
@@ -163,7 +163,7 @@ pipeline:
     red_bounds: [5., 60]
 
   - name: PDIC3738_PV # PDIC-3738 (PID Process Value)
-    operating_range: [0, 3]
+    operating_range: [0.5, 3]
     red_bounds: [2.3, 2.5]
 
   - name: PDIC3738_OUT # PDIC-3738 (PID Output)

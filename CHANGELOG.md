@@ -1,3 +1,62 @@
+## 0.113.0 (2025-02-24)
+
+### Feat
+
+- delta-action actor-critic eval
+
+### Refactor
+
+- clarify that first arg to assign_action_names is the full action array - not just the offsets
+
+## 0.112.0 (2025-02-21)
+
+### Feat
+
+- parameter varying system and grid search method
+
+### Fix
+
+- add seaborn dependency
+- renaming stuff
+- change a few more names of things
+- style issues
+- change delta action to 0.1
+- pvs registeration
+
+## 0.111.0 (2025-02-21)
+
+### Feat
+
+- behavior test config for delayed saturation
+- register delayed saturation
+- start delayed saturation from okay state
+
+### Fix
+
+- bugs in multi action saturation
+
+## 0.110.0 (2025-02-20)
+
+### Feat
+
+- add exponential backoff to heartbeat OPC write
+
+### Fix
+
+- bind heartbeat loop variable
+
+## 0.109.1 (2025-02-20)
+
+### Fix
+
+- prefer Exception to BaseException
+
+## 0.109.0 (2025-02-20)
+
+### Feat
+
+- add exponential backoff to opc connection attempts
+
 ## 0.108.1 (2025-02-19)
 
 ### Fix

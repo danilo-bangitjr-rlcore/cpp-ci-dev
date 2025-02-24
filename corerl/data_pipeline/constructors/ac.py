@@ -51,7 +51,7 @@ class ActionConstructor(Constructor):
         return pf
 
 
-    def assign_action_names(self, offset_arr: np.ndarray, delta_arr: np.ndarray):
+    def assign_action_names(self, action_arr: np.ndarray, delta_arr: np.ndarray):
         """
         Because the action constructor is responsible for setting action ordering,
         then when we receive a numpy array with a magic ordering, the AC is
@@ -86,10 +86,18 @@ class ActionConstructor(Constructor):
 
             # because we are operating in normalized action space
             # we know that the bounds are strictly [0, 1] here
-            actions[tag_name] = np.clip(offset_arr[direct_idx] + inverted_delta, 0, 1)
+            actions[tag_name] = np.clip(action_arr[direct_idx] + inverted_delta, 0, 1)
 
         d = {col: [act] for col, act in actions.items()}
         df = pd.DataFrame(d)
+        return df
+
+    def get_action_df(self, action_arr: np.ndarray) -> pd.DataFrame:
+        """
+        Given an action, return a dataframe that contains the action info and the corresponding column names
+        """
+        df = pd.DataFrame(data=[action_arr], columns=self.columns)
+
         return df
 
 

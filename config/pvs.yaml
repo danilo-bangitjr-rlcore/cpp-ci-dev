@@ -1,0 +1,74 @@
+defaults:
+  - env: env/pvs
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+experiment:
+  exp_name: "pvs"
+  max_steps: 10000
+  gamma: 0.99
+
+metrics:
+  enabled: False
+
+agent:
+  name: greedy_ac
+
+  critic:
+    critic_network:
+      ensemble: 1
+    critic_optimizer:
+      max_backtracking_steps: 50
+
+  actor:
+    actor_optimizer:
+      lr: 0.0005
+
+pipeline:
+  state_constructor:
+    defaults:
+      - name: identity
+
+  transition_creator:
+    name: anytime
+    gamma: 0.99
+
+  tags:
+  # meta tags
+  - name: reward
+    preprocess:
+    - name: identity
+    reward_constructor:
+    - name: identity
+    state_constructor:
+    - name: 'null'
+    operating_range: [-100, 10]
+
+  - name: terminated
+    is_meta: True
+
+  - name: truncated
+    is_meta: True
+
+  # observations
+  - name: tag-0
+    operating_range: [0, 43.1]  # Based on height clipping in the environment
+  - name: tag-1
+    operating_range: [0, 43.1]
+
+  # actions
+  - name: action-0
+    operating_range: [-0.1, 0.1]  # For Kp scaling
+    state_constructor:
+      - name: 'null'
+    action_constructor:
+      - name: identity
+  - name: action-1
+    operating_range: [-0.1, 0.1]  # For Ti scaling
+    state_constructor:
+      - name: 'null'
+    action_constructor:
+      - name: identity

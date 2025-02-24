@@ -93,7 +93,7 @@ class OfflineTraining:
             else:
                 self.pipeline_out = chunk_pr
 
-    def train(self, app_state: AppState, agent: BaseAgent, column_desc: ColumnDescriptions):
+    def train(self, app_state: AppState, agent: BaseAgent, pipeline: Pipeline, column_desc: ColumnDescriptions):
         assert isinstance(self.start_time, dt.datetime)
         assert isinstance(self.end_time, dt.datetime)
         assert self.pipeline_out is not None
@@ -103,7 +103,7 @@ class OfflineTraining:
         )
         log.info("Starting offline agent training...")
 
-        ac_eval = ActorCriticEval(self.cfg.eval_cfgs.actor_critic, app_state, agent, column_desc)
+        ac_eval = ActorCriticEval(self.cfg.eval_cfgs.actor_critic, app_state, pipeline, agent, column_desc)
         ac_eval.get_test_states(self.pipeline_out.transitions)
         mc_eval = MonteCarloEvaluator(self.cfg.eval_cfgs.monte_carlo, app_state, agent)
 

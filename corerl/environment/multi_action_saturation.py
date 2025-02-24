@@ -226,7 +226,7 @@ class MultiActionSaturation(gym.Env):
         self.history_actions = []
         self.history_raw_actions = []
 
-        obs = np.zeros(self.num_controllers) if options is None else options['state']
+        obs = self.saturations if options is None else options['state']
         return obs, {}
 
     def close(self):
