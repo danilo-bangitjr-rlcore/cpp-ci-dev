@@ -25,6 +25,11 @@ env:
 agent:
   name: greedy_ac
 
+  critic:
+    buffer:
+      ensemble: 1
+      ensemble_probability: 1.0
+
 evals:
   enabled: True
 
