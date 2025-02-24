@@ -1,3 +1,13 @@
+## 0.113.0 (2025-02-24)
+
+### Feat
+
+- delta-action actor-critic eval
+
+### Refactor
+
+- clarify that first arg to assign_action_names is the full action array - not just the offsets
+
 ## 0.112.0 (2025-02-21)
 
 ### Feat
