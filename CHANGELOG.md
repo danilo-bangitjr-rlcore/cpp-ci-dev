@@ -1,3 +1,15 @@
+## 0.114.1 (2025-02-24)
+
+### Fix
+
+- pass prev_direct action where needed
+- shape bug
+- handle empty buffer in mixed history
+
+### Refactor
+
+- moved stuff from gac to ac_utils
+
 ## 0.114.0 (2025-02-24)
 
 ### Feat
