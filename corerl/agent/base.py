@@ -8,7 +8,7 @@ from pydantic import Field
 from corerl.component.actor.base_actor import BaseActor
 from corerl.component.actor.factory import init_actor
 from corerl.component.actor.network_actor import NetworkActorConfig
-from corerl.component.critic.base_critic import CriticConfig, EnsembleCritic
+from corerl.component.critic.ensemble_critic import CriticConfig, EnsembleCritic
 from corerl.component.critic.factory import init_q_critic
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn

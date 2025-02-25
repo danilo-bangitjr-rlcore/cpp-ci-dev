@@ -7,7 +7,7 @@ from corerl.agent.ac_utils import get_percentile_inds, sample_actions
 from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig
 from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer import MixedHistoryBufferConfig
-from corerl.component.critic.base_critic import CriticConfig
+from corerl.component.critic.ensemble_critic import CriticConfig
 from corerl.data_pipeline.pipeline import ColumnDescriptions
 
 
