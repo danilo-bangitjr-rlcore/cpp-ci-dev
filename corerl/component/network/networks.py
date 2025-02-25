@@ -22,7 +22,7 @@ from corerl.utils.device import device
 EPSILON = 1e-6
 
 
-@config(frozen=True)
+@config()
 class NNTorsoConfig(BaseNetworkConfig):
     name: Literal['fc'] = 'fc'
 
@@ -35,7 +35,7 @@ class NNTorsoConfig(BaseNetworkConfig):
     ])
 
 
-@config(frozen=True)
+@config()
 class EnsembleCriticNetworkConfig(BaseNetworkConfig):
     name: Literal['ensemble'] = 'ensemble'
     ensemble: int = 1
@@ -261,7 +261,7 @@ class EnsembleCritic(nn.Module):
 
 
 
-@config(frozen=True)
+@config()
 class GRUConfig(BaseNetworkConfig):
     name: Literal['gru'] = 'gru'
 

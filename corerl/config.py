@@ -3,7 +3,7 @@ from pathlib import Path
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
-from corerl.component.buffer.factory import EnsembleUniformReplayBufferConfig, MixedHistoryBufferConfig
+from corerl.component.buffer.factory import MixedHistoryBufferConfig
 from corerl.configs.config import MISSING, config, post_processor
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.data_pipeline.transforms import AddRawConfig, BoundsConfig, DeltaConfig, NormalizerConfig
@@ -97,16 +97,10 @@ class MainConfig:
     def _enable_ensemble(self, cfg: 'MainConfig'):
         ensemble_size = self.feature_flags.ensemble
 
-        if hasattr(self.agent, 'critic') and isinstance(self.agent, GreedyACConfig):
-            self.agent.critic.critic_network = self.agent.critic.critic_network.__class__(
-                ensemble=ensemble_size,
-                **{k: v for k, v in self.agent.critic.critic_network.__dict__.items() if k != 'ensemble'}
-            )
+        self.agent.critic.critic_network.ensemble = ensemble_size
 
-            buffer_params = {k: v for k, v in self.agent.critic.buffer.__dict__.items()}
-            mixed_history = isinstance(self.agent.critic.buffer, MixedHistoryBufferConfig)
-            ensemble_uniform = isinstance(self.agent.critic.buffer, EnsembleUniformReplayBufferConfig)
-            if mixed_history or ensemble_uniform:
-                buffer_params['ensemble'] = ensemble_size
-            new_buffer_config = self.agent.critic.buffer.__class__(**buffer_params)
-            self.agent.critic.buffer = new_buffer_config
+        if isinstance(self.agent.critic.buffer, MixedHistoryBufferConfig):
+            self.agent.critic.buffer.ensemble = ensemble_size
+
+            if ensemble_size == 1:
+                self.agent.critic.buffer.ensemble_probability = 1.
