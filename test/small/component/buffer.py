@@ -1,5 +1,4 @@
 import torch
-from pyparsing import deque
 
 from corerl.component.buffer import MixedHistoryBuffer, MixedHistoryBufferConfig
 from corerl.data_pipeline.datatypes import DataMode, Transition
