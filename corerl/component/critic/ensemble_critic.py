@@ -21,14 +21,7 @@ class _SharedEnsembleConfig:
     name: Any = MISSING
     critic_network: NetworkConfig = Field(default_factory=EnsembleCriticNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
-    buffer: MixedHistoryBufferConfig = Field(
-        default_factory=lambda: MixedHistoryBufferConfig(
-            # TODO: this should default to 10,
-            # but need to first sync this ensemble size with agent's ensemble
-            ensemble=1,
-            ensemble_probability=1.0,
-        ),
-    )
+    buffer: MixedHistoryBufferConfig = Field(default_factory=MixedHistoryBufferConfig)
     polyak: float = 0.995
     target_sync_freq: int = 1
 
