@@ -1,0 +1,50 @@
+# syntax=docker/dockerfile:1
+# Windows compatible docker file, assuming using x64 architecture
+
+# Stage: compile dependencies and build core-rl wheel
+FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS base
+
+RUN powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex" 
+
+WORKDIR /app
+
+# Copy minimal source code for building corerl package
+COPY ./corerl /app/corerl
+COPY ./pyproject.toml /app/pyproject.toml
+
+RUN uv python install 3.12
+# Install the corerl dependencies
+RUN \ 
+  uv pip compile pyproject.toml -o deps.txt && \
+  # This step ensures that our dependencies exist in a folder called 'vendor'
+  # which can be referenced within setuptools and added to our generated corerl wheel
+  uv pip install --system --target /app/vendor -r deps.txt
+
+# Build corerl package which emits built .whl into /app/dist
+RUN uv build --wheel
+
+# See also: https://github.com/rlcoretech/core-rl/pull/347#discussion_r1906215954
+# Convert our wheel such that we only include .pyc files
+RUN uv venv && uv pip install pyc_wheel
+RUN powershell -c uv run python -m pyc_wheel $(Get-ChildItem -Filter corerl-*.whl .\dist\).FullName
+# needed to remove python3 uncompiled wheel, generated wheel has cpy3-none-any.whl
+RUN powershell -c Remove-Item -Force $(Get-ChildItem -Filter corerl-*py3-none-any.whl .\dist\).FullName
+
+# Stage: install corerl to minimal Python 3 image
+# FROM python:3.12-slim AS corerl
+FROM python:3.12-windowsservercore-ltsc2022 AS corerl
+
+WORKDIR /app
+COPY --from=base /app/dist /app/dist
+
+# Microsoft Visual C++ Redistributable needs to exist in order to load DLLs, needed for torch
+RUN powershell -c 'Invoke-WebRequest "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "vc_redist.x64.exe"; Start-Process -filepath C:\app\vc_redist.x64.exe -ArgumentList "/install", "/passive", "/norestart" -Passthru | Wait-Process; Remove-Item -Force vc_redist.x64.exe'
+
+# Our corerl image is quite large with default cuda dependencies.
+# Minimal CPU supported installation is used instead.
+RUN pip install torch --index-url https://download.pytorch.org/whl/cpu 
+RUN powershell -c pip --no-cache-dir install --no-compile $(Get-ChildItem -Filter corerl-*.whl .\dist\).FullName
+
+
+# Set up the entrypoint to reference our corerl main script, dynamically pass arguments on run
+ENTRYPOINT ["corerl_main"]
