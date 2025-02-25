@@ -38,14 +38,8 @@ class EnsembleNetworkConfig:
     name: Literal['ensemble'] = 'ensemble'
     ensemble: int = 1
     bootstrap_reduct: ReductConfig = Field(default_factory=MeanReduct)
-    policy_reduct: ReductConfig = Field(default_factory=MeanReduct)
     base: NNTorsoConfig = Field(default_factory=NNTorsoConfig)
 
-def _init_ensemble_reducts(cfg: EnsembleNetworkConfig):
-    return (
-        bootstrap_reduct_group.dispatch(cfg.bootstrap_reduct),
-        bootstrap_reduct_group.dispatch(cfg.policy_reduct),
-    )
 
 def create_base(
     cfg: NNTorsoConfig, input_dim: int, output_dim: Optional[int],
@@ -154,7 +148,7 @@ class EnsembleNetwork(nn.Module):
         self.base_model = copy.deepcopy(self.subnetworks[0])
         self.base_model = self.base_model.to(device.device)
 
-        self.bootstrap_reduct, self.policy_reduct = _init_ensemble_reducts(cfg)
+        self.bootstrap_reduct = bootstrap_reduct_group.dispatch(cfg.bootstrap_reduct)
         self.to(device.device)
 
 
@@ -182,11 +176,7 @@ class EnsembleNetwork(nn.Module):
         else:
             raise NotImplementedError
 
-        if bootstrap_reduct:
-            q = self.bootstrap_reduct(qs, dim=0)
-        else:
-            q = self.policy_reduct(qs, dim=0)
-
+        q = self.bootstrap_reduct(qs, dim=0)
         return EnsembleNetworkReturn(q, qs)
 
     def state_dict(self) -> list: # type: ignore
