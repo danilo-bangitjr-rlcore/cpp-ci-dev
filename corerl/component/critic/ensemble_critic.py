@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from pathlib import Path
 
 import torch
 from pydantic import Field
 
-import corerl.utils.nullable as nullable
 from corerl.component.buffer import MixedHistoryBufferConfig
 from corerl.component.network.factory import init_target_network
 from corerl.component.network.networks import EnsembleNetwork, EnsembleNetworkConfig
@@ -30,7 +30,7 @@ class BaseCritic(ABC):
         self.app_state = app_state
 
     @abstractmethod
-    def update(self, loss: torch.Tensor) -> None:
+    def update(self, loss: torch.Tensor, closure: Callable[[], float]) -> None:
         raise NotImplementedError
 
     @abstractmethod
@@ -113,17 +113,15 @@ class EnsembleCritic(BaseCritic):
     def update(
         self,
         loss: torch.Tensor,
-        opt_args: tuple = tuple(),
-        opt_kwargs: dict | None = None,
+        closure: Callable[[], float],
     ) -> None:
-        opt_kwargs = nullable.default(opt_kwargs, dict)
         self.optimizer.zero_grad()
         loss.backward()
 
         if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
             self.optimizer.step(closure=lambda: 0.)
         else:
-            self.optimizer.step(*opt_args, **opt_kwargs)
+            self.optimizer.step(closure=closure)
         self._update_target()
 
     def sync_target(self) -> None:

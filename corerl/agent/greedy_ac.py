@@ -290,7 +290,7 @@ class GreedyAC(BaseAC):
         else:
             eval_batches = batches
 
-        self.critic.update(q_loss, opt_kwargs={"closure": partial(self._compute_critic_loss, eval_batches)})
+        self.critic.update(q_loss, closure=lambda: self._compute_critic_loss(eval_batches).item())
         return [float(q_loss)]
 
     # --------------------------- actor and sampler updating-------------------------- #
