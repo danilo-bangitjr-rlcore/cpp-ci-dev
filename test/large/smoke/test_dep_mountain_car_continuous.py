@@ -9,7 +9,7 @@ import pytest
 from pytest import FixtureRequest
 from sqlalchemy import Engine
 
-from corerl.agent.factory import init_agent
+from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
@@ -219,7 +219,7 @@ def test_dep_mountain_car_continuous(
             "env.update_period=00:00:01",
             "env.action_period=00:00:01",
             "event_bus.cli_connection=" + event_bus_url,
-            "experiment.run_forever="
+            "experiment.run_forever=false",
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -248,7 +248,7 @@ def test_agent_checkpoint(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     )
     pipeline = Pipeline(cfg.pipeline)
     column_desc = pipeline.column_descriptions
-    agent = init_agent(
+    agent = GreedyAC(
         cfg.agent,
         app_state,
         column_desc,

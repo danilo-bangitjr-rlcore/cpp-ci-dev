@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 import corerl.main_utils as utils
-from corerl.agent.factory import init_agent
+from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
@@ -42,7 +42,7 @@ def main(cfg: MainConfig):
 
     pipeline = Pipeline(cfg.pipeline)
     column_desc = pipeline.column_descriptions
-    agent = init_agent(cfg.agent, app_state, column_desc)
+    agent = GreedyAC(cfg.agent, app_state, column_desc)
 
     # Offline training
     assert cfg.experiment.offline_steps > 0

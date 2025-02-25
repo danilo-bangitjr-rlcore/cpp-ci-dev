@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import Engine
 from torch import Tensor
 
-from corerl.agent.factory import init_agent
+from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.datatypes import DataMode, Step, Transition
@@ -152,7 +152,7 @@ def test_offline_training(offline_cfg: MainConfig,
 
     pipeline = Pipeline(offline_cfg.pipeline)
     col_desc = pipeline.column_descriptions
-    agent = init_agent(offline_cfg.agent, app_state, col_desc)
+    agent = GreedyAC(offline_cfg.agent, app_state, col_desc)
 
     # Offline training
     critic_losses = offline_trainer.train(app_state, agent, pipeline, col_desc)

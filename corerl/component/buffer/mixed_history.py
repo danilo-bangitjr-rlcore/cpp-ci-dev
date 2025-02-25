@@ -17,8 +17,8 @@ class MixedHistoryBufferConfig(BaseReplayBufferConfig):
     name: Literal["mixed_history_buffer"] = "mixed_history_buffer"
 
     online_weight: float = 0.75
-    ensemble: int = 10
-    ensemble_probability: float = 0.5
+    ensemble: int = 1
+    ensemble_probability: float = 1.0
 
 
 class MixedHistoryBuffer(ReplayBuffer):

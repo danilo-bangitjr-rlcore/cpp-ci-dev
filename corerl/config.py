@@ -2,8 +2,7 @@ from pathlib import Path
 
 from pydantic import Field
 
-from corerl.agent import AgentConfig
-from corerl.agent.random import RandomAgentConfig
+from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.configs.config import MISSING, config, post_processor
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.data_pipeline.transforms import AddRawConfig, BoundsConfig, DeltaConfig, NormalizerConfig
@@ -42,8 +41,9 @@ class MainConfig:
     # --------------------
     # -- Infrastructure --
     # --------------------
+    pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
     infra: InfraConfig = Field(default_factory=InfraConfig)
-    metrics: MetricsConfig = Field(default_factory=MetricsDBConfig, discriminator='name')
+    metrics: MetricsConfig = Field(default_factory=MetricsDBConfig)
     evals: EvalDBConfig = Field(default_factory=EvalDBConfig, discriminator='name')
     event_bus: EventBusConfig = Field(default_factory=EventBusConfig)
     experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
@@ -55,8 +55,7 @@ class MainConfig:
     # -----------
     env: AsyncEnvConfig = MISSING
     interaction: InteractionConfig = MISSING
-    pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
-    agent: AgentConfig = Field(default_factory=RandomAgentConfig, discriminator='name')
+    agent: GreedyACConfig = Field(default_factory=GreedyACConfig, discriminator='name')
 
     # ----------------
     # -- Evaluation --
