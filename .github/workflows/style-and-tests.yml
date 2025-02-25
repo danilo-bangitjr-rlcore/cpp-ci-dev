@@ -25,11 +25,6 @@ jobs:
           prune-cache: false
           cache-dependency-glob: "uv.lock"
 
-
-      - uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.PRIVATE_DEPLOY_KEY }}
-
       - run: |
           uv venv
           uv sync
@@ -91,10 +86,6 @@ jobs:
           enable-cache: true
           prune-cache: false
           cache-dependency-glob: "uv.lock"
-
-      - uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.PRIVATE_DEPLOY_KEY }}
 
       - run: |
           uv venv

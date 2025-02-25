@@ -1,3 +1,17 @@
+## 0.116.0 (2025-02-25)
+
+### Feat
+
+- sync ensemble size in critic network and buffer
+
+### Fix
+
+- make max backtracking steps 50
+
+### Refactor
+
+- heavily simplify ensemble feature flag with agent/buffer deletion changes
+
 ## 0.115.0 (2025-02-25)
 
 ### Feat
