@@ -3,7 +3,6 @@ from pathlib import Path
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
-from corerl.component.buffer.factory import MixedHistoryBufferConfig
 from corerl.configs.config import MISSING, config, post_processor
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.data_pipeline.transforms import AddRawConfig, BoundsConfig, DeltaConfig, NormalizerConfig
