@@ -25,11 +25,12 @@ class SimAsyncEnv(AsyncEnv):
     """
     def __init__(self, cfg: SimAsyncEnvConfig, tags: list[TagConfig]):
         kwargs = dict(cfg.kwargs)
-
-        # Only pass env_config as 'cfg' parameter, not both
         if cfg.env_config is not None:
+            if cfg.env_config['seed'] is not None:
+                # manually to sync with experiment seed
+                # TODO: remove this once we have a better way to handle this
+                cfg.env_config['seed'] = cfg.seed
             kwargs['cfg'] = cfg.env_config
-            # Make sure we don't also pass env_config
             if 'env_config' in kwargs:
                 del kwargs['env_config']
 

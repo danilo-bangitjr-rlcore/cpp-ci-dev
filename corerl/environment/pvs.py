@@ -32,10 +32,6 @@ class PVSConfig():
         "ti_max": 20,
         "ti_min": 0.1
     })
-    # default_pid: dict = field(default_factory=lambda: {
-    #     "kp": 3, #0.1,
-    #     "ti": 6.5, #0.1
-    # })
     reward_coeffs: dict = field(default_factory=lambda: {
         "mse_coeff": 1/15,
         "overshoot_coeff": 1.5,
@@ -362,6 +358,10 @@ class BasePVSEnv(Env):
         ax_reward.set_ylabel('Reward')
         ax_reward.legend()
 
+        with open("reward_record" + str(self.config.seed) + ".txt", "w") as f:
+            f.write(str(self.reward_record))
+            f.write(str(heights))
+
         total_steps = len(self.ti_record)
         steps_per_plot = total_steps // 5
 
@@ -460,6 +460,7 @@ class PVSChangeAction(BasePVSEnv):
         self,
         cfg: PVSConfig | dict
     ):
+        print(cfg)
         if isinstance(cfg, dict):
             cfg = cast_dict_to_config(cfg, PVSConfig)
         BasePVSEnv.__init__(self, cfg)
