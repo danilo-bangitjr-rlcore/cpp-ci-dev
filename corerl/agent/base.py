@@ -8,8 +8,8 @@ from pydantic import Field
 from corerl.component.actor.base_actor import BaseActor
 from corerl.component.actor.factory import init_actor
 from corerl.component.actor.network_actor import NetworkActorConfig
-from corerl.component.critic.ensemble_critic import EnsembleCriticConfig, EnsembleQCritic, EnsembleVCritic
-from corerl.component.critic.factory import init_q_critic, init_v_critic
+from corerl.component.critic.ensemble_critic import EnsembleCriticConfig, EnsembleQCritic
+from corerl.component.critic.factory import init_q_critic
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
@@ -114,7 +114,6 @@ class BaseAC(BaseAgent):
 
         self.actor: BaseActor = init_actor(cfg.actor, app_state, self.state_dim, self.action_dim)
         self.q_critic: EnsembleQCritic = init_q_critic(cfg.critic, app_state, self.state_dim, self.action_dim)
-        self.v_critic: EnsembleVCritic = init_v_critic(cfg.critic, app_state, self.state_dim)
 
     @abstractmethod
     def update_actor(self) -> object:
