@@ -90,3 +90,12 @@ class MainConfig:
                 NormalizerConfig(min=tag.change_bounds[0], max=tag.change_bounds[1]),
                 AddRawConfig(),
             ] + tag.action_constructor
+
+    @post_processor
+    def _enable_ensemble(self, cfg: 'MainConfig'):
+        ensemble_size = self.feature_flags.ensemble
+        self.agent.critic.critic_network.ensemble = ensemble_size
+        self.agent.critic.buffer.ensemble = ensemble_size
+
+        if ensemble_size == 1:
+            self.agent.critic.buffer.ensemble_probability = 1.
