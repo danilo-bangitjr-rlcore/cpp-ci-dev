@@ -1,3 +1,27 @@
+## 0.115.0 (2025-02-25)
+
+### Feat
+
+- make GAC the default algorithm
+
+### Fix
+
+- do not use ensemble buffers by default
+- ensure optimizers are a discriminated union
+- load only discriminators as config defaults
+
+### Refactor
+
+- remove all agent factory references in favor of direct GAC instantiation
+- remove simple AC algorithm
+- remove SARSA algorithm
+- remove SAC algorithm
+- remove random action algorithm
+- remove IQL algorithm
+- remove INAC algorithm
+- remove greedy_iql algorithm
+- remove action_schedule algorithm
+
 ## 0.114.1 (2025-02-24)
 
 ### Fix
