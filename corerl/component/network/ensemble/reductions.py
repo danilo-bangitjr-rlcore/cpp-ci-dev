@@ -7,9 +7,14 @@ from pydantic import Field
 from corerl.configs.config import MISSING, config
 from corerl.configs.group import Group
 
+
+class Reducer(Protocol):
+    def __call__(self, x: torch.Tensor, dim: int) -> torch.Tensor:
+        ...
+
 bootstrap_reduct_group = Group[
-    [torch.Tensor, int],
-    torch.Tensor,
+    [],
+    Reducer,
 ]()
 
 @config(frozen=True)
@@ -22,8 +27,8 @@ class MinReduct(Reduct):
     name: Literal['min'] = 'min'
 
 @bootstrap_reduct_group.dispatcher
-def min_reduct(cfg: MinReduct, x: torch.Tensor, dim: int):
-    return torch.min(x, dim=dim)[0]
+def min_reduct(cfg: MinReduct):
+    return lambda x, dim: torch.min(x, dim=dim)[0]
 
 
 @config(frozen=True)
@@ -31,8 +36,8 @@ class MaxReduct(Reduct):
     name: Literal['max'] = 'max'
 
 @bootstrap_reduct_group.dispatcher
-def max_reduct(cfg: MaxReduct, x: torch.Tensor, dim: int):
-    return torch.max(x, dim=dim)[0]
+def max_reduct(cfg: MaxReduct):
+    return lambda x, dim: torch.max(x, dim=dim)[0]
 
 
 @config(frozen=True)
@@ -40,8 +45,8 @@ class MeanReduct(Reduct):
     name: Literal['mean'] = 'mean'
 
 @bootstrap_reduct_group.dispatcher
-def mean_reduct(cfg: MeanReduct, x: torch.Tensor, dim: int):
-    return torch.mean(x, dim=dim)
+def mean_reduct(cfg: MeanReduct):
+    return lambda x, dim: torch.mean(x, dim=dim)
 
 
 @config(frozen=True)
@@ -49,8 +54,8 @@ class MedianReduct(Reduct):
     name: Literal['median'] = 'median'
 
 @bootstrap_reduct_group.dispatcher
-def median_reduct(cfg: MedianReduct, x: torch.Tensor, dim: int):
-    return torch.quantile(x, q=0.5, dim=dim)
+def median_reduct(cfg: MedianReduct):
+    return lambda x, dim: torch.quantile(x, q=0.5, dim=dim)
 
 
 class Statistic(Protocol):
@@ -66,31 +71,31 @@ class PercentileReduct(Reduct):
 
 @bootstrap_reduct_group.dispatcher
 def percentile_bootstrap(
-    cfg: PercentileReduct,
-    x: torch.Tensor,
-    dim: int,
-    statistic: Statistic = torch.mean,
+    cfg: PercentileReduct
 ):
-    size = (
-        *x.shape[:dim],
-        cfg.bootstrap_batch_size * cfg.bootstrap_samples,
-        *x.shape[dim + 1:],
-    )
+    def _inner(x: torch.Tensor, dim: int):
+        size = (
+            *x.shape[:dim],
+            cfg.bootstrap_batch_size * cfg.bootstrap_samples,
+            *x.shape[dim + 1:],
+        )
 
-    # Randomly sampling integers from numpy is faster than from torch
-    ind = np.random.randint(0, x.shape[dim], size)
-    samples = torch.gather(x, dim, torch.from_numpy(ind).to(x.device))
+        # Randomly sampling integers from numpy is faster than from torch
+        ind = np.random.randint(0, x.shape[dim], size)
+        samples = torch.gather(x, dim, torch.from_numpy(ind).to(x.device))
 
-    size = (
-        *x.shape[:dim],
-        cfg.bootstrap_batch_size,
-        cfg.bootstrap_samples,
-        *x.shape[dim + 1:],
-    )
-    samples = samples.reshape(size)
-    bootstr_stat = statistic(samples, dim=(len(x.shape[:dim])))
+        size = (
+            *x.shape[:dim],
+            cfg.bootstrap_batch_size,
+            cfg.bootstrap_samples,
+            *x.shape[dim + 1:],
+        )
+        samples = samples.reshape(size)
+        bootstr_stat = torch.mean(samples, dim=(len(x.shape[:dim])))
 
-    return torch.quantile(bootstr_stat, cfg.percentile, dim=dim)
+        return torch.quantile(bootstr_stat, cfg.percentile, dim=dim)
+
+    return _inner
 
 ReductConfig = Annotated[
     MinReduct

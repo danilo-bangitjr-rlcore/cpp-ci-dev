@@ -41,16 +41,11 @@ class EnsembleNetworkConfig:
     policy_reduct: ReductConfig = Field(default_factory=MeanReduct)
     base: NNTorsoConfig = Field(default_factory=NNTorsoConfig)
 
-
 def _init_ensemble_reducts(cfg: EnsembleNetworkConfig):
-    def bs_reduct(x: torch.Tensor, dim: int):
-        return bootstrap_reduct_group.dispatch(cfg.bootstrap_reduct, x, dim)
-
-    def p_reduct(x: torch.Tensor, dim: int):
-        return bootstrap_reduct_group.dispatch(cfg.policy_reduct, x, dim)
-
-    return bs_reduct, p_reduct
-
+    return (
+        bootstrap_reduct_group.dispatch(cfg.bootstrap_reduct),
+        bootstrap_reduct_group.dispatch(cfg.policy_reduct),
+    )
 
 def create_base(
     cfg: NNTorsoConfig, input_dim: int, output_dim: Optional[int],
