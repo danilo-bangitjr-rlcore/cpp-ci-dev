@@ -143,7 +143,7 @@ class EnsembleCritic(BaseCritic):
         self.model.load_state_dict(torch.load(path / "critic_net", map_location=device.device))
         self.target.load_state_dict(torch.load(path / "critic_target", map_location=device.device))
 
-    def get_qs(
+    def get_values(
         self,
         state_batches: list[torch.Tensor],
         action_batches: list[torch.Tensor],
@@ -156,16 +156,7 @@ class EnsembleCritic(BaseCritic):
         input_tensor = self._prepare_input(state_action_batches)
         return self._forward(input_tensor, with_grad=with_grad)
 
-    def get_q(
-        self,
-        state_batches: list[torch.Tensor],
-        action_batches: list[torch.Tensor],
-        with_grad: bool = False,
-    ) -> torch.Tensor:
-        out = self.get_qs(state_batches, action_batches, with_grad=with_grad)
-        return out.reduced_value
-
-    def get_qs_target(
+    def get_target_values(
         self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor],
     ):
         state_action_batches = [
@@ -174,9 +165,3 @@ class EnsembleCritic(BaseCritic):
         ]
         input_tensor = self._prepare_input(state_action_batches)
         return self._forward_target(input_tensor)
-
-    def get_q_target(
-        self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor],
-    ) -> torch.Tensor:
-        out = self.get_qs_target(state_batches, action_batches)
-        return out.reduced_value
