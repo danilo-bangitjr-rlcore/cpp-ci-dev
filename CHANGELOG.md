@@ -1,3 +1,15 @@
+## 0.117.0 (2025-02-25)
+
+### Feat
+
+- support windows docker image build web client assets
+- wip docker image on windows x64
+- unverified windows dockerfile
+
+### Fix
+
+- added back wheel compilation step
+
 ## 0.116.1 (2025-02-25)
 
 ### Fix
