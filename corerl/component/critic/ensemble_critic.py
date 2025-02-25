@@ -6,7 +6,7 @@ from pydantic import Field
 
 import corerl.utils.nullable as nullable
 from corerl.component.buffer import MixedHistoryBufferConfig
-from corerl.component.critic.base_critic import BaseCriticConfig, BaseQ, BaseV
+from corerl.component.critic.base_critic import BaseCriticConfig, BaseQ
 from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
 from corerl.component.network.networks import EnsembleCriticNetworkConfig
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
@@ -194,51 +194,3 @@ class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
     ) -> torch.Tensor:
         q, _ = self.get_qs_target(state_batches, action_batches, bootstrap_reduct=bootstrap_reduct)
         return q
-
-
-class EnsembleVCritic(BaseV, BaseEnsembleCritic):
-    def __init__(self, cfg: EnsembleCriticConfig, app_state: AppState, state_dim: int, output_dim: int = 1):
-        BaseEnsembleCritic.__init__(self, cfg, app_state, state_dim, output_dim)
-
-    def update(
-        self,
-        loss: torch.Tensor,
-        opt_args: tuple = tuple(),
-        opt_kwargs: dict | None = None,
-    ) -> None:
-        BaseEnsembleCritic.update(self, loss, opt_args, opt_kwargs)
-
-    def save(self, path: Path) -> None:
-        BaseEnsembleCritic.save(self, path)
-
-    def load(self, path: Path) -> None:
-        BaseEnsembleCritic.load(self, path)
-
-    def get_vs(
-        self, state_batches: list[torch.Tensor], with_grad: bool = False, bootstrap_reduct: bool = True,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        input_tensor = self._prepare_input(state_batches)
-        return self._forward(input_tensor, with_grad=with_grad, bootstrap_reduct=bootstrap_reduct)
-
-    def get_v(
-        self,
-        state_batches: list[torch.Tensor],
-        with_grad: bool = False,
-        bootstrap_reduct: bool = True,
-    ) -> torch.Tensor:
-        v, _ = self.get_vs(state_batches, with_grad=with_grad, bootstrap_reduct=bootstrap_reduct)
-        return v
-
-    def get_vs_target(
-        self, state_batches: list[torch.Tensor], bootstrap_reduct: bool = True,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        input_tensor = self._prepare_input(state_batches)
-        return self._forward_target(input_tensor, bootstrap_reduct)
-
-    def get_v_target(
-        self,
-        state_batches: list[torch.Tensor],
-        bootstrap_reduct: bool = True,
-    ) -> torch.Tensor:
-        v, _ = self.get_vs_target(state_batches, bootstrap_reduct)
-        return v

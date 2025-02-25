@@ -30,29 +30,6 @@ class BaseCritic(ABC):
         raise NotImplementedError
 
 
-class BaseV(BaseCritic):
-    @abstractmethod
-    def __init__(self, cfg: BaseCriticConfig, app_state: AppState, state_dim: int):
-        super(BaseV, self).__init__(cfg, app_state)
-
-    @abstractmethod
-    def get_v(
-        self,
-        state_batches: list[torch.Tensor],
-        with_grad: bool = False,
-        bootstrap_reduct: bool = True,
-    ) -> torch.Tensor:
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_v_target(
-        self,
-        state_batches: list[torch.Tensor],
-        bootstrap_reduct: bool = True,
-    ) -> torch.Tensor:
-        raise NotImplementedError
-
-
 class BaseQ(BaseCritic):
     @abstractmethod
     def __init__(self, cfg: BaseCriticConfig, app_state: AppState, state_dim: int, action_dim: int):
