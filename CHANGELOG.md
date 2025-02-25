@@ -1,3 +1,17 @@
+## 0.116.1 (2025-02-25)
+
+### Fix
+
+- config import
+- ensemble computed
+- check if buffers empty in batchify
+- vww configs to use mixed hist buffer
+
+### Refactor
+
+- making buffer contract more clear
+- rename buffer._most_recent_online_idxs
+
 ## 0.116.0 (2025-02-25)
 
 ### Feat
