@@ -9,13 +9,12 @@ from corerl.state import AppState
 
 @config()
 class BaseCriticConfig:
-    discrete_control: bool = False
+    ...
 
 
 class BaseCritic(ABC):
     @abstractmethod
     def __init__(self, cfg: BaseCriticConfig,  app_state: AppState):
-        self.discrete_control = cfg.discrete_control
         self.app_state = app_state
 
     @abstractmethod

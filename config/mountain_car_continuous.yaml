@@ -14,7 +14,6 @@ metrics:
 env:
   name: sim_async_env
   gym_name: MountainCarContinuous-v0
-  discrete_control: False
   seed: 1
 
 agent:

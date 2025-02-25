@@ -28,7 +28,6 @@ class BaseAgentConfig:
     replay_ratio: int = 1
     update_freq: int = 1
 
-    discrete_control: bool = MISSING
     gamma: float = MISSING
     seed: int = MISSING
 
@@ -37,10 +36,6 @@ class BaseAgentConfig:
     def _gamma(cls, cfg: 'MainConfig'):
         return cfg.experiment.gamma
 
-    @computed('discrete_control')
-    @classmethod
-    def _discrete_control(cls, cfg: 'MainConfig'):
-        return cfg.env.discrete_control
 
     @computed('seed')
     @classmethod
@@ -57,7 +52,6 @@ class BaseAgent(ABC):
         self.state_dim = col_desc.state_dim
         self.action_dim = col_desc.action_dim
         self.gamma = cfg.gamma
-        self.discrete_control = cfg.discrete_control
         self.seed = cfg.seed
         self.n_updates = cfg.n_updates  # how many updates to apply each time update() is called
 

@@ -17,7 +17,6 @@ env:
   name: dep_async_env
   setpoint_ping_period: 00:00:10
   action_tolerance: 00:00:01
-  discrete_control: False
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
 
