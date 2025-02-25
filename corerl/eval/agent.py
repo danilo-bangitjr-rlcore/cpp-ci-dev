@@ -64,11 +64,10 @@ SAEvalFn = Callable[[T, GreedyAC, torch.Tensor, torch.Tensor], Sequence[torch.Te
 BatchSAEvalFn = Callable[[EvalConfig, GreedyAC], Sequence[torch.Tensor]]
 def policy_buffer_batchify(eval_fn: SAEvalFn) ->  BatchSAEvalFn:
     def batchified(cfg: EvalConfig, agent: GreedyAC):
-        batches = agent.policy_buffer.sample()
-
-        if len(batches) == 0:
+        if min(agent.policy_buffer.size) == 0:
             return tuple()
 
+        batches = agent.policy_buffer.sample()
         assert len(batches) == 1
         batch = batches[0]
         state_batch = batch.prior.state

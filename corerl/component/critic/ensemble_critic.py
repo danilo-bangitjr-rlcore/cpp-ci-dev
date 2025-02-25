@@ -5,8 +5,7 @@ import torch
 from pydantic import Field
 
 import corerl.utils.nullable as nullable
-from corerl.component.buffer.factory import BufferConfig
-from corerl.component.buffer.mixed_history import MixedHistoryBufferConfig
+from corerl.component.buffer import MixedHistoryBufferConfig
 from corerl.component.critic.base_critic import BaseCriticConfig, BaseQ, BaseV
 from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
 from corerl.component.network.networks import EnsembleCriticNetworkConfig
@@ -22,7 +21,7 @@ class _SharedEnsembleConfig:
     name: Any = MISSING
     critic_network: NetworkConfig = Field(default_factory=EnsembleCriticNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
-    buffer: BufferConfig = Field(default_factory=MixedHistoryBufferConfig)
+    buffer: MixedHistoryBufferConfig = Field(default_factory=MixedHistoryBufferConfig)
     polyak: float = 0.995
     target_sync_freq: int = 1
 

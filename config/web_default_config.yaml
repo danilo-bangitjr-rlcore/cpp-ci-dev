@@ -38,15 +38,9 @@ agent:
   discrete_control: false
   seed: 1
   critic:
-    buffer:
-      name: uniform
-      seed: 1
     critic_optimizer:
       lr: 0.01
   actor:
-    buffer:
-      name: uniform
-      seed: 1
     actor_optimizer:
       lr: 0.01
 experiment:
