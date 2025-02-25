@@ -5,7 +5,6 @@ from typing import Any, Callable, Literal, Optional
 import torch
 import torch.nn as nn
 from pydantic import Field
-from torch.func import functional_call, stack_module_state  # type: ignore
 
 import corerl.component.layer as layer
 import corerl.component.network.utils as utils
@@ -41,7 +40,6 @@ class EnsembleCriticNetworkConfig(BaseNetworkConfig):
     ensemble: int = 1
     bootstrap_reduct: ReductConfig = Field(default_factory=MeanReduct)
     policy_reduct: ReductConfig = Field(default_factory=MeanReduct)
-    vmap: bool = False
     base: NNTorsoConfig = Field(default_factory=NNTorsoConfig)
 
 
@@ -183,14 +181,10 @@ class EnsembleCritic(nn.Module):
     def __init__(self, cfg: EnsembleCriticNetworkConfig, input_dim: int, output_dim: int):
         super(EnsembleCritic, self).__init__()
         self.ensemble = cfg.ensemble
-        self.vmap = cfg.vmap
         self.subnetworks = [
             create_base(cfg.base, input_dim, output_dim)
             for _ in range(self.ensemble)
         ]
-
-        # Vectorizing the ensemble to use torch.vmap to avoid sequentially querrying the ensemble
-        self.params, self.buffers = stack_module_state(self.subnetworks) # type: ignore
 
         self.base_model = copy.deepcopy(self.subnetworks[0])
         self.base_model = self.base_model.to(device.device)
@@ -198,8 +192,6 @@ class EnsembleCritic(nn.Module):
         self.bootstrap_reduct, self.policy_reduct = _init_ensemble_reducts(cfg)
         self.to(device.device)
 
-    def fmodel(self, params: dict[str, torch.Tensor], buffers: dict[str, torch.Tensor], x: torch.Tensor):
-        return functional_call(self.base_model, (params, buffers), (x,))
 
     def forward(
             self, input_tensor: torch.Tensor, bootstrap_reduct: Optional[bool] = True,
@@ -209,23 +201,17 @@ class EnsembleCritic(nn.Module):
         if len(input_tensor.shape) == 3 and input_tensor.shape[0] == self.ensemble:
             # Each element of the 'input_tensor' is evaluated by the corresponding member of the ensemble
             # Used in critic updates
-            if self.vmap:
-                qs = torch.vmap(self.fmodel)(self.params, self.buffers, input_tensor)
-            else:
-                qs = [self.subnetworks[i](input_tensor[i]) for i in range(self.ensemble)]
-                for i in range(self.ensemble):
-                    qs[i] = torch.unsqueeze(qs[i], 0)
-                qs = torch.cat(qs, dim=0)
+            qs = [self.subnetworks[i](input_tensor[i]) for i in range(self.ensemble)]
+            for i in range(self.ensemble):
+                qs[i] = torch.unsqueeze(qs[i], 0)
+            qs = torch.cat(qs, dim=0)
         elif len(input_tensor.shape) == 2:
             # Each member of the ensemble evaluates the same batch of state-action pairs
             # Used in policy updates and when evaluating alerts
-            if self.vmap:
-                qs = torch.vmap(self.fmodel, in_dims=(0, 0, None))(self.params, self.buffers, input_tensor)
-            else:
-                qs = [net(input_tensor) for net in self.subnetworks]
-                for i in range(self.ensemble):
-                    qs[i] = torch.unsqueeze(qs[i], 0)
-                qs = torch.cat(qs, dim=0)
+            qs = [net(input_tensor) for net in self.subnetworks]
+            for i in range(self.ensemble):
+                qs[i] = torch.unsqueeze(qs[i], 0)
+            qs = torch.cat(qs, dim=0)
         else:
             raise NotImplementedError
 
@@ -246,18 +232,14 @@ class EnsembleCritic(nn.Module):
         return
 
     def parameters(self, independent: bool = False) -> list: # type: ignore
-        if self.vmap:
-            # https://github.com/pytorch/pytorch/issues/120581
-            return self.params.values() # type: ignore
+        param_list = []
+        if independent:
+            for i in range(self.ensemble):
+                param_list.append(self.subnetworks[i].parameters())
         else:
-            param_list = []
-            if independent:
-                for i in range(self.ensemble):
-                    param_list.append(self.subnetworks[i].parameters())
-            else:
-                for i in range(self.ensemble):
-                    param_list += list(self.subnetworks[i].parameters())
-            return param_list
+            for i in range(self.ensemble):
+                param_list += list(self.subnetworks[i].parameters())
+        return param_list
 
 
 
