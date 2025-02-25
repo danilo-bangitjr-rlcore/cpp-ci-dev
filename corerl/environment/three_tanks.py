@@ -2,10 +2,14 @@ from dataclasses import dataclass
 from typing import Any
 
 import gymnasium as gym
+import matplotlib.pyplot as plt
 import numpy as np
 
+from corerl.configs.config import config
+from corerl.environment.utils.cast_configs import cast_dict_to_config
 
-@dataclass
+
+@config()
 class ThreeTankConfig:
     steps_between_target_updates: int | None = 30  # Number of steps between target updates
                                                     #   None: no updates
@@ -66,7 +70,10 @@ class ThreeTankEnv(gym.Env):
     States: [H_1, H_2, H_3, H1_SP, H3_SP] (Tank heights and setpoint heights)
     Actions: [p_1, p_2] (Pump flowrates)
     """
-    def __init__(self, cfg: ThreeTankConfig):
+    def __init__(self, cfg: dict | ThreeTankConfig):
+        if isinstance(cfg, dict):
+            cfg = cast_dict_to_config(cfg, ThreeTankConfig)
+        super().__init__()
         self.cfg = cfg
         self.constants = ThreeTankConstants()
 
@@ -78,15 +85,31 @@ class ThreeTankEnv(gym.Env):
         self.action_space = gym.spaces.Box(np.zeros(2), np.ones(2) * 100, dtype=np.float64)
         self.observation_space = gym.spaces.Box(np.zeros(5), np.ones(5) * self.constants.H_Max, dtype=np.float64)
 
+        self.history = {
+            'H1': [], 'H3': [],
+            'T1': [], 'T3': [],
+            'P1': [], 'P2': [],
+            'time': []
+        }
+        self.current_step = 0
+
     def step(self, action: np.ndarray):
         # Calculate the next step
+        self.current_step += 1
+        self.history['H1'].append(self.H[0])
+        self.history['H3'].append(self.H[2])
+        self.history['T1'].append(self.H_t[0])
+        self.history['T3'].append(self.H_t[1])
+        self.history['P1'].append(action[0])
+        self.history['P2'].append(action[1])
+        self.history['time'].append(self.current_step)
 
         self.update_tank_heights(action)
         reward = self.calc_reward()
 
         self.update_target_heights()
 
-        return np.hstack([self.H,self.H_t]), reward, False, False, {}
+        return np.hstack([self.H,self.H_t]), reward, False, False, {'history': self.history}
 
     def reset(
         self,
@@ -99,6 +122,14 @@ class ThreeTankEnv(gym.Env):
         self.H_t[:] = self.np_random.random(2) * self.constants.H_Max
         self.H_t_unfilt[:] = self.H_t
         self.target_counter = self.cfg.steps_between_target_updates
+
+        self.history = {
+            'H1': [], 'H3': [],
+            'T1': [], 'T3': [],
+            'P1': [], 'P2': [],
+            'time': []
+        }
+        self.current_step = 0
 
         return np.hstack([self.H,self.H_t]), {}
 
@@ -156,9 +187,29 @@ class ThreeTankEnv(gym.Env):
         error = -((self.H[0] - self.H_t[0])**2 + (self.H[2] - self.H_t[1])**2)
         return error/(2*self.constants.H_Max**2)
 
+    def plot(self, filename: str):
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+
+        ax1.plot(self.history['time'], self.history['H1'], 'b-', label='Tank 1 Height')
+        ax1.plot(self.history['time'], self.history['H3'], 'g-', label='Tank 3 Height')
+        ax1.plot(self.history['time'], self.history['T1'], 'b--', label='Tank 1 Target')
+        ax1.plot(self.history['time'], self.history['T3'], 'g--', label='Tank 3 Target')
+        ax1.set_ylabel('Height (cm)')
+        ax1.legend()
+        ax1.grid(True)
+
+        ax2.plot(self.history['time'], self.history['P1'], 'r-', label='Pump 1')
+        ax2.plot(self.history['time'], self.history['P2'], 'm-', label='Pump 2')
+        ax2.set_xlabel('Step')
+        ax2.set_ylabel('Pump Flow Rate')
+        ax2.legend()
+        ax2.grid(True)
+
+        plt.tight_layout()
+        plt.savefig(filename)
+
 
 gym.register(
     id='ThreeTank-v1',
-    entry_point='corerl.environment.three_tanks:ThreeTankEnv',
-    kwargs={'cfg': ThreeTankConfig()}
+    entry_point='corerl.environment.three_tanks:ThreeTankEnv'
 )

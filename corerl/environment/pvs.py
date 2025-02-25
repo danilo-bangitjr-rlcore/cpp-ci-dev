@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
-from typing import Any, Optional, Sequence
+from dataclasses import field
+from typing import TYPE_CHECKING, Any, Optional, Sequence
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
@@ -10,9 +10,15 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from scipy import signal
 from scipy.special import softmax
 
+from corerl.configs.config import computed, config
+from corerl.environment.utils.cast_configs import cast_dict_to_config
 
-@dataclass
-class PVSConfig:
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
+
+
+@config()
+class PVSConfig():
     reward_type: str = "combined"  # "mse" or "combined"
     use_constraints: bool = False
     use_reset_buffer: bool = True
@@ -26,10 +32,10 @@ class PVSConfig:
         "ti_max": 20,
         "ti_min": 0.1
     })
-    default_pid: dict = field(default_factory=lambda: {
-        "kp": 0.1,
-        "ti": 0.1
-    })
+    # default_pid: dict = field(default_factory=lambda: {
+    #     "kp": 3, #0.1,
+    #     "ti": 6.5, #0.1
+    # })
     reward_coeffs: dict = field(default_factory=lambda: {
         "mse_coeff": 1/15,
         "overshoot_coeff": 1.5,
@@ -37,9 +43,13 @@ class PVSConfig:
         "rise_coeff": 1
     })
     reset_temperature: float = np.inf
-    seed: Optional[int] = 1
     no_reset: bool = True
+    seed: int = 1
 
+    @computed('seed')
+    @classmethod
+    def _seed(cls, cfg: 'MainConfig'):
+        return cfg.experiment.seed
 
 class BasePVSEnv(Env):
     """
@@ -54,7 +64,8 @@ class BasePVSEnv(Env):
     def __init__(self, cfg: PVSConfig):
         super().__init__()
         self.config = cfg
-        self.init_random_setpoint(self.config.seed)
+        self.seed = cfg.seed
+        self.init_random_setpoint(self.seed)
         self.init_system_dynamics()
         self.init_transfer_function()
         self.init_state_variables()
@@ -330,7 +341,7 @@ class BasePVSEnv(Env):
             print("No data to plot")
             return
 
-        fig = plt.figure(figsize=(15, 12))
+        fig = plt.figure(figsize=(15, 8))
         gs = fig.add_gridspec(2, 5, height_ratios=[2, 1])
         ax_water = fig.add_subplot(gs[0, :3])
         ax_reward = fig.add_subplot(gs[0, 3:])
@@ -356,24 +367,28 @@ class BasePVSEnv(Env):
 
         for i in range(5):
             ax = fig.add_subplot(gs[1, i])
+            start_idx = i * steps_per_plot
             end_idx = (i + 1) * steps_per_plot
 
-            ax.scatter(
-                np.array(self.ti_record[0:end_idx]),
-                self.kp_record[0:end_idx],
-                c='blue',
-                alpha=0.5,
-                s=10
-            )
+            ti_data = np.array(self.ti_record[start_idx:end_idx])
+            kp_data = np.array(self.kp_record[start_idx:end_idx])
+
+            ax.scatter(ti_data, kp_data, c='blue', alpha=0.5, s=10)
+
+            if i == 0:
+                ax.scatter(ti_data[0], kp_data[0], c='green', s=100, marker='*', label='Start')
+            if i == 4:
+                ax.scatter(ti_data[-1], kp_data[-1], c='red', s=100, marker='*', label='End')
+                ax.legend()
+
             ax.set_xlim(self.config.pid_limits["ti_min"] - 0.1, self.config.pid_limits["ti_max"] + 0.1)
             ax.set_ylim(self.config.pid_limits["kp_min"] - 0.1, self.config.pid_limits["kp_max"] + 0.1)
-            ax.set_title(f'Steps {0}-{end_idx}')
+            ax.set_title(f'Steps {start_idx}-{end_idx}')
             ax.set_xlabel('Ti')
             if i == 0:
                 ax.set_ylabel('Kp')
-
         plt.tight_layout()
-        plt.savefig(filename)
+        plt.savefig(filename, bbox_inches='tight')
         plt.close()
 
 
@@ -390,11 +405,14 @@ class PIDController:
     """
     def __init__(self, config: PVSConfig):
         self.config = config
+        self.seed = config.seed
+        self.rng = np.random.RandomState(self.seed)
         self.initialize_pid_parameters()
 
     def initialize_pid_parameters(self):
-        self.kp = self.config.default_pid["kp"] # proportional gain
-        self.ti = self.config.default_pid["ti"] # integral time
+        self.kp = self.rng.uniform(self.config.pid_limits["kp_min"], self.config.pid_limits["kp_max"])
+        self.ti = self.rng.uniform(self.config.pid_limits["ti_min"], self.config.pid_limits["ti_max"])
+        self.initial_pid_params = np.array([self.kp, self.ti])
         self.kp_max = self.config.pid_limits["kp_max"]
         self.kp_min = self.config.pid_limits["kp_min"]
         self.ti_max = self.config.pid_limits["ti_max"]
@@ -431,8 +449,8 @@ class PIDController:
         return np.asarray([del_fr_1])
 
     def reset_pid(self, error_T1: float):
-        self.kp = self.config.default_pid["kp"] # proportional gain
-        self.ti = self.config.default_pid["ti"] # integral time
+        self.kp = self.initial_pid_params[0]
+        self.ti = self.initial_pid_params[1]
         self.new_error = error_T1
 
 
@@ -440,14 +458,15 @@ class PVSChangeAction(BasePVSEnv):
     """RL environment implementation"""
     def __init__(
         self,
-        cfg: PVSConfig,
+        cfg: PVSConfig | dict
     ):
+        if isinstance(cfg, dict):
+            cfg = cast_dict_to_config(cfg, PVSConfig)
         BasePVSEnv.__init__(self, cfg)
 
-        self.prev_pid_params = np.array([
-            self.config.default_pid["kp"],
-            self.config.default_pid["ti"]
-        ])
+        # Initialize with random PID parameters within limits and record them
+        self.initial_pid_params = np.array([self.pid_controller.kp, self.pid_controller.ti])
+        self.prev_pid_params = self.initial_pid_params.copy()
 
         self.curr_step = 0
         self.reset_temperature = self.config.reset_temperature
@@ -481,10 +500,7 @@ class PVSChangeAction(BasePVSEnv):
         self._reset_buffer_priorities[:] = -np.inf
 
         self.tracking_threshold = -np.inf
-        self.start_state = np.array([
-            self.config.default_pid["kp"],
-            self.config.default_pid["ti"]
-        ])
+        self.start_state = self.initial_pid_params.copy()
         self.start_state_r = self._step(self.start_state, False)[1]
         self.tracking_threshold = int(self.start_state_r) - 1
 
@@ -588,11 +604,7 @@ class PVSChangeAction(BasePVSEnv):
             if self.config.use_reset_buffer:
                 pid_params = self._reset_state
             else:
-                pid_params = np.array([
-                    self.config.default_pid["kp"],
-                    self.config.default_pid["ti"]
-                ])
-            print("Resetting PID parameters to default", pid_params)
+                pid_params = self.initial_pid_params.copy()
             reward -= 10
         elif add and self.config.use_reset_buffer:
             self.add_to_buffer(reward, self.prev_pid_params)
@@ -635,11 +647,11 @@ class PVSChangeAction(BasePVSEnv):
         options: Optional[dict]=None,
     ) -> tuple[np.ndarray, dict]:
         super(BasePVSEnv, self).reset(seed=seed, options=options)
+        self.prev_pid_params = self.initial_pid_params.copy()
         return self.prev_pid_params, {}
 
 
 gym.register(
     id='PVS-v0',
-    entry_point='corerl.environment.pvs:PVSChangeAction',
-    kwargs={'cfg': PVSConfig()}
+    entry_point='corerl.environment.pvs:PVSChangeAction'
 )

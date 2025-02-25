@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 import pandas as pd
 from pydantic import Field
@@ -63,6 +63,14 @@ class GymEnvConfig:
     # gym environment init args and kwargs, ignored for deployment_async_env
     args: list[Any] = Field(default_factory=list)
     kwargs: dict[str, Any] = Field(default_factory=dict)
+
+    # env config for custom gym environments
+    env_config: Optional[Any] = None
+
+    @computed('seed')
+    @classmethod
+    def _seed(cls, cfg: 'MainConfig'):
+        return cfg.experiment.seed
 
 
 @config()

@@ -9,6 +9,7 @@ from gymnasium.spaces import Box
 from corerl.configs.config import MISSING, config, list_
 from corerl.environment.influx_opc_env import InfluxOPCConfig, InfluxOPCEnv
 from corerl.environment.reward.factory import init_reward_function
+from corerl.environment.utils.cast_configs import cast_dict_to_config
 
 
 @config()
@@ -25,7 +26,9 @@ class ReseauConfig(InfluxOPCConfig):
 
 
 class ReseauEnv(InfluxOPCEnv):
-    def __init__(self, cfg: ReseauConfig):
+    def __init__(self, cfg: dict | ReseauConfig):
+        if isinstance(cfg, dict):
+            cfg = cast_dict_to_config(cfg, ReseauConfig)
         super().__init__(cfg)
         self.reward_func = init_reward_function(cfg.reward)
         self.prev_action = None
