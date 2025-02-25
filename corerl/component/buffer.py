@@ -59,7 +59,7 @@ class MixedHistoryBuffer:
         self._sub_dists = [
             MaskedABDistribution(self.memory, cfg.online_weight, cfg.ensemble_probability) for _ in range(cfg.ensemble)
         ]
-        self.most_recent_online_idxs = deque(maxlen=cfg.n_most_recent)
+        self._most_recent_online_idxs = deque(maxlen=cfg.n_most_recent)
 
     def feed(self, transitions: Sequence[Transition], data_mode: DataMode) -> np.ndarray:
         """
@@ -91,7 +91,7 @@ class MixedHistoryBuffer:
         # update the most_recent_idxs
         if data_mode == DataMode.ONLINE:
             for i in idxs:
-                self.most_recent_online_idxs.appendleft(int(i))
+                self._most_recent_online_idxs.appendleft(int(i))
 
         return idxs
 
@@ -116,7 +116,7 @@ class MixedHistoryBuffer:
         """
         Iterates over the sampled idxs and adds the n most recent online idxs to the beginning of the list.
         """
-        for i, j in enumerate(self.most_recent_online_idxs):
+        for i, j in enumerate(self._most_recent_online_idxs):
             idxs[i] = j
         return idxs
 

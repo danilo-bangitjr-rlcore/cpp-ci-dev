@@ -30,14 +30,14 @@ def test_feed_online_mode(dummy_app_state: AppState):
     online_transitions = make_test_transitions(0, 5, 1)
     idxs = buffer.feed(online_transitions, DataMode.ONLINE)
     assert len(idxs) == 5
-    assert buffer.most_recent_online_idxs == deque([4, 3], maxlen=2)
+    assert buffer._most_recent_online_idxs == deque([4, 3], maxlen=2)
 
     # now feed some transitions with a different mode
     offline_transitions = make_test_transitions(5, 5, 1)
     idxs = buffer.feed(offline_transitions, DataMode.OFFLINE)
 
     # most recent online idxs should not change
-    assert buffer.most_recent_online_idxs == deque([4, 3], maxlen=2)
+    assert buffer._most_recent_online_idxs == deque([4, 3], maxlen=2)
 
 
     samples = buffer.sample()
