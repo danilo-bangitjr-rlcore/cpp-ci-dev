@@ -84,20 +84,20 @@ class EnsembleCritic(BaseCritic):
         input_tensor: torch.Tensor,
         with_grad: bool = False,
         bootstrap_reduct: bool = True,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ):
         if with_grad:
-            return self.model(input_tensor, bootstrap_reduct)
+            return self.model.forward(input_tensor, bootstrap_reduct)
         else:
             with torch.no_grad():
-                return self.model(input_tensor, bootstrap_reduct)
+                return self.model.forward(input_tensor, bootstrap_reduct)
 
     def _forward_target(
         self,
         input_tensor: torch.Tensor,
         bootstrap_reduct: bool = True,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ):
         with torch.no_grad():
-            return self.target(input_tensor, bootstrap_reduct)
+            return self.target.forward(input_tensor, bootstrap_reduct)
 
     def ensemble_backward(self, loss: list[torch.Tensor]) -> None:
         for i, loss_item in enumerate(loss):
@@ -153,7 +153,7 @@ class EnsembleCritic(BaseCritic):
         action_batches: list[torch.Tensor],
         with_grad: bool = False,
         bootstrap_reduct: bool = True,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ):
         state_action_batches = [
             torch.concat((s, a), dim=1)
             for s, a in zip(state_batches, action_batches, strict=False)
@@ -168,12 +168,12 @@ class EnsembleCritic(BaseCritic):
         with_grad: bool = False,
         bootstrap_reduct: bool = True,
     ) -> torch.Tensor:
-        q, _ = self.get_qs(state_batches, action_batches, with_grad=with_grad, bootstrap_reduct=bootstrap_reduct)
-        return q
+        out = self.get_qs(state_batches, action_batches, with_grad=with_grad, bootstrap_reduct=bootstrap_reduct)
+        return out.reduced_value
 
     def get_qs_target(
         self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor], bootstrap_reduct: bool = True,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ):
         state_action_batches = [
             torch.concat((s, a), dim=1)
             for s, a in zip(state_batches, action_batches, strict=False)
@@ -184,5 +184,5 @@ class EnsembleCritic(BaseCritic):
     def get_q_target(
         self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor], bootstrap_reduct: bool = True
     ) -> torch.Tensor:
-        q, _ = self.get_qs_target(state_batches, action_batches, bootstrap_reduct=bootstrap_reduct)
-        return q
+        out = self.get_qs_target(state_batches, action_batches, bootstrap_reduct=bootstrap_reduct)
+        return out.reduced_value

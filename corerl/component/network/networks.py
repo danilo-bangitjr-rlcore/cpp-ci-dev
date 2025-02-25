@@ -1,6 +1,6 @@
 import copy
 from collections.abc import Iterable
-from typing import Callable, Literal, Optional
+from typing import Callable, Literal, NamedTuple, Optional
 
 import torch
 import torch.nn as nn
@@ -138,6 +138,15 @@ def _get_output_shape(
     return output_shape[dim]
 
 
+class EnsembleNetworkReturn(NamedTuple):
+    # some reduction over ensemble members, producing a single
+    # value function
+    reduced_value: torch.Tensor
+
+    # the value function for every member of the ensemble
+    ensemble_values: torch.Tensor
+
+
 class EnsembleNetwork(nn.Module):
     def __init__(self, cfg: EnsembleNetworkConfig, input_dim: int, output_dim: int):
         super().__init__()
@@ -155,8 +164,10 @@ class EnsembleNetwork(nn.Module):
 
 
     def forward(
-            self, input_tensor: torch.Tensor, bootstrap_reduct: Optional[bool] = True,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+        self,
+        input_tensor: torch.Tensor,
+        bootstrap_reduct: bool = True,
+    ):
         # For ensemble critic updates, expecting a different batch for each member of the ensemble
         # Therefore, we expect the shape of the input_tensor to be (ensemble_size, batch_size, state-action dim)
         if len(input_tensor.shape) == 3 and input_tensor.shape[0] == self.ensemble:
@@ -181,7 +192,7 @@ class EnsembleNetwork(nn.Module):
         else:
             q = self.policy_reduct(qs, dim=0)
 
-        return q, qs
+        return EnsembleNetworkReturn(q, qs)
 
     def state_dict(self) -> list: # type: ignore
         sd = [net.state_dict() for net in self.subnetworks]
