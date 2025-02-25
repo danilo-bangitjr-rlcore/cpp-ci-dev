@@ -1,32 +1,6 @@
 # syntax=docker/dockerfile:1
 # Windows compatible docker file, assuming using x64 architecture
 
-# Stage: Build our webclient
-FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS web_client
-
-WORKDIR /app
-
-# needed to support 'Wait-Process', necessary for installing Visual C++ redistributable, needed for tailwindcss
-SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
-# needed to load oxide-win32-x64-msvc.node for tailwindcss module in npm run build
-RUN powershell -c 'Invoke-WebRequest "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "vc_redist.x64.exe"; Start-Process -filepath C:\app\vc_redist.x64.exe -ArgumentList "/install", "/passive", "/norestart" -Passthru | Wait-Process; Remove-Item -Force vc_redist.x64.exe'
-
-# revert back to non-powershell command for node executable
-SHELL ["cmd", "/S", "/C"]
-
-RUN curl.exe -o node.zip https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip &&\
-  mkdir "C:\\nodejs" && \
-  tar.exe -xf node.zip -C "C:\\nodejs" --strip-components=1
-
-ARG NODE_PATH="C:\nodejs"
-ENV PATH "${NODE_PATH};C:\Windows\System32"
-RUN npm config set registry https://registry.npmjs.org/
-
-COPY ./client /app
-
-RUN npm install
-RUN npm run build
-
 # Stage: compile dependencies and build core-rl wheel
 FROM mcr.microsoft.com/windows/servercore:ltsc2022 AS base
 
@@ -62,7 +36,6 @@ FROM python:3.12-windowsservercore-ltsc2022 AS corerl
 
 WORKDIR /app
 COPY --from=base /app/dist /app/dist
-COPY --from=web_client /app/dist /app/client/dist
 
 # Microsoft Visual C++ Redistributable needs to exist in order to load DLLs, needed for torch
 RUN powershell -c 'Invoke-WebRequest "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "vc_redist.x64.exe"; Start-Process -filepath C:\app\vc_redist.x64.exe -ArgumentList "/install", "/passive", "/norestart" -Passthru | Wait-Process; Remove-Item -Force vc_redist.x64.exe'
