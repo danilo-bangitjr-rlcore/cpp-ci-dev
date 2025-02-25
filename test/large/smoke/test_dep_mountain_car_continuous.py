@@ -219,7 +219,7 @@ def test_dep_mountain_car_continuous(
             "env.update_period=00:00:01",
             "env.action_period=00:00:01",
             "event_bus.cli_connection=" + event_bus_url,
-            "experiment.run_forever="
+            "experiment.run_forever=false",
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
