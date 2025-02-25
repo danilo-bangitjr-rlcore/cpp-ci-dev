@@ -99,10 +99,11 @@ class MixedHistoryBuffer:
         """
         Samples a list of TransitionBatch from the buffer.
 
-        Currently does not support the case where one of the sub-distributions is empty.
-        This is currently handled in the agent.
+        Raises an exception when one of the sub-distributions is empty.
         """
-        assert min(self.size) > 0
+        if not self.is_sampleable:
+            raise Exception('One of the sub-distributions is empty.')
+
         ensemble_batch: list[TransitionBatch] = []
         for dist in self._sub_dists:
             idxs = dist.sample(self.rng, self.batch_size)
@@ -151,6 +152,13 @@ class MixedHistoryBuffer:
         Size of each sub-distribution.
         """
         return [d.size() for d in self._sub_dists]
+
+    @property
+    def is_sampleable(self) -> bool:
+        """
+        Checks to see whether the buffer is ready to be sampled
+        """
+        return min(self.size) > 0
 
     def reset(self) -> None:
         """

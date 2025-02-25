@@ -266,7 +266,7 @@ class GreedyAC(BaseAC):
         return loss
 
     def update_critic(self) -> list[float]:
-        if min(self.critic_buffer.size) <= 0:
+        if not self.critic_buffer.is_sampleable:
             return []
 
         self._app_state.event_bus.emit_event(EventType.agent_update_critic)
@@ -467,7 +467,7 @@ class GreedyAC(BaseAC):
 
     def update_actor(self) -> TransitionBatch | None:
         self._app_state.event_bus.emit_event(EventType.agent_update_actor)
-        if min(self.policy_buffer.size) <= 0:
+        if not self.policy_buffer.is_sampleable:
             return None
 
         batch = self._update_policy(self.actor, "actor", self.rho)
@@ -475,7 +475,7 @@ class GreedyAC(BaseAC):
 
     def update_sampler(self, update_batch: TransitionBatch | None = None) -> None:
         self._app_state.event_bus.emit_event(EventType.agent_update_sampler)
-        if min(self.policy_buffer.size) <= 0:
+        if not self.policy_buffer.is_sampleable:
             return None
 
         self._update_policy(self.sampler, "sampler", self.rho_proposal, update_batch)
