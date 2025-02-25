@@ -155,33 +155,31 @@ class EnsembleNetwork(nn.Module):
     def forward(
         self,
         input_tensor: torch.Tensor,
-        bootstrap_reduct: bool = True,
     ):
-        # For ensemble critic updates, expecting a different batch for each member of the ensemble
-        # Therefore, we expect the shape of the input_tensor to be (ensemble_size, batch_size, state-action dim)
+        # Input shape is either (ensemble_size, batch_size, feature dim) if a different batch is used for
+        #   each member of the ensemble
+        # Oherwise, the shape of the input_tensor is (batch_size, feature dim)
+        #   if the same batch is expected to be used for each ensemble member
         if len(input_tensor.shape) == 3 and input_tensor.shape[0] == self.ensemble:
             # Each element of the 'input_tensor' is evaluated by the corresponding member of the ensemble
-            # Used in critic updates
             qs = [self.subnetworks[i](input_tensor[i]) for i in range(self.ensemble)]
-            for i in range(self.ensemble):
-                qs[i] = torch.unsqueeze(qs[i], 0)
-            qs = torch.cat(qs, dim=0)
+
         elif len(input_tensor.shape) == 2:
             # Each member of the ensemble evaluates the same batch of state-action pairs
-            # Used in policy updates and when evaluating alerts
             qs = [net(input_tensor) for net in self.subnetworks]
-            for i in range(self.ensemble):
-                qs[i] = torch.unsqueeze(qs[i], 0)
-            qs = torch.cat(qs, dim=0)
+
         else:
-            raise NotImplementedError
+            raise Exception()
+
+        qs = torch.cat([
+            torch.unsqueeze(q, 0) for q in qs
+        ], dim=0)
 
         q = self.bootstrap_reduct(qs, dim=0)
         return EnsembleNetworkReturn(q, qs)
 
     def state_dict(self) -> list: # type: ignore
-        sd = [net.state_dict() for net in self.subnetworks]
-        return sd
+        return [net.state_dict() for net in self.subnetworks]
 
     def load_state_dict(self, state_dict_list: list) -> None: # type: ignore
         for i in range(self.ensemble):
