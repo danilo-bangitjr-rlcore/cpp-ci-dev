@@ -112,7 +112,7 @@ class BaseAC(BaseAgent):
             self.action_dim = int(self.action_dim / 2)
 
         self.actor: BaseActor = init_actor(cfg.actor, app_state, self.state_dim, self.action_dim)
-        self.q_critic: EnsembleQCritic = init_q_critic(cfg.critic, app_state, self.state_dim, self.action_dim)
+        self.critic: EnsembleQCritic = init_q_critic(cfg.critic, app_state, self.state_dim, self.action_dim)
 
     @abstractmethod
     def update_actor(self) -> object:

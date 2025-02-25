@@ -150,7 +150,7 @@ def _q_online(
     assert state.size(0) == 1
     direct_action = ensure_2d_tensor(direct_action)
     assert direct_action.size(0) == 1
-    q, qs = agent.q_critic.get_qs([state], [direct_action], with_grad=False)
+    q, qs = agent.critic.get_qs([state], [direct_action], with_grad=False)
 
     return q, qs
 
@@ -343,4 +343,3 @@ def greed_values_batch(app_state: AppState, agent: BaseAgent):
         eval_fn=policy_buffer_batchify(_greed_values),
         metric_names=['greed_values_batch'],
     )
-

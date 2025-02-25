@@ -100,7 +100,7 @@ class ActorCriticEval:
         Estimate the Q-function at the given state over a given action dimension.
         The constructed actions have values sampled from the policy for the other action dimensions.
         """
-        qs = self.agent.q_critic.get_q([repeat_state], [constructed_actions])
+        qs = self.agent.critic.get_q([repeat_state], [constructed_actions])
         same_action_qs = qs.reshape((-1, self.critic_samples)).transpose(0, 1)
 
         return same_action_qs.tolist()
