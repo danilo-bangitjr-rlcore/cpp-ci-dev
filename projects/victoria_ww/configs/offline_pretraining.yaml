@@ -49,7 +49,6 @@ agent:
   name: greedy_ac
 
   critic:
-    name: ensemble
     critic_network:
       name: ensemble
       ensemble: 10

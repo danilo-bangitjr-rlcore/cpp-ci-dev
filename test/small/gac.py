@@ -7,7 +7,7 @@ from corerl.agent.ac_utils import get_percentile_inds, sample_actions
 from corerl.agent.greedy_ac import GreedyAC, GreedyACConfig
 from corerl.component.actor.network_actor import NetworkActorConfig
 from corerl.component.buffer import MixedHistoryBufferConfig
-from corerl.component.critic.ensemble_critic import EnsembleCriticConfig
+from corerl.component.critic.base_critic import CriticConfig
 from corerl.data_pipeline.pipeline import ColumnDescriptions
 
 
@@ -232,7 +232,7 @@ def test_get_top_n_sampled_actions(batch_size:int, state_dim:int, action_dim:int
                                    percentile:float, uniform_weight:float):
     cfg = GreedyACConfig(
         actor=NetworkActorConfig(buffer=MixedHistoryBufferConfig(seed=0)),
-        critic=EnsembleCriticConfig(buffer=MixedHistoryBufferConfig(seed=0)),
+        critic=CriticConfig(buffer=MixedHistoryBufferConfig(seed=0)),
     )
     col_desc = ColumnDescriptions(
         state_cols=[f"tag-{i}" for i in range(state_dim)],
@@ -287,7 +287,7 @@ def test_get_top_n_sampled_delta_actions(batch_size:int, state_dim:int, action_d
         delta_action=True,
         delta_bounds=[(-.1, .1) for _ in range(action_dim)],
         actor=NetworkActorConfig(buffer=MixedHistoryBufferConfig(seed=0)),
-        critic=EnsembleCriticConfig(buffer=MixedHistoryBufferConfig(seed=0)),
+        critic=CriticConfig(buffer=MixedHistoryBufferConfig(seed=0)),
     )
     col_desc = ColumnDescriptions(
         state_cols=[f"tag-{i}" for i in range(state_dim)],
