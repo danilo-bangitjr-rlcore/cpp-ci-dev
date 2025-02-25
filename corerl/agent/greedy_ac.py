@@ -227,14 +227,14 @@ class GreedyAC(BaseAC):
         # Second, use this information to compute the targets
         if self.ensemble_targets:
             # Option 1: Using the corresponding target function in the ensemble in the update target:
-            _, next_qs = self.critic.get_qs_target(next_state_batches, next_action_batches, bootstrap_reduct=True)
+            _, next_qs = self.critic.get_qs_target(next_state_batches, next_action_batches)
 
         else:
             # Option 2: Using the reduction of the ensemble in the update target:
             next_qs = []
             for i in range(ensemble_len):
                 next_q = self.critic.get_q_target(
-                    [next_state_batches[i]], [next_action_batches[i]], bootstrap_reduct=True
+                    [next_state_batches[i]], [next_action_batches[i]]
                 )
                 next_q = torch.unsqueeze(next_q, 0)
                 next_qs.append(next_q)
@@ -242,7 +242,7 @@ class GreedyAC(BaseAC):
             next_qs = torch.cat(next_qs, dim=0)
 
         # Third, compute losses
-        _, qs = self.critic.get_qs(state_batches, action_batches, with_grad=with_grad, bootstrap_reduct=True)
+        _, qs = self.critic.get_qs(state_batches, action_batches, with_grad=with_grad)
         loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble_len):
             target =  reward_batches[i] + gamma_batches[i] * next_qs[i]
@@ -351,7 +351,7 @@ class GreedyAC(BaseAC):
 
         q_values: Float[torch.Tensor, "batch_size*num_samples 1"]
         q_values = self.critic.get_q([repeated_states_2d], [sampled_direct_actions_2d],
-                                       with_grad=False, bootstrap_reduct=False)
+                                       with_grad=False)
         # now, we need to reshape the q_values to have size (batch_size, num_samples)
         q_values: Float[torch.Tensor, "batch_size num_samples"]
         q_values = q_values.reshape(batch_size, n_samples)

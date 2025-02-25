@@ -82,7 +82,6 @@ class MonteCarloEvaluator:
             [repeat_state],
             [sampled_actions],
             with_grad=False,
-            bootstrap_reduct=True,
         )
         sampled_a_avg_q = float(sampled_a_qs.mean())
         return sampled_a_avg_q
@@ -97,7 +96,6 @@ class MonteCarloEvaluator:
             [state.expand(1, -1)],
             [observed_a.expand(1, -1)],
             with_grad=False,
-            bootstrap_reduct=True,
         )
         return observed_a_q.item()
 

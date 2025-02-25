@@ -32,7 +32,6 @@ def get_q_for_sample(
         [states_2d],
         [direct_actions_2d],
         with_grad=False,
-        bootstrap_reduct=False,
     )
     q_values_2d = q_values_1d.reshape(BATCH_SIZE, N_SAMPLES)
 
