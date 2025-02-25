@@ -86,7 +86,6 @@ class BaseAgent(ABC):
         return {}
 
     def close(self):
-        # self._app_state.event_bus.close_sync()
         return
 
 
