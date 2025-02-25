@@ -3,6 +3,7 @@ from pathlib import Path
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
+from corerl.component.buffer.factory import MixedHistoryBufferConfig
 from corerl.configs.config import MISSING, config, post_processor
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.data_pipeline.transforms import AddRawConfig, BoundsConfig, DeltaConfig, NormalizerConfig
@@ -34,6 +35,7 @@ class InfraConfig:
 @config()
 class FeatureFlags:
     delta_actions: bool = False
+    ensemble: int = 1
 
 
 @config()
@@ -90,3 +92,15 @@ class MainConfig:
                 NormalizerConfig(min=tag.change_bounds[0], max=tag.change_bounds[1]),
                 AddRawConfig(),
             ] + tag.action_constructor
+
+    @post_processor
+    def _enable_ensemble(self, cfg: 'MainConfig'):
+        ensemble_size = self.feature_flags.ensemble
+
+        self.agent.critic.critic_network.ensemble = ensemble_size
+
+        if isinstance(self.agent.critic.buffer, MixedHistoryBufferConfig):
+            self.agent.critic.buffer.ensemble = ensemble_size
+
+            if ensemble_size == 1:
+                self.agent.critic.buffer.ensemble_probability = 1.
