@@ -6,8 +6,8 @@ from pydantic import Field
 
 import corerl.utils.nullable as nullable
 from corerl.component.buffer import MixedHistoryBufferConfig
-from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
-from corerl.component.network.networks import EnsembleCriticNetworkConfig
+from corerl.component.network.factory import init_target_network
+from corerl.component.network.networks import EnsembleNetwork, EnsembleNetworkConfig
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import LSOConfig
 from corerl.configs.config import config
@@ -17,7 +17,7 @@ from corerl.utils.device import device
 
 @config()
 class CriticConfig:
-    critic_network: NetworkConfig = Field(default_factory=EnsembleCriticNetworkConfig)
+    critic_network: EnsembleNetworkConfig = Field(default_factory=EnsembleNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
     buffer: MixedHistoryBufferConfig = Field(default_factory=MixedHistoryBufferConfig)
     polyak: float = 0.995
@@ -51,13 +51,18 @@ class EnsembleCritic(BaseCritic):
         output_dim: int = 1
     ):
         input_dim = state_dim + action_dim
-        self.model = init_critic_network(
-            cfg.critic_network, input_dim=input_dim, output_dim=output_dim,
+        self.model = EnsembleNetwork(
+            cfg.critic_network,
+            input_dim=input_dim,
+            output_dim=output_dim,
         )
-        self.target = init_critic_target(
-            cfg.critic_network, input_dim=input_dim, output_dim=output_dim,
-            critic=self.model,
+        target = EnsembleNetwork(
+            cfg.critic_network,
+            input_dim=input_dim,
+            output_dim=output_dim,
         )
+        self.target = init_target_network(target, self.model)
+
         params = self.model.parameters(independent=True) # type: ignore
         self.optimizer = init_optimizer(
             cfg.critic_optimizer,

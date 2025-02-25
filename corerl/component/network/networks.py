@@ -1,6 +1,6 @@
 import copy
 from collections.abc import Iterable
-from typing import Any, Callable, Literal, Optional
+from typing import Callable, Literal, Optional
 
 import torch
 import torch.nn as nn
@@ -9,7 +9,6 @@ from pydantic import Field
 import corerl.component.layer as layer
 import corerl.component.network.utils as utils
 from corerl.component.layer.activations import ActivationConfig
-from corerl.component.network.base import BaseNetworkConfig
 from corerl.component.network.ensemble.reductions import (
     MeanReduct,
     ReductConfig,
@@ -22,7 +21,7 @@ EPSILON = 1e-6
 
 
 @config()
-class NNTorsoConfig(BaseNetworkConfig):
+class NNTorsoConfig:
     name: Literal['fc'] = 'fc'
 
     bias: bool = True
@@ -35,7 +34,7 @@ class NNTorsoConfig(BaseNetworkConfig):
 
 
 @config()
-class EnsembleCriticNetworkConfig(BaseNetworkConfig):
+class EnsembleNetworkConfig:
     name: Literal['ensemble'] = 'ensemble'
     ensemble: int = 1
     bootstrap_reduct: ReductConfig = Field(default_factory=MeanReduct)
@@ -43,8 +42,7 @@ class EnsembleCriticNetworkConfig(BaseNetworkConfig):
     base: NNTorsoConfig = Field(default_factory=NNTorsoConfig)
 
 
-
-def _init_ensemble_reducts(cfg: EnsembleCriticNetworkConfig):
+def _init_ensemble_reducts(cfg: EnsembleNetworkConfig):
     def bs_reduct(x: torch.Tensor, dim: int):
         return bootstrap_reduct_group.dispatch(cfg.bootstrap_reduct, x, dim)
 
@@ -140,46 +138,9 @@ def _get_output_shape(
     return output_shape[dim]
 
 
-class EnsembleFC(nn.Module):
-    def __init__(self, cfg: EnsembleCriticNetworkConfig, input_dim: int, output_dim: int):
-        super(EnsembleFC, self).__init__()
-        self.ensemble = cfg.ensemble
-        self.subnetworks = [
-            create_base(cfg.base, input_dim, output_dim)
-            for _ in range(self.ensemble)
-        ]
-        self.to(device.device)
-
-    def forward(self, input_tensor: torch.Tensor) -> torch.Tensor:
-        outs = [net(input_tensor) for net in self.subnetworks]
-        for i in range(self.ensemble):
-            outs[i] = torch.unsqueeze(outs[i], 0)
-        outs = torch.cat(outs, dim=0)
-        return outs
-
-    def state_dict(self) -> list[dict[str, Any]]: # type: ignore
-        sd = [net.state_dict() for net in self.subnetworks]
-        return sd
-
-    def load_state_dict(self, state_dict_list: list) -> None: # type: ignore
-        for i in range(self.ensemble):
-            self.subnetworks[i].load_state_dict(state_dict_list[i])
-        return
-
-    def parameters(self, independent: bool = False) -> list[torch.nn.Parameter]: # type: ignore
-        param_list = []
-        if independent:
-            for i in range(self.ensemble):
-                param_list.append(self.subnetworks[i].parameters())
-        else:
-            for i in range(self.ensemble):
-                param_list += list(self.subnetworks[i].parameters())
-        return param_list
-
-
-class EnsembleCritic(nn.Module):
-    def __init__(self, cfg: EnsembleCriticNetworkConfig, input_dim: int, output_dim: int):
-        super(EnsembleCritic, self).__init__()
+class EnsembleNetwork(nn.Module):
+    def __init__(self, cfg: EnsembleNetworkConfig, input_dim: int, output_dim: int):
+        super().__init__()
         self.ensemble = cfg.ensemble
         self.subnetworks = [
             create_base(cfg.base, input_dim, output_dim)
@@ -240,59 +201,3 @@ class EnsembleCritic(nn.Module):
             for i in range(self.ensemble):
                 param_list += list(self.subnetworks[i].parameters())
         return param_list
-
-
-
-@config()
-class GRUConfig(BaseNetworkConfig):
-    name: Literal['gru'] = 'gru'
-
-    gru_hidden_dim: int = -1
-    num_gru_layers: int = 1
-
-    base: NNTorsoConfig = Field(default_factory=NNTorsoConfig)
-
-
-class GRU(nn.Module):
-    def __init__(self, cfg: GRUConfig, input_dim: int, output_dim: int):
-        super(GRU, self).__init__()
-        self.input_dim = input_dim
-        self.gru_hidden_dim = cfg.gru_hidden_dim
-        self.num_gru_layers = cfg.num_gru_layers
-        self.output_net = create_base(cfg.base, self.gru_hidden_dim, output_dim)
-        # self.gru = nn.GRU(input_dim, self.gru_hidden_dim, self.num_gru_layers, batch_first=True)
-        self.gru = nn.RNN(input_dim, self.gru_hidden_dim, self.num_gru_layers, batch_first=True)
-        self.to(device.device)
-
-    def forward(self, x: torch.Tensor, prediction_start: int | None = None) -> torch.Tensor:
-        batch_size, seq_length, _ = x.size()
-        h = torch.zeros(self.num_gru_layers, batch_size, self.gru_hidden_dim).to(device.device)
-        if prediction_start is None:
-            out, _ = self.gru(x, h)
-            out = self.output_net(out)
-        else:
-            out = []
-            last: Any = None
-            for t in range(seq_length):
-                x_t = x[:, t, :].unsqueeze(1)
-
-                if t <= prediction_start:
-                    out_t, h = self.gru(x_t, h)
-                    out_t = self.output_net(out_t)
-                    last = out_t
-
-                else:  # feed the networks predictions back in.
-                    assert last is not None
-                    out_t_len = last.size(-1)
-                    # replace the first out_t_len elements of x_t with out_t
-                    # the network only predicts endogenous variables, so we grab the exogenous from that time step
-                    # Note: out_t is the prediction of endogenous variables from the prev. time step
-                    x_t = torch.cat((last, x_t[:, :, out_t_len:]), dim=-1)
-                    out_t, h = self.gru(x_t, h)
-                    out_t = self.output_net(out_t)
-                    last = out_t
-
-                out.append(out_t)
-            out = torch.cat(out, dim=1)
-
-        return out
