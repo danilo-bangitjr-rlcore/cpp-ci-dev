@@ -1,3 +1,9 @@
+## 0.117.1 (2025-02-25)
+
+### Fix
+
+- handle writing OPC nodes with integer variant
+
 ## 0.117.0 (2025-02-25)
 
 ### Feat
