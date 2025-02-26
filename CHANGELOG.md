@@ -1,3 +1,21 @@
+## 0.118.0 (2025-02-26)
+
+### Feat
+
+- attach a retry loop to run_forever configurable option
+
+### Fix
+
+- dont use unix-only os attributes
+- make main backoff exponential to match opc backoff
+- ensure main takes no arguments
+- prefer Exception to BaseException
+
+### Refactor
+
+- pull top-level exception handling logic out of loop
+- pull most of main() loop logic into top-level function
+
 ## 0.117.1 (2025-02-25)
 
 ### Fix
