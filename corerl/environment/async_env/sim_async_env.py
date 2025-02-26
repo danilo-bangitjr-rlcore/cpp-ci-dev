@@ -26,7 +26,7 @@ class SimAsyncEnv(AsyncEnv):
     def __init__(self, cfg: SimAsyncEnvConfig, tags: list[TagConfig]):
         kwargs = dict(cfg.kwargs)
         if cfg.env_config is not None:
-            if cfg.env_config['seed'] is not None:
+            if 'seed' in cfg.env_config and cfg.env_config['seed'] is not None:
                 # manually to sync with experiment seed
                 # TODO: remove this once we have a better way to handle this
                 cfg.env_config['seed'] = cfg.seed
