@@ -199,7 +199,6 @@ class GreedyAC(BaseAC):
         next_state_batches = []
         next_action_batches = []
         gamma_batches = []
-        next_qs = []
         for batch in ensemble_batch:
             state_batch = batch.prior.state
             direct_action_batch = batch.post.action
@@ -225,28 +224,14 @@ class GreedyAC(BaseAC):
             gamma_batches.append(gamma_batch)
 
         # Second, use this information to compute the targets
-        if self.ensemble_targets:
-            # Option 1: Using the corresponding target function in the ensemble in the update target:
-            _, next_qs = self.critic.get_qs_target(next_state_batches, next_action_batches, bootstrap_reduct=True)
-
-        else:
-            # Option 2: Using the reduction of the ensemble in the update target:
-            next_qs = []
-            for i in range(ensemble_len):
-                next_q = self.critic.get_q_target(
-                    [next_state_batches[i]], [next_action_batches[i]], bootstrap_reduct=True
-                )
-                next_q = torch.unsqueeze(next_q, 0)
-                next_qs.append(next_q)
-
-            next_qs = torch.cat(next_qs, dim=0)
+        target_values = self.critic.get_target_values(next_state_batches, next_action_batches)
 
         # Third, compute losses
-        _, qs = self.critic.get_qs(state_batches, action_batches, with_grad=with_grad, bootstrap_reduct=True)
+        values = self.critic.get_values(state_batches, action_batches, with_grad=with_grad)
         loss = torch.tensor(0.0, device=device.device)
         for i in range(ensemble_len):
-            target =  reward_batches[i] + gamma_batches[i] * next_qs[i]
-            loss_i = torch.nn.functional.mse_loss(target, qs[i])
+            target =  reward_batches[i] + gamma_batches[i] * target_values.ensemble_values[i]
+            loss_i = torch.nn.functional.mse_loss(target, values.ensemble_values[i])
             loss += loss_i
 
             if log_metrics:
@@ -290,7 +275,7 @@ class GreedyAC(BaseAC):
         else:
             eval_batches = batches
 
-        self.critic.update(q_loss, opt_kwargs={"closure": partial(self._compute_critic_loss, eval_batches)})
+        self.critic.update(q_loss, closure=lambda: self._compute_critic_loss(eval_batches).item())
         return [float(q_loss)]
 
     # --------------------------- actor and sampler updating-------------------------- #
@@ -349,12 +334,14 @@ class GreedyAC(BaseAC):
         repeated_states_2d = repeated_states.reshape(batch_size * n_samples, STATE_DIM)
         sampled_direct_actions_2d = sampled_direct_actions.reshape(batch_size * n_samples, ACTION_DIM)
 
-        q_values: Float[torch.Tensor, "batch_size*num_samples 1"]
-        q_values = self.critic.get_q([repeated_states_2d], [sampled_direct_actions_2d],
-                                       with_grad=False, bootstrap_reduct=False)
+        values = self.critic.get_values(
+            [repeated_states_2d],
+            [sampled_direct_actions_2d],
+            with_grad=False,
+        )
         # now, we need to reshape the q_values to have size (batch_size, num_samples)
         q_values: Float[torch.Tensor, "batch_size num_samples"]
-        q_values = q_values.reshape(batch_size, n_samples)
+        q_values = values.reduced_value.reshape(batch_size, n_samples)
 
         # NEXT, we will grab the top percentile of direct_actions according to the q_values
         top_actions: Float[torch.Tensor, "batch_size top_n action_dim"]

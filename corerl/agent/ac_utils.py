@@ -28,13 +28,12 @@ def get_q_for_sample(
     states_2d = states.reshape(BATCH_SIZE * N_SAMPLES, -1)
     direct_actions_2d = direct_actions.reshape(BATCH_SIZE * N_SAMPLES, -1)
 
-    q_values_1d = agent.critic.get_q(
+    values = agent.critic.get_values(
         [states_2d],
         [direct_actions_2d],
         with_grad=False,
-        bootstrap_reduct=False,
     )
-    q_values_2d = q_values_1d.reshape(BATCH_SIZE, N_SAMPLES)
+    q_values_2d = values.reduced_value.reshape(BATCH_SIZE, N_SAMPLES)
 
     return q_values_2d
 

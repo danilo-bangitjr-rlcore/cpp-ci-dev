@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from pathlib import Path
 
 import torch
 from pydantic import Field
 
-import corerl.utils.nullable as nullable
 from corerl.component.buffer import MixedHistoryBufferConfig
-from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
-from corerl.component.network.networks import EnsembleCriticNetworkConfig
+from corerl.component.network.factory import init_target_network
+from corerl.component.network.networks import EnsembleNetwork, EnsembleNetworkConfig
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import LSOConfig
 from corerl.configs.config import config
@@ -17,7 +17,7 @@ from corerl.utils.device import device
 
 @config()
 class CriticConfig:
-    critic_network: NetworkConfig = Field(default_factory=EnsembleCriticNetworkConfig)
+    critic_network: EnsembleNetworkConfig = Field(default_factory=EnsembleNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
     buffer: MixedHistoryBufferConfig = Field(default_factory=MixedHistoryBufferConfig)
     polyak: float = 0.995
@@ -30,7 +30,7 @@ class BaseCritic(ABC):
         self.app_state = app_state
 
     @abstractmethod
-    def update(self, loss: torch.Tensor) -> None:
+    def update(self, loss: torch.Tensor, closure: Callable[[], float]) -> None:
         raise NotImplementedError
 
     @abstractmethod
@@ -51,13 +51,18 @@ class EnsembleCritic(BaseCritic):
         output_dim: int = 1
     ):
         input_dim = state_dim + action_dim
-        self.model = init_critic_network(
-            cfg.critic_network, input_dim=input_dim, output_dim=output_dim,
+        self.model = EnsembleNetwork(
+            cfg.critic_network,
+            input_dim=input_dim,
+            output_dim=output_dim,
         )
-        self.target = init_critic_target(
-            cfg.critic_network, input_dim=input_dim, output_dim=output_dim,
-            critic=self.model,
+        target = EnsembleNetwork(
+            cfg.critic_network,
+            input_dim=input_dim,
+            output_dim=output_dim,
         )
+        self.target = init_target_network(target, self.model)
+
         params = self.model.parameters(independent=True) # type: ignore
         self.optimizer = init_optimizer(
             cfg.critic_optimizer,
@@ -78,21 +83,19 @@ class EnsembleCritic(BaseCritic):
         self,
         input_tensor: torch.Tensor,
         with_grad: bool = False,
-        bootstrap_reduct: bool = True,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ):
         if with_grad:
-            return self.model(input_tensor, bootstrap_reduct)
+            return self.model.forward(input_tensor)
         else:
             with torch.no_grad():
-                return self.model(input_tensor, bootstrap_reduct)
+                return self.model.forward(input_tensor)
 
     def _forward_target(
         self,
         input_tensor: torch.Tensor,
-        bootstrap_reduct: bool = True,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ):
         with torch.no_grad():
-            return self.target(input_tensor, bootstrap_reduct)
+            return self.target.forward(input_tensor)
 
     def ensemble_backward(self, loss: list[torch.Tensor]) -> None:
         for i, loss_item in enumerate(loss):
@@ -110,17 +113,15 @@ class EnsembleCritic(BaseCritic):
     def update(
         self,
         loss: torch.Tensor,
-        opt_args: tuple = tuple(),
-        opt_kwargs: dict | None = None,
+        closure: Callable[[], float],
     ) -> None:
-        opt_kwargs = nullable.default(opt_kwargs, dict)
         self.optimizer.zero_grad()
         loss.backward()
 
         if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
             self.optimizer.step(closure=lambda: 0.)
         else:
-            self.optimizer.step(*opt_args, **opt_kwargs)
+            self.optimizer.step(closure=closure)
         self._update_target()
 
     def sync_target(self) -> None:
@@ -142,42 +143,25 @@ class EnsembleCritic(BaseCritic):
         self.model.load_state_dict(torch.load(path / "critic_net", map_location=device.device))
         self.target.load_state_dict(torch.load(path / "critic_target", map_location=device.device))
 
-    def get_qs(
+    def get_values(
         self,
         state_batches: list[torch.Tensor],
         action_batches: list[torch.Tensor],
         with_grad: bool = False,
-        bootstrap_reduct: bool = True,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ):
         state_action_batches = [
             torch.concat((s, a), dim=1)
             for s, a in zip(state_batches, action_batches, strict=False)
         ]
         input_tensor = self._prepare_input(state_action_batches)
-        return self._forward(input_tensor, with_grad=with_grad, bootstrap_reduct=bootstrap_reduct)
+        return self._forward(input_tensor, with_grad=with_grad)
 
-    def get_q(
-        self,
-        state_batches: list[torch.Tensor],
-        action_batches: list[torch.Tensor],
-        with_grad: bool = False,
-        bootstrap_reduct: bool = True,
-    ) -> torch.Tensor:
-        q, _ = self.get_qs(state_batches, action_batches, with_grad=with_grad, bootstrap_reduct=bootstrap_reduct)
-        return q
-
-    def get_qs_target(
-        self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor], bootstrap_reduct: bool = True,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def get_target_values(
+        self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor],
+    ):
         state_action_batches = [
             torch.concat((s, a), dim=1)
             for s, a in zip(state_batches, action_batches, strict=False)
         ]
         input_tensor = self._prepare_input(state_action_batches)
-        return self._forward_target(input_tensor, bootstrap_reduct=bootstrap_reduct)
-
-    def get_q_target(
-        self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor], bootstrap_reduct: bool = True
-    ) -> torch.Tensor:
-        q, _ = self.get_qs_target(state_batches, action_batches, bootstrap_reduct=bootstrap_reduct)
-        return q
+        return self._forward_target(input_tensor)

@@ -78,13 +78,12 @@ class MonteCarloEvaluator:
         """
         repeat_state = state.repeat((self.critic_samples, 1))
         sampled_actions, _ = self.agent.actor.get_action(repeat_state, with_grad=False)
-        sampled_a_qs = self.agent.critic.get_q(
+        sampled_a_qs = self.agent.critic.get_values(
             [repeat_state],
             [sampled_actions],
             with_grad=False,
-            bootstrap_reduct=True,
         )
-        sampled_a_avg_q = float(sampled_a_qs.mean())
+        sampled_a_avg_q = float(sampled_a_qs.reduced_value.mean())
         return sampled_a_avg_q
 
     def _get_observed_a_q(self, state: Tensor, observed_a: Tensor) -> float:
@@ -93,13 +92,12 @@ class MonteCarloEvaluator:
         under the agent's current policy.
         Returns a given state's value when the partial return horizon has elapsed.
         """
-        observed_a_q = self.agent.critic.get_q(
+        observed_a_q = self.agent.critic.get_values(
             [state.expand(1, -1)],
             [observed_a.expand(1, -1)],
             with_grad=False,
-            bootstrap_reduct=True,
         )
-        return observed_a_q.item()
+        return observed_a_q.reduced_value.item()
 
     def _get_partial_return(self) -> float | None:
         """

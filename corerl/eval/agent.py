@@ -141,7 +141,7 @@ def _q_online(
     agent: GreedyAC,
     state: np.ndarray | torch.Tensor,
     direct_action: np.ndarray | torch.Tensor,
-)-> Sequence[torch.Tensor]:
+):
     """
     Records the Q value of the action taken, the variance across the ensemble
     and the individual Q values for the ensemble members.
@@ -150,9 +150,9 @@ def _q_online(
     assert state.size(0) == 1
     direct_action = ensure_2d_tensor(direct_action)
     assert direct_action.size(0) == 1
-    q, qs = agent.critic.get_qs([state], [direct_action], with_grad=False)
+    out = agent.critic.get_values([state], [direct_action], with_grad=False)
 
-    return q, qs
+    return out
 
 def q_online(
         app_state: AppState,
