@@ -302,5 +302,4 @@ class Pipeline:
                hook_dict[data_mode][stage].append(f)
 
     def reset(self):
-        if hasattr(self.state_constructor, 'reset'):
-            self.state_constructor.reset()
+        self.state_constructor.reset()
