@@ -1,6 +1,6 @@
 from dataclasses import field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
@@ -8,7 +8,11 @@ import numpy as np
 import tqdm
 from scipy.optimize import minimize
 
-from corerl.configs.config import config
+from corerl.configs.config import computed, config
+from corerl.configs.loader import config_from_dict
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 
 @config()
@@ -26,7 +30,12 @@ class MultiActionSaturationConfig:
     frequencies: list[float] = field(default_factory=lambda: [1.0, 1.5, 2.0])
     phase_shifts: list[float] = field(default_factory=lambda: [0.0, np.pi/4, np.pi/2])
     setpoints: list[float] = field(default_factory=lambda: [0.3, 0.5, 0.7])
+    seed: int = 1
 
+    @computed('seed')
+    @classmethod
+    def _seed(cls, cfg: 'MainConfig'):
+        return cfg.experiment.seed
 
 class MultiActionSaturation(gym.Env):
     """Multi-Action Saturation Environment
@@ -45,8 +54,11 @@ class MultiActionSaturation(gym.Env):
             3. Exponential smoothing of actions
             4. Random noise
     """
-    def __init__(self, cfg: MultiActionSaturationConfig, seed: int | None = None):
-        self._random = np.random.default_rng(seed)
+    def __init__(self, cfg: dict | MultiActionSaturationConfig):
+        if isinstance(cfg, dict):
+            cfg = config_from_dict(MultiActionSaturationConfig, cfg)
+
+        self._random = np.random.default_rng(cfg.seed)
         self.num_controllers = cfg.num_controllers
 
         self._obs_min = np.zeros(self.num_controllers)
@@ -234,6 +246,5 @@ class MultiActionSaturation(gym.Env):
 
 gym.register(
     id='MultiActionSaturation-v0',
-    entry_point='corerl.environment.multi_action_saturation:MultiActionSaturation',
-    kwargs={'cfg': MultiActionSaturationConfig()}
+    entry_point='corerl.environment.multi_action_saturation:MultiActionSaturation'
 )

@@ -1,11 +1,14 @@
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import gymnasium as gym
 import numpy as np
 
-from corerl.configs.config import config, list_
+from corerl.configs.config import computed, config, list_
+from corerl.configs.loader import config_from_dict
 
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 @config()
 class DelayedSaturationConfig:
@@ -15,11 +18,21 @@ class DelayedSaturationConfig:
     action_names: list[str] = list_()
     endo_inds: list[int] = list_()
     endo_obs_names: list[str] = list_()
+    seed: int = 1
+
+    @computed('seed')
+    @classmethod
+    def _seed(cls, cfg: 'MainConfig'):
+        return cfg.experiment.seed
+
 
 
 class DelayedSaturation(gym.Env):
-    def __init__(self, cfg: DelayedSaturationConfig, seed: int | None = None):
-        self._random = np.random.default_rng(seed)
+    def __init__(self, cfg: dict | DelayedSaturationConfig):
+        if isinstance(cfg, dict):
+            cfg = config_from_dict(DelayedSaturationConfig, cfg)
+
+        self._random = np.random.default_rng(cfg.seed)
         self._obs_min = np.array([0.])
         self._obs_max = np.array([1.])
         self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max)
@@ -90,6 +103,5 @@ class DelayedSaturation(gym.Env):
 
 gym.register(
     id='DelayedSaturation-v0',
-    entry_point='corerl.environment.delayed_saturation:DelayedSaturation',
-    kwargs={'cfg': DelayedSaturationConfig()}
+    entry_point='corerl.environment.delayed_saturation:DelayedSaturation'
 )

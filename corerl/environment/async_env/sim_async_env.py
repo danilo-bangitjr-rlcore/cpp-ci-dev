@@ -24,7 +24,17 @@ class SimAsyncEnv(AsyncEnv):
     """AsyncEnv which directly runs and steps through a Farama Gymnasium environment.
     """
     def __init__(self, cfg: SimAsyncEnvConfig, tags: list[TagConfig]):
-        self._env = gym.make(cfg.gym_name, *cfg.args, **cfg.kwargs)
+        kwargs = dict(cfg.kwargs)
+        if cfg.env_config is not None:
+            if 'seed' in cfg.env_config and cfg.env_config['seed'] is not None:
+                # manually to sync with experiment seed
+                # TODO: remove this once we have a better way to handle this
+                cfg.env_config['seed'] = cfg.seed
+            kwargs['cfg'] = cfg.env_config
+            if 'env_config' in kwargs:
+                del kwargs['env_config']
+
+        self._env = gym.make(cfg.gym_name, *cfg.args, **kwargs)
         self._cfg = cfg
 
         shape = self._env.observation_space.shape

@@ -64,6 +64,14 @@ class GymEnvConfig:
     args: list[Any] = Field(default_factory=list)
     kwargs: dict[str, Any] = Field(default_factory=dict)
 
+    # env config for custom gym environments
+    env_config: Any | None = None
+
+    @computed('seed')
+    @classmethod
+    def _seed(cls, cfg: 'MainConfig'):
+        return cfg.experiment.seed
+
 
 @config()
 class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):

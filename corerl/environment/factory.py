@@ -18,6 +18,9 @@ def init_environment(cfg: GymEnvConfig) -> gym.Env:
 
     match cfg.init_type:
         case 'gym.make':
+            if cfg.env_config is not None:
+                kwargs = dict(kwargs)
+                kwargs['cfg'] = cfg.env_config
             return gym.make(cfg.gym_name, *args, **kwargs)
         case 'custom':
             return init_custom_env(cfg)
