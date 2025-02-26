@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 import logging
-import os
 import random
 import sys
-from datetime import UTC, datetime
+import time
+from datetime import UTC, datetime, timedelta
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
@@ -16,6 +16,7 @@ from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
+from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
 from corerl.eval.config import register_pipeline_evals
@@ -38,24 +39,52 @@ logging.basicConfig(
 logging.getLogger('asyncua').setLevel(logging.CRITICAL)
 
 
-@load_config(MainConfig, base='config/')
-def main(cfg: MainConfig):
-    if cfg.log_path is not None:
-        enable_log_files(cfg.log_path)
-
-    torch.set_num_threads(cfg.experiment.num_threads)
-    device.update_device(cfg.experiment.device)
-
-    event_bus = EventBus(cfg.event_bus, cfg.env)
-    app_state = AppState(
-        cfg=cfg,
-        metrics=metrics_group.dispatch(cfg.metrics),
-        evals=evals_group.dispatch(cfg.evals),
-        event_bus=event_bus,
+def main_loop(cfg: MainConfig, app_state: AppState, pipeline: Pipeline, env: AsyncEnv):
+    column_desc = pipeline.column_descriptions
+    agent = GreedyAC(
+        cfg.agent,
+        app_state,
+        column_desc,
     )
 
-    # get custom gym environments
-    register_custom_envs()
+    register_pipeline_evals(cfg.eval_cfgs, agent, pipeline, app_state)
+
+    interaction = init_interaction(
+        cfg=cfg.interaction, app_state=app_state, agent=agent, env=env, pipeline=pipeline,
+    )
+
+    steps = 0
+    max_steps = cfg.experiment.max_steps
+    run_forever = cfg.experiment.run_forever
+    disable_pbar = False
+    if run_forever:
+        max_steps = 0
+        disable_pbar = True
+    pbar = tqdm(total=max_steps, disable=disable_pbar)
+
+    app_state.event_bus.start()
+
+    while True:
+        if app_state.event_bus.enabled():
+            event = app_state.event_bus.recv_event()
+            if not event:
+                continue
+            interaction.step_event(event)
+            if event.type == EventType.step_get_obs:
+                pbar.update(1)
+                steps += 1
+        else:
+            interaction.step()
+            pbar.update(1)
+            steps += 1
+
+        if not run_forever and steps >= max_steps:
+            break
+
+
+def retryable_main(cfg: MainConfig):
+    if cfg.log_path is not None:
+        enable_log_files(cfg.log_path)
 
     # set the random seeds
     seed = cfg.experiment.seed
@@ -63,60 +92,69 @@ def main(cfg: MainConfig):
     random.seed(seed)
     torch.manual_seed(seed)
 
+    torch.set_num_threads(cfg.experiment.num_threads)
+    device.update_device(cfg.experiment.device)
+
+    # get custom gym environments
+    register_custom_envs()
+
+    # build global objects
+    event_bus = EventBus(cfg.event_bus, cfg.env)
+    app_state = AppState(
+        cfg=cfg,
+        metrics=metrics_group.dispatch(cfg.metrics),
+        evals=evals_group.dispatch(cfg.evals),
+        event_bus=event_bus,
+    )
     pipeline = Pipeline(cfg.pipeline)
-
     env = init_async_env(cfg.env, cfg.pipeline.tags)
+
     try:
-        column_desc = pipeline.column_descriptions
-        agent = GreedyAC(
-            cfg.agent,
-            app_state,
-            column_desc,
-        )
+        main_loop(cfg, app_state, pipeline, env)
 
-        register_pipeline_evals(cfg.eval_cfgs, agent, pipeline, app_state)
-
-        interaction = init_interaction(
-            cfg=cfg.interaction, app_state=app_state, agent=agent, env=env, pipeline=pipeline,
-        )
-
-        steps = 0
-        max_steps = cfg.experiment.max_steps
-        run_forever = cfg.experiment.run_forever
-        disable_pbar = False
-        if run_forever:
-            max_steps = 0
-            disable_pbar = True
-        pbar = tqdm(total=max_steps, disable=disable_pbar)
-
-        event_bus.start()
-
-        while True:
-            if event_bus.enabled():
-                event = event_bus.recv_event()
-                if not event:
-                    continue
-                interaction.step_event(event)
-                if event.type == EventType.step_get_obs:
-                    pbar.update(1)
-                    steps += 1
-            else:
-                interaction.step()
-                pbar.update(1)
-                steps += 1
-
-            if not run_forever and steps >= max_steps:
-                break
-
-    except BaseException as e:
+    except Exception as e:
         log.exception(e)
-        sys.exit(os.EX_SOFTWARE)
 
     finally:
         app_state.metrics.close()
         app_state.evals.close()
         env.cleanup()
         event_bus.cleanup()
+
+
+@load_config(MainConfig, base='config/')
+def main(cfg: MainConfig):
+    # only do retry logic if we want to "run forever"
+    if not cfg.experiment.run_forever:
+        return retryable_main(cfg)
+
+    # retry logic
+    retries = 0
+    last_error = datetime.now(UTC)
+
+    while True:
+        retryable_main(cfg)
+
+        now = datetime.now(UTC)
+        if now - last_error < timedelta(hours=1):
+            # if less than an hour, retry up to 5 times
+            # then exit if still failing
+            last_error = now
+            retries += 1
+            if retries >= 5:
+                log.error("Too many retries, exiting!")
+                # exit code 70 corresponds to EX_SOFTWARE, which is unix-only
+                sys.exit(70)
+
+            # backoff exponentially over minutes
+            min = 2 ** (retries - 1)
+            time.sleep(60 * min)
+
+        else:
+            # if it has been more than an hour since the last error,
+            # then perform the first retry
+            retries = 1
+            last_error = now
 
 
 def enable_log_files(log_path: Path):
