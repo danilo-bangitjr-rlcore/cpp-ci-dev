@@ -1,0 +1,74 @@
+log_path: "outputs/e2e_smoke"
+
+experiment:
+  exp_name: stand_still_mountain_car
+  param_from_hash: True
+  seed: 1
+  gamma: 0.95
+  max_steps: 1500
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:05
+  action_period: 00:00:15
+
+env:
+  name: sim_async_env
+  gym_name: MountainCarContinuous-v0
+  discrete_control: False
+
+
+agent:
+  name: greedy_ac
+
+  critic:
+    polyak: 0.99
+    critic_optimizer:
+      lr: 0.1
+
+  actor:
+    actor_optimizer:
+      lr: 0.001
+
+
+metrics:
+  enabled: True
+
+pipeline:
+  state_constructor:
+    defaults:
+      - name: multi_trace
+        trace_values: [0, 0.9]
+
+  reward:
+    priorities:
+      # priority 1 - stay on right side of mountain
+      # dip is at -0.5
+      - op: up_to
+        tag: tag-0
+        thresh: -0.5
+
+      # optimization - push velocity left
+      - tags: [tag-1]
+        directions: [min]
+
+  tags:
+  - name: action-0
+    operating_range: [-1.0, 1.0]
+    action_constructor:
+    - name: identity
+
+  - name: tag-0
+    operating_range: [-1.2, 0.6]
+    red_bounds: [-1.0, null]
+    yellow_bounds: [-0.8, null]
+
+  - name: tag-1
+    operating_range: [-0.07, 0.07]
+    red_bounds: [-0.06, 0.06]
+
+  - name: terminated
+    is_meta: True
+
+  - name: truncated
+    is_meta: True
