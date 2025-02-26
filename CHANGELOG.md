@@ -1,3 +1,15 @@
+## 0.119.1 (2025-02-26)
+
+### Refactor
+
+- clarify external contract of ensemble critic
+- remove optional bootstrap_reduct arg
+- remove concept of policy_reduct from the critic ensemble network
+- lift reductions to return (input, dim) -> reduction callables
+- wire through more descriptive ensemble network return value
+- remove unused network types and factory infrastructure
+- vmap is no longer configurable - always false
+
 ## 0.119.0 (2025-02-26)
 
 ### Feat
