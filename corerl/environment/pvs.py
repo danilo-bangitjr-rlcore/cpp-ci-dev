@@ -11,7 +11,7 @@ from scipy import signal
 from scipy.special import softmax
 
 from corerl.configs.config import computed, config
-from corerl.environment.utils.cast_configs import cast_dict_to_config
+from corerl.configs.loader import config_from_dict
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -462,7 +462,7 @@ class PVSChangeAction(BasePVSEnv):
     ):
         print(cfg)
         if isinstance(cfg, dict):
-            cfg = cast_dict_to_config(cfg, PVSConfig)
+            cfg = config_from_dict(PVSConfig, cfg)
         BasePVSEnv.__init__(self, cfg)
 
         # Initialize with random PID parameters within limits and record them

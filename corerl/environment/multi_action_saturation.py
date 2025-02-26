@@ -9,7 +9,7 @@ import tqdm
 from scipy.optimize import minimize
 
 from corerl.configs.config import computed, config
-from corerl.environment.utils.cast_configs import cast_dict_to_config
+from corerl.configs.loader import config_from_dict
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -56,7 +56,7 @@ class MultiActionSaturation(gym.Env):
     """
     def __init__(self, cfg: dict | MultiActionSaturationConfig):
         if isinstance(cfg, dict):
-            cfg = cast_dict_to_config(cfg, MultiActionSaturationConfig)
+            cfg = config_from_dict(MultiActionSaturationConfig, cfg)
 
         self._random = np.random.default_rng(cfg.seed)
         self.num_controllers = cfg.num_controllers

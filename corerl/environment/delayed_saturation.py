@@ -5,7 +5,7 @@ import gymnasium as gym
 import numpy as np
 
 from corerl.configs.config import computed, config, list_
-from corerl.environment.utils.cast_configs import cast_dict_to_config
+from corerl.configs.loader import config_from_dict
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -30,7 +30,7 @@ class DelayedSaturationConfig:
 class DelayedSaturation(gym.Env):
     def __init__(self, cfg: dict | DelayedSaturationConfig):
         if isinstance(cfg, dict):
-            cfg = cast_dict_to_config(cfg, DelayedSaturationConfig)
+            cfg = config_from_dict(DelayedSaturationConfig, cfg)
 
         self._random = np.random.default_rng(cfg.seed)
         self._obs_min = np.array([0.])

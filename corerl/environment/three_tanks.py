@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from corerl.configs.config import config
-from corerl.environment.utils.cast_configs import cast_dict_to_config
+from corerl.configs.loader import config_from_dict
 
 
 @config()
@@ -72,7 +72,7 @@ class ThreeTankEnv(gym.Env):
     """
     def __init__(self, cfg: dict | ThreeTankConfig):
         if isinstance(cfg, dict):
-            cfg = cast_dict_to_config(cfg, ThreeTankConfig)
+            cfg = config_from_dict(ThreeTankConfig, cfg)
         super().__init__()
         self.cfg = cfg
         self.constants = ThreeTankConstants()
