@@ -19,6 +19,7 @@ from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
 from corerl.data_pipeline.constructors.conditional_filter import ConditionalFilter
+from corerl.data_pipeline.constructors.goals import GoalConstructor
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
@@ -158,7 +159,11 @@ class Pipeline:
         self.imputers = init_imputer(cfg.imputer, self.tags)
         self.action_constructor = ActionConstructor(self.tags)
         self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
-        self.reward_constructor = RewardConstructor(self.tags, self.preprocessor)
+        self.reward_constructor = (
+            RewardConstructor(self.tags, self.preprocessor)
+            if cfg.reward is None else
+            GoalConstructor(cfg.reward, self.tags, self.preprocessor)
+        )
 
         # build pipeline state
         self.ts_dict: dict[DataMode, TemporalState | None] = {data_mode: None for data_mode in DataMode}
