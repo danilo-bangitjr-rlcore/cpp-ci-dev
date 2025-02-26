@@ -2,16 +2,17 @@ import pytest
 from sqlalchemy import Engine
 
 from test.behavior.bsuite import BSuiteTestCase
+from test.behavior.mountain_car.cases import MountainCar, StandStillMountainCar
 from test.behavior.saturation.cases import (
     DelayedSaturationTest,
     DeltaSaturationTest,
     SaturationTest,
 )
-from test.behavior.stand_still_mountain_car.cases import StandStillMountainCar
 
 TEST_CASES = [
     DelayedSaturationTest(),
     DeltaSaturationTest(),
+    MountainCar(),
     SaturationTest(),
     StandStillMountainCar(),
 ]
