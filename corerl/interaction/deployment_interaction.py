@@ -14,7 +14,6 @@ from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.eval.actor_critic import ActorCriticEval
 from corerl.eval.monte_carlo import MonteCarloEvaluator
-from corerl.eval.plotting.evals import plot_evals
 from corerl.interaction.configs import DepInteractionConfig
 from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
@@ -132,12 +131,6 @@ class DeploymentInteraction(Interaction):
         self._monte_carlo_eval.execute(pipe_return, "online")
         label = str(self._app_state.agent_step)
         self._actor_critic_eval.execute([Tensor(self._last_state)], [Tensor(self._last_action)], label)
-        plot_evals(
-            app_state=self._app_state,
-            step_start=self._app_state.agent_step,
-            step_end=self._app_state.agent_step,
-            labels=[label]
-        )
 
 
         state_timestamp = state.index[-1]
