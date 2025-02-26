@@ -25,7 +25,6 @@ env:
   action_period: 01:00:00
   opc_conn_url: "opc.tcp://ignition-services:62541"
   opc_ns: 1
-  discrete_control: False
   action_tolerance: 01:00:00
 
 experiment:

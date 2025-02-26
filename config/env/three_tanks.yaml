@@ -1,7 +1,6 @@
 name: sim_async_env
 gym_name: ThreeTank-v1
 seed: 0
-discrete_control: False
 obs_period: 00:00:01
 update_period: 00:00:01
 action_period: 00:00:01

@@ -33,13 +33,12 @@ event_bus:
 
 env:
   name: dep_async_env
-  discrete_control: False
   update_period: 00:01:00
   action_tolerance: 00:30:00
 
   opc_conn_url: "opc.tcp://backwash-workaround:50505"
   opc_ns: 1
-  
+
   db:
     table_name: main
 
@@ -132,8 +131,8 @@ pipeline:
     # It would be preferable to keep one source of truth
     # for conversion to permeability in the preprocessor,
     # but the config below breaks the reward constructor
-    # 
-    # - name: binary # divide by TMP to get val proportional to permeability 
+    #
+    # - name: binary # divide by TMP to get val proportional to permeability
     #   op: prod
     #   other: UF2_TMP_PV
     #   other_xform:
@@ -153,7 +152,7 @@ pipeline:
       op: '!='
       val: 8
     state_constructor:
-    - name: binary # divide by TMP to get val proportional to permeability 
+    - name: binary # divide by TMP to get val proportional to permeability
       op: prod
       other: UF2_TMP_PV
       other_xform:
@@ -164,7 +163,7 @@ pipeline:
       min: 4
       max: 6
     reward_constructor:
-    - name: binary # divide by TMP to get val proportional to permeability 
+    - name: binary # divide by TMP to get val proportional to permeability
       op: prod
       other: UF2_TMP_PV
       other_xform:
@@ -174,7 +173,7 @@ pipeline:
     - name: normalize
       min: 4
       max: 6
-    - name: affine # compress to [-0.5, 0] 
+    - name: affine # compress to [-0.5, 0]
       scale: 0.5
       bias: -0.5
 

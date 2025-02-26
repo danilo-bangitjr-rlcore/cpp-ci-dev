@@ -19,7 +19,6 @@ infra:
     db_name: postgres
 
 env:
-  discrete_control: false
   db:
     table_name: opcua
 
@@ -35,7 +34,6 @@ agent:
   n_actor_updates: 1
   num_samples: 128
   uniform_sampling_percentage: 0.8
-  discrete_control: false
   seed: 1
   critic:
     critic_optimizer:

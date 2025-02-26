@@ -1,7 +1,6 @@
 env:
   name: sim_async_env
   gym_name : DelayedSaturation-v0
-  discrete_control : False
 
 interaction:
   name: sim_interaction
