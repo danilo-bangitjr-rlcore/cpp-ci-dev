@@ -8,8 +8,7 @@ from pydantic import Field
 from corerl.component.actor.base_actor import BaseActor
 from corerl.component.actor.factory import init_actor
 from corerl.component.actor.network_actor import NetworkActorConfig
-from corerl.component.critic.ensemble_critic import EnsembleCriticConfig, EnsembleQCritic, EnsembleVCritic
-from corerl.component.critic.factory import init_q_critic, init_v_critic
+from corerl.component.critic.ensemble_critic import CriticConfig, EnsembleCritic
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
@@ -28,7 +27,6 @@ class BaseAgentConfig:
     replay_ratio: int = 1
     update_freq: int = 1
 
-    discrete_control: bool = MISSING
     gamma: float = MISSING
     seed: int = MISSING
 
@@ -37,10 +35,6 @@ class BaseAgentConfig:
     def _gamma(cls, cfg: 'MainConfig'):
         return cfg.experiment.gamma
 
-    @computed('discrete_control')
-    @classmethod
-    def _discrete_control(cls, cfg: 'MainConfig'):
-        return cfg.env.discrete_control
 
     @computed('seed')
     @classmethod
@@ -57,7 +51,6 @@ class BaseAgent(ABC):
         self.state_dim = col_desc.state_dim
         self.action_dim = col_desc.action_dim
         self.gamma = cfg.gamma
-        self.discrete_control = cfg.discrete_control
         self.seed = cfg.seed
         self.n_updates = cfg.n_updates  # how many updates to apply each time update() is called
 
@@ -92,14 +85,13 @@ class BaseAgent(ABC):
         return {}
 
     def close(self):
-        # self._app_state.event_bus.close_sync()
         return
 
 
 
 @config()
 class BaseACConfig(BaseAgentConfig):
-    critic: EnsembleCriticConfig = Field(default_factory=EnsembleCriticConfig)
+    critic: CriticConfig = Field(default_factory=CriticConfig)
     actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
 
     n_actor_updates: int = 1
@@ -119,8 +111,7 @@ class BaseAC(BaseAgent):
             self.action_dim = int(self.action_dim / 2)
 
         self.actor: BaseActor = init_actor(cfg.actor, app_state, self.state_dim, self.action_dim)
-        self.q_critic: EnsembleQCritic = init_q_critic(cfg.critic, app_state, self.state_dim, self.action_dim)
-        self.v_critic: EnsembleVCritic = init_v_critic(cfg.critic, app_state, self.state_dim)
+        self.critic = EnsembleCritic(cfg.critic, app_state, self.state_dim, self.action_dim)
 
     @abstractmethod
     def update_actor(self) -> object:

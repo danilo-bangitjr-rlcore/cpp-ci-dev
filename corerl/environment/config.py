@@ -10,7 +10,6 @@ if TYPE_CHECKING:
 class EnvironmentConfig:
     name: str = MISSING
     seed: int = MISSING
-    discrete_control: bool = MISSING
 
 
     @computed('seed')

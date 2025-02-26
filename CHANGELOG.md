@@ -1,3 +1,39 @@
+## 0.118.1 (2025-02-26)
+
+### Refactor
+
+- remove critic factory in favor of direct initialization
+- rename base_critic to ensemble_critic
+- all critics are ensemble q critics
+- remove mention of VCritics
+- rename q_critic to critic
+- remove v_critic from base_ac
+- remove discrete_control config throughout codebase
+
+## 0.118.0 (2025-02-26)
+
+### Feat
+
+- attach a retry loop to run_forever configurable option
+
+### Fix
+
+- dont use unix-only os attributes
+- make main backoff exponential to match opc backoff
+- ensure main takes no arguments
+- prefer Exception to BaseException
+
+### Refactor
+
+- pull top-level exception handling logic out of loop
+- pull most of main() loop logic into top-level function
+
+## 0.117.1 (2025-02-25)
+
+### Fix
+
+- handle writing OPC nodes with integer variant
+
 ## 0.117.0 (2025-02-25)
 
 ### Feat

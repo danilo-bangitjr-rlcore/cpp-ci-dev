@@ -1,38 +1,50 @@
+from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Literal
 
 import torch
 from pydantic import Field
 
 import corerl.utils.nullable as nullable
 from corerl.component.buffer import MixedHistoryBufferConfig
-from corerl.component.critic.base_critic import BaseCriticConfig, BaseQ, BaseV
 from corerl.component.network.factory import NetworkConfig, init_critic_network, init_critic_target
 from corerl.component.network.networks import EnsembleCriticNetworkConfig
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import LSOConfig
-from corerl.configs.config import MISSING, config
+from corerl.configs.config import config
 from corerl.state import AppState
 from corerl.utils.device import device
 
 
 @config()
-class _SharedEnsembleConfig:
-    name: Any = MISSING
+class CriticConfig:
     critic_network: NetworkConfig = Field(default_factory=EnsembleCriticNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
     buffer: MixedHistoryBufferConfig = Field(default_factory=MixedHistoryBufferConfig)
     polyak: float = 0.995
     target_sync_freq: int = 1
 
-@config()
-class EnsembleCriticConfig(BaseCriticConfig, _SharedEnsembleConfig):
-    name: Literal['ensemble'] = 'ensemble'
 
-class BaseEnsembleCritic:
+class BaseCritic(ABC):
+    @abstractmethod
+    def __init__(self, cfg: CriticConfig,  app_state: AppState):
+        self.app_state = app_state
+
+    @abstractmethod
+    def update(self, loss: torch.Tensor) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def save(self, path: Path) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def load(self, path: Path) -> None:
+        raise NotImplementedError
+
+class EnsembleCritic(BaseCritic):
     def __init__(
         self,
-        cfg: EnsembleCriticConfig,
+        cfg: CriticConfig,
         app_state: AppState,
         state_dim: int,
         action_dim: int,
@@ -130,31 +142,6 @@ class BaseEnsembleCritic:
         self.model.load_state_dict(torch.load(path / "critic_net", map_location=device.device))
         self.target.load_state_dict(torch.load(path / "critic_target", map_location=device.device))
 
-class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
-    def __init__(
-            self,
-            cfg: EnsembleCriticConfig,
-            app_state: AppState,
-            state_dim: int,
-            action_dim: int,
-            output_dim: int = 1
-        ):
-        BaseEnsembleCritic.__init__(self, cfg, app_state, state_dim, action_dim, output_dim)
-
-    def update(
-        self,
-        loss: torch.Tensor,
-        opt_args: tuple = tuple(),
-        opt_kwargs: dict | None = None,
-    ) -> None:
-        BaseEnsembleCritic.update(self, loss, opt_args, opt_kwargs)
-
-    def save(self, path: Path) -> None:
-        BaseEnsembleCritic.save(self, path)
-
-    def load(self, path: Path) -> None:
-        BaseEnsembleCritic.load(self, path)
-
     def get_qs(
         self,
         state_batches: list[torch.Tensor],
@@ -194,51 +181,3 @@ class EnsembleQCritic(BaseQ, BaseEnsembleCritic):
     ) -> torch.Tensor:
         q, _ = self.get_qs_target(state_batches, action_batches, bootstrap_reduct=bootstrap_reduct)
         return q
-
-
-class EnsembleVCritic(BaseV, BaseEnsembleCritic):
-    def __init__(self, cfg: EnsembleCriticConfig, app_state: AppState, state_dim: int, output_dim: int = 1):
-        BaseEnsembleCritic.__init__(self, cfg, app_state, state_dim, output_dim)
-
-    def update(
-        self,
-        loss: torch.Tensor,
-        opt_args: tuple = tuple(),
-        opt_kwargs: dict | None = None,
-    ) -> None:
-        BaseEnsembleCritic.update(self, loss, opt_args, opt_kwargs)
-
-    def save(self, path: Path) -> None:
-        BaseEnsembleCritic.save(self, path)
-
-    def load(self, path: Path) -> None:
-        BaseEnsembleCritic.load(self, path)
-
-    def get_vs(
-        self, state_batches: list[torch.Tensor], with_grad: bool = False, bootstrap_reduct: bool = True,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        input_tensor = self._prepare_input(state_batches)
-        return self._forward(input_tensor, with_grad=with_grad, bootstrap_reduct=bootstrap_reduct)
-
-    def get_v(
-        self,
-        state_batches: list[torch.Tensor],
-        with_grad: bool = False,
-        bootstrap_reduct: bool = True,
-    ) -> torch.Tensor:
-        v, _ = self.get_vs(state_batches, with_grad=with_grad, bootstrap_reduct=bootstrap_reduct)
-        return v
-
-    def get_vs_target(
-        self, state_batches: list[torch.Tensor], bootstrap_reduct: bool = True,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        input_tensor = self._prepare_input(state_batches)
-        return self._forward_target(input_tensor, bootstrap_reduct)
-
-    def get_v_target(
-        self,
-        state_batches: list[torch.Tensor],
-        bootstrap_reduct: bool = True,
-    ) -> torch.Tensor:
-        v, _ = self.get_vs_target(state_batches, bootstrap_reduct)
-        return v

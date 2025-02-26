@@ -13,9 +13,7 @@ event_bus:
 
 env:
   name: dep_async_env
-  discrete_control: False
   setpoint_ping_period: 00:00:10
-  discrete_control: False
   opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
   opc_ns: 2
 

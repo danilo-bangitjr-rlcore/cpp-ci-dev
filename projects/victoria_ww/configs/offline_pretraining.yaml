@@ -30,7 +30,6 @@ env:
   name: dep_async_env
   opc_conn_url: "opc.tcp://ignition-services:62541"
   opc_ns: 1
-  discrete_control: False
   db:
     table_name: "tag_data"
 
@@ -50,7 +49,6 @@ agent:
   name: greedy_ac
 
   critic:
-    name: ensemble
     critic_network:
       name: ensemble
       ensemble: 10

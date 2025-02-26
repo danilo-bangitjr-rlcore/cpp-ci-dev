@@ -137,7 +137,10 @@ class DeploymentAsyncEnv(AsyncEnv):
                 for action_name in action.columns:
                     node = self.action_nodes[action_name].node
                     var_type = self.action_nodes[action_name].var_type
-                    action_val = float(action[action_name].iloc[0])
+                    if var_type in {ua.VariantType.Int16, ua.VariantType.Int32, ua.VariantType.Int64}:
+                        action_val = int(action[action_name].iloc[0])
+                    else:
+                        action_val = float(action[action_name].iloc[0])
                     # the source timestamp is sent to the OPC server, which itself has a server timestamp
                     # recorded when it receives the write. if these values are too far apart, some OPC
                     # implementations will consider the quality of this tag to be bad, so we need
