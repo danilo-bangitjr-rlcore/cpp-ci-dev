@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Callable, Self, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Literal, Self, Tuple
 
 import pandas as pd
 from pandas import DataFrame
@@ -284,14 +284,13 @@ class Pipeline:
             data_modes: DataMode | list[DataMode],
             stages: StageCode | list[StageCode],
             f: Callable[[PipelineFrame], Any],
-            order: str = 'post',
+            order: Literal['pre', 'post'] = 'post',
         ):
         if isinstance(data_modes, DataMode):
             data_modes = [data_modes]
         if isinstance(stages, StageCode):
             stages = [stages]
 
-        assert order == 'post' or order == 'pre'
         if order == 'post':
             hook_dict = self._post_invoke_hooks
         else:
