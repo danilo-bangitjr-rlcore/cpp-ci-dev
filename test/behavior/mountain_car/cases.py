@@ -5,8 +5,8 @@ class StandStillMountainCar(BSuiteTestCase):
     name = 'stand still mountain car'
     config = 'test/behavior/mountain_car/stand_still.yaml'
 
-    lower_bounds = { 'reward': -0.21 }
-    upper_warns = { 'avg_critic_loss': 0.006, 'actor_loss': 2.22 }
+    lower_bounds = { 'reward': -0.08 }
+    upper_warns = { 'avg_critic_loss': 0.003, 'actor_loss': -0.57 }
 
 
 class MountainCar(BSuiteTestCase):
