@@ -1,3 +1,9 @@
+## 0.120.0 (2025-02-26)
+
+### Feat
+
+- wire goal constructor into pipeline
+
 ## 0.119.1 (2025-02-26)
 
 ### Refactor
