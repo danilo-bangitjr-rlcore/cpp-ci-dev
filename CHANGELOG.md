@@ -1,3 +1,13 @@
+## 0.119.0 (2025-02-26)
+
+### Feat
+
+- make environment configurations actually configurable.
+
+### Fix
+
+- check if seed exist first
+
 ## 0.118.2 (2025-02-26)
 
 ### Fix
