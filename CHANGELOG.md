@@ -1,3 +1,9 @@
+## 0.118.2 (2025-02-26)
+
+### Fix
+
+- dont make plots online
+
 ## 0.118.1 (2025-02-26)
 
 ### Refactor
