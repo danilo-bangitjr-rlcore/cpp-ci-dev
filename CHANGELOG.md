@@ -1,3 +1,15 @@
+## 0.118.1 (2025-02-26)
+
+### Refactor
+
+- remove critic factory in favor of direct initialization
+- rename base_critic to ensemble_critic
+- all critics are ensemble q critics
+- remove mention of VCritics
+- rename q_critic to critic
+- remove v_critic from base_ac
+- remove discrete_control config throughout codebase
+
 ## 0.118.0 (2025-02-26)
 
 ### Feat
