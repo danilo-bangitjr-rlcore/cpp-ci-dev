@@ -1,23 +1,20 @@
 import logging
 import pickle as pkl
-from functools import partial
 from pathlib import Path
 from typing import Literal
 
-import numpy
+import numpy as np
 import torch
-from jaxtyping import Float
+from pydantic import Field
 
-from corerl.agent.ac_utils import get_percentile_inds, sample_actions, unsqueeze_repeat
-from corerl.agent.base import BaseAC, BaseACConfig
-from corerl.component.actor.base_actor import BaseActor
-from corerl.component.actor.factory import init_actor
+from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.component.buffer import MixedHistoryBuffer
-from corerl.component.network.utils import state_to_tensor, to_np
+from corerl.component.critic.ensemble_critic import CriticConfig, EnsembleCritic
+from corerl.component.network.utils import tensor, to_np
+from corerl.component.policy_manager import ActionReturn, GACPolicyManager, GACPolicyManagerConfig
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
-from corerl.data_pipeline.transforms.delta import Delta
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
@@ -30,93 +27,111 @@ EPSILON = 1e-6
 
 
 @config()
-class GreedyACConfig(BaseACConfig):
+class GreedyACConfig(BaseAgentConfig):
     name: Literal["greedy_ac"] = "greedy_ac"
 
+    critic: CriticConfig = Field(default_factory=CriticConfig)
+    policy_manager: GACPolicyManagerConfig = Field(default_factory=GACPolicyManagerConfig)
+
+    n_actor_updates: int = 1
+    n_critic_updates: int = 1
+
     ensemble_targets: bool = False
-    num_samples: int = 128
-    prop_rho_mult: float = 2.0
-    rho: float = 0.1
-    share_batch: bool = True
-    uniform_sampling_percentage: float = 0.8
-    eval_batch : bool = True
+    eval_batch : bool = False
 
     # metrics
     ingress_loss : bool = True
     most_recent_batch_loss : bool = True
 
 
-class GreedyAC(BaseAC):
+class GreedyAC(BaseAgent):
     def __init__(self, cfg: GreedyACConfig, app_state: AppState, col_desc: ColumnDescriptions):
         super().__init__(cfg, app_state, col_desc)
         self.cfg = cfg
         self._col_desc = col_desc
         self.ensemble_targets = cfg.ensemble_targets
-
-        # percentage of sampled actions used in actor update
-        self.rho = cfg.rho
-        # percentage of sampled actions used in the non-entropy version of the proposal policy update
-        self.rho_proposal = self.rho * cfg.prop_rho_mult
-
-        # number of actions sampled from the proposal policy
-        self.num_samples = cfg.num_samples
-        # whether updates to proposal and actor should share a batch
-        self.share_batch = cfg.share_batch
-        # whether the closure function in line search uses a separate batch for evaluation.
         self.eval_batch = cfg.eval_batch
 
-        self.uniform_sampling_percentage = cfg.uniform_sampling_percentage
-        self.learned_proposal_percent = 1 - self.uniform_sampling_percentage
-        self.uniform_proposal = self.uniform_sampling_percentage == 1
+        self.n_actor_updates = cfg.n_actor_updates
+        self.n_critic_updates = cfg.n_critic_updates
 
-        self.sampler = init_actor(cfg.actor, app_state, self.state_dim, self.action_dim, initializer=self.actor)
+        self._policy_manager = GACPolicyManager(cfg.policy_manager, app_state, self.state_dim, self.action_dim)
+
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
+        self.critic = EnsembleCritic(cfg.critic, app_state, self.state_dim, self.action_dim)
         self.critic_buffer = MixedHistoryBuffer(cfg.critic.buffer, app_state)
-        self.policy_buffer = MixedHistoryBuffer(cfg.actor.buffer, app_state)
 
         self.ensemble = self.cfg.critic.buffer.ensemble
 
-    def get_action(self, state: numpy.ndarray) -> numpy.ndarray:
+    @property
+    def actor_percentile(self) -> float:
+        return self._policy_manager.cfg.actor_percentile
+
+    @property
+    def is_policy_buffer_sampleable(self)-> bool:
+        return self._policy_manager.buffer.is_sampleable
+
+    def sample_policy_buffer(self) -> list[TransitionBatch]:
+        return self._policy_manager.buffer.sample()
+
+    def log_prob(self, states: torch.Tensor, actions: torch.Tensor) -> tuple[torch.Tensor, dict]:
+        return self._policy_manager.actor.log_prob(states, actions)
+
+    def get_action_interaction(self, state: np.ndarray, prev_direct_action: np.ndarray) -> np.ndarray:
+        """
+        Samples a single action during interaction.
+        """
         self._app_state.event_bus.emit_event(EventType.agent_get_action)
 
-        tensor_state = state_to_tensor(state, device.device)
+        tensor_state = tensor(state, device.device)
+        tensor_state = tensor_state.unsqueeze(0)
+        tensor_prev_direct_action = tensor(prev_direct_action, device.device)
+        tensor_prev_direct_action = tensor_prev_direct_action.unsqueeze(0)
 
-        action, _ = self.actor.get_action(
+        ar = self._policy_manager.get_actor_actions(
             tensor_state,
-            with_grad=False,
+            tensor_prev_direct_action,
         )
-        return to_np(action)[0]
+        direct_action = ar.direct_actions
+
+        return to_np(direct_action)[0]
+
+    def get_actor_actions(self, states: torch.Tensor, prev_direct_actions: torch.Tensor) -> ActionReturn:
+        """
+        Sample actions from actor and return both direct and policy actions.
+        """
+        return self._policy_manager.get_actor_actions(
+            states,
+            prev_direct_actions,
+        )
+
+    def get_sampler_actions(self, states: torch.Tensor, prev_direct_actions: torch.Tensor) -> ActionReturn:
+        """
+        Sample actions from sampler and return both direct and policy actions.
+        """
+        return self._policy_manager.get_sampler_actions(
+            states,
+            prev_direct_actions,
+        )
+
+    def get_uniform_actions(self, states: torch.Tensor, prev_direct_actions: torch.Tensor) -> ActionReturn:
+        """
+        Sample actions UAR and return both direct and policy actions.
+        """
+        return self._policy_manager.get_uniform_actions(
+            states,
+            prev_direct_actions,
+        )
 
     def update_buffer(self, pr: PipelineReturn) -> None:
         if pr.transitions is None:
             return
 
         self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
-
         recent_critic_idxs = self.critic_buffer.feed(pr.transitions, pr.data_mode)
-        recent_policy_idxs = self.policy_buffer.feed([t for t in pr.transitions if t.prior.dp], pr.data_mode)
+        self._policy_manager.update_buffer(pr)
 
         # ---------------------------------- ingress loss metic --------------------------------- #
-        if self.cfg.ingress_loss and len(recent_policy_idxs) > 0:
-            recent_policy_batch = self.policy_buffer.get_batch(recent_policy_idxs)
-            delta_action_batch = self._filter_only_delta_actions(recent_policy_batch.post.action)
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"ingress_policy_loss_{pr.data_mode.name}",
-                value=self._policy_err(
-                    self.actor,
-                    recent_policy_batch.prior.state,
-                    delta_action_batch),
-            )
-
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"ingress_sampler_loss_{pr.data_mode.name}",
-                value=self._policy_err(
-                    self.sampler,
-                    recent_policy_batch.prior.state,
-                    delta_action_batch),
-            )
 
         if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
             recent_critic_batch = self.critic_buffer.get_batch(recent_critic_idxs)
@@ -136,52 +151,16 @@ class GreedyAC(BaseAC):
                 value=len(t),
             )
 
-
-
     def load_buffer(self, pr: PipelineReturn) -> None:
         if pr.transitions is None:
             return
 
-        policy_transitions = []
-        for transition in pr.transitions:
-            if transition.prior.dp:
-                policy_transitions.append(transition)
-
-        self.policy_buffer.reset()
+        self._policy_manager.buffer.reset()
         self.critic_buffer.reset()
-        self.policy_buffer.feed(policy_transitions, pr.data_mode)
+        self._policy_manager.buffer.feed(pr.transitions, pr.data_mode)
         self.critic_buffer.feed(pr.transitions, pr.data_mode)
-        self.policy_buffer.app_state = self._app_state
+        self._policy_manager.buffer.app_state = self._app_state
         self.critic_buffer.app_state = self._app_state
-
-    def _filter_only_direct_actions(self, actions: torch.Tensor):
-        if not self.cfg.delta_action:
-            return actions
-
-        direct_idxs = [i for i, col in enumerate(self._col_desc.action_cols) if not Delta.is_delta_transformed(col)]
-        return actions[:, direct_idxs]
-
-    def _filter_only_delta_actions(self, actions: torch.Tensor):
-        if not self.cfg.delta_action:
-            return actions
-
-        delta_idxs = [i for i, col in enumerate(self._col_desc.action_cols) if Delta.is_delta_transformed(col)]
-        return actions[:, delta_idxs]
-
-    def _ensure_direct_action(self, direct_action: torch.Tensor, next_action: torch.Tensor):
-        if not self.cfg.delta_action:
-            return next_action
-
-        bounds = self.cfg.delta_bounds
-        scales = torch.tensor([b[1] - b[0] for b in bounds])
-        biases = torch.tensor([b[0] for b in bounds])
-
-        delta = scales * next_action + biases
-        direct_action = direct_action + delta
-
-        # because we are always operating in normalized space,
-        # we can hardcode the spatial constraints
-        return torch.clip(direct_action, 0, 1)
 
     # --------------------------- critic updating-------------------------- #
 
@@ -207,10 +186,9 @@ class GreedyAC(BaseAC):
             gamma_batch = batch.n_step_gamma
             dp_mask = batch.post.dp
 
-            # put actions into direct form
-            next_actions, _ = self.actor.get_action(next_state_batch, with_grad=False)
-            direct_action_batch = self._filter_only_direct_actions(direct_action_batch)
-            next_direct_actions = self._ensure_direct_action(direct_action_batch, next_actions)
+            ar = self._policy_manager.get_actor_actions(next_state_batch,  direct_action_batch)
+            next_direct_actions = ar.direct_actions
+
             # For the 'Anytime' paradigm, only states at decision points can sample next_actions
             # If a state isn't at a decision point, its next_action is set to the current action
             with torch.no_grad():
@@ -266,7 +244,7 @@ class GreedyAC(BaseAC):
 
             self._app_state.metrics.write(
                     agent_step=self._app_state.agent_step,
-                    metric=f"critic_loss_{self.policy_buffer.n_most_recent}_most_recent",
+                    metric=f"critic_loss_{self.critic_buffer.n_most_recent}_most_recent",
                     value=n_most_recent_loss,
             )
 
@@ -278,209 +256,6 @@ class GreedyAC(BaseAC):
         self.critic.update(q_loss, closure=lambda: self._compute_critic_loss(eval_batches).item())
         return [float(q_loss)]
 
-    # --------------------------- actor and sampler updating-------------------------- #
-
-    def _get_top_n_sampled_actions(
-        self,
-        state_batch: Float[torch.Tensor, "batch_size state_dim"],
-        direct_action_batch: Float[torch.Tensor, "batch_size action_dim"],
-        n_samples: int,
-        percentile: float,
-        uniform_weight: float,  # proportion of samples coming from uniform dist
-        sampler: BaseActor,  # which network to sample non-uniform actions from,
-    ) -> tuple[
-        Float[torch.Tensor, "batch_size*top_actions state_dim"],
-        Float[torch.Tensor, "batch_size*top_actions action_dim"],
-        Float[torch.Tensor, "batch_size*n_samples action_dim"],
-        Float[torch.Tensor, "batch_size*n_samples action_dim"],
-        Float[torch.Tensor, "batch_size*n_samples action_dim"]
-    ]:
-        """
-        Returns the top n_sampled actions for states within state_batch. The samples can either
-        be in delta action space (if self.cfg.delta_action) or direct action space. Also returns
-        the direct action samples regardless (for testing).
-        """
-        BATCH_DIM = 0
-        SAMPLE_DIM = 1
-
-        ACTION_DIM = direct_action_batch.size(1)
-        STATE_DIM = state_batch.size(1)
-
-        # FIRST, sample actions. These can be direct or delta, depending on self.cfg.delta_action
-        sampled_actions: Float[torch.Tensor, "batch_size num_samples action_dim"]
-        # states that each of the sampled actions correspond to:
-        repeated_states: Float[torch.Tensor, "batch_size num_samples state_dim"]
-        sampled_actions, repeated_states = sample_actions(
-            state_batch, n_samples, self.action_dim, policy=sampler, uniform_weight=uniform_weight
-        )
-
-        batch_size = state_batch.size(BATCH_DIM)
-        assert sampled_actions.dim() == repeated_states.dim()
-        assert sampled_actions.size(BATCH_DIM) == repeated_states.size(BATCH_DIM) == batch_size
-        assert sampled_actions.size(SAMPLE_DIM) == repeated_states.size(SAMPLE_DIM) == n_samples
-
-        # the next few lines produce direct actions, which is what the critic takes in
-        direct_action_batch = unsqueeze_repeat(direct_action_batch, SAMPLE_DIM, n_samples)
-        assert direct_action_batch.size(BATCH_DIM) == batch_size
-        assert direct_action_batch.size(SAMPLE_DIM) == n_samples
-        assert direct_action_batch.size(-1) == ACTION_DIM
-
-        # after this line, sampled sampled_direct_actions are guaranteed to be direct
-        sampled_direct_actions = self._ensure_direct_action(direct_action_batch, sampled_actions)
-
-        # NEXT we will query the critic for q_values
-        # however, we first need to reshape the repeated_states and actions
-        # to be the right shape to feed into the critic (i.e. 2 dimensional)
-        repeated_states_2d = repeated_states.reshape(batch_size * n_samples, STATE_DIM)
-        sampled_direct_actions_2d = sampled_direct_actions.reshape(batch_size * n_samples, ACTION_DIM)
-
-        values = self.critic.get_values(
-            [repeated_states_2d],
-            [sampled_direct_actions_2d],
-            with_grad=False,
-        )
-        # now, we need to reshape the q_values to have size (batch_size, num_samples)
-        q_values: Float[torch.Tensor, "batch_size num_samples"]
-        q_values = values.reduced_value.reshape(batch_size, n_samples)
-
-        # NEXT, we will grab the top percentile of direct_actions according to the q_values
-        top_actions: Float[torch.Tensor, "batch_size top_n action_dim"]
-        top_action_inds = get_percentile_inds(q_values, sampled_direct_actions, percentile)
-        top_n = top_action_inds.size(SAMPLE_DIM)
-
-        # grab the top actions. Can be direct OR delta
-        top_actions = torch.gather(sampled_actions, dim=1, index=top_action_inds)
-
-        # grab the top states for those actions
-        states_for_best_actions = repeated_states[:, :top_n, :]
-
-        # FINALLY, reshape returned states and actions to be two dimensional, since this is what
-        # the loss function for the policy expects
-        states_for_best_actions_2d = states_for_best_actions.reshape(batch_size * top_n, STATE_DIM)
-        top_actions_2d = top_actions.reshape(batch_size * top_n, ACTION_DIM)
-        sampled_actions_2d = sampled_actions.reshape(batch_size * n_samples, ACTION_DIM)
-
-        # also return the sampled direct actions
-        direct_top_actions = torch.gather(sampled_direct_actions, dim=1, index=top_action_inds)
-        direct_top_actions_2d = direct_top_actions.reshape(batch_size * top_n, ACTION_DIM)
-        direct_sampled_actions_2d = sampled_direct_actions.reshape(batch_size * n_samples, ACTION_DIM)
-
-        return states_for_best_actions_2d,\
-            top_actions_2d, sampled_actions_2d, \
-            direct_top_actions_2d, direct_sampled_actions_2d
-
-
-    def _compute_policy_loss(
-            self,
-            policy: BaseActor,
-            batch: TransitionBatch,
-            percentile: float,
-            with_grad:bool=False
-        ) -> torch.Tensor:
-        state_batch = batch.prior.state
-        direct_action_batch = self._filter_only_direct_actions(batch.post.action)
-
-        # get the top percentile of actions
-        states_for_best_actions, best_actions, _, _, _ = self._get_top_n_sampled_actions(
-            state_batch=state_batch,
-            direct_action_batch=direct_action_batch,
-            n_samples=self.num_samples,
-            percentile=percentile,
-            uniform_weight=self.uniform_sampling_percentage,
-            sampler=self.sampler,
-        )
-        loss = self._policy_err(policy, states_for_best_actions, best_actions, with_grad=with_grad)
-        return loss
-
-
-    def _update_policy(
-        self,
-        policy: BaseActor,
-        policy_name: str,
-        percentile: float,
-        update_batch : TransitionBatch | None = None,
-    ) -> TransitionBatch:
-
-        assert policy_name == "actor" or policy_name == "sampler"
-        update_batch = self._ensure_policy_batch(update_batch)
-        loss = self._compute_policy_loss(policy, update_batch, percentile, with_grad=True)
-
-        self._app_state.metrics.write(
-            agent_step=self._app_state.agent_step,
-            metric=policy_name + "_loss",
-            value=to_np(loss),
-        )
-
-        log_most_recent_batch_loss = self.cfg.most_recent_batch_loss and self.policy_buffer.n_most_recent > 0
-        if log_most_recent_batch_loss:
-            # grab the most recent samples from the batch and log the loss on only these samples
-            n_most_recent_loss = self._compute_policy_loss(
-                policy,
-                update_batch[:self.policy_buffer.n_most_recent],
-                percentile,
-            )
-
-            self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric=f"{policy_name}_loss_{self.policy_buffer.n_most_recent}_most_recent",
-                    value=n_most_recent_loss,
-            )
-
-        if self.eval_batch:
-            # sample another batch for the evaluation of updates when using line search.
-            eval_batch = self._ensure_policy_batch()
-        else:
-            eval_batch = update_batch
-
-        # apply the update
-        policy.update(
-            loss,
-            opt_kwargs={
-                "closure": partial(self._compute_policy_loss, policy, eval_batch, percentile),
-            },
-        )
-
-        return update_batch
-
-    def _ensure_policy_batch(self, update_batch: TransitionBatch | None = None) -> TransitionBatch:
-        if update_batch is None:
-            # Assuming we don't have an ensemble of policies
-            batches = self.policy_buffer.sample()
-            assert len(batches) == 1
-            update_batch = batches[0]
-
-        assert update_batch is not None
-        return update_batch
-
-    def update_actor(self) -> TransitionBatch | None:
-        self._app_state.event_bus.emit_event(EventType.agent_update_actor)
-        if not self.policy_buffer.is_sampleable:
-            return None
-
-        batch = self._update_policy(self.actor, "actor", self.rho)
-        return batch
-
-    def update_sampler(self, update_batch: TransitionBatch | None = None) -> None:
-        self._app_state.event_bus.emit_event(EventType.agent_update_sampler)
-        if not self.policy_buffer.is_sampleable:
-            return None
-
-        self._update_policy(self.sampler, "sampler", self.rho_proposal, update_batch)
-
-    def _policy_err(
-            self,
-            policy: BaseActor,
-            states: torch.Tensor,
-            actions: torch.Tensor,
-            with_grad:bool=False,
-        ) -> torch.Tensor:
-        logp, _ = policy.get_log_prob(
-            states,
-            actions,
-            with_grad=with_grad,
-        )
-        return -logp.mean()
-
     def update(self) -> list[float]:
         q_losses = []
         for _ in range(self.n_actor_updates):
@@ -488,13 +263,7 @@ class GreedyAC(BaseAC):
                 q_loss = self.update_critic()
                 q_losses += q_loss
 
-            actor_update_return = self.update_actor()
-
-            # signals to update_sampler to sample a batch anew
-            if not self.share_batch:
-                actor_update_return = None
-
-            self.update_sampler(actor_update_return)
+            self._policy_manager.update(self.critic)
 
         return q_losses
 
@@ -505,10 +274,7 @@ class GreedyAC(BaseAC):
 
         path.mkdir(parents=True, exist_ok=True)
         actor_path = path / "actor"
-        self.actor.save(actor_path)
-
-        sampler_path = path / "sampler"
-        self.sampler.save(sampler_path)
+        self._policy_manager.save(actor_path)
 
         q_critic_path = path / "q_critic"
         self.critic.save(q_critic_path)
@@ -517,18 +283,11 @@ class GreedyAC(BaseAC):
         with open(critic_buffer_path, "wb") as f:
             pkl.dump(self.critic_buffer, f)
 
-        policy_buffer_path = path / "policy_buffer.pkl"
-        with open(policy_buffer_path, "wb") as f:
-            pkl.dump(self.policy_buffer, f)
-
     def load(self, path: Path) -> None:
         self._app_state.event_bus.emit_event(EventType.agent_load)
 
         actor_path = path / "actor"
-        self.actor.load(actor_path)
-
-        sampler_path = path / "sampler"
-        self.sampler.load(sampler_path)
+        self._policy_manager.load(actor_path)
 
         q_critic_path = path / "q_critic"
         self.critic.load(q_critic_path)
@@ -537,12 +296,8 @@ class GreedyAC(BaseAC):
         with open(critic_buffer_path, "rb") as f:
             self.critic_buffer = pkl.load(f)
 
-        policy_buffer_path = path / "policy_buffer.pkl"
-        with open(policy_buffer_path, "rb") as f:
-            self.policy_buffer = pkl.load(f)
-
     def get_buffer_sizes(self) -> dict[str, list[int]]:
         return {
             "critic": self.critic_buffer.size,
-            "policy": self.policy_buffer.size,
+            "policy": self._policy_manager.buffer.size,
         }

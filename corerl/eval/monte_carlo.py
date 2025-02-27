@@ -7,7 +7,8 @@ from typing import TYPE_CHECKING, cast
 import numpy as np
 from torch import Tensor
 
-from corerl.agent.base import BaseAC, BaseAgent
+from corerl.agent.base import BaseAgent
+from corerl.agent.greedy_ac import GreedyAC
 from corerl.component.network.utils import tensor
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.pipeline import PipelineReturn
@@ -52,9 +53,9 @@ class MonteCarloEvaluator:
         self.cfg = cfg
         self.enabled = cfg.enabled
 
-        if not isinstance(agent, BaseAC) and self.enabled:
+        if not isinstance(agent, GreedyAC) and self.enabled:
             self.enabled = False
-            logger.error("Agent must be a BaseAC to use Monte-Carlo evaluator")
+            logger.error("Agent must be a GreedyAC to use Monte-Carlo evaluator")
 
         # Determine partial return horizon
         self.gamma = cfg.gamma
@@ -67,9 +68,9 @@ class MonteCarloEvaluator:
 
         self.agent_step = 0
         self.app_state = app_state
-        self.agent = cast(BaseAC, agent)
+        self.agent = cast(GreedyAC, agent)
 
-    def _get_state_value(self, state: Tensor) -> float:
+    def _get_state_value(self, state: Tensor, prev_a: Tensor) -> float:
         """
         Estimates the given state's value under the agent's current policy
         by evaluating the agent's Q function at the given state
@@ -77,13 +78,14 @@ class MonteCarloEvaluator:
         Returns a given state's value when the partial return horizon has elapsed.
         """
         repeat_state = state.repeat((self.critic_samples, 1))
-        sampled_actions, _ = self.agent.actor.get_action(repeat_state, with_grad=False)
+        repeat_prev_a = prev_a.repeat((self.critic_samples, 1))
+        ar = self.agent.get_actor_actions(repeat_state, repeat_prev_a)
+        sampled_actions = ar.direct_actions
         sampled_a_qs = self.agent.critic.get_values(
             [repeat_state],
             [sampled_actions],
-            with_grad=False,
-        )
-        sampled_a_avg_q = float(sampled_a_qs.reduced_value.mean())
+        ).reduced_value
+        sampled_a_avg_q = float(sampled_a_qs.mean())
         return sampled_a_avg_q
 
     def _get_observed_a_q(self, state: Tensor, observed_a: Tensor) -> float:
@@ -158,11 +160,13 @@ class MonteCarloEvaluator:
         rewards = pipe_return.rewards['reward'].to_numpy()
         # To get the action taken and the reward observed from the given state,
         # need to offset actions and rewards by one obs_period with respect to the state
+        prev_actions = taken_actions
         taken_actions = taken_actions[1:]
         rewards = rewards[1:]
         for i in range(len(rewards)):
             state = tensor(states.iloc[i].to_numpy())
             observed_a = tensor(taken_actions.iloc[i].to_numpy())
+            prev_a = tensor(prev_actions.iloc[i].to_numpy())
             reward = float(rewards[i])
             # Can't compute partial returns or evaluate critic if there are nans in the state, action, or reward
             if state.isnan().any() or observed_a.isnan().any() or np.isnan(reward):
@@ -170,9 +174,8 @@ class MonteCarloEvaluator:
                 self.agent_step += 1
                 continue
 
-
             curr_time = states.index[i].isoformat()
-            state_v = self._get_state_value(state)
+            state_v = self._get_state_value(state, prev_a)
             observed_a_q = self._get_observed_a_q(state, observed_a)
 
             self._step_queue.appendleft(_MonteCarloPoint(

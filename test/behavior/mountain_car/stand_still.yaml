@@ -20,8 +20,8 @@ env:
 agent:
   name: greedy_ac
 
-  actor:
-    actor_optimizer:
+  policy_manager:
+    optimizer:
       lr: 0.01
 
 

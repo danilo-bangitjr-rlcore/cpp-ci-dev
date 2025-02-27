@@ -64,8 +64,8 @@ agent:
       ensemble_probability: 1
       id: critic # for metric logging
 
-  actor:
-    actor_optimizer:
+  policy_manager:
+    optimizer:
       lr: 0.001
 
     buffer:

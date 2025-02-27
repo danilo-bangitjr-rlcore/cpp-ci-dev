@@ -74,7 +74,7 @@ def layer_init_uniform(layer: nn.Module, low: float = -0.003, high: float = 0.00
 
 
 def tensor(
-    x: float | numpy.ndarray | torch.Tensor,
+    x: float | numpy.ndarray | torch.Tensor | list[float],
     device: str | torch.device | Device | None = None,
 ) -> torch.Tensor:
     if isinstance(x, torch.Tensor):
