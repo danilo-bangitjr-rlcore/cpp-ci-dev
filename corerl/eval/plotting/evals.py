@@ -88,7 +88,7 @@ def make_actor_critic_plots(
         state_counter = 0
         for state in qs_and_policy["plot_info"]:
             for action in qs_and_policy["plot_info"][state]["a_dim"]:
-                if app_state.cfg.agent.policy_manager.delta_action:
+                if app_state.cfg.agent.policy_manager.delta_actions:
                     fig, axs = plt.subplots(3, 1, figsize=(10, 15))
 
                     # Plot critic over delta action range

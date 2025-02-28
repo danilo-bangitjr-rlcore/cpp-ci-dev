@@ -69,10 +69,10 @@ class MainConfig:
     @post_processor
     def _enable_delta_actions(self, cfg: 'MainConfig'):
         if not self.feature_flags.delta_actions:
-            assert self.agent.policy_manager.delta_action is False, \
+            assert self.agent.policy_manager.delta_actions is False, \
                 'delta_actions is disabled but actor is configured to use delta actions'
 
-        self.agent.policy_manager.delta_action = self.feature_flags.delta_actions
+        self.agent.policy_manager.delta_actions = self.feature_flags.delta_actions
         sorted_tags = sorted(self.pipeline.tags, key=lambda x: x.name)
         for tag in sorted_tags:
             if tag.action_constructor is not None:

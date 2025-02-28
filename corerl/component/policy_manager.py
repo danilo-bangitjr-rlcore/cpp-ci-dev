@@ -41,7 +41,7 @@ Optimizer = torch.optim.Optimizer | EnsembleOptimizer
 @config()
 class GACPolicyManagerConfig:
     name: Literal["network"] = "network"
-    delta_action: bool = False
+    delta_actions: bool = False
     state_conditioned_delta : bool = False
     delta_bounds: list[tuple[float, float]] = Field(default_factory=list)
 
@@ -108,7 +108,7 @@ class GACPolicyManager:
         assert isinstance(self.actor_optimizer, Optimizer)
         assert isinstance(self.sampler_optimizer, Optimizer)
 
-        if self.cfg.delta_action:
+        if self.cfg.delta_actions:
             self.delta_low = tensor([db[0] for db in cfg.delta_bounds], device.device)
             self.delta_high = tensor([db[1] for db in cfg.delta_bounds], device.device)
 
@@ -151,7 +151,7 @@ class GACPolicyManager:
         """
         Ensures that the output of this function is a direct action
         """
-        if self.cfg.delta_action:
+        if self.cfg.delta_actions:
             delta_scale, delta_bias = self._get_delta_scale_bias(prev_direct_actions)
             delta_actions = policy_actions * delta_scale + delta_bias
             direct_actions = prev_direct_actions + delta_actions
@@ -239,7 +239,7 @@ class GACPolicyManager:
         policy_actions = self._sample_sampler(states)
         direct_actions = self._ensure_direct_action(prev_direct_actions, policy_actions)
 
-        if self.cfg.delta_action:
+        if self.cfg.delta_actions:
             direct_actions, policy_actions = self._rejection_sample_sampler(
                 states, prev_direct_actions, direct_actions, policy_actions
             )
@@ -275,7 +275,7 @@ class GACPolicyManager:
         if self.cfg.ingress_loss and len(recent_idxs) > 0:
             recent_batch = self.buffer.get_batch(recent_idxs)
 
-            if self.cfg.delta_action:
+            if self.cfg.delta_actions:
                 recent_actions = recent_batch.post.action - recent_batch.prior.action
             else:
                 recent_actions = recent_batch.post.action

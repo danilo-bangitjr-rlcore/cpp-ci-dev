@@ -37,7 +37,7 @@ class ActorCriticEvalConfig:
     num_test_states: int = 30
     num_uniform_actions: int = 100
     critic_samples: int = 5
-    delta_action : bool = MISSING
+    delta_actions : bool = MISSING
 
     @computed('delta_action')
     @classmethod
@@ -55,7 +55,7 @@ class ActorCriticEval:
     ):
         self.cfg = cfg
         self.enabled = cfg.enabled
-        self.delta_action = cfg.delta_action
+        self.delta_actions = cfg.delta_actions
         if not isinstance(agent, GreedyAC) and self.enabled:
             self.enabled = False
             logger.error("Agent must be a GreedyAC to use Actor-Critic evaluator")
@@ -324,7 +324,7 @@ class ActorCriticEval:
             sampled_policy_actions = ar.policy_actions
 
             # Produce different plots for direct action and delta action agents
-            if self.delta_action:
+            if self.delta_actions:
                 qs_and_policy = self._get_delta_action_plot_info(state, prev_action, sampled_direct_actions,
                                                                  sampled_policy_actions, qs_and_policy)
             else:
