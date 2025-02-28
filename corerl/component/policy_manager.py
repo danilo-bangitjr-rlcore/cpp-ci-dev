@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import logging
 import pickle
 from pathlib import Path
 from typing import Callable, Literal, NamedTuple
 
-import numpy as np
 import torch
 from pydantic import Field
 
@@ -22,6 +22,8 @@ from corerl.data_pipeline.pipeline import PipelineReturn
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
+
+logger = logging.getLogger(__name__)
 
 OUTPUT_MIN = 0
 OUTPUT_MAX = 1
@@ -191,8 +193,8 @@ class GACPolicyManager:
         This method checks if the provided `direct_actions` are within the valid range [0, 1]
         If any actions are out of bounds, it resamples them using a mixture policy until all actions are valid.
         """
-
-        while True:
+        max_itr = 100
+        for itr in range(max_itr):
             # check if in valid range for normalized direct actions
             if torch.all((direct_actions>=OUTPUT_MIN) & (direct_actions<=OUTPUT_MAX)):
                 break
@@ -202,6 +204,10 @@ class GACPolicyManager:
             # resample invalid actions
             policy_actions[invalid_mask] = self._sample_sampler(states[invalid_mask])
             direct_actions = self._ensure_direct_action(prev_direct_actions, policy_actions)
+
+            if itr == max_itr-1:
+                logging.warning(f"Maximum iterations ({max_itr}) in rejection sampling reached.")
+
         return direct_actions, policy_actions
 
     # ---------------------------------------------------------------------------- #
