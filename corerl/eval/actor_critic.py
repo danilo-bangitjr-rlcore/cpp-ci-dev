@@ -2,14 +2,13 @@ import logging
 import random
 from collections import namedtuple
 from copy import deepcopy
-from typing import TYPE_CHECKING, Tuple, cast
+from typing import TYPE_CHECKING, Tuple
 
 import numpy as np
 import torch
 from pydantic import BaseModel
 from torch import Tensor
 
-from corerl.agent.base import BaseAgent
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import Transition
@@ -50,20 +49,16 @@ class ActorCriticEval:
         cfg: ActorCriticEvalConfig,
         app_state: AppState,
         pipeline: Pipeline,
-        agent: BaseAgent,
+        agent: GreedyAC,
         column_desc: ColumnDescriptions
     ):
         self.cfg = cfg
         self.enabled = cfg.enabled
         self.delta_actions = cfg.delta_actions
-        if not isinstance(agent, GreedyAC) and self.enabled:
-            self.enabled = False
-            logger.error("Agent must be a GreedyAC to use Actor-Critic evaluator")
 
         self.num_test_states = cfg.num_test_states
         self.num_uniform_actions = cfg.num_uniform_actions
         self.critic_samples = cfg.critic_samples
-        agent = cast(GreedyAC, agent)
         self.agent = agent
         self.app_state = app_state
         self.pipeline = pipeline

@@ -2,12 +2,11 @@ import logging
 import math
 from collections import deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import numpy as np
 from torch import Tensor
 
-from corerl.agent.base import BaseAgent
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.component.network.utils import tensor
 from corerl.configs.config import MISSING, computed, config
@@ -49,13 +48,9 @@ class MonteCarloEvaluator:
     as well as under the observed action to compare against the observed partial returns.
     """
 
-    def __init__(self, cfg: MonteCarloEvalConfig, app_state: AppState, agent: BaseAgent):
+    def __init__(self, cfg: MonteCarloEvalConfig, app_state: AppState, agent: GreedyAC):
         self.cfg = cfg
         self.enabled = cfg.enabled
-
-        if not isinstance(agent, GreedyAC) and self.enabled:
-            self.enabled = False
-            logger.error("Agent must be a GreedyAC to use Monte-Carlo evaluator")
 
         # Determine partial return horizon
         self.gamma = cfg.gamma
@@ -68,7 +63,7 @@ class MonteCarloEvaluator:
 
         self.agent_step = 0
         self.app_state = app_state
-        self.agent = cast(GreedyAC, agent)
+        self.agent = agent
 
     def _get_state_value(self, state: Tensor, prev_a: Tensor) -> float:
         """
