@@ -286,11 +286,12 @@ class GACPolicyManager:
                 value=self._policy_err(self.actor, recent_batch.prior.state, recent_actions),
             )
 
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"ingress_sampler_loss_{pr.data_mode.name}",
-                value=self._policy_err(self.sampler, recent_batch.prior.state, recent_actions),
-            )
+            if not self.is_uniform_sampler:
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"ingress_sampler_loss_{pr.data_mode.name}",
+                    value=self._policy_err(self.sampler, recent_batch.prior.state, recent_actions),
+                )
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
