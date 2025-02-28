@@ -159,6 +159,9 @@ class GACPolicyManager:
         policy_actions, _ = mix_uniform_actions(policy_actions, self.cfg.uniform_weight)
         return policy_actions
 
+    def _sample_unform(self, states: torch.Tensor):
+        return torch.rand(states.size(0), self.action_dim, device=device.device)
+
     def _rejection_sample(
             self,
             sampler: Callable[[torch.Tensor], torch.Tensor],
@@ -186,7 +189,10 @@ class GACPolicyManager:
             direct_actions = self._ensure_direct_action(prev_direct_actions, policy_actions)
 
             if itr == max_itr-1:
-                logging.warning(f"Maximum iterations ({max_itr}) in rejection sampling reached.")
+                logging.warning(f"Maximum iterations ({max_itr}) in rejection sampling reached..."
+                                 +"defaulting to sampling uniform")
+                policy_actions[invalid_mask] = self._sample_unform(states[invalid_mask])
+                direct_actions = self._ensure_direct_action(prev_direct_actions, policy_actions)
 
         # Clip the direct actions. This should be unnecessary if rejection sampling is successful
         direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
@@ -244,10 +250,7 @@ class GACPolicyManager:
         """
         Samples direct actions for states UAR
         """
-        def uniform_sampler(states: torch.Tensor):
-            return torch.rand(states.size(0), self.action_dim, device=device.device)
-
-        return self._get_actions(uniform_sampler, states, prev_direct_actions)
+        return self._get_actions(self._sample_unform, states, prev_direct_actions)
 
     def update_buffer(self, pr: PipelineReturn) -> None:
         """
