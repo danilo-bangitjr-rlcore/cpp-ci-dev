@@ -78,11 +78,10 @@ class SimInteraction(Interaction):
         )
 
         # log states
-        self._write_to_metrics(pipe_return.states)
-
+        self._write_to_metrics(pipe_return.states, prefix='STATE-')
 
         # log rewards
-        self._write_to_metrics(pipe_return.rewards)
+        self._write_to_metrics(pipe_return.rewards, prefix='REWARD-')
 
         # perform evaluations
         self._monte_carlo_eval.execute(pipe_return, "online")
@@ -119,8 +118,8 @@ class SimInteraction(Interaction):
         agent_eval.greed_dist_online(self._app_state, self._agent, s, prev_direct)
         agent_eval.greed_values_online(self._app_state, self._agent, s, prev_direct)
 
-            # log actions
-        self._write_to_metrics(a_df)
+        # log actions
+        self._write_to_metrics(next_a_df, prefix='ACTION-')
 
     # ------------------
     # -- No Event Bus --
@@ -167,7 +166,7 @@ class SimInteraction(Interaction):
         return self._last_state, self._last_action
 
 
-    def _write_to_metrics(self, df: pd.DataFrame) -> None:
+    def _write_to_metrics(self, df: pd.DataFrame, prefix: str = '') -> None:
         if len(df) != 1:
             logger.error(f"unexpected df length: {len(df)}")
 
@@ -175,6 +174,6 @@ class SimInteraction(Interaction):
             val = df[feat_name].values[0]
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
-                metric=feat_name,
+                metric=prefix + feat_name,
                 value=val,
             )
