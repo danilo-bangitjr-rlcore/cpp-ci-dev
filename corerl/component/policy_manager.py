@@ -180,8 +180,9 @@ class GACPolicyManager:
         policy_actions, _ = mix_uniform_actions(policy_actions, self.cfg.uniform_weight)
         return policy_actions
 
-    def _rejection_sample_sampler(
+    def _rejection_sample(
             self,
+            sampler: Callable[[torch.Tensor], torch.Tensor],
             states: torch.Tensor,
             prev_direct_actions: torch.Tensor,
             direct_actions: torch.Tensor,
@@ -202,17 +203,38 @@ class GACPolicyManager:
             invalid_mask = (direct_actions<OUTPUT_MIN) | (direct_actions>OUTPUT_MAX)
             invalid_mask = invalid_mask.any(dim=1)
             # resample invalid actions
-            policy_actions[invalid_mask] = self._sample_sampler(states[invalid_mask])
+            policy_actions[invalid_mask] = sampler(states[invalid_mask])
             direct_actions = self._ensure_direct_action(prev_direct_actions, policy_actions)
 
             if itr == max_itr-1:
                 logging.warning(f"Maximum iterations ({max_itr}) in rejection sampling reached.")
 
+        # Clip the direct actions. This should be unnecessary if rejection sampling is successful
+        direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
         return direct_actions, policy_actions
 
     # ---------------------------------------------------------------------------- #
     #                                      API                                     #
     # ---------------------------------------------------------------------------- #
+
+
+    def _get_actions(
+        self,
+        sampler: Callable[[torch.Tensor], torch.Tensor],
+        states: torch.Tensor,
+        prev_direct_actions: torch.Tensor,
+    ) -> ActionReturn:
+        policy_actions = sampler(states)
+        direct_actions = self._ensure_direct_action(prev_direct_actions, policy_actions)
+
+        if self.cfg.delta_actions:
+            direct_actions, policy_actions = self._rejection_sample(
+                sampler, states, prev_direct_actions, direct_actions, policy_actions
+            )
+        else:
+            direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
+
+        return ActionReturn(direct_actions, policy_actions)
 
     def get_actor_actions(
         self,
@@ -222,10 +244,7 @@ class GACPolicyManager:
         """
         Samples direct actions for states from the actor.
         """
-        policy_actions = self._sample_actor(states)
-        direct_actions = self._ensure_direct_action(prev_direct_actions, policy_actions)
-        direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
-        return ActionReturn(direct_actions, policy_actions)
+        return self._get_actions(self._sample_actor, states, prev_direct_actions)
 
     def get_sampler_actions(
         self,
@@ -236,17 +255,7 @@ class GACPolicyManager:
         Samples direct actions for states.
         If uniform_weight is greater than 0, will sample actions from a mixture between the policy and uniform.
         """
-        policy_actions = self._sample_sampler(states)
-        direct_actions = self._ensure_direct_action(prev_direct_actions, policy_actions)
-
-        if self.cfg.delta_actions:
-            direct_actions, policy_actions = self._rejection_sample_sampler(
-                states, prev_direct_actions, direct_actions, policy_actions
-            )
-        else:
-            direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
-
-        return ActionReturn(direct_actions, policy_actions)
+        return self._get_actions(self._sample_sampler, states, prev_direct_actions)
 
     def get_uniform_actions(
         self,
@@ -256,11 +265,10 @@ class GACPolicyManager:
         """
         Samples direct actions for states UAR
         """
-        policy_actions = torch.rand(states.size(0), self.action_dim, device=device.device)
-        direct_actions = self._ensure_direct_action(prev_direct_actions, policy_actions)
-        direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
+        def uniform_sampler(states: torch.Tensor):
+            return torch.rand(states.size(0), self.action_dim, device=device.device)
 
-        return ActionReturn(direct_actions, policy_actions)
+        return self._get_actions(uniform_sampler, states, prev_direct_actions)
 
     def update_buffer(self, pr: PipelineReturn) -> None:
         """
