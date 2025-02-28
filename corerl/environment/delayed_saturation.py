@@ -28,9 +28,11 @@ class DelayedSaturationConfig:
 
 
 class DelayedSaturation(gym.Env):
-    def __init__(self, cfg: dict | DelayedSaturationConfig):
+    def __init__(self, cfg: dict | DelayedSaturationConfig | None = None):
         if isinstance(cfg, dict):
             cfg = config_from_dict(DelayedSaturationConfig, cfg)
+        elif cfg is None:
+            cfg = DelayedSaturationConfig()
 
         self._random = np.random.default_rng(cfg.seed)
         self._obs_min = np.array([0.])
