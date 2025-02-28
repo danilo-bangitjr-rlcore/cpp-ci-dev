@@ -23,7 +23,7 @@ agent:
     critic_optimizer:
       lr: 0.00025
 
-  policy_manager:
+  policy:
     optimizer:
       lr: 0.0005
 

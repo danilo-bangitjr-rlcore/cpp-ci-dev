@@ -20,7 +20,7 @@ agent:
     buffer:
       name: uniform
 
-  policy_manager:
+  policy:
     optimizer:
       lr: 0.001
     buffer:

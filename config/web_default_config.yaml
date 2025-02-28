@@ -36,7 +36,7 @@ agent:
   critic:
     critic_optimizer:
       lr: 0.01
-  policy_manager:
+  policy:
     uniform_weight: 0.8
     num_samples: 128
     optimizer:

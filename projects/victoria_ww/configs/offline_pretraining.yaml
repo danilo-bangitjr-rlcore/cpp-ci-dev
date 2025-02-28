@@ -68,7 +68,7 @@ agent:
       ensemble_probability: 0.5
       batch_size: 256
 
-  policy_manager:
+  policy:
     #actor_network:
       #name: 'squashed_gaussian'
       #base:
