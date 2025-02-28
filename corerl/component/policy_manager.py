@@ -43,6 +43,7 @@ class GACPolicyManagerConfig:
     name: Literal["network"] = "network"
     delta_actions: bool = False
     delta_bounds: list[tuple[float, float]] = Field(default_factory=list)
+    delta_rejection_sample: bool = True
 
     # hyperparameters
     num_samples: int = 128
@@ -205,7 +206,7 @@ class GACPolicyManager:
         policy_actions = sampler(states)
         direct_actions = self._ensure_direct_action(prev_direct_actions, policy_actions)
 
-        if self.cfg.delta_actions:
+        if self.cfg.delta_actions and self.cfg.delta_rejection_sample:
             direct_actions, policy_actions = self._rejection_sample(
                 sampler, states, prev_direct_actions, direct_actions, policy_actions
             )
