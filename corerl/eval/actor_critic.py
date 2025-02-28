@@ -38,9 +38,9 @@ class ActorCriticEvalConfig:
     critic_samples: int = 5
     delta_actions : bool = MISSING
 
-    @computed('delta_action')
+    @computed('delta_actions')
     @classmethod
-    def _delta_action(cls, cfg: 'MainConfig'):
+    def _delta_actions(cls, cfg: 'MainConfig'):
         return cfg.feature_flags.delta_actions
 
 class ActorCriticEval:

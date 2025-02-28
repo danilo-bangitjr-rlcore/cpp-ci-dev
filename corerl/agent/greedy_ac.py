@@ -31,7 +31,7 @@ class GreedyACConfig(BaseAgentConfig):
     name: Literal["greedy_ac"] = "greedy_ac"
 
     critic: CriticConfig = Field(default_factory=CriticConfig)
-    policy_manager: GACPolicyManagerConfig = Field(default_factory=GACPolicyManagerConfig)
+    policy: GACPolicyManagerConfig = Field(default_factory=GACPolicyManagerConfig)
 
     n_actor_updates: int = 1
     n_critic_updates: int = 1
@@ -55,13 +55,17 @@ class GreedyAC(BaseAgent):
         self.n_actor_updates = cfg.n_actor_updates
         self.n_critic_updates = cfg.n_critic_updates
 
-        self._policy_manager = GACPolicyManager(cfg.policy_manager, app_state, self.state_dim, self.action_dim)
+        self._policy_manager = GACPolicyManager(cfg.policy, app_state, self.state_dim, self.action_dim)
 
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic = EnsembleCritic(cfg.critic, app_state, self.state_dim, self.action_dim)
         self.critic_buffer = MixedHistoryBuffer(cfg.critic.buffer, app_state)
 
         self.ensemble = self.cfg.critic.buffer.ensemble
+
+    @property
+    def delta_actions(self) -> bool:
+        return self._policy_manager.cfg.delta_actions
 
     @property
     def actor_percentile(self) -> float:
