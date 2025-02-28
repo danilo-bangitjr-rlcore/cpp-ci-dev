@@ -77,7 +77,8 @@ class MainConfig:
         for tag in sorted_tags:
             if tag.action_constructor is not None:
                 if tag.change_bounds is None:
-                    self.agent.policy_manager.delta_bounds.append((-1, 1))
+                    raise AssertionError('delta_actions is enabled but change_bounds'
+                                         + f'are not specified for tag {tag.name}.')
                 else:
                     self.agent.policy_manager.delta_bounds.append(tag.change_bounds)
 
