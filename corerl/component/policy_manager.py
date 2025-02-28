@@ -198,11 +198,6 @@ class GACPolicyManager:
         direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
         return direct_actions, policy_actions
 
-    # ---------------------------------------------------------------------------- #
-    #                                      API                                     #
-    # ---------------------------------------------------------------------------- #
-
-
     def _get_actions(
         self,
         sampler: Callable[[torch.Tensor], torch.Tensor],
@@ -220,6 +215,10 @@ class GACPolicyManager:
             direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
 
         return ActionReturn(direct_actions, policy_actions)
+
+    # ---------------------------------------------------------------------------- #
+    #                                      API                                     #
+    # ---------------------------------------------------------------------------- #
 
     def get_actor_actions(
         self,
