@@ -5,7 +5,7 @@ import pandas as pd
 from torch import Tensor
 
 import corerl.eval.agent as agent_eval
-from corerl.agent.base import BaseAgent
+from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
@@ -24,7 +24,7 @@ class SimInteraction(Interaction):
         self,
         cfg: SimInteractionConfig,
         app_state: AppState,
-        agent: BaseAgent,
+        agent: GreedyAC,
         env: AsyncEnv,
         pipeline: Pipeline,
     ):
