@@ -1,3 +1,9 @@
+## 0.120.1 (2025-02-28)
+
+### Fix
+
+- allow delayed saturation to use default configs
+
 ## 0.120.0 (2025-02-26)
 
 ### Feat
