@@ -72,3 +72,5 @@ pipeline:
     change_bounds: [-0.2, 0.2]
     state_constructor:
       - name: 'null'
+    action_constructor:
+      - name: 'identity'
