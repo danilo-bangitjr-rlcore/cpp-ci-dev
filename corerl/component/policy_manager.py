@@ -42,7 +42,6 @@ Optimizer = torch.optim.Optimizer | EnsembleOptimizer
 class GACPolicyManagerConfig:
     name: Literal["network"] = "network"
     delta_actions: bool = False
-    state_conditioned_delta : bool = False
     delta_bounds: list[tuple[float, float]] = Field(default_factory=list)
 
     # hyperparameters
@@ -123,26 +122,6 @@ class GACPolicyManager:
     #                      Helper methods for sampling actions                     #
     # ---------------------------------------------------------------------------- #
 
-    def _get_delta_scale_bias(self, prev_direct_action: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        """
-        Computes the delta scale and bias for converting policy_actions to delta actions
-        for the given previous direct action.
-
-        If `self.cfg.state_conditioned_delta` is False, returns the predefined `delta_scale` and `delta_bias`.
-        Otherwise, computes the delta scale and bias based on the previous direct action.
-        """
-        if not self.cfg.state_conditioned_delta:
-            return self.delta_scale, self.delta_bias
-
-        low_mask = prev_direct_action < -self.delta_low
-        delta_low = -prev_direct_action*low_mask + (~low_mask)*self.delta_low
-
-        high_mask = prev_direct_action + self.delta_high > OUTPUT_MAX
-        delta_high = (OUTPUT_MAX-prev_direct_action)*high_mask+ (~high_mask)*self.delta_high
-        delta_scale = (delta_high - delta_low)
-
-        return delta_scale, delta_low
-
     def _ensure_direct_action(
             self,
             prev_direct_actions: torch.Tensor,
@@ -152,8 +131,7 @@ class GACPolicyManager:
         Ensures that the output of this function is a direct action
         """
         if self.cfg.delta_actions:
-            delta_scale, delta_bias = self._get_delta_scale_bias(prev_direct_actions)
-            delta_actions = policy_actions * delta_scale + delta_bias
+            delta_actions = policy_actions * self.delta_scale + self.delta_bias
             direct_actions = prev_direct_actions + delta_actions
         else:
             direct_actions = policy_actions
