@@ -68,7 +68,6 @@ class MainConfig:
     # ---------------
     @post_processor
     def _enable_delta_actions(self, cfg: 'MainConfig'):
-
         if not self.feature_flags.delta_actions:
             assert self.agent.policy.delta_actions is False, \
                 'delta_actions is disabled but actor is configured to use delta actions'
@@ -80,12 +79,14 @@ class MainConfig:
 
         sorted_tags = sorted(self.pipeline.tags, key=lambda x: x.name)
         for tag in sorted_tags:
-            if tag.action_constructor is not None:
-                if tag.change_bounds is None:
-                    raise AssertionError('delta_actions is enabled but change_bounds '
-                                         + f'are not specified for tag {tag.name}.')
-                else:
-                    self.agent.policy.delta_bounds.append(tag.change_bounds)
+            # if not an action, continue
+            if tag.change_bounds is None:
+                continue
+
+            if tag.action_constructor is None:
+                tag.action_constructor = []
+
+            self.agent.policy.delta_bounds.append(tag.change_bounds)
 
 
     @post_processor
