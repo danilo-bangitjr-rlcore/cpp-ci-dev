@@ -37,7 +37,7 @@ class DelayedSaturation(gym.Env):
         self._random = np.random.default_rng(cfg.seed)
         self._obs_min = np.array([0.])
         self._obs_max = np.array([1.])
-        self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max)
+        self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max, dtype=np.float64)
 
         self.saturation = np.array([0.5])
         self.saturation_sp = np.array([0.5])
@@ -46,7 +46,7 @@ class DelayedSaturation(gym.Env):
         self._action_dim = 1
         self._action_min = np.array([0])
         self._action_max = np.array([1])
-        self.action_space = gym.spaces.Box(self._action_min, self._action_max)
+        self.action_space = gym.spaces.Box(self._action_min, self._action_max, dtype=np.float64)
 
         self.time_step = 0
         self.decay = cfg.decay
