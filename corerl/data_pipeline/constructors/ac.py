@@ -8,8 +8,7 @@ from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms.base import InvertibleTransform
-from corerl.data_pipeline.transforms.delta import Delta
-from corerl.utils.list import find, find_index
+from corerl.utils.list import find
 from corerl.utils.maybe import Maybe
 
 
@@ -49,59 +48,6 @@ class ActionConstructor(Constructor):
         pf.actions = pf.actions.loc[:, sorted_cols]
 
         return pf
-
-    def get_direct_action(self, arr: np.ndarray):
-        da_indices = []
-        for _, tag_name in enumerate(self._relevant_cfgs.keys()):
-            direct_idx = find_index(
-                lambda c: c.startswith(tag_name) and not Delta.is_delta_transformed(c), # noqa: B023
-                self.columns,
-            )
-            assert direct_idx is not None, 'failed to find a direct action index when a delta action index exists'
-            da_indices.append(direct_idx)
-
-        return arr[da_indices]
-
-    def assign_action_names(self, action_arr: np.ndarray, delta_arr: np.ndarray):
-        """
-        Because the action constructor is responsible for setting action ordering,
-        then when we receive a numpy array with a magic ordering, the AC is
-        responsible for labelling those ordered actions with their respective names.
-        """
-        actions: dict[str, float] = {}
-        for action_idx, tag_name in enumerate(self._relevant_cfgs.keys()):
-            delta_idx = find_index(
-                lambda c: c.startswith(tag_name) and Delta.is_delta_transformed(c), # noqa: B023
-                self.columns,
-            )
-
-            # if there is no delta action
-            # then there is no offset. So the delta_arr
-            # actually just contains the action itself
-            if delta_idx is None:
-                actions[tag_name] = delta_arr[action_idx]
-                continue
-
-            # otherwise, we need to find the direct action
-            # in the offset list, and add these together
-            direct_idx = find_index(
-                lambda c: c.startswith(tag_name) and not Delta.is_delta_transformed(c), # noqa: B023
-                self.columns,
-            )
-            assert direct_idx is not None, 'failed to find a direct action index when a delta action index exists'
-
-            inverted_delta = self.invert(
-                np.array([delta_arr[action_idx]]),
-                self.columns[delta_idx],
-            )[0]
-
-            # because we are operating in normalized action space
-            # we know that the bounds are strictly [0, 1] here
-            actions[tag_name] = np.clip(action_arr[direct_idx] + inverted_delta, 0, 1)
-
-        d = {col: [act] for col, act in actions.items()}
-        df = pd.DataFrame(d)
-        return df
 
     def get_action_df(self, action_arr: np.ndarray) -> pd.DataFrame:
         """
