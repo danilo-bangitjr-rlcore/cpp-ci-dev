@@ -40,7 +40,7 @@ def _eval_test_case(test_case: BSuiteTestCase, seed: int):
         | test_case.lower_warns
     )
 
-    test_case._overrides |= { 'experiment.seed': seed}
+    test_case._overrides |= { 'experiment.seed': seed, 'experiment.num_threads': 1 }
 
     metrics_table = test_case.execute_test(engine, 5432, db_name)
     metric_values: dict[str, float] = {}
