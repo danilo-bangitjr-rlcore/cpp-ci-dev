@@ -1,3 +1,4 @@
+import subprocess
 import sys
 from pathlib import Path
 from typing import NamedTuple
@@ -83,6 +84,8 @@ def _test_over_seeds(test_case: BSuiteTestCase, pool: Pool, seeds: int):
 
 def main():
     pool = Pool(16)
+
+    subprocess.run(['uv', 'sync'])
 
     all_results: list[dict[str, TestResults]] = []
     for test_case in TEST_CASES:
