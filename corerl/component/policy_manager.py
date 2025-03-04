@@ -51,6 +51,7 @@ class GACPolicyManagerConfig:
     sampler_percentile: float = 0.2
     uniform_weight: float = 0.8
     init_sampler_with_actor_weights: bool = True
+    resample_for_sampler_update: bool = True
 
     # metrics
     ingress_loss: bool = True
@@ -333,12 +334,11 @@ class GACPolicyManager:
         # sample self.cfg.num_samples according to sampler, then rank them by critic
         # top_states has size (batch_size, n, state_dim) and top_policy_actions has size
         # (batch_size, n, action_dim), where n = floor(self.percentile*batch_size)
-        sampler = self.get_sampler_actions
         qr = get_sampled_qs(
             states=update_batch.prior.state,
             prev_actions=update_batch.prior.action,
             n_samples=self.cfg.num_samples,
-            sampler=sampler,
+            sampler=self.get_sampler_actions,
             critic=critic,
         )
 
@@ -347,6 +347,14 @@ class GACPolicyManager:
         self._regress_towards_percentile(qr, self.actor, self.actor_optimizer,
                                          self.cfg.actor_percentile , 'actor', actor_closure)
         if not self.is_uniform_sampler:
+            if self.cfg.resample_for_sampler_update:
+                qr = get_sampled_qs(
+                    states=update_batch.prior.state,
+                    prev_actions=update_batch.prior.action,
+                    n_samples=self.cfg.num_samples,
+                    sampler=self.get_sampler_actions,
+                    critic=critic,
+                )
             assert isinstance(self.sampler_optimizer, Optimizer)
             sampler_closure = self._get_closure(self.sampler, critic, self.cfg.sampler_percentile)
             self._regress_towards_percentile(qr, self.sampler,  self.sampler_optimizer,
