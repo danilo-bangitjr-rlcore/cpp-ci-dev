@@ -125,7 +125,7 @@ class DeploymentInteraction(Interaction):
             .to_numpy(dtype=np.float32)
         )
 
-        self._write_state_features(state)
+        self._write_to_metrics(state, prefix='STATE-')
 
         # perform evaluations
         self._monte_carlo_eval.execute(pipe_return, "online")
@@ -178,6 +178,8 @@ class DeploymentInteraction(Interaction):
         agent_eval.q_online(self._app_state, self._agent, s, next_a)
         agent_eval.greed_dist_online(self._app_state, self._agent, s, prev_a)
         agent_eval.greed_values_online(self._app_state, self._agent, s, prev_a)
+
+        self._write_to_metrics(next_a_df, prefix='ACTION-')
 
     def _on_update(self):
         self._agent.update()
@@ -346,14 +348,14 @@ class DeploymentInteraction(Interaction):
 
         return self._last_state, self._last_action
 
-    def _write_state_features(self, state_df: pd.DataFrame) -> None:
-        if len(state_df) != 1:
-            logger.error(f"unexpected state df length: {len(state_df)}")
+    def _write_to_metrics(self, df: pd.DataFrame, prefix: str = '') -> None:
+        if len(df) != 1:
+            logger.error(f"unexpected df length: {len(df)}")
 
-        for feat_name in state_df.columns:
-            val = state_df[feat_name].values[0]
+        for feat_name in df.columns:
+            val = df[feat_name].values[0]
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
-                metric=feat_name,
+                metric=prefix + feat_name,
                 value=val,
             )
