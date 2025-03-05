@@ -23,8 +23,8 @@ agent:
     critic_optimizer:
       lr: 0.00025
 
-  actor:
-    actor_optimizer:
+  policy:
+    optimizer:
       lr: 0.0005
 
 pipeline:

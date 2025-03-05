@@ -32,14 +32,14 @@ agent:
   name: greedy_ac
   n_critic_updates: 1
   n_actor_updates: 1
-  num_samples: 128
-  uniform_sampling_percentage: 0.8
   seed: 1
   critic:
     critic_optimizer:
       lr: 0.01
-  actor:
-    actor_optimizer:
+  policy:
+    uniform_weight: 0.8
+    num_samples: 128
+    optimizer:
       lr: 0.01
 experiment:
   exp_name: CoreRL_Experiment

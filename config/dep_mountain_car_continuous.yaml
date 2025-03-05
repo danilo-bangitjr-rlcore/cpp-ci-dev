@@ -49,8 +49,8 @@ interaction:
 agent:
   name: greedy_ac
 
-  actor:
-    actor_optimizer:
+  policy:
+    optimizer:
       lr: 0.01
 
 

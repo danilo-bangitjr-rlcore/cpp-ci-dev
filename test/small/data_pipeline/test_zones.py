@@ -1,0 +1,83 @@
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+import pandas as pd
+import pytest
+
+from corerl.config import MainConfig
+from corerl.configs.loader import direct_load_config
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
+from corerl.data_pipeline.pipeline import Pipeline
+from corerl.data_pipeline.zones import ZoneDiscourager
+from corerl.eval.evals import evals_group
+from corerl.eval.metrics import metrics_group
+from corerl.messages.event_bus import EventBus
+from corerl.state import AppState
+
+
+@pytest.fixture
+def cfg():
+    return direct_load_config(
+        MainConfig,
+        base='test/small/data_pipeline/assets',
+        config_name='zone.yaml',
+    )
+
+
+@pytest.fixture
+def app_state(cfg: MainConfig):
+    return AppState(
+        cfg=cfg,
+        evals=evals_group.dispatch(cfg.evals),
+        metrics=metrics_group.dispatch(cfg.metrics),
+        event_bus=EventBus(cfg.event_bus, cfg.env),
+    )
+
+
+@pytest.fixture
+def pipeline(cfg: MainConfig, app_state: AppState):
+    return Pipeline(app_state, cfg.pipeline)
+
+
+def test_zones1(cfg: MainConfig, app_state: AppState, pipeline: Pipeline):
+    assert cfg.pipeline.reward is not None
+
+    zone_discourager = ZoneDiscourager(app_state, cfg.pipeline.tags, pipeline.preprocessor)
+
+    start = datetime.now(UTC)
+    Δ = timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(3)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols: Any = ['tag-0', 'tag-1', 'tag-2']
+    df = pd.DataFrame(
+        data=[
+            # tag-0 red zone full violation
+            [10.,   0.,    0.],
+            # tag-1 yellow zone full violation
+            [4,     9,     7],
+            # tag-2 yellow zone partial violation
+            [4,     6,     0.25],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    pf = PipelineFrame(df, data_mode=DataMode.OFFLINE)
+    pf = pipeline.preprocessor(pf)
+    pf.rewards = pd.DataFrame({ 'reward': [0.] * 3 }, index=idx)
+
+    pf = zone_discourager(pf)
+
+    expected_rewards = pd.DataFrame(
+        index=idx,
+        columns=['reward'],
+        data=[
+            [-8],
+            [-2],
+            [-1.125],
+        ],
+    )
+
+    pd.testing.assert_frame_equal(pf.rewards, expected_rewards)

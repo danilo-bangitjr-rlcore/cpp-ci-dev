@@ -40,7 +40,7 @@ def main(cfg: MainConfig):
         event_bus=EventBus(cfg.event_bus, cfg.env),
     )
 
-    pipeline = Pipeline(cfg.pipeline)
+    pipeline = Pipeline(app_state, cfg.pipeline)
     column_desc = pipeline.column_descriptions
     agent = GreedyAC(cfg.agent, app_state, column_desc)
 

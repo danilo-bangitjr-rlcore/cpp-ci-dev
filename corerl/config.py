@@ -5,7 +5,6 @@ from pydantic import Field
 from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.configs.config import MISSING, config, post_processor
 from corerl.data_pipeline.pipeline import PipelineConfig
-from corerl.data_pipeline.transforms import AddRawConfig, BoundsConfig, DeltaConfig, NormalizerConfig
 from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.data_report import ReportConfig
@@ -33,8 +32,14 @@ class InfraConfig:
 
 @config()
 class FeatureFlags:
+    # 2025-02-01
     delta_actions: bool = False
+
+    # 2025-02-01
     ensemble: int = 1
+
+    # 2025-03-01
+    zone_violations: bool = False
 
 
 @config()
@@ -70,27 +75,25 @@ class MainConfig:
     @post_processor
     def _enable_delta_actions(self, cfg: 'MainConfig'):
         if not self.feature_flags.delta_actions:
-            assert self.agent.delta_action is False, \
-                'delta_actions is disabled but agent is configured to use delta actions'
+            assert self.agent.policy.delta_actions is False, \
+                'delta_actions is disabled but actor is configured to use delta actions'
 
-        self.agent.delta_action = self.feature_flags.delta_actions
+        self.agent.policy.delta_actions = self.feature_flags.delta_actions
+
+        if not self.feature_flags.delta_actions:
+            return
 
         sorted_tags = sorted(self.pipeline.tags, key=lambda x: x.name)
         for tag in sorted_tags:
+            # if not an action, continue
             if tag.change_bounds is None:
                 continue
-
-            self.agent.delta_bounds.append(tag.change_bounds)
 
             if tag.action_constructor is None:
                 tag.action_constructor = []
 
-            tag.action_constructor = [
-                DeltaConfig(),
-                BoundsConfig(bounds=tag.change_bounds, mode='nan'),
-                NormalizerConfig(min=tag.change_bounds[0], max=tag.change_bounds[1]),
-                AddRawConfig(),
-            ] + tag.action_constructor
+            self.agent.policy.delta_bounds.append(tag.change_bounds)
+
 
     @post_processor
     def _enable_ensemble(self, cfg: 'MainConfig'):

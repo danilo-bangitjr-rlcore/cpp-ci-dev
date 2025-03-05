@@ -89,14 +89,17 @@ def main():
         got = _test_over_seeds(test_case, pool, 32)
         all_results.append(got)
 
-
-    for result, test_case in zip(all_results, TEST_CASES, strict=True):
-        print('-' * 50)
-        print(test_case.name)
-        for metric in result:
-            res = result[metric]
-            print(f'{metric} - ti: {res.ti.tol}')
-            print(f'{metric} - ci: {res.ci.sample_stat} in {res.ci.ci}')
+    with open("out.txt", 'w') as f:
+        for result, test_case in zip(all_results, TEST_CASES, strict=True):
+            f.write('-' * 50)
+            f.write(test_case.name)
+            f.write("\n")
+            for metric in result:
+                res = result[metric]
+                f.write(f'{metric} - ti: {res.ti.tol}')
+                f.write("\n")
+                f.write(f'{metric} - ci: {res.ci.sample_stat} in {res.ci.ci}')
+                f.write("\n")
 
 
 

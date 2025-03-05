@@ -9,7 +9,11 @@ from corerl.configs.loader import load_config
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.data_report import generate_report
+from corerl.eval.evals import evals_group
+from corerl.eval.metrics import metrics_group
+from corerl.messages.event_bus import EventBus
 from corerl.offline.utils import load_entire_dataset
+from corerl.state import AppState
 from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
@@ -28,7 +32,14 @@ def main(cfg: MainConfig):
     random.seed(seed)
     torch.manual_seed(seed)
 
-    pipeline = Pipeline(cfg.pipeline)
+    app_state = AppState(
+        cfg,
+        evals=evals_group.dispatch(cfg.evals),
+        metrics=metrics_group.dispatch(cfg.metrics),
+        event_bus=EventBus(cfg.event_bus, cfg.env),
+    )
+
+    pipeline = Pipeline(app_state, cfg.pipeline)
     log.info("loading dataset...")
     data = load_entire_dataset(cfg)
 

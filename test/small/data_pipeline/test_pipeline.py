@@ -15,10 +15,11 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms.affine import AffineConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
+from corerl.state import AppState
 from test.infrastructure.utils.pandas import dfs_close
 
 
-def test_construct_pipeline():
+def test_construct_pipeline(dummy_app_state: AppState):
     cfg = PipelineConfig(
         tags=[
             TagConfig(name='sensor_x', operating_range=(-1, 1)),
@@ -37,10 +38,10 @@ def test_construct_pipeline():
             ),
         ),
     )
-    _ = Pipeline(cfg)
+    _ = Pipeline(dummy_app_state, cfg)
 
 
-def test_passing_data_to_pipeline():
+def test_passing_data_to_pipeline(dummy_app_state: AppState):
     cfg = PipelineConfig(
         tags=[
             TagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_x', operating_range=(-3, 3)),
@@ -60,7 +61,7 @@ def test_passing_data_to_pipeline():
             ),
         ),
     )
-    pipeline = Pipeline(cfg)
+    pipeline = Pipeline(dummy_app_state, cfg)
 
     cols = {"sensor_x": [np.nan, 1.0, 2.0], "sensor_y": [2.0, np.nan, 3.0], "reward": [1., 2., 3.]}
     dates = [
@@ -75,7 +76,7 @@ def test_passing_data_to_pipeline():
     _ = pipeline(df, data_mode=DataMode.OFFLINE)
 
 
-def test_state_action_dim():
+def test_state_action_dim(dummy_app_state: AppState):
     cfg = PipelineConfig(
         tags=[
             TagConfig(preprocess=[NormalizerConfig(from_data=True)], name='tag-1'),
@@ -107,14 +108,14 @@ def test_state_action_dim():
         ),
     )
 
-    pipeline = Pipeline(cfg)
+    pipeline = Pipeline(dummy_app_state, cfg)
 
     col_desc = pipeline.column_descriptions
     assert col_desc.state_dim == 5
     assert col_desc.action_dim == 2
 
 
-def test_sub_pipeline1():
+def test_sub_pipeline1(dummy_app_state: AppState):
     cfg = PipelineConfig(
         tags=[
             TagConfig(
@@ -169,7 +170,7 @@ def test_sub_pipeline1():
         index=idx,
     )
 
-    pipeline = Pipeline(cfg)
+    pipeline = Pipeline(dummy_app_state, cfg)
     got = pipeline(
         df,
         data_mode=DataMode.ONLINE,
@@ -195,7 +196,7 @@ def test_sub_pipeline1():
     assert got.transitions is None
 
 
-def test_sub_pipeline2():
+def test_sub_pipeline2(dummy_app_state: AppState):
     cfg = PipelineConfig(
         tags=[
             TagConfig(
@@ -250,7 +251,7 @@ def test_sub_pipeline2():
         index=idx,
     )
 
-    pipeline = Pipeline(cfg)
+    pipeline = Pipeline(dummy_app_state, cfg)
     got = pipeline(
         df,
         data_mode=DataMode.ONLINE,
@@ -275,7 +276,7 @@ def test_sub_pipeline2():
     assert dfs_close(got.df, expected_df)
     assert got.transitions is None
 
-def test_sub_pipeline3():
+def test_sub_pipeline3(dummy_app_state: AppState):
     """
     Same as test_sub_pipeline1, but adds reward constructor.
 
@@ -334,7 +335,7 @@ def test_sub_pipeline3():
         index=idx,
     )
 
-    pipeline = Pipeline(cfg)
+    pipeline = Pipeline(dummy_app_state, cfg)
     got = pipeline(
         df,
         data_mode=DataMode.ONLINE,
@@ -367,7 +368,7 @@ def test_sub_pipeline3():
     assert got.transitions is None
 
 
-def test_sub_pipeline4():
+def test_sub_pipeline4(dummy_app_state: AppState):
     """
     Same as test_sub_pipeline1, but adds reward constructor.
     """
@@ -430,7 +431,7 @@ def test_sub_pipeline4():
         index=idx,
     )
 
-    pipeline = Pipeline(cfg)
+    pipeline = Pipeline(dummy_app_state, cfg)
     got = pipeline(
         df,
         data_mode=DataMode.ONLINE,

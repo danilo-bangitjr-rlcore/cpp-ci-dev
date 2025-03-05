@@ -106,7 +106,7 @@ def retryable_main(cfg: MainConfig):
         evals=evals_group.dispatch(cfg.evals),
         event_bus=event_bus,
     )
-    pipeline = Pipeline(cfg.pipeline)
+    pipeline = Pipeline(app_state, cfg.pipeline)
     env = init_async_env(cfg.env, cfg.pipeline.tags)
 
     try:

@@ -3,12 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import numpy
-from pydantic import Field
 
-from corerl.component.actor.base_actor import BaseActor
-from corerl.component.actor.factory import init_actor
-from corerl.component.actor.network_actor import NetworkActorConfig
-from corerl.component.critic.ensemble_critic import CriticConfig, EnsembleCritic
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
@@ -21,8 +16,6 @@ if TYPE_CHECKING:
 class BaseAgentConfig:
     name: Any = MISSING
 
-    delta_action: bool = False
-    delta_bounds: list[tuple[float, float]] = Field(default_factory=list)
     n_updates: int = 1
     replay_ratio: int = 1
     update_freq: int = 1
@@ -55,7 +48,11 @@ class BaseAgent(ABC):
         self.n_updates = cfg.n_updates  # how many updates to apply each time update() is called
 
     @abstractmethod
-    def get_action(self, state: numpy.ndarray) -> numpy.ndarray:  # must return a numpy array, not a tensor.
+    def get_action_interaction(
+        self,
+        state: numpy.ndarray,
+        prev_direct_action: numpy.ndarray,
+    ) -> numpy.ndarray:  # must return a numpy array, not a tensor.
         """
         This method is for getting actions for the main agent/environment interaction loop.
         """
@@ -86,37 +83,3 @@ class BaseAgent(ABC):
 
     def close(self):
         return
-
-
-
-@config()
-class BaseACConfig(BaseAgentConfig):
-    critic: CriticConfig = Field(default_factory=CriticConfig)
-    actor: NetworkActorConfig = Field(default_factory=NetworkActorConfig)
-
-    n_actor_updates: int = 1
-    n_critic_updates: int = 1
-
-
-class BaseAC(BaseAgent):
-    def __init__(self, cfg: BaseACConfig, app_state: AppState, col_desc: ColumnDescriptions):
-        super().__init__(cfg, app_state, col_desc)
-        self.n_critic_updates = cfg.n_critic_updates
-        self.n_actor_updates = cfg.n_actor_updates
-
-        # the implicit action dim is doubled when using delta actions
-        # because we will be receiving both the direct action and the
-        # delta action in each transition
-        if self.cfg.delta_action:
-            self.action_dim = int(self.action_dim / 2)
-
-        self.actor: BaseActor = init_actor(cfg.actor, app_state, self.state_dim, self.action_dim)
-        self.critic = EnsembleCritic(cfg.critic, app_state, self.state_dim, self.action_dim)
-
-    @abstractmethod
-    def update_actor(self) -> object:
-        raise NotImplementedError
-
-    @abstractmethod
-    def update_critic(self) -> list[float]:
-        raise NotImplementedError

@@ -15,8 +15,8 @@ experiment:
 
 agent:
   name: greedy_ac
-  actor:
-    actor_optimizer:
+  policy:
+    optimizer:
       lr: 0.001
 
 feature_flags:
@@ -72,3 +72,5 @@ pipeline:
     change_bounds: [-0.2, 0.2]
     state_constructor:
       - name: 'null'
+    action_constructor:
+      - name: 'identity'

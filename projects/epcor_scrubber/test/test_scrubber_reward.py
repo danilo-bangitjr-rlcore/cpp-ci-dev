@@ -15,6 +15,7 @@ from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.state import AppState
 from corerl.utils.maybe import Maybe
 
 
@@ -325,7 +326,7 @@ def _sanitize_dict[T](d: dict[Hashable, T]) -> dict[str, T]:
         str(k): v
         for k, v in d.items()
     }
-def test_epcor_reward_from_yaml():
+def test_epcor_reward_from_yaml(dummy_app_state: AppState):
 
     xform.register_dispatchers()
 
@@ -357,7 +358,7 @@ def test_epcor_reward_from_yaml():
     cfg = direct_load_config(
         MainConfig, base="projects/epcor_scrubber/configs/", config_name="epcor_scrubber_reward.yaml"
     )
-    pipeline = Pipeline(cfg.pipeline)
+    pipeline = Pipeline(dummy_app_state, cfg.pipeline)
     pipe_return = pipeline(df, data_mode=DataMode.ONLINE)
     r_cfg = EpcorRewardConfig()
     r = epcor_scrubber_reward
@@ -396,7 +397,7 @@ def get_bounds(tag_cfg: TagConfig):
     ).expect()
     return lo, hi
 
-def test_epcor_reward_rankings():
+def test_epcor_reward_rankings(dummy_app_state: AppState):
     """
     A vs B comparison of states
     """
@@ -406,7 +407,7 @@ def test_epcor_reward_rankings():
     cfg = direct_load_config(
         MainConfig, base="projects/epcor_scrubber/configs/", config_name="epcor_scrubber.yaml"
     )
-    pipeline = Pipeline(cfg.pipeline)
+    pipeline = Pipeline(dummy_app_state, cfg.pipeline)
     tag_cfgs = cfg.pipeline.tags
 
     start = datetime.datetime.now(datetime.UTC)
@@ -490,5 +491,3 @@ def test_epcor_reward_rankings():
             )
             # A is only greater reward if it has lower cost
             assert (A_reward > B_reward) == (A_cost < B_cost)
-
-

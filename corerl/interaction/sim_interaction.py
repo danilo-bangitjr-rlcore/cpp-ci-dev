@@ -5,7 +5,7 @@ import pandas as pd
 from torch import Tensor
 
 import corerl.eval.agent as agent_eval
-from corerl.agent.base import BaseAgent
+from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
@@ -24,7 +24,7 @@ class SimInteraction(Interaction):
         self,
         cfg: SimInteractionConfig,
         app_state: AppState,
-        agent: BaseAgent,
+        agent: GreedyAC,
         env: AsyncEnv,
         pipeline: Pipeline,
     ):
@@ -100,27 +100,22 @@ class SimInteraction(Interaction):
     def _on_emit_action(self):
         sa = self._get_latest_state_action()
         assert sa is not None
-        s, a = sa
-        if not self._agent.cfg.delta_action:
-            a = np.zeros_like(a)
 
-        delta = self._agent.get_action(s)
-        norm_a_df = self._pipeline.action_constructor.assign_action_names(a, delta)
-        a_df = self._pipeline.preprocessor.inverse(norm_a_df)
-        self._env.emit_action(a_df)
-        self._last_action_df = a_df
+        s, prev_a = sa
+        next_a = self._agent.get_action_interaction(s, prev_a)
+        norm_next_a_df = self._pipeline.action_constructor.get_action_df(next_a)
+        next_a_df = self._pipeline.preprocessor.inverse(norm_next_a_df)
+        self._env.emit_action(next_a_df)
+        self._last_action_df = next_a_df
 
         # metrics + eval
-        prev_direct = self._pipeline.action_constructor.get_direct_action(a)
-        curr_direct = norm_a_df.to_numpy()
-        agent_eval.policy_variance(self._app_state, self._agent, s)
-        agent_eval.q_online(self._app_state, self._agent, s, curr_direct)
-        agent_eval.greed_dist_online(self._app_state, self._agent, s, prev_direct)
-        agent_eval.greed_values_online(self._app_state, self._agent, s, prev_direct)
+        agent_eval.policy_variance(self._app_state, self._agent, s, prev_a)
+        agent_eval.q_online(self._app_state, self._agent, s, next_a)
+        agent_eval.greed_dist_online(self._app_state, self._agent, s, prev_a)
+        agent_eval.greed_values_online(self._app_state, self._agent, s, prev_a)
 
         # log actions
-        self._write_to_metrics(next_a_df, prefix='ACTION-')
-
+       self._write_to_metrics(next_a_df, prefix='ACTION-')
     # ------------------
     # -- No Event Bus --
     # ------------------

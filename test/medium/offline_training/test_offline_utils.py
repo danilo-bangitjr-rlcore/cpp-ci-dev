@@ -70,7 +70,7 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     return cfg
 
 @pytest.fixture
-def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter) -> OfflineTraining:
+def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_state: AppState) -> OfflineTraining:
     """
     Generate offline data for tests and return the OfflineTraining object
     """
@@ -105,7 +105,7 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter) -> Offline
 
     # Produce offline transitions
     offline_training = OfflineTraining(offline_cfg, start_time=start_time)
-    pipeline = Pipeline(offline_cfg.pipeline)
+    pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
     offline_training.load_offline_transitions(pipeline)
 
     return offline_training
@@ -136,9 +136,12 @@ def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: Offl
     for i in range(len(created_transitions)):
         assert created_transitions[i] == expected_transitions[i]
 
-def test_offline_training(offline_cfg: MainConfig,
-                          offline_trainer: OfflineTraining,
-                          tsdb_engine: Engine):
+def test_offline_training(
+    offline_cfg: MainConfig,
+    offline_trainer: OfflineTraining,
+    tsdb_engine: Engine,
+    dummy_app_state: AppState,
+):
     """
     Ensure the agent's critic loss decreases over the test transitions produced by the 'offline_trainer' fixture.
     Make sure the enabled evaluators write to the metrics table and/or evals table
@@ -150,7 +153,7 @@ def test_offline_training(offline_cfg: MainConfig,
         event_bus=EventBus(offline_cfg.event_bus, offline_cfg.env),
     )
 
-    pipeline = Pipeline(offline_cfg.pipeline)
+    pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
     col_desc = pipeline.column_descriptions
     agent = GreedyAC(offline_cfg.agent, app_state, col_desc)
 
@@ -193,12 +196,12 @@ def test_offline_training(offline_cfg: MainConfig,
                     assert pdfs.shape == (ac_cfg.critic_samples, ac_cfg.num_uniform_actions)
                     assert qs.shape == (ac_cfg.critic_samples, ac_cfg.num_uniform_actions)
 
-def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig):
+def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig, dummy_app_state: AppState):
     normalizer = NormalizerConfig(from_data=True)
 
     # add normalizer to pipeline config
     offline_cfg.pipeline.tags[1].state_constructor = [normalizer]
-    pipeline = Pipeline(offline_cfg.pipeline)
+    pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
 
     # trigger pipeline to test dummy data
     _ = pipeline.column_descriptions

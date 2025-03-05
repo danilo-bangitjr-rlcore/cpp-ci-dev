@@ -20,8 +20,8 @@ agent:
     buffer:
       name: uniform
 
-  actor:
-    actor_optimizer:
+  policy:
+    optimizer:
       lr: 0.001
     buffer:
       name: uniform

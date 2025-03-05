@@ -15,12 +15,9 @@ experiment:
 
 agent:
   name: greedy_ac
-  actor:
-    actor_optimizer:
+  policy:
+    optimizer:
       lr: 0.001
-
-feature_flags:
-  delta_actions: False
 
 metrics:
   enabled: True
@@ -70,6 +67,4 @@ pipeline:
   - name: action-0
     operating_range: [0, 0.5]
     action_constructor:
-    - name: normalize
-      min: 0
-      max: 0.5
+      - name: identity

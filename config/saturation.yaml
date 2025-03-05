@@ -20,8 +20,8 @@ agent:
     critic_network:
       ensemble: 10
 
-  actor:
-    actor_optimizer:
+  policy:
+    optimizer:
       lr : 0.0005
 
 pipeline:

@@ -1,0 +1,37 @@
+env:
+  name: sim_async_env
+  gym_name : Saturation-v0
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+experiment:
+  seed: 1
+  gamma: 0.99
+
+feature_flags:
+  zone_violations: true
+
+pipeline:
+  reward:
+    priorities:
+      - tags: [tag-0]
+        directions: min
+        weights: [1.0]
+
+  tags:
+  # observations
+  - name: tag-0
+    operating_range: [0, 10]
+    red_bounds: [null, 5]
+
+  - name: tag-1
+    operating_range: [0, 10]
+    red_bounds: [1, 9]
+    yellow_bounds: [2, 8]
+
+  - name: tag-2
+    operating_range: [0, 10]
+    yellow_bounds: [1, 9]
