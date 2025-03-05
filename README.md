@@ -14,10 +14,7 @@ uv venv --python 3.12
 source .venv/bin/activate
 
 # install project requirements
-uv pip sync requirements.txt
-
-# install corerl as editable package
-uv pip install -e .
+uv sync
 
 # install projects/ as editable packages
 uv pip install -e projects/
@@ -30,9 +27,8 @@ uv run pyright
 
 # run tests
 uv run pytest -n auto test/small
-
-# regenerate project requirements
-uv pip compile --extra=dev pyproject.toml -o requirements.txt
+uv run pytest -n auto test/medium
+uv run pytest -n auto test/large
 ```
 
 If using VSCode, ensure that the python interpreter is set to the virtual environment initialized in the above steps.
@@ -44,22 +40,5 @@ This repo uses the following code style:
 2. Python modules: lowercase with underscores. E.g. `greedy_actor_critic.py`
 3. Python variables: lowercase with underscores. E.g. `agent = GreedyActorCritic()`
 4. Config files: lowercase with underscores. E.g. `greedy_actor_critic.yaml`
-5. [WIP] String arguments in configs: lowercase with underscores. E.g. `agent: greedy_actor_critic`
+5. String arguments in configs: lowercase with underscores. E.g. `agent: greedy_actor_critic`
 6. Paths: please use `pathlib` instead of `os`
-
-
-## What Do I Do to Implement More Stuff?
-If you implement something new, there are three different places to update the code:
-1. The python code that defines the class you have implemented.
-2. The factory function that instantiates it
-3. The .yaml config file
-
-
-## TODO:
-1. Implement remaining agents (Python code + yaml.config files)
-2. Testing agents on environments/testsuite.
-3. Implementing line search as an optimizer.
-4. [Jaxtyping](https://github.com/patrick-kidger/jaxtyping)?
-5. Implement Exploration networks
-6. n-updates argument for updates
-7. Bimodal continuous policies
