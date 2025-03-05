@@ -31,6 +31,12 @@ class EventType(StrEnum):
     agent_update_buffer = auto()
     agent_update_critic = auto()
 
+    # --------------
+    # -- Pipeline --
+    # --------------
+    red_zone_violation = auto()
+    yellow_zone_violation = auto()
+
     # ----------
     # -- Coms --
     # ----------

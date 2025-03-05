@@ -4,6 +4,7 @@ import pandas as pd
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.maybe import Maybe
 
@@ -71,9 +72,13 @@ class ZoneDiscourager:
         given degree of violation.
 
         Reward penalty ramps slowly from 0 to -2.
-
-        TODO: log to metrics, logger, and send msg on event bus
         """
+        self._app_state.event_bus.emit_event(EventType.yellow_zone_violation)
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric='yellow_zone_violation',
+            value=percent,
+        )
         return -2 * (percent**2)
 
 
@@ -83,9 +88,13 @@ class ZoneDiscourager:
         given degree of violation.
 
         Reward penalty ramps quickly from -4 to -8.
-
-        TODO: log to metrics, logger, and send msg on event bus
         """
+        self._app_state.event_bus.emit_event(EventType.red_zone_violation)
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric='red_zone_violation',
+            value=percent,
+        )
         return -4 - (4 * percent)
 
 
