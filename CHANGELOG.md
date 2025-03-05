@@ -1,3 +1,32 @@
+## 0.122.0 (2025-03-05)
+
+### Feat
+
+- change default uniform_weight to 1.0
+- resample sampler actions
+- rejection sampling in actor
+
+### Fix
+
+- changed default percentiles back
+- correctly setup delta actions in computed configs
+- fix type error in delayed saturation
+- update mountain car configs to new schema
+- default fallback behaviour in rejcetion sampling changed to uniform
+- delta b delta config
+- evals delta
+- misc
+- remove default for delta_actions=true but change_bounds not specified
+- limit iterations in rejection sampling
+- add action constructor to pendulum
+
+### Refactor
+
+- remove isinstance for agent in evals
+- remove default delta action pipeline from configs
+- remove delta action handling from action constructor
+- introduce policy_manager
+
 ## 0.121.0 (2025-03-05)
 
 ### Feat
