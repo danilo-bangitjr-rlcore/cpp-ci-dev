@@ -1,3 +1,21 @@
+## 0.121.0 (2025-03-05)
+
+### Feat
+
+- plugin zone discouraging stage
+- shout zone violations from the rooftops
+- build zone violation handler pipeline stage
+
+### Fix
+
+- add logging around red/yellow zone violations
+- put zone violations behind feature flag
+
+### Refactor
+
+- wire app_state through to data pipeline
+- promote put_in_range to a broader utility method
+
 ## 0.120.1 (2025-02-28)
 
 ### Fix
