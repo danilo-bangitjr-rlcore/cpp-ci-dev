@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 import pandas as pd
 
@@ -7,6 +9,8 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.maybe import Maybe
+
+logger = logging.getLogger(__name__)
 
 
 class ZoneDiscourager:
@@ -47,9 +51,10 @@ class ZoneDiscourager:
         # first check for red zone violations
         idx = _argmax(red_violations)
         if idx is not None:
+            tag = self._bounded_tag_cfgs[idx]
             percent = red_violations[idx]
             assert percent is not None
-            return self._handle_red_violation(percent)
+            return self._handle_red_violation(tag, percent)
 
         # then yellow zone
         yellow_violations = [
@@ -59,14 +64,15 @@ class ZoneDiscourager:
 
         idx = _argmax(yellow_violations)
         if idx is not None:
+            tag = self._bounded_tag_cfgs[idx]
             percent = yellow_violations[idx]
             assert percent is not None
-            return self._handle_yellow_violation(percent)
+            return self._handle_yellow_violation(tag, percent)
 
         return 0
 
 
-    def _handle_yellow_violation(self, percent: float):
+    def _handle_yellow_violation(self, tag: TagConfig, percent: float):
         """
         Lifecycle method to handle yellow zone violations. Computes the reward penalty
         given degree of violation.
@@ -79,10 +85,11 @@ class ZoneDiscourager:
             metric='yellow_zone_violation',
             value=percent,
         )
+        logger.warning(f"Yellow zone violation for tag {tag.name} at level: {percent}")
         return -2 * (percent**2)
 
 
-    def _handle_red_violation(self, percent: float):
+    def _handle_red_violation(self, tag: TagConfig, percent: float):
         """
         Lifecycle method to handle red zone violations. Computes the reward penalty
         given degree of violation.
@@ -95,6 +102,7 @@ class ZoneDiscourager:
             metric='red_zone_violation',
             value=percent,
         )
+        logger.error(f"Red zone violation for tag {tag.name} at level: {percent}")
         return -4 - (4 * percent)
 
 
