@@ -115,7 +115,7 @@ class SimInteraction(Interaction):
         agent_eval.greed_values_online(self._app_state, self._agent, s, prev_a)
 
         # log actions
-       self._write_to_metrics(next_a_df, prefix='ACTION-')
+        self._write_to_metrics(next_a_df, prefix='ACTION-')
     # ------------------
     # -- No Event Bus --
     # ------------------
