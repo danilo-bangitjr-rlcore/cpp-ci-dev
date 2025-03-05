@@ -5,7 +5,7 @@ from typing import Tuple
 import pandas as pd
 from tqdm import tqdm
 
-from corerl.agent.base import BaseAgent
+from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.db.data_reader import DataReader
@@ -93,7 +93,7 @@ class OfflineTraining:
             else:
                 self.pipeline_out = chunk_pr
 
-    def train(self, app_state: AppState, agent: BaseAgent, pipeline: Pipeline, column_desc: ColumnDescriptions):
+    def train(self, app_state: AppState, agent: GreedyAC, pipeline: Pipeline, column_desc: ColumnDescriptions):
         assert isinstance(self.start_time, dt.datetime)
         assert isinstance(self.end_time, dt.datetime)
         assert self.pipeline_out is not None

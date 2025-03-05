@@ -204,3 +204,5 @@ htmlcov
 artifacts
 vendor
 report/
+*.stats
+metric_outputs/
