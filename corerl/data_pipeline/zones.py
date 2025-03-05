@@ -4,11 +4,13 @@ import pandas as pd
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig
+from corerl.state import AppState
 from corerl.utils.maybe import Maybe
 
 
 class ZoneDiscourager:
-    def __init__(self, tag_configs: list[TagConfig], prep_stage: Preprocessor):
+    def __init__(self, app_state: AppState, tag_configs: list[TagConfig], prep_stage: Preprocessor):
+        self._app_state = app_state
         self._prep_stage = prep_stage
 
         self._bounded_tag_cfgs = [
@@ -28,7 +30,10 @@ class ZoneDiscourager:
             penalties[i] = self._get_penalty_for_row(row)
 
 
-        pf.rewards['reward'] += penalties
+        # 2025-03-01: put zone violation reward penalties behind feature flag
+        if self._app_state.cfg.feature_flags.zone_violations:
+            pf.rewards['reward'] += penalties
+
         return pf
 
 
