@@ -33,6 +33,7 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
+from corerl.data_pipeline.zones import ZoneDiscourager
 from corerl.environment.reward.config import RewardConfig
 from corerl.state import AppState
 
@@ -165,6 +166,7 @@ class Pipeline:
             if cfg.reward is None else
             GoalConstructor(cfg.reward, self.tags, self.preprocessor)
         )
+        self.zone_discourager = ZoneDiscourager(app_state, self.tags, self.preprocessor)
 
         # build pipeline state
         self.ts_dict: dict[DataMode, TemporalState | None] = {data_mode: None for data_mode in DataMode}
@@ -185,6 +187,7 @@ class Pipeline:
             StageCode.IMPUTER:    self.imputers,
             StageCode.AC:         self.action_constructor,
             StageCode.RC:         self.reward_constructor,
+            StageCode.ZONES:      self.zone_discourager,
             StageCode.SC:         self.state_constructor,
             StageCode.TC:         self.transition_creator,
             StageCode.TF:         self.transition_filter,
@@ -199,6 +202,7 @@ class Pipeline:
             StageCode.IMPUTER,
             StageCode.AC,
             StageCode.RC,
+            StageCode.ZONES,
             StageCode.SC,
             StageCode.TC,
             StageCode.TF
