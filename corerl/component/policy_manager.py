@@ -49,7 +49,7 @@ class GACPolicyManagerConfig:
     num_samples: int = 128
     actor_percentile: float = 0.1
     sampler_percentile: float = 0.2
-    uniform_weight: float = 0.8
+    uniform_weight: float = 1.0
     init_sampler_with_actor_weights: bool = True
     resample_for_sampler_update: bool = True
 
