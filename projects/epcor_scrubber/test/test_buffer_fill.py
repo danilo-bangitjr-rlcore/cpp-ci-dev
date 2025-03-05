@@ -12,7 +12,11 @@ from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import DepAsyncEnvConfig
 from corerl.environment.registry import register_custom_envs
+from corerl.eval.evals import evals_group
+from corerl.eval.metrics import metrics_group
 from corerl.interaction.configs import DepInteractionConfig
+from corerl.messages.event_bus import EventBus
+from corerl.state import AppState
 from corerl.utils.maybe import Maybe
 from corerl.utils.time import split_into_chunks
 
@@ -33,7 +37,14 @@ def test_buffer_load():
     random.seed(seed)
     torch.manual_seed(seed)
 
-    pipeline = Pipeline(cfg.pipeline)
+    app_state = AppState(
+        cfg=cfg,
+        metrics=metrics_group.dispatch(cfg.metrics),
+        evals=evals_group.dispatch(cfg.evals),
+        event_bus=EventBus(cfg.event_bus, cfg.env),
+    )
+
+    pipeline = Pipeline(app_state, cfg.pipeline)
     assert isinstance(cfg.env, DepAsyncEnvConfig)
     assert isinstance(cfg.interaction, DepInteractionConfig)
     data_reader = DataReader(db_cfg=cfg.env.db)

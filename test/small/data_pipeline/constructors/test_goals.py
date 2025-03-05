@@ -10,6 +10,7 @@ from corerl.data_pipeline.constructors.goals import GoalConstructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.reward.config import RewardConfig
+from corerl.state import AppState
 
 
 @pytest.fixture
@@ -22,8 +23,8 @@ def cfg():
 
 
 @pytest.fixture
-def pipeline(cfg: MainConfig):
-    return Pipeline(cfg.pipeline)
+def pipeline(cfg: MainConfig, dummy_app_state: AppState):
+    return Pipeline(dummy_app_state, cfg.pipeline)
 
 
 def test_reward_cfg_schema(cfg: MainConfig):

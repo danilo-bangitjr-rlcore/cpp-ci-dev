@@ -34,6 +34,7 @@ from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 from corerl.environment.reward.config import RewardConfig
+from corerl.state import AppState
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -138,7 +139,7 @@ class ColumnDescriptions:
 
 
 class Pipeline:
-    def __init__(self, cfg: PipelineConfig):
+    def __init__(self, app_state: AppState, cfg: PipelineConfig):
         # sanity checking
         cfg = self._construct_config(cfg)
         self.cfg = cfg
