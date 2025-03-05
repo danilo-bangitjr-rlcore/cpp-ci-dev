@@ -33,8 +33,14 @@ class InfraConfig:
 
 @config()
 class FeatureFlags:
+    # 2025-02-01
     delta_actions: bool = False
+
+    # 2025-02-01
     ensemble: int = 1
+
+    # 2025-03-01
+    zone_violations: bool = False
 
 
 @config()

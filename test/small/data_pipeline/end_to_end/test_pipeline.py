@@ -20,10 +20,11 @@ from corerl.data_pipeline.transforms.comparator import ComparatorConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
+from corerl.state import AppState
 from test.infrastructure.utils.pandas import dfs_close
 
 
-def test_pipeline1():
+def test_pipeline1(dummy_app_state: AppState):
     cfg = PipelineConfig(
         tags=[
             TagConfig(
@@ -105,7 +106,7 @@ def test_pipeline1():
         index=idx,
     )
 
-    pipeline = Pipeline(cfg)
+    pipeline = Pipeline(dummy_app_state, cfg)
     got = pipeline(
         df,
         data_mode=DataMode.ONLINE,
@@ -166,7 +167,7 @@ def test_pipeline1():
     ]
 
 
-def test_pipeline2():
+def test_pipeline2(dummy_app_state: AppState):
     cfg = PipelineConfig(
         tags=[
             TagConfig(
@@ -243,7 +244,7 @@ def test_pipeline2():
         index=idx,
     )
 
-    pipeline = Pipeline(cfg)
+    pipeline = Pipeline(dummy_app_state, cfg)
     got = pipeline(
         df,
         data_mode=DataMode.ONLINE,
@@ -320,7 +321,7 @@ def test_pipeline2():
     ]
 
 
-def test_delta_action_pipeline():
+def test_delta_action_pipeline(dummy_app_state: AppState):
     cfg = direct_load_config(
         PipelineConfig,
         base='test/small/data_pipeline/end_to_end/assets',
@@ -348,7 +349,7 @@ def test_delta_action_pipeline():
         index=idx,
     )
 
-    pipeline = Pipeline(cfg)
+    pipeline = Pipeline(dummy_app_state, cfg)
     got = pipeline(df, data_mode=DataMode.ONLINE)
 
     # NOTE: the action-0 column are normalized actions
@@ -374,7 +375,7 @@ def test_delta_action_pipeline():
 
     pd.testing.assert_frame_equal(got.actions, expected_actions)
 
-def test_delta_action_countdown():
+def test_delta_action_countdown(dummy_app_state: AppState):
     """
     This is a regression test for a bug in which a change in delta triggered
     a reset of the countdown feature even when the direct action remained the same
@@ -408,7 +409,7 @@ def test_delta_action_countdown():
         index=idx,
     )
 
-    pipeline = Pipeline(cfg)
+    pipeline = Pipeline(dummy_app_state, cfg)
     got = pipeline(df, data_mode=DataMode.ONLINE)
 
     # make sure change in delta did not trigger cd reset

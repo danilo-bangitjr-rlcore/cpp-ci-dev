@@ -1,4 +1,3 @@
-import numba
 import numpy as np
 import pandas as pd
 
@@ -6,6 +5,7 @@ from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig, get_tag_bounds
 from corerl.environment.reward.config import Goal, JointGoal, Optimization, RewardConfig
+from corerl.utils.math import put_in_range
 from corerl.utils.maybe import Maybe
 
 
@@ -30,11 +30,11 @@ class GoalConstructor:
                 # break [-1, -0.5] into num_priorities-1 buckets
                 num_buckets = len(self._cfg.priorities) - 1
                 buckets = np.linspace(-1, -0.5, num_buckets + 1)
-                r = _put_in_range(-violation_percent, old_range=(-1, 0), new_range=buckets[active_idx:active_idx+1])
+                r = put_in_range(-violation_percent, old_range=(-1, 0), new_range=buckets[active_idx:active_idx+1])
 
             else:
                 opt = self._avg_optimization_violation(priority, row)
-                r = _put_in_range(opt, old_range=(-1, 0), new_range=(-0.5, 0))
+                r = put_in_range(opt, old_range=(-1, 0), new_range=(-0.5, 0))
 
             rewards.append(r)
 
@@ -175,18 +175,3 @@ class GoalConstructor:
 
     def denormalize_tags(self, df: pd.DataFrame):
         return self._prep_stage.inverse(df)
-
-
-@numba.njit
-def _put_in_range(
-    x: np.ndarray | float,
-    old_range: tuple[float, float] | np.ndarray,
-    new_range: tuple[float, float] | np.ndarray,
-):
-    """
-    Take a float value x in old_range and map it to a value in new_range.
-    E.g. if x is 0.5 in [0, 1] and new_range is [-1, 1], then return 0.
-    """
-    old_d = (old_range[1] - old_range[0])
-    new_d = (new_range[1] - new_range[0])
-    return (((x - old_range[0]) * new_d) / old_d) + new_range[0]
