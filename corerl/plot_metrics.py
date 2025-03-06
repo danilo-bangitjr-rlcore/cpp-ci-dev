@@ -62,7 +62,7 @@ def main(cfg: MainConfig):
 
 if __name__ == "__main__":
     """
-    Ex: python3 corerl/plot_metrics.py --base=projects/vww/configs --config-name=offline_pretraining
-    --step_start=10 --step_end=100 --start_time="7/13/2023 10:30:45" --end_time="7/27/2023 21:45:38" --labels="0 100"
+    Ex: python3 corerl/plot_metrics.py --base=projects/victoria_ww/configs --config-name=offline_pretraining
+    --start_time="7/13/2023 10:30:45" --end_time="7/27/2023 21:45:38" --labels="0 10"
     """
     main()

@@ -62,7 +62,7 @@ def main(cfg: MainConfig):
 
 if __name__ == "__main__":
     """
-    Ex: python3 corerl/plot_evals.py --base=projects/vww/configs --config-name=offline_pretraining
-    --step_start=10 --step_end=100 --labels="0 100"
+    Ex: python3 corerl/plot_evals.py --base=projects/victoria_ww/configs
+    --config-name=offline_pretraining --labels="0 100"
     """
     main()
