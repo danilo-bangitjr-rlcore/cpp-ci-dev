@@ -13,8 +13,6 @@ from corerl.data_pipeline.pipeline import ColumnDescriptions, Pipeline, Pipeline
 from corerl.environment.async_env.async_env import DepAsyncEnvConfig
 from corerl.eval.actor_critic import ActorCriticEval
 from corerl.eval.monte_carlo import MonteCarloEvaluator
-from corerl.eval.plotting.evals import plot_evals
-from corerl.eval.plotting.metrics import plot_metrics
 from corerl.state import AppState
 from corerl.utils.time import split_into_chunks
 
@@ -120,21 +118,6 @@ class OfflineTraining:
 
             critic_loss = agent.update()
             q_losses += critic_loss
-
-        # Create Plots
-        labels = [str(j) for j in self.cfg.experiment.offline_eval_iters]
-        plot_metrics(
-            app_state=app_state,
-            start_time=self.start_time,
-            end_time=self.end_time,
-            labels=labels
-        )
-        plot_evals(
-            app_state=app_state,
-            start_time=self.start_time,
-            end_time=self.end_time,
-            labels=labels
-        )
 
         return q_losses
 
