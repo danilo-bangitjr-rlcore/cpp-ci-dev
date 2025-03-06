@@ -195,7 +195,7 @@ class ContinuousIIDPolicy(Policy,ABC):
 
         info = dict(zip(
             [param_name for param_name in self.param_names],
-            [p.squeeze().detach().numpy() for p in params],
+            [p.detach().numpy() for p in params],
             strict=True,
         ))
 
@@ -221,7 +221,7 @@ class ContinuousIIDPolicy(Policy,ABC):
 
         info = dict(zip(
             [param_name for param_name in self.param_names],
-            [p.squeeze().detach().numpy() for p in params],
+            [p.detach().numpy() for p in params],
             strict=True,
         ))
 
