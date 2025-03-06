@@ -24,6 +24,8 @@ def make_mc_eval_plot(
     if not cfg.app_state.cfg.eval_cfgs.monte_carlo.enabled:
         return
 
+    assert cfg.labels is not None
+
     for label in cfg.labels:
         state_v_df = cfg.app_state.metrics.read(
             metric=f"state_v_{label}",
