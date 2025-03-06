@@ -125,7 +125,9 @@ class DeploymentInteraction(Interaction):
             .to_numpy(dtype=np.float32)
         )
 
-        self._write_to_metrics(state, prefix='STATE-')
+        self._write_to_metrics(pipe_return.states, prefix='STATE-')
+
+        self._write_to_metrics(pipe_return.rewards) # no prefix required
 
         # perform evaluations
         self._monte_carlo_eval.execute(pipe_return, "online")
