@@ -1,3 +1,4 @@
+import subprocess
 import sys
 from pathlib import Path
 from typing import NamedTuple
@@ -40,7 +41,7 @@ def _eval_test_case(test_case: BSuiteTestCase, seed: int):
         | test_case.lower_warns
     )
 
-    test_case._overrides |= { 'experiment.seed': seed}
+    test_case._overrides |= { 'experiment.seed': seed, 'experiment.num_threads': 1 }
 
     metrics_table = test_case.execute_test(engine, 5432, db_name)
     metric_values: dict[str, float] = {}
@@ -83,6 +84,8 @@ def _test_over_seeds(test_case: BSuiteTestCase, pool: Pool, seeds: int):
 
 def main():
     pool = Pool(16)
+
+    subprocess.run(['uv', 'sync'])
 
     all_results: list[dict[str, TestResults]] = []
     for test_case in TEST_CASES:
