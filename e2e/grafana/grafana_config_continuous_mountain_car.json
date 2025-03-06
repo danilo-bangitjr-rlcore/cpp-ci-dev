@@ -106,7 +106,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT value, time, metric \nFROM metrics \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'REWARD%'\nORDER BY \"time\"",
+          "rawSql": "SELECT value, time, metric \nFROM metrics \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'reward%'\nORDER BY \"time\"",
           "refId": "A",
           "sql": {
             "columns": [
@@ -741,8 +741,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -862,8 +861,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1008,8 +1006,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1129,8 +1126,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1310,6 +1306,6 @@
   "timezone": "browser",
   "title": "OPC TSDB Local Visualization",
   "uid": "ee9wfo0vhboxsb",
-  "version": 10,
+  "version": 13,
   "weekStart": ""
 }
