@@ -23,8 +23,7 @@ env:
   action_period: 00:45:00
   seed: ${experiment.seed}
   db: ${pipeline.db}
-  opc_conn_url: "opc.tcp://localhost:62541"
-  opc_ns: 1
+  # opc_conn_url: "opc.tcp://localhost:62541"
   action_tolerance: 00:05:00
 
 
@@ -79,7 +78,7 @@ pipeline:
 
   tags:
   - name: PERM_SP.BW_SP # flow rate setpoint
-    node_identifier: "[pilot]Program:ZW.PERM_SP.BW_SP"
+    node_identifier: "ns=1;s=[pilot]Program:ZW.PERM_SP.BW_SP"
     operating_range: [0.9, 1.4]
     outlier:
       name: identity
@@ -89,7 +88,7 @@ pipeline:
     - name: "null"
 
   - name: BW_SP.KY2 # backpulse duration setpoint
-    node_identifier: "[pilot]Program:ZW.BW_SP.KY2"
+    node_identifier: "ns=1;s=[pilot]Program:ZW.BW_SP.KY2"
     operating_range: [20, 40]
     outlier:
       name: identity

@@ -41,15 +41,6 @@ class BaseAsyncEnvConfig(EnvironmentConfig):
 
 
 @config()
-class OPCEnvConfig(BaseAsyncEnvConfig):
-    opc_conn_url: str = MISSING
-    opc_ns: int = MISSING  # OPC node namespace, this is almost always going to be `2`
-    client_cert_path: str | None = None
-    client_private_key_path: str | None = None
-    server_cert_path: str | None = None
-    application_uri: str | None = None
-
-@config()
 class TSDBEnvConfig(BaseAsyncEnvConfig):
     db: TagDBConfig = Field(default_factory=TagDBConfig)
 
@@ -74,9 +65,18 @@ class GymEnvConfig:
 
 
 @config()
-class DepAsyncEnvConfig(TSDBEnvConfig, OPCEnvConfig):
+class DepAsyncEnvConfig(TSDBEnvConfig):
+    """Configuration for the deployment async environment.
+
+    Attributes:
+        name                Discriminator for configuration dispatcher.
+        action_tolerance    Computed from interaction obs_period.
+        coreio_origin       Endpoint for CoreIO Thin Client web service. Defaults to docker-compose up expected value.
+    """
+
     name: str = "dep_async_env"
     action_tolerance: timedelta = MISSING
+    coreio_origin: str = "http://coreio:2222"
 
     @computed('action_tolerance')
     @classmethod

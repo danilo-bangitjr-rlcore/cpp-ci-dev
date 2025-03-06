@@ -37,7 +37,7 @@ class DeploymentInteraction(Interaction):
         assert isinstance(env, DeploymentAsyncEnv)
         self._cfg = cfg
 
-        self._heartbeat = Heartbeat(cfg.heartbeat, env.get_cfg())
+        self._heartbeat = Heartbeat(cfg.heartbeat, env.get_cfg().coreio_origin)
         self._app_state = app_state
         self._pipeline = pipeline
         self._env = env

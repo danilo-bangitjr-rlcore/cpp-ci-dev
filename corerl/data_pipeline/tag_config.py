@@ -42,11 +42,18 @@ class TagConfig:
     """
     Kind: required external
 
-    The human-readable name of the tag. This is used for all internal references to the tag,
+    The UUID associated to the OPC-UA server connection, used within the CoreIO thin client.
+    """
+    connection_id: str | None = None
+
+    """
+    Kind: required external
+
+    The full OPC-UA node identifier string (e.g. ns=#;i=?). This is used for all internal references to the tag,
     such as in the reward construction.
     """
 
-    node_identifier: str | int | None = None # prefer full opc node_id path (specified in web GUI)
+    node_identifier: str | None = None
     """
     Kind: optional external
 

@@ -45,6 +45,28 @@ services:
           path: ./e2e/telegraf/generated_telegraf.conf
           target: /etc/telegraf/telegraf.conf
 
+  coreio:
+    # thin client: https://github.com/rlcoretech/coreio
+
+    # By default, use the latest stable image pushed to github container registry.
+    image: ghcr.io/rlcoretech/coreio:latest
+    # pull_policy: always
+
+    # When working with coreio local image, comment out the "image:" line above and
+    # uncomment "build:" and "context:" lines below. Assumes that coreio exists within the same directory as core-rl.
+    build:
+      context: ../coreio/
+
+    depends_on:
+      opc-server:
+        condition: service_started
+    ports:
+      - 2222:2222
+    volumes:
+      - type: volume
+        source: thinclient-storage
+        target: /app/data
+
   grafana:
     image: grafana/grafana-enterprise
     restart: unless-stopped
@@ -61,3 +83,4 @@ services:
 volumes:
   timescale-storage: {}
   grafana-storage: {}
+  thinclient-storage: {}

@@ -28,8 +28,7 @@ interaction:
 
 env:
   name: dep_async_env
-  opc_conn_url: "opc.tcp://ignition-services:62541"
-  opc_ns: 1
+  # opc_conn_url: "opc.tcp://ignition-services:62541"
   db:
     table_name: "tag_data"
 

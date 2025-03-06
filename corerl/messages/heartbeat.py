@@ -1,15 +1,10 @@
-import asyncio
 import logging
 import threading
 from datetime import timedelta
 from threading import Thread
 
-from asyncua import Client, ua
-from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
-
 from corerl.configs.config import config
-from corerl.environment.async_env.async_env import OPCEnvConfig
-from corerl.utils.asyncio import exponential_backoff
+from corerl.utils.coreio import CoreIOThinClient, OPCUANodeWriteValue
 from corerl.utils.time import clock_generator, wait_for_timestamp
 
 logger = logging.getLogger(__name__)
@@ -17,66 +12,58 @@ logger = logging.getLogger(__name__)
 
 @config()
 class HeartbeatConfig:
+    connection_id: str | None = None
     heartbeat_node_id: str | None = None
     heartbeat_period: timedelta = timedelta(seconds=5)
     max_counter: int = 1000
 
 
-def heartbeat(cfg: HeartbeatConfig, opc_env_config: OPCEnvConfig):
+def heartbeat(cfg: HeartbeatConfig, coreio_origin: str):
     if cfg.heartbeat_node_id is None:
         return
 
+    if cfg.connection_id is None:
+        return
+
+    connection_id = cfg.connection_id
     heartbeat_node_id = cfg.heartbeat_node_id
     heartbeat_clock = clock_generator(tick_period=cfg.heartbeat_period)
     heartbeat_counter = 0
 
     while True:
-
-        @exponential_backoff()
-        async def _beat(counter: int):
+        def _beat(counter: int):
             # initialize client on every beat
-            opc_client = Client(opc_env_config.opc_conn_url)
+            coreio_client = CoreIOThinClient(coreio_origin)
 
-            if opc_env_config.client_cert_path and opc_env_config.client_private_key_path:
-                assert opc_env_config.application_uri is not None
-                opc_client.application_uri = opc_env_config.application_uri
-                # NOTE: this does not exist within the Sync variant of OPC Client and is the source of why we need to
-                # add these hacky async snippets into our synchronous codebase
-                await opc_client.set_security(
-                    SecurityPolicyBasic256Sha256,
-                    certificate=opc_env_config.client_cert_path,
-                    private_key=opc_env_config.client_private_key_path,
-                    mode=ua.MessageSecurityMode.SignAndEncrypt,
-                    server_certificate=opc_env_config.server_cert_path,
-                )
-            async with opc_client:
-                heartbeat_node = opc_client.get_node(heartbeat_node_id)
-            # write counter
-            async with opc_client:
-                await opc_client.write_values([heartbeat_node], [float(counter)])
+            try:
+                coreio_client.write_opcua_nodes(connection_id, [OPCUANodeWriteValue(heartbeat_node_id, counter)])
+            except Exception:
+                logger.exception("Heartbeat failed to write to coreio")
 
             # wait for next heartbeat
             next_heartbeat_ts = next(heartbeat_clock)
             wait_for_timestamp(next_heartbeat_ts)
 
-        asyncio.run(_beat(heartbeat_counter))
+        _beat(heartbeat_counter)
         # increment counter
         heartbeat_counter += 1
         heartbeat_counter %= cfg.max_counter
-        logger.debug(f"{heartbeat_counter=}")
+        logger.debug(f"Heartbeat Counter: {heartbeat_counter}")
 
-        # wrap beat in a fn decorated with exp backoff
 
 class Heartbeat:
-    def __init__(self, cfg: HeartbeatConfig, opc_env_config: OPCEnvConfig) -> None:
+    def __init__(self, cfg: HeartbeatConfig, coreio_origin: str) -> None:
         self.cfg = cfg
-        self.opc_env_config = opc_env_config
-        self._heartbeat_thread: Thread = self.start_heartbeat(cfg, opc_env_config)
+        self.coreio_origin = coreio_origin
+        self._heartbeat_thread: Thread = self.start_heartbeat(cfg, coreio_origin)
 
-    def start_heartbeat(self, cfg: HeartbeatConfig, opc_env_config: OPCEnvConfig) -> Thread:
+    def start_heartbeat(self, cfg: HeartbeatConfig, coreio_origin: str) -> Thread:
         heartbeat_thread = threading.Thread(
             target=heartbeat,
-            args=(cfg, opc_env_config,),
+            args=(
+                cfg,
+                coreio_origin,
+            ),
             daemon=True,
             name="corerl_heartbeat",
         )
@@ -86,4 +73,4 @@ class Heartbeat:
     def healthcheck(self):
         if self.cfg.heartbeat_node_id is not None and not self._heartbeat_thread.is_alive():
             logger.error("Heartbeat stopped -- defibrillating...")
-            self.start_heartbeat(self.cfg, self.opc_env_config)
+            self.start_heartbeat(self.cfg, self.coreio_origin)
