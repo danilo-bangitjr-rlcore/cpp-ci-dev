@@ -1,3 +1,10 @@
+## 0.122.2 (2025-03-06)
+
+### Fix
+
+- ensure uv sync occurs before spreading over cores
+- ensure pytorch only uses one thread during bsuite statistical analysis
+
 ## 0.122.1 (2025-03-05)
 
 ### Fix
