@@ -61,6 +61,7 @@ class MonteCarloEvaluator:
         self._step_queue = deque[_MonteCarloPoint](maxlen=self.return_steps)
         self.critic_samples = cfg.critic_samples
 
+        self.prev_state: Tensor | None = None  # to deal with one step offset between states and actions
         self.agent_step = 0
         self.app_state = app_state
         self.agent = agent
@@ -145,46 +146,45 @@ class MonteCarloEvaluator:
     def execute_offline(self, iter_num: int, pipe_return: PipelineReturn):
         self.execute(pipe_return, str(iter_num))
 
-
     def execute(self, pipe_return: PipelineReturn, label: str = ''):
         if not self.enabled:
             return
 
         states = pipe_return.states
-        taken_actions = pipe_return.actions
+        actions = pipe_return.actions
         rewards = pipe_return.rewards['reward'].to_numpy()
-        # To get the action taken and the reward observed from the given state,
-        # need to offset actions and rewards by one obs_period with respect to the state
-        prev_actions = taken_actions
-        taken_actions = taken_actions[1:]
-        rewards = rewards[1:]
-        for i in range(len(rewards)):
-            state = tensor(states.iloc[i].to_numpy())
-            observed_a = tensor(taken_actions.iloc[i].to_numpy())
-            prev_a = tensor(prev_actions.iloc[i].to_numpy())
-            reward = float(rewards[i])
-            # Can't compute partial returns or evaluate critic if there are nans in the state, action, or reward
-            if state.isnan().any() or observed_a.isnan().any() or np.isnan(reward):
-                self._step_queue.clear()
+        for i in range(len(states)):
+            curr_state = tensor(states.iloc[i].to_numpy())
+            if self.prev_state is not None:
+                action_np = actions.iloc[i].to_numpy()
+                action = tensor(action_np)
+                reward = float(rewards[i])
+
+                # Can't compute partial returns or evaluate critic if there are nans in the state, action, or reward
+                if self.prev_state.isnan().any() or action.isnan().any() or np.isnan(reward):
+                    self._step_queue.clear()
+                    self.agent_step += 1
+                    self.prev_state = curr_state
+                    continue
+
+                curr_time = actions.index[i].isoformat()
+                state_v = self._get_state_value(self.prev_state, action)
+                observed_a_q = self._get_observed_a_q(self.prev_state, action)
+
+                self._step_queue.appendleft(_MonteCarloPoint(
+                    timestamp=curr_time,
+                    agent_step=self.agent_step,
+                    state_v=state_v,
+                    observed_a_q=observed_a_q,
+                    reward=reward,
+                ))
+
+                partial_return = self._get_partial_return()
+
+                if partial_return is not None:
+                    step = self._step_queue.pop()
+                    self._write_metrics(step, partial_return, label)
+
                 self.agent_step += 1
-                continue
 
-            curr_time = states.index[i].isoformat()
-            state_v = self._get_state_value(state, prev_a)
-            observed_a_q = self._get_observed_a_q(state, observed_a)
-
-            self._step_queue.appendleft(_MonteCarloPoint(
-                timestamp=curr_time,
-                agent_step=self.agent_step,
-                state_v=state_v,
-                observed_a_q=observed_a_q,
-                reward=reward,
-            ))
-
-            partial_return = self._get_partial_return()
-
-            if partial_return is not None:
-                step = self._step_queue.pop()
-                self._write_metrics(step, partial_return, label)
-
-            self.agent_step += 1
+            self.prev_state = curr_state
