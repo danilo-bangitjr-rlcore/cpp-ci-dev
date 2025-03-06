@@ -81,7 +81,7 @@ class SimInteraction(Interaction):
         self._write_to_metrics(pipe_return.states, prefix='STATE-')
 
         # log rewards
-        self._write_to_metrics(pipe_return.rewards, prefix='REWARD-')
+        self._write_to_metrics(pipe_return.rewards)
 
         # perform evaluations
         self._monte_carlo_eval.execute(pipe_return, "online")
