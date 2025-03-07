@@ -508,6 +508,6 @@ def log_policy_stable_rank(app_state: AppState, policy: Policy, prefix: str):
         for i, rank in enumerate(stable_ranks):
             app_state.metrics.write(
                     agent_step=app_state.agent_step,
-                    metric="optimizer_" + prefix + f"_stable_rank_layer_{i}",
+                    metric="network_" + prefix + f"_stable_rank_layer_{i}",
                     value=rank,
             )
