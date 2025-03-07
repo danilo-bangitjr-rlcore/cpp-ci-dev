@@ -1,3 +1,9 @@
+## 0.123.1 (2025-03-07)
+
+### Fix
+
+- **PROD-33**: ensure red zones are treated as a full priority
+
 ## 0.123.0 (2025-03-07)
 
 ### Feat
