@@ -435,6 +435,9 @@ class GACPolicyManager:
         # take a step with the optimizer
         optimizer.zero_grad()
         loss.backward()
+
+        log_policy_gradient_norm(self._app_state, policy, prefix=metric_id)
+
         opt_args = tuple()
         opt_kwargs = {"closure": closure}
         optimizer.step(*opt_args, **opt_kwargs)
@@ -452,3 +455,21 @@ class GACPolicyManager:
                 policy_actions,
             )
         return -logp.mean()
+
+
+def log_policy_gradient_norm(app_state: AppState, policy: Policy, prefix: str):
+    total_norm = 0
+    for param in policy.parameters():
+        if param.requires_grad and param.grad is not None:
+            param_norm = param.grad.data.norm(2)
+
+            total_norm += param_norm.item() ** 2
+
+    total_norm = total_norm ** 0.5
+
+    app_state.metrics.write(
+            agent_step=app_state.agent_step,
+            metric="optimizer_" + prefix + "_grad_norm",
+            value=to_np(total_norm),
+        )
+
