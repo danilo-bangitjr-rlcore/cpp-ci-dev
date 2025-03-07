@@ -1,3 +1,10 @@
+## 0.124.0 (2025-03-07)
+
+### Feat
+
+- grad norm with critic
+- grad norm for policies
+
 ## 0.123.1 (2025-03-07)
 
 ### Fix
