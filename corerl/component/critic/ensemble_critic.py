@@ -8,6 +8,7 @@ from pydantic import Field
 from corerl.component.buffer import MixedHistoryBufferConfig
 from corerl.component.network.factory import init_target_network
 from corerl.component.network.networks import EnsembleNetwork, EnsembleNetworkConfig
+from corerl.component.network.utils import to_np
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import LSOConfig
 from corerl.configs.config import config
@@ -51,6 +52,7 @@ class EnsembleCritic(BaseCritic):
         output_dim: int = 1
     ):
         input_dim = state_dim + action_dim
+        self._app_state = app_state
         self.model = EnsembleNetwork(
             cfg.critic_network,
             input_dim=input_dim,
@@ -118,6 +120,8 @@ class EnsembleCritic(BaseCritic):
         self.optimizer.zero_grad()
         loss.backward()
 
+        log_critic_gradient_norm(self._app_state, self.model)
+
         if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
             self.optimizer.step(closure=lambda: 0.)
         else:
@@ -165,3 +169,23 @@ class EnsembleCritic(BaseCritic):
         ]
         input_tensor = self._prepare_input(state_action_batches)
         return self._forward_target(input_tensor)
+
+def log_critic_gradient_norm(app_state: AppState, critic: EnsembleNetwork):
+    """
+    Logs the gradient norm for each member of the ensemble.
+    """
+    for ensemble_i, param_i in enumerate(critic.parameters(independent = True)):
+        total_norm_i = 0
+        for param in param_i:
+            if param.requires_grad and param.grad is not None:
+                param_norm = param.grad.data.norm(2)
+                total_norm_i += param_norm.item() ** 2
+
+        total_norm_i = total_norm_i ** 0.5
+
+        app_state.metrics.write(
+                agent_step=app_state.agent_step,
+                metric=f"optimizer_critic_{ensemble_i}_grad_norm",
+                value=to_np(total_norm_i),
+        )
+
