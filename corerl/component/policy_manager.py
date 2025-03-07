@@ -19,6 +19,7 @@ from corerl.component.policy.factory import BaseNNConfig, SquashedGaussianPolicy
 from corerl.component.policy.policy import Policy
 from corerl.configs.config import config
 from corerl.data_pipeline.pipeline import PipelineReturn
+from corerl.eval.agent import get_layers_stable_rank
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
@@ -497,4 +498,15 @@ def log_policy_weight_norm(app_state: AppState, policy: Policy, prefix: str):
                 agent_step=app_state.agent_step,
                 metric="optimizer_" + prefix + "_weight_norm",
                 value=to_np(total_norm),
+            )
+
+def log_policy_stable_rank(app_state: AppState, policy: Policy, prefix: str):
+    with torch.no_grad():
+        stable_ranks = get_layers_stable_rank(policy.model)
+
+        for i, rank in enumerate(stable_ranks):
+            app_state.metrics.write(
+                    agent_step=app_state.agent_step,
+                    metric="optimizer_" + prefix + f"_stable_rank_layer_{i}",
+                    value=rank,
             )
