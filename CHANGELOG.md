@@ -1,3 +1,14 @@
+## 0.123.0 (2025-03-07)
+
+### Feat
+
+- similar reward logging in deployment_interaction
+
+### Fix
+
+- change action tag for bsuite in mountain car
+- remove REWARD prefix
+
 ## 0.122.2 (2025-03-06)
 
 ### Fix
