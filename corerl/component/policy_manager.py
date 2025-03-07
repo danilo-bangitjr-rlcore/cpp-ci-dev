@@ -458,6 +458,9 @@ class GACPolicyManager:
 
 
 def log_policy_gradient_norm(app_state: AppState, policy: Policy, prefix: str):
+    """
+    Logs the gradient norm.
+    """
     total_norm = 0
     for param in policy.parameters():
         if param.requires_grad and param.grad is not None:
