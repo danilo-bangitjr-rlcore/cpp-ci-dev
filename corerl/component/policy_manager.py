@@ -497,7 +497,7 @@ def log_policy_weight_norm(app_state: AppState, policy: Policy, prefix: str):
 
         app_state.metrics.write(
                 agent_step=app_state.agent_step,
-                metric="optimizer_" + prefix + "_weight_norm",
+                metric="network_" + prefix + "_weight_norm",
                 value=to_np(total_norm),
             )
 

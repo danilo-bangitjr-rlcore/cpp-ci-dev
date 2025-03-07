@@ -201,19 +201,20 @@ def log_critic_weight_norm(app_state: AppState, critic: EnsembleNetwork):
     """
     Logs the weight norm for each member of the ensemble.
     """
-    for ensemble_i, param_i in enumerate(critic.parameters(independent = True)):
-        total_norm_i = 0
-        for param in param_i:
-            param_norm = param.norm(2)
-            total_norm_i += param_norm.item() ** 2
+    with torch.no_grad():
+        for ensemble_i, param_i in enumerate(critic.parameters(independent = True)):
+            total_norm_i = 0
+            for param in param_i:
+                param_norm = param.norm(2)
+                total_norm_i += param_norm.item() ** 2
 
-        total_norm_i = total_norm_i ** 0.5
+            total_norm_i = total_norm_i ** 0.5
 
-        app_state.metrics.write(
-                agent_step=app_state.agent_step,
-                metric=f"optimizer_critic_{ensemble_i}_weight_norm",
-                value=to_np(total_norm_i),
-        )
+            app_state.metrics.write(
+                    agent_step=app_state.agent_step,
+                    metric=f"network_critic_{ensemble_i}_weight_norm",
+                    value=to_np(total_norm_i),
+            )
 
 def log_critic_stable_rank(app_state: AppState, critic: EnsembleNetwork):
     with torch.no_grad():
