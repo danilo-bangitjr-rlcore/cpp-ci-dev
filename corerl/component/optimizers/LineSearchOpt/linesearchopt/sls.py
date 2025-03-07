@@ -285,13 +285,13 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
                     if found:
                         self._app_state.metrics.write(
                             agent_step=self._app_state.agent_step,
-                            metric="lso_step_size",
+                            metric="optimizer_lso_step_size",
                             value=step_size,
                         )
 
                         self._app_state.metrics.write(
                             agent_step=self._app_state.agent_step,
-                            metric="lso_backtrack_steps",
+                            metric="optimizer_lso_backtrack_steps",
                             value=backtrack_step,
                         )
 

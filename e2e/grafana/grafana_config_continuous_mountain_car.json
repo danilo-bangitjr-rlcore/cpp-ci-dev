@@ -613,7 +613,7 @@
               "options": {
                 "mode": "exclude",
                 "names": [
-                  "value lso_backtrack_steps"
+                  "value optimizer_actor_grad_norm"
                 ],
                 "prefix": "All except:",
                 "readOnly": true
@@ -661,7 +661,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT value, time, metric \nFROM metrics \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'lso%'\nORDER BY \"time\"",
+          "rawSql": "SELECT value, time, metric \nFROM metrics \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'optimizer%'\nORDER BY \"time\"",
           "refId": "A",
           "sql": {
             "columns": [
@@ -741,7 +741,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -861,7 +862,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1006,7 +1008,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1126,7 +1129,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1306,6 +1310,6 @@
   "timezone": "browser",
   "title": "OPC TSDB Local Visualization",
   "uid": "ee9wfo0vhboxsb",
-  "version": 13,
+  "version": 14,
   "weekStart": ""
 }
