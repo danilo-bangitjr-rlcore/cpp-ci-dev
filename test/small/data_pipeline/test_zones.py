@@ -66,7 +66,7 @@ def test_zones1(cfg: MainConfig, app_state: AppState, pipeline: Pipeline):
 
     pf = PipelineFrame(df, data_mode=DataMode.OFFLINE)
     pf = pipeline.preprocessor(pf)
-    pf.rewards = pd.DataFrame({ 'reward': [0.] * 3 }, index=idx)
+    pf.rewards = pd.DataFrame({ 'reward': [-1.] * 3 }, index=idx)
 
     pf = zone_discourager(pf)
 
@@ -75,8 +75,8 @@ def test_zones1(cfg: MainConfig, app_state: AppState, pipeline: Pipeline):
         columns=['reward'],
         data=[
             [-8],
-            [-2],
-            [-1.125],
+            [-3],
+            [-2.125],
         ],
     )
 
