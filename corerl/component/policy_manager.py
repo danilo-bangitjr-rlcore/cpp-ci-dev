@@ -436,7 +436,9 @@ class GACPolicyManager:
         optimizer.zero_grad()
         loss.backward()
 
+        # log to metrics table
         log_policy_gradient_norm(self._app_state, policy, prefix=metric_id)
+        log_policy_weight_norm(self._app_state, policy, prefix=metric_id)
 
         opt_args = tuple()
         opt_kwargs = {"closure": closure}
@@ -456,6 +458,9 @@ class GACPolicyManager:
             )
         return -logp.mean()
 
+# ---------------------------------------------------------------------------- #
+#                                    Metrics                                   #
+# ---------------------------------------------------------------------------- #
 
 def log_policy_gradient_norm(app_state: AppState, policy: Policy, prefix: str):
     """
@@ -476,3 +481,20 @@ def log_policy_gradient_norm(app_state: AppState, policy: Policy, prefix: str):
             value=to_np(total_norm),
         )
 
+def log_policy_weight_norm(app_state: AppState, policy: Policy, prefix: str):
+    """
+    Logs the weight norm.
+    """
+    with torch.no_grad():
+        total_norm = 0
+        for param in policy.parameters():
+            param_norm = param.norm(2)
+            total_norm += param_norm.item() ** 2
+
+        total_norm = total_norm ** 0.5
+
+        app_state.metrics.write(
+                agent_step=app_state.agent_step,
+                metric="optimizer_" + prefix + "_weight_norm",
+                value=to_np(total_norm),
+            )
