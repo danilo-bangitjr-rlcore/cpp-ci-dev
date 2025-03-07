@@ -19,7 +19,7 @@ from corerl.component.policy.factory import BaseNNConfig, SquashedGaussianPolicy
 from corerl.component.policy.policy import Policy
 from corerl.configs.config import config
 from corerl.data_pipeline.pipeline import PipelineReturn
-from corerl.eval.agent import get_layers_stable_rank
+from corerl.eval.torch import get_layers_stable_rank
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
@@ -440,6 +440,7 @@ class GACPolicyManager:
         # log to metrics table
         log_policy_gradient_norm(self._app_state, policy, prefix=metric_id)
         log_policy_weight_norm(self._app_state, policy, prefix=metric_id)
+        log_policy_stable_rank(self._app_state, policy, prefix=metric_id)
 
         opt_args = tuple()
         opt_kwargs = {"closure": closure}
