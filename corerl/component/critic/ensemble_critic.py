@@ -120,7 +120,9 @@ class EnsembleCritic(BaseCritic):
         self.optimizer.zero_grad()
         loss.backward()
 
+        # metrics
         log_critic_gradient_norm(self._app_state, self.model)
+        log_critic_weight_norm(self._app_state, self.model)
 
         if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
             self.optimizer.step(closure=lambda: 0.)
@@ -170,6 +172,10 @@ class EnsembleCritic(BaseCritic):
         input_tensor = self._prepare_input(state_action_batches)
         return self._forward_target(input_tensor)
 
+# ---------------------------------------------------------------------------- #
+#                                    Metrics                                   #
+# ---------------------------------------------------------------------------- #
+
 def log_critic_gradient_norm(app_state: AppState, critic: EnsembleNetwork):
     """
     Logs the gradient norm for each member of the ensemble.
@@ -189,3 +195,20 @@ def log_critic_gradient_norm(app_state: AppState, critic: EnsembleNetwork):
                 value=to_np(total_norm_i),
         )
 
+def log_critic_weight_norm(app_state: AppState, critic: EnsembleNetwork):
+    """
+    Logs the weight norm for each member of the ensemble.
+    """
+    for ensemble_i, param_i in enumerate(critic.parameters(independent = True)):
+        total_norm_i = 0
+        for param in param_i:
+            param_norm = param.norm(2)
+            total_norm_i += param_norm.item() ** 2
+
+        total_norm_i = total_norm_i ** 0.5
+
+        app_state.metrics.write(
+                agent_step=app_state.agent_step,
+                metric=f"optimizer_critic_{ensemble_i}_weight_norm",
+                value=to_np(total_norm_i),
+        )
