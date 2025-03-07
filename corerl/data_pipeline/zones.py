@@ -1,6 +1,7 @@
 import logging
+from dataclasses import dataclass
+from typing import Literal, assert_never
 
-import numpy as np
 import pandas as pd
 
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
@@ -11,6 +12,13 @@ from corerl.state import AppState
 from corerl.utils.maybe import Maybe
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ZoneViolation:
+    tag: TagConfig
+    penalty: float
+    kind: Literal['red', 'yellow']
 
 
 class ZoneDiscourager:
@@ -28,16 +36,30 @@ class ZoneDiscourager:
     def __call__(self, pf: PipelineFrame):
         df = self._prep_stage.inverse(pf.data)
 
-        penalties = np.zeros(df.shape[0])
+        rewards = pf.rewards['reward'].to_numpy()
         for i, (_, row_series) in enumerate(df.iterrows()):
             row = row_series.to_frame().transpose()
 
-            penalties[i] = self._get_penalty_for_row(row)
+            penalty = self._get_penalty_for_row(row)
+            if penalty is None:
+                continue
+
+            # red zones are replacing to encode a priority level
+            elif penalty.kind == 'red':
+                rewards[i] = penalty.penalty
+
+            # yellow zones are additive to encode light penalty
+            elif penalty.kind == 'yellow':
+                rewards[i] += penalty.penalty
+
+            # no other types of zones
+            else:
+                assert_never(penalty.kind)
 
 
         # 2025-03-01: put zone violation reward penalties behind feature flag
         if self._app_state.cfg.feature_flags.zone_violations:
-            pf.rewards['reward'] += penalties
+            pf.rewards['reward'] = rewards
 
         return pf
 
@@ -54,7 +76,8 @@ class ZoneDiscourager:
             tag = self._bounded_tag_cfgs[idx]
             percent = red_violations[idx]
             assert percent is not None
-            return self._handle_red_violation(tag, percent)
+            penalty = self._handle_red_violation(tag, percent)
+            return ZoneViolation(tag, penalty, 'red')
 
         # then yellow zone
         yellow_violations = [
@@ -67,9 +90,10 @@ class ZoneDiscourager:
             tag = self._bounded_tag_cfgs[idx]
             percent = yellow_violations[idx]
             assert percent is not None
-            return self._handle_yellow_violation(tag, percent)
+            penalty = self._handle_yellow_violation(tag, percent)
+            return ZoneViolation(tag, penalty, 'yellow')
 
-        return 0
+        return None
 
 
     def _handle_yellow_violation(self, tag: TagConfig, percent: float):
