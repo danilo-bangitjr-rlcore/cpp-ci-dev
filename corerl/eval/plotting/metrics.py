@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -7,39 +8,45 @@ import matplotlib.pyplot as plt
 from corerl.state import AppState
 
 
-def make_mc_eval_plot(
-    app_state: AppState,
-    save_path: Path,
-    labels: list[str],
-    step_start: int | None = None,
-    step_end: int | None = None,
-    start_time: datetime | None = None,
+@dataclass
+class MetricsPlottingConfig:
+    app_state: AppState
+    step_start: int | None = None
+    step_end: int | None = None
+    start_time: datetime | None = None
     end_time: datetime | None = None
+    labels: list[str] | None = None
+
+def make_mc_eval_plot(
+    cfg: MetricsPlottingConfig,
+    save_path: Path,
 ):
-    if not app_state.cfg.eval_cfgs.monte_carlo.enabled:
+    if not cfg.app_state.cfg.eval_cfgs.monte_carlo.enabled:
         return
 
-    for label in labels:
-        state_v_df = app_state.metrics.read(
+    assert cfg.labels is not None
+
+    for label in cfg.labels:
+        state_v_df = cfg.app_state.metrics.read(
             metric=f"state_v_{label}",
-            step_start=step_start,
-            step_end=step_end,
-            start_time=start_time,
-            end_time=end_time
+            step_start=cfg.step_start,
+            step_end=cfg.step_end,
+            start_time=cfg.start_time,
+            end_time=cfg.end_time
         )
-        observed_a_q_df = app_state.metrics.read(
+        observed_a_q_df = cfg.app_state.metrics.read(
             metric=f"observed_a_q_{label}",
-            step_start=step_start,
-            step_end=step_end,
-            start_time=start_time,
-            end_time=end_time
+            step_start=cfg.step_start,
+            step_end=cfg.step_end,
+            start_time=cfg.start_time,
+            end_time=cfg.end_time
         )
-        partial_return_df = app_state.metrics.read(
+        partial_return_df = cfg.app_state.metrics.read(
             metric=f"partial_return_{label}",
-            step_start=step_start,
-            step_end=step_end,
-            start_time=start_time,
-            end_time=end_time
+            step_start=cfg.step_start,
+            step_end=cfg.step_end,
+            start_time=cfg.start_time,
+            end_time=cfg.end_time
         )
 
         if "time" in state_v_df:
@@ -58,10 +65,7 @@ def make_mc_eval_plot(
         plt.scatter(x_axis, partial_returns, s=8, alpha=0.25, label="Observed Return")
 
         if "time" in state_v_df:
-            assert end_time is not None and start_time is not None
-            interval = int(float((end_time - start_time).days) / 15.0) + 1
-            plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
-            plt.gca().xaxis.set_major_locator(mdates.DayLocator(interval=interval))
+            plt.gca().xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=None))
             plt.gcf().autofmt_xdate()
 
         plt.ylabel("Return")
@@ -71,17 +75,12 @@ def make_mc_eval_plot(
         plt.close()
 
 def plot_metrics(
-    app_state: AppState,
-    step_start: int | None = None,
-    step_end: int | None = None,
-    start_time: datetime | None = None,
-    end_time: datetime | None = None,
-    labels: list[str] | None = None,
+    cfg: MetricsPlottingConfig
 ):
-    if labels is None or len(labels) == 0:
-        labels = [""]
+    if cfg.labels is None or len(cfg.labels) == 0:
+        cfg.labels = [""]
 
-    save_path = Path(app_state.cfg.experiment.save_path)
+    save_path = Path(cfg.app_state.cfg.experiment.save_path)
     save_path.mkdir(parents=True, exist_ok=True)
 
-    make_mc_eval_plot(app_state, save_path, labels, step_start, step_end, start_time, end_time)
+    make_mc_eval_plot(cfg, save_path)

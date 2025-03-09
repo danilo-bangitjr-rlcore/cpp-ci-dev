@@ -83,10 +83,10 @@ class MixedHistoryBuffer:
             if not self.full and self.pos == 0:
                 self.full = True
 
-        self.write_buffer_sizes()
-
         for dist in self._sub_dists:
             dist.update(self.rng, idxs, data_mode)
+
+        self.write_buffer_sizes()
 
         # update the most_recent_idxs
         if data_mode == DataMode.ONLINE:
