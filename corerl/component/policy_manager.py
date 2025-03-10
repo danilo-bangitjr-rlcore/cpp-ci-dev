@@ -8,7 +8,13 @@ from typing import Callable, Literal, NamedTuple
 import torch
 from pydantic import Field
 
-from corerl.agent.utils import SampledQReturn, get_sampled_qs, grab_percentile, mix_uniform_actions
+from corerl.agent.utils import (
+    SampledQReturn,
+    get_sampled_qs,
+    grab_percentile,
+    mix_uniform_actions,
+    mix_uniform_actions_evenly_dispersed,
+)
 from corerl.component.buffer import MixedHistoryBuffer, MixedHistoryBufferConfig
 from corerl.component.critic.ensemble_critic import EnsembleCritic
 from corerl.component.network.utils import tensor, to_np
@@ -43,15 +49,16 @@ class GACPolicyManagerConfig:
     name: Literal["network"] = "network"
     delta_actions: bool = False
     delta_bounds: list[tuple[float, float]] = Field(default_factory=list)
-    delta_rejection_sample: bool = True
 
     # hyperparameters
+    delta_rejection_sample: bool = True
     num_samples: int = 128
     actor_percentile: float = 0.1
     sampler_percentile: float = 0.2
     uniform_weight: float = 1.0
     init_sampler_with_actor_weights: bool = True
     resample_for_sampler_update: bool = True
+    even_dispersed_uniform: bool = False
 
     # metrics
     ingress_loss: bool = True
@@ -157,7 +164,10 @@ class GACPolicyManager:
 
         with torch.no_grad():
             policy_actions, _ = self.sampler.forward(states)  # actions in [0, 1]
-        policy_actions = mix_uniform_actions(policy_actions, self.cfg.uniform_weight)
+        if self.cfg.even_dispersed_uniform:
+            policy_actions = mix_uniform_actions_evenly_dispersed(policy_actions, self.cfg.uniform_weight)
+        else:
+            policy_actions = mix_uniform_actions(policy_actions, self.cfg.uniform_weight)
         return policy_actions
 
     def _sample_unform(self, states: torch.Tensor):
