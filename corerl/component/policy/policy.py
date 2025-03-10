@@ -11,6 +11,7 @@ import torch.nn as nn
 from typing_extensions import override
 
 import corerl.utils.nullable as nullable
+from corerl.utils.device import device
 
 _BoundedAboveConstraint = constraints.less_than
 
@@ -195,7 +196,7 @@ class ContinuousIIDPolicy(Policy,ABC):
 
         info = dict(zip(
             [param_name for param_name in self.param_names],
-            [p.detach().numpy() for p in params],
+            [p.detach().cpu().numpy() for p in params],
             strict=True,
         ))
 
@@ -217,11 +218,12 @@ class ContinuousIIDPolicy(Policy,ABC):
         self, state: torch.Tensor, action: torch.Tensor,
     ) -> tuple[torch.Tensor, dict]:
         params = self._model(state)
+        params = [p.cpu() for p in params]
         dist = self._transform_from_params(*params)
 
         info = dict(zip(
             [param_name for param_name in self.param_names],
-            [p.detach().numpy() for p in params],
+            [p.detach().cpu().numpy() for p in params],
             strict=True,
         ))
 
@@ -232,8 +234,8 @@ class ContinuousIIDPolicy(Policy,ABC):
                 f"of {dist.support}, but got actions: \n{action}"
             )
 
-        lp = dist.log_prob(action)
-        lp = lp.view(-1, 1)
+        lp = dist.log_prob(action.cpu())
+        lp = lp.view(-1, 1).to(device.device)
 
         return lp, info
 
@@ -337,7 +339,6 @@ class Bounded(ContinuousIIDPolicy):
 
         return d.Independent(sub_dist, 1)
 
-
 class UnBounded(ContinuousIIDPolicy):
     def __init__(self, model: nn.Module, dist: type[d.Distribution]):
         super().__init__(model, dist)
@@ -360,7 +361,6 @@ class UnBounded(ContinuousIIDPolicy):
     @override
     def _transform(self, dist: type[d.Distribution]) -> d.Distribution:
         return d.Independent(dist, 1)
-
 
 class HalfBounded(ContinuousIIDPolicy):
     """
