@@ -67,7 +67,8 @@ class MockSampler:
 class MockCritic:
     def get_values(self, states: list[torch.Tensor], actions: list[torch.Tensor]):
         v =states[0][:, 0] + actions[0][:, 0]
-        return EnsembleNetworkReturn(v, v)
+        var = torch.ones_like(v) * 0.00
+        return EnsembleNetworkReturn(v, v, var)
 
 def test_get_sampled_qs():
     states = torch.tensor([
