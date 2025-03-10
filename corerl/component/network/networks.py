@@ -136,7 +136,7 @@ class EnsembleNetworkReturn(NamedTuple):
     ensemble_values: torch.Tensor
 
     # the variance of the ensemble values
-    ensemble_variance: torch.Tensor = None
+    ensemble_variance: torch.Tensor
 
 
 class EnsembleNetwork(nn.Module):
