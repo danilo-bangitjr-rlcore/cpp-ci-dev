@@ -2,17 +2,15 @@ import torch
 
 
 def stable_rank(matrix: torch.Tensor) -> float:
-    """
+    r"""
     Calculate the stable rank of a matrix.
 
-    Stable rank is defined as: ||A||_F^2 / ||A||_2^2
-    where ||A||_F is the Frobenius norm and ||A||_2 is the spectral norm.
+    Stable rank is defined as: \sum \sigma^2 / \max \sigma^2
 
     """
-    frob_norm_squared = torch.sum(matrix ** 2)
     singular_values = torch.linalg.svdvals(matrix)
-    spectral_norm_squared = singular_values[0] ** 2
-    s_rank = frob_norm_squared / spectral_norm_squared
+    sv_squared = singular_values**2
+    s_rank =  torch.sum(sv_squared) / sv_squared[0] # the max singular value is the first
 
     return s_rank.item()
 
