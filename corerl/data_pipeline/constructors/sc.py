@@ -10,6 +10,7 @@ from corerl.configs.config import config, list_
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
+from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig, add_seasonal_features
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import TransformConfig
 
@@ -18,6 +19,7 @@ from corerl.data_pipeline.transforms import TransformConfig
 class SCConfig:
     defaults: list[TransformConfig] = list_([])
     countdown: CountdownConfig = Field(default_factory=CountdownConfig)
+    seasonal: SeasonalConfig = Field(default_factory=SeasonalConfig)
 
 
 class StateConstructor(Constructor):
@@ -39,6 +41,8 @@ class StateConstructor(Constructor):
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         if self._cd_adder is not None:
             pf = self._cd_adder(pf)
+
+        pf = add_seasonal_features(self._cfg.seasonal, pf)
 
         transformed_parts, tag_names = self._transform_tags(pf, StageCode.SC)
 
