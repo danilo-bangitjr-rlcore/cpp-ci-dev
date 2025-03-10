@@ -8,7 +8,7 @@ experiment:
     - 10
     - 100
     - 999
-  pipeline_batch_duration: 50 days
+  pipeline_batch_duration: 100 days
   save_path: output
   seed: 1
 
@@ -33,6 +33,9 @@ env:
   db:
     table_name: "tag_data"
 
+#feature_flags:
+#  delta_actions: True
+
 metrics:
   enabled: True
 
@@ -43,43 +46,10 @@ eval_cfgs:
   actor_critic:
     enabled: True
   monte_carlo:
-    enabled: False
+    enabled: True
 
 agent:
   name: greedy_ac
-
-  critic:
-    critic_network:
-      name: ensemble
-      ensemble: 10
-#      bootstrap_reduct: mean
-#      policy_reduct: mean
-      base:
-        name: fc
-        hidden:
-          - 256
-          - 256
-    critic_optimizer: # Ensemble Optimizer?
-      name: adam
-      lr: 0.0001
-      weight_decay: 0.0
-    buffer:
-      ensemble: 10
-      ensemble_probability: 0.5
-      batch_size: 256
-
-  policy:
-    #actor_network:
-      #name: 'squashed_gaussian'
-      #base:
-        #name: fc
-        #hidden:
-          #- 256
-          #- 256
-    buffer:
-      ensemble: 1
-      ensemble_probability: 1.
-      batch_size: 256
 
 pipeline:
   imputer:

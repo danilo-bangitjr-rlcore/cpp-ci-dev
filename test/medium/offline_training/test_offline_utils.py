@@ -15,6 +15,7 @@ from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.environment.async_env.async_env import DepAsyncEnvConfig
+from corerl.eval.actor_critic import PlotInfoBatch
 from corerl.eval.evals import EvalDBConfig, evals_group
 from corerl.eval.metrics import MetricsDBConfig, metrics_group
 from corerl.messages.event_bus import EventBus
@@ -55,6 +56,9 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
         base='test/medium/offline_training/assets',
         config_name='offline_config.yaml',
     )
+
+    cfg.agent.critic.buffer.online_weight = 0.0
+    cfg.agent.policy.buffer.online_weight = 0.0
 
     assert isinstance(cfg.env, DepAsyncEnvConfig)
     cfg.env.db = test_db_config
@@ -185,15 +189,17 @@ def test_offline_training(
         ac_eval_rows = evals.loc[evals["evaluator"] == "actor-critic_0"]
         assert len(ac_eval_rows) == len(offline_cfg.experiment.offline_eval_iters)
         for i in range(len(ac_eval_rows)):
-            ac_out = ac_eval_rows.iloc[i]["value"]
-            assert len(ac_out["plot_info"]) == ac_cfg.num_test_states
-            for test_state in ac_out["plot_info"]:
-                for action_tag in ac_out["plot_info"][test_state]["a_dim"]:
-                    a_dim_range = np.array(ac_out["plot_info"][test_state]["a_dim"][action_tag]["policy_actions"])
-                    pdfs = np.array(ac_out["plot_info"][test_state]["a_dim"][action_tag]["pdf"])
-                    qs = np.array(ac_out["plot_info"][test_state]["a_dim"][action_tag]["direct_critic"])
-                    assert a_dim_range.shape == (ac_cfg.num_uniform_actions,)
+            ac_out = PlotInfoBatch.model_validate_json(ac_eval_rows["value"].iloc[i])
+            assert len(ac_out.states) == ac_cfg.num_test_states
+            for test_state in ac_out.states:
+                for action_plot_info in test_state.a_dims:
+                    pdf_x_range = np.array(action_plot_info.pdf.x_range)
+                    pdfs = np.array(action_plot_info.pdf.pdfs)
+                    direct_critic_x_range = np.array(action_plot_info.direct_critic.x_range)
+                    qs = np.array(action_plot_info.direct_critic.q_vals)
+                    assert pdf_x_range.shape == (ac_cfg.num_uniform_actions,)
                     assert pdfs.shape == (ac_cfg.critic_samples, ac_cfg.num_uniform_actions)
+                    assert direct_critic_x_range.shape == (ac_cfg.num_uniform_actions,)
                     assert qs.shape == (ac_cfg.critic_samples, ac_cfg.num_uniform_actions)
 
 def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig, dummy_app_state: AppState):

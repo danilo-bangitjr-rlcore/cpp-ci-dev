@@ -1,3 +1,34 @@
+## 0.126.0 (2025-03-10)
+
+### Feat
+
+- critic stable rank
+- policy stable rank
+- policy stable rank
+
+### Fix
+
+- weight norms belong to network dash
+
+## 0.125.0 (2025-03-09)
+
+### Feat
+
+- Dedicated plotting scripts for evals and metrics. Plotting removed from offline training and interaction
+- critic weight norm
+- policy weight norm
+
+### Fix
+
+- enable monte-carlo eval plot to have correct dates on x-axis
+- Fix small bugs not caught in initial merge with Actor refactor
+
+### Refactor
+
+- updated offline training test to reflect changes made to actor-critic eval
+- Adapted monte-carlo eval to work online - not just offline
+- Adapted actor-critic eval to work with Actor refactor
+
 ## 0.124.0 (2025-03-07)
 
 ### Feat

@@ -12,6 +12,7 @@ from corerl.component.network.utils import to_np
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import LSOConfig
 from corerl.configs.config import config
+from corerl.eval.torch import get_layers_stable_rank
 from corerl.state import AppState
 from corerl.utils.device import device
 
@@ -123,6 +124,7 @@ class EnsembleCritic(BaseCritic):
         # metrics
         log_critic_gradient_norm(self._app_state, self.model)
         log_critic_weight_norm(self._app_state, self.model)
+        log_critic_stable_rank(self._app_state, self.model)
 
         if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
             self.optimizer.step(closure=lambda: 0.)
@@ -199,16 +201,29 @@ def log_critic_weight_norm(app_state: AppState, critic: EnsembleNetwork):
     """
     Logs the weight norm for each member of the ensemble.
     """
-    for ensemble_i, param_i in enumerate(critic.parameters(independent = True)):
-        total_norm_i = 0
-        for param in param_i:
-            param_norm = param.norm(2)
-            total_norm_i += param_norm.item() ** 2
+    with torch.no_grad():
+        for ensemble_i, param_i in enumerate(critic.parameters(independent = True)):
+            total_norm_i = 0
+            for param in param_i:
+                param_norm = param.norm(2)
+                total_norm_i += param_norm.item() ** 2
 
-        total_norm_i = total_norm_i ** 0.5
+            total_norm_i = total_norm_i ** 0.5
 
-        app_state.metrics.write(
-                agent_step=app_state.agent_step,
-                metric=f"optimizer_critic_{ensemble_i}_weight_norm",
-                value=to_np(total_norm_i),
-        )
+            app_state.metrics.write(
+                    agent_step=app_state.agent_step,
+                    metric=f"network_critic_{ensemble_i}_weight_norm",
+                    value=to_np(total_norm_i),
+            )
+
+def log_critic_stable_rank(app_state: AppState, critic: EnsembleNetwork):
+    with torch.no_grad():
+        for ensemble_i, ensemble_member in enumerate(critic.subnetworks):
+            stable_ranks = get_layers_stable_rank(ensemble_member)
+
+            for i, rank in enumerate(stable_ranks):
+                app_state.metrics.write(
+                        agent_step=app_state.agent_step,
+                        metric=f"network_critic_{ensemble_i}_stable_rank_layer_{i}",
+                        value=rank,
+                )

@@ -195,7 +195,7 @@ class ContinuousIIDPolicy(Policy,ABC):
 
         info = dict(zip(
             [param_name for param_name in self.param_names],
-            [p.squeeze().detach().numpy() for p in params],
+            [p.detach().numpy() for p in params],
             strict=True,
         ))
 
@@ -219,6 +219,12 @@ class ContinuousIIDPolicy(Policy,ABC):
         params = self._model(state)
         dist = self._transform_from_params(*params)
 
+        info = dict(zip(
+            [param_name for param_name in self.param_names],
+            [p.detach().numpy() for p in params],
+            strict=True,
+        ))
+
         assert dist.support is not None
         if not torch.all(dist.support.check(action)):
             raise ValueError(
@@ -229,7 +235,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         lp = dist.log_prob(action)
         lp = lp.view(-1, 1)
 
-        return lp, {}
+        return lp, info
 
     def mean(self, state: torch.Tensor) -> torch.Tensor:
         params = self._model(state)
