@@ -24,11 +24,12 @@ class BSuiteTestCase:
     lower_goals: dict[str, float] = {}
     upper_goals: dict[str, float] = {}
 
+    aggregators: dict[str, str] = {}
+
     overrides: dict[str, object] | None = None
 
     def __init__(self):
         self._overrides = self.overrides or {}
-
 
     def execute_test(self, tsdb: Engine, port: int, db_name: str):
         overrides = self._overrides | {
@@ -70,9 +71,11 @@ class BSuiteTestCase:
 
         return summary_df
 
-    def summarize_over_time(self, metric: str, metrics_table: pd.DataFrame):
+    def summarize_over_time(self, metric: str, metrics_table: pd.DataFrame) -> float:
         values = get_metric(metrics_table, metric)
-        return values[-100:].mean()
+        aggregation_name = self.aggregators.get(metric, 'last_100_mean')
+        aggregated_values = aggregate(values, name=aggregation_name)
+        return aggregated_values
 
 
     def _extract(self, tests: dict[str, float], test_name: str, metrics_table: pd.DataFrame)-> list[list[str | float]]:
@@ -100,8 +103,6 @@ class BSuiteTestCase:
                 assert got >= expected, f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}'  # type: ignore
             elif test_name == 'upper_bounds':
                 assert got <= expected, f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}'  # type: ignore
-            else:
-                raise NotImplementedError
 
     def _evaluate_warnings(self, summary_df: pd.DataFrame):
         for row in summary_df.itertuples():
@@ -117,3 +118,16 @@ class BSuiteTestCase:
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
     return df[df['metric'] == metric]['value'].to_numpy()
+
+
+def aggregate(values: np.ndarray, name: str = 'last_100_mean') -> float:
+    if name == 'last_100_mean':
+        return values[-100:].mean()
+    elif name == 'mean':
+        return values.mean()
+    elif name == 'max':
+        return values.max()
+    elif name == 'min':
+        return values.min()
+    else:
+        raise NotImplementedError
