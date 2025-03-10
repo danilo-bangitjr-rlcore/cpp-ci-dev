@@ -342,4 +342,3 @@ def greed_values_batch(app_state: AppState, agent: BaseAgent):
         eval_fn=policy_buffer_batchify(_greed_values),
         metric_names=['greed_values_batch'],
     )
-
