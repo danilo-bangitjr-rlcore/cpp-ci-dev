@@ -135,6 +135,9 @@ class EnsembleNetworkReturn(NamedTuple):
     # the value function for every member of the ensemble
     ensemble_values: torch.Tensor
 
+    # the variance of the ensemble values
+    ensemble_variance: torch.Tensor = None
+
 
 class EnsembleNetwork(nn.Module):
     def __init__(self, cfg: EnsembleNetworkConfig, input_dim: int, output_dim: int):
@@ -176,7 +179,8 @@ class EnsembleNetwork(nn.Module):
         ], dim=0)
 
         q = self.bootstrap_reduct(qs, dim=0)
-        return EnsembleNetworkReturn(q, qs)
+        variance = self.get_ensemble_variance(qs)
+        return EnsembleNetworkReturn(q, qs, variance)
 
     def state_dict(self) -> list: # type: ignore
         return [net.state_dict() for net in self.subnetworks]
@@ -195,3 +199,6 @@ class EnsembleNetwork(nn.Module):
             for i in range(self.ensemble):
                 param_list += list(self.subnetworks[i].parameters())
         return param_list
+
+    def get_ensemble_variance(self, qs: torch.Tensor) -> torch.Tensor:
+        return torch.var(qs, dim=0)
