@@ -3,7 +3,25 @@ import pytest
 from corerl.config import MainConfig
 from corerl.configs.config import MISSING
 from corerl.configs.loader import config_to_dict, direct_load_config
+from test.behavior.test_bsuite import TEST_CASES
 
+
+def walk_no_missing(part: object, key_path: str=""):
+    if not isinstance(part, dict):
+        return
+
+    for k, v in part.items():
+        cur_key_path = k
+        if key_path:
+            cur_key_path = f"{key_path}.{k}"
+
+        assert v is not MISSING, cur_key_path
+        if isinstance(v, dict):
+            walk_no_missing(v, cur_key_path)
+
+        elif isinstance(v, list):
+            for idx, elem in enumerate(v):
+                walk_no_missing(elem, f"{cur_key_path}[{idx}]")
 
 @pytest.mark.parametrize('base,config_name', [
     ('config', 'pendulum'),
@@ -22,22 +40,14 @@ def test_main_configs(base: str, config_name: str):
 
     # walk through config, ensure that there are no MISSING symbols or uninterpolated values
     raw_config_dict = config_to_dict(MainConfig, config)
-
-    def walk_no_missing(part: object, key_path: str=""):
-        if not isinstance(part, dict):
-            return
-
-        for k, v in part.items():
-            cur_key_path = k
-            if key_path:
-                cur_key_path = f"{key_path}.{k}"
-
-            assert v is not MISSING, cur_key_path
-            if isinstance(v, dict):
-                walk_no_missing(v, cur_key_path)
-
-            elif isinstance(v, list):
-                for idx, elem in enumerate(v):
-                    walk_no_missing(elem, f"{cur_key_path}[{idx}]")
-
     walk_no_missing(raw_config_dict)
+
+def test_bsuite_configs():
+    for t in TEST_CASES:
+
+        config = direct_load_config(MainConfig, base='.', config_name=t.config)
+        assert isinstance(config, MainConfig)
+
+        # walk through config, ensure that there are no MISSING symbols or uninterpolated values
+        raw_config_dict = config_to_dict(MainConfig, config)
+        walk_no_missing(raw_config_dict)
