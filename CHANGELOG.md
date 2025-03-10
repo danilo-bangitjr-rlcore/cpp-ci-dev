@@ -1,3 +1,15 @@
+## 0.126.0 (2025-03-10)
+
+### Feat
+
+- critic stable rank
+- policy stable rank
+- policy stable rank
+
+### Fix
+
+- weight norms belong to network dash
+
 ## 0.125.0 (2025-03-09)
 
 ### Feat
