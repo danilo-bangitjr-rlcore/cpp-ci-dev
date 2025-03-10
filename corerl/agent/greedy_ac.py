@@ -223,14 +223,6 @@ class GreedyAC(BaseAgent):
                     value=to_np(loss_i),
                 )
 
-        if log_metrics and values.ensemble_variance is not None:
-            mean_variance = torch.mean(values.ensemble_variance)
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric="critic_ensemble_variance",
-                value=to_np(mean_variance),
-            )
-
         if log_metrics:
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
