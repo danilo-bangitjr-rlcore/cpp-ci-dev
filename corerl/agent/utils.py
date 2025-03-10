@@ -81,7 +81,7 @@ def get_sampled_qs(
 
     return SampledQReturn(q_values, states, direct_actions, policy_actions)
 
-def mix_uniform_actions(policy_actions: torch.Tensor, uniform_weight: float) -> tuple[torch.Tensor, torch.Tensor]:
+def mix_uniform_actions(policy_actions: torch.Tensor, uniform_weight: float) -> torch.Tensor:
     batch_size = policy_actions.size(0)
     action_dim = policy_actions.size(1)
     num_rows_to_sample = ceil(batch_size * uniform_weight)
@@ -89,6 +89,6 @@ def mix_uniform_actions(policy_actions: torch.Tensor, uniform_weight: float) -> 
     rand_actions = torch.rand(num_rows_to_sample, action_dim, device=device.device)
     rand_actions = torch.clip(rand_actions, 0, 1)
     policy_actions[indices, :] = rand_actions
-    return policy_actions, indices
+    return policy_actions
 
 

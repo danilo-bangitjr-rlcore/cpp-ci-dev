@@ -157,7 +157,7 @@ class GACPolicyManager:
 
         with torch.no_grad():
             policy_actions, _ = self.sampler.forward(states)  # actions in [0, 1]
-        policy_actions, _ = mix_uniform_actions(policy_actions, self.cfg.uniform_weight)
+        policy_actions = mix_uniform_actions(policy_actions, self.cfg.uniform_weight)
         return policy_actions
 
     def _sample_unform(self, states: torch.Tensor):
