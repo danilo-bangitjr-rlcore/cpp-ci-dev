@@ -37,6 +37,10 @@ class MixedHistoryBufferConfig:
     def _seed(cls, cfg: "MainConfig"):
         return cfg.experiment.seed
 
+    @computed("ensemble")
+    @classmethod
+    def _ensemble(cls, cfg: "MainConfig"):
+        return cfg.feature_flags.ensemble
 
 class MixedHistoryBuffer:
     def __init__(self, cfg: MixedHistoryBufferConfig, app_state: AppState):
@@ -83,8 +87,20 @@ class MixedHistoryBuffer:
             if not self.full and self.pos == 0:
                 self.full = True
 
-        for dist in self._sub_dists:
-            dist.update(self.rng, idxs, data_mode)
+        batch_size = len(idxs)
+
+        # generate a random mask for each ensemble member
+        ensemble_masks = self.rng.random((len(self._sub_dists), batch_size)) < self._cfg.ensemble_probability
+
+        # for any data point not selected by any ensemble member, randomly select one member
+        no_ensemble = ~ensemble_masks.any(axis=0)
+
+        for idx in np.where(no_ensemble)[0]:
+            random_member = self.rng.integers(0, len(self._sub_dists))
+            ensemble_masks[random_member, idx] = True
+
+        for dist, mask in zip(self._sub_dists, ensemble_masks, strict=False):
+            dist.update(self.rng, idxs, data_mode, mask)
 
         self.write_buffer_sizes()
 
@@ -203,10 +219,15 @@ class MaskedABDistribution:
     def sample(self, rng: np.random.Generator, n: int) -> np.ndarray:
         return self._dist.sample(rng, n)
 
-    def update(self, rng: np.random.Generator, elements: np.ndarray, mode: DataMode):
+    def update(
+        self,
+        rng: np.random.Generator,
+        elements: np.ndarray,
+        mode: DataMode,
+        ensemble_mask: np.ndarray,
+    ):
         batch_size = len(elements)
 
-        ensemble_mask = rng.random(batch_size) < self._mask_prob
         online_mask = np.full(batch_size, mode == DataMode.ONLINE)
 
         self._online.update(elements, ensemble_mask & online_mask)
