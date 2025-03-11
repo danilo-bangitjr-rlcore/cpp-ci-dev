@@ -1,3 +1,10 @@
+## 0.129.1 (2025-03-11)
+
+### Fix
+
+- styles again
+- fix agent test utils
+
 ## 0.129.0 (2025-03-11)
 
 ### Feat
