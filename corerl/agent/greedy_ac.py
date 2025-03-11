@@ -36,7 +36,6 @@ class GreedyACConfig(BaseAgentConfig):
     n_actor_updates: int = 1
     n_critic_updates: int = 1
 
-    ensemble_targets: bool = False
     eval_batch : bool = False
 
     # metrics
@@ -49,7 +48,6 @@ class GreedyAC(BaseAgent):
         super().__init__(cfg, app_state, col_desc)
         self.cfg = cfg
         self._col_desc = col_desc
-        self.ensemble_targets = cfg.ensemble_targets
         self.eval_batch = cfg.eval_batch
 
         self.n_actor_updates = cfg.n_actor_updates
