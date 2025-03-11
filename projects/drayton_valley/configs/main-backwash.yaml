@@ -109,9 +109,6 @@ pipeline:
     operating_range: [120, 179]
     action_constructor:
     - name: identity
-    # - name: normalize
-    #   min: 120
-    #   max: 179
     agg: last
 
   - name: DEP_BP_DUR_SP_WA
@@ -119,9 +116,6 @@ pipeline:
     operating_range: [10, 30]
     action_constructor:
     - name: identity
-    # - name: normalize
-    #   min: 10
-    #   max: 30
     agg: last
 
   - name: UF2_FIT301_PV # permeate flow rate
@@ -129,27 +123,25 @@ pipeline:
     - name: identity
     # It would be preferable to keep one source of truth
     # for conversion to permeability in the preprocessor,
-    # but the config below breaks the reward constructor
-    #
-    # - name: binary # divide by TMP to get val proportional to permeability
-    #   op: prod
-    #   other: UF2_TMP_PV
-    #   other_xform:
-    #   - name: inverse
-    # - name: scale # multiply by -1 to correct negative TMP
-    #   factor: -1
-    # - name: normalize
-    #   min: 4
-    #   max: 6
-    filter: # ignore perm outside of production mode
+    # but attempts to do so have broken reward constructor.
+    # Instead we have to divide by TMP in both state and 
+    # reward constructors.
+    filter: # ignore perm if following conditions are met
+    - name: comparator
+      op: <
+      val: 10
+    # binary max acts as OR
     - name: binary
-      op: replace
+      op: max 
+      # filter if mode is not production (8)
       other: UF2_SEQ_STATE
       other_xform:
-      - name: identity
-    - name: comparator
-      op: '!='
-      val: 8
+      - name: comparator
+        op: '!='
+        val: 8
+    outlier:
+      name: exp_moving
+      alpha: 0.5
     state_constructor:
     - name: binary # divide by TMP to get val proportional to permeability
       op: prod
@@ -179,15 +171,23 @@ pipeline:
   - name: UF2_TMP_PV # used in permeability calculation
     preprocess:
     - name: identity
-    filter: # ignore perm outside of production mode
+    filter: # ignore perm if following conditions are met
+    # filter if magnitude of TMP is too low
+    - name: comparator
+      op: '>'
+      val: -1
+    # binary max acts as OR
     - name: binary
-      op: replace
+      op: max 
+      # filter if mode is not production (8)
       other: UF2_SEQ_STATE
       other_xform:
-      - name: identity
-    - name: comparator
-      op: '!='
-      val: 8
+      - name: comparator
+        op: '!='
+        val: 8
+    outlier:
+      name: exp_moving
+      alpha: 0.5
     state_constructor:
     - name: "null"
 
