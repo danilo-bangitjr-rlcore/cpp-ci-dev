@@ -14,9 +14,20 @@ if TYPE_CHECKING:
 
 @config()
 class BaseAgentConfig:
+    """
+    Kind: internal
+
+    Shared configuration between agent types.
+    Broken out from GAC for clarity and providing a
+    hierarchy between fundamental RL configs and
+    GAC-specific configs.
+    """
     name: Any = MISSING
 
     n_updates: int = 1
+    """
+    Number of algorithm updates per step.
+    """
 
     gamma: float = MISSING
     seed: int = MISSING
