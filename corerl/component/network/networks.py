@@ -122,6 +122,7 @@ def _get_output_shape(
     *,
     dim: Optional[int]=None,
 ) -> int:
+    placeholder_input = placeholder_input.to(device.device)
     output_shape = nn.Sequential(*net)(placeholder_input).shape
     assert len(output_shape) == 1
     return output_shape[dim]

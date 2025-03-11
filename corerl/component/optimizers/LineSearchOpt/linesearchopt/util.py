@@ -13,6 +13,8 @@ from torch.optim.adamw import AdamW
 from torch.optim.rmsprop import RMSprop
 from torch.optim.sgd import SGD
 
+from corerl.utils.device import device
+
 starting_point_unchanged_opts = set((Adam, SGD, RMSprop, Adagrad))
 
 
@@ -224,7 +226,7 @@ def _compute_adam_direction(
     if len(opt.state_dict()["state"].keys()) == 0:
         return -_compute_grad_norm2(grad_list)
     else:
-        directional_derivative = torch.tensor(0.)
+        directional_derivative = torch.tensor(0.).to(device.device)
 
         # Adam hypers
         param_group = opt.param_groups
@@ -288,7 +290,7 @@ def _compute_grad_norm(grad_list: Iterable[torch.Tensor]) -> torch.Tensor:
 def _compute_grad_norm2(
     grad_list: Iterable[torch.Tensor | None],
 ) -> torch.Tensor:
-    grad_norm = torch.tensor(0.)
+    grad_norm = torch.tensor(0.).to(device.device)
     for g in grad_list:
         if g is None:
             continue
