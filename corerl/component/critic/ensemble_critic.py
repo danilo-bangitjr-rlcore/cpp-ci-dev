@@ -19,10 +19,18 @@ from corerl.utils.device import device
 
 @config()
 class CriticConfig:
+    """
+    Kind: internal
+
+    Critic-specific hyperparameters.
+    """
     critic_network: EnsembleNetworkConfig = Field(default_factory=EnsembleNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
     buffer: MixedHistoryBufferConfig = Field(default_factory=MixedHistoryBufferConfig)
     polyak: float = 0.995
+    """
+    Retention coefficient for polyak averaged target networks.
+    """
 
 
 class BaseCritic(ABC):
