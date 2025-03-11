@@ -19,59 +19,16 @@ jobs:
         app-id: ${{ vars.APP_ID }}
         private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
-    - name: Checkout Code
-      uses: actions/checkout@v4
+    - name: Release Please Action
+      id: release
+      uses: googleapis/release-please-action@v4
       with:
-        fetch-depth: 0
         token: ${{ steps.generate-token.outputs.token }}
+        release-type: python
 
-    - id: cz
-      name: Create bump commit, tag, and changelog
-      uses: commitizen-tools/commitizen-action@master
-      with:
-        github_token: ${{ steps.generate-token.outputs.token }}
-        changelog_increment_filename: body.md
-        actor: x-access-token
-
-    # Commitizen stores previous version as PREVIOUS_VERSION
-    # and post-bump version as REVISION within the environment
-    # If these are equal, we should skip subsequent steps
-    # related to Github releases and asset generation
-    - if: ${{ env.PREVIOUS_REVISION != env.REVISION }}
-      name: Install uv
-      uses: astral-sh/setup-uv@v5
-      with:
-        enable-cache: true
-        prune-cache: false
-        cache-dependency-glob: "uv.lock"
-
-    - if: ${{ env.PREVIOUS_REVISION != env.REVISION }}
-      uses: webfactory/ssh-agent@v0.7.0
-      with:
-        ssh-private-key: ${{ secrets.PRIVATE_DEPLOY_KEY }}
-
-    - if: ${{ env.PREVIOUS_REVISION != env.REVISION }}
-      run: |
-        uv venv
-        uv sync
-        uv build
-
-    # Github's Release action is deprecated, so instead we use gh cli to make the release
-    # https://cli.github.com/manual/gh_release_create
-    - if: ${{ env.PREVIOUS_REVISION != env.REVISION }}
-      name: Create Release on GitHub
-      id: create_release
-      env:
-        GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
-      run: |
-        gh release create \
-          --notes-file body.md \
-          --title "Release ${{ steps.cz.outputs.version }}" \
-          "${{ steps.cz.outputs.version }}" \
-          ./dist/*
 
   generate-docs:
-    if: ${{ startsWith(github.event.head_commit.message, 'bump:') }}
+    if: ${{ startsWith(github.event.head_commit.message, 'chore') && contains(github.event.head_commit.message, 'release') }}
     runs-on: ubuntu-latest
     name: Generate Sphinx documentation
 
