@@ -94,6 +94,13 @@ class MainConfig:
 
             self.agent.policy.delta_bounds.append(tag.change_bounds)
 
+        for tag in sorted_tags:
+            # if not an action, continue
+
+            if tag.action_constructor is not None:
+                assert tag.change_bounds is not None, \
+                    f"Delta actions enabled, but change bounds for tag {tag.name} unspecified."
+
 
     @post_processor
     def _enable_ensemble(self, cfg: 'MainConfig'):
