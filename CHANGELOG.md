@@ -5,6 +5,13 @@
 - styles again
 - fix agent test utils
 
+## [0.130.0](https://github.com/rlcoretech/core-rl/compare/0.129.0...v0.130.0) (2025-03-11)
+
+
+### Features
+
+* **PROD-3:** support staged release mechanism ([3a832ac](https://github.com/rlcoretech/core-rl/commit/3a832accdf3a13ed667bb6eb1a47dc4dd3cea91c))
+
 ## 0.129.0 (2025-03-11)
 
 ### Feat
