@@ -1,3 +1,9 @@
+## 0.127.0 (2025-03-11)
+
+### Feat
+
+- **PROD-78**: time of day, time of year, and day of week seasonal features
+
 ## 0.126.0 (2025-03-10)
 
 ### Feat
