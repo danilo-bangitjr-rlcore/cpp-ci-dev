@@ -1,5 +1,6 @@
 import subprocess
 import warnings
+from enum import Enum, auto
 
 import numpy as np
 import pandas as pd
@@ -8,19 +9,27 @@ from sqlalchemy import Engine
 from corerl.sql_logging.sql_logging import table_exists
 
 
+class Behaviour(Enum):
+    exploration = auto()
+
+
 class BSuiteTestCase:
     name: str
     config: str
+    behaviours: dict[str, Behaviour] = {}
     lower_bounds: dict[str, float] = {}
     upper_bounds: dict[str, float] = {}
     lower_warns: dict[str, float] = {}
     upper_warns: dict[str, float] = {}
+    lower_goals: dict[str, float] = {}
+    upper_goals: dict[str, float] = {}
+
+    aggregators: dict[str, str] = {}
 
     overrides: dict[str, object] | None = None
 
     def __init__(self):
         self._overrides = self.overrides or {}
-
 
     def execute_test(self, tsdb: Engine, port: int, db_name: str):
         overrides = self._overrides | {
@@ -47,39 +56,78 @@ class BSuiteTestCase:
         metrics_table = metrics_table.sort_values('agent_step', ascending=True)
         return metrics_table
 
-    def evaluate_outcomes(self, metrics_table: pd.DataFrame):
-        self._evaluate_warnings(metrics_table)
-        self._evaluate_bounds(metrics_table)
+    def evaluate_outcomes(self, metrics_table: pd.DataFrame) -> pd.DataFrame:
+        extracted = []
+        extracted += self._extract(self.lower_bounds, 'lower_bounds', metrics_table)
+        extracted += self._extract(self.upper_bounds, 'upper_bounds', metrics_table)
+        extracted += self._extract(self.lower_warns,  'lower_warns',  metrics_table)
+        extracted += self._extract(self.upper_warns,  'upper_warns',  metrics_table)
+        extracted += self._extract(self.lower_goals,  'lower_goals',  metrics_table)
+        extracted += self._extract(self.upper_goals,  'upper_goals',  metrics_table)
 
+        summary_df = pd.DataFrame(extracted, columns=['metric', 'behaviour', 'test_name', 'expected', 'got'])
+        self._evaluate_bounds(summary_df)
+        self._evaluate_warnings(summary_df)
 
-    def summarize_over_time(self, metric: str, metrics_table: pd.DataFrame):
+        return summary_df
+
+    def summarize_over_time(self, metric: str, metrics_table: pd.DataFrame) -> float:
         values = get_metric(metrics_table, metric)
-        return values[-100:].mean()
+        aggregation_name = self.aggregators.get(metric, 'last_100_mean')
+        aggregated_values = aggregate(values, name=aggregation_name)
+        return aggregated_values
 
 
-    def _evaluate_bounds(self, metrics_table: pd.DataFrame):
-        for metric, expected in self.lower_bounds.items():
+    def _extract(self, tests: dict[str, float], test_name: str, metrics_table: pd.DataFrame)-> list[list[str | float]]:
+        extracted = []
+        for metric, expected in tests.items():
             got = self.summarize_over_time(metric, metrics_table)
-            assert got >= expected, \
-                f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}'
+            extracted.append([
+                metric,
+                self.behaviours.get(metric, 'None'),
+                test_name,
+                expected,
+                got,
+            ])
 
-        for metric, expected in self.upper_bounds.items():
-            got = self.summarize_over_time(metric, metrics_table)
-            assert got <= expected, \
-                f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}'
+        return extracted
 
+    def _evaluate_bounds(self, summary_df: pd.DataFrame):
+        for row in summary_df.itertuples():
+            metric = row.metric
+            expected = row.expected
+            got = row.got
+            test_name = row.test_name
 
-    def _evaluate_warnings(self, metrics_table: pd.DataFrame):
-        for metric, expected in self.lower_bounds.items():
-            got = self.summarize_over_time(metric, metrics_table)
-            if got < expected:
+            if test_name == 'lower_bounds':
+                assert got >= expected, f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}'  # type: ignore
+            elif test_name == 'upper_bounds':
+                assert got <= expected, f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}'  # type: ignore
+
+    def _evaluate_warnings(self, summary_df: pd.DataFrame):
+        for row in summary_df.itertuples():
+            metric = row.metric
+            expected = row.expected
+            got = row.got
+            test_name = row.test_name
+
+            if test_name == 'lower_warns':
                 warnings.warn(f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}', stacklevel=0)
-
-        for metric, expected in self.upper_bounds.items():
-            got = self.summarize_over_time(metric, metrics_table)
-            if got > expected:
+            elif test_name == 'upper_warns':
                 warnings.warn(f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}', stacklevel=0)
-
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
     return df[df['metric'] == metric]['value'].to_numpy()
+
+
+def aggregate(values: np.ndarray, name: str = 'last_100_mean') -> float:
+    if name == 'last_100_mean':
+        return values[-100:].mean()
+    elif name == 'mean':
+        return values.mean()
+    elif name == 'max':
+        return values.max()
+    elif name == 'min':
+        return values.min()
+    else:
+        raise NotImplementedError
