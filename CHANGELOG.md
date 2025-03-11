@@ -1,3 +1,13 @@
+## 0.129.0 (2025-03-11)
+
+### Feat
+
+- **PROD-26**: evenly dispersed uniform action sample
+
+### Refactor
+
+- **PROD-26**: mix_uniform_actions no longer returns indices
+
 ## 0.128.0 (2025-03-11)
 
 ### Feat
