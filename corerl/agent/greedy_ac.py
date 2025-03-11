@@ -229,7 +229,13 @@ class GreedyAC(BaseAgent):
                 metric="avg_critic_loss",
                 value=to_np(loss)/ensemble_len,
             )
-
+            if values.ensemble_variance is not None:
+                mean_variance = torch.mean(values.ensemble_variance)
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric="critic_ensemble_variance",
+                    value=to_np(mean_variance),
+                )
         return loss
 
     def update_critic(self) -> list[float]:

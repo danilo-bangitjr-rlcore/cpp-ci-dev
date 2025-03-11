@@ -165,7 +165,7 @@ def _q_online(
     assert direct_action.size(0) == 1
     out = agent.critic.get_values([state], [direct_action], with_grad=False)
 
-    return out
+    return out.reduced_value, out.ensemble_values, out.ensemble_variance
 
 def q_online(
         app_state: AppState,
@@ -178,7 +178,7 @@ def q_online(
         agent,
         cfg_lens=lambda app_state: app_state.cfg.eval_cfgs.q_online,
         eval_fn=_q_online,
-        metric_names=['q', 'q_ensemble'],
+        metric_names=['q', 'q_ensemble', 'q_ensemble_variance'],
         state=state,
         direct_action=direct_action,
     )
