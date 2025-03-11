@@ -25,36 +25,180 @@ class Agg(StrEnum):
 
 @config()
 class TagConfig:
-    """This is the configuration for our OPC tags. A tag is roughly equivalent to a variable that is sent and received
-    through an OPC server. It is typically a single primative datatype (e.g. float).
+    """
+    Kind: required external
 
-    From `PR#335 Discussion <https://github.com/rlcoretech/core-rl/pull/335#discussion_r1898067439>`_ a tag *may*
-    simultaneously represent both an observation, a reward, and possibly also an action.
+    Configuration for a tag, representing a single variable from the plant's OPC server.
+    Tags have a few strictly required fields, however other fields are optional and
+    internal only.
+
+    Tags are used to construct RL-specific concepts, such as states, actions, and rewards.
+    Tags themselves, however, are not directly states, actions, or rewards even if in some
+    scenarios a 1-1 mapping exists.
     """
 
     # tag metadata
     name: str = MISSING
-    agg: Agg = Agg.avg
+    """
+    Kind: required external
+
+    The human-readable name of the tag. This is used for all internal references to the tag,
+    such as in the reward construction.
+    """
+
     node_identifier: str | int | None = None # prefer full opc node_id path (specified in web GUI)
-    is_meta: bool = False
+    """
+    Kind: optional external
+
+    The long-form OPC node identifier for the tag. This is used in communication with the OPC
+    server. If unspecified, the tag name is used instead.
+    """
+
     is_endogenous: bool = True
+    """
+    Kind: optional external
+
+    Whether the tag can be controlled (even indirectly) by the agent. In the control theory
+    field, this is sometimes called a "controlled" variable. This may be used for plant modeling
+    to simplify counterfactual reasoning.
+    """
+
+    is_meta: bool = False
+    """
+    Kind: internal
+
+    Exposed only for the purposes of tests in order to pass meta-test information through
+    the pipeline. For example truncation/termination or environment synchronization step.
+    """
 
     # tag zones
     operating_range: Bounds | None = None
+    """
+    Kind: optional external
+
+    The maximal range of values that the tag can take. Often called the "engineering range".
+    If specified on an AI-controlled setpoint, this determines the range of values that the agent
+    can select.
+    """
+
     red_bounds: Bounds | None = None
+    """
+    Kind: optional external
+
+    The interior endpoints of the two red zones. The lower value specifies a red zone
+    between:
+        (operating_range[0] and red_bounds[0])
+
+    The upper value specifies a red zone between:
+        (red_bounds[1] and operating_range[1])
+
+    See also:
+    https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.c8rez4g44ssc#heading=h.qru0qq73sjyw
+    """
+
     yellow_bounds: Bounds | None = None
+    """
+    Kind: optional external
+
+    The interior endpoints of the two yellow zones. The lower value specifies a yellow zone
+    between:
+        (red_bounds[0] and yellow_bounds[0])
+
+    The upper value specifies a yellow zone between:
+        (yellow_bounds[1] and red_bounds[1])
+
+    If a corresponding red zone is not specified, the yellow zone's exterior endpoint
+    is determined by the operating range.
+
+    See also:
+    https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.c8rez4g44ssc#heading=h.qru0qq73sjyw
+    """
+
     change_bounds: tuple[float, float] | None = None
+    """
+    Kind: required external
+    Requires: feature_flags.delta_actions
+
+
+    The maximal change between consecutive AI-controlled setpoint values, specified
+    as a percentage change between [-1, 1] inclusive.
+    If specified, this tag _must_ be an AI-controlled setpoint.
+    """
 
     # per-tag pipeline configuration
+    agg: Agg = Agg.avg
+    """
+    Kind: internal
+
+    The temporal aggregation strategy used when querying timescale db. For most tags,
+    this should be Agg.avg. For setpoints, this should be Agg.last.
+    """
+
     outlier: OddityFilterConfig = Field(default_factory=IdentityFilterConfig)
+    """
+    Kind: internal
+
+    A per-tag configuration for outlier detection. Particularly useful for
+    lab-tests or other tags with wildly different frequencies.
+    """
+
     imputer: ImputerConfig | None = None
+    """
+    Kind: internal
+
+    A per-tag configuration for imputation. Used when tags have unusual
+    temporal or spatial structure, for example lab-tests.
+    """
 
     # per-tag constructors
     preprocess: list[TransformConfig] = list_([NormalizerConfig()])
+    """
+    Kind: internal
+
+    Specifies a pipeline of preprocessing steps to apply to the tag.
+    Is not designed to be front-end compatible and exposed to the user.
+    Instead, modifications of this configuration should be made through
+    computed configurations based on tag_type or other user-exposed toggles.
+    """
+
     reward_constructor: list[TransformConfig] = list_([NullConfig()])
+    """
+    Kind: internal
+
+    Specifies a transformation pipeline to produce rewards from tags.
+    Exposed primarily for testing.
+    """
+
     action_constructor: list[TransformConfig] | None = None
+    """
+    Kind: internal
+
+    Specifies a transformation pipeline to produce actions from tags.
+    Used to decouple AI-controlled setpoints (i.e. the outputs) from
+    the effects on the plant (i.e. the inputs). In most cases, these
+    will be the same.
+    """
+
     state_constructor: list[TransformConfig] | None = None
+    """
+    Kind: internal
+
+    Specifies a transformation pipeline to produce states from tags.
+    Used to produce a sufficient history of interaction to satisfy
+    the Markov property.
+    """
+
     filter: list[TransformConfig] | None = None
+    """
+    Kind: optional external
+
+    Specifies a pipeline producing a boolean mask from transformations
+    on other tags. If the pipeline produces True for a given timestep,
+    then the value of this tag is converted to NaN.
+
+    Used when certain operating modes, such as maintenance mode, are
+    a clear signal of data degradation.
+    """
 
     @post_processor
     def _default_normalize_preprocessor(self, cfg: MainConfig):
