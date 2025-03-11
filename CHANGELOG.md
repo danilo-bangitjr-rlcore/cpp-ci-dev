@@ -1,3 +1,13 @@
+## 0.128.0 (2025-03-11)
+
+### Feat
+
+- **PROD-122**: different aggregators in bsuite
+
+### Refactor
+
+- **PROD-122**: tests return df
+
 ## 0.127.0 (2025-03-11)
 
 ### Feat
