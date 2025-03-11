@@ -17,6 +17,14 @@ from corerl.messages.factory import EventBusConfig
 
 @config()
 class DBConfig:
+    """
+    Kind: optional external
+
+    Default configurations for our timeseries
+    database. Should generally be owned by RLCore
+    during setup, however in more extreme circumstances
+    this may be owned by the user on an internal network.
+    """
     drivername: str = 'postgresql+psycopg2'
     username: str = 'postgres'
     password: str = 'password'
@@ -27,6 +35,12 @@ class DBConfig:
 
 @config()
 class InfraConfig:
+    """
+    Kind: optional external
+
+    Infrastructure configuration for wiring the agent
+    into the external system.
+    """
     db: DBConfig = Field(default_factory=DBConfig)
 
 
