@@ -4,6 +4,7 @@
 import argparse
 import logging
 import shutil
+import warnings
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -132,13 +133,14 @@ def main():
         "--tag-entries",
         nargs='*',
         default=[],
-        help="Which entries within the tag yaml to output for tags",
+        help="Which entries within the tag yaml to output for tags. Use --tag-entries all to output all entries",
     )
     parser.add_argument(
         "--action-entries",
         nargs='*',
         default=[],
-        help="Which additional entries within the tag yaml to output for actions",
+        help="Which additional entries within the tag yaml to output for actions. " +
+        "Use --action-entries all to output all entries for actions.",
     )
     args = parser.parse_args()
 
@@ -164,10 +166,23 @@ def main():
     if args.telegraf:
         generate_telegraf_conf(current_path, tag_data)
 
-    action_entries = args.tag_entries +  args.action_entries
+    if args.tag_entries[0] == 'all':
+        tag_entries = None # do not prune
+        action_entries = None # do not prune
+
+        if len(args.action_entries) and  args.action_entries[0] != 'all':
+            warnings.warn("You are specifying additional entries for actions when already outputting all entries. "
+            "Ignoring.",stacklevel=0)
+
+    elif args.action_entries[0] == 'all':
+        tag_entries = args.tag_entries
+        action_entries = None # do not prune
+    else:
+        tag_entries = args.tag_entries
+        action_entries = args.tag_entries +  args.action_entries
 
     if args.tag_config:
-        generate_tag_yaml(current_path, tag_configs, args.tag_entries, action_entries)
+        generate_tag_yaml(current_path, tag_configs, tag_entries, action_entries)
 
 
 if __name__ == "__main__":
