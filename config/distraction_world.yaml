@@ -11,8 +11,6 @@ experiment :
   max_steps: 5000
   gamma: 0
 
-feature_flags:
-  delta_actions: False
 
 metrics:
   enabled: True
