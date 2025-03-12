@@ -64,6 +64,64 @@ def create_mlp(
 
     return nn.Sequential(*net).to(device.device)
 
+# ---------------------------------------------------------------------------- #
+#                             Late Fusion Networks                             #
+# ---------------------------------------------------------------------------- #
+
+@config()
+class LateFusionConfig:
+    name: Literal['late_fusion'] = 'late_fusion'
+    input_cfg : NNTorsoConfig =  Field(default_factory=NNTorsoConfig)
+    combined_cfg : NNTorsoConfig =  Field(default_factory=NNTorsoConfig)
+
+class LateFusionNetwork(nn.Module):
+    def __init__(
+            self,
+            cfg: LateFusionConfig,
+            input_dims: list[int],
+            output_dim: int | None,
+        ):
+        """
+        Neural network that processes multiple separate inputs through subnet architectures
+        and then combines their outputs.
+        """
+        super().__init__()
+
+        # Create multiple subnets - one for each input
+        self.input_nets = nn.ModuleList()
+
+        for input_dim in input_dims:
+            input_net = create_mlp(cfg.input_cfg, input_dim, output_dim=None)
+            self.input_nets.append(input_net)
+
+        input_net_out_dim = cfg.input_cfg.hidden[-1]
+        num_input_nets = len(input_dims)
+        self.combined_input_dim = input_net_out_dim*num_input_nets
+        self.combined_net = create_mlp(
+            cfg.combined_cfg,
+            input_dim=self.combined_input_dim,
+            output_dim=output_dim,
+        )
+        if output_dim is None:
+            self.output_dim = cfg.combined_cfg.hidden[-1]
+        else:
+            self.output_dim = output_dim
+
+    def forward(self, inputs: list[torch.Tensor]):
+        assert len(inputs) == len(self.input_nets), f"Expected {len(self.input_nets)} inputs, got {len(inputs)}"
+
+        # Process each input through its respective subnet
+        subnet_outputs = []
+        for i, input_tensor in enumerate(inputs):
+            output = self.input_nets[i](input_tensor)
+            subnet_outputs.append(output)
+
+        # Concatenate the outputs from all subnets
+        combined = torch.cat(subnet_outputs, dim=1)
+
+        # Process through the combined layers
+        output = self.combined_net(combined)
+        return output
 
 # ---------------------------------------------------------------------------- #
 #                               Ensemble Networks                              #
