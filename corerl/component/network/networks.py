@@ -1,6 +1,5 @@
 import copy
-from collections.abc import Iterable
-from typing import Callable, Literal, NamedTuple, Optional
+from typing import Literal, NamedTuple
 
 import torch
 import torch.nn as nn
