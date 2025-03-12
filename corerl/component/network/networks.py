@@ -72,6 +72,7 @@ def create_mlp(
 class LateFusionConfig:
     name: Literal['late_fusion'] = 'late_fusion'
     input_cfg : NNTorsoConfig =  Field(default_factory=NNTorsoConfig)
+    skip_input : bool = True # choose to not use the input networks
     combined_cfg : NNTorsoConfig =  Field(default_factory=NNTorsoConfig)
 
 class LateFusionNetwork(nn.Module):
@@ -87,19 +88,24 @@ class LateFusionNetwork(nn.Module):
         """
         super().__init__()
 
-        # Create multiple subnets - one for each input
-        self.input_nets = nn.ModuleList()
+        self.skip_input = cfg.skip_input
 
-        for input_dim in input_dims:
-            input_net = create_mlp(cfg.input_cfg, input_dim, output_dim=None)
-            self.input_nets.append(input_net)
+        if not self.skip_input:
+            # Create multiple subnets - one for each input
+            self.input_nets = nn.ModuleList()
+            for input_dim in input_dims:
+                input_net = create_mlp(cfg.input_cfg, input_dim, output_dim=None)
+                self.input_nets.append(input_net)
 
-        input_net_out_dim = cfg.input_cfg.hidden[-1]
-        num_input_nets = len(input_dims)
-        self.combined_input_dim = input_net_out_dim*num_input_nets
+            input_net_out_dim = cfg.input_cfg.hidden[-1]
+            num_input_nets = len(input_dims)
+            combined_input_dim = input_net_out_dim*num_input_nets
+        else:
+            combined_input_dim = sum(input_dims)
+
         self.combined_net = create_mlp(
             cfg.combined_cfg,
-            input_dim=self.combined_input_dim,
+            input_dim=combined_input_dim,
             output_dim=output_dim,
         )
         if output_dim is None:
@@ -108,8 +114,11 @@ class LateFusionNetwork(nn.Module):
             self.output_dim = output_dim
 
     def forward(self, inputs: list[torch.Tensor]):
-        assert len(inputs) == len(self.input_nets), f"Expected {len(self.input_nets)} inputs, got {len(inputs)}"
+        if self.skip_input: # don't use the input networks
+            combined = torch.cat(inputs, dim=1)
+            return self.combined_net(combined)
 
+        assert len(inputs) == len(self.input_nets), f"Expected {len(self.input_nets)} inputs, got {len(inputs)}"
         # Process each input through its respective subnet
         subnet_outputs = []
         for i, input_tensor in enumerate(inputs):
