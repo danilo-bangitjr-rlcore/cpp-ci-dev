@@ -167,7 +167,7 @@ def main():
     action_entries = args.tag_entries +  args.action_entries
 
     if args.tag_config:
-        generate_tag_yaml(current_path, tag_configs, action_entries, args.tag_entries)
+        generate_tag_yaml(current_path, tag_configs, args.tag_entries, action_entries)
 
 
 if __name__ == "__main__":
