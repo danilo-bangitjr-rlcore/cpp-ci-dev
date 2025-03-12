@@ -17,11 +17,6 @@ metrics:
 
     
 pipeline:
-  transition_creator:
-   name: anytime
-   gamma: 0.0
-
-
   tags:
   # meta tags
   - name: reward
