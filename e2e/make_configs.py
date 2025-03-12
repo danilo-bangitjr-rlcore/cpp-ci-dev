@@ -48,7 +48,11 @@ def generate_telegraf_conf(path: Path, tag_data: list[TagData]):
     _logger.info(f"Generated {path}/telegraf/generated_telegraf.conf")
 
 
-def generate_tag_yaml(path: Path, tags: list[TagConfig]):
+def generate_tag_yaml(
+        path: Path, tags: list[TagConfig],
+        tag_entries: list[str] | None = None,
+        action_entries: list[str]| None = None,
+    ):
     tag_path = path / "generated_tags.yaml"
 
     class CustomTagYamlDumper(yaml.SafeDumper):
@@ -67,9 +71,28 @@ def generate_tag_yaml(path: Path, tags: list[TagConfig]):
       yaml.representer.SafeRepresenter.represent_str,
   )
 
+    def prune_tags(tags: list[dict], entries: list[str]):
+        pruned_tags = [
+            {key: value for key, value in tag.items() if key in entries or key == 'name'}
+            for tag in tags
+        ]
+        return pruned_tags
+
     with open(tag_path, "w+") as f:
         raw_tags = config_to_dict(list[TagConfig], tags)
-        yaml.dump(raw_tags, f, Dumper=CustomTagYamlDumper, sort_keys=False)
+        action_tags = [tag for tag in raw_tags if 'action' in tag['name']]
+        other_tags = [tag for tag in raw_tags if 'action' not in tag['name'] and not tag['is_meta']]
+        meta_tags =  [tag for tag in raw_tags if tag['is_meta']]
+
+        if action_entries is not None:
+            action_tags = prune_tags(action_tags, action_entries)
+
+        if tag_entries is not None:
+            other_tags = prune_tags(other_tags, tag_entries)
+
+        pruned_tags = action_tags + other_tags + meta_tags
+
+        yaml.dump(pruned_tags, f, Dumper=CustomTagYamlDumper, sort_keys=False)
 
     log.info(f"Generated {tag_path}")
 
@@ -105,6 +128,18 @@ def main():
         action="store_true",
         help="If specified, writes generated_tags.yaml"
     )
+    parser.add_argument(
+        "--tag-entries",
+        nargs='*',
+        default=[],
+        help="Which entries within the tag yaml to output for tags",
+    )
+    parser.add_argument(
+        "--action-entries",
+        nargs='*',
+        default=[],
+        help="Which additional entries within the tag yaml to output for actions",
+    )
     args = parser.parse_args()
 
     log.info(f"gym.make({repr(args.name)})")
@@ -129,8 +164,10 @@ def main():
     if args.telegraf:
         generate_telegraf_conf(current_path, tag_data)
 
+    action_entries = args.tag_entries +  args.action_entries
+
     if args.tag_config:
-        generate_tag_yaml(current_path, tag_configs)
+        generate_tag_yaml(current_path, tag_configs, action_entries, args.tag_entries)
 
 
 if __name__ == "__main__":
