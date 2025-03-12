@@ -8,9 +8,8 @@ import corerl.component.network.utils as utils
 from corerl.component.distribution import get_dist_type
 from corerl.component.layer import Parallel, init_activation
 from corerl.component.layer.activations import ActivationConfig
-from corerl.component.network.networks import NNTorsoConfig, _create_layer, create_base
+from corerl.component.network.networks import NNTorsoConfig, create_mlp
 from corerl.component.policy.policy import ContinuousIIDPolicy, Policy
-from corerl.component.policy.softmax import Softmax
 from corerl.configs.config import MISSING, config, list_
 from corerl.configs.group import Group
 from corerl.utils.device import device
@@ -40,21 +39,17 @@ def _create_continuous_mlp(
     model: Any = None
     paths = ContinuousIIDPolicy.from_(model, dist, action_min, action_max).n_params
 
+    base_net = create_mlp(cfg.base, input_dim, None)
+
     head_act = cfg.head_activation
     head_bias = cfg.head_bias
     head_layer_init = utils.init_layer(cfg.head_layer_init)
 
-    placeholder_input = torch.empty((input_dim,))
-    net = [create_base(cfg.base, input_dim, None)]
-
     # Create head layer(s) to the network
     head_layers = [[] for _ in range(paths)]
     for i in range(len(head_layers)):
-        head_layer = _create_layer(
-            nn.Linear, head_layer_init, net, output_dim, head_bias,
-            placeholder_input,
-        )
-
+        head_layer = nn.Linear(cfg.base.hidden[-1], output_dim, head_bias, device=device.device)
+        head_layer = head_layer_init(head_layer)
         head_layers[i].append(head_layer)
 
         for k in range(len(head_act[i])):
@@ -63,7 +58,7 @@ def _create_continuous_mlp(
 
     head = Parallel(*(nn.Sequential(*path) for path in head_layers))
 
-    return nn.Sequential(nn.Sequential(*net), head).to(device.device)
+    return nn.Sequential(nn.Sequential(*base_net), head).to(device.device)
 
 
 
