@@ -48,316 +48,127 @@ pipeline:
 
   - name: action-0
     agg: avg
-    node_identifier: null
-    is_meta: false
-    is_endogenous: true
     operating_range:
     - -1.0
     - 1.0
-    red_bounds: null
-    yellow_bounds: null
-    change_bounds: null
-    outlier:
-      name: identity
-    imputer: null
-    preprocess:
-    - name: normalize
-      min: null
-      max: null
-      from_data: false
-    reward_constructor:
-    - name: 'null'
     action_constructor:
     - name: identity
-    filter: null
 
   - name: tag-0
     agg: avg
-    node_identifier: null
-    is_meta: false
-    is_endogenous: true
     operating_range:
     - -1.0
     - 1.0
-    red_bounds: null
-    yellow_bounds: null
-    change_bounds: null
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    preprocess:
-    - name: normalize
-      min: null
-      max: null
-      from_data: false
-    reward_constructor:
-    - name: 'null'
-    action_constructor: null
     state_constructor:
     - name: multi_trace
       trace_values:
       - 0.0
-
-    filter: null
+  
   - name: tag-1
     agg: avg
-    node_identifier: null
-    is_meta: false
-    is_endogenous: true
     operating_range:
     - -1.0
     - 1.0
-    red_bounds: null
-    yellow_bounds: null
-    change_bounds: null
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    preprocess:
-    - name: normalize
-      min: null
-      max: null
-      from_data: false
-    reward_constructor:
-    - name: 'null'
-    action_constructor: null
     state_constructor:
     - name: multi_trace
       trace_values:
       - 0.0
-
-    filter: null
+  
   - name: tag-2
     agg: avg
-    node_identifier: null
-    is_meta: false
-    is_endogenous: true
     operating_range:
     - -1.0
     - 1.0
-    red_bounds: null
-    yellow_bounds: null
-    change_bounds: null
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    preprocess:
-    - name: normalize
-      min: null
-      max: null
-      from_data: false
-    reward_constructor:
-    - name: 'null'
-    action_constructor: null
     state_constructor:
     - name: multi_trace
       trace_values:
-      - 0.0
+      - 0.0  
 
-    filter: null
+  - name: tag-2
+    agg: avg
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0  
+  - name: tag-1
+    agg: avg
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0  
+  
   - name: tag-3
     agg: avg
-    node_identifier: null
-    is_meta: false
-    is_endogenous: true
     operating_range:
     - -1.0
     - 1.0
-    red_bounds: null
-    yellow_bounds: null
-    change_bounds: null
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    preprocess:
-    - name: normalize
-      min: null
-      max: null
-      from_data: false
-    reward_constructor:
-    - name: 'null'
-    action_constructor: null
     state_constructor:
     - name: multi_trace
       trace_values:
-      - 0.0
-
-    filter: null
+      - 0.0  
+  
   - name: tag-4
     agg: avg
-    node_identifier: null
-    is_meta: false
-    is_endogenous: true
     operating_range:
     - -1.0
     - 1.0
-    red_bounds: null
-    yellow_bounds: null
-    change_bounds: null
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    preprocess:
-    - name: normalize
-      min: null
-      max: null
-      from_data: false
-    reward_constructor:
-    - name: 'null'
-    action_constructor: null
     state_constructor:
     - name: multi_trace
       trace_values:
       - 0.0
 
-    filter: null
   - name: tag-5
     agg: avg
-    node_identifier: null
-    is_meta: false
-    is_endogenous: true
     operating_range:
     - -1.0
     - 1.0
-    red_bounds: null
-    yellow_bounds: null
-    change_bounds: null
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    preprocess:
-    - name: normalize
-      min: null
-      max: null
-      from_data: false
-    reward_constructor:
-    - name: 'null'
-    action_constructor: null
     state_constructor:
     - name: multi_trace
       trace_values:
       - 0.0
 
-    filter: null
   - name: tag-6
     agg: avg
-    node_identifier: null
-    is_meta: false
-    is_endogenous: true
     operating_range:
     - -1.0
     - 1.0
-    red_bounds: null
-    yellow_bounds: null
-    change_bounds: null
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    preprocess:
-    - name: normalize
-      min: null
-      max: null
-      from_data: false
-    reward_constructor:
-    - name: 'null'
-    action_constructor: null
     state_constructor:
     - name: multi_trace
       trace_values:
       - 0.0
 
-    filter: null
   - name: tag-7
     agg: avg
-    node_identifier: null
-    is_meta: false
-    is_endogenous: true
     operating_range:
     - -1.0
     - 1.0
-    red_bounds: null
-    yellow_bounds: null
-    change_bounds: null
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    preprocess:
-    - name: normalize
-      min: null
-      max: null
-      from_data: false
-    reward_constructor:
-    - name: 'null'
-    action_constructor: null
     state_constructor:
     - name: multi_trace
       trace_values:
       - 0.0
 
-    filter: null
   - name: tag-8
     agg: avg
-    node_identifier: null
-    is_meta: false
-    is_endogenous: true
     operating_range:
     - -1.0
     - 1.0
-    red_bounds: null
-    yellow_bounds: null
-    change_bounds: null
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    preprocess:
-    - name: normalize
-      min: null
-      max: null
-      from_data: false
-    reward_constructor:
-    - name: 'null'
-    action_constructor: null
     state_constructor:
     - name: multi_trace
       trace_values:
       - 0.0
 
-    filter: null
   - name: tag-9
     agg: avg
-    node_identifier: null
-    is_meta: false
-    is_endogenous: true
     operating_range:
     - -1.0
     - 1.0
-    red_bounds: null
-    yellow_bounds: null
-    change_bounds: null
-    outlier:
-      name: identity
-    imputer:
-      name: identity
-    preprocess:
-    - name: normalize
-      min: null
-      max: null
-      from_data: false
-    reward_constructor:
-    - name: 'null'
-    action_constructor: null
     state_constructor:
     - name: multi_trace
       trace_values:
       - 0.0
-
-    filter: null
