@@ -7,7 +7,6 @@ from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms.base import InvertibleTransform
-from corerl.utils.list import find
 
 
 class Preprocessor(Constructor):
@@ -54,5 +53,12 @@ class Preprocessor(Constructor):
 
 
 def maybe_get_prefix(col: str, prefixes: Iterable[str]) -> str:
-    prefix = find(lambda pre: col.startswith(pre), prefixes)
+    prefix = None
+    maximal_len = 0
+    # search for maximal prefix
+    for pre in prefixes:
+        if col.startswith(pre) and len(pre) > maximal_len:
+            prefix = pre
+            maximal_len = len(pre)
+
     return prefix if prefix is not None else col
