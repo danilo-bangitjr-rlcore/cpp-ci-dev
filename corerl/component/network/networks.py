@@ -90,7 +90,7 @@ class EnsembleNetwork(nn.Module):
         super().__init__()
         self.ensemble = cfg.ensemble
         self.subnetworks = [
-            create_base(cfg.base, input_dim, output_dim)
+            create_mlp(cfg.base, input_dim, output_dim)
             for _ in range(self.ensemble)
         ]
 
