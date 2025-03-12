@@ -31,14 +31,6 @@ class NNTorsoConfig:
         {'name': 'relu'},
     ])
 
-
-@config()
-class EnsembleNetworkConfig:
-    name: Literal['ensemble'] = 'ensemble'
-    ensemble: int = 1
-    bootstrap_reduct: ReductConfig = Field(default_factory=MeanReduct)
-    base: NNTorsoConfig = Field(default_factory=NNTorsoConfig)
-
 def create_mlp(
     cfg: NNTorsoConfig, input_dim: int, output_dim: int | None,
 ) -> nn.Module:
@@ -72,6 +64,10 @@ def create_mlp(
 
     return nn.Sequential(*net).to(device.device)
 
+
+# ---------------------------------------------------------------------------- #
+#                               Ensemble Networks                              #
+# ---------------------------------------------------------------------------- #
 class EnsembleNetworkReturn(NamedTuple):
     # some reduction over ensemble members, producing a single
     # value function
@@ -83,6 +79,12 @@ class EnsembleNetworkReturn(NamedTuple):
     # the variance of the ensemble values
     ensemble_variance: torch.Tensor
 
+@config()
+class EnsembleNetworkConfig:
+    name: Literal['ensemble'] = 'ensemble'
+    ensemble: int = 1
+    bootstrap_reduct: ReductConfig = Field(default_factory=MeanReduct)
+    base: NNTorsoConfig = Field(default_factory=NNTorsoConfig)
 
 class EnsembleNetwork(nn.Module):
     def __init__(self, cfg: EnsembleNetworkConfig, input_dim: int, output_dim: int):
