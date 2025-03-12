@@ -202,4 +202,7 @@ class EnsembleNetwork(nn.Module):
         return param_list
 
     def get_ensemble_variance(self, qs: torch.Tensor) -> torch.Tensor:
-        return torch.var(qs, dim=0)
+        if self.ensemble > 1:
+            return torch.var(qs, dim=0)
+        else:
+            return torch.zeros(1)
