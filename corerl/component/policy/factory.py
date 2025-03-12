@@ -27,52 +27,6 @@ class BaseNNConfig:
     head_activation: HeadActivation = MISSING
     head_bias: bool = True
 
-
-def _create_discrete_mlp(cfg: BaseNNConfig, input_dim: int, output_dim: int):
-    assert cfg.base.name.lower() in ("mlp", "fc")
-
-    hidden = cfg.base.hidden
-    act = cfg.base.activation
-    bias = cfg.base.bias
-
-    head_act = cfg.head_activation
-    head_bias = cfg.head_bias
-
-    head_layer_init = utils.init_layer(cfg.head_layer_init)
-    layer_init = utils.init_layer(cfg.base.layer_init)
-
-    assert len(hidden) == len(act)
-
-    net = []
-    layer = nn.Linear(input_dim, hidden[0], bias=bias)
-    layer = layer_init(layer)
-    net.append(layer)
-    net.append(init_activation(act[0]))
-
-    placeholder_input = torch.empty((input_dim,))
-
-    # Create the base layers
-    for j in range(1, len(hidden)):
-        layer = _create_layer(
-            nn.Linear, layer_init, net, hidden[j], bias, placeholder_input,
-        )
-
-        net.append(layer)
-        net.append(init_activation(act[j]))
-
-    # Create the head layer(s)
-    head_layer = _create_layer(
-        nn.Linear, head_layer_init, net, output_dim, head_bias,
-        placeholder_input,
-    )
-    net.append(head_layer)
-
-    for k in range(len(head_act[0])):
-        net.append(init_activation(head_act[0][k]))
-
-    return nn.Sequential(*net).to(device.device)
-
-
 def _create_continuous_mlp(
     cfg: BaseNNConfig,
     input_dim: int,
@@ -245,27 +199,6 @@ def _(
         action_min=action_min,
         action_max=action_max,
     )
-
-
-@config(frozen=True)
-class SoftmaxPolicyConfig(BaseNNConfig):
-    name: Literal['softmax'] = 'softmax'
-
-    head_activation: HeadActivation = list_([
-        [{"name": "identity"}],
-    ])
-
-@policy_group.dispatcher
-def _(
-    cfg: SoftmaxPolicyConfig,
-    input_dim: int,
-    output_dim: int,
-    action_min: torch.Tensor | float | None,
-    action_max: torch.Tensor | float | None,
-):
-    net = _create_discrete_mlp(cfg, input_dim, output_dim)
-    return Softmax(net, input_dim, output_dim)
-
 
 
 def create(
