@@ -19,9 +19,36 @@ if TYPE_CHECKING:
 @config()
 class BaseInteractionConfig:
     obs_period: timedelta = MISSING
+    """
+    Kind: required external
+
+    The duration between observations. Sensor readings received within this
+    interval will be aggregated together to produce a single reading.
+    """
+
     action_period: timedelta = MISSING
+    """
+    Kind: required external
+
+    The expected duration between AI-controlled setpoint changes. Should
+    be a multiple of obs_period.
+    """
+
     update_period: timedelta = MISSING
+    """
+    Kind: internal
+
+    The duration between agent updates. Syncronized with obs_period
+    by default.
+    """
+
     update_warmup: int = 0 # number of updates before interacting
+    """
+    Kind: internal
+
+    The number of updates to apply before the first interaction.
+    """
+
 
     @computed('update_period')
     @classmethod
@@ -37,9 +64,44 @@ class SimInteractionConfig(BaseInteractionConfig):
 @config()
 class DepInteractionConfig(BaseInteractionConfig):
     name: Literal["dep_interaction"] = "dep_interaction"
+
     historical_batch_size: int = 10000
+    """
+    Kind: internal
+
+    The number of historical observations to request from TSDB
+    on every obs_period. Primarily controls the computational
+    impact of loading historical data.
+    """
+
     hist_chunk_start: datetime | None = None
+    """
+    Kind: optional external
+
+    The start time of the first historical chunk to fetch.
+    """
+
     checkpoint_path: Path = Path('outputs/checkpoints')
+    """
+    Kind: internal
+
+    The path to the checkpoint directory.
+    """
+
     restore_checkpoint: bool = True
-    heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
+    """
+    Kind: internal
+
+    Whether to restore the agent from the latest checkpoint.
+    """
+
     warmup_period: timedelta | None = None
+    """
+    Kind: internal
+
+    The number of datapoints to preload into the pipeline
+    before considering transitions valid. Used to warmup
+    history-tracking features, such as state traces.
+    """
+
+    heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)

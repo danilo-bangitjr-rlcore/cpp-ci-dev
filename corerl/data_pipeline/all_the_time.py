@@ -18,6 +18,13 @@ if TYPE_CHECKING:
 
 @config()
 class AllTheTimeTCConfig:
+    """
+    Kind: internal
+
+    Configures the length of n-step transitions produced by
+    the pipeline.
+    """
+
     name: str = "all-the-time"
     min_n_step: int = 1
     max_n_step: int = MISSING

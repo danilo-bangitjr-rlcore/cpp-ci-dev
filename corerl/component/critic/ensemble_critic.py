@@ -19,11 +19,18 @@ from corerl.utils.device import device
 
 @config()
 class CriticConfig:
+    """
+    Kind: internal
+
+    Critic-specific hyperparameters.
+    """
     critic_network: EnsembleNetworkConfig = Field(default_factory=EnsembleNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
     buffer: MixedHistoryBufferConfig = Field(default_factory=MixedHistoryBufferConfig)
     polyak: float = 0.995
-    target_sync_freq: int = 1
+    """
+    Retention coefficient for polyak averaged target networks.
+    """
 
 
 class BaseCritic(ABC):
@@ -74,7 +81,6 @@ class EnsembleCritic(BaseCritic):
             ensemble=True,
         )
         self.polyak = cfg.polyak
-        self.target_sync_freq = cfg.target_sync_freq
         self.target_sync_counter = 0
         self.optimizer_name = cfg.critic_optimizer.name
 
@@ -109,9 +115,7 @@ class EnsembleCritic(BaseCritic):
 
     def _update_target(self) -> None:
         self.target_sync_counter += 1
-        if self.target_sync_counter % self.target_sync_freq == 0:
-            self.sync_target()
-            self.target_sync_counter = 0
+        self.polyak_avg_target()
 
     def update(
         self,
@@ -132,7 +136,7 @@ class EnsembleCritic(BaseCritic):
             self.optimizer.step(closure=closure)
         self._update_target()
 
-    def sync_target(self) -> None:
+    def polyak_avg_target(self) -> None:
         with torch.no_grad():
             for p, p_targ in zip(
                 self.model.parameters(),

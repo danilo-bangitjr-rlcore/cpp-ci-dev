@@ -18,6 +18,12 @@ type TransitionFilterType = (
 
 @config()
 class TransitionFilterConfig:
+    """
+    Kind: internal
+
+    A list of filters on transitions to recover regular rl transitions,
+    anytime transitions, all-the-time transitions, etc.
+    """
     filters: list[TransitionFilterType] = list_(['no_nan'])
 
 
@@ -106,4 +112,3 @@ def no_nan(transition: Transition):
             return False
 
     return True
-
