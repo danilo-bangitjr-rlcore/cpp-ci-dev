@@ -137,19 +137,21 @@ class EnsembleNetworkReturn(NamedTuple):
     # the variance of the ensemble values
     ensemble_variance: torch.Tensor
 
+
 @config()
 class EnsembleNetworkConfig:
     name: Literal['ensemble'] = 'ensemble'
     ensemble: int = 1
     bootstrap_reduct: ReductConfig = Field(default_factory=MeanReduct)
-    base: NNTorsoConfig = Field(default_factory=NNTorsoConfig)
+    base: LateFusionConfig = Field(default_factory=LateFusionConfig)
+
 
 class EnsembleNetwork(nn.Module):
-    def __init__(self, cfg: EnsembleNetworkConfig, input_dim: int, output_dim: int):
+    def __init__(self, cfg: EnsembleNetworkConfig, input_dims: list[int], output_dim: int):
         super().__init__()
         self.ensemble = cfg.ensemble
         self.subnetworks = [
-            create_mlp(cfg.base, input_dim, output_dim)
+            LateFusionNetwork(cfg.base, input_dims, output_dim)
             for _ in range(self.ensemble)
         ]
 
@@ -159,25 +161,27 @@ class EnsembleNetwork(nn.Module):
         self.bootstrap_reduct = bootstrap_reduct_group.dispatch(cfg.bootstrap_reduct)
         self.to(device.device)
 
-
     def forward(
         self,
-        input_tensor: torch.Tensor,
+        input_tensors: list[list[torch.Tensor]],
     ):
-        # Input shape is either (ensemble_size, batch_size, feature dim) if a different batch is used for
-        #   each member of the ensemble
-        # Oherwise, the shape of the input_tensor is (batch_size, feature dim)
-        #   if the same batch is expected to be used for each ensemble member
-        if len(input_tensor.shape) == 3 and input_tensor.shape[0] == self.ensemble:
-            # Each element of the 'input_tensor' is evaluated by the corresponding member of the ensemble
-            qs = [self.subnetworks[i](input_tensor[i]) for i in range(self.ensemble)]
+        """
+        Passes inputs to forward() of subnets.
+        We assume that subnets are LateFusionNetworks, so input_tensors is a list of lists of tensors,
+        where the first list is over the inputs, the second is over the ensemble.
+        The tensors themselves are of shape (batch_size x input_dim).
 
-        elif len(input_tensor.shape) == 2:
-            # Each member of the ensemble evaluates the same batch of state-action pairs
-            qs = [net(input_tensor) for net in self.subnetworks]
+        If there is only one element along the ensemble dimension, we pass that same input to all ensembles.
+        """
+        transposed_inputs = [[row[i] for row in input_tensors] for i in range(len(input_tensors[0]))]
+        assert len(transposed_inputs) == 1 or len(transposed_inputs) == self.ensemble
 
+        if len(transposed_inputs) == 1:
+            # pass the same batch to all subnets
+            qs = [self.subnetworks[i](transposed_inputs[0]) for i in range(self.ensemble)]
         else:
-            raise Exception()
+            # pass each subnet their own batch
+            qs = [self.subnetworks[i](transposed_inputs[i]) for i in range(self.ensemble)]
 
         qs = torch.cat([
             torch.unsqueeze(q, 0) for q in qs
@@ -206,7 +210,4 @@ class EnsembleNetwork(nn.Module):
         return param_list
 
     def get_ensemble_variance(self, qs: torch.Tensor) -> torch.Tensor:
-        if self.ensemble > 1:
-            return torch.var(qs, dim=0)
-        else:
-            return torch.zeros(1)
+        return torch.var(qs, dim=0)
