@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from corerl.eval.evals import EvalTableProtocol
@@ -18,6 +19,7 @@ class AppState:
     metrics: MetricsTableProtocol
     event_bus: EventBus
     agent_step: int = 0
+    start_time: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def __getstate__(self):
       return {}
