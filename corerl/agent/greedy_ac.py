@@ -28,16 +28,34 @@ EPSILON = 1e-6
 
 @config()
 class GreedyACConfig(BaseAgentConfig):
+    """
+    Kind: internal
+
+    Agent hyperparameters. For internal use only.
+    These should never be modified for production unless
+    for debugging. These may be modified in tests and
+    research to illicit particular behaviors.
+    """
     name: Literal["greedy_ac"] = "greedy_ac"
 
     critic: CriticConfig = Field(default_factory=CriticConfig)
     policy: GACPolicyManagerConfig = Field(default_factory=GACPolicyManagerConfig)
 
     n_actor_updates: int = 1
-    n_critic_updates: int = 1
+    """
+    Number of actor updates per algorithm update.
+    """
 
-    ensemble_targets: bool = False
+    n_critic_updates: int = 1
+    """
+    Number of critic updates per actor update.
+    """
+
     eval_batch : bool = False
+    """
+    Toggle for using a separate batch for evaluation of the
+    linesearch stopping condition.
+    """
 
     # metrics
     ingress_loss : bool = True
@@ -49,7 +67,6 @@ class GreedyAC(BaseAgent):
         super().__init__(cfg, app_state, col_desc)
         self.cfg = cfg
         self._col_desc = col_desc
-        self.ensemble_targets = cfg.ensemble_targets
         self.eval_batch = cfg.eval_batch
 
         self.n_actor_updates = cfg.n_actor_updates

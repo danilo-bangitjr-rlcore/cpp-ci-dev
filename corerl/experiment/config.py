@@ -5,6 +5,11 @@ from corerl.configs.config import config, list_
 
 @config()
 class ExperimentConfig:
+    """
+    An unfortunate catch-all for configurations that have no
+    clear home. An effort to rename this config is tracked
+    in [PROD-153]
+    """
     debug: bool = False
     device: str = 'cpu'
     num_threads: int = 4

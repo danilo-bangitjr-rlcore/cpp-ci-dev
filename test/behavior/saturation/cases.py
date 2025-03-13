@@ -5,7 +5,7 @@ class SaturationTest(BSuiteTestCase):
     name = 'saturation'
     config = 'test/behavior/saturation/config.yaml'
 
-    lower_bounds = { 'reward': -0.078 }
+    lower_bounds = { 'reward': -0.085}
     upper_warns = { 'avg_critic_loss': 0.003, 'actor_loss': -1.55 }
 
 

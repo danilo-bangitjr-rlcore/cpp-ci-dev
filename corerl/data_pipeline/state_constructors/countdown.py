@@ -18,11 +18,20 @@ if TYPE_CHECKING:
 
 @config()
 class CountdownConfig:
-    action_period: timedelta = MISSING
-    obs_period: timedelta = MISSING
+    """
+    Kind: internal
+
+    Enables a countdown "virtual tag" as a feature in the constructed
+    state. The countdown is a function of both action_period
+    and obs_period, signaling the number of steps until the next
+    decision point.
+    """
+
     kind: str = 'no_countdown'
     normalize: bool = True
 
+    action_period: timedelta = MISSING
+    obs_period: timedelta = MISSING
     @computed('action_period')
     @classmethod
     def _action_period(cls, cfg: MainConfig):
