@@ -299,6 +299,7 @@ class DeploymentInteraction(Interaction):
         path = self._cfg.checkpoint_path / f'{str(now).replace(':','_')}'
         path.mkdir(exist_ok=True, parents=True)
         self._agent.save(path)
+        self._app_state.save(path)
         self._last_checkpoint = now
 
         chkpoints = self._cfg.checkpoint_path.glob('*')
@@ -317,6 +318,7 @@ class DeploymentInteraction(Interaction):
         checkpoint = sorted(chkpoints)[-1]
         logger.info(f"Loading agent weights from checkpoint {checkpoint}")
         self._agent.load(checkpoint)
+        self._app_state.load(checkpoint)
 
 
     # ---------
