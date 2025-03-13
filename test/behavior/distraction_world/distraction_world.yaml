@@ -1,0 +1,872 @@
+env:
+  name: sim_async_env
+  gym_name : DistractionWorld-v0
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+experiment :
+  exp_name : "distraction_world"
+  max_steps: 300
+  gamma: 0
+
+metrics:
+  enabled: True
+
+agent:
+  critic:
+    critic_network:
+      base:
+        skip_input: False
+        input_cfg:
+          hidden: [32]
+          activation:
+            - name: 'relu'
+        combined_cfg:
+          hidden: [64]
+          activation:
+            - name: 'relu'
+  policy:
+    optimizer:
+      lr: 0.001
+
+    
+pipeline:
+  tags:
+  # meta tags
+  - name: reward
+    preprocess:
+    - name: identity
+    outlier:
+      name: identity
+    reward_constructor:
+    - name: identity
+    state_constructor:
+    - name: 'null'
+    preprocess:
+    - name: identity
+
+  - name: terminated
+    preprocess:
+    - name: identity
+    is_meta: True
+    outlier:
+      name: identity
+
+  - name: truncated
+    preprocess:
+    - name: identity
+    is_meta: True
+    outlier:
+      name: identity
+
+  - name: action-0
+    operating_range:
+    - 0.0
+    - 1.0
+    action_constructor:
+    - name: identity
+    state_constructor:
+    - name: 'null'
+  - name: tag-0
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-1
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-2
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-3
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-4
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-5
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-6
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-7
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-8
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-9
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-10
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-11
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-12
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-13
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-14
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-15
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-16
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-17
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-18
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-19
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-20
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-21
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-22
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-23
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-24
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-25
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-26
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-27
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-28
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-29
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-30
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-31
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-32
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-33
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-34
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-35
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-36
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-37
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-38
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-39
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-40
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-41
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-42
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-43
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-44
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-45
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-46
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-47
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-48
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-49
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-50
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-51
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-52
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-53
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-54
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-55
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-56
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-57
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-58
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-59
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-60
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-61
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-62
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-63
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-64
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-65
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-66
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-67
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-68
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-69
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-70
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-71
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-72
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-73
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-74
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-75
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-76
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-77
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-78
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-79
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-80
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-81
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-82
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-83
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-84
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-85
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-86
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-87
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-88
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-89
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-90
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-91
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-92
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-93
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-94
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-95
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-96
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-97
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-98
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
+  - name: tag-99
+    operating_range:
+    - -1.0
+    - 1.0
+    state_constructor:
+    - name: multi_trace
+      trace_values:
+      - 0.0
