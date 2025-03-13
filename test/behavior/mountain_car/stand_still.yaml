@@ -16,15 +16,6 @@ env:
   name: sim_async_env
   gym_name: MountainCarContinuous-v0
 
-
-agent:
-  name: greedy_ac
-
-  policy:
-    optimizer:
-      lr: 0.01
-
-
 metrics:
   enabled: True
 

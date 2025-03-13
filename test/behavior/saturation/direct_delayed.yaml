@@ -13,12 +13,6 @@ experiment:
   gamma: 0.99
   max_steps: 800
 
-agent:
-  name: greedy_ac
-  policy:
-    optimizer:
-      lr: 0.001
-
 metrics:
   enabled: True
 

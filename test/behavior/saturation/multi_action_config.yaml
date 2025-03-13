@@ -13,20 +13,6 @@ experiment:
   gamma: 0.99
   max_steps: 5000
 
-agent:
-  name: greedy_ac
-
-  critic:
-    buffer:
-      name: uniform
-
-  policy:
-    optimizer:
-      lr: 0.001
-    buffer:
-      name: uniform
-
-
 metrics:
   name: db
   enabled: True
