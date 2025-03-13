@@ -78,11 +78,28 @@ class EMAFilter(BaseOddityFilter):
             emv.feed_single(x_i)
             i += 1
 
+        self._log_moving_stats(tag, tag_ts)
+
         # update missing info and set nans
         update_missing_info(pf.missing_info, name=tag, missing_mask=oddity_mask, new_val=MissingType.OUTLIER)
         tag_data[oddity_mask] = np.nan
 
         return pf
+
+    def _log_moving_stats(self, tag: str, tag_ts: EMAFilterTemporalState):
+        ema = tag_ts.ema
+        emv = tag_ts.emv
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric=f"{tag}_ema",
+            value=ema.mu
+        )
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric=f"{tag}_emstd",
+            value=np.sqrt(emv.var)
+        )
+
 
     def _warmup(self, tag_data: np.ndarray, tag_ts: EMAFilterTemporalState) -> int:
         """
