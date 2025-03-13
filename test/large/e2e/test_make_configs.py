@@ -42,7 +42,11 @@ def test_make_configs(request: FixtureRequest):
             "--name",
             "MountainCarContinuous-v0",
             "--telegraf",
-            "--tag-config"
+            "--tag-config",
+            "--tag-entries",
+            "all",
+            "--action-entries",
+            "all",
         ],
         cwd=root_path,
     )
