@@ -38,9 +38,9 @@ interaction:
   restore_checkpoint: False
   historical_batch_size: 100
   hist_chunk_start: 2025-02-05 12:00:00+0000 # YYYY-MM-DD hh:mm:ss
-  obs_period: 00:00:05
-  action_period: 00:00:15
-  update_period: 00:00:05
+  obs_period: 00:00:01
+  action_period: 00:00:03
+  update_period: 00:00:01
   heartbeat:
     heartbeat_node_id: "ns=2;s=heartbeat"
     heartbeat_period: 00:00:01
@@ -64,6 +64,9 @@ pipeline:
   - name: action-0
     agg: last
     operating_range: [-1.5, 1.5]
+    guardrail_schedule:
+      starting_range: [-0.1, 0.1]
+      duration: 00:02:00
     reward_constructor:
     - name: power
       pow: 2
