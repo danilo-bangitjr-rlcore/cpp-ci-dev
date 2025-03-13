@@ -19,8 +19,9 @@ from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat
 from corerl.state import AppState
+from corerl.utils.list import find
 from corerl.utils.maybe import Maybe
-from corerl.utils.time import clock_generator, split_into_chunks, wait_for_timestamp
+from corerl.utils.time import clock_generator, percent_time_elapsed, split_into_chunks, wait_for_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +173,7 @@ class DeploymentInteraction(Interaction):
         next_a = self._agent.get_action_interaction(s, prev_a)
         norm_next_a_df = self._pipeline.action_constructor.get_action_df(next_a)
         next_a_df = self._pipeline.preprocessor.inverse(norm_next_a_df)
+        next_a_df = self._clip_action_bounds(next_a_df)
         self._env.emit_action(next_a_df, log_action=True)
         self._last_action_df = next_a_df
 
@@ -320,6 +322,41 @@ class DeploymentInteraction(Interaction):
     # ---------
     # internals
     # ---------
+    def _clip_action_bounds(self, df: pd.DataFrame) -> pd.DataFrame:
+        for ai_sp_tag in df.columns:
+            df = self._clip_single_action(df, ai_sp_tag)
+
+        return df
+
+
+    def _clip_single_action(self, df: pd.DataFrame, ai_sp_tag: str) -> pd.DataFrame:
+        cfg = find(lambda cfg: cfg.name == ai_sp_tag, self._pipeline.tags)
+        assert cfg is not None, f'Failed to find tag config for {ai_sp_tag}'
+        assert cfg.operating_range is not None, 'AI setpoint tag must have an operating range'
+
+        guard_lo, guard_hi = cfg.operating_range
+        if cfg.guardrail_schedule is None:
+            return df
+
+        perc = percent_time_elapsed(
+            self._app_state.start_time,
+            self._app_state.start_time + cfg.guardrail_schedule.duration,
+        )
+
+        start_lo, start_hi = cfg.guardrail_schedule.starting_range
+
+        if start_lo is not None:
+            assert guard_lo is not None
+            guard_lo = (1 - perc) * start_lo + perc * guard_lo
+
+        if start_hi is not None:
+            assert guard_hi is not None
+            guard_hi = (1 - perc) * start_hi + perc * guard_hi
+
+        df[ai_sp_tag] = df[ai_sp_tag].clip(lower=guard_lo, upper=guard_hi)
+        return df
+
+
     def _should_take_action(self, step_timestamp: datetime) -> bool:
         if self._app_state.event_bus.enabled():
             return True
