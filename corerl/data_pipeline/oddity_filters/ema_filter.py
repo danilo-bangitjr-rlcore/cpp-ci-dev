@@ -9,6 +9,7 @@ from corerl.data_pipeline.data_utils.exp_moving import ExpMovingAvg, ExpMovingVa
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
 from corerl.data_pipeline.utils import get_tag_temporal_state, update_missing_info
+from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +42,8 @@ class EMAFilter(BaseOddityFilter):
     it will be replaced by a NaN.
     """
 
-    def __init__(self, cfg: EMAFilterConfig) -> None:
-        super().__init__(cfg)
+    def __init__(self, cfg: EMAFilterConfig, app_state: AppState) -> None:
+        super().__init__(cfg, app_state)
         self.alpha = cfg.alpha
         self.tolerance = cfg.tolerance
         self.warmup = cfg.warmup

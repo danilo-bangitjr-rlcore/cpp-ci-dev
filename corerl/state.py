@@ -5,10 +5,10 @@ from typing import TYPE_CHECKING
 
 from corerl.eval.evals import EvalTableProtocol
 from corerl.eval.metrics import MetricsTableProtocol
-from corerl.messages.event_bus import EventBus
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
+    from corerl.messages.event_bus import EventBus
 
 
 @dataclass

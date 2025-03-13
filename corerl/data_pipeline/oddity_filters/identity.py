@@ -3,6 +3,7 @@ from typing import Literal
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
+from corerl.state import AppState
 
 
 @config()
@@ -11,8 +12,8 @@ class IdentityFilterConfig(BaseOddityFilterConfig):
 
 
 class IdentityFilter(BaseOddityFilter):
-    def __init__(self, cfg: IdentityFilterConfig):
-        super().__init__(cfg)
+    def __init__(self, cfg: IdentityFilterConfig, app_state: AppState):
+        super().__init__(cfg, app_state)
 
     def __call__(self, pf: PipelineFrame, tag: str) -> PipelineFrame:
         return pf
