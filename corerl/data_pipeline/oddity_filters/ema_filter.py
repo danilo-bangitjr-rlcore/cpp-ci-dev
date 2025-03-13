@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -9,10 +10,12 @@ from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
 from corerl.data_pipeline.utils import get_tag_temporal_state, update_missing_info
 
+logger = logging.getLogger(__name__)
+
 
 @config()
 class EMAFilterConfig(BaseOddityFilterConfig):
-    name: Literal['exp_moving'] = "exp_moving"
+    name: Literal["exp_moving"] = "exp_moving"
     alpha: float = 0.99
     tolerance: float = 2.0
     warmup: int = 10  #  number of warmup steps before rejecting
@@ -66,7 +69,10 @@ class EMAFilter(BaseOddityFilter):
             x_i = tag_data[i]
             if not np.isnan(x_i):
                 std = np.sqrt(emv.var)
-                oddity_mask[i] = np.abs(ema.mu - x_i) > self.tolerance * std
+                is_oddity = np.abs(ema.mu - x_i) > self.tolerance * std
+                oddity_mask[i] = is_oddity
+                if is_oddity:
+                    logger.info(f"EMA filtered {tag} value {x_i} with mu {ema.mu} and std {std}")
             ema.feed_single(x_i)
             emv.feed_single(x_i)
             i += 1
