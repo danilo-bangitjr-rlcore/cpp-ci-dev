@@ -50,12 +50,12 @@ services:
 
     # By default, use the latest stable image pushed to github container registry.
     image: ghcr.io/rlcoretech/coreio:latest
-    # pull_policy: always
+    pull_policy: always
 
     # When working with coreio local image, comment out the "image:" line above and
     # uncomment "build:" and "context:" lines below. Assumes that coreio exists within the same directory as core-rl.
-    build:
-      context: ../coreio/
+    # build:
+    #   context: ../coreio/
 
     depends_on:
       opc-server:
