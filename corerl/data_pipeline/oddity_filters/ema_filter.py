@@ -6,7 +6,7 @@ import numpy as np
 
 from corerl.configs.config import config
 from corerl.data_pipeline.data_utils.exp_moving import ExpMovingAvg, ExpMovingVar
-from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import DataMode, MissingType, PipelineFrame, StageCode
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
 from corerl.data_pipeline.utils import get_tag_temporal_state, update_missing_info
 from corerl.state import AppState
@@ -78,7 +78,7 @@ class EMAFilter(BaseOddityFilter):
             emv.feed_single(x_i)
             i += 1
 
-        self._log_moving_stats(tag, tag_ts)
+        self._log_moving_stats(tag, tag_ts, pf.data_mode)
 
         # update missing info and set nans
         update_missing_info(pf.missing_info, name=tag, missing_mask=oddity_mask, new_val=MissingType.OUTLIER)
@@ -86,17 +86,17 @@ class EMAFilter(BaseOddityFilter):
 
         return pf
 
-    def _log_moving_stats(self, tag: str, tag_ts: EMAFilterTemporalState):
+    def _log_moving_stats(self, tag: str, tag_ts: EMAFilterTemporalState, data_mode: DataMode):
         ema = tag_ts.ema
         emv = tag_ts.emv
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
-            metric=f"{tag}_ema",
+            metric=f"pipeline_{data_mode.name}_outlier_{tag}_ema",
             value=ema.mu
         )
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
-            metric=f"{tag}_emstd",
+            metric=f"pipeline_{data_mode.name}_outlier_{tag}_emstd",
             value=np.sqrt(emv.var)
         )
 
