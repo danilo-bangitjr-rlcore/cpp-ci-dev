@@ -49,9 +49,6 @@ class DataWriter(BufferedWriter[Point]):
     ) -> None:
         assert timestamp.tzinfo == UTC
 
-        # truncate microseconds
-        timestamp = timestamp.replace(microsecond=0)
-
         jsonb = json.dumps({"val": val})
         point = Point(
             ts=timestamp.isoformat(),

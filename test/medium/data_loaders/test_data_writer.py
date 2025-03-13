@@ -61,9 +61,3 @@ def test_batch_write(data_writer: DataWriter):
     for _ in range(10):
         sensor_val += 1
         data_writer.write(timestamp=ts, name=sensor_name, val=sensor_val)
-
-
-def test_microsecond_trimming(data_writer: DataWriter):
-    ts = datetime(2024, 1, 1, 12, 0, 0, 123456, tzinfo=UTC)
-    data_writer.write(timestamp=ts, name="test_sensor", val=1.0)
-    assert data_writer._buffer[-1].ts == "2024-01-01T12:00:00+00:00"
