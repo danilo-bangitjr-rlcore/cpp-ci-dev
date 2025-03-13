@@ -3,6 +3,8 @@ from datetime import UTC, datetime, timedelta
 from time import sleep
 from typing import Generator
 
+import numpy as np
+
 
 def clock_generator(tick_period: timedelta) -> Generator[datetime, None, None]:
     tick = datetime.now(UTC)
@@ -32,6 +34,14 @@ def split_into_chunks(start: dt.datetime, end: dt.datetime, width: dt.timedelta)
         e = s + width
         yield(s, min(end, e))
         s = e
+
+
+def percent_time_elapsed(start: dt.datetime, end: dt.datetime, cur: dt.datetime | None = None) -> float:
+    if cur is None:
+        cur = dt.datetime.now(UTC)
+
+    prop = (cur - start).total_seconds() / (end - start).total_seconds()
+    return np.clip(prop, 0, 1)
 
 
 # ----------------------
