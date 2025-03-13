@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import pickle
 from pathlib import Path
-from typing import Callable, Literal, NamedTuple
+from typing import TYPE_CHECKING, Callable, Literal, NamedTuple
 
 import torch
 from pydantic import Field
@@ -23,12 +23,16 @@ from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.component.policy.factory import BaseNNConfig, SquashedGaussianPolicyConfig, create
 from corerl.component.policy.policy import Policy
-from corerl.configs.config import config
+from corerl.configs.config import config, post_processor
 from corerl.data_pipeline.pipeline import PipelineReturn
 from corerl.eval.torch import get_layers_stable_rank
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
+
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +77,11 @@ class GACPolicyManagerConfig:
             ensemble_probability=1.0,
         ),
     )
+
+    @post_processor
+    def _default_stepsize(self, cfg: 'MainConfig'):
+        if isinstance(self.optimizer, AdamConfig):
+            self.optimizer.lr = 0.001
 
 class GACPolicyManager:
     def __init__(
