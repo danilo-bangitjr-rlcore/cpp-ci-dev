@@ -45,6 +45,18 @@ services:
           path: ./e2e/telegraf/generated_telegraf.conf
           target: /etc/telegraf/telegraf.conf
 
+  corerl-web:
+    # corerl web server for direct main config API
+    build:
+      context: .
+    ports:
+      - 8000:8000
+    entrypoint: ["python", "/usr/local/bin/corerl_start_web"]
+    develop:
+      watch:
+        - action: rebuild
+          path: ./corerl
+
   coreio:
     # thin client: https://github.com/rlcoretech/coreio
 
@@ -60,6 +72,9 @@ services:
     depends_on:
       opc-server:
         condition: service_started
+      # soft dependency for MainConfig API proxy, thin client can function without this
+      # corerl-web:
+      #   condition: service_started
     ports:
       - 2222:2222
     volumes:
