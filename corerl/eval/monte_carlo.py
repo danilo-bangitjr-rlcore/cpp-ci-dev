@@ -54,8 +54,12 @@ class MonteCarloEvaluator:
 
         # Determine partial return horizon
         self.gamma = cfg.gamma
+        assert 0 <= self.gamma < 1.0
         self.precision = cfg.precision
-        self.return_steps = math.ceil(np.log(1.0 - self.precision) / np.log(self.gamma))
+        if self.gamma == 0:
+            self.return_steps = 1
+        else:
+            self.return_steps = math.ceil(np.log(1.0 - self.precision) / np.log(self.gamma))
 
         # Queue to compute partial returns and temporally align partial returns with corresponding Q-values
         self._step_queue = deque[_MonteCarloPoint](maxlen=self.return_steps)
