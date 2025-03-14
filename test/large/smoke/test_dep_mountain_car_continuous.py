@@ -23,6 +23,7 @@ raw_service_names = [
     "core-rl-opc-server-1",
     "core-rl-telegraf-1",
     "core-rl-timescale-db-1",
+    "core-rl-coreio-1",
 ]
 
 db_cfg = TagDBConfig(
@@ -213,6 +214,7 @@ def test_dep_mountain_car_continuous(
     free_localhost_port: int,
 ):
     event_bus_url = f'tcp://localhost:{free_localhost_port}'
+    coreio_origin = 'http://localhost:2222'
     proc = subprocess.run(
         [
             "corerl_main",
@@ -223,6 +225,7 @@ def test_dep_mountain_car_continuous(
             "env.update_period=00:00:01",
             "env.action_period=00:00:01",
             "event_bus.cli_connection=" + event_bus_url,
+            "env.coreio_origin=" + coreio_origin,
             "experiment.run_forever=false",
         ],
         stdout=subprocess.PIPE,

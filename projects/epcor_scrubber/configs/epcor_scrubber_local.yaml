@@ -42,8 +42,7 @@ env:
   setpoint_ping_period: 00:00:10
   seed: ${experiment.seed}
 
-  opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
-  opc_ns: 2
+  # opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
 
   db:
     table_name: scrubber4_tz
@@ -114,19 +113,19 @@ pipeline:
 
   tags:
   - name: AIC3730_SP # pH SP
-    node_identifier: 14
+    node_identifier: "ns=2;i=14"
     operating_range: [9.4, 10.]
     change_bounds: [-.33, .33] # +/- 0.2 pH
     agg: last
 
   - name: AIC3731_SP # ORP SP
-    node_identifier: 15
+    node_identifier: "ns=2;i=15"
     operating_range: [650., 700.]
     change_bounds: [-.2, .2] # +/- 10 mV
     agg: last
 
   - name: FIC3734_SP # flow SP
-    node_identifier: 17
+    node_identifier: "ns=2;i=17"
     operating_range: [15., 30.]
     change_bounds: [-.33, .33] # +/- 5
     agg: last

@@ -92,6 +92,7 @@ requires-python = ">=3.12,<3.13"
 authors = []
 dependencies = [
     "asyncua~=1.0",
+    "backoff~=2.2.1",
     "boto3~=1.35",
     "casadi~=3.6",
     "cloudpathlib[s3]~=0.20",

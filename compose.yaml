@@ -45,6 +45,43 @@ services:
           path: ./e2e/telegraf/generated_telegraf.conf
           target: /etc/telegraf/telegraf.conf
 
+  corerl-web:
+    # corerl web server for direct main config API
+    build:
+      context: .
+    ports:
+      - 8000:8000
+    entrypoint: ["python", "/usr/local/bin/corerl_start_web"]
+    develop:
+      watch:
+        - action: rebuild
+          path: ./corerl
+
+  coreio:
+    # thin client: https://github.com/rlcoretech/coreio
+
+    # By default, use the latest stable image pushed to github container registry.
+    image: ghcr.io/rlcoretech/coreio:latest
+    pull_policy: always
+
+    # When working with coreio local image, comment out the "image:" line above and
+    # uncomment "build:" and "context:" lines below. Assumes that coreio exists within the same directory as core-rl.
+    # build:
+    #   context: ../coreio/
+
+    depends_on:
+      opc-server:
+        condition: service_started
+      # soft dependency for MainConfig API proxy, thin client can function without this
+      # corerl-web:
+      #   condition: service_started
+    ports:
+      - 2222:2222
+    volumes:
+      - type: volume
+        source: thinclient-storage
+        target: /app/data
+
   grafana:
     image: grafana/grafana-enterprise
     restart: unless-stopped
@@ -61,3 +98,4 @@ services:
 volumes:
   timescale-storage: {}
   grafana-storage: {}
+  thinclient-storage: {}

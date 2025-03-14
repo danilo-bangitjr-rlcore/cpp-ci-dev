@@ -22,8 +22,6 @@ env:
   db:
     table_name: opcua
 
-  opc_conn_url: opc.tcp://admin@0.0.0.0:4840/rlcore/server/
-  opc_ns: 2
   obs_period: PT5M
   update_period: PT5M
   action_period: PT5M

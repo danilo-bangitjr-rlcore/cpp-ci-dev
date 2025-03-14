@@ -42,12 +42,11 @@ env:
   setpoint_ping_period: 00:00:10
   seed: ${experiment.seed}
 
-  opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
-  opc_ns: 3
-  client_cert_path: certs/agent_cert.der
-  client_private_key_path: certs/agent_key.pem
-  server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
-  application_uri: urn:agent
+  # opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
+  # client_cert_path: certs/agent_cert.der
+  # client_private_key_path: certs/agent_key.pem
+  # server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
+  # application_uri: urn:agent
 
   db:
     table_name: scrubber4_tz

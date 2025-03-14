@@ -14,8 +14,7 @@ event_bus:
 env:
   name: dep_async_env
   setpoint_ping_period: 00:00:10
-  opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
-  opc_ns: 2
+  # opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
 
   db:
     table_name: tags

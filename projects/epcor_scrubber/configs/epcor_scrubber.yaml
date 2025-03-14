@@ -43,12 +43,11 @@ env:
   action_tolerance: 00:15:00
   setpoint_ping_period: 00:00:10
 
-  opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
-  opc_ns: 3
-  client_cert_path: certs/agent_cert.der
-  client_private_key_path: certs/agent_key.pem
-  server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
-  application_uri: urn:agent
+  # opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
+  # client_cert_path: certs/agent_cert.der
+  # client_private_key_path: certs/agent_key.pem
+  # server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
+  # application_uri: urn:agent
 
   db:
     table_name: scrubber4_tz
@@ -116,19 +115,19 @@ pipeline:
 
   tags:
   - name: AIC3730_SP # pH SP
-    node_identifier: 14
+    node_identifier: "ns=3;i=14"
     operating_range: [9.4, 10.]
     change_bounds: [-.334, .334] # +/- 0.2 pH
     agg: last
 
   - name: AIC3731_SP # ORP SP
-    node_identifier: 15
+    node_identifier: "ns=3;i=15"
     operating_range: [650., 700.]
     change_bounds: [-.2, .2] # +/- 10 mV
     agg: last
 
   - name: FIC3734_SP # flow SP
-    node_identifier: 17
+    node_identifier: "ns=3;i=17"
     operating_range: [15., 30.]
     change_bounds: [-.334, .334] # +/- 5
     agg: last

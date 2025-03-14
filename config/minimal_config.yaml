@@ -12,8 +12,6 @@ env:
   obs_period: 00:00:05
   update_period: 00:00:05
   action_period: 00:00:15
-  opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
-  opc_ns: 2
   action_tolerance: 00:00:01
 
 agent:

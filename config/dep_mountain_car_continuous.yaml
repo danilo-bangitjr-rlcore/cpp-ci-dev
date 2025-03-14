@@ -17,8 +17,8 @@ env:
   name: dep_async_env
   setpoint_ping_period: 00:00:10
   action_tolerance: 00:00:01
-  opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
-  opc_ns: 2
+  coreio_origin: http://coreio:2222       # coreio hostname derived from docker-compose up app name
+  # coreio_origin: http://localhost:2222  # use localhost or 0.0.0.0 for when agent running outside of docker network
 
   db:
     table_name: opcua
@@ -42,6 +42,7 @@ interaction:
   action_period: 00:00:15
   update_period: 00:00:05
   heartbeat:
+    connection_id: f2365731-eeee-4b3f-b1dc-54634735d1d9
     heartbeat_node_id: "ns=2;s=heartbeat"
     heartbeat_period: 00:00:01
     max_counter: 10
@@ -62,6 +63,10 @@ pipeline:
 
   tags:
   - name: action-0
+    # UUID determined from core-io default connection seed, see also:
+    # https://github.com/rlcoretech/coreio/blob/2dbd99feba82fd2e148fc0a0aa5d939ade640baf/server/src/bin/seed.ts#L14
+    connection_id: f2365731-eeee-4b3f-b1dc-54634735d1d9
+    node_identifier: "ns=2;s=action-0"
     agg: last
     operating_range: [-1.5, 1.5]
     reward_constructor:

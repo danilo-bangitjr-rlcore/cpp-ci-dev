@@ -36,8 +36,7 @@ env:
   update_period: 00:01:00
   action_tolerance: 00:30:00
 
-  opc_conn_url: "opc.tcp://backwash-workaround:50505"
-  opc_ns: 1
+  # opc_conn_url: "opc.tcp://backwash-workaround:50505"
 
   db:
     table_name: main
