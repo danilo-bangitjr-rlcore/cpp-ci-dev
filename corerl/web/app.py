@@ -3,7 +3,7 @@ import json
 import logging
 import traceback
 from datetime import UTC, datetime
-from typing import Any, List
+from typing import Any, Callable, List
 
 import sqlalchemy
 import yaml
@@ -36,6 +36,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+try:
+    version = importlib.metadata.version("corerl")
+except Exception:
+    logger.exception("Failed to determine corerl version")
+    version = "0.0.0"
+
+
+@app.middleware("http")
+async def add_core_rl_version(request: Request, call_next: Callable):
+    response = await call_next(request)
+    response.headers["X-CoreRL-Version"] = version
+    return response
 
 class HealthResponse(BaseModel):
     status: str = "OK"
@@ -73,11 +85,6 @@ async def redirect():
     responses={status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal Server Error", "model": str}},
 )
 async def health():
-    try:
-        version = importlib.metadata.version("corerl")
-    except Exception:
-        logger.exception("Failed to determine corerl version")
-        version = "0.0.0"
     return {"status": "OK", "time": f"{datetime.now(tz=UTC).isoformat()}", "version": version}
 
 
