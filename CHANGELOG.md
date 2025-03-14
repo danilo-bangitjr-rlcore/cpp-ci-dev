@@ -5,6 +5,46 @@
 - styles again
 - fix agent test utils
 
+## [0.131.0](https://github.com/rlcoretech/core-rl/compare/v0.130.0...v0.131.0) (2025-03-13)
+
+
+### Features
+
+* add logging statement to ema filter ([760110f](https://github.com/rlcoretech/core-rl/commit/760110f74078393792bec7bb493636cd394dbe94))
+* **PROD-131:** action world ([2018641](https://github.com/rlcoretech/core-rl/commit/2018641bd0fc7e510e39ff3f7914ca3e97bf8e31))
+* **PROD-144:** prune out unneeded entires ([d0c6cb4](https://github.com/rlcoretech/core-rl/commit/d0c6cb4c23617f8ad6ed7521d0bbee1c06efa4e8))
+* **PROD-155:** log exp moving stat metrics ([9f03fb0](https://github.com/rlcoretech/core-rl/commit/9f03fb06b330e23ccd243ff88641e048f373c4ba))
+* wire app state to oddity filters ([d12ed1e](https://github.com/rlcoretech/core-rl/commit/d12ed1e48d66bec278fd211ef5016182626910be))
+
+
+### Bug Fixes
+
+* increase precision of data writer ([4a49dea](https://github.com/rlcoretech/core-rl/commit/4a49dea595a8c88227cc1c8c2531a8eb17a44dcf))
+* **PROD-126:** error message for delta actions ([8849aca](https://github.com/rlcoretech/core-rl/commit/8849aca27ff7ce8aa6dec905001af8a248b04556))
+* **PROD-126:** error message for delta actions ([ff6df34](https://github.com/rlcoretech/core-rl/commit/ff6df342108de9a917cd47b950e3d1f95b20e67b))
+* **PROD-127:** preprocessor searches for maximal prefix ([91619aa](https://github.com/rlcoretech/core-rl/commit/91619aa91d9b84c546fb0da83f7387f9a2cdf210))
+* **PROD-127:** preprocessor searches for maximal prefix ([1ae0cca](https://github.com/rlcoretech/core-rl/commit/1ae0ccacf6c4577c472d0ccf3240fefbf3e04321))
+* **PROD-144:** add option to output all entries ([e87db94](https://github.com/rlcoretech/core-rl/commit/e87db940ea09daaa5185224370b1e75ec0bae35a))
+* **PROD-144:** moutain car test ([3308f5b](https://github.com/rlcoretech/core-rl/commit/3308f5b617273132891a8d96bb576e0d5f781068))
+* **PROD-144:** reorder parameters ([b02c790](https://github.com/rlcoretech/core-rl/commit/b02c7908bb31dd065e1c7f01f96b338a645211d1))
+* slight loosening of saturation reward bound ([2069483](https://github.com/rlcoretech/core-rl/commit/2069483f7b002988cb433b43dcb45aa2084372c5))
+* slight loosening of saturation reward bound ([70ba20b](https://github.com/rlcoretech/core-rl/commit/70ba20b2d87aefe048c394ee63cb07ceb350ebf8))
+* use standard pipeline metric naming ([aab3478](https://github.com/rlcoretech/core-rl/commit/aab347828aaaa2bbde09b4493f06414967121117))
+* zero variance issue when ensemble size is 0 ([24feb30](https://github.com/rlcoretech/core-rl/commit/24feb30f33cae6bfda69fef3882c2b58c87464a0))
+* zero variance issue when ensemble size is 0 ([04217f8](https://github.com/rlcoretech/core-rl/commit/04217f8236a01c8962e66ac826e1c3592ff07542))
+
+
+### Documentation
+
+* **PROD-72:** document optional external parts of the main configuration ([d640b78](https://github.com/rlcoretech/core-rl/commit/d640b78075b9e95bb16194800c78c97b8279e94c))
+* **PROD-73, PROD-72:** document pipeline configs ([1b6e2fa](https://github.com/rlcoretech/core-rl/commit/1b6e2fa20ebc4d737ab3facbe08b92d158bc3efb))
+* **PROD-73:** document base agent configuration ([e92b226](https://github.com/rlcoretech/core-rl/commit/e92b226961ee1c882002816ff2674000b5a75a23))
+* **PROD-73:** document critic configuration ([a59b261](https://github.com/rlcoretech/core-rl/commit/a59b26132b4c604ae8638b7be59c7e187ba0ec1b))
+* **PROD-73:** document gac configuration ([3b3dd15](https://github.com/rlcoretech/core-rl/commit/3b3dd15fffd74537c7287fc101ef82509ce69145))
+* **PROD-73:** document interaction configs ([fd5785e](https://github.com/rlcoretech/core-rl/commit/fd5785ecf4582855624e037c20d3baa967dd1901))
+* **PROD-73:** document internal parts of the main configuration ([d02d0e8](https://github.com/rlcoretech/core-rl/commit/d02d0e856bad1bfc726a4fcd5b8d11c198859196))
+* **PROD-73:** document internal pipeline configs ([c30af9b](https://github.com/rlcoretech/core-rl/commit/c30af9b30ab33e8a694dc1ff0f4521b1e22ebc80))
+
 ## [0.130.0](https://github.com/rlcoretech/core-rl/compare/0.129.0...v0.130.0) (2025-03-11)
 
 

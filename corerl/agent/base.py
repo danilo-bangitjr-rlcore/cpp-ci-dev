@@ -14,11 +14,20 @@ if TYPE_CHECKING:
 
 @config()
 class BaseAgentConfig:
+    """
+    Kind: internal
+
+    Shared configuration between agent types.
+    Broken out from GAC for clarity and providing a
+    hierarchy between fundamental RL configs and
+    GAC-specific configs.
+    """
     name: Any = MISSING
 
     n_updates: int = 1
-    replay_ratio: int = 1
-    update_freq: int = 1
+    """
+    Number of algorithm updates per step.
+    """
 
     gamma: float = MISSING
     seed: int = MISSING
@@ -39,8 +48,6 @@ class BaseAgent(ABC):
     def __init__(self, cfg: BaseAgentConfig, app_state: AppState, col_desc: ColumnDescriptions):
         self.cfg = cfg
         self._app_state = app_state
-        self.replay_ratio = cfg.replay_ratio
-        self.update_freq = cfg.update_freq
         self.state_dim = col_desc.state_dim
         self.action_dim = col_desc.action_dim
         self.gamma = cfg.gamma

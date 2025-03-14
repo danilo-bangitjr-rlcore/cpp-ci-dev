@@ -17,6 +17,14 @@ from corerl.messages.factory import EventBusConfig
 
 @config()
 class DBConfig:
+    """
+    Kind: optional external
+
+    Default configurations for our timeseries
+    database. Should generally be owned by RLCore
+    during setup, however in more extreme circumstances
+    this may be owned by the user on an internal network.
+    """
     drivername: str = 'postgresql+psycopg2'
     username: str = 'postgres'
     password: str = 'password'
@@ -27,11 +35,31 @@ class DBConfig:
 
 @config()
 class InfraConfig:
+    """
+    Kind: optional external
+
+    Infrastructure configuration for wiring the agent
+    into the external system.
+    """
     db: DBConfig = Field(default_factory=DBConfig)
 
 
 @config()
 class FeatureFlags:
+    """
+    Kind: internal
+
+    Flags to enable/disable new features in the agent.
+    These should default to False and the date that they
+    are added should be recorded.
+
+    Feature flags should generally be for internal use only.
+    Their impact on the customer cannot be easily guaranteed
+    or communicated.
+
+    See documentation:
+    https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.4238yb3saoju
+    """
     # 2025-02-01
     delta_actions: bool = False
 
@@ -44,17 +72,28 @@ class FeatureFlags:
 
 @config()
 class MainConfig:
+    """
+    Top-level configuration for corerl.
+    This contains a mix of internal and external configurations.
+    """
     # --------------------
     # -- Infrastructure --
     # --------------------
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
     infra: InfraConfig = Field(default_factory=InfraConfig)
-    metrics: MetricsConfig = Field(default_factory=MetricsDBConfig)
-    evals: EvalDBConfig = Field(default_factory=EvalDBConfig, discriminator='name')
     event_bus: EventBusConfig = Field(default_factory=EventBusConfig)
     experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
     feature_flags: FeatureFlags = Field(default_factory=FeatureFlags)
     log_path: Path | None = None
+
+    evals: EvalDBConfig = Field(default_factory=EvalDBConfig)
+    metrics: MetricsConfig = Field(default_factory=MetricsDBConfig)
+    """
+    Kind: internal
+
+    Metrics logging location. By default points to the timeseries
+    database. Optionally can point to a local csv file.
+    """
 
     # -----------
     # -- Agent --
