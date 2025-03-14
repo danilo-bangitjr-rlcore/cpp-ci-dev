@@ -1,6 +1,7 @@
 from datetime import datetime
 from logging import getLogger
 from pathlib import Path
+from typing import Literal
 
 from cloudpathlib import S3Client, S3Path
 from cloudpathlib.enums import FileCacheMode
@@ -20,6 +21,8 @@ class RawTagTimeseries(BaseModel):
 
 class TagDatafile(BaseModel):
     data: RawTagTimeseries
+    time_frequency: str
+    interval_type: Literal['exact', 'sparse']
 
 
 def read_json(raw: str | bytes):

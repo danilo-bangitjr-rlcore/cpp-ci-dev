@@ -46,6 +46,12 @@ def load_dataset(cfg: TagDBConfig):
 
 if __name__ == '__main__':
     cfg = TagDBConfig(
+        db_name='postgres',
         table_name='cenovus',
+        drivername='postgresql+psycopg2',
+        username='postgres',
+        password='password',
+        ip='localhost',
+        port=5432,
     )
     load_dataset(cfg)
