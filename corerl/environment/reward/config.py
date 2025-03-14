@@ -19,7 +19,7 @@ type list_or_single[T] = list[T] | T
 class Goal:
     op: Literal['down_to', 'up_to'] = MISSING
     tag: str = MISSING
-    thresh: float = MISSING
+    thresh: float | str = MISSING
 
 
 @config()
@@ -77,6 +77,10 @@ def _assert_tags_exist(priorities: Sequence[Priority], known_tags: set[str]):
         if isinstance(priority, Goal):
             assert priority.tag in known_tags
 
+            # If thresh is a tag, check that it exists
+            if isinstance(priority.thresh, str):
+                assert priority.thresh in known_tags
+
         elif isinstance(priority, Optimization):
             for tag in priority.tags:
                 assert tag in known_tags
@@ -86,7 +90,7 @@ def _assert_tags_exist(priorities: Sequence[Priority], known_tags: set[str]):
 
 
 def _assert_tag_in_range(priority: Priority, tag_cfgs: list[TagConfig]):
-    if isinstance(priority, Goal):
+    if isinstance(priority, Goal) and isinstance(priority.thresh, float):
         op_range = (
             Maybe.find(lambda cfg: cfg.name == priority.tag, tag_cfgs)
             .map(lambda cfg: cfg.operating_range)

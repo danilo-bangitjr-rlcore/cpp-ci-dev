@@ -25,7 +25,7 @@ class GoalConstructor:
             active_idx = self._find_active_priority_idx(row)
             priority = self._cfg.priorities[active_idx]
             if not isinstance(priority, Optimization):
-                violation_percent = self._priority_violoation_percent(priority, row)
+                violation_percent = self._priority_violation_percent(priority, row)
 
                 # break [-1, -0.5] into num_priorities-1 buckets
                 num_buckets = len(self._cfg.priorities) - 1
@@ -87,7 +87,7 @@ class GoalConstructor:
         return (x - lo) / (hi - lo)
 
 
-    def _priority_violoation_percent(self, priority: Goal | JointGoal, row: pd.DataFrame) -> float:
+    def _priority_violation_percent(self, priority: Goal | JointGoal, row: pd.DataFrame) -> float:
         """
         Because a priority can be composed of an arbitrary tree of Goals,
         we have to recursively loop over the priority tree to calculate the violation percent.
@@ -103,7 +103,7 @@ class GoalConstructor:
         pressure to focus on whichever goal is closest to being achieved.
         """
         if isinstance(priority, JointGoal):
-            violation_percents = [self._priority_violoation_percent(goal, row) for goal in priority.goals]
+            violation_percents = [self._priority_violation_percent(goal, row) for goal in priority.goals]
             if priority.op == 'and':
                 return np.max(violation_percents)
             return np.min(violation_percents)
@@ -120,6 +120,12 @@ class GoalConstructor:
         the tag's upper bound to the target threshold. If we are increasing a tag,
         then the percent violoation from tag's lower bound to the target threshold.
         """
+
+        if isinstance(goal.thresh, float):
+            thresh = goal.thresh
+        else:
+            thresh = row[goal.thresh].item()
+
         bounds = (
             Maybe.find(lambda cfg: cfg.name == goal.tag, self._tag_cfgs)
             .map(get_tag_bounds)
@@ -129,12 +135,12 @@ class GoalConstructor:
         x: float = row[goal.tag].to_numpy()[0]
         if goal.op == 'down_to':
             hi = bounds[1].expect(f'Was unable to find an upper bound for tag: {goal.tag}')
-            delta = x - goal.thresh
-            return delta / (hi - goal.thresh)
+            delta = x - thresh
+            return delta / (hi - thresh)
 
         lo = bounds[0].expect(f'Was unable to find a lower bound for tag: {goal.tag}')
-        delta = goal.thresh - x
-        return delta / (goal.thresh - lo)
+        delta = thresh - x
+        return delta / (thresh - lo)
 
 
     def _find_active_priority_idx(self, row: pd.DataFrame):
@@ -166,11 +172,17 @@ class GoalConstructor:
 
 
     def _goal_is_satisfied(self, goal: Goal, row: pd.DataFrame):
+
+        if isinstance(goal.thresh, float):
+            thresh = goal.thresh
+        else:
+            thresh = row[goal.thresh].item()
+
         x: float = row[goal.tag].to_numpy()[0]
         if goal.op == 'down_to':
-            return x <= goal.thresh
+            return x <= thresh
 
-        return x >= goal.thresh
+        return x >= thresh
 
 
     def denormalize_tags(self, df: pd.DataFrame):
