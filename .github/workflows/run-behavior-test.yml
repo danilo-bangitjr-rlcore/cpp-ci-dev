@@ -13,3 +13,4 @@ jobs:
     with:
       test-suite: behavior
       upload-coverage: false
+      runs-on: threadripper-1

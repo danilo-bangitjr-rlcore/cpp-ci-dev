@@ -13,13 +13,17 @@ on:
         required: false
         type: boolean
         default: true
+      runs-on:
+        required: false
+        type: string
+        default: "ubuntu-latest"
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runs-on }}
     steps:
       # setup the repository
       - uses: actions/checkout@v4
