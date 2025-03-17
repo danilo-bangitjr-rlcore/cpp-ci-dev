@@ -5,6 +5,28 @@
 - styles again
 - fix agent test utils
 
+## [0.132.0](https://github.com/rlcoretech/core-rl/compare/v0.131.0...v0.132.0) (2025-03-17)
+
+
+### Features
+
+* **PROD-150:** supporting goals defined by tags ([#622](https://github.com/rlcoretech/core-rl/issues/622)) ([3293a12](https://github.com/rlcoretech/core-rl/commit/3293a12d017401ec69c2e0f3ef143282b4986dee))
+* **PROD-176:** expose core-rl version from web api health endpoint ([2c9342c](https://github.com/rlcoretech/core-rl/commit/2c9342c878ae7e65b87e105c017694278488d487))
+* **PROD-27:** initial integration with coreio thin client ([6c9dc7b](https://github.com/rlcoretech/core-rl/commit/6c9dc7b0af0e2b067830ba1811f082b4e8e09257))
+* **PROD-27:** put action embedding network behind a feature flag ([c5bd0f6](https://github.com/rlcoretech/core-rl/commit/c5bd0f64be429d23f87f29df669dcb8825140d5c))
+* **PROD-5:** initial integration with coreio thin client ([955c84a](https://github.com/rlcoretech/core-rl/commit/955c84acfd0eb8bc85f16394acfb289964414b12))
+* **web:** expose core-rl version from web api health endpoint ([53dfa13](https://github.com/rlcoretech/core-rl/commit/53dfa135e3c925ac72d9ad6dae3976d68557e028))
+
+
+### Bug Fixes
+
+* compose yaml defaults should not use local coreio build context ([fe85652](https://github.com/rlcoretech/core-rl/commit/fe85652c14513a6cf01a5a267093abd7e10a2267))
+* **PROD-167:** change mc b tests to 1 step per decision ([ec4d1ca](https://github.com/rlcoretech/core-rl/commit/ec4d1cabeeff824f36085ce4f68361a659919b75))
+* **PROD-167:** change of actor lr ([af59bd9](https://github.com/rlcoretech/core-rl/commit/af59bd9d367d77caba4e5d41c9ac15da54dcb9b8))
+* **PROD-171:** fixed MC-eval to work when gamma is 0 ([366fe72](https://github.com/rlcoretech/core-rl/commit/366fe728a7cd0a57ed90271dd48497286c4d15b3))
+* **PROD-171:** fixed MC-eval to work when gamma is 0 ([f191496](https://github.com/rlcoretech/core-rl/commit/f191496d93c9159fc139453ce59af730d2881281))
+* seed in env ([2c208a5](https://github.com/rlcoretech/core-rl/commit/2c208a56e4554a64314c434ccb8d6d4c17eebcf6))
+
 ## [0.131.0](https://github.com/rlcoretech/core-rl/compare/v0.130.0...v0.131.0) (2025-03-13)
 
 
