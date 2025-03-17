@@ -1,5 +1,6 @@
-defaults:
-  - env: env/distraction_world.yaml
+env:
+  name: sim_async_env
+  gym_name : DistractionWorld-v0
 
 interaction:
   name: sim_interaction
@@ -11,10 +12,8 @@ experiment :
   max_steps: 300
   gamma: 0
 
-
 metrics:
   enabled: True
-
 
 agent:
   critic:

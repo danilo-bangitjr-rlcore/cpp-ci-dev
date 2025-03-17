@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 @config()
 class DistractionWorldConfig:
-    num_distractors : int = 10
+    num_distractors : int = 100
     num_actions : int = 1
     seed: int = 0
 
