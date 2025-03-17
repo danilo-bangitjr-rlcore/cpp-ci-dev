@@ -52,7 +52,7 @@ async def add_core_rl_version(request: Request, call_next: Callable):
 class HealthResponse(BaseModel):
     status: str = "OK"
     time: str = datetime(year=2025, month=1, day=1, tzinfo=UTC).isoformat()
-    version: str = "0.0.0"
+    version: str = version
 
 
 class MessageResponse(BaseModel):
