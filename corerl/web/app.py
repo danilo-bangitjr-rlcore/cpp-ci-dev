@@ -1,8 +1,9 @@
+import importlib.metadata
 import json
 import logging
 import traceback
 from datetime import UTC, datetime
-from typing import Any, List
+from typing import Any, Callable, List
 
 import sqlalchemy
 import yaml
@@ -23,6 +24,8 @@ from corerl.utils.opc_connection import sync_browse_opc_nodes
 _log = logging.getLogger("uvicorn.error")
 _log.setLevel(logging.DEBUG)
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI()
 
 app.add_middleware(
@@ -33,10 +36,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+try:
+    version = importlib.metadata.version("corerl")
+except Exception:
+    logger.exception("Failed to determine corerl version")
+    version = "0.0.0"
+
+
+@app.middleware("http")
+async def add_core_rl_version(request: Request, call_next: Callable):
+    response = await call_next(request)
+    response.headers["X-CoreRL-Version"] = version
+    return response
 
 class HealthResponse(BaseModel):
     status: str = "OK"
     time: str = datetime(year=2025, month=1, day=1, tzinfo=UTC).isoformat()
+    version: str = version
 
 
 class MessageResponse(BaseModel):
@@ -55,10 +71,12 @@ class OpcNodeDetail(BaseModel):
 class OpcNodeResponse(BaseModel):
     nodes: List[OpcNodeDetail]
 
+
 @app.get("/")
 async def redirect():
     response = RedirectResponse(url="/docs")
     return response
+
 
 @app.get(
     "/api/corerl/health",
@@ -67,7 +85,7 @@ async def redirect():
     responses={status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal Server Error", "model": str}},
 )
 async def health():
-    return {"status": "OK", "time": f"{datetime.now(tz=UTC).isoformat()}"}
+    return {"status": "OK", "time": f"{datetime.now(tz=UTC).isoformat()}", "version": version}
 
 
 @app.post(
@@ -259,10 +277,5 @@ async def verify_connection_opc(opc_req: OPC_Status_Request) -> OPC_Status_Respo
     except Exception as err:
         _log.info("OPC Connection unsuccessful", err)
 
-
-    opc_status = OPC_Status_Response(
-        opc_status=opc_status,
-        has_connected=True)
+    opc_status = OPC_Status_Response(opc_status=opc_status, has_connected=True)
     return opc_status
-
-
