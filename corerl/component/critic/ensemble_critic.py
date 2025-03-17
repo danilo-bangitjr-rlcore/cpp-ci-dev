@@ -7,7 +7,7 @@ from pydantic import Field
 
 from corerl.component.buffer import MixedHistoryBufferConfig
 from corerl.component.network.factory import init_target_network
-from corerl.component.network.networks import EnsembleNetwork, EnsembleNetworkConfig
+from corerl.component.network.networks import EnsembleNetwork, EnsembleNetworkConfig, EnsembleNetworkReturn
 from corerl.component.network.utils import to_np
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import LSOConfig
@@ -59,16 +59,15 @@ class EnsembleCritic(BaseCritic):
         action_dim: int,
         output_dim: int = 1
     ):
-        input_dim = state_dim + action_dim
         self._app_state = app_state
         self.model = EnsembleNetwork(
             cfg.critic_network,
-            input_dim=input_dim,
+            input_dims=[state_dim, action_dim],
             output_dim=output_dim,
         )
         target = EnsembleNetwork(
             cfg.critic_network,
-            input_dim=input_dim,
+             input_dims=[state_dim, action_dim],
             output_dim=output_dim,
         )
         self.target = init_target_network(target, self.model)
@@ -83,28 +82,6 @@ class EnsembleCritic(BaseCritic):
         self.polyak = cfg.polyak
         self.target_sync_counter = 0
         self.optimizer_name = cfg.critic_optimizer.name
-
-    def _prepare_input(self, batches: list[torch.Tensor]) -> torch.Tensor:
-        ensemble = len(batches)
-        return torch.stack(batches) if ensemble > 1 else batches[0]
-
-    def _forward(
-        self,
-        input_tensor: torch.Tensor,
-        with_grad: bool = False,
-    ):
-        if with_grad:
-            return self.model.forward(input_tensor)
-        else:
-            with torch.no_grad():
-                return self.model.forward(input_tensor)
-
-    def _forward_target(
-        self,
-        input_tensor: torch.Tensor,
-    ):
-        with torch.no_grad():
-            return self.target.forward(input_tensor)
 
     def ensemble_backward(self, loss: list[torch.Tensor]) -> None:
         for i, loss_item in enumerate(loss):
@@ -160,23 +137,18 @@ class EnsembleCritic(BaseCritic):
         state_batches: list[torch.Tensor],
         action_batches: list[torch.Tensor],
         with_grad: bool = False,
-    ):
-        state_action_batches = [
-            torch.concat((s, a), dim=1)
-            for s, a in zip(state_batches, action_batches, strict=False)
-        ]
-        input_tensor = self._prepare_input(state_action_batches)
-        return self._forward(input_tensor, with_grad=with_grad)
+    ) -> EnsembleNetworkReturn:
+
+        with torch.set_grad_enabled(with_grad):
+            return self.model.forward([state_batches, action_batches])
 
     def get_target_values(
-        self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor],
-    ):
-        state_action_batches = [
-            torch.concat((s, a), dim=1)
-            for s, a in zip(state_batches, action_batches, strict=False)
-        ]
-        input_tensor = self._prepare_input(state_action_batches)
-        return self._forward_target(input_tensor)
+        self,
+        state_batches: list[torch.Tensor],
+        action_batches: list[torch.Tensor],
+    )-> EnsembleNetworkReturn:
+        return self.target.forward([state_batches, action_batches])
+
 
 # ---------------------------------------------------------------------------- #
 #                                    Metrics                                   #
