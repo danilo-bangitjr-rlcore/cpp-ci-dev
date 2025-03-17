@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Literal
+from typing import Any, Literal
 
 import torch
 
@@ -15,9 +15,9 @@ optim_group = Group[
     torch.optim.Optimizer | EnsembleOptimizer,
 ]()
 
-@config(frozen=True)
+@config()
 class OptimConfig:
-    name: str = MISSING
+    name: Any = MISSING
 
     lr: float = 0.01
     weight_decay: float = 0.0
@@ -43,7 +43,7 @@ def _base_optim(
 # -------------
 # -- RMSProp --
 # -------------
-@config(frozen=True)
+@config()
 class RmspropConfig(OptimConfig):
     name: Literal['rms_prop'] = 'rms_prop'
 
@@ -59,9 +59,10 @@ def rmsprop(cfg: RmspropConfig, app_state: AppState, param: Iterable[torch.nn.Pa
 # ----------
 # -- Adam --
 # ----------
-@config(frozen=True)
+@config()
 class AdamConfig(OptimConfig):
     name: Literal['adam'] = 'adam'
+    lr: float = 0.001
 
 
 @optim_group.dispatcher
@@ -91,9 +92,10 @@ class SearchConditionConfig:
     name: str = 'Armijo'
     kwargs: SearchConditionKwargsConfig = Field(default_factory=SearchConditionKwargsConfig)
 
-@config(frozen=True)
+@config()
 class LSOConfig(OptimConfig):
     name: Literal['lso'] = 'lso'
+    lr: float = 0.1
 
     max_backtracking_steps: int = 50
     unit_norm_direction: bool = False
@@ -159,7 +161,7 @@ def construct_lso_search_condition(cfg: SearchConditionConfig) -> lso.search.Sea
 # ---------
 # -- SGD --
 # ---------
-@config(frozen=True)
+@config()
 class SgdConfig(OptimConfig):
     name: Literal['sgd'] = 'sgd'
 
@@ -175,7 +177,7 @@ def sgd(cfg: SgdConfig, app_state: AppState, param: Iterable[torch.nn.Parameter]
 # ----------------
 # -- ArmijoAdam --
 # ----------------
-@config(frozen=True)
+@config()
 class ArmijoAdamConfig(OptimConfig):
     name: Literal['armijo_adam'] = 'armijo_adam'
     c: float = 0.1

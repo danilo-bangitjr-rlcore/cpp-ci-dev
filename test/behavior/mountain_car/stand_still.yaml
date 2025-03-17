@@ -9,21 +9,12 @@ experiment:
 
 interaction:
   name: sim_interaction
-  obs_period: 00:00:05
-  action_period: 00:00:15
+  obs_period: 00:00:01
+  action_period: 00:00:01
 
 env:
   name: sim_async_env
   gym_name: MountainCarContinuous-v0
-
-
-agent:
-  name: greedy_ac
-
-  policy:
-    optimizer:
-      lr: 0.01
-
 
 metrics:
   enabled: True

@@ -81,7 +81,7 @@ class SimAsyncEnv(AsyncEnv):
     # -- Gym API Translation --
     # -------------------------
     def _reset(self):
-        observation, _info = self._env.reset()
+        observation, _info = self._env.reset(seed=self._cfg.seed)
 
         self._last_step = StepData(
             observation=observation,
