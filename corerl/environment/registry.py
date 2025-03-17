@@ -6,3 +6,4 @@ def register_custom_envs():
     import corerl.environment.saturation  # noqa: F401
     import corerl.environment.saturation_goals  # noqa: F401
     import corerl.environment.three_tanks  # noqa: F401
+    import corerl.environment.windy_room  # noqa: F401
