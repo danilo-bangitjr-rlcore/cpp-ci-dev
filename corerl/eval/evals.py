@@ -9,6 +9,7 @@ from sqlalchemy import text
 from corerl.configs.config import config
 from corerl.configs.group import Group
 from corerl.data_pipeline.db.utils import TryConnectContextManager
+from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 from corerl.utils.time import now_iso
 
@@ -62,26 +63,18 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
         self.cfg = cfg
 
     def _create_table_sql(self):
-        schema_builder = ''
-        if self.cfg.table_schema != 'public':
-            schema_builder = f'CREATE SCHEMA IF NOT EXISTS {self.cfg.table_schema};'
-
-        table = self.cfg.table_schema + '.' + self.cfg.table_name
-        return text(f"""
-            {schema_builder}
-            CREATE TABLE {table} (
-                time TIMESTAMP WITH time zone NOT NULL,
-                agent_step INTEGER NOT NULL,
-                evaluator text NOT NULL,
-                value jsonb NOT NULL
-            );
-            SELECT create_hypertable('{table}', 'time', chunk_time_interval => INTERVAL '1d');
-            CREATE INDEX {self.cfg.table_name}_idx ON {table} (evaluator);
-            ALTER TABLE {table} SET (
-                timescaledb.compress,
-                timescaledb.compress_segmentby='evaluator'
-            );
-        """)
+        return create_tsdb_table_query(
+            schema=self.cfg.table_schema,
+            table=self.cfg.table_name,
+            columns=[
+                SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
+                SQLColumn(name='agent_step', type='INTEGER', nullable=False),
+                SQLColumn(name='evaluator', type='TEXT', nullable=False),
+                SQLColumn(name='value', type='jsonb', nullable=False),
+            ],
+            partition_column='evaluator',
+            index_columns=['evaluator'],
+        )
 
 
     def _insert_sql(self):

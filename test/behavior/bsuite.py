@@ -7,6 +7,7 @@ import pandas as pd
 from sqlalchemy import Engine, text
 
 from corerl.sql_logging.sql_logging import table_exists
+from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from corerl.utils.time import now_iso
 
 
@@ -123,26 +124,22 @@ class BSuiteTestCase:
                 'got': v,
             })
 
-        create_table_sql = text("""
-            CREATE TABLE bsuite_outcomes (
-                time TIMESTAMP WITH time zone NOT NULL,
-                test_name text NOT NULL,
-                metric text NOT NULL,
-                behaviour text NOT NULL,
-                bound_type text NOT NULL,
-                expected float NOT NULL,
-                got float NOT NULL
-            );
-            SELECT create_hypertable('bsuite_outcomes', 'time', chunk_time_interval => INTERVAL '14d');
-            CREATE INDEX test_name_idx ON bsuite_outcomes (test_name);
-            CREATE INDEX metric_idx ON bsuite_outcomes (metric);
-            CREATE INDEX behavior_idx ON bsuite_outcomes (behaviour);
-            CREATE INDEX bound_type_idx ON bsuite_outcomes (bound_type);
-            ALTER TABLE bsuite_outcomes SET (
-                timescaledb.compress,
-                timescaledb.compress_segmentby='metric'
-            );
-        """)
+        create_table_sql = create_tsdb_table_query(
+            schema='public',
+            table='bsuite_outcomes',
+            columns=[
+                SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
+                SQLColumn(name='test_name', type='TEXT', nullable=False),
+                SQLColumn(name='metric', type='TEXT', nullable=False),
+                SQLColumn(name='behaviour', type='TEXT', nullable=False),
+                SQLColumn(name='bound_type', type='TEXT', nullable=False),
+                SQLColumn(name='expected', type='FLOAT', nullable=False),
+                SQLColumn(name='got', type='FLOAT', nullable=False),
+            ],
+            partition_column='test_name',
+            index_columns=['test_name', 'metric', 'behaviour', 'bound_type'],
+            chunk_time_interval='14d',
+        )
 
         insert_sql = text("""
             INSERT INTO bsuite_outcomes

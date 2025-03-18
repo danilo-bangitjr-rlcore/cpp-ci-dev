@@ -7,6 +7,7 @@ from sqlalchemy import text
 
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.tag_config import Agg
+from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 
 if TYPE_CHECKING:
@@ -76,25 +77,17 @@ class DataWriter(BufferedWriter[Point]):
 
 
     def _create_table_sql(self):
-        schema_builder = ''
-        if self.cfg.table_schema != 'public':
-            schema_builder = f'CREATE SCHEMA IF NOT EXISTS {self.cfg.table_schema};'
-
-        table = self.cfg.table_schema + '.' + self.cfg.table_name
-        return text(f"""
-            {schema_builder}
-            CREATE TABLE {table} (
-                "time" TIMESTAMP WITH time zone NOT NULL,
-                host text,
-                id text,
-                name text,
-                fields jsonb
-            );
-
-            SELECT create_hypertable('{table}', 'time', chunk_time_interval => INTERVAL '7d');
-            CREATE INDEX {self.cfg.table_name}_idx ON {table} (name);
-            ALTER TABLE {table} SET (
-                timescaledb.compress,
-                timescaledb.compress_segmentby='name'
-            );
-        """)
+        return create_tsdb_table_query(
+            schema=self.cfg.table_schema,
+            table=self.cfg.table_name,
+            columns=[
+                SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
+                SQLColumn(name='host', type='TEXT', nullable=True),
+                SQLColumn(name='id', type='TEXT', nullable=True),
+                SQLColumn(name='name', type='TEXT', nullable=True),
+                SQLColumn(name='fields', type='jsonb', nullable=True),
+            ],
+            partition_column='name',
+            index_columns=['name'],
+            chunk_time_interval='7d',
+        )
