@@ -91,16 +91,16 @@ class BSuiteTestCase:
         return extracted
 
     def _evaluate_bounds(self, summary_df: pd.DataFrame):
-        for row in summary_df.itertuples():
-            metric = row.metric
-            expected = row.expected
-            got = row.got
-            bound_type = row.bound_type
+        for _, row in summary_df.iterrows():
+            metric = row['metric']
+            expected = row['expected']
+            got = row['got']
+            bound_type = row['bound_type']
 
             if bound_type == 'lower_bounds':
-                assert got >= expected, f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}'  # type: ignore
+                assert got >= expected, f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}'
             elif bound_type == 'upper_bounds':
-                assert got <= expected, f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}'  # type: ignore
+                assert got <= expected, f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}'
 
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
