@@ -1,12 +1,14 @@
 import subprocess
-import warnings
 from enum import Enum, auto
+from typing import Any
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import Engine
+from sqlalchemy import Engine, text
 
 from corerl.sql_logging.sql_logging import table_exists
+from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
+from corerl.utils.time import now_iso
 
 
 class Behaviour(Enum):
@@ -19,10 +21,7 @@ class BSuiteTestCase:
     behaviours: dict[str, Behaviour] = {}
     lower_bounds: dict[str, float] = {}
     upper_bounds: dict[str, float] = {}
-    lower_warns: dict[str, float] = {}
-    upper_warns: dict[str, float] = {}
-    lower_goals: dict[str, float] = {}
-    upper_goals: dict[str, float] = {}
+    goals: dict[str, float] = {}
 
     aggregators: dict[str, str] = {}
 
@@ -31,10 +30,14 @@ class BSuiteTestCase:
     def __init__(self):
         self._overrides = self.overrides or {}
 
-    def execute_test(self, tsdb: Engine, port: int, db_name: str):
+    def execute_test(self, tsdb: Engine, db_name: str, schema: str):
+        ip = tsdb.url.host
+        port = tsdb.url.port
         overrides = self._overrides | {
+            'infra.db.ip': ip,
             'infra.db.port': port,
             'infra.db.db_name': db_name,
+            'infra.db.schema': schema,
         }
 
         parts = [f'{k}={v}' for k, v in overrides.items()]
@@ -47,27 +50,24 @@ class BSuiteTestCase:
         proc.check_returncode()
 
         # ensure metrics table exists
-        assert table_exists(tsdb, 'metrics')
+        assert table_exists(tsdb, 'metrics', schema=schema)
 
         # ensure some metrics were logged to table
         with tsdb.connect() as conn:
-            metrics_table = pd.read_sql_table('metrics', con=conn)
+            metrics_table = pd.read_sql_table('metrics', schema=schema, con=conn)
 
         metrics_table = metrics_table.sort_values('agent_step', ascending=True)
         return metrics_table
 
-    def evaluate_outcomes(self, metrics_table: pd.DataFrame) -> pd.DataFrame:
+    def evaluate_outcomes(self, tsdb: Engine, metrics_table: pd.DataFrame) -> pd.DataFrame:
         extracted = []
         extracted += self._extract(self.lower_bounds, 'lower_bounds', metrics_table)
         extracted += self._extract(self.upper_bounds, 'upper_bounds', metrics_table)
-        extracted += self._extract(self.lower_warns,  'lower_warns',  metrics_table)
-        extracted += self._extract(self.upper_warns,  'upper_warns',  metrics_table)
-        extracted += self._extract(self.lower_goals,  'lower_goals',  metrics_table)
-        extracted += self._extract(self.upper_goals,  'upper_goals',  metrics_table)
+        extracted += self._extract(self.goals,  'goals',  metrics_table)
 
-        summary_df = pd.DataFrame(extracted, columns=['metric', 'behaviour', 'test_name', 'expected', 'got'])
+        summary_df = pd.DataFrame(extracted, columns=['metric', 'behaviour', 'bound_type', 'expected', 'got'])
+        self._store_outcomes(tsdb, summary_df)
         self._evaluate_bounds(summary_df)
-        self._evaluate_warnings(summary_df)
 
         return summary_df
 
@@ -78,14 +78,14 @@ class BSuiteTestCase:
         return aggregated_values
 
 
-    def _extract(self, tests: dict[str, float], test_name: str, metrics_table: pd.DataFrame)-> list[list[str | float]]:
+    def _extract(self, tests: dict[str, float], bound_type: str, metrics_table: pd.DataFrame)-> list[list[str | float]]:
         extracted = []
         for metric, expected in tests.items():
             got = self.summarize_over_time(metric, metrics_table)
             extracted.append([
                 metric,
                 self.behaviours.get(metric, 'None'),
-                test_name,
+                bound_type,
                 expected,
                 got,
             ])
@@ -93,28 +93,61 @@ class BSuiteTestCase:
         return extracted
 
     def _evaluate_bounds(self, summary_df: pd.DataFrame):
-        for row in summary_df.itertuples():
-            metric = row.metric
-            expected = row.expected
-            got = row.got
-            test_name = row.test_name
+        for _, row in summary_df.iterrows():
+            metric = row['metric']
+            expected = row['expected']
+            got = row['got']
+            bound_type = row['bound_type']
 
-            if test_name == 'lower_bounds':
-                assert got >= expected, f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}'  # type: ignore
-            elif test_name == 'upper_bounds':
-                assert got <= expected, f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}'  # type: ignore
+            if bound_type == 'lower_bounds':
+                assert got >= expected, f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}'
+            elif bound_type == 'upper_bounds':
+                assert got <= expected, f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}'
 
-    def _evaluate_warnings(self, summary_df: pd.DataFrame):
-        for row in summary_df.itertuples():
-            metric = row.metric
-            expected = row.expected
-            got = row.got
-            test_name = row.test_name
 
-            if test_name == 'lower_warns':
-                warnings.warn(f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}', stacklevel=0)
-            elif test_name == 'upper_warns':
-                warnings.warn(f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}', stacklevel=0)
+    def _store_outcomes(self, tsdb: Engine, summary_df: pd.DataFrame):
+        outcomes: list[dict[str, Any]] = []
+        now = now_iso()
+        for _, row in summary_df.iterrows():
+            outcomes.append({
+                'time': now,
+                'test_name': self.name.replace(' ', '_'),
+                'metric': row['metric'],
+                'behaviour': row['behaviour'],
+                'bound_type': row['bound_type'],
+                'expected': row['expected'],
+                'got': row['got'],
+            })
+
+        create_table_sql = create_tsdb_table_query(
+            schema='public',
+            table='bsuite_outcomes',
+            columns=[
+                SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
+                SQLColumn(name='test_name', type='TEXT', nullable=False),
+                SQLColumn(name='metric', type='TEXT', nullable=False),
+                SQLColumn(name='behaviour', type='TEXT', nullable=False),
+                SQLColumn(name='bound_type', type='TEXT', nullable=False),
+                SQLColumn(name='expected', type='FLOAT', nullable=False),
+                SQLColumn(name='got', type='FLOAT', nullable=False),
+            ],
+            partition_column='test_name',
+            index_columns=['test_name', 'metric', 'behaviour', 'bound_type'],
+            chunk_time_interval='14d',
+        )
+
+        insert_sql = text("""
+            INSERT INTO bsuite_outcomes
+            (time, test_name, metric, behaviour, bound_type, expected, got)
+            VALUES (TIMESTAMP WITH TIME ZONE :time, :test_name, :metric, :behaviour, :bound_type, :expected, :got)
+        """)
+
+        with tsdb.connect() as conn:
+            if not table_exists(tsdb, 'bsuite_outcomes'):
+                conn.execute(create_table_sql)
+
+            conn.execute(insert_sql, outcomes)
+            conn.commit()
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
     return df[df['metric'] == metric]['value'].to_numpy()

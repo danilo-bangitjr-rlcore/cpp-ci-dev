@@ -28,6 +28,7 @@ def data_reader_writer(
         port=port,
         db_name=tsdb_tmp_db_name,
         table_name='sensors',
+        table_schema='public',
     )
 
     data_reader = DataReader(db_cfg=db_cfg)

@@ -13,6 +13,7 @@ from typing_extensions import Annotated
 from corerl.configs.config import config
 from corerl.configs.group import Group
 from corerl.data_pipeline.db.utils import TryConnectContextManager
+from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 from corerl.utils.time import now_iso
 
@@ -52,10 +53,8 @@ class _MetricPoint(NamedTuple):
 class MetricsDBConfig(BufferedWriterConfig):
     name : Literal['db'] = 'db'
     table_name: str = 'metrics'
-    table_schema: str = 'public'
     lo_wm: int = 1
     enabled: bool = False
-
 
 class MetricsTable(BufferedWriter[_MetricPoint]):
     def __init__(
@@ -67,20 +66,18 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         self.cfg = cfg
 
     def _create_table_sql(self):
-        return text(f"""
-            CREATE TABLE {self.cfg.table_schema}.{self.cfg.table_name} (
-                time TIMESTAMP WITH time zone NOT NULL,
-                agent_step INTEGER NOT NULL,
-                metric text NOT NULL,
-                value float NOT NULL
-            );
-            SELECT create_hypertable('{self.cfg.table_name}', 'time', chunk_time_interval => INTERVAL '1d');
-            CREATE INDEX {self.cfg.table_name}_idx ON {self.cfg.table_name} (metric);
-            ALTER TABLE {self.cfg.table_name} SET (
-                timescaledb.compress,
-                timescaledb.compress_segmentby='metric'
-            );
-        """)
+        return create_tsdb_table_query(
+            schema=self.cfg.table_schema,
+            table=self.cfg.table_name,
+            columns=[
+                SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
+                SQLColumn(name='agent_step', type='INTEGER', nullable=False),
+                SQLColumn(name='metric', type='TEXT', nullable=False),
+                SQLColumn(name='value', type='FLOAT', nullable=False),
+            ],
+            partition_column='metric',
+            index_columns=['metric'],
+        )
 
 
     def _insert_sql(self):

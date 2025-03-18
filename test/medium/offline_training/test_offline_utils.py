@@ -37,6 +37,7 @@ def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> TagDBConfig:
         port=port,
         db_name=tsdb_tmp_db_name,
         table_name="tags",
+        table_schema='public',
     )
 
     return db_cfg
