@@ -67,7 +67,7 @@ class BSuiteTestCase:
         extracted += self._extract(self.lower_goals,  'lower_goals',  metrics_table)
         extracted += self._extract(self.upper_goals,  'upper_goals',  metrics_table)
 
-        summary_df = pd.DataFrame(extracted, columns=['metric', 'behaviour', 'test_name', 'expected', 'got'])
+        summary_df = pd.DataFrame(extracted, columns=['metric', 'behaviour', 'bound_type', 'expected', 'got'])
         self._evaluate_bounds(summary_df)
         self._evaluate_warnings(summary_df)
 
@@ -80,14 +80,14 @@ class BSuiteTestCase:
         return aggregated_values
 
 
-    def _extract(self, tests: dict[str, float], test_name: str, metrics_table: pd.DataFrame)-> list[list[str | float]]:
+    def _extract(self, tests: dict[str, float], bound_type: str, metrics_table: pd.DataFrame)-> list[list[str | float]]:
         extracted = []
         for metric, expected in tests.items():
             got = self.summarize_over_time(metric, metrics_table)
             extracted.append([
                 metric,
                 self.behaviours.get(metric, 'None'),
-                test_name,
+                bound_type,
                 expected,
                 got,
             ])
@@ -99,11 +99,11 @@ class BSuiteTestCase:
             metric = row.metric
             expected = row.expected
             got = row.got
-            test_name = row.test_name
+            bound_type = row.bound_type
 
-            if test_name == 'lower_bounds':
+            if bound_type == 'lower_bounds':
                 assert got >= expected, f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}'  # type: ignore
-            elif test_name == 'upper_bounds':
+            elif bound_type == 'upper_bounds':
                 assert got <= expected, f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}'  # type: ignore
 
     def _evaluate_warnings(self, summary_df: pd.DataFrame):
@@ -111,11 +111,11 @@ class BSuiteTestCase:
             metric = row.metric
             expected = row.expected
             got = row.got
-            test_name = row.test_name
+            bound_type = row.bound_type
 
-            if test_name == 'lower_warns':
+            if bound_type == 'lower_warns':
                 warnings.warn(f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}', stacklevel=0)
-            elif test_name == 'upper_warns':
+            elif bound_type == 'upper_warns':
                 warnings.warn(f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}', stacklevel=0)
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
