@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 class MixedHistoryBufferConfig:
     name: Literal["mixed_history_buffer"] = "mixed_history_buffer"
     online_weight: float = 0.75
-    ensemble: int = 10
+    ensemble: int = MISSING
     ensemble_probability: float = 0.5
     seed: int = MISSING
     memory: int = 1_000_000

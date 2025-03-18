@@ -13,7 +13,7 @@ from corerl.component.network.ensemble.reductions import (
     ReductConfig,
     bootstrap_reduct_group,
 )
-from corerl.configs.config import computed, config, list_
+from corerl.configs.config import MISSING, computed, config, list_
 from corerl.utils.device import device
 
 if TYPE_CHECKING:
@@ -153,7 +153,7 @@ class EnsembleNetworkReturn(NamedTuple):
 @config()
 class EnsembleNetworkConfig:
     name: Literal['ensemble'] = 'ensemble'
-    ensemble: int = 1
+    ensemble: int = MISSING
     bootstrap_reduct: ReductConfig = Field(default_factory=MeanReduct)
     base: LateFusionConfig = Field(default_factory=LateFusionConfig)
 
