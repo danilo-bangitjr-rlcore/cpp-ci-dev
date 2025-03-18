@@ -21,6 +21,7 @@ def data_writer(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> Generator[DataWri
         port=tsdb_engine.url.port,
         db_name=tsdb_tmp_db_name,
         table_name="sensors",
+        table_schema="public",
     )
 
     data_writer = DataWriter(cfg=db_cfg)

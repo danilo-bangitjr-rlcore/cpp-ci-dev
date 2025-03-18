@@ -27,6 +27,7 @@ def db_metrics_table(
         ip='localhost',
         port=port,
         db_name=tsdb_tmp_db_name,
+        table_schema='public',
         lo_wm=1,
     )
 
