@@ -1,5 +1,4 @@
 import subprocess
-import warnings
 from enum import Enum, auto
 
 import numpy as np
@@ -19,8 +18,6 @@ class BSuiteTestCase:
     behaviours: dict[str, Behaviour] = {}
     lower_bounds: dict[str, float] = {}
     upper_bounds: dict[str, float] = {}
-    lower_warns: dict[str, float] = {}
-    upper_warns: dict[str, float] = {}
     lower_goals: dict[str, float] = {}
     upper_goals: dict[str, float] = {}
 
@@ -64,14 +61,11 @@ class BSuiteTestCase:
         extracted = []
         extracted += self._extract(self.lower_bounds, 'lower_bounds', metrics_table)
         extracted += self._extract(self.upper_bounds, 'upper_bounds', metrics_table)
-        extracted += self._extract(self.lower_warns,  'lower_warns',  metrics_table)
-        extracted += self._extract(self.upper_warns,  'upper_warns',  metrics_table)
         extracted += self._extract(self.lower_goals,  'lower_goals',  metrics_table)
         extracted += self._extract(self.upper_goals,  'upper_goals',  metrics_table)
 
         summary_df = pd.DataFrame(extracted, columns=['metric', 'behaviour', 'bound_type', 'expected', 'got'])
         self._evaluate_bounds(summary_df)
-        self._evaluate_warnings(summary_df)
 
         return summary_df
 
@@ -108,17 +102,6 @@ class BSuiteTestCase:
             elif bound_type == 'upper_bounds':
                 assert got <= expected, f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}'  # type: ignore
 
-    def _evaluate_warnings(self, summary_df: pd.DataFrame):
-        for row in summary_df.itertuples():
-            metric = row.metric
-            expected = row.expected
-            got = row.got
-            bound_type = row.bound_type
-
-            if bound_type == 'lower_warns':
-                warnings.warn(f'[{self.name}] - {metric} outside of lower bound - {got} >= {expected}', stacklevel=0)
-            elif bound_type == 'upper_warns':
-                warnings.warn(f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}', stacklevel=0)
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
     return df[df['metric'] == metric]['value'].to_numpy()
