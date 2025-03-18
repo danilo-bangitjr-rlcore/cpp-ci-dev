@@ -179,8 +179,8 @@ def test_pipeline2(dummy_app_state: AppState):
             ),
             TagConfig(
                 name='tag-2',
-                preprocess=[NormalizerConfig(from_data=True)],
-                operating_range=(None, 12),
+                preprocess=[NormalizerConfig(min=0, max=12)],
+                operating_range=(0, 12),
                 imputer=LinearImputerConfig(max_gap=2),
                 state_constructor=[
                     TraceConfig(trace_values=[0.1]),

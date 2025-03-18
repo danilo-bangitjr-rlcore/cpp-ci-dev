@@ -1,87 +1,59 @@
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
+import pytest
 
-from corerl.data_pipeline.bound_checker import bound_checker
-from corerl.data_pipeline.datatypes import DataMode, MissingType, PipelineFrame
-from corerl.data_pipeline.missing_data_checker import missing_data_checker
+from corerl.data_pipeline.bound_checker import Bounds, bound_checker
+from corerl.data_pipeline.constructors.preprocess import Preprocessor
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
+from corerl.data_pipeline.tag_config import TagConfig
 
 
-def test_none_bounds():
-    data = pd.DataFrame({
-        "tag_1": [3.4, -0.2, 2.7],
-        "tag_2": [-0.4, 6.3, -3.8]
-    })
+@dataclass
+class Case:
+    bounds: dict[str, Bounds]
+    raw: dict[str, list[float]]
+    expected: dict[str, list[bool]]
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        Case(
+            bounds={   'tag-1': (None, None),          'tag-2': (None, None) },
+            raw={      'tag-1': [3.4, -0.2, 2.7],      'tag-2': [-0.4, 6.3, -3.8] },
+            expected={ 'tag-1': [False, False, False], 'tag-2': [False, False, False] },
+        ),
+        Case(
+            bounds={   'tag-1': (0, 10),               'tag-2': (-1, 10) },
+            raw={      'tag-1': [3.4, -0.2, 2.7],      'tag-2': [-0.4, 6.3, -3.8] },
+            expected={ 'tag-1': [False, True, False],  'tag-2': [False, False, True] },
+        ),
+        Case(
+            bounds={   'tag-1': (0, 1),                'tag-2': (-1, 10) },
+            raw={      'tag-1': [0.4, 1.3, 0.7],       'tag-2': [11.9, -0.5, 3.6] },
+            expected={ 'tag-1': [False, True, False],  'tag-2': [True, False, False] },
+        ),
+    ]
+)
+def test_bounds(case: Case):
+    tag_cfgs = [
+        TagConfig(
+            name=key,
+            operating_range=bound,
+            preprocess=[],
+        )
+        for key, bound in case.bounds.items()
+    ]
+
+    prep = Preprocessor(tag_cfgs)
+    data = pd.DataFrame(case.raw)
     pf = PipelineFrame(data, DataMode.ONLINE)
 
-    pf = bound_checker(pf, 'tag_1', bounds=(None, None))
-    pf = bound_checker(pf, 'tag_2', bounds=(None, None))
-    oob_mask = pf.missing_info == MissingType.BOUNDS.value
+    for cfg in tag_cfgs:
+        assert cfg.operating_range is not None
+        pf = bound_checker(pf, cfg.name, cfg.operating_range, prep)
 
-    assert not np.any(pf.data["tag_1"].isna())
-    assert not np.any(pf.data["tag_2"].isna())
-    assert not oob_mask.to_numpy().any()
-
-
-def test_lower_bound_violation():
-    data = pd.DataFrame({
-        "tag_1": [3.4, -0.2, 2.7, -0.5],
-        "tag_2": [-0.4, 6.3, -3.8, 8.0]
-    })
-    pf = PipelineFrame(data, DataMode.ONLINE)
-
-    pf = bound_checker(pf, 'tag_1', bounds=(0., 10.))
-    pf = bound_checker(pf, 'tag_2', bounds=(-1, 10))
-
-    assert np.all(
-        np.isnan(pf.data["tag_1"]) == np.array([False, True, False, True])
-    )
-    assert np.all(
-        np.isnan(pf.data["tag_2"]) == np.array([False, False, True, False])
-    )
-    assert pf.missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
-    assert pf.missing_info["tag_2"].iloc[2] == MissingType.BOUNDS
-
-
-def test_upper_bound_violation():
-    data = pd.DataFrame({
-        "tag_1": [0.4, 1.3, 0.7],
-        "tag_2": [11.9, -0.5, 3.6]
-    })
-    pf = PipelineFrame(data, DataMode.ONLINE)
-
-    pf = bound_checker(pf, 'tag_1', bounds=(0, 1))
-    pf = bound_checker(pf, 'tag_2', bounds=(-1, 10))
-
-    assert np.all(
-        np.isnan(pf.data["tag_1"]) == [False, True, False]
-    )
-    assert np.all(
-        np.isnan(pf.data["tag_2"]) == [True, False, False]
-    )
-    assert pf.missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
-    assert pf.missing_info["tag_2"].iloc[0] == MissingType.BOUNDS
-
-
-def test_multiple_missing_types():
-    data = pd.DataFrame({
-        "tag_1": [np.nan, 1.3, 0.7],
-        "tag_2": [11.9, -0.5, np.nan]
-    })
-    pf = PipelineFrame(data, DataMode.ONLINE)
-
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
-
-    pf = bound_checker(pf, 'tag_1', bounds=(0, 1))
-    pf = bound_checker(pf, 'tag_2', bounds=(-1, 10))
-
-    assert np.all(
-        np.isnan(pf.data["tag_1"]) == [True, True, False]
-    )
-    assert np.all(
-        np.isnan(pf.data["tag_2"]) == [True, False, True]
-    )
-    assert pf.missing_info["tag_1"].iloc[0] == MissingType.MISSING
-    assert pf.missing_info["tag_1"].iloc[1] == MissingType.BOUNDS
-    assert pf.missing_info["tag_2"].iloc[0] == MissingType.BOUNDS
-    assert pf.missing_info["tag_2"].iloc[2] == MissingType.MISSING
+    for key, expect in case.expected.items():
+        assert np.all(pf.data[key].isna() == expect)

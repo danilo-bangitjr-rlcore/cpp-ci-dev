@@ -1,12 +1,15 @@
 from collections.abc import Iterable
 from functools import cached_property
 
+import numpy as np
 import pandas as pd
 
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms.base import InvertibleTransform
+from corerl.data_pipeline.transforms.norm import Normalizer
+from corerl.utils.list import find_instance
 
 
 class Preprocessor(Constructor):
@@ -45,6 +48,19 @@ class Preprocessor(Constructor):
                     df[tag] = xform.invert(df[tag].to_numpy(), tag)
 
         return df
+
+
+    def normalize[T: float | np.ndarray](self, tag: str, value: T) -> T:
+        xforms = self._components.get(tag)
+        if xforms is None:
+            return value
+
+        norm_xform = find_instance(Normalizer, xforms)
+        if norm_xform is None:
+            return value
+
+        return norm_xform.apply(value, tag)
+
 
     @cached_property
     def columns(self):

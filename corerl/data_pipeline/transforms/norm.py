@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 from numba import njit
@@ -37,6 +37,16 @@ class Normalizer(InvertibleTransform):
         bias = lo
 
         return scale * x + bias
+
+
+    def apply[T: float | np.ndarray](self, x: T, col: str) -> T:
+        lo = self._mins[col]
+        hi = self._maxs[col]
+
+        assert lo is not None and hi is not None
+
+        ret: Any = (x - lo) / (hi - lo)
+        return ret
 
 
     def __call__(self, carry: TransformCarry, ts: object | None):
