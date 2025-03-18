@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from enum import StrEnum, auto
 from typing import TYPE_CHECKING
 
@@ -22,6 +23,23 @@ class Agg(StrEnum):
     avg = auto()
     last = auto()
     bool_or = auto()
+
+
+# -----------------------
+# -- Bounds Scheduling --
+# -----------------------
+@config()
+class GuardrailScheduleConfig:
+    """
+    Kind: optional external
+
+    A schedule for slowly widening the bounds of an AI-controlled
+    setpoint tag. Starts within the starting_range and slowly approaches
+    the full operating range over the duration.
+    """
+    starting_range: Bounds = MISSING
+    duration: timedelta = MISSING
+
 
 @config()
 class TagConfig:
@@ -132,6 +150,11 @@ class TagConfig:
     If specified, this tag _must_ be an AI-controlled setpoint.
     """
 
+    guardrail_schedule: GuardrailScheduleConfig | None = None
+    """
+    Kind: optional external
+    """
+
     # per-tag pipeline configuration
     agg: Agg = Agg.avg
     """
@@ -231,6 +254,34 @@ class TagConfig:
 
         if norm_cfg.min is None or norm_cfg.max is None:
             norm_cfg.from_data = True
+
+
+    @post_processor
+    def _additional_validations(self, cfg: MainConfig):
+        if self.change_bounds is not None and self.action_constructor is None:
+            assert (
+                self.operating_range is not None
+                and self.operating_range[0] is not None
+                and self.operating_range[1] is not None
+            ), "AI-controlled setpoints must have an operating range."
+
+
+        if self.guardrail_schedule is not None:
+            assert self.change_bounds is not None or self.action_constructor is not None, \
+                "A guardrail schedule was specified, but the tag is not an AI-controlled setpoint."
+
+            # clean error message already handled above
+            assert self.operating_range is not None
+            lo, hi = self.operating_range
+            assert lo is not None and hi is not None
+
+            if self.guardrail_schedule.starting_range[0] is not None:
+                assert self.guardrail_schedule.starting_range[0] >= lo, \
+                    "Guardrail starting range must be greater than or equal to the operating range."
+
+            if self.guardrail_schedule.starting_range[1] is not None:
+                assert self.guardrail_schedule.starting_range[1] <= hi, \
+                    "Guardrail starting range must be less than or equal to the operating range."
 
 
 def get_tag_bounds(cfg: TagConfig) -> tuple[Maybe[float], Maybe[float]]:
