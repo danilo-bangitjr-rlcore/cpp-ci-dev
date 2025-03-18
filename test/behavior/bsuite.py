@@ -1,11 +1,13 @@
 import subprocess
 from enum import Enum, auto
+from typing import Any
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import Engine
+from sqlalchemy import Engine, text
 
 from corerl.sql_logging.sql_logging import table_exists
+from corerl.utils.time import now_iso
 
 
 class Behaviour(Enum):
@@ -18,8 +20,7 @@ class BSuiteTestCase:
     behaviours: dict[str, Behaviour] = {}
     lower_bounds: dict[str, float] = {}
     upper_bounds: dict[str, float] = {}
-    lower_goals: dict[str, float] = {}
-    upper_goals: dict[str, float] = {}
+    goals: dict[str, float] = {}
 
     aggregators: dict[str, str] = {}
 
@@ -57,14 +58,14 @@ class BSuiteTestCase:
         metrics_table = metrics_table.sort_values('agent_step', ascending=True)
         return metrics_table
 
-    def evaluate_outcomes(self, metrics_table: pd.DataFrame) -> pd.DataFrame:
+    def evaluate_outcomes(self, tsdb: Engine, metrics_table: pd.DataFrame) -> pd.DataFrame:
         extracted = []
         extracted += self._extract(self.lower_bounds, 'lower_bounds', metrics_table)
         extracted += self._extract(self.upper_bounds, 'upper_bounds', metrics_table)
-        extracted += self._extract(self.lower_goals,  'lower_goals',  metrics_table)
-        extracted += self._extract(self.upper_goals,  'upper_goals',  metrics_table)
+        extracted += self._extract(self.goals,  'goals',  metrics_table)
 
         summary_df = pd.DataFrame(extracted, columns=['metric', 'behaviour', 'bound_type', 'expected', 'got'])
+        self._store_outcomes(tsdb, summary_df)
         self._evaluate_bounds(summary_df)
 
         return summary_df
@@ -102,6 +103,59 @@ class BSuiteTestCase:
             elif bound_type == 'upper_bounds':
                 assert got <= expected, f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}'
 
+
+    def _store_outcomes(self, tsdb: Engine, summary_df: pd.DataFrame):
+        outcomes: list[dict[str, Any]] = []
+        now = now_iso()
+        for _, row in summary_df.iterrows():
+            # report deltaized value for goals
+            v = row['got']
+            if row['bound_type'] == 'goals':
+                v = v - row['expected']
+
+            outcomes.append({
+                'time': now,
+                'test_name': self.name.replace(' ', '_'),
+                'metric': row['metric'],
+                'behaviour': row['behaviour'],
+                'bound_type': row['bound_type'],
+                'expected': row['expected'],
+                'got': v,
+            })
+
+        create_table_sql = text("""
+            CREATE TABLE bsuite_outcomes (
+                time TIMESTAMP WITH time zone NOT NULL,
+                test_name text NOT NULL,
+                metric text NOT NULL,
+                behaviour text NOT NULL,
+                bound_type text NOT NULL,
+                expected float NOT NULL,
+                got float NOT NULL
+            );
+            SELECT create_hypertable('bsuite_outcomes', 'time', chunk_time_interval => INTERVAL '14d');
+            CREATE INDEX test_name_idx ON bsuite_outcomes (test_name);
+            CREATE INDEX metric_idx ON bsuite_outcomes (metric);
+            CREATE INDEX behavior_idx ON bsuite_outcomes (behaviour);
+            CREATE INDEX bound_type_idx ON bsuite_outcomes (bound_type);
+            ALTER TABLE bsuite_outcomes SET (
+                timescaledb.compress,
+                timescaledb.compress_segmentby='metric'
+            );
+        """)
+
+        insert_sql = text("""
+            INSERT INTO bsuite_outcomes
+            (time, test_name, metric, behaviour, bound_type, expected, got)
+            VALUES (TIMESTAMP WITH TIME ZONE :time, :test_name, :metric, :behaviour, :bound_type, :expected, :got)
+        """)
+
+        with tsdb.connect() as conn:
+            if not table_exists(tsdb, 'bsuite_outcomes'):
+                conn.execute(create_table_sql)
+
+            conn.execute(insert_sql, outcomes)
+            conn.commit()
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
     return df[df['metric'] == metric]['value'].to_numpy()

@@ -36,4 +36,4 @@ def test_bsuite(
     )
     engine = get_sql_engine(cfg, db_name)
     metrics_table = test_case.execute_test(engine, db_name, schema)
-    test_case.evaluate_outcomes(metrics_table)
+    test_case.evaluate_outcomes(engine, metrics_table)
