@@ -109,11 +109,6 @@ class BSuiteTestCase:
         outcomes: list[dict[str, Any]] = []
         now = now_iso()
         for _, row in summary_df.iterrows():
-            # report deltaized value for goals
-            v = row['got']
-            if row['bound_type'] == 'goals':
-                v = v - row['expected']
-
             outcomes.append({
                 'time': now,
                 'test_name': self.name.replace(' ', '_'),
@@ -121,7 +116,7 @@ class BSuiteTestCase:
                 'behaviour': row['behaviour'],
                 'bound_type': row['bound_type'],
                 'expected': row['expected'],
-                'got': v,
+                'got': row['got'],
             })
 
         create_table_sql = create_tsdb_table_query(
