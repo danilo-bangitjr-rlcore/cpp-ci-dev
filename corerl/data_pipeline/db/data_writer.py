@@ -1,23 +1,29 @@
 import json
 import logging
 from datetime import UTC, datetime
-from typing import NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 from sqlalchemy import text
 
-from corerl.configs.config import config
+from corerl.configs.config import MISSING, computed, config
+from corerl.data_pipeline.tag_config import Agg
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
+
 logger = logging.getLogger(__name__)
-
-from corerl.data_pipeline.tag_config import Agg
-
 
 @config()
 class TagDBConfig(BufferedWriterConfig):
     table_name: str = "sensors"
-    table_schema: str = "public"
     data_agg: Agg = Agg.avg
+    table_schema: str = MISSING
+
+    @computed('table_schema')
+    @classmethod
+    def _table_schema(cls, cfg: 'MainConfig'):
+        return cfg.infra.db.schema
 
 
 class Point(NamedTuple):
@@ -63,15 +69,21 @@ class DataWriter(BufferedWriter[Point]):
 
     def _insert_sql(self):
         return text(f"""
-            INSERT INTO {self.cfg.table_schema}.{self.table_name}
+            INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
             (time, host, id, name, fields)
             VALUES (TIMESTAMP :ts, :host, :id, :name, :jsonb);
         """)
 
 
     def _create_table_sql(self):
+        schema_builder = ''
+        if self.cfg.table_schema != 'public':
+            schema_builder = f'CREATE SCHEMA IF NOT EXISTS {self.cfg.table_schema};'
+
+        table = self.cfg.table_schema + '.' + self.cfg.table_name
         return text(f"""
-            CREATE TABLE {self.cfg.table_schema}.{self.table_name} (
+            {schema_builder}
+            CREATE TABLE {table} (
                 "time" TIMESTAMP WITH time zone NOT NULL,
                 host text,
                 id text,
@@ -79,9 +91,9 @@ class DataWriter(BufferedWriter[Point]):
                 fields jsonb
             );
 
-            SELECT create_hypertable('{self.table_name}', 'time', chunk_time_interval => INTERVAL '7d');
-            CREATE INDEX {self.table_name}_idx ON {self.table_name} (name);
-            ALTER TABLE {self.table_name} SET (
+            SELECT create_hypertable('{table}', 'time', chunk_time_interval => INTERVAL '7d');
+            CREATE INDEX {self.cfg.table_name}_idx ON {table} (name);
+            ALTER TABLE {table} SET (
                 timescaledb.compress,
                 timescaledb.compress_segmentby='name'
             );

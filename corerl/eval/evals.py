@@ -48,7 +48,6 @@ class _EvalPoint(NamedTuple):
 class EvalDBConfig(BufferedWriterConfig):
     name: Literal['db'] = 'db'
     table_name: str = 'evals'
-    table_schema: str = 'public'
     lo_wm: int = 10
     enabled: bool = False
 
@@ -63,16 +62,22 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
         self.cfg = cfg
 
     def _create_table_sql(self):
+        schema_builder = ''
+        if self.cfg.table_schema != 'public':
+            schema_builder = f'CREATE SCHEMA IF NOT EXISTS {self.cfg.table_schema};'
+
+        table = self.cfg.table_schema + '.' + self.cfg.table_name
         return text(f"""
-            CREATE TABLE {self.cfg.table_schema}.{self.cfg.table_name} (
+            {schema_builder}
+            CREATE TABLE {table} (
                 time TIMESTAMP WITH time zone NOT NULL,
                 agent_step INTEGER NOT NULL,
                 evaluator text NOT NULL,
                 value jsonb NOT NULL
             );
-            SELECT create_hypertable('{self.cfg.table_name}', 'time', chunk_time_interval => INTERVAL '1d');
-            CREATE INDEX {self.cfg.table_name}_idx ON {self.cfg.table_name} (evaluator);
-            ALTER TABLE {self.cfg.table_name} SET (
+            SELECT create_hypertable('{table}', 'time', chunk_time_interval => INTERVAL '1d');
+            CREATE INDEX {self.cfg.table_name}_idx ON {table} (evaluator);
+            ALTER TABLE {table} SET (
                 timescaledb.compress,
                 timescaledb.compress_segmentby='evaluator'
             );

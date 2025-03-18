@@ -176,9 +176,9 @@ def create_tables(metadata: MetaData, engine: Engine, schemas: dict) -> None:
 
     metadata.create_all(engine, checkfirst=True)
 
-def table_exists(engine: Engine, table_name: str) -> bool:
+def table_exists(engine: Engine, table_name: str, schema: str = 'public') -> bool:
     iengine = inspect(engine)
-    exisiting_tables = iengine.get_table_names()
+    exisiting_tables = iengine.get_table_names(schema)
 
     return table_name in exisiting_tables
 

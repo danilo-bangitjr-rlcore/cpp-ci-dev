@@ -23,6 +23,12 @@ class BufferedWriterConfig(SQLEngineConfig):
     db_name: str = MISSING
     table_name: str = MISSING
     enabled: bool = True
+    table_schema: str = MISSING
+
+    @computed('table_schema')
+    @classmethod
+    def _table_schema(cls, cfg: MainConfig):
+        return cfg.infra.db.schema
 
     @computed('db_name')
     @classmethod
@@ -39,8 +45,6 @@ class BufferedWriter(Generic[T], ABC):
         high_watermark: int = 2048,
     ) -> None:
         self.cfg = cfg
-        self.table_name = cfg.table_name
-        self.host = cfg.ip
 
         self._low_wm = low_watermark
         self._hi_wm = high_watermark
@@ -52,7 +56,7 @@ class BufferedWriter(Generic[T], ABC):
 
         if self.cfg.enabled:
             self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
-            if not table_exists(self.engine, table_name=self.table_name):
+            if not table_exists(self.engine, table_name=cfg.table_name, schema=cfg.table_schema):
                 with TryConnectContextManager(self.engine) as connection:
                     connection.execute(self._create_table_sql())
                     connection.commit()

@@ -31,6 +31,7 @@ class DBConfig:
     ip: str = 'localhost'
     port: int = 5432
     db_name: str = 'postgres'
+    schema: str = 'public'
 
 
 @config()
