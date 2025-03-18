@@ -1,5 +1,5 @@
 import copy
-from typing import Literal, NamedTuple
+from typing import TYPE_CHECKING, Literal, NamedTuple
 
 import torch
 import torch.nn as nn
@@ -13,8 +13,11 @@ from corerl.component.network.ensemble.reductions import (
     ReductConfig,
     bootstrap_reduct_group,
 )
-from corerl.configs.config import config, list_
+from corerl.configs.config import MISSING, computed, config, list_
 from corerl.utils.device import device
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 EPSILON = 1e-6
 
@@ -150,9 +153,14 @@ class EnsembleNetworkReturn(NamedTuple):
 @config()
 class EnsembleNetworkConfig:
     name: Literal['ensemble'] = 'ensemble'
-    ensemble: int = 1
+    ensemble: int = MISSING
     bootstrap_reduct: ReductConfig = Field(default_factory=MeanReduct)
     base: LateFusionConfig = Field(default_factory=LateFusionConfig)
+
+    @computed('ensemble')
+    @classmethod
+    def _ensemble(cls, cfg: 'MainConfig'):
+        return cfg.feature_flags.ensemble
 
 
 class EnsembleNetwork(nn.Module):
