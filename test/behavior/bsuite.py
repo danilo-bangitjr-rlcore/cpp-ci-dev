@@ -31,10 +31,12 @@ class BSuiteTestCase:
     def __init__(self):
         self._overrides = self.overrides or {}
 
-    def execute_test(self, tsdb: Engine, port: int, db_name: str):
+    def execute_test(self, tsdb: Engine, port: int, db_name: str, schema: str):
         overrides = self._overrides | {
+            'infra.db.ip': 'workstation',
             'infra.db.port': port,
             'infra.db.db_name': db_name,
+            'infra.db.schema': schema,
         }
 
         parts = [f'{k}={v}' for k, v in overrides.items()]
@@ -47,11 +49,11 @@ class BSuiteTestCase:
         proc.check_returncode()
 
         # ensure metrics table exists
-        assert table_exists(tsdb, 'metrics')
+        assert table_exists(tsdb, 'metrics', schema=schema)
 
         # ensure some metrics were logged to table
         with tsdb.connect() as conn:
-            metrics_table = pd.read_sql_table('metrics', con=conn)
+            metrics_table = pd.read_sql_table('metrics', schema=schema, con=conn)
 
         metrics_table = metrics_table.sort_values('agent_step', ascending=True)
         return metrics_table

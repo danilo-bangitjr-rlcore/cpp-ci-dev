@@ -1,6 +1,6 @@
 import pytest
-from sqlalchemy import Engine
 
+from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 from test.behavior.bsuite import BSuiteTestCase
 from test.behavior.distraction_world.cases import DistractionWorldTest
 from test.behavior.mountain_car.cases import MountainCar, StandStillMountainCar
@@ -23,10 +23,17 @@ TEST_CASES = [
 @pytest.mark.timeout(900)
 def test_bsuite(
     test_case: BSuiteTestCase,
-    tsdb_engine: Engine,
-    tsdb_tmp_db_name: str,
 ):
-    port = tsdb_engine.url.port
-    assert port is not None
-    metrics_table = test_case.execute_test(tsdb_engine, port, tsdb_tmp_db_name)
+    PORT = 22222
+    db_name = 'bsuite'
+    schema = test_case.name.lower().replace(' ', '_')
+    cfg = SQLEngineConfig(
+        drivername='postgresql+psycopg2',
+        username='postgres',
+        password='password',
+        ip='workstation',
+        port=PORT,
+    )
+    engine = get_sql_engine(cfg, db_name)
+    metrics_table = test_case.execute_test(engine, PORT, db_name, schema)
     test_case.evaluate_outcomes(metrics_table)

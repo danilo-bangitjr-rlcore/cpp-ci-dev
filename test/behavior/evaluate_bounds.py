@@ -43,7 +43,7 @@ def _eval_test_case(test_case: BSuiteTestCase, seed: int):
 
     test_case._overrides |= { 'experiment.seed': seed, 'experiment.num_threads': 1 }
 
-    metrics_table = test_case.execute_test(engine, 5432, db_name)
+    metrics_table = test_case.execute_test(engine, 5432, db_name, 'public')
     metric_values: dict[str, float] = {}
     for metric in all_metrics:
         value = test_case.summarize_over_time(metric, metrics_table)
