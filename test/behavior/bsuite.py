@@ -31,9 +31,11 @@ class BSuiteTestCase:
     def __init__(self):
         self._overrides = self.overrides or {}
 
-    def execute_test(self, tsdb: Engine, port: int, db_name: str, schema: str):
+    def execute_test(self, tsdb: Engine, db_name: str, schema: str):
+        ip = tsdb.url.host
+        port = tsdb.url.port
         overrides = self._overrides | {
-            'infra.db.ip': 'workstation',
+            'infra.db.ip': ip,
             'infra.db.port': port,
             'infra.db.db_name': db_name,
             'infra.db.schema': schema,

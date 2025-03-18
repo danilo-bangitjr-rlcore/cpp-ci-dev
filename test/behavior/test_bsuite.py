@@ -35,5 +35,5 @@ def test_bsuite(
         port=PORT,
     )
     engine = get_sql_engine(cfg, db_name)
-    metrics_table = test_case.execute_test(engine, PORT, db_name, schema)
+    metrics_table = test_case.execute_test(engine, db_name, schema)
     test_case.evaluate_outcomes(metrics_table)
