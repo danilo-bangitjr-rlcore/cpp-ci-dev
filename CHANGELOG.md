@@ -5,6 +5,34 @@
 - styles again
 - fix agent test utils
 
+## [0.133.0](https://github.com/rlcoretech/core-rl/compare/v0.132.0...v0.133.0) (2025-03-19)
+
+
+### Features
+
+* **PROD-191:** windy room env ([f674ee2](https://github.com/rlcoretech/core-rl/commit/f674ee21424543dfcf97bde09b1ee4ed3ecf148f))
+* **PROD-192:** aggregator can depend on cfg in bsuite ([1a8a376](https://github.com/rlcoretech/core-rl/commit/1a8a3764ad7cfc710a16fba606842ac12b5fd45d))
+* **PROD-192:** yellow zone logging during red zone violations ([c47dfc5](https://github.com/rlcoretech/core-rl/commit/c47dfc58fcab26c4b2201cf08463f0d8ea44f49a))
+* **PROD-193:** integrate windy room into bsuite ([06cf7ee](https://github.com/rlcoretech/core-rl/commit/06cf7eea66e78133764ec29d686c713d2b345d05))
+* **PROD-194:** bounds scheduling in sim interaction ([0f4923f](https://github.com/rlcoretech/core-rl/commit/0f4923f1de339f93b57db5f99bb41748e78e214e))
+* **PROD-77:** move preprocessing before bounds checking ([34d6a99](https://github.com/rlcoretech/core-rl/commit/34d6a99da637b6969ca1a4efba000e7497c6bf91))
+* **PROD-77:** move preprocessing before bounds checking ([7e44ca2](https://github.com/rlcoretech/core-rl/commit/7e44ca2a4c078323b12d1817f1e8fe4b1d5d21ba))
+* pull table schema out to top-level infra config ([91828d1](https://github.com/rlcoretech/core-rl/commit/91828d112ec6d254f6c87cecc3b22182055ca76a))
+
+
+### Bug Fixes
+
+* avoid unnecessary type widening in return annotation ([a889d62](https://github.com/rlcoretech/core-rl/commit/a889d627d02ab3a10b7d4e9ebecb0e82b59ff6a4))
+* don't deltaize goal type outcomes in data logger ([7c9a30c](https://github.com/rlcoretech/core-rl/commit/7c9a30cd21ad3b2e8d3c78baff6642bf9d26e388))
+* handle variance with ensemble=1 ([0d23632](https://github.com/rlcoretech/core-rl/commit/0d236322a1c27896b63c0215bdfa628b578f86de))
+* handle variance with ensemble=1 ([579b71c](https://github.com/rlcoretech/core-rl/commit/579b71ca704821a7e7eea6d5b2eabb39756f1d50))
+* made sure default value was MISSING for computed ensemble attribute ([d8be925](https://github.com/rlcoretech/core-rl/commit/d8be92519c5b4a07163a40a26418f176fa9d7b44))
+* **PROD-184:** use ensemble feature flag in critic - not just replay buffer ([f796d74](https://github.com/rlcoretech/core-rl/commit/f796d7461e30c10077f231c25dd2804dfe3f54a3))
+* **PROD-191:** clean up windy room cfg ([f806d5d](https://github.com/rlcoretech/core-rl/commit/f806d5dc7e0ea4d10bb3e6044e7be74915b5d691))
+* **PROD-191:** remove configurable upper bound ([1740637](https://github.com/rlcoretech/core-rl/commit/17406374bd1cecad2f8adbd37793367dd33e8f52))
+* **PROD-193:** fix defaults in config ([abfdb93](https://github.com/rlcoretech/core-rl/commit/abfdb93ba92241624c2fa3b59ab15a668e1f6096))
+* **PROD-193:** steps in windy room test ([9c81140](https://github.com/rlcoretech/core-rl/commit/9c811405e45bf1cd13f4ca834b2ffe2e2e89723f))
+
 ## [0.132.0](https://github.com/rlcoretech/core-rl/compare/v0.131.0...v0.132.0) (2025-03-17)
 
 
