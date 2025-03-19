@@ -9,6 +9,7 @@ from test.behavior.saturation.cases import (
     DeltaSaturationTest,
     SaturationTest,
 )
+from test.behavior.windy_room.cases import WindyRoomTest
 
 TEST_CASES = [
     DelayedSaturationTest(),
@@ -16,7 +17,8 @@ TEST_CASES = [
     MountainCar(),
     SaturationTest(),
     StandStillMountainCar(),
-    DistractionWorldTest()
+    DistractionWorldTest(),
+    WindyRoomTest(),
 ]
 
 @pytest.mark.parametrize('test_case', TEST_CASES)
