@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 from sqlalchemy import Engine, text
 
+from corerl.config import MainConfig
+from corerl.configs.loader import direct_load_config
 from corerl.sql_logging.sql_logging import table_exists
 from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from corerl.utils.time import now_iso
@@ -29,6 +31,7 @@ class BSuiteTestCase:
 
     def __init__(self):
         self._overrides = self.overrides or {}
+        self._cfg = direct_load_config(MainConfig, base='.', config_name=self.config)
 
     def execute_test(self, tsdb: Engine, db_name: str, schema: str):
         ip = tsdb.url.host
@@ -74,7 +77,7 @@ class BSuiteTestCase:
     def summarize_over_time(self, metric: str, metrics_table: pd.DataFrame) -> float:
         values = get_metric(metrics_table, metric)
         aggregation_name = self.aggregators.get(metric, 'last_100_mean')
-        aggregated_values = aggregate(values, name=aggregation_name)
+        aggregated_values = self.aggregate(values, name=aggregation_name)
         return aggregated_values
 
 
@@ -149,18 +152,22 @@ class BSuiteTestCase:
             conn.execute(insert_sql, outcomes)
             conn.commit()
 
+    def aggregate(self, values: np.ndarray, name: str = 'last_100_mean') -> float:
+        if name == 'last_100_mean':
+            return values[-100:].mean()
+        elif name == 'mean':
+            return values.mean()
+        elif name == 'max':
+            return values.max()
+        elif name == 'min':
+            return values.min()
+        elif name == 'percent_of_steps':
+            return float(np.sum(values > 0) / self._cfg.experiment.max_steps)
+        else:
+            raise NotImplementedError
+
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
     return df[df['metric'] == metric]['value'].to_numpy()
 
 
-def aggregate(values: np.ndarray, name: str = 'last_100_mean') -> float:
-    if name == 'last_100_mean':
-        return values[-100:].mean()
-    elif name == 'mean':
-        return values.mean()
-    elif name == 'max':
-        return values.max()
-    elif name == 'min':
-        return values.min()
-    else:
-        raise NotImplementedError
+
