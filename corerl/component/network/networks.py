@@ -36,7 +36,7 @@ class NNTorsoConfig:
 
 def create_mlp(
     cfg: NNTorsoConfig, input_dim: int, output_dim: int | None,
-) -> nn.Module:
+) -> nn.Sequential:
     assert cfg.name.lower() in ("mlp", "fc")
 
     hidden = cfg.hidden
