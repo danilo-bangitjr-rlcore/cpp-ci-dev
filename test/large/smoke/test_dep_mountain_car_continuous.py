@@ -245,6 +245,7 @@ def test_agent_checkpoint(tsdb_engine: Engine, tsdb_tmp_db_name: str, dummy_app_
         base=".",
         config_name="config/dep_mountain_car_continuous",
     )
+    assert isinstance(cfg, MainConfig)
 
     event_bus = EventBus(cfg.event_bus, cfg.env)
     app_state = AppState(

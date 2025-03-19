@@ -358,6 +358,8 @@ def test_epcor_reward_from_yaml(dummy_app_state: AppState):
     cfg = direct_load_config(
         MainConfig, base="projects/epcor_scrubber/configs/", config_name="epcor_scrubber_reward.yaml"
     )
+    assert isinstance(cfg, MainConfig)
+
     pipeline = Pipeline(dummy_app_state, cfg.pipeline)
     pipe_return = pipeline(df, data_mode=DataMode.ONLINE)
     r_cfg = EpcorRewardConfig()
@@ -407,6 +409,8 @@ def test_epcor_reward_rankings(dummy_app_state: AppState):
     cfg = direct_load_config(
         MainConfig, base="projects/epcor_scrubber/configs/", config_name="epcor_scrubber.yaml"
     )
+    assert isinstance(cfg, MainConfig)
+
     pipeline = Pipeline(dummy_app_state, cfg.pipeline)
     tag_cfgs = cfg.pipeline.tags
 

@@ -327,6 +327,8 @@ def test_delta_action_pipeline(dummy_app_state: AppState):
         base='test/small/data_pipeline/end_to_end/assets',
         config_name='delta_action.yaml',
     )
+    assert isinstance(cfg, PipelineConfig)
+
 
     start = datetime.datetime.now(datetime.UTC)
     Δ = datetime.timedelta(minutes=5)
@@ -385,6 +387,7 @@ def test_delta_action_countdown(dummy_app_state: AppState):
         base='test/small/data_pipeline/end_to_end/assets',
         config_name='delta_action.yaml',
     )
+    assert isinstance(cfg, PipelineConfig)
 
     start = datetime.datetime.now(datetime.UTC)
     Δ = datetime.timedelta(minutes=5)

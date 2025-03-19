@@ -31,7 +31,9 @@ class BSuiteTestCase:
 
     def __init__(self):
         self._overrides = self.overrides or {}
-        self._cfg = direct_load_config(MainConfig, base='.', config_name=self.config)
+        cfg = direct_load_config(MainConfig, base='.', config_name=self.config)
+        assert isinstance(cfg, MainConfig)
+        self._cfg = cfg
 
     def execute_test(self, tsdb: Engine, db_name: str, schema: str):
         ip = tsdb.url.host
@@ -168,6 +170,3 @@ class BSuiteTestCase:
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
     return df[df['metric'] == metric]['value'].to_numpy()
-
-
-

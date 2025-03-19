@@ -11,6 +11,8 @@ from corerl.state import AppState
 @pytest.fixture()
 def dummy_app_state() -> AppState:
     cfg = direct_load_config(MainConfig, config_name='config/dep_mountain_car_continuous.yaml', base='.')
+    assert isinstance(cfg, MainConfig)
+
     cfg.metrics.enabled = False
     cfg.evals.enabled = False
     cfg.event_bus.enabled = False
