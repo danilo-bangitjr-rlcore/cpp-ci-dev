@@ -1,3 +1,4 @@
+import logging
 import sys
 from collections.abc import Callable
 from dataclasses import fields, is_dataclass
@@ -10,8 +11,11 @@ from pydantic.dataclasses import is_pydantic_dataclass
 from pydantic.fields import FieldInfo
 
 import corerl.utils.dict as dict_u
+from corerl.configs.errors import ConfigValidationErrors, validate_with_error_handling
 from corerl.utils.list import find
 from corerl.utils.maybe import Maybe
+
+logger = logging.getLogger(__name__)
 
 
 # -------------------
@@ -257,11 +261,13 @@ def config_from_dict[T](Config: type[T], raw_config: dict, flags: dict[str, str]
     ta = TypeAdapter(Config)
 
     # first validation pass to resolve discriminated unions
-    obj_config: Any = ta.validate_python(raw_config)
+    obj_config: Any = validate_with_error_handling(ta, raw_config)
+    if isinstance(obj_config, ConfigValidationErrors):
+        return obj_config
 
     # second validation pass to execute pre/post computed hooks
     output_config = config_to_dict(Config, obj_config)
-    return ta.validate_python(output_config, context=obj_config)
+    return validate_with_error_handling(ta, output_config, context=obj_config)
 
 # ----------------
 # -- Public API --
@@ -269,8 +275,14 @@ def config_from_dict[T](Config: type[T], raw_config: dict, flags: dict[str, str]
 def load_config[T](Config: type[T], base: str | None = None, config_name: str | None = None):
     def _inner[**U, R](f: Callable[Concatenate[T, U], R]):
         def __inner(*args: U.args, **kwargs: U.kwargs) -> R:
-            config = direct_load_config(Config, base=base, config_name=config_name)
-            return f(config, *args, **kwargs)
+            config_or_err = direct_load_config(Config, base=base, config_name=config_name)
+
+            if isinstance(config_or_err, ConfigValidationErrors):
+                pretty_error = TypeAdapter(ConfigValidationErrors).dump_json(config_or_err, indent=2)
+                logging.error(pretty_error.decode())
+                sys.exit(1)
+
+            return f(config_or_err, *args, **kwargs)
         return __inner
     return _inner
 
