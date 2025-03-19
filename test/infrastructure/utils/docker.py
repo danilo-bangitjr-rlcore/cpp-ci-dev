@@ -9,7 +9,8 @@ def init_docker_container(
     repository: str = "timescale/timescaledb-ha",
     tag: str = "pg16",
     env: Mapping[str, str] = MappingProxyType({"POSTGRES_PASSWORD": "password"}),
-    ports: Mapping[str, Any] = MappingProxyType({"5432": 5433})
+    ports: Mapping[str, Any] = MappingProxyType({"5432": 5433}),
+    restart: bool = True,
 ):
     """This function will spin up a docker container running timescaledb.
     All docker container and image configurations are parameterized.
@@ -19,6 +20,10 @@ def init_docker_container(
     client = from_env()
 
     # Ensure that no container with the same name exists
+    running_containers = client.containers.list(filters={"name": name})
+    if not restart and len(running_containers) > 0:
+        return running_containers[0]
+
     try:
         existing_container = client.containers.get(name)
         existing_container.stop()

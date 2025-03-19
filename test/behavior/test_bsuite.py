@@ -1,3 +1,4 @@
+import filelock
 import pytest
 
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
@@ -10,6 +11,25 @@ from test.behavior.saturation.cases import (
     SaturationTest,
 )
 from test.behavior.windy_room.cases import WindyRoomTest
+from test.infrastructure.utils.docker import init_docker_container
+
+
+@pytest.fixture(scope='session')
+def bsuite_tsdb():
+    # file locking is necessary because we want to run these tests
+    # in parallel using xdist, and we can't have a true session scope.
+    # this prevents every test from independently trying to setup docker
+
+    # Note: we aren't cleaning up after ourselves here, because the bsuite
+    # tsdb docker container is intended to be long-lived
+    with filelock.FileLock('output/bsuite.lock'):
+        init_docker_container(
+            name='tsdb-bsuite',
+            restart=False,
+            ports={'5432': 22222},
+        )
+
+
 
 TEST_CASES = [
     DelayedSaturationTest(),
@@ -25,6 +45,7 @@ TEST_CASES = [
 @pytest.mark.timeout(900)
 def test_bsuite(
     test_case: BSuiteTestCase,
+    bsuite_tsdb: None,
 ):
     PORT = 22222
     db_name = 'bsuite'

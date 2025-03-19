@@ -395,9 +395,9 @@ class TestDataReader:
         pd.testing.assert_index_equal(result_df.index, expected_timestamps)
         assert result_df.index.is_unique
         missing_time_data = result_df.loc[missing_time]
-        assert missing_time_data.isna().all()
+        assert bool(missing_time_data.isna().all())
         for t in test_times[1:]:
             if t != missing_time:
-                assert not result_df.loc[t].isna().any()
+                assert not bool(result_df.loc[t].isna().any())
 
         self._ensure_names_included(result_df)
