@@ -13,7 +13,7 @@ experiment:
   exp_name: main_backwash
   save_path: outputs/main_bw
   seed: 1
-  gamma: 0.99
+  gamma: 0.9928 # half life 24h
   run_forever: True
 
 interaction:
@@ -23,8 +23,8 @@ interaction:
   obs_period: 00:15:00 # prod lasts ~45 minutes
   update_period: 00:01:00
   action_period: 04:00:00 # backwash every ~4.5 hours
-  warmup_period: 12:00:00
-  update_warmup: 0 # number of updates before interacting
+  warmup_period: 72:00:00
+  update_warmup: 300 # number of updates before interacting
   historical_batch_size: 8640 # 90 days @ 15 minute obs period
   hist_chunk_start: 2025-01-01 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
 
@@ -53,8 +53,8 @@ agent:
       ensemble_probability: 1
       id: critic # for metric logging
 
-  actor:
-    actor_optimizer:
+  policy:
+    optimizer:
       lr: 0.001
 
     buffer:
@@ -109,9 +109,6 @@ pipeline:
     operating_range: [120, 179]
     action_constructor:
     - name: identity
-    # - name: normalize
-    #   min: 120
-    #   max: 179
     agg: last
 
   - name: DEP_BP_DUR_SP_WA
@@ -119,9 +116,6 @@ pipeline:
     operating_range: [10, 30]
     action_constructor:
     - name: identity
-    # - name: normalize
-    #   min: 10
-    #   max: 30
     agg: last
 
   - name: UF2_FIT301_PV # permeate flow rate
@@ -129,27 +123,25 @@ pipeline:
     - name: identity
     # It would be preferable to keep one source of truth
     # for conversion to permeability in the preprocessor,
-    # but the config below breaks the reward constructor
-    #
-    # - name: binary # divide by TMP to get val proportional to permeability
-    #   op: prod
-    #   other: UF2_TMP_PV
-    #   other_xform:
-    #   - name: inverse
-    # - name: scale # multiply by -1 to correct negative TMP
-    #   factor: -1
-    # - name: normalize
-    #   min: 4
-    #   max: 6
-    filter: # ignore perm outside of production mode
+    # but attempts to do so have broken reward constructor.
+    # Instead we have to divide by TMP in both state and 
+    # reward constructors.
+    filter: # ignore perm if following conditions are met
+    - name: comparator
+      op: <
+      val: 10
+    # binary max acts as OR
     - name: binary
-      op: replace
+      op: max 
+      # filter if mode is not production (8)
       other: UF2_SEQ_STATE
       other_xform:
-      - name: identity
-    - name: comparator
-      op: '!='
-      val: 8
+      - name: comparator
+        op: '!='
+        val: 8
+    outlier:
+      name: exp_moving
+      alpha: 0.9928 # half life 24h
     state_constructor:
     - name: binary # divide by TMP to get val proportional to permeability
       op: prod
@@ -160,7 +152,7 @@ pipeline:
       factor: -1
     - name: normalize
       min: 4
-      max: 6
+      max: 5
     reward_constructor:
     - name: binary # divide by TMP to get val proportional to permeability
       op: prod
@@ -171,23 +163,38 @@ pipeline:
       factor: -1
     - name: normalize
       min: 4
-      max: 6
+      max: 5
     - name: affine # compress to [-0.5, 0]
       scale: 0.5
       bias: -0.5
+    - name: binary # only include this penalty if max BP vol is not violated
+      op: prod
+      other: BP_CYCLE_TOTAL
+      other_xform:
+      - name: comparator
+        op: '<='
+        val: 2500
 
   - name: UF2_TMP_PV # used in permeability calculation
     preprocess:
     - name: identity
-    filter: # ignore perm outside of production mode
+    filter: # ignore perm if following conditions are met
+    # filter if magnitude of TMP is too low
+    - name: comparator
+      op: '>'
+      val: -1
+    # binary max acts as OR
     - name: binary
-      op: replace
+      op: max 
+      # filter if mode is not production (8)
       other: UF2_SEQ_STATE
       other_xform:
-      - name: identity
-    - name: comparator
-      op: '!='
-      val: 8
+      - name: comparator
+        op: '!='
+        val: 8
+    outlier:
+      name: exp_moving
+      alpha: 0.9928 # half life 24h
     state_constructor:
     - name: "null"
 
@@ -197,13 +204,39 @@ pipeline:
     - name: identity
     state_constructor:
     - name: "null"
+      #agg: last
+
+  - name: BP_CYCLE_TOTAL
+    operating_range: [0, 5500]
+    preprocess:
+    - name: identity
+    # 2500 L is baseline BP Vol for UF2 before agent deployment (after VFD/PID tuning)
+    # This is also similar to baseline UF1 BP volume
+    reward_constructor:
+    - name: affine # transform to violation percentage
+      scale: 0.0002
+      bias: 0.5
+    - name: affine # squash to [-1, -0.5], with max violation at -1
+      scale: -0.5
+      bias: -0.5
+    - name: binary # only include this penalty if max BP vol is violated
+      op: prod
+      other: BP_CYCLE_TOTAL
+      other_xform:
+      - name: comparator
+        op: '>'
+        val: 2500
+    # end reward constructor
+    state_constructor:
+    - name: normalize
+      min: 1300
+      max: 5000
 
   - name: UV01_UV254_PV # raw uvt
-    operating_range: [0, 100]
+    operating_range: [0, 110]
 
   - name: UV03_UV254_PV # permeate uvt
-    operating_range: [0, 100]
-    red_bounds: [90, null]
+    operating_range: [0, 110]
 
   - name: FLR01_TRYP_PV # raw tryptophan
     operating_range: [0, 10]
@@ -227,7 +260,6 @@ pipeline:
 
   - name: AIT320_PV # permeate turbidity
     operating_range: [0, 30]
-    red_bounds: [null, 20]
 
   - name: AIT_130_PV # raw pH
     operating_range: [6.5, 8.5]
@@ -236,5 +268,5 @@ pipeline:
 #  - name: COL01_C4025_PV # color 4025
 #    operating_range: [0, 425]
 
-  - name: COL01_C4100_PV # color 4100
-    operating_range: [0, 20]
+# - name: COL01_C4100_PV # color 4100
+#   operating_range: [0, 20]
