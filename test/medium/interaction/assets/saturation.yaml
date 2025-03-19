@@ -1,0 +1,52 @@
+env:
+  name: sim_async_env
+  gym_name : Saturation-v0
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+experiment :
+  exp_name : "saturation"
+  max_steps : 100
+
+metrics:
+  enabled: False
+
+pipeline:
+  state_constructor:
+    defaults:
+      - name: multi_trace
+        trace_values: [0.0, 0.9, 0.95, 0.99]
+
+  tags:
+  # meta tags
+  - name: reward
+    preprocess:
+    - name: identity
+    reward_constructor:
+    - name: identity
+    state_constructor:
+    - name: 'null'
+
+  - name: terminated
+    is_meta: True
+
+  - name: truncated
+    is_meta: True
+
+  # observations
+  - name: tag-0
+    operating_range: [0, 1]
+
+  # actions
+  - name: action-0
+    operating_range: [0, 0.5]
+    state_constructor:
+      - name: 'null'
+    action_constructor:
+      - name: identity
+    guardrail_schedule:
+      starting_range: [0.25, 0.26]
+      duration: 00:05:00
