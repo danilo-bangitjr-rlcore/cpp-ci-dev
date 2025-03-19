@@ -17,6 +17,10 @@ metrics:
   enabled: True
     
 pipeline:
+  state_constructor:
+    defaults:
+    - name: identity
+
   tags:
   # meta tags
   - name: reward
@@ -46,43 +50,30 @@ pipeline:
       name: identity
       
   - name: action-0
-    operating_range:
-    - -1.0
-    - 1.0
+    operating_range: [-1, 1]
     action_constructor:
     - name: identity
+    state_constructor:
+    - name: 'null'
     
   - name: action-1
-    operating_range:
-    - -1.0
-    - 1.0
+    operating_range: [-1, 1]
     action_constructor:
     - name: identity
-
-  - name: tag-0
-    operating_range:
-    - 0.0
-    - 1.0
     state_constructor:
-    - name: multi_trace
-      trace_values: [0]
+    - name: 'null'
+
+  - name: tag-0 # x position`
+    operating_range: [0, 1]
     red_bounds: [0.05, 0.95]
     yellow_bounds: [0.3, 0.7]
     
-  - name: tag-1
-    operating_range:
-    - 0.0
-    - 1.0
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0]
+  - name: tag-1 # y position
+    operating_range: [0, 1]
     red_bounds: [0.05, 0.95]
     yellow_bounds: [0.3, 0.7]
 
-  - name: tag-2
+  - name: tag-2 # wind angle in radians
     operating_range:
     - 0.0
     - 6.29
-    state_constructor:
-    - name: multi_trace
-      trace_values: [0]
