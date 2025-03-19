@@ -14,7 +14,6 @@ class WindyRoomConfig:
     seed: int = 0
     initial_zone_low: float = 0.45
     initial_zone_high: float = 0.55
-    bounds_high: float = 1
 
     initial_wind_direction = np.pi
     wind_magnitude: float  = 0.01
@@ -27,6 +26,8 @@ class WindyRoomConfig:
         return cfg.experiment.seed
 
 STATE_DIM = 2
+BOUNDS_LOW = 0
+BOUNDS_HIGH = 1
 
 class WindyRoom(gym.Env):
     """
@@ -42,10 +43,9 @@ class WindyRoom(gym.Env):
             cfg = WindyRoomConfig()
 
         self._cfg = cfg
-        self.upper_bound = cfg.bounds_high
         self._random = np.random.default_rng(cfg.seed)
-        self._obs_min = np.zeros(STATE_DIM)
-        self._obs_max = np.ones(STATE_DIM) * self.upper_bound
+        self._obs_min = np.ones(STATE_DIM) * BOUNDS_LOW
+        self._obs_max = np.ones(STATE_DIM) * BOUNDS_HIGH
         self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max, dtype=np.float64)
 
         self._action_min = -np.ones(STATE_DIM)
@@ -67,7 +67,7 @@ class WindyRoom(gym.Env):
         xy = xy + self._cfg.action_magnitude*action
         wind_delta = np.array([np.cos(self.wind_direction), np.sin(self.wind_direction)])*self._cfg.wind_magnitude
         xy = xy + wind_delta
-        xy = np.clip(xy, 0, self.upper_bound)
+        xy = np.clip(xy, BOUNDS_LOW, BOUNDS_HIGH)
 
         # adjust wind direction
         self.wind_direction = self.wind_direction + self._cfg.wind_direction_delta
