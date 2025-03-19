@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 
 from corerl.config import DBConfig, MainConfig
+from corerl.configs.errors import ConfigValidationErrors
 from corerl.configs.loader import config_from_dict, config_to_json
 from corerl.sql_logging.sql_logging import table_exists
 from corerl.utils.opc_connection import sync_browse_opc_nodes
@@ -103,6 +104,11 @@ async def health():
                 "application/json": {"example": {"detail": "Unsupported Media Type"}},
             }
         },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "content": {
+                "application/json": {"example": {"errors": "<Error description>"}},
+            }
+        },
         status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal Server Error", "model": str},
     },
     openapi_extra={
@@ -144,6 +150,13 @@ async def gen_config_file(request: Request, file: UploadFile | None = None):
 
     try:
         res_config = config_from_dict(MainConfig, data)
+
+        if isinstance(res_config, ConfigValidationErrors):
+            return JSONResponse(
+                content=json.loads(config_to_json(ConfigValidationErrors, res_config)),
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
         json_config = json.loads(config_to_json(MainConfig, res_config))
     except Exception as e:
         tb = traceback.format_exc()
