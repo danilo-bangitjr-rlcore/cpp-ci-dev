@@ -148,13 +148,13 @@ class Pipeline:
 
         # initialization all stateful stages
         self.missing_data_checkers = {tag.name: missing_data_checker for tag in self.tags}
+        self.preprocessor = Preprocessor(self.tags)
         self.bound_checkers = {
-            tag.name: bound_checker_builder(tag.operating_range)
+            tag.name: bound_checker_builder(tag.operating_range, self.preprocessor)
             for tag in self.tags
             if tag.operating_range is not None
         }
         self.conditional_filter = ConditionalFilter(self.tags)
-        self.preprocessor = Preprocessor(self.tags)
         self.transition_creator = AllTheTimeTC(cfg.transition_creator)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
         self.outlier_detectors = {tag.name: init_oddity_filter(tag.outlier, app_state) for tag in self.tags}
@@ -181,8 +181,8 @@ class Pipeline:
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
             StageCode.INIT:       lambda pf: pf,
             StageCode.FILTER:     self.conditional_filter,
-            StageCode.BOUNDS:     lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
             StageCode.PREPROCESS: self.preprocessor,
+            StageCode.BOUNDS:     lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
             StageCode.ODDITY:     lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
             StageCode.IMPUTER:    self.imputers,
             StageCode.AC:         self.action_constructor,
@@ -196,8 +196,8 @@ class Pipeline:
         self.default_stages = (
             StageCode.INIT,
             StageCode.FILTER,
-            StageCode.BOUNDS,
             StageCode.PREPROCESS,
+            StageCode.BOUNDS,
             StageCode.ODDITY,
             StageCode.IMPUTER,
             StageCode.AC,
