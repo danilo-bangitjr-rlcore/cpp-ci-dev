@@ -15,6 +15,8 @@ from corerl.interaction.configs import SimInteractionConfig
 from corerl.interaction.interaction import Interaction
 from corerl.messages.events import Event, EventType
 from corerl.state import AppState
+from corerl.utils.list import find
+from corerl.utils.time import percent_time_elapsed
 
 logger = logging.getLogger(__file__)
 
@@ -32,6 +34,7 @@ class SimInteraction(Interaction):
         self._env = env
         self._agent = agent
         self._app_state = app_state
+        self._cfg = cfg
 
         self._column_desc = pipeline.column_descriptions
 
@@ -52,6 +55,8 @@ class SimInteraction(Interaction):
             agent,
             self._column_desc,
         )
+
+        self._sim_time = app_state.start_time
 
 
     # -----------------------
@@ -105,6 +110,7 @@ class SimInteraction(Interaction):
         next_a = self._agent.get_action_interaction(s, prev_a)
         norm_next_a_df = self._pipeline.action_constructor.get_action_df(next_a)
         next_a_df = self._pipeline.preprocessor.inverse(norm_next_a_df)
+        next_a_df = self._clip_action_bounds(next_a_df)
         self._env.emit_action(next_a_df)
         self._last_action_df = next_a_df
 
@@ -123,7 +129,7 @@ class SimInteraction(Interaction):
         self._on_get_obs()
         self._on_update()
         self._on_emit_action()
-
+        self._sim_time += self._cfg.obs_period
 
     # ---------------
     # -- Event Bus --
@@ -136,6 +142,7 @@ class SimInteraction(Interaction):
 
             case EventType.step_get_obs:
                 self._on_get_obs()
+                self._sim_time += self._cfg.obs_period
 
             case EventType.step_agent_update:
                 self._on_update()
@@ -149,6 +156,42 @@ class SimInteraction(Interaction):
     # ---------
     # internals
     # ---------
+
+    def _clip_action_bounds(self, df: pd.DataFrame) -> pd.DataFrame:
+        for ai_sp_tag in df.columns:
+            df = self._clip_single_action(df, ai_sp_tag)
+
+        return df
+
+    def _clip_single_action(self, df: pd.DataFrame, ai_sp_tag: str) -> pd.DataFrame:
+        cfg = find(lambda cfg: cfg.name == ai_sp_tag, self._pipeline.tags)
+        assert cfg is not None, f'Failed to find tag config for {ai_sp_tag}'
+        assert cfg.operating_range is not None, 'AI setpoint tag must have an operating range'
+
+        guard_lo, guard_hi = cfg.operating_range
+        if cfg.guardrail_schedule is None:
+            return df
+
+        perc = percent_time_elapsed(
+            self._app_state.start_time,
+            self._app_state.start_time + cfg.guardrail_schedule.duration,
+            cur = self._sim_time,
+        )
+
+        start_lo, start_hi = cfg.guardrail_schedule.starting_range
+
+        if start_lo is not None:
+            assert guard_lo is not None
+            guard_lo = (1 - perc) * start_lo + perc * guard_lo
+
+        if start_hi is not None:
+            assert guard_hi is not None
+            guard_hi = (1 - perc) * start_hi + perc * guard_hi
+
+        df[ai_sp_tag] = df[ai_sp_tag].clip(lower=guard_lo, upper=guard_hi)
+        return df
+
+
     def _get_latest_state_action(self) -> tuple[np.ndarray, np.ndarray] | None:
         if self._last_state is None:
             logger.error("Tried to get interaction state, but none existed")
