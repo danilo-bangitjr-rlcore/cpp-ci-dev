@@ -9,20 +9,22 @@ logger = logging.getLogger(__name__)
 
 class ConfigValidationError(BaseModel):
     kind: str
-    path: str
     given_value: Any
+    message: str
 
 
 class ConfigValidationErrors(BaseModel):
-    errors: list[ConfigValidationError]
-
-
+    # schema comes from Prisma.PrismaClientKnownRequestError
+    # to match client-side consumption
+    name: str
+    message: str
+    meta: dict[str, ConfigValidationError]
 
 def _error_type_remapping(kind: str) -> str:
     mapping = {
         'bool_parsing': 'type_mismatch',
         'int_parsing': 'type_mismatch',
-        'float_type': 'type_mismatch',
+        'float_parsing': 'type_mismatch',
         'string_type': 'type_mismatch',
     }
 
@@ -30,18 +32,21 @@ def _error_type_remapping(kind: str) -> str:
 
 
 def _construct_error_response(details: list[ErrorDetails]) -> ConfigValidationErrors:
-    errors: list[ConfigValidationError] = []
+    errors: dict[str, ConfigValidationError] = {}
 
     for err_detail in details:
-        errors.append(
-            ConfigValidationError(
-                kind=_error_type_remapping(err_detail['type']),
-                path='.'.join(map(str, err_detail['loc'])),
-                given_value=err_detail['input'],
-            )
+        path = '.'.join(map(str, err_detail['loc']))
+        errors[path] = ConfigValidationError(
+            kind=_error_type_remapping(err_detail['type']),
+            given_value=err_detail['input'],
+            message=err_detail['msg'],
         )
 
-    return ConfigValidationErrors(errors=errors)
+    return ConfigValidationErrors(
+        name='ValidationError',
+        message='Failed to validate config',
+        meta=errors,
+    )
 
 
 def validate_with_error_handling[T](ta: TypeAdapter[T], config: object, context: dict[str, Any] | None = None):
