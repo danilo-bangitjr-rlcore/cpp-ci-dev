@@ -126,6 +126,11 @@ class ZoneDiscourager:
             metric='red_zone_violation',
             value=percent,
         )
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric='yellow_zone_violation',
+            value=1.0,
+        )
         logger.error(f"Red zone violation for tag {tag.name} at level: {percent}")
         return -4 - (4 * percent)
 
