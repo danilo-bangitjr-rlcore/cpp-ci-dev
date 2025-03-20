@@ -1,4 +1,7 @@
-log_path: "outputs/pilot"
+log_path: outputs/pilot
+
+#feature_flags:
+#  action_embedding: true
 
 infra:
   db:
@@ -10,7 +13,8 @@ infra:
     db_name: "postgres"
 
 experiment:
-  exp_name: DraytonValley-Pilot-Backwash
+  exp_name: pilot_backwash
+  save_path: outputs/pilot_bw
   seed: 1
   gamma: 0.99
   run_forever: True
@@ -18,16 +22,21 @@ experiment:
 interaction:
   name: dep_interaction
   warmup_period: 03:00:00
+  restore_checkpoint: False
+  checkpoint_path: 'outputs/checkpoints/pilot'
   obs_period: 00:05:00
   action_period: 00:45:00
   update_period: 00:02:30
+  update_warmup: 0 # number of updates before interacting
+  historical_batch_size: 8640 # 30 days @ 5 minute obs period
+  hist_chunk_start: 2025-01-20 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
 
 event_bus:
   enabled: True
 
 env:
   name: dep_async_env
-  # opc_conn_url: "opc.tcp://ignition-services:62541"
+  coreio_origin: http://coreio:2222       # coreio hostname derived from docker-compose up app name
   db:
     table_name: "pilot"
 
@@ -35,8 +44,39 @@ env:
 agent:
   name: greedy_ac
 
+  critic:
+    buffer:
+      name: mixed_history_buffer
+      n_most_recent: 24
+      ensemble: 1
+      ensemble_probability: 1
+      id: critic # for metric logging
+
+  policy:
+    optimizer:
+      lr: 0.001
+
+    buffer:
+      name: mixed_history_buffer
+      n_most_recent: 24
+      ensemble: 1
+      ensemble_probability: 1
+      id: actor # for metric logging
+
+
 metrics:
   enabled: True
+  table_name: pilot_metrics
+
+evals:
+  name: db
+  enabled: True
+
+eval_cfgs:
+  actor_critic:
+    enabled: True
+  monte_carlo:
+    enabled: True
 
 pipeline:
   imputer:
@@ -50,22 +90,41 @@ pipeline:
       - name: multi_trace
         trace_values: [0.0, 0.9]
 
+  transition_creator:
+    name: all-the-time
+    # n_step should be 10, give some buffer
+    min_n_step: 8
+    max_n_step: 10
+
+  transition_filter:
+    filters:
+    - "only_pre_dp_or_ac"
+    - "only_post_dp"
+    - "no_nan"
+    - "only_no_action_change"
+
   tags:
   - name: PERM_SP.BW_SP # flow rate setpoint
+    connection_id: 49430a53-0b67-4bb9-ae9f-1de9c1583dec
     node_identifier: "ns=1;s=[pilot]Program:ZW.PERM_SP.BW_SP"
     operating_range: [0.9, 1.4]
+    guardrail_schedule:
+      starting_range: [1.1, 1.2]
+      duration: 24:00:00
     action_constructor:
       - name: identity
-    state_constructor: # exclude from state
-    - name: "null"
+    agg: last
 
   - name: BW_SP.KY2 # backpulse duration setpoint
+    connection_id: 49430a53-0b67-4bb9-ae9f-1de9c1583dec
     node_identifier: "ns=1;s=[pilot]Program:ZW.BW_SP.KY2"
     operating_range: [20, 40]
+    guardrail_schedule:
+      starting_range: [28, 32]
+      duration: 24:00:00
     action_constructor:
       - name: identity
-    state_constructor: # exclude from state
-    - name: "null"
+    agg: last
 
   - name: PRC_INFO.PERMEABILITY # permeability
     operating_range: [-25, -15] # this tag reports negative permeability
@@ -100,10 +159,10 @@ pipeline:
     operating_range: [0, 1.5]
 
   - name: FTC101.DATA # raw cdom
-    operating_range: [1, 4]
+    operating_range: [-1, 8]
 
   - name: FTT100.DATA # raw tryptophan
-    operating_range: [0, 0.7]
+    operating_range: [0, 1.5]
 
   - name: TIT302.DATA # postfloc water temp
     operating_range: [0, 15]
