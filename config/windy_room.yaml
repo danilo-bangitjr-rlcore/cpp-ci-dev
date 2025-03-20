@@ -1,3 +1,6 @@
+feature_flags:
+  zone_violations: true
+
 env:
   name: sim_async_env
   gym_name: WindyRoom-v0
