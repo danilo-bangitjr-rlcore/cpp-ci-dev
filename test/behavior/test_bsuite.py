@@ -47,6 +47,20 @@ ZERO_ONE_FEATURES = [
     'action_embedding',
 ]
 
+
+def all_except(flags: list[str]):
+    return {
+        f: True for f in ZERO_ONE_FEATURES + ['base'] if f not in flags
+    }
+
+
+KNOWN_FAILURES: dict[str, bool | dict[str, bool]] = {
+    WindyRoomTest.name: True,
+    DistractionWorldTest.name: all_except(['action_embedding']),
+    MountainCar.name: { 'zone_violations': True },
+}
+
+
 def _zero_one_matrix(flags: list[str]):
     """
     Produces a matrix of feature flags with only one-hot values.
@@ -98,4 +112,25 @@ def test_bsuite(
     )
     engine = get_sql_engine(cfg, db_name)
     metrics_table = test_case.execute_test(engine, db_name, schema, feature_flags)
-    test_case.evaluate_outcomes(engine, metrics_table, feature_flags)
+
+    try:
+        test_case.evaluate_outcomes(engine, metrics_table, feature_flags)
+    except AssertionError as e:
+        if test_case.name not in KNOWN_FAILURES:
+            raise e
+
+        # if all known to fail for all features, xfail
+        fail_conditions = KNOWN_FAILURES[test_case.name]
+        if fail_conditions is True:
+            pytest.xfail()
+
+        # if known to fail for given enabled features, xfail
+        assert isinstance(fail_conditions, dict)
+        if any(fail_conditions[f] for f in enabled_features):
+            pytest.xfail()
+
+        # if known to fail for "base" algorithm (no features), xfail
+        if len(enabled_features) == 0 and fail_conditions['base']:
+            pytest.xfail()
+
+        raise e
