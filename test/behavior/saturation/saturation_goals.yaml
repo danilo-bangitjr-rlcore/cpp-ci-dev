@@ -42,12 +42,10 @@ pipeline:
 
   reward:
     priorities:
-      # Satisfy at least so much saturation
       - op: up_to
         tag: tag-0
-        thresh: tag-1
+        thresh: "1*{tag-2} + 0.1*{tag-1}"
 
-      # But do not go over by too much
       - tags: [tag-0]
         directions: [min]
 
@@ -64,6 +62,9 @@ pipeline:
     operating_range: [0, 1.0]
 
   - name: tag-1
+    operating_range: [0, 1.0]
+
+  - name: tag-2
     operating_range: [0, 1.0]
 
   # actions

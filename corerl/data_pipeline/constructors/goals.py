@@ -121,10 +121,20 @@ class GoalConstructor:
         then the percent violoation from tag's lower bound to the target threshold.
         """
 
+        # Threshold is float
         if isinstance(goal.thresh, float):
             thresh = goal.thresh
-        else:
+
+        # Threshold is tag
+        elif goal.thresh_func is None:
             thresh = row[goal.thresh].item()
+
+        # Threshold is expression
+        else:
+            assert goal.thresh_tags is not None # Assertion for pyright
+            values = [row[thresh_tag].item() for thresh_tag in goal.thresh_tags]
+            thresh = goal.thresh_func(*values)
+
 
         bounds = (
             Maybe.find(lambda cfg: cfg.name == goal.tag, self._tag_cfgs)
@@ -173,10 +183,20 @@ class GoalConstructor:
 
     def _goal_is_satisfied(self, goal: Goal, row: pd.DataFrame):
 
+        # Threshold is float
         if isinstance(goal.thresh, float):
             thresh = goal.thresh
-        else:
+
+        # Threshold is tag
+        elif goal.thresh_func is None:
             thresh = row[goal.thresh].item()
+
+        # Threshold is expression
+        else:
+            assert goal.thresh_tags is not None # Assertion for pyright
+            values = [row[thresh_tag].item() for thresh_tag in goal.thresh_tags]
+            thresh = goal.thresh_func(*values)
+
 
         x: float = row[goal.tag].to_numpy()[0]
         if goal.op == 'down_to':

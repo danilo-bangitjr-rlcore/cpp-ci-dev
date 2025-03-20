@@ -9,7 +9,7 @@ class SaturationGoals(gym.Env):
         self._random = np.random.default_rng()
         self._obs_min = np.array([0.])
         self._obs_max = np.array([1.])
-        self.observation_space = gym.spaces.Box(np.array([0, 0]), np.array([1, 1]), (2,))
+        self.observation_space = gym.spaces.Box(np.array([0, 0, 0]), np.array([1, 1, 1]), (3,))
 
         self.saturation = np.array([0.])
         self.saturation_sp = np.array([0.8])
@@ -43,7 +43,7 @@ class SaturationGoals(gym.Env):
         self.saturations.append(self.saturation)
         self.actions.append(action)
 
-        return [self.saturation, self.saturation_sp], reward, False, False, {}
+        return [self.saturation, self.saturation_sp, np.array([1])], reward, False, False, {}
 
     def plot(self):
         import matplotlib.pyplot as plt
@@ -62,7 +62,7 @@ class SaturationGoals(gym.Env):
         if seed is not None:
             self.seed(seed)
 
-        return [self.saturation, self.saturation_sp], {}
+        return [self.saturation, self.saturation_sp, np.array([1])], {}
 
     def close(self):
         pass

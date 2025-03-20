@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Callable, Literal
 
 from pydantic import Field
 
 from corerl.configs.config import MISSING, computed, config, post_processor
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.utils.maybe import Maybe
+from corerl.utils.sympy import is_affine, is_expression, to_sympy
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -20,6 +21,15 @@ class Goal:
     op: Literal['down_to', 'up_to'] = MISSING
     tag: str = MISSING
     thresh: float | str = MISSING
+
+    thresh_func: Callable[..., float] | None = None
+    thresh_tags: list[str] | None = None
+
+    @post_processor
+    def _parse_sympy(self, cfg: MainConfig):
+        if isinstance(self.thresh, str) and is_expression(self.thresh):
+            expression, self.thresh_func, self.thresh_tags = to_sympy(self.thresh)
+            assert is_affine(expression)
 
 
 @config()
@@ -77,9 +87,19 @@ def _assert_tags_exist(priorities: Sequence[Priority], known_tags: set[str]):
         if isinstance(priority, Goal):
             assert priority.tag in known_tags
 
-            # If thresh is a tag, check that it exists
             if isinstance(priority.thresh, str):
-                assert priority.thresh in known_tags
+                # If thresh is an expression
+                if priority.thresh_func is not None:
+                    assert priority.thresh_tags is not None
+                    for thresh_tag in priority.thresh_tags:
+                        assert thresh_tag in known_tags
+                        assert thresh_tag != priority.tag
+
+                # If thresh is a tag
+                else:
+                    assert priority.thresh in known_tags
+                    # A tag can't be its own threshold
+                    assert priority.tag != priority.thresh
 
         elif isinstance(priority, Optimization):
             for tag in priority.tags:
