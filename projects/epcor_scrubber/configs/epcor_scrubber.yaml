@@ -43,11 +43,12 @@ env:
   action_tolerance: 00:15:00
   setpoint_ping_period: 00:00:10
 
-  # opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
-  # client_cert_path: certs/agent_cert.der
-  # client_private_key_path: certs/agent_key.pem
-  # server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
-  # application_uri: urn:agent
+  opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
+  opc_ns: 3
+  client_cert_path: certs/agent_cert.der
+  client_private_key_path: certs/agent_key.pem
+  server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
+  application_uri: urn:agent
 
   db:
     table_name: scrubber4_tz
@@ -63,8 +64,8 @@ agent:
       ensemble_probability: 1
       id: critic # for metric logging
 
-  policy:
-    optimizer:
+  actor:
+    actor_optimizer:
       lr: 0.001
 
     buffer:
@@ -89,6 +90,23 @@ eval_cfgs:
     enabled: True
 
 pipeline:
+  reward:
+    priorities:
+      # priority 1: (efficiency > 90%) OR (outlet_h2s < 1000 ppb)
+      - op: or
+        goals:
+          - op: down_to
+            tag: AI0879B
+            thresh: 1000
+          - op: up_to
+            tag: AI0879C
+            thresh: 90
+
+      # optimization: min chem cost
+      - tags: [AIC3730_OUT, AIC3731_OUT]
+        directions: min
+        weights: [0.5455, 1.355]
+
   imputer:
     name: per-tag
     default:
@@ -115,202 +133,139 @@ pipeline:
 
   tags:
   - name: AIC3730_SP # pH SP
-    node_identifier: "ns=3;i=14"
+    node_identifier: 14
     operating_range: [9.4, 10.]
     change_bounds: [-.334, .334] # +/- 0.2 pH
     agg: last
 
   - name: AIC3731_SP # ORP SP
-    node_identifier: "ns=3;i=15"
+    node_identifier: 15
     operating_range: [650., 700.]
     change_bounds: [-.2, .2] # +/- 10 mV
     agg: last
 
   - name: FIC3734_SP # flow SP
-    node_identifier: "ns=3;i=17"
+    node_identifier: 17
     operating_range: [15., 30.]
     change_bounds: [-.334, .334] # +/- 5
     agg: last
 
   - name: AIC3730_PV # pH process value
     operating_range: [0., 14.]
-    red_bounds: [9.4, 10.]
+    preprocess:
+      - name: normalize
+        min: 9.4
+        max: 10.
+        from_data: False
 
   - name: AIC3731_PV # ORP process value
     operating_range: [0., 800.]
-    red_bounds: [650., 700.]
+    preprocess:
+      - name: normalize
+        min: 650.
+        max: 700.
+        from_data: False
 
   - name: FIC3734_PV # flow rate PV
     operating_range: [0, 100]
-    red_bounds: [15, 30]
+    preprocess:
+      - name: normalize
+        min: 15
+        max: 30
+        from_data: False
 
   - name: FIC3734_OUT # flow rate controller output
     operating_range: [0, 100]
-    red_bounds: [40, 60]
+    preprocess:
+      - name: normalize
+        min: 40
+        max: 60
+        from_data: False
 
   - name: LI3734 # scrubber tower sump level
     operating_range: [500, 700]
-    red_bounds: [585, 595]
+    preprocess:
+      - name: normalize
+        min: 585
+        max: 595
+        from_data: False
 
   - name: FI0872 # scrubber recirc flow
     operating_range: [0, 2300]
-    red_bounds: [1900, 2100]
+    preprocess:
+      - name: normalize
+        min: 1900
+        max: 2100
+        from_data: False
 
   - name: AI0879A # H2S inlet
     operating_range: [0., 100]
-    red_bounds: [5., 60]
+    preprocess:
+      - name: normalize
+        min: 5.
+        max: 60
+        from_data: False
 
   - name: PDIC3738_PV # PDIC-3738 (PID Process Value)
-    operating_range: [0.5, 3]
-    red_bounds: [2.3, 2.5]
+    operating_range: [-0.1, 3]
+    preprocess:
+      - name: normalize
+        min: 1.0
+        max: 2.5
+        from_data: False
 
   - name: PDIC3738_OUT # PDIC-3738 (PID Output)
     operating_range: [0, 100]
-    red_bounds: [45, 50]
+    preprocess:
+      - name: normalize
+        min: 45
+        max: 50
+        from_data: False
 
   - name: PI0169 # blower discharge pressure
-    operating_range: [0, 1]
-    red_bounds: [0.3, 0.5]
+    operating_range: [-0.1, 1]
+    preprocess:
+      - name: normalize
+        min: 0.3
+        max: 0.5
+        from_data: False
 
   - name: TI0880 # scrubber inlet temp
     operating_range: [0, 75]
-    red_bounds: [0, 30]
+    preprocess:
+      - name: normalize
+        min: 0.
+        max: 30.
+        from_data: False
 
   - name: AI0897B # scrubber softened water conductivity
     operating_range: [0, 30]
-    red_bounds: [5, 20]
+    preprocess:
+      - name: normalize
+        min: 5.
+        max: 20.
+        from_data: False
 
   - name: AIC3730_OUT # pH pump output
-    preprocess: [] # NOTE: CHECK IF NEEDED
     operating_range: [0, 125]
-    red_bounds: [0, 60]
-    state_constructor:
-    - name: normalize
-      min: 0
-      max: 60
-    - name: multi_trace
-      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
-    reward_constructor: # generated programattically from test_epcor_reward
-    - name: split
-      left:
-      - name: greater_than
-        threshold: 60.0
-        equal: false
-      - name: scale
-        factor: -1.0
-      right:
-      - name: scale
-        factor: 0.5455
-      - name: binary
-        op: add
-        other: AIC3731_OUT # orp_pumpspeed
-        other_xform:
-        - name: scale
-          factor: 1.355
-      - name: scale
-        factor: -1.0
-      - name: affine
-        scale: 0.008769622
-        bias: 1.0
-      - name: affine
-        scale: 0.5
-        bias: -0.5
-      - name: binary
-        op: prod
-        other: AI0879C # efficiency
-        other_xform:
-        - name: scale
-          factor: -1.0
-        - name: affine
-          scale: 0.2
-          bias: 18.0
-        - name: binary
-          op: min
-          other: AI0879B # outlet_h2s
-          other_xform:
-          - name: affine
-            scale: 0.00025 # manual increase precision
-            bias: -0.25
-        - name: less_than
-          threshold: 0.0
-          equal: true
-      passthrough: false
+    red_bounds: [null, 60]
 
   - name: AIC3731_OUT # ORP pump output
-    preprocess: []
     operating_range: [0, 125]
-    red_bounds: [0, 60]
-    state_constructor:
-    - name: normalize
-      min: 0
-      max: 60
-    - name: multi_trace
-      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
-    reward_constructor:
-    - name: greater_than
-      threshold: 60.0
-      equal: false
-    - name: scale
-      factor: -1.0
+    red_bounds: [null, 60]
 
   - name: AI0879B # H2S outlet
-    preprocess: []
     operating_range: [0., 30000]
-    red_bounds: [0., 5000]
-    state_constructor:
-    - name: normalize
-      min: 0
-      max: 5000
-    - name: multi_trace
-      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+    preprocess:
+      - name: normalize
+        min: 0.
+        max: 5000.
+        from_data: False
 
   - name: AI0879C # H2S efficiency
-    preprocess: []
     operating_range: [0., 100.]
-    red_bounds: [85., 100.]
-    state_constructor:
-    - name: normalize
-      min: 85
-      max: 100
-    - name: multi_trace
-      trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
-    reward_constructor: # generated programattically from test_epcor_reward
-    - name: scale
-      factor: -1.0
-    - name: affine
-      scale: 0.2
-      bias: 18.0
-    - name: binary
-      op: min
-      other: AI0879B # outlet_h2s
-      other_xform:
-      - name: affine
-        scale: 0.00025
-        bias: -0.25
-    - name: scale
-      factor: -1.0
-    - name: affine
-      scale: 1.0
-      bias: 1.0
-    - name: affine
-      scale: 0.5
-      bias: -1.0
-    - name: binary
-      op: prod
-      other: AI0879C # efficiency
-      other_xform:
-      - name: scale
-        factor: -1.0
-      - name: affine
-        scale: 0.2
-        bias: 18.0
-      - name: binary
-        op: min
-        other: AI0879B # outlet_h2s
-        other_xform:
-        - name: affine
-          scale: 0.00025
-          bias: -0.25
-      - name: greater_than
-        threshold: 0.0
-        equal: false
+    preprocess:
+      - name: normalize
+        min: 85.
+        max: 100.
+        from_data: False
