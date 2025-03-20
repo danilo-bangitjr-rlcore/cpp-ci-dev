@@ -36,7 +36,7 @@ class ZoneDiscourager:
     def __call__(self, pf: PipelineFrame):
         df = self._prep_stage.inverse(pf.data)
 
-        rewards = pf.rewards['reward'].to_numpy()
+        rewards = pf.rewards['reward'].to_numpy(copy=True)
         for i, (_, row_series) in enumerate(df.iterrows()):
             row = row_series.to_frame().transpose()
 
