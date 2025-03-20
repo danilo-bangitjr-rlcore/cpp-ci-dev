@@ -42,6 +42,7 @@ TEST_CASES = [
 ]
 
 ZERO_ONE_FEATURES = [
+    'base', # special feature indicating "no features enabled"
     'delta_actions',
     'zone_violations',
     'action_embedding',
@@ -50,7 +51,7 @@ ZERO_ONE_FEATURES = [
 
 def all_except(flags: list[str]):
     return {
-        f: True for f in ZERO_ONE_FEATURES + ['base'] if f not in flags
+        f: True for f in ZERO_ONE_FEATURES if f not in flags
     }
 
 
@@ -76,8 +77,8 @@ def _zero_one_matrix(flags: list[str]):
     return matrix
 
 
-@pytest.mark.parametrize('test_case', TEST_CASES)
-@pytest.mark.parametrize('feature_flags', _zero_one_matrix(ZERO_ONE_FEATURES))
+@pytest.mark.parametrize('test_case', TEST_CASES, ids=lambda tc: tc.name)
+@pytest.mark.parametrize('feature_flags', _zero_one_matrix(ZERO_ONE_FEATURES), ids=str)
 @pytest.mark.timeout(900)
 def test_bsuite(
     test_case: BSuiteTestCase,
@@ -92,14 +93,15 @@ def test_bsuite(
     enabled_features = [
         feature for feature, enabled in feature_flags.items() if enabled
     ]
-    feature_postfix = '-'.join(enabled_features)
+    feature_postfix = '_'.join(enabled_features)
     if feature_postfix:
-        test_case.name += '-' + feature_postfix
+        feature_postfix = '_' + feature_postfix
 
     # examples:
-    # mountain_car  (no features enabled)
-    # mountain_car-delta_actions-zone_violations  (two features enabled)
+    # mountain_car_base  (no features enabled)
+    # mountain_car_delta_actions_zone_violations  (two features enabled)
     schema = test_case.name.lower().replace(' ', '_') + feature_postfix
+
 
     PORT = 22222
     db_name = 'bsuite'
@@ -126,11 +128,7 @@ def test_bsuite(
 
         # if known to fail for given enabled features, xfail
         assert isinstance(fail_conditions, dict)
-        if any(fail_conditions[f] for f in enabled_features):
-            pytest.xfail()
-
-        # if known to fail for "base" algorithm (no features), xfail
-        if len(enabled_features) == 0 and fail_conditions['base']:
+        if any(fail_conditions.get(f, False) for f in enabled_features):
             pytest.xfail()
 
         raise e

@@ -1,3 +1,4 @@
+import json
 import subprocess
 from enum import Enum, auto
 from typing import Any
@@ -39,7 +40,7 @@ class BSuiteTestCase:
         port = tsdb.url.port
 
         feature_overrides = {
-            f'feature_flags.{k}': v for k, v in features.items()
+            f'feature_flags.{k}': v for k, v in features.items() if k != 'base'
         }
 
         overrides = self._overrides | {
@@ -133,7 +134,7 @@ class BSuiteTestCase:
                 'bound_type': row['bound_type'],
                 'expected': row['expected'],
                 'got': row['got'],
-                'features': feature_json,
+                'features': json.dumps(feature_json),
             })
 
         create_table_sql = create_tsdb_table_query(
@@ -156,7 +157,7 @@ class BSuiteTestCase:
 
         insert_sql = text("""
             INSERT INTO bsuite_outcomes
-            (time, test_name, metric, behaviour, bound_type, expected, got)
+            (time, test_name, metric, behaviour, bound_type, expected, got, features)
             VALUES (
                 TIMESTAMP WITH TIME ZONE :time, :test_name, :metric, :behaviour, :bound_type, :expected, :got, :features
             )
