@@ -30,6 +30,7 @@ interaction:
   historical_batch_size: 51840 # 180 days @ 5 minute obs period
   hist_chunk_start: 2024-10-09 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
   heartbeat:
+    connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
     heartbeat_node_id: "ns=3;i=1"
     heartbeat_period: 00:00:05
     max_counter: 1000
@@ -42,13 +43,14 @@ env:
   update_period: 00:00:30
   action_tolerance: 00:15:00
   setpoint_ping_period: 00:00:10
+  coreio_origin: http://localhost:2222
 
-  opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
-  opc_ns: 3
-  client_cert_path: certs/agent_cert.der
-  client_private_key_path: certs/agent_key.pem
-  server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
-  application_uri: urn:agent
+  # opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
+  # opc_ns: 3
+  # client_cert_path: certs/agent_cert.der
+  # client_private_key_path: certs/agent_key.pem
+  # server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
+  # application_uri: urn:agent
 
   db:
     table_name: scrubber4_tz
@@ -64,8 +66,8 @@ agent:
       ensemble_probability: 1
       id: critic # for metric logging
 
-  actor:
-    actor_optimizer:
+  policy:
+    optimizer:
       lr: 0.001
 
     buffer:
@@ -133,19 +135,25 @@ pipeline:
 
   tags:
   - name: AIC3730_SP # pH SP
-    node_identifier: 14
+    # node_identifier: 14
+    connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
+    node_identifier: "ns=3;i=14"
     operating_range: [9.4, 10.]
     change_bounds: [-.334, .334] # +/- 0.2 pH
     agg: last
 
   - name: AIC3731_SP # ORP SP
-    node_identifier: 15
+    # node_identifier: 15
+    connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
+    node_identifier: "ns=3;i=15"
     operating_range: [650., 700.]
     change_bounds: [-.2, .2] # +/- 10 mV
     agg: last
 
   - name: FIC3734_SP # flow SP
-    node_identifier: 17
+    # node_identifier: 17
+    connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
+    node_identifier: "ns=3;i=17"
     operating_range: [15., 30.]
     change_bounds: [-.334, .334] # +/- 5
     agg: last
