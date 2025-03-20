@@ -7,14 +7,14 @@ from corerl.data_pipeline.utils import update_missing_info
 Bounds = tuple[float | None, float | None]
 
 
-def _get_oob_mask(data: np.ndarray, tag: str, bounds: Bounds, prep: Preprocessor) -> np.ndarray:
+def _get_oob_mask(data: np.ndarray, tag: str, bounds: Bounds, prep: Preprocessor, tol: float=1e-4) -> np.ndarray:
     lo, hi = bounds
     b = (
         lo if lo is not None else -np.inf,
         hi if hi is not None else np.inf,
     )
     b = prep.normalize(tag, np.array(b))
-    return (data < b[0]) | (data > b[1])
+    return (data < b[0] - tol) | (data > b[1] + tol)
 
 def bound_checker(pf: PipelineFrame, tag: str, bounds: Bounds, prep: Preprocessor) -> PipelineFrame:
     data = pf.data
