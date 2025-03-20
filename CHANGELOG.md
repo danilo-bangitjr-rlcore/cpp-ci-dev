@@ -5,6 +5,15 @@
 - styles again
 - fix agent test utils
 
+## [0.133.1](https://github.com/rlcoretech/core-rl/compare/v0.133.0...v0.133.1) (2025-03-20)
+
+
+### Bug Fixes
+
+* **PROD-210:** do not mutate underlying reward in zone discourager ([ba97898](https://github.com/rlcoretech/core-rl/commit/ba97898000818d4db863361c3131001195bbe896))
+* **PROD-210:** do not mutate underlying reward in zone discourager ([3360152](https://github.com/rlcoretech/core-rl/commit/33601525646e9efccc2e22c832373d97e5da01ee))
+* **PROD-27:** fix activtion list len ([069ac79](https://github.com/rlcoretech/core-rl/commit/069ac79d64914148f639c817db53bcdc1b5055fb))
+
 ## [0.133.0](https://github.com/rlcoretech/core-rl/compare/v0.132.0...v0.133.0) (2025-03-19)
 
 
