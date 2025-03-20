@@ -47,6 +47,7 @@ class BSuiteTestCase:
             'infra.db.port': port,
             'infra.db.db_name': db_name,
             'infra.db.schema': schema,
+            'experiment.num_threads': 1,
         } | feature_overrides
 
         parts = [f'{k}={v}' for k, v in overrides.items()]
