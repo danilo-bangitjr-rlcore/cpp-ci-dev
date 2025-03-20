@@ -54,7 +54,7 @@ class BSuiteTestCase:
         parts = [f'{k}={v}' for k, v in overrides.items()]
 
         proc = subprocess.run([
-            'uv', 'run', 'python', 'main.py',
+            'python', 'main.py',
             '--base', '.',
             '--config-name', self.config,
         ] + parts)
