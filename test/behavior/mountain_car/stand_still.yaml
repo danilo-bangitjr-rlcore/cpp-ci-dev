@@ -27,6 +27,7 @@ pipeline:
 
   tags:
   - name: action-0
+    change_bounds: [-1, 1]
     operating_range: [-1.5, 1.5]
     reward_constructor:
     - name: power

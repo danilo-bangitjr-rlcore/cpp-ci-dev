@@ -16,23 +16,7 @@ experiment:
 metrics:
   enabled: True
 
-evals:
-  name: db
-  enabled: True
-
-eval_cfgs:
-  actor_critic:
-    enabled: True
-  monte_carlo:
-    enabled: True
-    precision: 0.9
-
 pipeline:
-  state_constructor:
-    defaults:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]
-
   tags:
   # meta tags
   - name: terminated
@@ -60,8 +44,7 @@ pipeline:
 
   # actions
   - name: action-0
+    change_bounds: [-1, 1]
     operating_range: [0, 0.5]
-    state_constructor:
-      - name: 'null'
     action_constructor:
       - name: identity
