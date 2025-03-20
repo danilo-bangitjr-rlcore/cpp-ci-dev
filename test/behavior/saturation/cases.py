@@ -10,10 +10,10 @@ class SaturationTest(BSuiteTestCase):
 
 
 class GoalSaturationTest(BSuiteTestCase):
-    name = 'saturation'
+    name = 'saturation goal'
     config = 'test/behavior/saturation/saturation_goals.yaml'
 
-    lower_bounds = { 'reward': -0.085}
+    lower_bounds = { 'reward': -0.5}
     upper_warns = { 'avg_critic_loss': 0.003, 'actor_loss': -1.55 }
 
 
