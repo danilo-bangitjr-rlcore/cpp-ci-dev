@@ -15,23 +15,8 @@ experiment :
 metrics:
   enabled: True
 
-agent:
-  critic:
-    critic_network:
-      base:
-        skip_input: False
-        input_cfg:
-          hidden: [32]
-          activation:
-            - name: 'relu'
-        combined_cfg:
-          hidden: [64]
-          activation:
-            - name: 'relu'
-  policy:
-    optimizer:
-      lr: 0.001
-
+feature_flags:
+  action_embedding : True
     
 pipeline:
   tags:

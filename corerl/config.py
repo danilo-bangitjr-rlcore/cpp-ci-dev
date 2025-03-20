@@ -165,4 +165,6 @@ class MainConfig:
         # remove the first layer of the combined network
         # split it in half and assign one half to each input
         hidden = self.agent.critic.critic_network.base.combined_cfg.hidden.pop(0)
+        hidden_act = self.agent.critic.critic_network.base.combined_cfg.activation.pop(0)
         self.agent.critic.critic_network.base.input_cfg.hidden = [int(hidden // 2)]
+        self.agent.critic.critic_network.base.input_cfg.activation = [hidden_act]
