@@ -16,6 +16,7 @@ from corerl.state import AppState
 def test_action_bounds():
     NUM_STEPS = 5
     cfg = direct_load_config(MainConfig, base='test/medium/interaction/assets', config_name='saturation.yaml')
+    assert isinstance(cfg, MainConfig)
     register_custom_envs()
 
     # build global objects
@@ -56,6 +57,3 @@ def test_action_bounds():
             assert low <= last_a <= high
 
         interaction._sim_time += interaction._cfg.obs_period
-
-
-
