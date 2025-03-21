@@ -64,6 +64,11 @@ jobs:
       test-suite: large
       #- run: uv run pytest test/large
 
+  fastapi-schema-test:
+    needs: [py-style-check]
+    uses: ./.github/workflows/reusable-fastapi-schema-generation.yml
+    secrets: inherit
+
   docker-build-test:
     needs: [small-test, medium-test]
     uses: ./.github/workflows/reusable-build-docker-image.yml
