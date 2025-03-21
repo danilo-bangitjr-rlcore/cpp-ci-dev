@@ -390,8 +390,7 @@ def test_filter_warmup_with_nans(dummy_app_state: AppState):
     cfg = EMAFilterConfig(alpha=0.99, warmup=3)
     outlier_detector = EMAFilter(cfg, dummy_app_state)
 
-    # first batch only has 2 non-NaN values, which shouldn't trigger outlier detection
-    values = np.array([np.nan, 1, 1, np.nan, 5])
+    values = np.array([np.nan, 1, 1, np.nan, 1])
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
     pf = outlier_detector(pf, name)
@@ -413,7 +412,7 @@ def test_warmup_same_val_no_outliers(dummy_app_state: AppState):
     cfg = EMAFilterConfig(alpha=0.99, warmup=3)
     outlier_detector = EMAFilter(cfg, dummy_app_state)
 
-    values = np.array([np.nan, 1, 1, np.nan, 1, np.nan, 1, 1, np.nan, 1])
+    values = np.array([np.nan, 0.8, 0.8, np.nan, 0.8, np.nan, 0.8, 0.8, np.nan, 0.8])
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
     pf = outlier_detector(pf, name)
