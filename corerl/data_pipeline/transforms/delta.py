@@ -42,6 +42,9 @@ class Delta:
                 ts.time = [time] * len(row)
                 continue
 
+            assert ts.time is not None
+            assert ts.last is not None
+
             for ind in range(len(row)):
                 if np.isnan(row[ind]) or (time - ts.time[ind] > self._cfg.time_thresh):
                     carry.transform_data.iloc[i, ind] = np.nan
