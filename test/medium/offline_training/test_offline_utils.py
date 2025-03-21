@@ -57,6 +57,7 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
         base='test/medium/offline_training/assets',
         config_name='offline_config.yaml',
     )
+    assert isinstance(cfg, MainConfig)
 
     cfg.agent.critic.buffer.online_weight = 0.0
     cfg.agent.policy.buffer.online_weight = 0.0

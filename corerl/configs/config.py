@@ -31,7 +31,11 @@ def post_processor[M](f: Callable[[Any, M], Any]):
         if info.context is None:
             return self
 
-        f(self, info.context)
+        try:
+            f(self, info.context)
+        except Exception as e:
+            raise ValueError() from e
+
         return self
 
     return model_validator(mode='after')(_inner)
@@ -79,7 +83,11 @@ def computed[M](key: str):
             # because f is _actually_ a descriptor instead of a function
             # due to classmethod, then we need to get to the underlying
             # function using the descriptor api
-            data[key] = f.__get__(None, cls)(info.context)
+            try:
+                data[key] = f.__get__(None, cls)(info.context)
+            except Exception as e:
+                raise ValueError() from e
+
             return data
 
         return model_validator(mode='before')(_model_validator_callback)

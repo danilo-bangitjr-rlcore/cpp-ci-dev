@@ -30,7 +30,9 @@ class DelayedSaturationConfig:
 class DelayedSaturation(gym.Env):
     def __init__(self, cfg: dict | DelayedSaturationConfig | None = None):
         if isinstance(cfg, dict):
-            cfg = config_from_dict(DelayedSaturationConfig, cfg)
+            cfg_or_err = config_from_dict(DelayedSaturationConfig, cfg)
+            assert isinstance(cfg_or_err, DelayedSaturationConfig)
+            cfg = cfg_or_err
         elif cfg is None:
             cfg = DelayedSaturationConfig()
 

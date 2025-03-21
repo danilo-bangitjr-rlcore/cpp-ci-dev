@@ -56,9 +56,13 @@ class MultiActionSaturation(gym.Env):
     """
     def __init__(self, cfg: dict | MultiActionSaturationConfig | None = None):
         if isinstance(cfg, dict):
-            cfg = config_from_dict(MultiActionSaturationConfig, cfg)
+            cfg_or_err = config_from_dict(MultiActionSaturationConfig, cfg)
+            assert isinstance(cfg_or_err, MultiActionSaturationConfig)
+            cfg = cfg_or_err
+
         elif cfg is None:
             cfg = MultiActionSaturationConfig()
+
 
         self._random = np.random.default_rng(cfg.seed)
         self.num_controllers = cfg.num_controllers

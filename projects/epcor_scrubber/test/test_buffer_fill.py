@@ -27,6 +27,7 @@ def test_buffer_load():
     cfg = direct_load_config(
         MainConfig, base="projects/epcor_scrubber/configs/", config_name="epcor_scrubber_local.yaml"
     )
+    assert isinstance(cfg, MainConfig)
 
     # get custom gym environments
     register_custom_envs()

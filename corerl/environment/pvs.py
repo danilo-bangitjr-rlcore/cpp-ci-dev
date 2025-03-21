@@ -462,7 +462,11 @@ class PVSChangeAction(BasePVSEnv):
     ):
         print(cfg)
         if isinstance(cfg, dict):
-            cfg = config_from_dict(PVSConfig, cfg)
+            cfg_or_err = config_from_dict(PVSConfig, cfg)
+            assert isinstance(cfg_or_err, PVSConfig)
+            cfg = cfg_or_err
+
+
         BasePVSEnv.__init__(self, cfg)
 
         # Initialize with random PID parameters within limits and record them

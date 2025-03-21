@@ -28,7 +28,9 @@ class DistractionWorld(gym.Env):
     """
     def __init__(self, cfg: dict | DistractionWorldConfig | None = None):
         if isinstance(cfg, dict):
-            cfg = config_from_dict(DistractionWorldConfig, cfg)
+            cfg_or_err = config_from_dict(DistractionWorldConfig, cfg)
+            assert isinstance(cfg_or_err, DistractionWorldConfig)
+            cfg = cfg_or_err
         elif cfg is None:
             cfg = DistractionWorldConfig()
 

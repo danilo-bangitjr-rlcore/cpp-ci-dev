@@ -33,7 +33,9 @@ class BSuiteTestCase:
 
     def __init__(self):
         self._overrides = self.overrides or {}
-        self._cfg = direct_load_config(MainConfig, base='.', config_name=self.config)
+        cfg = direct_load_config(MainConfig, base='.', config_name=self.config)
+        assert isinstance(cfg, MainConfig)
+        self._cfg = cfg
 
     def execute_test(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
         ip = tsdb.url.host

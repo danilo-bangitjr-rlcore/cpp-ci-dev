@@ -38,12 +38,13 @@ class WindyRoom(gym.Env):
     """
     def __init__(self, cfg: dict | WindyRoomConfig | None = None):
         if isinstance(cfg, dict):
-            cfg = config_from_dict(WindyRoomConfig, cfg)
+            _cfg = config_from_dict(WindyRoomConfig, cfg)
+            assert isinstance(_cfg, WindyRoomConfig)
+            self._cfg = _cfg
         elif cfg is None:
-            cfg = WindyRoomConfig()
+            self._cfg = WindyRoomConfig()
 
-        self._cfg = cfg
-        self._random = np.random.default_rng(cfg.seed)
+        self._random = np.random.default_rng(self._cfg.seed)
         self._obs_min = np.ones(STATE_DIM) * BOUNDS_LOW
         self._obs_max = np.ones(STATE_DIM) * BOUNDS_HIGH
         self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max, dtype=np.float64)
@@ -52,10 +53,10 @@ class WindyRoom(gym.Env):
         self._action_max = np.ones(STATE_DIM)
         self.action_space = gym.spaces.Box(self._action_min, self._action_max, dtype=np.float64)
 
-        self.initial_zone_low = np.ones(STATE_DIM) * cfg.initial_zone_low
-        self.initial_zone_high = np.ones(STATE_DIM) * cfg.initial_zone_high
+        self.initial_zone_low = np.ones(STATE_DIM) * self._cfg.initial_zone_low
+        self.initial_zone_high = np.ones(STATE_DIM) * self._cfg.initial_zone_high
 
-        self.wind_direction = cfg.initial_wind_direction
+        self.wind_direction = self._cfg.initial_wind_direction
 
     def seed(self, seed: int):
         self._random = np.random.default_rng(seed)

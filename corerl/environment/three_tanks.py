@@ -72,7 +72,10 @@ class ThreeTankEnv(gym.Env):
     """
     def __init__(self, cfg: dict | ThreeTankConfig):
         if isinstance(cfg, dict):
-            cfg = config_from_dict(ThreeTankConfig, cfg)
+            cfg_or_err = config_from_dict(ThreeTankConfig, cfg)
+            assert isinstance(cfg_or_err, ThreeTankConfig)
+            cfg = cfg_or_err
+
         super().__init__()
         self.cfg = cfg
         self.constants = ThreeTankConstants()
