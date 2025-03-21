@@ -15,6 +15,7 @@ def dummy_app_state() -> AppState:
     assert isinstance(cfg, MainConfig)
 
     cfg.metrics.enabled = False
+    cfg.xy_metrics.enabled = False
     cfg.evals.enabled = False
     cfg.event_bus.enabled = False
     event_bus = EventBus(cfg.event_bus, cfg.env)

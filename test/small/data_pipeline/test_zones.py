@@ -27,6 +27,10 @@ def cfg():
 
 @pytest.fixture
 def app_state(cfg: MainConfig):
+    cfg.metrics.enabled = False
+    cfg.xy_metrics.enabled = False
+    cfg.evals.enabled = False
+    cfg.event_bus.enabled = False
     return AppState(
         cfg=cfg,
         evals=evals_group.dispatch(cfg.evals),
