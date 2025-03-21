@@ -390,7 +390,8 @@ def test_filter_warmup_with_nans(dummy_app_state: AppState):
     cfg = EMAFilterConfig(alpha=0.99, warmup=3)
     outlier_detector = EMAFilter(cfg, dummy_app_state)
 
-    values = np.array([np.nan, 1, 1, np.nan, 1])
+    # ema is not warmed up before 5 (only 2 non-NaN), so 5 shouldnt be flagged as outlier
+    values = np.array([np.nan, 1, 1, np.nan, 5])
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
     pf = outlier_detector(pf, name)
@@ -398,7 +399,7 @@ def test_filter_warmup_with_nans(dummy_app_state: AppState):
     assert np.allclose(filtered_data, values, equal_nan=True)
 
     # completing warmup after the first value
-    values2 = np.array([1, 5, np.nan, 5])  # the 5s should be detected as outliers
+    values2 = np.array([1, -5, np.nan, -5])  # the -5s should be detected as outliers
     data2 = pd.DataFrame({name: values2})
     pf2 = PipelineFrame(data2, DataMode.ONLINE, temporal_state=pf.temporal_state)
     pf2 = outlier_detector(pf2, name)
