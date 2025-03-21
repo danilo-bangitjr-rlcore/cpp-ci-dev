@@ -51,8 +51,8 @@ class OfflineTraining:
         cfg: MainConfig
     ):
         self.cfg = cfg
-        self.start_time = cfg.experiment.start_time
-        self.end_time = cfg.experiment.end_time
+        self.start_time = cfg.experiment.offline_start_time
+        self.end_time = cfg.experiment.offline_end_time
         self.offline_steps = self.cfg.experiment.offline_steps
         self.pipeline_out: PipelineReturn | None = None
 
