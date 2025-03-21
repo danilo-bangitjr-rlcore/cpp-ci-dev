@@ -118,16 +118,22 @@ class EMAFilter(BaseOddityFilter):
         i = 0
         while not warmed_up and i < len(tag_data):
             x_i = tag_data[i]
-            warmup_queue.append(x_i)
             if not np.isnan(x_i):
                 n_obs += 1
+                warmup_queue.append(x_i)
             i += 1
             warmed_up = n_obs >= self.warmup
 
         tag_ts.n_obs = n_obs
 
         if warmed_up:
-            tag_ts.ema.mu = np.array(warmup_queue).mean()
+            unique_vals = set(warmup_queue)
+            if len(unique_vals) == 1:
+                # Prevent classifying a val as an outlier due to np.mean()'s float imprecision
+                # when it's the only value that's been observed thus far
+                tag_ts.ema.mu = warmup_queue[0]
+            else:
+                tag_ts.ema.mu = np.array(warmup_queue).mean()
             tag_ts.emv.var = np.array(warmup_queue).var()
 
         return i
