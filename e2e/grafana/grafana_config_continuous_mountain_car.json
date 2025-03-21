@@ -37,6 +37,236 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
+            "fillOpacity": 50,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "pointShape": "circle",
+            "pointSize": {
+              "fixed": 5
+            },
+            "pointStrokeWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "show": "lines"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "mapping": "auto",
+        "series": [
+          {
+            "x": {
+              "matcher": {
+                "id": "byName",
+                "options": "x"
+              }
+            },
+            "y": {
+              "matcher": {
+                "id": "byName",
+                "options": "y"
+              }
+            }
+          }
+        ],
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT x, y, time, metric, agent_step\nFROM metrics_xy \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'pdf%'\nAND agent_step = ${latestAgentStep} - 1\n-- AND agent_step = (SELECT DISTINCT MAX(agent_step) AS max_as FROM metrics_xy)\nAND metric = '${selectedAction}'\nORDER BY \"time\"",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Actor PDF - Direct Action Space",
+      "type": "xychart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "fe9zkc0takwlcc"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 50,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "pointShape": "circle",
+            "pointSize": {
+              "fixed": 5
+            },
+            "pointStrokeWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "show": "lines"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "mapping": "auto",
+        "series": [
+          {
+            "x": {
+              "matcher": {
+                "id": "byName",
+                "options": "x"
+              }
+            },
+            "y": {
+              "matcher": {
+                "id": "byName",
+                "options": "y"
+              }
+            }
+          }
+        ],
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT x, y, time, metric, agent_step\nFROM metrics_xy \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'qs_plot%'\nAND agent_step = ${latestAgentStep} - 1\nAND metric = '${selectedQAction}'\nORDER BY \"time\"",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Critic - Direct Action Space",
+      "type": "xychart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "fe9zkc0takwlcc"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
             "barAlignment": 0,
             "barWidthFactor": 0.6,
             "drawStyle": "line",
@@ -85,7 +315,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 8
       },
       "id": 3,
       "options": {
@@ -227,7 +457,7 @@
         "h": 9,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 17
       },
       "id": 8,
       "options": {
@@ -369,7 +599,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 26
       },
       "id": 1,
       "options": {
@@ -490,7 +720,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 34
       },
       "id": 6,
       "options": {
@@ -636,7 +866,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 34
+        "y": 42
       },
       "id": 7,
       "options": {
@@ -759,7 +989,7 @@
               "options": {
                 "mode": "exclude",
                 "names": [
-                  "value network_actor_stable_rank_layer_3"
+                  "value network_actor_stable_rank_layer_0"
                 ],
                 "prefix": "All except:",
                 "readOnly": true
@@ -782,7 +1012,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 42
+        "y": 50
       },
       "id": 12,
       "options": {
@@ -903,7 +1133,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 50
+        "y": 58
       },
       "id": 9,
       "options": {
@@ -1049,7 +1279,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 58
+        "y": 66
       },
       "id": 10,
       "options": {
@@ -1170,7 +1400,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 66
+        "y": 74
       },
       "id": 11,
       "options": {
@@ -1275,7 +1505,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1317,7 +1548,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 74
+        "y": 82
       },
       "id": 5,
       "options": {
@@ -1445,7 +1676,50 @@
   "schemaVersion": 40,
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "text": "462",
+          "value": "462"
+        },
+        "definition": "SELECT MAX(agent_step) FROM metrics_xy WHERE $__timeFilter(\"time\") AND metric LIKE 'pdf%'",
+        "hide": 2,
+        "name": "latestAgentStep",
+        "options": [],
+        "query": "SELECT MAX(agent_step) FROM metrics_xy WHERE $__timeFilter(\"time\") AND metric LIKE 'pdf%'",
+        "refresh": 2,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "pdf_plot_0_action",
+          "value": "pdf_plot_0_action"
+        },
+        "definition": "SELECT DISTINCT metric FROM metrics_xy WHERE metric LIKE 'pdf%' ORDER BY metric",
+        "name": "selectedAction",
+        "options": [],
+        "query": "SELECT DISTINCT metric FROM metrics_xy WHERE metric LIKE 'pdf%' ORDER BY metric",
+        "refresh": 2,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "qs_plot_1_action",
+          "value": "qs_plot_1_action"
+        },
+        "definition": "SELECT DISTINCT metric FROM metrics_xy WHERE metric LIKE 'qs_plot%' ORDER BY metric",
+        "description": "",
+        "label": "selectedQAction",
+        "name": "selectedQAction",
+        "options": [],
+        "query": "SELECT DISTINCT metric FROM metrics_xy WHERE metric LIKE 'qs_plot%' ORDER BY metric",
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      }
+    ]
   },
   "time": {
     "from": "now-5m",
@@ -1455,6 +1729,6 @@
   "timezone": "browser",
   "title": "OPC TSDB Local Visualization",
   "uid": "ee9wfo0vhboxsb",
-  "version": 15,
+  "version": 20,
   "weekStart": ""
 }
