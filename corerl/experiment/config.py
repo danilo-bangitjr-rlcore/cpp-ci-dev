@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from corerl.configs.config import config, list_
 
@@ -18,6 +18,8 @@ class ExperimentConfig:
     max_steps: int = 200
     offline_steps: int = 0
     offline_eval_iters: list[int] = list_()
+    start_time: datetime | None = None
+    end_time: datetime | None = None
     pipeline_batch_duration: timedelta = timedelta(days=7)
     render: int = 0
     param: str = ''

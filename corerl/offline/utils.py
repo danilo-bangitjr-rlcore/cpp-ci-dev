@@ -48,13 +48,11 @@ def load_entire_dataset(
 class OfflineTraining:
     def __init__(
         self,
-        cfg: MainConfig,
-        start_time: dt.datetime | None = None,
-        end_time: dt.datetime | None = None
+        cfg: MainConfig
     ):
         self.cfg = cfg
-        self.start_time = start_time
-        self.end_time = end_time
+        self.start_time = cfg.experiment.start_time
+        self.end_time = cfg.experiment.end_time
         self.offline_steps = self.cfg.experiment.offline_steps
         self.pipeline_out: PipelineReturn | None = None
 
