@@ -14,16 +14,6 @@ def _split_columns(df: pd.DataFrame) -> list[pd.Series]:
 
     return dfs
 
-def _totals_to_deltas(df: pd.Series) -> pd.Series:
-    """
-    Some tags track running totals.
-    This method transforms the column to track deltas between consecutive rows instead
-    """
-    delta_df = df.diff()
-    delta_df = delta_df.drop(delta_df.index[0])
-
-    return delta_df
-
 
 def _abs(series: pd.Series) -> pd.Series:
     return abs(series)
@@ -46,17 +36,17 @@ def _parse_pool_price_timestamps(df: pd.DataFrame) -> pd.DataFrame:
     df = df.set_index("Timestamp")
     # In the electricity price data, numbers have commas to separate "thousands" (Eg: 3,456 instead of 3456)
     df = df.replace(',', '', regex=True)
-    df = df.astype('float32')
+    df = df.astype('float64')
 
     return df
 
 
-def _adjust_pool_price_forecast_timestamps(series: pd.Series) -> pd.Series:
+def _adjust_pool_price_forecast_timestamps(series: pd.Series, offset: int) -> pd.Series:
     """
     The forecast listed at a given timestamp was the forecast for that hour.
     The forecast was published in the preceding hour so we should adjust its timestamp accordingly
     """
-    delta = dt.timedelta(hours=1)
+    delta = dt.timedelta(hours=offset)
     series.index = series.index - delta
 
     return series
@@ -71,8 +61,18 @@ def _parse_pool_price_data(df: pd.DataFrame) -> list[pd.Series]:
     transformed_columns = []
     for column in columns:
         assert isinstance(column.name, str)
+        # Need forecast features for the next two hours
+        # TODO: Make sure column names created here match with Epcor's tag names
         if "Forecast" in column.name:
-            column = _adjust_pool_price_forecast_timestamps(column)
+            forecast_1 = column.copy()
+            forecast_2 = column.copy()
+            forecast_1 = forecast_1.rename(f"{column.name} 1")
+            forecast_1 = _adjust_pool_price_forecast_timestamps(forecast_1, 0)
+            forecast_2 = forecast_2.rename(f"{column.name} 2")
+            forecast_2 = _adjust_pool_price_forecast_timestamps(forecast_2, 1)
+            transformed_columns.append(forecast_1)
+            transformed_columns.append(forecast_2)
+            continue
 
         transformed_columns.append(column)
 
@@ -91,7 +91,7 @@ def _parse_battery_timestamps(df: pd.DataFrame) -> pd.DataFrame:
     df['Timestamp'] = pd.to_datetime(df['Timestamp'], utc=True, format="%Y-%m-%d %H:%M:%S")
     df = df.set_index("Timestamp")
     df = df.replace(',', '', regex=True)
-    df = df.astype('float32')
+    df = df.astype('float64')
 
     return df
 
@@ -102,15 +102,8 @@ def _parse_battery_data(df: pd.DataFrame) -> list[pd.Series]:
     """
     df = _parse_battery_timestamps(df)
     columns = _split_columns(df)
-    transformed_columns = []
-    for column in columns:
-        assert isinstance(column.name, str)
-        if "CYCLE" in column.name:
-            column = _totals_to_deltas(column)
 
-        transformed_columns.append(column)
-
-    return transformed_columns
+    return columns
 
 
 def _parse_solar_timestamps(df: pd.DataFrame) -> pd.DataFrame:
@@ -120,23 +113,36 @@ def _parse_solar_timestamps(df: pd.DataFrame) -> pd.DataFrame:
         df['Timestamp'] = pd.to_datetime(df['Timestamp'], utc=True, format="%m/%d/%Y %H:%M")
     df = df.set_index("Timestamp")
     df = df.replace(',', '', regex=True)
-    df = df.astype('float32')
+    df = df.astype('float64')
 
     return df
 
+def _remove_all_bess_offline_entries(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Remove entries where neither BESS 1 nor BESS 2 are online (actions have no effect)
+    """
+    if "ELS_SLR_PS1000_1A_AVAIL" in df.columns:
+        bess_avails = [
+            "ELS_SLR_PS1000_1A_AVAIL",
+            "ELS_SLR_PS1000_1B_AVAIL",
+            "ELS_SLR_PS1000_2A_AVAIL",
+            "ELS_SLR_PS1000_2B_AVAIL"
+        ]
+        df = df.loc[~(df[bess_avails] == 0).all(axis=1)]
+
+    return df
 
 def _parse_solar_data(df: pd.DataFrame) -> list[pd.Series]:
     """
     Parse data in Solar_Data_A.csv or Solar_Data_B.csv
     """
     df = _parse_solar_timestamps(df)
+    df = _remove_all_bess_offline_entries(df)
     columns = _split_columns(df)
     transformed_columns = []
     for column in columns:
         column_name = column.name
         column_name = cast(str, column_name)
-        if "_TOT" in column_name:
-            column = _totals_to_deltas(column)
         if column_name[-4:] == "_KVA":
             column = _abs(column)
 
@@ -148,7 +154,7 @@ def _parse_setpoint_timestamps(df: pd.DataFrame) -> pd.DataFrame:
     df['Timestamp'] = pd.to_datetime(df['Timestamp'], utc=True, format="%m/%d/%Y %H:%M")
     df = df.set_index("Timestamp")
     df = df.replace(',', '', regex=True)
-    df = df.astype('float32')
+    df = df.astype('float64')
 
     return df
 
@@ -158,15 +164,8 @@ def _parse_setpoint_data(df: pd.DataFrame) -> list[pd.Series]:
     """
     df = _parse_setpoint_timestamps(df)
     columns = _split_columns(df)
-    transformed_columns = []
-    for column in columns:
-        assert isinstance(column.name, str)
-        if "_TOT" in column.name:
-            column = _totals_to_deltas(column)
 
-        transformed_columns.append(column)
-
-    return transformed_columns
+    return columns
 
 def load_csv_files(files: Iterable[CloudPath]) -> list[pd.Series]:
     columns = []

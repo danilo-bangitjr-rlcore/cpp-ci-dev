@@ -39,5 +39,6 @@ if __name__ == '__main__':
         port=DBConfig.port,
         db_name='epcor_solar',
         table_name='tag_data',
+        table_schema=DBConfig.schema
     )
     load_dataset(cfg)
