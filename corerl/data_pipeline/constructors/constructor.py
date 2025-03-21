@@ -64,6 +64,7 @@ class Constructor(ABC):
             tag_name: [1., 0.]
             for tag_name in tag_names
         })
+        fake_data.index = pd.DatetimeIndex(["7/13/2023 10:00", "7/13/2023 11:00"])
 
         pf = PipelineFrame(
             data=fake_data,
