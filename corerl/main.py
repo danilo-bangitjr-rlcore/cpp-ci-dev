@@ -22,6 +22,7 @@ from corerl.environment.registry import register_custom_envs
 from corerl.eval.config import register_pipeline_evals
 from corerl.eval.evals import evals_group
 from corerl.eval.metrics import metrics_group
+from corerl.eval.xy_metrics import XYTable
 from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import EventBus
 from corerl.messages.events import EventType
@@ -103,6 +104,7 @@ def retryable_main(cfg: MainConfig):
     app_state = AppState(
         cfg=cfg,
         metrics=metrics_group.dispatch(cfg.metrics),
+        xy_metrics=XYTable(cfg.xy_metrics),
         evals=evals_group.dispatch(cfg.evals),
         event_bus=event_bus,
     )
