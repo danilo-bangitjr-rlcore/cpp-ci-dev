@@ -121,6 +121,12 @@ class GreedyAC(BaseAgent):
 
         return to_np(direct_action)[0]
 
+    def policy_to_direct_action(self, prev_direct_actions: torch.Tensor,  policy_actions: torch.Tensor) -> torch.Tensor:
+        """
+        Converts policy actions to direct actions.
+        """
+        return self._policy_manager._ensure_direct_action(prev_direct_actions, policy_actions)
+
     def get_actor_actions(self, states: torch.Tensor, prev_direct_actions: torch.Tensor) -> ActionReturn:
         """
         Sample actions from actor and return both direct and policy actions.
