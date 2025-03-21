@@ -31,7 +31,7 @@ evals:
   enabled: True
 
 xy_metrics:
-  enabled: True
+  enabled: False
 
 eval_cfgs:
   actor_critic:
