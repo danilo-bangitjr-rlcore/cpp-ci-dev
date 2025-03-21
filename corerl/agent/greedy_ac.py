@@ -96,7 +96,8 @@ class GreedyAC(BaseAgent):
         return self._policy_manager.buffer.sample()
 
     def log_prob(self, states: torch.Tensor, actions: torch.Tensor) -> tuple[torch.Tensor, dict]:
-        return self._policy_manager.actor.log_prob(states, actions)
+        with torch.no_grad():
+            return self._policy_manager.actor.log_prob(states, actions)
 
     def get_action_interaction(self, state: np.ndarray, prev_direct_action: np.ndarray) -> np.ndarray:
         """
