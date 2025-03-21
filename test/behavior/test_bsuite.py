@@ -79,7 +79,6 @@ def _zero_one_matrix(flags: list[str]):
 
 @pytest.mark.parametrize('test_case', TEST_CASES, ids=lambda tc: tc.name)
 @pytest.mark.parametrize('feature_flags', _zero_one_matrix(ZERO_ONE_FEATURES), ids=str)
-@pytest.mark.timeout(900)
 def test_bsuite(
     test_case: BSuiteTestCase,
     bsuite_tsdb: None,
