@@ -13,7 +13,7 @@ from corerl.data_pipeline.transforms.norm import NormalizerConfig
 def test_only_normalize_preprocess():
     tag_cfg1 = TagConfig(
         name="tag_1",
-        operating_range=[0, 10],
+        operating_range=(0, 10),
         preprocess=[
             NormalizerConfig(min=0, max=10)
         ]

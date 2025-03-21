@@ -36,7 +36,7 @@ class Delta:
             assert isinstance(time, pd.Timestamp)
             time = time.to_pydatetime()
 
-            if ts.last is None or np.isnan(row) or (time - ts.time > self._cfg.time_thresh):
+            if ts.time is None or np.isnan(row) or (time - ts.time > self._cfg.time_thresh):
                 carry.transform_data.iloc[i, :] = np.nan
                 if not np.isnan(row):
                     ts.last = row
