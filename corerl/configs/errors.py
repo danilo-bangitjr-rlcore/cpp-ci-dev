@@ -35,7 +35,12 @@ def _construct_error_response(details: list[ErrorDetails]) -> ConfigValidationEr
     errors: dict[str, ConfigValidationError] = {}
 
     for err_detail in details:
-        path = '.'.join(map(str, err_detail['loc']))
+        path = '.'.join(
+            filter(
+                lambda s: s[0].islower(),
+                map(str, err_detail['loc']),
+            )
+        )
         errors[path] = ConfigValidationError(
             kind=_error_type_remapping(err_detail['type']),
             given_value=err_detail['input'],
@@ -55,3 +60,11 @@ def validate_with_error_handling[T](ta: TypeAdapter[T], config: object, context:
 
     except ValidationError as e:
         return _construct_error_response(e.errors())
+
+    except Exception as e:
+        logger.exception(e)
+        return ConfigValidationErrors(
+            name='ValidationError',
+            message='Failed to validate config',
+            meta={},
+        )
