@@ -30,6 +30,9 @@ agent:
 evals:
   enabled: True
 
+xy_metrics:
+  enabled: True
+
 eval_cfgs:
   actor_critic:
     enabled: True
