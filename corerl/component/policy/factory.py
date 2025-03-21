@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 import torch
 import torch.nn as nn
@@ -204,3 +204,11 @@ def create(
     action_max: torch.Tensor | float | None = None,
 ):
     return policy_group.dispatch(cfg, input_dim, output_dim, action_min, action_max)
+
+PolicyConfig = Annotated[
+    BetaPolicyConfig
+    | GammaPolicyConfig
+    | LaplacePolicyConfig
+    | NormalPolicyConfig
+    | SquashedGaussianPolicyConfig
+, Field(discriminator='name')]
