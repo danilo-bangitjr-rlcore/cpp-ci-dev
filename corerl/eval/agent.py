@@ -396,7 +396,7 @@ def q_values_and_act_prob(
         augmented_policy_actions[:, a_dim_idx] = repeated_lin_spaced_actions
         # convert these policy actions to direct action
         direct_actions = agent.policy_to_direct_action(repeated_prev_a, augmented_policy_actions)
-
+        direct_actions = torch.clip(direct_actions, 0, 1)
         probs = agent.prob(
             repeated_states,
             augmented_policy_actions, # probability is calculated using policy actions
