@@ -50,7 +50,7 @@ class XYDBConfig(BufferedWriterConfig):
     name : Literal['db'] = 'db'
     table_name: str = 'metrics_xy'
     lo_wm: int = 1
-    enabled: bool = True
+    enabled: bool = False
 
 class XYTable(BufferedWriter[_XYPoint]):
     """
