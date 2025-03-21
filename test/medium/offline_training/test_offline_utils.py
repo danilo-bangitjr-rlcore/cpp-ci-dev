@@ -85,6 +85,7 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_
     # Generate timestamps
     step_timestamps = []
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.timezone.utc)
+    offline_cfg.experiment.start_time = start_time
     # The index of the first row produced by the data reader given start_time will be
     # obs_period after start_time.
     first_step = start_time + obs_period
@@ -109,7 +110,7 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_
     data_writer.blocking_sync()
 
     # Produce offline transitions
-    offline_training = OfflineTraining(offline_cfg, start_time=start_time)
+    offline_training = OfflineTraining(offline_cfg)
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
     offline_training.load_offline_transitions(pipeline)
 
@@ -226,3 +227,45 @@ def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig, dummy_app_s
     pr = pipeline(df, data_mode=DataMode.OFFLINE)
 
     assert np.all(pr.df['Tag_1_norm'] == [1., 0, 0.5, 0.5, 0.5])
+
+def test_offline_start_end(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_state: AppState):
+    steps = 5
+    obs_period = offline_cfg.interaction.obs_period
+
+    # Generate timestamps
+    step_timestamps = []
+    start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.timezone.utc)
+    # The index of the first row produced by the data reader given start_time will be
+    # obs_period after start_time.
+    first_step = start_time + obs_period
+
+    for i in range(steps):
+        step_timestamps.append(first_step + obs_period * i)
+
+    # Generate tag data and write to tsdb
+    steps_per_decision = int(
+        offline_cfg.interaction.action_period.total_seconds() / offline_cfg.interaction.obs_period.total_seconds()
+    )
+    for i in range(steps):
+        for tag_cfg in offline_cfg.pipeline.tags:
+            tag = tag_cfg.name
+            if tag_cfg.action_constructor is not None:
+                val = int(i / steps_per_decision) % 2
+            else:
+                val = i
+
+            data_writer.write(timestamp=step_timestamps[i], name=tag, val=val)
+
+    data_writer.blocking_sync()
+
+    # Produce offline transitions
+    offline_cfg.experiment.start_time = first_step
+    offline_cfg.experiment.end_time = first_step + 2 * obs_period
+    offline_training = OfflineTraining(offline_cfg)
+    pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
+    offline_training.load_offline_transitions(pipeline)
+
+    # Since start_time and end_time are specified,
+    # make sure PipelineReturn's df spans (end_time - start_time) / obs_period entries
+    df = offline_training.pipeline_out.df
+    assert len(df) == (offline_cfg.experiment.end_time - offline_cfg.experiment.start_time) / obs_period
