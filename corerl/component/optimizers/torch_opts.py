@@ -114,6 +114,7 @@ def lso_dispatch(cfg: LSOConfig, app_state: AppState, param: Iterable[torch.nn.P
             app_state=app_state,
             params=param,
             optim=torch.optim.Adam,
+            optim_kwargs={'weight_decay': cfg.optim.weight_decay},
             search_condition=construct_lso_search_condition(cfg.search_condition),
             init=construct_lso_init(cfg.init, cfg.lr),
             init_step_size=cfg.lr,
@@ -126,6 +127,7 @@ def lso_dispatch(cfg: LSOConfig, app_state: AppState, param: Iterable[torch.nn.P
         lso.Optimizer, param,
         kwargs={
             "optim": torch.optim.Adam,
+            "optim_kwargs": {'weight_decay': cfg.optim.weight_decay},
             "search_condition": construct_lso_search_condition(cfg.search_condition),
             "init": construct_lso_init(cfg.init, cfg.lr),
             "init_step_size": cfg.lr,
