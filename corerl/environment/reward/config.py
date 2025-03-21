@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Callable, Literal
+from typing import TYPE_CHECKING, Annotated, Callable, Literal
 
 from pydantic import Field
 
@@ -22,8 +22,10 @@ class Goal:
     tag: str = MISSING
     thresh: float | str = MISSING
 
-    thresh_func: Callable[..., float] | None = None
-    thresh_tags: list[str] | None = None
+    # Exclude these fields from openapi.json because Callable causes problems in CoreIO
+    # These attributes are set in the post processor
+    thresh_func: Annotated[Callable[..., float] | None, Field(exclude=True)] = None
+    thresh_tags: Annotated[list[str] | None, Field(exclude=True)] = None
 
     @post_processor
     def _parse_sympy(self, cfg: MainConfig):
