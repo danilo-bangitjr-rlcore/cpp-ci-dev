@@ -1,10 +1,11 @@
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Literal
 
 import numpy as np
 import pandas as pd
 
-from corerl.configs.config import config
+from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
@@ -12,11 +13,13 @@ from corerl.data_pipeline.transforms.interface import TransformCarry
 @config()
 class DeltaConfig(BaseTransformConfig):
     name: Literal["delta"] = "delta"
+    time_thresh: timedelta = MISSING
 
 
 @dataclass
 class DeltaTemporalState:
     last: np.ndarray | None = None
+    time: datetime | None = None
 
 
 class Delta:
@@ -29,14 +32,20 @@ class Delta:
 
         for i in range(len(carry.transform_data)):
             row = carry.transform_data.iloc[i].to_numpy().copy()
+            time = carry.transform_data.index[i]
+            assert isinstance(time, pd.Timestamp)
+            time = time.to_pydatetime()
 
-            if ts.last is None:
-                ts.last = row
+            if ts.last is None or np.isnan(row) or (time - ts.time > self._cfg.time_thresh):
                 carry.transform_data.iloc[i, :] = np.nan
+                if not np.isnan(row):
+                    ts.last = row
+                    ts.time = time
                 continue
 
             delta = row - ts.last
             ts.last = row
+            ts.time = time
             carry.transform_data.iloc[i] = delta
 
         carry.transform_data.rename(columns=lambda col: f'{col}_Δ', inplace=True)
