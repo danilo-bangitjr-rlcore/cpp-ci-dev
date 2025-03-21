@@ -118,12 +118,6 @@ class MainConfig:
     @post_processor
     def _enable_delta_actions(self, cfg: 'MainConfig'):
         if not self.feature_flags.delta_actions:
-            assert self.agent.policy.delta_actions is False, \
-                'delta_actions is disabled but actor is configured to use delta actions'
-
-        self.agent.policy.delta_actions = self.feature_flags.delta_actions
-
-        if not self.feature_flags.delta_actions:
             return
 
         sorted_tags = sorted(self.pipeline.tags, key=lambda x: x.name)
