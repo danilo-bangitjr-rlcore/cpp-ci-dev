@@ -19,7 +19,7 @@ class DeltaConfig(BaseTransformConfig):
 @dataclass
 class DeltaTemporalState:
     last: np.ndarray | None = None
-    time: datetime | None = None
+    time: list[datetime] | None = None
 
 
 class Delta:
@@ -36,17 +36,24 @@ class Delta:
             assert isinstance(time, pd.Timestamp)
             time = time.to_pydatetime()
 
-            if ts.time is None or np.isnan(row) or (time - ts.time > self._cfg.time_thresh):
+            if ts.time is None:
                 carry.transform_data.iloc[i, :] = np.nan
-                if not np.isnan(row):
-                    ts.last = row
-                    ts.time = time
+                ts.last = row
+                ts.time = [time] * len(row)
                 continue
 
-            delta = row - ts.last
-            ts.last = row
-            ts.time = time
-            carry.transform_data.iloc[i] = delta
+            for ind in range(len(row)):
+                if np.isnan(row[ind]) or (time - ts.time[ind] > self._cfg.time_thresh):
+                    carry.transform_data.iloc[i, ind] = np.nan
+                    if not np.isnan(row[ind]):
+                        ts.last[ind] = row[ind]
+                        ts.time[ind] = time
+                    continue
+
+                delta = row[ind] - ts.last[ind]
+                ts.last[ind] = row[ind]
+                ts.time[ind] = time
+                carry.transform_data.iloc[i, ind] = delta
 
         carry.transform_data.rename(columns=lambda col: f'{col}_Δ', inplace=True)
         return carry, ts

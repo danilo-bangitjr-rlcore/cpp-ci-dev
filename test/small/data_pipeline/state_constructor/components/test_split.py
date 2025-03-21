@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -55,6 +55,12 @@ def test_split_ts1():
     obs = pd.DataFrame({
         'tag_1': [1, 2, 3, 4, np.nan, 1, 2, 3, 4],
     })
+    start_time = datetime(2023, 4, 11, 2)
+    increment = timedelta(hours=1)
+    timestamps = []
+    for i in range(len(obs)):
+        timestamps.append(start_time + increment * i)
+    obs.index = pd.DatetimeIndex(timestamps)
 
     ts = SplitTemporalState(
         left_state=[
@@ -62,7 +68,8 @@ def test_split_ts1():
                 mu={'tag_1': np.array([100.])},
             ),
             DeltaTemporalState(
-                last=np.array([5]),
+                last=np.array([5.0]),
+                time=[start_time - increment]
             ),
         ],
         right_state=None,
@@ -87,7 +94,7 @@ def test_split_ts1():
                 SplitConfig(
                     left=[
                         TraceConfig(trace_values=[0.1]),
-                        DeltaConfig(),
+                        DeltaConfig(time_thresh=increment),
                     ],
                     right=[TraceConfig(trace_values=[0.01])],
                 ),
