@@ -7,6 +7,7 @@ from corerl.environment.async_env.factory import init_async_env
 from corerl.environment.registry import register_custom_envs
 from corerl.eval.evals import evals_group
 from corerl.eval.metrics import metrics_group
+from corerl.eval.xy_metrics import XYTable
 from corerl.interaction.factory import init_interaction
 from corerl.interaction.sim_interaction import SimInteraction
 from corerl.messages.event_bus import EventBus
@@ -24,6 +25,7 @@ def test_action_bounds():
     app_state = AppState(
         cfg=cfg,
         metrics=metrics_group.dispatch(cfg.metrics),
+        xy_metrics=XYTable(cfg.xy_metrics),
         evals=evals_group.dispatch(cfg.evals),
         event_bus=event_bus,
     )

@@ -11,6 +11,7 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.zones import ZoneDiscourager
 from corerl.eval.evals import evals_group
 from corerl.eval.metrics import metrics_group
+from corerl.eval.xy_metrics import XYTable
 from corerl.messages.event_bus import EventBus
 from corerl.state import AppState
 
@@ -30,6 +31,7 @@ def app_state(cfg: MainConfig):
         cfg=cfg,
         evals=evals_group.dispatch(cfg.evals),
         metrics=metrics_group.dispatch(cfg.metrics),
+        xy_metrics=XYTable(cfg.xy_metrics),
         event_bus=EventBus(cfg.event_bus, cfg.env),
     )
 

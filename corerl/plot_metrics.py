@@ -6,6 +6,7 @@ from corerl.configs.loader import load_config
 from corerl.eval.evals import evals_group
 from corerl.eval.metrics import metrics_group
 from corerl.eval.plotting.metrics import MetricsPlottingConfig, plot_metrics
+from corerl.eval.xy_metrics import XYTable
 from corerl.messages.event_bus import EventBus
 from corerl.state import AppState
 
@@ -53,6 +54,7 @@ def main(cfg: MainConfig):
     app_state = AppState(
         cfg=cfg,
         metrics=metrics_group.dispatch(cfg.metrics),
+        xy_metrics=XYTable(cfg.xy_metrics),
         evals=evals_group.dispatch(cfg.evals),
         event_bus=event_bus,
     )
