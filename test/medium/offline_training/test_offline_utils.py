@@ -12,7 +12,7 @@ from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.datatypes import DataMode, Step, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
-from corerl.data_pipeline.pipeline import Pipeline
+from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.environment.async_env.async_env import DepAsyncEnvConfig
 from corerl.eval.actor_critic import PlotInfoBatch
@@ -267,5 +267,6 @@ def test_offline_start_end(offline_cfg: MainConfig, data_writer: DataWriter, dum
 
     # Since start_time and end_time are specified,
     # make sure PipelineReturn's df spans (end_time - start_time) / obs_period entries
+    assert isinstance(offline_training.pipeline_out, PipelineReturn)
     df = offline_training.pipeline_out.df
     assert len(df) == (offline_cfg.experiment.end_time - offline_cfg.experiment.start_time) / obs_period
