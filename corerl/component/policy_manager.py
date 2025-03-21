@@ -21,9 +21,9 @@ from corerl.component.network.utils import tensor, to_np
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import AdamConfig
-from corerl.component.policy.factory import BaseNNConfig, SquashedGaussianPolicyConfig, create
+from corerl.component.policy.factory import PolicyConfig, SquashedGaussianPolicyConfig, create
 from corerl.component.policy.policy import Policy
-from corerl.configs.config import config, post_processor
+from corerl.configs.config import MISSING, computed, config, post_processor
 from corerl.data_pipeline.pipeline import PipelineReturn
 from corerl.eval.torch import get_layers_stable_rank
 from corerl.messages.events import EventType
@@ -52,7 +52,7 @@ Optimizer = torch.optim.Optimizer | EnsembleOptimizer
 @config()
 class GACPolicyManagerConfig:
     name: Literal["network"] = "network"
-    delta_actions: bool = False
+    delta_actions: bool = MISSING
     delta_bounds: list[tuple[float, float]] = Field(default_factory=list)
 
     # hyperparameters
@@ -69,7 +69,7 @@ class GACPolicyManagerConfig:
     ingress_loss: bool = True
 
     # components
-    network: BaseNNConfig = Field(default_factory=SquashedGaussianPolicyConfig)
+    network: PolicyConfig = Field(default_factory=SquashedGaussianPolicyConfig)
     optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
     buffer: MixedHistoryBufferConfig = Field(
         default_factory=lambda: MixedHistoryBufferConfig(
@@ -77,6 +77,11 @@ class GACPolicyManagerConfig:
             ensemble_probability=1.0,
         ),
     )
+
+    @computed("delta_actions")
+    @classmethod
+    def _delta_actions(cls, cfg: "MainConfig"):
+        return cfg.feature_flags.delta_actions
 
     @post_processor
     def _default_stepsize(self, cfg: 'MainConfig'):
