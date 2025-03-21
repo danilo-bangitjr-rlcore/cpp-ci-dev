@@ -20,11 +20,6 @@ metrics:
   enabled: True
 
 pipeline:
-  state_constructor:
-    defaults:
-      - name: multi_trace
-        trace_values: [0]
-
   tags:
   - name: action-0
     change_bounds: [-1, 1]

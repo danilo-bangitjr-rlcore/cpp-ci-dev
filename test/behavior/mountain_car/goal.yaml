@@ -20,11 +20,6 @@ metrics:
   enabled: True
 
 pipeline:
-  state_constructor:
-    defaults:
-      - name: multi_trace
-        trace_values: [0, 0.9]
-
   reward:
     priorities:
       # priority 1 - stay on right side of mountain

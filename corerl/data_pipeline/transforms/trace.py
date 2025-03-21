@@ -12,7 +12,7 @@ from corerl.data_pipeline.transforms.interface import TransformCarry
 @config()
 class TraceConfig(BaseTransformConfig):
     name: Literal['multi_trace'] = 'multi_trace'
-    trace_values: list[float] = list_([0.9, 0.95])
+    trace_values: list[float] = list_([0., 0.75, 0.9, 0.95])
 
 
 @dataclass
