@@ -1,3 +1,4 @@
+import json
 import subprocess
 from enum import Enum, auto
 from typing import Any
@@ -20,6 +21,7 @@ class Behaviour(Enum):
 class BSuiteTestCase:
     name: str
     config: str
+    required_features: set[str] = set()
     behaviours: dict[str, Behaviour] = {}
     lower_bounds: dict[str, float] = {}
     upper_bounds: dict[str, float] = {}
@@ -33,20 +35,26 @@ class BSuiteTestCase:
         self._overrides = self.overrides or {}
         self._cfg = direct_load_config(MainConfig, base='.', config_name=self.config)
 
-    def execute_test(self, tsdb: Engine, db_name: str, schema: str):
+    def execute_test(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
         ip = tsdb.url.host
         port = tsdb.url.port
+
+        feature_overrides = {
+            f'feature_flags.{k}': v for k, v in features.items() if k != 'base'
+        }
+
         overrides = self._overrides | {
             'infra.db.ip': ip,
             'infra.db.port': port,
             'infra.db.db_name': db_name,
             'infra.db.schema': schema,
-        }
+            'experiment.num_threads': 1,
+        } | feature_overrides
 
         parts = [f'{k}={v}' for k, v in overrides.items()]
 
         proc = subprocess.run([
-            'uv', 'run', 'python', 'main.py',
+            'python', 'main.py',
             '--base', '.',
             '--config-name', self.config,
         ] + parts)
@@ -62,14 +70,14 @@ class BSuiteTestCase:
         metrics_table = metrics_table.sort_values('agent_step', ascending=True)
         return metrics_table
 
-    def evaluate_outcomes(self, tsdb: Engine, metrics_table: pd.DataFrame) -> pd.DataFrame:
+    def evaluate_outcomes(self, tsdb: Engine, metrics_table: pd.DataFrame, features: dict[str, bool]) -> pd.DataFrame:
         extracted = []
         extracted += self._extract(self.lower_bounds, 'lower_bounds', metrics_table)
         extracted += self._extract(self.upper_bounds, 'upper_bounds', metrics_table)
         extracted += self._extract(self.goals,  'goals',  metrics_table)
 
         summary_df = pd.DataFrame(extracted, columns=['metric', 'behaviour', 'bound_type', 'expected', 'got'])
-        self._store_outcomes(tsdb, summary_df)
+        self._store_outcomes(tsdb, summary_df, features)
         self._evaluate_bounds(summary_df)
 
         return summary_df
@@ -108,7 +116,13 @@ class BSuiteTestCase:
                 assert got <= expected, f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}'
 
 
-    def _store_outcomes(self, tsdb: Engine, summary_df: pd.DataFrame):
+    def _store_outcomes(self, tsdb: Engine, summary_df: pd.DataFrame, features: dict[str, bool]):
+        feature_json = {
+            'enabled_features': [
+                feature for feature, enabled in features.items() if enabled
+            ],
+        }
+
         outcomes: list[dict[str, Any]] = []
         now = now_iso()
         for _, row in summary_df.iterrows():
@@ -120,6 +134,7 @@ class BSuiteTestCase:
                 'bound_type': row['bound_type'],
                 'expected': row['expected'],
                 'got': row['got'],
+                'features': json.dumps(feature_json),
             })
 
         create_table_sql = create_tsdb_table_query(
@@ -133,6 +148,7 @@ class BSuiteTestCase:
                 SQLColumn(name='bound_type', type='TEXT', nullable=False),
                 SQLColumn(name='expected', type='FLOAT', nullable=False),
                 SQLColumn(name='got', type='FLOAT', nullable=False),
+                SQLColumn(name='features', type='jsonb', nullable=False),
             ],
             partition_column='test_name',
             index_columns=['test_name', 'metric', 'behaviour', 'bound_type'],
@@ -141,8 +157,10 @@ class BSuiteTestCase:
 
         insert_sql = text("""
             INSERT INTO bsuite_outcomes
-            (time, test_name, metric, behaviour, bound_type, expected, got)
-            VALUES (TIMESTAMP WITH TIME ZONE :time, :test_name, :metric, :behaviour, :bound_type, :expected, :got)
+            (time, test_name, metric, behaviour, bound_type, expected, got, features)
+            VALUES (
+                TIMESTAMP WITH TIME ZONE :time, :test_name, :metric, :behaviour, :bound_type, :expected, :got, :features
+            )
         """)
 
         with tsdb.connect() as conn:
@@ -168,6 +186,3 @@ class BSuiteTestCase:
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
     return df[df['metric'] == metric]['value'].to_numpy()
-
-
-

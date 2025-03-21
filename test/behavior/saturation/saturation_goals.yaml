@@ -13,33 +13,11 @@ experiment:
   gamma: 0.99
   max_steps: 2000
 
-agent:
-  name: greedy_ac
-  policy:
-    optimizer:
-      lr: 0.001
-
 
 metrics:
   enabled: True
 
-evals:
-  name: db
-  enabled: True
-
-eval_cfgs:
-  actor_critic:
-    enabled: True
-  monte_carlo:
-    enabled: True
-    precision: 0.9
-
 pipeline:
-  state_constructor:
-    defaults:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]
-
   reward:
     priorities:
       - op: up_to
@@ -69,8 +47,7 @@ pipeline:
 
   # actions
   - name: action-0
+    change_bounds: [-1, 1]
     operating_range: [0, 0.5]
-    state_constructor:
-      - name: 'null'
     action_constructor:
       - name: identity

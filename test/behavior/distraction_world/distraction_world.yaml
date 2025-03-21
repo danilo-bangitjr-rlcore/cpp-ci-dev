@@ -15,9 +15,6 @@ experiment :
 metrics:
   enabled: True
 
-feature_flags:
-  action_embedding : True
-    
 pipeline:
   tags:
   # meta tags
@@ -48,6 +45,7 @@ pipeline:
       name: identity
 
   - name: action-0
+    change_bounds: [-1, 1]
     operating_range:
     - 0.0
     - 1.0

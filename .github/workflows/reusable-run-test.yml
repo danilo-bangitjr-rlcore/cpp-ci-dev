@@ -42,6 +42,8 @@ jobs:
           uv venv
           uv sync
 
+      - run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
       - name: Install corerl if large
         if: ${{ inputs.test-suite == 'large' || inputs.test-suite == 'behavior' }}
         run: uv pip install .
