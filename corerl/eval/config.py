@@ -6,7 +6,13 @@ from corerl.agent.base import BaseAgent
 from corerl.configs.config import config
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.actor_critic import ActorCriticEvalConfig
-from corerl.eval.agent import GreedDistConfig, GreedValuesConfig, PolicyVarianceConfig, QOnlineConfig
+from corerl.eval.agent import (
+    GreedDistConfig,
+    GreedValuesConfig,
+    PolicyVarianceConfig,
+    QOnlineConfig,
+    QPDFPlotsConfig,
+)
 from corerl.eval.monte_carlo import MonteCarloEvalConfig
 from corerl.eval.raw_data import RawDataEvalConfig, raw_data_eval
 from corerl.state import AppState
@@ -23,6 +29,7 @@ class EvalConfig:
     greed_dist_online: GreedDistConfig = Field(default_factory=GreedDistConfig)
     greed_percent_batch: GreedValuesConfig = Field(default_factory=GreedValuesConfig)
     greed_percent_online: GreedValuesConfig = Field(default_factory=GreedValuesConfig)
+    q_pdf_plots: QPDFPlotsConfig = Field(default_factory=QPDFPlotsConfig)
 
 def register_pipeline_evals(cfg: EvalConfig, agent: BaseAgent, pipeline: Pipeline, app_state: AppState):
     pipeline.register_hook(
