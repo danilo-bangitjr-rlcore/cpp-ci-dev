@@ -360,7 +360,7 @@ def q_values_and_act_prob(
         ):
     """
     Logs the probability density function of the policy and the Q values.
-    This entries are of the form (metric, x, y) where 
+    This entries are of the form (metric, x, y) where
     * metric tells us the action being varied (think x-axis)
     * x is a direct action
     * y is the probability or Q value, averaged over samples where the action in metric is set to x
