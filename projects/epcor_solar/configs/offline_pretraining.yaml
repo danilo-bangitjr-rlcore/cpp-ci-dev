@@ -11,7 +11,6 @@ infra:
 
 experiment:
   exp_name: epcor_solar_offline/
-  save_path: output
   seed: 1
   gamma: 0.99
   run_forever: True # Necessary for online deployment
@@ -27,9 +26,8 @@ experiment:
   pipeline_batch_duration: 50 days
 
 feature_flags:
-  delta_actions: False
-  ensemble: 1
   zone_violations: True
+  action_embedding: True
 
 interaction:
   name: dep_interaction
@@ -59,56 +57,25 @@ env:
 
 agent:
   name: greedy_ac
-  n_updates: 1 # Also consider configurable update_period above
-  n_actor_updates: 1
-  n_critic_updates: 1
   eval_batch: True
 
   critic:
-    critic_network:
-      bootstrap_reduct:
-        name: mean
-    critic_optimizer:
-      name: lso
-      lr: 0.01
-      weight_decay: 0.0
-      max_backtracking_steps: 50
-      unit_norm_direction: False
-      fallback_step_size: 0.0001
     buffer:
       name: mixed_history_buffer
-      online_weight: 0.75
+      memory: 3000000 # Basically two years of transitions with All The Time with min_n_step: 1, max_n_step: 5
       n_most_recent: 24
       ensemble_probability: 1
       id: critic # for metric logging
 
   policy:
-    num_samples: 128
-    actor_percentile: 0.1
-    sampler_percentile: 0.2
-    uniform_weight: 1.0
-    init_sampler_with_actor_weights: True
-    resample_for_sampler_update: True
     even_dispersed_uniform: True
-
-    network:
-      name: beta
-
-    optimizer:
-      name: adam # Haven't been using LSO because it greedifies too fast
-      lr: 0.001
-      weight_decay: 0.0
 
     buffer:
       name: mixed_history_buffer
-      online_weight: 0.75
+      memory: 200000 # Basically two years of transitions
       n_most_recent: 24
       ensemble_probability: 1
       id: policy # for metric logging
-
-report: # Ask Revan
-  cross_corr_tags : null
-  cross_corr_max_lag : 300
 
 metrics:
   enabled: True
@@ -165,7 +132,7 @@ pipeline:
             thresh: 0.51
 
       # Priority 2: Maximize: electricity_sold_t - electricity_bought_t - battery_cost_t
-      # Update with virtual sensors in next sprint
+      # TODO: Update with virtual sensors in next sprint
       - tags:
           - ELS_SLR_ELSP12_ENG_IN_TOT
           - ELS_SLR_ELSP72_ENG_IN_TOT
@@ -780,7 +747,7 @@ pipeline:
       operating_range: [ 0.0, 1000.0 ]
       agg: last
 
-#    # Rewards
+#    # Old Reward Constructor
 #    - name: ELS_SLR_ELSP72_ENG_OUT_TOT # Running total energy imported from P72
 #      # node_identifier: 14
 #      reward_constructor:
