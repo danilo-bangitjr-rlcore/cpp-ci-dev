@@ -1,19 +1,27 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
 
-from corerl.configs.config import MISSING, config
+from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 
 @config()
 class DeltaConfig(BaseTransformConfig):
     name: Literal["delta"] = "delta"
     time_thresh: timedelta = MISSING
+
+    @computed("time_thresh")
+    @classmethod
+    def _time_thresh(cls, cfg: "MainConfig"):
+        return cfg.interaction.obs_period
 
 
 @dataclass
