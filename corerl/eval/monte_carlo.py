@@ -111,10 +111,10 @@ class MonteCarloEvaluator:
             return
 
         partial_return = 0.0
-        gamma = 1.0
+        gamma = self.gamma ** (self.return_steps - 1)
         for step in self._step_queue:
             partial_return += gamma * step.reward
-            gamma *= self.gamma
+            gamma /= self.gamma
 
         return partial_return
 
