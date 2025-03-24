@@ -1,0 +1,817 @@
+log_path: "outputs/epcor_solar_agent_logs" # Logger output
+
+infra:
+  db:
+    db_name: "epcor_solar"
+
+experiment:
+  exp_name: epcor_solar_offline/
+  gamma: 0.99
+  run_forever: True # Necessary for online deployment
+  max_steps: 0 # Offline training
+  offline_steps: 1000
+  offline_eval_iters:
+    - 0
+    - 10
+    - 100
+    - 999
+  offline_start_time: '2024-01-25T00:00' # When tag that tracks % of on-site solar usage starts being accurate
+  offline_end_time: '2024-08-01T00:00'
+  pipeline_batch_duration: 50 days
+
+feature_flags:
+  zone_violations: True
+  action_embedding: True
+
+interaction:
+  name: dep_interaction
+  restore_checkpoint: False
+  obs_period: 00:01:00
+  update_period: 00:00:30
+  action_period: 00:05:00
+  warmup_period: 24:00:00
+  update_warmup: 300 # Want the agent to learn something but not get too deterministic
+  historical_batch_size: 272160 # 189 days @ 1 minute obs period
+  hist_chunk_start: 2024-01-25 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
+  heartbeat:
+    heartbeat_node_id: "ns=3;i=1" # This will likely change
+    heartbeat_period: 00:00:05
+    max_counter: 1000
+
+event_bus:
+  enabled: True # Set to false during offline training
+
+env:
+  name: dep_async_env
+  action_tolerance: 00:05:00
+  setpoint_ping_period: 00:00:10 # Previously used to frequently write to OPC to make sure value wasn't considered stale
+
+  db:
+    table_name: "tag_data"
+
+agent:
+  name: greedy_ac
+  eval_batch: True
+
+  critic:
+    buffer:
+      name: mixed_history_buffer
+      memory: 3000000 # Basically two years of transitions with All The Time with min_n_step: 1, max_n_step: 5
+      n_most_recent: 24
+      ensemble_probability: 1
+      id: critic # for metric logging
+
+  policy:
+    buffer:
+      name: mixed_history_buffer
+      memory: 200000 # Basically two years of transitions
+      n_most_recent: 24
+      ensemble_probability: 1
+      id: policy # for metric logging
+
+metrics:
+  enabled: True
+
+evals:
+  enabled: True
+
+eval_cfgs:
+  actor_critic:
+    enabled: True
+  monte_carlo:
+    enabled: True
+
+pipeline:
+  imputer:
+    name: per-tag
+    default:
+      name: copy # Set to autoencoder in the future
+      imputation_horizon: 1440 # (24 hours * 60 minutes = 1440)
+
+  state_constructor:
+    countdown:
+      kind: two_clock
+    seasonal:
+      time_of_day_enabled: True
+      day_of_week_enabled: True
+      time_of_year_enabled: True
+    defaults:
+      - name: multi_trace
+        trace_values: [0.0, 0.9, 0.95, 0.99]
+
+  transition_filter:
+    filters:
+#      - "only_pre_dp_or_ac" # Use only for Regular RL
+#      - "only_post_dp" # Use only for Regular RL
+      - "no_nan"
+      - "only_no_action_change"
+
+  reward:
+    priorities:
+      # Priority 1: Maintain ELS_SLR_ELSP12_MAJORITY_LGC > 0.51 AND ELS_SLR_ELSP72_MAJORITY_LGC > 0.51
+      - op: and
+        goals:
+          - op: up_to
+            tag: ELS_SLR_ELSP12_MAJORITY_LGC
+            thresh: 0.51
+          - op: up_to
+            tag: ELS_SLR_ELSP72_MAJORITY_LGC
+            thresh: 0.51
+
+      # Priority 2: Maximize: electricity_sold_t - electricity_bought_t - battery_cost_t
+      # TODO: Update with virtual sensors in next sprint
+      - tags:
+          - ELS_SLR_ELSP12_ENG_IN_TOT
+          - ELS_SLR_ELSP72_ENG_IN_TOT
+          - ELS_SLR_ELSP12_ENG_OUT_TOT
+          - ELS_SLR_ELSP72_ENG_OUT_TOT
+          - ELS_SLR_BESS1_ENG_IN_TOT
+          - ELS_SLR_BESS1_ENG_OUT_TOT
+          - ELS_SLR_BESS2_ENG_IN_TOT
+          - ELS_SLR_BESS2_ENG_OUT_TOT
+        directions:
+          - max
+          - max
+          - min
+          - min
+          - min
+          - min
+          - min
+          - min
+        weights:
+          - 55.0 # This is a made up sale price
+          - 81.0 # This is a made up sale price
+          - 47.42 # Epcor's purchase price of electricity in 2025 ($/MWh)
+          - 47.42 # Epcor's purchase price of electricity in 2025 ($/MWh)
+          - 20.57 # $41.14/MWh battery degradation rate divided over charging/discharging # TODO: Potentially decrease?
+          - 20.57 # $41.14/MWh battery degradation rate divided over charging/discharging # TODO: Potentially decrease?
+          - 20.57 # $41.14/MWh battery degradation rate divided over charging/discharging # TODO: Potentially decrease?
+          - 20.57 # $41.14/MWh battery degradation rate divided over charging/discharging # TODO: Potentially decrease?
+
+  tags:
+    # Actions
+    - name: SCADA1.ELS_SLR_BESS1_SOC_SP_LGC.F_CV # BESS1 SOC SP
+      # node_identifier: 14
+      operating_range: [20.0, 80.0]
+      agg: last
+      action_constructor:
+        - name: identity
+
+
+    - name: SCADA1.ELS_SLR_BESS2_SOC_SP_LGC.F_CV # BESS2 SOC SP
+      # node_identifier: 14
+      operating_range: [ 20.0, 80.0 ]
+      agg: last
+      action_constructor:
+        - name: identity
+
+#    # BESS enable/disable charging from grid probably not necessary
+#    - name: SCADA1.ELS_SLR_BESS1_GRID_MODE_CMD.A_CV
+#      # node_identifier: 14
+#      operating_range: [0.0, 1.0]
+#      agg: last
+#      action_constructor:
+#        - name: identity
+#
+#    - name: SCADA1.ELS_SLR_BESS2_GRID_MODE_CMD.A_CV
+#      # node_identifier: 14
+#      operating_range: [ 0.0, 1.0 ]
+#      agg: last
+#      action_constructor:
+#        - name: identity
+
+#    - name: SCADA1.ELS_SLD_BESS1_ # Missing tag name for BESS1 discharge rate
+#      # node_identifier: 14
+#      operating_range: [0.0, 2000.0] # Currently 200. Should we set a non-zero minimum?
+#      agg: last
+#      action_constructor:
+#        - name: identity
+#
+#    - name: SCADA1.ELS_SLD_BESS2_ # Missing tag name for BESS2 discharge rate
+#      # node_identifier: 14
+#      operating_range: [ 0.0, 2000.0 ] # Currently 200. Should we set a non-zero minimum?
+#      agg: last
+#      action_constructor:
+#        - name: identity
+
+    # Observations
+    - name: ELS_SLR_BESS1_SOC # BESS 1 State of Charge
+      # node_identifier: 14
+      operating_range: [0.0, 90.0]
+      # agg: last
+
+    - name: ELS_SLR_BESS2_SOC # BESS 2 State of Charge
+      # node_identifier: 14
+      operating_range: [0.0, 90.0]
+      # agg: last
+
+    - name: ELS_SLR_PS1000_1A_SOC # BESS 1A State of Charge
+      # node_identifier: 14
+      operating_range: [0.0, 90.0]
+      # agg: last
+
+    - name: ELS_SLR_PS1000_1B_SOC # BESS 1B State of Charge
+      # node_identifier: 14
+      operating_range: [0.0, 90.0]
+      # agg: last
+
+    - name: ELS_SLR_PS1000_2A_SOC # BESS 2A State of Charge
+      # node_identifier: 14
+      operating_range: [0.0, 90.0]
+      # agg: last
+
+    - name: ELS_SLR_PS1000_2B_SOC # BESS 2B State of Charge
+      # node_identifier: 14
+      operating_range: [0.0, 90.0]
+      # agg: last
+
+    - name: ELS_SLR_PS1000_1A_AVAIL # BESS 1A Availability
+      # node_identifier: 14
+      operating_range: [0.0, 1.0]
+      agg: last
+
+    - name: ELS_SLR_PS1000_1B_AVAIL # BESS 1B Availability
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: ELS_SLR_PS1000_2A_AVAIL # BESS 2A Availability
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: ELS_SLR_PS1000_2B_AVAIL # BESS 2B Availability
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+#    # Battery cycle data not very useful since only updated once per day
+#    - name: ELS_SLR_BESS1_1A_CYCLE # Running total battery cycles used by BESS 1A
+#      # node_identifier: 14
+#      operating_range: [0.0, 9590.0]
+#
+#    - name: ELS_SLR_BESS1_1B_CYCLE # Running total battery cycles used by BESS 1B
+#      # node_identifier: 14
+#      operating_range: [0.0, 9590.0]
+#
+#    - name: ELS_SLR_BESS2_2A_CYCLE # Running total battery cycles used by BESS 2A
+#      # node_identifier: 14
+#      operating_range: [0.0, 9590.0]
+#
+#    - name: ELS_SLR_BESS2_2B_CYCLE # Running total battery cycles used by BESS 2B
+#      # node_identifier: 14
+#      operating_range: [0.0, 9590.0]
+
+    - name: ELS_SLR_BESS1_KW # Power charged/discharged by BESS1
+      # node_identifier: 14
+      operating_range: [-2000.0, 2000.0]
+      preprocess:
+        - name: normalize
+          min: -2000.0
+          max: 500.0
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_BESS1_KVAR # Reactive power injected/consumed by BESS1
+      # node_identifier: 14
+      operating_range: [-500.0, 1500.0]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_BESS1_ENG_OUT_TOT # Energy discharged by BESS 1
+      # node_identifier: 14
+      operating_range: [ 0.0, 2.0 ] # MWh
+      preprocess:
+        - name: delta
+          time_thresh: 00:15:00
+        - name: normalize
+          min: 0.0
+          max: 0.2
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_BESS1_ENG_IN_TOT # Energy charged by BESS 1
+      # node_identifier: 14
+      operating_range: [ 0.0, 2.0 ] # MWh
+      preprocess:
+        - name: delta
+          time_thresh: 00:15:00
+        - name: normalize
+          min: 0.0
+          max: 0.3
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_BESS2_KW # Power charged/discharged by BESS2
+      # node_identifier: 14
+      operating_range: [-2000.0, 2000.0]
+      preprocess:
+        - name: normalize
+          min: -2000.0
+          max: 500.0
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_BESS2_KVAR # Reactive power injected/consumed by BESS2
+      # node_identifier: 14
+      operating_range: [-500.0, 1500.0]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_BESS2_ENG_OUT_TOT # Energy discharged by BESS 2
+      # node_identifier: 14
+      operating_range: [ 0.0, 2.0 ] # MWh
+      preprocess:
+        - name: delta
+          time_thresh: 00:15:00
+        - name: normalize
+          min: 0.0
+          max: 0.2
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_BESS2_ENG_IN_TOT # Energy charged by BESS 2
+      # node_identifier: 14
+      operating_range: [ 0.0, 2.0 ] # MWh
+      preprocess:
+        - name: delta
+          time_thresh: 00:15:00
+        - name: normalize
+          min: 0.0
+          max: 0.5
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_WTP1_KW # Power consumed by WTP1
+      # node_identifier: 14
+      operating_range: [ 0.0, 8800.0 ]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_WTP1_KVAR # Reactive power consumed by WTP1
+      # node_identifier: 14
+      operating_range: [ -50.0, 3150.0 ]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_WTP1_ENG_IN_TOT # Running total energy consumed by WTP1 converted into delta
+      # node_identifier: 14
+      operating_range: [ 0.0, 8.8 ]
+      preprocess:
+        - name: delta
+          time_thresh: 00:15:00
+        - name: normalize
+          min: 0.0
+          max: 1.5
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_WTP2_KW # Power consumed by WTP2
+      # node_identifier: 14
+      operating_range: [ 0.0, 8800.0 ]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_WTP2_KVAR # Reactive power consumed by WTP2
+      # node_identifier: 14
+      operating_range: [ -50.0, 3150.0 ]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_WTP2_ENG_IN_TOT # Running total energy consumed by WTP2 converted into delta
+      # node_identifier: 14
+      operating_range: [ 0.0, 8.8 ]
+      preprocess:
+        - name: delta
+          time_thresh: 00:15:00
+        - name: normalize
+          min: 0.0
+          max: 1.5
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_SOLAR1_KW # Power produced by SOLAR1
+      # node_identifier: 14
+      operating_range: [0.0, 7000.0]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_SOLAR1_KVAR # Reactive power injected/consumed by SOLAR1
+      # node_identifier: 14
+      operating_range: [-500.0, 3250.0]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_SOLAR1_ENG_OUT_TOT # Energy generated by SOLAR1 converted into delta
+      # node_identifier: 14
+      operating_range: [ 0.0, 7.0 ]
+      preprocess:
+        - name: delta
+          time_thresh: 00:15:00
+        - name: normalize
+          min: 0.0
+          max: 2.0
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_SOLAR2_KW # Power produced by SOLAR2
+      # node_identifier: 14
+      operating_range: [0.0, 7000.0]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_SOLAR2_KVAR # Reactive power injected/consumed by SOLAR2
+      # node_identifier: 14
+      operating_range: [-500.0, 3250.0]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_SOLAR2_ENG_OUT_TOT # Energy generated by SOLAR2 converted into delta
+      # node_identifier: 14
+      operating_range: [0.0, 7.0]
+      preprocess:
+        - name: delta
+          time_thresh: 00:15:00
+        - name: normalize
+          min: 0.0
+          max: 2.0
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_INV1_AVAIL # SOLAR1 Inverter 1 running status
+      # node_identifier: 14
+      operating_range: [0.0, 1.0]
+      agg: last
+
+    - name: ELS_SLR_INV2_AVAIL # SOLAR1 Inverter 3 running status
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: ELS_SLR_INV3_AVAIL # SOLAR2 Inverter 2 running status
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: ELS_SLR_INV4_AVAIL # SOLAR2 Inverter 4 running status
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: ELS_SLR_SOLAR1_LIMIT_LGC # SOLAR1 inverter limit
+      # node_identifier: 14
+      operating_range: [0.0, 100.0]
+      # agg: last
+
+    - name: ELS_SLR_SOLAR2_LIMIT_LGC # SOLAR2 inverter limit
+      # node_identifier: 14
+      operating_range: [ 0.0, 100.0 ]
+      # agg: last
+
+    # TODO: Yellow/red zone needs to be a function of the P72 peak demand shaving setpoint
+    - name: ELS_SLR_ELSP72_KW # Power imported/exported from P72
+      # node_identifier: 14
+      operating_range: [-8800.0, 5000.0]
+      yellow_bounds: [-7800.0, 4700.0]
+      red_bounds: [-7920.0, 4850.0]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_ELSP72_POWER_PEAK_SP
+      # node_identifier: 14
+      operating_range: [0.0, 7920.0]
+      agg: last
+
+    - name: ELS_SLR_ELSP72_ENG_OUT_TOT # Running total energy imported from P72
+      # node_identifier: 14
+      operating_range: [ 0.0, 8.8 ]
+      preprocess:
+        - name: delta
+          time_thresh: 00:15:00
+        - name: normalize
+          min: 0.0
+          max: 1.5
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_ELSP72_ENG_IN_TOT # Running total energy exported to P72
+      # node_identifier: 14
+      operating_range: [ 0.0, 5.0 ]
+      preprocess:
+        - name: delta
+          time_thresh: 00:15:00
+        - name: normalize
+          min: 0.0
+          max: 1.5
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_ELSP72_MAJORITY_LGC # Percentage of generated power used on-site for P72
+      # node_identifier: 14
+      operating_range: [0.0, 100.0]
+
+    - name: ELS_SLR_ELSP72_KVAR # Reactive power imported to/exported from P72
+      # node_identifier: 14
+      operating_range: [-3100.0, 3100.0]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    # TODO: Yellow/red zone needs to be a function of the P72 peak demand shaving setpoint
+    - name: ELS_SLR_ELSP12_KW # Power imported/exported from P12
+      # node_identifier: 14
+      operating_range: [ -8800.0, 5000.0 ]
+      yellow_bounds: [ -7800.0, 4700.0 ]
+      red_bounds: [ -7920.0, 4850.0 ]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    # Data sent inconsistent with other data + report
+    - name: ELS_SLR_ELSP12_POWER_PEAK_SP
+      # node_identifier: 14
+      operating_range: [ 0.0, 7920.0 ]
+      agg: last
+
+    - name: ELS_SLR_ELSP12_ENG_OUT_TOT # Running total energy imported from P12
+      # node_identifier: 14
+      operating_range: [ 0.0, 8.8 ]
+      preprocess:
+        - name: delta
+          time_thresh: 00:15:00
+        - name: normalize
+          min: 0.0
+          max: 1.5
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_ELSP12_ENG_IN_TOT # Running total energy exported to P12
+      # node_identifier: 14
+      operating_range: [ 0.0, 5.0 ]
+      preprocess:
+        - name: delta
+          time_thresh: 00:15:00
+        - name: normalize
+          min: 0.0
+          max: 2.0
+          from_data: False
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SLR_ELSP12_MAJORITY_LGC # Percentage of generated power used on-site for P12
+      # node_identifier: 14
+      operating_range: [0.0, 100.0]
+
+    - name: ELS_SLR_ELSP12_KVAR # Reactive power imported to/exported from P72
+      # node_identifier: 14
+      operating_range: [ -3100.0, 3100.0 ]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SITE_MET_POA # Solar irradiance on solar panels STATE_COL
+      # node_identifier: 14
+      operating_range: [0.0, 1200.0]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SITE_MET_BOP_TEMP # Solar panel temperature STATE_COL
+      # node_identifier: 14
+      operating_range: [-50.0, 60.0]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_SITE_MET_OUT_TEMP # Air temperature STATE_COL
+      # node_identifier: 14
+      operating_range: [-50.0, 50.0]
+      outlier:
+        name: exp_moving
+        tolerance: 3.0
+        warmup: 20
+
+    - name: ELS_HLP_P001_MS # Major load run status STATE_COL
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: ELS_HLP_P002_MS # Major load run status STATE_COL
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: ELS_HLP_P003_MS # Major load run status STATE_COL
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: ELS_HLP_P004_MS # Major load run status STATE_COL
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: EL_LLP_P1_MS_STAT # Light load run status
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: EL_LLP_P2_MS_STAT # Light load run status
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: EL_LLP_P3_MS_STAT # Light load run status
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: EL_LLP_P4_MS_STAT # Light load run status
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: EL_LLP_P5_MS_STAT # Light load run status
+      # node_identifier: 14
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
+
+    - name: Forecast AIL 1 # Alberta Internal Load Forecast Next Hour
+      # node_identifier: 14
+      operating_range: [7500.0, 13000.0]
+      agg: last
+
+    - name: Forecast AIL 2 # Alberta Internal Load Forecast In 2 Hours
+      # node_identifier: 14
+      operating_range: [7500.0, 13000.0]
+      agg: last
+
+    - name: Actual AIL # Alberta Internal Load STATE_COL
+      # node_identifier: 14
+      operating_range: [ 7500.0, 13000.0 ]
+      agg: last
+
+    - name: Forecast Pool Price 1 # Pool price prediction next hour
+      # node_identifier: 14
+      operating_range: [ 0.0, 1000.0 ]
+      agg: last
+
+    - name: Forecast Pool Price 2 # Pool price prediction two hours from now
+      # node_identifier: 14
+      operating_range: [ 0.0, 1000.0 ]
+      agg: last
+
+    - name: Actual Posted Pool Price # STATE_COL
+      # node_identifier: 14
+      operating_range: [ 0.0, 1000.0 ]
+      agg: last
+
+#    # Old Reward Constructor
+#    - name: ELS_SLR_ELSP72_ENG_OUT_TOT # Running total energy imported from P72
+#      # node_identifier: 14
+#      reward_constructor:
+#        - name: affine
+#          scale: 47.42 # $47.42/MWh in 2025. $47.94/MWh in 2026
+#
+#    - name: ELS_SLR_ELSP72_ENG_IN_TOT # Running total energy exported to P72
+#      # node_identifier: 14
+#      reward_constructor:
+#        - name: split
+#          left:
+#            - name: affine
+#              scale: -0.375 # $-0.375/MWh trading charge
+#          right:
+#            - name: "binary"
+#              op: "prod"
+#              other: "Actual Posted Pool Price"
+#              other_xform:
+#                - name: identity
+#
+#    - name: ELS_SLR_ELSP12_ENG_OUT_TOT # Energy imported from P12
+#      # node_identifier: 14
+#      reward_constructor:
+#        - name: affine
+#          scale: 47.42 # $47.42/MWh in 2025. $47.94/MWh in 2026
+#
+#    - name: ELS_SLR_ELSP12_ENG_IN_TOT # Running total energy exported to P12
+#      # node_identifier: 14
+#      reward_constructor:
+#        - name: split
+#          left:
+#            - name: affine
+#              scale: -0.375 # $-0.375/MWh trading charge
+#          right:
+#            - name: "binary"
+#              op: "prod"
+#              other: "Actual Posted Pool Price"
+#              other_xform:
+#                - name: identity
+#
+#    - name: ELS_SLR_BESS1_ENG_OUT_TOT # Energy discharged by BESS 1
+#      # node_identifier: 14
+#      reward_constructor:
+#        - name: affine
+#          scale: -33.0 # $-66.0/MWh cost of using battery
+#
+#    - name: ELS_SLR_BESS1_ENG_IN_TOT # Energy charged by BESS 1
+#      # node_identifier: 14
+#      reward_constructor:
+#        - name: affine
+#          scale: -33.0 # $-66.0/MWh cost of using battery
+#
+#    - name: ELS_SLR_BESS2_ENG_OUT_TOT # Energy discharged by BESS 2
+#      # node_identifier: 14
+#      reward_constructor:
+#        - name: affine
+#          scale: -33.0 # $-66.0/MWh cost of using battery
+#
+#    - name: ELS_SLR_BESS2_ENG_IN_TOT # Energy charged by BESS 2
+#      # node_identifier: 14
+#      reward_constructor:
+#        - name: affine
+#          scale: -33.0 # $-66.0/MWh cost of using battery
+
+    # Tags Not Used
+    # ELS_SLR_WTP1_KVA # WTP1 Apparent power
+    # ELS_SLR_WTP2_KVA # WTP2 Apparent power
+    # ELS_SLR_WTP2_KVA # WTP2 Apparent power
+    # ELS_SLR_ELSP72_KVA # P72 Apparent power
+    # ELS_SLR_ELSP12_KVA # P12 Apparent power
+    # ELS_SLR_BESS1_KVA # BESS1 Apparent power
+    # ELS_SLR_BESS2_KVA # BESS2 Apparent power
+    # ELS_SLR_SOLAR1_KVA # SOLAR1 Apparent power
+    # ELS_SLR_SOLAR2_KVA # SOLAR2 Apparent power
+    # ELS_SLR_SOLAR1_ENG_IN_TOT
+    # ELS_SLR_SOLAR2_ENG_IN_TOT
+    # ELS_SLR_BESS1_1A_CYCLE
+    # ELS_SLR_BESS1_1B_CYCLE
+    # ELS_SLR_BESS1_2A_CYCLE
+    # ELS_SLR_BESS1_2B_CYCLE
