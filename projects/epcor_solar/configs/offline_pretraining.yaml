@@ -2,16 +2,10 @@ log_path: "outputs/epcor_solar_agent_logs" # Logger output
 
 infra:
   db:
-    drivername: "postgresql+psycopg2"
-    username: "postgres"
-    password: "password"
-    ip: "localhost"
-    port: 5432
     db_name: "epcor_solar"
 
 experiment:
   exp_name: epcor_solar_offline/
-  seed: 1
   gamma: 0.99
   run_forever: True # Necessary for online deployment
   max_steps: 0 # Offline training
@@ -68,8 +62,6 @@ agent:
       id: critic # for metric logging
 
   policy:
-    even_dispersed_uniform: True
-
     buffer:
       name: mixed_history_buffer
       memory: 200000 # Basically two years of transitions
@@ -106,11 +98,6 @@ pipeline:
     defaults:
       - name: multi_trace
         trace_values: [0.0, 0.9, 0.95, 0.99]
-
-  transition_creator:
-    name: "all-the-time"
-    min_n_step: 1
-    max_n_step: 5 # action period / obs period
 
   transition_filter:
     filters:
