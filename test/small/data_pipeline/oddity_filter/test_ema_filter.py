@@ -390,7 +390,7 @@ def test_filter_warmup_with_nans(dummy_app_state: AppState):
     cfg = EMAFilterConfig(alpha=0.99, warmup=3)
     outlier_detector = EMAFilter(cfg, dummy_app_state)
 
-    # first batch only has 2 non-NaN values, which shouldn't trigger outlier detection
+    # ema is not warmed up before 5 (only 2 non-NaN), so 5 shouldnt be flagged as outlier
     values = np.array([np.nan, 1, 1, np.nan, 5])
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
@@ -399,7 +399,7 @@ def test_filter_warmup_with_nans(dummy_app_state: AppState):
     assert np.allclose(filtered_data, values, equal_nan=True)
 
     # completing warmup after the first value
-    values2 = np.array([1, 5, np.nan, 5])  # the 5s should be detected as outliers
+    values2 = np.array([1, -5, np.nan, -5])  # the -5s should be detected as outliers
     data2 = pd.DataFrame({name: values2})
     pf2 = PipelineFrame(data2, DataMode.ONLINE, temporal_state=pf.temporal_state)
     pf2 = outlier_detector(pf2, name)
@@ -407,3 +407,15 @@ def test_filter_warmup_with_nans(dummy_app_state: AppState):
     filtered_data2 = pf2.data[name].to_numpy()
     expected2 = np.array([1, np.nan, np.nan, np.nan])  # Both 5s should be replaced with NaN
     assert np.allclose(filtered_data2, expected2, equal_nan=True)
+
+def test_warmup_same_val_no_outliers(dummy_app_state: AppState):
+    name = "sensor_x"
+    cfg = EMAFilterConfig(alpha=0.99, warmup=3)
+    outlier_detector = EMAFilter(cfg, dummy_app_state)
+
+    values = np.array([np.nan, 0.8, 0.8, np.nan, 0.8, np.nan, 0.8, 0.8, np.nan, 0.8])
+    data = pd.DataFrame({name: values})
+    pf = PipelineFrame(data, DataMode.ONLINE)
+    pf = outlier_detector(pf, name)
+    filtered_data = pf.data[name].to_numpy()
+    assert np.allclose(filtered_data, values, equal_nan=True)
