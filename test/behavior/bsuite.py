@@ -36,6 +36,7 @@ class BSuiteTestCase:
         cfg = direct_load_config(MainConfig, base='.', config_name=self.config)
         assert isinstance(cfg, MainConfig)
         self._cfg = cfg
+        self.seed = np.random.randint(0, 1_000_000)
 
     def execute_test(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
         ip = tsdb.url.host
@@ -51,6 +52,7 @@ class BSuiteTestCase:
             'infra.db.db_name': db_name,
             'infra.db.schema': schema,
             'experiment.num_threads': 1,
+            'experiment.seed': self.seed,
         } | feature_overrides
 
         parts = [f'{k}={v}' for k, v in overrides.items()]
@@ -134,6 +136,7 @@ class BSuiteTestCase:
                 'metric': row['metric'],
                 'behaviour': row['behaviour'],
                 'bound_type': row['bound_type'],
+                'seed': self.seed,
                 'expected': row['expected'],
                 'got': row['got'],
                 'features': json.dumps(feature_json),
@@ -148,6 +151,7 @@ class BSuiteTestCase:
                 SQLColumn(name='metric', type='TEXT', nullable=False),
                 SQLColumn(name='behaviour', type='TEXT', nullable=False),
                 SQLColumn(name='bound_type', type='TEXT', nullable=False),
+                SQLColumn(name='seed', type='INTEGER', nullable=False),
                 SQLColumn(name='expected', type='FLOAT', nullable=False),
                 SQLColumn(name='got', type='FLOAT', nullable=False),
                 SQLColumn(name='features', type='jsonb', nullable=False),
@@ -159,9 +163,10 @@ class BSuiteTestCase:
 
         insert_sql = text("""
             INSERT INTO bsuite_outcomes
-            (time, test_name, metric, behaviour, bound_type, expected, got, features)
+            (time, test_name, metric, behaviour, bound_type, seed, expected, got, features)
             VALUES (
-                TIMESTAMP WITH TIME ZONE :time, :test_name, :metric, :behaviour, :bound_type, :expected, :got, :features
+                TIMESTAMP WITH TIME ZONE :time, :test_name, :metric, :behaviour,
+                          :bound_type, :seed, :expected, :got, :features
             )
         """)
 
