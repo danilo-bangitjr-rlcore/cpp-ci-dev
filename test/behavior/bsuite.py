@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from sqlalchemy import Engine, text
 
+import corerl.utils.git as git
 from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
 from corerl.sql_logging.sql_logging import table_exists
@@ -129,6 +130,7 @@ class BSuiteTestCase:
 
         outcomes: list[dict[str, Any]] = []
         now = now_iso()
+        branch = git.get_active_branch()
         for _, row in summary_df.iterrows():
             outcomes.append({
                 'time': now,
@@ -137,6 +139,7 @@ class BSuiteTestCase:
                 'behaviour': row['behaviour'],
                 'bound_type': row['bound_type'],
                 'seed': self.seed,
+                'branch': branch,
                 'expected': row['expected'],
                 'got': row['got'],
                 'features': json.dumps(feature_json),
@@ -152,6 +155,7 @@ class BSuiteTestCase:
                 SQLColumn(name='behaviour', type='TEXT', nullable=False),
                 SQLColumn(name='bound_type', type='TEXT', nullable=False),
                 SQLColumn(name='seed', type='INTEGER', nullable=False),
+                SQLColumn(name='branch', type='TEXT', nullable=False),
                 SQLColumn(name='expected', type='FLOAT', nullable=False),
                 SQLColumn(name='got', type='FLOAT', nullable=False),
                 SQLColumn(name='features', type='jsonb', nullable=False),
@@ -163,10 +167,10 @@ class BSuiteTestCase:
 
         insert_sql = text("""
             INSERT INTO bsuite_outcomes
-            (time, test_name, metric, behaviour, bound_type, seed, expected, got, features)
+            (time, test_name, metric, behaviour, bound_type, seed, branch, expected, got, features)
             VALUES (
                 TIMESTAMP WITH TIME ZONE :time, :test_name, :metric, :behaviour,
-                          :bound_type, :seed, :expected, :got, :features
+                          :bound_type, :seed, :branch, :expected, :got, :features
             )
         """)
 
