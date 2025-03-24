@@ -10,8 +10,8 @@ from corerl.configs.config import MISSING, config, list_, post_processor
 from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
-from corerl.data_pipeline.transforms import NormalizerConfig, NullConfig, TransformConfig
-from corerl.utils.list import find_instance
+from corerl.data_pipeline.transforms import DeltaConfig, NormalizerConfig, NullConfig, TransformConfig
+from corerl.utils.list import find_index, find_instance
 from corerl.utils.maybe import Maybe
 
 if TYPE_CHECKING:
@@ -254,6 +254,15 @@ class TagConfig:
 
         if norm_cfg.min is None or norm_cfg.max is None:
             norm_cfg.from_data = True
+
+
+    @post_processor
+    def _optional_delta_preprocessor(self, cfg: MainConfig):
+        # Make sure delta transform happens before normalization
+        norm_ind = find_index(lambda x_form: isinstance(x_form, NormalizerConfig), self.preprocess)
+        delta_ind = find_index(lambda x_form: isinstance(x_form, DeltaConfig), self.preprocess)
+        assert norm_ind is None or delta_ind is None or delta_ind < norm_ind, \
+            f"{self.name} must have the delta transform before the normalization transform in the preprocess stage"
 
 
     @post_processor

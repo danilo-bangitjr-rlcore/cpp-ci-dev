@@ -27,6 +27,7 @@ tags:
     - name: "null"
   action_constructor:
     - name: delta
+      time_thresh: 00:05:00
     - name: bounds
       bounds: [-.5, .5]
       mode: nan

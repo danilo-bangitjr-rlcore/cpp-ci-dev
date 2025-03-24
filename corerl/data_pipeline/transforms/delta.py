@@ -1,22 +1,33 @@
 from dataclasses import dataclass
-from typing import Literal
+from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
 
-from corerl.configs.config import config
+from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 
 @config()
 class DeltaConfig(BaseTransformConfig):
     name: Literal["delta"] = "delta"
+    time_thresh: timedelta = MISSING
+
+    @computed("time_thresh")
+    @classmethod
+    def _time_thresh(cls, cfg: "MainConfig"):
+        return cfg.interaction.obs_period
 
 
 @dataclass
 class DeltaTemporalState:
     last: np.ndarray | None = None
+    time: list[datetime] | None = None
 
 
 class Delta:
@@ -29,15 +40,31 @@ class Delta:
 
         for i in range(len(carry.transform_data)):
             row = carry.transform_data.iloc[i].to_numpy().copy()
+            time = carry.transform_data.index[i]
+            assert isinstance(time, pd.Timestamp)
+            time = time.to_pydatetime()
 
-            if ts.last is None:
-                ts.last = row
+            if ts.time is None:
                 carry.transform_data.iloc[i, :] = np.nan
+                ts.last = row
+                ts.time = [time] * len(row)
                 continue
 
-            delta = row - ts.last
-            ts.last = row
-            carry.transform_data.iloc[i] = delta
+            assert ts.time is not None
+            assert ts.last is not None
+
+            for ind in range(len(row)):
+                if np.isnan(row[ind]) or (time - ts.time[ind] > self._cfg.time_thresh):
+                    carry.transform_data.iloc[i, ind] = np.nan
+                    if not np.isnan(row[ind]):
+                        ts.last[ind] = row[ind]
+                        ts.time[ind] = time
+                    continue
+
+                delta = row[ind] - ts.last[ind]
+                ts.last[ind] = row[ind]
+                ts.time[ind] = time
+                carry.transform_data.iloc[i, ind] = delta
 
         carry.transform_data.rename(columns=lambda col: f'{col}_Δ', inplace=True)
         return carry, ts
