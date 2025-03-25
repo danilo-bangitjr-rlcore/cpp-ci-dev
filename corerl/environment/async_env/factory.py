@@ -1,4 +1,5 @@
 from typing import Annotated
+
 from pydantic import Field
 
 from corerl.configs.group import Group
