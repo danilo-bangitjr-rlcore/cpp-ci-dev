@@ -88,3 +88,9 @@ dependencies = [
     "corerl @ git+https://github.com/rlcoretech/core-rl.git"
 ]
 readme = "README.md"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.392.post0",
+    "uv>=0.5.24",
+]
