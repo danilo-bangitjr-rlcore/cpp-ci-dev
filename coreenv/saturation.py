@@ -72,4 +72,4 @@ class Saturation(gym.Env):
     def close(self):
         pass
 
-env_group.dispatcher(Saturation)
+env_group.dispatcher(SaturationConfig(), Saturation)

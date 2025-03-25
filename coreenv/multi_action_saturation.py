@@ -5,7 +5,6 @@ from typing import Any
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
-import tqdm
 from scipy.optimize import minimize
 
 from coreenv.factory import EnvConfig, env_group
@@ -178,7 +177,7 @@ class MultiActionSaturation(gym.Env):
         self.reset(seed=1)
         state = self.reset()[0]
 
-        for t in tqdm.tqdm(range(max_steps)):
+        for t in range(max_steps):
             result = minimize(
                 self._mpc_objective,
                 np.ones(horizon * self.num_controllers) * 0.5,
@@ -235,4 +234,4 @@ class MultiActionSaturation(gym.Env):
     def close(self):
         pass
 
-env_group.dispatcher(MultiActionSaturation)
+env_group.dispatcher(MultiActionSaturationConfig(), MultiActionSaturation)

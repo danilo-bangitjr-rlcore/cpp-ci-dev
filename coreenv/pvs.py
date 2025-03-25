@@ -418,7 +418,7 @@ class PIDController:
 
 
     def update_pid(self, pi_parameters: list[float], KI: bool = False):
-        """
+        """\
         Update the PID parameters
 
         - pi_parameters: [Kp, Ti]
@@ -646,4 +646,4 @@ class PVSChangeAction(BasePVSEnv):
         return self.prev_pid_params, {}
 
 
-env_group.dispatcher(PVSChangeAction)
+env_group.dispatcher(PVSConfig(), PVSChangeAction)

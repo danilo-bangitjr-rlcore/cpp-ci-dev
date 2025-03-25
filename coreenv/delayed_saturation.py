@@ -85,4 +85,4 @@ class DelayedSaturation(gym.Env):
     def close(self):
         pass
 
-env_group.dispatcher(DelayedSaturation)
+env_group.dispatcher(DelayedSaturationConfig(), DelayedSaturation)

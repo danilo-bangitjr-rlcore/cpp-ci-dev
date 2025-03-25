@@ -85,4 +85,4 @@ class SaturationGoals(gym.Env):
         else:
             return np.array([0.2])
 
-env_group.dispatcher(SaturationGoals)
+env_group.dispatcher(SaturationGoalsConfig(), SaturationGoals)

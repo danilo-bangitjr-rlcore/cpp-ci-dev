@@ -209,4 +209,4 @@ class ThreeTankEnv(gym.Env):
         plt.tight_layout()
         plt.savefig(filename)
 
-env_group.dispatcher(ThreeTankEnv)
+env_group.dispatcher(ThreeTankConfig(), ThreeTankEnv)

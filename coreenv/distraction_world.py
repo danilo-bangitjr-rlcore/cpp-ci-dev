@@ -68,4 +68,4 @@ class DistractionWorld(gym.Env):
     def close(self):
         pass
 
-env_group.dispatcher(DistractionWorld)
+env_group.dispatcher(DistractionWorldConfig(), DistractionWorld)

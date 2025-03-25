@@ -257,4 +257,4 @@ class FourRoomsEnv(gym.Env):
         self._fig.canvas.draw()
         self._fig.canvas.flush_events()
 
-env_group.dispatcher(FourRoomsEnv)
+env_group.dispatcher(FourRoomsConfig(), FourRoomsEnv)

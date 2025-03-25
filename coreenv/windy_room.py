@@ -84,4 +84,4 @@ class WindyRoom(gym.Env):
     def close(self):
         pass
 
-env_group.dispatcher(WindyRoom)
+env_group.dispatcher(WindyRoomConfig(), WindyRoom)
