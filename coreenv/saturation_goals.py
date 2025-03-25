@@ -1,11 +1,20 @@
+from dataclasses import dataclass
 from typing import Any
 
 import gymnasium as gym
 import numpy as np
 
 
+@dataclass
+class SaturationGoalsConfig:
+    setpoint_change_period: int = 400
+
 class SaturationGoals(gym.Env):
-    def __init__(self, **kwargs: Any):
+    def __init__(self, cfg: SaturationGoalsConfig | None = None):
+        if cfg is None:
+            cfg = SaturationGoalsConfig()
+
+        self.setpoint_change_period = cfg.setpoint_change_period
         self._random = np.random.default_rng()
         self._obs_min = np.array([0.])
         self._obs_max = np.array([1.])
@@ -68,7 +77,7 @@ class SaturationGoals(gym.Env):
         pass
 
     def _get_saturation_sp(self):
-        if (self.time_step//400) % 2 == 0:
+        if (self.time_step//self.setpoint_change_period) % 2 == 0:
             return np.array([0.8])
         else:
             return np.array([0.2])
