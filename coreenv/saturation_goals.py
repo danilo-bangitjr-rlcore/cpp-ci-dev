@@ -1,0 +1,76 @@
+from typing import Any
+
+import gymnasium as gym
+import numpy as np
+
+
+class SaturationGoals(gym.Env):
+    def __init__(self, **kwargs: Any):
+        self._random = np.random.default_rng()
+        self._obs_min = np.array([0.])
+        self._obs_max = np.array([1.])
+        self.observation_space = gym.spaces.Box(np.array([0, 0]), np.array([1, 1]), (2,))
+
+        self.saturation = np.array([0.])
+        self.saturation_sp = np.array([0.8])
+
+        self.decay_period = 100
+
+        self._action_dim = 1
+        self._action_min = np.array([0])
+        self._action_max = np.array([1])
+        self.action_space = gym.spaces.Box(self._action_min, self._action_max)
+
+        self.time_step = 0
+
+        self.saturations = []
+        self.decays = []
+        self.actions = []
+
+    def seed(self, seed: int):
+        self._random = np.random.default_rng(seed)
+
+    def step(self, action: np.ndarray):
+        self.time_step += 1
+        self.saturation_sp = self._get_saturation_sp()
+
+        decay = 0.15 * np.cos(self.time_step * np.pi * (2 / self.decay_period)) + 0.75
+        self.saturation = self.saturation * decay + action
+        self.saturation = np.clip(self.saturation, 0, 1)
+        reward = -np.abs(self.saturation - self.saturation_sp).item()
+
+        self.decays.append(decay)
+        self.saturations.append(self.saturation)
+        self.actions.append(action)
+
+        return [self.saturation, self.saturation_sp], reward, False, False, {}
+
+    def plot(self):
+        import matplotlib.pyplot as plt
+        plt.plot(self.actions, label="actions")
+        plt.plot(self.saturations, label="saturation")
+        plt.plot(self.decays, label="decays")
+        plt.legend()
+        plt.show()
+
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ):
+        if seed is not None:
+            self.seed(seed)
+
+        return [self.saturation, self.saturation_sp], {}
+
+    def close(self):
+        pass
+
+    def _get_saturation_sp(self):
+        if (self.time_step//400) % 2 == 0:
+            return np.array([0.8])
+        else:
+            return np.array([0.2])
+
+gym.register('SaturationGoals-v0', SaturationGoals)
