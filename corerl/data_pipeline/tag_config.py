@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from datetime import timedelta
 from enum import StrEnum, auto
-from typing import TYPE_CHECKING
+from functools import partial
+from typing import TYPE_CHECKING, Annotated, Callable, Literal
 
+import pandas as pd
 from pydantic import Field
 
 from corerl.configs.config import MISSING, config, list_, post_processor
@@ -13,17 +15,24 @@ from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.transforms import DeltaConfig, NormalizerConfig, NullConfig, TransformConfig
 from corerl.utils.list import find_index, find_instance
 from corerl.utils.maybe import Maybe
+from corerl.utils.sympy import is_affine, to_sympy
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
+    from corerl.data_pipeline.pipeline import PipelineConfig
 
-Bounds = tuple[float | None, float | None]
+BoundsElem = float | str | None
+
+Bounds = tuple[BoundsElem, BoundsElem]
+FloatBounds = tuple[float | None, float | None]
+
+BoundsFunction = tuple[Callable[...,float] | None, Callable[...,float] | None]
+BoundsTags = tuple[list[str] | None, list[str] | None]
 
 class Agg(StrEnum):
     avg = auto()
     last = auto()
     bool_or = auto()
-
 
 # -----------------------
 # -- Bounds Scheduling --
@@ -37,7 +46,7 @@ class GuardrailScheduleConfig:
     setpoint tag. Starts within the starting_range and slowly approaches
     the full operating range over the duration.
     """
-    starting_range: Bounds = MISSING
+    starting_range: FloatBounds = MISSING
     duration: timedelta = MISSING
 
 
@@ -97,7 +106,7 @@ class TagConfig:
     """
 
     # tag zones
-    operating_range: Bounds | None = None
+    operating_range: FloatBounds | None = None
     """
     Kind: optional external
 
@@ -121,6 +130,17 @@ class TagConfig:
     https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.c8rez4g44ssc#heading=h.qru0qq73sjyw
     """
 
+    red_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True)] = None
+    red_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
+    """
+    Kind: computed internal
+
+    In case that the red_bounds are specified as strings representing sympy functions,
+    the red_bounds_function will hold the functions for computing the lower and/or upper ranges,
+    and the red_bounds_tags will hold the lists of tags that those functions depend on.
+    """
+
+
     yellow_bounds: Bounds | None = None
     """
     Kind: optional external
@@ -137,6 +157,16 @@ class TagConfig:
 
     See also:
     https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.c8rez4g44ssc#heading=h.qru0qq73sjyw
+    """
+
+    yellow_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True) ] = None
+    yellow_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
+    """
+    Kind: computed internal
+
+    In case that the yellow_bounds are specified as strings representing sympy functions,
+    the yellow_bounds_function will hold the functions for computing the lower and/or upper ranges,
+    and the yellow_bounds_tags will hold the lists of tags that those functions depend on.
     """
 
     change_bounds: tuple[float, float] | None = None
@@ -231,8 +261,53 @@ class TagConfig:
     """
 
     @post_processor
+    def _initialize_bound_functions(self, cfg: MainConfig | PipelineConfig):
+        # We can receive MainConfig or PipelineConfig
+        if "pipeline" in cfg.__dict__.keys(): # Avoids `isinstance` check which causes circular import
+            if TYPE_CHECKING: assert isinstance(cfg, MainConfig)
+            known_tags = set(tag.name for tag in cfg.pipeline.tags)
+        elif "tags" in cfg.__dict__.keys(): # Avoids `isinstance` check which causes circular import
+            if TYPE_CHECKING: assert isinstance(cfg, PipelineConfig)
+            known_tags = set(tag.name for tag in cfg.tags)
+        else:
+            raise ValueError("Unknown cfg type")
+
+        if self.red_bounds is not None:
+            self.red_bounds_func, self.red_bounds_tags = self._bounds_parse_sympy(self.red_bounds, known_tags)
+
+        if self.yellow_bounds is not None:
+            self.yellow_bounds_func, self.yellow_bounds_tags = self._bounds_parse_sympy(self.yellow_bounds, known_tags)
+
+
+    def _bounds_parse_sympy(self, input_bounds: Bounds, known_tags: set[str]) -> tuple[BoundsFunction, BoundsTags]:
+        lo_func, hi_func = None, None
+        lo_tags, hi_tags = None, None
+
+        if input_bounds is not None and isinstance(input_bounds[0], str):
+            expression_lo, lo_func, lo_tags = to_sympy(input_bounds[0])
+            for tag in lo_tags:
+                assert tag in known_tags, f"Unknown tag name in lower bound or range expression of {self.name}"
+                assert tag != self.name, f"Circular definition in lower bound or rage expression of {self.name}"
+            assert is_affine(expression_lo), f"Expression on the lower bound or range of {self.name} is not affine"
+
+        if input_bounds is not None and isinstance(input_bounds[1], str):
+            expression_hi, hi_func, hi_tags = to_sympy(input_bounds[1])
+            for tag in hi_tags:
+                assert tag in known_tags, f"Unknown tag name in upper bound or range expression of {self.name}"
+                assert tag != self.name, f"Circular definition in upper bound or rage expression of {self.name}"
+            assert is_affine(expression_hi), f"Expression on the upper bound or range of {self.name} is not affine"
+
+        bounds_func: BoundsFunction = (lo_func, hi_func)
+        bounds_tags: BoundsTags = (lo_tags, hi_tags)
+
+        return bounds_func, bounds_tags
+
+
+    @post_processor
     def _default_normalize_preprocessor(self, cfg: MainConfig):
-        lo, hi = get_tag_bounds(self)
+
+        # Since we don't have a dataframe, the sympy expressions are treated as None
+        lo, hi = get_tag_bounds_no_eval(self)
 
         # although each constructor type may _also_ have a normalizer
         # only automatically set the preprocessor normalizer bounds
@@ -284,28 +359,95 @@ class TagConfig:
             lo, hi = self.operating_range
             assert lo is not None and hi is not None
 
-            if self.guardrail_schedule.starting_range[0] is not None:
+            if isinstance(lo, float) and self.guardrail_schedule.starting_range[0] is not None:
                 assert self.guardrail_schedule.starting_range[0] >= lo, \
                     "Guardrail starting range must be greater than or equal to the operating range."
 
-            if self.guardrail_schedule.starting_range[1] is not None:
+            if isinstance(hi, float) and self.guardrail_schedule.starting_range[1] is not None:
                 assert self.guardrail_schedule.starting_range[1] <= hi, \
                     "Guardrail starting range must be less than or equal to the operating range."
 
-
-def get_tag_bounds(cfg: TagConfig) -> tuple[Maybe[float], Maybe[float]]:
+def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
     # each bound type is fully optional
     # prefer to use red zone, fallback to black zone then yellow
     lo = (
-        Maybe[float](cfg.red_bounds and cfg.red_bounds[0])
+        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[0])
+        .map(partial(eval_bound, row, "lo", cfg.red_bounds_func, cfg.red_bounds_tags))
+        .map(widen_bound_types)
+
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
+
         .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[0])
+        .map(partial(eval_bound, row, "lo", cfg.yellow_bounds_func, cfg.yellow_bounds_tags))
     )
 
     hi = (
-        Maybe[float](cfg.red_bounds and cfg.red_bounds[1])
+        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[1])
+        .map(partial(eval_bound, row, "hi", cfg.red_bounds_func, cfg.red_bounds_tags))
+        .map(widen_bound_types)
+
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
+
         .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[1])
+        .map(partial(eval_bound, row, "hi", cfg.yellow_bounds_func, cfg.yellow_bounds_tags))
     )
 
     return lo, hi
+
+
+def get_tag_bounds_no_eval(cfg: TagConfig) -> tuple[Maybe[float], Maybe[float]]:
+    """
+    Note: If you have access to the `pf.data`, it is preferred to use `get_tag_bounds`.
+
+    This function gets the tag bounds only if they are defined as float in the config file.
+    If they are str (sympy expressions), it returns none.
+
+    It is used to initialize other parts of the config.
+
+    Each bound type is fully optional.
+    Prefer to use red zone, fallback to black zone then yellow
+    """
+    lo = (
+        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[0]).is_instance(float)
+        .map(widen_bound_types)
+        .otherwise(lambda: cfg.operating_range and cfg.operating_range[0]).is_instance(float)
+        .map(widen_bound_types)
+        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[0]).is_instance(float)
+    )
+
+    hi = (
+        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[1]).is_instance(float)
+        .map(widen_bound_types)
+        .otherwise(lambda: cfg.operating_range and cfg.operating_range[1]).is_instance(float)
+        .map(widen_bound_types)
+        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[1]).is_instance(float)
+    )
+
+    return lo, hi
+
+
+def eval_bound(
+    data: pd.DataFrame,
+    side: Literal["lo", "hi"],
+    bounds_func: BoundsFunction | None,
+    bounds_tags: BoundsTags | None,
+    bound: BoundsElem, # This is the last argument for cleaner mapping in Maybe with functools partial
+) -> float | None:
+
+    index = {"lo": 0, "hi": 1}[side]
+
+    if isinstance(bound, str):
+        assert bounds_func and bounds_tags # Assertion for pyright
+        res_func, res_tags = bounds_func[index], bounds_tags[index]
+        assert res_func and res_tags # Assertion for pyright
+
+        values = [data[res_tag].item() for res_tag in res_tags]
+        bound = res_func(*values)
+
+    if bound is not None:
+        bound = float(bound)
+
+    return bound
+
+def widen_bound_types(x: float | None) -> BoundsElem:
+    return x

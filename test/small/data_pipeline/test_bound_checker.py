@@ -4,15 +4,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from corerl.data_pipeline.bound_checker import Bounds, bound_checker
+from corerl.data_pipeline.bound_checker import bound_checker
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import FloatBounds, TagConfig
 
 
 @dataclass
 class Case:
-    bounds: dict[str, Bounds]
+    bounds: dict[str, FloatBounds]
     raw: dict[str, list[float]]
     expected: dict[str, list[bool]]
 

@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 import pandas as pd
 
@@ -74,7 +76,7 @@ class GoalConstructor:
         """
         bounds = (
             Maybe.find(lambda cfg: cfg.name == tag, self._tag_cfgs)
-            .map(get_tag_bounds)
+            .map(partial(get_tag_bounds, row=row))
             .expect(f'Was unable to find tag config for tag: {tag}')
         )
         lo = bounds[0].expect(f'Was unable to find a lower bound for tag: {tag}')
@@ -138,7 +140,7 @@ class GoalConstructor:
 
         bounds = (
             Maybe.find(lambda cfg: cfg.name == goal.tag, self._tag_cfgs)
-            .map(get_tag_bounds)
+            .map(partial(get_tag_bounds, row=row))
             .expect(f'Was unable to find tag config for tag: {goal.tag}')
         )
 
