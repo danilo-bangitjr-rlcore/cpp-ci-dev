@@ -73,6 +73,16 @@ def layer_init_uniform(layer: nn.Module, low: float = -0.003, high: float = 0.00
     return layer.to(global_device.device)
 
 
+def layer_init_orthogonal(layer: nn.Module, bias: float = 0) -> nn.Module:
+    w = layer.weight
+    b = layer.bias.data
+    assert isinstance(w, torch.Tensor) and isinstance(b, torch.Tensor)
+    nn.init.orthogonal_(w, gain=np.sqrt(2))
+    if bias > 0:
+        nn.init.constant_(b, bias)
+    return layer.to(global_device.device)
+
+
 def tensor(
     x: float | np.ndarray | torch.Tensor | list[float],
     device: str | torch.device | Device | None = None,
@@ -107,5 +117,7 @@ def init_layer(init: str) -> Callable[[torch.nn.modules.Module], torch.nn.module
         return layer_init_zero
     elif init.lower() == 'normal':
         return layer_init_normal
+    elif init.lower() == 'orthogonal':
+        return layer_init_orthogonal
 
     raise NotImplementedError(f"unknown weight initialization {init}")

@@ -176,5 +176,9 @@ class MainConfig:
 
         self.agent.critic.critic_network.base.combined_cfg.hidden = [256, 256]
         self.agent.critic.critic_optimizer.weight_decay = 0.0001
+        self.agent.critic.critic_network.base.combined_cfg.layer_init = 'orthogonal'
+
+
         self.agent.policy.network.base.hidden = [256, 256]
         self.agent.policy.optimizer.weight_decay = 0.0001
+        self.agent.policy.network.base.layer_init = 'orthogonal'
