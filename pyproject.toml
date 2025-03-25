@@ -1,26 +1,19 @@
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = 'research-template'
 version = '0.0.0'
 description = 'A repo to test agent ideas'
 authors = []
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.13"
 readme = 'README.md'
 dependencies = [
-    'chex>=0.1.89',
-    "distrax>=0.1.5",
-    "flax>=0.10.4",
+    'chex~=0.1',
+    "distrax~=0.1",
     "gymnasium~=1.0",
-    'jax>=0.5.3',
-    "jaxtyping~=0.3",
+    'jax~=0.5',
     "matplotlib~=3.10",
     "numba~=0.61",
-    'numpy>=2.2.4',
-    'optax>=0.2.4',
-    'optuna',
+    'numpy~=2.1',
+    'optax~=0.2',
     "pydantic~=2.10",
     "tqdm~=4.67",
 ]
