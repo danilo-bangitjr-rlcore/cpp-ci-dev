@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from pathlib import Path
@@ -16,6 +17,7 @@ from corerl.eval.torch import get_layers_stable_rank
 from corerl.state import AppState
 from corerl.utils.device import device
 
+logger = logging.getLogger(__name__)
 
 @config()
 class CriticConfig:
@@ -59,7 +61,12 @@ class EnsembleCritic(BaseCritic):
         action_dim: int,
         output_dim: int = 1
     ):
+        self._cfg = cfg
         self._app_state = app_state
+
+        self._state_dim = state_dim
+        self._action_dim = action_dim
+
         self.model = EnsembleNetwork(
             cfg.critic_network,
             input_dims=[state_dim, action_dim],
@@ -129,8 +136,17 @@ class EnsembleCritic(BaseCritic):
         torch.save(self.target.state_dict(), path / "critic_target")
 
     def load(self, path: Path) -> None:
-        self.model.load_state_dict(torch.load(path / "critic_net", map_location=device.device))
-        self.target.load_state_dict(torch.load(path / "critic_target", map_location=device.device))
+        try:
+            self.model.load_state_dict(torch.load(path / "critic_net", map_location=device.device))
+            self.target.load_state_dict(torch.load(path / "critic_target", map_location=device.device))
+        except Exception:
+            logger.exception('Failed to load critic state from checkpoint. Reinitializing...')
+            self.model = EnsembleNetwork(
+                self._cfg.critic_network,
+                input_dims=[self._state_dim, self._action_dim],
+                output_dim=1,
+            )
+            init_target_network(self.target, self.model)
 
     def get_values(
         self,
