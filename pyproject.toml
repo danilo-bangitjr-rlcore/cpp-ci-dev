@@ -79,13 +79,10 @@ requires-python = ">=3.12,<3.13"
 authors = []
 dependencies = [
     "gymnasium~=1.0",
-    "jaxtyping~=0.2",
     "matplotlib~=3.8",
     "pydantic~=2.9",
-    "nltk~=3.8",
-    "numba~=0.60",
     "numpy~=2.0",
-    "corerl @ git+https://github.com/rlcoretech/core-rl.git"
+    "scipy~=1.13",
 ]
 readme = "README.md"
 
