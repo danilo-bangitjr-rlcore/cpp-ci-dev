@@ -327,21 +327,43 @@ class GACPolicyManager:
             pickle.dump(self.buffer, f)
 
     def load(self, path: Path) -> None:
-        actor_net_path = path / "actor_net"
-        self.actor.load_state_dict(torch.load(actor_net_path, map_location=device.device))
+        try:
+            actor_net_path = path / "actor_net"
+            self.actor.load_state_dict(torch.load(actor_net_path, map_location=device.device))
+            actor_opt_path = path / "actor_opt"
+            self.actor_optimizer.load_state_dict(torch.load(actor_opt_path, map_location=device.device))
+        except Exception:
+            logger.exception('Failed to load actor state from checkpoint. Reinitializing...')
+            self.actor = create(
+                self.cfg.network,
+                self.state_dim,
+                self.action_dim,
+                OUTPUT_MIN,
+                OUTPUT_MAX,
+            )
 
-        actor_opt_path = path / "actor_opt"
-        self.actor_optimizer.load_state_dict(torch.load(actor_opt_path, map_location=device.device))
+        try:
+            sampler_net_path = path / "sampler_net"
+            self.sampler.load_state_dict(torch.load(sampler_net_path, map_location=device.device))
+            sampler_opt_path = path / "sampler_opt"
+            self.sampler_optimizer.load_state_dict(torch.load(sampler_opt_path, map_location=device.device))
+        except Exception:
+            logger.exception('Failed to load sampler state from checkpoint. Reinitializing...')
+            self.sampler = create(
+                self.cfg.network,
+                self.state_dim,
+                self.action_dim,
+                OUTPUT_MIN,
+                OUTPUT_MAX,
+            )
 
-        sampler_net_path = path / "sampler_net"
-        self.sampler.load_state_dict(torch.load(sampler_net_path, map_location=device.device))
+        try:
+            buffer_path = path / "buffer.pkl"
+            with open(buffer_path, "rb") as f:
+                self.buffer = pickle.load(f)
+        except Exception:
+            logger.exception('Failed to load buffer from checkpoint. Reinitializing...')
 
-        sampler_opt_path = path / "sampler_opt"
-        self.sampler_optimizer.load_state_dict(torch.load(sampler_opt_path, map_location=device.device))
-
-        buffer_path = path / "buffer.pkl"
-        with open(buffer_path, "rb") as f:
-            self.buffer = pickle.load(f)
 
     def update(self, critic: EnsembleCritic) -> None:
         """
