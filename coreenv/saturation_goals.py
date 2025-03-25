@@ -13,7 +13,7 @@ class SaturationGoalsConfig(EnvConfig):
     setpoint_change_period: int = 400
 
 class SaturationGoals(gym.Env):
-    def __init__(self, cfg: SaturationGoalsConfig | None = None):
+    def __init__(self, cfg: SaturationGoalsConfig ):
         if cfg is None:
             cfg = SaturationGoalsConfig()
 

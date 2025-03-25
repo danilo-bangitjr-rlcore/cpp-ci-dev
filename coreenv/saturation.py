@@ -12,7 +12,7 @@ class SaturationConfig(EnvConfig):
     name: str = 'Saturation'
 
 class Saturation(gym.Env):
-    def __init__(self, cfg: SaturationConfig | None = None):
+    def __init__(self, cfg: SaturationConfig ):
         self._random = np.random.default_rng()
         self._obs_min = np.array([0.])
         self._obs_max = np.array([1.])

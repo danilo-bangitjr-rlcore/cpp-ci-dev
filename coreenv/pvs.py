@@ -48,7 +48,7 @@ class BasePVSEnv(Env):
     5. System responds to new flow rate
     6. Repeat
     """
-    def __init__(self, cfg: PVSConfig | None = None):
+    def __init__(self, cfg: PVSConfig ):
         super().__init__()
 
         if cfg is None:

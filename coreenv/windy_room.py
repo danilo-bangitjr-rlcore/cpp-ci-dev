@@ -29,7 +29,7 @@ class WindyRoom(gym.Env):
     The agent starts in a random position in the room within an initial zone
     and can move in any direction.
     """
-    def __init__(self, cfg: WindyRoomConfig | None = None):
+    def __init__(self, cfg: WindyRoomConfig ):
         if cfg is None:
             cfg = WindyRoomConfig()
 
@@ -83,11 +83,5 @@ class WindyRoom(gym.Env):
 
     def close(self):
         pass
-
-
-gym.register(
-    id='WindyRoom-v0',
-    entry_point='corerl.environment.windy_room:WindyRoom',
-)
 
 env_group.dispatcher(WindyRoom)

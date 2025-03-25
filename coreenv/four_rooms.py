@@ -38,7 +38,7 @@ class FourRoomsEnv(gym.Env):
 
     _EPSILON = 1e-6
 
-    def __init__(self, cfg: FourRoomsConfig | None = None):
+    def __init__(self, cfg: FourRoomsConfig ):
         """Initializes the instance
 
         Args:
