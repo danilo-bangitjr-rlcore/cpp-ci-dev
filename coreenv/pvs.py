@@ -418,7 +418,7 @@ class PIDController:
 
 
     def update_pid(self, pi_parameters: list[float], KI: bool = False):
-        """\
+        """
         Update the PID parameters
 
         - pi_parameters: [Kp, Ti]
