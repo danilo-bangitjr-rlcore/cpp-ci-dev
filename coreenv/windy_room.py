@@ -36,10 +36,8 @@ class WindyRoom(gym.Env):
     The agent starts in a random position in the room within an initial zone
     and can move in any direction.
     """
-    def __init__(self, cfg: dict | WindyRoomConfig | None = None):
-        if isinstance(cfg, dict):
-            cfg = config_from_dict(WindyRoomConfig, cfg)
-        elif cfg is None:
+    def __init__(self, cfg: WindyRoomConfig | None = None):
+        if cfg is None:
             cfg = WindyRoomConfig()
 
         self._cfg = cfg

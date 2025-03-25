@@ -54,9 +54,9 @@ class MultiActionSaturation(gym.Env):
             3. Exponential smoothing of actions
             4. Random noise
     """
-    def __init__(self, cfg: dict | MultiActionSaturationConfig):
-        if isinstance(cfg, dict):
-            cfg = config_from_dict(MultiActionSaturationConfig, cfg)
+    def __init__(self, cfg: MultiActionSaturationConfig | None):
+        if cfg is None:
+            cfg = MultiActionSaturationConfig()
 
         self._random = np.random.default_rng(cfg.seed)
         self.num_controllers = cfg.num_controllers

@@ -70,9 +70,10 @@ class ThreeTankEnv(gym.Env):
     States: [H_1, H_2, H_3, H1_SP, H3_SP] (Tank heights and setpoint heights)
     Actions: [p_1, p_2] (Pump flowrates)
     """
-    def __init__(self, cfg: dict | ThreeTankConfig):
-        if isinstance(cfg, dict):
-            cfg = config_from_dict(ThreeTankConfig, cfg)
+    def __init__(self, cfg: ThreeTankConfig | None = None):
+        if  cfg is None:
+            cfg = ThreeTankConfig()
+
         super().__init__()
         self.cfg = cfg
         self.constants = ThreeTankConstants()

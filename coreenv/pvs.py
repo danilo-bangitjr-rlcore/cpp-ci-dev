@@ -57,8 +57,12 @@ class BasePVSEnv(Env):
     5. System responds to new flow rate
     6. Repeat
     """
-    def __init__(self, cfg: PVSConfig):
+    def __init__(self, cfg: PVSConfig | None = None):
         super().__init__()
+
+        if cfg is None:
+            cfg = PVSConfig()
+
         self.config = cfg
         self.seed = cfg.seed
         self.init_random_setpoint(self.seed)
@@ -458,11 +462,10 @@ class PVSChangeAction(BasePVSEnv):
     """RL environment implementation"""
     def __init__(
         self,
-        cfg: PVSConfig | dict
+        cfg: PVSConfig | None = None
     ):
-        print(cfg)
-        if isinstance(cfg, dict):
-            cfg = config_from_dict(PVSConfig, cfg)
+        if cfg is None:
+            cfg = PVSConfig()
         BasePVSEnv.__init__(self, cfg)
 
         # Initialize with random PID parameters within limits and record them

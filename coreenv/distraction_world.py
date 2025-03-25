@@ -26,10 +26,8 @@ class DistractionWorld(gym.Env):
     Environment where there are a number of distractor states, sampled from a gaussian.
     The agents job is simply to ignore the sates and take an action of 0.5 every step.
     """
-    def __init__(self, cfg: dict | DistractionWorldConfig | None = None):
-        if isinstance(cfg, dict):
-            cfg = config_from_dict(DistractionWorldConfig, cfg)
-        elif cfg is None:
+    def __init__(self, cfg: DistractionWorldConfig | None = None):
+        if cfg is None:
             cfg = DistractionWorldConfig()
 
         self.num_distractors = cfg.num_distractors
