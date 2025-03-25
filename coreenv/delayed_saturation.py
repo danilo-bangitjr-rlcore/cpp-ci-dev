@@ -6,7 +6,7 @@ import gymnasium as gym
 import numpy as np
 from corerl.configs.config import list_
 
-from coreenv.factory import EnvConfig
+from coreenv.factory import EnvConfig, env_group
 
 
 @dataclass
@@ -93,7 +93,4 @@ class DelayedSaturation(gym.Env):
     def close(self):
         pass
 
-gym.register(
-    id='DelayedSaturation-v0',
-    entry_point='corerl.environment.delayed_saturation:DelayedSaturation'
-)
+env_group.dispatcher(DelayedSaturation)

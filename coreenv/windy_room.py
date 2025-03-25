@@ -4,7 +4,7 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 
-from coreenv.factory import EnvConfig
+from coreenv.factory import EnvConfig, env_group
 
 
 @dataclass
@@ -89,3 +89,5 @@ gym.register(
     id='WindyRoom-v0',
     entry_point='corerl.environment.windy_room:WindyRoom',
 )
+
+env_group.dispatcher(WindyRoom)

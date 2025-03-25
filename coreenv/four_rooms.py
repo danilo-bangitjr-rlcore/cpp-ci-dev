@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium import spaces
 
-from coreenv.factory import EnvConfig
+from coreenv.factory import EnvConfig, env_group
 
 
 @dataclass
@@ -256,3 +256,5 @@ class FourRoomsEnv(gym.Env):
         self._point.set_offsets([self._current_state])
         self._fig.canvas.draw()
         self._fig.canvas.flush_events()
+
+env_group.dispatcher(FourRoomsEnv)

@@ -4,7 +4,7 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 
-from coreenv.factory import EnvConfig
+from coreenv.factory import EnvConfig, env_group
 
 
 @dataclass
@@ -68,8 +68,4 @@ class DistractionWorld(gym.Env):
     def close(self):
         pass
 
-
-gym.register(
-    id='DistractionWorld-v0',
-    entry_point='corerl.environment.distraction_world:DistractionWorld'
-)
+env_group.dispatcher(DistractionWorld)

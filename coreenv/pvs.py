@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
-from os import name
 from typing import Any, Optional, Sequence
 
-import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import sympy as sym
@@ -11,9 +9,11 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from scipy import signal
 from scipy.special import softmax
 
+from coreenv.factory import EnvConfig, env_group
+
 
 @dataclass
-class PVSConfig():
+class PVSConfig(EnvConfig):
     name: str = 'PVS'
     reward_type: str = "combined"  # "mse" or "combined"
     use_constraints: bool = False
@@ -646,7 +646,4 @@ class PVSChangeAction(BasePVSEnv):
         return self.prev_pid_params, {}
 
 
-gym.register(
-    id='PVS-v0',
-    entry_point='corerl.environment.pvs:PVSChangeAction'
-)
+env_group.dispatcher(PVSChangeAction)

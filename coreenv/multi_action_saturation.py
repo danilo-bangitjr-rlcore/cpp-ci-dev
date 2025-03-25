@@ -8,7 +8,7 @@ import numpy as np
 import tqdm
 from scipy.optimize import minimize
 
-from coreenv.factory import EnvConfig
+from coreenv.factory import EnvConfig, env_group
 
 
 @dataclass
@@ -235,7 +235,4 @@ class MultiActionSaturation(gym.Env):
     def close(self):
         pass
 
-gym.register(
-    id='MultiActionSaturation-v0',
-    entry_point='corerl.environment.multi_action_saturation:MultiActionSaturation'
-)
+env_group.dispatcher(MultiActionSaturation)

@@ -4,7 +4,7 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 
-from coreenv.factory import EnvConfig
+from coreenv.factory import EnvConfig, env_group
 
 
 @dataclass
@@ -85,4 +85,4 @@ class SaturationGoals(gym.Env):
         else:
             return np.array([0.2])
 
-gym.register('SaturationGoals-v0', SaturationGoals)
+env_group.dispatcher(SaturationGoals)

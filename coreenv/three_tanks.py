@@ -5,7 +5,7 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 
-from coreenv.factory import EnvConfig
+from coreenv.factory import EnvConfig, env_group
 
 
 @dataclass
@@ -209,8 +209,4 @@ class ThreeTankEnv(gym.Env):
         plt.tight_layout()
         plt.savefig(filename)
 
-
-gym.register(
-    id='ThreeTank-v1',
-    entry_point='corerl.environment.three_tanks:ThreeTankEnv'
-)
+env_group.dispatcher(ThreeTankEnv)

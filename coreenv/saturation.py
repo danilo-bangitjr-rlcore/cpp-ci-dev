@@ -4,7 +4,7 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 
-from coreenv.factory import EnvConfig
+from coreenv.factory import EnvConfig, env_group
 
 
 @dataclass
@@ -72,4 +72,4 @@ class Saturation(gym.Env):
     def close(self):
         pass
 
-gym.register('Saturation-v0', Saturation)
+env_group.dispatcher(Saturation)
