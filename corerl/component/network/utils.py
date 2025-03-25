@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-import numpy
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -74,7 +74,7 @@ def layer_init_uniform(layer: nn.Module, low: float = -0.003, high: float = 0.00
 
 
 def tensor(
-    x: float | numpy.ndarray | torch.Tensor | list[float],
+    x: float | np.ndarray | torch.Tensor | list[float],
     device: str | torch.device | Device | None = None,
 ) -> torch.Tensor:
     if isinstance(x, torch.Tensor):
@@ -89,11 +89,11 @@ def tensor(
     return torch.tensor(x, dtype=torch.float32).to(device)
 
 
-def state_to_tensor(state: numpy.ndarray,  device: str | torch.device | None = None) -> torch.Tensor:
+def state_to_tensor(state: np.ndarray,  device: str | torch.device | None = None) -> torch.Tensor:
     return tensor(state.reshape((1, -1)), device)
 
 
-def to_np(t: numpy.ndarray | torch.Tensor) -> numpy.ndarray:
+def to_np(t: np.ndarray | torch.Tensor) -> np.ndarray:
     if isinstance(t, torch.Tensor):
         return t.cpu().detach().numpy()
     else:
