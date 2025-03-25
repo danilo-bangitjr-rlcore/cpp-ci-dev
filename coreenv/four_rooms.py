@@ -5,6 +5,16 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium import spaces
+from corerl.configs.config import config
+
+
+@config()
+class FourRoomsConfig:
+    continuous_action: bool = True
+    action_scale: float = 0.01
+    noise_scale: float = 0.0
+    decay_scale: float = 0.25
+    decay_probability: float = 1.0
 
 
 class FourRoomsEnv(gym.Env):
@@ -26,15 +36,7 @@ class FourRoomsEnv(gym.Env):
 
     _EPSILON = 1e-6
 
-    def __init__(
-        self,
-        seed: int,
-        continuous_action: bool=True,
-        action_scale: float=0.01,
-        noise_scale: float=0.0,
-        decay_scale: float=0.25,
-        decay_probability: float=1.0,
-    ):
+    def __init__(self, cfg: FourRoomsConfig | None = None):
         """Initializes the instance
 
         Args:
@@ -55,14 +57,18 @@ class FourRoomsEnv(gym.Env):
                 Probability with which to decay actions in the up/right
                 direction. By default 1.0. Set to 0 to disable.
         """
+
+        if cfg is None:
+            cfg = FourRoomsConfig()
+
         self._fig = None
         self._ax = None
 
-        assert 0 < decay_scale <= 1
-        self._positive_action_decay = decay_scale
-        self._positive_action_decay_prob = decay_probability
+        assert 0 < cfg.decay_scale <= 1
+        self._positive_action_decay = cfg.decay_scale
+        self._positive_action_decay_prob = cfg.decay_probability
 
-        if continuous_action:
+        if cfg.continuous_action:
             max_action = np.array([1, 1])
             self.action_space = spaces.Box(
                 -max_action, max_action, dtype=np.float32,
@@ -72,11 +78,11 @@ class FourRoomsEnv(gym.Env):
             self.action_space = spaces.Discrete(5)
             self._continuous_action = False
 
-        self._action_scale = action_scale
+        self._action_scale = cfg.action_scale
 
         # Scale of 0-mean Gaussian noise to add to each action
-        self._noise_scale = noise_scale
-        self._rng = np.random.default_rng(seed)
+        self._noise_scale = cfg.noise_scale
+        self._rng = np.random.default_rng(cfg.seed)
 
         self.observation_space = spaces.Box(
             np.array([0, 0]),
