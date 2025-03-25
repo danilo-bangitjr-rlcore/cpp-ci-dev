@@ -1,12 +1,10 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import gymnasium as gym
 import numpy as np
-from corerl.configs.config import computed, config, list_
+from corerl.configs.config import config, list_
 
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
 
 @config()
 class DelayedSaturationConfig:
@@ -17,13 +15,6 @@ class DelayedSaturationConfig:
     endo_inds: list[int] = list_()
     endo_obs_names: list[str] = list_()
     seed: int = 1
-
-    @computed('seed')
-    @classmethod
-    def _seed(cls, cfg: 'MainConfig'):
-        return cfg.experiment.seed
-
-
 
 class DelayedSaturation(gym.Env):
     def __init__(self, cfg: DelayedSaturationConfig | None = None):

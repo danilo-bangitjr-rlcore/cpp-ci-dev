@@ -1,23 +1,15 @@
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import gymnasium as gym
 import numpy as np
-from corerl.configs.config import computed, config
+from corerl.configs.config import config
 
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
 
 @config()
 class DistractionWorldConfig:
     num_distractors : int = 100
     num_actions : int = 1
     seed: int = 0
-
-    @computed('seed')
-    @classmethod
-    def _seed(cls, cfg: 'MainConfig'):
-        return cfg.experiment.seed
-
 
 class DistractionWorld(gym.Env):
     """

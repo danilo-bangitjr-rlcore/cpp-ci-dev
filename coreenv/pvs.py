@@ -1,18 +1,15 @@
 from dataclasses import field
-from typing import TYPE_CHECKING, Any, Optional, Sequence
+from typing import Any, Optional, Sequence
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import sympy as sym
-from corerl.configs.config import computed, config
+from corerl.configs.config import config
 from gymnasium import Env, spaces
 from matplotlib.animation import FuncAnimation, PillowWriter
 from scipy import signal
 from scipy.special import softmax
-
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
 
 
 @config()
@@ -39,11 +36,6 @@ class PVSConfig():
     reset_temperature: float = np.inf
     no_reset: bool = True
     seed: int = 1
-
-    @computed('seed')
-    @classmethod
-    def _seed(cls, cfg: 'MainConfig'):
-        return cfg.experiment.seed
 
 class BasePVSEnv(Env):
     """

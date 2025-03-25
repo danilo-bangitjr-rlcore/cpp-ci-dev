@@ -1,16 +1,13 @@
 from dataclasses import field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import tqdm
-from corerl.configs.config import computed, config
+from corerl.configs.config import config
 from scipy.optimize import minimize
-
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
 
 
 @config()
@@ -29,11 +26,6 @@ class MultiActionSaturationConfig:
     phase_shifts: list[float] = field(default_factory=lambda: [0.0, np.pi/4, np.pi/2])
     setpoints: list[float] = field(default_factory=lambda: [0.3, 0.5, 0.7])
     seed: int = 1
-
-    @computed('seed')
-    @classmethod
-    def _seed(cls, cfg: 'MainConfig'):
-        return cfg.experiment.seed
 
 class MultiActionSaturation(gym.Env):
     """Multi-Action Saturation Environment

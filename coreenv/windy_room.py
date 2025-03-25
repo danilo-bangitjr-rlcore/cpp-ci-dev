@@ -1,11 +1,9 @@
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import gymnasium as gym
 import numpy as np
-from corerl.configs.config import computed, config
+from corerl.configs.config import config
 
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
 
 @config()
 class WindyRoomConfig:
@@ -17,11 +15,6 @@ class WindyRoomConfig:
     wind_magnitude: float  = 0.01
     wind_direction_delta: float = (2*np.pi)/1000 # 1000 steps to complete a full circle
     action_magnitude: float = 0.02
-
-    @computed('seed')
-    @classmethod
-    def _seed(cls, cfg: 'MainConfig'):
-        return cfg.experiment.seed
 
 STATE_DIM = 2
 BOUNDS_LOW = 0
