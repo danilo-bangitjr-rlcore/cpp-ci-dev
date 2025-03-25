@@ -1,11 +1,11 @@
+from dataclasses import dataclass
 from typing import Any
 
 import gymnasium as gym
 import numpy as np
-from corerl.configs.config import config
 
 
-@config()
+@dataclass
 class DistractionWorldConfig:
     num_distractors : int = 100
     num_actions : int = 1

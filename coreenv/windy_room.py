@@ -1,11 +1,11 @@
+from dataclasses import dataclass
 from typing import Any
 
 import gymnasium as gym
 import numpy as np
-from corerl.configs.config import config
 
 
-@config()
+@dataclass
 class WindyRoomConfig:
     seed: int = 0
     initial_zone_low: float = 0.45

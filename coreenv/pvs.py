@@ -1,18 +1,17 @@
-from dataclasses import field
+from dataclasses import dataclass, field
 from typing import Any, Optional, Sequence
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import sympy as sym
-from corerl.configs.config import config
 from gymnasium import Env, spaces
 from matplotlib.animation import FuncAnimation, PillowWriter
 from scipy import signal
 from scipy.special import softmax
 
 
-@config()
+@dataclass
 class PVSConfig():
     reward_type: str = "combined"  # "mse" or "combined"
     use_constraints: bool = False

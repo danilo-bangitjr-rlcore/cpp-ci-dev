@@ -4,10 +4,9 @@ from typing import Any
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
-from corerl.configs.config import config
 
 
-@config()
+@dataclass
 class ThreeTankConfig:
     steps_between_target_updates: int | None = 30  # Number of steps between target updates
                                                     #   None: no updates

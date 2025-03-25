@@ -1,12 +1,13 @@
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import gymnasium as gym
 import numpy as np
-from corerl.configs.config import config, list_
+from corerl.configs.config import list_
 
 
-@config()
+@dataclass
 class DelayedSaturationConfig:
     effect_period: float = 500
     decay: float = 0.75

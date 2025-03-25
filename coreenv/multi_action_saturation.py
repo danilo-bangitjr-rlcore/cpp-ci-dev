@@ -1,4 +1,4 @@
-from dataclasses import field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -6,11 +6,10 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import tqdm
-from corerl.configs.config import config
 from scipy.optimize import minimize
 
 
-@config()
+@dataclass
 class MultiActionSaturationConfig:
     effect_period: float = 100
     decay: float = 0.75

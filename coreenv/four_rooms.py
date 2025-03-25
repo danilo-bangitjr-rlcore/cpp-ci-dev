@@ -1,14 +1,14 @@
 # Import modules
+from dataclasses import dataclass
 from typing import Optional
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
-from corerl.configs.config import config
 from gymnasium import spaces
 
 
-@config()
+@dataclass
 class FourRoomsConfig:
     continuous_action: bool = True
     action_scale: float = 0.01
