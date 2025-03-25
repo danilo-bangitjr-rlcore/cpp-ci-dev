@@ -1,0 +1,90 @@
+[tool]
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ['F', 'E', 'W', 'B', 'I']
+ignore = [
+    'E402',
+
+    # multiple statements on one line. Incompatible with:
+    # if cond: break
+    'E701',
+
+    # syntax error in forward declaration - incompatible with jaxtyping
+    'F722',
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pyright]
+include = ['.']
+exclude = [
+    '.venv/',
+    'sweep/',
+    'scripts/',
+    'build/',
+    'corerl/environment/smpl',
+    'corerl/environment/third_party',
+    'corerl/sql_logging/examples',
+    'client',
+]
+venvPath = '.'
+venv = '.venv'
+typeCheckingMode = 'standard'
+
+# common overrides
+useLibraryCodeForTypes = true
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+enableReachabilityAnalysis = true
+
+# stricter overrides
+reportInconsistentConstructor = true
+reportMissingParameterType = true
+reportUnnecessaryCast = true
+reportUnnecessaryIsInstance = true
+reportUnusedClass = true
+reportUnusedExpression = true
+reportUnusedFunction = true
+
+
+[tool.deadcode]
+exclude = [".venv", "docs", "test", "build"]
+ignore-names = ["_*"]
+ignore-names-in-files = []
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_scheme = "pep440"
+version_provider = "pep621"
+update_changelog_on_bump = true
+major_version_zero = true
+
+[tool.coverage.run]
+omit = ["test/*"]
+concurrency = ["thread", "multiprocessing"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "corenv"
+version = "0.133.0"
+description = ""
+requires-python = ">=3.12,<3.13"
+authors = []
+dependencies = [
+    "gymnasium~=1.0",
+    "jaxtyping~=0.2",
+    "matplotlib~=3.8",
+    "pydantic~=2.9",
+    "nltk~=3.8",
+    "numba~=0.60",
+    "numpy~=2.0",
+    "corerl @ git+https://github.com/rlcoretech/core-rl.git"
+]
+readme = "README.md"
