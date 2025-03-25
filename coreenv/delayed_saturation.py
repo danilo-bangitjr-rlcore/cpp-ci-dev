@@ -4,7 +4,6 @@ from typing import Any
 
 import gymnasium as gym
 import numpy as np
-from corerl.configs.config import list_
 
 from coreenv.factory import EnvConfig, env_group
 
@@ -15,12 +14,9 @@ class DelayedSaturationConfig(EnvConfig):
     effect_period: float = 500
     decay: float = 0.75
     trace_val: float = 0.9
-    action_names: list[str] = list_()
-    endo_inds: list[int] = list_()
-    endo_obs_names: list[str] = list_()
 
 class DelayedSaturation(gym.Env):
-    def __init__(self, cfg: DelayedSaturationConfig | None = None):
+    def __init__(self, cfg: DelayedSaturationConfig ):
         if cfg is None:
             cfg = DelayedSaturationConfig()
 
@@ -47,10 +43,6 @@ class DelayedSaturation(gym.Env):
         self.raw_actions = []
         self.action_trace = np.array([0])
         self.trace_val = cfg.trace_val
-
-        self.action_names = cfg.action_names
-        self.endo_inds = cfg.endo_inds
-        self.endo_obs_names = cfg.endo_obs_names
 
     def seed(self, seed: int):
         self._random = np.random.default_rng(seed)
