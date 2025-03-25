@@ -74,7 +74,7 @@ class DepAsyncEnvConfig(TSDBEnvConfig):
         coreio_origin       Endpoint for CoreIO Thin Client web service. Defaults to docker-compose up expected value.
     """
 
-    name: str = "dep_async_env"
+    name: Literal["dep_async_env"] = "dep_async_env"
     action_tolerance: timedelta = MISSING
     coreio_origin: str = "http://coreio:2222"
 
@@ -86,7 +86,7 @@ class DepAsyncEnvConfig(TSDBEnvConfig):
 
 @config()
 class SimAsyncEnvConfig(GymEnvConfig, BaseAsyncEnvConfig):
-    name: str = "sim_async_env"
+    name: Literal["sim_async_env"] = "sim_async_env"
 
 # ---------------
 # -- Interface --

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from corerl.configs.config import MISSING, computed, config
 
@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 @config()
 class EnvironmentConfig:
-    name: str = MISSING
+    name: Any = MISSING
     seed: int = MISSING
 
 

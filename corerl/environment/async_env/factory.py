@@ -1,3 +1,6 @@
+from typing import Annotated
+from pydantic import Field
+
 from corerl.configs.group import Group
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv
@@ -9,11 +12,10 @@ async_env_group = Group[
     AsyncEnv
 ]()
 
-AsyncEnvConfig = (
+AsyncEnvConfig = Annotated[
     SimAsyncEnvConfig
     | DepAsyncEnvConfig
-)
-
+, Field(discriminator='name')]
 
 def register():
     async_env_group.dispatcher(SimAsyncEnv)
