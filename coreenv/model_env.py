@@ -3,7 +3,6 @@ from typing import Any, Tuple
 
 import gymnasium as gym
 import torch
-
 from corerl.configs.config import MISSING, config
 from corerl.environment.config import EnvironmentConfig
 from corerl.models.base import BaseModel

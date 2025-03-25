@@ -5,13 +5,11 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import sympy as sym
+from corerl.configs.config import computed, config
 from gymnasium import Env, spaces
 from matplotlib.animation import FuncAnimation, PillowWriter
 from scipy import signal
 from scipy.special import softmax
-
-from corerl.configs.config import computed, config
-from corerl.configs.loader import config_from_dict
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig

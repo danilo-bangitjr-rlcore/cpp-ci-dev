@@ -6,10 +6,8 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import tqdm
-from scipy.optimize import minimize
-
 from corerl.configs.config import computed, config
-from corerl.configs.loader import config_from_dict
+from scipy.optimize import minimize
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig

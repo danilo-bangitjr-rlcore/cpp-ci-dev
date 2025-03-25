@@ -3,9 +3,7 @@ from typing import TYPE_CHECKING, Any
 
 import gymnasium as gym
 import numpy as np
-
 from corerl.configs.config import computed, config, list_
-from corerl.configs.loader import config_from_dict
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig

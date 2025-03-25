@@ -4,8 +4,8 @@ from typing import Optional
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
-from gymnasium import spaces
 from corerl.configs.config import config
+from gymnasium import spaces
 
 
 @config()

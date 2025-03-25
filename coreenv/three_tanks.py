@@ -4,9 +4,7 @@ from typing import Any
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
-
 from corerl.configs.config import config
-from corerl.configs.loader import config_from_dict
 
 
 @config()
