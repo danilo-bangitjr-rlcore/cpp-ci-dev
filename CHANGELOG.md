@@ -5,6 +5,50 @@
 - styles again
 - fix agent test utils
 
+## [0.134.0](https://github.com/rlcoretech/core-rl/compare/v0.133.1...v0.134.0) (2025-03-25)
+
+
+### Features
+
+* **DEP-24:** First version of the Epcor Solar config file ([5c522d9](https://github.com/rlcoretech/core-rl/commit/5c522d9ffc931351d1f0c43e17033dd4fe0c5665))
+* **DEP-24:** First version of the Epcor Solar config file. Will be updated in future sprints as new features are developed ([03c704d](https://github.com/rlcoretech/core-rl/commit/03c704d764d5ac2bf6331bf96139ab86e1996ab8))
+* ensure traces are used by default in sc ([6bc6050](https://github.com/rlcoretech/core-rl/commit/6bc60506cd49fbb2cfa2dc84774bf6cf97ddcf1f))
+* **PROD-108:** add 422 response type to fastapi config validation ([3cc1a7b](https://github.com/rlcoretech/core-rl/commit/3cc1a7bb04558c667338eedc47bbd664d39c7d3f))
+* **PROD-108:** clean up config schema errors from cmdline ([962be18](https://github.com/rlcoretech/core-rl/commit/962be189fbf6d13f4c0152070948992512d881eb))
+* **PROD-162:** Goal threshold as affine function of opc tags ([#645](https://github.com/rlcoretech/core-rl/issues/645)) ([05f60df](https://github.com/rlcoretech/core-rl/commit/05f60dfa57dafc3cad54f3b0cbbe84f59c7ae5c3))
+* **PROD-215:** make offline training start and end timestamp configurable ([14ca576](https://github.com/rlcoretech/core-rl/commit/14ca576c009544b4b40ac287481110cc7cbffbf4))
+* **PROD-217:** CI checks for FastAPI schema generation ([#661](https://github.com/rlcoretech/core-rl/issues/661)) ([5bb56e3](https://github.com/rlcoretech/core-rl/commit/5bb56e386347532ecc625bb218c25382358a5265))
+* **PROD-76:** Enable deltaizing tags in preprocess stage ([9b304ef](https://github.com/rlcoretech/core-rl/commit/9b304ef84e16be03ccb2a9bfdc926a1309ea32ff))
+
+
+### Bug Fixes
+
+* add error handling to public facing direct_load_config contract ([73f61a1](https://github.com/rlcoretech/core-rl/commit/73f61a1bba85fcbd5ed76b6a87206ca35853ba63))
+* attempt to filter disc union values from error path ([eb141a2](https://github.com/rlcoretech/core-rl/commit/eb141a296adff2425364ff5df2e807827a51e3e3))
+* **DEP-58:** Update Epcor Solar dataloader ([8bb6ddc](https://github.com/rlcoretech/core-rl/commit/8bb6ddc4fae449ca548f2e62519c13c57e3ea79d))
+* **DEP-58:** Update Epcor Solar dataloader to take into account new tags, delta being computed in pipeline, float precision, etc. ([5da455f](https://github.com/rlcoretech/core-rl/commit/5da455f364d3de647fa7e98cc65ae8771f1389bc))
+* **DEP-60:** add tolerance to oob detector ([a7db1c2](https://github.com/rlcoretech/core-rl/commit/a7db1c217847875472ec722d68074210b6bbabef))
+* handle config_or_error interface in new windygrid env ([86b295b](https://github.com/rlcoretech/core-rl/commit/86b295bb82d7364ec05b19c4a8afb189f6a91502))
+* multi action saturation default configs ([791d709](https://github.com/rlcoretech/core-rl/commit/791d709997e7088622929df25290083ca05a4151))
+* multi action saturation default configs ([c3f8efd](https://github.com/rlcoretech/core-rl/commit/c3f8efd53cd33a3ff128c0f01ebdf241cba94830))
+* **PROD-108:** rework error schema to match prisma errors ([9dac3e5](https://github.com/rlcoretech/core-rl/commit/9dac3e57db926a0230a728c20920c39d83742e53))
+* **PROD-209:** fixed policy net schema validation + getting delta_actions bool from feature_flags ([806225c](https://github.com/rlcoretech/core-rl/commit/806225cb6922a0ab22c7aede85bfbfc7d1748596))
+* **PROD-209:** fixed policy net schema validation and getting delta_actions bool from feature_flags ([c461f86](https://github.com/rlcoretech/core-rl/commit/c461f86cc03a8d4308d401d0fea1e9f6653e8480))
+* **PROD-213:** openapi.json to schema.ts json now passes ([#660](https://github.com/rlcoretech/core-rl/issues/660)) ([5bb56e3](https://github.com/rlcoretech/core-rl/commit/5bb56e386347532ecc625bb218c25382358a5265))
+* **PROD-213:** openapi.json to schema.ts json now passes ([#660](https://github.com/rlcoretech/core-rl/issues/660)) ([75cbeff](https://github.com/rlcoretech/core-rl/commit/75cbeffef236a15a7ce9e0bdcf943489666355f9))
+* **PROD-214:** fix warmup nan mean/var issue and warmup same val float imprecision issue ([1f2511b](https://github.com/rlcoretech/core-rl/commit/1f2511b7798d01b742f1b90eb858bbb19eb54f43))
+* **PROD-216:** add timestamp indices to probe_fake_data() df to prevent errors when seasonal features enabled ([5fcce33](https://github.com/rlcoretech/core-rl/commit/5fcce33dbb17a31f593e6eb433aebcabe9240621))
+* **PROD-216:** Add timestamp indices to probe_fake_data() df to prevent errors when seasonal features enabled ([bc1fec5](https://github.com/rlcoretech/core-rl/commit/bc1fec57e2587ccb263adbf657060b7a12e16c5a))
+* **PROD-236:** Apply correct discount factor when computing partial return in MC Eval ([aa19116](https://github.com/rlcoretech/core-rl/commit/aa19116da6d978a2804685bca6ee39e2d073d3d2))
+* **PROD-236:** traverse rewards in correct order to compute partial return ([ae8ed26](https://github.com/rlcoretech/core-rl/commit/ae8ed26bcb9333f18676a931483e799031d3564a))
+* turn on zone violations by default in (non b-test) windy room config ([da1b402](https://github.com/rlcoretech/core-rl/commit/da1b402338fcd7e660620a45216ac1f57a91eb0e))
+* type error ([d30cd85](https://github.com/rlcoretech/core-rl/commit/d30cd855223f364db264ba6d262d92446b5775db))
+* updated broken test ([8f22981](https://github.com/rlcoretech/core-rl/commit/8f2298122905d490a18d02b88de6cec085f74aef))
+* updated tests and fixed delta transform to work when there are multiple columns ([4bed2c1](https://github.com/rlcoretech/core-rl/commit/4bed2c11deac266ec582a939468b26b6e58166ce))
+* use deployment env/interaction by default ([12cb620](https://github.com/rlcoretech/core-rl/commit/12cb620cde0339e10c8c1cf745ec27b207e37b57))
+* wire optimizer weight decay through lso ([32883f0](https://github.com/rlcoretech/core-rl/commit/32883f0d96e2addac9667848ec5658d6ad97005a))
+* wrap computeds and post-processes with ValueError handler ([06a2ee9](https://github.com/rlcoretech/core-rl/commit/06a2ee929ee0289fbdea035e6321011a38146f61))
+
 ## [0.133.1](https://github.com/rlcoretech/core-rl/compare/v0.133.0...v0.133.1) (2025-03-20)
 
 
