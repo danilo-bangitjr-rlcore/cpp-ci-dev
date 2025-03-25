@@ -21,7 +21,7 @@ env:
   # coreio_origin: http://localhost:2222  # use localhost or 0.0.0.0 for when agent running outside of docker network
 
   db:
-    table_name: opcua
+    table_name: sensors
 
 event_bus:
   enabled: True
