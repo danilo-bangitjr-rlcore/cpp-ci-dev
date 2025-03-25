@@ -83,6 +83,7 @@ dependencies = [
     "pydantic~=2.9",
     "numpy~=2.0",
     "scipy~=1.13",
+    "sympy~=1.13.1",
 ]
 readme = "README.md"
 
