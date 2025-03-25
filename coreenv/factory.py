@@ -1,11 +1,16 @@
-import logging
+from dataclasses import dataclass
+from typing import Any
 
 import gymnasium as gym
-from corerl.environment.async_env.async_env import GymEnvConfig
-from corerl.environment.async_env.deployment_async_env import DepAsyncEnvConfig
-from corerl.environment.model_env import ModelEnv, ModelEnvConfig
 
-log = logging.getLogger(__name__)
+MISSING: Any = "|???|"
+
+@dataclass
+class EnvConfig:
+    name : str = MISSING
+    seed : int = 0
+
+
 
 def init_environment(cfg: GymEnvConfig) -> gym.Env:
     args = cfg.args

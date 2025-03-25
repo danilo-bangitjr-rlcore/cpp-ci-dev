@@ -6,16 +6,18 @@ import gymnasium as gym
 import numpy as np
 from corerl.configs.config import list_
 
+from coreenv.factory import EnvConfig
+
 
 @dataclass
-class DelayedSaturationConfig:
+class DelayedSaturationConfig(EnvConfig):
+    name: str = 'DelayedSaturation'
     effect_period: float = 500
     decay: float = 0.75
     trace_val: float = 0.9
     action_names: list[str] = list_()
     endo_inds: list[int] = list_()
     endo_obs_names: list[str] = list_()
-    seed: int = 1
 
 class DelayedSaturation(gym.Env):
     def __init__(self, cfg: DelayedSaturationConfig | None = None):

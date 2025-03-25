@@ -7,16 +7,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium import spaces
 
+from coreenv.factory import EnvConfig
+
 
 @dataclass
-class FourRoomsConfig:
+class FourRoomsConfig(EnvConfig):
+    name: str = 'FourRooms'
     continuous_action: bool = True
     action_scale: float = 0.01
     noise_scale: float = 0.0
     decay_scale: float = 0.25
     decay_probability: float = 1.0
-    seed: int = 0
-
 
 class FourRoomsEnv(gym.Env):
     """FourRoomsEnv implements the continuous-state four rooms domain with

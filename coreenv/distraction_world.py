@@ -4,12 +4,14 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 
+from coreenv.factory import EnvConfig
+
 
 @dataclass
-class DistractionWorldConfig:
+class DistractionWorldConfig(EnvConfig):
+    name: str = 'DistractionWorld'
     num_distractors : int = 100
     num_actions : int = 1
-    seed: int = 0
 
 class DistractionWorld(gym.Env):
     """

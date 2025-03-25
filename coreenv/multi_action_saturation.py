@@ -8,9 +8,12 @@ import numpy as np
 import tqdm
 from scipy.optimize import minimize
 
+from coreenv.factory import EnvConfig
+
 
 @dataclass
-class MultiActionSaturationConfig:
+class MultiActionSaturationConfig(EnvConfig):
+    name: str = 'MultiActionSaturation'
     effect_period: float = 100
     decay: float = 0.75
     trace_val: float = 0.9
@@ -24,7 +27,6 @@ class MultiActionSaturationConfig:
     frequencies: list[float] = field(default_factory=lambda: [1.0, 1.5, 2.0])
     phase_shifts: list[float] = field(default_factory=lambda: [0.0, np.pi/4, np.pi/2])
     setpoints: list[float] = field(default_factory=lambda: [0.3, 0.5, 0.7])
-    seed: int = 1
 
 class MultiActionSaturation(gym.Env):
     """Multi-Action Saturation Environment

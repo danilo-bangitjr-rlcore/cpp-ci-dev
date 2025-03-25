@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from os import name
 from typing import Any, Optional, Sequence
 
 import gymnasium as gym
@@ -13,6 +14,7 @@ from scipy.special import softmax
 
 @dataclass
 class PVSConfig():
+    name: str = 'PVS'
     reward_type: str = "combined"  # "mse" or "combined"
     use_constraints: bool = False
     use_reset_buffer: bool = True

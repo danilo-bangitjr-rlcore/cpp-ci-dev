@@ -1,11 +1,18 @@
+from dataclasses import dataclass
 from typing import Any
 
 import gymnasium as gym
 import numpy as np
 
+from coreenv.factory import EnvConfig
+
+
+@dataclass
+class SaturationConfig(EnvConfig):
+    name: str = 'Saturation'
 
 class Saturation(gym.Env):
-    def __init__(self):
+    def __init__(self, cfg: SaturationConfig | None = None):
         self._random = np.random.default_rng()
         self._obs_min = np.array([0.])
         self._obs_max = np.array([1.])

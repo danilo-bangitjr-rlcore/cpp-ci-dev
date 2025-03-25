@@ -4,9 +4,12 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 
+from coreenv.factory import EnvConfig
+
 
 @dataclass
-class SaturationGoalsConfig:
+class SaturationGoalsConfig(EnvConfig):
+    name: str = 'SaturationGoals'
     setpoint_change_period: int = 400
 
 class SaturationGoals(gym.Env):

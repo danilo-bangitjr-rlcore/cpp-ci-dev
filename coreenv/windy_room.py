@@ -4,10 +4,12 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 
+from coreenv.factory import EnvConfig
+
 
 @dataclass
-class WindyRoomConfig:
-    seed: int = 0
+class WindyRoomConfig(EnvConfig):
+    name: str = 'WindyRoom'
     initial_zone_low: float = 0.45
     initial_zone_high: float = 0.55
 

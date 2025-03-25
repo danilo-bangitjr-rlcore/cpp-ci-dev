@@ -5,9 +5,12 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 
+from coreenv.factory import EnvConfig
+
 
 @dataclass
-class ThreeTankConfig:
+class ThreeTankConfig(EnvConfig):
+    name : str = 'ThreeTanks'
     steps_between_target_updates: int | None = 30  # Number of steps between target updates
                                                     #   None: no updates
                                                     #   <=1: updates every step
