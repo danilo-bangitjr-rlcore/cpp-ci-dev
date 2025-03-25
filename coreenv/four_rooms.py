@@ -15,6 +15,7 @@ class FourRoomsConfig:
     noise_scale: float = 0.0
     decay_scale: float = 0.25
     decay_probability: float = 1.0
+    seed: int = 0
 
 
 class FourRoomsEnv(gym.Env):
