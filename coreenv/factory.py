@@ -1,7 +1,10 @@
+import logging
 import inspect
 from collections.abc import Callable
 from dataclasses import dataclass, fields, is_dataclass, replace
 from typing import Any, Concatenate, Protocol, TypeVar
+
+logger = logging.getLogger(__name__)
 
 MISSING: Any = "|???|"
 
@@ -73,6 +76,6 @@ def init_env(name: str, overrides: dict | None = None):
     import coreenv.three_tanks  # noqa: F401
     import coreenv.windy_room  # noqa: F401
 
-    print(overrides)
+    logger.info(f"instantiaing {name} with overrides {overrides}")
 
     return env_group.dispatch(name, overrides)
