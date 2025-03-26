@@ -73,5 +73,6 @@ def init_env(name: str, overrides: dict | None = None):
     import coreenv.three_tanks  # noqa: F401
     import coreenv.windy_room  # noqa: F401
 
+    print(overrides)
 
     return env_group.dispatch(name, overrides)
