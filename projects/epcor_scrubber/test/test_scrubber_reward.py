@@ -14,9 +14,8 @@ from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, get_tag_bounds_no_eval
 from corerl.state import AppState
-from corerl.utils.maybe import Maybe
 
 
 def dfs_close(df1: pd.DataFrame, df2: pd.DataFrame, col_order_matters: bool = False):
@@ -385,20 +384,6 @@ def test_epcor_reward_from_yaml(dummy_app_state: AppState):
     print(expected_reward_df)
     assert dfs_close(pipe_return.rewards, expected_reward_df)
 
-def get_bounds(tag_cfg: TagConfig):
-    lo = (
-        Maybe[float](tag_cfg.red_bounds and tag_cfg.red_bounds[0])
-        .otherwise(lambda: tag_cfg.operating_range and tag_cfg.operating_range[0])
-        .otherwise(lambda: tag_cfg.yellow_bounds and tag_cfg.yellow_bounds[0])
-    ).expect()
-
-    hi = (
-        Maybe[float](tag_cfg.red_bounds and tag_cfg.red_bounds[1])
-        .otherwise(lambda: tag_cfg.operating_range and tag_cfg.operating_range[1])
-        .otherwise(lambda: tag_cfg.yellow_bounds and tag_cfg.yellow_bounds[1])
-    ).expect()
-    return lo, hi
-
 def test_epcor_reward_rankings(dummy_app_state: AppState):
     """
     A vs B comparison of states
@@ -424,7 +409,7 @@ def test_epcor_reward_rankings(dummy_app_state: AppState):
     bounds = {}
     for tag_cfg in tag_cfgs:
         col = tag_cfg.name
-        bounds[col] = get_bounds(tag_cfg)
+        bounds[col] = get_tag_bounds_no_eval(tag_cfg)
 
     def red_zone_violated(df: pd.DataFrame):
         if df["AIC3731_OUT"].iloc[0] > 60:

@@ -1,12 +1,13 @@
 import logging
 from dataclasses import dataclass
+from functools import partial
 from typing import Literal, assert_never
 
 import pandas as pd
 
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, eval_bound
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.maybe import Maybe
@@ -141,11 +142,13 @@ class ZoneDiscourager:
         yellow_lo = (
             Maybe(tag.yellow_bounds)
             .map(lambda bounds: bounds[0])
+            .map(partial(eval_bound, row, "lo", tag.yellow_bounds_func, tag.yellow_bounds_tags))
             .unwrap()
         )
         yellow_hi = (
             Maybe(tag.yellow_bounds)
             .map(lambda bounds: bounds[1])
+            .map(partial(eval_bound, row, "hi", tag.yellow_bounds_func, tag.yellow_bounds_tags))
             .unwrap()
         )
 
@@ -153,8 +156,11 @@ class ZoneDiscourager:
             next_lo = (
                 # the next lowest bound is either the red zone if one exists
                 Maybe(tag.red_bounds and tag.red_bounds[0])
+                .map(partial(eval_bound, row, "lo", tag.red_bounds_func, tag.red_bounds_tags))
+
                 # or the operating bound if one exists
                 .otherwise(lambda: tag.operating_range and tag.operating_range[0])
+
                 # and if neither exists, we're in trouble
                 .expect(f'Yellow zone specified for tag {tag.name}, but no lower bound found')
             )
@@ -165,8 +171,11 @@ class ZoneDiscourager:
             next_hi = (
                 # the next highest bound is either the red zone if one exists
                 Maybe(tag.red_bounds and tag.red_bounds[1])
+                .map(partial(eval_bound, row, "hi", tag.red_bounds_func, tag.red_bounds_tags))
+
                 # or the operating bound if one exists
                 .otherwise(lambda: tag.operating_range and tag.operating_range[1])
+
                 # and if neither exists, we're in trouble
                 .expect(f'Yellow zone specified for tag {tag.name}, but no upper bound found')
             )
@@ -181,11 +190,13 @@ class ZoneDiscourager:
         red_lo = (
             Maybe(tag.red_bounds)
             .map(lambda bounds: bounds[0])
+            .map(partial(eval_bound, row, "lo", tag.red_bounds_func, tag.red_bounds_tags))
             .unwrap()
         )
         red_hi = (
             Maybe(tag.red_bounds)
             .map(lambda bounds: bounds[1])
+            .map(partial(eval_bound, row, "hi", tag.red_bounds_func, tag.red_bounds_tags))
             .unwrap()
         )
 

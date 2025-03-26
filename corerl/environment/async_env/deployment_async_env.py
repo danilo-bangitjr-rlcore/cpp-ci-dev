@@ -1,14 +1,14 @@
 import logging
 from datetime import UTC, datetime
+from functools import partial
 from typing import TypedDict
 
 import numpy as np
 import pandas as pd
 
 # Data Pipline
-from corerl.data_pipeline.bound_checker import Bounds
 from corerl.data_pipeline.db.data_reader import DataReader
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import FloatBounds, TagConfig, eval_bound
 from corerl.environment.async_env.async_env import AsyncEnv, DepAsyncEnvConfig
 from corerl.utils.coreio import CoreIOThinClient, OPCUADataType, OPCUANodeWriteValue
 from corerl.utils.maybe import Maybe
@@ -154,7 +154,7 @@ def clip_action(action: pd.DataFrame, action_cfgs: dict[str, TagConfig]) -> None
     for action_name in action_cfgs.keys():
         action_cfg = action_cfgs[action_name]
         action_val = action[action_name].iloc[0]
-        lo, hi = get_clip_bounds(action_cfg)
+        lo, hi = get_clip_bounds(action_cfg, action)
 
         if (action_val < lo) or (action_val > hi):
             logger.error(
@@ -163,15 +163,17 @@ def clip_action(action: pd.DataFrame, action_cfgs: dict[str, TagConfig]) -> None
 
         action[action_name] = np.clip(action_val, lo, hi)
 
-def get_clip_bounds(action_cfg: TagConfig) -> Bounds:
+def get_clip_bounds(action_cfg: TagConfig, action: pd.DataFrame) -> FloatBounds:
     # prefer to use red zones, otherwise use operating range
     lo = (
-        Maybe[float](action_cfg.red_bounds and action_cfg.red_bounds[0])
+        Maybe[float | str](action_cfg.red_bounds and action_cfg.red_bounds[0])
+        .map(partial(eval_bound, action, "lo", action_cfg.red_bounds_func, action_cfg.red_bounds_tags))
         .otherwise(lambda: action_cfg.operating_range and action_cfg.operating_range[0])
     ).expect()
 
     hi = (
-        Maybe[float](action_cfg.red_bounds and action_cfg.red_bounds[1])
+        Maybe[float | str](action_cfg.red_bounds and action_cfg.red_bounds[1])
+        .map(partial(eval_bound, action, "hi", action_cfg.red_bounds_func, action_cfg.red_bounds_tags))
         .otherwise(lambda: action_cfg.operating_range and action_cfg.operating_range[1])
     ).expect()
     return lo, hi

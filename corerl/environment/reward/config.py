@@ -31,7 +31,7 @@ class Goal:
     def _parse_sympy(self, cfg: MainConfig):
         if isinstance(self.thresh, str) and is_expression(self.thresh):
             expression, self.thresh_func, self.thresh_tags = to_sympy(self.thresh)
-            assert is_affine(expression)
+            assert is_affine(expression), "Expression on a goal threshold is not affine"
 
 
 @config()

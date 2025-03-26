@@ -20,7 +20,7 @@ infra:
 
 env:
   db:
-    table_name: opcua
+    table_name: sensors
 
   obs_period: PT5M
   update_period: PT5M

@@ -32,14 +32,14 @@ def _preprocess_expression_string(input_string: str) -> str:
             in_braces = False
             continue
         elif in_braces:
-            char = char.replace("-", "_")
+            char = str(_preprocess_tag_names(char))
 
         result += char
 
     return result
 
 
-def to_sympy(input_string: str) -> tuple[sy.Expr, Callable, list[str]]:
+def to_sympy(input_string: str) -> tuple[sy.Expr, Callable[..., float], list[str]]:
     """
     The input string might look something like:
 
@@ -91,10 +91,16 @@ def _is_balanced_braces(input_string: str) -> bool:
 
 
 def _preprocess_tag_names(input_tags: list[str] | str) -> list[str] | str:
+    """
+    We allow some characters (-, =, ;) in the tag name that are special characters for sympy
+    Here, we substitute those characters with underscore "_"
+    Note: `tag=0`, `tag-0` and `tag;0` will all look like `tag_0` to sympy
+    """
+
+    replace_chars = str.maketrans("-=;", "___")
     if isinstance(input_tags, list):
-        return [tag.replace("-", "_") for tag in input_tags]
-    else:
-        return input_tags.replace("-", "_")
+        return [tag.translate(replace_chars) for tag in input_tags]
+    return input_tags.translate(replace_chars)
 
 
 def is_affine(input_expr: sy.Expr) -> bool:
