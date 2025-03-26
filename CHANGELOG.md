@@ -5,6 +5,26 @@
 - styles again
 - fix agent test utils
 
+## [0.135.0](https://github.com/rlcoretech/core-rl/compare/v0.134.0...v0.135.0) (2025-03-26)
+
+
+### Features
+
+* **PROD-163:** Red/yellow zones as a function of tags ([#667](https://github.com/rlcoretech/core-rl/issues/667)) ([948b38a](https://github.com/rlcoretech/core-rl/commit/948b38a86170ef828905f57aa039d489c1ebab4d))
+* **PROD-224:** ensure actor checkpoint fails gracefully when network changes ([f7de1a8](https://github.com/rlcoretech/core-rl/commit/f7de1a84c0b0af28be4f47494fd19afba86b1aef))
+* **PROD-224:** ensure critic checkpoint fails gracefully when network changes ([5104e98](https://github.com/rlcoretech/core-rl/commit/5104e98d9169086a7d2b26d0344d28ac3c9d3b24))
+* **PROD-246:** widen NN default hidden layer sizes to 256 ([471bad3](https://github.com/rlcoretech/core-rl/commit/471bad395de5f85eba2ec0d5d6dfb4a3c9d7d056))
+* use orthogonal initialization with wider NNs ([96a6245](https://github.com/rlcoretech/core-rl/commit/96a624525df15e24b1a8e08523f593c293811728))
+
+
+### Bug Fixes
+
+* AsyncEnvConfig as a discriminated union ([0e577ea](https://github.com/rlcoretech/core-rl/commit/0e577ea85214f10f9d3886bfa594d1c2d993cf6d))
+* correct table name mismatch between telegraf default and mainconfig default [PROD-259] ([fb1c612](https://github.com/rlcoretech/core-rl/commit/fb1c612fdf588e160824668f7ed9e0ee93b0adb7))
+* correct table name mismatch between telegraf default and mainconfig defualt ([f1cbd43](https://github.com/rlcoretech/core-rl/commit/f1cbd4353ca9f924b56a0abac484bbfd118e0104))
+* make the linter happy ([349337d](https://github.com/rlcoretech/core-rl/commit/349337d664c3fdbfdb78bc3d463a0c2be07f4478))
+* update hard coded table name ([b34d031](https://github.com/rlcoretech/core-rl/commit/b34d0315fa4dd2c3d303c2e9b86cfc4c58e28f7c))
+
 ## [0.134.0](https://github.com/rlcoretech/core-rl/compare/v0.133.1...v0.134.0) (2025-03-25)
 
 
