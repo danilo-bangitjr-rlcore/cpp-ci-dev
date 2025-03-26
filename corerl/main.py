@@ -18,7 +18,6 @@ from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.factory import init_async_env
-from corerl.environment.registry import register_custom_envs
 from corerl.eval.config import register_pipeline_evals
 from corerl.eval.evals import evals_group
 from corerl.eval.metrics import metrics_group
@@ -95,9 +94,6 @@ def retryable_main(cfg: MainConfig):
 
     torch.set_num_threads(cfg.experiment.num_threads)
     device.update_device(cfg.experiment.device)
-
-    # get custom gym environments
-    register_custom_envs()
 
     # build global objects
     event_bus = EventBus(cfg.event_bus, cfg.env)
