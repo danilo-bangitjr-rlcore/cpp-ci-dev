@@ -3,8 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-
-from corerl.environment.pvs import PVSChangeAction, PVSConfig
+from coreenv.pvs import PVSChangeAction, PVSConfig
 
 
 class GridSearchTuner:
