@@ -56,12 +56,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Set up SSH Agent
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.CORE_ENV_CI_DEPLOY_KEY }}
+
       - name: Build Docker Image
         id: build_push
         uses: docker/build-push-action@v4
         with:
           context: .
           push: ${{ inputs.push_to_registry }}
+          ssh: default=${{ env.SSH_AUTH_SOCK }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           target: corerl

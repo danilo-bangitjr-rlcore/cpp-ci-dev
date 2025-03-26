@@ -120,6 +120,7 @@ dependencies = [
     "scikit-learn~=1.5",
     "psycopg2-binary~=2.9",
     "pyzmq~=26.3.0",
+    "coreenv@git+ssh://git@github.com/rlcoretech/core-env",
 ]
 readme = "README.md"
 
