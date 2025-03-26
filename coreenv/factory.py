@@ -1,7 +1,6 @@
 import logging
-import inspect
 from collections.abc import Callable
-from dataclasses import dataclass, fields, is_dataclass, replace
+from dataclasses import dataclass, replace
 from typing import Any, Concatenate, Protocol, TypeVar
 
 logger = logging.getLogger(__name__)
@@ -43,25 +42,6 @@ class Group[**P, R]:
         cfg = replace(cfg, **overrides)
         return self._dispatchers[name](cfg)
 
-
-def get_config_name(config: type[Any]):
-    assert is_dataclass(config)
-    config_fields = fields(config)
-    name_field = next(filter(lambda n: n.name == 'name', config_fields))
-    name = name_field.default
-    assert isinstance(name, str)
-    return name
-
-
-def first_non_self_arg(args: inspect.FullArgSpec) -> str:
-    for arg in args.args:
-        if arg == 'self':
-            continue
-
-        return arg
-
-    raise Exception('Failed to find non-self arg')
-
 env_group = Group[[], Any]()
 
 def init_env(name: str, overrides: dict | None = None):
@@ -77,6 +57,5 @@ def init_env(name: str, overrides: dict | None = None):
     import coreenv.windy_room  # noqa: F401
 
     logger.info(f"instantiaing {name} with overrides {overrides}")
-    print(overrides)
 
     return env_group.dispatch(name, overrides)
