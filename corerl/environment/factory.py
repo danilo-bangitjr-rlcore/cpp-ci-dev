@@ -1,6 +1,7 @@
 import logging
 
 import gymnasium as gym
+from coreenv.factory import init_env
 
 from corerl.environment.async_env.async_env import GymEnvConfig
 from corerl.environment.async_env.deployment_async_env import DepAsyncEnvConfig
@@ -23,16 +24,8 @@ def init_environment(cfg: GymEnvConfig) -> gym.Env:
                 kwargs['cfg'] = cfg.env_config
             return gym.make(cfg.gym_name, *args, **kwargs)
         case 'custom':
-            return init_custom_env(cfg)
-        case _:
-            raise NotImplementedError
-
-
-def init_custom_env(cfg: GymEnvConfig) -> gym.Env:
-    name = cfg.gym_name
-
-    match name:
-        case 'model_env':
+            return init_env(cfg.gym_name, overrides=cfg.env_config)
+        case 'model':
             assert isinstance(cfg, ModelEnvConfig)
             return ModelEnv(cfg)
         case _:
