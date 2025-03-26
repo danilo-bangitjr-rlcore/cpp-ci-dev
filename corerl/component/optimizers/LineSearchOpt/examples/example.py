@@ -20,7 +20,7 @@ sys.path.append(".")
 
 
 def dummy_app_state() -> AppState:
-    cfg = direct_load_config(MainConfig, config_name='config/dep_mountain_car_continuous.yaml', base='.')
+    cfg: MainConfig = direct_load_config(MainConfig, config_name='config/dep_mountain_car_continuous.yaml', base='.') # type: ignore
     cfg.metrics.enabled = False
     cfg.evals.enabled = False
     cfg.xy_metrics.enabled = False
