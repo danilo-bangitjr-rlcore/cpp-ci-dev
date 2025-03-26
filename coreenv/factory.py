@@ -77,5 +77,6 @@ def init_env(name: str, overrides: dict | None = None):
     import coreenv.windy_room  # noqa: F401
 
     logger.info(f"instantiaing {name} with overrides {overrides}")
+    print(overrides)
 
     return env_group.dispatch(name, overrides)
