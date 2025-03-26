@@ -9,7 +9,7 @@ from coreenv.factory import EnvConfig, env_group
 
 @dataclass
 class SaturationGoalsConfig(EnvConfig):
-    name: str = 'SaturationGoals'
+    name: str = 'SaturationGoals-v0'
     setpoint_change_period: int = 400
 
 class SaturationGoals(gym.Env):

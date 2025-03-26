@@ -10,7 +10,7 @@ from coreenv.factory import EnvConfig, env_group
 
 @dataclass
 class DelayedSaturationConfig(EnvConfig):
-    name: str = 'DelayedSaturation'
+    name: str = 'DelayedSaturation-v0'
     effect_period: float = 500
     decay: float = 0.75
     trace_val: float = 0.9

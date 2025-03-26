@@ -9,7 +9,7 @@ from coreenv.factory import EnvConfig, env_group
 
 @dataclass
 class DistractionWorldConfig(EnvConfig):
-    name: str = 'DistractionWorld'
+    name: str = 'DistractionWorld-v0'
     num_distractors : int = 100
     num_actions : int = 1
 

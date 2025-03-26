@@ -14,7 +14,7 @@ from coreenv.factory import EnvConfig, env_group
 
 @dataclass
 class PVSConfig(EnvConfig):
-    name: str = 'PVS'
+    name: str = 'PVS-v0'
     reward_type: str = "combined"  # "mse" or "combined"
     use_constraints: bool = False
     use_reset_buffer: bool = True

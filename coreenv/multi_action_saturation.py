@@ -12,7 +12,7 @@ from coreenv.factory import EnvConfig, env_group
 
 @dataclass
 class MultiActionSaturationConfig(EnvConfig):
-    name: str = 'MultiActionSaturation'
+    name: str = 'MultiActionSaturation-v0'
     effect_period: float = 100
     decay: float = 0.75
     trace_val: float = 0.9

@@ -10,7 +10,7 @@ from coreenv.factory import EnvConfig, env_group
 
 @dataclass
 class ThreeTankConfig(EnvConfig):
-    name : str = 'ThreeTanks'
+    name : str = 'ThreeTanks-v1'
     steps_between_target_updates: int | None = 30  # Number of steps between target updates
                                                     #   None: no updates
                                                     #   <=1: updates every step

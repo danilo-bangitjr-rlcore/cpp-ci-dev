@@ -9,7 +9,7 @@ from coreenv.factory import EnvConfig, env_group
 
 @dataclass
 class WindyRoomConfig(EnvConfig):
-    name: str = 'WindyRoom'
+    name: str = 'WindyRoom-v0'
     initial_zone_low: float = 0.45
     initial_zone_high: float = 0.55
 

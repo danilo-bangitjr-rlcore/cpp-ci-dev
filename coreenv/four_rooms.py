@@ -12,7 +12,7 @@ from coreenv.factory import EnvConfig, env_group
 
 @dataclass
 class FourRoomsConfig(EnvConfig):
-    name: str = 'FourRooms'
+    name: str = 'FourRooms-v0'
     continuous_action: bool = True
     action_scale: float = 0.01
     noise_scale: float = 0.0

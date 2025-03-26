@@ -9,7 +9,7 @@ from coreenv.factory import EnvConfig, env_group
 
 @dataclass
 class SaturationConfig(EnvConfig):
-    name: str = 'Saturation'
+    name: str = 'Saturation-v0'
 
 class Saturation(gym.Env):
     def __init__(self, cfg: SaturationConfig ):
