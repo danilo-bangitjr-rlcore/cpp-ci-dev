@@ -146,7 +146,7 @@ class GACPolicyManager:
     #                      Helper methods for sampling actions                     #
     # ---------------------------------------------------------------------------- #
 
-    def _ensure_direct_action(
+    def ensure_direct_action(
             self,
             prev_direct_actions: torch.Tensor,
             policy_actions: torch.Tensor
@@ -212,13 +212,13 @@ class GACPolicyManager:
             invalid_mask = invalid_mask.any(dim=1)
             # resample invalid actions
             policy_actions[invalid_mask] = sampler(states[invalid_mask])
-            direct_actions = self._ensure_direct_action(prev_direct_actions, policy_actions)
+            direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions)
 
             if itr == max_itr-1:
                 logging.warning(f"Maximum iterations ({max_itr}) in rejection sampling reached..."
                                  +"defaulting to sampling uniform")
                 policy_actions[invalid_mask] = self._sample_unform(states[invalid_mask])
-                direct_actions = self._ensure_direct_action(prev_direct_actions, policy_actions)
+                direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions)
 
         # Clip the direct actions. This should be unnecessary if rejection sampling is successful
         direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
@@ -231,7 +231,7 @@ class GACPolicyManager:
         prev_direct_actions: torch.Tensor,
     ) -> ActionReturn:
         policy_actions = sampler(states)
-        direct_actions = self._ensure_direct_action(prev_direct_actions, policy_actions)
+        direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions)
 
         if self.cfg.delta_actions and self.cfg.delta_rejection_sample:
             direct_actions, policy_actions = self._rejection_sample(
