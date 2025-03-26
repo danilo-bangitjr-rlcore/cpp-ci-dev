@@ -11,7 +11,7 @@ experiment:
   exp_name: "saturation"
   seed: 1
   gamma: 0.99
-  max_steps: 800
+  max_steps: 1000
 
 metrics:
   enabled: True

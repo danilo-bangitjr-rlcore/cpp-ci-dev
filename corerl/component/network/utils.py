@@ -1,6 +1,6 @@
 from collections.abc import Callable
 
-import numpy
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -73,8 +73,18 @@ def layer_init_uniform(layer: nn.Module, low: float = -0.003, high: float = 0.00
     return layer.to(global_device.device)
 
 
+def layer_init_orthogonal(layer: nn.Module, bias: float = 0) -> nn.Module:
+    w = layer.weight
+    b = layer.bias.data
+    assert isinstance(w, torch.Tensor) and isinstance(b, torch.Tensor)
+    nn.init.orthogonal_(w, gain=np.sqrt(2))
+    if bias > 0:
+        nn.init.constant_(b, bias)
+    return layer.to(global_device.device)
+
+
 def tensor(
-    x: float | numpy.ndarray | torch.Tensor | list[float],
+    x: float | np.ndarray | torch.Tensor | list[float],
     device: str | torch.device | Device | None = None,
 ) -> torch.Tensor:
     if isinstance(x, torch.Tensor):
@@ -89,11 +99,11 @@ def tensor(
     return torch.tensor(x, dtype=torch.float32).to(device)
 
 
-def state_to_tensor(state: numpy.ndarray,  device: str | torch.device | None = None) -> torch.Tensor:
+def state_to_tensor(state: np.ndarray,  device: str | torch.device | None = None) -> torch.Tensor:
     return tensor(state.reshape((1, -1)), device)
 
 
-def to_np(t: numpy.ndarray | torch.Tensor) -> numpy.ndarray:
+def to_np(t: np.ndarray | torch.Tensor) -> np.ndarray:
     if isinstance(t, torch.Tensor):
         return t.cpu().detach().numpy()
     else:
@@ -107,5 +117,7 @@ def init_layer(init: str) -> Callable[[torch.nn.modules.Module], torch.nn.module
         return layer_init_zero
     elif init.lower() == 'normal':
         return layer_init_normal
+    elif init.lower() == 'orthogonal':
+        return layer_init_orthogonal
 
     raise NotImplementedError(f"unknown weight initialization {init}")
