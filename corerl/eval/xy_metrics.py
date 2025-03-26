@@ -1,15 +1,18 @@
 import logging
 from datetime import UTC, datetime
-from typing import Literal, NamedTuple, Protocol, SupportsFloat
+from typing import TYPE_CHECKING, Literal, NamedTuple, Protocol, SupportsFloat
 
 import pandas as pd
 from sqlalchemy import text
 
-from corerl.configs.config import config
+from corerl.configs.config import computed, config
 from corerl.data_pipeline.db.utils import TryConnectContextManager
 from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 from corerl.utils.time import now_iso
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 log = logging.getLogger(__name__)
 
@@ -51,6 +54,11 @@ class XYDBConfig(BufferedWriterConfig):
     table_name: str = 'metrics_xy'
     lo_wm: int = 1
     enabled: bool = False
+
+    @computed('enabled')
+    @classmethod
+    def _gamma(cls, cfg: 'MainConfig'):
+        return cfg.metrics.enabled
 
 class XYTable(BufferedWriter[_XYPoint]):
     """
