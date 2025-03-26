@@ -97,8 +97,8 @@ class MainConfig:
     log_path: Path | None = None
 
     evals: EvalDBConfig = Field(default_factory=EvalDBConfig)
-    metrics: MetricsConfig = Field(default_factory=MetricsDBConfig)
     xy_metrics: XYDBConfig = Field(default_factory=XYDBConfig)
+    metrics: MetricsConfig = Field(default_factory=MetricsDBConfig)
     """
     Kind: internal
 
