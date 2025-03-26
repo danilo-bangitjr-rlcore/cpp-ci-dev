@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import SupportsFloat
 
-import gymnasium as gym
 import numpy as np
 import pandas as pd
 
