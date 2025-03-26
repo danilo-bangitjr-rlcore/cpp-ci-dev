@@ -8,6 +8,7 @@ import pandas as pd
 
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnv, SimAsyncEnvConfig
+from corerl.environment.factory import init_environment
 from corerl.utils.gym import space_bounds, space_shape
 
 
@@ -24,17 +25,7 @@ class SimAsyncEnv(AsyncEnv):
     """AsyncEnv which directly runs and steps through a Farama Gymnasium environment.
     """
     def __init__(self, cfg: SimAsyncEnvConfig, tags: list[TagConfig]):
-        kwargs = dict(cfg.kwargs)
-        if cfg.env_config is not None:
-            if 'seed' in cfg.env_config and cfg.env_config['seed'] is not None:
-                # manually to sync with experiment seed
-                # TODO: remove this once we have a better way to handle this
-                cfg.env_config['seed'] = cfg.seed
-            kwargs['cfg'] = cfg.env_config
-            if 'env_config' in kwargs:
-                del kwargs['env_config']
-
-        self._env = gym.make(cfg.gym_name, *cfg.args, **kwargs)
+        self._env = init_environment(cfg)
         self._cfg = cfg
 
         shape = self._env.observation_space.shape
