@@ -32,10 +32,10 @@ class LinearTorso(hk.Module):
         super().__init__(name=cfg.name)
         self.net = hk.nets.MLP(output_sizes=list(cfg.hidden_sizes))
 
-    def __call__(self, x):
+    def __call__(self, x: jax.Array):
         return self.net(x)
 
-def linear_torso_fwd(cfg: LinearTorsoConfig, x):
+def linear_torso_fwd(cfg: LinearTorsoConfig, x: jax.Array):
     module = LinearTorso(cfg)
     return module(x)
 
@@ -60,10 +60,10 @@ class LinearNet(hk.Module):
             hk.Linear(cfg.output_size), output_act
         ])
 
-    def __call__(self, x):
+    def __call__(self, x: jax.Array):
         return self.net(x)
 
-def linear_net_fwd(cfg: LinearNetConfig, x):
+def linear_net_fwd(cfg: LinearNetConfig, x: jax.Array):
     module = LinearNet(cfg)
     return module(x)
 
@@ -87,13 +87,13 @@ class FusionNet(hk.Module):
             hk.Linear(cfg.output_size), output_act
         ])
 
-    def __call__(self, x):
+    def __call__(self, x: jax.Array):
         # TODO: vmap?
         branch_out = [self.torso_branches[i](x[i]) for i in range(self.input_dims)]
         branch_out_cat = jnp.concat(branch_out)
         return self.output_net(branch_out_cat)
 
-def fusion_net_fwd(cfg: FusionNetConfig, input_dims: int, x):
+def fusion_net_fwd(cfg: FusionNetConfig, input_dims: int, x: jax.Array):
     module = FusionNet(cfg, input_dims)
     return module(x)
 
@@ -116,7 +116,7 @@ class EnsembleNetConfig:
     subnet: NetConfig = field(default_factory=FusionNetConfig)
     ensemble: int = 1
 
-def ensemble_net_init(cfg: EnsembleNetConfig, seed: int, input_dims: int, x):
+def ensemble_net_init(cfg: EnsembleNetConfig, seed: int, input_dims: int, x: jax.Array):
     rng = jax.random.PRNGKey(seed)
     rngs = jax.random.split(rng, cfg.ensemble)
     sub_net = network_init(cfg.subnet, input_dims)
@@ -124,7 +124,7 @@ def ensemble_net_init(cfg: EnsembleNetConfig, seed: int, input_dims: int, x):
 
     return params
 
-def ensemble_net_fwd(cfg: EnsembleNetConfig, input_dims: int, params, x):
+def ensemble_net_fwd(cfg: EnsembleNetConfig, input_dims: int, params: dict, x: jax.Array):
     sub_net = network_init(cfg.subnet, input_dims)
     outputs = jax.vmap(sub_net.apply, in_axes=(0, None))(params, x)
 

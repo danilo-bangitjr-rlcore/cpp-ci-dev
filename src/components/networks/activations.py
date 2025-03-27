@@ -15,7 +15,7 @@ class ActivationConfig:
 class IdentityConfig(ActivationConfig):
     name: Literal['identity'] = 'identity'
 
-def identity_act(x):
+def identity_act(x: jax.Array) -> jax.Array:
     return x
 
 @dataclass
@@ -23,7 +23,7 @@ class SigmoidConfig(ActivationConfig):
     name: Literal['sigmoid'] = 'sigmoid'
     shift: float = 0.0
 
-def sigmoid_act(cfg: SigmoidConfig, x):
+def sigmoid_act(cfg: SigmoidConfig, x: jax.Array) -> jax.Array:
     return jax.nn.sigmoid(x + cfg.shift)
 
 @dataclass
@@ -31,14 +31,14 @@ class SoftsignConfig(ActivationConfig):
     name: Literal['softsign'] = 'softsign'
     shift: float = 0.0
 
-def softsign_act(cfg: SoftsignConfig, x):
+def softsign_act(cfg: SoftsignConfig, x: jax.Array) -> jax.Array:
     return (jax.nn.soft_sign(x + cfg.shift) + 1) / 2
 
 @dataclass
 class CosineConfig(ActivationConfig):
     name: Literal['cosine'] = 'cosine'
 
-def cos_act(cfg: CosineConfig, x):
+def cos_act(cfg: CosineConfig, x: jax.Array) -> jax.Array:
     return -((jnp.cos(x) + 1) / 2)
 
 @dataclass
@@ -46,7 +46,7 @@ class TanhConfig(ActivationConfig):
     name: Literal['tanh'] = 'tanh'
     shift: float = 0.0
 
-def tanh_act(cfg: TanhConfig, x):
+def tanh_act(cfg: TanhConfig, x: jax.Array) -> jax.Array:
     return (jnp.tanh(x + cfg.shift) + 1) / 2
 
 def get_output_activation(cfg: ActivationConfig):
