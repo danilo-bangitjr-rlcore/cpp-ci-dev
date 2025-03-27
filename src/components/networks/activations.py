@@ -56,15 +56,19 @@ def get_output_activation(cfg: ActivationConfig):
     if cfg.name == "identity":
         return identity_act
     elif cfg.name == "tanh":
+        assert isinstance(cfg, TanhConfig)
         tanh_act_fn = functools.partial(tanh_act, cfg)
         return tanh_act_fn
     elif cfg.name == "sigmoid":
+        assert isinstance(cfg, SigmoidConfig)
         sigmoid_act_fn = functools.partial(sigmoid_act, cfg)
         return sigmoid_act_fn
     elif cfg.name == "softsign" or cfg.name == "soft_sign":
+        assert isinstance(cfg, SoftsignConfig)
         softsign_act_fn = functools.partial(softsign_act, cfg)
         return softsign_act_fn
     elif cfg.name == "cosine":
+        assert isinstance(cfg, CosineConfig)
         cosine_act_fn = functools.partial(cos_act, cfg)
         return cosine_act_fn
     else:
