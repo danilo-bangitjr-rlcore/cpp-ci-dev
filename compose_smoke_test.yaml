@@ -142,7 +142,7 @@ services:
     entrypoint: ["python"]
     command: [
       "-m", "corerl.main",
-      "--config-name", "dep_mountain_car_continuous",
+      "--config-name", "coreio_dep_mountain_car_continuous",
       "experiment.max_steps=25",
       "env.db.ip=timescale-db",
       "metrics.ip=timescale-db",
