@@ -27,8 +27,8 @@ class NNTorsoConfig:
     name: Literal['fc'] = 'fc'
 
     bias: bool = True
-    layer_init: str = 'Xavier'
-    hidden: list[int] = list_([64, 64])
+    layer_init: str = 'orthogonal'
+    hidden: list[int] = list_([256, 256])
     activation: list[ActivationConfig] = list_([
         {'name': 'relu'},
         {'name': 'relu'},
@@ -74,9 +74,11 @@ def create_mlp(
 @config()
 class LateFusionConfig:
     name: Literal['late_fusion'] = 'late_fusion'
-    input_cfg : NNTorsoConfig =  Field(default_factory=NNTorsoConfig)
-    skip_input : bool = True # choose to not use the input networks
-    combined_cfg : NNTorsoConfig =  Field(default_factory=NNTorsoConfig)
+    input_scales: list[float] = list_([1.0, 1.0])
+    input_cfg : NNTorsoConfig = Field(default_factory=NNTorsoConfig)
+    skip_input : bool = True
+    combined_cfg : NNTorsoConfig = Field(default_factory=NNTorsoConfig)
+
 
 class LateFusionNetwork(nn.Module):
     def __init__(
@@ -96,13 +98,17 @@ class LateFusionNetwork(nn.Module):
         if not self.skip_input:
             # Create multiple subnets - one for each input
             self.input_nets = nn.ModuleList()
-            for input_dim in input_dims:
-                input_net = create_mlp(cfg.input_cfg, input_dim, output_dim=None)
+            combined_input_dim = 0
+            for input_dim, scale in zip(input_dims, cfg.input_scales, strict=True):
+                sub_cfg = copy.deepcopy(cfg.input_cfg)
+                sub_cfg.hidden = [
+                    int(h * scale)
+                    for h in cfg.input_cfg.hidden
+                ]
+                input_net = create_mlp(sub_cfg, input_dim, output_dim=None)
                 self.input_nets.append(input_net)
+                combined_input_dim += sub_cfg.hidden[-1]
 
-            input_net_out_dim = cfg.input_cfg.hidden[-1]
-            num_input_nets = len(input_dims)
-            combined_input_dim = input_net_out_dim*num_input_nets
         else:
             combined_input_dim = sum(input_dims)
 

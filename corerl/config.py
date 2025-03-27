@@ -76,7 +76,7 @@ class FeatureFlags:
     action_embedding: bool = False
 
     # 2025-03-24
-    wide_nets: bool = False
+    wide_nets: bool = True
 
 
 @config()
@@ -160,6 +160,12 @@ class MainConfig:
             return
 
         self.agent.critic.critic_network.base.skip_input = False
+        self.agent.critic.critic_network.base.input_scales = [
+            # state
+            0.75,
+            # action
+            0.25,
+        ]
 
         # remove the first layer of the combined network
         # split it in half and assign one half to each input
@@ -167,18 +173,3 @@ class MainConfig:
         hidden_act = self.agent.critic.critic_network.base.combined_cfg.activation.pop(0)
         self.agent.critic.critic_network.base.input_cfg.hidden = [int(hidden // 2)]
         self.agent.critic.critic_network.base.input_cfg.activation = [hidden_act]
-
-
-    @post_processor
-    def _enable_wide_nets(self, cfg: 'MainConfig'):
-        if not self.feature_flags.wide_nets:
-            return
-
-        self.agent.critic.critic_network.base.combined_cfg.hidden = [256, 256]
-        self.agent.critic.critic_optimizer.weight_decay = 0.0001
-        self.agent.critic.critic_network.base.combined_cfg.layer_init = 'orthogonal'
-
-
-        self.agent.policy.network.base.hidden = [256, 256]
-        self.agent.policy.optimizer.weight_decay = 0.0001
-        self.agent.policy.network.base.layer_init = 'orthogonal'
