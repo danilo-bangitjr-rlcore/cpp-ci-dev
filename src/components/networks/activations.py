@@ -1,8 +1,9 @@
 import functools
-import jax
-import jax.numpy as jnp
 from dataclasses import dataclass
 from typing import Any, Literal
+
+import jax
+import jax.numpy as jnp
 
 MISSING: Any = "|???|"
 

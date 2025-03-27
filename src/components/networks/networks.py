@@ -1,14 +1,14 @@
 import copy
 import functools
+from dataclasses import dataclass, field
+from typing import Any, Literal
+
 import haiku as hk
 import jax
 import jax.numpy as jnp
-
-from dataclasses import dataclass, field
 from pydantic import Field
-from typing import Any, Literal
 
-from components.networks.activations import ActivationConfig, IdentityConfig, TanhConfig, get_output_activation
+from components.networks.activations import ActivationConfig, IdentityConfig, get_output_activation
 
 MISSING: Any = "|???|"
 
@@ -78,7 +78,7 @@ class FusionNet(hk.Module):
         super().__init__(name=cfg.name)
         self.input_dims = input_dims
         self.torso_branches = []
-        for dim in range(self.input_dims):
+        for _ in range(self.input_dims):
             self.torso_branches.append(LinearTorso(cfg.branch_torso))
         combined_torso = LinearTorso(cfg.combined_torso)
         output_act = get_output_activation(cfg.output_activation)
