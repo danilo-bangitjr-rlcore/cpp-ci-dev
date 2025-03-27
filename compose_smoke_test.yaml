@@ -1,7 +1,7 @@
 services:
   timescale-db:
     # image: timescale/timescaledb:latest-pg16
-    image: timescale/timescaledb:2.19.1-pg17
+    image: timescale/timescaledb:2.17.2-pg16
     ports:
       - 5432:5432
     environment:
@@ -45,7 +45,7 @@ services:
           path: ./e2e/telegraf/generated_telegraf.conf
           target: /etc/telegraf/telegraf.conf
 
-  corerl:
+  corerl-web:
     # corerl web server for direct main config API
     build:
       context: .
@@ -56,10 +56,6 @@ services:
       watch:
         - action: rebuild
           path: ./corerl
-    volumes:
-      - type: volume
-        source: coreio-storage
-        target: /app/coreio-data
 
   coreio:
     # thin client: https://github.com/rlcoretech/coreio
@@ -77,13 +73,13 @@ services:
       opc-server:
         condition: service_started
       # soft dependency for MainConfig API proxy, thin client can function without this
-      # corerl:
+      # corerl-web:
       #   condition: service_started
     ports:
       - 2222:2222
     volumes:
       - type: volume
-        source: coreio-storage
+        source: thinclient-storage
         target: /app/data
 
   grafana:
@@ -118,9 +114,42 @@ services:
       watch:
         - action: rebuild
           path: ./e2e/opc_clients
-    command: ["e2e/opc_clients/opc_sim.py", "--config-name", "config/opc_sim/async_mountain_car_continuous.yaml", "opc_endpoint=opc.tcp://admin@opc-server:4840/rlcore/server/"]
+    command: [
+      "e2e/opc_clients/opc_sim.py", 
+      "--config-name", 
+      "config/opc_sim/async_mountain_car_continuous.yaml", 
+      "opc_endpoint opc.tcp://admin@opc-server:4840/rlcore/server/"
+      ]
+
+  config-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      timescale-db:
+        condition: service_healthy
+      opc-server:
+        condition: service_started
+      telegraf:
+        condition: service_started
+      coreio:
+        condition: service_started
+      opc-sim:
+        condition: service_started
+    volumes:
+      - ./config:/app/config
+      - ./corerl:/app/corerl
+    entrypoint: ["python"]
+    command: [
+      "-m", "corerl.main",
+      "--config-name", "dep_mountain_car_continuous",
+      "experiment.max_steps=25",
+      "env.db.ip=timescale-db",
+      "metrics.ip=timescale-db",
+      "env.coreio_origin=http://coreio:2222"
+    ]
 
 volumes:
   timescale-storage: {}
   grafana-storage: {}
-  coreio-storage: {}
+  thinclient-storage: {}
