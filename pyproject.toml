@@ -71,14 +71,19 @@ major_version_zero = true
 omit = ["test/*"]
 concurrency = ["thread", "multiprocessing"]
 
-# If the vendor directory exists and contains linesearchopt dependency
-# this will be included in our generated wheel. Otherwise linesearchopt
+# If the vendor directory exists and contains coreenv dependency
+# this will be included in our generated wheel. Otherwise coreenv
 # will need to be installed manually prior to corerl. This is necessary
 # to support our docker image for running corerl.
 [tool.setuptools.packages.find]
 where = [".", "vendor"]
-include = ["corerl*"]
+include = ["corerl*", "coreenv*"]
 
+[tool.setuptools.package-dir]
+"coreenv" = "vendor/core-env"
+
+[tool.uv.sources]
+coreenv = { git = "ssh://git@github.com/rlcoretech/core-env.git" }
 
 [build-system]
 requires = ["setuptools"]
@@ -120,9 +125,14 @@ dependencies = [
     "scikit-learn~=1.5",
     "psycopg2-binary~=2.9",
     "pyzmq~=26.3.0",
-    "coreenv@git+ssh://git@github.com/rlcoretech/core-env",
 ]
 readme = "README.md"
+
+
+[project.optional-dependencies]
+coreenv_gh = [
+    "coreenv",
+]
 
 [project.scripts]
 corerl_main = "corerl.main:main"
@@ -148,4 +158,5 @@ dev = [
     "ruff>=0.9.3",
     "seaborn>=0.13.2",
     "uv>=0.5.24",
+    "coreenv"
 ]
