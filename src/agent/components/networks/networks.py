@@ -1,16 +1,18 @@
 import copy
 import functools
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, MutableMapping
 
 import haiku as hk
 import jax
 import jax.numpy as jnp
 from pydantic import Field
 
-from components.networks.activations import ActivationConfig, IdentityConfig, get_output_activation
+from src.agent.components.networks.activations import ActivationConfig, IdentityConfig, get_output_activation
 
 MISSING: Any = "|???|"
+
+type Params = MutableMapping[str, MutableMapping[str, jax.Array]]
 
 def list_(vals: list[Any] | None = None) -> Any:
     if vals is None:
@@ -124,7 +126,7 @@ def ensemble_net_init(cfg: EnsembleNetConfig, seed: int, input_dims: int, x: jax
 
     return params
 
-def ensemble_net_fwd(cfg: EnsembleNetConfig, input_dims: int, params: dict, x: jax.Array):
+def ensemble_net_fwd(cfg: EnsembleNetConfig, input_dims: int, params: Params, x: jax.Array):
     sub_net = network_init(cfg.subnet, input_dims)
     outputs = jax.vmap(sub_net.apply, in_axes=(0, None))(params, x)
 
