@@ -23,3 +23,9 @@ class DelayedSaturationTest(BSuiteTestCase):
 
     lower_bounds = { 'reward': -0.19 }
     upper_warns = { 'avg_critic_loss': 0.002, 'actor_loss': -1.55 }
+
+class MultiActionSaturationTest(BSuiteTestCase):
+    name = 'multi action saturation'
+    config = 'test/behavior/saturation/multi_action_config.yaml'
+
+    lower_bounds = { 'reward': -0.1}

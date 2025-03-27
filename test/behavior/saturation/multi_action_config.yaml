@@ -11,28 +11,14 @@ experiment:
   exp_name: "saturation"
   seed: 1
   gamma: 0.99
-  max_steps: 5000
+  max_steps: 2500
 
 metrics:
-  name: db
   enabled: True
 
 pipeline:
-  state_constructor:
-    defaults:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]
-
   tags:
   # meta tags
-  - name: reward
-    preprocess:
-    - name: identity
-    reward_constructor:
-    - name: 'null'
-    state_constructor:
-    - name: 'null'
-
   - name: terminated
     is_meta: True
 
@@ -92,24 +78,21 @@ pipeline:
 
   # actions
   - name: action-0
+    change_bounds: [-1, 1]
     operating_range: [0, 0.5]
-    state_constructor:
-      - name: 'null'
     action_constructor:
       - name: identity
 
   # actions
   - name: action-1
+    change_bounds: [-1, 1]
     operating_range: [0, 0.5]
-    state_constructor:
-      - name: 'null'
     action_constructor:
       - name: identity
 
   # actions
   - name: action-2
+    change_bounds: [-1, 1]
     operating_range: [0, 0.5]
-    state_constructor:
-      - name: 'null'
     action_constructor:
       - name: identity
