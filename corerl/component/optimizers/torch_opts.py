@@ -20,7 +20,7 @@ class OptimConfig:
     name: Any = MISSING
 
     lr: float = 0.01
-    weight_decay: float = 0.0
+    weight_decay: float = 0.0001
 
 def _base_optim(
     optim: type[torch.optim.Adam | torch.optim.SGD | torch.optim.RMSprop | ArmijoAdam],

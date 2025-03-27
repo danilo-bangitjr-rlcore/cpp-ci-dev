@@ -27,8 +27,8 @@ class NNTorsoConfig:
     name: Literal['fc'] = 'fc'
 
     bias: bool = True
-    layer_init: str = 'Xavier'
-    hidden: list[int] = list_([64, 64])
+    layer_init: str = 'orthogonal'
+    hidden: list[int] = list_([256, 256])
     activation: list[ActivationConfig] = list_([
         {'name': 'relu'},
         {'name': 'relu'},
