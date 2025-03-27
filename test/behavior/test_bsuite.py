@@ -8,6 +8,7 @@ from test.behavior.mountain_car.cases import MountainCar, StandStillMountainCar
 from test.behavior.saturation.cases import (
     DelayedSaturationTest,
     GoalSaturationTest,
+    MultiActionSaturationTest,
     SaturationTest,
 )
 from test.behavior.windy_room.cases import WindyRoomTest
@@ -36,6 +37,7 @@ TEST_CASES = [
     DistractionWorldTest(),
     GoalSaturationTest(),
     MountainCar(),
+    MultiActionSaturationTest(),
     SaturationTest(),
     StandStillMountainCar(),
     WindyRoomTest(),
