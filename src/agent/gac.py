@@ -7,9 +7,9 @@ import src.agent.components.networks.networks as nets
 
 @dataclass
 class GACNetParams:
-    critic_params: dict
-    actor_params: dict
-    proposal_params: dict
+    critic_params: nets.Params
+    actor_params: nets.Params
+    proposal_params: nets.Params
 
 @dataclass
 class GreedyACConfig:
