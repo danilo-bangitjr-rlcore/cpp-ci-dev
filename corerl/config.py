@@ -72,7 +72,7 @@ class FeatureFlags:
     zone_violations: bool = False
 
     # 2025-03-13
-    action_embedding: bool = False
+    action_embedding: bool = True
 
     # 2025-03-24
     wide_nets: bool = True
@@ -146,24 +146,3 @@ class MainConfig:
 
         if ensemble_size == 1:
             self.agent.critic.buffer.ensemble_probability = 1.
-
-
-    @post_processor
-    def _enable_action_embedding(self, cfg: 'MainConfig'):
-        if not self.feature_flags.action_embedding:
-            return
-
-        self.agent.critic.critic_network.base.skip_input = False
-        self.agent.critic.critic_network.base.input_scales = [
-            # state
-            0.75,
-            # action
-            0.25,
-        ]
-
-        # remove the first layer of the combined network
-        # split it in half and assign one half to each input
-        hidden = self.agent.critic.critic_network.base.combined_cfg.hidden.pop(0)
-        hidden_act = self.agent.critic.critic_network.base.combined_cfg.activation.pop(0)
-        self.agent.critic.critic_network.base.input_cfg.hidden = [int(hidden // 2)]
-        self.agent.critic.critic_network.base.input_cfg.activation = [hidden_act]

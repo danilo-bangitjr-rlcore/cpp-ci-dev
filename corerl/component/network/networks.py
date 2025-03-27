@@ -77,9 +77,25 @@ def create_mlp(
 class LateFusionConfig:
     name: Literal['late_fusion'] = 'late_fusion'
     input_scales: list[float] = list_([1.0, 1.0])
-    input_cfg : NNTorsoConfig = Field(default_factory=NNTorsoConfig)
-    skip_input : bool = True
-    combined_cfg : NNTorsoConfig = Field(default_factory=NNTorsoConfig)
+    input_cfg : NNTorsoConfig =  MISSING
+    skip_input : bool = False
+    combined_cfg : NNTorsoConfig =  MISSING
+
+    @computed('input_cfg')
+    @classmethod
+    def _input_cfg(cls, cfg: 'MainConfig'):
+        return NNTorsoConfig(
+            hidden=[32],
+            activation=[{'name': 'relu'}],
+        )
+
+    @computed('combined_cfg')
+    @classmethod
+    def _combined_cfg(cls, cfg: 'MainConfig'):
+        return NNTorsoConfig(
+            hidden=[64],
+            activation=[{'name': 'relu'}],
+        )
 
 
 class LateFusionNetwork(nn.Module):
