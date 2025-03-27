@@ -160,6 +160,12 @@ class MainConfig:
             return
 
         self.agent.critic.critic_network.base.skip_input = False
+        self.agent.critic.critic_network.base.input_scales = [
+            # state
+            0.75,
+            # action
+            0.25,
+        ]
 
         # remove the first layer of the combined network
         # split it in half and assign one half to each input
