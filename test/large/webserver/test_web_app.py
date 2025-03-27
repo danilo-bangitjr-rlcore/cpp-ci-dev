@@ -1,5 +1,7 @@
 import datetime
 import json
+import os
+from pathlib import Path
 
 import pytest
 import yaml
@@ -17,7 +19,15 @@ def test_healthcheck(test_client: TestClient):
     response = test_client.get("/api/corerl/health")
     assert response.status_code == 200
     payload = response.json()
-    assert payload["status"] == "OK"
+
+    sqlite_path = os.environ.get("COREIO_SQLITE_DB_PATH", None)
+    if not sqlite_path:
+        # defer to the docker volume bound path
+        sqlite_path = "/app/coreio-data/sqlite.db"
+    my_file = Path(sqlite_path)
+    expected_status = "OK" if my_file.is_file() else "ERROR"
+
+    assert payload["status"] == expected_status
 
 @pytest.mark.parametrize("req_type", ["application/json", "application/yaml"])
 @pytest.mark.parametrize("res_type", ["application/json", "application/yaml"])

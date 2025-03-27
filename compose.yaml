@@ -59,7 +59,7 @@ services:
     volumes:
       - type: volume
         source: coreio-storage
-        target: /app/data
+        target: /app/coreio-data
 
   coreio:
     # thin client: https://github.com/rlcoretech/coreio
