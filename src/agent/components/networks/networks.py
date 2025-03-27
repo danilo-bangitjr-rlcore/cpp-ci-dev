@@ -8,7 +8,7 @@ import jax
 import jax.numpy as jnp
 from pydantic import Field
 
-from components.networks.activations import ActivationConfig, IdentityConfig, get_output_activation
+from src.agent.components.networks.activations import ActivationConfig, IdentityConfig, get_output_activation
 
 MISSING: Any = "|???|"
 
