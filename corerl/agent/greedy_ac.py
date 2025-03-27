@@ -232,23 +232,14 @@ class GreedyAC(BaseAgent):
             next_action_batches.append(next_direct_actions)
             gamma_batches.append(gamma_batch)
 
-        # Second, use this information to compute the targets
-        target_values = self.critic.get_target_values(next_state_batches, next_action_batches)
-
-        # Third, compute losses
-        values = self.critic.get_values(state_batches, action_batches, with_grad=with_grad)
-        loss = torch.tensor(0.0, device=device.device)
-        for i in range(ensemble_len):
-            target =  reward_batches[i] + gamma_batches[i] * target_values.ensemble_values[i]
-            loss_i = torch.nn.functional.mse_loss(target, values.ensemble_values[i])
-            loss += loss_i
-
-            if log_metrics:
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric=f"critic_loss_{i}",
-                    value=to_np(loss_i),
-                )
+        loss = self._sarsa_loss(
+            state_batches,
+            action_batches,
+            next_state_batches,
+            next_action_batches,
+            reward_batches,
+            gamma_batches,
+        )
 
         if log_metrics:
             self._app_state.metrics.write(
@@ -256,13 +247,43 @@ class GreedyAC(BaseAgent):
                 metric="avg_critic_loss",
                 value=to_np(loss)/ensemble_len,
             )
-            if values.ensemble_variance is not None:
-                mean_variance = torch.mean(values.ensemble_variance)
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric="critic_ensemble_variance",
-                    value=to_np(mean_variance),
-                )
+
+        return loss
+
+    def _sarsa_loss(
+        self,
+        states: list[torch.Tensor],
+        actions: list[torch.Tensor],
+        next_states: list[torch.Tensor],
+        next_actions: list[torch.Tensor],
+        rewards: list[torch.Tensor],
+        gammas: list[torch.Tensor],
+    ):
+        values = self.critic.get_values(states, actions)
+        target_values = self.critic.get_target_values(next_states, next_actions)
+
+        loss = torch.tensor(0.0, device=device.device)
+        for i in range(self.ensemble):
+            q = values.ensemble_values[i]
+            qp = target_values.ensemble_values[i]
+            target =  rewards[i] + gammas[i] * qp
+            loss_i = torch.nn.functional.mse_loss(target, q)
+            loss += loss_i
+
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f"critic_loss_{i}",
+                value=to_np(loss_i),
+            )
+
+        if values.ensemble_variance is not None:
+            mean_variance = torch.mean(values.ensemble_variance)
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric="critic_ensemble_variance",
+                value=to_np(mean_variance),
+            )
+
         return loss
 
     def update_critic(self) -> list[float]:
