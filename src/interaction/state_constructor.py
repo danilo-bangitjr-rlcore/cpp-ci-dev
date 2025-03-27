@@ -1,6 +1,8 @@
-import numpy as np
-from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+
 
 @dataclass
 class TraceState:
@@ -18,28 +20,28 @@ class StateConstructor:
         self.obs_low = None
         self.obs_high = None
         self.range = None
-        
+
         if observation_space_info is not None:
             self.obs_low = observation_space_info['low']
             self.obs_high = observation_space_info['high']
             self.range = self.obs_high - self.obs_low
-        
+
         if self.trace:
             self._decays = np.array(trace_values)
-    
+
     def __call__(
         self,
         observation: Dict[str, np.ndarray],
         state: Optional[TraceState] = None
     ) -> tuple[Dict[str, np.ndarray], Optional[TraceState]]:
         result = {}
-        
+
         if self.normalize:
             for key, value in observation.items():
                 result[key] = (value - self.obs_low) / self.range
         else:
             result = observation.copy()
-            
+
         if self.trace:
             if state is None or state.mu is None:
                 mu = {}
@@ -53,21 +55,21 @@ class StateConstructor:
                     decays=self._decays,
                     mu_0=mu.get(col)
                 )
-                
+
                 mu[col] = new_mu
                 for i, decay in enumerate(self._decays):
                     new_name = f'{col}_trace-{decay}'
                     trace_result[new_name] = trace_vals[:, i]
-                    
+
             result.update(trace_result)
             return result, TraceState(mu)
-        
+
         return result, None
-    
+
     def denormalize(self, normalized_observation: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         if not self.normalize:
             return normalized_observation
-            
+
         result = {}
         for key, value in normalized_observation.items():
             if not key.startswith('_trace-'):
@@ -100,11 +102,11 @@ class StateConstructor:
     def get_state_dim(self) -> Optional[int]:
         if not self.normalize or self.obs_low is None:
             return None
-        
+
         base_dim = len(self.obs_low)
         if not self.trace:
             return base_dim
-        
+
         trace_multiplier = len(self._decays)
         return base_dim * (trace_multiplier + 1)
 
