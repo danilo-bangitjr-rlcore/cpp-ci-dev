@@ -8,6 +8,7 @@ from corerl.utils.sympy import (
     _preprocess_tag_names,
     is_affine,
     is_expression,
+    is_valid_expression,
 )
 
 
@@ -78,6 +79,34 @@ def test_is_expression():
     res = is_expression("a{b}c")
     assert res
 
+def test_is_valid_expression():
+    res = is_valid_expression(sy.sympify("a+b"))
+    assert res
+    res = is_valid_expression(sy.sympify("3*a+4*b"))
+    assert res
+    res = is_valid_expression(sy.sympify("3*5*a+4*b"))
+    assert res
+    res = is_valid_expression(sy.sympify("3*(5*a+4*b)"))
+    assert res
+    res = is_valid_expression(sy.sympify("3*(5*a+4*b)+x/y"))
+    assert res
+    res = is_valid_expression(sy.sympify("3*(5*a+4*b)-x/y"))
+    assert res
+    res = is_valid_expression(sy.sympify("(3*(5*a+4*b)-x/y)/a"))
+    assert res
+    res = is_valid_expression(sy.sympify("(3*(5*a+4*b)-x/y)/(2+1+x)"))
+    assert res
+
+    res = is_valid_expression(sy.sympify("sin(a)"))
+    assert not res
+    res = is_valid_expression(sy.sympify("abs(a)"))
+    assert not res
+    res = is_valid_expression(sy.sympify("x**2"))
+    assert not res
+    res = is_valid_expression(sy.sympify("(3*(5*a+4*b)-x/y)/(2+1+x)+abs(x)"))
+    assert not res
+    res = is_valid_expression(sy.sympify("sqrt(x)+1"))
+    assert not res
 
 def test_is_balanced():
     res = _is_balanced_braces("abc")

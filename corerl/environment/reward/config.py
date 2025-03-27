@@ -8,7 +8,7 @@ from pydantic import Field
 from corerl.configs.config import MISSING, computed, config, post_processor
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.utils.maybe import Maybe
-from corerl.utils.sympy import is_affine, is_expression, to_sympy
+from corerl.utils.sympy import is_expression, is_valid_expression, to_sympy
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -31,7 +31,7 @@ class Goal:
     def _parse_sympy(self, cfg: MainConfig):
         if isinstance(self.thresh, str) and is_expression(self.thresh):
             expression, self.thresh_func, self.thresh_tags = to_sympy(self.thresh)
-            assert is_affine(expression), "Expression on a goal threshold is not affine"
+            assert is_valid_expression(expression), "Expression on a goal threshold is not valid"
 
 
 @config()
@@ -94,18 +94,18 @@ def _assert_tags_exist(priorities: Sequence[Priority], known_tags: set[str]):
                 if priority.thresh_func is not None:
                     assert priority.thresh_tags is not None
                     for thresh_tag in priority.thresh_tags:
-                        assert thresh_tag in known_tags
-                        assert thresh_tag != priority.tag
+                        assert thresh_tag in known_tags, f"Goal: Tag {thresh_tag} in threshold not in known tags"
+                        assert thresh_tag != priority.tag, f"Goal: Tag {priority.tag} cannot be it's own threshold"
 
                 # If thresh is a tag
                 else:
-                    assert priority.thresh in known_tags
+                    assert priority.thresh in known_tags, f"Goal: Tag {priority.thresh} in threshold not in known tags"
                     # A tag can't be its own threshold
-                    assert priority.tag != priority.thresh
+                    assert priority.tag != priority.thresh, f"Goal: Tag {priority.tag} cannot be it's own threshold"
 
         elif isinstance(priority, Optimization):
             for tag in priority.tags:
-                assert tag in known_tags
+                assert tag in known_tags, f"Optimization: Tag name {tag} not in known tags"
 
         else:
             _assert_tags_exist(priority.goals, known_tags)

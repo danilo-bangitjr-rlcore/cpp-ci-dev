@@ -34,7 +34,7 @@ def post_processor[M](f: Callable[[Any, M], Any]):
         try:
             f(self, info.context)
         except Exception as e:
-            raise ValueError() from e
+            raise ValueError(str(e)) from e
 
         return self
 

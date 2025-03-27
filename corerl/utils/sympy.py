@@ -1,7 +1,9 @@
-from typing import Callable
+import logging
+from typing import Any, Callable
 
 import sympy as sy
 
+log = logging.getLogger(__name__)
 
 def _get_tag_names(input_string: str) -> list[str]:
     result: list[str] = []
@@ -124,6 +126,48 @@ def is_affine(input_expr: sy.Expr) -> bool:
         return True
 
     # Pyright does not recognize sy.PolynomialError as a valid Exception
+    except Exception:
+        logging.error(f"Expression {input_expr} is not affine")
+        return False
+
+def is_valid_expression(term: Any) -> bool:
+    """
+    Evaluate if the expression is made up of:
+    * Additions (or substractiosn)
+    * Multiplications
+    * Divisions
+    * Numbers
+    * Variables
+    In any order and in any hirearchy.
+
+    We are not permitting:
+    * Powers
+    * Trigonometric functions
+    * Special functions: abs, power, piecewise, etc
+    """
+
+    try:
+        if hasattr(term, "is_Symbol") and term.is_Symbol:
+            return True
+
+        if hasattr(term, "is_number") and term.is_number:
+            return True
+
+        if hasattr(term, "is_Mul") and term.is_Mul:
+            return all(is_valid_expression(arg) for arg in term.args)
+
+        if hasattr(term, "is_Div") and term.is_Div:
+            return (is_valid_expression(term.args[0]) and is_valid_expression(term.args[1]))
+
+        if hasattr(term, "is_Add") and term.is_Add:
+            return all(is_valid_expression(arg) for arg in term.args)
+
+        if hasattr(term, "is_Pow") and term.is_Pow and term.args[1] == -1:
+            # Handle cases like 1/y
+            return is_valid_expression(term.args[0])
+
+        return False
+
     except Exception:
         return False
 
