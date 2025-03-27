@@ -121,6 +121,9 @@ class EnsembleCritic(BaseCritic):
         self._update_target()
 
     def polyak_avg_target(self) -> None:
+        if self.polyak == 0:
+            return
+
         with torch.no_grad():
             for p, p_targ in zip(
                 self.model.parameters(),
