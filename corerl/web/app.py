@@ -1,14 +1,28 @@
+"""
+This module contains the FastAPI application for CoreRL.
+An optional environment variable COREIO_SQLITE_DB_PATH can be set to the path to the sqlite database from coreio.
+The default path is /app/data/sqlite.db which is the path to the sqlite database in the compose.yml bound volume.
+
+After installing corerl, you can start the web application by running the following command:
+
+```sh
+start_web_app
+
+# or
+fastapi dev corerl/web/app.py
+```
+"""
 import importlib.metadata
 import json
 import logging
+import os
+import sqlite3
 import traceback
 from datetime import UTC, datetime
-from typing import Any, Callable, List
+from typing import Callable
 
 import sqlalchemy
 import yaml
-from asyncua import Client
-from asyncua.sync import Client as SyncClient
 from fastapi import FastAPI, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, Response
@@ -19,7 +33,6 @@ from corerl.config import DBConfig, MainConfig
 from corerl.configs.errors import ConfigValidationErrors
 from corerl.configs.loader import config_from_dict, config_to_json
 from corerl.sql_logging.sql_logging import table_exists
-from corerl.utils.opc_connection import sync_browse_opc_nodes
 
 # For debugging while running the server
 _log = logging.getLogger("uvicorn.error")
@@ -51,26 +64,14 @@ async def add_core_rl_version(request: Request, call_next: Callable):
     return response
 
 class HealthResponse(BaseModel):
-    status: str = "OK"
     time: str = datetime(year=2025, month=1, day=1, tzinfo=UTC).isoformat()
     version: str = version
+    status: str
+    message: str | None = None
 
 
 class MessageResponse(BaseModel):
     message: str
-
-
-class OpcNodeDetail(BaseModel):
-    val: Any
-    DataType: str
-    Identifier: str | int
-    nodeid: str
-    path: str
-    key: str
-
-
-class OpcNodeResponse(BaseModel):
-    nodes: List[OpcNodeDetail]
 
 
 @app.get("/")
@@ -78,7 +79,9 @@ async def redirect():
     response = RedirectResponse(url="/docs")
     return response
 
-
+"""
+Health endpoint for CoreRL. Returns the current version number, server timestamp, and the status of the sqlite database.
+"""
 @app.get(
     "/api/corerl/health",
     response_model=HealthResponse,
@@ -86,7 +89,33 @@ async def redirect():
     responses={status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal Server Error", "model": str}},
 )
 async def health():
-    return {"status": "OK", "time": f"{datetime.now(tz=UTC).isoformat()}", "version": version}
+    sqlite_path = os.environ.get("COREIO_SQLITE_DB_PATH", None)
+    if not sqlite_path:
+        # defer to the docker volume bound path
+        sqlite_path = "/app/data/sqlite.db"
+
+    status = "OK"
+    message = None
+    conn = None
+    try:
+        conn = sqlite3.connect(sqlite_path)
+        cur = conn.cursor()
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='CoreRLConfig';")
+        rows = cur.fetchall()
+        if len(rows) <= 0:
+            status = "ERROR"
+            message = "CoreIO SqliteDB connected but CoreRLConfig table not found"
+
+    except Exception as e:
+        logger.exception(f"Could not connect to CoreIO sqlite db '{sqlite_path}'")
+        status = "ERROR"
+        message = str(e)
+
+    finally:
+        if conn is not None:
+            conn.close()
+
+    return {"status": status, "message": message, "time": f"{datetime.now(tz=UTC).isoformat()}", "version": version}
 
 
 @app.post(
@@ -175,55 +204,6 @@ async def gen_config_file(request: Request, file: UploadFile | None = None):
     else:
         return JSONResponse(json_config, media_type="application/json")
 
-
-@app.get(
-    "/api/corerl/opc/nodes",
-    tags=["Opc"],
-)
-async def read_search_opc(opc_url: str, query: str = "") -> OpcNodeResponse:
-    with SyncClient(opc_url) as client:
-        root = client.nodes.root
-        opc_structure = sync_browse_opc_nodes(client, root)
-
-    opc_variables = get_variables_from_dict(opc_structure)
-    if query != "":
-        query_lc = query.lower()
-        opc_variables = [
-            variable
-            for variable in opc_variables
-            if query_lc in variable.key.lower()
-            or query_lc in variable.path.lower()
-            or query_lc in variable.nodeid.lower()
-        ]
-
-    return OpcNodeResponse(nodes=opc_variables)
-
-
-def get_variables_from_dict(opc_structure: dict) -> List[OpcNodeDetail]:
-    _variables = []
-
-    def traverse(node: dict, path: str = "", parent_key: str = ""):
-        if "val" in node.keys():
-            node["path"] = path
-            node["key"] = parent_key
-            opc_node_detail = OpcNodeDetail(**node)
-            _variables.append(opc_node_detail)
-        else:
-            if path == "":
-                path = parent_key
-            else:
-                path = path + f"/{parent_key}"
-
-            for key, value in node.items():
-                # Variables named Opc.Ua are too long.
-                # Hardcoding skipping those variables.
-                if key == "Opc.Ua":
-                    continue
-                traverse(value, path=path, parent_key=key)
-
-    traverse(opc_structure)
-    return _variables
-
 class DB_Status_Request(BaseModel):
     db_config: DBConfig
     table_name: str
@@ -266,29 +246,3 @@ async def verify_connection_db(db_req: DB_Status_Request) -> DB_Status_Response:
         has_connected = True
     )
     return db_status
-
-
-class OPC_Status_Response(BaseModel):
-    opc_status: bool
-    has_connected: bool
-
-# Only 1 attribute for now, but using BaseModel for fastAPI conventions
-class OPC_Status_Request(BaseModel):
-    opc_url: str
-
-@app.post("/api/corerl/verify-connection/opc")
-async def verify_connection_opc(opc_req: OPC_Status_Request) -> OPC_Status_Response:
-    opc_status = False
-    opc_client = Client(opc_req.opc_url)
-
-    try:
-        await opc_client.connect()
-        await opc_client.disconnect()
-        opc_status = True
-
-    # There are many different errors that can ocurr if connection is unsuccessful
-    except Exception as err:
-        _log.info("OPC Connection unsuccessful", err)
-
-    opc_status = OPC_Status_Response(opc_status=opc_status, has_connected=True)
-    return opc_status
