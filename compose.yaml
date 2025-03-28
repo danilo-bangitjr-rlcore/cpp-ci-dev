@@ -62,7 +62,6 @@ services:
         target: /app/coreio-data
 
   coreio:
-    profiles: ['test']
     # thin client: https://github.com/rlcoretech/coreio
 
     # By default, use the latest stable image pushed to github container registry.
@@ -101,30 +100,6 @@ services:
       - ./e2e/grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
       - ./e2e/grafana/grafana_config_continuous_mountain_car.json:/var/lib/grafana/dashboards/grafana_config_continuous_mountain_car.json
 
-  opc-sim:
-    profiles: ['test']
-    build: 
-      context: .
-    depends_on:
-      timescale-db:
-        condition: service_healthy
-      opc-server:
-        condition: service_started
-      telegraf:
-        condition: service_started
-    volumes:
-      - ./e2e/opc_clients:/app/e2e/opc_clients
-      - ./config/opc_sim:/app/config/opc_sim
-    entrypoint: ["python"]
-    develop:
-      watch:
-        - action: rebuild
-          path: ./e2e/opc_clients
-    
-    command: ["e2e/opc_clients/opc_sim.py", 
-      "--config-name", "config/opc_sim/async_mountain_car_continuous.yaml", 
-      "--opc_endpoint", "opc.tcp://admin@opc-server:4840/rlcore/server/"]
-
   config-test:
     profiles: ['test']
     build:
@@ -152,6 +127,23 @@ services:
       "env.db.ip=timescale-db",
       "metrics.ip=timescale-db",
       "env.coreio_origin=http://coreio:2222"
+    ]
+
+  opc-sim:
+    build: 
+      context: .
+    depends_on:
+      timescale-db:
+        condition: service_healthy
+      opc-server:
+        condition: service_started
+    volumes:
+      - ./e2e/opc_clients:/app/e2e/opc_clients
+      - ./config/opc_sim:/app/config/opc_sim
+    entrypoint: ["python"]
+    command: [
+      "e2e/opc_clients/opc_sim.py",
+      "--config-name", "config/opc_sim/async_mountain_car_continuous.yaml"
     ]
 
 volumes:
