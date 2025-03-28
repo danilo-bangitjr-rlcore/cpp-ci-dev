@@ -90,12 +90,6 @@ class EnsembleCritic(BaseCritic):
         self.target_sync_counter = 0
         self.optimizer_name = cfg.critic_optimizer.name
 
-    def ensemble_backward(self, loss: list[torch.Tensor]) -> None:
-        for i, loss_item in enumerate(loss):
-            params = self.model.parameters(independent=True)[i] # type: ignore
-            loss_item.backward(
-                inputs=list(params)
-            )
 
     def _update_target(self) -> None:
         self.target_sync_counter += 1
