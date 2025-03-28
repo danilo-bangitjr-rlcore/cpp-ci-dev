@@ -1,4 +1,5 @@
 import copy
+from pathlib import Path
 from typing import TYPE_CHECKING, Literal, NamedTuple
 
 import torch
@@ -266,6 +267,13 @@ class EnsembleNetwork(nn.Module):
             stable_ranks.append(layer_srs)
 
         return stable_ranks
+
+    def save(self, path: Path) -> None:
+        path.mkdir(parents=True, exist_ok=True)
+        torch.save(self.state_dict(), path)
+
+    def load(self, path: Path) -> None:
+        self.load_state_dict(torch.load(path, map_location=device.device))
 
 
 def grad_norm(param: torch.nn.Parameter) -> float:

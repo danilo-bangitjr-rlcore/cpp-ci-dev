@@ -13,7 +13,6 @@ from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import LSOConfig
 from corerl.configs.config import config
 from corerl.state import AppState
-from corerl.utils.device import device
 
 logger = logging.getLogger(__name__)
 
@@ -126,14 +125,13 @@ class EnsembleCritic(BaseCritic):
                 p_targ.data.add_((1 - self.polyak) * p.data)
 
     def save(self, path: Path) -> None:
-        path.mkdir(parents=True, exist_ok=True)
-        torch.save(self.model.state_dict(), path / "critic_net")
-        torch.save(self.target.state_dict(), path / "critic_target")
+        self.model.save(path / "critic_net")
+        self.target.save(path / "critic_target")
 
     def load(self, path: Path) -> None:
         try:
-            self.model.load_state_dict(torch.load(path / "critic_net", map_location=device.device))
-            self.target.load_state_dict(torch.load(path / "critic_target", map_location=device.device))
+            self.model.load(path / "critic_net")
+            self.target.load(path / "critic_target")
         except Exception:
             logger.exception('Failed to load critic state from checkpoint. Reinitializing...')
             self.model = EnsembleNetwork(
