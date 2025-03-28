@@ -232,11 +232,10 @@ def _greed_dist(
     # Get log probabilities for the sampled actions from the actor.
     sampled_policy_actions_2d = qr.policy_actions.reshape(BATCH_SIZE * N_SAMPLES, ACTION_DIM)
     repeated_states_2d = qr.states.reshape(BATCH_SIZE * N_SAMPLES, STATE_DIM)
-    with torch.no_grad():
-        log_prob_1d, _ = agent.log_prob(
-            repeated_states_2d,
-            sampled_policy_actions_2d,
-        )
+    log_prob_1d, _ = agent.log_prob(
+        repeated_states_2d,
+        sampled_policy_actions_2d,
+    )
     log_prob_2d = log_prob_1d.reshape(BATCH_SIZE, N_SAMPLES)
 
     # Get the max direct action according to log_probs for each state
@@ -342,3 +341,97 @@ def greed_values_batch(app_state: AppState, agent: BaseAgent):
         eval_fn=policy_buffer_batchify(_greed_values),
         metric_names=['greed_values_batch'],
     )
+
+# ------------------------------ Q and PDF Plots ----------------------------- #
+
+@config()
+class QPDFPlotsConfig:
+    enabled: bool = True
+    # number of samples for the primary action (i.e. the values on the x-axis)
+    primary_action_samples: int = 100
+    # number of samples for other actions (i.e. how many times to average to create each point on the y-axis)
+    other_action_samples: int = 100
+
+def q_values_and_act_prob(
+        app_state: AppState,
+        agent: BaseAgent,
+        state: np.ndarray | torch.Tensor,
+        prev_action: np.ndarray | torch.Tensor
+        ):
+    """
+    Logs the probability density function of the policy and the Q values.
+    This entries are of the form (metric, x, y) where
+    * metric tells us the action being varied (think x-axis)
+    * x is a direct action
+    * y is the probability or Q value, averaged over samples where the action in metric is set to x
+        and the other actions are sampled from the policy. cfg.other_action_samples controls the number of samples
+    """
+    if not isinstance(agent, GreedyAC):
+        return
+    cfg = app_state.cfg.eval_cfgs.q_pdf_plots
+    if not cfg.enabled:
+        return
+
+    state = ensure_2d_tensor(state)
+    prev_action = ensure_2d_tensor(prev_action)
+    repeated_states = state.repeat(
+        cfg.primary_action_samples*cfg.other_action_samples, 1)
+    repeated_prev_a = prev_action.repeat(
+        cfg.primary_action_samples*cfg.other_action_samples, 1)
+
+    # sample actions for the actor
+    ar = agent.get_actor_actions(repeated_states, repeated_prev_a)
+
+    # get actions for each action dimension we are interested in.
+    lin_spaced_actions = torch.linspace(
+        0, 1, cfg.primary_action_samples, device=device.device)
+    # since we are averaging across samples for the other action dimensions, repeat these samples
+    repeated_lin_spaced_actions = torch.repeat_interleave(
+        lin_spaced_actions, cfg.other_action_samples)
+
+    for a_dim_idx in range(agent.action_dim):
+        # augmented actions are the actions we are interested in,
+        # but with the primary action dimension replaced with the lin_spaced actions
+        augmented_policy_actions = ar.policy_actions.clone()
+        augmented_policy_actions[:, a_dim_idx] = repeated_lin_spaced_actions
+        # convert these policy actions to direct action
+        direct_actions = agent.policy_to_direct_action(repeated_prev_a, augmented_policy_actions)
+        direct_actions = torch.clip(direct_actions, 0, 1)
+        probs = agent.prob(
+            repeated_states,
+            augmented_policy_actions, # probability is calculated using policy actions
+        )
+        probs = probs.reshape(
+            cfg.primary_action_samples,
+            cfg.other_action_samples,
+        ).mean(dim=1)
+
+        # the x values are the direct actions
+        lin_spaced_actions_in_da_space = direct_actions[:, a_dim_idx].unique()
+        for la_idx, a in enumerate(lin_spaced_actions_in_da_space):
+            app_state.xy_metrics.write(
+                agent_step=app_state.agent_step,
+                metric=f"pdf_plot_action_{a_dim_idx}",
+                x=a,
+                y=probs[la_idx],
+            )
+
+        # Next, plot q values for the entire range of direct actions
+        augmented_direct_actions = direct_actions.clone()
+        augmented_direct_actions[:, a_dim_idx] = repeated_lin_spaced_actions
+        qs = agent.critic.get_values(
+            [repeated_states],
+            [augmented_direct_actions],
+        ).reduced_value
+        qs = qs.reshape(
+            cfg.primary_action_samples,
+            cfg.other_action_samples,
+        ).mean(dim=1)
+        for la_idx, a in enumerate(lin_spaced_actions):
+            app_state.xy_metrics.write(
+                agent_step=app_state.agent_step,
+                metric=f"qs_plot_action_{a_dim_idx}",
+                x=a,
+                y=qs[la_idx],
+            )
+

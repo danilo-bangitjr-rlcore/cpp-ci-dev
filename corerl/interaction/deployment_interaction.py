@@ -182,6 +182,7 @@ class DeploymentInteraction(Interaction):
         agent_eval.q_online(self._app_state, self._agent, s, next_a)
         agent_eval.greed_dist_online(self._app_state, self._agent, s, prev_a)
         agent_eval.greed_values_online(self._app_state, self._agent, s, prev_a)
+        agent_eval.q_values_and_act_prob(self._app_state, self._agent, s, prev_a)
 
         self._write_to_metrics(next_a_df, prefix='ACTION-')
 

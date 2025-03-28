@@ -96,7 +96,11 @@ class GreedyAC(BaseAgent):
         return self._policy_manager.buffer.sample()
 
     def log_prob(self, states: torch.Tensor, actions: torch.Tensor) -> tuple[torch.Tensor, dict]:
-        return self._policy_manager.actor.log_prob(states, actions)
+        with torch.no_grad():
+            return self._policy_manager.actor.log_prob(states, actions)
+
+    def prob(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
+        return torch.exp(self.log_prob(states, actions)[0])
 
     def get_action_interaction(self, state: np.ndarray, prev_direct_action: np.ndarray) -> np.ndarray:
         """
@@ -116,6 +120,12 @@ class GreedyAC(BaseAgent):
         direct_action = ar.direct_actions
 
         return to_np(direct_action)[0]
+
+    def policy_to_direct_action(self, prev_direct_actions: torch.Tensor,  policy_actions: torch.Tensor) -> torch.Tensor:
+        """
+        Converts policy actions to direct actions.
+        """
+        return self._policy_manager.ensure_direct_action(prev_direct_actions, policy_actions)
 
     def get_actor_actions(self, states: torch.Tensor, prev_direct_actions: torch.Tensor) -> ActionReturn:
         """
