@@ -4,14 +4,11 @@ import asyncio
 import datetime
 import logging
 from collections.abc import Callable, Coroutine
-from functools import lru_cache
 from typing import Any, Concatenate
 from uuid import UUID
 
 import numpy as np
 from asyncua import Client, Node, ua
-from asyncua.sync import Client as SyncClient
-from asyncua.sync import SyncNode
 
 from corerl.configs.config import MISSING, config
 
@@ -29,42 +26,6 @@ def make_opc_node_id(node_id: str | int | bytes | UUID, namespace: str | int = 0
         return f"ns={namespace};b={node_id}"
     else:
         return f"ns={namespace};s={node_id}"
-
-def sync_browse_opc_nodes(client: SyncClient, node: SyncNode):
-    """Recursively browse OPC nodes"""
-
-    @lru_cache()
-    def _recurse(node: SyncNode):
-        structure = {}
-        children = node.get_children()
-
-        for child in children:
-            child_node_class = child.read_node_class()
-            child_browse_name = child.read_browse_name()
-            child_display_name = child_browse_name.Name
-
-            # If object, recurse into it
-            if child_node_class == ua.NodeClass.Object:
-                structure[child_display_name] = _recurse(child)
-
-            # Elif variable, write value and data type
-            elif child_node_class == ua.NodeClass.Variable:
-                value = child.read_value()
-                data_type_node = child.read_data_type()
-                data_type_name = client.get_node(data_type_node).read_display_name()
-
-                structure[child_display_name] = {
-                    "val": value,
-                    "DataType": data_type_name.Text,
-                    "NameSpace": child.nodeid.NamespaceIndex,
-                    "Identifier": child.nodeid.Identifier,
-                    "nodeid": make_opc_node_id(child.nodeid.Identifier, child.nodeid.NamespaceIndex)
-            }
-        return structure
-
-    opc_node_tree = _recurse(node)
-    return opc_node_tree
-
 
 def linear_backoff(direction: str, attempts: int = 50):
     def _inner[T, **P](f: Callable[Concatenate[OpcConnection, P], Coroutine[None, None, T]]):

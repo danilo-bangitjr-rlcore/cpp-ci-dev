@@ -56,6 +56,10 @@ services:
       watch:
         - action: rebuild
           path: ./corerl
+    volumes:
+      - type: volume
+        source: coreio-storage
+        target: /app/coreio-data
 
   coreio:
     # thin client: https://github.com/rlcoretech/coreio
@@ -79,7 +83,7 @@ services:
       - 2222:2222
     volumes:
       - type: volume
-        source: thinclient-storage
+        source: coreio-storage
         target: /app/data
 
   grafana:
@@ -98,4 +102,4 @@ services:
 volumes:
   timescale-storage: {}
   grafana-storage: {}
-  thinclient-storage: {}
+  coreio-storage: {}
