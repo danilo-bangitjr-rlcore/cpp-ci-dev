@@ -20,13 +20,6 @@ agent:
       lr: 0.001
 
 
-metrics:
-  enabled: True
-
-evals:
-  name: db
-  enabled: True
-
 eval_cfgs:
   actor_critic:
     enabled: True

@@ -13,9 +13,6 @@ experiment:
   gamma: 0.99
   max_steps: 2500
 
-metrics:
-  enabled: True
-
 pipeline:
   tags:
   # meta tags

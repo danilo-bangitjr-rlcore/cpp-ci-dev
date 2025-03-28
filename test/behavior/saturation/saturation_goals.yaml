@@ -13,10 +13,6 @@ experiment:
   gamma: 0.99
   max_steps: 2000
 
-
-metrics:
-  enabled: True
-
 pipeline:
   reward:
     priorities:

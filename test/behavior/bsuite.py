@@ -54,6 +54,9 @@ class BSuiteTestCase:
             'infra.db.schema': schema,
             'experiment.num_threads': 1,
             'experiment.seed': self.seed,
+            'metrics.enabled': True,
+            'xy_metrics.enabled': True,
+            'evals.enabled': True,
         } | feature_overrides
 
         parts = [f'{k}={v}' for k, v in overrides.items()]
