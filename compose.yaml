@@ -17,7 +17,6 @@ services:
       - timescale-storage:/var/lib/postgresql/data
 
   opc-server:
-    profiles: ['test']
     build: ./e2e/opc_server
     ports:
       - 4840:4840
@@ -30,7 +29,6 @@ services:
           path: ./e2e/opc_server
 
   telegraf:
-    profiles: ['test']
     # image: telegraf:latest
     image: telegraf:1.32.3
     depends_on:
