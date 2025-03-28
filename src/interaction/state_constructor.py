@@ -1,18 +1,18 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 
 
 @dataclass
 class TraceState:
-    mu: Dict[str, Optional[np.ndarray]] = field(default_factory=dict)
+    mu: dict[str, np.ndarray | None] = field(default_factory=dict)
 
 class StateConstructor:
     def __init__(
         self,
-        observation_space_info: Optional[Dict[str, Any]] = None,
-        trace_values: Optional[List[float]] = None
+        observation_space_info: dict[str, Any] | None = None,
+        trace_values: list[float] | None = None
     ):
         self.normalize = observation_space_info is not None
         self.trace = trace_values is not None
@@ -31,9 +31,9 @@ class StateConstructor:
 
     def __call__(
         self,
-        observation: Dict[str, np.ndarray],
-        state: Optional[TraceState] = None
-    ) -> tuple[Dict[str, np.ndarray], Optional[TraceState]]:
+        observation: dict[str, np.ndarray],
+        state: TraceState | None = None
+    ) -> tuple[dict[str, np.ndarray], TraceState | None]:
         result = {}
 
         if self.normalize:
@@ -66,7 +66,7 @@ class StateConstructor:
 
         return result, None
 
-    def denormalize(self, normalized_observation: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+    def denormalize(self, normalized_observation: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
         if not self.normalize:
             return normalized_observation
 
@@ -78,7 +78,7 @@ class StateConstructor:
                 result[key] = value
         return result
 
-    def _compute_trace(self, data: np.ndarray, decays: np.ndarray, mu_0: Optional[np.ndarray] = None):
+    def _compute_trace(self, data: np.ndarray, decays: np.ndarray, mu_0: np.ndarray | None = None):
         n_samples = len(data)
         n_traces = len(decays)
         out = np.zeros((n_samples, n_traces), dtype=np.float64)
@@ -99,7 +99,7 @@ class StateConstructor:
 
         return out, mu
 
-    def get_state_dim(self) -> Optional[int]:
+    def get_state_dim(self) -> int | None:
         if not self.normalize or self.obs_low is None:
             return None
 
@@ -110,7 +110,7 @@ class StateConstructor:
         trace_multiplier = len(self._decays)
         return base_dim * (trace_multiplier + 1)
 
-    def to_array(self, state_dict: Dict[str, np.ndarray]) -> np.ndarray:
+    def to_array(self, state_dict: dict[str, np.ndarray]) -> np.ndarray:
         if self.keys_order is None:
             self.keys_order = []
             for key in sorted(state_dict.keys()):

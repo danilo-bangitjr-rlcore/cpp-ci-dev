@@ -1,6 +1,6 @@
 from collections import deque
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any
 
 
 @dataclass
@@ -15,12 +15,12 @@ class Step:
 
 @dataclass
 class Transition:
-    steps: List[Step]
+    steps: list[Step]
     n_step_reward: float
     n_step_gamma: float
 
 
-type StepInfo = Dict[int, deque[Step]]
+type StepInfo = dict[int, deque[Step]]
 
 
 def get_n_step_reward(step_q: deque[Step]) -> tuple[float, float]:
@@ -56,7 +56,7 @@ class TransitionCreator:
 
         self.step_info = _reset_step_info(self.min_n_step, self.max_n_step)
 
-    def __call__(self, state: Any, action: float, reward: float, next_state: Any, done: bool) -> List[Transition]:
+    def __call__(self, state: Any, action: float, reward: float, next_state: Any, done: bool) -> list[Transition]:
         step = Step(
             state=state,
             action=action,
