@@ -17,6 +17,7 @@ services:
       - timescale-storage:/var/lib/postgresql/data
 
   opc-server:
+    profiles: ['test']
     build: ./e2e/opc_server
     ports:
       - 4840:4840
@@ -29,6 +30,7 @@ services:
           path: ./e2e/opc_server
 
   telegraf:
+    profiles: ['test']
     # image: telegraf:latest
     image: telegraf:1.32.3
     depends_on:
@@ -62,6 +64,7 @@ services:
         target: /app/coreio-data
 
   coreio:
+    profiles: ['test']
     # thin client: https://github.com/rlcoretech/coreio
 
     # By default, use the latest stable image pushed to github container registry.
@@ -101,6 +104,7 @@ services:
       - ./e2e/grafana/grafana_config_continuous_mountain_car.json:/var/lib/grafana/dashboards/grafana_config_continuous_mountain_car.json
 
   opc-sim:
+    profiles: ['test']
     build: 
       context: .
     depends_on:
@@ -118,7 +122,39 @@ services:
       watch:
         - action: rebuild
           path: ./e2e/opc_clients
-    command: ["e2e/opc_clients/opc_sim.py", "--config-name", "config/opc_sim/async_mountain_car_continuous.yaml", "opc_endpoint=opc.tcp://admin@opc-server:4840/rlcore/server/"]
+    
+    command: ["e2e/opc_clients/opc_sim.py", 
+      "--config-name", "config/opc_sim/async_mountain_car_continuous.yaml", 
+      "--opc_endpoint", "opc.tcp://admin@opc-server:4840/rlcore/server/"]
+
+  config-test:
+    profiles: ['test']
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      timescale-db:
+        condition: service_healthy
+      opc-server:
+        condition: service_started
+      telegraf:
+        condition: service_started
+      coreio:
+        condition: service_started
+      opc-sim:
+        condition: service_started
+    volumes:
+      - ./config:/app/config
+      - ./corerl:/app/corerl
+    entrypoint: ["python"]
+    command: [
+      "-m", "corerl.main",
+      "--config-name", "coreio_dep_mountain_car_continuous",
+      "experiment.max_steps=25",
+      "env.db.ip=timescale-db",
+      "metrics.ip=timescale-db",
+      "env.coreio_origin=http://coreio:2222"
+    ]
 
 volumes:
   timescale-storage: {}
