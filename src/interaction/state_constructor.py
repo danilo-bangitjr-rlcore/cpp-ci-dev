@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
@@ -6,7 +6,7 @@ import numpy as np
 
 @dataclass
 class TraceState:
-    mu: dict[str, np.ndarray | None] = field(default_factory=dict)
+    mu: dict[str, np.ndarray | None]
 
 class StateConstructor:
     def __init__(
@@ -31,40 +31,36 @@ class StateConstructor:
 
     def __call__(
         self,
-        observation: dict[str, np.ndarray],
+        observation: np.ndarray,
         state: TraceState | None = None
     ) -> tuple[dict[str, np.ndarray], TraceState | None]:
-        result = {}
-
         if self.normalize:
-            for key, value in observation.items():
-                result[key] = (value - self.obs_low) / self.range
+            result = (observation - self.obs_low) / self.range
         else:
             result = observation.copy()
 
+        result_dict = {str(i): v for i, v in enumerate(result)}
         if self.trace:
             if state is None or state.mu is None:
-                mu = {}
+                mu: dict[str, np.ndarray | None] = {str(i): None for i in range(len(observation))}
             else:
                 mu = state.mu
 
-            trace_result = {}
-            for col, x in (result if self.normalize else observation).items():
+            for i, x in enumerate(result):
+                col = str(i)
                 trace_vals, new_mu = self._compute_trace(
                     data=x,
                     decays=self._decays,
-                    mu_0=mu.get(col)
+                    mu_0=mu[col]
                 )
 
                 mu[col] = new_mu
-                for i, decay in enumerate(self._decays):
-                    new_name = f'{col}_trace-{decay}'
-                    trace_result[new_name] = trace_vals[:, i]
+                for j, decay in enumerate(self._decays):
+                    result_dict[f'{col}_trace-{decay}'] = trace_vals[:, j]
 
-            result.update(trace_result)
-            return result, TraceState(mu)
+            return result_dict, TraceState(mu)
 
-        return result, None
+        return result_dict, None
 
     def denormalize(self, normalized_observation: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
         if not self.normalize:
