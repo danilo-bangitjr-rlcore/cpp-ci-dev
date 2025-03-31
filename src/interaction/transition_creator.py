@@ -19,6 +19,14 @@ class Transition:
     n_step_reward: float
     n_step_gamma: float
 
+    @property
+    def prior(self):
+        return self.steps[0]
+
+    @property
+    def post(self):
+        return self.steps[-1]
+
 
 type StepInfo = dict[int, deque[Step]]
 
