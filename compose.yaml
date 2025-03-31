@@ -143,7 +143,8 @@ services:
     entrypoint: ["python"]
     command: [
       "e2e/opc_clients/opc_sim.py",
-      "--config-name", "config/opc_sim/async_mountain_car_continuous.yaml"
+      "--config-name", "config/opc_sim/async_mountain_car_continuous.yaml",
+      "opc_server=opc-server"
     ]
 
 volumes:

@@ -26,6 +26,7 @@ class OPCSimConfig:
     sim_timestep_period: timedelta | None = None
     obs_tags: list[str] = MISSING
     action_tags: list[str] = MISSING
+    opc_server: str = "0.0.0.0"
 
 def initialize_opc_folder(client: Client, cfg_env: GymEnvConfig):
     # create folder containing environment variables
@@ -143,7 +144,7 @@ def main(cfg: OPCSimConfig):
     env: gym.Env = init_environment(cfg.gym)
     _logger.info(f"Running OPC env simulation {env}")
 
-    client = Client("opc.tcp://admin@0.0.0.0:4840/rlcore/server/")
+    client = Client(f"opc.tcp://admin@{cfg.opc_server}:4840/rlcore/server/")
     try:
         client.connect()
         run(env, client, cfg)
