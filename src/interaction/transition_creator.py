@@ -20,6 +20,13 @@ class Transition:
     n_step_gamma: float
 
     @property
+    def prior(self):
+        return self.steps[0]
+
+    @property
+    def post(self):
+        return self.steps[-1]
+
     def n_steps(self) -> int:
         return len(self.steps) - 1
 
