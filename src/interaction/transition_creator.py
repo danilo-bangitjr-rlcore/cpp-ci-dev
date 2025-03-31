@@ -27,6 +27,9 @@ class Transition:
     def post(self):
         return self.steps[-1]
 
+    def n_steps(self) -> int:
+        return len(self.steps) - 1
+
 
 type StepInfo = dict[int, deque[Step]]
 
