@@ -5,11 +5,10 @@ from typing import Any, Literal
 import jax
 import jax.numpy as jnp
 
-MISSING: Any = "|???|"
 
 @dataclass
 class ActivationConfig:
-    name: Any = MISSING
+    name: Any
 
 @dataclass
 class IdentityConfig(ActivationConfig):
@@ -71,5 +70,13 @@ def get_output_activation(cfg: ActivationConfig):
         assert isinstance(cfg, CosineConfig)
         cosine_act_fn = functools.partial(cos_act, cfg)
         return cosine_act_fn
+    else:
+        raise NotImplementedError
+
+def get_activation(name: str):
+    if name == 'identity':
+        return identity_act
+    elif name == 'relu':
+        return jax.nn.relu
     else:
         raise NotImplementedError

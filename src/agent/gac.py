@@ -1,15 +1,25 @@
 from dataclasses import dataclass
+from functools import partial
+from typing import NamedTuple
 
+import chex
+import distrax
+import haiku as hk
 import jax
+import jax.numpy as jnp
 
 import src.agent.components.networks.networks as nets
 
 
-@dataclass
-class GACNetParams:
+class GACNetParams(NamedTuple):
     critic_params: nets.Params
     actor_params: nets.Params
     proposal_params: nets.Params
+
+
+class GACState(NamedTuple):
+    params: GACNetParams
+
 
 @dataclass
 class GreedyACConfig:
@@ -18,8 +28,43 @@ class GreedyACConfig:
     proposal_percentile: float = 0.1
     uniform_weight: float = 1.0
 
+
+class CriticOutputs(NamedTuple):
+    q: jax.Array
+
+
+def critic_builder(cfg: nets.TorsoConfig):
+    def _inner(x: jax.Array, a: jax.Array):
+        torso = nets.torso_builder(cfg)
+        phi = torso(x, a)
+
+        return CriticOutputs(
+            q=hk.Linear(1)(phi),
+        )
+
+    return hk.without_apply_rng(hk.transform(_inner))
+
+
+class ActorOutputs(NamedTuple):
+    alpha: jax.Array
+    beta: jax.Array
+
+
+def actor_builder(cfg: nets.TorsoConfig, act_dim: int):
+    def _inner(x: jax.Array):
+        torso = nets.torso_builder(cfg)
+        phi = torso(x)
+
+        return ActorOutputs(
+            alpha=hk.Linear(act_dim)(phi),
+            beta=hk.Linear(act_dim)(phi),
+        )
+
+    return hk.without_apply_rng(hk.transform(_inner))
+
+
 class GreedyAC:
-    def __init__(self, cfg: GreedyACConfig, seed: int, action_dim: int):
+    def __init__(self, cfg: GreedyACConfig, seed: int, state_dim: int, action_dim: int):
         self.seed = seed
         self.action_dim = action_dim
         self.num_samples = cfg.num_samples
@@ -27,47 +72,47 @@ class GreedyAC:
         self.proposal_percentile = cfg.proposal_percentile
         self.uniform_weight = cfg.uniform_weight
 
-        self.critic_cfg = nets.EnsembleNetConfig(
-            subnet=nets.FusionNetConfig(output_size=1),
-            ensemble=1
+        critic_torso_cfg = nets.TorsoConfig(
+            layers=[
+                nets.LateFusionConfig(sizes=[32, 32], activation='relu'),
+                nets.LinearConfig(size=64, activation='relu'),
+            ],
         )
-        actor_cfg = nets.LinearNetConfig(output_size=2*action_dim) # Two distribution parameters for Beta and Gaussian
-        self.actor = nets.network_init(actor_cfg, input_dims=1)
-        self.proposal = nets.network_init(actor_cfg, input_dims=1)
+        self.critic = critic_builder(critic_torso_cfg)
 
-    @jax.jit
-    def get_initial_params(self, sample_x: jax.Array) -> GACNetParams:
-        critic_params = nets.ensemble_net_init(self.critic_cfg, self.seed, 2, sample_x)
-        rng = jax.random.PRNGKey(self.seed)
-        rngs = jax.random.split(rng, 2)
-        actor_params = self.actor.init(rng=rngs[0], x=sample_x)
-        proposal_params = self.proposal.init(rng=rngs[1], x=sample_x)
+        actor_torso_cfg = nets.TorsoConfig(
+            layers=[
+                nets.LinearConfig(size=64, activation='relu'),
+                nets.LinearConfig(size=64, activation='relu'),
+            ]
+        )
+        self.actor = actor_builder(actor_torso_cfg, action_dim)
+        self.proposal = self.actor
 
-        return GACNetParams(critic_params, actor_params, proposal_params)
+        key = jax.random.PRNGKey(seed)
+        params = GACNetParams(
+            critic_params=self.critic.init(rng=key, x=jnp.zeros(state_dim), a=jnp.zeros(action_dim)),
+            actor_params=self.actor.init(rng=key, x=jnp.zeros(state_dim)),
+            proposal_params=self.proposal.init(rng=key, x=jnp.zeros(state_dim)),
+        )
+        self.agent_state = GACState(params)
 
-    @jax.jit
-    def get_actor_actions(self, params: GACNetParams, states: jax.Array) -> jax.Array:
+
+    @partial(jax.jit, static_argnums=(0,))
+    def get_actor_actions(self, params: GACNetParams, rng: chex.PRNGKey, states: jax.Array):
         actor_params = params.actor_params
-        dist_params = self.actor.apply(params=actor_params, x=states)
-        alphas = dist_params[:, 0::2]
-        betas = dist_params[:, 1::2]
-        rng = jax.random.PRNGKey(self.seed)
+        out: ActorOutputs = self.actor.apply(params=actor_params, x=states)
+        return distrax.Beta(out.alpha, out.beta).sample(seed=rng)
 
-        return jax.random.beta(rng, alphas, betas)
 
-    @jax.jit
-    def get_proposal_actions(self, params: GACNetParams, states: jax.Array) -> jax.Array:
+    @partial(jax.jit, static_argnums=(0,))
+    def get_proposal_actions(self, params: GACNetParams, rng: chex.PRNGKey, states: jax.Array) -> jax.Array:
         proposal_params = params.proposal_params
-        dist_params = self.proposal.apply(params=proposal_params, x=states)
-        alphas = dist_params[:, 0::2]
-        betas = dist_params[:, 1::2]
-        rng = jax.random.PRNGKey(self.seed)
+        out: ActorOutputs = self.proposal.apply(params=proposal_params, x=states)
+        return distrax.Beta(out.alpha, out.beta).sample(seed=rng)
 
-        return jax.random.beta(rng, alphas, betas)
-
-    @jax.jit
-    def get_uniform_actions(self, samples: int) -> jax.Array:
-        rng = jax.random.PRNGKey(self.seed)
+    @partial(jax.jit, static_argnums=(0,))
+    def get_uniform_actions(self, rng: chex.PRNGKey, samples: int) -> jax.Array:
         return jax.random.uniform(rng, (samples, self.action_dim))
 
     def critic_loss(self, params: GACNetParams):
