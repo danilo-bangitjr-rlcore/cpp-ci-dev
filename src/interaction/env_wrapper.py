@@ -1,6 +1,7 @@
 from typing import Any
 
 import numpy as np
+import jax.numpy as jnp
 from gymnasium import Env
 
 from .state_constructor import StateConstructor
@@ -74,5 +75,6 @@ class EnvWrapper:
     def get_state_dim(self) -> int | None:
         return self.state_constructor.get_state_dim()
 
-    def to_array(self, state_dict: dict[str, Any]) -> np.ndarray:
-        return self.state_constructor.to_array(state_dict)
+    def to_array(self, state_dict: dict[str, Any]) -> jnp.ndarray:
+        numpy_array = self.state_constructor.to_array(state_dict)
+        return jnp.asarray(numpy_array)
