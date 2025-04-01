@@ -309,7 +309,7 @@ def _greed_values(
 
     qr_actor = get_sampled_qs(
         states, prev_actions, n_samples,
-        sampler=agent.get_sampler_actions,
+        sampler=agent.get_actor_actions,
         critic=agent.critic
     )
     q_values_actor = qr_actor.q_values
