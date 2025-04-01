@@ -167,10 +167,11 @@ class GreedyAC(BaseAgent):
         if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
             recent_critic_batch = self.critic_buffer.get_batch(recent_critic_idxs)
             duplicated_critic_batch = [recent_critic_batch for i in range(self.ensemble)]
+            bootstrap_actions = self._get_bootstrap_actions(duplicated_critic_batch)
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
                 metric=f"ingress_critic_loss_{pr.data_mode.name}",
-                value=self._compute_critic_loss(duplicated_critic_batch),
+                value=self.critic.compute_loss(duplicated_critic_batch, bootstrap_actions).item(),
             )
 
         # ------------------------- transition length metric ------------------------- #
@@ -195,103 +196,42 @@ class GreedyAC(BaseAgent):
 
     # --------------------------- critic updating-------------------------- #
 
-    def _compute_critic_loss(
-            self,
-            ensemble_batch: list[TransitionBatch],
-            with_grad: bool=False,
-            log_metrics: bool=False,
-        ) -> torch.Tensor:
-        # First, translate ensemble batches in to list for each property
-        ensemble_len = len(ensemble_batch)
-        state_batches = []
-        action_batches = []
-        reward_batches = []
-        next_state_batches = []
-        next_action_batches = []
-        gamma_batches = []
-        for batch in ensemble_batch:
-            state_batch = batch.prior.state
-            direct_action_batch = batch.post.action
-            reward_batch = batch.n_step_reward
-            next_state_batch = batch.post.state
-            gamma_batch = batch.n_step_gamma
-            dp_mask = batch.post.dp
+    def _get_bootstrap_actions(
+        self,
+        batches: list[TransitionBatch]
+    ):
+        next_actions: list[torch.Tensor] = []
 
-            ar = self._policy_manager.get_actor_actions(next_state_batch,  direct_action_batch)
-            next_direct_actions = ar.direct_actions
-
-            # For the 'Anytime' paradigm, only states at decision points can sample next_actions
-            # If a state isn't at a decision point, its next_action is set to the current action
+        for batch in batches:
             with torch.no_grad():
-                next_direct_actions = (dp_mask * next_direct_actions) + ((1.0 - dp_mask) * direct_action_batch)
+                cur_action = batch.post.action
+                dp_mask = batch.post.dp
+                ar = self._policy_manager.get_actor_actions(batch.post.state,  cur_action)
+                next_direct_actions = ar.direct_actions
+                next_direct_actions = (dp_mask * next_direct_actions) + ((1.0 - dp_mask) * cur_action)
 
-            state_batches.append(state_batch)
-            action_batches.append(direct_action_batch)
-            reward_batches.append(reward_batch)
-            next_state_batches.append(next_state_batch)
-            next_action_batches.append(next_direct_actions)
-            gamma_batches.append(gamma_batch)
+            next_actions.append(next_direct_actions)
 
-        # Second, use this information to compute the targets
-        target_values = self.critic.get_target_values(next_state_batches, next_action_batches)
+        return next_actions
 
-        # Third, compute losses
-        values = self.critic.get_values(state_batches, action_batches, with_grad=with_grad)
-        loss = torch.tensor(0.0, device=device.device)
-        for i in range(ensemble_len):
-            target =  reward_batches[i] + gamma_batches[i] * target_values.ensemble_values[i]
-            loss_i = torch.nn.functional.mse_loss(target, values.ensemble_values[i])
-            loss += loss_i
-
-            if log_metrics:
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric=f"critic_loss_{i}",
-                    value=to_np(loss_i),
-                )
-
-        if log_metrics:
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric="avg_critic_loss",
-                value=to_np(loss)/ensemble_len,
-            )
-            if values.ensemble_variance is not None:
-                mean_variance = torch.mean(values.ensemble_variance)
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric="critic_ensemble_variance",
-                    value=to_np(mean_variance),
-                )
-        return loss
 
     def update_critic(self) -> list[float]:
         if not self.critic_buffer.is_sampleable:
             return []
 
-        self._app_state.event_bus.emit_event(EventType.agent_update_critic)
         batches = self.critic_buffer.sample()
-        q_loss = self._compute_critic_loss(batches, with_grad=True, log_metrics=True)
-
-        log_most_recent_batch_loss = self.cfg.most_recent_batch_loss and self.critic_buffer.n_most_recent > 0
-        if log_most_recent_batch_loss:
-            # grab the most recent samples from the batch and log the loss on only these samples
-            batch_slices = [b[:self.critic_buffer.n_most_recent] for b in batches]
-            n_most_recent_loss = self._compute_critic_loss(batch_slices)
-
-            self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric=f"critic_loss_{self.critic_buffer.n_most_recent}_most_recent",
-                    value=n_most_recent_loss,
-            )
+        bootstrap_actions = self._get_bootstrap_actions(batches)
+        eval_actions = bootstrap_actions
 
         if self.eval_batch:
             eval_batches = self.critic_buffer.sample()
+            eval_actions = self._get_bootstrap_actions(eval_batches)
         else:
             eval_batches = batches
 
-        self.critic.update(q_loss, closure=lambda: self._compute_critic_loss(eval_batches).item())
+        q_loss = self.critic.update(batches, bootstrap_actions, eval_batches, eval_actions)
         return [float(q_loss)]
+
 
     def update(self) -> list[float]:
         q_losses = []
