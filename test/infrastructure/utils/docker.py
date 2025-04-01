@@ -6,15 +6,15 @@ from docker import errors, from_env
 
 def init_docker_container(
     name: str = "test_timescale",
-    repository: str = "timescale/timescaledb-ha",
-    tag: str = "pg16",
+    repository: str = "timescale/timescaledb",
+    tag: str = "latest-pg17",
     env: Mapping[str, str] = MappingProxyType({"POSTGRES_PASSWORD": "password"}),
     ports: Mapping[str, Any] = MappingProxyType({"5432": 5433}),
     restart: bool = True,
 ):
     """This function will spin up a docker container running timescaledb.
     All docker container and image configurations are parameterized.
-    By default, a timescaledb-ha:pg16 image will be used to create a container named
+    By default, a timescaledb:ltaest-pg17 image will be used to create a container named
     test_timescale, binding container port 5432 to 5433.
     """
     client = from_env()
